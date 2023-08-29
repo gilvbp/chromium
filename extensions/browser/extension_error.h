@@ -12,7 +12,6 @@
 
 #include "base/compiler_specific.h"
 #include "base/logging.h"
-#include "extensions/common/extension_id.h"
 #include "extensions/common/stack_frame.h"
 #include "url/gurl.h"
 
@@ -39,7 +38,7 @@ class ExtensionError {
   bool IsEqual(const ExtensionError* rhs) const;
 
   Type type() const { return type_; }
-  const ExtensionId& extension_id() const { return extension_id_; }
+  const std::string& extension_id() const { return extension_id_; }
   int id() const { return id_; }
   void set_id(int id) { id_ = id; }
   bool from_incognito() const { return from_incognito_; }
@@ -51,7 +50,7 @@ class ExtensionError {
 
  protected:
   ExtensionError(Type type,
-                 const ExtensionId& extension_id,
+                 const std::string& extension_id,
                  bool from_incognito,
                  logging::LogSeverity level,
                  const std::u16string& source,
@@ -62,7 +61,7 @@ class ExtensionError {
   // Which type of error this is.
   Type type_;
   // The ID of the extension which caused the error.
-  ExtensionId extension_id_;
+  std::string extension_id_;
   // The id of this particular error. This can be zero if the id is never set.
   int id_;
   // Whether or not the error was caused while incognito.

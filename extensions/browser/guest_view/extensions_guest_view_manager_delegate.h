@@ -5,7 +5,12 @@
 #ifndef EXTENSIONS_BROWSER_GUEST_VIEW_EXTENSIONS_GUEST_VIEW_MANAGER_DELEGATE_H_
 #define EXTENSIONS_BROWSER_GUEST_VIEW_EXTENSIONS_GUEST_VIEW_MANAGER_DELEGATE_H_
 
+#include "base/memory/raw_ptr.h"
 #include "components/guest_view/browser/guest_view_manager_delegate.h"
+
+namespace content {
+class BrowserContext;
+}  // namespace content
 
 namespace extensions {
 
@@ -14,7 +19,7 @@ namespace extensions {
 class ExtensionsGuestViewManagerDelegate
     : public guest_view::GuestViewManagerDelegate {
  public:
-  ExtensionsGuestViewManagerDelegate();
+  explicit ExtensionsGuestViewManagerDelegate(content::BrowserContext* context);
   ~ExtensionsGuestViewManagerDelegate() override;
 
   // GuestViewManagerDelegate implementation.
@@ -27,6 +32,9 @@ class ExtensionsGuestViewManagerDelegate
   bool IsOwnedByExtension(guest_view::GuestViewBase* guest) override;
   void RegisterAdditionalGuestViewTypes(
       guest_view::GuestViewManager* manager) override;
+
+ private:
+  const raw_ptr<content::BrowserContext> context_;
 };
 
 }  // namespace extensions

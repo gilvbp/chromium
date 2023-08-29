@@ -6,10 +6,14 @@
 
 #include <Foundation/Foundation.h>
 
-#include "base/apple/foundation_util.h"
 #include "base/enterprise_util.h"
+#include "base/mac/foundation_util.h"
 #include "chrome/updater/constants.h"
 #include "chrome/updater/policy/manager.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 // Constants for managed preference policy keys.
 static NSString* kGlobalPolicyKey = @"global";
@@ -108,7 +112,7 @@ int TranslateUpdatePolicyValue(int update_policy_from_managed_preferences) {
 - (instancetype)initWithDictionary:(CRUAppPolicyDictionary*)policyDict {
   if (([super init])) {
     _downloadPreference =
-        base::apple::ObjCCast<NSString>(policyDict[kDownloadPreferenceKey]);
+        base::mac::ObjCCast<NSString>(policyDict[kDownloadPreferenceKey]);
     _defaultUpdatePolicy = updater::TranslateUpdatePolicyValue(
         updater::ReadPolicyInteger(policyDict[kUpdateDefaultKey]));
     _updatesSuppressed.start_hour_ =
@@ -171,9 +175,9 @@ int TranslateUpdatePolicyValue(int update_policy_from_managed_preferences) {
     _updatePolicy = updater::TranslateUpdatePolicyValue(
         updater::ReadPolicyInteger(policyDict[kUpdateDefaultKey]));
     _targetChannel =
-        base::apple::ObjCCast<NSString>(policyDict[kTargetChannelKey]);
+        base::mac::ObjCCast<NSString>(policyDict[kTargetChannelKey]);
     _targetVersionPrefix =
-        base::apple::ObjCCast<NSString>(policyDict[kTargetVersionPrefixKey]);
+        base::mac::ObjCCast<NSString>(policyDict[kTargetVersionPrefixKey]);
     _rollbackToTargetVersion =
         updater::ReadPolicyInteger(policyDict[kRollbackToTargetVersionKey]);
   }
@@ -205,11 +209,11 @@ int TranslateUpdatePolicyValue(int update_policy_from_managed_preferences) {
       __strong _appPolicies;
 }
 
-@synthesize hasActivePolicy = _hasActivePolicy;
+@synthesize managed = _managed;
 
 - (instancetype)initWithDictionary:(CRUUpdatePolicyDictionary*)policies {
   if (([super init])) {
-    _hasActivePolicy = policies.count > 0;
+    _managed = policies.count > 0 && base::IsManagedOrEnterpriseDevice();
 
     // Always create a global policy instance for default values.
     _globalPolicy = [[CRUManagedPreferenceGlobalPolicySettings alloc]

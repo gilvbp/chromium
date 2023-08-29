@@ -41,8 +41,6 @@ class CompatModeButtonController {
   // virtual for unittest.
   virtual void OnButtonPressed();
 
-  void UpdateArrowIcon(aura::Window* window, bool widget_visibility);
-
   base::WeakPtr<CompatModeButtonController> GetWeakPtr();
 
  private:

@@ -35,8 +35,7 @@ SCTReportingServiceFactory::SCTReportingServiceFactory()
 
 SCTReportingServiceFactory::~SCTReportingServiceFactory() = default;
 
-std::unique_ptr<KeyedService>
-SCTReportingServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* SCTReportingServiceFactory::BuildServiceInstanceFor(
     content::BrowserContext* profile) const {
   safe_browsing::SafeBrowsingService* safe_browsing_service =
       g_browser_process->safe_browsing_service();
@@ -45,8 +44,8 @@ SCTReportingServiceFactory::BuildServiceInstanceForBrowserContext(
   if (!safe_browsing_service)
     return nullptr;
 
-  return std::make_unique<SCTReportingService>(safe_browsing_service,
-                                               static_cast<Profile*>(profile));
+  return new SCTReportingService(safe_browsing_service,
+                                 static_cast<Profile*>(profile));
 }
 
 // Force this to be created during BrowserContext creation, since we can't

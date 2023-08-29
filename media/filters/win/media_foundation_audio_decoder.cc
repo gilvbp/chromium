@@ -22,6 +22,7 @@
 #include "media/base/win/mf_helpers.h"
 #include "media/base/win/mf_initializer.h"
 #include "media/filters/win/media_foundation_audio_decoder.h"
+#include "media/filters/win/media_foundation_utils.h"
 
 namespace media {
 

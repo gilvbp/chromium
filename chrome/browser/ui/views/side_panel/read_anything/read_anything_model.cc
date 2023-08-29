@@ -16,7 +16,6 @@
 #include "chrome/common/accessibility/read_anything_constants.h"
 #include "chrome/grit/component_extension_resources.h"
 #include "chrome/grit/generated_resources.h"
-#include "ui/accessibility/accessibility_features.h"
 #include "ui/base/l10n/l10n_util.h"
 #include "ui/base/models/image_model.h"
 #include "ui/base/resource/resource_bundle.h"
@@ -56,7 +55,7 @@ const char* kLanguagesSupportedByStixTwoText[] = {
 }  // namespace
 
 ReadAnythingModel::ReadAnythingModel()
-    : font_name_(string_constants::kReadAnythingPlaceholderFontName),
+    : font_name_(string_constants::kReadAnythingDefaultFontName),
       font_scale_(kReadAnythingDefaultFontScale),
       font_model_(std::make_unique<ReadAnythingFontModel>()),
       colors_model_(std::make_unique<ReadAnythingColorsModel>()),
@@ -122,9 +121,7 @@ void ReadAnythingModel::Init(const std::string& lang_code,
 
 void ReadAnythingModel::AddObserver(Observer* obs) {
   observers_.AddObserver(obs);
-  if (!features::IsReadAnythingWebUIToolbarEnabled()) {
-    NotifyThemeChanged();
-  }
+  NotifyThemeChanged();
 }
 
 void ReadAnythingModel::RemoveObserver(Observer* obs) {

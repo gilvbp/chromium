@@ -38,6 +38,10 @@
     margin: 12px 0;
   }
 
+  iron-icon[icon='personalization:managed-old'] {
+    --iron-icon-fill-color: var(--cros-icon-color-secondary);
+  }
+
   #imageContainer,
   #imagePlaceholder {
     background-color: var(--personalization-app-grid-item-background-color);
@@ -110,24 +114,39 @@
       <div id="imageContainer" class="photo-images-container clickable"
           on-click="onClickWallpaper_" on-keypress="onClickWallpaper_">
         <div class="photo-images-border"></div>
-        <img alt$="[[getImageAltDescription_(image_, attribution_)]]"
+        <img alt$="[[getImageAltDescription_(image_)]]"
             src$="[[getWallpaperSrc_(image_)]]">
       </div>
     </template>
     <template is="dom-if" if="[[policyControlled_]]">
-      <div id="wallpaperLabel" class="disabled">
-        <p>$i18n{wallpaperLabel}</p>
-        <iron-icon icon="personalization:managed" disabled
-            title="$i18n{managedSetting}">
-        </iron-icon>
-      </div>
-      <div id="imageContainer" class="photo-images-container">
-        <div class="photo-images-border"></div>
-        <img alt$="[[getImageAltDescription_(image_, attribution_)]]"
-            aria-description="$i18n{managedSetting}"
-            class="disabled"
-            src$="[[getWallpaperSrc_(image_)]]">
-      </div>
+      <template is="dom-if" if="[[!isPersonalizationJellyEnabled_]]">
+        <div id="wallpaperLabel">
+          <p>$i18n{wallpaperLabel}</p>
+          <iron-icon icon="personalization:managed-old" title="$i18n{managedSetting}">
+          </iron-icon>
+        </div>
+        <div id="imageContainer" class="photo-images-container">
+          <div class="photo-images-border"></div>
+          <img alt$="[[getImageAltDescription_(image_)]]"
+              aria-description="$i18n{managedSetting}"
+              src$="[[getWallpaperSrc_(image_)]]">
+        </div>
+      </template>
+      <template is="dom-if" if="[[isPersonalizationJellyEnabled_]]">
+        <div id="wallpaperLabel" class="disabled">
+          <p>$i18n{wallpaperLabel}</p>
+          <iron-icon icon="personalization:managed" disabled
+              title="$i18n{managedSetting}">
+          </iron-icon>
+        </div>
+        <div id="imageContainer" class="photo-images-container">
+          <div class="photo-images-border"></div>
+          <img alt$="[[getImageAltDescription_(image_)]]"
+              aria-description="$i18n{managedSetting}"
+              class="disabled"
+              src$="[[getWallpaperSrc_(image_)]]">
+        </div>
+      </template>
     </template>
   </template>
   <slot></slot>

@@ -1613,6 +1613,12 @@ bool TabsUpdateFunction::UpdateURL(const std::string& url_string,
     return false;
   }
 
+  // JavaScript URLs are forbidden in chrome.tabs.update().
+  if (url->SchemeIs(url::kJavaScriptScheme)) {
+    *error = tabs_constants::kJavaScriptUrlsNotAllowedInTabsUpdate;
+    return false;
+  }
+
   NavigationController::LoadURLParams load_params(*url);
 
   // Treat extension-initiated navigations as renderer-initiated so that the URL
@@ -2414,9 +2420,9 @@ bool ExecuteCodeInTabFunction::CanExecuteScriptOnPage(std::string* error) {
 
   int frame_id = details_->frame_id ? *details_->frame_id
                                     : ExtensionApiFrameIdMap::kTopFrameId;
-  content::RenderFrameHost* render_frame_host =
+  content::RenderFrameHost* rfh =
       ExtensionApiFrameIdMap::GetRenderFrameHostById(contents, frame_id);
-  if (!render_frame_host) {
+  if (!rfh) {
     *error = ErrorUtils::FormatErrorMessage(
         tabs_constants::kFrameNotFoundError, base::NumberToString(frame_id),
         base::NumberToString(execute_tab_id_));
@@ -2426,12 +2432,11 @@ bool ExecuteCodeInTabFunction::CanExecuteScriptOnPage(std::string* error) {
   // Content scripts declared in manifest.json can access frames at about:-URLs
   // if the extension has permission to access the frame's origin, so also allow
   // programmatic content scripts at about:-URLs for allowed origins.
-  GURL effective_document_url(render_frame_host->GetLastCommittedURL());
+  GURL effective_document_url(rfh->GetLastCommittedURL());
   bool is_about_url = effective_document_url.SchemeIs(url::kAboutScheme);
   if (is_about_url && details_->match_about_blank &&
       *details_->match_about_blank) {
-    effective_document_url =
-        GURL(render_frame_host->GetLastCommittedOrigin().Serialize());
+    effective_document_url = GURL(rfh->GetLastCommittedOrigin().Serialize());
   }
 
   if (!effective_document_url.is_valid()) {
@@ -2449,8 +2454,8 @@ bool ExecuteCodeInTabFunction::CanExecuteScriptOnPage(std::string* error) {
             mojom::APIPermissionID::kTab)) {
       *error = ErrorUtils::FormatErrorMessage(
           manifest_errors::kCannotAccessAboutUrl,
-          render_frame_host->GetLastCommittedURL().spec(),
-          render_frame_host->GetLastCommittedOrigin().Serialize());
+          rfh->GetLastCommittedURL().spec(),
+          rfh->GetLastCommittedOrigin().Serialize());
     }
     return false;
   }

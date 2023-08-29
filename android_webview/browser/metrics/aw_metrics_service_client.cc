@@ -70,17 +70,6 @@ bool IsAppPackageNameServerSideAllowlistEnabled() {
       android_webview::features::kWebViewAppsPackageNamesServerSideAllowlist);
 }
 
-int GetBaseSampleRatePerMille() {
-  // Down-sample unknown channel as a precaution in case it ends up being
-  // shipped to Stable users.
-  version_info::Channel channel = version_info::android::GetChannel();
-  if (channel == version_info::Channel::STABLE ||
-      channel == version_info::Channel::UNKNOWN) {
-    return kStableSampledInRatePerMille;
-  }
-  return kBetaDevCanarySampledInRatePerMille;
-}
-
 }  // namespace
 
 const base::TimeDelta kRecordAppDataDirectorySizeDelay = base::Seconds(10);
@@ -115,19 +104,17 @@ int32_t AwMetricsServiceClient::GetProduct() {
 }
 
 int AwMetricsServiceClient::GetSampleRatePerMille() const {
-  if (base::FeatureList::IsEnabled(features::kWebViewMetricsFiltering)) {
+  if (base::FeatureList::IsEnabled(features::kWebViewServerSideSampling)) {
     return 1000;
   }
-  return GetBaseSampleRatePerMille();
-}
-
-bool AwMetricsServiceClient::ShouldApplyMetricsFiltering() const {
-  if (base::FeatureList::IsEnabled(features::kWebViewMetricsFiltering)) {
-    bool used_to_sample_in =
-        GetSampleBucketValue() < GetBaseSampleRatePerMille();
-    return !used_to_sample_in;
+  // Down-sample unknown channel as a precaution in case it ends up being
+  // shipped to Stable users.
+  version_info::Channel channel = version_info::android::GetChannel();
+  if (channel == version_info::Channel::STABLE ||
+      channel == version_info::Channel::UNKNOWN) {
+    return kStableSampledInRatePerMille;
   }
-  return false;
+  return kBetaDevCanarySampledInRatePerMille;
 }
 
 std::string AwMetricsServiceClient::GetAppPackageNameIfLoggable() {

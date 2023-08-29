@@ -21,7 +21,7 @@ from blinkpy.tool.commands.build_resolver import (
     BuildResolver,
     UnresolvedBuildException,
 )
-from blinkpy.tool.commands.command import resolve_test_patterns
+from blinkpy.tool.commands.command import check_file_option
 from blinkpy.tool.commands.rebaseline import AbstractParallelRebaselineCommand
 from blinkpy.tool.commands.rebaseline import TestBaselineSet
 
@@ -53,6 +53,13 @@ class RebaselineCL(AbstractParallelRebaselineCommand):
         action='store_false',
         default=True,
         help='Do not trigger any try jobs.')
+    test_name_file_option = optparse.make_option(
+        '--test-name-file',
+        action='callback',
+        callback=check_file_option,
+        type='string',
+        help=('Read names of tests to update from this file, '
+              'one test per line.'))
     patchset_option = optparse.make_option(
         '--patchset',
         default=None,
@@ -259,14 +266,22 @@ class RebaselineCL(AbstractParallelRebaselineCommand):
             lambda build_step: results_fetcher.gather_results(*build_step),
             build_steps)
         for (build, _), results in zip(build_steps, step_results):
-            builds_to_results[build].append(results)
+            if len(results) > 0:
+                builds_to_results[build].append(results)
         return builds_to_results
 
     def _make_test_baseline_set_from_file(self, filename, builds_to_results):
-        tests = set()
+        tests = []
         try:
-            _log.info('Reading list of tests to rebaseline from %s', filename)
-            tests = self._host_port.tests_from_file(filename)
+            with self._tool.filesystem.open_text_file_for_reading(
+                    filename) as fh:
+                _log.info('Reading list of tests to rebaseline '
+                          'from %s', filename)
+                for test in fh.readlines():
+                    test = test.strip()
+                    if not test or test.startswith('#'):
+                        continue
+                    tests.append(test)
         except IOError:
             _log.info('Could not read test names from %s', filename)
         return self._make_test_baseline_set_for_tests(tests, builds_to_results)
@@ -283,8 +298,15 @@ class RebaselineCL(AbstractParallelRebaselineCommand):
             A TestBaselineSet object.
         """
         test_baseline_set = TestBaselineSet(self._tool.builders)
-        port = self._tool.port_factory.get()
-        tests = resolve_test_patterns(port, test_patterns)
+        port, tests = self._tool.port_factory.get(), set()
+        for test_pattern in sorted(test_patterns):
+            resolved_tests = port.tests([test_pattern])
+            if not resolved_tests:
+                _log.warning(
+                    '%r does not represent any tests and may be misspelled.',
+                    test_pattern)
+            tests.update(resolved_tests)
+
         for test, (build, builder_results) in itertools.product(
                 tests, builds_to_results.items()):
             for step_results in builder_results:
@@ -386,8 +408,7 @@ class RebaselineCL(AbstractParallelRebaselineCommand):
             _log.warning('Unexpected retry summary content:\n%s', content)
             return None
 
-    def fill_in_missing_results(
-            self, test_baseline_set: TestBaselineSet) -> TestBaselineSet:
+    def fill_in_missing_results(self, test_baseline_set):
         """Adds entries, filling in results for missing jobs.
 
         For each test prefix, if there is an entry missing for some port,
@@ -398,38 +419,21 @@ class RebaselineCL(AbstractParallelRebaselineCommand):
         is an entry for the "win-win11" port, then an entry might be added
         for "win-win10" using the results from "win-win11".
         """
-        # Group tasks by step, since not all steps run the same tests (e.g., we
-        # should not fill in WPT tests in a `blink_web_tests` step).
-        tasks_by_step = collections.defaultdict(set)
-        for task in test_baseline_set:
-            tasks_by_step[task.step_name].add(task)
-        for step_name, tasks in tasks_by_step.items():
-            all_ports = {
-                self._tool.builders.port_name_for_builder_name(builder)
-                for builder in self.selected_try_bots if step_name in
-                self._tool.builders.step_names_for_builder(builder)
-            }
-            build_ports_by_test = collections.defaultdict(set)
-            for task in tasks:
-                build_ports_by_test[task.test].add(
-                    (task.build, task.port_name))
-            for test in sorted(build_ports_by_test):
-                build_port_pairs = build_ports_by_test[test]
-                missing_ports = all_ports - {
-                    port
-                    for _, port in build_port_pairs
-                }
-                if not missing_ports:
-                    continue
-                _log.info('For %s:', test)
-                for port in sorted(missing_ports):
-                    build = self._choose_fill_in_build(port, build_port_pairs)
-                    _log.info('Using "%s" build %d for %s.',
-                              build.builder_name, build.build_number, port)
-                    test_baseline_set.add(test,
-                                          build,
-                                          step_name,
-                                          port_name=port)
+        all_ports = {
+            self._tool.builders.port_name_for_builder_name(b)
+            for b in self.selected_try_bots
+        }
+        for test in test_baseline_set.all_tests():
+            build_port_pairs = test_baseline_set.build_port_pairs(test)
+            missing_ports = all_ports - {p for _, p in build_port_pairs}
+            if not missing_ports:
+                continue
+            _log.info('For %s:', test)
+            for port in sorted(missing_ports):
+                build = self._choose_fill_in_build(port, build_port_pairs)
+                _log.info('Using "%s" build %d for %s.', build.builder_name,
+                          build.build_number, port)
+                test_baseline_set.add(test, build, port_name=port)
         return test_baseline_set
 
     def _choose_fill_in_build(self, target_port, build_port_pairs):
@@ -440,9 +444,8 @@ class RebaselineCL(AbstractParallelRebaselineCommand):
         """
 
         # A full port name should normally always be of the form <os>-<version>;
-        # for example "win-win11", or "mac-mac13-arm64". For the test port used
-        # in unit tests, though, the full port name may be
-        # "test-<os>-<version>".
+        # for example "win-win11", or "linux-trusty". For the test port used in
+        # unit tests, though, the full port name may be "test-<os>-<version>".
         def os_name(port):
             if '-' not in port:
                 return port

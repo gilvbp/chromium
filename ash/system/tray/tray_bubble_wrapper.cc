@@ -119,7 +119,7 @@ void TrayBubbleWrapper::OnWindowActivated(ActivationReason reason,
 
   // If the activated window is a popup notification, interacting with it should
   // not close the bubble.
-  if (features::IsNotifierCollisionEnabled() &&
+  if (features::IsQsRevampEnabled() &&
       RootWindowController::ForWindow(gained_active)
           ->shelf()
           ->GetStatusAreaWidget()

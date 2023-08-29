@@ -11,7 +11,6 @@
 #include "third_party/skia/include/core/SkRefCnt.h"
 
 class SkColorFilter;
-class SkColorTable;
 struct SkHighContrastConfig;
 
 namespace cc {
@@ -31,11 +30,11 @@ class CC_PAINT_EXPORT ColorFilter : public SkRefCnt {
   static sk_sp<ColorFilter> MakeSRGBToLinearGamma();
   static sk_sp<ColorFilter> MakeLinearToSRGBGamma();
   static sk_sp<ColorFilter> MakeLuma();
+  // TODO(wangxianzhu): Use sk_sp<SkColorTable> when it's available.
   static sk_sp<ColorFilter> MakeTableARGB(const uint8_t a_table[256],
                                           const uint8_t r_table[256],
                                           const uint8_t g_table[256],
                                           const uint8_t b_table[256]);
-  static sk_sp<ColorFilter> MakeTable(sk_sp<SkColorTable> table);
   static sk_sp<ColorFilter> MakeHighContrast(
       const SkHighContrastConfig& config);
 
@@ -44,11 +43,6 @@ class CC_PAINT_EXPORT ColorFilter : public SkRefCnt {
   bool EqualsForTesting(const ColorFilter& other) const;
 
  protected:
-  friend class ColorFilterPaintFilter;
-  friend class PaintFlags;
-  friend class PaintOpReader;
-  friend class PaintOpWriter;
-
   enum class Type {
     // kNull is for serialization purposes only, to indicate a null color
     // filter in a containing object (e.g. PaintFlags).
@@ -63,14 +57,24 @@ class CC_PAINT_EXPORT ColorFilter : public SkRefCnt {
     kMaxValue = kHighContrast,
   };
 
-  explicit ColorFilter(Type type, sk_sp<SkColorFilter> sk_color_filter);
+  explicit ColorFilter(Type type);
+
+  sk_sp<SkColorFilter> GetSkColorFilter() const;
+
+  virtual sk_sp<SkColorFilter> CreateSkColorFilter() const = 0;
   // These functions don't handle type_. It's handled in PaintOpWriter/Reader.
   virtual size_t SerializedDataSize() const;
   virtual void SerializeData(PaintOpWriter& writer) const;
   static sk_sp<ColorFilter> Deserialize(PaintOpReader& reader, Type type);
 
+ private:
+  friend class ColorFilterPaintFilter;
+  friend class PaintFlags;
+  friend class PaintOpReader;
+  friend class PaintOpWriter;
+
   Type type_;
-  sk_sp<SkColorFilter> sk_color_filter_;
+  mutable sk_sp<SkColorFilter> sk_color_filter_;
 };
 
 }  // namespace cc

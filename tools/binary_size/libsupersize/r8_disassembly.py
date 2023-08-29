@@ -90,9 +90,7 @@ class _WrapPeekableNoNewLine:
 
   def __init__(self, it):
     self._it = it
-    self._peek_lineno = 1
-    self._buf = None  # Look-ahead cache to support peek().
-    self._cur = None  # Most recent next() value.
+    self._buf = None
 
   def _next_internal(self):
     ret = next(self._it, None)
@@ -100,21 +98,14 @@ class _WrapPeekableNoNewLine:
 
   def __next__(self):
     if self._buf is None:
-      self._cur = self._next_internal()
-    else:
-      self._cur, self._buf = self._buf, None
-    self._peek_lineno += 1
-    return self._cur
+      return self._next_internal()
+    ret, self._buf = self._buf, None
+    return ret
 
   def peek(self):
     if self._buf is None:
       self._buf = self._next_internal()
     return self._buf
-
-  def format_error(self, expected, is_peek=False):
-    return ' '.join(('Line %d:' % (self._peek_lineno - int(not is_peek)),
-                     'Expected %s,' % expected,
-                     'got %r.' % (self.peek() if is_peek else self._cur)))
 
 
 # pylint: disable=stop-iteration-return
@@ -152,27 +143,26 @@ def _ExtractMethodInfo(it):
     method_str = next(it).split('\'')[1]
     # Skip access flags, e.g., "# public abstract".
     line = next(it)
-    assert line.startswith('# '), it.format_error('comment with access flags')
+    assert line.startswith('# ')
     # Read "Residual:", made optional for compatibility.
     line = next(it)
     if line.startswith('# Residual:'):
       residual_str = line.split('\'')[1]
       line = next(it)
     # Eat line "#".
-    assert line == '#', it.format_error('empty comment')
+    assert line == '#'
     # Eat blank line.
-    assert next(it) == '', it.format_error('empty line')
+    assert next(it) == ''
     # Seek and read signature, possibly advance to next or exit.
     if it.peek() is None:
       break
     if it.peek().startswith('#'):
       yield (method_str, residual_str, signature, byte_code)
       continue
-    assert it.peek() != '', it.format_error('comment or signature', True)
+    assert it.peek() != ''
     signature = next(it)
     # Accumulate code, advance to next or exit.
-    assert it.peek().startswith('registers:'), it.format_error(
-        'registers/inputs/outputs', True)
+    assert it.peek().startswith('registers:')
     while not is_end():
       if it.peek().startswith('#'):
         break

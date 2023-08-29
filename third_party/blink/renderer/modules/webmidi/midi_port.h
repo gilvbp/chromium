@@ -48,7 +48,7 @@ class V8MIDIPortDeviceState;
 using MIDIPortConnectionState = V8MIDIPortConnectionState::Enum;
 using MIDIPortType = V8MIDIPortType::Enum;
 
-class MIDIPort : public EventTarget,
+class MIDIPort : public EventTargetWithInlineData,
                  public ActiveScriptWrappable<MIDIPort>,
                  public ExecutionContextLifecycleObserver {
   DEFINE_WRAPPERTYPEINFO();

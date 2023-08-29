@@ -16,7 +16,7 @@ class SyncService;
 
 namespace send_tab_to_self {
 
-class SendTabToSelfModel;
+class SendTabToSelfSyncService;
 
 // A Java counterpart will be generated for this enum.
 // GENERATED_JAVA_ENUM_PACKAGE: (
@@ -35,19 +35,12 @@ enum class EntryPointDisplayReason {
   kInformNoTargetDevice,
 };
 
-namespace internal {
-
-// Use SendTabToSelfService::GetEntryPointDisplayReason() instead.
-// `sync_service` and `send_tab_to_self_sync_model` can be null and that's
-// handled as if send-tab-to-self or the sync backbone aren't working, so the
-// entry point should be hidden (returns nullopt).
+// |sync_service| and |send_tab_to_self_sync_service| can be null.
 absl::optional<EntryPointDisplayReason> GetEntryPointDisplayReason(
     const GURL& url_to_share,
     syncer::SyncService* sync_service,
-    SendTabToSelfModel* send_tab_to_self_model,
+    SendTabToSelfSyncService* send_tab_to_self_sync_service,
     PrefService* pref_service);
-
-}  // namespace internal
 
 }  // namespace send_tab_to_self
 

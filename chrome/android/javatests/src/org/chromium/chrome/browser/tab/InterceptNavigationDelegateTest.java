@@ -9,6 +9,7 @@ import androidx.test.filters.MediumTest;
 import androidx.test.filters.SmallTest;
 
 import org.hamcrest.Matchers;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -115,10 +116,10 @@ public class InterceptNavigationDelegateTest {
             InterceptNavigationDelegateImpl delegate = new InterceptNavigationDelegateImpl(client) {
                 @Override
                 public boolean shouldIgnoreNavigation(NavigationHandle navigationHandle,
-                        GURL escapedUrl, boolean hiddenCrossFrame, boolean isSandboxedFrame) {
+                        GURL escapedUrl, boolean crossFrame, boolean isSandboxedFrame) {
                     mNavParamHistory.add(navigationHandle);
                     return super.shouldIgnoreNavigation(
-                            navigationHandle, escapedUrl, hiddenCrossFrame, isSandboxedFrame);
+                            navigationHandle, escapedUrl, crossFrame, isSandboxedFrame);
                 }
 
                 @Override
@@ -137,6 +138,11 @@ public class InterceptNavigationDelegateTest {
         });
         mTestServer = EmbeddedTestServer.createAndStartServer(
                 ApplicationProvider.getApplicationContext());
+    }
+
+    @After
+    public void tearDown() {
+        mTestServer.stopAndDestroyServer();
     }
 
     @Test
@@ -223,7 +229,7 @@ public class InterceptNavigationDelegateTest {
 
     @Test
     @MediumTest
-    @EnableFeatures(ChromeFeatureList.PRERENDER2)
+    @EnableFeatures({ChromeFeatureList.PRERENDER2})
     public void testExternalAppPrerenderingNavigation() throws TimeoutException {
         // Ensure that a prerendering main frame doesn't call into the delegate.
         sActivityTestRule.loadUrl(mTestServer.getURL(NAVIGATION_FROM_PRERENDERING_PAGE));

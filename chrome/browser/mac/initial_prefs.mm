@@ -4,12 +4,16 @@
 
 #include "chrome/browser/mac/initial_prefs.h"
 
-#include "base/apple/foundation_util.h"
 #include "base/files/file_util.h"
+#include "base/mac/foundation_util.h"
 #include "build/branding_buildflags.h"
 #include "chrome/common/channel_info.h"
 #include "chrome/common/chrome_paths_internal.h"
 #include "components/version_info/version_info.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace {
 
@@ -67,9 +71,8 @@ base::FilePath InitialPrefsPath() {
   // On chromium builds, try
   // /Library/Application Support/Chromium/Chromium Master Preferences
   base::FilePath search_path;
-  if (!base::apple::GetLocalDirectory(kSearchPath, &search_path)) {
+  if (!base::mac::GetLocalDirectory(kSearchPath, &search_path))
     return base::FilePath();
-  }
 
   base::FilePath new_path = search_path.Append(kInitialPreferencesDirectory)
                                 .Append(kInitialPreferencesFileName);

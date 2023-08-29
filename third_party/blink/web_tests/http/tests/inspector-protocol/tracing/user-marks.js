@@ -29,7 +29,7 @@
   const consoleTimeEvents =
       allEvents.filter(event => event.name === 'console time');
 
-  const performanceMark = tracingHelper.findEvent('startMark', Phase.INSTANT);
+  const performanceMark = tracingHelper.findEvent('startMark', Phase.MARK);
   const userTimings = allEvents.filter(event => event.name === 'user timing');
 
   const timerRemove = tracingHelper.findEvent('TimerRemove', Phase.INSTANT);

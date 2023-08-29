@@ -4,7 +4,6 @@
 
 #include "chrome/browser/signin/bound_session_credentials/fake_bound_session_refresh_cookie_fetcher.h"
 
-#include "base/check.h"
 #include "base/functional/callback.h"
 #include "base/task/sequenced_task_runner.h"
 #include "base/time/time.h"
@@ -19,16 +18,14 @@
 #include "third_party/abseil-cpp/absl/types/optional.h"
 
 FakeBoundSessionRefreshCookieFetcher::FakeBoundSessionRefreshCookieFetcher(
-    network::mojom::CookieManager* cookie_manager,
+    SigninClient* client,
     const GURL& url,
-    base::flat_set<std::string> cookie_names,
+    const std::string& cookie_name,
     absl::optional<base::TimeDelta> unlock_automatically_in)
-    : cookie_manager_(cookie_manager),
+    : client_(client),
       url_(url),
-      cookie_names_(std::move(cookie_names)),
-      unlock_automatically_in_(unlock_automatically_in) {
-  CHECK(cookie_manager_);
-}
+      cookie_name_(cookie_name),
+      unlock_automatically_in_(unlock_automatically_in) {}
 
 FakeBoundSessionRefreshCookieFetcher::~FakeBoundSessionRefreshCookieFetcher() =
     default;
@@ -54,31 +51,23 @@ void FakeBoundSessionRefreshCookieFetcher::Start(
 void FakeBoundSessionRefreshCookieFetcher::SimulateCompleteRefreshRequest(
     BoundSessionRefreshCookieFetcher::Result result,
     absl::optional<base::Time> cookie_expiration) {
-  if (result == BoundSessionRefreshCookieFetcher::Result::kSuccess) {
-    CHECK(cookie_expiration);
+  if (result == BoundSessionRefreshCookieFetcher::Result::kSuccess &&
+      cookie_expiration) {
     // Synchronous since tests use `BoundSessionTestCookieManager`.
-    std::vector<std::unique_ptr<net::CanonicalCookie>> new_cookies;
-    for (const auto& cookie_name : cookie_names_) {
-      new_cookies.emplace_back(
-          CreateFakeCookie(cookie_name, cookie_expiration.value()));
-    }
-    OnRefreshCookieCompleted(std::move(new_cookies));
+    OnRefreshCookieCompleted(CreateFakeCookie(cookie_expiration.value()));
   } else {
     std::move(callback_).Run(result);
   }
 }
 
 void FakeBoundSessionRefreshCookieFetcher::OnRefreshCookieCompleted(
-    std::vector<std::unique_ptr<net::CanonicalCookie>> cookies) {
-  ResetCallbackCounter();
-  for (auto& cookie : cookies) {
-    InsertCookieInCookieJar(std::move(cookie));
-  }
+    std::unique_ptr<net::CanonicalCookie> cookie) {
+  InsertCookieInCookieJar(std::move(cookie));
 }
 
 void FakeBoundSessionRefreshCookieFetcher::InsertCookieInCookieJar(
     std::unique_ptr<net::CanonicalCookie> cookie) {
-  DCHECK(cookie_manager_);
+  DCHECK(client_);
   base::OnceCallback<void(net::CookieAccessResult)> callback =
       base::BindOnce(&FakeBoundSessionRefreshCookieFetcher::OnCookieSet,
                      weak_ptr_factory_.GetWeakPtr());
@@ -87,7 +76,7 @@ void FakeBoundSessionRefreshCookieFetcher::InsertCookieInCookieJar(
   // Permit it to set a SameSite cookie if it wants to.
   options.set_same_site_cookie_context(
       net::CookieOptions::SameSiteCookieContext::MakeInclusive());
-  cookie_manager_->SetCanonicalCookie(
+  client_->GetCookieManager()->SetCanonicalCookie(
       *cookie, url_, options,
       mojo::WrapCallbackWithDefaultInvokeIfNotRun(
           std::move(callback),
@@ -97,11 +86,6 @@ void FakeBoundSessionRefreshCookieFetcher::InsertCookieInCookieJar(
 
 void FakeBoundSessionRefreshCookieFetcher::OnCookieSet(
     net::CookieAccessResult access_result) {
-  callback_counter_++;
-  if (callback_counter_ != cookie_names_.size()) {
-    return;
-  }
-
   bool success = access_result.status.IsInclude();
   if (!success) {
     std::move(callback_).Run(
@@ -113,13 +97,8 @@ void FakeBoundSessionRefreshCookieFetcher::OnCookieSet(
   // |This| may be destroyed
 }
 
-void FakeBoundSessionRefreshCookieFetcher::ResetCallbackCounter() {
-  callback_counter_ = 0;
-}
-
 std::unique_ptr<net::CanonicalCookie>
 FakeBoundSessionRefreshCookieFetcher::CreateFakeCookie(
-    const std::string& cookie_name,
     base::Time cookie_expiration) {
   constexpr char kFakeCookieValue[] = "FakeCookieValue";
 
@@ -127,7 +106,7 @@ FakeBoundSessionRefreshCookieFetcher::CreateFakeCookie(
   // Create fake SIDTS cookie until the server endpoint is available.
   std::unique_ptr<net::CanonicalCookie> new_cookie =
       net::CanonicalCookie::CreateSanitizedCookie(
-          /*url=*/url_, /*name=*/cookie_name,
+          /*url=*/url_, /*name=*/cookie_name_,
           /*value=*/kFakeCookieValue,
           /*domain=*/url_.host(), /*path=*/"/",
           /*creation_time=*/now, /*expiration_time=*/cookie_expiration,

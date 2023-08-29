@@ -70,19 +70,21 @@
   }
 </style>
 
+<!-- TODO(b/254586358): Use localized strings -->
 <svg slot="header-image" viewBox="0 0 448 200">
   <use href="images/welcome.svg#EXPORT_image"></use>
 </svg>
 <h1 slot="title">
-  $i18n{welcomeTitle}
+  Set up Microsoft 365 to open files
 </h1>
 <div slot="body">
   <div id="description"></div>
   <p>
-    $i18nRaw{welcomeBodyText}
+    <a href="#" onclick="e => e.preventDefault()">Learn more</a> about
+    Microsoft 365 on your Chromebook.
   </p>
 </div>
 <div slot="button-container">
-  <cr-button class="cancel-button">$i18n{cancel}</cr-button>
-  <cr-button class="action-button">$i18n{welcomeGetStarted}</cr-button>
+  <cr-button class="cancel-button">Cancel</cr-button>
+  <cr-button class="action-button">Get started</cr-button>
 </div>

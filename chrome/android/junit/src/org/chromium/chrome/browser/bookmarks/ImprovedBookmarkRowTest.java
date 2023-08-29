@@ -30,7 +30,6 @@ import org.robolectric.annotation.Config;
 import org.chromium.base.test.BaseRobolectricTestRunner;
 import org.chromium.base.test.util.Batch;
 import org.chromium.chrome.R;
-import org.chromium.chrome.browser.bookmarks.ImprovedBookmarkRowProperties.ImageVisibility;
 import org.chromium.components.browser_ui.widget.listmenu.ListMenuButtonDelegate;
 import org.chromium.ui.base.TestActivity;
 import org.chromium.ui.modelutil.PropertyModel;
@@ -77,16 +76,13 @@ public class ImprovedBookmarkRowTest {
         mModel = new PropertyModel.Builder(ImprovedBookmarkRowProperties.ALL_KEYS)
                          .with(ImprovedBookmarkRowProperties.TITLE, TITLE)
                          .with(ImprovedBookmarkRowProperties.DESCRIPTION, DESCRIPTION)
-                         .with(ImprovedBookmarkRowProperties.DESCRIPTION_VISIBLE, true)
                          .with(ImprovedBookmarkRowProperties.START_ICON_DRAWABLE, mDrawable)
                          .with(ImprovedBookmarkRowProperties.LIST_MENU_BUTTON_DELEGATE,
                                  mListMenuButtonDelegate)
                          .with(ImprovedBookmarkRowProperties.POPUP_LISTENER, mPopupListener)
-                         .with(ImprovedBookmarkRowProperties.ROW_CLICK_LISTENER,
-                                 (v) -> { mOpenBookmarkCallback.run(); })
+                         .with(ImprovedBookmarkRowProperties.OPEN_BOOKMARK_CALLBACK,
+                                 mOpenBookmarkCallback)
                          .with(ImprovedBookmarkRowProperties.EDITABLE, true)
-                         .with(ImprovedBookmarkRowProperties.END_IMAGE_VISIBILITY,
-                                 ImageVisibility.MENU)
                          .build();
 
         PropertyModelChangeProcessor.create(
@@ -99,13 +95,6 @@ public class ImprovedBookmarkRowTest {
                 TITLE, ((TextView) mImprovedBookmarkRow.findViewById(R.id.title)).getText());
         Assert.assertEquals(DESCRIPTION,
                 ((TextView) mImprovedBookmarkRow.findViewById(R.id.description)).getText());
-    }
-
-    @Test
-    public void testDescriptionVisibility() {
-        mModel.set(ImprovedBookmarkRowProperties.DESCRIPTION_VISIBLE, false);
-        Assert.assertEquals(
-                View.GONE, mImprovedBookmarkRow.findViewById(R.id.description).getVisibility());
     }
 
     @Test
@@ -123,7 +112,6 @@ public class ImprovedBookmarkRowTest {
 
     @Test
     public void testSelectedShowsCheck() {
-        mModel.set(ImprovedBookmarkRowProperties.SELECTION_ACTIVE, true);
         mModel.set(ImprovedBookmarkRowProperties.SELECTED, true);
         Assert.assertEquals(
                 View.VISIBLE, mImprovedBookmarkRow.findViewById(R.id.check_image).getVisibility());
@@ -133,7 +121,6 @@ public class ImprovedBookmarkRowTest {
 
     @Test
     public void testUnselectedShowsMore() {
-        mModel.set(ImprovedBookmarkRowProperties.SELECTION_ACTIVE, true);
         mModel.set(ImprovedBookmarkRowProperties.SELECTED, false);
         Assert.assertEquals(
                 View.GONE, mImprovedBookmarkRow.findViewById(R.id.check_image).getVisibility());
@@ -166,23 +153,6 @@ public class ImprovedBookmarkRowTest {
         // Setting the delegate shouldn't affect visibility.
         Assert.assertEquals(
                 visibility, mImprovedBookmarkRow.findViewById(R.id.more).getVisibility());
-    }
-
-    @Test
-    public void testNotEditableButMenuVisibility() {
-        mModel.set(ImprovedBookmarkRowProperties.END_IMAGE_VISIBILITY, ImageVisibility.MENU);
-        mModel.set(ImprovedBookmarkRowProperties.EDITABLE, false);
-        Assert.assertEquals(
-                View.GONE, mImprovedBookmarkRow.findViewById(R.id.more).getVisibility());
-    }
-
-    @Test
-    public void testEndImageVisibility() {
-        mModel.set(ImprovedBookmarkRowProperties.END_IMAGE_VISIBILITY, ImageVisibility.DRAWABLE);
-        Assert.assertEquals(
-                View.GONE, mImprovedBookmarkRow.findViewById(R.id.more).getVisibility());
-        Assert.assertEquals(
-                View.VISIBLE, mImprovedBookmarkRow.findViewById(R.id.end_image).getVisibility());
     }
 
     @Test

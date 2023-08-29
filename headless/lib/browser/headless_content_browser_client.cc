@@ -19,7 +19,6 @@
 #include "base/strings/string_split.h"
 #include "build/build_config.h"
 #include "components/embedder_support/switches.h"
-#include "components/headless/command_handler/headless_command_switches.h"
 #include "content/public/browser/browser_context.h"
 #include "content/public/browser/browser_thread.h"
 #include "content/public/browser/client_certificate_delegate.h"
@@ -229,7 +228,8 @@ void HeadlessContentBrowserClient::AppendExtraCommandLineSwitches(
         embedder_support::kOriginTrialDisabledFeatures,
         embedder_support::kOriginTrialPublicKey,
     };
-    command_line->CopySwitchesFrom(old_command_line, kSwitchNames);
+    command_line->CopySwitchesFrom(old_command_line, kSwitchNames,
+                                   std::size(kSwitchNames));
   }
 }
 
@@ -266,7 +266,6 @@ void HeadlessContentBrowserClient::AllowCertificateError(
 }
 
 base::OnceClosure HeadlessContentBrowserClient::SelectClientCertificate(
-    content::BrowserContext* browser_context,
     content::WebContents* web_contents,
     net::SSLCertRequestInfo* cert_request_info,
     net::ClientCertIdentityList client_certs,
@@ -347,14 +346,6 @@ HeadlessContentBrowserClient::GetGeolocationManager() {
   return nullptr;
 #endif
 }
-
-#if BUILDFLAG(IS_WIN)
-void HeadlessContentBrowserClient::SessionEnding(
-    absl::optional<DWORD> control_type) {
-  DCHECK_LT(control_type.value_or(0), 0x7fu);
-  browser_->ShutdownWithExitCode(control_type.value_or(0) + 0x80u);
-}
-#endif
 
 #if defined(HEADLESS_USE_POLICY)
 std::vector<std::unique_ptr<content::NavigationThrottle>>

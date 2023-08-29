@@ -13,11 +13,11 @@
 #include <string>
 #include <utility>
 
-#include "base/apple/foundation_util.h"
 #include "base/compiler_specific.h"
 #include "base/functional/bind.h"
 #include "base/location.h"
 #include "base/logging.h"
+#include "base/mac/foundation_util.h"
 #include "base/mac/mac_util.h"
 #include "base/mac/scoped_ioobject.h"
 #include "base/memory/ptr_util.h"
@@ -36,6 +36,10 @@
 #include "device/bluetooth/bluetooth_discovery_session_outcome.h"
 #include "device/bluetooth/bluetooth_socket_mac.h"
 #include "device/bluetooth/public/cpp/bluetooth_address.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 extern "C" {
 // Undocumented IOBluetooth Preference API [1]. Used by `blueutil` [2] and
@@ -151,8 +155,8 @@ bool BluetoothAdapterMac::IsPresent() const {
     return false;
   }
 
-  base::apple::ScopedCFTypeRef<CFBooleanRef> connected(
-      base::apple::CFCast<CFBooleanRef>(IORegistryEntryCreateCFProperty(
+  base::ScopedCFTypeRef<CFBooleanRef> connected(
+      base::mac::CFCast<CFBooleanRef>(IORegistryEntryCreateCFProperty(
           service, CFSTR("BluetoothTransportConnected"), kCFAllocatorDefault,
           0)));
   return CFBooleanGetValue(connected);
@@ -160,15 +164,21 @@ bool BluetoothAdapterMac::IsPresent() const {
 
 BluetoothAdapter::PermissionStatus BluetoothAdapterMac::GetOsPermissionStatus()
     const {
-  switch (CBCentralManager.authorization) {
-    case CBManagerAuthorizationNotDetermined:
-      return PermissionStatus::kUndetermined;
-    case CBManagerAuthorizationRestricted:
-    case CBManagerAuthorizationDenied:
-      return PermissionStatus::kDenied;
-    case CBManagerAuthorizationAllowedAlways:
-      return PermissionStatus::kAllowed;
+  if (@available(macOS 10.15.0, *)) {
+    switch (CBCentralManager.authorization) {
+      case CBManagerAuthorizationNotDetermined:
+        return PermissionStatus::kUndetermined;
+      case CBManagerAuthorizationRestricted:
+      case CBManagerAuthorizationDenied:
+        return PermissionStatus::kDenied;
+      case CBManagerAuthorizationAllowedAlways:
+        return PermissionStatus::kAllowed;
+    }
   }
+
+  // There are no Core Bluetooth permissions before macOS 10.15 so assume we
+  // always have permission.
+  return PermissionStatus::kAllowed;
 }
 
 bool BluetoothAdapterMac::IsPowered() const {

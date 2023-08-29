@@ -16,9 +16,9 @@ class ExternalVkImageDawnImageRepresentation : public DawnImageRepresentation {
       SharedImageManager* manager,
       SharedImageBacking* backing,
       MemoryTypeTracker* tracker,
-      wgpu::Device device,
-      wgpu::TextureFormat dawn_format,
-      std::vector<wgpu::TextureFormat> view_formats,
+      WGPUDevice device,
+      WGPUTextureFormat dawn_format,
+      std::vector<WGPUTextureFormat> view_formats,
       base::ScopedFD memory_fd);
 
   ExternalVkImageDawnImageRepresentation(
@@ -28,7 +28,7 @@ class ExternalVkImageDawnImageRepresentation : public DawnImageRepresentation {
 
   ~ExternalVkImageDawnImageRepresentation() override;
 
-  wgpu::Texture BeginAccess(wgpu::TextureUsage usage) override;
+  WGPUTexture BeginAccess(WGPUTextureUsage usage) override;
   void EndAccess() override;
 
  private:
@@ -36,11 +36,17 @@ class ExternalVkImageDawnImageRepresentation : public DawnImageRepresentation {
     return static_cast<ExternalVkImageBacking*>(backing());
   }
 
-  const wgpu::Device device_;
-  const wgpu::TextureFormat wgpu_format_;
-  std::vector<wgpu::TextureFormat> view_formats_;
+  const WGPUDevice device_;
+  const WGPUTextureFormat wgpu_format_;
+  std::vector<WGPUTextureFormat> view_formats_;
   base::ScopedFD memory_fd_;
-  wgpu::Texture texture_;
+
+  WGPUTexture texture_ = nullptr;
+
+  // TODO(cwallez@chromium.org): Load procs only once when the factory is
+  // created and pass a pointer to them around?
+  const DawnProcTable dawn_procs_;
+
   std::vector<ExternalSemaphore> begin_access_semaphores_;
 };
 

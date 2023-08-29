@@ -4,6 +4,10 @@
 
 #import "ios/chrome/browser/ui/settings/google_services/google_services_settings_constants.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 NSString* const kGoogleServicesSettingsViewIdentifier =
     @"google_services_settings_view_controller";
 

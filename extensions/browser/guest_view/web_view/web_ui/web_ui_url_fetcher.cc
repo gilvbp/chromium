@@ -27,16 +27,15 @@ WebUIURLFetcher::~WebUIURLFetcher() {
 }
 
 void WebUIURLFetcher::Start() {
-  content::RenderFrameHost* render_frame_host =
+  content::RenderFrameHost* rfh =
       content::RenderFrameHost::FromID(render_process_id_, render_frame_id_);
-  if (!render_frame_host) {
+  if (!rfh) {
     std::move(callback_).Run(false, nullptr);
     return;
   }
 
   mojo::Remote<network::mojom::URLLoaderFactory> factory(
-      content::CreateWebUIURLLoaderFactory(render_frame_host, url_.scheme(),
-                                           {}));
+      content::CreateWebUIURLLoaderFactory(rfh, url_.scheme(), {}));
 
   net::NetworkTrafficAnnotationTag traffic_annotation =
       net::DefineNetworkTrafficAnnotation("webui_content_scripts_download", R"(

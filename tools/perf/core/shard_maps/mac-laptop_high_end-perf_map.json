@@ -414,6 +414,9 @@
                 "begin": 80,
                 "abridged": false
             },
+            "tab_switching.typical_25": {
+                "abridged": false
+            },
             "v8.browsing_desktop": {
                 "abridged": false
             },

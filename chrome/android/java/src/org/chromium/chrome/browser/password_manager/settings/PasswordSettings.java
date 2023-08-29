@@ -4,8 +4,6 @@
 
 package org.chromium.chrome.browser.password_manager.settings;
 
-import static org.chromium.chrome.browser.password_manager.PasswordMetricsUtil.PASSWORD_SETTINGS_EXPORT_METRICS_ID;
-
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
@@ -116,6 +114,9 @@ public class PasswordSettings extends PreferenceFragmentCompat
     // Unique request code for the password exporting activity.
     private static final int PASSWORD_EXPORT_INTENT_REQUEST_CODE = 3485764;
 
+    // The prefix for the histograms, which will be used log the export flow metrics.
+    private static final String EXPORT_METRICS_ID = "PasswordManager.Settings.Export";
+
     private boolean mNoPasswords;
     private boolean mNoPasswordExceptions;
     private @TrustedVaultBannerState int mTrustedVaultBannerState =
@@ -165,8 +166,8 @@ public class PasswordSettings extends PreferenceFragmentCompat
             public void runCreateFileOnDiskIntent(Intent intent) {
                 startActivityForResult(intent, PASSWORD_EXPORT_INTENT_REQUEST_CODE);
             }
-        }, PASSWORD_SETTINGS_EXPORT_METRICS_ID);
-        getActivity().setTitle(R.string.password_manager_settings_title);
+        }, EXPORT_METRICS_ID);
+        getActivity().setTitle(R.string.password_settings_title);
         setPreferenceScreen(getPreferenceManager().createPreferenceScreen(getStyledContext()));
         PasswordManagerHandlerProvider.getInstance().addObserver(this);
 
@@ -362,7 +363,7 @@ public class PasswordSettings extends PreferenceFragmentCompat
         if (mSearchQuery == null) {
             PreferenceCategory profileCategory = new PreferenceCategory(getStyledContext());
             profileCategory.setKey(PREF_KEY_CATEGORY_SAVED_PASSWORDS);
-            profileCategory.setTitle(R.string.password_list_title);
+            profileCategory.setTitle(R.string.password_settings_title);
             profileCategory.setOrder(ORDER_SAVED_PASSWORDS);
             getPreferenceScreen().addPreference(profileCategory);
             passwordParent = profileCategory;

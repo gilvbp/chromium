@@ -201,8 +201,6 @@ class WebContentsTester {
   // Sets the return value for GetPictureInPictureOptions().
   virtual void SetPictureInPictureOptions(
       absl::optional<blink::mojom::PictureInPictureWindowOptions> options) = 0;
-
-  virtual bool GetOverscrollNavigationEnabled() = 0;
 };
 
 }  // namespace content

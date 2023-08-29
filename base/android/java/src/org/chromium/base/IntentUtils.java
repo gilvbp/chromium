@@ -596,6 +596,5 @@ public class IntentUtils {
 
     public static void setForceIsTrustedIntentForTesting(boolean isTrusted) {
         sForceTrustedIntentForTesting = isTrusted;
-        ResettersForTesting.register(() -> sForceTrustedIntentForTesting = false);
     }
 }

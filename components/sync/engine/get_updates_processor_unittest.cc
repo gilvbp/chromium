@@ -32,13 +32,18 @@ namespace {
 }  // namespace
 
 // A test fixture for tests exercising download updates functions.
-class GetUpdatesProcessorBaseTest : public ::testing::Test {
+class GetUpdatesProcessorTest : public ::testing::Test {
  public:
-  GetUpdatesProcessorBaseTest() = default;
+  GetUpdatesProcessorTest() = default;
 
-  GetUpdatesProcessorBaseTest(const GetUpdatesProcessorBaseTest&) = delete;
-  GetUpdatesProcessorBaseTest& operator=(const GetUpdatesProcessorBaseTest&) =
-      delete;
+  GetUpdatesProcessorTest(const GetUpdatesProcessorTest&) = delete;
+  GetUpdatesProcessorTest& operator=(const GetUpdatesProcessorTest&) = delete;
+
+  void SetUp() override {
+    autofill_handler_ = AddUpdateHandler(AUTOFILL);
+    bookmarks_handler_ = AddUpdateHandler(BOOKMARKS);
+    preferences_handler_ = AddUpdateHandler(PREFERENCES);
+  }
 
   ModelTypeSet enabled_types() { return enabled_types_; }
 
@@ -77,6 +82,12 @@ class GetUpdatesProcessorBaseTest : public ::testing::Test {
     return handler_ptr;
   }
 
+  MockUpdateHandler* GetBookmarksHandler() { return bookmarks_handler_; }
+
+  MockUpdateHandler* GetAutofillHandler() { return autofill_handler_; }
+
+  MockUpdateHandler* GetPreferencesHandler() { return preferences_handler_; }
+
   const base::TimeTicks kTestStartTime = base::TimeTicks::Now();
 
  private:
@@ -84,23 +95,10 @@ class GetUpdatesProcessorBaseTest : public ::testing::Test {
   std::set<std::unique_ptr<MockUpdateHandler>> update_handlers_;
   UpdateHandlerMap update_handler_map_;
   std::unique_ptr<GetUpdatesProcessor> get_updates_processor_;
-};
 
-class GetUpdatesProcessorTest : public GetUpdatesProcessorBaseTest {
- public:
-  MockUpdateHandler* GetBookmarksHandler() { return bookmarks_handler_; }
-
-  MockUpdateHandler* GetAutofillHandler() { return autofill_handler_; }
-
-  MockUpdateHandler* GetPreferencesHandler() { return preferences_handler_; }
-
- private:
-  const raw_ptr<MockUpdateHandler> bookmarks_handler_ =
-      AddUpdateHandler(BOOKMARKS);
-  const raw_ptr<MockUpdateHandler> autofill_handler_ =
-      AddUpdateHandler(AUTOFILL);
-  const raw_ptr<MockUpdateHandler> preferences_handler_ =
-      AddUpdateHandler(PREFERENCES);
+  raw_ptr<MockUpdateHandler> bookmarks_handler_;
+  raw_ptr<MockUpdateHandler> autofill_handler_;
+  raw_ptr<MockUpdateHandler> preferences_handler_;
 };
 
 // Basic test to make sure nudges are expressed properly in the request.
@@ -409,10 +407,15 @@ TEST_F(GetUpdatesProcessorTest, NormalResponseTest) {
 //
 // Maintains two enabled types, but requests that updates be applied for only
 // one of them.
-class GetUpdatesProcessorApplyUpdatesTest : public GetUpdatesProcessorBaseTest {
+class GetUpdatesProcessorApplyUpdatesTest : public GetUpdatesProcessorTest {
  public:
   GetUpdatesProcessorApplyUpdatesTest() = default;
   ~GetUpdatesProcessorApplyUpdatesTest() override = default;
+
+  void SetUp() override {
+    bookmarks_handler_ = AddUpdateHandler(BOOKMARKS);
+    autofill_handler_ = AddUpdateHandler(AUTOFILL);
+  }
 
   ModelTypeSet GetGuTypes() { return {AUTOFILL}; }
 
@@ -421,10 +424,8 @@ class GetUpdatesProcessorApplyUpdatesTest : public GetUpdatesProcessorBaseTest {
   MockUpdateHandler* GetAppliedHandler() { return autofill_handler_; }
 
  private:
-  const raw_ptr<MockUpdateHandler> bookmarks_handler_ =
-      AddUpdateHandler(BOOKMARKS);
-  const raw_ptr<MockUpdateHandler> autofill_handler_ =
-      AddUpdateHandler(AUTOFILL);
+  raw_ptr<MockUpdateHandler> bookmarks_handler_;
+  raw_ptr<MockUpdateHandler> autofill_handler_;
 };
 
 // Verify that a normal cycle applies updates to the specified types.
@@ -476,5 +477,21 @@ TEST_F(GetUpdatesProcessorApplyUpdatesTest, Poll) {
   EXPECT_EQ(0, GetNonAppliedHandler()->GetApplyUpdatesCount());
   EXPECT_EQ(1, GetAppliedHandler()->GetApplyUpdatesCount());
 }
+
+class DownloadUpdatesDebugInfoTest : public ::testing::Test {
+ public:
+  DownloadUpdatesDebugInfoTest() = default;
+  ~DownloadUpdatesDebugInfoTest() override = default;
+
+  StatusController* status() { return &status_; }
+
+  DebugInfoGetter* debug_info_getter() { return &debug_info_getter_; }
+
+  void AddDebugEvent() { debug_info_getter_.AddDebugEvent(); }
+
+ private:
+  StatusController status_;
+  MockDebugInfoGetter debug_info_getter_;
+};
 
 }  // namespace syncer

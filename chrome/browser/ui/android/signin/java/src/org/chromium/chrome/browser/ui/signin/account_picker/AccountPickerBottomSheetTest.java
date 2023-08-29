@@ -592,7 +592,6 @@ public class AccountPickerBottomSheetTest {
 
     @Test
     @MediumTest
-    @SuppressWarnings("CheckReturnValue")
     public void testSigninWithAddedAccount() {
         var accountConsistencyHistogram =
                 HistogramWatcher.newBuilder()
@@ -608,8 +607,7 @@ public class AccountPickerBottomSheetTest {
 
         onVisibleView(withText(R.string.signin_add_account_to_device)).perform(click());
 
-        // TODO(crbug.com/1469988): This is a no-op, replace with ViewUtils.waitForVisibleView().
-        ViewUtils.isEventuallyVisible(withText(NEW_ACCOUNT_EMAIL));
+        ViewUtils.waitForView(withText(NEW_ACCOUNT_EMAIL));
         clickContinueButtonAndCheckSignInInProgressSheet();
         accountConsistencyHistogram.assertExpected();
     }
@@ -729,7 +727,6 @@ public class AccountPickerBottomSheetTest {
 
     @Test
     @MediumTest
-    @SuppressWarnings("CheckReturnValue")
     public void testAddAccountOnExpandedSheet() {
         var accountConsistencyHistogram =
                 HistogramWatcher.newBuilder()
@@ -744,8 +741,7 @@ public class AccountPickerBottomSheetTest {
 
         onVisibleView(withText(R.string.signin_add_account_to_device)).perform(click());
 
-        // TODO(crbug.com/1469988): This is a no-op, replace with ViewUtils.waitForVisibleView().
-        ViewUtils.isEventuallyVisible(withText(NEW_ACCOUNT_EMAIL));
+        ViewUtils.waitForView(withText(NEW_ACCOUNT_EMAIL));
         checkCollapsedAccountListForWebSignin(NEW_ACCOUNT_EMAIL, null, null);
         accountConsistencyHistogram.assertExpected();
     }
@@ -919,8 +915,9 @@ public class AccountPickerBottomSheetTest {
         CustomDeviceLockActivityLauncher() {}
 
         @Override
-        public void launchDeviceLockActivity(Context context, String selectedAccount,
-                WindowAndroid windowAndroid, WindowAndroid.IntentCallback callback) {
+        public void launchDeviceLockActivity(Context context, boolean inSignInFlow,
+                String selectedAccount, WindowAndroid windowAndroid,
+                WindowAndroid.IntentCallback callback) {
             mCallback = callback;
             mLaunched = true;
         }

@@ -12,7 +12,6 @@
 #include "base/strings/stringprintf.h"
 #include "build/build_config.h"
 #include "build/chromeos_buildflags.h"
-#include "components/device_event_log/device_event_log.h"
 #include "ui/base/linux/linux_desktop.h"
 #include "ui/display/display.h"
 #include "ui/display/display_finder.h"
@@ -137,12 +136,6 @@ void WaylandScreen::OnOutputAddedOrUpdated(
   }
 
   AddOrUpdateDisplay(copy);
-
-  DISPLAY_LOG(EVENT) << "Displays updated, count: "
-                     << display_list_.displays().size();
-  for (const auto& display : display_list_.displays()) {
-    DISPLAY_LOG(EVENT) << display.ToString();
-  }
 }
 
 void WaylandScreen::OnOutputRemoved(WaylandOutput::Id output_id) {
@@ -178,12 +171,6 @@ void WaylandScreen::OnOutputRemoved(WaylandOutput::Id output_id) {
   auto it = display_list_.FindDisplayById(display_id);
   if (it != display_list_.displays().end())
     display_list_.RemoveDisplay(display_id);
-
-  DISPLAY_LOG(EVENT) << "Displays updated, count: "
-                     << display_list_.displays().size();
-  for (const auto& display : display_list_.displays()) {
-    DISPLAY_LOG(EVENT) << display.ToString();
-  }
 }
 
 void WaylandScreen::AddOrUpdateDisplay(const WaylandOutput::Metrics& metrics) {
@@ -258,7 +245,7 @@ void WaylandScreen::AddOrUpdateDisplay(const WaylandOutput::Metrics& metrics) {
   }
 #endif
 
-  changed_display.SetColorSpaces(color_spaces);
+  changed_display.set_color_spaces(color_spaces);
 
   // There are 2 cases where |changed_display| must be set as primary:
   // 1. When it is the first one being added to the |display_list_|. Or

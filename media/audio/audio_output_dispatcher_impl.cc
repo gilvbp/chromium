@@ -156,7 +156,7 @@ bool AudioOutputDispatcherImpl::CreateAndOpenStream() {
   DCHECK(audio_manager()->GetTaskRunner()->BelongsToCurrentThread());
   const int stream_id = audio_stream_id_++;
   std::unique_ptr<AudioLog> audio_log = audio_manager()->CreateAudioLog(
-      AudioLogFactory::AudioComponent::kAudioOutputStream, stream_id);
+      AudioLogFactory::AUDIO_OUTPUT_STREAM, stream_id);
   AudioOutputStream* stream = audio_manager()->MakeAudioOutputStream(
       params_, device_id_,
       base::BindRepeating(&AudioLog::OnLogMessage,

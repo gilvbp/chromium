@@ -6,7 +6,6 @@
 
 #include <utility>
 
-#include "ash/ash_element_identifiers.h"
 #include "ash/constants/ash_features.h"
 #include "ash/public/cpp/resources/grit/ash_public_unscaled_resources.h"
 #include "ash/public/cpp/shell_window_ids.h"
@@ -15,7 +14,6 @@
 #include "ui/base/l10n/l10n_util.h"
 #include "ui/base/metadata/metadata_impl_macros.h"
 #include "ui/base/resource/resource_bundle.h"
-#include "ui/base/ui_base_types.h"
 #include "ui/views/controls/image_view.h"
 #include "ui/views/view_class_properties.h"
 #include "ui/views/widget/widget.h"
@@ -32,6 +30,9 @@ constexpr gfx::Size kImagePreferredSize(240, 240);
 }  // namespace
 
 // WelcomeTourDialog -----------------------------------------------------------
+
+DEFINE_CLASS_ELEMENT_IDENTIFIER_VALUE(WelcomeTourDialog,
+                                      kWelcomeTourDialogElementIdForTesting);
 
 // static
 void WelcomeTourDialog::CreateAndShow(base::OnceClosure accept_callback,
@@ -66,6 +67,8 @@ WelcomeTourDialog::WelcomeTourDialog(base::OnceClosure accept_callback,
   CHECK_EQ(g_instance, nullptr);
   g_instance = this;
 
+  // TODO(http://b/285027636): Update the image source when the lottie JSON with
+  // dynamic tokens is ready.
   views::Builder<SystemDialogDelegateView>(this)
       .SetAcceptButtonText(l10n_util::GetStringUTF16(
           IDS_ASH_WELCOME_TOUR_DIALOG_ACCEPT_BUTTON_TEXT))
@@ -76,8 +79,8 @@ WelcomeTourDialog::WelcomeTourDialog(base::OnceClosure accept_callback,
       .SetCloseCallback(std::move(close_callback))
       .SetDescription(l10n_util::GetStringUTF16(
           IDS_ASH_WELCOME_TOUR_DIALOG_DESCRIPTION_TEXT))
-      .SetModalType(ui::ModalType::MODAL_TYPE_SYSTEM)
-      .SetProperty(views::kElementIdentifierKey, kWelcomeTourDialogElementId)
+      .SetProperty(views::kElementIdentifierKey,
+                   kWelcomeTourDialogElementIdForTesting)
       .SetTitleText(
           l10n_util::GetStringUTF16(IDS_ASH_WELCOME_TOUR_DIALOG_TITLE_TEXT))
       .SetTopContentView(views::Builder<views::ImageView>()

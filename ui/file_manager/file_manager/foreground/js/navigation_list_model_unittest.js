@@ -129,7 +129,7 @@ export function testModel() {
   loadTimeData.overrideValues({FILES_TRASH_ENABLED: true});
   model.fakeTrashItem = new NavigationModelFakeItem(
       'trash-label', NavigationModelItemType.TRASH, new TrashRootEntry());
-  model.refreshNavigationItems();
+  model.reorderNavigationItems_();
   assertEquals(7, model.length);
   assertEquals(
       'fake-entry://trash', /** @type {!NavigationModelFakeItem} */

@@ -61,7 +61,7 @@ public class PasswordViewingTypeTest {
         mPasswordsPref =
                 (ChromeBasePreference) mainSettings.findPreference(MainSettings.PREF_PASSWORDS);
         TestThreadUtils.runOnUiThreadBlocking(
-                () -> SyncServiceFactory.setInstanceForTesting(mSyncService));
+                () -> SyncServiceFactory.overrideForTests(mSyncService));
     }
 
     /**

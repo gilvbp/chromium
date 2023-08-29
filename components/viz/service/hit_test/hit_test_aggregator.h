@@ -80,8 +80,7 @@ class VIZ_SERVICE_EXPORT HitTestAggregator {
 
   const raw_ptr<HitTestAggregatorDelegate> delegate_;
 
-  const raw_ptr<LatestLocalSurfaceIdLookupDelegate,
-                AcrossTasksDanglingUntriaged>
+  const raw_ptr<LatestLocalSurfaceIdLookupDelegate, DanglingUntriaged>
       local_surface_id_lookup_delegate_;
 
   // This is the FrameSinkId for the corresponding root CompositorFrameSink.

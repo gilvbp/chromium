@@ -11,7 +11,6 @@
 #include <map>
 #include <utility>
 
-#include "base/containers/contains.h"
 #include "mojo/public/cpp/system/buffer.h"
 #include "mojo/public/cpp/system/data_pipe.h"
 #include "mojo/public/cpp/system/functions.h"
@@ -85,16 +84,16 @@ TEST(CoreCppTest, Basic) {
     handle_to_int[h3] = 3;
 
     EXPECT_EQ(4u, handle_to_int.size());
-    EXPECT_TRUE(base::Contains(handle_to_int, h0));
+    EXPECT_FALSE(handle_to_int.find(h0) == handle_to_int.end());
     EXPECT_EQ(0, handle_to_int[h0]);
-    EXPECT_TRUE(base::Contains(handle_to_int, h1));
+    EXPECT_FALSE(handle_to_int.find(h1) == handle_to_int.end());
     EXPECT_EQ(1, handle_to_int[h1]);
-    EXPECT_TRUE(base::Contains(handle_to_int, h2));
+    EXPECT_FALSE(handle_to_int.find(h2) == handle_to_int.end());
     EXPECT_EQ(2, handle_to_int[h2]);
-    EXPECT_TRUE(base::Contains(handle_to_int, h3));
+    EXPECT_FALSE(handle_to_int.find(h3) == handle_to_int.end());
     EXPECT_EQ(3, handle_to_int[h3]);
-    EXPECT_FALSE(
-        base::Contains(handle_to_int, Handle(static_cast<MojoHandle>(13579))));
+    EXPECT_TRUE(handle_to_int.find(Handle(static_cast<MojoHandle>(13579))) ==
+                handle_to_int.end());
 
     // TODO(vtl): With C++11, support |std::unordered_map|s, etc. (Or figure out
     // how to support the variations of |hash_map|.)

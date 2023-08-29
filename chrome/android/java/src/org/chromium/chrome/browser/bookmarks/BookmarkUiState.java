@@ -8,19 +8,17 @@ import android.net.Uri;
 import android.text.TextUtils;
 
 import androidx.annotation.IntDef;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 
 import org.chromium.components.bookmarks.BookmarkId;
 import org.chromium.components.embedder_support.util.UrlConstants;
-import org.chromium.components.power_bookmarks.PowerBookmarkType;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
-import java.util.Objects;
-import java.util.Set;
 
-/** A class representing the UI state of the {@link BookmarkManagerMediator}. */
+/**
+ * A class representing the UI state of the {@link BookmarkManager}. All
+ * states can be uniquely identified by a URL.
+ */
 public class BookmarkUiState {
     @IntDef({BookmarkUiMode.INVALID, BookmarkUiMode.LOADING, BookmarkUiMode.FOLDER,
             BookmarkUiMode.SEARCHING})
@@ -36,27 +34,20 @@ public class BookmarkUiState {
             UrlConstants.BOOKMARKS_FOLDER_URL + "/shopping";
 
     final @BookmarkUiMode int mUiMode;
-    final @NonNull String mUrl;
-    final @Nullable BookmarkId mFolder;
-
-    // The following fields be non-null if and only if in SEARCHING mode.
-    final @Nullable String mSearchText;
-    final @Nullable Set<PowerBookmarkType> mSearchPowerFilter;
+    final String mUrl;
+    final BookmarkId mFolder;
 
     static BookmarkUiState createLoadingState() {
-        return new BookmarkUiState(BookmarkUiMode.LOADING, /*url*/ "", /*folder*/ null,
-                /*queryString*/ null, /*searchPowerFilter*/ null);
+        return new BookmarkUiState(BookmarkUiMode.LOADING, "", null);
     }
 
-    static BookmarkUiState createSearchState(
-            @NonNull String queryString, @NonNull Set<PowerBookmarkType> searchPowerFilter) {
-        return new BookmarkUiState(BookmarkUiMode.SEARCHING, /*url*/ "", /*folder*/ null,
-                queryString, searchPowerFilter);
+    static BookmarkUiState createSearchState() {
+        return new BookmarkUiState(BookmarkUiMode.SEARCHING, "", null);
     }
 
     static BookmarkUiState createShoppingFilterState() {
-        return new BookmarkUiState(BookmarkUiMode.FOLDER, SHOPPING_FILTER_URL,
-                BookmarkId.SHOPPING_FOLDER, /*queryString*/ null, /*searchPowerFilter*/ null);
+        return new BookmarkUiState(
+                BookmarkUiMode.FOLDER, SHOPPING_FILTER_URL, BookmarkId.SHOPPING_FOLDER);
     }
 
     static BookmarkUiState createFolderState(BookmarkId folder, BookmarkModel bookmarkModel) {
@@ -77,8 +68,8 @@ public class BookmarkUiState {
     }
 
     /**
-     * @return A state corresponding to the URI object. If the URI is not valid a folder state for
-     * the root folder will be returned.
+     * @return A state corresponding to the URI object. If the URI is not valid,
+     *         return all_bookmarks.
      */
     static BookmarkUiState createStateFromUrl(Uri uri, BookmarkModel bookmarkModel) {
         String url = uri.toString();
@@ -89,9 +80,8 @@ public class BookmarkUiState {
         } else if (url.startsWith(UrlConstants.BOOKMARKS_FOLDER_URL)) {
             String path = uri.getLastPathSegment();
             if (!path.isEmpty()) {
-                tempState = new BookmarkUiState(BookmarkUiMode.FOLDER, url,
-                        BookmarkId.getBookmarkIdFromString(path), /*queryString*/ null,
-                        /*searchPowerFilter*/ null);
+                tempState = new BookmarkUiState(
+                        BookmarkUiMode.FOLDER, url, BookmarkId.getBookmarkIdFromString(path));
             }
         }
 
@@ -110,33 +100,27 @@ public class BookmarkUiState {
         return builder.build();
     }
 
-    private BookmarkUiState(@BookmarkUiMode int uiMode, @NonNull String url, BookmarkId folder,
-            @Nullable String queryString, @Nullable Set<PowerBookmarkType> searchPowerFilter) {
-        assert (uiMode == BookmarkUiMode.SEARCHING) != (queryString == null);
-        assert (uiMode == BookmarkUiMode.SEARCHING) != (searchPowerFilter == null);
+    private BookmarkUiState(@BookmarkUiMode int uiMode, String url, BookmarkId folder) {
         mUiMode = uiMode;
         mUrl = url;
         mFolder = folder;
-        mSearchText = queryString;
-        mSearchPowerFilter = searchPowerFilter;
     }
 
     @Override
     public int hashCode() {
-        return 31 * mUrl.hashCode() + mUiMode + Objects.hashCode(mSearchText)
-                + Objects.hashCode(mSearchPowerFilter);
+        return 31 * mUrl.hashCode() + mUiMode;
     }
 
     @Override
     public boolean equals(Object obj) {
         if (!(obj instanceof BookmarkUiState)) return false;
         BookmarkUiState other = (BookmarkUiState) obj;
-        return mUiMode == other.mUiMode && TextUtils.equals(mUrl, other.mUrl)
-                && Objects.equals(mSearchText, other.mSearchText)
-                && Objects.equals(mSearchPowerFilter, other.mSearchPowerFilter);
+        return mUiMode == other.mUiMode && TextUtils.equals(mUrl, other.mUrl);
     }
 
-    /** Returns whether this state is valid. */
+    /**
+     * @return Whether this state is valid.
+     */
     boolean isValid(BookmarkModel bookmarkModel) {
         if (mUrl == null || mUiMode == BookmarkUiMode.INVALID) return false;
         if (mUrl.equals(SHOPPING_FILTER_URL)) return true;

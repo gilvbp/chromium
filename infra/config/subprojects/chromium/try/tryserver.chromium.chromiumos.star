@@ -5,7 +5,7 @@
 
 load("//lib/branches.star", "branches")
 load("//lib/builder_config.star", "builder_config")
-load("//lib/builders.star", "os", "reclient", "siso")
+load("//lib/builders.star", "os", "reclient")
 load("//lib/try.star", "try_")
 load("//lib/consoles.star", "consoles")
 load("//project.star", "settings")
@@ -23,9 +23,6 @@ try_.defaults.set(
     reclient_instance = reclient.instance.DEFAULT_UNTRUSTED,
     reclient_jobs = reclient.jobs.LOW_JOBS_FOR_CQ,
     service_account = try_.DEFAULT_SERVICE_ACCOUNT,
-    siso_enable_cloud_profiler = True,
-    siso_enable_cloud_trace = True,
-    siso_project = siso.project.DEFAULT_UNTRUSTED,
 )
 
 consoles.list_view(
@@ -76,35 +73,6 @@ try_.compilator_builder(
     branch_selector = branches.selector.CROS_LTS_BRANCHES,
     cores = "8|16",
     main_list_view = "try",
-)
-
-try_.orchestrator_builder(
-    name = "chromeos-amd64-generic-siso-rel",
-    description_html = """\
-This builder shadows chromeos-amd64-generic-rel builder to compare between Siso builds and Ninja builds.<br/>
-This builder should be removed after migrating chromeos-amd64-generic-rel from Ninja to Siso. b/277863839
-""",
-    mirrors = builder_config.copy_from("try/chromeos-amd64-generic-rel"),
-    try_settings = builder_config.try_settings(
-        is_compile_only = True,
-    ),
-    compilator = "chromeos-amd64-generic-siso-rel-compilator",
-    experiments = {
-        # go/nplus1shardsproposal
-        "chromium.add_one_test_shard": 10,
-    },
-    main_list_view = "try",
-    tryjob = try_.job(
-        # TODO(b/277863839): increase percentage.
-        # TODO(b/294160948): Siso doesn't support cxx actions for lacros.
-        experiment_percentage = 0.01,
-    ),
-)
-
-try_.compilator_builder(
-    name = "chromeos-amd64-generic-siso-rel-compilator",
-    main_list_view = "try",
-    siso_enabled = True,
 )
 
 try_.builder(
@@ -294,35 +262,6 @@ try_.compilator_builder(
     main_list_view = "try",
 )
 
-try_.orchestrator_builder(
-    name = "linux-chromeos-siso-rel",
-    description_html = """\
-This builder shadows linux-chromeos-rel builder to compare between Siso builds and Ninja builds.<br/>
-This builder should be removed after migrating linux-chromeos-rel from Ninja to Siso. b/277863839
-""",
-    mirrors = builder_config.copy_from("try/linux-chromeos-rel"),
-    try_settings = builder_config.try_settings(
-        is_compile_only = True,
-    ),
-    compilator = "linux-chromeos-siso-rel-compilator",
-    coverage_test_types = ["unit", "overall"],
-    experiments = {
-        # go/nplus1shardsproposal
-        "chromium.add_one_test_shard": 10,
-    },
-    main_list_view = "try",
-    tryjob = try_.job(
-        experiment_percentage = 20,
-    ),
-    use_clang_coverage = True,
-)
-
-try_.compilator_builder(
-    name = "linux-chromeos-siso-rel-compilator",
-    main_list_view = "try",
-    siso_enabled = True,
-)
-
 try_.builder(
     name = "linux-lacros-dbg",
     # TODO(crbug.com/1233247) Adds the CI tester when it's available.
@@ -338,6 +277,7 @@ try_.orchestrator_builder(
         "ci/linux-lacros-builder-rel",
         "ci/linux-lacros-tester-rel",
     ],
+    check_for_flakiness = True,
     compilator = "linux-lacros-rel-compilator",
     coverage_test_types = ["unit", "overall"],
     main_list_view = "try",
@@ -353,32 +293,6 @@ try_.compilator_builder(
     branch_selector = branches.selector.CROS_BRANCHES,
     cores = 32,
     main_list_view = "try",
-)
-
-try_.orchestrator_builder(
-    name = "linux-lacros-siso-rel",
-    description_html = """\
-This builder shadows linux-lacros-rel builder to compare between Siso builds and Ninja builds.<br/>
-This builder should be removed after migrating linux-lacros-rel from Ninja to Siso. b/277863839
-""",
-    mirrors = builder_config.copy_from("try/linux-lacros-rel"),
-    try_settings = builder_config.try_settings(
-        is_compile_only = True,
-    ),
-    compilator = "linux-lacros-siso-rel-compilator",
-    coverage_test_types = ["unit", "overall"],
-    main_list_view = "try",
-    tryjob = try_.job(
-        experiment_percentage = 20,
-    ),
-    use_clang_coverage = True,
-)
-
-try_.compilator_builder(
-    name = "linux-lacros-siso-rel-compilator",
-    cores = 32,
-    main_list_view = "try",
-    siso_enabled = True,
 )
 
 try_.builder(

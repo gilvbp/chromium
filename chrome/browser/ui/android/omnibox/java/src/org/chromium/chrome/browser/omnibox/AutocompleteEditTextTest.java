@@ -1,7 +1,6 @@
 // Copyright 2017 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
-
 package org.chromium.chrome.browser.omnibox;
 
 import static org.junit.Assert.assertEquals;
@@ -18,7 +17,6 @@ import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.KeyEvent;
 import android.view.accessibility.AccessibilityEvent;
-import android.view.accessibility.AccessibilityManager;
 import android.view.inputmethod.BaseInputConnection;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
@@ -42,7 +40,6 @@ import org.robolectric.shadows.ShadowLog;
 import org.chromium.base.Log;
 import org.chromium.base.test.BaseRobolectricTestRunner;
 import org.chromium.chrome.test.util.browser.Features;
-import org.chromium.ui.accessibility.AccessibilityState;
 
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -58,6 +55,10 @@ public class AutocompleteEditTextTest {
 
     private static final boolean DEBUG = false;
 
+    // Robolectric's ShadowAccessibilityManager has a bug (crbug.com/756707). Turn this on once it's
+    // fixed, and you can turn this off temporarily when upgrading robolectric library.
+    private static final boolean TEST_ACCESSIBILITY = true;
+
     @Rule
     public TestRule mProcessor = new Features.JUnitProcessor();
 
@@ -68,6 +69,7 @@ public class AutocompleteEditTextTest {
     private Context mContext;
     private InputConnection mInputConnection;
     private Verifier mVerifier;
+    private ShadowAccessibilityManager mShadowAccessibilityManager;
     private boolean mIsShown;
 
     /**
@@ -157,8 +159,7 @@ public class AutocompleteEditTextTest {
 
         private AtomicInteger mVerifierCallCount = new AtomicInteger();
         private AtomicInteger mAccessibilityVerifierCallCount = new AtomicInteger();
-        private AtomicReference<String> mKeyboardPackageName =
-                new AtomicReference<>("placeholder.ime");
+        private AtomicReference<String> mKeyboardPackageName = new AtomicReference<>("dummy.ime");
 
         public TestAutocompleteEditText(Context context, AttributeSet attrs) {
             super(context, attrs);
@@ -180,10 +181,12 @@ public class AutocompleteEditTextTest {
         @Override
         public void onPopulateAccessibilityEvent(AccessibilityEvent event) {
             super.onPopulateAccessibilityEvent(event);
-            mVerifier.onPopulateAccessibilityEvent(event.getEventType(), getText(event),
-                    getBeforeText(event), event.getItemCount(), event.getFromIndex(),
-                    event.getToIndex(), event.getRemovedCount(), event.getAddedCount());
-            mAccessibilityVerifierCallCount.incrementAndGet();
+            if (TEST_ACCESSIBILITY) {
+                mVerifier.onPopulateAccessibilityEvent(event.getEventType(), getText(event),
+                        getBeforeText(event), event.getItemCount(), event.getFromIndex(),
+                        event.getToIndex(), event.getRemovedCount(), event.getAddedCount());
+                mAccessibilityVerifierCallCount.incrementAndGet();
+            }
         }
 
         private String getText(AccessibilityEvent event) {
@@ -257,12 +260,12 @@ public class AutocompleteEditTextTest {
         assertTrue(mAutocomplete.isShown());
 
         // Enable accessibility.
-        ShadowAccessibilityManager manager = Shadows.shadowOf(
-                (AccessibilityManager) mContext.getSystemService(Context.ACCESSIBILITY_SERVICE));
-        manager.setEnabled(true);
-        manager.setTouchExplorationEnabled(true);
-        AccessibilityState.setIsPerformGesturesEnabledForTesting(true);
-        AccessibilityState.setIsTouchExplorationEnabledForTesting(true);
+        mShadowAccessibilityManager =
+                Shadows.shadowOf(mAutocomplete.getAccessibilityManagerForTesting());
+        mShadowAccessibilityManager.setEnabled(true);
+        mShadowAccessibilityManager.setTouchExplorationEnabled(true);
+        assertTrue(mAutocomplete.getAccessibilityManagerForTesting().isEnabled());
+        assertTrue(mAutocomplete.getAccessibilityManagerForTesting().isTouchExplorationEnabled());
 
         mInOrder = inOrder(mVerifier);
         assertTrue(mAutocomplete.requestFocus());
@@ -290,12 +293,14 @@ public class AutocompleteEditTextTest {
     private void assertVerifierCallCounts(
             int nonAccessibilityCallCount, int accessibilityCallCount) {
         assertEquals(nonAccessibilityCallCount, mAutocomplete.getAndResetVerifierCallCount());
+        if (!TEST_ACCESSIBILITY) return;
         assertEquals(
                 accessibilityCallCount, mAutocomplete.getAndResetAccessibilityVerifierCallCount());
     }
 
     private void verifyOnPopulateAccessibilityEvent(int eventType, String text, String beforeText,
             int itemCount, int fromIndex, int toIndex, int removedCount, int addedCount) {
+        if (!TEST_ACCESSIBILITY) return;
         mInOrder.verify(mVerifier).onPopulateAccessibilityEvent(eventType, text, beforeText,
                 itemCount, fromIndex, toIndex, removedCount, addedCount);
     }

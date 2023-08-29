@@ -6,7 +6,6 @@
  * @fileoverview Polymer element for displaying material design OOBE.
  */
 
-import '//resources/cr_elements/chromeos/cros_color_overrides.css.js';
 import '//resources/cr_elements/cr_input/cr_input.js';
 import '//resources/cr_elements/cr_shared_vars.css.js';
 import '//resources/polymer/v3_0/iron-icon/iron-icon.js';
@@ -192,15 +191,6 @@ class OobeWelcomeScreen extends OobeWelcomeScreenBase {
         type: Boolean,
         value: function() {
           return loadTimeData.getBoolean('isDeviceRequisitionConfigurable');
-        },
-        readOnly: true,
-      },
-
-      isChromeVoxHintImprovementsEnabled_: {
-        type: Boolean,
-        value: function() {
-          return (
-              loadTimeData.getBoolean('isChromeVoxHintImprovementsEnabled'));
         },
         readOnly: true,
       },
@@ -853,18 +843,9 @@ class OobeWelcomeScreen extends OobeWelcomeScreenBase {
           ', giving default hint in English.');
     }
     this.cleanupChromeVoxHint_();
-    // |msgId| depends on both feature enabled status and tablet mode.
-    let msgId;
-    if (this.isChromeVoxHintImprovementsEnabled_) {
-      msgId = this.$.welcomeScreen.isInTabletMode ?
-          'chromeVoxHintAnnouncementTextTabletExpanded' :
-          'chromeVoxHintAnnouncementTextLaptopExpanded';
-    } else {
-      msgId = this.$.welcomeScreen.isInTabletMode ?
-          'chromeVoxHintAnnouncementTextTablet' :
-          'chromeVoxHintAnnouncementTextLaptop';
-    }
-
+    const msgId = this.$.welcomeScreen.isInTabletMode ?
+        'chromeVoxHintAnnouncementTextTablet' :
+        'chromeVoxHintAnnouncementTextLaptop';
     const message = this.i18n(msgId);
     chrome.tts.speak(message, options, () => {
       this.showChromeVoxHint_();

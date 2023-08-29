@@ -17,28 +17,24 @@ import {QueueMode} from '../../common/tts_types.js';
 import {ChromeVox} from '../chromevox.js';
 import {ChromeVoxPrefs} from '../prefs.js';
 
-/**
- * Interface that allows clients to listen for changes to the braille captions.
- */
-export class BrailleCaptionsListener {
-  /** Called when the braille captions state changes. */
-  onBrailleCaptionsStateChanged() {}
-}
-
 export class BrailleCaptionsBackground {
-  /** @param {!BrailleCaptionsListener} listener */
-  constructor(listener) {
-    /** @private {!BrailleCaptionsListener} */
-    this.listener_ = listener;
+  /**
+   * @param {function()} stateCallback Called when the state of the captions
+   *     feature changes.
+   */
+  constructor(stateCallback) {
+    /** @private {function()} */
+    this.stateCallback_ = stateCallback;
   }
 
   /**
    * Called once to initialize the class.
-   * @param {!BrailleCaptionsListener} listener
+   * @param {function()} stateCallback Called when the state of the captions
+   *     feature changes.
    */
-  static init(listener) {
+  static init(stateCallback) {
     BrailleCaptionsBackground.instance =
-        new BrailleCaptionsBackground(listener);
+        new BrailleCaptionsBackground(stateCallback);
   }
 
   /**
@@ -142,7 +138,7 @@ export class BrailleCaptionsBackground {
     ChromeVoxPrefs.instance.setPref(
         BrailleCaptionsBackground.PREF_KEY, newValue);
     if (oldValue !== newValue) {
-      BrailleCaptionsBackground.instance.onStateChanged_();
+      BrailleCaptionsBackground.instance.callStateCallback_();
       const msg = newValue ? Msgs.getMsg('braille_captions_enabled') :
                              Msgs.getMsg('braille_captions_disabled');
       ChromeVox.tts.speak(msg, QueueMode.QUEUE);
@@ -160,26 +156,17 @@ export class BrailleCaptionsBackground {
     if (BrailleCaptionsBackground.isEnabled()) {
       const rows = SettingsManager.getNumber('virtualBrailleRows');
       const columns = SettingsManager.getNumber('virtualBrailleColumns');
-      // TODO(accessibility) make `cellSize` customizable.
-      return {
-        available: true,
-        textRowCount: rows,
-        textColumnCount: columns,
-        cellSize: 8,
-      };
+      return {available: true, textRowCount: rows, textColumnCount: columns};
     } else {
-      return {
-        available: false,
-        textRowCount: 0,
-        textColumnCount: 0,
-        cellSize: 0,
-      };
+      return {available: false, textRowCount: 0, textColumnCount: 0};
     }
   }
 
   /** @private */
-  onStateChanged_() {
-    this.listener_.onBrailleCaptionsStateChanged();
+  callStateCallback_() {
+    if (this.stateCallback_) {
+      this.stateCallback_();
+    }
   }
 }
 

@@ -43,6 +43,7 @@ import android.widget.ListView;
 import android.widget.TextView;
 
 import androidx.annotation.IntDef;
+import androidx.test.InstrumentationRegistry;
 import androidx.test.espresso.DataInteraction;
 import androidx.test.espresso.Espresso;
 import androidx.test.espresso.NoMatchingRootException;
@@ -71,10 +72,10 @@ import org.chromium.android_webview.test.AwJUnit4ClassRunner;
 import org.chromium.base.ContextUtils;
 import org.chromium.base.test.BaseActivityTestRule;
 import org.chromium.base.test.util.ApplicationTestUtils;
+import org.chromium.base.test.util.Batch;
 import org.chromium.base.test.util.CallbackHelper;
 import org.chromium.base.test.util.CriteriaHelper;
 import org.chromium.base.test.util.CriteriaNotSatisfiedException;
-import org.chromium.base.test.util.DoNotBatch;
 import org.chromium.base.test.util.Feature;
 import org.chromium.content_public.browser.test.util.TestThreadUtils;
 import org.chromium.ui.test.util.ViewUtils;
@@ -89,11 +90,10 @@ import java.util.Map;
  * each test, leaving a clean state.
  */
 @RunWith(AwJUnit4ClassRunner.class)
-@DoNotBatch(reason = "Clean up DeveloperUiService after each test")
+@Batch(Batch.PER_CLASS)
 public class FlagsFragmentTest {
     @Rule
-    public BaseActivityTestRule<MainActivity> mRule =
-            new BaseActivityTestRule<>(MainActivity.class);
+    public BaseActivityTestRule mRule = new BaseActivityTestRule<MainActivity>(MainActivity.class);
 
     private static final Flag[] sMockFlagList = {
             Flag.commandLine("first-switch-for-testing",
@@ -116,16 +116,14 @@ public class FlagsFragmentTest {
 
     @Before
     public void setUp() throws Exception {
-        Context context = ContextUtils.getApplicationContext();
-        Intent intent = new Intent(context, MainActivity.class);
-        MainActivity.markPopupPermissionRequestedInPrefsForTesting();
+        Intent intent = new Intent(ContextUtils.getApplicationContext(), MainActivity.class);
         TestThreadUtils.runOnUiThreadBlocking(() -> {
             FlagsFragment.setFlagListForTesting(sMockFlagList);
             DeveloperUiService.setFlagListForTesting(sMockFlagList);
         });
+        Context context = InstrumentationRegistry.getTargetContext();
         WebViewPackageHelper.setCurrentWebViewPackageForTesting(
                 WebViewPackageHelper.getContextPackageInfo(context));
-
         intent.putExtra(MainActivity.FRAGMENT_ID_INTENT_EXTRA, MainActivity.FRAGMENT_ID_FLAGS);
         mRule.launchActivity(intent);
 
@@ -135,18 +133,18 @@ public class FlagsFragmentTest {
     @After
     public void tearDown() {
         // Make sure to clear shared preferences between tests to avoid any saved state.
-        DeveloperUiService.clearSharedPrefsForTesting(ContextUtils.getApplicationContext());
+        DeveloperUiService.clearSharedPrefsForTesting(InstrumentationRegistry.getTargetContext());
     }
 
     private void waitForInflatedFlagFragment() {
         // Espresso is normally configured to automatically wait for the main thread to go idle, but
         // BaseActivityTestRule turns that behavior off so we must explicitly wait for the View
         // hierarchy to inflate.
-        ViewUtils.waitForVisibleView(withId(R.id.navigation_flags_ui));
-        ViewUtils.waitForVisibleView(withId(R.id.navigation_home));
-        ViewUtils.waitForVisibleView(withId(R.id.flag_search_bar));
-        ViewUtils.waitForVisibleView(withId(R.id.flags_list));
-        ViewUtils.waitForVisibleView(withId(R.id.reset_flags_button));
+        ViewUtils.waitForView(withId(R.id.navigation_flags_ui));
+        ViewUtils.waitForView(withId(R.id.navigation_home));
+        ViewUtils.waitForView(withId(R.id.flag_search_bar));
+        ViewUtils.waitForView(withId(R.id.flags_list));
+        ViewUtils.waitForView(withId(R.id.reset_flags_button));
 
         // Always close the soft keyboard when the activity is launched which is sometimes shown
         // because flags search TextView has input focus by default. The keyboard may cover up some
@@ -789,7 +787,7 @@ public class FlagsFragmentTest {
 
         // And navigate away from flags
         onView(withId(R.id.navigation_home)).perform(click());
-        onView(withId(R.id.fragment_home)).check(matches(isDisplayed()));
+        ViewUtils.waitForView(withId(R.id.fragment_home));
 
         // When navigating back to the flags fragment
         onView(withId(R.id.navigation_flags_ui)).perform(click());

@@ -38,11 +38,9 @@ CrosWindowManagementContextFactory::CrosWindowManagementContextFactory()
 CrosWindowManagementContextFactory::~CrosWindowManagementContextFactory() =
     default;
 
-std::unique_ptr<KeyedService>
-CrosWindowManagementContextFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* CrosWindowManagementContextFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
-  return std::make_unique<CrosWindowManagementContext>(
-      Profile::FromBrowserContext(context));
+  return new CrosWindowManagementContext(Profile::FromBrowserContext(context));
 }
 
 bool CrosWindowManagementContextFactory::ServiceIsCreatedWithBrowserContext()

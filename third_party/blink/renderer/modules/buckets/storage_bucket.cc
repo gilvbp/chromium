@@ -151,9 +151,9 @@ ScriptPromise StorageBucket::expires(ScriptState* script_state) {
 IDBFactory* StorageBucket::indexedDB() {
   if (!idb_factory_) {
     idb_factory_ = MakeGarbageCollected<IDBFactory>(GetExecutionContext());
-    mojo::PendingRemote<mojom::blink::IDBFactory> remote_factory;
-    remote_->GetIdbFactory(remote_factory.InitWithNewPipeAndPassReceiver());
-    idb_factory_->SetRemote(std::move(remote_factory));
+    mojo::PendingRemote<mojom::blink::IDBFactory> factory;
+    remote_->GetIdbFactory(factory.InitWithNewPipeAndPassReceiver());
+    idb_factory_->SetFactory(std::move(factory), GetExecutionContext());
   }
   return idb_factory_;
 }
@@ -210,7 +210,7 @@ void StorageBucket::DidRequestPersist(ScriptPromiseResolver* resolver,
   if (!success) {
     resolver->Reject(MakeGarbageCollected<DOMException>(
         DOMExceptionCode::kUnknownError,
-        "Unknown error occurred while requesting persist."));
+        "Unknown error occured while requesting persist."));
     return;
   }
 
@@ -228,7 +228,7 @@ void StorageBucket::DidGetPersisted(ScriptPromiseResolver* resolver,
   if (!success) {
     resolver->Reject(MakeGarbageCollected<DOMException>(
         DOMExceptionCode::kUnknownError,
-        "Unknown error occurred while getting persisted."));
+        "Unknown error occured while getting persisted."));
     return;
   }
 
@@ -248,7 +248,7 @@ void StorageBucket::DidGetEstimate(ScriptPromiseResolver* resolver,
   if (!success) {
     resolver->Reject(MakeGarbageCollected<DOMException>(
         DOMExceptionCode::kUnknownError,
-        "Unknown error occurred while getting estimate."));
+        "Unknown error occured while getting estimate."));
     return;
   }
 
@@ -270,7 +270,7 @@ void StorageBucket::DidGetDurability(ScriptPromiseResolver* resolver,
   if (!success) {
     resolver->Reject(MakeGarbageCollected<DOMException>(
         DOMExceptionCode::kUnknownError,
-        "Unknown error occurred while getting durability."));
+        "Unknown error occured while getting durability."));
     return;
   }
 
@@ -293,7 +293,7 @@ void StorageBucket::DidSetExpires(ScriptPromiseResolver* resolver,
   } else {
     resolver->Reject(MakeGarbageCollected<DOMException>(
         DOMExceptionCode::kUnknownError,
-        "Unknown error occurred while setting expires."));
+        "Unknown error occured while setting expires."));
   }
 }
 
@@ -308,7 +308,7 @@ void StorageBucket::DidGetExpires(ScriptPromiseResolver* resolver,
   if (!success) {
     resolver->Reject(MakeGarbageCollected<DOMException>(
         DOMExceptionCode::kUnknownError,
-        "Unknown error occurred while getting expires."));
+        "Unknown error occured while getting expires."));
   } else if (expires.has_value()) {
     resolver->Resolve(base::Time::kMillisecondsPerSecond *
                       expires.value().ToDoubleT());

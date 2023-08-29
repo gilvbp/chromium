@@ -60,7 +60,7 @@ suite('appTestSuite', function() {
   });
 
   setup(() => {
-    document.body.innerHTML = window.trustedTypes.emptyHTML;
+    document.body.innerHTML = '';
   });
 
   teardown(() => {
@@ -261,7 +261,7 @@ suite('appTestSuite', function() {
     dx_utils.assertTextContains(link.href, disabledUrl);
 
     // Reset diagnostics app element
-    document.body.innerHTML = window.trustedTypes.emptyHTML;
+    document.body.innerHTML = '';
     page.remove();
     page = null;
 

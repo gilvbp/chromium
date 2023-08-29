@@ -257,7 +257,7 @@ if (android_64bit_target_cpu) {
   }
 }
 
-if (is_official_build && !skip_secondary_abi_for_cq) {
+if (is_official_build) {
   # Used for binary size monitoring.
   create_app_bundle_minimal_apks("trichrome_webview_minimal_apks") {
     deps = [ ":trichrome_webview_bundle" ]
@@ -350,7 +350,6 @@ template("libwebviewchromium_tmpl") {
     configs += [
       "//build/config/android:hide_all_but_jni",
       "//build/config/compiler:chrome_orderfile_config",
-      "//build/config/compiler:prevent_unsafe_narrowing",
     ]
     java_targets = webview_java_for_jni_targets
 
@@ -394,20 +393,24 @@ template("webview_alternate_library") {
   }
 }
 
-if (android_64bit_target_cpu && !skip_secondary_abi_for_cq) {
+if (defined(android_secondary_abi_toolchain)) {
   # Note here that on a given system, the webview-only library needs the same
   # library name as the browser library, since the system webview factory will
   # differentiate only by ABI.
-  webview_alternate_library("monochrome_64") {
+  if (current_toolchain == android_secondary_abi_toolchain) {
     # This target is the 32-bit WebView library that pairs with a 64-bit
     # browser. It is suffixed with _64 because its name must match the 64-bit
     # browser library.
-    enable_target = current_toolchain == android_secondary_abi_toolchain
+    webview_alternate_library("monochrome_64") {
+    }
+  } else {
+    # Inverse of above, for the original 32-bit case.
+    webview_alternate_library("monochrome") {
+    }
   }
-
-  # Inverse of above, for the original 32-bit case.
-  webview_alternate_library("monochrome") {
-    enable_target = current_toolchain != android_secondary_abi_toolchain
+} else {
+  # 32-bit WebView library used in 32-bit only builds of 64/32 targets.
+  webview_alternate_library("monochrome_64") {
   }
 }
 
@@ -446,10 +449,7 @@ group("empty_group") {
 }
 
 generate_jni("common_jni") {
-  sources = [
-    "java/src/org/chromium/android_webview/common/AwResource.java",
-    "java/src/org/chromium/android_webview/common/origin_trial/DisableOriginTrialsSafeModeUtils.java",
-  ]
+  sources = [ "java/src/org/chromium/android_webview/common/AwResource.java" ]
 }
 
 generate_jni("browser_jni_headers") {
@@ -483,7 +483,6 @@ generate_jni("browser_jni_headers") {
     "java/src/org/chromium/android_webview/SystemStateUtil.java",
     "java/src/org/chromium/android_webview/WebMessageListenerHolder.java",
     "java/src/org/chromium/android_webview/WebMessageListenerInfo.java",
-    "java/src/org/chromium/android_webview/client_hints/AwUserAgentMetadata.java",
     "java/src/org/chromium/android_webview/gfx/AwDrawFnImpl.java",
     "java/src/org/chromium/android_webview/gfx/AwGLFunctor.java",
     "java/src/org/chromium/android_webview/gfx/AwPicture.java",
@@ -583,7 +582,6 @@ android_library("browser_java") {
     "java/src/org/chromium/android_webview/WebviewErrorCode.java",
     "java/src/org/chromium/android_webview/autofill/AndroidAutofillSafeModeAction.java",
     "java/src/org/chromium/android_webview/autofill/ChromeAutocompleteSafeModeAction.java",
-    "java/src/org/chromium/android_webview/client_hints/AwUserAgentMetadata.java",
     "java/src/org/chromium/android_webview/gfx/AwDrawFnImpl.java",
     "java/src/org/chromium/android_webview/gfx/AwFunctor.java",
     "java/src/org/chromium/android_webview/gfx/AwGLFunctor.java",
@@ -593,12 +591,9 @@ android_library("browser_java") {
     "java/src/org/chromium/android_webview/gfx/RootBeginFrameSourceWebView.java",
     "java/src/org/chromium/android_webview/metrics/AwMetricsLogUploader.java",
     "java/src/org/chromium/android_webview/metrics/AwMetricsServiceClient.java",
-    "java/src/org/chromium/android_webview/metrics/AwMetricsUtils.java",
     "java/src/org/chromium/android_webview/metrics/AwNonembeddedUmaReplayer.java",
     "java/src/org/chromium/android_webview/metrics/AwOriginVisitLogger.java",
     "java/src/org/chromium/android_webview/metrics/AwSiteVisitLogger.java",
-    "java/src/org/chromium/android_webview/metrics/HistogramsAllowlist.java",
-    "java/src/org/chromium/android_webview/metrics/MetricsFilteringDecorator.java",
     "java/src/org/chromium/android_webview/permission/AwGeolocationCallback.java",
     "java/src/org/chromium/android_webview/permission/AwPermissionRequest.java",
     "java/src/org/chromium/android_webview/policy/AwPolicyProvider.java",
@@ -613,7 +608,6 @@ android_library("browser_java") {
   deps = [
     ":common_aidl_java",
     ":common_java",
-    ":common_origin_trials_java",
     ":common_platform_services_java",
     ":common_variations_java",
     ":crash_client_java",
@@ -633,7 +627,6 @@ android_library("browser_java") {
     "//components/embedder_support/android:util_java",
     "//components/embedder_support/android:web_contents_delegate_java",
     "//components/embedder_support/android/metrics:java",
-    "//components/environment_integrity/android:java",
     "//components/minidump_uploader:minidump_uploader_java",
     "//components/navigation_interception/android:navigation_interception_java",
     "//components/policy/android:policy_java",
@@ -658,7 +651,6 @@ android_library("browser_java") {
     "//third_party/androidx:androidx_core_core_java",
     "//third_party/blink/public:blink_headers_java",
     "//third_party/blink/public/mojom:mojom_platform_java",
-    "//third_party/metrics_proto:metrics_proto_java",
     "//ui/android:ui_no_recycler_view_java",
     "//url:gurl_java",
   ]
@@ -733,20 +725,6 @@ android_library("crash_client_java") {
   ]
 }
 
-android_library("common_origin_trials_java") {
-  sources = [
-    "java/src/org/chromium/android_webview/common/origin_trial/DisableOriginTrialsSafeModeAction.java",
-    "java/src/org/chromium/android_webview/common/origin_trial/DisableOriginTrialsSafeModeUtils.java",
-  ]
-
-  deps = [
-    ":common_java",
-    "//base:base_java",
-    "//base:jni_java",
-    "//third_party/androidx:androidx_annotation_annotation_java",
-  ]
-}
-
 java_cpp_strings("common_java_switches_srcjar") {
   # External code should depend on "common_java" instead.
   visibility = [ ":*" ]
@@ -788,7 +766,6 @@ android_library("common_java") {
     "//components/feature_engagement/public:public_java",
     "//components/metrics:metrics_java",
     "//components/network_session_configurator/android:network_session_configurator_java",
-    "//components/permissions/android:core_java",
     "//components/variations:variations_java",
     "//components/viz:viz_java",
     "//content/public/android:content_java",
@@ -990,7 +967,6 @@ android_resources("resources") {
     "java/res/drawable-xhdpi/ic_play_circle_outline_black_48dp.png",
     "java/res/drawable-xxhdpi/ic_play_circle_outline_black_48dp.png",
     "java/res/drawable-xxxhdpi/ic_play_circle_outline_black_48dp.png",
-    "java/res/raw/histograms_allowlist.txt",
   ]
   deps = [ ":strings_grd" ]
 }
@@ -1106,29 +1082,27 @@ grit("generate_components_resources") {
   }
 }
 
-if (webview_includes_weblayer) {
-  grit("generate_components_scaled_resources") {
-    source = "../components/resources/components_scaled_resources.grd"
+grit("generate_components_scaled_resources") {
+  source = "../components/resources/components_scaled_resources.grd"
 
-    # See :generate_webui_resources for an explanation of the allowlist
-    _allowlist = rebase_path("$target_gen_dir/grit_resources_allowlist.txt",
-                             root_build_dir)
+  # See :generate_webui_resources for an explanation of the allowlist
+  _allowlist = rebase_path("$target_gen_dir/grit_resources_allowlist.txt",
+                           root_build_dir)
 
-    grit_flags = [
-      "-w",
-      _allowlist,
-    ]
-    outputs = [
-      "grit/components_scaled_resources.h",
-      "grit/components_scaled_resources_map.cc",
-      "grit/components_scaled_resources_map.h",
-      "components_resources_100_percent.pak",
-      "components_resources_200_percent.pak",
-      "components_resources_300_percent.pak",
-    ]
+  grit_flags = [
+    "-w",
+    _allowlist,
+  ]
+  outputs = [
+    "grit/components_scaled_resources.h",
+    "grit/components_scaled_resources_map.cc",
+    "grit/components_scaled_resources_map.h",
+    "components_resources_100_percent.pak",
+    "components_resources_200_percent.pak",
+    "components_resources_300_percent.pak",
+  ]
 
-    deps = [ ":concatenate_resources_allowlists" ]
-  }
+  deps = [ ":concatenate_resources_allowlists" ]
 }
 
 grit("generate_components_strings") {

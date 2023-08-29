@@ -421,6 +421,7 @@ public class CronetBidirectionalStream extends ExperimentalBidirectionalStream {
     /**
      * Returns a read-only copy of {@code mPendingData} for testing.
      */
+    @VisibleForTesting
     public List<ByteBuffer> getPendingDataForTesting() {
         synchronized (mNativeStreamLock) {
             List<ByteBuffer> pendingData = new LinkedList<ByteBuffer>();
@@ -434,6 +435,7 @@ public class CronetBidirectionalStream extends ExperimentalBidirectionalStream {
     /**
      * Returns a read-only copy of {@code mFlushData} for testing.
      */
+    @VisibleForTesting
     public List<ByteBuffer> getFlushDataForTesting() {
         synchronized (mNativeStreamLock) {
             List<ByteBuffer> flushData = new LinkedList<ByteBuffer>();
@@ -705,6 +707,7 @@ public class CronetBidirectionalStream extends ExperimentalBidirectionalStream {
         }
     }
 
+    @VisibleForTesting
     public void setOnDestroyedCallbackForTesting(Runnable onDestroyedCallbackForTesting) {
         mOnDestroyedCallbackForTesting = onDestroyedCallbackForTesting;
     }

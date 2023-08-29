@@ -47,18 +47,10 @@ SyntheticSmoothMoveGestureParams::SyntheticSmoothMoveGestureParams(
 
 SyntheticSmoothMoveGestureParams::~SyntheticSmoothMoveGestureParams() = default;
 
-SyntheticGestureParams::GestureType
-SyntheticSmoothMoveGestureParams::GetGestureType() const {
-  return SMOOTH_MOVE_GESTURE;
-}
-
 SyntheticSmoothMoveGesture::SyntheticSmoothMoveGesture(
-    const SyntheticSmoothMoveGestureParams& gesture_params)
-    : SyntheticGestureBase(gesture_params),
-      current_move_segment_start_position_(params().start_point) {
-  CHECK_EQ(SyntheticGestureParams::SMOOTH_MOVE_GESTURE,
-           gesture_params.GetGestureType());
-}
+    SyntheticSmoothMoveGestureParams params)
+    : params_(params),
+      current_move_segment_start_position_(params.start_point) {}
 
 SyntheticSmoothMoveGesture::~SyntheticSmoothMoveGesture() {}
 
@@ -78,19 +70,19 @@ SyntheticGesture::Result SyntheticSmoothMoveGesture::ForwardInputEvents(
     current_move_segment_stop_time_ = timestamp;
   }
 
-  switch (params().input_type) {
+  switch (params_.input_type) {
     case SyntheticSmoothMoveGestureParams::TOUCH_INPUT:
       if (!synthetic_pointer_driver_)
         synthetic_pointer_driver_ = SyntheticPointerDriver::Create(
             content::mojom::GestureSourceType::kTouchInput,
-            params().from_devtools_debugger);
+            params_.from_devtools_debugger);
       ForwardTouchInputEvents(timestamp, target);
       break;
     case SyntheticSmoothMoveGestureParams::MOUSE_DRAG_INPUT:
       if (!synthetic_pointer_driver_)
         synthetic_pointer_driver_ = SyntheticPointerDriver::Create(
             content::mojom::GestureSourceType::kMouseInput,
-            params().from_devtools_debugger);
+            params_.from_devtools_debugger);
       ForwardMouseClickInputEvents(timestamp, target);
       break;
     case SyntheticSmoothMoveGestureParams::MOUSE_WHEEL_INPUT:
@@ -132,9 +124,8 @@ void SyntheticSmoothMoveGesture::ForwardTouchInputEvents(
         state_ = DONE;
         break;
       }
-      if (params().add_slop) {
+      if (params_.add_slop)
         AddTouchSlopToFirstDistance(target);
-      }
       ComputeNextMoveSegment();
       PressPoint(target, timestamp);
       if (!weak_controller) {
@@ -152,9 +143,9 @@ void SyntheticSmoothMoveGesture::ForwardTouchInputEvents(
       if (FinishedCurrentMoveSegment(event_timestamp)) {
         if (!IsLastMoveSegment()) {
           current_move_segment_start_position_ +=
-              params().distances[current_move_segment_];
+              params_.distances[current_move_segment_];
           ComputeNextMoveSegment();
-        } else if (params().prevent_fling) {
+        } else if (params_.prevent_fling) {
           state_ = STOPPING;
         } else {
           ReleasePoint(target, event_timestamp);
@@ -209,7 +200,7 @@ void SyntheticSmoothMoveGesture::ForwardMouseWheelInputEvents(
             needs_scroll_begin_ ? blink::WebMouseWheelEvent::kPhaseBegan
                                 : blink::WebMouseWheelEvent::kPhaseChanged;
         ForwardMouseWheelEvent(target, delta, phase, event_timestamp,
-                               params().modifiers);
+                               params_.modifiers);
         current_move_segment_total_delta_ += delta;
         needs_scroll_begin_ = false;
       }
@@ -222,15 +213,15 @@ void SyntheticSmoothMoveGesture::ForwardMouseWheelInputEvents(
           state_ = DONE;
 
           // Start flinging on the swipe action.
-          if (!params().prevent_fling && (params().fling_velocity_x != 0 ||
-                                          params().fling_velocity_y != 0)) {
+          if (!params_.prevent_fling && (params_.fling_velocity_x != 0 ||
+                                         params_.fling_velocity_y != 0)) {
             ForwardFlingGestureEvent(
                 target, blink::WebGestureEvent::Type::kGestureFlingStart);
           } else {
             // Forward a wheel event with phase ended and zero deltas.
             ForwardMouseWheelEvent(target, gfx::Vector2d(),
                                    blink::WebMouseWheelEvent::kPhaseEnded,
-                                   event_timestamp, params().modifiers);
+                                   event_timestamp, params_.modifiers);
           }
           needs_scroll_begin_ = true;
         }
@@ -280,7 +271,7 @@ void SyntheticSmoothMoveGesture::ForwardMouseClickInputEvents(
       if (FinishedCurrentMoveSegment(event_timestamp)) {
         if (!IsLastMoveSegment()) {
           current_move_segment_start_position_ +=
-              params().distances[current_move_segment_];
+              params_.distances[current_move_segment_];
           ComputeNextMoveSegment();
         } else {
           ReleasePoint(target, event_timestamp);
@@ -312,12 +303,12 @@ void SyntheticSmoothMoveGesture::ForwardMouseWheelEvent(
     const blink::WebMouseWheelEvent::Phase phase,
     const base::TimeTicks& timestamp,
     int modifiers) const {
-  if (params().from_devtools_debugger) {
+  if (params_.from_devtools_debugger) {
     modifiers |= blink::WebInputEvent::kFromDebugger;
   }
   blink::WebMouseWheelEvent mouse_wheel_event =
       blink::SyntheticWebMouseWheelEventBuilder::Build(
-          0, 0, delta.x(), delta.y(), modifiers, params().granularity);
+          0, 0, delta.x(), delta.y(), modifiers, params_.granularity);
 
   mouse_wheel_event.SetPositionInWidget(
       current_move_segment_start_position_.x(),
@@ -335,8 +326,8 @@ void SyntheticSmoothMoveGesture::ForwardFlingGestureEvent(
   blink::WebGestureEvent fling_gesture_event =
       blink::SyntheticWebGestureEventBuilder::Build(
           type, blink::WebGestureDevice::kTouchpad);
-  fling_gesture_event.data.fling_start.velocity_x = params().fling_velocity_x;
-  fling_gesture_event.data.fling_start.velocity_y = params().fling_velocity_y;
+  fling_gesture_event.data.fling_start.velocity_x = params_.fling_velocity_x;
+  fling_gesture_event.data.fling_start.velocity_y = params_.fling_velocity_y;
   fling_gesture_event.SetPositionInWidget(current_move_segment_start_position_);
   target->DispatchInputEventToPlatform(fling_gesture_event);
 }
@@ -353,7 +344,7 @@ void SyntheticSmoothMoveGesture::MovePoint(SyntheticGestureTarget* target,
                                            const gfx::Vector2dF& delta,
                                            const base::TimeTicks& timestamp) {
   DCHECK_GE(current_move_segment_, 0);
-  DCHECK_LT(current_move_segment_, static_cast<int>(params().distances.size()));
+  DCHECK_LT(current_move_segment_, static_cast<int>(params_.distances.size()));
   gfx::PointF new_position = current_move_segment_start_position_ + delta;
   synthetic_pointer_driver_->Move(new_position.x(), new_position.y());
   synthetic_pointer_driver_->DispatchEvent(target, timestamp);
@@ -363,9 +354,9 @@ void SyntheticSmoothMoveGesture::ReleasePoint(
     SyntheticGestureTarget* target,
     const base::TimeTicks& timestamp) {
   DCHECK_EQ(current_move_segment_,
-            static_cast<int>(params().distances.size()) - 1);
+            static_cast<int>(params_.distances.size()) - 1);
   gfx::PointF position;
-  if (params().input_type ==
+  if (params_.input_type ==
       SyntheticSmoothMoveGestureParams::MOUSE_DRAG_INPUT) {
     position = current_move_segment_start_position_ +
                GetPositionDeltaAtTime(timestamp);
@@ -376,8 +367,8 @@ void SyntheticSmoothMoveGesture::ReleasePoint(
 
 void SyntheticSmoothMoveGesture::AddTouchSlopToFirstDistance(
     SyntheticGestureTarget* target) {
-  DCHECK_GE(params().distances.size(), 1ul);
-  gfx::Vector2dF& first_move_distance = params().distances[0];
+  DCHECK_GE(params_.distances.size(), 1ul);
+  gfx::Vector2dF& first_move_distance = params_.distances[0];
   DCHECK_GT(first_move_distance.Length(), 0);
   first_move_distance += ProjectScalarOntoVector(target->GetTouchSlopInDips(),
                                                  first_move_distance);
@@ -391,26 +382,26 @@ gfx::Vector2dF SyntheticSmoothMoveGesture::GetPositionDeltaAtTime(
   // precision. In fact, gestures can accumulate a significant amount of
   // error (e.g. due to snapping to physical pixels on each event).
   if (FinishedCurrentMoveSegment(timestamp))
-    return params().distances[current_move_segment_];
+    return params_.distances[current_move_segment_];
 
   return gfx::ScaleVector2d(
-      params().distances[current_move_segment_],
+      params_.distances[current_move_segment_],
       GetCurvedRatio(timestamp, current_move_segment_start_time_,
                      current_move_segment_stop_time_,
-                     params().speed_in_pixels_s));
+                     params_.speed_in_pixels_s));
 }
 
 void SyntheticSmoothMoveGesture::ComputeNextMoveSegment() {
   current_move_segment_++;
-  DCHECK_LT(current_move_segment_, static_cast<int>(params().distances.size()));
+  DCHECK_LT(current_move_segment_, static_cast<int>(params_.distances.size()));
   // Percentage based scrolls do not require velocity and are delivered in a
   // single segment. No need to compute another segment
-  if (params().granularity == ui::ScrollGranularity::kScrollByPercentage) {
+  if (params_.granularity == ui::ScrollGranularity::kScrollByPercentage) {
     current_move_segment_start_time_ = current_move_segment_stop_time_;
   } else {
     int64_t total_duration_in_us = static_cast<int64_t>(
-        1e6 * (params().distances[current_move_segment_].Length() /
-               params().speed_in_pixels_s));
+        1e6 * (params_.distances[current_move_segment_].Length() /
+               params_.speed_in_pixels_s));
     DCHECK_GT(total_duration_in_us, 0);
     current_move_segment_start_time_ = current_move_segment_stop_time_;
     current_move_segment_stop_time_ = current_move_segment_start_time_ +
@@ -429,13 +420,13 @@ bool SyntheticSmoothMoveGesture::FinishedCurrentMoveSegment(
 }
 
 bool SyntheticSmoothMoveGesture::IsLastMoveSegment() const {
-  DCHECK_LT(current_move_segment_, static_cast<int>(params().distances.size()));
+  DCHECK_LT(current_move_segment_, static_cast<int>(params_.distances.size()));
   return current_move_segment_ ==
-         static_cast<int>(params().distances.size()) - 1;
+         static_cast<int>(params_.distances.size()) - 1;
 }
 
 bool SyntheticSmoothMoveGesture::MoveIsNoOp() const {
-  return params().distances.size() == 0 || params().distances[0].IsZero();
+  return params_.distances.size() == 0 || params_.distances[0].IsZero();
 }
 
 }  // namespace content

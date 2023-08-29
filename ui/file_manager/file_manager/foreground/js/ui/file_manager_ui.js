@@ -20,6 +20,7 @@ import {XfDlpRestrictionDetailsDialog} from '../../../widgets/xf_dlp_restriction
 import {XfSplitter} from '../../../widgets/xf_splitter.js';
 import {XfTree} from '../../../widgets/xf_tree.js';
 import {FilesPasswordDialog} from '../../elements/files_password_dialog.js';
+import {FilesTooltip} from '../../elements/files_tooltip.js';
 import {BannerController} from '../banner_controller.js';
 import {LaunchParam} from '../launch_param.js';
 import {ProvidersModel} from '../providers_model.js';
@@ -221,7 +222,7 @@ export class FileManagerUI {
      * @type {!FilesTooltip}
      */
     this.filesTooltip =
-        /** @type {!FilesTooltip} */ (document.querySelector('files-tooltip'));
+        assertInstanceof(document.querySelector('files-tooltip'), FilesTooltip);
 
     /**
      * The actionbar which contains buttons to perform actions on selected

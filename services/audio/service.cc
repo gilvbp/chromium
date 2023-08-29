@@ -33,10 +33,12 @@ namespace audio {
 
 Service::Service(std::unique_ptr<AudioManagerAccessor> audio_manager_accessor,
                  bool enable_remote_client_support,
+                 bool run_audio_processing,
                  mojo::PendingReceiver<mojom::AudioService> receiver)
     : receiver_(this, std::move(receiver)),
       audio_manager_accessor_(std::move(audio_manager_accessor)),
-      enable_remote_client_support_(enable_remote_client_support) {
+      enable_remote_client_support_(enable_remote_client_support),
+      run_audio_processing_(run_audio_processing) {
   DCHECK(audio_manager_accessor_);
 
   if (enable_remote_client_support_) {
@@ -133,7 +135,8 @@ void Service::BindStreamFactory(
 
   if (!stream_factory_) {
     stream_factory_.emplace(audio_manager_accessor_->GetAudioManager(),
-                            aecdump_recording_manager_.get());
+                            aecdump_recording_manager_.get(),
+                            run_audio_processing_);
   }
   stream_factory_->Bind(std::move(receiver));
 }

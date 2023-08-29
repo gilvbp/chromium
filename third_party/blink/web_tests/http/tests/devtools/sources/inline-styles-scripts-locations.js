@@ -5,8 +5,6 @@
 import {TestRunner} from 'test_runner';
 import {SourcesTestRunner} from 'sources_test_runner';
 
-import * as SDK from 'devtools/core/sdk/sdk.js';
-
 (async function() {
   TestRunner.addResult(`Bindings should only generate locations for an inline script (style) if the location is inside of the inline script (style).\n`);
   await TestRunner.loadLegacyModule('sources');
@@ -39,7 +37,7 @@ import * as SDK from 'devtools/core/sdk/sdk.js';
       return null;
     }
     async function checkValidity(location) {
-      if (location instanceof SDK.CSSModel.CSSLocation) {
+      if (location instanceof SDK.CSSLocation) {
         const h = location.header();
         if (!h) return "invalid css header";
         if (!h.containsLocation(location.lineNumber, location.columnNumber))

@@ -36,8 +36,7 @@ class CastDevToolsManagerDelegate : public content::DevToolsManagerDelegate {
   bool HasEnabledWebContents() const;
 
   // content::DevToolsManagerDelegate implementation.
-  content::DevToolsAgentHost::List RemoteDebuggingTargets(
-      TargetType target_type) override;
+  content::DevToolsAgentHost::List RemoteDebuggingTargets() override;
   std::string GetDiscoveryPageHTML() override;
 
  private:

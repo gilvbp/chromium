@@ -329,20 +329,9 @@ ExtensionsMenuSitePermissionsPageView::ExtensionsMenuSitePermissionsPageView(
                           views::Builder<views::ToggleButton>()
                               .CopyAddressTo(&show_requests_toggle_)
                               .SetCallback(base::BindRepeating(
-                                  [](const extensions::ExtensionId&
-                                         extension_id,
-                                     views::ToggleButton* toggle_button,
-                                     base::RepeatingCallback<void(
-                                         const extensions::ExtensionId&, bool)>
-                                         callback) {
-                                    callback.Run(extension_id,
-                                                 toggle_button->GetIsOn());
-                                  },
-                                  extension_id_, show_requests_toggle_,
-                                  base::BindRepeating(
-                                      &ExtensionsMenuHandler::
-                                          OnShowRequestsTogglePressed,
-                                      base::Unretained(menu_handler))))),
+                                  &ExtensionsMenuSitePermissionsPageView::
+                                      OnShowRequestsTogglePressed,
+                                  base::Unretained(this)))),
                   // Settings button.
                   create_separator_builder(/*full_width=*/false,
                                            /*is_bottom_hover_button=*/true),
@@ -421,6 +410,12 @@ void ExtensionsMenuSitePermissionsPageView::UpdateShowRequestsToggle(
   show_requests_toggle_->SetIsOn(is_on);
   show_requests_toggle_->SetAccessibleName(
       GetShowRequestsToggleAccessibleName(is_on));
+}
+
+void ExtensionsMenuSitePermissionsPageView::OnShowRequestsTogglePressed() {
+  extensions::SitePermissionsHelper(browser_->profile())
+      .SetShowAccessRequestsInToolbar(extension_id_,
+                                      show_requests_toggle_->GetIsOn());
 }
 
 views::RadioButton*

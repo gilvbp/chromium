@@ -28,7 +28,6 @@
 #include "chrome/browser/ui/browser_commands.h"
 #include "chrome/browser/web_applications/web_app_helpers.h"
 #include "chrome/test/base/in_process_browser_test.h"
-#include "chromeos/ash/components/standalone_browser/feature_refs.h"
 #include "components/keyed_service/content/browser_context_dependency_manager.h"
 #include "components/services/app_service/public/cpp/app_types.h"
 #include "components/webapps/browser/install_result_code.h"
@@ -66,7 +65,9 @@ class ApkWebAppServiceLacrosBrowserTest : public InProcessBrowserTest,
  public:
   ApkWebAppServiceLacrosBrowserTest() {
     scoped_feature_list_.InitWithFeatures(
-        ash::standalone_browser::GetFeatureRefs(), {});
+        {features::kLacrosSupport, features::kLacrosPrimary,
+         features::kLacrosOnly, features::kLacrosProfileMigrationForceOff},
+        {});
     dependency_manager_subscription_ =
         BrowserContextDependencyManager::GetInstance()
             ->RegisterCreateServicesCallbackForTesting(base::BindRepeating(

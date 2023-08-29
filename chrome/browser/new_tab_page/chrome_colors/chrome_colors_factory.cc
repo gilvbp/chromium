@@ -38,11 +38,9 @@ ChromeColorsFactory::ChromeColorsFactory()
 
 ChromeColorsFactory::~ChromeColorsFactory() = default;
 
-std::unique_ptr<KeyedService>
-ChromeColorsFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* ChromeColorsFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
-  return std::make_unique<ChromeColorsService>(
-      Profile::FromBrowserContext(context));
+  return new ChromeColorsService(Profile::FromBrowserContext(context));
 }
 
 }  // namespace chrome_colors

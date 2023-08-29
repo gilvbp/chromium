@@ -31,8 +31,7 @@ customElements.define('my-control-1', MyControl1);
 <my-control-1 id="readonly" readonly></my-control-1>
 <fieldset disabled><my-control-1 id="fieldset-disabled"></my-control-1></fieldset>
 <my-control-2></my-control-2>
-<control-with-state id='control-with-state'></control-with-state>
-<control-with-state id='control-with-null-value'></control-with-state>
+<my-control-3></my-control-3>
 </form>
 
 <script>
@@ -63,8 +62,8 @@ function upgradeMyControl2() {
   customElements.upgrade($('my-control-2'));
 }
 
-function upgradeControlWithState() {
-  class ControlWithState extends HTMLElement {
+function upgradeMyControl3() {
+  class MyControl3 extends HTMLElement {
     static get formAssociated() { return true; }
     constructor() {
       super();
@@ -80,25 +79,20 @@ function upgradeControlWithState() {
     }
     set value(v) {
       this.value_ = v;
-      this.state_ = v ? (v + '/' + v) : 'null';
+      this.state_ = v + '/' + v;
       this.internals_.setFormValue(this.value_, this.state_);
     }
     // formStateRestoreCallback should be called with state intead of value.
     // See crbug.com/1429585
     formStateRestoreCallback(state, mode) {
-      if (state === 'null') {
-        this.value = null;
-      } else {
-        let index = state.indexOf('/');
-        this.value = state.substring(0, index);
-      }
+      let index = state.indexOf('/');
+      this.value = state.substring(0, index);
       this.lastRestoreMode = mode;
       this.lastRestoreState = state;
     }
   }
-  customElements.define('control-with-state', ControlWithState);
-  customElements.upgrade($('#control-with-state'));
-  customElements.upgrade($('#control-with-null-value'));
+  customElements.define('my-control-3', MyControl3);
+  customElements.upgrade($('my-control-3'));
 }
 
 function runTest() {
@@ -107,7 +101,7 @@ function runTest() {
     // First visit
     state.value = 'visited';
     upgradeMyControl2();
-    upgradeControlWithState();
+    upgradeMyControl3();
 
     $('my-control-1').value = 'edit1';
     $('#focus').value = 'edit3';
@@ -116,13 +110,12 @@ function runTest() {
     $('#readonly').value = 'edit6';
     $('#fieldset-disabled').value = 'edit7';
     $('my-control-2').value = 'edit2';
-    $('#control-with-state').value = 'edit8';
-    $('#control-with-null-value').value = null;
+    $('my-control-3').value = 'edit8';
     setTimeout(() => { $('form').submit(); }, 100);
   } else {
     // Second visit
     upgradeMyControl2();
-    upgradeControlWithState();
+    upgradeMyControl3();
     parent.doneTest();
   }
 }

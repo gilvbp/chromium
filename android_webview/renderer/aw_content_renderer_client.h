@@ -65,7 +65,6 @@ class AwContentRendererClient : public content::ContentRendererClient,
                         bool is_redirect) override;
   std::unique_ptr<blink::WebPrescientNetworking> CreatePrescientNetworking(
       content::RenderFrame* render_frame) override;
-  void SetRuntimeFeaturesDefaultsBeforeBlinkInitialization() override;
   std::unique_ptr<blink::URLLoaderThrottleProvider>
   CreateURLLoaderThrottleProvider(
       blink::URLLoaderThrottleProviderType provider_type) override;

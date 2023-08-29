@@ -36,10 +36,9 @@ CleanupManagerLacrosFactory::CleanupManagerLacrosFactory()
 
 CleanupManagerLacrosFactory::~CleanupManagerLacrosFactory() = default;
 
-std::unique_ptr<KeyedService>
-CleanupManagerLacrosFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* CleanupManagerLacrosFactory::BuildServiceInstanceFor(
     content::BrowserContext* browser_context) const {
-  return std::make_unique<CleanupManagerLacros>(browser_context);
+  return new CleanupManagerLacros(browser_context);
 }
 
 bool CleanupManagerLacrosFactory::ServiceIsNULLWhileTesting() const {

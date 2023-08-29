@@ -316,8 +316,7 @@ class CORE_EXPORT MediaQueryExpNode
     kFeatureInlineSize = 1 << 4,
     kFeatureBlockSize = 1 << 5,
     kFeatureStyle = 1 << 6,
-    kFeatureSticky = 1 << 7,
-    kFeatureSnap = 1 << 8,
+    kFeatureState = 1 << 7,
   };
 
   using FeatureFlags = unsigned;

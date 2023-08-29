@@ -9,11 +9,6 @@
 
 #include "base/functional/bind.h"
 #include "content/browser/renderer_host/input/synthetic_gesture.h"
-#include "content/browser/renderer_host/input/synthetic_pinch_gesture.h"
-#include "content/browser/renderer_host/input/synthetic_pointer_action.h"
-#include "content/browser/renderer_host/input/synthetic_smooth_drag_gesture.h"
-#include "content/browser/renderer_host/input/synthetic_smooth_scroll_gesture.h"
-#include "content/browser/renderer_host/input/synthetic_tap_gesture.h"
 #include "content/browser/renderer_host/render_frame_host_impl.h"
 #include "content/browser/renderer_host/render_widget_host_impl.h"
 #include "content/common/input/input_injector.mojom.h"
@@ -48,7 +43,7 @@ void InputInjectorImpl::QueueSyntheticSmoothDrag(
     const SyntheticSmoothDragGestureParams& drag,
     QueueSyntheticSmoothDragCallback callback) {
   QueueSyntheticGesture(
-      std::make_unique<SyntheticSmoothDragGesture>(drag),
+      SyntheticGesture::Create(drag),
       base::BindOnce(SyntheticGestureCallback, std::move(callback)));
 }
 
@@ -56,7 +51,7 @@ void InputInjectorImpl::QueueSyntheticSmoothScroll(
     const SyntheticSmoothScrollGestureParams& scroll,
     QueueSyntheticSmoothScrollCallback callback) {
   QueueSyntheticGesture(
-      std::make_unique<SyntheticSmoothScrollGesture>(scroll),
+      SyntheticGesture::Create(scroll),
       base::BindOnce(SyntheticGestureCallback, std::move(callback)));
 }
 
@@ -64,14 +59,14 @@ void InputInjectorImpl::QueueSyntheticPinch(
     const SyntheticPinchGestureParams& pinch,
     QueueSyntheticPinchCallback callback) {
   QueueSyntheticGesture(
-      std::make_unique<SyntheticPinchGesture>(pinch),
+      SyntheticGesture::Create(pinch),
       base::BindOnce(SyntheticGestureCallback, std::move(callback)));
 }
 
 void InputInjectorImpl::QueueSyntheticTap(const SyntheticTapGestureParams& tap,
                                           QueueSyntheticTapCallback callback) {
   QueueSyntheticGesture(
-      std::make_unique<SyntheticTapGesture>(tap),
+      SyntheticGesture::Create(tap),
       base::BindOnce(SyntheticGestureCallback, std::move(callback)));
 }
 
@@ -79,7 +74,7 @@ void InputInjectorImpl::QueueSyntheticPointerAction(
     const SyntheticPointerActionListParams& pointer_action,
     QueueSyntheticPointerActionCallback callback) {
   QueueSyntheticGesture(
-      std::make_unique<SyntheticPointerAction>(pointer_action),
+      SyntheticGesture::Create(pointer_action),
       base::BindOnce(SyntheticGestureCallback, std::move(callback)));
 }
 

@@ -34,13 +34,7 @@ void AddButtonImageToOSExchangeData(SavedTabGroupButton* button,
   const gfx::Rect og_bounds = button->bounds();
   gfx::Rect adjusted_bounds = og_bounds;
   adjusted_bounds.Offset(-og_bounds.OffsetFromOrigin());
-  // `adjusted_bounds` is in mirrored coordinates (i.e. origin in the top right
-  // in RTL). However painting takes place in unmirrored coordinates (i.e.
-  // origin in the top left, even in RTL), so to place the button at the origin,
-  // we must place it at the unmirrored origin.
-  const gfx::Rect unmirrored_bounds =
-      button->parent()->GetMirroredRect(adjusted_bounds);
-  button->SetBoundsRect(unmirrored_bounds);
+  button->SetBoundsRect(adjusted_bounds);
 
   // Take a snapshot of the button.
   SkBitmap bitmap;

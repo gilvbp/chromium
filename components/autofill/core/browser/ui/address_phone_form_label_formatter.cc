@@ -5,7 +5,6 @@
 #include "components/autofill/core/browser/ui/address_phone_form_label_formatter.h"
 
 #include "components/autofill/core/browser/autofill_data_util.h"
-#include "components/autofill/core/browser/field_types.h"
 #include "components/autofill/core/browser/ui/label_formatter_utils.h"
 
 namespace autofill {
@@ -15,7 +14,7 @@ AddressPhoneFormLabelFormatter::AddressPhoneFormLabelFormatter(
     const std::string& app_locale,
     ServerFieldType focused_field_type,
     uint32_t groups,
-    const ServerFieldTypeSet& field_types)
+    const std::vector<ServerFieldType>& field_types)
     : LabelFormatter(profiles,
                      app_locale,
                      focused_field_type,

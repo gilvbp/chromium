@@ -13,6 +13,10 @@
 #import "ios/testing/earl_grey/earl_grey_test.h"
 #import "ui/base/l10n/l10n_util_mac.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 using base::test::ios::WaitUntilConditionOrTimeout;
 
 @implementation SigninEarlGreyImpl
@@ -27,22 +31,10 @@ using base::test::ios::WaitUntilConditionOrTimeout;
       addFakeIdentityForSSOAuthAddAccountFlow:fakeIdentity];
 }
 
-- (void)setIsSubjectToParentalControls:(BOOL)value
-                           forIdentity:(FakeSystemIdentity*)fakeIdentity {
-  [SigninEarlGreyAppInterface setIsSubjectToParentalControls:value
-                                                 forIdentity:fakeIdentity];
-}
-
-- (void)setCanHaveEmailAddressDisplayed:(BOOL)value
-                            forIdentity:(FakeSystemIdentity*)fakeIdentity {
-  [SigninEarlGreyAppInterface setCanHaveEmailAddressDisplayed:value
-                                                  forIdentity:fakeIdentity];
-}
-
-- (void)setCanOfferExtendedChromeSyncPromos:(BOOL)value
-                                forIdentity:(FakeSystemIdentity*)fakeIdentity {
-  [SigninEarlGreyAppInterface setCanOfferExtendedChromeSyncPromos:value
-                                                      forIdentity:fakeIdentity];
+- (void)setCapabilities:(ios::CapabilitiesDict*)capabilities
+            forIdentity:(FakeSystemIdentity*)fakeIdentity {
+  [SigninEarlGreyAppInterface setCapabilities:capabilities
+                                  forIdentity:fakeIdentity];
 }
 
 - (void)forgetFakeIdentity:(FakeSystemIdentity*)fakeIdentity {
@@ -105,8 +97,7 @@ using base::test::ios::WaitUntilConditionOrTimeout;
   NSString* errorStr = [NSString
       stringWithFormat:@"Unexpected email of the signed in user [expected = "
                        @"\"%@\", actual = \"%@\", consent %d]",
-                       expectedEmail, primaryAccountEmail,
-                       static_cast<int>(consent)];
+                       expectedEmail, primaryAccountEmail, consent];
   EG_TEST_HELPER_ASSERT_TRUE(
       [expectedEmail isEqualToString:primaryAccountEmail], errorStr);
 }

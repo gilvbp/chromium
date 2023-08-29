@@ -16,7 +16,7 @@ suite('textBadgeTestSuite', function() {
   let textBadgeElement = null;
 
   setup(() => {
-    document.body.innerHTML = window.trustedTypes.emptyHTML;
+    document.body.innerHTML = '';
   });
 
   teardown(() => {

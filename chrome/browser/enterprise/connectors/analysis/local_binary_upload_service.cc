@@ -294,25 +294,22 @@ void LocalBinaryUploadService::MaybeCancelRequests(
   SendCancelRequestsIfNeeded();
 }
 
-device_signals::mojom::SystemSignalsService*
-LocalBinaryUploadService::GetSystemSignalsService() {
-  auto* host =
-      enterprise_signals::SystemSignalsServiceHostFactory::GetForProfile(
-          profile_);
-  return host ? host->GetService() : nullptr;
-}
-
 void LocalBinaryUploadService::StartAgentVerification(
     const content_analysis::sdk::Client::Config& config,
     base::span<const char* const> subject_names) {
   DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
   DVLOG(1) << __func__;
 
+  auto* host =
+      enterprise_signals::SystemSignalsServiceHostFactory::GetForProfile(
+          profile_);
+  auto* service = host ? host->GetService() : nullptr;
+
   // If the service is not available, fail open.
-  auto* service = GetSystemSignalsService();
+  // TODO: can the state of the SystemSignalsServiceHost change at runtime?
   if (!service) {
     DVLOG(1) << __func__ << ": SystemSignalsServiceHost not avaiable";
-    OnFileSystemSignals(config, base::span<const char* const>(), {});
+    is_agent_verified_[config] = true;
     return;
   }
 

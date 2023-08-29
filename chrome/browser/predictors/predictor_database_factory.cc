@@ -38,15 +38,14 @@ PredictorDatabaseFactory::PredictorDatabaseFactory()
 
 PredictorDatabaseFactory::~PredictorDatabaseFactory() = default;
 
-std::unique_ptr<KeyedService>
-PredictorDatabaseFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* PredictorDatabaseFactory::BuildServiceInstanceFor(
     content::BrowserContext* profile) const {
   scoped_refptr<base::SequencedTaskRunner> db_task_runner =
       base::ThreadPool::CreateSequencedTaskRunner(
           {base::MayBlock(), base::TaskPriority::BEST_EFFORT,
            base::TaskShutdownBehavior::SKIP_ON_SHUTDOWN});
-  return std::make_unique<PredictorDatabase>(static_cast<Profile*>(profile),
-                                             std::move(db_task_runner));
+  return new PredictorDatabase(static_cast<Profile*>(profile),
+                               std::move(db_task_runner));
 }
 
 }  // namespace predictors

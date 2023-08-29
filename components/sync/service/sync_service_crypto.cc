@@ -8,8 +8,10 @@
 
 #include "base/base64.h"
 #include "base/functional/bind.h"
+#include "base/functional/callback_helpers.h"
 #include "base/logging.h"
 #include "base/metrics/histogram_functions.h"
+#include "base/no_destructor.h"
 #include "base/task/sequenced_task_runner.h"
 #include "components/os_crypt/sync/os_crypt.h"
 #include "components/sync/base/passphrase_enums.h"
@@ -183,14 +185,12 @@ SyncServiceCrypto::SyncServiceCrypto(
   trusted_vault_client_->AddObserver(this);
 }
 
-SyncServiceCrypto::~SyncServiceCrypto() = default;
+SyncServiceCrypto::~SyncServiceCrypto() {
+  trusted_vault_client_->RemoveObserver(this);
+}
 
 void SyncServiceCrypto::Reset() {
   state_ = State();
-}
-
-void SyncServiceCrypto::StopObservingTrustedVaultClient() {
-  trusted_vault_client_->RemoveObserver(this);
 }
 
 base::Time SyncServiceCrypto::GetExplicitPassphraseTime() const {
@@ -215,6 +215,11 @@ bool SyncServiceCrypto::IsPassphraseRequired() const {
 
   NOTREACHED();
   return false;
+}
+
+bool SyncServiceCrypto::IsUsingExplicitPassphrase() const {
+  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+  return IsExplicitPassphrase(state_.cached_passphrase_type);
 }
 
 bool SyncServiceCrypto::IsTrustedVaultKeyRequired() const {
@@ -254,9 +259,6 @@ void SyncServiceCrypto::SetEncryptionPassphrase(const std::string& passphrase) {
     case RequiredUserAction::kTrustedVaultKeyRequired:
     case RequiredUserAction::kTrustedVaultKeyRequiredButFetching:
       // Cryptographer has pending keys.
-      // TODO(crbug.com/1434786): this is currently reachable on iOS due to
-      // discrepancy in UI code. Fix iOS implementation and avoid using more
-      // strict checks here until this is done.
       NOTREACHED()
           << "Can not set explicit passphrase when decryption is needed.";
       return;
@@ -266,8 +268,7 @@ void SyncServiceCrypto::SetEncryptionPassphrase(const std::string& passphrase) {
 
   // SetEncryptionPassphrase() should never be called if we are currently
   // encrypted with an explicit passphrase.
-  DCHECK(!IsExplicitPassphrase(
-      GetPassphraseType().value_or(PassphraseType::kKeystorePassphrase)));
+  DCHECK(!IsExplicitPassphrase(state_.cached_passphrase_type));
 
   const auto key_derivation_params =
       KeyDerivationParams::CreateForScrypt(Nigori::GenerateScryptSalt());
@@ -294,7 +295,7 @@ bool SyncServiceCrypto::SetDecryptionPassphrase(const std::string& passphrase) {
 
   // For types other than CUSTOM_PASSPHRASE, we should be using the old PBKDF2
   // key derivation method.
-  if (GetPassphraseType() != PassphraseType::kCustomPassphrase) {
+  if (state_.cached_passphrase_type != PassphraseType::kCustomPassphrase) {
     DCHECK_EQ(state_.passphrase_key_derivation_params.method(),
               KeyDerivationMethod::PBKDF2_HMAC_SHA1_1003);
   }
@@ -353,9 +354,9 @@ bool SyncServiceCrypto::IsTrustedVaultKeyRequiredStateKnown() const {
   return false;
 }
 
-absl::optional<PassphraseType> SyncServiceCrypto::GetPassphraseType() const {
+PassphraseType SyncServiceCrypto::GetPassphraseType() const {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
-  return delegate_->GetPassphraseType();
+  return state_.cached_passphrase_type;
 }
 
 void SyncServiceCrypto::SetSyncEngine(const CoreAccountInfo& account_info,
@@ -369,7 +370,8 @@ void SyncServiceCrypto::SetSyncEngine(const CoreAccountInfo& account_info,
       // It was already established during initialization that there's nothing
       // to do, which is possible for some passphrase types, but not others
       // (including |kTrustedVaultPassphrase|.
-      DCHECK(GetPassphraseType() != PassphraseType::kTrustedVaultPassphrase);
+      DCHECK_NE(state_.cached_passphrase_type,
+                PassphraseType::kTrustedVaultPassphrase);
       break;
     case RequiredUserAction::kUnknownDuringInitialization:
       // Since there was no state changes during engine initialization, now the
@@ -551,10 +553,8 @@ void SyncServiceCrypto::OnPassphraseTypeChanged(PassphraseType type,
 
   DVLOG(1) << "Passphrase type changed to " << PassphraseTypeToString(type);
 
+  state_.cached_passphrase_type = type;
   state_.cached_explicit_passphrase_time = passphrase_time;
-
-  // TODO(crbug.com/1466401): Also pass along the passphrase time?
-  delegate_->SetPassphraseType(type);
 
   // Clear recoverability degraded state in case a custom passphrase was set.
   // Note that the opposite transition (into degraded recoverability) isn't
@@ -741,7 +741,8 @@ void SyncServiceCrypto::UpdateRequiredUserActionAndNotify(
 void SyncServiceCrypto::RefreshIsRecoverabilityDegraded() {
   DCHECK(state_.engine);
 
-  if (GetPassphraseType() != PassphraseType::kTrustedVaultPassphrase) {
+  if (state_.cached_passphrase_type !=
+      PassphraseType::kTrustedVaultPassphrase) {
     return;
   }
 
@@ -766,7 +767,8 @@ void SyncServiceCrypto::RefreshIsRecoverabilityDegraded() {
 void SyncServiceCrypto::GetIsRecoverabilityDegradedCompleted(
     bool is_recoverability_degraded) {
   // The passphrase type could have changed.
-  if (GetPassphraseType() != PassphraseType::kTrustedVaultPassphrase) {
+  if (state_.cached_passphrase_type !=
+      PassphraseType::kTrustedVaultPassphrase) {
     DCHECK_NE(state_.required_user_action,
               RequiredUserAction::kTrustedVaultRecoverabilityDegraded);
     return;

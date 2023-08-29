@@ -50,26 +50,22 @@ void* NonScannableAllocatorImpl<quarantinable>::Alloc(size_t size) {
 
 template <bool quarantinable>
 void NonScannableAllocatorImpl<quarantinable>::Free(void* ptr) {
-#if BUILDFLAG(USE_STARSCAN)
-  if (PA_UNLIKELY(pcscan_enabled_.load(std::memory_order_acquire))) {
-    allocator_->root()->FreeNoHooks(ptr);
-    return;
-  }
-#endif  // BUILDFLAG(USE_STARSCAN)
-  partition_alloc::PartitionRoot::FreeNoHooksInUnknownRoot(ptr);
+  partition_alloc::ThreadSafePartitionRoot::FreeNoHooks(ptr);
 }
 
 template <bool quarantinable>
 void NonScannableAllocatorImpl<quarantinable>::NotifyPCScanEnabled() {
 #if BUILDFLAG(USE_STARSCAN)
   allocator_.reset(partition_alloc::internal::MakePCScanMetadata<
-                   partition_alloc::PartitionAllocator>(
-      partition_alloc::PartitionOptions{
-          .star_scan_quarantine =
-              quarantinable ? partition_alloc::PartitionOptions::kAllowed
-                            : partition_alloc::PartitionOptions::kDisallowed,
-          .backup_ref_ptr = partition_alloc::PartitionOptions::kDisabled,
-      }));
+                   partition_alloc::PartitionAllocator>());
+  allocator_->init(partition_alloc::PartitionOptions{
+      .quarantine =
+          quarantinable
+              ? partition_alloc::PartitionOptions::Quarantine::kAllowed
+              : partition_alloc::PartitionOptions::Quarantine::kDisallowed,
+      .backup_ref_ptr =
+          partition_alloc::PartitionOptions::BackupRefPtr::kDisabled,
+  });
   if constexpr (quarantinable) {
     partition_alloc::internal::PCScan::RegisterNonScannableRoot(
         allocator_->root());

@@ -30,7 +30,7 @@ class NavigatorBase;
 class ScriptPromiseResolver;
 class ScriptState;
 
-class MODULES_EXPORT HID : public EventTarget,
+class MODULES_EXPORT HID : public EventTargetWithInlineData,
                            public Supplement<NavigatorBase>,
                            public device::mojom::blink::HidManagerClient,
                            public HIDDevice::ServiceInterface {

@@ -615,12 +615,12 @@ TEST_F(BackgroundTracingConfigTest, BufferLimitConfig) {
       (ram_mb > 0 && ram_mb <= 1024) ? 800u : 300u;
   EXPECT_EQ(expected_trace_buffer_size,
             config->GetTraceConfig().GetTraceBufferSizeInKb());
-  EXPECT_EQ(600u, config->upload_limit_network_kb());
+  EXPECT_EQ(600u, config->GetTraceUploadLimitKb());
 #endif
 
   notifier.set_type(net::NetworkChangeNotifier::CONNECTION_WIFI);
   EXPECT_LE(800u, config->GetTraceConfig().GetTraceBufferSizeInKb());
-  EXPECT_EQ(500u, config->upload_limit_kb());
+  EXPECT_EQ(500u, config->GetTraceUploadLimitKb());
 }
 
 TEST_F(BackgroundTracingConfigTest, HistogramRuleFromValidProto) {

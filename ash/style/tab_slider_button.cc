@@ -6,8 +6,8 @@
 
 #include "ash/resources/vector_icons/vector_icons.h"
 #include "ash/strings/grit/ash_strings.h"
+#include "ash/style/color_util.h"
 #include "ash/style/style_util.h"
-#include "ash/style/typography.h"
 #include "ui/base/l10n/l10n_util.h"
 #include "ui/base/metadata/metadata_impl_macros.h"
 #include "ui/chromeos/styles/cros_tokens_color_mappings.h"
@@ -38,11 +38,19 @@ constexpr int kFocusRingPadding = 2;
 // Icon slider buttons' layout parameters.
 constexpr int kIconButtonSize = 32;
 constexpr int kIconSize = 20;
+constexpr int kIconSliderInternalBorderPadding = 2;
+constexpr int kIconSliderBetweenButtonsSpacing = 0;
 
 // Label slider buttons' layout parameters.
 constexpr int kLabelButtonHeight = 32;
 constexpr int kLabelButtonMinWidth = 80;
+constexpr int kLabelSliderInternalBorderPadding = 2;
+constexpr int kLabelSliderBetweenButtonsSpacing = 0;
 constexpr gfx::Insets kLabelButtonBorderInsets = gfx::Insets::VH(6, 16);
+
+// IconLabelSlider's layout parameters.
+constexpr int kIconLabelSliderInternalBorderPadding = 4;
+constexpr int kIconLabelSliderBetweenButtonsSpacing = 0;
 
 }  // namespace
 
@@ -58,7 +66,6 @@ TabSliderButton::TabSliderButton(PressedCallback callback,
 
   // Configure the focus ring.
   auto* focus_ring = views::FocusRing::Get(this);
-  focus_ring->SetOutsetFocusRingDisabled(true);
   focus_ring->SetColorId(cros_tokens::kCrosSysFocusRing);
   const float halo_inset =
       focus_ring->GetHaloThickness() / 2.f + kFocusRingPadding;
@@ -107,6 +114,11 @@ void TabSliderButton::NotifyClick(const ui::Event& event) {
   views::Button::NotifyClick(event);
 }
 
+absl::optional<TabSlider::LayoutParams>
+TabSliderButton::GetRecommendedSliderLayout() const {
+  return absl::nullopt;
+}
+
 void TabSliderButton::UpdateTooltipAndAccessibleName() {
   SetTooltipText(l10n_util::GetStringFUTF16(
       selected_ ? TAB_SLIDER_BUTTON_STATE_SELECTED
@@ -129,7 +141,6 @@ IconSliderButton::IconSliderButton(PressedCallback callback,
   // Replace the pill shaped highlight path of focus ring with a circle shaped
   // highlight path.
   auto* focus_ring = views::FocusRing::Get(this);
-  focus_ring->SetOutsetFocusRingDisabled(true);
   focus_ring->SetPathGenerator(
       std::make_unique<views::CircleHighlightPathGenerator>(-gfx::Insets(
           focus_ring->GetHaloThickness() / 2 + kFocusRingPadding)));
@@ -142,6 +153,12 @@ IconSliderButton::~IconSliderButton() = default;
 
 void IconSliderButton::OnSelectedChanged() {
   SchedulePaint();
+}
+
+absl::optional<TabSlider::LayoutParams>
+IconSliderButton::GetRecommendedSliderLayout() const {
+  return TabSlider::LayoutParams{kIconSliderInternalBorderPadding,
+                                 kIconSliderBetweenButtonsSpacing};
 }
 
 void IconSliderButton::OnThemeChanged() {
@@ -175,10 +192,15 @@ LabelSliderButton::LabelSliderButton(PressedCallback callback,
   SetUseDefaultFillLayout(true);
   // Force the label to use requested colors.
   label_->SetAutoColorReadabilityEnabled(false);
-  TypographyProvider::Get()->StyleLabel(TypographyToken::kCrosButton2, *label_);
 }
 
 LabelSliderButton::~LabelSliderButton() = default;
+
+absl::optional<TabSlider::LayoutParams>
+LabelSliderButton::GetRecommendedSliderLayout() const {
+  return TabSlider::LayoutParams{kLabelSliderInternalBorderPadding,
+                                 kLabelSliderBetweenButtonsSpacing};
+}
 
 void LabelSliderButton::UpdateLabelColor() {
   label_->SetEnabledColorId(GetColorIdOnButtonState());
@@ -248,10 +270,15 @@ IconLabelSliderButton::IconLabelSliderButton(
 
   // Force the label to use requested colors.
   label_->SetAutoColorReadabilityEnabled(false);
-  TypographyProvider::Get()->StyleLabel(TypographyToken::kCrosButton2, *label_);
 }
 
 IconLabelSliderButton::~IconLabelSliderButton() = default;
+
+absl::optional<TabSlider::LayoutParams>
+IconLabelSliderButton::GetRecommendedSliderLayout() const {
+  return TabSlider::LayoutParams{kIconLabelSliderInternalBorderPadding,
+                                 kIconLabelSliderBetweenButtonsSpacing};
+}
 
 void IconLabelSliderButton::UpdateColors() {
   label_->SetEnabledColorId(GetColorIdOnButtonState());

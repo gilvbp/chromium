@@ -244,15 +244,6 @@ void PaymentRequestState::SetOptOutOffered() {
     journey_logger_->SetOptOutOffered();
 }
 
-absl::optional<base::UnguessableToken>
-PaymentRequestState::GetChromeOSTWAInstanceId() const {
-  if (!payment_request_delegate_) {
-    return absl::nullopt;
-  }
-
-  return payment_request_delegate_->GetChromeOSTWAInstanceId();
-}
-
 void PaymentRequestState::OnPaymentResponseReady(
     mojom::PaymentResponsePtr payment_response) {
   if (!delegate_)

@@ -144,12 +144,14 @@ IN_PROC_BROWSER_TEST_F(BrowserFinderWithDesksTest, FindTabbedBrowser) {
   // Start closing the browser
   CloseBrowserAsynchronously(browser_3);
 
-  // Since browser_3 is closing at this point, FindTabbedBrowser should always
-  // return nullptr.
+  // Since browser_3 is closing at this point, FindTabbedBrowser with
+  // ignore_closing_browsers=true should return nullptr.
   EXPECT_EQ(nullptr,
             chrome::FindTabbedBrowser(browser()->profile(), true,
                                       display::kInvalidDisplayId, true));
-  EXPECT_EQ(nullptr,
+  // FindTabbedBrowser with ignore_closing_browsers=false should return
+  // browser_3.
+  EXPECT_EQ(browser_3,
             chrome::FindTabbedBrowser(browser()->profile(), true,
                                       display::kInvalidDisplayId, false));
 }

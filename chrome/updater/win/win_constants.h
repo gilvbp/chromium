@@ -80,8 +80,6 @@ extern const wchar_t kRegValueLastInstallerExtraCode1[];
 extern const wchar_t kRegValueLastInstallerResultUIString[];
 extern const wchar_t kRegValueLastInstallerSuccessLaunchCmdLine[];
 
-extern const wchar_t* const kRegValuesLastInstaller[5];
-
 // AppCommand registry constants.
 extern const wchar_t kRegKeyCommands[];
 extern const wchar_t kRegValueCommandLine[];
@@ -92,10 +90,6 @@ extern const wchar_t kRegValueAutoRunOnOSUpgrade[];
 // Registry for enrollment token.
 extern const wchar_t kRegKeyCompanyCloudManagement[];
 extern const wchar_t kRegValueEnrollmentToken[];
-
-// Legacy registry for enrollment token.
-extern const wchar_t kRegKeyCompanyLegacyCloudManagement[];
-extern const wchar_t kRegValueCloudManagementEnrollmentToken[];
 
 // The name of the policy indicating that enrollment in cloud-based device
 // management is mandatory.
@@ -140,25 +134,6 @@ extern const wchar_t kLegacyRunValuePrefix[];
 // GoogleUpdate tasks for system and user respectively.
 extern const wchar_t kLegacyTaskNamePrefixSystem[];
 extern const wchar_t kLegacyTaskNamePrefixUser[];
-
-// `InstallerResult` values defined by the Installer API.
-enum class InstallerResult {
-  // The installer succeeded, unconditionally.
-  kSuccess = 0,
-
-  // The installer returned a specific error using the Installer API mechanism.
-  kCustomError = 1,
-
-  // The MSI installer failed, with a system error.
-  kMsiError = 2,
-
-  // The installer failed with a a system error.
-  kSystemError = 3,
-
-  // The installer failed. The exit code of the installer process contains
-  // the error.
-  kExitCode = 4,
-};
 
 }  // namespace updater
 

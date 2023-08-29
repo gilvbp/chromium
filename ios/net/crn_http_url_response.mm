@@ -5,6 +5,10 @@
 #import "ios/net/crn_http_url_response.h"
 
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 @interface CRNHTTPURLResponse () {
   NSString* _cr_HTTPVersion;
 }

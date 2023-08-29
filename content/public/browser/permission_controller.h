@@ -8,7 +8,6 @@
 #include "base/supports_user_data.h"
 #include "base/types/id_type.h"
 #include "content/common/content_export.h"
-#include "content/public/browser/permission_request_description.h"
 #include "content/public/browser/permission_result.h"
 #include "third_party/blink/public/mojom/permissions/permission_status.mojom.h"
 
@@ -42,7 +41,7 @@ class CONTENT_EXPORT PermissionController
   // Returns the status of the given |permission| for a worker on
   // |worker_origin| running in the renderer corresponding to
   // |render_process_host|.
-  virtual PermissionStatus GetPermissionStatusForWorker(
+  virtual blink::mojom::PermissionStatus GetPermissionStatusForWorker(
       blink::PermissionType permission,
       RenderProcessHost* render_process_host,
       const url::Origin& worker_origin) = 0;
@@ -51,7 +50,7 @@ class CONTENT_EXPORT PermissionController
   // RenderFrameHost. This API takes into account the lifecycle state of a given
   // document (i.e. whether it's in back-forward cache or being prerendered) in
   // addition to its origin.
-  virtual PermissionStatus GetPermissionStatusForCurrentDocument(
+  virtual blink::mojom::PermissionStatus GetPermissionStatusForCurrentDocument(
       blink::PermissionType permission,
       RenderFrameHost* render_frame_host) = 0;
 
@@ -69,8 +68,9 @@ class CONTENT_EXPORT PermissionController
 
   // The method does the same as `GetPermissionResultForOriginWithoutContext`
   // but it can be used for `PermissionType` that are keyed on a combination of
-  // requesting and embedding origins, e.g., Notifications or StorageAccess.
-  virtual PermissionResult GetPermissionResultForOriginWithoutContext(
+  // requesting and embedding origins, e.g., Notifications.
+  virtual blink::mojom::PermissionStatus
+  GetPermissionStatusForOriginWithoutContext(
       blink::PermissionType permission,
       const url::Origin& requesting_origin,
       const url::Origin& embedding_origin) = 0;
@@ -79,22 +79,24 @@ class CONTENT_EXPORT PermissionController
   // RenderFrameHost. This API takes into account the lifecycle state of a given
   // document (i.e. whether it's in back-forward cache or being prerendered) in
   // addition to its origin.
-  // TODO(crbug.com/1462930): Remove this function.
   virtual void RequestPermissionFromCurrentDocument(
+      blink::PermissionType permission,
       RenderFrameHost* render_frame_host,
-      PermissionRequestDescription request_description,
-      base::OnceCallback<void(PermissionStatus)> callback) = 0;
+      bool user_gesture,
+      base::OnceCallback<void(blink::mojom::PermissionStatus)> callback) = 0;
 
+  // Requests permissions from the current document in the given
   // RenderFrameHost. This API takes into account the lifecycle state of a given
   // document (i.e. whether it's in back-forward cache or being prerendered) in
   // addition to its origin.
   // WARNING: Permission requests order is not guaranteed.
   // TODO(crbug.com/1363094): Migrate to `std::set`.
   virtual void RequestPermissionsFromCurrentDocument(
+      const std::vector<blink::PermissionType>& permission,
       RenderFrameHost* render_frame_host,
-      PermissionRequestDescription request_description,
-      base::OnceCallback<void(const std::vector<PermissionStatus>&)>
-          callback) = 0;
+      bool user_gesture,
+      base::OnceCallback<void(
+          const std::vector<blink::mojom::PermissionStatus>&)> callback) = 0;
 
   // Sets the permission back to its default for the `origin`.
   virtual void ResetPermission(blink::PermissionType permission,
@@ -104,7 +106,8 @@ class CONTENT_EXPORT PermissionController
       blink::PermissionType permission,
       RenderProcessHost* render_process_host,
       const url::Origin& requesting_origin,
-      const base::RepeatingCallback<void(PermissionStatus)>& callback) = 0;
+      const base::RepeatingCallback<void(blink::mojom::PermissionStatus)>&
+          callback) = 0;
 
   virtual void UnsubscribePermissionStatusChange(
       SubscriptionId subscription_id) = 0;

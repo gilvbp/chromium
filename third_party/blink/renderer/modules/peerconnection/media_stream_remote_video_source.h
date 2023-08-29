@@ -42,7 +42,7 @@ class MODULES_EXPORT MediaStreamRemoteVideoSource
 
   // MediaStreamVideoSource overrides.
   bool SupportsEncodedOutput() const override;
-  void RequestKeyFrame() override;
+  void RequestRefreshFrame() override;
   base::WeakPtr<MediaStreamVideoSource> GetWeakPtr() override;
 
  protected:

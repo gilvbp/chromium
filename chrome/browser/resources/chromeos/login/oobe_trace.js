@@ -121,8 +121,7 @@ function maybeTraceLastOobeLottieInitialization() {
 // switch 'oobe-print-frontend-timings' is present. More details can be found in
 // go/oobe-frontend-trace-timings
 function maybePrintTraces() {
-  if (!loadTimeData.valueExists('printFrontendTimings') ||
-      !loadTimeData.getBoolean('printFrontendTimings')) {
+  if (!loadTimeData.getBoolean('printFrontendTimings')) {
     return;
   }
 

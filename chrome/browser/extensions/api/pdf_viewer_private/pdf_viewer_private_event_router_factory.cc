@@ -42,8 +42,7 @@ PdfViewerPrivateEventRouterFactory::PdfViewerPrivateEventRouterFactory()
 PdfViewerPrivateEventRouterFactory::~PdfViewerPrivateEventRouterFactory() =
     default;
 
-std::unique_ptr<KeyedService>
-PdfViewerPrivateEventRouterFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* PdfViewerPrivateEventRouterFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   return PdfViewerPrivateEventRouter::Create(context);
 }

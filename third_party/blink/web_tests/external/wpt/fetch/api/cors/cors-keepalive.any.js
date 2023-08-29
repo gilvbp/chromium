@@ -1,5 +1,4 @@
 // META: global=window
-// META: timeout=long
 // META: title=Fetch API: keepalive handling
 // META: script=/resources/testharness.js
 // META: script=/resources/testharnessreport.js

@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 source_set("consent_auditor") {
+  configs += [ "//build/config/compiler:enable_arc" ]
   sources = [
     "consent_auditor_factory.h",
     "consent_auditor_factory.mm",

@@ -42,14 +42,12 @@ AppRestoreArcTaskHandlerFactory::AppRestoreArcTaskHandlerFactory()
 
 AppRestoreArcTaskHandlerFactory::~AppRestoreArcTaskHandlerFactory() = default;
 
-std::unique_ptr<KeyedService>
-AppRestoreArcTaskHandlerFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* AppRestoreArcTaskHandlerFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   if (!arc::IsArcAllowedForProfile(Profile::FromBrowserContext(context)))
     return nullptr;
 
-  return std::make_unique<AppRestoreArcTaskHandler>(
-      Profile::FromBrowserContext(context));
+  return new AppRestoreArcTaskHandler(Profile::FromBrowserContext(context));
 }
 
 }  // namespace ash::app_restore

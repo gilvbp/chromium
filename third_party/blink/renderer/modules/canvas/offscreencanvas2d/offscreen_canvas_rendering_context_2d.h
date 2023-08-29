@@ -87,6 +87,9 @@ class MODULES_EXPORT OffscreenCanvasRenderingContext2D final
            !dirty_rect_for_commit_.isEmpty();
   }
 
+  String font() const;
+  void setFont(const String&) override;
+
   String direction() const;
   void setDirection(const String&);
 
@@ -106,6 +109,7 @@ class MODULES_EXPORT OffscreenCanvasRenderingContext2D final
   // BaseRenderingContext2D implementation
   bool OriginClean() const final;
   void SetOriginTainted() final;
+  bool WouldTaintOrigin(CanvasImageSource*) final;
 
   int Width() const final;
   int Height() const final;
@@ -177,8 +181,6 @@ class MODULES_EXPORT OffscreenCanvasRenderingContext2D final
   void WillOverwriteCanvas() override;
   void DispatchContextLostEvent(TimerBase*) override;
   void TryRestoreContextEvent(TimerBase*) override;
-
-  bool ResolveFont(const String& new_font) override;
 
  private:
   void FinalizeFrame(CanvasResourceProvider::FlushReason) final;

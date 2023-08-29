@@ -5,8 +5,6 @@
 import {TestRunner} from 'test_runner';
 import {ApplicationTestRunner} from 'application_test_runner';
 
-import * as SDK from 'devtools/core/sdk/sdk.js';
-
 (async function() {
   TestRunner.addResult(`Tests that cache data is correctly populated in the Inspector.\n`);
   await TestRunner.loadLegacyModule('console');
@@ -15,7 +13,7 @@ import * as SDK from 'devtools/core/sdk/sdk.js';
 
   await TestRunner.showPanel('resources');
 
-  var cacheStorageModel = TestRunner.mainTarget.model(SDK.ServiceWorkerCacheModel.ServiceWorkerCacheModel);
+  var cacheStorageModel = TestRunner.mainTarget.model(SDK.ServiceWorkerCacheModel);
   cacheStorageModel.enable();
 
   function errorAndExit(error) {

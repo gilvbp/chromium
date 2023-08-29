@@ -21,7 +21,6 @@
 #include "ash/public/cpp/accelerators.h"
 #include "base/test/scoped_feature_list.h"
 #include "chrome/browser/ash/crosapi/browser_util.h"
-#include "chromeos/ash/components/standalone_browser/feature_refs.h"
 #include "components/account_id/account_id.h"
 #include "components/user_manager/fake_user_manager.h"
 #include "components/user_manager/scoped_user_manager.h"
@@ -177,7 +176,11 @@ class GetAcceleratorListTest : public ::testing::Test {
 // Verify that the shortcuts for DevTools are disabled in LacrosOnly by default.
 TEST_F(GetAcceleratorListTest, DevToolsAreDisabledInLacrosOnlyByDefault) {
   base::test::ScopedFeatureList features;
-  features.InitWithFeatures(ash::standalone_browser::GetFeatureRefs(), {});
+  features.InitWithFeatures(
+      {ash::features::kLacrosSupport, ash::features::kLacrosPrimary,
+       ash::features::kLacrosOnly,
+       ash::features::kLacrosProfileMigrationForceOff},
+      {});
   auto fake_user_manager = std::make_unique<user_manager::FakeUserManager>();
   auto* primary_user =
       fake_user_manager->AddUser(AccountId::FromUserEmail("test@test"));
@@ -203,11 +206,12 @@ TEST_F(GetAcceleratorListTest, DevToolsAreDisabledInLacrosOnlyByDefault) {
 // is enabled.
 TEST_F(GetAcceleratorListTest, DevToolsAreEnebledInLacrosOnlyIfFlagIsEnabled) {
   base::test::ScopedFeatureList features;
-  std::vector<base::test::FeatureRef> enabled =
-      ash::standalone_browser::GetFeatureRefs();
-  enabled.push_back(ash::features::kAllowDevtoolsInSystemUI);
-  features.InitWithFeatures(enabled, {});
-
+  features.InitWithFeatures(
+      {ash::features::kLacrosSupport, ash::features::kLacrosPrimary,
+       ash::features::kLacrosOnly,
+       ash::features::kLacrosProfileMigrationForceOff,
+       ash::features::kAllowDevtoolsInSystemUI},
+      {});
   auto fake_user_manager = std::make_unique<user_manager::FakeUserManager>();
   auto* primary_user =
       fake_user_manager->AddUser(AccountId::FromUserEmail("test@test"));

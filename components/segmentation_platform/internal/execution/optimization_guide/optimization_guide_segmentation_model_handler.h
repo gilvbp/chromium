@@ -5,6 +5,9 @@
 #ifndef COMPONENTS_SEGMENTATION_PLATFORM_INTERNAL_EXECUTION_OPTIMIZATION_GUIDE_OPTIMIZATION_GUIDE_SEGMENTATION_MODEL_HANDLER_H_
 #define COMPONENTS_SEGMENTATION_PLATFORM_INTERNAL_EXECUTION_OPTIMIZATION_GUIDE_OPTIMIZATION_GUIDE_SEGMENTATION_MODEL_HANDLER_H_
 
+#include <memory>
+#include <vector>
+
 #include "base/task/sequenced_task_runner.h"
 #include "components/optimization_guide/core/model_handler.h"
 #include "components/optimization_guide/proto/models.pb.h"
@@ -50,8 +53,7 @@ class OptimizationGuideSegmentationModelHandler
 
   // optimization_guide::ModelHandler overrides.
   void OnModelUpdated(optimization_guide::proto::OptimizationTarget segment_id,
-                      base::optional_ref<const optimization_guide::ModelInfo>
-                          model_info) override;
+                      const optimization_guide::ModelInfo& model_info) override;
 
  private:
   // Callback to invoke whenever the model file has been updated. If there is

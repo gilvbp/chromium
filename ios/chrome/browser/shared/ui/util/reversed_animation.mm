@@ -8,6 +8,10 @@
 #import <algorithm>
 #import <cmath>
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 @protocol ReversedAnimationProtocol;
 typedef CAAnimation<ReversedAnimationProtocol> ReversedAnimation;
 

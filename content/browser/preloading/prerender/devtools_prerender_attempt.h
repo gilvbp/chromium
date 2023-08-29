@@ -7,7 +7,6 @@
 
 #include "content/browser/preloading/prerender/prerender_attributes.h"
 #include "content/browser/preloading/prerender/prerender_final_status.h"
-#include "content/browser/preloading/prerender/prerender_metrics.h"
 #include "content/common/content_export.h"
 
 namespace content {
@@ -30,9 +29,7 @@ class CONTENT_EXPORT DevToolsPrerenderAttempt {
   void SetTriggeringOutcome(const PrerenderAttributes& attributes,
                             PreloadingTriggeringOutcome outcome);
   void SetFailureReason(const PrerenderAttributes& attributes,
-                        PrerenderFinalStatus prerender_status);
-  void SetFailureReason(const PrerenderAttributes& attributes,
-                        const PrerenderCancellationReason& reasons);
+                        PrerenderFinalStatus status);
 };
 
 }  // namespace content

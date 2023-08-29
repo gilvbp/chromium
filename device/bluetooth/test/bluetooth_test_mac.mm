@@ -9,8 +9,8 @@
 
 #include <memory>
 
-#import "base/apple/foundation_util.h"
 #include "base/functional/bind.h"
+#import "base/mac/foundation_util.h"
 #include "base/strings/string_number_conversions.h"
 #include "base/strings/sys_string_conversions.h"
 #include "build/build_config.h"
@@ -33,7 +33,11 @@
 #import "device/bluetooth/bluetooth_adapter_mac.h"
 #endif
 
-using base::apple::ObjCCast;
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
+using base::mac::ObjCCast;
 
 namespace device {
 
@@ -663,7 +667,7 @@ void BluetoothTestMac::SetMockControllerPowerState(int powered) {
               return;
 
             auto* mock_central_manager =
-                base::apple::ObjCCastStrict<MockCentralManager>(
+                base::mac::ObjCCastStrict<MockCentralManager>(
                     adapter_mac->GetCentralManager());
             [mock_central_manager setState:powered ? CBManagerStatePoweredOn
                                                    : CBManagerStatePoweredOff];

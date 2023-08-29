@@ -8,12 +8,7 @@
 #include <string>
 
 #include "base/files/scoped_temp_dir.h"
-#include "build/build_config.h"
 #include "content/public/browser/browser_main_parts.h"
-
-#if BUILDFLAG(IS_MAC)
-#include "ui/display/screen.h"
-#endif  // BUILDFLAG(IS_MAC)
 
 class GURL;
 
@@ -67,9 +62,6 @@ class BrowserMainParts : public content::BrowserMainParts {
   void QuitMessageLoop();
 
   base::ScopedTempDir temp_dir_;
-#if BUILDFLAG(IS_MAC)
-  display::ScopedNativeScreen native_screen_;
-#endif
   std::unique_ptr<WebUIControllerFactory> web_ui_controller_factory_;
   std::unique_ptr<content::BrowserContext> browser_context_;
 

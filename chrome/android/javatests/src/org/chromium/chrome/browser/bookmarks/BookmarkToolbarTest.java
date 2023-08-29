@@ -35,6 +35,7 @@ import org.mockito.MockitoAnnotations;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
+import org.chromium.base.Callback;
 import org.chromium.base.test.UiThreadTest;
 import org.chromium.base.test.util.Batch;
 import org.chromium.base.test.util.CommandLineFlags;
@@ -97,7 +98,7 @@ public class BookmarkToolbarTest extends BlankUiTestActivityTestCase {
     @Mock
     BookmarkOpener mBookmarkOpener;
     @Mock
-    Runnable mNavigateBackRunnable;
+    Callback<BookmarkId> mOpenFolderCallback;
 
     private Activity mActivity;
     private WindowAndroid mWindowAndroid;
@@ -132,7 +133,7 @@ public class BookmarkToolbarTest extends BlankUiTestActivityTestCase {
                     .thenReturn(Collections.singletonList(BOOKMARK_ID_ROOT));
 
             BookmarkItem rootBookmarkItem = new BookmarkItem(
-                    BOOKMARK_ID_ROOT, "root", null, false, null, false, false, 0, false, 0);
+                    BOOKMARK_ID_ROOT, "root", null, false, null, false, false, 0, false);
             when(mBookmarkModel.getBookmarkById(BOOKMARK_ID_ROOT)).thenReturn(rootBookmarkItem);
 
             mockBookmarkItem(BOOKMARK_ID_FOLDER, "folder", null, true, BOOKMARK_ID_ROOT, true);
@@ -149,6 +150,8 @@ public class BookmarkToolbarTest extends BlankUiTestActivityTestCase {
 
     @After
     public void tearDown() {
+        IncognitoUtils.setEnabledForTesting(null);
+
         // Since these monitors block the creation of activities, it is crucial that they're removed
         // so that when batching tests the subsequent cases actually see their activities.
         for (ActivityMonitor activityMonitor : mActivityMonitorList) {
@@ -169,13 +172,13 @@ public class BookmarkToolbarTest extends BlankUiTestActivityTestCase {
         mBookmarkToolbar.setSelectionDelegate(mSelectionDelegate);
         mBookmarkToolbar.setBookmarkUiMode(BookmarkUiMode.FOLDER);
         mBookmarkToolbar.setIsDialogUi(true);
-        mBookmarkToolbar.setNavigateBackRunnable(mNavigateBackRunnable);
+        mBookmarkToolbar.setOpenFolderCallback(mOpenFolderCallback);
     }
 
     private void mockBookmarkItem(BookmarkId bookmarkId, String title, String url, boolean isFolder,
             BookmarkId parent, boolean isEditable) {
         BookmarkItem bookmarkItem = new BookmarkItem(
-                bookmarkId, title, new GURL(url), isFolder, parent, isEditable, false, 0, false, 0);
+                bookmarkId, title, new GURL(url), isFolder, parent, isEditable, false, 0, false);
         when(mBookmarkModel.getBookmarkById(bookmarkId)).thenReturn(bookmarkItem);
     }
 
@@ -212,7 +215,7 @@ public class BookmarkToolbarTest extends BlankUiTestActivityTestCase {
         initializeNormal();
         mBookmarkToolbar.setCurrentFolder(BOOKMARK_ID_FOLDER);
         mBookmarkToolbar.onNavigationBack();
-        Mockito.verify(mNavigateBackRunnable).run();
+        Mockito.verify(mOpenFolderCallback).onResult(BOOKMARK_ID_ROOT);
     }
 
     @Test

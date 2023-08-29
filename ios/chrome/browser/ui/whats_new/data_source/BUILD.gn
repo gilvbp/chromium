@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 source_set("whats_new_item") {
+  configs += [ "//build/config/compiler:enable_arc" ]
   sources = [
     "whats_new_item.h",
     "whats_new_item.mm",
@@ -12,6 +13,7 @@ source_set("whats_new_item") {
 }
 
 source_set("data_source") {
+  configs += [ "//build/config/compiler:enable_arc" ]
   sources = [
     "whats_new_data_source.h",
     "whats_new_data_source.mm",
@@ -58,4 +60,5 @@ source_set("unit_tests") {
     "//testing/gtest",
     "//ui/base",
   ]
+  configs += [ "//build/config/compiler:enable_arc" ]
 }

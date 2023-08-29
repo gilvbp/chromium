@@ -65,7 +65,7 @@ std::string salt = "fake_media_device_salt";
 void GetSaltAndOrigin(GlobalRenderFrameHostId,
                       MediaDeviceSaltAndOriginCallback callback) {
   std::move(callback).Run(MediaDeviceSaltAndOrigin(
-      salt, url::Origin::Create(GURL("https://test.com")), "fake_group_id_salt",
+      salt, "fake_group_id_salt", url::Origin::Create(GURL("https://test.com")),
       /*has_focus=*/true, /*is_background=*/false));
 }
 

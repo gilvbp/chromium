@@ -156,7 +156,7 @@ class AutofillTest : public InProcessBrowserTest {
         ->DriverForFrame(web_contents()->GetPrimaryMainFrame())
         ->autofill_manager()
         ->client()
-        .HideAutofillPopup(PopupHidingReason::kTabGone);
+        ->HideAutofillPopup(PopupHidingReason::kTabGone);
     test::ReenableSystemServices();
     InProcessBrowserTest::TearDownOnMainThread();
   }
@@ -284,8 +284,8 @@ class AutofillTest : public InProcessBrowserTest {
   }
 
  private:
-  test::AutofillBrowserTestEnvironment autofill_test_environment_;
   base::test::ScopedFeatureList feature_list_;
+  test::AutofillBrowserTestEnvironment autofill_test_environment_;
   TestAutofillManagerInjector<TestAutofillManager> autofill_manager_injector_;
 };
 
@@ -819,7 +819,7 @@ class AutofillTestPrerendering : public InProcessBrowserTest {
   };
 
   void SetUp() override {
-    prerender_helper_.RegisterServerRequestMonitor(embedded_test_server());
+    prerender_helper_.SetUp(embedded_test_server());
     InProcessBrowserTest::SetUp();
   }
 

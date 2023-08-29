@@ -22,12 +22,11 @@ public final class DistillablePageUtils {
          * Called when the distillability status changes.
          * @param isDistillable Whether the page is distillable.
          * @param isLast Whether the update is the last one for this page.
-         * @param isLongArticle Whether the page is a long article.
          * @param isMobileOptimized Whether the page is optimized for mobile. Only valid when
          *                         the heuristics is ADABOOST_MODEL or ALL_ARTICLES.
          */
-        void onIsPageDistillableResult(boolean isDistillable, boolean isLast, boolean isLongArticle,
-                boolean isMobileOptimized);
+        void onIsPageDistillableResult(
+                boolean isDistillable, boolean isLast, boolean isMobileOptimized);
     }
 
     public static void setDelegate(WebContents webContents,
@@ -37,11 +36,9 @@ public final class DistillablePageUtils {
 
     @CalledByNative
     private static void callOnIsPageDistillableUpdate(PageDistillableDelegate delegate,
-            boolean isDistillable, boolean isLast, boolean isLongArticle,
-            boolean isMobileOptimized) {
+            boolean isDistillable, boolean isLast, boolean isMobileOptimized) {
         if (delegate != null) {
-            delegate.onIsPageDistillableResult(
-                    isDistillable, isLast, isLongArticle, isMobileOptimized);
+            delegate.onIsPageDistillableResult(isDistillable, isLast, isMobileOptimized);
         }
     }
 

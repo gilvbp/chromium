@@ -174,10 +174,8 @@ InvertedIndex::InvertedIndex() {
 InvertedIndex::~InvertedIndex() = default;
 
 PostingList InvertedIndex::FindTerm(const std::u16string& term) const {
-  auto it = dictionary_.find(term);
-  if (it != dictionary_.end()) {
-    return it->second;
-  }
+  if (dictionary_.find(term) != dictionary_.end())
+    return dictionary_.at(term);
 
   return {};
 }
@@ -283,9 +281,8 @@ void InvertedIndex::UpdateDocuments(
 
 std::vector<TfidfResult> InvertedIndex::GetTfidf(
     const std::u16string& term) const {
-  auto it = tfidf_cache_.find(term);
-  if (it != tfidf_cache_.end()) {
-    return it->second;
+  if (tfidf_cache_.find(term) != tfidf_cache_.end()) {
+    return tfidf_cache_.at(term);
   }
 
   return {};

@@ -75,8 +75,12 @@ void BrowserPluginGuest::InitInternal(WebContentsImpl* owner_web_contents) {
   // navigations still continue to function inside the app.
   renderer_prefs->browser_handles_all_top_level_requests = false;
 
-  // Also disable drag/drop navigations.
-  renderer_prefs->can_accept_load_drops = false;
+  // TODO(chrishtr): this code is wrong. The navigate_on_drag_drop field will
+  // be reset again the next time preferences are updated.
+  blink::web_pref::WebPreferences prefs =
+      GetWebContents()->GetOrCreateWebPreferences();
+  prefs.navigate_on_drag_drop = false;
+  GetWebContents()->SetWebPreferences(prefs);
 }
 
 BrowserPluginGuest::~BrowserPluginGuest() = default;

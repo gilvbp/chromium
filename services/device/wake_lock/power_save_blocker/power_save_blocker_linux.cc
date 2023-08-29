@@ -71,10 +71,8 @@ bool ServiceNameHasOwner(dbus::Bus* bus, const char* service_name) {
   dbus::MessageWriter writer(&name_has_owner_call);
   writer.AppendString(service_name);
   std::unique_ptr<dbus::Response> name_has_owner_response =
-      dbus_proxy
-          ->CallMethodAndBlock(&name_has_owner_call,
-                               dbus::ObjectProxy::TIMEOUT_USE_DEFAULT)
-          .value_or(nullptr);
+      dbus_proxy->CallMethodAndBlock(&name_has_owner_call,
+                                     dbus::ObjectProxy::TIMEOUT_USE_DEFAULT);
   dbus::MessageReader reader(name_has_owner_response.get());
   bool owned = false;
   return name_has_owner_response && reader.PopBool(&owned) && owned;
@@ -324,11 +322,8 @@ bool PowerSaveBlocker::Delegate::Inhibit(DBusAPI api) {
       break;
   }
 
-  std::unique_ptr<dbus::Response> response =
-      object_proxy
-          ->CallMethodAndBlock(method_call.get(),
-                               dbus::ObjectProxy::TIMEOUT_USE_DEFAULT)
-          .value_or(nullptr);
+  std::unique_ptr<dbus::Response> response = object_proxy->CallMethodAndBlock(
+      method_call.get(), dbus::ObjectProxy::TIMEOUT_USE_DEFAULT);
 
   uint32_t cookie;
   if (response) {
@@ -366,11 +361,8 @@ void PowerSaveBlocker::Delegate::Uninhibit(
   auto message_writer =
       std::make_unique<dbus::MessageWriter>(method_call.get());
   message_writer->AppendUint32(inhibit_cookie.cookie);
-  std::unique_ptr<dbus::Response> response =
-      object_proxy
-          ->CallMethodAndBlock(method_call.get(),
-                               dbus::ObjectProxy::TIMEOUT_USE_DEFAULT)
-          .value_or(nullptr);
+  std::unique_ptr<dbus::Response> response = object_proxy->CallMethodAndBlock(
+      method_call.get(), dbus::ObjectProxy::TIMEOUT_USE_DEFAULT);
 
   // We don't care about checking the result. We assume it works; we can't
   // really do anything about it anyway if it fails.

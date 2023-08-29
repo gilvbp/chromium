@@ -16,6 +16,7 @@ import android.view.ContextThemeWrapper;
 import androidx.annotation.Nullable;
 import androidx.test.filters.MediumTest;
 
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -63,7 +64,7 @@ import org.chromium.url.ShadowGURL;
  */
 @RunWith(BaseRobolectricTestRunner.class)
 @Config(manifest = Config.NONE, shadows = {ShadowGURL.class, ShadowTrustedCdn.class})
-@DisableFeatures(ChromeFeatureList.OMNIBOX_UPDATED_CONNECTION_SECURITY_INDICATORS)
+@DisableFeatures({ChromeFeatureList.OMNIBOX_UPDATED_CONNECTION_SECURITY_INDICATORS})
 @SuppressWarnings("DoNotMock") // Mocks GURL
 public class LocationBarModelUnitTest {
     @Implements(TrustedCdn.class)
@@ -136,6 +137,12 @@ public class LocationBarModelUnitTest {
                 .thenReturn(mPrimaryOTRProfileMock);
         when(mIncognitoTabMock.getWindowAndroid()).thenReturn(mWindowAndroidMock);
         when(mIncognitoTabMock.isIncognito()).thenReturn(true);
+    }
+
+    @After
+    public void tearDown() {
+        Profile.setLastUsedProfileForTesting(null);
+        IncognitoCctProfileManager.setIncognitoCctProfileManagerForTesting(null);
     }
 
     public static final LocationBarModel.OfflineStatus OFFLINE_STATUS =

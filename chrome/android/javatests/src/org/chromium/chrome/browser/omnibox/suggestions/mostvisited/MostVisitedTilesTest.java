@@ -23,8 +23,10 @@ import android.view.View;
 import androidx.recyclerview.widget.RecyclerView.LayoutManager;
 import androidx.test.filters.MediumTest;
 
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -43,6 +45,7 @@ import org.chromium.chrome.browser.flags.ChromeSwitches;
 import org.chromium.chrome.browser.omnibox.LocationBarLayout;
 import org.chromium.chrome.browser.omnibox.suggestions.AutocompleteController;
 import org.chromium.chrome.browser.omnibox.suggestions.AutocompleteControllerJni;
+import org.chromium.chrome.browser.omnibox.suggestions.AutocompleteControllerProvider;
 import org.chromium.chrome.browser.omnibox.suggestions.AutocompleteCoordinator;
 import org.chromium.chrome.browser.omnibox.suggestions.carousel.BaseCarouselSuggestionView;
 import org.chromium.chrome.browser.tab.Tab;
@@ -83,7 +86,6 @@ public class MostVisitedTilesTest {
     private static final String START_PAGE_LOCATION = "/echo/start.html";
     private static final String SEARCH_QUERY = "related search query";
     private static final int MV_TILE_CAROUSEL_MATCH_POSITION = 1;
-    private static final long MV_TILE_NATIVE_HANDLE = 0xfce2;
 
     public final @Rule ChromeTabbedActivityTestRule mActivityTestRule =
             new ChromeTabbedActivityTestRule();
@@ -107,6 +109,9 @@ public class MostVisitedTilesTest {
     private SuggestTile mTile1;
     private SuggestTile mTile2;
     private SuggestTile mTile3;
+
+    @BeforeClass
+    public static void setUpClass() throws Exception {}
 
     @Before
     public void setUp() throws Exception {
@@ -134,6 +139,11 @@ public class MostVisitedTilesTest {
         setUpSuggestionsToShow();
 
         mCarousel = mOmnibox.findSuggestionWithType(OmniboxSuggestionUiType.TILE_NAVSUGGEST);
+    }
+
+    @After
+    public void tearDown() {
+        AutocompleteControllerProvider.setControllerForTesting(null);
     }
 
     /**
@@ -164,9 +174,7 @@ public class MostVisitedTilesTest {
         builder.setType(OmniboxSuggestionType.TILE_NAVSUGGEST);
         builder.setSuggestTiles(Arrays.asList(new SuggestTile[] {mTile1, mTile2, mTile3}));
         builder.setDeletable(true);
-        var match = builder.build();
-        match.updateNativeObjectRef(MV_TILE_NATIVE_HANDLE);
-        autocompleteResult.getSuggestionsList().add(match);
+        autocompleteResult.getSuggestionsList().add(builder.build());
         builder.reset();
 
         // Third suggestion - search query with a header.
@@ -187,7 +195,7 @@ public class MostVisitedTilesTest {
 
     private void clickTileAtPosition(int position) {
         TestThreadUtils.runOnUiThreadBlocking(() -> {
-            LayoutManager manager = mCarousel.view.getLayoutManager();
+            LayoutManager manager = mCarousel.view.getRecyclerViewForTest().getLayoutManager();
             Assert.assertTrue(position < manager.getItemCount());
             manager.scrollToPosition(position);
             View view = manager.findViewByPosition(position);
@@ -198,7 +206,7 @@ public class MostVisitedTilesTest {
 
     private void longClickTileAtPosition(int position) {
         TestThreadUtils.runOnUiThreadBlocking(() -> {
-            LayoutManager manager = mCarousel.view.getLayoutManager();
+            LayoutManager manager = mCarousel.view.getRecyclerViewForTest().getLayoutManager();
             Assert.assertTrue(position < manager.getItemCount());
             manager.scrollToPosition(position);
             View view = manager.findViewByPosition(position);
@@ -315,7 +323,8 @@ public class MostVisitedTilesTest {
         CriteriaHelper.pollUiThread(() -> { return manager.getCurrentDialogForTest() == null; });
 
         verify(mAutocompleteControllerJniMock, times(1))
-                .deleteMatchElement(anyLong(), eq(MV_TILE_NATIVE_HANDLE), eq(tileToDelete));
+                .deleteMatchElement(
+                        anyLong(), eq(MV_TILE_CAROUSEL_MATCH_POSITION), eq(tileToDelete));
     }
 
     @Test

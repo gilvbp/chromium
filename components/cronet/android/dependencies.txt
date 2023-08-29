@@ -14,8 +14,6 @@
 //build/config/compiler
 //build/config/sanitizers
 //build/rust
-//build/rust/std
-//build/rust/std/rules
 //buildtools/third_party/libc++
 //buildtools/third_party/libc++abi
 //buildtools/third_party/libunwind
@@ -42,7 +40,7 @@
 //net/traffic_annotation
 //third_party/abseil-cpp
 //third_party/android_deps
-//third_party/android_toolchain/ndk
+//third_party/android_toolchain
 //third_party/android_sdk
 //third_party/androidx
 //third_party/ashmem
@@ -59,9 +57,7 @@
 //third_party/metrics_proto
 //third_party/modp_b64
 //third_party/protobuf
-//third_party/rust
 //third_party/zlib
-//third_party/zstd
 //tools/android/errorprone_plugin
 //tools/grit
 //tools/gritsettings

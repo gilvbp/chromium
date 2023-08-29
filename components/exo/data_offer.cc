@@ -395,10 +395,17 @@ void DataOffer::SetClipboardData(DataExchangeDelegate* data_exchange_delegate,
                             base::BindOnce(&ReadPNGFromClipboard, data_dst));
   }
 
-  // For clipboard, FilesApp filenames pickle is already converted to files
-  // in VolumeManager::OnClipboardDataChanged().
+  // We accept the filenames pickle from FilesApp, or text/uri-list from apps.
   std::vector<ui::FileInfo> filenames;
-  if (data.IsFormatAvailable(ui::ClipboardFormatType::FilenamesType(),
+  std::string buf;
+  data.ReadData(ui::ClipboardFormatType::WebCustomDataType(), &data_dst, &buf);
+  if (!buf.empty()) {
+    base::Pickle pickle(buf.data(), static_cast<int>(buf.size()));
+    filenames = data_exchange_delegate->ParseFileSystemSources(
+        data.GetSource(ui::ClipboardBuffer::kCopyPaste), pickle);
+  }
+  if (filenames.empty() &&
+      data.IsFormatAvailable(ui::ClipboardFormatType::FilenamesType(),
                              ui::ClipboardBuffer::kCopyPaste, &data_dst)) {
     data.ReadFilenames(ui::ClipboardBuffer::kCopyPaste, &data_dst, &filenames);
   }

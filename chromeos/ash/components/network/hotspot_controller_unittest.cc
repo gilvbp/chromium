@@ -107,19 +107,22 @@ class HotspotControllerTest : public ::testing::Test {
   }
 
   void SetValidTetheringCapabilities() {
-    auto capabilities_dict =
-        base::Value::Dict()
-            .Set(shill::kTetheringCapUpstreamProperty,
-                 base::Value::List().Append(shill::kTypeCellular))
-            // Add WiFi to the downstream technology list in Shill
-            .Set(shill::kTetheringCapDownstreamProperty,
-                 base::Value::List().Append(shill::kTypeWifi))
-            // Add allowed WiFi security mode in Shill
-            .Set(shill::kTetheringCapSecurityProperty,
-                 base::Value::List()
-                     .Append(shill::kSecurityWpa2)
-                     .Append(shill::kSecurityWpa3));
-
+    base::Value::Dict capabilities_dict;
+    base::Value::List upstream_list;
+    upstream_list.Append(shill::kTypeCellular);
+    capabilities_dict.Set(shill::kTetheringCapUpstreamProperty,
+                          std::move(upstream_list));
+    // Add WiFi to the downstream technology list in Shill
+    base::Value::List downstream_list;
+    downstream_list.Append(shill::kTypeWifi);
+    capabilities_dict.Set(shill::kTetheringCapDownstreamProperty,
+                          std::move(downstream_list));
+    // Add allowed WiFi security mode in Shill
+    base::Value::List security_list;
+    security_list.Append(shill::kSecurityWpa2);
+    security_list.Append(shill::kSecurityWpa3);
+    capabilities_dict.Set(shill::kTetheringCapSecurityProperty,
+                          std::move(security_list));
     network_state_test_helper_.manager_test()->SetManagerProperty(
         shill::kTetheringCapabilitiesProperty,
         base::Value(std::move(capabilities_dict)));
@@ -127,8 +130,8 @@ class HotspotControllerTest : public ::testing::Test {
   }
 
   void SetHotspotStateInShill(const std::string& state) {
-    auto status_dict =
-        base::Value::Dict().Set(shill::kTetheringStatusStateProperty, state);
+    base::Value::Dict status_dict;
+    status_dict.Set(shill::kTetheringStatusStateProperty, state);
     network_state_test_helper_.manager_test()->SetManagerProperty(
         shill::kTetheringStatusProperty, base::Value(std::move(status_dict)));
     base::RunLoop().RunUntilIdle();
@@ -150,20 +153,14 @@ class HotspotControllerTest : public ::testing::Test {
                              shill::kStateOnline, /*visible=*/true);
   }
 
-  hotspot_config::mojom::HotspotControlResult EnableHotspot(bool abort) {
+  hotspot_config::mojom::HotspotControlResult EnableHotspot() {
     base::RunLoop run_loop;
     hotspot_config::mojom::HotspotControlResult return_result;
     hotspot_controller_->EnableHotspot(base::BindLambdaForTesting(
         [&](hotspot_config::mojom::HotspotControlResult result) {
-          if (result == hotspot_config::mojom::HotspotControlResult::kSuccess) {
-            SetHotspotStateInShill(shill::kTetheringStateActive);
-          }
           return_result = result;
           run_loop.Quit();
         }));
-    if (hotspot_controller_->current_enable_request_) {
-      hotspot_controller_->current_enable_request_->abort = abort;
-    }
     run_loop.Run();
     FlushMojoCalls();
     return return_result;
@@ -175,10 +172,6 @@ class HotspotControllerTest : public ::testing::Test {
     hotspot_controller_->DisableHotspot(
         base::BindLambdaForTesting(
             [&](hotspot_config::mojom::HotspotControlResult result) {
-              if (result ==
-                  hotspot_config::mojom::HotspotControlResult::kSuccess) {
-                SetHotspotStateInShill(shill::kTetheringStateIdle);
-              }
               return_result = result;
               run_loop.Quit();
             }),
@@ -253,7 +246,7 @@ class HotspotControllerTest : public ::testing::Test {
 
 TEST_F(HotspotControllerTest, EnableTetheringCapabilitiesNotAllowed) {
   EXPECT_EQ(hotspot_config::mojom::HotspotControlResult::kNotAllowed,
-            EnableHotspot(/*abort=*/false));
+            EnableHotspot());
 }
 
 TEST_F(HotspotControllerTest, EnableTetheringSuccess) {
@@ -270,7 +263,7 @@ TEST_F(HotspotControllerTest, EnableTetheringSuccess) {
       HotspotMetricsHelper::HotspotMetricsCheckReadinessResult::kReady, 1);
 
   EXPECT_EQ(hotspot_config::mojom::HotspotControlResult::kSuccess,
-            EnableHotspot(/*abort=*/false));
+            EnableHotspot());
   // Verifies that Wifi technology will be turned off.
   EXPECT_EQ(
       NetworkStateHandler::TECHNOLOGY_AVAILABLE,
@@ -296,21 +289,6 @@ TEST_F(HotspotControllerTest, EnableTetheringSuccess) {
       1);
 }
 
-TEST_F(HotspotControllerTest, AbortEnableTethering) {
-  SetValidTetheringCapabilities();
-  AddActiveCellularServivce();
-  network_state_test_helper_.manager_test()->SetSimulateTetheringEnableResult(
-      FakeShillSimulatedResult::kSuccess, shill::kTetheringEnableResultSuccess);
-  base::RunLoop().RunUntilIdle();
-
-  EXPECT_EQ(hotspot_config::mojom::HotspotControlResult::kAborted,
-            EnableHotspot(/*abort=*/true));
-
-  histogram_tester_.ExpectBucketCount(
-      HotspotMetricsHelper::kHotspotEnableResultHistogram,
-      HotspotMetricsHelper::HotspotMetricsSetEnabledResult::kAborted, 1);
-}
-
 TEST_F(HotspotControllerTest, EnableTetheringReadinessCheckFailure) {
   // Setup the hotspot capabilities so that the initial hotspot allowance
   // status is allowed.
@@ -332,7 +310,7 @@ TEST_F(HotspotControllerTest, EnableTetheringReadinessCheckFailure) {
   base::RunLoop().RunUntilIdle();
 
   EXPECT_EQ(hotspot_config::mojom::HotspotControlResult::kReadinessCheckFailed,
-            EnableHotspot(/*abort=*/false));
+            EnableHotspot());
   EXPECT_EQ(
       hotspot_config::mojom::HotspotAllowStatus::kDisallowedReadinessCheckFail,
       hotspot_capabilities_provider_->GetHotspotCapabilities().allow_status);
@@ -376,7 +354,7 @@ TEST_F(HotspotControllerTest, EnableTetheringNetworkSetupFailure) {
   base::RunLoop().RunUntilIdle();
 
   EXPECT_EQ(hotspot_config::mojom::HotspotControlResult::kNetworkSetupFailure,
-            EnableHotspot(/*abort=*/false));
+            EnableHotspot());
   // Verifies that Wifi technology will still be on if enable hotspot failed.
   EXPECT_EQ(
       NetworkStateHandler::TECHNOLOGY_ENABLED,
@@ -485,36 +463,6 @@ TEST_F(HotspotControllerTest, RestartHotspotIfActive) {
   EXPECT_EQ(1u, observer_.hotspot_turned_off_count());
   EXPECT_EQ(hotspot_config::mojom::DisableReason::kRestart,
             observer_.last_disable_reason());
-}
-
-TEST_F(HotspotControllerTest, RestoreWiFiStatus) {
-  SetValidTetheringCapabilities();
-  AddActiveCellularServivce();
-  // Verify Wifi is on before turning on hotspot.
-  EXPECT_EQ(
-      NetworkStateHandler::TECHNOLOGY_ENABLED,
-      network_state_test_helper_.network_state_handler()->GetTechnologyState(
-          NetworkTypePattern::WiFi()));
-
-  network_state_test_helper_.manager_test()->SetSimulateTetheringEnableResult(
-      FakeShillSimulatedResult::kSuccess, shill::kTetheringEnableResultSuccess);
-  base::RunLoop().RunUntilIdle();
-  EXPECT_EQ(hotspot_config::mojom::HotspotControlResult::kSuccess,
-            EnableHotspot(/*abort=*/false));
-
-  // Verifies that Wifi will be turned off.
-  EXPECT_EQ(
-      NetworkStateHandler::TECHNOLOGY_AVAILABLE,
-      network_state_test_helper_.network_state_handler()->GetTechnologyState(
-          NetworkTypePattern::WiFi()));
-
-  SetHotspotStateInShill(shill::kTetheringStateIdle);
-  base::RunLoop().RunUntilIdle();
-  // Verifies that Wifi will be turned back on.
-  EXPECT_EQ(
-      NetworkStateHandler::TECHNOLOGY_ENABLED,
-      network_state_test_helper_.network_state_handler()->GetTechnologyState(
-          NetworkTypePattern::WiFi()));
 }
 
 }  // namespace ash

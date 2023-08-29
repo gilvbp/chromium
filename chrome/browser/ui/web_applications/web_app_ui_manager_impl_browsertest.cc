@@ -5,9 +5,7 @@
 #include "chrome/browser/ui/web_applications/web_app_ui_manager_impl.h"
 
 #include "base/memory/raw_ptr.h"
-#include "base/run_loop.h"
 #include "base/test/bind.h"
-#include "base/test/test_future.h"
 #include "build/chromeos_buildflags.h"
 #include "chrome/browser/ui/browser.h"
 #include "chrome/browser/ui/browser_list.h"
@@ -65,9 +63,8 @@ class WebAppUiManagerImplBrowserTest : public InProcessBrowserTest {
     return WebAppProvider::GetForTest(profile())->ui_manager();
   }
 
-  raw_ptr<TestShortcutManager, AcrossTasksDanglingUntriaged> shortcut_manager_;
-  raw_ptr<FakeOsIntegrationManager, AcrossTasksDanglingUntriaged>
-      os_integration_manager_;
+  raw_ptr<TestShortcutManager, DanglingUntriaged> shortcut_manager_;
+  raw_ptr<FakeOsIntegrationManager, DanglingUntriaged> os_integration_manager_;
 
  private:
   std::unique_ptr<KeyedService> CreateFakeWebAppProvider(Profile* profile) {
@@ -201,16 +198,12 @@ IN_PROC_BROWSER_TEST_F(WebAppUiManagerImplBrowserTest, MigrateAppAttribute) {
   AppId old_app_id = test::InstallDummyWebApp(profile(), "old_app",
                                               GURL("https://old.app.com"));
   app_list_service->SetPinPosition(old_app_id,
-                                   syncer::StringOrdinal("positionold"),
-                                   /*pinned_by_policy=*/false);
+                                   syncer::StringOrdinal("positionold"));
 
   // Install a new app to migrate the old one to.
   AppId new_app_id = test::InstallDummyWebApp(profile(), "new_app",
                                               GURL("https://new.app.com"));
-  base::test::TestFuture<void> future;
-  ui_manager().MigrateLauncherState(old_app_id, new_app_id,
-                                    future.GetCallback());
-  ASSERT_TRUE(future.Wait());
+  ui_manager().MaybeTransferAppAttributes(old_app_id, new_app_id);
 
   // New app should acquire old app's pin position.
   EXPECT_EQ(app_list_service->GetSyncItem(new_app_id)

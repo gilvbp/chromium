@@ -24,7 +24,6 @@
 #include "base/threading/sequence_bound.h"
 #include "base/time/clock.h"
 #include "base/time/time.h"
-#include "base/types/expected_macros.h"
 #include "base/uuid.h"
 #include "base/values.h"
 #include "content/browser/aggregation_service/aggregatable_report.h"
@@ -322,15 +321,15 @@ base::expected<PublicKeyset, std::string> ReadAndParsePublicKeys(
     return base::unexpected("Failed to read file: " + file.MaybeAsASCII());
   }
 
-  ASSIGN_OR_RETURN(
-      base::Value value,
-      base::JSONReader::ReadAndReturnValueWithError(contents),
-      [&](base::JSONReader::Error error) {
-        return base::StrCat({"Failed to parse \"", contents,
-                             "\" as JSON: ", std::move(error).message});
-      });
+  auto value_with_error =
+      base::JSONReader::ReadAndReturnValueWithError(contents);
+  if (!value_with_error.has_value()) {
+    return base::unexpected(
+        base::StrCat({"Failed to parse \"", contents,
+                      "\" as JSON: ", value_with_error.error().message}));
+  }
 
-  std::vector<PublicKey> keys = GetPublicKeys(value);
+  std::vector<PublicKey> keys = GetPublicKeys(*value_with_error);
   if (keys.empty()) {
     return base::unexpected(
         base::StrCat({"Failed to parse public keys from \"", contents, "\""}));

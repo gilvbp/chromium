@@ -4,7 +4,7 @@
 
 #import "ios/web/content/web_state/content_web_state.h"
 
-#import "base/apple/foundation_util.h"
+#import "base/mac/foundation_util.h"
 #import "base/strings/utf_string_conversions.h"
 #import "content/public/browser/navigation_entry.h"
 #import "content/public/browser/web_contents.h"
@@ -19,8 +19,6 @@
 #import "ios/web/public/navigation/web_state_policy_decider.h"
 #import "ios/web/public/session/crw_navigation_item_storage.h"
 #import "ios/web/public/session/crw_session_storage.h"
-#import "ios/web/public/session/proto/metadata.pb.h"
-#import "ios/web/public/session/proto/storage.pb.h"
 #import "ios/web/public/web_state_delegate.h"
 #import "ios/web/public/web_state_observer.h"
 #import "ios/web/text_fragments/text_fragments_manager_impl.h"
@@ -29,8 +27,10 @@
 #import "services/network/public/mojom/referrer_policy.mojom-shared.h"
 #import "skia/ext/skia_utils_ios.h"
 #import "third_party/blink/public/mojom/favicon/favicon_url.mojom.h"
-#import "ui/display/display.h"
-#import "ui/display/screen.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace web {
 
@@ -68,25 +68,6 @@ FaviconURL::IconType IconTypeFromContentIconType(
   return FaviconURL::IconType::kInvalid;
 }
 
-// Creates a CRWSessionStorage instance from protobuf message.
-// TODO(crbug.com/1383087): remove when ContentWebState supports serialization
-// using protobuf message format directly.
-CRWSessionStorage* CreateSessionStorage(
-    SessionID unique_identifier,
-    proto::WebStateMetadataStorage metadata,
-    WebState::WebStateStorageLoader storage_loader) {
-  // Load the data from disk as this is needed to create the CRWSessionStorage.
-  proto::WebStateStorage storage;
-  std::move(storage_loader).Run(storage);
-  *storage.mutable_metadata() = std::move(metadata);
-
-  CRWSessionStorage* session_storage =
-      [[CRWSessionStorage alloc] initWithProto:storage];
-  session_storage.stableIdentifier = [[NSUUID UUID] UUIDString];
-  session_storage.uniqueIdentifier = unique_identifier;
-  return session_storage;
-}
-
 }  // namespace
 
 ContentWebState::ContentWebState(const CreateParams& params)
@@ -118,7 +99,7 @@ ContentWebState::ContentWebState(const CreateParams& params,
       this, params.browser_state, web_contents_->GetController());
   web_frames_manager_ = std::make_unique<ContentWebFramesManager>(this);
 
-  UIScrollView* web_contents_view = base::apple::ObjCCastStrict<UIScrollView>(
+  UIScrollView* web_contents_view = base::mac::ObjCCastStrict<UIScrollView>(
       web_contents_->GetNativeView().Get());
 
   web_view_ = [[CRCWebViewportContainerView alloc] init];
@@ -143,16 +124,6 @@ ContentWebState::ContentWebState(const CreateParams& params,
   }
 }
 
-ContentWebState::ContentWebState(BrowserState* browser_state,
-                                 SessionID unique_identifier,
-                                 proto::WebStateMetadataStorage metadata,
-                                 WebStateStorageLoader storage_loader,
-                                 NativeSessionFetcher session_fetcher)
-    : ContentWebState(CreateParams(browser_state),
-                      CreateSessionStorage(unique_identifier,
-                                           std::move(metadata),
-                                           std::move(storage_loader))) {}
-
 ContentWebState::~ContentWebState() {
   WebContentsObserver::Observe(nullptr);
   for (auto& observer : observers_) {
@@ -170,28 +141,8 @@ content::WebContents* ContentWebState::GetWebContents() {
   return web_contents_.get();
 }
 
-void ContentWebState::SerializeToProto(proto::WebStateStorage& storage) const {
-  // TODO(crbug.com/1383087): implement directly instead of serialising to
-  // CRWSessionStorage and then converting to protobuf message format.
-  DCHECK(IsRealized());
-  CRWSessionStorage* session_storage = BuildSessionStorage();
-  [session_storage serializeToProto:storage];
-}
-
 WebStateDelegate* ContentWebState::GetDelegate() {
   return nullptr;
-}
-
-std::unique_ptr<WebState> ContentWebState::Clone() const {
-  CreateParams params(GetBrowserState());
-  params.last_active_time = base::Time::Now();
-  CRWSessionStorage* session_storage = BuildSessionStorage();
-  session_storage.stableIdentifier = [[NSUUID UUID] UUIDString];
-  session_storage.uniqueIdentifier = SessionID::NewUnique();
-  auto clone = std::make_unique<ContentWebState>(params, session_storage);
-  IgnoreOverRealizationCheck();
-  clone->ForceRealized();
-  return clone;
 }
 
 void ContentWebState::SetDelegate(WebStateDelegate* delegate) {
@@ -302,7 +253,7 @@ ContentWebState::GetSessionCertificatePolicyCache() {
   return certificate_policy_cache_.get();
 }
 
-CRWSessionStorage* ContentWebState::BuildSessionStorage() const {
+CRWSessionStorage* ContentWebState::BuildSessionStorage() {
   if (session_storage_) {
     return session_storage_;
   }
@@ -628,43 +579,30 @@ void ContentWebState::AddNewContents(
 }
 
 int ContentWebState::GetTopControlsHeight() {
-  return ([web_view_ maxViewportInsets].top -
-          [web_view_ minViewportInsets].top) *
-         display::Screen::GetScreen()
-             ->GetDisplayNearestWindow(web_contents_->GetTopLevelNativeWindow())
-             .device_scale_factor();
+  return [web_view_ maxViewportInsets].top;
 }
 
 int ContentWebState::GetTopControlsMinHeight() {
-  return 0;
+  return [web_view_ minViewportInsets].top;
 }
 
 int ContentWebState::GetBottomControlsHeight() {
-  return ([web_view_ maxViewportInsets].bottom -
-          [web_view_ minViewportInsets].bottom) *
-         display::Screen::GetScreen()
-             ->GetDisplayNearestWindow(web_contents_->GetTopLevelNativeWindow())
-             .device_scale_factor();
+  return [web_view_ maxViewportInsets].bottom;
 }
 
 int ContentWebState::GetBottomControlsMinHeight() {
-  return 0;
+  return [web_view_ minViewportInsets].bottom;
 }
 
 bool ContentWebState::ShouldAnimateBrowserControlsHeightChanges() {
-  return true;
+  return false;
 }
 
 bool ContentWebState::DoBrowserControlsShrinkRendererSize(
     content::WebContents* web_contents) {
-  // We want to remain consistent while scroll is in progress because
-  // we only resize the WebContents at the end of a gesture.
-  if (top_control_scroll_in_progress_) {
-    return cached_shrink_controls_;
-  }
-  UIScrollView* web_contents_view = base::apple::ObjCCastStrict<UIScrollView>(
+  UIScrollView* web_contents_view = base::mac::ObjCCastStrict<UIScrollView>(
       web_contents->GetNativeView().Get());
-  if (web_contents_view.contentInset.top > [web_view_ minViewportInsets].top) {
+  if (web_contents_view.contentInset.top > GetTopControlsMinHeight()) {
     return true;
   }
   return false;
@@ -672,14 +610,6 @@ bool ContentWebState::DoBrowserControlsShrinkRendererSize(
 
 bool ContentWebState::OnlyExpandTopControlsAtPageTop() {
   return false;
-}
-
-void ContentWebState::SetTopControlsGestureScrollInProgress(bool in_progress) {
-  if (in_progress) {
-    cached_shrink_controls_ =
-        DoBrowserControlsShrinkRendererSize(web_contents_.get());
-  }
-  top_control_scroll_in_progress_ = in_progress;
 }
 
 }  // namespace web

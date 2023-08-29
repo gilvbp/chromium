@@ -44,8 +44,7 @@ HistoryClustersModuleServiceFactory::HistoryClustersModuleServiceFactory()
 HistoryClustersModuleServiceFactory::~HistoryClustersModuleServiceFactory() =
     default;
 
-std::unique_ptr<KeyedService>
-HistoryClustersModuleServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* HistoryClustersModuleServiceFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   // HistoryClustersModule cannot operate without the HistoryClustersService or
   // the TemplateURLService.
@@ -58,7 +57,7 @@ HistoryClustersModuleServiceFactory::BuildServiceInstanceForBrowserContext(
   if (!tus) {
     return nullptr;
   }
-  return std::make_unique<HistoryClustersModuleService>(
+  return new HistoryClustersModuleService(
       hcs, CartServiceFactory::GetForProfile(profile), tus,
       OptimizationGuideKeyedServiceFactory::GetForProfile(profile));
 }

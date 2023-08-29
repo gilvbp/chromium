@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 source_set("chromium_follow") {
+  configs += [ "//build/config/compiler:enable_arc" ]
   sources = [ "chromium_follow.mm" ]
   deps = [
     "//base",

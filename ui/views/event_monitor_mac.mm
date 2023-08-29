@@ -38,7 +38,7 @@ std::unique_ptr<EventMonitor> EventMonitor::CreateWindowMonitor(
 }
 
 struct EventMonitorMac::ObjCStorage {
-  id __strong monitor = nil;
+  id monitor = nil;
 };
 
 EventMonitorMac::EventMonitorMac(ui::EventObserver* event_observer,

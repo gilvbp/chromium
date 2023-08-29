@@ -9,9 +9,8 @@
 
 #include "base/memory/weak_ptr.h"
 #include "base/scoped_observation.h"
-#include "ios/chrome/browser/snapshots/snapshot_id.h"
 #include "ios/web/public/web_state_observer.h"
-#include "ios/web/public/web_state_user_data.h"
+#import "ios/web/public/web_state_user_data.h"
 
 @class SnapshotCache;
 @class SnapshotGenerator;
@@ -78,7 +77,7 @@ class SnapshotTabHelper : public web::WebStateObserver,
   void SaveGreyInBackground();
 
   // Returns the ID to use for the snapshot.
-  SnapshotID GetSnapshotID() const;
+  NSString* GetSnapshotID() const;
 
  private:
   friend class web::WebStateUserData<SnapshotTabHelper>;

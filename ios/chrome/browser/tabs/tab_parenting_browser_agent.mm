@@ -7,6 +7,10 @@
 #import "ios/chrome/browser/shared/model/web_state_list/web_state_list.h"
 #import "ios/chrome/browser/tabs/tab_parenting_global_observer.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 BROWSER_USER_DATA_KEY_IMPL(TabParentingBrowserAgent)
 
 TabParentingBrowserAgent::TabParentingBrowserAgent(Browser* browser) {
@@ -26,12 +30,12 @@ void TabParentingBrowserAgent::BrowserDestroyed(Browser* browser) {
 
 #pragma mark - WebStateListObserver
 
-void TabParentingBrowserAgent::WebStateListDidChange(
+void TabParentingBrowserAgent::WebStateListChanged(
     WebStateList* web_state_list,
     const WebStateListChange& change,
-    const WebStateListStatus& status) {
+    const WebStateSelection& selection) {
   switch (change.type()) {
-    case WebStateListChange::Type::kStatusOnly:
+    case WebStateListChange::Type::kSelectionOnly:
       // Do nothing when a WebState is selected and its status is updated.
       break;
     case WebStateListChange::Type::kDetach:

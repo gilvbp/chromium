@@ -50,10 +50,9 @@ bool FeedbackUploaderFactoryChrome::ServiceIsNULLWhileTesting() const {
   return true;
 }
 
-std::unique_ptr<KeyedService>
-FeedbackUploaderFactoryChrome::BuildServiceInstanceForBrowserContext(
+KeyedService* FeedbackUploaderFactoryChrome::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
-  return std::make_unique<FeedbackUploaderChrome>(context);
+  return new FeedbackUploaderChrome(context);
 }
 
 }  // namespace feedback

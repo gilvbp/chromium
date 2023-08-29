@@ -27,7 +27,7 @@ class NetworkingPrivateEventRouter : public KeyedService,
   NetworkingPrivateEventRouter& operator=(const NetworkingPrivateEventRouter&) =
       delete;
 
-  static std::unique_ptr<NetworkingPrivateEventRouter> Create(
+  static NetworkingPrivateEventRouter* Create(
       content::BrowserContext* browser_context);
 
  protected:

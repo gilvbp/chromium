@@ -173,7 +173,8 @@ void UntrustedSource::StartDataRequest(
         params.count("repeatX") == 1 ? params["repeatX"] : "no-repeat",
         params.count("repeatY") == 1 ? params["repeatY"] : "no-repeat",
         params.count("positionX") == 1 ? params["positionX"] : "center",
-        params.count("positionY") == 1 ? params["positionY"] : "center", "none",
+        params.count("positionY") == 1 ? params["positionY"] : "center",
+        params.count("scrimDisplay") == 1 ? params["scrimDisplay"] : "inherit",
         std::move(callback));
     return;
   }
@@ -254,6 +255,11 @@ void UntrustedSource::OnOneGoogleBarDataUpdated() {
     replacements["afterBarScript"] = data->after_bar_script;
     replacements["endOfBodyHtml"] = data->end_of_body_html;
     replacements["endOfBodyScript"] = data->end_of_body_script;
+
+    replacements["ogbUnprotectedTextSelector"] =
+        ntp_features::kNtpOgbUnprotectedTextSelectorParam.Get();
+    replacements["ogbButtonSelector"] =
+        ntp_features::kNtpOgbButtonSelectorParam.Get();
 
     html = FormatTemplate(IDR_NEW_TAB_PAGE_UNTRUSTED_ONE_GOOGLE_BAR_HTML,
                           replacements);

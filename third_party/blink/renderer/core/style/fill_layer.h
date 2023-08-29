@@ -32,7 +32,6 @@
 #include "third_party/blink/renderer/platform/geometry/length.h"
 #include "third_party/blink/renderer/platform/geometry/length_size.h"
 #include "third_party/blink/renderer/platform/graphics/graphics_types.h"
-#include "third_party/blink/renderer/platform/heap/member.h"
 #include "third_party/blink/renderer/platform/heap/persistent.h"
 #include "third_party/blink/renderer/platform/wtf/allocator/allocator.h"
 
@@ -53,15 +52,13 @@ struct FillSize {
   LengthSize size;
 };
 
-class FillLayerWrapper;
-
+// FIXME(Oilpan): Move FillLayer to Oilpan's heap.
 class CORE_EXPORT FillLayer {
-  DISALLOW_NEW();
+  USING_FAST_MALLOC(FillLayer);
 
  public:
-  explicit FillLayer(EFillLayerType, bool use_initial_values = false);
-
-  void Trace(Visitor* visitor) const;
+  FillLayer(EFillLayerType, bool use_initial_values = false);
+  ~FillLayer();
 
   StyleImage* GetImage() const { return image_.Get(); }
   const Length& PositionX() const { return position_x_; }
@@ -91,9 +88,14 @@ class CORE_EXPORT FillLayer {
     return FillSize(static_cast<EFillSizeType>(size_type_), size_length_);
   }
 
-  const FillLayer* Next() const;
-  FillLayer* Next();
-  FillLayer* EnsureNext();
+  const FillLayer* Next() const { return next_; }
+  FillLayer* Next() { return next_; }
+  FillLayer* EnsureNext() {
+    if (!next_) {
+      next_ = new FillLayer(GetType());
+    }
+    return next_;
+  }
 
   bool IsImageSet() const { return image_set_; }
   bool IsPositionXSet() const { return pos_x_set_; }
@@ -305,8 +307,9 @@ class CORE_EXPORT FillLayer {
   }
   void ComputeCachedProperties() const;
 
-  Member<FillLayerWrapper> next_;
-  Member<StyleImage> image_;
+  FillLayer* next_;
+
+  Persistent<StyleImage> image_;
 
   Length position_x_;
   Length position_y_;
@@ -360,27 +363,6 @@ class CORE_EXPORT FillLayer {
   // thereafter.
   mutable unsigned cached_properties_computed_ : 1;
 };
-
-class FillLayerWrapper : public GarbageCollected<FillLayerWrapper> {
- public:
-  explicit FillLayerWrapper(EFillLayerType type) : layer(type) {}
-
-  void Trace(Visitor* visitor) const { visitor->Trace(layer); }
-  FillLayer layer;
-};
-
-inline const FillLayer* FillLayer::Next() const {
-  return next_ ? &next_->layer : nullptr;
-}
-inline FillLayer* FillLayer::Next() {
-  return next_ ? &next_->layer : nullptr;
-}
-inline FillLayer* FillLayer::EnsureNext() {
-  if (!next_) {
-    next_ = MakeGarbageCollected<FillLayerWrapper>(GetType());
-  }
-  return &next_->layer;
-}
 
 }  // namespace blink
 

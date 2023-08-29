@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 source_set("ntp_tile") {
+  configs += [ "//build/config/compiler:enable_arc" ]
   sources = [
     "ntp_tile.h",
     "ntp_tile.mm",

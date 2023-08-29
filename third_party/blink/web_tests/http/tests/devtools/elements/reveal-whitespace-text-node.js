@@ -5,8 +5,6 @@
 import {TestRunner} from 'test_runner';
 import {ElementsTestRunner} from 'elements_test_runner';
 
-import * as Common from 'devtools/core/common/common.js';
-
 (async function() {
   TestRunner.addResult(
       `This test verifies that revealing a whitespace text node RemoteObject reveals its parentElement DIV.\n`);

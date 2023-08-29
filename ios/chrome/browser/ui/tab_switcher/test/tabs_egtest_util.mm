@@ -15,6 +15,10 @@
 #import "ios/testing/earl_grey/earl_grey_test.h"
 #import "net/test/embedded_test_server/embedded_test_server.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace {
 
 NSString* const kRegularTabTitlePrefix = @"RegularTab";
@@ -22,6 +26,17 @@ NSString* const kPinnedTabTitlePrefix = @"PinnedTab";
 
 constexpr base::TimeDelta kSnackbarAppearanceTimeout = base::Seconds(5);
 constexpr base::TimeDelta kSnackbarDisappearanceTimeout = base::Seconds(11);
+
+// Matcher for the overflow pin action.
+id<GREYMatcher> GetMatcherForPinOverflowAction() {
+  return grey_accessibilityID(kToolsMenuPinTabId);
+}
+
+// Pins a regular tab using overflow menu.
+void PinTabUsingOverflowMenu() {
+  [ChromeEarlGreyUI openToolsMenu];
+  [ChromeEarlGreyUI tapToolsMenuAction:GetMatcherForPinOverflowAction()];
+}
 
 }  // namespace
 
@@ -51,7 +66,7 @@ void CreatePinnedTabs(int tabs_count,
         [kPinnedTabTitlePrefix stringByAppendingFormat:@"%d", index];
 
     CreateRegularTab(test_server, title);
-    [ChromeEarlGrey pinCurrentTab];
+    PinTabUsingOverflowMenu();
   }
 }
 

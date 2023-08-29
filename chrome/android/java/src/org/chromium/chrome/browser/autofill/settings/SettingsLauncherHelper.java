@@ -6,8 +6,7 @@ package org.chromium.chrome.browser.autofill.settings;
 
 import android.content.Context;
 
-import androidx.annotation.Nullable;
-import androidx.annotation.VisibleForTesting;
+import androidx.fragment.app.Fragment;
 
 import org.chromium.base.annotations.CalledByNative;
 import org.chromium.base.metrics.RecordUserAction;
@@ -17,54 +16,24 @@ import org.chromium.content_public.browser.WebContents;
 
 /** Launches autofill settings subpages. */
 public class SettingsLauncherHelper {
-    private static SettingsLauncher sLauncherForTesting;
-
-    /**
-     * Tries showing the settings page for Addresses.
-     *
-     * @param context The {@link Context} required to start the settings page. Noop without it.
-     * @return True iff the context is valid and `launchSettingsActivity` was called.
-     */
-    public static boolean showAutofillProfileSettings(@Nullable Context context) {
-        if (context == null) {
-            return false;
-        }
-        RecordUserAction.record("AutofillAddressesViewed");
-        getLauncher().launchSettingsActivity(context, AutofillProfilesFragment.class);
-        return true;
-    }
-
-    /**
-     * Tries showing the settings page for Payments.
-     *
-     * @param context The {@link Context} required to start the settings page. Noop without it.
-     * @return True iff the context is valid and `launchSettingsActivity` was called.
-     */
-    public static boolean showAutofillCreditCardSettings(@Nullable Context context) {
-        if (context == null) {
-            return false;
-        }
-        RecordUserAction.record("AutofillCreditCardsViewed");
-        getLauncher().launchSettingsActivity(context, AutofillPaymentMethodsFragment.class);
-        return true;
-    }
-
     @CalledByNative
     private static void showAutofillProfileSettings(WebContents webContents) {
-        showAutofillProfileSettings(webContents.getTopLevelNativeWindow().getActivity().get());
+        RecordUserAction.record("AutofillAddressesViewed");
+        showSettingSubpage(webContents, AutofillProfilesFragment.class);
     }
 
     @CalledByNative
     private static void showAutofillCreditCardSettings(WebContents webContents) {
-        showAutofillCreditCardSettings(webContents.getTopLevelNativeWindow().getActivity().get());
+        RecordUserAction.record("AutofillCreditCardsViewed");
+        showSettingSubpage(webContents, AutofillPaymentMethodsFragment.class);
     }
 
-    private static SettingsLauncher getLauncher() {
-        return sLauncherForTesting != null ? sLauncherForTesting : new SettingsLauncherImpl();
-    }
-
-    @VisibleForTesting
-    static void setLauncher(SettingsLauncher launcher) {
-        sLauncherForTesting = launcher;
+    private static void showSettingSubpage(
+            WebContents webContents, Class<? extends Fragment> fragment) {
+        Context context = webContents.getTopLevelNativeWindow().getActivity().get();
+        if (context != null) {
+            SettingsLauncher settingsLauncher = new SettingsLauncherImpl();
+            settingsLauncher.launchSettingsActivity(context, fragment);
+        }
     }
 }

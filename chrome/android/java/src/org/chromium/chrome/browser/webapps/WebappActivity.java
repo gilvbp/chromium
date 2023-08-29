@@ -11,10 +11,10 @@ import android.content.Intent;
 import android.graphics.drawable.Drawable;
 import android.text.TextUtils;
 
+import androidx.annotation.VisibleForTesting;
 import androidx.browser.customtabs.CustomTabsIntent;
 
 import org.chromium.base.IntentUtils;
-import org.chromium.base.ResettersForTesting;
 import org.chromium.base.metrics.RecordUserAction;
 import org.chromium.chrome.R;
 import org.chromium.chrome.browser.app.metrics.LaunchCauseMetrics;
@@ -28,15 +28,15 @@ import org.chromium.chrome.browser.customtabs.BaseCustomTabActivity;
 public class WebappActivity extends BaseCustomTabActivity {
     public static final String WEBAPP_SCHEME = "webapp";
 
-    private static BrowserServicesIntentDataProvider sIntentDataProviderForTesting;
+    private static BrowserServicesIntentDataProvider sIntentDataProviderOverride;
 
     @Override
     protected BrowserServicesIntentDataProvider buildIntentDataProvider(
             Intent intent, @CustomTabsIntent.ColorScheme int colorScheme) {
         if (intent == null) return null;
 
-        if (sIntentDataProviderForTesting != null) {
-            return sIntentDataProviderForTesting;
+        if (sIntentDataProviderOverride != null) {
+            return sIntentDataProviderOverride;
         }
 
         return TextUtils.isEmpty(WebappIntentUtils.getWebApkPackageName(intent))
@@ -44,10 +44,10 @@ public class WebappActivity extends BaseCustomTabActivity {
                 : WebApkIntentDataProviderFactory.create(intent);
     }
 
+    @VisibleForTesting
     public static void setIntentDataProviderForTesting(
             BrowserServicesIntentDataProvider intentDataProvider) {
-        sIntentDataProviderForTesting = intentDataProvider;
-        ResettersForTesting.register(() -> sIntentDataProviderForTesting = null);
+        sIntentDataProviderOverride = intentDataProvider;
     }
 
     @Override

@@ -9,7 +9,6 @@
 #include <memory>
 #include <string>
 
-#include "base/containers/contains.h"
 #include "base/metrics/histogram_macros.h"
 #include "gpu/command_buffer/service/shader_manager.h"
 #include "third_party/angle/src/common/angle_version_info.h"
@@ -50,7 +49,10 @@ bool ProgramCache::HasSuccessfullyCompiledShader(
   ComputeShaderHash(shader_signature, sha);
   const std::string sha_string(sha, kHashLength);
 
-  return base::Contains(compiled_shaders_, sha_string);
+  if (compiled_shaders_.find(sha_string) != compiled_shaders_.end()) {
+    return true;
+  }
+  return false;
 }
 
 ProgramCache::LinkedProgramStatus ProgramCache::GetLinkedProgramStatus(

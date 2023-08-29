@@ -29,15 +29,15 @@ ExtensionPrefValueMapFactory* ExtensionPrefValueMapFactory::GetInstance() {
   return base::Singleton<ExtensionPrefValueMapFactory>::get();
 }
 
-std::unique_ptr<KeyedService>
-ExtensionPrefValueMapFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* ExtensionPrefValueMapFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
-  return std::make_unique<ExtensionPrefValueMap>();
+  return new ExtensionPrefValueMap();
 }
 
 content::BrowserContext* ExtensionPrefValueMapFactory::GetBrowserContextToUse(
     content::BrowserContext* context) const {
   // Redirected in incognito.
   return extensions::ExtensionsBrowserClient::Get()
-      ->GetContextRedirectedToOriginal(context, /*force_guest_profile=*/true);
+      ->GetRedirectedContextInIncognito(context, /*force_guest_profile=*/true,
+                                        /*force_system_profile=*/false);
 }

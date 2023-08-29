@@ -20,7 +20,8 @@ namespace ui {
 
 MockInputMethod::MockInputMethod(
     ImeKeyEventDispatcher* ime_key_event_dispatcher)
-    : ime_key_event_dispatcher_(ime_key_event_dispatcher) {}
+    : text_input_client_(nullptr),
+      ime_key_event_dispatcher_(ime_key_event_dispatcher) {}
 
 MockInputMethod::~MockInputMethod() {
   for (InputMethodObserver& observer : observer_list_)

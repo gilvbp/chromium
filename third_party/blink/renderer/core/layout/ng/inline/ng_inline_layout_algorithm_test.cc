@@ -438,13 +438,12 @@ TEST_F(NGInlineLayoutAlgorithmTest, TextFloatsAroundFloatsBefore) {
     </div>
   )HTML");
 
-  const auto& html_fragment =
-      To<LayoutBox>(GetDocument()
-                        .getElementsByTagName(AtomicString("html"))
-                        ->item(0)
-                        ->GetLayoutObject())
-          ->GetSingleCachedLayoutResult()
-          ->PhysicalFragment();
+  const auto& html_fragment = To<LayoutBox>(GetDocument()
+                                                .getElementsByTagName("html")
+                                                ->item(0)
+                                                ->GetLayoutObject())
+                                  ->GetSingleCachedLayoutResult()
+                                  ->PhysicalFragment();
 
   auto* body_fragment =
       To<NGPhysicalBoxFragment>(html_fragment.Children()[0].get());
@@ -507,12 +506,11 @@ TEST_F(NGInlineLayoutAlgorithmTest, TextFloatsAroundInlineFloatThatFitsOnLine) {
   // 30 == narrow-float's width.
   EXPECT_EQ(LayoutUnit(30), first_line_offset.left);
 
-  Element* span = GetDocument().getElementById(AtomicString("text"));
+  Element* span = GetDocument().getElementById("text");
   // 38 == narrow-float's width + body's margin.
   EXPECT_EQ(LayoutUnit(38), span->OffsetLeft());
 
-  Element* narrow_float =
-      GetDocument().getElementById(AtomicString("narrow-float"));
+  Element* narrow_float = GetDocument().getElementById("narrow-float");
   // 8 == body's margin.
   EXPECT_EQ(8, narrow_float->OffsetLeft());
   EXPECT_EQ(8, narrow_float->OffsetTop());
@@ -543,8 +541,7 @@ TEST_F(NGInlineLayoutAlgorithmTest,
     </div>
   )HTML");
 
-  Element* wide_float =
-      GetDocument().getElementById(AtomicString("wide-float"));
+  Element* wide_float = GetDocument().getElementById("wide-float");
   // 8 == body's margin.
   EXPECT_EQ(8, wide_float->OffsetLeft());
 }
@@ -578,12 +575,11 @@ TEST_F(NGInlineLayoutAlgorithmTest,
       </span>
     </div>
   )HTML");
-  Element* wide_float = GetDocument().getElementById(AtomicString("left-wide"));
+  Element* wide_float = GetDocument().getElementById("left-wide");
   // 8 == body's margin.
   EXPECT_EQ(8, wide_float->OffsetLeft());
 
-  Element* narrow_float =
-      GetDocument().getElementById(AtomicString("left-narrow"));
+  Element* narrow_float = GetDocument().getElementById("left-narrow");
   // 160 float-wide's width + 8 body's margin.
   EXPECT_EQ(160 + 8, narrow_float->OffsetLeft());
 

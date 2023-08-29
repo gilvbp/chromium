@@ -17,21 +17,8 @@ class LogEventDispatcher;
 
 namespace mirroring {
 
-// An interface used for fetching Mirroring Stats.
-class COMPONENT_EXPORT(MIRRORING_SERVICE) MirroringStatsProvider {
- public:
-  // Returns a dictionary containing statistics for the current session. The
-  // dictionary contains two entries - "audio" or "video" pointing to an inner
-  // dictionary. The inner dictionary consists of string - double entries, where
-  // the string describes the name of the stat, and the double describes the
-  // value of the stat. See CastStat and StatsMap of the StatsEventSubscriber
-  // object for more details.
-  virtual base::Value::Dict GetStats() const = 0;
-};
-
-// Handles logging and statistics of a legacy mirroring session.
-class COMPONENT_EXPORT(MIRRORING_SERVICE) SessionLogger
-    : public MirroringStatsProvider {
+// Handles logging and statistics of a mirroring session.
+class COMPONENT_EXPORT(MIRRORING_SERVICE) SessionLogger {
  public:
   explicit SessionLogger(
       scoped_refptr<media::cast::CastEnvironment> cast_environment);
@@ -46,8 +33,13 @@ class COMPONENT_EXPORT(MIRRORING_SERVICE) SessionLogger
 
   virtual ~SessionLogger();
 
-  // MirroringStatsProvider::GetStats() override;
-  base::Value::Dict GetStats() const override;
+  // Returns a dictionary containing statistics for the current session. The
+  // dictionary contains two entries - "audio" or "video" pointing to an inner
+  // dictionary. The inner dictionary consists of string - double entries, where
+  // the string describes the name of the stat, and the double describes the
+  // value of the stat. See CastStat and StatsMap of the StatsEventSubscriber
+  // object for more details.
+  base::Value::Dict GetStats() const;
 
  protected:
   void SubscribeToLoggingEvents(media::cast::LogEventDispatcher& logger);

@@ -37,7 +37,10 @@ class RecoveryFactorEditor : public mojom::RecoveryFactorEditor {
                      bool is_editable);
   void OnRecoveryFactorConfigured(
       base::OnceCallback<void(mojom::ConfigureResult)> callback,
-      const std::string& auth_token,
+      std::unique_ptr<UserContext> context,
+      absl::optional<AuthenticationError> error);
+  void OnGetAuthFactorsConfiguration(
+      base::OnceCallback<void(mojom::ConfigureResult)> callback,
       std::unique_ptr<UserContext> context,
       absl::optional<AuthenticationError> error);
 

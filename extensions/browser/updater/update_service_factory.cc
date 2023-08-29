@@ -4,8 +4,6 @@
 
 #include "extensions/browser/updater/update_service_factory.h"
 
-#include <memory>
-
 #include "components/keyed_service/content/browser_context_dependency_manager.h"
 #include "components/update_client/update_client.h"
 #include "extensions/browser/extension_registry_factory.h"
@@ -34,17 +32,10 @@ UpdateServiceFactory::UpdateServiceFactory()
 
 UpdateServiceFactory::~UpdateServiceFactory() = default;
 
-std::unique_ptr<KeyedService>
-UpdateServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* UpdateServiceFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
-  return std::make_unique<UpdateService>(
+  return new UpdateService(
       context, ExtensionsBrowserClient::Get()->CreateUpdateClient(context));
-}
-
-content::BrowserContext* UpdateServiceFactory::GetBrowserContextToUse(
-    content::BrowserContext* context) const {
-  return ExtensionsBrowserClient::Get()->GetContextForOriginalOnly(
-      context, /*force_guest_profile=*/true);
 }
 
 }  // namespace extensions

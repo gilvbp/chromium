@@ -32,6 +32,7 @@
 
 #include <memory>
 
+#include "base/allocator/partition_allocator/memory_reclaimer.h"
 #include "base/task/sequenced_task_runner.h"
 #include "base/task/single_thread_task_runner.h"
 #include "base/threading/thread_checker.h"
@@ -265,11 +266,7 @@ void Platform::InitializeMainThreadCommon(
 
   // Use a delayed idle task as this is low priority work that should stop when
   // the main thread is not doing any work.
-  //
-  // This relies on being called prior to
-  // PartitionAllocSupport::ReconfigureAfterTaskRunnerInit, which would start
-  // memory reclaimer with a regular task runner. The first one prevails.
-  WTF::Partitions::StartMemoryReclaimer(
+  WTF::Partitions::StartPeriodicReclaim(
       base::MakeRefCounted<IdleDelayedTaskHelper>());
 }
 

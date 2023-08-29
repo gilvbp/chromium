@@ -24,11 +24,11 @@
 @class BrowserActionFactory;
 @class CarouselItem;
 @protocol CarouselItemConsumer;
+@class NonModalDefaultBrowserPromoSchedulerSceneAgent;
 class FaviconLoader;
 @class OmniboxPedalAnnotator;
 @class OmniboxPopupMediator;
 @class OmniboxPopupPresenter;
-@class SceneState;
 @protocol SnackbarCommands;
 class AutocompleteController;
 
@@ -96,8 +96,9 @@ class OmniboxPopupMediatorDelegate {
                               AutocompleteControllerObserver>
     debugInfoConsumer;
 @property(nonatomic, weak) id<ApplicationCommands> applicationCommandsHandler;
-/// Browser scene state to notify about events happening in this popup.
-@property(nonatomic, weak) SceneState* sceneState;
+/// Scheduler to notify about events happening in this popup.
+@property(nonatomic, weak)
+    NonModalDefaultBrowserPromoSchedulerSceneAgent* promoScheduler;
 @property(nonatomic, assign, getter=isIncognito) BOOL incognito;
 /// Whether the popup is open.
 @property(nonatomic, assign, getter=isOpen) BOOL open;
@@ -120,7 +121,6 @@ class OmniboxPopupMediatorDelegate {
     protocolProvider;
 @property(nonatomic, strong) BrowserActionFactory* mostVisitedActionFactory;
 @property(nonatomic, weak) id<CarouselItemConsumer> carouselItemConsumer;
-@property(nonatomic, assign) PrefService* prefService;
 
 /// Designated initializer. Takes ownership of `imageFetcher`.
 - (instancetype)

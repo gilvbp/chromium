@@ -25,7 +25,7 @@ class FontPrefChangeNotifierFactory : public ProfileKeyedServiceFactory {
   ~FontPrefChangeNotifierFactory() override;
 
   // BrowserContextKeyedServiceFactory overrides:
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* context) const override;
 };
 

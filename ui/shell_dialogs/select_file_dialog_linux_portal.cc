@@ -289,11 +289,8 @@ bool SelectFileDialogLinuxPortal::IsPortalRunningOnBusThread(
   dbus::MessageWriter writer(&method_call);
   writer.AppendString(kXdgPortalService);
 
-  std::unique_ptr<dbus::Response> response =
-      dbus_proxy
-          ->CallMethodAndBlock(&method_call,
-                               dbus::ObjectProxy::TIMEOUT_USE_DEFAULT)
-          .value_or(nullptr);
+  std::unique_ptr<dbus::Response> response = dbus_proxy->CallMethodAndBlock(
+      &method_call, dbus::ObjectProxy::TIMEOUT_USE_DEFAULT);
   if (!response)
     return false;
 
@@ -313,11 +310,8 @@ bool SelectFileDialogLinuxPortal::IsPortalActivatableOnBusThread(
   dbus::MethodCall method_call(DBUS_INTERFACE_DBUS,
                                kDBusMethodListActivatableNames);
 
-  std::unique_ptr<dbus::Response> response =
-      dbus_proxy
-          ->CallMethodAndBlock(&method_call,
-                               dbus::ObjectProxy::TIMEOUT_USE_DEFAULT)
-          .value_or(nullptr);
+  std::unique_ptr<dbus::Response> response = dbus_proxy->CallMethodAndBlock(
+      &method_call, dbus::ObjectProxy::TIMEOUT_USE_DEFAULT);
   if (!response)
     return false;
 
@@ -334,11 +328,8 @@ bool SelectFileDialogLinuxPortal::IsPortalActivatableOnBusThread(
     dbus::MessageWriter start_service_writer(&start_service_call);
     start_service_writer.AppendString(kXdgPortalService);
     start_service_writer.AppendUint32(/*flags=*/0);
-    auto start_service_response =
-        dbus_proxy
-            ->CallMethodAndBlock(&start_service_call,
-                                 kStartServiceTimeout.InMilliseconds())
-            .value_or(nullptr);
+    auto start_service_response = dbus_proxy->CallMethodAndBlock(
+        &start_service_call, kStartServiceTimeout.InMilliseconds());
     if (!start_service_response)
       return false;
     dbus::MessageReader start_service_reader(start_service_response.get());

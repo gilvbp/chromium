@@ -4,7 +4,6 @@
 
 #include <stddef.h>
 
-#include "base/check.h"
 #include "base/memory/raw_ptr.h"
 #include "base/run_loop.h"
 #include "base/strings/string_number_conversions.h"
@@ -114,10 +113,10 @@ class PaneView : public View, public FocusTraversable {
 
   // Overridden from View:
   FocusTraversable* GetPaneFocusTraversable() override {
-    if (focus_search_) {
+    if (focus_search_)
       return this;
-    }
-    return nullptr;
+    else
+      return nullptr;
   }
 
   // Overridden from FocusTraversable:
@@ -176,7 +175,7 @@ class BorderView : public NativeViewHost {
 
  private:
   std::unique_ptr<View> child_;
-  raw_ptr<Widget, AcrossTasksDanglingUntriaged> widget_ = nullptr;
+  raw_ptr<Widget, DanglingUntriaged> widget_ = nullptr;
 };
 
 }  // namespace
@@ -231,12 +230,11 @@ class FocusTraversalTest : public FocusManagerTest {
     ReverseChildrenFocusOrderImpl(parent);
   }
 
-  raw_ptr<TabbedPane, AcrossTasksDanglingUntriaged> style_tab_ = nullptr;
-  raw_ptr<BorderView, AcrossTasksDanglingUntriaged> search_border_view_ =
-      nullptr;
+  raw_ptr<TabbedPane, DanglingUntriaged> style_tab_ = nullptr;
+  raw_ptr<BorderView, DanglingUntriaged> search_border_view_ = nullptr;
   DummyComboboxModel combobox_model_;
-  raw_ptr<PaneView, AcrossTasksDanglingUntriaged> left_container_;
-  raw_ptr<PaneView, AcrossTasksDanglingUntriaged> right_container_;
+  raw_ptr<PaneView, DanglingUntriaged> left_container_;
+  raw_ptr<PaneView, DanglingUntriaged> right_container_;
 
  private:
   // Implementation of `ReverseChildrenFocusOrder`. |seen_views| should not be
@@ -824,7 +822,6 @@ TEST_F(FocusTraversalTest, PaneTraversal) {
   // Traverse in reverse order.
   FindViewByID(APPLE_TEXTFIELD_ID)->RequestFocus();
   AdvanceEntireFocusLoop(kLeftTraversalIDs, true);
-  left_container_->EnablePaneFocus(nullptr);
 
   // Now test the right container, but this time with accessibility mode.
   // Make some links not focusable, but mark one of them as
@@ -850,7 +847,6 @@ TEST_F(FocusTraversalTest, PaneTraversal) {
   // Traverse in reverse order.
   FindViewByID(BROCCOLI_BUTTON_ID)->RequestFocus();
   AdvanceEntireFocusLoop(kRightTraversalIDs, true);
-  right_container_->EnablePaneFocus(nullptr);
 }
 
 TEST_F(FocusTraversalTest, TraversesFocusInFocusOrder) {

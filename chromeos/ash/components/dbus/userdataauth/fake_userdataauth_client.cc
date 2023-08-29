@@ -69,16 +69,11 @@ const std::string kUserDataDirNamePrefix = "u-";
 const std::string kUserDataDirNameSuffix = "-hash";
 
 // Label of the recovery auth factor.
+const std::string kCryptohomeRecoveryKeyLabel = "recovery";
 // Label of the kiosk auth factor.
 const std::string kCryptohomePublicMountLabel = "publicmount";
-
-// Labels used of of various types of auth factors used by chrome. These must
-// be kept in sync with the labels in cryptohome_key_constants.{cc,h}, which
-// cannot be included into this file because that would result in circular
-// dependencies.
+// Label of the GAIA password key
 const std::string kCryptohomeGaiaKeyLabel = "gaia";
-const std::string kCryptohomeRecoveryKeyLabel = "recovery";
-const std::string kCryptohomeLocalPasswordKeyLabel = "local-password";
 
 }  // namespace
 
@@ -836,8 +831,7 @@ void FakeUserDataAuthClient::StartAuthSession(
             {kCryptohomeRecoveryKeyLabel, std::move(factor)});
       };
     } else {
-      if (!user_state.auth_factors.contains(kCryptohomeGaiaKeyLabel) &&
-          !user_state.auth_factors.contains(kCryptohomeLocalPasswordKeyLabel)) {
+      if (!user_state.auth_factors.contains(kCryptohomeGaiaKeyLabel)) {
         LOG(ERROR) << "Listing GAIA password key even though it was not set up";
         FakeAuthFactor factor{PasswordFactor()};
         user_state.auth_factors.insert(
@@ -1253,6 +1247,12 @@ void FakeUserDataAuthClient::AuthenticateAuthFactor(
           [&](const RecoveryFactor& recovery) {
             const auto& recovery_input = auth_input.cryptohome_recovery_input();
 
+            if (recovery_input.mediator_pub_key().empty()) {
+              LOG(ERROR) << "Missing mediate pub key";
+              reply.set_error(
+                  ::user_data_auth::CRYPTOHOME_ERROR_AUTHORIZATION_KEY_FAILED);
+              return;
+            }
             if (recovery_input.epoch_response().empty()) {
               LOG(ERROR) << "Missing epoch response";
               reply.set_error(
@@ -1354,8 +1354,6 @@ void FakeUserDataAuthClient::GetRecoveryRequest(
     const ::user_data_auth::GetRecoveryRequestRequest& request,
     GetRecoveryRequestCallback callback) {
   ::user_data_auth::GetRecoveryRequestReply reply;
-  reply.set_error(CryptohomeErrorCode::CRYPTOHOME_ERROR_NOT_SET);
-  reply.set_recovery_request("fake-recovery-request");
   ReplyOnReturn auto_reply(&reply, std::move(callback));
 }
 
@@ -1429,14 +1427,6 @@ void FakeUserDataAuthClient::TerminateAuthFactor(
   CHECK(auth_session->second.is_listening_for_fingerprint_events)
       << "Call to TerminateAuthFactor without prior PrepareAuthFactor";
   auth_session->second.is_listening_for_fingerprint_events = false;
-}
-
-void FakeUserDataAuthClient::GetArcDiskFeatures(
-    const ::user_data_auth::GetArcDiskFeaturesRequest& request,
-    GetArcDiskFeaturesCallback callback) {
-  ::user_data_auth::GetArcDiskFeaturesReply reply;
-  reply.set_quota_supported(arc_quota_supported_);
-  std::move(callback).Run(std::move(reply));
 }
 
 void FakeUserDataAuthClient::WaitForServiceToBeAvailable(

@@ -26,11 +26,11 @@ class NativeResolver {
 }
 
 /**
- * Class that provides the functionality for talking to a PostMessageApiServer
+ * Class that provides the functionality for talking to a PostMessageAPIServer
  * over the postMessage API.  This should be subclassed and the subclass should
  * expose methods that are implemented by the server. The following is an
  * example.
- * class FooClient extends PostMessageApiClient {
+ * class FooClient extends PostMessageAPIClient {
  *  ...
  *   doFoo(args) {
  *    return this.callApiFn('foo', args);
@@ -38,7 +38,7 @@ class NativeResolver {
  * }
  *
  */
-export class PostMessageApiClient {
+export class PostMessageAPIClient {
   /**
    * @param {!string} serverOriginURLFilter  Only messages from this origin
    *     will be accepted.

@@ -9,6 +9,7 @@ import android.content.Context;
 import androidx.test.filters.SmallTest;
 
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -99,6 +100,11 @@ public class PolicyAuditorBridgeTest {
                 return FakePolicyAuditor.get();
             }
         });
+    }
+
+    @AfterClass
+    public static void afterClass() {
+        AppHooks.setInstanceForTesting(null);
     }
 
     @Before

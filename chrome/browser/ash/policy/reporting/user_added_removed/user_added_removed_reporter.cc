@@ -4,7 +4,6 @@
 
 #include "chrome/browser/ash/policy/reporting/user_added_removed/user_added_removed_reporter.h"
 
-#include <string_view>
 #include <utility>
 
 #include "base/memory/ptr_util.h"
@@ -44,7 +43,7 @@ UserAddedRemovedReporter::CreateForTesting(
 UserAddedRemovedReporter::~UserAddedRemovedReporter() = default;
 
 void UserAddedRemovedReporter::ProcessRemovedUser(
-    std::string_view user_email,
+    base::StringPiece user_email,
     user_manager::UserRemovalReason reason) {
   auto record = std::make_unique<UserAddedRemovedRecord>();
   record->set_event_timestamp_sec(base::Time::Now().ToTimeT());

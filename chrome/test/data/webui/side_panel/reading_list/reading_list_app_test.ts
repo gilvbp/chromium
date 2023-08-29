@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+import 'chrome://webui-test/mojo_webui_test_support.js';
 import 'chrome://read-later.top-chrome/app.js';
 
 import {ReadingListAppElement} from 'chrome://read-later.top-chrome/app.js';

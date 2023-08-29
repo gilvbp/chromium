@@ -83,8 +83,7 @@ class SyncedNetworkUpdaterImpl
                              bool success);
 
   std::unique_ptr<PendingNetworkConfigurationTracker> tracker_;
-  raw_ptr<chromeos::network_config::mojom::CrosNetworkConfig,
-          DanglingUntriaged | ExperimentalAsh>
+  raw_ptr<chromeos::network_config::mojom::CrosNetworkConfig, ExperimentalAsh>
       cros_network_config_;
   mojo::Receiver<chromeos::network_config::mojom::CrosNetworkConfigObserver>
       cros_network_config_observer_receiver_{this};

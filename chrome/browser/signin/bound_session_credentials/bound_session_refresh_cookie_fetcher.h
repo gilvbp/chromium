@@ -8,6 +8,8 @@
 #include <ostream>
 
 #include "base/functional/callback_forward.h"
+#include "net/base/net_errors.h"
+#include "third_party/abseil-cpp/absl/types/optional.h"
 
 // This class makes the network request to the Gaia cookie rotation endpoint to
 // refresh bound Google authentication cookies. A new fetcher instance should be
@@ -19,13 +21,7 @@ class BoundSessionRefreshCookieFetcher {
     kConnectionError = 1,
     kServerTransientError = 2,
     kServerPersistentError = 3,
-    kServerUnexepectedResponse = 4,
-    kChallengeRequiredUnexpectedFormat = 5,
-    kChallengeRequiredLimitExceeded = 6,
-    kSignChallengeFailed = 7,
   };
-
-  static bool IsPersistentError(Result result);
 
   // Reports the result of the fetch request.
   using RefreshCookieCompleteCallback = base::OnceCallback<void(Result)>;

@@ -257,14 +257,6 @@ class KeepAliveURLLoaderServiceTest : public RenderViewHostTestHarness {
             ->Clone());
   }
 
-  network::ResourceRequest CreateFetchLaterResourceRequest(const GURL& url) {
-    network::ResourceRequest request;
-    request.url = url;
-    request.keepalive = true;
-    request.is_fetch_later_api = true;
-    return request;
-  }
-
   network::ResourceRequest CreateResourceRequest(
       const GURL& url,
       bool keepalive = true,
@@ -385,22 +377,6 @@ TEST_F(KeepAliveURLLoaderServiceTest, LoadTrustedRequestAndTerminate) {
       "resource_request.trusted_params must not be set");
 }
 
-TEST_F(KeepAliveURLLoaderServiceTest, LoadFetchLaterRequestAndDeferred) {
-  FakeRemoteURLLoaderFactory renderer_loader_factory;
-  MockReceiverURLLoaderClient renderer_loader_client;
-  BindKeepAliveURLLoaderFactory(renderer_loader_factory);
-
-  // Loads FetchLater request (which is also keepalive request):
-  renderer_loader_factory.CreateLoaderAndStart(
-      CreateFetchLaterResourceRequest(GURL(kTestRequestUrl)),
-      renderer_loader_client.BindNewPipeAndPassRemote());
-
-  // The KeepAliveURLLoaderService holds a deferred KeepAliveURLLoader.
-  EXPECT_EQ(loader_service().NumLoadersForTesting(), 1u);
-  // As the request is deferred, the pending URLoader in network is 0.
-  EXPECT_EQ(network_url_loader_factory().NumPending(), 0);
-}
-
 TEST_F(KeepAliveURLLoaderServiceTest, LoadRequestAfterPageIsUnloaded) {
   FakeRemoteURLLoaderFactory renderer_loader_factory;
   MockReceiverURLLoaderClient renderer_loader_client;
@@ -476,7 +452,7 @@ TEST_F(KeepAliveURLLoaderServiceTest,
   EXPECT_EQ(loader_service().NumLoadersForTesting(), 0u);
 }
 
-TEST_F(KeepAliveURLLoaderServiceTest, DoNotForwardOnReceiveRedirect) {
+TEST_F(KeepAliveURLLoaderServiceTest, ForwardOnReceiveRedirect) {
   FakeRemoteURLLoaderFactory renderer_loader_factory;
   MockReceiverURLLoaderClient renderer_loader_client;
   BindKeepAliveURLLoaderFactory(renderer_loader_factory);
@@ -489,13 +465,11 @@ TEST_F(KeepAliveURLLoaderServiceTest, DoNotForwardOnReceiveRedirect) {
   ASSERT_EQ(loader_service().NumLoadersForTesting(), 1u);
 
   // OnReceiveRedirect:
-  // Expects underlying KeepAliveURLLoader NOT forwards to
-  // `renderer_loader_client`: all redirects are processed in browser, and will
-  // only be forwarded after request completes/fails.
+  // Expects underlying KeepAliveURLLoader forwards to `renderer_loader_client`.
   EXPECT_CALL(renderer_loader_client,
               OnReceiveRedirect(_, ResponseHasHeader(kTestResponseHeaderName,
                                                      kTestResponseHeaderValue)))
-      .Times(0);
+      .Times(1);
   // Simluates receiving redirect in the network service.
   GetLastPendingRequest()->client->OnReceiveRedirect(
       CreateRedirectInfo(GURL(kTestRedirectRequestUrl)),

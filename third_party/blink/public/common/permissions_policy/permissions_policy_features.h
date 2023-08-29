@@ -9,7 +9,6 @@
 
 #include "third_party/blink/public/common/common_export.h"
 #include "third_party/blink/public/mojom/permissions_policy/permissions_policy_feature.mojom-forward.h"
-#include "url/origin.h"
 
 namespace blink {
 
@@ -32,25 +31,14 @@ enum class PermissionsPolicyFeatureDefault {
 
   // Equivalent to ["*"]. If in effect for a frame, then the feature is
   // enabled for that frame and all of its children.
-  EnableForAll,
-
-  // Equivalent to ["()"]. If in effect for a frame, the feature is disabled
-  // for that frame and any child frames. For the feature to be enabled, it
-  // must be enabled by the headers and allowlists of this and all ancestor
-  // frames.
-  // This option is not yet standardized and should not be used except behind a
-  // flag.
-  // https://github.com/w3c/webappsec-permissions-policy/pull/515
-  EnableForNone,
+  EnableForAll
 };
 
 using PermissionsPolicyFeatureList =
     std::map<mojom::PermissionsPolicyFeature, PermissionsPolicyFeatureDefault>;
 
-// `origin` is used, in combination with flags, to decide whether the "unload"
-// feature will be enabled or disabled by default.
 BLINK_COMMON_EXPORT const PermissionsPolicyFeatureList&
-GetPermissionsPolicyFeatureList(const url::Origin& origin);
+GetPermissionsPolicyFeatureList();
 
 // Updates the PermissionPolicyFeatureList based on the current feature flags.
 // For efficiency, `GetPermissionPolicyFeatureList()` only calculates the

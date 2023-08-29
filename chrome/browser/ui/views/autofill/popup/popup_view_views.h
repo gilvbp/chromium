@@ -16,7 +16,7 @@
 #include "chrome/browser/ui/views/autofill/popup/popup_base_view.h"
 #include "chrome/browser/ui/views/autofill/popup/popup_row_view.h"
 #include "components/autofill/core/common/aliases.h"
-#include "content/public/common/input/native_web_keyboard_event.h"
+#include "content/public/browser/native_web_keyboard_event.h"
 #include "third_party/abseil-cpp/absl/types/optional.h"
 #include "third_party/abseil-cpp/absl/types/variant.h"
 #include "ui/accessibility/ax_action_data.h"
@@ -60,17 +60,14 @@ class PopupViewViews : public PopupBaseView,
   void GetAccessibleNodeData(ui::AXNodeData* node_data) override;
 
   // AutofillPopupView:
-  bool Show(AutoselectFirstSuggestion autoselect_first_suggestion) override;
+  void Show(AutoselectFirstSuggestion autoselect_first_suggestion) override;
   void Hide() override;
-  bool OverlapsWithPictureInPictureWindow() const override;
   absl::optional<int32_t> GetAxUniqueId() override;
   void AxAnnounce(const std::u16string& text) override;
   base::WeakPtr<AutofillPopupView> GetWeakPtr() override;
 
   // PopupBaseView:
   void OnWidgetVisibilityChanged(views::Widget* widget, bool visible) override;
-
-  bool CanShowDropdownInBoundsForTesting(const gfx::Rect& bounds) const;
 
  private:
   friend class PopupViewViewsBrowsertest;
@@ -113,11 +110,11 @@ class PopupViewViews : public PopupBaseView,
   // selected.
   void SelectNextRow();
 
-  // Attempts to accept the selected cell. It will return false if there is no
-  // selected cell or the cell does not trigger field filling or scanning a
-  // credit card. `event_time` must be the time the user input event was
-  // triggered.
-  bool AcceptSelectedContentOrCreditCardCell(base::TimeTicks event_time);
+  // Attempts to accept the selected cell. It will return false if the cell is
+  // not selectable or the current cell selection is invalid.
+  // If `tab_key_pressed` is true, only cells that trigger field filling or
+  // scanning a credit card qualify as selectable.
+  bool AcceptSelectedCell(bool tab_key_pressed);
 
   // Attempts to remove the selected cell. Only content cells are allowed to be
   // selected.
@@ -131,16 +128,13 @@ class PopupViewViews : public PopupBaseView,
   // PopupBaseView:
   bool DoUpdateBoundsAndRedrawPopup() override;
 
-  bool CanShowDropdownInBounds(const gfx::Rect& bounds) const;
-
   // Controller for this view.
   base::WeakPtr<AutofillPopupController> controller_ = nullptr;
   // The index of the row with a selected cell.
   absl::optional<size_t> row_with_selected_cell_;
   std::vector<RowPointer> rows_;
-  raw_ptr<views::ScrollView> scroll_view_ = nullptr;
-  raw_ptr<views::BoxLayoutView> body_container_ = nullptr;
-  raw_ptr<views::BoxLayoutView> footer_container_ = nullptr;
+  raw_ptr<views::ScrollView, DanglingUntriaged> scroll_view_ = nullptr;
+  raw_ptr<views::BoxLayoutView, DanglingUntriaged> body_container_ = nullptr;
 
   base::WeakPtrFactory<AutofillPopupView> weak_ptr_factory_{this};
 };

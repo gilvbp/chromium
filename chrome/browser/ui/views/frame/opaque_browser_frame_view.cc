@@ -259,6 +259,10 @@ int OpaqueBrowserFrameView::GetTopInset(bool restored) const {
              : layout_->NonClientTopHeight(restored);
 }
 
+int OpaqueBrowserFrameView::GetThemeBackgroundXInset() const {
+  return 0;
+}
+
 void OpaqueBrowserFrameView::UpdateThrobber(bool running) {
   if (window_icon_)
     window_icon_->Update();
@@ -621,8 +625,11 @@ void OpaqueBrowserFrameView::OnPaint(gfx::Canvas* canvas) {
   frame_background_->set_use_custom_frame(frame()->UseCustomFrame());
   frame_background_->set_is_active(active);
   frame_background_->set_theme_image(GetFrameImage());
-  frame_background_->set_theme_image_inset(
-      browser_view()->GetThemeOffsetFromBrowserView());
+  const int y_inset =
+      browser_view()->GetTabStripVisible()
+          ? (ThemeProperties::kFrameHeightAboveTabs - GetTopInset(false))
+          : 0;
+  frame_background_->set_theme_image_y_inset(y_inset);
   frame_background_->set_theme_overlay_image(GetFrameOverlayImage());
   frame_background_->set_top_area_height(GetTopAreaHeight());
 

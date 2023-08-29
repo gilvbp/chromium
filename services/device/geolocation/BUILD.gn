@@ -57,7 +57,6 @@ source_set("geolocation") {
     "//mojo/public/cpp/system",
     "//net",
     "//services/device/public/cpp:device_features",
-    "//services/device/public/mojom:geolocation_internals",
     "//ui/gfx",
   ]
   public_deps = [
@@ -130,6 +129,7 @@ source_set("geolocation") {
       "wifi_data_provider_mac.h",
       "wifi_data_provider_mac.mm",
     ]
+    configs += [ "//build/config/compiler:enable_arc" ]
   } else if (is_win) {
     sources += [
       "wifi_data_provider_common_win.cc",
@@ -198,7 +198,6 @@ source_set("test_support") {
   public_deps = [ ":geolocation" ]
   deps = [
     "//services/device/public/cpp/geolocation",
-    "//services/device/public/mojom:geolocation_internals",
     "//testing/gmock",
     "//testing/gtest",
   ]

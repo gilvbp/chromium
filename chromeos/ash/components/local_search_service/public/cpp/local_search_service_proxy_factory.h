@@ -37,7 +37,7 @@ class LocalSearchServiceProxyFactory
   // BrowserContextKeyedServiceFactory:
   content::BrowserContext* GetBrowserContextToUse(
       content::BrowserContext* context) const override;
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* context) const override;
 };
 

@@ -9,10 +9,9 @@ import {flush} from 'chrome://resources/polymer/v3_0/polymer/polymer_bundled.min
 import {SettingsPersonalizationOptionsElement} from 'chrome://settings/lazy_load.js';
 import {loadTimeData, PrivacyPageVisibility, PrivacyPageBrowserProxyImpl, StatusAction, SyncBrowserProxyImpl} from 'chrome://settings/settings.js';
 import {assertFalse, assertTrue} from 'chrome://webui-test/chai_assert.js';
-// <if expr="_google_chrome and chromeos_ash">
+// <if expr="chromeos_ash">
 import {assertEquals} from 'chrome://webui-test/chai_assert.js';
 // </if>
-import {isChildVisible} from 'chrome://webui-test/test_util.js';
 // <if expr="not is_chromeos">
 import {eventToPromise, isVisible} from 'chrome://webui-test/test_util.js';
 
@@ -23,7 +22,7 @@ import {TestSyncBrowserProxy} from './test_sync_browser_proxy.js';
 
 // clang-format on
 
-suite('AllBuilds', function() {
+suite('PersonalizationOptionsTests_AllBuilds', function() {
   let testBrowserProxy: TestPrivacyPageBrowserProxy;
   let syncBrowserProxy: TestSyncBrowserProxy;
   let customPageVisibility: PrivacyPageVisibility;
@@ -31,11 +30,7 @@ suite('AllBuilds', function() {
 
   suiteSetup(function() {
     loadTimeData.overrideValues({
-      // TODO(crbug.com/1459031): Remove the tests for "driveSuggest" when
-      // the setting is completely removed.
       driveSuggestAvailable: true,
-      driveSuggestNoSetting: false,
-      driveSuggestNoSyncRequirement: false,
       signinAvailable: true,
       changePriceEmailNotificationsEnabled: true,
     });
@@ -72,54 +67,23 @@ suite('AllBuilds', function() {
   });
 
   test('DriveSearchSuggestControl', function() {
-    assertFalse(isChildVisible(testElement, '#driveSuggestControl'));
+    assertFalse(
+        !!testElement.shadowRoot!.querySelector('#driveSuggestControl'));
 
     testElement.syncStatus = {
       signedIn: true,
       statusAction: StatusAction.NO_ACTION,
     };
     flush();
-    assertTrue(isChildVisible(testElement, '#driveSuggestControl'));
+    assertTrue(!!testElement.shadowRoot!.querySelector('#driveSuggestControl'));
 
     testElement.syncStatus = {
       signedIn: true,
       statusAction: StatusAction.REAUTHENTICATE,
     };
     flush();
-    assertFalse(isChildVisible(testElement, '#driveSuggestControl'));
-  });
-
-  test('DriveSearchSuggestControlDeprecated', function() {
-    testElement.syncStatus = {
-      signedIn: true,
-      statusAction: StatusAction.NO_ACTION,
-    };
-    flush();
-    assertTrue(isChildVisible(testElement, '#driveSuggestControl'));
-
-    loadTimeData.overrideValues({'driveSuggestNoSetting': false});
-    buildTestElement();
-
-    assertFalse(isChildVisible(testElement, '#driveSuggestControl'));
-  });
-
-  test('DriveSearchSuggestControlNoSyncRequirement', function() {
-    testElement.syncStatus = {
-      signedIn: true,
-      statusAction: StatusAction.REAUTHENTICATE,
-    };
-    flush();
-    assertFalse(isChildVisible(testElement, '#driveSuggestControl'));
-
-    loadTimeData.overrideValues({'driveSuggestNoSyncRequirement': true});
-    buildTestElement();
-    testElement.syncStatus = {
-      signedIn: true,
-      statusAction: StatusAction.REAUTHENTICATE,
-    };
-    flush();
-
-    assertTrue(isChildVisible(testElement, '#driveSuggestControl'));
+    assertFalse(
+        !!testElement.shadowRoot!.querySelector('#driveSuggestControl'));
   });
 
   // <if expr="not is_chromeos">
@@ -284,8 +248,7 @@ suite('AllBuilds', function() {
   });
 });
 
-// <if expr="_google_chrome">
-suite('OfficialBuild', function() {
+suite('PersonalizationOptionsTests_OfficialBuild', function() {
   let testBrowserProxy: TestPrivacyPageBrowserProxy;
   let testElement: SettingsPersonalizationOptionsElement;
 
@@ -410,4 +373,3 @@ suite('OfficialBuild', function() {
       });
   // </if>
 });
-// </if>

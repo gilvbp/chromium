@@ -5,8 +5,6 @@
 import {TestRunner} from 'test_runner';
 import {ElementsTestRunner} from 'elements_test_runner';
 
-import * as SDK from 'devtools/core/sdk/sdk.js';
-
 (async function() {
   TestRunner.addResult(`Tests that perform-undo-perform of the mergeable action does not crash.\n`);
   await TestRunner.loadLegacyModule('elements');
@@ -36,7 +34,7 @@ import * as SDK from 'devtools/core/sdk/sdk.js';
     TestRunner.addResult('After changing property');
     await ElementsTestRunner.dumpSelectedElementStyles(true);
 
-    SDK.DOMModel.DOMModelUndoStack.instance().undo();
+    SDK.domModelUndoStack.undo();
     ElementsTestRunner.waitForStyles('container', step3);
   }
 

@@ -42,7 +42,7 @@
 #include "third_party/blink/public/platform/scheduler/web_scoped_virtual_time_pauser.h"
 #include "third_party/blink/public/web/web_lifecycle_update.h"
 #include "third_party/blink/public/web/web_window_features.h"
-#include "third_party/blink/renderer/bindings/core/v8/v8_compile_hints_producer.h"
+#include "third_party/blink/renderer/bindings/core/v8/v8_compile_hints.h"
 #include "third_party/blink/renderer/core/core_export.h"
 #include "third_party/blink/renderer/core/css/vision_deficiency.h"
 #include "third_party/blink/renderer/core/frame/deprecation/deprecation.h"
@@ -56,6 +56,7 @@
 #include "third_party/blink/renderer/platform/heap/garbage_collected.h"
 #include "third_party/blink/renderer/platform/heap/persistent.h"
 #include "third_party/blink/renderer/platform/scheduler/public/agent_group_scheduler.h"
+#include "third_party/blink/renderer/platform/scheduler/public/page_lifecycle_state.h"
 #include "third_party/blink/renderer/platform/scheduler/public/page_scheduler.h"
 #include "third_party/blink/renderer/platform/supplementable.h"
 #include "third_party/blink/renderer/platform/wtf/forward.h"
@@ -144,7 +145,7 @@ class CORE_EXPORT Page final : public GarbageCollected<Page>,
 
   // Returns pages related to the current browsing context (excluding the
   // current page).  See also
-  // https://html.spec.whatwg.org/C/#nested-browsing-contexts
+  // https://html.spec.whatwg.org/C/#unit-of-related-browsing-contexts
   HeapVector<Member<Page>> RelatedPages();
 
   // Should be called when |GetScrollbarTheme().UsesOverlayScrollbars()|
@@ -176,10 +177,7 @@ class CORE_EXPORT Page final : public GarbageCollected<Page>,
       LocalFrame* previous_main_frame_for_local_swap) {
     previous_main_frame_for_local_swap_ = previous_main_frame_for_local_swap;
   }
-
-  LocalFrame* GetPreviousMainFrameForLocalSwap() {
-    return previous_main_frame_for_local_swap_;
-  }
+  Frame* TakePreviousMainFrameForLocalSwap();
 
   // Escape hatch for existing code that assumes that the root frame is
   // always a LocalFrame. With OOPI, this is not always the case. Code that
@@ -422,9 +420,8 @@ class CORE_EXPORT Page final : public GarbageCollected<Page>,
     return fenced_frame_mode_;
   }
 
-  v8_compile_hints::V8CrowdsourcedCompileHintsProducer&
-  GetV8CrowdsourcedCompileHintsProducer() {
-    return *v8_compile_hints_producer_;
+  V8CrowdsourcedCompileHintsProducer& GetV8CrowdsourcedCompileHintsProducer() {
+    return *v8_compile_hints_;
   }
 
   // Returns the token uniquely identifying the browsing context group this page
@@ -590,8 +587,7 @@ class CORE_EXPORT Page final : public GarbageCollected<Page>,
 
   WebScopedVirtualTimePauser history_navigation_virtual_time_pauser_;
 
-  Member<v8_compile_hints::V8CrowdsourcedCompileHintsProducer>
-      v8_compile_hints_producer_;
+  Member<V8CrowdsourcedCompileHintsProducer> v8_compile_hints_;
 
   // The information determining the browsing context group this page lives in.
   BrowsingContextGroupInfo browsing_context_group_info_;

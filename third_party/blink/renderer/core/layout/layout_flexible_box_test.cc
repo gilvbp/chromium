@@ -89,6 +89,7 @@ void LayoutFlexibleBoxTest::ExpectSameAsRowHTB() {
   EXPECT_EQ(gfx::PointF(), scrollable_area->ScrollPosition());
 
   const auto* child = GetLayoutBoxByElementId("child");
+  EXPECT_EQ(LayoutPoint(90, 30), child->Location());
   EXPECT_EQ(PhysicalOffset(90, 30), child->PhysicalLocation());
 }
 
@@ -115,6 +116,7 @@ void LayoutFlexibleBoxTest::ExpectSameAsRowVLR() {
   EXPECT_EQ(gfx::PointF(), scrollable_area->ScrollPosition());
 
   const auto* child = GetLayoutBoxByElementId("child");
+  EXPECT_EQ(LayoutPoint(90, 30), child->Location());
   EXPECT_EQ(PhysicalOffset(90, 30), child->PhysicalLocation());
 }
 
@@ -141,9 +143,7 @@ void LayoutFlexibleBoxTest::ExpectSameAsRowVRL() {
 
   const auto* child = GetLayoutBoxByElementId("child");
   // 65 = border_right (30) + padding_right (20) + vertical_scrollbar_width (15)
-  if (!RuntimeEnabledFeatures::LayoutNGNoLocationEnabled()) {
-    EXPECT_EQ(LayoutPoint(65, 30), child->Location());
-  }
+  EXPECT_EQ(LayoutPoint(65, 30), child->Location());
   // -1525 = full_flex_box_width (540) - 65 - child_width (2000))
   EXPECT_EQ(PhysicalOffset(-1525, 30), child->PhysicalLocation());
 }
@@ -176,6 +176,7 @@ TEST_F(LayoutFlexibleBoxTest, GeometriesWithScrollbarsRowReverseHTB) {
   EXPECT_EQ(gfx::PointF(1615, 0), scrollable_area->ScrollPosition());
 
   const auto* child = GetLayoutBoxByElementId("child");
+  EXPECT_EQ(LayoutPoint(-1525, 30), child->Location());
   EXPECT_EQ(PhysicalOffset(-1525, 30), child->PhysicalLocation());
 }
 
@@ -192,6 +193,7 @@ void LayoutFlexibleBoxTest::ExpectSameAsRowReverseVLR() {
   EXPECT_EQ(gfx::PointF(0, 716), scrollable_area->ScrollPosition());
 
   const auto* child = GetLayoutBoxByElementId("child");
+  EXPECT_EQ(LayoutPoint(90, -686), child->Location());
   EXPECT_EQ(PhysicalOffset(90, -686), child->PhysicalLocation());
 }
 
@@ -219,9 +221,7 @@ void LayoutFlexibleBoxTest::ExpectSameAsRowReverseVRL() {
 
   const auto* child = GetLayoutBoxByElementId("child");
   // 65 = border_right (30) + padding_right (20) + vertical_scrollbar_width (15)
-  if (!RuntimeEnabledFeatures::LayoutNGNoLocationEnabled()) {
-    EXPECT_EQ(LayoutPoint(65, -686), child->Location());
-  }
+  EXPECT_EQ(LayoutPoint(65, -686), child->Location());
   // -1525 = full_flex_box_width (540) - 65 - child_width (2000))
   EXPECT_EQ(PhysicalOffset(-1525, -686), child->PhysicalLocation());
 }
@@ -285,6 +285,7 @@ TEST_F(LayoutFlexibleBoxTest, GeometriesWithScrollbarsColumnReverseHTB) {
   EXPECT_EQ(gfx::PointF(0, 716), scrollable_area->ScrollPosition());
 
   const auto* child = GetLayoutBoxByElementId("child");
+  EXPECT_EQ(LayoutPoint(90, -686), child->Location());
   EXPECT_EQ(PhysicalOffset(90, -686), child->PhysicalLocation());
 }
 
@@ -307,6 +308,7 @@ TEST_F(LayoutFlexibleBoxTest, GeometriesWithScrollbarsColumnReverseVLR) {
   EXPECT_EQ(gfx::PointF(1615, 0), scrollable_area->ScrollPosition());
 
   const auto* child = GetLayoutBoxByElementId("child");
+  EXPECT_EQ(LayoutPoint(-1525, 30), child->Location());
   EXPECT_EQ(PhysicalOffset(-1525, 30), child->PhysicalLocation());
 }
 
@@ -330,9 +332,7 @@ TEST_F(LayoutFlexibleBoxTest, GeometriesWithScrollbarsColumnReverseVRL) {
   EXPECT_EQ(gfx::PointF(), scrollable_area->ScrollPosition());
 
   const auto* child = GetLayoutBoxByElementId("child");
-  if (!RuntimeEnabledFeatures::LayoutNGNoLocationEnabled()) {
-    EXPECT_EQ(LayoutPoint(-1550, 30), child->Location());
-  }
+  EXPECT_EQ(LayoutPoint(-1550, 30), child->Location());
   EXPECT_EQ(PhysicalOffset(90, 30), child->PhysicalLocation());
 }
 
@@ -350,6 +350,7 @@ void LayoutFlexibleBoxTest::ExpectSameAsRTLRowHTB() {
   EXPECT_EQ(gfx::PointF(1615, 0), scrollable_area->ScrollPosition());
 
   const auto* child = GetLayoutBoxByElementId("child");
+  EXPECT_EQ(LayoutPoint(-1510, 30), child->Location());
   EXPECT_EQ(PhysicalOffset(-1510, 30), child->PhysicalLocation());
 }
 
@@ -401,6 +402,7 @@ TEST_F(LayoutFlexibleBoxTest, GeometriesWithScrollbarsRTLRowReverseHTB) {
   EXPECT_EQ(gfx::PointF(0, 0), scrollable_area->ScrollPosition());
 
   const auto* child = GetLayoutBoxByElementId("child");
+  EXPECT_EQ(LayoutPoint(105, 30), child->Location());
   EXPECT_EQ(PhysicalOffset(105, 30), child->PhysicalLocation());
 }
 
@@ -454,8 +456,7 @@ TEST_F(LayoutFlexibleBoxTest, ResizedFlexChildRequiresVisualOverflowRecalc) {
   )HTML");
   auto* child1_element = GetElementById("child1");
   auto* child2_element = GetElementById("child2");
-  child2_element->setAttribute(html_names::kStyleAttr,
-                               AtomicString("height: 100px;"));
+  child2_element->setAttribute(html_names::kStyleAttr, "height: 100px;");
   GetDocument().View()->UpdateLifecycleToLayoutClean(
       DocumentUpdateReason::kTest);
 

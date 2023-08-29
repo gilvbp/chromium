@@ -5,6 +5,7 @@
 import("//ios/web/public/js_messaging/optimize_ts.gni")
 
 source_set("print") {
+  configs += [ "//build/config/compiler:enable_arc" ]
   sources = [
     "print_java_script_feature.h",
     "print_java_script_feature.mm",
@@ -26,6 +27,7 @@ source_set("print") {
 
 source_set("unit_tests") {
   testonly = true
+  configs += [ "//build/config/compiler:enable_arc" ]
   sources = [
     "print_java_script_feature_unittest.mm",
     "print_tab_helper_unittest.mm",

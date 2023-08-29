@@ -38,6 +38,7 @@ struct CC_EXPORT MainThreadScrollingReason {
 
     // Non-transient scrolling reasons. These are set on the ScrollNode.
     kHasBackgroundAttachmentFixedObjects = 1 << 2,
+    kThreadedScrollingDisabled = 1 << 3,
     kPopupNoThreadedInput = 1 << 4,
     kPreferNonCompositedScrolling = 1 << 15,
     kBackgroundNeedsRepaintOnScroll = 1 << 16,
@@ -80,9 +81,10 @@ struct CC_EXPORT MainThreadScrollingReason {
   // thread.
   static bool MainThreadCanSetScrollReasons(uint32_t reasons) {
     constexpr uint32_t reasons_set_by_main_thread =
-        kHasBackgroundAttachmentFixedObjects | kPopupNoThreadedInput |
-        kPreferNonCompositedScrolling | kBackgroundNeedsRepaintOnScroll |
-        kNotOpaqueForTextAndLCDText | kCantPaintScrollingBackgroundAndLCDText;
+        kHasBackgroundAttachmentFixedObjects | kThreadedScrollingDisabled |
+        kPopupNoThreadedInput | kPreferNonCompositedScrolling |
+        kBackgroundNeedsRepaintOnScroll | kNotOpaqueForTextAndLCDText |
+        kCantPaintScrollingBackgroundAndLCDText;
     return (reasons & reasons_set_by_main_thread) == reasons;
   }
 

@@ -336,7 +336,7 @@ public abstract class ShoppingPersistedTabDataTestUtils {
             }
         })
                 .when(optimizationGuideJni)
-                .canApplyOptimization(
+                .canApplyOptimizationAsync(
                         anyLong(), any(GURL.class), anyInt(), any(OptimizationGuideCallback.class));
     }
 
@@ -357,7 +357,7 @@ public abstract class ShoppingPersistedTabDataTestUtils {
     static void verifyOptimizationGuideCalledWithNavigationHandle(
             OptimizationGuideBridge.Natives optimizationGuideJni, GURL gurl) {
         verify(optimizationGuideJni, times(1))
-                .canApplyOptimization(anyLong(), eq(gurl),
+                .canApplyOptimizationAsync(anyLong(), eq(gurl),
                         eq(HintsProto.OptimizationType.PRICE_TRACKING.getNumber()),
                         any(OptimizationGuideCallback.class));
     }

@@ -5,7 +5,6 @@
 #include "ash/wm/tablet_mode/tablet_mode_multitask_cue_controller.h"
 
 #include "ash/constants/app_types.h"
-#include "ash/constants/ash_switches.h"
 #include "ash/shell.h"
 #include "ash/wm/tablet_mode/tablet_mode_controller.h"
 #include "ash/wm/tablet_mode/tablet_mode_multitask_menu.h"
@@ -13,7 +12,6 @@
 #include "ash/wm/tablet_mode/tablet_mode_window_manager.h"
 #include "ash/wm/window_state.h"
 #include "ash/wm/window_util.h"
-#include "base/command_line.h"
 #include "chromeos/ui/wm/features.h"
 #include "ui/aura/client/aura_constants.h"
 #include "ui/views/animation/animation_builder.h"
@@ -104,12 +102,6 @@ void TabletModeMultitaskCueController::MaybeShowCue(
 }
 
 bool TabletModeMultitaskCueController::CanShowCue(aura::Window* window) const {
-  // The cue may interfere with some integration tests.
-  if (base::CommandLine::ForCurrentProcess()->HasSwitch(
-          switches::kAshNoNudges)) {
-    return false;
-  }
-
   // Only show or dismiss the cue when activating app windows.
   if (static_cast<AppType>(window->GetProperty(aura::client::kAppType)) ==
       AppType::NON_APP) {

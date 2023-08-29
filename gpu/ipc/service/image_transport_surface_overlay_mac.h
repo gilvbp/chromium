@@ -7,6 +7,7 @@
 
 #include <vector>
 
+#import "base/mac/scoped_nsobject.h"
 #include "base/memory/weak_ptr.h"
 #include "components/viz/common/gpu/gpu_vsync_callback.h"
 #include "gpu/ipc/service/command_buffer_stub.h"
@@ -18,13 +19,10 @@
 #include "ui/gl/presenter.h"
 
 // Put gpu_vsync_mac.h (which includes ui/display/mac/display_link_mac.h)
-// after ui/gl/gl_xxx.h. There is a conflict between macOS sdk gltypes.h and
+// after ui/gl/gl_xxx.h. There is a conflict between MacOSX sdk gltypes.h and
 // third_party/mesa_headers/GL/glext.h
 #if BUILDFLAG(IS_MAC)
 #include "gpu/ipc/service/gpu_vsync_mac.h"
-
-#include "ui/display/mac/display_link_mac.h"
-#include "ui/display/types/display_constants.h"
 #endif
 
 @class CAContext;
@@ -63,11 +61,11 @@ class ImageTransportSurfaceOverlayMacEGL : public gl::Presenter {
 
   void SetCALayerErrorCode(gfx::CALayerResult ca_layer_error_code) override;
 
-#if BUILDFLAG(IS_MAC)
   // GLSurface override
+#if BUILDFLAG(IS_MAC)
+  bool SupportsGpuVSync() const override;
   void SetVSyncDisplayID(int64_t display_id) override;
-
-  void OnVSyncPresentation(ui::VSyncParamsMac params);
+  void SetGpuVSyncEnabled(bool enabled) override;
 #endif
 
  private:
@@ -79,12 +77,11 @@ class ImageTransportSurfaceOverlayMacEGL : public gl::Presenter {
   void ApplyBackpressure();
   void BufferPresented(gl::GLSurface::PresentationCallback callback,
                        const gfx::PresentationFeedback& feedback);
-  void PopulateCALayerParameters();
 
   base::WeakPtr<ImageTransportSurfaceDelegate> delegate_;
 
   const bool use_remote_layer_api_;
-  CAContext* __strong ca_context_;
+  base::scoped_nsobject<CAContext> ca_context_;
   std::unique_ptr<ui::CALayerTreeCoordinator> ca_layer_tree_coordinator_;
 
   gfx::Size pixel_size_;
@@ -96,18 +93,8 @@ class ImageTransportSurfaceOverlayMacEGL : public gl::Presenter {
   uint64_t previous_frame_fence_ = 0;
 
 #if BUILDFLAG(IS_MAC)
-  // CGDirectDisplayID of the current monitor used for Creating CVDisplayLink.
-  int64_t display_id_ = display::kInvalidDisplayId;
-  scoped_refptr<ui::DisplayLinkMac> display_link_mac_;
-  std::unique_ptr<ui::VSyncCallbackMac> vsync_callback_mac_;
+  std::unique_ptr<GpuVSyncMac> gpu_vsync_mac_;
 #endif
-
-  SwapCompletionCallback completion_callback_;
-  PresentationCallback presentation_callback_;
-  // The number of CALayerTree that is committed but not yet populated. This
-  // number is increased in Present() and decreased in
-  // PopulateCALayerParameters();
-  int num_committed_ca_layer_trees_ = 0;
 
   base::WeakPtrFactory<ImageTransportSurfaceOverlayMacEGL> weak_ptr_factory_;
 };

@@ -111,10 +111,9 @@
               alt$="[[getAlbumTitle_(firstPreviewAlbum_)]]"
               is-google-photos>
         </div>
-        <h3 aria-label$="[[getPreviewTextAriaLabel_(firstPreviewAlbum_, topicSource_, previewAlbums_)]]"
+        <h3 id="textContainer"
             class="preview-text-container album-info-subpage jelly-disabled"
-            id="textContainer"
-            role="alert">
+            aria-label$="[[getPreviewTextAriaLabel_(firstPreviewAlbum_, topicSource_, previewAlbums_)]]">
           <span id="currentlySet" class="currently-set-text" aria-hidden="true">
             $i18n{currentlySet}
           </span>
@@ -126,7 +125,7 @@
             [[getAlbumDescription_(topicSource_, previewAlbums_)]]
           </span>
         </h3>
-        <div id="buttonContainer">
+        <div id="buttonContainer" hidden$="[[!isScreenSaverPreviewEnabled_]]">
           <cr-button
               class$="[[getScreenSaverPreviewClass_(ambientUiVisibility_)]]"
               aria-label$="[[getScreenSaverPreviewAriaLabel_(ambientUiVisibility_)]]"

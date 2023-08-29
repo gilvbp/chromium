@@ -104,10 +104,11 @@ class ExtensionFunctionDispatcher {
 
   // Adds a function object to the set of objects waiting for
   // responses from the renderer.
-  void AddResponseTarget(ExtensionFunction* func);
+  void AddWorkerResponseTarget(ExtensionFunction* func);
 
-  // Processes a response ack from a renderer.
-  void ProcessResponseAck(const base::Uuid& request_uuid);
+  // Processes a Service Worker response from a renderer.
+  void ProcessServiceWorkerResponse(int request_id,
+                                    int64_t service_worker_version_id);
 
   base::WeakPtr<ExtensionFunctionDispatcher> AsWeakPtr() {
     return weak_ptr_factory_.GetWeakPtr();
@@ -137,7 +138,7 @@ class ExtensionFunctionDispatcher {
       const Extension* extension,
       int requesting_process_id,
       bool is_worker_request,
-      const GURL* render_frame_host_url,
+      const GURL* rfh_url,
       Feature::Context context_type,
       ExtensionAPI* api,
       ExtensionFunction::ResponseCallback callback,
@@ -151,10 +152,9 @@ class ExtensionFunctionDispatcher {
 
   void RemoveWorkerCallbacksForProcess(int render_process_id);
 
-  raw_ptr<content::BrowserContext, AcrossTasksDanglingUntriaged>
-      browser_context_;
+  raw_ptr<content::BrowserContext, DanglingUntriaged> browser_context_;
 
-  raw_ptr<Delegate, AcrossTasksDanglingUntriaged> delegate_;
+  raw_ptr<Delegate, DanglingUntriaged> delegate_;
 
   // This map doesn't own either the keys or the values. When a RenderFrameHost
   // instance goes away, the corresponding entry in this map (if exists) will be
@@ -174,7 +174,7 @@ class ExtensionFunctionDispatcher {
   // The set of ExtensionFunction instances waiting for responses from
   // the renderer. These are removed once the response is processed.
   // The lifetimes of the instances are managed by the instances themselves.
-  std::set<ExtensionFunction*> response_targets_;
+  std::set<ExtensionFunction*> worker_response_targets_;
 
   base::WeakPtrFactory<ExtensionFunctionDispatcher> weak_ptr_factory_{this};
 };

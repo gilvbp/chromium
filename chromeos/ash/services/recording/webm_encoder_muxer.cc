@@ -370,8 +370,7 @@ void WebmEncoderMuxer::OnVideoEncoderOutput(
   std::string data{reinterpret_cast<const char*>(output.data.get()),
                    output.size};
   webm_muxer_.OnEncodedVideo(muxer_params, std::move(data), std::string(),
-                             std::move(codec_description), timestamp,
-                             output.key_frame);
+                             timestamp, output.key_frame);
 }
 
 void WebmEncoderMuxer::OnAudioEncoded(

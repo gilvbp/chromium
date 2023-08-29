@@ -33,7 +33,6 @@
 #include "chrome/updater/auto_run_on_os_upgrade_task.h"
 #include "chrome/updater/change_owners_task.h"
 #include "chrome/updater/check_for_updates_task.h"
-#include "chrome/updater/cleanup_task.h"
 #include "chrome/updater/configurator.h"
 #include "chrome/updater/constants.h"
 #include "chrome/updater/installer.h"
@@ -56,43 +55,15 @@
 
 namespace updater {
 
-// The functions below are various adaptors between |update_client| and
-// |UpdateService| types.
-
-namespace internal {
-UpdateService::Result ToResult(update_client::Error error) {
-  switch (error) {
-    case update_client::Error::NONE:
-      return UpdateService::Result::kSuccess;
-    case update_client::Error::UPDATE_IN_PROGRESS:
-      return UpdateService::Result::kUpdateInProgress;
-    case update_client::Error::UPDATE_CANCELED:
-      return UpdateService::Result::kUpdateCanceled;
-    case update_client::Error::RETRY_LATER:
-      return UpdateService::Result::kRetryLater;
-    case update_client::Error::SERVICE_ERROR:
-      return UpdateService::Result::kServiceFailed;
-    case update_client::Error::UPDATE_CHECK_ERROR:
-      return UpdateService::Result::kUpdateCheckFailed;
-    case update_client::Error::CRX_NOT_FOUND:
-      return UpdateService::Result::kAppNotFound;
-    case update_client::Error::INVALID_ARGUMENT:
-    case update_client::Error::BAD_CRX_DATA_CALLBACK:
-      return UpdateService::Result::kInvalidArgument;
-    case update_client::Error::MAX_VALUE:
-      NOTREACHED();
-      return UpdateService::Result::kInvalidArgument;
-  }
-}
-}  // namespace internal
-
 namespace {
 
+// The functions below are various adaptors between |update_client| and
+// |UpdateService| types.
 update_client::Callback MakeUpdateClientCallback(
     UpdateService::Callback callback) {
   return base::BindOnce(
       [](UpdateService::Callback callback, update_client::Error error) {
-        std::move(callback).Run(internal::ToResult(error));
+        std::move(callback).Run(static_cast<UpdateService::Result>(error));
       },
       std::move(callback));
 }
@@ -269,12 +240,7 @@ void UpdateServiceImpl::FetchPolicies(base::OnceCallback<void(int)> callback) {
   VLOG(1) << __func__;
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
 
-  if (GetUpdaterScope() == UpdaterScope::kUser) {
-    VLOG(2) << "Policy fetch skipped for user updater.";
-    std::move(callback).Run(0);
-  } else {
-    config_->GetPolicyService()->FetchPolicies(std::move(callback));
-  }
+  config_->GetPolicyService()->FetchPolicies(std::move(callback));
 }
 
 void UpdateServiceImpl::RegisterApp(const RegistrationRequest& request,
@@ -367,8 +333,6 @@ void UpdateServiceImpl::RunPeriodicTasks(base::OnceClosure callback) {
       base::BindOnce(&AutoRunOnOsUpgradeTask::Run,
                      base::MakeRefCounted<AutoRunOnOsUpgradeTask>(
                          GetUpdaterScope(), persisted_data_)));
-  new_tasks.push_back(base::BindOnce(
-      &CleanupTask::Run, base::MakeRefCounted<CleanupTask>(GetUpdaterScope())));
 
   const auto barrier_closure =
       base::BarrierClosure(new_tasks.size(), std::move(callback));
@@ -386,7 +350,7 @@ void UpdateServiceImpl::RunPeriodicTasks(base::OnceClosure callback) {
 void UpdateServiceImpl::TaskStart() {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   if (!tasks_.empty()) {
-    main_task_runner_->PostTask(FROM_HERE, std::move(tasks_.front()));
+    std::move(tasks_.front()).Run();
   }
 }
 

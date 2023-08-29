@@ -191,7 +191,7 @@ public class TabGroupTitleEditorUnitTest {
     }
 
     @Test
-    public void tabMergeIntoGroup_NotDeleteStoredTitle() {
+    public void tabMergeIntoGroup_DeleteStoredTitle() {
         // Mock that we have two stored titles with reference to root ID of tab1 and tab3.
         mTabGroupTitleEditor.storeTabGroupTitle(TAB1_ID, CUSTOMIZED_TITLE1);
         mTabGroupTitleEditor.storeTabGroupTitle(TAB3_ID, CUSTOMIZED_TITLE2);
@@ -206,10 +206,9 @@ public class TabGroupTitleEditorUnitTest {
 
         mTabGroupModelFilterObserverCaptor.getValue().willMergeTabToGroup(mTab1, TAB3_ID);
 
-        // The title of the source group will not be deleted until the merge is committed, after
-        // SnackbarController#onDismissNoAction is called for the UndoGroupSnackbarController.
-        assertThat(mStorage.size(), equalTo(2));
-        assertThat(mTabGroupTitleEditor.getTabGroupTitle(TAB1_ID), equalTo(CUSTOMIZED_TITLE1));
+        // The title of the source group should be deleted.
+        assertThat(mStorage.size(), equalTo(1));
+        assertThat(mTabGroupTitleEditor.getTabGroupTitle(TAB1_ID), equalTo(null));
         assertThat(mTabGroupTitleEditor.getTabGroupTitle(TAB3_ID), equalTo(CUSTOMIZED_TITLE2));
     }
 
@@ -228,11 +227,9 @@ public class TabGroupTitleEditorUnitTest {
 
         mTabGroupModelFilterObserverCaptor.getValue().willMergeTabToGroup(mTab1, TAB3_ID);
 
-        // The stored title should be assigned to the new root id. The title of the source group
-        // will not be deleted until the merge is committed, after
-        // SnackbarController#onDismissNoAction is called for the UndoGroupSnackbarController.
-        assertThat(mStorage.size(), equalTo(2));
-        assertThat(mTabGroupTitleEditor.getTabGroupTitle(TAB1_ID), equalTo(CUSTOMIZED_TITLE1));
+        // The stored title should be assigned to the new root id.
+        assertThat(mStorage.size(), equalTo(1));
+        assertThat(mTabGroupTitleEditor.getTabGroupTitle(TAB1_ID), equalTo(null));
         assertThat(mTabGroupTitleEditor.getTabGroupTitle(TAB3_ID), equalTo(CUSTOMIZED_TITLE1));
     }
 

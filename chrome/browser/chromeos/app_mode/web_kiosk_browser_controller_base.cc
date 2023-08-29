@@ -15,7 +15,7 @@
 #include "content/public/browser/web_contents.h"
 #include "url/gurl.h"
 
-namespace chromeos {
+namespace ash {
 
 WebKioskBrowserControllerBase::WebKioskBrowserControllerBase(
     web_app::WebAppProvider& provider,
@@ -102,4 +102,4 @@ web_app::WebAppRegistrar& WebKioskBrowserControllerBase::registrar() const {
   return provider_->registrar_unsafe();
 }
 
-}  // namespace chromeos
+}  // namespace ash

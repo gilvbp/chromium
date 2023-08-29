@@ -138,6 +138,7 @@ public class LongScreenshotsCompositor {
         return mScrollOffset;
     }
 
+    @VisibleForTesting
     public static void overrideCompositorDelegateFactoryForTesting(
             PlayerCompositorDelegate.Factory factory) {
         sCompositorDelegateFactory = factory; // IN-TEST

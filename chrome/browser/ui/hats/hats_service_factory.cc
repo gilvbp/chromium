@@ -28,11 +28,10 @@ HatsServiceFactory::HatsServiceFactory()
   DependsOn(IdentityManagerFactory::GetInstance());
 }
 
-std::unique_ptr<KeyedService>
-HatsServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* HatsServiceFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   Profile* profile = Profile::FromBrowserContext(context);
-  return std::make_unique<HatsService>(profile);
+  return new HatsService(profile);
 }
 
 HatsServiceFactory::~HatsServiceFactory() = default;

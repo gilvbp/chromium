@@ -13,6 +13,7 @@
 #include "base/memory/read_only_shared_memory_region.h"
 #include "base/process/memory.h"
 #include "build/build_config.h"
+#include "components/viz/common/resources/resource_format_utils.h"
 #include "components/viz/common/resources/resource_sizes.h"
 #include "mojo/public/cpp/system/platform_handle.h"
 #include "ui/gfx/geometry/size.h"

@@ -104,7 +104,7 @@ const CSSValue* ConsumeSyntaxComponent(const CSSSyntaxComponent& syntax,
       }
       list->Append(*value);
     } while (css_parsing_utils::ConsumeCommaIncludingWhitespace(range));
-    return list->length() && range.AtEnd() ? list : nullptr;
+    return list->length() ? list : nullptr;
   }
   const CSSValue* result = ConsumeSingleType(syntax, range, context);
   if (!range.AtEnd()) {
@@ -140,12 +140,11 @@ CSSSyntaxDefinition CSSSyntaxDefinition::IsolatedCopy() const {
         syntax_component.GetType(), syntax_component.GetString(),
         syntax_component.GetRepeat()));
   }
-  return CSSSyntaxDefinition(std::move(syntax_components_copy), original_text_);
+  return CSSSyntaxDefinition(std::move(syntax_components_copy));
 }
 
-CSSSyntaxDefinition::CSSSyntaxDefinition(Vector<CSSSyntaxComponent> components,
-                                         const String& original_text)
-    : syntax_components_(std::move(components)), original_text_(original_text) {
+CSSSyntaxDefinition::CSSSyntaxDefinition(Vector<CSSSyntaxComponent> components)
+    : syntax_components_(std::move(components)) {
   DCHECK(syntax_components_.size());
 }
 
@@ -153,11 +152,7 @@ CSSSyntaxDefinition CSSSyntaxDefinition::CreateUniversal() {
   Vector<CSSSyntaxComponent> components;
   components.push_back(CSSSyntaxComponent(
       CSSSyntaxType::kTokenStream, g_empty_string, CSSSyntaxRepeat::kNone));
-  return CSSSyntaxDefinition(std::move(components), {});
-}
-
-String CSSSyntaxDefinition::ToString() const {
-  return IsUniversal() ? String("*") : original_text_;
+  return CSSSyntaxDefinition(std::move(components));
 }
 
 }  // namespace blink

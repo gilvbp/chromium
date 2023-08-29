@@ -7,7 +7,6 @@
 #include <string>
 
 #include "ash/public/cpp/holding_space/holding_space_controller.h"
-#include "ash/public/cpp/holding_space/holding_space_file.h"
 #include "ash/public/cpp/holding_space/holding_space_image.h"
 #include "ash/public/cpp/holding_space/holding_space_model.h"
 #include "ash/public/cpp/holding_space/holding_space_test_api.h"
@@ -138,14 +137,9 @@ HoldingSpaceItem* HoldingSpaceBrowserTestBase::AddItem(
     HoldingSpaceItem::Type type,
     const base::FilePath& file_path,
     const HoldingSpaceProgress& progress) {
-  const GURL file_system_url =
-      holding_space_util::ResolveFileSystemUrl(profile, file_path);
-  const HoldingSpaceFile::FileSystemType file_system_type =
-      holding_space_util::ResolveFileSystemType(profile, file_system_url);
-
   auto item = HoldingSpaceItem::CreateFileBackedItem(
-      type, HoldingSpaceFile(file_system_type), file_path, file_system_url,
-      progress,
+      type, file_path,
+      holding_space_util::ResolveFileSystemUrl(profile, file_path), progress,
       base::BindLambdaForTesting(
           [&](HoldingSpaceItem::Type type, const base::FilePath& path) {
             return std::make_unique<HoldingSpaceImage>(

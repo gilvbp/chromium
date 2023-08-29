@@ -52,6 +52,7 @@ class PasswordDataForUI : public PasswordFormManagerForUI {
   base::span<const InteractionsStats> GetInteractionsStats() const override;
   std::vector<const PasswordForm*> GetInsecureCredentials() const override;
   bool IsBlocklisted() const override;
+  bool WasUnblocklisted() const override;
   bool IsMovableToAccountStore() const override;
   void Save() override;
   void Update(const PasswordForm& credentials_to_update) override;
@@ -133,6 +134,11 @@ std::vector<const PasswordForm*> PasswordDataForUI::GetInsecureCredentials()
 
 bool PasswordDataForUI::IsBlocklisted() const {
   // 'true' would suppress the bubble.
+  return false;
+}
+
+bool PasswordDataForUI::WasUnblocklisted() const {
+  // This information should not be relevant hereconst.
   return false;
 }
 

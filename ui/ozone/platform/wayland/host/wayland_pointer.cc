@@ -61,19 +61,12 @@ WaylandPointer::WaylandPointer(wl_pointer* pointer,
                                WaylandConnection* connection,
                                Delegate* delegate)
     : obj_(pointer), connection_(connection), delegate_(delegate) {
-  static constexpr wl_pointer_listener kPointerListener = {
-      .enter = &OnEnter,
-      .leave = &OnLeave,
-      .motion = &OnMotion,
-      .button = &OnButton,
-      .axis = &OnAxis,
-      .frame = &OnFrame,
-      .axis_source = &OnAxisSource,
-      .axis_stop = &OnAxisStop,
-      .axis_discrete = &OnAxisDiscrete,
-      .axis_value120 = &OnAxisValue120,
+  static constexpr wl_pointer_listener listener = {
+      &Enter, &Leave,      &Motion,   &Button,       &Axis,
+      &Frame, &AxisSource, &AxisStop, &AxisDiscrete, &AxisValue120,
   };
-  wl_pointer_add_listener(obj_.get(), &kPointerListener, this);
+
+  wl_pointer_add_listener(obj_.get(), &listener, this);
 
   SetupStylus();
 }
@@ -88,22 +81,22 @@ WaylandPointer::~WaylandPointer() {
 }
 
 // static
-void WaylandPointer::OnEnter(void* data,
-                             wl_pointer* pointer,
-                             uint32_t serial,
-                             wl_surface* surface,
-                             wl_fixed_t surface_x,
-                             wl_fixed_t surface_y) {
-  auto* self = static_cast<WaylandPointer*>(data);
+void WaylandPointer::Enter(void* data,
+                           wl_pointer* obj,
+                           uint32_t serial,
+                           wl_surface* surface,
+                           wl_fixed_t surface_x,
+                           wl_fixed_t surface_y) {
+  auto* pointer = static_cast<WaylandPointer*>(data);
 
-  if (ShouldSuppressPointerEnterOrLeaveEvents(self->connection_)) {
+  if (ShouldSuppressPointerEnterOrLeaveEvents(pointer->connection_)) {
     LOG(ERROR) << "Compositor sent a spurious wl_pointer.enter event during"
                   " a window drag 'n drop operation. IGNORING.";
     return;
   }
 
-  self->connection_->serial_tracker().UpdateSerial(wl::SerialType::kMouseEnter,
-                                                   serial);
+  pointer->connection_->serial_tracker().UpdateSerial(
+      wl::SerialType::kMouseEnter, serial);
 
   WaylandWindow* window = wl::RootWindowFromWlSurface(surface);
   if (!window) {
@@ -113,60 +106,61 @@ void WaylandPointer::OnEnter(void* data,
   gfx::PointF location{static_cast<float>(wl_fixed_to_double(surface_x)),
                        static_cast<float>(wl_fixed_to_double(surface_y))};
 
-  self->delegate_->OnPointerFocusChanged(
-      window, self->connection_->MaybeConvertLocation(location, window),
+  pointer->delegate_->OnPointerFocusChanged(
+      window, pointer->connection_->MaybeConvertLocation(location, window),
       EventDispatchPolicyForPlatform());
 }
 
 // static
-void WaylandPointer::OnLeave(void* data,
-                             wl_pointer* pointer,
-                             uint32_t serial,
-                             wl_surface* surface) {
-  auto* self = static_cast<WaylandPointer*>(data);
+void WaylandPointer::Leave(void* data,
+                           wl_pointer* obj,
+                           uint32_t serial,
+                           wl_surface* surface) {
+  auto* pointer = static_cast<WaylandPointer*>(data);
 
-  if (ShouldSuppressPointerEnterOrLeaveEvents(self->connection_)) {
+  if (ShouldSuppressPointerEnterOrLeaveEvents(pointer->connection_)) {
     LOG(ERROR) << "Compositor sent a spurious wl_pointer.leave event during"
                   " a window drag 'n drop operation. IGNORING.";
     return;
   }
 
-  self->connection_->serial_tracker().ResetSerial(wl::SerialType::kMouseEnter);
+  pointer->connection_->serial_tracker().ResetSerial(
+      wl::SerialType::kMouseEnter);
 
   auto event_dispatch_policy =
-      self->connection_->zaura_shell() &&
-              self->connection_->zaura_shell()->HasBugFix(1352584)
+      pointer->connection_->zaura_shell() &&
+              pointer->connection_->zaura_shell()->HasBugFix(1352584)
           ? EventDispatchPolicyForPlatform()
           : wl::EventDispatchPolicy::kImmediate;
 
-  self->delegate_->OnPointerFocusChanged(
-      nullptr, self->delegate_->GetPointerLocation(), event_dispatch_policy);
+  pointer->delegate_->OnPointerFocusChanged(
+      nullptr, pointer->delegate_->GetPointerLocation(), event_dispatch_policy);
 }
 
 // static
-void WaylandPointer::OnMotion(void* data,
-                              wl_pointer* pointer,
-                              uint32_t time,
-                              wl_fixed_t surface_x,
-                              wl_fixed_t surface_y) {
-  auto* self = static_cast<WaylandPointer*>(data);
+void WaylandPointer::Motion(void* data,
+                            wl_pointer* obj,
+                            uint32_t time,
+                            wl_fixed_t surface_x,
+                            wl_fixed_t surface_y) {
+  auto* pointer = static_cast<WaylandPointer*>(data);
   gfx::PointF location(wl_fixed_to_double(surface_x),
                        wl_fixed_to_double(surface_y));
-  const WaylandWindow* target = self->delegate_->GetPointerTarget();
+  const WaylandWindow* target = pointer->delegate_->GetPointerTarget();
 
-  self->delegate_->OnPointerMotionEvent(
-      self->connection_->MaybeConvertLocation(location, target),
+  pointer->delegate_->OnPointerMotionEvent(
+      pointer->connection_->MaybeConvertLocation(location, target),
       EventDispatchPolicyForPlatform());
 }
 
 // static
-void WaylandPointer::OnButton(void* data,
-                              wl_pointer* pointer,
-                              uint32_t serial,
-                              uint32_t time,
-                              uint32_t button,
-                              uint32_t state) {
-  auto* self = static_cast<WaylandPointer*>(data);
+void WaylandPointer::Button(void* data,
+                            wl_pointer* obj,
+                            uint32_t serial,
+                            uint32_t time,
+                            uint32_t button,
+                            uint32_t state) {
+  auto* pointer = static_cast<WaylandPointer*>(data);
   int changed_button;
   switch (button) {
     case BTN_LEFT:
@@ -193,22 +187,22 @@ void WaylandPointer::OnButton(void* data,
   EventType type = state == WL_POINTER_BUTTON_STATE_PRESSED ? ET_MOUSE_PRESSED
                                                             : ET_MOUSE_RELEASED;
   if (type == ET_MOUSE_PRESSED) {
-    self->connection_->serial_tracker().UpdateSerial(
+    pointer->connection_->serial_tracker().UpdateSerial(
         wl::SerialType::kMousePress, serial);
   }
-  self->delegate_->OnPointerButtonEvent(type, changed_button,
-                                        /*window=*/nullptr,
-                                        EventDispatchPolicyForPlatform());
+  pointer->delegate_->OnPointerButtonEvent(type, changed_button,
+                                           /*window=*/nullptr,
+                                           EventDispatchPolicyForPlatform());
 }
 
 // static
-void WaylandPointer::OnAxis(void* data,
-                            wl_pointer* pointer,
-                            uint32_t time,
-                            uint32_t axis,
-                            wl_fixed_t value) {
+void WaylandPointer::Axis(void* data,
+                          wl_pointer* obj,
+                          uint32_t time,
+                          uint32_t axis,
+                          wl_fixed_t value) {
   static const double kAxisValueScale = 10.0;
-  auto* self = static_cast<WaylandPointer*>(data);
+  auto* pointer = static_cast<WaylandPointer*>(data);
   gfx::Vector2dF offset;
   // Wayland compositors send axis events with values in the surface coordinate
   // space. They send a value of 10 per mouse wheel click by convention, so
@@ -227,46 +221,45 @@ void WaylandPointer::OnAxis(void* data,
   // If we did not receive the axis event source explicitly, set it to the mouse
   // wheel so far.  Should this be a part of some complex event coming from the
   // different source, the compositor will let us know sooner or later.
-  if (!self->axis_source_received_) {
-    self->delegate_->OnPointerAxisSourceEvent(WL_POINTER_AXIS_SOURCE_WHEEL);
-  }
-  self->delegate_->OnPointerAxisEvent(offset);
+  if (!pointer->axis_source_received_)
+    pointer->delegate_->OnPointerAxisSourceEvent(WL_POINTER_AXIS_SOURCE_WHEEL);
+  pointer->delegate_->OnPointerAxisEvent(offset);
 }
 
 // ---- Version 5 ----
 
 // static
-void WaylandPointer::OnFrame(void* data, wl_pointer* pointer) {
-  auto* self = static_cast<WaylandPointer*>(data);
+void WaylandPointer::Frame(void* data, wl_pointer* obj) {
+  auto* pointer = static_cast<WaylandPointer*>(data);
   // The frame event ends the sequence of pointer events.  Clear the flag.  The
   // next frame will set it when necessary.
-  self->axis_source_received_ = false;
-  self->delegate_->OnPointerFrameEvent();
+  pointer->axis_source_received_ = false;
+  pointer->delegate_->OnPointerFrameEvent();
 }
 
 // static
-void WaylandPointer::OnAxisSource(void* data,
-                                  wl_pointer* pointer,
-                                  uint32_t axis_source) {
-  auto* self = static_cast<WaylandPointer*>(data);
-  self->axis_source_received_ = true;
-  self->delegate_->OnPointerAxisSourceEvent(axis_source);
+void WaylandPointer::AxisSource(void* data,
+                                wl_pointer* obj,
+                                uint32_t axis_source) {
+  auto* pointer = static_cast<WaylandPointer*>(data);
+  pointer->axis_source_received_ = true;
+  pointer->delegate_->OnPointerAxisSourceEvent(axis_source);
 }
 
 // static
-void WaylandPointer::OnAxisStop(void* data,
-                                wl_pointer* pointer,
-                                uint32_t time,
-                                uint32_t axis) {
-  auto* self = static_cast<WaylandPointer*>(data);
-  self->delegate_->OnPointerAxisStopEvent(axis);
+void WaylandPointer::AxisStop(void* data,
+                              wl_pointer* obj,
+                              uint32_t time,
+                              uint32_t axis) {
+  auto* pointer = static_cast<WaylandPointer*>(data);
+  pointer->delegate_->OnPointerAxisStopEvent(axis);
 }
 
 // static
-void WaylandPointer::OnAxisDiscrete(void* data,
-                                    wl_pointer* pointer,
-                                    uint32_t axis,
-                                    int32_t discrete) {
+void WaylandPointer::AxisDiscrete(void* data,
+                                  wl_pointer* obj,
+                                  uint32_t axis,
+                                  int32_t discrete) {
   // TODO(crbug.com/1129259): Use this event for better handling of mouse wheel
   // events.
   NOTIMPLEMENTED_LOG_ONCE();
@@ -275,10 +268,10 @@ void WaylandPointer::OnAxisDiscrete(void* data,
 // --- Version 8 ---
 
 // static
-void WaylandPointer::OnAxisValue120(void* data,
-                                    wl_pointer* pointer,
-                                    uint32_t axis,
-                                    int32_t value120) {
+void WaylandPointer::AxisValue120(void* data,
+                                  wl_pointer* obj,
+                                  uint32_t axis,
+                                  int32_t value120) {
   // TODO(crbug.com/1129259): Use this event for better handling of mouse wheel
   // events.
   NOTIMPLEMENTED_LOG_ONCE();
@@ -293,16 +286,16 @@ void WaylandPointer::SetupStylus() {
       zcr_stylus_v2_get_pointer_stylus(stylus_v2, obj_.get()));
 
   static zcr_pointer_stylus_v2_listener kPointerStylusV2Listener = {
-      .tool = &OnTool, .force = &OnForce, .tilt = &OnTilt};
+      &Tool, &Force, &Tilt};
   zcr_pointer_stylus_v2_add_listener(zcr_pointer_stylus_v2_.get(),
                                      &kPointerStylusV2Listener, this);
 }
 
 // static
-void WaylandPointer::OnTool(void* data,
-                            struct zcr_pointer_stylus_v2* stylus,
-                            uint32_t wl_pointer_type) {
-  auto* self = static_cast<WaylandPointer*>(data);
+void WaylandPointer::Tool(void* data,
+                          struct zcr_pointer_stylus_v2* x,
+                          uint32_t wl_pointer_type) {
+  auto* pointer = static_cast<WaylandPointer*>(data);
 
   ui::EventPointerType pointer_type = ui::EventPointerType::kMouse;
   switch (wl_pointer_type) {
@@ -319,30 +312,30 @@ void WaylandPointer::OnTool(void* data,
       break;
   }
 
-  self->delegate_->OnPointerStylusToolChanged(pointer_type);
+  pointer->delegate_->OnPointerStylusToolChanged(pointer_type);
 }
 
 // static
-void WaylandPointer::OnForce(void* data,
-                             struct zcr_pointer_stylus_v2* stylus,
-                             uint32_t time,
-                             wl_fixed_t force) {
-  auto* self = static_cast<WaylandPointer*>(data);
-  DCHECK(self);
+void WaylandPointer::Force(void* data,
+                           struct zcr_pointer_stylus_v2* obj,
+                           uint32_t time,
+                           wl_fixed_t force) {
+  auto* pointer = static_cast<WaylandPointer*>(data);
+  DCHECK(pointer);
 
-  self->delegate_->OnPointerStylusForceChanged(wl_fixed_to_double(force));
+  pointer->delegate_->OnPointerStylusForceChanged(wl_fixed_to_double(force));
 }
 
 // static
-void WaylandPointer::OnTilt(void* data,
-                            struct zcr_pointer_stylus_v2* stylus,
-                            uint32_t time,
-                            wl_fixed_t tilt_x,
-                            wl_fixed_t tilt_y) {
-  auto* self = static_cast<WaylandPointer*>(data);
-  DCHECK(self);
+void WaylandPointer::Tilt(void* data,
+                          struct zcr_pointer_stylus_v2* obj,
+                          uint32_t time,
+                          wl_fixed_t tilt_x,
+                          wl_fixed_t tilt_y) {
+  auto* pointer = static_cast<WaylandPointer*>(data);
+  DCHECK(pointer);
 
-  self->delegate_->OnPointerStylusTiltChanged(
+  pointer->delegate_->OnPointerStylusTiltChanged(
       gfx::Vector2dF(wl_fixed_to_double(tilt_x), wl_fixed_to_double(tilt_y)));
 }
 

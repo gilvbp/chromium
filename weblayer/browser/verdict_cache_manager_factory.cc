@@ -33,11 +33,10 @@ VerdictCacheManagerFactory::VerdictCacheManagerFactory()
   DependsOn(HostContentSettingsMapFactory::GetInstance());
 }
 
-std::unique_ptr<KeyedService>
-VerdictCacheManagerFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* VerdictCacheManagerFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   BrowserContextImpl* context_impl = static_cast<BrowserContextImpl*>(context);
-  return std::make_unique<safe_browsing::VerdictCacheManager>(
+  return new safe_browsing::VerdictCacheManager(
       /*history_service=*/nullptr,
       HostContentSettingsMapFactory::GetForBrowserContext(context),
       context_impl->pref_service(), /*sync_observer=*/nullptr);

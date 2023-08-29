@@ -128,7 +128,7 @@ void LayoutTreeBuilderForElement::CreateLayoutObject() {
   parent_layout_object->AddChild(new_layout_object, next_layout_object);
 }
 
-const ComputedStyle*
+scoped_refptr<const ComputedStyle>
 LayoutTreeBuilderForText::CreateInlineWrapperStyleForDisplayContentsIfNeeded()
     const {
   // If the parent element is not a display:contents element, the style and the
@@ -164,20 +164,20 @@ LayoutTreeBuilderForText::CreateInlineWrapperForDisplayContentsIfNeeded(
 }
 
 void LayoutTreeBuilderForText::CreateLayoutObject() {
-  const ComputedStyle* style = style_;
+  const ComputedStyle* style = style_.get();
   LayoutObject* layout_object_parent = context_.parent;
   LayoutObject* next_layout_object = NextLayoutObject();
-  const ComputedStyle* nullable_wrapper_style =
+  scoped_refptr<const ComputedStyle> nullable_wrapper_style =
       CreateInlineWrapperStyleForDisplayContentsIfNeeded();
   if (LayoutObject* wrapper = CreateInlineWrapperForDisplayContentsIfNeeded(
-          nullable_wrapper_style)) {
+          nullable_wrapper_style.get())) {
     layout_object_parent = wrapper;
     next_layout_object = nullptr;
   }
   // SVG <text> doesn't accept anonymous LayoutInlines. But the Text should have
   // the adjusted ComputedStyle.
   if (nullable_wrapper_style)
-    style = nullable_wrapper_style;
+    style = nullable_wrapper_style.get();
 
   LayoutText* new_layout_object = node_->CreateTextLayoutObject();
   if (!layout_object_parent->IsChildAllowed(new_layout_object, *style)) {

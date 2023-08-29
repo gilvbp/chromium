@@ -14,6 +14,7 @@ import android.net.Uri;
 import android.os.RemoteException;
 import android.text.TextUtils;
 
+import androidx.annotation.VisibleForTesting;
 import androidx.core.app.NotificationCompat;
 
 import org.chromium.base.ContentUriUtils;
@@ -519,6 +520,7 @@ public final class DownloadImpl extends IDownload.Stub {
         return ContentUriUtils.getContentUriFromFile(new File(location));
     }
 
+    @VisibleForTesting
     public static void activateNotificationForTesting(int id) {
         DownloadImpl download = sMap.get(id);
         assert download != null;

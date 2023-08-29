@@ -105,7 +105,6 @@ void PrefetchNetworkContext::CreateIsolatedURLLoaderFactory() {
       prefetch_service_->GetPrefetchServiceDelegate();
 
   auto context_params = network::mojom::NetworkContextParams::New();
-  context_params->file_paths = network::mojom::NetworkContextFilePaths::New();
   context_params->user_agent =
       GetReducedUserAgent(base::CommandLine::ForCurrentProcess()->HasSwitch(
                               switches::kUseMobileUserAgent),
@@ -121,7 +120,7 @@ void PrefetchNetworkContext::CreateIsolatedURLLoaderFactory() {
   }
 
   context_params->http_cache_enabled = true;
-  CHECK(!context_params->file_paths->http_cache_directory);
+  CHECK(!context_params->http_cache_directory);
 
   if (prefetch_type_.IsProxyRequiredWhenCrossOrigin() &&
       !prefetch_type_.IsProxyBypassedForTesting()) {
@@ -186,15 +185,10 @@ void PrefetchNetworkContext::CreateNewURLLoaderFactory(
     factory_params->isolation_info = *isolation_info;
   }
 
-  // Prerender should not trigger any prefetch. This assumption is needed to
-  // call GetPageUkmSourceId.
-  RenderFrameHost* referring_render_frame_host =
-      RenderFrameHost::FromID(referring_render_frame_host_id_);
-  CHECK(!referring_render_frame_host->IsInLifecycleState(
-      RenderFrameHost::LifecycleState::kPrerendering));
-
   // Call WillCreateURLLoaderFactory so that Extensions (and other features) can
   // proxy the URLLoaderFactory pipe.
+  RenderFrameHost* referring_render_frame_host =
+      RenderFrameHost::FromID(referring_render_frame_host_id_);
   mojo::PendingRemote<network::mojom::TrustedURLLoaderHeaderClient>
       header_client;
   bool bypass_redirect_checks = false;

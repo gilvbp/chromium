@@ -18,7 +18,6 @@ class AwSafeBrowsingUIManager;
 class AwSafeBrowsingAllowlistManager;
 struct AwWebResourceRequest;
 
-// Lifetime: Singleton
 class AwUrlCheckerDelegateImpl : public safe_browsing::UrlCheckerDelegate {
  public:
   // GENERATED_JAVA_ENUM_PACKAGE: org.chromium.android_webview

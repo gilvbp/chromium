@@ -22,10 +22,7 @@ namespace ash {
 class ASH_EXPORT ShelfBubble : public views::BubbleDialogDelegateView,
                                public ShelfBackgroundAnimatorObserver {
  public:
-  ShelfBubble(views::View* anchor,
-              ShelfAlignment alignment,
-              bool for_tooltip,
-              absl::optional<views::BubbleBorder::Arrow> arrow_position);
+  ShelfBubble(views::View* anchor, ShelfAlignment alignment);
 
   ShelfBubble(const ShelfBubble&) = delete;
   ShelfBubble& operator=(const ShelfBubble&) = delete;
@@ -50,13 +47,7 @@ class ASH_EXPORT ShelfBubble : public views::BubbleDialogDelegateView,
   // ShelfBackgroundAnimatorObserver:
   void UpdateShelfBackground(SkColor color) override;
 
-  // views::BubbleDialogDelegateView:
-  std::unique_ptr<views::NonClientFrameView> CreateNonClientFrameView(
-      views::Widget* widget) override;
-
   int border_radius_ = 0;
-
-  const bool for_tooltip_;
 
   ShelfBackgroundAnimator background_animator_;
 };

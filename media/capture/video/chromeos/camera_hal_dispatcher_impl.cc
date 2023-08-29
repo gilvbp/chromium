@@ -197,10 +197,6 @@ void FailedCameraHalServerCallbacks::CameraPrivacySwitchStateChange(
 void FailedCameraHalServerCallbacks::CameraSWPrivacySwitchStateChange(
     cros::mojom::CameraPrivacySwitchState state) {}
 
-void FailedCameraHalServerCallbacks::Reset() {
-  callbacks_.reset();
-}
-
 // static
 CameraHalDispatcherImpl* CameraHalDispatcherImpl::GetInstance() {
   return base::Singleton<CameraHalDispatcherImpl>::get();
@@ -445,8 +441,8 @@ CameraHalDispatcherImpl::~CameraHalDispatcherImpl() {
 void CameraHalDispatcherImpl::RegisterServer(
     mojo::PendingRemote<cros::mojom::CameraHalServer> camera_hal_server) {
   DCHECK(proxy_task_runner_->BelongsToCurrentThread());
-  NOTREACHED() << "CameraHalDispatcher::RegisterServer is deprecated. "
-                  "CameraHalServer will not be registered.";
+  LOG(ERROR) << "CameraHalDispatcher::RegisterServer is deprecated. "
+                "CameraHalServer will not be registered.";
 }
 
 void CameraHalDispatcherImpl::RegisterServerWithToken(
@@ -519,7 +515,7 @@ void CameraHalDispatcherImpl::RegisterServerWithTokenOnProxyThread(
 
 void CameraHalDispatcherImpl::RegisterClient(
     mojo::PendingRemote<cros::mojom::CameraHalClient> client) {
-  NOTREACHED() << "CameraHalDispatcher::RegisterClient is deprecated.";
+  NOTREACHED() << "RegisterClient() is disabled";
 }
 
 void CameraHalDispatcherImpl::RegisterClientWithToken(
@@ -589,9 +585,11 @@ void CameraHalDispatcherImpl::RegisterSensorClientWithTokenOnProxyThread(
 void CameraHalDispatcherImpl::BindServiceToMojoServiceManager(
     const std::string& service_name,
     mojo::ScopedMessagePipeHandle receiver) {
-  NOTREACHED()
-      << "CameraHalDispatcher::BindServiceToMojoServiceManager is deprecated. "
-         "Please ask for services from Mojo Service Manager.";
+  main_task_runner_->PostTask(
+      FROM_HERE,
+      base::BindOnce(
+          &CameraHalDispatcherImpl::BindToMojoServiceManagerOnUIThread,
+          base::Unretained(this), service_name, std::move(receiver)));
 }
 
 void CameraHalDispatcherImpl::CameraDeviceActivityChange(
@@ -998,7 +996,6 @@ void CameraHalDispatcherImpl::StopOnProxyThread() {
   camera_hal_server_callbacks_.reset();
   camera_hal_server_.reset();
   receiver_set_.Clear();
-  failed_camera_hal_server_callbacks_.Reset();
   {
     base::AutoLock lock(device_id_to_hw_privacy_switch_state_lock_);
     device_id_to_hw_privacy_switch_state_.clear();
@@ -1185,14 +1182,21 @@ TokenManager* CameraHalDispatcherImpl::GetTokenManagerForTesting() {
   return &token_manager_;
 }
 
+void CameraHalDispatcherImpl::BindToMojoServiceManagerOnUIThread(
+    const std::string service_name,
+    mojo::ScopedMessagePipeHandle receiver) {
+  CHECK(main_task_runner_->RunsTasksInCurrentSequence());
+  CHECK(ash::mojo_service_manager::IsServiceManagerBound());
+  ash::mojo_service_manager::GetServiceManagerProxy()->Request(
+      service_name, /*timeout=*/absl::nullopt, std::move(receiver));
+}
+
 void CameraHalDispatcherImpl::Request(
     chromeos::mojo_service_manager::mojom::ProcessIdentityPtr identity,
     mojo::ScopedMessagePipeHandle receiver) {
-  // Unretained reference is safe here because CameraHalDispatcherImpl owns
-  // |proxy_thread_|.
-  proxy_task_runner_->PostTask(
-      FROM_HERE, base::BindOnce(&CameraHalDispatcherImpl::OnPeerConnected,
-                                base::Unretained(this), std::move(receiver)));
+  receiver_set_.Add(this,
+                    mojo::PendingReceiver<cros::mojom::CameraHalDispatcher>(
+                        std::move(receiver)));
   VLOG(1) << "New CameraHalDispatcher binding added from Mojo Service Manager.";
 }
 

@@ -21,12 +21,9 @@
 #include "chrome/browser/browser_process.h"
 #include "chrome/browser/browser_process_platform_part.h"
 #include "chrome/browser/profiles/profile.h"
-#include "chrome/browser/profiles/profile_manager.h"
 #include "chrome/browser/ui/browser.h"
-#include "chrome/browser/ui/browser_commands.h"
 #include "chrome/test/base/in_process_browser_test.h"
 #include "chromeos/ash/components/account_manager/account_manager_factory.h"
-#include "chromeos/ash/components/standalone_browser/feature_refs.h"
 #include "components/account_manager_core/account.h"
 #include "components/account_manager_core/chromeos/account_manager.h"
 #include "components/account_manager_core/chromeos/account_manager_mojo_service.h"
@@ -254,10 +251,9 @@ class SigninHelperTest : public InProcessBrowserTest,
 
   void OnAccountRemoved(const account_manager::Account& account) override {}
 
-  raw_ptr<account_manager::AccountManager, DanglingUntriaged | ExperimentalAsh>
-      account_manager_ = nullptr;
-  raw_ptr<crosapi::AccountManagerMojoService,
-          DanglingUntriaged | ExperimentalAsh>
+  raw_ptr<account_manager::AccountManager, ExperimentalAsh> account_manager_ =
+      nullptr;
+  raw_ptr<crosapi::AccountManagerMojoService, ExperimentalAsh>
       account_manager_mojo_service_ = nullptr;
   int signin_helper_created_count_ = 0;
   int signin_helper_deleted_count_ = 0;
@@ -307,21 +303,12 @@ class SigninHelperTestWithArcAccountRestrictions
       public ::ash::AccountAppsAvailability::Observer {
  public:
   SigninHelperTestWithArcAccountRestrictions() {
-    feature_list_.InitWithFeatures(ash::standalone_browser::GetFeatureRefs(),
-                                   {});
+    feature_list_.InitAndEnableFeature(ash::features::kLacrosSupport);
   }
 
   ~SigninHelperTestWithArcAccountRestrictions() override = default;
 
   void SetUpOnMainThread() override {
-    if (browser() == nullptr) {
-      // Create a new Ash browser window so test code using browser() can work
-      // even when Lacros is the only browser.
-      // TODO(crbug.com/1450158): Remove uses of browser() from such tests.
-      chrome::NewEmptyWindow(ProfileManager::GetActiveUserProfile());
-      SelectFirstBrowser();
-    }
-
     SigninHelperTest::SetUpOnMainThread();
     account_apps_availability_ =
         ash::AccountAppsAvailabilityFactory::GetForProfile(
@@ -403,7 +390,7 @@ class SigninHelperTestWithArcAccountRestrictions
   absl::optional<account_manager::Account> on_account_available_in_arc_account_;
   absl::optional<account_manager::Account>
       on_account_unavailable_in_arc_account_;
-  raw_ptr<ash::AccountAppsAvailability, DanglingUntriaged | ExperimentalAsh>
+  raw_ptr<ash::AccountAppsAvailability, ExperimentalAsh>
       account_apps_availability_;
   base::test::ScopedFeatureList feature_list_;
 };
@@ -512,8 +499,7 @@ IN_PROC_BROWSER_TEST_F(SigninHelperTestWithArcAccountRestrictions,
 class SigninHelperTestSecondaryGoogleAccountUsage : public SigninHelperTest {
  public:
   SigninHelperTestSecondaryGoogleAccountUsage() {
-    feature_list_.InitWithFeatures({},
-                                   ash::standalone_browser::GetFeatureRefs());
+    feature_list_.InitAndDisableFeature(ash::features::kLacrosSupport);
   }
 
   ~SigninHelperTestSecondaryGoogleAccountUsage() override = default;

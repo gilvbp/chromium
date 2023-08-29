@@ -38,7 +38,6 @@ import org.chromium.android_webview.R;
 import org.chromium.android_webview.WebViewChromiumRunQueue;
 import org.chromium.android_webview.common.AwResource;
 import org.chromium.android_webview.common.AwSwitches;
-import org.chromium.android_webview.common.Lifetime;
 import org.chromium.android_webview.gfx.AwDrawFnImpl;
 import org.chromium.android_webview.variations.FastVariationsSeedSafeModeAction;
 import org.chromium.android_webview.variations.VariationsSeedLoader;
@@ -66,7 +65,6 @@ import org.chromium.ui.base.ResourceBundle;
  * We hold on to most static objects used by WebView here.
  * This class is shared between the webkit glue layer and the support library glue layer.
  */
-@Lifetime.Singleton
 public class WebViewChromiumAwInit {
     private static final String TAG = "WebViewChromiumAwInit";
 
@@ -74,16 +72,16 @@ public class WebViewChromiumAwInit {
 
     // TODO(gsennton): store aw-objects instead of adapters here
     // Initialization guarded by mLock.
-    private AwBrowserContext mDefaultBrowserContext;
+    private AwBrowserContext mBrowserContext;
     private AwTracingController mTracingController;
     private SharedStatics mSharedStatics;
-    private GeolocationPermissionsAdapter mDefaultGeolocationPermissions;
-    private CookieManagerAdapter mDefaultCookieManager;
+    private GeolocationPermissionsAdapter mGeolocationPermissions;
+    private CookieManagerAdapter mCookieManager;
 
     private WebIconDatabaseAdapter mWebIconDatabase;
-    private WebStorageAdapter mDefaultWebStorage;
-    private WebViewDatabaseAdapter mDefaultWebViewDatabase;
-    private AwServiceWorkerController mDefaultServiceWorkerController;
+    private WebStorageAdapter mWebStorage;
+    private WebViewDatabaseAdapter mWebViewDatabase;
+    private AwServiceWorkerController mServiceWorkerController;
     private AwTracingController mAwTracingController;
     private VariationsSeedLoader mSeedLoader;
     private Thread mSetUpResourcesThread;
@@ -228,14 +226,13 @@ public class WebViewChromiumAwInit {
             try (ScopedSysTraceEvent e = ScopedSysTraceEvent.scoped(
                          "WebViewChromiumAwInit.initThreadUnsafeSingletons")) {
                 // Initialize thread-unsafe singletons.
-                AwBrowserContext defaultBrowserContext = getDefaultBrowserContextOnUiThread();
-                mDefaultGeolocationPermissions = new GeolocationPermissionsAdapter(
-                        mFactory, defaultBrowserContext.getGeolocationPermissions());
-                mDefaultWebStorage = new WebStorageAdapter(
-                        mFactory, defaultBrowserContext.getQuotaManagerBridge());
+                AwBrowserContext awBrowserContext = getBrowserContextOnUiThread();
+                mGeolocationPermissions = new GeolocationPermissionsAdapter(
+                        mFactory, awBrowserContext.getGeolocationPermissions());
+                mWebStorage =
+                        new WebStorageAdapter(mFactory, mBrowserContext.getQuotaManagerBridge());
                 mAwTracingController = getTracingController();
-                mDefaultServiceWorkerController =
-                        defaultBrowserContext.getServiceWorkerController();
+                mServiceWorkerController = awBrowserContext.getServiceWorkerController();
                 mAwProxyController = new AwProxyController();
             }
 
@@ -411,7 +408,7 @@ public class WebViewChromiumAwInit {
     }
 
     // Only on UI thread.
-    AwBrowserContext getDefaultBrowserContextOnUiThread() {
+    AwBrowserContext getBrowserContextOnUiThread() {
         assert mInitState == INIT_FINISHED;
 
         if (BuildConfig.ENABLE_ASSERTS && !ThreadUtils.runningOnUiThread()) {
@@ -419,10 +416,10 @@ public class WebViewChromiumAwInit {
                     "getBrowserContextOnUiThread called on " + Thread.currentThread());
         }
 
-        if (mDefaultBrowserContext == null) {
-            mDefaultBrowserContext = AwBrowserContext.getDefault();
+        if (mBrowserContext == null) {
+            mBrowserContext = AwBrowserContext.getDefault();
         }
-        return mDefaultBrowserContext;
+        return mBrowserContext;
     }
 
     /**
@@ -446,31 +443,31 @@ public class WebViewChromiumAwInit {
         return mSharedStatics;
     }
 
-    public GeolocationPermissions getDefaultGeolocationPermissions() {
+    public GeolocationPermissions getGeolocationPermissions() {
         synchronized (mLock) {
-            if (mDefaultGeolocationPermissions == null) {
+            if (mGeolocationPermissions == null) {
                 ensureChromiumStartedLocked(true);
             }
         }
-        return mDefaultGeolocationPermissions;
+        return mGeolocationPermissions;
     }
 
-    public CookieManager getDefaultCookieManager() {
+    public CookieManager getCookieManager() {
         synchronized (mLock) {
-            if (mDefaultCookieManager == null) {
-                mDefaultCookieManager = new CookieManagerAdapter(new AwCookieManager());
+            if (mCookieManager == null) {
+                mCookieManager = new CookieManagerAdapter(new AwCookieManager());
             }
         }
-        return mDefaultCookieManager;
+        return mCookieManager;
     }
 
-    public AwServiceWorkerController getDefaultServiceWorkerController() {
+    public AwServiceWorkerController getServiceWorkerController() {
         synchronized (mLock) {
-            if (mDefaultServiceWorkerController == null) {
+            if (mServiceWorkerController == null) {
                 ensureChromiumStartedLocked(true);
             }
         }
-        return mDefaultServiceWorkerController;
+        return mServiceWorkerController;
     }
 
     public android.webkit.WebIconDatabase getWebIconDatabase() {
@@ -483,25 +480,25 @@ public class WebViewChromiumAwInit {
         return mWebIconDatabase;
     }
 
-    public WebStorage getDefaultWebStorage() {
+    public WebStorage getWebStorage() {
         synchronized (mLock) {
-            if (mDefaultWebStorage == null) {
+            if (mWebStorage == null) {
                 ensureChromiumStartedLocked(true);
             }
         }
-        return mDefaultWebStorage;
+        return mWebStorage;
     }
 
-    public WebViewDatabase getDefaultWebViewDatabase(final Context context) {
+    public WebViewDatabase getWebViewDatabase(final Context context) {
         synchronized (mLock) {
             ensureChromiumStartedLocked(true);
-            if (mDefaultWebViewDatabase == null) {
-                mDefaultWebViewDatabase = new WebViewDatabaseAdapter(mFactory,
+            if (mWebViewDatabase == null) {
+                mWebViewDatabase = new WebViewDatabaseAdapter(mFactory,
                         HttpAuthDatabase.newInstance(context, HTTP_AUTH_DATABASE_FILE),
-                        mDefaultBrowserContext);
+                        mBrowserContext);
             }
         }
-        return mDefaultWebViewDatabase;
+        return mWebViewDatabase;
     }
 
     // See comments in VariationsSeedLoader.java on when it's safe to call this.

@@ -123,10 +123,6 @@
     border-radius: 8px;
   }
 
-  #folder-icon {
-    display: flex;
-  }
-
   .favicon {
     background-position: center center;
     background-repeat: no-repeat;
@@ -366,8 +362,8 @@
     max-width: 100%;
   }
 
-  .description-text:has(+ .description-meta:not([hidden])) {
-    /* Prioritize description meta and let description shrink. */
+  .description-text:has(+ .timestamp:not([hidden])) {
+    /* Prioritize timestamp and let description shrink. */
     flex-shrink: 1;
   }
 
@@ -387,14 +383,14 @@
 
   .title,
   .description-text,
-  .description-meta {
+  .timestamp {
     max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
-  .description-meta {
+  .timestamp {
     flex-shrink: 0;
     padding-inline-start: 4px;
   }
@@ -456,8 +452,7 @@
   <div class="image-container"
       hidden$="[[!shouldShowUrlImage_(
           url, size, imageUrls, firstImageLoaded_)]]">
-    <img class="url-image" is="cr-auto-img" auto-src="[[imageUrls.0]]"
-        draggable="false">
+    <img class="url-image" is="cr-auto-img" auto-src="[[imageUrls.0]]">
   </div>
   <div class="folder-and-count"
       hidden$="[[!shouldShowFolderCount_(url, count)]]">
@@ -465,8 +460,7 @@
       <template is="dom-repeat" items="[[imageUrls]]"
           filter="shouldShowImageUrl_">
         <div class="image-container" hidden$="[[!firstImageLoaded_]]">
-          <img class="folder-image" is="cr-auto-img" auto-src="[[item]]"
-              draggable="false">
+          <img class="folder-image" is="cr-auto-img" auto-src="[[item]]">
         </div>
       </template>
     </template>
@@ -488,9 +482,7 @@
   <div class="descriptions">
     <div class="description" hidden$="[[!description]]">
       <span class="description-text">[[description]]</span>
-      <span class="description-meta" hidden$="[[!descriptionMeta]]">
-        &middot; [[descriptionMeta]]
-      </span>
+      <span class="timestamp" hidden$="[[!timestamp]]">- [[timestamp]]</span>
     </div>
     <div class="badges">
       <slot id="badges" name="badges" on-slotchange="onBadgesSlotChange_">

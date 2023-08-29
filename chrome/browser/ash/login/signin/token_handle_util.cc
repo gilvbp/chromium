@@ -32,7 +32,6 @@ const char* g_invalid_token_for_testing = nullptr;
 
 bool MaybeReturnCachedStatus(
     const AccountId& account_id,
-    const std::string& token,
     TokenHandleUtil::TokenValidationCallback* callback) {
   user_manager::KnownUser known_user(g_browser_process->local_state());
   const std::string* saved_status =
@@ -41,12 +40,12 @@ bool MaybeReturnCachedStatus(
     return false;
 
   if (*saved_status == kHandleStatusValid) {
-    std::move(*callback).Run(account_id, token, TokenHandleUtil::VALID);
+    std::move(*callback).Run(account_id, TokenHandleUtil::VALID);
     return true;
   }
 
   if (*saved_status == kHandleStatusInvalid) {
-    std::move(*callback).Run(account_id, token, TokenHandleUtil::INVALID);
+    std::move(*callback).Run(account_id, TokenHandleUtil::INVALID);
     return true;
   }
 
@@ -55,9 +54,9 @@ bool MaybeReturnCachedStatus(
 }
 
 void OnStatusChecked(TokenHandleUtil::TokenValidationCallback callback,
-                     const AccountId& account_id,
                      const std::string& token,
-                     const TokenHandleUtil::TokenHandleStatus& status) {
+                     const AccountId& account_id,
+                     TokenHandleUtil::TokenHandleStatus status) {
   user_manager::KnownUser known_user(g_browser_process->local_state());
   // Check that the token that was checked matches the latest known token.
   // (This may happen if token check took too long, and user went through
@@ -66,7 +65,7 @@ void OnStatusChecked(TokenHandleUtil::TokenValidationCallback callback,
           known_user.FindStringPath(account_id, kTokenHandlePref)) {
     if (token != *latest_token) {
       LOG(WARNING) << "Outdated token, assuming status is unknown";
-      std::move(callback).Run(account_id, token, TokenHandleUtil::UNKNOWN);
+      std::move(callback).Run(account_id, TokenHandleUtil::UNKNOWN);
       return;
     }
   }
@@ -81,7 +80,7 @@ void OnStatusChecked(TokenHandleUtil::TokenValidationCallback callback,
     known_user.SetStringPref(account_id, kTokenHandleStatusPref,
                              kHandleStatusInvalid);
   }
-  std::move(callback).Run(account_id, token, status);
+  std::move(callback).Run(account_id, status);
 }
 
 // Checks if token handle is explicitly marked as INVALID for |account_id|.
@@ -137,24 +136,24 @@ void TokenHandleUtil::CheckToken(
   const std::string* token =
       known_user.FindStringPath(account_id, kTokenHandlePref);
   if (!token) {
-    std::move(callback).Run(account_id, std::string(), UNKNOWN);
+    std::move(callback).Run(account_id, UNKNOWN);
     return;
   }
 
   if (g_invalid_token_for_testing && g_invalid_token_for_testing == *token) {
-    std::move(callback).Run(account_id, *token, INVALID);
+    std::move(callback).Run(account_id, INVALID);
     return;
   }
 
   if (IsRecentlyChecked(account_id) &&
-      MaybeReturnCachedStatus(account_id, *token, &callback)) {
+      MaybeReturnCachedStatus(account_id, &callback)) {
     return;
   }
 
   // If token is explicitly marked as invalid, it does not make sense to check
   // it again.
   if (HasTokenStatusInvalid(account_id)) {
-    std::move(callback).Run(account_id, *token, INVALID);
+    std::move(callback).Run(account_id, INVALID);
     return;
   }
 
@@ -162,7 +161,7 @@ void TokenHandleUtil::CheckToken(
   validation_delegates_[*token] = std::make_unique<TokenDelegate>(
       weak_factory_.GetWeakPtr(), account_id, *token,
       std::move(url_loader_factory),
-      base::BindOnce(&OnStatusChecked, std::move(callback)));
+      base::BindOnce(&OnStatusChecked, std::move(callback), *token));
 }
 
 // static
@@ -212,7 +211,7 @@ TokenHandleUtil::TokenDelegate::TokenDelegate(
 TokenHandleUtil::TokenDelegate::~TokenDelegate() = default;
 
 void TokenHandleUtil::TokenDelegate::OnOAuthError() {
-  std::move(callback_).Run(account_id_, token_, INVALID);
+  std::move(callback_).Run(account_id_, INVALID);
   NotifyDone(/*request_completed=*/true);
 }
 
@@ -226,7 +225,7 @@ void TokenHandleUtil::TokenDelegate::NotifyDone(bool request_completed) {
 }
 
 void TokenHandleUtil::TokenDelegate::OnNetworkError(int response_code) {
-  std::move(callback_).Run(account_id_, token_, UNKNOWN);
+  std::move(callback_).Run(account_id_, UNKNOWN);
   NotifyDone(/*request_completed=*/response_code != -1);
 }
 
@@ -245,7 +244,7 @@ void TokenHandleUtil::TokenDelegate::OnGetTokenInfoResponse(
       outcome = (*expires_in < 0) ? INVALID : VALID;
   }
 
-  std::move(callback_).Run(account_id_, token_, outcome);
+  std::move(callback_).Run(account_id_, outcome);
   NotifyDone(/*request_completed=*/true);
 }
 

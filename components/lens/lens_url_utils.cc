@@ -11,7 +11,6 @@
 #include "base/strings/string_number_conversions.h"
 #include "base/time/time.h"
 #include "components/lens/lens_entrypoints.h"
-#include "components/lens/lens_features.h"
 #include "components/lens/lens_metadata.h"
 #include "components/lens/lens_metadata.mojom.h"
 #include "components/lens/lens_rendering_environment.h"
@@ -175,20 +174,6 @@ GURL AppendOrReplaceQueryParametersForLensRequest(const GURL& url,
   return modified_url;
 }
 
-GURL AppendOrReplaceStartTimeIfLensRequest(const GURL& url) {
-  if (!IsLensUrl(url)) {
-    return url;
-  }
-
-  GURL modified_url(url);
-
-  int64_t current_time_ms = base::Time::Now().ToJavaTime();
-  modified_url =
-      net::AppendOrReplaceQueryParameter(modified_url, kStartTimeQueryParameter,
-                                         base::NumberToString(current_time_ms));
-  return modified_url;
-}
-
 GURL AppendOrReplaceViewportSizeForRequest(const GURL& url,
                                            const gfx::Size& viewport_size) {
   GURL modified_url(url);
@@ -224,21 +209,6 @@ std::string GetQueryParametersForLensRequest(
     AppendQueryParam(&query_string, param.first.c_str(), param.second.c_str());
   }
   return query_string;
-}
-
-bool IsValidLensResultUrl(const GURL& url) {
-  if (url.is_empty()) {
-    return false;
-  }
-
-  std::string payload;
-  // Make sure the payload is present
-  return net::GetValueForKeyInQuery(url, kPayloadQueryParameter, &payload);
-}
-
-bool IsLensUrl(const GURL& url) {
-  return !url.is_empty() &&
-         url.host() == GURL(lens::features::GetHomepageURLForLens()).host();
 }
 
 }  // namespace lens

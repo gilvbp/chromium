@@ -46,11 +46,10 @@ SpeechRecognitionClientBrowserInterfaceFactory::
 SpeechRecognitionClientBrowserInterfaceFactory::
     ~SpeechRecognitionClientBrowserInterfaceFactory() = default;
 
-std::unique_ptr<KeyedService> SpeechRecognitionClientBrowserInterfaceFactory::
-    BuildServiceInstanceForBrowserContext(
-        content::BrowserContext* context) const {
-  return std::make_unique<speech::SpeechRecognitionClientBrowserInterface>(
-      context);
+KeyedService*
+SpeechRecognitionClientBrowserInterfaceFactory::BuildServiceInstanceFor(
+    content::BrowserContext* context) const {
+  return new speech::SpeechRecognitionClientBrowserInterface(context);
 }
 
 // static

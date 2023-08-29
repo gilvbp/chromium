@@ -2,9 +2,10 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import("//chromecast/chromecast.gni")
 import("//third_party/cast_core/public/src/proto/proto.gni")
 
-source_set("grpc") {
+cast_source_set("grpc") {
   sources = [
     "cancellable_reactor.h",
     "grpc_call.h",
@@ -35,7 +36,7 @@ source_set("grpc") {
   ]
 }
 
-source_set("status_matchers") {
+cast_source_set("status_matchers") {
   testonly = true
 
   sources = [
@@ -46,7 +47,7 @@ source_set("status_matchers") {
   deps = [ "//testing/gmock" ]
 }
 
-source_set("unit_tests") {
+cast_source_set("unit_tests") {
   testonly = true
 
   sources = [
@@ -66,7 +67,7 @@ source_set("unit_tests") {
   ]
 }
 
-source_set("test_support") {
+cast_source_set("test_support") {
   testonly = true
 
   sources = [

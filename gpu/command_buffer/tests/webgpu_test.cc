@@ -5,8 +5,6 @@
 #include "gpu/command_buffer/tests/webgpu_test.h"
 
 #include <dawn/dawn_proc.h>
-#include <dawn/dawn_thread_dispatch_proc.h>
-#include <dawn/native/DawnNative.h>
 #include <dawn/webgpu.h>
 
 #include "base/command_line.h"
@@ -56,11 +54,6 @@ bool WebGPUTest::WebGPUSupported() const {
     return false;
   }
 
-  // Pixel 2 does not support WebGPU
-  if (GPUTestBotConfig::CurrentConfigMatches("Android Qualcomm 0x5040001")) {
-    return false;
-  }
-
   return true;
 }
 
@@ -95,16 +88,6 @@ void WebGPUTest::Initialize(const Options& options) {
   // this device has been marked as not supporting WebGPU.
   if (!WebGPUSupported()) {
     return;
-  }
-
-  // The test will run both service and client in the same process, so we need
-  // to set dawn procs for both.
-  dawnProcSetProcs(&dawnThreadDispatchProcTable);
-
-  {
-    // Use the native procs as default procs for all threads. It will be used
-    // for GPU service side threads.
-    dawnProcSetDefaultThreadProcs(&dawn::native::GetProcs());
   }
 
   gpu::GpuPreferences gpu_preferences;
@@ -143,12 +126,8 @@ void WebGPUTest::Initialize(const Options& options) {
   webgpu_impl()->SetLostContextCallback(base::BindLambdaForTesting(
       []() { GTEST_FAIL() << "Context lost unexpectedly."; }));
 
-  {
-    // Use the wire procs for the test main thread.
-    DawnProcTable procs = webgpu()->GetAPIChannel()->GetProcs();
-    dawnProcSetPerThreadProcs(&procs);
-  }
-
+  DawnProcTable procs = webgpu()->GetAPIChannel()->GetProcs();
+  dawnProcSetProcs(&procs);
   instance_ = wgpu::Instance(webgpu()->GetAPIChannel()->GetWGPUInstance());
 
   wgpu::RequestAdapterOptions ra_options = {};
@@ -408,11 +387,7 @@ TEST_F(WebGPUTest, RequestDeviceWithUnsupportedFeature) {
 
   DCHECK(adapter_);
   wgpu::DeviceDescriptor device_desc = {};
-#ifdef WGPU_BREAKING_CHANGE_COUNT_RENAME
-  device_desc.requiredFeatureCount = 1;
-#else
   device_desc.requiredFeaturesCount = 1;
-#endif
   device_desc.requiredFeatures = &invalid_feature;
 
   adapter_.RequestDevice(&device_desc, callback->UnboundCallback(),

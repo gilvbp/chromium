@@ -125,22 +125,6 @@ const AttributeTypeVector& GetPropertyTypeVector() {
   return property_table_;
 }
 
-// Find an entry matching `attribute` on any element in an AttributeTypeVector.
-// Assumes that argument normalization has already happened.
-SpecificTrustedType FindUnboundAttributeInAttributeTypeVector(
-    const AttributeTypeVector& attribute_type_vector,
-    const AtomicString& attribute) {
-  for (const auto& entry : attribute_type_vector) {
-    bool entry_matches = entry.attribute == attribute &&
-                         entry.element == g_star_atom &&
-                         entry.attribute_namespace == g_null_atom;
-    if (entry_matches) {
-      return entry.type;
-    }
-  }
-  return SpecificTrustedType::kNone;
-}
-
 // Find a matching entry in an AttributeTypeVector. Assumes that argument
 // normalization has already happened.
 SpecificTrustedType FindEntryInAttributeTypeVector(
@@ -152,7 +136,7 @@ SpecificTrustedType FindEntryInAttributeTypeVector(
   for (const auto& entry : attribute_type_vector) {
     bool entry_matches = ((entry.element == element &&
                            entry.element_namespace == element_namespace) ||
-                          entry.element == g_star_atom) &&
+                          entry.element == "*") &&
                          entry.attribute == attribute &&
                          entry.attribute_namespace == attribute_namespace;
     if (entry_matches)
@@ -462,7 +446,7 @@ ExecutionContext* TrustedTypePolicyFactory::GetExecutionContext() const {
 }
 
 void TrustedTypePolicyFactory::Trace(Visitor* visitor) const {
-  EventTarget::Trace(visitor);
+  EventTargetWithInlineData::Trace(visitor);
   ExecutionContextClient::Trace(visitor);
   visitor->Trace(empty_html_);
   visitor->Trace(empty_script_);
@@ -472,8 +456,9 @@ void TrustedTypePolicyFactory::Trace(Visitor* visitor) const {
 inline bool FindEventHandlerAttributeInTable(
     const AtomicString& attributeName) {
   return SpecificTrustedType::kScript ==
-         FindUnboundAttributeInAttributeTypeVector(GetAttributeTypeVector(),
-                                                   attributeName);
+         FindEntryInAttributeTypeVector(GetAttributeTypeVector(),
+                                        AtomicString(), attributeName,
+                                        AtomicString(), AtomicString());
 }
 
 bool TrustedTypePolicyFactory::IsEventHandlerAttributeName(

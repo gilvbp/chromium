@@ -5,7 +5,7 @@
 #ifndef COMPONENTS_AUTOFILL_CONTENT_BROWSER_CONTENT_AUTOFILL_DRIVER_TEST_API_H_
 #define COMPONENTS_AUTOFILL_CONTENT_BROWSER_CONTENT_AUTOFILL_DRIVER_TEST_API_H_
 
-#include "base/memory/raw_ref.h"
+#include "base/memory/raw_ptr.h"
 #include "components/autofill/content/browser/content_autofill_driver.h"
 
 namespace autofill {
@@ -14,7 +14,9 @@ namespace autofill {
 class ContentAutofillDriverTestApi {
  public:
   explicit ContentAutofillDriverTestApi(ContentAutofillDriver* driver)
-      : driver_(*driver) {}
+      : driver_(driver) {
+    DCHECK(driver_);
+  }
 
   void SetFrameAndFormMetaData(FormData& form, FormFieldData* field) const {
     driver_->SetFrameAndFormMetaData(form, field);
@@ -24,13 +26,12 @@ class ContentAutofillDriverTestApi {
     return driver_->GetFormWithFrameAndFormMetaData(form);
   }
 
- private:
-  const raw_ref<ContentAutofillDriver> driver_;
-};
+  bool should_suppress_keyboard() { return driver_->should_suppress_keyboard_; }
 
-inline ContentAutofillDriverTestApi test_api(ContentAutofillDriver& driver) {
-  return ContentAutofillDriverTestApi(&driver);
-}
+ private:
+  // Non-null pointer to wrapped ContentAutofillDriver.
+  raw_ptr<ContentAutofillDriver> driver_;
+};
 
 }  // namespace autofill
 

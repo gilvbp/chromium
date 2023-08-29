@@ -70,12 +70,4 @@ bool RemoteCommandsState::GetRemoteCommandResult(
   return true;
 }
 
-bool RemoteCommandsState::IsRemoteCommandResultAvailable(int64_t id) {
-  base::AutoLock lock(lock_);
-  if (command_results_.count(id) == 0) {
-    return false;
-  }
-  return true;
-}
-
 }  // namespace policy

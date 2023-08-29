@@ -38,11 +38,10 @@ PasskeyModelFactory::PasskeyModelFactory()
 
 PasskeyModelFactory::~PasskeyModelFactory() = default;
 
-std::unique_ptr<KeyedService>
-PasskeyModelFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* PasskeyModelFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   DCHECK(base::FeatureList::IsEnabled(syncer::kSyncWebauthnCredentials));
-  return std::make_unique<webauthn::PasskeySyncBridge>(
+  return new webauthn::PasskeySyncBridge(
       ModelTypeStoreServiceFactory::GetForProfile(
           Profile::FromBrowserContext(context))
           ->GetStoreFactory());

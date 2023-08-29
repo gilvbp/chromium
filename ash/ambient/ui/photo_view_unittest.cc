@@ -6,7 +6,6 @@
 
 #include "ash/ambient/ambient_constants.h"
 #include "ash/ambient/ambient_controller.h"
-#include "ash/ambient/ambient_ui_settings.h"
 #include "ash/ambient/test/ambient_ash_test_base.h"
 #include "ash/ambient/ui/ambient_container_view.h"
 #include "ash/assistant/ui/assistant_view_ids.h"
@@ -19,13 +18,7 @@
 
 namespace ash {
 
-class AmbientPhotoViewTest : public AmbientAshTestBase {
- protected:
-  void SetUp() override {
-    AmbientAshTestBase::SetUp();
-    SetAmbientTheme(AmbientTheme::kSlideshow);
-  }
-};
+using AmbientPhotoViewTest = AmbientAshTestBase;
 
 // Test that a new topic s rendered every cycle.
 TEST_F(AmbientPhotoViewTest, ShouldRefreshImagesEveryCycle) {

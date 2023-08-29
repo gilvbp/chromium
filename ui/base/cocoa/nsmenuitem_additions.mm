@@ -3,14 +3,18 @@
 // found in the LICENSE file.
 
 #import "ui/base/cocoa/nsmenuitem_additions.h"
-#include "base/apple/foundation_util.h"
+#include "base/mac/foundation_util.h"
 
 #include <Carbon/Carbon.h>
 
 #include "base/apple/bridging.h"
-#include "base/apple/scoped_cftyperef.h"
 #include "base/check.h"
+#include "base/mac/scoped_cftyperef.h"
 #include "ui/events/keycodes/keyboard_code_conversion_mac.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace ui::cocoa {
 
@@ -104,10 +108,10 @@ NSUInteger ModifierMaskForKeyEvent(NSEvent* event) {
 }
 
 - (void)updateInputSource {
-  base::apple::ScopedCFTypeRef<TISInputSourceRef> inputSource(
+  base::ScopedCFTypeRef<TISInputSourceRef> inputSource(
       TISCopyCurrentKeyboardInputSource());
   NSString* layoutId = base::apple::CFToNSPtrCast(
-      base::apple::CFCast<CFStringRef>(TISGetInputSourceProperty(
+      base::mac::CFCast<CFStringRef>(TISGetInputSourceProperty(
           inputSource.get(), kTISPropertyInputSourceID)));
   ui::cocoa::g_is_input_source_command_qwerty =
       ui::cocoa::IsKeyboardLayoutCommandQwerty(layoutId);
@@ -276,18 +280,6 @@ NSUInteger ModifierMaskForKeyEvent(NSEvent* event) {
 
   return [eventString isEqualToString:self.keyEquivalent] &&
          eventModifiers == self.keyEquivalentModifierMask;
-}
-
-- (void)cr_setKeyEquivalent:(NSString*)aString
-               modifierMask:(NSEventModifierFlags)mask {
-  DCHECK(aString);
-  self.keyEquivalent = aString;
-  self.keyEquivalentModifierMask = mask;
-}
-
-- (void)cr_clearKeyEquivalent {
-  self.keyEquivalent = @"";
-  self.keyEquivalentModifierMask = 0;
 }
 
 @end

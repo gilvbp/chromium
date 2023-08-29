@@ -80,7 +80,7 @@ void ExtensionMenuItemViewTest::TearDown() {
   // All windows need to be closed before tear down.
   widget_.reset();
 
-  ExtensionsToolbarUnitTest::TearDown();
+  TestWithBrowserView::TearDown();
 }
 
 TEST_F(ExtensionMenuItemViewTest, UpdatesToDisplayCorrectActionTitle) {

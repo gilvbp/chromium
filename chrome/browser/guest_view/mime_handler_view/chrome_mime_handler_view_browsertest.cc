@@ -71,9 +71,11 @@ using guest_view::TestGuestViewManagerFactory;
 
 class ChromeMimeHandlerViewTest : public extensions::ExtensionApiTest {
  public:
-  ChromeMimeHandlerViewTest() = default;
+  ChromeMimeHandlerViewTest() {
+    GuestViewManager::set_factory_for_testing(&factory_);
+  }
 
-  ~ChromeMimeHandlerViewTest() override = default;
+  ~ChromeMimeHandlerViewTest() override {}
 
   void SetUpOnMainThread() override {
     extensions::ExtensionApiTest::SetUpOnMainThread();
@@ -88,9 +90,22 @@ class ChromeMimeHandlerViewTest : public extensions::ExtensionApiTest {
 
  protected:
   TestGuestViewManager* GetGuestViewManager() {
-    return factory_.GetOrCreateTestGuestViewManager(
-        browser()->profile(),
-        ExtensionsAPIClient::Get()->CreateGuestViewManagerDelegate());
+    TestGuestViewManager* manager = static_cast<TestGuestViewManager*>(
+        TestGuestViewManager::FromBrowserContext(browser()->profile()));
+    // TestGuestViewManager::DeprecatedWaitForSingleGuestCreated can and will
+    // get called before a guest is created. Since GuestViewManager is usually
+    // not created until the first guest is created, this means that |manager|
+    // will be nullptr if trying to use the manager to wait for the first guest.
+    // Because of this, the manager must be created here if it does not already
+    // exist.
+    if (!manager) {
+      manager = static_cast<TestGuestViewManager*>(
+          GuestViewManager::CreateWithDelegate(
+              browser()->profile(),
+              ExtensionsAPIClient::Get()->CreateGuestViewManagerDelegate(
+                  browser()->profile())));
+    }
+    return manager;
   }
 
   const extensions::Extension* LoadTestExtension() {
@@ -456,14 +471,7 @@ IN_PROC_BROWSER_TEST_F(ChromeMimeHandlerViewTest, BeforeUnload_NoDialog) {
       ui_test_utils::NavigateToURL(browser(), GURL(url::kAboutBlankURL)));
 }
 
-// TODO(crbug.com/1462760): Enable the test.
-#if BUILDFLAG(IS_MAC)
-#define MAYBE_BeforeUnload_ShowDialog DISABLED_BeforeUnload_ShowDialog
-#else
-#define MAYBE_BeforeUnload_ShowDialog BeforeUnload_ShowDialog
-#endif
-IN_PROC_BROWSER_TEST_F(ChromeMimeHandlerViewTest,
-                       MAYBE_BeforeUnload_ShowDialog) {
+IN_PROC_BROWSER_TEST_F(ChromeMimeHandlerViewTest, BeforeUnload_ShowDialog) {
   ASSERT_NO_FATAL_FAILURE(RunTest("testBeforeUnloadShowDialog.csv"));
   auto* web_contents = GetEmbedderWebContents();
   content::PrepContentsForBeforeUnloadTest(web_contents);
@@ -497,16 +505,8 @@ IN_PROC_BROWSER_TEST_F(ChromeMimeHandlerViewTest,
       ui_test_utils::NavigateToURL(browser(), GURL(url::kAboutBlankURL)));
 }
 
-// TODO(crbug.com/1462760): Enable the test.
-#if BUILDFLAG(IS_MAC)
-#define MAYBE_BeforeUnloadEnabled_WithUserActivation \
-  DISABLED_BeforeUnloadEnabled_WithUserActivation
-#else
-#define MAYBE_BeforeUnloadEnabled_WithUserActivation \
-  BeforeUnloadEnabled_WithUserActivation
-#endif
 IN_PROC_BROWSER_TEST_F(ChromeMimeHandlerViewTest,
-                       MAYBE_BeforeUnloadEnabled_WithUserActivation) {
+                       BeforeUnloadEnabled_WithUserActivation) {
   ASSERT_NO_FATAL_FAILURE(RunTest("testBeforeUnloadWithUserActivation.csv"));
   auto* web_contents = GetEmbedderWebContents();
   // Prepare frames but don't trigger user activation across all frames.

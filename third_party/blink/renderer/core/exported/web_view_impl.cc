@@ -84,6 +84,7 @@
 #include "third_party/blink/renderer/core/content_capture/content_capture_manager.h"
 #include "third_party/blink/renderer/core/core_initializer.h"
 #include "third_party/blink/renderer/core/css_value_keywords.h"
+#include "third_party/blink/renderer/core/dom/context_features_client_impl.h"
 #include "third_party/blink/renderer/core/dom/document.h"
 #include "third_party/blink/renderer/core/dom/events/native_event_listener.h"
 #include "third_party/blink/renderer/core/dom/layout_tree_builder_traversal.h"
@@ -175,6 +176,7 @@
 #include "third_party/blink/renderer/platform/keyboard_codes.h"
 #include "third_party/blink/renderer/platform/loader/fetch/unique_identifier.h"
 #include "third_party/blink/renderer/platform/runtime_enabled_features.h"
+#include "third_party/blink/renderer/platform/scheduler/public/page_lifecycle_state.h"
 #include "third_party/blink/renderer/platform/scheduler/public/page_scheduler.h"
 #include "third_party/blink/renderer/platform/theme/web_theme_engine_helper.h"
 #include "third_party/blink/renderer/platform/weborigin/known_ports.h"
@@ -400,20 +402,6 @@ ui::mojom::blink::WindowOpenDisposition NavigationPolicyToDisposition(
   }
   NOTREACHED() << "Unexpected NavigationPolicy";
   return ui::mojom::blink::WindowOpenDisposition::IGNORE_ACTION;
-}
-
-// Records the queuing duration for activation IPC.
-void RecordPrerenderActivationSignalDelay() {
-  auto* task = base::TaskAnnotator::CurrentTaskForThread();
-
-  // It should be a Mojo call, so `RunTask` executes it as a non-delayed task.
-  CHECK(task);
-  CHECK(task->delayed_run_time.is_null());
-  base::TimeDelta queueing_time =
-      !task->queue_time.is_null() ? base::TimeTicks::Now() - task->queue_time
-                                  : base::TimeDelta();
-  base::UmaHistogramTimes("Prerender.Experimental.ActivationIPCDelay",
-                          queueing_time);
 }
 
 #if !BUILDFLAG(IS_MAC) && !BUILDFLAG(IS_WIN)
@@ -1458,14 +1446,8 @@ void WebViewImpl::PaintContent(cc::PaintCanvas* canvas, const gfx::Rect& rect) {
     return;
 
   LocalFrameView& main_view = *MainFrameImpl()->GetFrame()->View();
-  // TODO(crbug.com/1442088): Investigate the reason.
-  if (!main_view.GetLayoutView()
-           ->FirstFragment()
-           .HasLocalBorderBoxProperties()) {
-    return;
-  }
-  DCHECK_EQ(main_view.GetLayoutView()->GetDocument().Lifecycle().GetState(),
-            DocumentLifecycle::kPaintClean);
+  DCHECK(main_view.GetLayoutView()->GetDocument().Lifecycle().GetState() ==
+         DocumentLifecycle::kPaintClean);
 
   auto* builder = MakeGarbageCollected<PaintRecordBuilder>();
   main_view.PaintOutsideOfLifecycleWithThrottlingAllowed(
@@ -1528,6 +1510,8 @@ void WebView::ApplyWebPreferences(const web_pref::WebPreferences& prefs,
       !prefs.disable_ipc_flooding_protection);
   settings->SetHyperlinkAuditingEnabled(prefs.hyperlink_auditing_enabled);
   settings->SetCookieEnabled(prefs.cookie_enabled);
+  settings->SetNavigateOnDragDrop(prefs.navigate_on_drag_drop);
+  settings->SetThreadedScrollingEnabled(prefs.threaded_scrolling_enabled);
 
   // By default, allow_universal_access_from_file_urls is set to false and thus
   // we mitigate attacks from local HTML files by not granting file:// URLs
@@ -1592,8 +1576,6 @@ void WebView::ApplyWebPreferences(const web_pref::WebPreferences& prefs,
       prefs.should_clear_document_background);
   settings->SetEnableScrollAnimator(prefs.enable_scroll_animator);
   settings->SetPrefersReducedMotion(prefs.prefers_reduced_motion);
-  settings->SetPrefersReducedTransparency(prefs.prefers_reduced_transparency);
-  settings->SetInvertedColors(prefs.inverted_colors);
 
   RuntimeEnabledFeatures::SetTouchEventFeatureDetectionEnabled(
       prefs.touch_event_feature_detection_enabled);
@@ -3346,9 +3328,6 @@ void WebViewImpl::ActivatePrerenderedPage(
   if (auto* local_frame = DynamicTo<LocalFrame>(GetPage()->MainFrame())) {
     main_frame_document = local_frame->GetDocument();
   }
-  if (main_frame_document) {
-    RecordPrerenderActivationSignalDelay();
-  }
 
   for (Frame* frame = GetPage()->MainFrame(); frame;
        frame = frame->Tree().TraverseNext()) {
@@ -3741,7 +3720,7 @@ WebHitTestResult WebViewImpl::HitTestResultForTap(
               scaled_event, HitTestRequest::kReadOnly | HitTestRequest::kActive)
           .GetHitTestResult();
 
-  result.SetToShadowHostIfInUAShadowRoot();
+  result.SetToShadowHostIfInRestrictedShadowRoot();
   return result;
 }
 

@@ -6,7 +6,6 @@
 #import <XCTest/XCTest.h>
 
 #import "base/test/ios/wait_util.h"
-#import "build/branding_buildflags.h"
 #import "ios/chrome/test/earl_grey/chrome_actions.h"
 #import "ios/chrome/test/earl_grey/chrome_earl_grey.h"
 #import "ios/chrome/test/earl_grey/chrome_earl_grey_ui.h"
@@ -14,6 +13,10 @@
 #import "ios/chrome/test/earl_grey/chrome_test_case.h"
 #import "ios/testing/earl_grey/earl_grey_test.h"
 #import "net/test/embedded_test_server/embedded_test_server.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 using chrome_test_util::RegularTabGrid;
 using chrome_test_util::ScrollToTop;
@@ -31,14 +34,16 @@ const char kGreenPDFPath[] = "/green.pdf";
 // tab, switch back and forth betweeen the new tab and the old one by
 // swiping in the toolbar. The regression is a crash.
 - (void)testSwitchToAndFromPDF {
-#if BUILDFLAG(GOOGLE_CHROME_BRANDING)
-  EARL_GREY_TEST_DISABLED(@"Failing on official builders. crbug.com/1476653");
-#endif
   // Compact width only.
   if (![ChromeEarlGrey isCompactWidth]) {
     EARL_GREY_TEST_DISABLED(@"Disabled on iPad -- depends on swiping in the "
                             @"toolbar to change tabs, which is a compact-"
                             @"only feature.");
+  }
+  if ([ChromeEarlGrey isSortingTabsByRecency]) {
+    EARL_GREY_TEST_DISABLED(@"Disabled when sorting tabs by recency -- depends "
+                            @"on swiping in the toolbar to change tabs, which "
+                            @"is disabled when sorting tabs by recency.");
   }
 
   GREYAssertTrue(self.testServer->Start(), @"Test server failed to start.");
@@ -75,9 +80,6 @@ const char kGreenPDFPath[] = "/green.pdf";
 // the two tabs in the toolbar. The regressiom is a crash anywhere in this
 // process.
 - (void)testSwitchBetweenPDFs {
-#if BUILDFLAG(GOOGLE_CHROME_BRANDING)
-  EARL_GREY_TEST_DISABLED(@"Failing on official builders. crbug.com/1476653");
-#endif
   // Compact width only.
   if (![ChromeEarlGrey isCompactWidth]) {
     EARL_GREY_TEST_DISABLED(@"Disabled on iPad -- depends on swiping in the "
@@ -113,9 +115,6 @@ const char kGreenPDFPath[] = "/green.pdf";
 // to a PDF in that tab. Enter the tab grid. Wait five seconds. Exit the
 // tab switcher. The regression is a crash anywhere in this process.
 - (void)testPDFIntoTabGridAndWait {
-#if BUILDFLAG(GOOGLE_CHROME_BRANDING)
-  EARL_GREY_TEST_DISABLED(@"Failing on official builders. crbug.com/1476653");
-#endif
   GREYAssertTrue(self.testServer->Start(), @"Test server failed to start.");
 
   // Load a page, then a PDF.

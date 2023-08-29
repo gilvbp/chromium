@@ -7,6 +7,10 @@
 #import "ios/chrome/browser/ui/fullscreen/fullscreen_animator.h"
 #import "ios/chrome/browser/ui/fullscreen/fullscreen_controller.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 void TestFullscreenControllerObserver::FullscreenViewportInsetRangeChanged(
     FullscreenController* controller,
     UIEdgeInsets min_viewport_insets,

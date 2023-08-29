@@ -492,8 +492,7 @@ StructuredAddressesRegExProvider* StructuredAddressesRegExProvider::Instance() {
 }
 
 std::string StructuredAddressesRegExProvider::GetPattern(
-    RegEx expression_identifier,
-    const std::string& country_code) {
+    RegEx expression_identifier) {
   switch (expression_identifier) {
     case RegEx::kSingleWord:
       return kSingleWordRe;
@@ -529,7 +528,7 @@ std::string StructuredAddressesRegExProvider::GetPattern(
       return ParseHouseNumberStreetNameExpression();
     case RegEx::kParseStreetNameHouseNumberSuffixedFloor:
       return ParseStreetNameHouseNumberExpressionSuffixedFloor();
-    case RegEx::kParseStreetNameHouseNumberSuffixedFloorAndApartmentRe:
+    case RegEx::kParseStreetNameHouseNumberSuffixedFloorAndAppartmentRe:
       return ParseStreetNameHouseNumberSuffixedFloorAndAppartmentExpression();
     case RegEx::kParseStreetNameHouseNumber:
       return ParseStreetNameHouseNumberExpression();
@@ -540,13 +539,12 @@ std::string StructuredAddressesRegExProvider::GetPattern(
 }
 
 const RE2* StructuredAddressesRegExProvider::GetRegEx(
-    RegEx expression_identifier,
-    const std::string& country_code) {
+    RegEx expression_identifier) {
   base::AutoLock lock(lock_);
   auto it = cached_expressions_.find(expression_identifier);
   if (it == cached_expressions_.end()) {
     std::unique_ptr<const RE2> expression =
-        BuildRegExFromPattern(GetPattern(expression_identifier, country_code));
+        BuildRegExFromPattern(GetPattern(expression_identifier));
     const RE2* expresstion_ptr = expression.get();
     cached_expressions_.emplace(expression_identifier, std::move(expression));
     return expresstion_ptr;

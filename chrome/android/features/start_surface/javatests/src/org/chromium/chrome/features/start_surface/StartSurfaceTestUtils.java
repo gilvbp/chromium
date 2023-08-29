@@ -38,7 +38,6 @@ import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.uiautomator.UiDevice;
 
 import org.hamcrest.Matcher;
-import org.hamcrest.Matchers;
 import org.junit.Assert;
 
 import org.chromium.base.CommandLine;
@@ -49,10 +48,8 @@ import org.chromium.base.library_loader.LibraryLoader;
 import org.chromium.base.test.params.ParameterProvider;
 import org.chromium.base.test.params.ParameterSet;
 import org.chromium.base.test.util.CallbackHelper;
-import org.chromium.base.test.util.Criteria;
 import org.chromium.base.test.util.CriteriaHelper;
 import org.chromium.chrome.browser.ChromeTabbedActivity;
-import org.chromium.chrome.browser.browser_controls.BrowserControlsStateProvider;
 import org.chromium.chrome.browser.compositor.layouts.content.TabContentManager;
 import org.chromium.chrome.browser.flags.ChromeFeatureList;
 import org.chromium.chrome.browser.flags.ChromeSwitches;
@@ -160,91 +157,13 @@ public class StartSurfaceTestUtils {
      */
     public static void setUpStartSurfaceTests(boolean immediateReturn,
             ChromeTabbedActivityTestRule activityTestRule) throws IOException {
-        BrowserControlsStateProvider fakeBrowserControlsStateProvider =
-                new BrowserControlsStateProvider() {
-                    @Override
-                    public void addObserver(BrowserControlsStateProvider.Observer obs) {
-                        assert false : "Not reached";
-                    }
-
-                    @Override
-                    public void removeObserver(BrowserControlsStateProvider.Observer obs) {
-                        assert false : "Not reached";
-                    }
-
-                    @Override
-                    public int getTopControlsHeight() {
-                        return 0;
-                    }
-
-                    @Override
-                    public int getTopControlsMinHeight() {
-                        return 0;
-                    }
-
-                    @Override
-                    public int getTopControlOffset() {
-                        return 0;
-                    }
-
-                    @Override
-                    public int getTopControlsMinHeightOffset() {
-                        return 0;
-                    }
-
-                    @Override
-                    public int getBottomControlsHeight() {
-                        return 0;
-                    }
-
-                    @Override
-                    public int getBottomControlsMinHeight() {
-                        return 0;
-                    }
-
-                    @Override
-                    public int getBottomControlsMinHeightOffset() {
-                        return 0;
-                    }
-
-                    @Override
-                    public boolean shouldAnimateBrowserControlsHeightChanges() {
-                        return false;
-                    }
-
-                    @Override
-                    public int getBottomControlOffset() {
-                        return 0;
-                    }
-
-                    @Override
-                    public float getBrowserControlHiddenRatio() {
-                        return 0.0f;
-                    }
-
-                    @Override
-                    public int getContentOffset() {
-                        return 0;
-                    }
-
-                    @Override
-                    public float getTopVisibleContentOffset() {
-                        return 0.0f;
-                    }
-
-                    @Override
-                    public int getAndroidControlsVisibility() {
-                        return 0;
-                    }
-                };
-
         int expectedTabs = 1;
         int additionalTabs = expectedTabs - (immediateReturn ? 0 : 1);
         if (additionalTabs > 0) {
             int[] tabIDs = new int[additionalTabs];
             for (int i = 0; i < additionalTabs; i++) {
                 tabIDs[i] = i;
-                createThumbnailBitmapAndWriteToFile(i, fakeBrowserControlsStateProvider);
+                createThumbnailBitmapAndWriteToFile(i);
             }
             createTabStateFile(tabIDs);
         }
@@ -438,15 +357,12 @@ public class StartSurfaceTestUtils {
     /**
      * Create thumbnail bitmap of the tab based on the given id and write it to file.
      * @param tabId The id of the target tab.
-     * @param browserControlsStateProvider For getting the top offset.
      * @return The bitmap created.
      */
-    public static Bitmap createThumbnailBitmapAndWriteToFile(
-            int tabId, BrowserControlsStateProvider browserControlsStateProvider) {
+    public static Bitmap createThumbnailBitmapAndWriteToFile(int tabId) {
         final int height = 100;
-        final int width = (int) Math.round(height
-                * TabUtils.getTabThumbnailAspectRatio(
-                        ContextUtils.getApplicationContext(), browserControlsStateProvider));
+        final int width = (int) Math.round(
+                height * TabUtils.getTabThumbnailAspectRatio(ContextUtils.getApplicationContext()));
         final Bitmap thumbnailBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
 
         try {
@@ -720,13 +636,6 @@ public class StartSurfaceTestUtils {
         AsyncInitializationActivity.interceptMoveTaskToBackForTesting();
         pressBack(testRule);
         Assert.assertTrue(AsyncInitializationActivity.wasMoveTaskToBackInterceptedForTesting());
-    }
-
-    public static void waitForStatusBarColor(Activity activity, int expectedColor) {
-        CriteriaHelper.pollUiThread(() -> {
-            Criteria.checkThat(
-                    activity.getWindow().getStatusBarColor(), Matchers.is(expectedColor));
-        }, CriteriaHelper.DEFAULT_MAX_TIME_TO_POLL, CriteriaHelper.DEFAULT_POLLING_INTERVAL);
     }
 
     /**

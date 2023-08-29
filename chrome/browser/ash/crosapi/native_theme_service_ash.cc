@@ -6,7 +6,7 @@
 
 #include "chromeos/constants/chromeos_features.h"
 #include "third_party/skia/include/core/SkColor.h"
-#include "ui/color/color_provider_key.h"
+#include "ui/color/color_provider_manager.h"
 #include "ui/color/scheme_variant.mojom.h"
 #include "ui/native_theme/native_theme.h"
 
@@ -14,15 +14,15 @@ namespace crosapi {
 namespace {
 
 color::mojom::SchemeVariant VariantToScheme(
-    ui::ColorProviderKey::SchemeVariant scheme) {
+    ui::ColorProviderManager::SchemeVariant scheme) {
   switch (scheme) {
-    case ui::ColorProviderKey::SchemeVariant::kTonalSpot:
+    case ui::ColorProviderManager::SchemeVariant::kTonalSpot:
       return color::mojom::SchemeVariant::kTonalSpot;
-    case ui::ColorProviderKey::SchemeVariant::kNeutral:
+    case ui::ColorProviderManager::SchemeVariant::kNeutral:
       return color::mojom::SchemeVariant::kNeutral;
-    case ui::ColorProviderKey::SchemeVariant::kVibrant:
+    case ui::ColorProviderManager::SchemeVariant::kVibrant:
       return color::mojom::SchemeVariant::kVibrant;
-    case ui::ColorProviderKey::SchemeVariant::kExpressive:
+    case ui::ColorProviderManager::SchemeVariant::kExpressive:
       return color::mojom::SchemeVariant::kExpressive;
   }
   // not reached
@@ -63,7 +63,7 @@ mojom::NativeThemeInfoPtr NativeThemeServiceAsh::GetNativeThemeInfo() {
     return info;
   }
 
-  absl::optional<ui::ColorProviderKey::SchemeVariant> scheme =
+  absl::optional<ui::ColorProviderManager::SchemeVariant> scheme =
       theme->scheme_variant();
   if (scheme) {
     info->scheme_variant = VariantToScheme(*scheme);

@@ -553,7 +553,7 @@ void NDEFReader::Trace(Visitor* visitor) const {
   visitor->Trace(scan_abort_handle_);
   visitor->Trace(write_requests_);
   visitor->Trace(make_read_only_requests_);
-  EventTarget::Trace(visitor);
+  EventTargetWithInlineData::Trace(visitor);
   ActiveScriptWrappable::Trace(visitor);
   ExecutionContextLifecycleObserver::Trace(visitor);
 }

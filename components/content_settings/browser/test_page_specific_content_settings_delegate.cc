@@ -55,7 +55,7 @@ bool TestPageSpecificContentSettingsDelegate::IsMicrophoneCameraStateChanged(
 
 PageSpecificContentSettings::MicrophoneCameraState
 TestPageSpecificContentSettingsDelegate::GetMicrophoneCameraState() {
-  return {};
+  return PageSpecificContentSettings::MICROPHONE_CAMERA_NOT_ACCESSED;
 }
 
 content::WebContents* TestPageSpecificContentSettingsDelegate::

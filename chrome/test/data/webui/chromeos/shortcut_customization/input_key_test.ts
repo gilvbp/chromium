@@ -102,7 +102,7 @@ suite('inputKeyTest', function() {
                             '#key-icon') as IronIconElement;
     assertTrue(isVisible(iconElement));
     assertEquals('shortcut-customization-keys:launcher', iconElement.icon);
-    assertEquals('meta launcher', iconElement.ariaLabel);
+    assertEquals('open launcher', iconElement.ariaLabel);
     assertEquals('img', iconElement.getAttribute('role'));
   });
 
@@ -118,7 +118,7 @@ suite('inputKeyTest', function() {
                             '#key-icon') as IronIconElement;
     assertTrue(isVisible(iconElement));
     assertEquals('shortcut-customization-keys:search', iconElement.icon);
-    assertEquals('meta search', iconElement.ariaLabel);
+    assertEquals('open search', iconElement.ariaLabel);
     assertEquals('img', iconElement.getAttribute('role'));
   });
 

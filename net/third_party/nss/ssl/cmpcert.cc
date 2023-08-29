@@ -78,9 +78,8 @@ bool MatchClientCertificateIssuers(
   while (intermediates->size() < kMaxDepth) {
     // Check if current cert is issued by a valid CA.
     for (const std::string& ca : cert_authorities) {
-      if (issuer == der::Input(ca)) {
+      if (issuer == der::Input(&ca))
         return true;
-      }
     }
 
     // Stop at self-issued certificates.

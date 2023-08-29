@@ -199,14 +199,13 @@ void ClipboardPortalInjector::OnSelectionWriteCallback(GObject* object,
   GVariantIter iterator;
   g_variant_iter_init(&iterator, g_variant_get_child_value(variant.get(), 0));
   while (g_variant_iter_loop(&iterator, "{uh}", &serial, &fd_id)) {
-    Scoped<GError> fd_error;
     base::ScopedFD fd(
-        g_unix_fd_list_get(outlist.get(), fd_id, fd_error.receive()));
+        g_unix_fd_list_get(outlist.get(), fd_id, error.receive()));
 
     request_successes[serial] = false;
     if (!fd.is_valid()) {
       LOG(ERROR) << "Failed to get file descriptor from the list: "
-                 << fd_error->message;
+                 << error->message;
     } else {
       request_successes[serial] =
           base::WriteFileDescriptor(fd.get(), that->write_data_);

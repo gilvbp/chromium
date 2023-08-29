@@ -14,11 +14,9 @@
 #include "base/time/time.h"
 #include "base/values.h"
 #include "chrome/browser/content_settings/host_content_settings_map_factory.h"
+#include "chrome/browser/permissions/notification_permission_review_service_factory.h"
+#include "chrome/browser/permissions/unused_site_permissions_service_factory.h"
 #include "chrome/browser/profiles/profile.h"
-#include "chrome/browser/ui/safety_hub/notification_permission_review_service.h"
-#include "chrome/browser/ui/safety_hub/notification_permission_review_service_factory.h"
-#include "chrome/browser/ui/safety_hub/unused_site_permissions_service.h"
-#include "chrome/browser/ui/safety_hub/unused_site_permissions_service_factory.h"
 #include "chrome/browser/ui/webui/settings/site_settings_helper.h"
 #include "chrome/common/chrome_features.h"
 #include "chrome/grit/generated_resources.h"
@@ -27,7 +25,7 @@
 #include "components/content_settings/core/common/content_settings_pattern.h"
 #include "components/content_settings/core/common/features.h"
 #include "components/permissions/constants.h"
-#include "components/safe_browsing/core/common/safe_browsing_prefs.h"
+#include "components/permissions/unused_site_permissions_service.h"
 #include "components/site_engagement/content/site_engagement_service.h"
 #include "ui/base/l10n/l10n_util.h"
 #include "url/gurl.h"
@@ -74,11 +72,14 @@ GetUnusedSitePermissionsFromDict(
   base::Time expiration = base::ValueToTime(js_expiration).value();
 
   const base::Value* js_lifetime = unused_site_permissions.Find(kLifetimeKey);
-  // Users may edit the stored fields directly, so we cannot assume their
-  // presence and validity.
+  // TODO(https://crbug.com/1455435): The use of ComputeLifetime here should be
+  // temporary. Once all persisted RuleMetaData instances include lifetimes, we
+  // can remove this, and just use the stored lifetime directly. We can do this
+  // after all lifetime-less settings have expired. Realistically this will take
+  // only one or two milestones, so this can safely be removed in M118 or M119.
   base::TimeDelta lifetime = content_settings::RuleMetaData::ComputeLifetime(
-      /*lifetime=*/
-      base::ValueToTimeDelta(js_lifetime).value_or(base::TimeDelta()),
+      /*lifetime=*/js_lifetime ? base::ValueToTimeDelta(js_lifetime).value()
+                               : base::TimeDelta(),
       /*expiration=*/expiration);
 
   content_settings::ContentSettingConstraints constraints =
@@ -86,19 +87,6 @@ GetUnusedSitePermissionsFromDict(
   constraints.set_lifetime(lifetime);
 
   return std::make_tuple(origin, permission_types, constraints);
-}
-
-// Returns the state of Safe Browsing setting.
-SafeBrowsingState GetSafeBrowsingState(PrefService* pref_service) {
-  if (safe_browsing::IsEnhancedProtectionEnabled(*pref_service))
-    return SafeBrowsingState::kEnabledEnhanced;
-  if (safe_browsing::IsSafeBrowsingEnabled(*pref_service))
-    return SafeBrowsingState::kEnabledStandard;
-  if (safe_browsing::IsSafeBrowsingPolicyManaged(*pref_service))
-    return SafeBrowsingState::kDisabledByAdmin;
-  if (safe_browsing::IsSafeBrowsingExtensionControlled(*pref_service))
-    return SafeBrowsingState::kDisabledByExtension;
-  return SafeBrowsingState::kDisabledByUser;
 }
 }  // namespace
 
@@ -130,7 +118,7 @@ void SafetyHubHandler::HandleAllowPermissionsAgainForUnusedSite(
   CHECK(args[0].is_string());
   const std::string& origin_str = args[0].GetString();
 
-  UnusedSitePermissionsService* service =
+  permissions::UnusedSitePermissionsService* service =
       UnusedSitePermissionsServiceFactory::GetForProfile(profile_);
 
   url::Origin origin = url::Origin::Create(GURL(origin_str));
@@ -146,7 +134,7 @@ void SafetyHubHandler::HandleUndoAllowPermissionsAgainForUnusedSite(
 
   auto [origin, permissions, constraints] =
       GetUnusedSitePermissionsFromDict(args[0].GetDict());
-  UnusedSitePermissionsService* service =
+  permissions::UnusedSitePermissionsService* service =
       UnusedSitePermissionsServiceFactory::GetForProfile(profile_);
 
   service->UndoRegrantPermissionsForOrigin(permissions, constraints, origin);
@@ -156,7 +144,7 @@ void SafetyHubHandler::HandleUndoAllowPermissionsAgainForUnusedSite(
 
 void SafetyHubHandler::HandleAcknowledgeRevokedUnusedSitePermissionsList(
     const base::Value::List& args) {
-  UnusedSitePermissionsService* service =
+  permissions::UnusedSitePermissionsService* service =
       UnusedSitePermissionsServiceFactory::GetForProfile(profile_);
   service->ClearRevokedPermissionsList();
 
@@ -169,7 +157,7 @@ void SafetyHubHandler::HandleUndoAcknowledgeRevokedUnusedSitePermissionsList(
   CHECK(args[0].is_list());
 
   const base::Value::List& unused_site_permissions_list = args[0].GetList();
-  UnusedSitePermissionsService* service =
+  permissions::UnusedSitePermissionsService* service =
       UnusedSitePermissionsServiceFactory::GetForProfile(profile_);
 
   for (const auto& unused_site_permissions_js : unused_site_permissions_list) {
@@ -194,8 +182,11 @@ base::Value::List SafetyHubHandler::PopulateUnusedSitePermissionsData() {
   HostContentSettingsMap* hcsm =
       HostContentSettingsMapFactory::GetForProfile(profile_);
 
-  for (const auto& revoked_permissions : hcsm->GetSettingsForOneType(
-           ContentSettingsType::REVOKED_UNUSED_SITE_PERMISSIONS)) {
+  ContentSettingsForOneType settings;
+  hcsm->GetSettingsForOneType(
+      ContentSettingsType::REVOKED_UNUSED_SITE_PERMISSIONS, &settings);
+
+  for (const auto& revoked_permissions : settings) {
     base::Value::Dict revoked_permission_value;
     revoked_permission_value.Set(
         site_settings::kOrigin, revoked_permissions.primary_pattern.ToString());
@@ -209,21 +200,9 @@ base::Value::List SafetyHubHandler::PopulateUnusedSitePermissionsData() {
         stored_value.GetDict().FindList(permissions::kRevokedKey)->Clone();
     base::Value::List permissions_value_list;
     for (base::Value& type : type_list) {
-      base::StringPiece permission_str =
+      permissions_value_list.Append(
           site_settings::ContentSettingsTypeToGroupName(
-              static_cast<ContentSettingsType>(type.GetInt()));
-      if (!permission_str.empty()) {
-        permissions_value_list.Append(permission_str);
-      }
-    }
-
-    // Some permissions have no readable name, although Safety Hub revokes them.
-    // To prevent crashes, if there is no permission to be shown in the UI, the
-    // origin will not be added to the revoked permissions list.
-    // TODO(crbug.com/1459305): Remove this after adding check for
-    // ContentSettingsTypeToGroupName.
-    if (permissions_value_list.empty()) {
-      continue;
+              static_cast<ContentSettingsType>(type.GetInt())));
     }
 
     revoked_permission_value.Set(
@@ -249,12 +228,8 @@ void SafetyHubHandler::HandleGetNotificationPermissionReviewList(
 
   const base::Value& callback_id = args[0];
 
-  NotificationPermissionsReviewService* service =
-      NotificationPermissionsReviewServiceFactory::GetForProfile(profile_);
-  DCHECK(service);
-
   base::Value::List result =
-      service->PopulateNotificationPermissionReviewData(profile_);
+      site_settings::PopulateNotificationPermissionReviewData(profile_);
 
   ResolveJavascriptCallback(callback_id, base::Value(std::move(result)));
 }
@@ -264,7 +239,7 @@ void SafetyHubHandler::HandleIgnoreOriginsForNotificationPermissionReview(
   CHECK_EQ(1U, args.size());
   const base::Value::List& origins = args[0].GetList();
 
-  NotificationPermissionsReviewService* service =
+  auto* service =
       NotificationPermissionsReviewServiceFactory::GetForProfile(profile_);
   DCHECK(service);
 
@@ -336,7 +311,7 @@ void SafetyHubHandler::HandleUndoIgnoreOriginsForNotificationPermissionReview(
     const base::Value::List& args) {
   CHECK_EQ(1U, args.size());
   const base::Value::List& origins = args[0].GetList();
-  NotificationPermissionsReviewService* service =
+  auto* service =
       NotificationPermissionsReviewServiceFactory::GetForProfile(profile_);
   DCHECK(service);
 
@@ -347,18 +322,6 @@ void SafetyHubHandler::HandleUndoIgnoreOriginsForNotificationPermissionReview(
         primary_pattern, ContentSettingsPattern::Wildcard());
   }
   SendNotificationPermissionReviewList();
-}
-
-void SafetyHubHandler::HandleGetSafeBrowsingState(
-    const base::Value::List& args) {
-  AllowJavascript();
-
-  CHECK_EQ(1U, args.size());
-  const base::Value& callback_id = args[0];
-
-  SafeBrowsingState result = GetSafeBrowsingState(profile_->GetPrefs());
-
-  ResolveJavascriptCallback(callback_id, (int)result);
 }
 
 void SafetyHubHandler::RegisterMessages() {
@@ -421,10 +384,6 @@ void SafetyHubHandler::RegisterMessages() {
           &SafetyHubHandler::
               HandleUndoIgnoreOriginsForNotificationPermissionReview,
           base::Unretained(this)));
-  web_ui()->RegisterMessageCallback(
-      "getSafeBrowsingState",
-      base::BindRepeating(&SafetyHubHandler::HandleGetSafeBrowsingState,
-                          base::Unretained(this)));
 }
 
 void SafetyHubHandler::SendUnusedSitePermissionsReviewList() {
@@ -437,17 +396,11 @@ void SafetyHubHandler::SendUnusedSitePermissionsReviewList() {
 }
 
 void SafetyHubHandler::SendNotificationPermissionReviewList() {
-  NotificationPermissionsReviewService* service =
-      NotificationPermissionsReviewServiceFactory::GetForProfile(profile_);
-  CHECK(service);
-
-  base::Value::List result =
-      service->PopulateNotificationPermissionReviewData(profile_);
   // Notify observers that the permission review list could have changed. Note
   // that the list is not guaranteed to have changed.
   FireWebUIListener(
       site_settings::kNotificationPermissionsReviewListMaybeChangedEvent,
-      service->PopulateNotificationPermissionReviewData(profile_));
+      site_settings::PopulateNotificationPermissionReviewData(profile_));
 }
 
 void SafetyHubHandler::SetClockForTesting(base::Clock* clock) {

@@ -21,7 +21,8 @@ constexpr int kFakeNotificationInputForTesting = 8;
 }  // namespace
 
 AdaptiveChargingController::AdaptiveChargingController()
-    : notification_controller_(
+    : nudge_controller_(std::make_unique<AdaptiveChargingNudgeController>()),
+      notification_controller_(
           std::make_unique<AdaptiveChargingNotificationController>()) {
   power_manager_observation_.Observe(chromeos::PowerManagerClient::Get());
 }
@@ -58,6 +59,7 @@ void AdaptiveChargingController::PowerChanged(
 #if DCHECK_IS_ON()
   if (features::IsAdaptiveChargingForTestingEnabled()) {
     if (!is_on_charger_ && is_on_charger_now) {
+      nudge_controller_->ShowNudgeForTesting();  // IN-TEST
       notification_controller_->ShowAdaptiveChargingNotification(
           kFakeNotificationInputForTesting);
     }
@@ -66,7 +68,8 @@ void AdaptiveChargingController::PowerChanged(
   }
 #endif  // DCHECK_IS_ON()
 
-  // Notification should be shown only if heuristic is enabled for this user.
+  // Nudge and notification should be shown only if heuristic is enabled for
+  // this user.
   if (proto.has_adaptive_charging_heuristic_enabled() &&
       !proto.adaptive_charging_heuristic_enabled()) {
     // |is_adaptive_delaying_charge_| is set to false when there is no
@@ -76,6 +79,12 @@ void AdaptiveChargingController::PowerChanged(
     notification_controller_->CloseAdaptiveChargingNotification();
     return;
   }
+
+  // Showing educational nudge.
+  if (proto.has_adaptive_charging_heuristic_enabled() &&
+      proto.adaptive_charging_heuristic_enabled() && !is_on_charger_ &&
+      is_on_charger_now)
+    nudge_controller_->ShowNudge();
 
   is_on_charger_ = is_on_charger_now;
 

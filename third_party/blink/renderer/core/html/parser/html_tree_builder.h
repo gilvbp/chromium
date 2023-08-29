@@ -47,33 +47,21 @@ class HTMLDocumentParser;
 
 class HTMLTreeBuilder final : public GarbageCollected<HTMLTreeBuilder> {
  public:
-  // This constructor is used for main document parsing.
-  // TODO(kouhei): HTMLTreeBuilder can be created for non-HTMLDocument
-  // (XHTMLDocument) from editing code. Fix editing code to always invoke HTML
-  // parser on HTMLDocument.
+  // HTMLTreeBuilder can be created for non-HTMLDocument (XHTMLDocument) from
+  // editing code.
+  // TODO(kouhei): Fix editing code to always invoke HTML parser on
+  // HTMLDocument.
   HTMLTreeBuilder(HTMLDocumentParser*,
                   Document&,
                   ParserContentPolicy,
                   const HTMLParserOptions&,
                   bool include_shadow_roots);
-  // This constructor is used for fragment parsing.
   HTMLTreeBuilder(HTMLDocumentParser*,
                   DocumentFragment*,
                   Element* context_element,
                   ParserContentPolicy,
                   const HTMLParserOptions&,
                   bool include_shadow_roots);
-
- private:
-  HTMLTreeBuilder(HTMLDocumentParser*,
-                  Document&,
-                  ParserContentPolicy,
-                  const HTMLParserOptions&,
-                  bool include_shadow_roots,
-                  DocumentFragment* for_fragment,
-                  Element* fragment_context_element);
-
- public:
   HTMLTreeBuilder(const HTMLTreeBuilder&) = delete;
   HTMLTreeBuilder& operator=(const HTMLTreeBuilder&) = delete;
   ~HTMLTreeBuilder();

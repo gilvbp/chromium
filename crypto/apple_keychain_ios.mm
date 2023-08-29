@@ -7,8 +7,12 @@
 #import <Foundation/Foundation.h>
 
 #include "base/apple/bridging.h"
-#include "base/apple/foundation_util.h"
-#include "base/apple/scoped_cftyperef.h"
+#include "base/mac/foundation_util.h"
+#include "base/mac/scoped_cftyperef.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace {
 
@@ -17,17 +21,16 @@ enum KeychainAction {
   kKeychainActionUpdate
 };
 
-base::apple::ScopedCFTypeRef<CFStringRef> StringWithBytesAndLength(
-    const char* bytes,
-    UInt32 length) {
-  return base::apple::ScopedCFTypeRef<CFStringRef>(
+base::ScopedCFTypeRef<CFStringRef> StringWithBytesAndLength(const char* bytes,
+                                                            UInt32 length) {
+  return base::ScopedCFTypeRef<CFStringRef>(
       CFStringCreateWithBytes(nullptr, reinterpret_cast<const UInt8*>(bytes),
                               length, kCFStringEncodingUTF8,
                               /*isExternalRepresentation=*/false));
 }
 
 // Creates a dictionary that can be used to query the keystore.
-base::apple::ScopedCFTypeRef<CFDictionaryRef> MakeGenericPasswordQuery(
+base::ScopedCFTypeRef<CFDictionaryRef> MakeGenericPasswordQuery(
     UInt32 serviceNameLength,
     const char* serviceName,
     UInt32 accountNameLength,
@@ -52,11 +55,11 @@ base::apple::ScopedCFTypeRef<CFDictionaryRef> MakeGenericPasswordQuery(
   CFDictionarySetValue(query, kSecMatchLimit, kSecMatchLimitOne);
   CFDictionarySetValue(query, kSecReturnData, kCFBooleanTrue);
 
-  return base::apple::ScopedCFTypeRef<CFDictionaryRef>(query);
+  return base::ScopedCFTypeRef<CFDictionaryRef>(query);
 }
 
 // Creates a dictionary containing the data to save into the keychain.
-base::apple::ScopedCFTypeRef<CFDictionaryRef> MakeKeychainData(
+base::ScopedCFTypeRef<CFDictionaryRef> MakeKeychainData(
     UInt32 serviceNameLength,
     const char* serviceName,
     UInt32 accountNameLength,
@@ -75,7 +78,7 @@ base::apple::ScopedCFTypeRef<CFDictionaryRef> MakeKeychainData(
 
   // If this is not a creation, no structural information is needed.
   if (action != kKeychainActionCreate) {
-    return base::apple::ScopedCFTypeRef<CFDictionaryRef>(keychain_data);
+    return base::ScopedCFTypeRef<CFDictionaryRef>(keychain_data);
   }
 
   // Set the type of the data.
@@ -96,7 +99,7 @@ base::apple::ScopedCFTypeRef<CFDictionaryRef> MakeKeychainData(
       keychain_data, kSecAttrAccount,
       StringWithBytesAndLength(accountName, accountNameLength));
 
-  return base::apple::ScopedCFTypeRef<CFDictionaryRef>(keychain_data);
+  return base::ScopedCFTypeRef<CFDictionaryRef>(keychain_data);
 }
 
 }  // namespace
@@ -120,24 +123,21 @@ OSStatus AppleKeychain::AddGenericPassword(
     UInt32 passwordLength,
     const void* passwordData,
     AppleSecKeychainItemRef* itemRef) const {
-  base::apple::ScopedCFTypeRef<CFDictionaryRef> query =
-      MakeGenericPasswordQuery(serviceNameLength, serviceName,
-                               accountNameLength, accountName);
+  base::ScopedCFTypeRef<CFDictionaryRef> query = MakeGenericPasswordQuery(
+      serviceNameLength, serviceName, accountNameLength, accountName);
   // Check that there is not already a password.
   OSStatus status = SecItemCopyMatching(query, /*result=*/nullptr);
   if (status == errSecItemNotFound) {
     // A new entry must be created.
-    base::apple::ScopedCFTypeRef<CFDictionaryRef> keychain_data =
-        MakeKeychainData(serviceNameLength, serviceName, accountNameLength,
-                         accountName, passwordLength, passwordData,
-                         kKeychainActionCreate);
+    base::ScopedCFTypeRef<CFDictionaryRef> keychain_data = MakeKeychainData(
+        serviceNameLength, serviceName, accountNameLength, accountName,
+        passwordLength, passwordData, kKeychainActionCreate);
     status = SecItemAdd(keychain_data, /*result=*/nullptr);
   } else if (status == noErr) {
     // The entry must be updated.
-    base::apple::ScopedCFTypeRef<CFDictionaryRef> keychain_data =
-        MakeKeychainData(serviceNameLength, serviceName, accountNameLength,
-                         accountName, passwordLength, passwordData,
-                         kKeychainActionUpdate);
+    base::ScopedCFTypeRef<CFDictionaryRef> keychain_data = MakeKeychainData(
+        serviceNameLength, serviceName, accountNameLength, accountName,
+        passwordLength, passwordData, kKeychainActionUpdate);
     status = SecItemUpdate(query, keychain_data);
   }
 
@@ -154,12 +154,11 @@ OSStatus AppleKeychain::FindGenericPassword(
     AppleSecKeychainItemRef* itemRef) const {
   DCHECK((passwordData && passwordLength) ||
          (!passwordData && !passwordLength));
-  base::apple::ScopedCFTypeRef<CFDictionaryRef> query =
-      MakeGenericPasswordQuery(serviceNameLength, serviceName,
-                               accountNameLength, accountName);
+  base::ScopedCFTypeRef<CFDictionaryRef> query = MakeGenericPasswordQuery(
+      serviceNameLength, serviceName, accountNameLength, accountName);
 
   // Get the keychain item containing the password.
-  base::apple::ScopedCFTypeRef<CFTypeRef> result;
+  base::ScopedCFTypeRef<CFTypeRef> result;
   OSStatus status = SecItemCopyMatching(query, result.InitializeInto());
 
   if (status != noErr) {
@@ -171,7 +170,7 @@ OSStatus AppleKeychain::FindGenericPassword(
   }
 
   if (passwordData) {
-    CFDataRef data = base::apple::CFCast<CFDataRef>(result);
+    CFDataRef data = base::mac::CFCast<CFDataRef>(result);
     NSUInteger length = CFDataGetLength(data);
     *passwordData = malloc(length * sizeof(UInt8));
     CFDataGetBytes(data, CFRangeMake(0, length), (UInt8*)*passwordData);

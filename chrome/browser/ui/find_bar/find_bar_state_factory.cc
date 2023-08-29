@@ -32,8 +32,7 @@ FindBarStateFactory::FindBarStateFactory()
 
 FindBarStateFactory::~FindBarStateFactory() = default;
 
-std::unique_ptr<KeyedService>
-FindBarStateFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* FindBarStateFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
-  return std::make_unique<FindBarState>(context);
+  return new FindBarState(context);
 }

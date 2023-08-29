@@ -12,10 +12,7 @@
 #include "base/time/clock.h"
 #include "components/segmentation_platform/internal/database/client_result_prefs.h"
 #include "components/segmentation_platform/internal/platform_options.h"
-#include "components/segmentation_platform/internal/proto/client_results.pb.h"
-#include "components/segmentation_platform/public/proto/prediction_result.pb.h"
 #include "components/segmentation_platform/public/result.h"
-
 namespace segmentation_platform {
 struct Config;
 class ClientResultPrefs;
@@ -35,30 +32,17 @@ class CachedResultWriter {
   CachedResultWriter& operator=(CachedResultWriter&) = delete;
 
   // Updates the prefs only if the previous result in the pref is expired or
-  // unavailable or `force_refresh_results` is set as true.
+  // unavailable or `force_refresh_results` is set as true. In both the above
+  // cases, fetch result for model either from database or running the model.
   void UpdatePrefsIfExpired(const Config* config,
-                            const proto::ClientResult& client_result,
+                            proto::ClientResult client_result,
                             const PlatformOptions& platform_options);
-
-  // Marks the result as used by client. Does not change the result. Should be
-  // called when the client code uses the result cached in prefs. Only saves the
-  // first time the result is used. This is valid till the result is deleted and
-  // new result is written.
-  void MarkResultAsUsed(const Config* config);
-
-  // Writes model execution results to prefs. This would overwrite the results
-  // stored in prefs without verifying the TTL of existing results. Can be used
-  // when the client is using the new `result` already and pref is stale even
-  // before TTL expiry.
-  void CacheModelExecution(const Config* config,
-                           const proto::PredictionResult& result);
 
  private:
   // Checks the following to determine whether to update pref with new result.
   // 1. Previous model results for client are either expired or unavailable.
   // 2. `force_refresh_results` option is set to true.
   bool IsPrefUpdateRequiredForClient(const Config* config,
-                                     const proto::ClientResult& client_result,
                                      const PlatformOptions& platform_options);
 
   // Updates the supplied `client_result` as new result for the client in prefs.

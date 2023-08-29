@@ -19,6 +19,7 @@
 #include "base/task/thread_pool.h"
 #include "base/values.h"
 #include "components/safe_browsing/android/real_time_url_checks_allowlist.h"
+#include "components/safe_browsing/core/common/features.h"
 
 using component_updater::ComponentUpdateService;
 
@@ -125,9 +126,12 @@ RealTimeUrlChecksAllowlistComponentInstallerPolicy::GetInstallerAttributes()
 }
 
 void RegisterRealTimeUrlChecksAllowlistComponent(ComponentUpdateService* cus) {
-  auto installer = base::MakeRefCounted<ComponentInstaller>(
-      std::make_unique<RealTimeUrlChecksAllowlistComponentInstallerPolicy>());
-  installer->Register(cus, base::OnceClosure());
+  if (base::FeatureList::IsEnabled(
+          safe_browsing::kComponentUpdaterAndroidProtegoAllowlist)) {
+    auto installer = base::MakeRefCounted<ComponentInstaller>(
+        std::make_unique<RealTimeUrlChecksAllowlistComponentInstallerPolicy>());
+    installer->Register(cus, base::OnceClosure());
+  }
 }
 
 }  // namespace component_updater

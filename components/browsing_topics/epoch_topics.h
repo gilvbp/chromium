@@ -23,7 +23,6 @@ class EpochTopics {
 
   EpochTopics(std::vector<TopicAndDomains> top_topics_and_observing_domains,
               size_t padded_top_topics_start_index,
-              int config_version,
               int taxonomy_version,
               int64_t model_version,
               base::Time calculation_time,
@@ -71,7 +70,7 @@ class EpochTopics {
   void ClearContextDomain(const HashedDomain& hashed_context_domain);
 
   bool HasValidVersions() const {
-    return config_version_ > 0 && taxonomy_version_ > 0 && model_version_ > 0;
+    return taxonomy_version_ > 0 && model_version_ > 0;
   }
 
   const std::vector<TopicAndDomains>& top_topics_and_observing_domains() const {
@@ -81,8 +80,6 @@ class EpochTopics {
   size_t padded_top_topics_start_index() const {
     return padded_top_topics_start_index_;
   }
-
-  int config_version() const { return config_version_; }
 
   int taxonomy_version() const { return taxonomy_version_; }
 
@@ -120,10 +117,6 @@ class EpochTopics {
   // `padded_top_topics_start_index_` will equal
   // `top_topics_and_observing_domains_.size()`.
   size_t padded_top_topics_start_index_ = 0;
-
-  // The version of the configuration (other than taxonomy and model) applicable
-  // to this epoch's topics.
-  int config_version_ = 0;
 
   // The version of the taxonomy applicable to this epoch's topics.
   int taxonomy_version_ = 0;

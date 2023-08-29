@@ -6,7 +6,6 @@
 
 #include <memory>
 
-#include "base/containers/contains.h"
 #include "media/mojo/mojom/media_player.mojom-blink.h"
 #include "mojo/public/cpp/bindings/pending_associated_remote.h"
 #include "mojo/public/cpp/bindings/pending_receiver.h"
@@ -62,9 +61,6 @@ LocalDOMWindow* OpenDocumentPictureInPictureWindow(
 
   // Enable the DocumentPictureInPictureAPI flag.
   ScopedDocumentPictureInPictureAPIForTest scoped_feature(true);
-
-  // Make sure that the document URL is set, since it's required.
-  document.SetURL(opener_url);
 
   // Get past the LocalDOMWindow::isSecureContext() check.
   document.domWindow()->GetSecurityContext().SetSecurityOriginForTesting(
@@ -302,13 +298,13 @@ class PictureInPictureControllerTestWithWidget : public RenderingTest {
 
     std::string test_name =
         testing::UnitTest::GetInstance()->current_test_info()->name();
-    if (base::Contains(test_name, "MediaSource")) {
+    if (test_name.find("MediaSource") != std::string::npos) {
       MediaStreamComponentVector dummy_tracks;
       auto* descriptor = MakeGarbageCollected<MediaStreamDescriptor>(
           dummy_tracks, dummy_tracks);
       Video()->SetSrcObjectVariant(descriptor);
     } else {
-      Video()->SetSrc(AtomicString("http://example.com/foo.mp4"));
+      Video()->SetSrc("http://example.com/foo.mp4");
     }
 
     test::RunPendingTasks();
@@ -575,11 +571,11 @@ TEST_F(PictureInPictureControllerTestWithWidget,
 
   Element* div = GetDocument().CreateRawElement(html_names::kDivTag);
   div->setAttribute(html_names::kStyleAttr,
-                    AtomicString("padding: 100px;"
-                                 "width: 150px;"
-                                 "height: 150px;"
-                                 "padding: 100px;"
-                                 "transform: scale(2)"));
+                    "padding: 100px;"
+                    "width: 150px;"
+                    "height: 150px;"
+                    "padding: 100px;"
+                    "transform: scale(2)");
   GetDocument().body()->AppendChild(div);
   div->AppendChild(Video());
   GetDocument().View()->UpdateAllLifecyclePhasesForTest();
@@ -589,10 +585,11 @@ TEST_F(PictureInPictureControllerTestWithWidget,
   const char kPosterUrl[] = "http://example.com/foo.jpg";
   url_test_helpers::RegisterMockedErrorURLLoad(
       url_test_helpers::ToKURL(kPosterUrl));
-  Video()->setAttribute(html_names::kPosterAttr, AtomicString(kPosterUrl));
-  Video()->setAttribute(html_names::kStyleAttr, AtomicString("object-fit: none;"
-                                                             "height: 150px;"
-                                                             "width: 150px;"));
+  Video()->setAttribute(html_names::kPosterAttr, kPosterUrl);
+  Video()->setAttribute(html_names::kStyleAttr,
+                        "object-fit: none;"
+                        "height: 150px;"
+                        "width: 150px;");
   layout_image->ImageResource()->SetImageResource(image_content);
   GetDocument().View()->UpdateAllLifecyclePhasesForTest();
 
@@ -646,32 +643,6 @@ TEST_F(PictureInPictureControllerTestWithWidget,
 
   // TODO(1357125): Check that GetMayThrottle... returns true once the PiP
   // window is closed.
-}
-
-TEST_F(PictureInPictureControllerTestWithWidget,
-       DocumentPiPDoesNotOpenWithBlankUrl) {
-  V8TestingScope v8_scope;
-  ScriptState* script_state =
-      ToScriptStateForMainWorld(GetDocument().GetFrame());
-  ScriptState::Scope entered_context_scope(script_state);
-  LocalFrame::NotifyUserActivation(
-      &GetFrame(), mojom::UserActivationNotificationType::kTest);
-  auto* pip =
-      OpenDocumentPictureInPictureWindow(v8_scope, GetDocument(), BlankURL());
-  EXPECT_FALSE(pip);
-}
-
-TEST_F(PictureInPictureControllerTestWithWidget,
-       DocumentPiPDoesOpenWithFileUrl) {
-  V8TestingScope v8_scope;
-  ScriptState* script_state =
-      ToScriptStateForMainWorld(GetDocument().GetFrame());
-  ScriptState::Scope entered_context_scope(script_state);
-  LocalFrame::NotifyUserActivation(
-      &GetFrame(), mojom::UserActivationNotificationType::kTest);
-  auto* pip = OpenDocumentPictureInPictureWindow(v8_scope, GetDocument(),
-                                                 KURL("file://my/file.html"));
-  EXPECT_TRUE(pip);
 }
 
 class PictureInPictureControllerChromeClient
@@ -808,8 +779,8 @@ TEST_F(PictureInPictureControllerTestWithChromeClient,
       DocumentPictureInPictureOptions::Create(promise.GetIsolate(), v8_object,
                                               exception_state);
 
-  // Set a URL for the opener window.
-  document.SetURL(opener_url);
+  // Set a base URL for the opener window.
+  document.SetBaseURLOverride(opener_url);
   EXPECT_EQ(opener_url.GetString(), document.BaseURL().GetString());
 
   // Create document picture in picture window.

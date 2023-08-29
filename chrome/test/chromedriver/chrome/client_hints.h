@@ -7,7 +7,6 @@
 
 #include <third_party/abseil-cpp/absl/types/optional.h>
 #include <string>
-#include <vector>
 
 struct BrandVersion {
   // Browser brand.

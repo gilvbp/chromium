@@ -4,13 +4,17 @@
 
 #import "ios/web/security/wk_web_view_security_util.h"
 
-#import "base/apple/foundation_util.h"
-#import "base/apple/scoped_cftyperef.h"
+#import "base/mac/foundation_util.h"
+#import "base/mac/scoped_cftyperef.h"
 #import "base/notreached.h"
 #import "base/strings/sys_string_conversions.h"
 #import "net/cert/x509_certificate.h"
 #import "net/cert/x509_util_apple.h"
 #import "net/ssl/ssl_info.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace web {
 
@@ -49,13 +53,13 @@ namespace web {
 scoped_refptr<net::X509Certificate> CreateCertFromChain(NSArray* certs) {
   if (certs.count == 0)
     return nullptr;
-  std::vector<base::apple::ScopedCFTypeRef<SecCertificateRef>> intermediates;
+  std::vector<base::ScopedCFTypeRef<SecCertificateRef>> intermediates;
   for (NSUInteger i = 1; i < certs.count; i++) {
-    base::apple::ScopedCFTypeRef<SecCertificateRef> cert(
+    base::ScopedCFTypeRef<SecCertificateRef> cert(
         (__bridge SecCertificateRef)certs[i], base::scoped_policy::RETAIN);
     intermediates.push_back(cert);
   }
-  base::apple::ScopedCFTypeRef<SecCertificateRef> root_cert(
+  base::ScopedCFTypeRef<SecCertificateRef> root_cert(
       (__bridge SecCertificateRef)certs[0], base::scoped_policy::RETAIN);
   return net::x509_util::CreateX509CertificateFromSecCertificate(
       std::move(root_cert), intermediates);
@@ -71,25 +75,25 @@ scoped_refptr<net::X509Certificate> CreateCertFromTrust(SecTrustRef trust) {
     return nullptr;
   }
 
-  std::vector<base::apple::ScopedCFTypeRef<SecCertificateRef>> intermediates;
+  std::vector<base::ScopedCFTypeRef<SecCertificateRef>> intermediates;
 
   // TODO(crbug.com/1418068): Remove available and compile guard after minimum
   // version required is >= iOS 15.
   if (@available(iOS 15.0, *)) {
-    base::apple::ScopedCFTypeRef<CFArrayRef> certificateChain(
+    base::ScopedCFTypeRef<CFArrayRef> certificateChain(
         SecTrustCopyCertificateChain(trust));
     for (CFIndex i = 1; i < cert_count; i++) {
       SecCertificateRef secCertificate =
-          base::apple::CFCastStrict<SecCertificateRef>(
+          base::mac::CFCastStrict<SecCertificateRef>(
               CFArrayGetValueAtIndex(certificateChain, i));
       intermediates.emplace_back(secCertificate, base::scoped_policy::RETAIN);
     }
     SecCertificateRef secCertificate =
-        base::apple::CFCastStrict<SecCertificateRef>(
+        base::mac::CFCastStrict<SecCertificateRef>(
             CFArrayGetValueAtIndex(certificateChain, 0));
     return net::x509_util::CreateX509CertificateFromSecCertificate(
-        base::apple::ScopedCFTypeRef<SecCertificateRef>(
-            secCertificate, base::scoped_policy::RETAIN),
+        base::ScopedCFTypeRef<SecCertificateRef>(secCertificate,
+                                                 base::scoped_policy::RETAIN),
         intermediates);
   }
 #if __IPHONE_OS_VERSION_MIN_REQUIRED < __IPHONE_15_0
@@ -99,7 +103,7 @@ scoped_refptr<net::X509Certificate> CreateCertFromTrust(SecTrustRef trust) {
                                  base::scoped_policy::RETAIN);
     }
     return net::x509_util::CreateX509CertificateFromSecCertificate(
-        base::apple::ScopedCFTypeRef<SecCertificateRef>(
+        base::ScopedCFTypeRef<SecCertificateRef>(
             SecTrustGetCertificateAtIndex(trust, 0),
             base::scoped_policy::RETAIN),
         intermediates);
@@ -109,18 +113,17 @@ scoped_refptr<net::X509Certificate> CreateCertFromTrust(SecTrustRef trust) {
   // removed when compile and available guards are cleaned up.
   NOTREACHED();
   return net::x509_util::CreateX509CertificateFromSecCertificate(
-      base::apple::ScopedCFTypeRef<SecCertificateRef>(nullptr), intermediates);
+      base::ScopedCFTypeRef<SecCertificateRef>(nullptr), intermediates);
 #endif  // __IPHONE_OS_VERSION_MIN_REQUIRED < __IPHONE_15_0
 }
 
-base::apple::ScopedCFTypeRef<SecTrustRef> CreateServerTrustFromChain(
-    NSArray* certs,
-    NSString* host) {
-  base::apple::ScopedCFTypeRef<SecTrustRef> scoped_result;
+base::ScopedCFTypeRef<SecTrustRef> CreateServerTrustFromChain(NSArray* certs,
+                                                              NSString* host) {
+  base::ScopedCFTypeRef<SecTrustRef> scoped_result;
   if (certs.count == 0)
     return scoped_result;
 
-  base::apple::ScopedCFTypeRef<SecPolicyRef> policy(
+  base::ScopedCFTypeRef<SecPolicyRef> policy(
       SecPolicyCreateSSL(TRUE, static_cast<CFStringRef>(host)));
   SecTrustRef ref_result = nullptr;
   if (SecTrustCreateWithCertificates((__bridge CFArrayRef)certs, policy,
@@ -131,8 +134,7 @@ base::apple::ScopedCFTypeRef<SecTrustRef> CreateServerTrustFromChain(
 }
 
 void EnsureFutureTrustEvaluationSucceeds(SecTrustRef trust) {
-  base::apple::ScopedCFTypeRef<CFDataRef> exceptions(
-      SecTrustCopyExceptions(trust));
+  base::ScopedCFTypeRef<CFDataRef> exceptions(SecTrustCopyExceptions(trust));
   SecTrustSetExceptions(trust, exceptions);
 }
 

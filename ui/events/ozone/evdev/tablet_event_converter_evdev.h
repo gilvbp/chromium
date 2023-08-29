@@ -42,7 +42,6 @@ class COMPONENT_EXPORT(EVDEV) TabletEventConverterEvdev
 
   // EventConverterEvdev:
   void OnFileCanReadWithoutBlocking(int fd) override;
-  bool HasGraphicsTablet() const override;
 
   void ProcessEvents(const struct input_event* inputs, int count);
 

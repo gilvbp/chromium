@@ -54,14 +54,14 @@ class TestBackgroundTracingHelper
     content::RemoveBackgroundTracingEnabledStateObserverForTesting(this);
   }
 
-  void OnScenarioIdle(const std::string& scenario_name) override {
-    wait_for_scenario_idle_.Quit();
-  }
+  void OnTracingEnabled() override {}
 
-  void WaitForScenarioIdle() { wait_for_scenario_idle_.Run(); }
+  void OnScenarioAborted() override { wait_for_scenario_aborted_.Quit(); }
+
+  void WaitForScenarioAborted() { wait_for_scenario_aborted_.Run(); }
 
  private:
-  base::RunLoop wait_for_scenario_idle_;
+  base::RunLoop wait_for_scenario_aborted_;
 };
 
 }  // namespace
@@ -124,7 +124,8 @@ class ChromeTracingDelegateBrowserTest : public InProcessBrowserTest {
   }
 
   void TriggerPreemptiveScenario(const std::string& trigger_name = "test") {
-    content::BackgroundTracingManager::EmitNamedTrigger(trigger_name);
+    content::BackgroundTracingManager::GetInstance().EmitNamedTrigger(
+        trigger_name);
   }
 
   void TriggerPreemptiveScenarioWithCrash() {
@@ -175,7 +176,7 @@ IN_PROC_BROWSER_TEST_F(ChromeTracingDelegateBrowserTest,
 
   TestBackgroundTracingHelper background_tracing_helper;
   content::BackgroundTracingManager::GetInstance().AbortScenarioForTesting();
-  background_tracing_helper.WaitForScenarioIdle();
+  background_tracing_helper.WaitForScenarioAborted();
 
   EXPECT_FALSE(
       content::BackgroundTracingManager::GetInstance().HasActiveScenario());
@@ -306,7 +307,7 @@ IN_PROC_BROWSER_TEST_F(ChromeTracingDelegateBrowserTest,
 
   TestBackgroundTracingHelper background_tracing_helper;
   content::BackgroundTracingManager::GetInstance().AbortScenarioForTesting();
-  background_tracing_helper.WaitForScenarioIdle();
+  background_tracing_helper.WaitForScenarioAborted();
 
   EXPECT_FALSE(
       content::BackgroundTracingManager::GetInstance().HasActiveScenario());
@@ -337,7 +338,7 @@ IN_PROC_BROWSER_TEST_F(ChromeTracingDelegateBrowserTest,
   {
     TestBackgroundTracingHelper background_tracing_helper;
     content::BackgroundTracingManager::GetInstance().AbortScenarioForTesting();
-    background_tracing_helper.WaitForScenarioIdle();
+    background_tracing_helper.WaitForScenarioAborted();
   }
 
   EXPECT_FALSE(
@@ -350,7 +351,7 @@ IN_PROC_BROWSER_TEST_F(ChromeTracingDelegateBrowserTest,
 
   TestBackgroundTracingHelper background_tracing_helper;
   TriggerPreemptiveScenario();
-  background_tracing_helper.WaitForScenarioIdle();
+  background_tracing_helper.WaitForScenarioAborted();
 }
 
 IN_PROC_BROWSER_TEST_F(ChromeTracingDelegateBrowserTest,
@@ -445,7 +446,7 @@ IN_PROC_BROWSER_TEST_F(ChromeTracingDelegateBrowserTest,
 
   TestBackgroundTracingHelper background_tracing_helper;
   TriggerPreemptiveScenario();
-  background_tracing_helper.WaitForScenarioIdle();
+  background_tracing_helper.WaitForScenarioAborted();
 }
 
 // If we need a PII-stripped trace, any OTR session that starts and ends during
@@ -462,7 +463,7 @@ IN_PROC_BROWSER_TEST_F(ChromeTracingDelegateBrowserTest,
 
   TestBackgroundTracingHelper background_tracing_helper;
   TriggerPreemptiveScenario();
-  background_tracing_helper.WaitForScenarioIdle();
+  background_tracing_helper.WaitForScenarioAborted();
 }
 
 namespace {
@@ -480,7 +481,26 @@ class ChromeTracingDelegateBrowserTestOnStartup
  protected:
   ChromeTracingDelegateBrowserTestOnStartup() {
     variations::testing::VariationParamsManager::SetVariationParams(
-        "BackgroundTracing", "TestGroup", {{"config", kDefaultConfigText}});
+        "BackgroundTracing", "TestGroup",
+        {{"config", "default_config_for_testing"}});
+  }
+
+  static std::string FieldTrialConfigTextFilter(
+      const std::string& config_text) {
+    // We need to replace the config JSON with the full one here, as we can't
+    // pass JSON through the fieldtrial switch parsing.
+    if (config_text == "default_config_for_testing") {
+      return kDefaultConfigText;
+    }
+    return config_text;
+  }
+
+  void CreatedBrowserMainParts(
+      content::BrowserMainParts* browser_main_parts) override {
+    InProcessBrowserTest::CreatedBrowserMainParts(browser_main_parts);
+    content::BackgroundTracingManager::GetInstance()
+        .SetConfigTextFilterForTesting(
+            base::BindRepeating(&FieldTrialConfigTextFilter));
   }
 };
 
@@ -546,8 +566,7 @@ class ChromeTracingDelegateBrowserTestFromCommandLine
     base::FilePath config_path(
         temp_dir_.GetPath().Append(FILE_PATH_LITERAL("config.json")));
     ASSERT_TRUE(base::WriteFile(config_path, kDefaultConfigText));
-    command_line->AppendSwitchPath("enable-legacy-background-tracing",
-                                   config_path);
+    command_line->AppendSwitchPath("enable-background-tracing", config_path);
 
     output_path_ = base::FilePath(
         temp_dir_.GetPath().Append(FILE_PATH_LITERAL("output.perfetto.gz")));

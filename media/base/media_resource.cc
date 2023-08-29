@@ -23,7 +23,7 @@ const MediaUrlParams& MediaResource::GetMediaUrlParams() const {
 }
 
 MediaResource::Type MediaResource::GetType() const {
-  return Type::kStream;
+  return STREAM;
 }
 
 DemuxerStream* MediaResource::GetFirstStream(DemuxerStream::Type type) {

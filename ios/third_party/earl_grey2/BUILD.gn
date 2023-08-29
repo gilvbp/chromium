@@ -170,6 +170,7 @@ source_set("common_lib") {
   ]
   configs += [
     "//build/config/compiler:no_chromium_code",
+    "//build/config/compiler:enable_arc",
     "//build/config/gcc:symbol_visibility_default",
   ]
 }
@@ -243,6 +244,7 @@ source_set("ui_lib") {
   ]
   configs += [
     "//build/config/compiler:no_chromium_code",
+    "//build/config/compiler:enable_arc",
     "//build/config/gcc:symbol_visibility_default",
   ]
 }
@@ -451,6 +453,7 @@ ios_framework_bundle("app_framework") {
   ]
   configs += [
     "//build/config/compiler:no_chromium_code",
+    "//build/config/compiler:enable_arc",
     "//build/config/gcc:symbol_visibility_default",
   ]
 }
@@ -545,6 +548,7 @@ source_set("test_lib") {
   ]
   configs += [
     "//build/config/compiler:no_chromium_code",
+    "//build/config/compiler:enable_arc",
     "//build/config/gcc:symbol_visibility_default",
   ]
 }

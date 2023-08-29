@@ -85,16 +85,8 @@ class IntegrationTestCommandsUser : public IntegrationTestCommands {
     updater::test::SetGroupPolicies(values);
   }
 
-  void SetMachineManaged(bool is_managed_device) const override {
-    updater::test::SetMachineManaged(is_managed_device);
-  }
-
   void ExpectUninstallPing(ScopedServer* test_server) const override {
     updater::test::ExpectUninstallPing(updater_scope_, test_server);
-  }
-
-  void ExpectUpdateCheckRequest(ScopedServer* test_server) const override {
-    updater::test::ExpectUpdateCheckRequest(updater_scope_, test_server);
   }
 
   void ExpectUpdateCheckSequence(
@@ -117,18 +109,6 @@ class IntegrationTestCommandsUser : public IntegrationTestCommands {
     updater::test::ExpectUpdateSequence(updater_scope_, test_server, app_id,
                                         install_data_index, priority,
                                         from_version, to_version);
-  }
-
-  void ExpectUpdateSequenceBadHash(
-      ScopedServer* test_server,
-      const std::string& app_id,
-      const std::string& install_data_index,
-      UpdateService::Priority priority,
-      const base::Version& from_version,
-      const base::Version& to_version) const override {
-    updater::test::ExpectUpdateSequenceBadHash(
-        updater_scope_, test_server, app_id, install_data_index, priority,
-        from_version, to_version);
   }
 
   void ExpectInstallSequence(ScopedServer* test_server,
@@ -242,17 +222,12 @@ class IntegrationTestCommandsUser : public IntegrationTestCommands {
     updater::test::DeleteUpdaterDirectory(updater_scope_);
   }
 
-  void DeleteActiveUpdaterExecutable() const override {
-    updater::test::DeleteActiveUpdaterExecutable(updater_scope_);
-  }
-
   void DeleteFile(const base::FilePath& path) const override {
     updater::test::DeleteFile(updater_scope_, path);
   }
 
-  void InstallApp(const std::string& app_id,
-                  const base::Version& version) const override {
-    updater::test::InstallApp(updater_scope_, app_id, version);
+  void InstallApp(const std::string& app_id) const override {
+    updater::test::InstallApp(updater_scope_, app_id);
   }
 
   bool WaitForUpdaterExit() const override {
@@ -301,10 +276,6 @@ class IntegrationTestCommandsUser : public IntegrationTestCommands {
 
   void RunHandoff(const std::string& app_id) const override {
     updater::test::RunHandoff(updater_scope_, app_id);
-  }
-
-  void InstallAppViaService(const std::string& app_id) const override {
-    updater::test::InstallAppViaService(updater_scope_, app_id);
   }
 #endif  // BUILDFLAG(IS_WIN)
 

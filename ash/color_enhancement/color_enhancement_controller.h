@@ -15,15 +15,11 @@ class Window;
 
 namespace ash {
 
-// The types of color filters available in color correction settings.
-// Do not change these values, they are persisted to logs in
-// ColorCorrectionFilterTypes enum and mapped in os settings.
-enum ColorVisionCorrectionType {
+enum ColorVisionDeficiencyType {
   kProtanomaly = 0,
   kDeuteranomaly = 1,
   kTritanomaly = 2,
   kGrayscale = 3,
-  kMaxValue = kGrayscale,
 };
 
 // Controls the color enhancement options on all displays. These options
@@ -44,14 +40,14 @@ class ASH_EXPORT ColorEnhancementController : public ShellObserver {
 
   // Sets whether color filtering options are enabled and updates all available
   // displays.
-  void SetColorCorrectionEnabledAndUpdateDisplays(bool enabled);
+  void SetColorFilteringEnabledAndUpdateDisplays(bool enabled);
 
   // Sets greyscale amount.
   void SetGreyscaleAmount(float amount);
 
   // Sets the color vision correction filter type and severity.
   // `severity` should be between 0 and 1.0, inclusive.
-  void SetColorVisionCorrectionFilter(ColorVisionCorrectionType type,
+  void SetColorVisionCorrectionFilter(ColorVisionDeficiencyType type,
                                       float severity);
 
   // ShellObserver:

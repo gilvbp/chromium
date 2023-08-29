@@ -9,7 +9,8 @@
 #include "base/functional/bind.h"
 #include "base/functional/callback.h"
 #include "base/metrics/histogram_functions.h"
-#include "base/strings/strcat.h"
+#include "base/metrics/histogram_macros.h"
+#include "base/strings/stringprintf.h"
 
 namespace performance_manager {
 namespace internal {
@@ -279,8 +280,8 @@ SiteFeatureUsage SiteDataImpl::GetFeatureUsage(
     const SiteDataFeatureProto& feature_proto) const {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
 
-  base::UmaHistogramBoolean(
-      "PerformanceManager.SiteDB.ReadHasCompletedBeforeQuery",
+  UMA_HISTOGRAM_BOOLEAN(
+      "ResourceCoordinator.LocalDB.ReadHasCompletedBeforeQuery",
       fully_initialized_);
 
   // Checks if this feature has already been observed.
@@ -305,9 +306,9 @@ void SiteDataImpl::NotifyFeatureUsage(SiteDataFeatureProto* feature_proto,
   // observed.
   if (feature_proto->observation_duration() != 0) {
     base::UmaHistogramCustomTimes(
-        base::StrCat(
-            {"PerformanceManager.SiteDB.ObservationTimeBeforeFirstUse.",
-             feature_name}),
+        base::StringPrintf(
+            "ResourceCoordinator.LocalDB.ObservationTimeBeforeFirstUse.%s",
+            feature_name),
         InternalRepresentationToTimeDelta(
             feature_proto->observation_duration()),
         base::Seconds(1), base::Days(1), 100);

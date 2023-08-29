@@ -19,9 +19,12 @@
         },
         "name": "foo_test",
         "swarming": {
-          "dimensions": {
-            "os": "Linux"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "os": "Linux"
+            }
+          ],
           "output_links": [
             {
               "link": [

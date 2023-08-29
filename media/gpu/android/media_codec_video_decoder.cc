@@ -123,13 +123,8 @@ std::vector<SupportedVideoDecoderConfig> GetSupportedConfigsInternal(
 }
 
 // Return the name of the decoder that will be used to create MediaCodec.
-void SelectMediaCodec(const VideoDecoderConfig& config,
-                      bool requires_secure_codec,
-                      std::string* out_codec_name,
-                      bool* out_is_software_codec) {
-  *out_is_software_codec = false;
-  *out_codec_name = "";
-
+std::string SelectMediaCodec(const VideoDecoderConfig& config,
+                             bool requires_secure_codec) {
   std::string software_decoder;
   for (const auto& info : GetDecoderInfoCache()) {
     VideoCodec codec = VideoCodecProfileToVideoCodec(info.profile);
@@ -173,9 +168,7 @@ void SelectMediaCodec(const VideoDecoderConfig& config,
       continue;
     }
 
-    *out_is_software_codec = false;
-    *out_codec_name = info.name;
-    return;
+    return info.name;
   }
 
   // Allow software decoder if either:
@@ -193,13 +186,13 @@ void SelectMediaCodec(const VideoDecoderConfig& config,
 #endif  // BUILDFLAG(ENABLE_PLATFORM_DOLBY_VISION)
 #endif  // BUILDFLAG(USE_PROPRIETARY_CODECS)
         )) {
-    DVLOG(2) << "Can't find proper video decoder from decoder info cache, "
-                "fallback to the default decoder selection path.";
-    return;
+    software_decoder = "";
   }
 
-  *out_is_software_codec = true;
-  *out_codec_name = software_decoder;
+  DVLOG_IF(2, software_decoder.empty())
+      << "Can't find proper video decoder from decoder info cache, "
+         "fallback to the default decoder selection path.";
+  return software_decoder;
 }
 
 }  // namespace
@@ -696,8 +689,7 @@ void MediaCodecVideoDecoder::CreateCodec() {
   config->initial_expected_coded_size = decoder_config_.coded_size();
   config->container_color_space = decoder_config_.color_space_info();
   config->hdr_metadata = decoder_config_.hdr_metadata();
-  SelectMediaCodec(decoder_config_, requires_secure_codec_, &config->name,
-                   &is_software_codec_);
+  config->name = SelectMediaCodec(decoder_config_, requires_secure_codec_);
 
   // Use the asynchronous API if we can.
   if (device_info_->IsAsyncApiSupported()) {
@@ -763,27 +755,6 @@ void MediaCodecVideoDecoder::OnCodecConfigured(
     return;
   }
 
-  const auto name = codec->GetName();
-  MEDIA_LOG(INFO, media_log_) << "Created MediaCodec " << name
-                              << ", is_software_codec=" << is_software_codec_;
-
-  // Since we can't get the coded size w/o rendering the frame, we try to guess
-  // in cases where we are unable to render the frame (resolution changes). If
-  // we can't guess, there will be a visible rendering glitch.
-  absl::optional<gfx::Size> coded_size_alignment;
-  if (base::FeatureList::IsEnabled(kMediaCodecCodedSizeGuessing)) {
-    coded_size_alignment = MediaCodecUtil::LookupCodedSizeAlignment(name);
-    if (coded_size_alignment) {
-      MEDIA_LOG(INFO, media_log_) << "Using a coded size alignment of "
-                                  << coded_size_alignment->ToString();
-    } else {
-      // TODO(crbug.com/1456427): If the known cases work well, we can try
-      // guessing generically since we get a glitch either way.
-      MEDIA_LOG(WARNING, media_log_)
-          << "Unable to lookup coded size alignment for codec " << name;
-    }
-  }
-
   max_input_size_ = codec->GetMaxInputSize();
   codec_ = std::make_unique<CodecWrapper>(
       CodecSurfacePair(std::move(codec), std::move(surface_bundle)),
@@ -793,7 +764,7 @@ void MediaCodecVideoDecoder::OnCodecConfigured(
               &MediaCodecVideoDecoder::StartTimerOrPumpCodec,
               weak_factory_.GetWeakPtr()))),
       base::SequencedTaskRunner::GetCurrentDefault(),
-      decoder_config_.coded_size(), coded_size_alignment);
+      decoder_config_.coded_size());
 
   // If the target surface changed while codec creation was in progress,
   // transition to it immediately.
@@ -1289,11 +1260,8 @@ bool MediaCodecVideoDecoder::NeedsBitstreamConversion() const {
 
 bool MediaCodecVideoDecoder::CanReadWithoutStalling() const {
   // We should always be able to get at least two outputs, one in the front
-  // buffer slot and one in the back buffer slot unless we're waiting for
-  // rendering to happen.
-  const auto buffer_count =
-      codec_ ? codec_->GetUnreleasedOutputBufferCount() : 0;
-  return !video_frame_factory_->IsStalled() && buffer_count < 2;
+  // buffer slot and one in the back buffer slot.
+  return codec_ ? codec_->GetUnreleasedOutputBufferCount() < 2 : true;
 }
 
 int MediaCodecVideoDecoder::GetMaxDecodeRequests() const {

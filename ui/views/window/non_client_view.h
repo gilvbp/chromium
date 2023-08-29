@@ -93,7 +93,6 @@ class VIEWS_EXPORT NonClientFrameView : public View,
   virtual void ResetWindowControls() {}
   virtual void UpdateWindowIcon() {}
   virtual void UpdateWindowTitle() {}
-  virtual void UpdateWindowRoundedCorners() {}
 
   // Whether the widget can be resized or maximized has changed.
   virtual void SizeConstraintsChanged() {}

@@ -4,7 +4,6 @@
 
 #include <vector>
 
-#include "base/scoped_observation.h"
 #include "components/account_id/account_id.h"
 #include "components/services/app_service/public/cpp/app_registry_cache.h"
 #include "components/services/app_service/public/cpp/app_registry_cache_wrapper.h"
@@ -44,9 +43,7 @@ TEST_F(AppRegistryCacheWrapperTest, OneAccount) {
 
   AppRegistryCacheWrapper::Get().AddAppRegistryCache(account_id_1(), &cache1);
 
-  base::ScopedObservation<AppRegistryCache, AppRegistryCache::Observer>
-      observation{this};
-  observation.Observe(&cache1);
+  cache1.AddObserver(this);
 
   std::vector<AppPtr> deltas;
   deltas.push_back(std::make_unique<App>(AppType::kArc, "app_id"));
@@ -54,7 +51,7 @@ TEST_F(AppRegistryCacheWrapperTest, OneAccount) {
                 true /* should_notify_initialized */);
 
   VerifyAccountId(account_id_1());
-  observation.Reset();
+  cache1.RemoveObserver(this);
 }
 
 TEST_F(AppRegistryCacheWrapperTest, MultipleAccounts) {
@@ -66,9 +63,7 @@ TEST_F(AppRegistryCacheWrapperTest, MultipleAccounts) {
   AppRegistryCacheWrapper::Get().AddAppRegistryCache(account_id_1(), &cache1);
   AppRegistryCacheWrapper::Get().AddAppRegistryCache(account_id_2(), &cache2);
 
-  base::ScopedObservation<AppRegistryCache, AppRegistryCache::Observer>
-      observation{this};
-  observation.Observe(&cache1);
+  cache1.AddObserver(this);
 
   std::vector<AppPtr> deltas1;
   deltas1.push_back(std::make_unique<App>(AppType::kArc, "app_id1"));
@@ -76,9 +71,9 @@ TEST_F(AppRegistryCacheWrapperTest, MultipleAccounts) {
                 /*should_notify_initialized=*/true);
 
   VerifyAccountId(account_id_1());
+  cache1.RemoveObserver(this);
 
-  observation.Reset();
-  observation.Observe(&cache2);
+  cache2.AddObserver(this);
 
   std::vector<AppPtr> deltas2;
   deltas2.push_back(std::make_unique<App>(AppType::kArc, "app_id2"));
@@ -86,24 +81,11 @@ TEST_F(AppRegistryCacheWrapperTest, MultipleAccounts) {
                 /*should_notify_initialized=*/true);
 
   VerifyAccountId(account_id_2());
-  observation.Reset();
+  cache2.RemoveObserver(this);
 
   AppRegistryCacheWrapper::Get().RemoveAppRegistryCache(&cache2);
   EXPECT_FALSE(
       AppRegistryCacheWrapper::Get().GetAppRegistryCache(account_id_2()));
-}
-
-TEST_F(AppRegistryCacheWrapperTest, RegistryCacheRemovedIfFreed) {
-  auto cache = std::make_unique<AppRegistryCache>();
-  cache->SetAccountId(account_id_1());
-
-  AppRegistryCacheWrapper::Get().AddAppRegistryCache(account_id_1(),
-                                                     cache.get());
-
-  cache.reset();
-
-  EXPECT_EQ(AppRegistryCacheWrapper::Get().GetAppRegistryCache(account_id_1()),
-            nullptr);
 }
 
 }  // namespace apps

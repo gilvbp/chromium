@@ -211,7 +211,6 @@ __xmlIOWin32UTF8ToWChar(const char *u8String)
 }
 #endif
 
-#if defined(LIBXML_HTTP_ENABLED) && defined(LIBXML_OUTPUT_ENABLED)
 /**
  * xmlIOErrMemory:
  * @extra:  extra information
@@ -223,7 +222,6 @@ xmlIOErrMemory(const char *extra)
 {
     __xmlSimpleError(XML_FROM_IO, XML_ERR_NO_MEMORY, NULL, NULL, extra);
 }
-#endif
 
 /**
  * __xmlIOErr:
@@ -2327,6 +2325,7 @@ xmlAllocParserInputBuffer(xmlCharEncoding enc) {
 
     ret = (xmlParserInputBufferPtr) xmlMalloc(sizeof(xmlParserInputBuffer));
     if (ret == NULL) {
+	xmlIOErrMemory("creating input buffer");
 	return(NULL);
     }
     memset(ret, 0, sizeof(xmlParserInputBuffer));
@@ -2365,6 +2364,7 @@ xmlAllocOutputBuffer(xmlCharEncodingHandlerPtr encoder) {
 
     ret = (xmlOutputBufferPtr) xmlMalloc(sizeof(xmlOutputBuffer));
     if (ret == NULL) {
+	xmlIOErrMemory("creating output buffer");
 	return(NULL);
     }
     memset(ret, 0, sizeof(xmlOutputBuffer));
@@ -2412,6 +2412,7 @@ xmlAllocOutputBufferInternal(xmlCharEncodingHandlerPtr encoder) {
 
     ret = (xmlOutputBufferPtr) xmlMalloc(sizeof(xmlOutputBuffer));
     if (ret == NULL) {
+	xmlIOErrMemory("creating output buffer");
 	return(NULL);
     }
     memset(ret, 0, sizeof(xmlOutputBuffer));
@@ -3118,24 +3119,21 @@ xmlParserInputBufferPush(xmlParserInputBufferPtr in,
 	 */
         if (in->raw == NULL) {
 	    in->raw = xmlBufCreate();
-            if (in->raw == NULL) {
-                in->error = XML_ERR_NO_MEMORY;
-                return(-1);
-            }
 	}
 	ret = xmlBufAdd(in->raw, (const xmlChar *) buf, len);
-	if (ret != 0) {
-            in->error = XML_ERR_NO_MEMORY;
+	if (ret != 0)
 	    return(-1);
-        }
 
 	/*
 	 * convert as much as possible to the parser reading buffer.
 	 */
 	use = xmlBufUse(in->raw);
 	nbchars = xmlCharEncInput(in, 1);
-	if (nbchars < 0)
+	if (nbchars < 0) {
+	    xmlIOErr(XML_IO_ENCODER, NULL);
+	    in->error = XML_IO_ENCODER;
 	    return(-1);
+	}
         consumed = use - xmlBufUse(in->raw);
         if ((consumed > ULONG_MAX) ||
             (in->rawconsumed > ULONG_MAX - (unsigned long)consumed))
@@ -3145,10 +3143,8 @@ xmlParserInputBufferPush(xmlParserInputBufferPtr in,
     } else {
 	nbchars = len;
         ret = xmlBufAdd(in->buffer, (xmlChar *) buf, nbchars);
-	if (ret != 0) {
-            in->error = XML_ERR_NO_MEMORY;
+	if (ret != 0)
 	    return(-1);
-        }
     }
 #ifdef DEBUG_INPUT
     xmlGenericError(xmlGenericErrorContext,
@@ -3211,6 +3207,7 @@ xmlParserInputBufferGrow(xmlParserInputBufferPtr in, int len) {
      */
     if (in->readcallback != NULL) {
         if (xmlBufGrow(buf, len + 1) < 0) {
+            xmlIOErrMemory("growing input buffer");
             in->error = XML_ERR_NO_MEMORY;
             return(-1);
         }
@@ -3218,15 +3215,11 @@ xmlParserInputBufferGrow(xmlParserInputBufferPtr in, int len) {
 	res = in->readcallback(in->context, (char *)xmlBufEnd(buf), len);
 	if (res <= 0)
 	    in->readcallback = endOfInput;
-        if (res < 0) {
-            in->error = XML_IO_UNKNOWN;
+        if (res < 0)
             return(-1);
-        }
 
-        if (xmlBufAddLen(buf, res) < 0) {
-            in->error = XML_ERR_NO_MEMORY;
+        if (xmlBufAddLen(buf, res) < 0)
             return(-1);
-        }
     }
 
     /*
@@ -3247,8 +3240,11 @@ xmlParserInputBufferGrow(xmlParserInputBufferPtr in, int len) {
 	 */
 	use = xmlBufUse(buf);
 	res = xmlCharEncInput(in, 1);
-	if (res < 0)
+	if (res < 0) {
+	    xmlIOErr(XML_IO_ENCODER, NULL);
+	    in->error = XML_IO_ENCODER;
 	    return(-1);
+	}
         consumed = use - xmlBufUse(buf);
         if ((consumed > ULONG_MAX) ||
             (in->rawconsumed > ULONG_MAX - (unsigned long)consumed))
@@ -4010,7 +4006,7 @@ xmlLoadExternalEntity(const char *URL, const char *ID,
 
 	canonicFilename = (char *) xmlCanonicPath((const xmlChar *) URL);
 	if (canonicFilename == NULL) {
-            xmlErrMemory(ctxt, "building canonical path\n");
+            xmlIOErrMemory("building canonical path\n");
 	    return(NULL);
 	}
 

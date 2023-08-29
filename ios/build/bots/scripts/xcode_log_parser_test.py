@@ -51,23 +51,6 @@ XCRESULT_ROOT = """
             "id" : {
               "_value" : "0~iRbOkDnmtKVIvHSV2jkeuNcg4RDTUaCLZV7KijyxdCqvhqtp08MKxl0MwjBAPpjmruoI7qNHzBR1RJQAlANNHA=="
             }
-          },
-          "metrics" : {
-            "_type" : {
-              "_name" : "ResultMetrics"
-            },
-            "testsCount" : {
-              "_type" : {
-                "_name" : "Int"
-              },
-              "_value" : "2"
-            },
-            "testsFailedCount" : {
-              "_type" : {
-                "_name" : "Int"
-              },
-              "_value" : "2"
-            }
           }
         }
       }
@@ -600,7 +583,7 @@ class XCode11LogParserTest(test_runner_test.TestCase):
   @mock.patch('os.path.exists', autospec=True)
   @mock.patch('xcode_log_parser.Xcode11LogParser._xcresulttool_get')
   def testCollectTestsRanZeroTests(self, mock_root, mock_exist_file, *args):
-    metrics_json = '{"actions": {}}'
+    metrics_json = '{"metrics": {}}'
     mock_root.return_value = metrics_json
     mock_exist_file.return_value = True
     results = xcode_log_parser.Xcode11LogParser().collect_test_results(

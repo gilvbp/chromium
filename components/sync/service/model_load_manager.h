@@ -22,10 +22,6 @@ class ElapsedTimer;
 
 namespace syncer {
 
-// Timeout duration for loading data types in ModelLoadManager. Exposed for
-// testing.
-extern const base::TimeDelta kSyncLoadModelsTimeoutDuration;
-
 // Interface for ModelLoadManager to pass the results of async operations
 // back to DataTypeManager.
 class ModelLoadManagerDelegate {

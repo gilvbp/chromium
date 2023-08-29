@@ -15,6 +15,7 @@ import android.view.accessibility.AccessibilityEvent;
 import android.widget.FrameLayout;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.VisibleForTesting;
 import androidx.core.view.ViewCompat;
 
 import org.chromium.content_public.browser.SelectionPopupController;
@@ -257,6 +258,7 @@ public abstract class TabModalPresenter extends ModalDialogManager.Presenter {
                 .start();
     }
 
+    @VisibleForTesting
     public View getDialogContainerForTest() {
         return mDialogContainer;
     }

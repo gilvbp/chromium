@@ -6,31 +6,26 @@
 #define ASH_WM_WINDOW_CYCLE_WINDOW_CYCLE_VIEW_H_
 
 #include <memory>
-#include <vector>
 
 #include "ash/ash_export.h"
 #include "ash/wm/gestures/wm_fling_handler.h"
+#include "base/containers/flat_set.h"
 #include "base/memory/raw_ptr.h"
 #include "ui/aura/window_occlusion_tracker.h"
 #include "ui/base/metadata/metadata_header_macros.h"
 #include "ui/compositor/layer_animation_observer.h"
+#include "ui/gfx/geometry/rect.h"
 #include "ui/views/widget/widget_delegate.h"
 
 namespace aura {
 class Window;
-}  // namespace aura
-
-namespace gfx {
-class Rect;
-}  // namespace gfx
+}
 
 namespace views {
 class Label;
-class View;
-}  // namespace views
+}
 
 namespace ash {
-class WindowMiniViewBase;
 class LabelSliderButton;
 class SystemShadow;
 class TabSlider;
@@ -67,7 +62,7 @@ class ASH_EXPORT WindowCycleView : public views::WidgetDelegateView,
   // the root window's bounds.
   gfx::Rect GetTargetBounds() const;
 
-  // Recreates the `WindowCycleView` with the given `windows`.
+  // Recreates the `WindowCycleView` with the provided `windows`.
   void UpdateWindows(const WindowList& windows);
 
   // Fades the `WindowCycleView` in.
@@ -76,12 +71,9 @@ class ASH_EXPORT WindowCycleView : public views::WidgetDelegateView,
   // Scrolls the `WindowCycleView` to `target`.
   void ScrollToWindow(aura::Window* target);
 
-  // Refreshes the `target_window_` with the `new_target`. Updates the focus
-  // state of the focus ring by hiding the focus ring on the previously
-  // focused item and painting the focus ring on the currently focused item.
-  // The focus target will be a single `WindowCycleItemView` for free-form
-  // window and a `GroupContainerCycleView` for snap group.
-  void SetTargetWindow(aura::Window* new_target);
+  // Makes `target` the new `target_window_`, moving the focus ring to its
+  // respective `WindowCycleItemView`.
+  void SetTargetWindow(aura::Window* target);
 
   // Removes the `destroying_window`'s respective `WindowCycleItemView` and sets
   // `new_target` as the new `target_window_`.
@@ -133,14 +125,6 @@ class ASH_EXPORT WindowCycleView : public views::WidgetDelegateView,
   // Returns the maximum width of the cycle view.
   int CalculateMaxWidth() const;
 
-  const views::View* mirror_container_for_testing() const {
-    return mirror_container_;
-  }
-
-  const std::vector<WindowMiniViewBase*>& cycle_views_for_testing() const {
-    return cycle_views_;
-  }
-
  private:
   friend class WindowCycleListTestApi;
 
@@ -149,34 +133,27 @@ class ASH_EXPORT WindowCycleView : public views::WidgetDelegateView,
   // label when there is no window to be shown.
   gfx::Rect GetContentContainerBounds() const;
 
-  // Returns the corresponding `WindowMiniViewBase` for the given `window` or
-  // nullptr if not found.
-  WindowMiniViewBase* GetCycleViewForWindow(aura::Window* window) const;
-
   // The root window that `this` resides on.
   const raw_ptr<aura::Window, ExperimentalAsh> root_window_;
 
-  // Constructed as the child views of `mirror_container` and used for window
-  // cycling.
-  std::vector<WindowMiniViewBase*> cycle_views_;
+  // A mapping from a window to its respective `WindowCycleItemView`.
+  std::map<aura::Window*, WindowCycleItemView*> window_view_map_;
 
-  // A container that hosts and lays out all the `WindowMiniViewBase`s.
-  raw_ptr<views::View, DanglingUntriaged | ExperimentalAsh> mirror_container_ =
-      nullptr;
+  // A container that houses and lays out all the `WindowCycleItemView`s.
+  raw_ptr<views::View, ExperimentalAsh> mirror_container_ = nullptr;
 
   // Tells users that there are no app windows on the active desk. It only shows
   // when there're more than 1 desk.
-  raw_ptr<views::Label, DanglingUntriaged | ExperimentalAsh>
-      no_recent_items_label_ = nullptr;
+  raw_ptr<views::Label, ExperimentalAsh> no_recent_items_label_ = nullptr;
 
   // The `tab_slider_` only shows when there're more than 1 desk. It contains
   // `all_desks_tab_slider_button_` and `current_desk_tab_slider_button_` which
   // user can tab through or toggle between.
-  raw_ptr<TabSlider, DanglingUntriaged | ExperimentalAsh> tab_slider_ = nullptr;
-  raw_ptr<LabelSliderButton, DanglingUntriaged | ExperimentalAsh>
-      all_desks_tab_slider_button_ = nullptr;
-  raw_ptr<LabelSliderButton, DanglingUntriaged | ExperimentalAsh>
-      current_desk_tab_slider_button_ = nullptr;
+  raw_ptr<TabSlider, ExperimentalAsh> tab_slider_ = nullptr;
+  raw_ptr<LabelSliderButton, ExperimentalAsh> all_desks_tab_slider_button_ =
+      nullptr;
+  raw_ptr<LabelSliderButton, ExperimentalAsh> current_desk_tab_slider_button_ =
+      nullptr;
 
   // The |target_window_| is the window that has the focus ring. When the user
   // completes cycling the |target_window_| is activated.
@@ -192,10 +169,10 @@ class ASH_EXPORT WindowCycleView : public views::WidgetDelegateView,
   // view's scaling animation..
   bool defer_widget_bounds_update_ = false;
 
-  // List which contains items which have been created but have some of their
+  // Set which contains items which have been created but have some of their
   // performance heavy elements not created yet. These elements will be created
   // once onscreen to improve fade in performance, then removed from this set.
-  std::vector<WindowMiniViewBase*> no_previews_list_;
+  base::flat_set<WindowCycleItemView*> no_previews_set_;
 
   // Used for preventng occlusion state computations for the duration of the
   // fade in animation.

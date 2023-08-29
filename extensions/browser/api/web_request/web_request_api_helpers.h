@@ -8,6 +8,7 @@
 #define EXTENSIONS_BROWSER_API_WEB_REQUEST_WEB_REQUEST_API_HELPERS_H_
 
 #include <list>
+#include <memory>
 #include <set>
 #include <string>
 #include <utility>
@@ -21,6 +22,7 @@
 #include "net/base/auth.h"
 #include "net/http/http_request_headers.h"
 #include "net/http/http_response_headers.h"
+#include "services/network/public/cpp/features.h"
 #include "third_party/abseil-cpp/absl/types/optional.h"
 #include "url/gurl.h"
 

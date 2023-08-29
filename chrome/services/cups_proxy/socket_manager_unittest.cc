@@ -8,7 +8,6 @@
 #include <utility>
 
 #include "base/files/file_util.h"
-#include "base/memory/raw_ptr.h"
 #include "base/path_service.h"
 #include "base/task/sequenced_task_runner.h"
 #include "base/task/single_thread_task_runner.h"
@@ -212,7 +211,7 @@ class SocketManagerTest : public testing::Test {
   std::unique_ptr<FakeServiceDelegate> delegate_;
 
   // Not owned.
-  raw_ptr<FakeSocket> socket_;
+  FakeSocket* socket_;
 
   std::unique_ptr<SocketManager> manager_;
   base::WeakPtrFactory<SocketManagerTest> weak_factory_{this};

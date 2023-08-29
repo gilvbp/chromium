@@ -37,9 +37,6 @@ class LCPCriticalPathPredictorHost
           receiver);
 
   ~LCPCriticalPathPredictorHost() override;
-
-  // Implements blink::mojom::LCPCriticalPathPredictorHost.
-  void SetLcpElementLocator(const std::string& lcp_element_locator) override;
 };
 
 }  // namespace predictors

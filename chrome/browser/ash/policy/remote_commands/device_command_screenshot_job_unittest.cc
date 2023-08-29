@@ -47,7 +47,8 @@ em::RemoteCommand GenerateScreenshotCommandProto(
   command_proto.set_command_id(unique_id);
   command_proto.set_age_of_command(age_of_command.InMilliseconds());
   std::string payload;
-  auto root_dict = base::Value::Dict().Set(kUploadUrlFieldName, upload_url);
+  base::Value::Dict root_dict;
+  root_dict.Set(kUploadUrlFieldName, upload_url);
   base::JSONWriter::Write(root_dict, &payload);
   command_proto.set_payload(payload);
   return command_proto;

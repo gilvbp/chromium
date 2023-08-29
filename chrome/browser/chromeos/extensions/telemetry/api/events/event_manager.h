@@ -11,6 +11,10 @@
 #include "base/memory/raw_ptr.h"
 #include "chrome/browser/chromeos/extensions/telemetry/api/events/event_router.h"
 #include "chrome/browser/chromeos/extensions/telemetry/api/events/remote_event_service_strategy.h"
+#include "chrome/browser/ui/browser.h"
+#include "chrome/browser/ui/browser_list_observer.h"
+#include "chrome/browser/ui/tabs/tab_strip_model.h"
+#include "chrome/browser/ui/tabs/tab_strip_model_observer.h"
 #include "chromeos/crosapi/mojom/telemetry_event_service.mojom.h"
 #include "chromeos/crosapi/mojom/telemetry_extension_exception.mojom.h"
 #include "content/public/browser/browser_context.h"
@@ -20,13 +24,13 @@
 
 namespace chromeos {
 
-class AppUiObserver;
-
-class EventManager : public extensions::BrowserContextKeyedAPI {
+class EventManager : public extensions::BrowserContextKeyedAPI,
+                     public TabStripModelObserver,
+                     public BrowserListObserver {
  public:
   enum RegisterEventResult {
     kSuccess,
-    kAppUiClosed,
+    kPwaClosed,
   };
 
   // extensions::BrowserContextKeyedAPI:
@@ -43,9 +47,18 @@ class EventManager : public extensions::BrowserContextKeyedAPI {
 
   ~EventManager() override;
 
+  // TabStripModelObserver:
+  void OnTabStripModelChanged(
+      TabStripModel* tab_strip_model,
+      const TabStripModelChange& change,
+      const TabStripSelectionChange& selection) override;
+
+  // BrowserListObserver:
+  void OnBrowserAdded(Browser* browser) override;
+
   // Registers an extension for a certain event category. This results in a
   // subscription with cros_healthd which is cut when either:
-  // 1. The app UI associated with the extension is closed.
+  // 1. The PWA associated with the extension is closed.
   // 2. The connection gets cut manually.
   RegisterEventResult RegisterExtensionForEvent(
       extensions::ExtensionId extension_id,
@@ -64,7 +77,6 @@ class EventManager : public extensions::BrowserContextKeyedAPI {
 
  private:
   friend class extensions::BrowserContextKeyedAPIFactory<EventManager>;
-  friend class TelemetryExtensionEventManagerTest;
 
   // extensions::BrowserContextKeyedAPI:
   static const char* service_name() { return "TelemetryEventManager"; }
@@ -73,13 +85,7 @@ class EventManager : public extensions::BrowserContextKeyedAPI {
 
   mojo::Remote<crosapi::mojom::TelemetryEventService>& GetRemoteService();
 
-  void OnAppUiClosed(extensions::ExtensionId extension_id);
-
-  std::unique_ptr<AppUiObserver> CreateAppUiObserver(
-      extensions::ExtensionId extension_id);
-
-  base::flat_map<extensions::ExtensionId, std::unique_ptr<AppUiObserver>>
-      app_ui_observers_;
+  base::flat_map<extensions::ExtensionId, bool> open_pwas_;
   EventRouter event_router_;
   std::unique_ptr<RemoteEventServiceStrategy> remote_event_service_strategy_;
 

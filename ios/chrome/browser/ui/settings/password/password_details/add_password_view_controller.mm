@@ -4,8 +4,8 @@
 
 #import "ios/chrome/browser/ui/settings/password/password_details/add_password_view_controller.h"
 
-#import "base/apple/foundation_util.h"
 #import "base/ios/ios_util.h"
+#import "base/mac/foundation_util.h"
 #import "base/metrics/histogram_functions.h"
 #import "base/metrics/histogram_macros.h"
 #import "base/metrics/user_metrics.h"
@@ -39,6 +39,10 @@
 #import "ios/chrome/grit/ios_chromium_strings.h"
 #import "ios/chrome/grit/ios_strings.h"
 #import "ui/base/l10n/l10n_util_mac.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace {
 
@@ -381,7 +385,7 @@ const int kMinNoteCharAmountForWarning = 901;
   if (itemType == ItemTypeNote) {
     UITableViewCell* cell = [self.tableView cellForRowAtIndexPath:indexPath];
     TableViewMultiLineTextEditCell* textFieldCell =
-        base::apple::ObjCCastStrict<TableViewMultiLineTextEditCell>(cell);
+        base::mac::ObjCCastStrict<TableViewMultiLineTextEditCell>(cell);
     [textFieldCell.textView becomeFirstResponder];
     return;
   }
@@ -456,13 +460,13 @@ const int kMinNoteCharAmountForWarning = 901;
   switch (itemType) {
     case ItemTypeUsername: {
       TableViewTextEditCell* textFieldCell =
-          base::apple::ObjCCastStrict<TableViewTextEditCell>(cell);
+          base::mac::ObjCCastStrict<TableViewTextEditCell>(cell);
       textFieldCell.textField.delegate = self;
       break;
     }
     case ItemTypePassword: {
       TableViewTextEditCell* textFieldCell =
-          base::apple::ObjCCastStrict<TableViewTextEditCell>(cell);
+          base::mac::ObjCCastStrict<TableViewTextEditCell>(cell);
       textFieldCell.textField.delegate = self;
       [textFieldCell.identifyingIconButton
                  addTarget:self
@@ -472,7 +476,7 @@ const int kMinNoteCharAmountForWarning = 901;
     }
     case ItemTypeWebsite: {
       TableViewTextEditCell* textFieldCell =
-          base::apple::ObjCCastStrict<TableViewTextEditCell>(cell);
+          base::mac::ObjCCastStrict<TableViewTextEditCell>(cell);
       textFieldCell.textField.delegate = self;
       break;
     }

@@ -8,7 +8,6 @@
 #include <string>
 #include <vector>
 
-#include "base/barrier_closure.h"
 #include "base/functional/callback_helpers.h"
 #include "base/memory/scoped_refptr.h"
 #include "base/strings/string_util.h"
@@ -101,20 +100,20 @@ TEST_F(AggregationServiceNetworkFetcherTest, RequestAttributes) {
 TEST_F(AggregationServiceNetworkFetcherTest, FetchPublicKeys_Success) {
   base::HistogramTester histograms;
 
-  auto quit_closure = task_environment_.QuitClosure();
+  bool callback_run = false;
   network_fetcher_->FetchPublicKeys(
       GURL(kExampleUrl),
       base::BindLambdaForTesting([&](absl::optional<PublicKeyset> keyset) {
         EXPECT_TRUE(keyset.has_value());
         EXPECT_TRUE(aggregation_service::PublicKeysEqual(kExamplePublicKeys,
                                                          keyset->keys));
-        quit_closure.Run();
+        callback_run = true;
       }));
 
   EXPECT_EQ(test_url_loader_factory_.NumPending(), 1);
   EXPECT_TRUE(test_url_loader_factory_.SimulateResponseForPendingRequest(
       kExampleUrl, kExampleValidJson));
-  task_environment_.RunUntilQuit();
+  EXPECT_TRUE(callback_run);
 
   // kSuccess = 0
   histograms.ExpectUniqueSample(kKeyFetcherStatusHistogramName, 0, 1);
@@ -126,18 +125,18 @@ TEST_F(AggregationServiceNetworkFetcherTest,
        FetchPublicKeysInvalidKeyFormat_Failed) {
   base::HistogramTester histograms;
 
-  auto quit_closure = task_environment_.QuitClosure();
+  bool callback_run = false;
   network_fetcher_->FetchPublicKeys(
       GURL(kExampleUrl),
       base::BindLambdaForTesting([&](absl::optional<PublicKeyset> keyset) {
         EXPECT_FALSE(keyset.has_value());
-        quit_closure.Run();
+        callback_run = true;
       }));
 
   EXPECT_EQ(test_url_loader_factory_.NumPending(), 1);
   EXPECT_TRUE(test_url_loader_factory_.SimulateResponseForPendingRequest(
       kExampleUrl, /*content=*/"{}"));
-  task_environment_.RunUntilQuit();
+  EXPECT_TRUE(callback_run);
 
   // kInvalidKeyError = 3
   histograms.ExpectUniqueSample(kKeyFetcherStatusHistogramName, 3, 1);
@@ -147,18 +146,18 @@ TEST_F(AggregationServiceNetworkFetcherTest,
        FetchPublicKeysMalformedJson_Failed) {
   base::HistogramTester histograms;
 
-  auto quit_closure = task_environment_.QuitClosure();
+  bool callback_run = false;
   network_fetcher_->FetchPublicKeys(
       GURL(kExampleUrl),
       base::BindLambdaForTesting([&](absl::optional<PublicKeyset> keyset) {
         EXPECT_FALSE(keyset.has_value());
-        quit_closure.Run();
+        callback_run = true;
       }));
 
   EXPECT_EQ(test_url_loader_factory_.NumPending(), 1);
   EXPECT_TRUE(test_url_loader_factory_.SimulateResponseForPendingRequest(
       kExampleUrl, /*content=*/"{"));
-  task_environment_.RunUntilQuit();
+  EXPECT_TRUE(callback_run);
 
   // kJsonParseError = 2
   histograms.ExpectUniqueSample(kKeyFetcherStatusHistogramName, 2, 1);
@@ -167,12 +166,12 @@ TEST_F(AggregationServiceNetworkFetcherTest,
 TEST_F(AggregationServiceNetworkFetcherTest, FetchPublicKeysLargeBody_Failed) {
   base::HistogramTester histograms;
 
-  auto quit_closure = task_environment_.QuitClosure();
+  bool callback_run = false;
   network_fetcher_->FetchPublicKeys(
       GURL(kExampleUrl),
       base::BindLambdaForTesting([&](absl::optional<PublicKeyset> keyset) {
         EXPECT_FALSE(keyset.has_value());
-        quit_closure.Run();
+        callback_run = true;
       }));
 
   EXPECT_EQ(test_url_loader_factory_.NumPending(), 1);
@@ -180,7 +179,7 @@ TEST_F(AggregationServiceNetworkFetcherTest, FetchPublicKeysLargeBody_Failed) {
   std::string response_body = kExampleValidJson + std::string(1000000, ' ');
   EXPECT_TRUE(test_url_loader_factory_.SimulateResponseForPendingRequest(
       kExampleUrl, response_body));
-  task_environment_.RunUntilQuit();
+  EXPECT_TRUE(callback_run);
 
   // kDownloadError = 1
   histograms.ExpectUniqueSample(kKeyFetcherStatusHistogramName, 1, 1);
@@ -201,12 +200,12 @@ TEST_F(AggregationServiceNetworkFetcherTest,
 TEST_F(AggregationServiceNetworkFetcherTest, FetchRequestHangs_TimesOut) {
   base::HistogramTester histograms;
 
-  auto quit_closure = task_environment_.QuitClosure();
+  bool callback_run = false;
   network_fetcher_->FetchPublicKeys(
       GURL(kExampleUrl),
       base::BindLambdaForTesting([&](absl::optional<PublicKeyset> keyset) {
         EXPECT_FALSE(keyset.has_value());
-        quit_closure.Run();
+        callback_run = true;
       }));
   EXPECT_EQ(test_url_loader_factory_.NumPending(), 1);
 
@@ -216,7 +215,7 @@ TEST_F(AggregationServiceNetworkFetcherTest, FetchRequestHangs_TimesOut) {
   EXPECT_EQ(test_url_loader_factory_.NumPending(), 0);
   EXPECT_FALSE(test_url_loader_factory_.SimulateResponseForPendingRequest(
       kExampleUrl, kExampleValidJson));
-  task_environment_.RunUntilQuit();
+  EXPECT_TRUE(callback_run);
 
   // kDownloadError = 1
   histograms.ExpectUniqueSample(kKeyFetcherStatusHistogramName, 1, 1);
@@ -231,12 +230,12 @@ TEST_F(AggregationServiceNetworkFetcherTest,
   {
     base::HistogramTester histograms;
 
-    auto quit_closure = task_environment_.QuitClosure();
+    bool callback_run = false;
     network_fetcher_->FetchPublicKeys(
         GURL(kExampleUrl),
         base::BindLambdaForTesting([&](absl::optional<PublicKeyset> keyset) {
           EXPECT_FALSE(keyset.has_value());
-          quit_closure.Run();
+          callback_run = true;
         }));
     EXPECT_EQ(test_url_loader_factory_.NumPending(), 1);
 
@@ -257,7 +256,7 @@ TEST_F(AggregationServiceNetworkFetcherTest,
 
     // We should not retry again.
     EXPECT_EQ(test_url_loader_factory_.NumPending(), 0);
-    task_environment_.RunUntilQuit();
+    EXPECT_TRUE(callback_run);
 
     // kDownloadError = 1
     histograms.ExpectUniqueSample(kKeyFetcherStatusHistogramName, 1, 1);
@@ -270,14 +269,14 @@ TEST_F(AggregationServiceNetworkFetcherTest,
   {
     base::HistogramTester histograms;
 
-    auto quit_closure = task_environment_.QuitClosure();
+    bool callback_run = false;
     network_fetcher_->FetchPublicKeys(
         GURL(kExampleUrl),
         base::BindLambdaForTesting([&](absl::optional<PublicKeyset> keyset) {
           EXPECT_TRUE(keyset.has_value());
           EXPECT_TRUE(aggregation_service::PublicKeysEqual(kExamplePublicKeys,
                                                            keyset->keys));
-          quit_closure.Run();
+          callback_run = true;
         }));
     EXPECT_EQ(test_url_loader_factory_.NumPending(), 1);
 
@@ -293,7 +292,7 @@ TEST_F(AggregationServiceNetworkFetcherTest,
     // Simulate a second request with respoonse.
     EXPECT_TRUE(test_url_loader_factory_.SimulateResponseForPendingRequest(
         kExampleUrl, kExampleValidJson));
-    task_environment_.RunUntilQuit();
+    EXPECT_TRUE(callback_run);
 
     // kSuccess = 0
     histograms.ExpectUniqueSample(kKeyFetcherStatusHistogramName, 0, 1);
@@ -306,17 +305,17 @@ TEST_F(AggregationServiceNetworkFetcherTest, HttpError_CallbackRuns) {
   base::HistogramTester histograms;
 
   GURL url(kExampleUrl);
-  auto quit_closure = task_environment_.QuitClosure();
+  bool callback_run = false;
   network_fetcher_->FetchPublicKeys(
       url, base::BindLambdaForTesting([&](absl::optional<PublicKeyset> keyset) {
-        quit_closure.Run();
+        callback_run = true;
       }));
 
   // We should run the callback even if there is an http error.
   EXPECT_TRUE(test_url_loader_factory_.SimulateResponseForPendingRequest(
       kExampleUrl, /*content=*/"", net::HTTP_BAD_REQUEST));
 
-  task_environment_.RunUntilQuit();
+  EXPECT_TRUE(callback_run);
 
   // kDownloadError = 1
   histograms.ExpectUniqueSample(kKeyFetcherStatusHistogramName, 1, 1);
@@ -327,16 +326,14 @@ TEST_F(AggregationServiceNetworkFetcherTest, HttpError_CallbackRuns) {
 
 TEST_F(AggregationServiceNetworkFetcherTest, MultipleRequests_AllCallbacksRun) {
   base::HistogramTester histograms;
-  auto barrier_closure =
-      base::BarrierClosure(10, task_environment_.QuitClosure());
 
   GURL url(kExampleUrl);
+  int num_callbacks_run = 0;
   for (int i = 0; i < 10; i++) {
     network_fetcher_->FetchPublicKeys(
         url,
-        base::BindLambdaForTesting([&](absl::optional<PublicKeyset> keyset) {
-          barrier_closure.Run();
-        }));
+        base::BindLambdaForTesting(
+            [&](absl::optional<PublicKeyset> keyset) { ++num_callbacks_run; }));
   }
 
   EXPECT_EQ(test_url_loader_factory_.NumPending(), 10);
@@ -345,8 +342,8 @@ TEST_F(AggregationServiceNetworkFetcherTest, MultipleRequests_AllCallbacksRun) {
     EXPECT_TRUE(test_url_loader_factory_.SimulateResponseForPendingRequest(
         kExampleUrl, kExampleValidJson));
   }
-  task_environment_.RunUntilQuit();
 
+  EXPECT_EQ(num_callbacks_run, 10);
   EXPECT_EQ(test_url_loader_factory_.NumPending(), 0);
 
   // kSuccess = 0
@@ -361,7 +358,7 @@ TEST_F(AggregationServiceNetworkFetcherTest, VerifyExpiryTime) {
 
   base::Time now = clock->Now();
 
-  auto quit_closure = task_environment_.QuitClosure();
+  bool callback_run = false;
   network_fetcher_->FetchPublicKeys(
       GURL(kExampleUrl),
       base::BindLambdaForTesting([&](absl::optional<PublicKeyset> keyset) {
@@ -370,7 +367,7 @@ TEST_F(AggregationServiceNetworkFetcherTest, VerifyExpiryTime) {
                                                          keyset->keys));
         EXPECT_EQ(keyset->fetch_time, now);
         EXPECT_EQ(keyset->expiry_time, now + base::Seconds(900));
-        quit_closure.Run();
+        callback_run = true;
       }));
 
   EXPECT_EQ(test_url_loader_factory_.NumPending(), 1);
@@ -386,7 +383,7 @@ TEST_F(AggregationServiceNetworkFetcherTest, VerifyExpiryTime) {
   EXPECT_TRUE(test_url_loader_factory_.SimulateResponseForPendingRequest(
       GURL(kExampleUrl), network::URLLoaderCompletionStatus(net::OK),
       std::move(response_head), kExampleValidJson));
-  task_environment_.RunUntilQuit();
+  EXPECT_TRUE(callback_run);
 
   // kSuccess = 0
   histograms.ExpectUniqueSample(kKeyFetcherStatusHistogramName, 0, 1);
@@ -400,12 +397,12 @@ TEST_F(AggregationServiceNetworkFetcherTest, VerifyExpiredKeyOnFetch) {
 
   base::Time now = clock->Now();
 
-  auto quit_closure = task_environment_.QuitClosure();
+  bool callback_run = false;
   network_fetcher_->FetchPublicKeys(
       GURL(kExampleUrl),
       base::BindLambdaForTesting([&](absl::optional<PublicKeyset> keyset) {
         EXPECT_FALSE(keyset.has_value());
-        quit_closure.Run();
+        callback_run = true;
       }));
 
   EXPECT_EQ(test_url_loader_factory_.NumPending(), 1);
@@ -421,7 +418,7 @@ TEST_F(AggregationServiceNetworkFetcherTest, VerifyExpiredKeyOnFetch) {
   EXPECT_TRUE(test_url_loader_factory_.SimulateResponseForPendingRequest(
       GURL(kExampleUrl), network::URLLoaderCompletionStatus(net::OK),
       std::move(response_head), kExampleValidJson));
-  task_environment_.RunUntilQuit();
+  EXPECT_TRUE(callback_run);
 
   // kExpiredKeyError = 4
   histograms.ExpectUniqueSample(kKeyFetcherStatusHistogramName, 4, 1);

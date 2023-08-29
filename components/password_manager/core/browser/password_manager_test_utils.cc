@@ -71,13 +71,14 @@ std::unique_ptr<PasswordForm> FillPasswordFormWithData(
 std::unique_ptr<PasswordForm> CreateEntry(const std::string& username,
                                           const std::string& password,
                                           const GURL& origin_url,
-                                          PasswordForm::MatchType match_type) {
+                                          bool is_psl_match,
+                                          bool is_affiliation_based_match) {
   auto form = std::make_unique<PasswordForm>();
   form->username_value = base::ASCIIToUTF16(username);
   form->password_value = base::ASCIIToUTF16(password);
   form->url = origin_url;
-  form->signon_realm = origin_url.GetWithEmptyPath().spec();
-  form->match_type = match_type;
+  form->is_public_suffix_match = is_psl_match;
+  form->is_affiliation_based_match = is_affiliation_based_match;
   return form;
 }
 

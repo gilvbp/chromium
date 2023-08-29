@@ -7,6 +7,7 @@ package org.chromium.components.browser_ui.photo_picker;
 import android.net.Uri;
 
 import androidx.annotation.IntDef;
+import androidx.annotation.VisibleForTesting;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -105,6 +106,7 @@ public class PickerBitmap implements Comparable<PickerBitmap> {
      * Accessor for the last modified date (for testing use only).
      * @return The last modified date.
      */
+    @VisibleForTesting
     public long getLastModifiedForTesting() {
         return mLastModified;
     }

@@ -17,7 +17,6 @@
 #include "third_party/blink/renderer/core/paint/svg_model_object_painter.h"
 #include "third_party/blink/renderer/core/paint/svg_object_painter.h"
 #include "third_party/blink/renderer/core/paint/timing/paint_timing.h"
-#include "third_party/blink/renderer/core/style/paint_order_array.h"
 #include "third_party/blink/renderer/platform/graphics/graphics_context_state_saver.h"
 #include "third_party/blink/renderer/platform/graphics/paint/drawing_recorder.h"
 #include "third_party/blink/renderer/platform/graphics/paint/paint_record.h"
@@ -75,9 +74,8 @@ void SVGShapePainter::Paint(const PaintInfo& paint_info) {
           style.ShapeRendering() != EShapeRendering::kCrispedges &&
           style.ShapeRendering() != EShapeRendering::kOptimizespeed;
 
-      const PaintOrderArray paint_order(style.PaintOrder());
-      for (unsigned i = 0; i < 3; i++) {
-        switch (paint_order[i]) {
+      for (int i = 0; i < 3; i++) {
+        switch (style.PaintOrderType(i)) {
           case PT_FILL: {
             cc::PaintFlags fill_flags;
             if (!SVGObjectPainter(layout_svg_shape_)

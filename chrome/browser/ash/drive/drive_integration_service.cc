@@ -6,6 +6,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -70,15 +71,19 @@
 #include "components/prefs/pref_service.h"
 #include "components/signin/public/identity_manager/identity_manager.h"
 #include "components/user_manager/user.h"
+#include "components/version_info/version_info.h"
 #include "content/public/browser/browser_context.h"
 #include "content/public/browser/browser_thread.h"
 #include "content/public/browser/network_service_instance.h"
+#include "content/public/common/user_agent.h"
 #include "google_apis/common/auth_service.h"
 #include "google_apis/gaia/core_account_id.h"
 #include "google_apis/gaia/gaia_constants.h"
 #include "mojo/public/cpp/bindings/callback_helpers.h"
 #include "mojo/public/cpp/bindings/pending_remote.h"
 #include "mojo/public/cpp/bindings/remote.h"
+#include "net/traffic_annotation/network_traffic_annotation.h"
+#include "services/device/public/mojom/wake_lock_provider.mojom.h"
 #include "services/network/public/cpp/network_connection_tracker.h"
 #include "services/network/public/cpp/shared_url_loader_factory.h"
 #include "storage/browser/file_system/external_mount_points.h"
@@ -105,6 +110,10 @@ const base::FilePath::CharType kMetadataDirectory[] = FILE_PATH_LITERAL("meta");
 // Name of the directory used to store cached files.
 const base::FilePath::CharType kCacheFileDirectory[] =
     FILE_PATH_LITERAL("files");
+
+// Name of the directory used to store temporary files.
+const base::FilePath::CharType kTemporaryFileDirectory[] =
+    FILE_PATH_LITERAL("tmp");
 
 void DeleteDirectoryContents(const base::FilePath& dir) {
   base::FileEnumerator content_enumerator(
@@ -137,55 +146,51 @@ base::FilePath GetRecoveredFilesPath(
 // Must be run on the same task runner used by |cache| and |resource_metadata|.
 FileError InitializeMetadata(
     const base::FilePath& cache_root_directory,
-    internal::ResourceMetadataStorage* const metadata_storage,
+    internal::ResourceMetadataStorage* metadata_storage,
     const base::FilePath& downloads_directory) {
-  const base::FilePath tmp_dir = cache_root_directory.Append("tmp");
-  const base::FilePath metadata_dir =
-      cache_root_directory.Append(kMetadataDirectory);
-  const base::FilePath cache_file_dir =
-      cache_root_directory.Append(kCacheFileDirectory);
-
-  // Create tmp directory as encrypted. Cryptohome will re-create tmp directory
-  // at the next login.
-  for (const base::FilePath& dir : {tmp_dir, metadata_dir, cache_file_dir}) {
-    if (!base::CreateDirectory(dir)) {
-      PLOG(ERROR) << "Cannot create dir " << dir;
+  if (!base::DirectoryExists(
+          cache_root_directory.Append(kTemporaryFileDirectory))) {
+    if (base::SysInfo::IsRunningOnChromeOS()) {
+      LOG(ERROR) << "/tmp should have been created as clear.";
+    }
+    // Create /tmp directory as encrypted. Cryptohome will re-create /tmp
+    // direcotry at the next login.
+    if (!base::CreateDirectory(
+            cache_root_directory.Append(kTemporaryFileDirectory))) {
+      LOG(WARNING) << "Failed to create directories.";
       return FILE_ERROR_FAILED;
     }
   }
-
-  // Files in tmp directory need not persist across sessions. Clean up the
-  // directory content while initialization. The directory itself should not be
-  // deleted because it's created by cryptohome in clear and shouldn't be
+  // Files in temporary directory need not persist across sessions. Clean up
+  // the directory content while initialization. The directory itself should not
+  // be deleted because it's created by cryptohome in clear and shouldn't be
   // re-created as encrypted.
-  DeleteDirectoryContents(tmp_dir);
-
-  // Change permissions of cache file directory to u+rwx,og+x (711) in order to
-  // allow archive files in that directory to be mounted by cros-disks.
-  if (!base::SetPosixFilePermissions(
-          cache_file_dir, base::FILE_PERMISSION_USER_MASK |
-                              base::FILE_PERMISSION_EXECUTE_BY_GROUP |
-                              base::FILE_PERMISSION_EXECUTE_BY_OTHERS)) {
-    PLOG(ERROR) << "Cannot set permissions on dir " << cache_file_dir;
-  }
-
-  // If attempting to migrate to DriveFS without previous Drive sync data
-  // present, skip the migration.
-  if (base::IsDirectoryEmpty(metadata_dir)) {
-    VLOG(1) << "Dir " << metadata_dir << " is empty";
+  DeleteDirectoryContents(cache_root_directory.Append(kTemporaryFileDirectory));
+  if (!base::CreateDirectory(cache_root_directory.Append(kMetadataDirectory)) ||
+      !base::CreateDirectory(
+          cache_root_directory.Append(kCacheFileDirectory))) {
+    LOG(WARNING) << "Failed to create directories.";
     return FILE_ERROR_FAILED;
   }
 
-  DCHECK(metadata_storage);
-  if (!internal::ResourceMetadataStorage::UpgradeOldDB(
-          metadata_storage->directory_path())) {
-    LOG(ERROR) << "Cannot upgrade the metadata storage "
-               << metadata_storage->directory_path();
+  // Change permissions of cache file directory to u+rwx,og+x (711) in order to
+  // allow archive files in that directory to be mounted by cros-disks.
+  base::SetPosixFilePermissions(
+      cache_root_directory.Append(kCacheFileDirectory),
+      base::FILE_PERMISSION_USER_MASK | base::FILE_PERMISSION_EXECUTE_BY_GROUP |
+          base::FILE_PERMISSION_EXECUTE_BY_OTHERS);
+
+  // If attempting to migrate to DriveFS without previous Drive sync data
+  // present, skip the migration.
+  if (base::IsDirectoryEmpty(cache_root_directory.Append(kMetadataDirectory))) {
+    return FILE_ERROR_FAILED;
   }
 
+  internal::ResourceMetadataStorage::UpgradeOldDB(
+      metadata_storage->directory_path());
+
   if (!metadata_storage->Initialize()) {
-    LOG(ERROR) << "Cannot initialize the metadata storage "
-               << metadata_storage->directory_path();
+    LOG(WARNING) << "Failed to initialize the metadata storage.";
     return FILE_ERROR_FAILED;
   }
 
@@ -364,26 +369,6 @@ bool ClearCache(base::FilePath cache_path, base::FilePath logs_path) {
   return success;
 }
 
-// These values are logged to UMA. Entries should not be renumbered and
-// numeric values should never be reused. Please keep in sync with
-// "GoogleDrive.BulkPinning.MountFailureReason" in
-// src/tools/metrics/histograms/enums.xml.
-enum class BulkPinningMountFailureReason {
-  kSuccess = 0,
-  kThreeConsecutiveFailures = 1,
-  kMoreThanTenTotalFailures = 2,
-  kMaxValue = kMoreThanTenTotalFailures,
-};
-
-void RecordBulkPinningMountFailureReason(const Profile* profile,
-                                         BulkPinningMountFailureReason reason) {
-  if (!drive::util::IsDriveFsBulkPinningEnabled(profile)) {
-    return;
-  }
-  base::UmaHistogramEnumeration(
-      "FileBrowser.GoogleDrive.BulkPinning.MultipleMountFailures", reason);
-}
-
 }  // namespace
 
 // Observes drive disable Preference's change.
@@ -531,7 +516,9 @@ class DriveIntegrationService::PreferenceWatcher
     VLOG(1) << "OnConnectionChanged: {type: " << type << ", online: " << online
             << ", pause_syncing: " << pause_syncing << "}";
 
-    integration_service_->UpdateNetworkState(pause_syncing, !online);
+    if (DriveFs* const drivefs = integration_service_->GetDriveFsInterface()) {
+      drivefs->UpdateNetworkState(pause_syncing, !online);
+    }
   }
 
   const raw_ptr<const Profile, ExperimentalAsh> profile_;
@@ -615,6 +602,10 @@ class DriveIntegrationService::DriveFsHolder
         metrics::prefs::kMetricsReportingEnabled);
   }
 
+  DriveNotificationManager& GetDriveNotificationManager() override {
+    return *DriveNotificationManagerFactory::GetForBrowserContext(profile_);
+  }
+
   void OnMountFailed(MountFailure failure,
                      absl::optional<TimeDelta> remount_delay) override {
     mount_observer_->OnMountFailed(failure, std::move(remount_delay));
@@ -669,7 +660,7 @@ class DriveIntegrationService::DriveFsHolder
       mojo::PendingRemote<drivefs::mojom::NativeMessagingHost> host,
       drivefs::mojom::DriveFsDelegate::ConnectToExtensionCallback callback)
       override {
-    if (crosapi::browser_util::IsLacrosEnabled()) {
+    if (crosapi::browser_util::IsLacrosPrimaryBrowser()) {
       if (!native_message_host_bridge_) {
         auto* browser_manager = crosapi::BrowserManager::Get();
         if (!native_message_keep_alive_ && browser_manager) {
@@ -864,10 +855,6 @@ void DriveIntegrationService::SetEnabled(bool enabled) {
   }
 }
 
-bool DriveIntegrationService::IsOnline() const {
-  return preference_watcher_ && preference_watcher_->IsOnline();
-}
-
 bool DriveIntegrationService::IsMounted() const {
   if (mount_point_name_.empty()) {
     return false;
@@ -888,10 +875,6 @@ base::FilePath DriveIntegrationService::GetMountPointPath() const {
 
 base::FilePath DriveIntegrationService::GetDriveFsLogPath() const {
   return GetDriveFsHost()->GetDataPath().Append("Logs/drivefs.txt");
-}
-
-base::FilePath DriveIntegrationService::GetDriveFsContentCachePath() const {
-  return GetDriveFsHost()->GetDataPath().Append("content_cache");
 }
 
 bool DriveIntegrationService::GetRelativeDrivePath(
@@ -918,19 +901,16 @@ bool DriveIntegrationService::IsSharedDrive(
       .IsParent(local_path);
 }
 
-void DriveIntegrationService::AddObserver(Observer* const observer) {
+void DriveIntegrationService::AddObserver(
+    DriveIntegrationServiceObserver* observer) {
   DCHECK_CURRENTLY_ON(BrowserThread::UI);
   observers_.AddObserver(observer);
 }
 
-void DriveIntegrationService::RemoveObserver(Observer* const observer) {
+void DriveIntegrationService::RemoveObserver(
+    DriveIntegrationServiceObserver* observer) {
   DCHECK_CURRENTLY_ON(BrowserThread::UI);
   observers_.RemoveObserver(observer);
-}
-
-bool DriveIntegrationService::HasObserver(Observer* const observer) {
-  DCHECK_CURRENTLY_ON(BrowserThread::UI);
-  return observers_.HasObserver(observer);
 }
 
 void DriveIntegrationService::ClearCacheAndRemountFileSystem(
@@ -1068,16 +1048,13 @@ void DriveIntegrationService::MaybeMountDrive(const base::FilePath& data_dir,
       file_manager::SystemNotificationManager snm(profile_);
       const std::unique_ptr<const message_center::Notification> notification =
           snm.CreateNotification("drive_data_dir_missing",
-                                 IDS_FILE_BROWSER_DRIVE_DATA_DIR_MISSING_TITLE,
+                                 IDS_FILE_BROWSER_DRIVE_SYNC_ERROR_TITLE,
                                  IDS_FILE_BROWSER_DRIVE_DATA_DIR_MISSING);
       DCHECK(notification);
       snm.GetNotificationDisplayService()->Display(
           NotificationHandler::Type::TRANSIENT, *notification, nullptr);
 
       // Disable bulk-pinning.
-      base::UmaHistogramBoolean(
-          "FileBrowser.GoogleDrive.BulkPinning.StateWhenCacheVolumeRemoved",
-          GetPrefs()->GetBoolean(kDriveFsBulkPinningEnabled));
       GetPrefs()->SetBoolean(kDriveFsBulkPinningEnabled, false);
     }
   }
@@ -1100,7 +1077,7 @@ bool DriveIntegrationService::AddDriveMountPointAfterMounted() {
       storage::FileSystemMountOption(), drive_mount_point);
 
   if (success) {
-    logger_->Log(logging::LOGGING_INFO, "Drive mount point is added");
+    logger_->Log(logging::LOG_INFO, "Drive mount point is added");
     for (auto& observer : observers_) {
       observer.OnFileSystemMounted();
     }
@@ -1129,7 +1106,7 @@ void DriveIntegrationService::RemoveDriveMountPoint() {
       for (auto& observer : observers_) {
         observer.OnFileSystemBeingUnmounted();
       }
-      logger_->Log(logging::LOGGING_INFO, "Drive mount point is removed");
+      logger_->Log(logging::LOG_INFO, "Drive mount point is removed");
     }
   }
   GetDriveFsHost()->Unmount();
@@ -1156,7 +1133,7 @@ void DriveIntegrationService::MaybeRemountFileSystem(
   if (!remount_delay) {
     if (failed_to_mount && preference_watcher_ &&
         !preference_watcher_->IsOnline()) {
-      logger_->Log(logging::LOGGING_WARNING,
+      logger_->Log(logging::LOG_WARNING,
                    "DriveFs failed to start; will retry when online");
       remount_when_online_ = true;
       return;
@@ -1167,10 +1144,8 @@ void DriveIntegrationService::MaybeRemountFileSystem(
     ++drivefs_total_failures_count_;
     if (drivefs_total_failures_count_ > 10) {
       mount_failed_ = true;
-      logger_->Log(logging::LOGGING_ERROR,
+      logger_->Log(logging::LOG_ERROR,
                    "DriveFs is too crashy. Leaving it alone.");
-      RecordBulkPinningMountFailureReason(
-          profile_, BulkPinningMountFailureReason::kMoreThanTenTotalFailures);
       for (auto& observer : observers_) {
         observer.OnFileSystemMountFailed();
       }
@@ -1178,10 +1153,8 @@ void DriveIntegrationService::MaybeRemountFileSystem(
     }
     if (drivefs_consecutive_failures_count_ > 3) {
       mount_failed_ = true;
-      logger_->Log(logging::LOGGING_ERROR,
+      logger_->Log(logging::LOG_ERROR,
                    "DriveFs keeps failing at start. Giving up.");
-      RecordBulkPinningMountFailureReason(
-          profile_, BulkPinningMountFailureReason::kThreeConsecutiveFailures);
       for (auto& observer : observers_) {
         observer.OnFileSystemMountFailed();
       }
@@ -1189,7 +1162,7 @@ void DriveIntegrationService::MaybeRemountFileSystem(
     }
     remount_delay =
         Seconds(5 * (1 << (drivefs_consecutive_failures_count_ - 1)));
-    logger_->Log(logging::LOGGING_WARNING, "DriveFs died, retry in %d seconds",
+    logger_->Log(logging::LOG_WARNING, "DriveFs died, retry in %d seconds",
                  static_cast<int>(remount_delay.value().InSeconds()));
   }
 
@@ -1227,20 +1200,10 @@ void DriveIntegrationService::OnMounted(const base::FilePath& mount_path) {
   // Enable bulk-pinning if the feature is enabled.
   if (util::IsDriveFsBulkPinningEnabled(profile_)) {
     DCHECK_CURRENTLY_ON(BrowserThread::UI);
-
-    // Instantiate a PinManager.
     DCHECK(!pin_manager_);
-    const int queue_size = ash::features::GetDriveFsBulkPinningQueueSize();
-    VLOG(1) << "Bulk-pinning queue size: " << queue_size;
-    pin_manager_ = std::make_unique<PinManager>(
-        profile_->GetPath(), mount_path, GetDriveFsInterface(), queue_size);
-
-    // Listen to progress events from this PinManager.
+    pin_manager_ = std::make_unique<PinManager>(profile_->GetPath(), mount_path,
+                                                GetDriveFsInterface());
     pin_manager_->AddObserver(this);
-    if (!observers_.empty()) {
-      OnProgress(pin_manager_->GetProgress());
-    }
-
     DCHECK(!bulk_pinning_pref_updater_);
     bulk_pinning_pref_updater_ =
         std::make_unique<BulkPinningPrefUpdater>(GetPrefs());
@@ -1256,13 +1219,6 @@ void DriveIntegrationService::OnMounted(const base::FilePath& mount_path) {
     if (!bulk_pinning_pref_sampling_) {
       bulk_pinning_pref_sampling_ = true;
       SampleBulkPinningPref();
-    }
-
-    RecordBulkPinningMountFailureReason(
-        profile_, BulkPinningMountFailureReason::kSuccess);
-
-    for (Observer& observer : observers_) {
-      observer.OnBulkPinInitialized();
     }
   }
 }
@@ -1400,7 +1356,7 @@ void DriveIntegrationService::ToggleBulkPinning() {
   }
 
   if (GetPrefs()->GetBoolean(kDriveFsBulkPinningEnabled)) {
-    pin_manager_->ShouldPin();
+    pin_manager_->ShouldPin(true);
     pin_manager_->Start();
   } else {
     pin_manager_->Stop();
@@ -1415,28 +1371,17 @@ void DriveIntegrationService::GetTotalPinnedSize(
     return;
   }
 
-  if (base::Time::Now() < last_offline_storage_size_time_ + Seconds(2)) {
-    std::move(callback).Run(last_offline_storage_size_result_);
-    return;
-  }
-
-  GetDriveFsInterface()->GetOfflineFilesSpaceUsage(
-      base::BindOnce(&DriveIntegrationService::OnGetOfflineFilesSpaceUsage,
-                     weak_ptr_factory_.GetWeakPtr(), std::move(callback)));
-}
-
-void DriveIntegrationService::OnGetOfflineFilesSpaceUsage(
-    base::OnceCallback<void(int64_t)> callback,
-    drive::FileError error,
-    int64_t total_size) {
-  if (error != drive::FILE_ERROR_OK) {
-    LOG(ERROR) << "Cannot get offline size: " << error;
-    std::move(callback).Run(-1);
-    return;
-  }
-  last_offline_storage_size_result_ = total_size;
-  last_offline_storage_size_time_ = base::Time::Now();
-  std::move(callback).Run(total_size);
+  GetDriveFsInterface()->GetOfflineFilesSpaceUsage(base::BindOnce(
+      [](base::OnceCallback<void(int64_t)> callback, drive::FileError error,
+         int64_t total_size) {
+        if (error != drive::FILE_ERROR_OK) {
+          LOG(ERROR) << "Cannot get offline size: " << error;
+          std::move(callback).Run(-1);
+          return;
+        }
+        std::move(callback).Run(total_size);
+      },
+      std::move(callback)));
 }
 
 void DriveIntegrationService::ClearOfflineFiles(
@@ -1834,19 +1779,6 @@ void DriveIntegrationService::GetDocsOfflineStats(
   GetDriveFsInterface()->GetDocsOfflineStats(std::move(callback));
 }
 
-void DriveIntegrationService::UpdateNetworkState(bool pause_syncing,
-                                                 bool is_offline) {
-  if (DriveFs* const drivefs = GetDriveFsInterface()) {
-    drivefs->UpdateNetworkState(pause_syncing, is_offline);
-  }
-
-  util::ConnectionStatusType connection_status =
-      util::GetDriveConnectionStatus(profile_);
-  for (auto& observer : observers_) {
-    observer.OnDriveConnectionStatusChanged(connection_status);
-  }
-}
-
 //===================== DriveIntegrationServiceFactory =======================
 
 DriveIntegrationServiceFactory::FactoryCallback*
@@ -1893,6 +1825,7 @@ DriveIntegrationServiceFactory::DriveIntegrationServiceFactory()
               .WithGuest(ProfileSelection::kRedirectedToOriginal)
               .Build()) {
   DependsOn(IdentityManagerFactory::GetInstance());
+  DependsOn(DriveNotificationManagerFactory::GetInstance());
   DependsOn(DownloadCoreServiceFactory::GetInstance());
 }
 

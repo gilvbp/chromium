@@ -11,7 +11,6 @@
 #include "chrome/updater/external_constants.h"
 #include "chrome/updater/updater_branding.h"
 #include "components/crx_file/crx_verifier.h"
-#include "third_party/abseil-cpp/absl/types/optional.h"
 #include "url/gurl.h"
 
 namespace updater {
@@ -53,10 +52,6 @@ class DefaultExternalConstants : public ExternalConstants {
   }
 
   base::TimeDelta IdleCheckPeriod() const override { return base::Minutes(5); }
-
-  absl::optional<bool> IsMachineManaged() const override {
-    return absl::nullopt;
-  }
 
  private:
   ~DefaultExternalConstants() override = default;

@@ -11,6 +11,10 @@
 #import "ios/chrome/browser/ui/authentication/signin/signin_utils.h"
 #import "net/base/network_change_notifier.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 using signin_metrics::AccessPoint;
 using signin_metrics::LogSigninAccessPointStarted;
 using signin_metrics::PromoAction;

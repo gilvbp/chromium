@@ -74,6 +74,8 @@ QualifiedName GetCorrespondingARIAAttribute(AOMRelationProperty property) {
   switch (property) {
     case AOMRelationProperty::kActiveDescendant:
       return html_names::kAriaActivedescendantAttr;
+    case AOMRelationProperty::kErrorMessage:
+      return html_names::kAriaErrormessageAttr;
   }
 
   NOTREACHED();
@@ -88,8 +90,6 @@ QualifiedName GetCorrespondingARIAAttribute(AOMRelationListProperty property) {
       return html_names::kAriaDetailsAttr;
     case AOMRelationListProperty::kControls:
       return html_names::kAriaControlsAttr;
-    case AOMRelationListProperty::kErrorMessage:
-      return html_names::kAriaErrormessageAttr;
     case AOMRelationListProperty::kFlowTo:
       return html_names::kAriaFlowtoAttr;
     case AOMRelationListProperty::kLabeledBy:
@@ -362,28 +362,13 @@ const AtomicString& AccessibleNode::GetPropertyOrARIAAttribute(
 }
 
 // static
-const AtomicString& AccessibleNode::GetPropertyOrARIAAttributeValue(
-    Element* element,
-    AOMRelationProperty property) {
-  if (!element)
-    return g_null_atom;
-  QualifiedName attribute = GetCorrespondingARIAAttribute(property);
-  const AtomicString& value =
-      GetElementOrInternalsARIAAttribute(*element, attribute);
-  if (IsUndefinedAttrValue(value)) {
-    return g_null_atom;  // Attribute not set or explicitly undefined.
-  }
-
-  return value;
-}
-
 Element* AccessibleNode::GetPropertyOrARIAAttribute(
     Element* element,
     AOMRelationProperty property) {
-  auto& value = GetPropertyOrARIAAttributeValue(element, property);
-  if (value == g_null_atom) {
+  if (!element)
     return nullptr;
-  }
+  QualifiedName attribute = GetCorrespondingARIAAttribute(property);
+  AtomicString value = GetElementOrInternalsARIAAttribute(*element, attribute);
   return element->GetTreeScope().getElementById(value);
 }
 
@@ -651,13 +636,12 @@ void AccessibleNode::setDisabled(absl::optional<bool> value) {
   NotifyAttributeChanged(html_names::kAriaDisabledAttr);
 }
 
-AccessibleNodeList* AccessibleNode::errorMessage() const {
-  return GetProperty(element_, AOMRelationListProperty::kErrorMessage);
+AccessibleNode* AccessibleNode::errorMessage() const {
+  return GetProperty(element_, AOMRelationProperty::kErrorMessage);
 }
 
-void AccessibleNode::setErrorMessage(AccessibleNodeList* error_messages) {
-  SetRelationListProperty(AOMRelationListProperty::kErrorMessage,
-                          error_messages);
+void AccessibleNode::setErrorMessage(AccessibleNode* error_message) {
+  SetRelationProperty(AOMRelationProperty::kErrorMessage, error_message);
   NotifyAttributeChanged(html_names::kAriaErrormessageAttr);
 }
 
@@ -1233,7 +1217,7 @@ void AccessibleNode::Trace(Visitor* visitor) const {
   visitor->Trace(relation_list_properties_);
   visitor->Trace(children_);
   visitor->Trace(parent_);
-  EventTarget::Trace(visitor);
+  EventTargetWithInlineData::Trace(visitor);
   ElementRareDataField::Trace(visitor);
 }
 

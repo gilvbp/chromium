@@ -12,7 +12,6 @@
 #include "base/memory/raw_ptr_exclusion.h"
 #include "base/test/bind.h"
 #include "base/test/test_future.h"
-#include "content/browser/media/cdm_storage_common.h"
 #include "content/browser/media/media_license_manager.h"
 #include "content/browser/storage_partition_impl.h"
 #include "content/public/browser/render_frame_host.h"
@@ -33,6 +32,8 @@ using media::mojom::CdmFile;
 using media::mojom::CdmStorage;
 
 namespace content {
+using CdmFileId = MediaLicenseManager::CdmFileId;
+using CdmFileIdAndContents = MediaLicenseManager::CdmFileIdAndContents;
 
 namespace {
 
@@ -69,7 +70,7 @@ class CdmStorageTest : public RenderViewHostTestHarness {
             ->GetMediaLicenseManager();
     DCHECK(media_license_manager);
     media_license_manager->OpenCdmStorage(
-        CdmStorageBindingContext(
+        MediaLicenseManager::BindingContext(
             blink::StorageKey::CreateFromStringForTesting(kTestOrigin),
             kTestCdmType),
         cdm_storage_.BindNewPipeAndPassReceiver());

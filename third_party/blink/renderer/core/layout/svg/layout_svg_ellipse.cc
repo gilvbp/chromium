@@ -29,7 +29,7 @@
 #include <cmath>
 #include "third_party/blink/renderer/core/svg/svg_circle_element.h"
 #include "third_party/blink/renderer/core/svg/svg_ellipse_element.h"
-#include "third_party/blink/renderer/core/svg/svg_length_functions.h"
+#include "third_party/blink/renderer/core/svg/svg_length_context.h"
 
 namespace blink {
 
@@ -41,7 +41,7 @@ LayoutSVGEllipse::~LayoutSVGEllipse() = default;
 void LayoutSVGEllipse::UpdateShapeFromElement() {
   NOT_DESTROYED();
 
-  decorated_bounding_box_ = gfx::RectF();
+  stroke_bounding_box_ = gfx::RectF();
   use_path_fallback_ = false;
 
   CalculateRadiiAndCenter();
@@ -71,22 +71,23 @@ void LayoutSVGEllipse::UpdateShapeFromElement() {
   if (!use_path_fallback_)
     ClearPath();
 
-  decorated_bounding_box_ = CalculateStrokeBoundingBox();
+  stroke_bounding_box_ = CalculateStrokeBoundingBox();
 }
 
 void LayoutSVGEllipse::CalculateRadiiAndCenter() {
   NOT_DESTROYED();
   DCHECK(GetElement());
-  const SVGViewportResolver viewport_resolver(*this);
+  SVGLengthContext length_context(GetElement());
   const ComputedStyle& style = StyleRef();
-  center_ =
-      PointForLengthPair(style.Cx(), style.Cy(), viewport_resolver, style);
+  center_ = gfx::PointAtOffsetFromOrigin(
+      length_context.ResolveLengthPair(style.Cx(), style.Cy(), style));
 
   if (IsA<SVGCircleElement>(*GetElement())) {
-    radius_x_ = radius_y_ = ValueForLength(style.R(), viewport_resolver, style);
+    radius_x_ = radius_y_ =
+        length_context.ValueForLength(style.R(), style, SVGLengthMode::kOther);
   } else {
-    const gfx::Vector2dF radii =
-        VectorForLengthPair(style.Rx(), style.Ry(), viewport_resolver, style);
+    gfx::Vector2dF radii =
+        length_context.ResolveLengthPair(style.Rx(), style.Ry(), style);
     radius_x_ = radii.x();
     radius_y_ = radii.y();
     if (style.Rx().IsAuto())

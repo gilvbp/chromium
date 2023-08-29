@@ -34,6 +34,7 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.core.graphics.drawable.DrawableCompat;
 import androidx.core.view.ViewCompat;
 
+import org.chromium.base.ApiCompatibilityUtils;
 import org.chromium.base.supplier.ObservableSupplier;
 import org.chromium.base.supplier.ObservableSupplierImpl;
 import org.chromium.components.browser_ui.styles.SemanticColorUtils;
@@ -626,20 +627,23 @@ public class SelectableListToolbar<E>
         if (!(context instanceof Activity)) return;
 
         Window window = ((Activity) context).getWindow();
-        UiUtils.setStatusBarColor(window, color);
-        UiUtils.setStatusBarIconColor(window.getDecorView().getRootView(),
+        ApiCompatibilityUtils.setStatusBarColor(window, color);
+        ApiCompatibilityUtils.setStatusBarIconColor(window.getDecorView().getRootView(),
                 !ColorUtils.shouldUseLightForegroundOnBackground(color));
     }
 
+    @VisibleForTesting
     public View getSearchViewForTests() {
         return mSearchView;
     }
 
+    @VisibleForTesting
     public int getNavigationButtonForTests() {
         return mNavigationButton;
     }
 
     /** Ends any in-progress animations. */
+    @VisibleForTesting
     public void endAnimationsForTesting() {
         mNumberRollView.endAnimationsForTesting();
     }

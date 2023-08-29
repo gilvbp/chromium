@@ -11,6 +11,7 @@
 #import "base/memory/scoped_refptr.h"
 #import "components/autofill/core/browser/webdata/mock_autofill_webdata_service.h"
 #import "components/history/core/common/pref_names.h"
+#import "components/invalidation/impl/fake_invalidation_service.h"
 #import "components/password_manager/core/browser/test_password_store.h"
 #import "components/password_manager/core/common/password_manager_features.h"
 #import "components/password_manager/core/common/password_manager_pref_names.h"
@@ -27,6 +28,10 @@
 #import "testing/gtest_mac.h"
 #import "testing/platform_test.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace ios_web_view {
 
 class WebViewSyncClientTest : public PlatformTest {
@@ -39,8 +44,11 @@ class WebViewSyncClientTest : public PlatformTest {
         profile_password_store_(
             base::MakeRefCounted<password_manager::TestPasswordStore>()),
         account_password_store_(
-            base::MakeRefCounted<password_manager::TestPasswordStore>(
-                password_manager::IsAccountStore(true))),
+            base::FeatureList::IsEnabled(
+                password_manager::features::kEnablePasswordsAccountStorage)
+                ? base::MakeRefCounted<password_manager::TestPasswordStore>(
+                      password_manager::IsAccountStore(true))
+                : nullptr),
         client_(profile_web_data_service_.get(),
                 account_web_data_service_.get(),
                 profile_password_store_.get(),
@@ -49,6 +57,7 @@ class WebViewSyncClientTest : public PlatformTest {
                 identity_test_environment_.identity_manager(),
                 &model_type_store_service_,
                 &device_info_sync_service_,
+                &invalidation_service_,
                 /*sync_invalidations_service=*/nullptr) {
     pref_service_.registry()->RegisterBooleanPref(
         prefs::kSavingBrowserHistoryDisabled, true);
@@ -78,6 +87,7 @@ class WebViewSyncClientTest : public PlatformTest {
   signin::IdentityTestEnvironment identity_test_environment_;
   syncer::TestModelTypeStoreService model_type_store_service_;
   syncer::FakeDeviceInfoSyncService device_info_sync_service_;
+  invalidation::FakeInvalidationService invalidation_service_;
   WebViewSyncClient client_;
 };
 

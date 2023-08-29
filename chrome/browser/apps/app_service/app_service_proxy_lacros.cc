@@ -107,11 +107,6 @@ AppServiceProxyLacros::BrowserAppInstanceTracker() {
   return browser_app_instance_tracker_.get();
 }
 
-apps::WebsiteMetricsServiceLacros*
-AppServiceProxyLacros::WebsiteMetricsService() {
-  return metrics_service_.get();
-}
-
 absl::optional<IconKey> AppServiceProxyLacros::GetIconKey(
     const std::string& app_id) {
   return outer_icon_loader_.GetIconKey(app_id);
@@ -332,42 +327,45 @@ std::vector<IntentLaunchInfo> AppServiceProxyLacros::GetAppsForIntent(
     return intent_launch_info;
   }
 
-  app_registry_cache_.ForEachApp([&intent_launch_info, &intent,
-                                  &exclude_browsers, &exclude_browser_tab_apps](
-                                     const apps::AppUpdate& update) {
-    if (!apps_util::IsInstalled(update.Readiness()) ||
-        !update.ShowInLauncher().value_or(false)) {
-      return;
-    }
-    if (exclude_browser_tab_apps &&
-        update.WindowMode() == WindowMode::kBrowser) {
-      return;
-    }
-    std::set<std::string> existing_activities;
-    for (const auto& filter : update.IntentFilters()) {
-      DCHECK(filter);
-      if (exclude_browsers && filter->IsBrowserFilter()) {
-        continue;
-      }
-      if (intent->MatchFilter(filter)) {
-        IntentLaunchInfo entry;
-        entry.app_id = update.AppId();
-        std::string activity_label;
-        if (filter->activity_label && !filter->activity_label.value().empty()) {
-          activity_label = filter->activity_label.value();
-        } else {
-          activity_label = update.Name();
-        }
-        if (base::Contains(existing_activities, activity_label)) {
-          continue;
-        }
-        existing_activities.insert(activity_label);
-        entry.activity_label = activity_label;
-        entry.activity_name = filter->activity_name.value_or("");
-        intent_launch_info.push_back(entry);
-      }
-    }
-  });
+  if (crosapi_receiver_.is_bound()) {
+    app_registry_cache_.ForEachApp(
+        [&intent_launch_info, &intent, &exclude_browsers,
+         &exclude_browser_tab_apps](const apps::AppUpdate& update) {
+          if (!apps_util::IsInstalled(update.Readiness()) ||
+              !update.ShowInLauncher().value_or(false)) {
+            return;
+          }
+          if (exclude_browser_tab_apps &&
+              update.WindowMode() == WindowMode::kBrowser) {
+            return;
+          }
+          std::set<std::string> existing_activities;
+          for (const auto& filter : update.IntentFilters()) {
+            DCHECK(filter);
+            if (exclude_browsers && filter->IsBrowserFilter()) {
+              continue;
+            }
+            if (intent->MatchFilter(filter)) {
+              IntentLaunchInfo entry;
+              entry.app_id = update.AppId();
+              std::string activity_label;
+              if (filter->activity_label &&
+                  !filter->activity_label.value().empty()) {
+                activity_label = filter->activity_label.value();
+              } else {
+                activity_label = update.Name();
+              }
+              if (base::Contains(existing_activities, activity_label)) {
+                continue;
+              }
+              existing_activities.insert(activity_label);
+              entry.activity_label = activity_label;
+              entry.activity_name = filter->activity_name.value_or("");
+              intent_launch_info.push_back(entry);
+            }
+          }
+        });
+  }
   return intent_launch_info;
 }
 
@@ -376,6 +374,24 @@ std::vector<IntentLaunchInfo> AppServiceProxyLacros::GetAppsForFiles(
     const std::vector<std::string>& mime_types) {
   return GetAppsForIntent(
       apps_util::MakeShareIntent(filesystem_urls, mime_types));
+}
+
+void AppServiceProxyLacros::AddPreferredApp(const std::string& app_id,
+                                            const GURL& url) {
+  AddPreferredApp(app_id, std::make_unique<apps::Intent>(
+                              apps_util::kIntentActionView, url));
+}
+
+void AppServiceProxyLacros::AddPreferredApp(const std::string& app_id,
+                                            const IntentPtr& intent) {
+  if (!remote_crosapi_app_service_proxy_) {
+    return;
+  }
+
+  DCHECK(!app_id.empty());
+
+  remote_crosapi_app_service_proxy_->AddPreferredApp(
+      app_id, apps_util::ConvertAppServiceToCrosapiIntent(intent, profile_));
 }
 
 void AppServiceProxyLacros::SetSupportedLinksPreference(
@@ -427,12 +443,6 @@ void AppServiceProxyLacros::SetWebsiteMetricsServiceForTesting(
     std::unique_ptr<apps::WebsiteMetricsServiceLacros>
         website_metrics_service) {
   metrics_service_ = std::move(website_metrics_service);
-}
-
-void AppServiceProxyLacros::SetBrowserAppInstanceTrackerForTesting(
-    std::unique_ptr<apps::BrowserAppInstanceTracker>
-        browser_app_instance_tracker) {
-  browser_app_instance_tracker_ = std::move(browser_app_instance_tracker);
 }
 
 crosapi::mojom::AppServiceSubscriber*

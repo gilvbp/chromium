@@ -105,6 +105,7 @@ public class OfflinePageTabObserver
         });
     }
 
+    @VisibleForTesting
     static void setObserverForTesting(Activity activity, OfflinePageTabObserver observer) {
         ensureObserverMapInitialized();
         sObservers.put(activity, observer);

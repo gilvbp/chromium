@@ -136,8 +136,7 @@ TEST_F(PermissionPromptBubbleTwoOriginsViewTest,
   auto bubble = CreateBubble(&delegate);
 
   const auto title = base::UTF16ToUTF8(bubble->GetWindowTitle());
-  EXPECT_PRED_FORMAT2(::testing::IsSubstring, "info they've saved about you",
-                      title);
+  EXPECT_PRED_FORMAT2(::testing::IsSubstring, "display content", title);
   // The scheme is not included.
   EXPECT_PRED_FORMAT2(::testing::IsSubstring, "test.requesting.origin", title);
 }
@@ -156,29 +155,17 @@ TEST_F(PermissionPromptBubbleTwoOriginsViewTest,
                                   {permissions::RequestType::kStorageAccess});
   auto bubble = CreateBubble(&delegate);
 
-  auto* label_description = static_cast<views::Label*>(
+  auto* label_with_link = static_cast<views::StyledLabel*>(
       bubble->GetViewByID(permissions::PermissionPromptViewID::
-                              VIEW_ID_PERMISSION_PROMPT_EXTRA_TEXT));
-  EXPECT_TRUE(label_description);
+                              VIEW_ID_PERMISSION_PROMPT_DESCRIPTION_WITH_LINK));
+  EXPECT_TRUE(label_with_link);
 
-  const auto description = base::UTF16ToUTF8(label_description->GetText());
+  const auto description = base::UTF16ToUTF8(label_with_link->GetText());
   EXPECT_PRED_FORMAT2(::testing::IsSubstring, "test.requesting.origin",
                       description);
   EXPECT_PRED_FORMAT2(::testing::IsSubstring, "test.embedding.origin",
                       description);
-}
-
-TEST_F(PermissionPromptBubbleTwoOriginsViewTest, LinkIsPresent) {
-  TestDelegateTwoOrigins delegate(GURL("https://test.requesting.origin"),
-                                  GURL("https://test.embedding.origin"),
-                                  {permissions::RequestType::kStorageAccess});
-  auto bubble = CreateBubble(&delegate);
-
-  auto* label_with_link = static_cast<views::StyledLabel*>(bubble->GetViewByID(
-      permissions::PermissionPromptViewID::VIEW_ID_PERMISSION_PROMPT_LINK));
-  EXPECT_TRUE(label_with_link);
-  const auto link = base::UTF16ToUTF8(label_with_link->GetText());
-  EXPECT_PRED_FORMAT2(::testing::IsSubstring, "Learn more", link);
+  EXPECT_PRED_FORMAT2(::testing::IsSubstring, "embedded content", description);
 }
 
 // TODO(b/276716358): Add behavior tests to ensure the prompt works and updates

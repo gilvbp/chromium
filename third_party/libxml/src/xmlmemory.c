@@ -160,6 +160,7 @@ xmlMallocLoc(size_t size, const char * file, int line)
     if (size > (MAX_SIZE_T - RESERVE_SIZE)) {
 	xmlGenericError(xmlGenericErrorContext,
 		"xmlMallocLoc : Unsigned overflow\n");
+	xmlMemoryDump();
 	return(NULL);
     }
 
@@ -168,6 +169,7 @@ xmlMallocLoc(size_t size, const char * file, int line)
     if (!p) {
 	xmlGenericError(xmlGenericErrorContext,
 		"xmlMallocLoc : Out of free space\n");
+	xmlMemoryDump();
 	return(NULL);
     }
     p->mh_tag = MEMTAG;
@@ -234,6 +236,7 @@ xmlMallocAtomicLoc(size_t size, const char * file, int line)
     if (size > (MAX_SIZE_T - RESERVE_SIZE)) {
 	xmlGenericError(xmlGenericErrorContext,
 		"xmlMallocAtomicLoc : Unsigned overflow\n");
+	xmlMemoryDump();
 	return(NULL);
     }
 
@@ -242,6 +245,7 @@ xmlMallocAtomicLoc(size_t size, const char * file, int line)
     if (!p) {
 	xmlGenericError(xmlGenericErrorContext,
 		"xmlMallocAtomicLoc : Out of free space\n");
+	xmlMemoryDump();
 	return(NULL);
     }
     p->mh_tag = MEMTAG;
@@ -343,6 +347,7 @@ xmlReallocLoc(void *ptr,size_t size, const char * file, int line)
     if (size > (MAX_SIZE_T - RESERVE_SIZE)) {
 	xmlGenericError(xmlGenericErrorContext,
 		"xmlReallocLoc : Unsigned overflow\n");
+	xmlMemoryDump();
 	return(NULL);
     }
 
@@ -496,6 +501,7 @@ xmlMemStrdupLoc(const char *str, const char *file, int line)
     if (size > (MAX_SIZE_T - RESERVE_SIZE)) {
 	xmlGenericError(xmlGenericErrorContext,
 		"xmlMemStrdupLoc : Unsigned overflow\n");
+	xmlMemoryDump();
 	return(NULL);
     }
 

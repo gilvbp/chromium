@@ -7,7 +7,6 @@
 
 #include <string>
 
-#include "base/component_export.h"
 #include "base/containers/enum_set.h"
 #include "base/unguessable_token.h"
 #include "components/account_id/account_id.h"
@@ -63,7 +62,7 @@ using AuthFactorsSet = base::EnumSet<AshAuthFactor,
                                      AshAuthFactor::kGaiaPassword,
                                      AshAuthFactor::kMaxValue>;
 
-enum class AuthHubMode {
+enum AuthHubMode {
   kNone,         // State before initialization
   kLoginScreen,  // Login screen, no profile data available.
   kInSession     // In-session mode (including lock screen), user is fixed,

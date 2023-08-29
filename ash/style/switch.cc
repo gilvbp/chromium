@@ -31,9 +31,7 @@ constexpr int kFocusPadding = 2;
 Switch::Switch(PressedCallback callback)
     : views::ToggleButton(callback, /*has_thumb_shadow=*/false) {
   SetBorder(views::CreateEmptyBorder(gfx::Insets(kSwitchInnerPadding)));
-  auto* focus_ring = views::FocusRing::Get(this);
-  focus_ring->SetOutsetFocusRingDisabled(true);
-  focus_ring->SetColorId(ui::kColorAshFocusRing);
+  views::FocusRing::Get(this)->SetColorId(ui::kColorAshFocusRing);
 }
 
 Switch::~Switch() = default;

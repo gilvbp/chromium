@@ -55,17 +55,13 @@ InteractiveViewsTestPrivate::InteractiveViewsTestPrivate(
 InteractiveViewsTestPrivate::~InteractiveViewsTestPrivate() = default;
 
 void InteractiveViewsTestPrivate::OnSequenceComplete() {
-  if (mouse_util_) {
-    mouse_util_->CancelAllGestures();
-  }
+  mouse_util_->CancelAllGestures();
   InteractiveTestPrivate::OnSequenceComplete();
 }
 
 void InteractiveViewsTestPrivate::OnSequenceAborted(
     const ui::InteractionSequence::AbortedData& data) {
-  if (mouse_util_) {
-    mouse_util_->CancelAllGestures();
-  }
+  mouse_util_->CancelAllGestures();
   InteractiveTestPrivate::OnSequenceAborted(data);
 }
 

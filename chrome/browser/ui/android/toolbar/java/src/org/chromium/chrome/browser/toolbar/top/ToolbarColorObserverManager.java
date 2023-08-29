@@ -30,6 +30,10 @@ class ToolbarColorObserverManager implements ToolbarAlphaInOverviewObserver, Too
     ToolbarColorObserverManager(Context context, ToolbarLayout toolbarLayout) {
         mContext = context;
         mToolbarAlphaValue = 0;
+        // Initialize mToolbarColor for first load of website.
+        if (toolbarLayout instanceof ToolbarPhone) {
+            mToolbarColor = ((ToolbarPhone) toolbarLayout).getToolbarBackgroundColor();
+        }
     }
 
     /**

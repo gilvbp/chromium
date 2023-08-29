@@ -158,6 +158,7 @@ public final class BrowsingDataBridge {
     }
 
     /** This lets us mark an origin as important for testing. */
+    @VisibleForTesting
     public static void markOriginAsImportantForTesting(String origin) {
         BrowsingDataBridgeJni.get().markOriginAsImportantForTesting(getProfile(), origin);
     }
@@ -248,7 +249,7 @@ public final class BrowsingDataBridge {
     }
 
     @NativeMethods
-    public interface Natives {
+    interface Natives {
         void clearBrowsingData(BrowsingDataBridge caller, Profile profile, int[] dataTypes,
                 int timePeriod, String[] excludedDomains, int[] excludedDomainReasons,
                 String[] ignoredDomains, int[] ignoredDomainReasons);

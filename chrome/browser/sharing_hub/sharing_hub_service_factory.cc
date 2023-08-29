@@ -34,10 +34,9 @@ SharingHubServiceFactory::SharingHubServiceFactory()
 
 SharingHubServiceFactory::~SharingHubServiceFactory() = default;
 
-std::unique_ptr<KeyedService>
-SharingHubServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* SharingHubServiceFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
-  return std::make_unique<SharingHubService>(context);
+  return new SharingHubService(context);
 }
 
 }  // namespace sharing_hub

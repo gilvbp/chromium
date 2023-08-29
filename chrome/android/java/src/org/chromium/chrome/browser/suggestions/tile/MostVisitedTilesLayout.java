@@ -9,8 +9,9 @@ package org.chromium.chrome.browser.suggestions.tile;
  */
 public interface MostVisitedTilesLayout {
     /**
-     * @param isNtpAsHomeSurfaceEnabled {@code true} if showing an NTP as the home
-     *                                  surface in the given context.
+     * @param isMultiColumnFeedOnTabletEnabled {@code true} if both showing an NTP as the home
+     *                                         surface and multiple column Feed are enabled in the
+     *                                         given context.
      */
-    void setIsNtpAsHomeSurfaceEnabled(boolean isNtpAsHomeSurfaceEnabled);
+    void setIsMultiColumnFeedOnTabletEnabled(boolean isMultiColumnFeedOnTabletEnabled);
 }

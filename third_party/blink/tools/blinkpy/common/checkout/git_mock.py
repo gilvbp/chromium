@@ -2,13 +2,11 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-from typing import Optional
-
 from blinkpy.common.system.filesystem_mock import MockFileSystem
 from blinkpy.common.system.executive_mock import MockExecutive
 
 
-class MockGit:
+class MockGit(object):
 
     # Arguments are listed below, even if they're unused, in order to match
     # the Git class. pylint: disable=unused-argument
@@ -56,10 +54,9 @@ class MockGit:
         return 'mock-branch-name'
 
     def exists(self, path):
+        # TestRealMain.test_real_main (and several other rebaseline tests) are sensitive to this return value.
+        # We should make those tests more robust, but for now we just return True always (since no test needs otherwise).
         return True
-
-    def show_blob(self, path: str, ref: Optional[str] = None) -> bytes:
-        return b''
 
     def absolute_path(self, *comps):
         return self._filesystem.join(self.checkout_root, *comps)

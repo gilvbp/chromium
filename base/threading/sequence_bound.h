@@ -104,7 +104,11 @@ template <typename T,
 class SequenceBound {
  private:
   using Storage = sequence_bound_internal::Storage<T, CrossThreadTraits>;
-  using UnwrappedT = typename Storage::element_type;
+  // This is usually just `T` except if `T` is a `std::unique_ptr`; in that
+  // case, `UnwrappedT` is the type of the object owned by the
+  // `std::unique_ptr`, e.g. if `T` is `std::unique_ptr<std::string>`, then
+  // UnwrappedT is `std::string`.
+  using UnwrappedT = std::remove_pointer_t<typename Storage::Ptr>;
 
  public:
   template <typename Signature>
@@ -272,14 +276,14 @@ class SequenceBound {
       ConstPostTaskCallback callback,
       const Location& location = Location::Current()) const {
     DCHECK(!is_null());
-    // Even though the lifetime of the object managed by `storage_` may not
-    // have begun yet, the storage has been allocated. Per [basic.life/6] and
+    // Even though the lifetime of the object pointed to by `get()` may not have
+    // begun yet, the storage has been allocated. Per [basic.life/6] and
     // [basic.life/7], "Indirection through such a pointer is permitted but the
     // resulting lvalue may only be used in limited ways, as described below."
     CrossThreadTraits::PostTask(
         *impl_task_runner_, location,
         CrossThreadTraits::BindOnce(std::move(callback),
-                                    storage_.GetRefForBind()));
+                                    std::cref(*storage_.get())));
   }
 
   // Same as above, but for non-const operations. The callback takes a pointer
@@ -291,8 +295,9 @@ class SequenceBound {
     DCHECK(!is_null());
     CrossThreadTraits::PostTask(
         *impl_task_runner_, location,
-        CrossThreadTraits::BindOnce(std::move(callback),
-                                    storage_.GetPtrForBind()));
+        CrossThreadTraits::BindOnce(
+            std::move(callback),
+            CrossThreadTraits::Unretained(storage_.get())));
   }
 
   void FlushPostedTasksForTesting() const {
@@ -345,7 +350,7 @@ class SequenceBound {
   // Similarly, after `SequenceBound::Reset()`, `is_null()` may return true,
   // even though the lifetime of `T` may not have ended yet on
   // `impl_task_runner_`.
-  bool is_null() const { return storage_.is_null(); }
+  bool is_null() const { return !storage_.get(); }
 
   // True if `this` is not logically null. See `is_null()`.
   explicit operator bool() const { return !is_null(); }
@@ -401,7 +406,7 @@ class SequenceBound {
           method_(method) {
       // Common entry point for `AsyncCall()`, so check preconditions here.
       DCHECK(sequence_bound_);
-      DCHECK(!sequence_bound_->storage_.is_null());
+      DCHECK(sequence_bound_->storage_.get());
     }
 
     AsyncCallBuilderBase(AsyncCallBuilderBase&&) = default;
@@ -450,8 +455,8 @@ class SequenceBound {
         CrossThreadTraits::PostTask(
             *this->sequence_bound_->impl_task_runner_, *this->location_,
             CrossThreadTraits::BindOnce(
-                this->method_,
-                this->sequence_bound_->storage_.GetPtrForBind()));
+                this->method_, CrossThreadTraits::Unretained(
+                                   this->sequence_bound_->storage_.get())));
       }
     }
 
@@ -459,7 +464,8 @@ class SequenceBound {
       this->sequence_bound_->PostTaskAndThenHelper(
           *this->location_,
           CrossThreadTraits::BindOnce(
-              this->method_, this->sequence_bound_->storage_.GetPtrForBind()),
+              this->method_, CrossThreadTraits::Unretained(
+                                 this->sequence_bound_->storage_.get())),
           std::move(then_callback));
       this->sequence_bound_ = nullptr;
     }
@@ -495,7 +501,8 @@ class SequenceBound {
       this->sequence_bound_->PostTaskAndThenHelper(
           *this->location_,
           CrossThreadTraits::BindOnce(
-              this->method_, this->sequence_bound_->storage_.GetPtrForBind()),
+              this->method_, CrossThreadTraits::Unretained(
+                                 this->sequence_bound_->storage_.get())),
           std::move(then_callback));
       this->sequence_bound_ = nullptr;
     }
@@ -528,9 +535,10 @@ class SequenceBound {
           std::exchange(this->sequence_bound_, nullptr);
       return AsyncCallWithBoundArgsBuilder<ReturnType>(
           sequence_bound, this->location_,
-          CrossThreadTraits::BindOnce(this->method_,
-                                      sequence_bound->storage_.GetPtrForBind(),
-                                      std::forward<BoundArgs>(bound_args)...));
+          CrossThreadTraits::BindOnce(
+              this->method_,
+              CrossThreadTraits::Unretained(sequence_bound->storage_.get()),
+              std::forward<BoundArgs>(bound_args)...));
     }
 
    private:
@@ -562,7 +570,7 @@ class SequenceBound {
           location_(location),
           callback_(std::move(callback)) {
       DCHECK(sequence_bound_);
-      DCHECK(!sequence_bound_->storage_.is_null());
+      DCHECK(sequence_bound_->storage_.get());
     }
 
     // Subtle: the internal helpers rely on move elision. Preventing move
@@ -689,9 +697,8 @@ class SequenceBound {
 
   Storage storage_;
 
-  // Task runner which manages `storage_`. An object owned by `storage_` (if
-  // any) will be constructed, destroyed, and otherwise used only on this task
-  // runner.
+  // Task runner which manages `storage_.get()`. `storage_.get()`'s pointee is
+  // constructed, destroyed, and otherwise used only on this task runner.
   scoped_refptr<SequencedTaskRunner> impl_task_runner_;
 };
 

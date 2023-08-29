@@ -200,9 +200,9 @@ TEST_F(SpdyHttpStreamTest, SendRequest) {
   HttpResponseInfo response;
   HttpRequestHeaders headers;
   NetLogWithSource net_log;
-  auto http_stream =
-      std::make_unique<SpdyHttpStream>(session_, net_log.source(),
-                                       /*dns_aliases=*/std::set<std::string>());
+  auto http_stream = std::make_unique<SpdyHttpStream>(
+      session_, kNoPushedStreamFound, net_log.source(),
+      /*dns_aliases=*/std::set<std::string>());
   // Make sure getting load timing information the stream early does not crash.
   LoadTimingInfo load_timing_info;
   EXPECT_FALSE(http_stream->GetLoadTimingInfo(&load_timing_info));
@@ -263,9 +263,9 @@ TEST_F(SpdyHttpStreamTest, RequestInfoDestroyedBeforeRead) {
   HttpResponseInfo response;
   HttpRequestHeaders headers;
   NetLogWithSource net_log;
-  auto http_stream =
-      std::make_unique<SpdyHttpStream>(session_, net_log.source(),
-                                       /*dns_aliases=*/std::set<std::string>());
+  auto http_stream = std::make_unique<SpdyHttpStream>(
+      session_, kNoPushedStreamFound, net_log.source(),
+      /*dns_aliases=*/std::set<std::string>());
 
   http_stream->RegisterRequest(request.get());
   ASSERT_THAT(http_stream->InitializeStream(true, DEFAULT_PRIORITY, net_log,
@@ -333,9 +333,9 @@ TEST_F(SpdyHttpStreamTest, LoadTimingTwoRequests) {
   HttpResponseInfo response1;
   HttpRequestHeaders headers1;
   NetLogWithSource net_log;
-  auto http_stream1 =
-      std::make_unique<SpdyHttpStream>(session_, net_log.source(),
-                                       /*dns_aliases=*/std::set<std::string>());
+  auto http_stream1 = std::make_unique<SpdyHttpStream>(
+      session_, kNoPushedStreamFound, net_log.source(),
+      /*dns_aliases=*/std::set<std::string>());
 
   HttpRequestInfo request2;
   request2.method = "GET";
@@ -345,9 +345,9 @@ TEST_F(SpdyHttpStreamTest, LoadTimingTwoRequests) {
   TestCompletionCallback callback2;
   HttpResponseInfo response2;
   HttpRequestHeaders headers2;
-  auto http_stream2 =
-      std::make_unique<SpdyHttpStream>(session_, net_log.source(),
-                                       /*dns_aliases=*/std::set<std::string>());
+  auto http_stream2 = std::make_unique<SpdyHttpStream>(
+      session_, kNoPushedStreamFound, net_log.source(),
+      /*dns_aliases=*/std::set<std::string>());
 
   // First write.
   http_stream1->RegisterRequest(&request1);
@@ -449,7 +449,8 @@ TEST_F(SpdyHttpStreamTest, SendChunkedPost) {
   HttpResponseInfo response;
   HttpRequestHeaders headers;
   NetLogWithSource net_log;
-  SpdyHttpStream http_stream(session_, net_log.source(), {} /* dns_aliases */);
+  SpdyHttpStream http_stream(session_, kNoPushedStreamFound, net_log.source(),
+                             {} /* dns_aliases */);
   http_stream.RegisterRequest(&request);
   ASSERT_THAT(http_stream.InitializeStream(false, DEFAULT_PRIORITY, net_log,
                                            CompletionOnceCallback()),
@@ -508,7 +509,8 @@ TEST_F(SpdyHttpStreamTest, SendChunkedPostLastEmpty) {
   HttpResponseInfo response;
   HttpRequestHeaders headers;
   NetLogWithSource net_log;
-  SpdyHttpStream http_stream(session_, net_log.source(), {} /* dns_aliases */);
+  SpdyHttpStream http_stream(session_, kNoPushedStreamFound, net_log.source(),
+                             {} /* dns_aliases */);
   http_stream.RegisterRequest(&request);
   ASSERT_THAT(http_stream.InitializeStream(false, DEFAULT_PRIORITY, net_log,
                                            CompletionOnceCallback()),
@@ -566,7 +568,8 @@ TEST_F(SpdyHttpStreamTest, ConnectionClosedDuringChunkedPost) {
   HttpResponseInfo response;
   HttpRequestHeaders headers;
   NetLogWithSource net_log;
-  SpdyHttpStream http_stream(session_, net_log.source(), {} /* dns_aliases */);
+  SpdyHttpStream http_stream(session_, kNoPushedStreamFound, net_log.source(),
+                             {} /* dns_aliases */);
   http_stream.RegisterRequest(&request);
   ASSERT_THAT(http_stream.InitializeStream(false, DEFAULT_PRIORITY, net_log,
                                            CompletionOnceCallback()),
@@ -638,9 +641,9 @@ TEST_F(SpdyHttpStreamTest, DelayedSendChunkedPost) {
   upload_stream.AppendData(kUploadData, kUploadDataSize, false);
 
   NetLogWithSource net_log;
-  auto http_stream =
-      std::make_unique<SpdyHttpStream>(session_, net_log.source(),
-                                       /*dns_aliases=*/std::set<std::string>());
+  auto http_stream = std::make_unique<SpdyHttpStream>(
+      session_, kNoPushedStreamFound, net_log.source(),
+      /*dns_aliases=*/std::set<std::string>());
   http_stream->RegisterRequest(&request);
   ASSERT_THAT(http_stream->InitializeStream(false, DEFAULT_PRIORITY, net_log,
                                             CompletionOnceCallback()),
@@ -742,9 +745,9 @@ TEST_F(SpdyHttpStreamTest, DelayedSendChunkedPostWithEmptyFinalDataFrame) {
   upload_stream.AppendData(kUploadData, kUploadDataSize, false);
 
   NetLogWithSource net_log;
-  auto http_stream =
-      std::make_unique<SpdyHttpStream>(session_, net_log.source(),
-                                       /*dns_aliases=*/std::set<std::string>());
+  auto http_stream = std::make_unique<SpdyHttpStream>(
+      session_, kNoPushedStreamFound, net_log.source(),
+      /*dns_aliases=*/std::set<std::string>());
   http_stream->RegisterRequest(&request);
   ASSERT_THAT(http_stream->InitializeStream(false, DEFAULT_PRIORITY, net_log,
                                             CompletionOnceCallback()),
@@ -833,9 +836,9 @@ TEST_F(SpdyHttpStreamTest, ChunkedPostWithEmptyPayload) {
   upload_stream.AppendData("", 0, true);
 
   NetLogWithSource net_log;
-  auto http_stream =
-      std::make_unique<SpdyHttpStream>(session_, net_log.source(),
-                                       /*dns_aliases=*/std::set<std::string>());
+  auto http_stream = std::make_unique<SpdyHttpStream>(
+      session_, kNoPushedStreamFound, net_log.source(),
+      /*dns_aliases=*/std::set<std::string>());
   http_stream->RegisterRequest(&request);
   ASSERT_THAT(http_stream->InitializeStream(false, DEFAULT_PRIORITY, net_log,
                                             CompletionOnceCallback()),
@@ -899,9 +902,9 @@ TEST_F(SpdyHttpStreamTest, SpdyURLTest) {
   HttpResponseInfo response;
   HttpRequestHeaders headers;
   NetLogWithSource net_log;
-  auto http_stream =
-      std::make_unique<SpdyHttpStream>(session_, net_log.source(),
-                                       /*dns_aliases=*/std::set<std::string>());
+  auto http_stream = std::make_unique<SpdyHttpStream>(
+      session_, kNoPushedStreamFound, net_log.source(),
+      /*dns_aliases=*/std::set<std::string>());
   http_stream->RegisterRequest(&request);
   ASSERT_THAT(http_stream->InitializeStream(true, DEFAULT_PRIORITY, net_log,
                                             CompletionOnceCallback()),
@@ -957,9 +960,9 @@ TEST_F(SpdyHttpStreamTest, DelayedSendChunkedPostWithWindowUpdate) {
               IsOk());
 
   NetLogWithSource net_log;
-  auto http_stream =
-      std::make_unique<SpdyHttpStream>(session_, net_log.source(),
-                                       /*dns_aliases=*/std::set<std::string>());
+  auto http_stream = std::make_unique<SpdyHttpStream>(
+      session_, kNoPushedStreamFound, net_log.source(),
+      /*dns_aliases=*/std::set<std::string>());
   http_stream->RegisterRequest(&request);
   ASSERT_THAT(http_stream->InitializeStream(false, DEFAULT_PRIORITY, net_log,
                                             CompletionOnceCallback()),
@@ -1068,7 +1071,8 @@ TEST_F(SpdyHttpStreamTest, DataReadErrorSynchronous) {
   HttpResponseInfo response;
   HttpRequestHeaders headers;
   NetLogWithSource net_log;
-  SpdyHttpStream http_stream(session_, net_log.source(), {} /* dns_aliases */);
+  SpdyHttpStream http_stream(session_, kNoPushedStreamFound, net_log.source(),
+                             {} /* dns_aliases */);
   http_stream.RegisterRequest(&request);
   ASSERT_THAT(http_stream.InitializeStream(false, DEFAULT_PRIORITY, net_log,
                                            CompletionOnceCallback()),
@@ -1125,7 +1129,8 @@ TEST_F(SpdyHttpStreamTest, DataReadErrorAsynchronous) {
   HttpResponseInfo response;
   HttpRequestHeaders headers;
   NetLogWithSource net_log;
-  SpdyHttpStream http_stream(session_, net_log.source(), {} /* dns_aliases */);
+  SpdyHttpStream http_stream(session_, kNoPushedStreamFound, net_log.source(),
+                             {} /* dns_aliases */);
   http_stream.RegisterRequest(&request);
   ASSERT_THAT(http_stream.InitializeStream(false, DEFAULT_PRIORITY, net_log,
                                            CompletionOnceCallback()),
@@ -1171,7 +1176,8 @@ TEST_F(SpdyHttpStreamTest, RequestCallbackCancelsStream) {
   upload_stream.AppendData("", 0, true);
 
   NetLogWithSource net_log;
-  SpdyHttpStream http_stream(session_, net_log.source(), {} /* dns_aliases */);
+  SpdyHttpStream http_stream(session_, kNoPushedStreamFound, net_log.source(),
+                             {} /* dns_aliases */);
   http_stream.RegisterRequest(&request);
   ASSERT_THAT(http_stream.InitializeStream(false, DEFAULT_PRIORITY, net_log,
                                            CompletionOnceCallback()),
@@ -1233,9 +1239,9 @@ TEST_F(SpdyHttpStreamTest, DownloadWithEmptyDataFrame) {
   HttpResponseInfo response;
   HttpRequestHeaders headers;
   NetLogWithSource net_log;
-  auto http_stream =
-      std::make_unique<SpdyHttpStream>(session_, net_log.source(),
-                                       /*dns_aliases=*/std::set<std::string>());
+  auto http_stream = std::make_unique<SpdyHttpStream>(
+      session_, kNoPushedStreamFound, net_log.source(),
+      /*dns_aliases=*/std::set<std::string>());
 
   http_stream->RegisterRequest(&request);
   int rv = http_stream->InitializeStream(true, DEFAULT_PRIORITY, net_log,

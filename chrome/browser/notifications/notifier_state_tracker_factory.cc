@@ -36,8 +36,7 @@ NotifierStateTrackerFactory::NotifierStateTrackerFactory()
 
 NotifierStateTrackerFactory::~NotifierStateTrackerFactory() = default;
 
-std::unique_ptr<KeyedService>
-NotifierStateTrackerFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* NotifierStateTrackerFactory::BuildServiceInstanceFor(
     content::BrowserContext* profile) const {
-  return std::make_unique<NotifierStateTracker>(static_cast<Profile*>(profile));
+  return new NotifierStateTracker(static_cast<Profile*>(profile));
 }

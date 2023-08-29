@@ -67,8 +67,6 @@ void ReplaceSharedElementWithRenderPass(
   gfx::Transform transform = GetViewTransitionTransform(
       shared_element_quad.rect, shared_pass_output_rect);
   copied_quad_state->quad_to_target_transform.PreConcat(transform);
-  copied_quad_state->quad_layer_rect = shared_pass_output_rect;
-  copied_quad_state->visible_quad_layer_rect = shared_pass_output_rect;
 
   shared_element_content_pass->transform_to_root_target =
       copied_quad_state->quad_to_target_transform;
@@ -78,16 +76,18 @@ void ReplaceSharedElementWithRenderPass(
   auto* render_pass_quad =
       target_render_pass
           ->CreateAndAppendDrawQuad<CompositorRenderPassDrawQuad>();
-  gfx::RectF tex_coord_rect(gfx::Rect(shared_pass_output_rect.size()));
+  gfx::RectF tex_coord_rect(gfx::SizeF(shared_element_quad.rect.size()));
+  tex_coord_rect.Offset(-shared_pass_output_rect.x(),
+                        -shared_pass_output_rect.y());
   render_pass_quad->SetNew(
       /*shared_quad_state=*/copied_quad_state,
-      /*rect=*/shared_pass_output_rect,
+      /*rect=*/shared_element_quad.rect,
       /*visible_rect=*/shared_pass_output_rect,
       /*render_pass_id=*/pass_id,
       /*mask_resource_id=*/kInvalidResourceId,
       /*mask_uv_rect=*/gfx::RectF(),
       /*mask_texture_size=*/gfx::Size(),
-      /*filters_scale=*/gfx::Vector2dF(1.0f, 1.0f),
+      /*filters_scale=*/gfx::Vector2dF(),
       /*filters_origin=*/gfx::PointF(),
       /*tex_coord_rect=*/tex_coord_rect,
       /*force_anti_aliasing_off=*/false,
@@ -99,11 +99,14 @@ void ReplaceSharedElementWithRenderPass(
 // drawn.
 // |shared_element_quad| is the quad providing the geometry to draw this shared
 // element's content.
+// |y_flipped| indicates if the texture should be flipped vertically when
+// composited.
 // |id| is a reference to the texture which provides the content for this shared
 // element.
 void ReplaceSharedElementWithTexture(
     CompositorRenderPass* target_render_pass,
     const SharedElementDrawQuad& shared_element_quad,
+    bool y_flipped,
     ResourceId resource_id) {
   auto* copied_quad_state =
       target_render_pass->CreateAndAppendSharedQuadState();
@@ -122,7 +125,7 @@ void ReplaceSharedElementWithTexture(
       /*uv_top_left=*/gfx::PointF(0, 0),
       /*uv_bottom_right=*/gfx::PointF(1, 1),
       /*background_color=*/SkColors::kTransparent,
-      /*vertex_opacity=*/vertex_opacity, /*y_flipped=*/false,
+      /*vertex_opacity=*/vertex_opacity, y_flipped,
       /*nearest_neighbor=*/false,
       /*secure_output_only=*/false,
       /*protected_video_type=*/gfx::ProtectedVideoType::kClear);
@@ -230,8 +233,10 @@ bool SurfaceAnimationManager::FilterSharedElementsWithRenderPassOrResource(
 
       resource_list->push_back(transferable_resource);
 
+      // GPU textures are flipped but software bitmaps are not.
+      bool y_flipped = !transferable_resource.is_software;
       ReplaceSharedElementWithTexture(&copy_pass, shared_element_quad,
-                                      resource_list->back().id);
+                                      y_flipped, resource_list->back().id);
       return true;
     }
   }

@@ -18,6 +18,9 @@ namespace safe_browsing {
 // for example to control how often collection should occur.
 BASE_DECLARE_FEATURE(kAdSamplerTriggerFeature);
 
+// Adds page load token to client safe browsing report.
+BASE_DECLARE_FEATURE(kAddPageLoadTokenToClientSafeBrowsingReport);
+
 // Enables logging new phishing prevention data.
 BASE_DECLARE_FEATURE(kAntiPhishingTelemetry);
 
@@ -25,8 +28,7 @@ BASE_DECLARE_FEATURE(kAntiPhishingTelemetry);
 // run on a large fraction of navigations, crashes due to the model are very
 // impactful, even if only a small fraction of users have a bad version of the
 // model. This Finch flag allows us to remediate long-tail component versions
-// while we fix the root cause. This will also halt the model distribution from
-// OptimizationGuide.
+// while we fix the root cause.
 BASE_DECLARE_FEATURE(kClientSideDetectionKillswitch);
 
 // The client side detection model is a flatbuffer.
@@ -44,12 +46,11 @@ const char kClientSideDetectionTagParamName[] = "reporter_omaha_tag";
 // the client_side_detection_type field
 BASE_DECLARE_FEATURE(kClientSideDetectionTypeForceRequest);
 
+// Enables serving the Android Protego allowlist through the component updater.
+BASE_DECLARE_FEATURE(kComponentUpdaterAndroidProtegoAllowlist);
+
 // Controls whether new deep scanning UX is enabled or not.
 BASE_DECLARE_FEATURE(kDeepScanningUpdatedUX);
-
-// Controls whether we prompt encrypted archive deep scans to provide a
-// password.
-BASE_DECLARE_FEATURE(kDeepScanningEncryptedArchives);
 
 // Controls whether the delayed warning experiment is enabled.
 BASE_DECLARE_FEATURE(kDelayedWarnings);
@@ -161,10 +162,6 @@ BASE_DECLARE_FEATURE(kExtensionTelemetryCookiesGetSignal);
 // the updateDynamicRules()/updateSessionRules() APIs.
 BASE_DECLARE_FEATURE(kExtensionTelemetryDeclarativeNetRequestSignal);
 
-// Enables remotely disabling of malicious off-store extensions identified in
-// Extension Telemetry service reports.
-BASE_DECLARE_FEATURE(kExtensionTelemetryDisableOffstoreExtensions);
-
 // Determines the tag to pass to Omaha to get a file type policy.
 BASE_DECLARE_FEATURE(kFileTypePoliciesTag);
 
@@ -172,14 +169,10 @@ BASE_DECLARE_FEATURE(kFileTypePoliciesTag);
 // `kFileTypePoliciesTag`.
 const char kFileTypePoliciesTagParamName[] = "policy_omaha_tag";
 
-// Enables the new text, layout, links, and icons on both the privacy guide
-// and on the security settings page for the enhanced protection security
-// option.
-BASE_DECLARE_FEATURE(kFriendlierSafeBrowsingSettingsEnhancedProtection);
-
-// Enables the new text and layout on both the privacy guide and on the
-// security settings page for the standard protection security option.
-BASE_DECLARE_FEATURE(kFriendlierSafeBrowsingSettingsStandardProtection);
+// Enables the new text, layout, and icons on both the privacy guide and on the
+// security settings page. Also, this will only affect the safe browsing level
+// settings.
+BASE_DECLARE_FEATURE(kFriendlierSafeBrowsingSettings);
 
 // Sends hash-prefix real-time lookup requests on navigations for Standard Safe
 // Browsing users instead of hash-prefix database lookups.
@@ -202,11 +195,6 @@ BASE_DECLARE_FEATURE(kHashRealTimeOverOhttp);
 // kHashRealTimeOverOhttp feature.
 extern const base::FeatureParam<std::string> kHashRealTimeOverOhttpRelayUrl;
 
-// UX improvements to download warnings in the download bubble and
-// chrome://downloads page, respectively.
-BASE_DECLARE_FEATURE(kImprovedDownloadBubbleWarnings);
-BASE_DECLARE_FEATURE(kImprovedDownloadPageWarnings);
-
 // Enable logging of the account enhanced protection setting in Protego pings.
 BASE_DECLARE_FEATURE(kLogAccountEnhancedProtectionStateInProtegoPings);
 
@@ -225,9 +213,6 @@ BASE_DECLARE_FEATURE(kNestedArchives);
 // block intersitial and reporting the interstitial shown event on enterprise
 // managed browsers.
 BASE_DECLARE_FEATURE(kRealTimeUrlFilteringForEnterprise);
-
-// Controls whether we are using red interstitial facelift updates.
-BASE_DECLARE_FEATURE(kRedInterstitialFacelift);
 
 // Enables modifying key parameters on the navigation event collection used to
 // populate referrer chains.
@@ -333,6 +318,10 @@ std::string GetClientSideDetectionTag();
 // feature flag.
 std::string GetFileTypePoliciesTag();
 
+// Enables OptimizationGuide to deliver the client side phishing model instead
+// of through component updater.
+BASE_DECLARE_FEATURE(kClientSideDetectionModelOptimizationGuide);
+
 // Enables new ESB specific threshold fields in Visual TF Lite model files
 BASE_DECLARE_FEATURE(kSafeBrowsingPhishingClassificationESBThreshold);
 
@@ -344,21 +333,6 @@ BASE_DECLARE_FEATURE(kSafeBrowsingDailyPhishingReportsLimit);
 extern const base::FeatureParam<int> kSafeBrowsingDailyPhishingReportsLimitESB;
 
 BASE_DECLARE_FEATURE(kClientSideDetectionModelImageEmbedder);
-
-// Enables HaTS surveys for users encountering red warnings.
-BASE_DECLARE_FEATURE(kRedWarningSurvey);
-
-// Specifies the HaTS survey's identifier.
-extern const base::FeatureParam<std::string> kRedWarningSurveyTriggerId;
-
-// Specifies which CSBRR report types (and thus, red warning types) we want to
-// show HaTS surveys for.
-extern const base::FeatureParam<std::string> kRedWarningSurveyReportTypeFilter;
-
-// Specifies whether we want to show HaTS surveys based on if the user bypassed
-// the warning or not. Note: specifying any combination of TRUE and FALSE
-// corresponds to "don't care."
-extern const base::FeatureParam<std::string> kRedWarningSurveyDidProceedFilter;
 
 }  // namespace safe_browsing
 #endif  // COMPONENTS_SAFE_BROWSING_CORE_COMMON_FEATURES_H_

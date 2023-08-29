@@ -4,6 +4,10 @@
 
 #import "ios/public/provider/chrome/browser/context_menu/context_menu_api.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace ios {
 namespace provider {
 
@@ -11,8 +15,7 @@ ElementsToAddToContextMenu* GetContextMenuElementsToAdd(
     ChromeBrowserState* browser_state,
     web::WebState* web_state,
     web::ContextMenuParams params,
-    UIViewController* presenting_view_controller,
-    id<MiniMapCommands> mini_map_handler) {
+    UIViewController* presenting_view_controller) {
   return nil;
 }
 
@@ -26,9 +29,7 @@ NSTextCheckingType GetHandledIntentTypesForOneTap(web::WebState* web_state) {
 
 BOOL HandleIntentTypesForOneTap(web::WebState* web_state,
                                 NSTextCheckingResult* match,
-                                NSString* text,
-                                UIViewController* presenting_view_controller,
-                                id<MiniMapCommands> mini_map_handler) {
+                                UIViewController* presenting_view_controller) {
   return NO;
 }
 
@@ -36,16 +37,13 @@ NSArray<CRWContextMenuItem*>* GetContextMenuElementsToAdd(
     web::WebState* web_state,
     NSTextCheckingResult* match,
     NSString* text,
-    CGPoint location,
-    UIViewController* presenting_view_controller,
-    id<MiniMapCommands> mini_map_handler) {
+    UIViewController* presenting_view_controller) {
   return nil;
 }
 
 absl::optional<base::Value> ExtractDataElementsFromText(
     const std::string& text,
     NSTextCheckingType handled_types,
-    ukm::SourceId source_id,
     const base::FilePath& model_path) {
   return absl::nullopt;
 }

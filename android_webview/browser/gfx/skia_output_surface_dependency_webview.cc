@@ -93,7 +93,7 @@ gpu::MailboxManager* SkiaOutputSurfaceDependencyWebView::GetMailboxManager() {
 }
 
 void SkiaOutputSurfaceDependencyWebView::ScheduleGrContextCleanup() {
-  shared_context_state_->ScheduleSkiaCleanup();
+  // There is no way to access the gpu thread here, so leave it no-op for now.
 }
 
 scoped_refptr<base::TaskRunner>

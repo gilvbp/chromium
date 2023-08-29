@@ -2,7 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "base/sanitizer_buildflags.h"
 #include "base/test/metrics/histogram_tester.h"
 #include "base/test/scoped_feature_list.h"
 #include "base/test/simple_test_tick_clock.h"
@@ -191,12 +190,7 @@ TEST_F(BackForwardCacheMetricsTest, TimeRecordedAtStart) {
 }
 
 // TODO(crbug.com/1255492): Flaky under TSan.
-#if BUILDFLAG(USING_SANITIZER)
-#define MAYBE_TimeRecordedWhenRendererIsKilled DISABLED_TimeRecordedWhenRendererIsKilled
-#else
-#define MAYBE_TimeRecordedWhenRendererIsKilled TimeRecordedWhenRendererIsKilled
-#endif
-TEST_F(BackForwardCacheMetricsTest, MAYBE_TimeRecordedWhenRendererIsKilled) {
+TEST_F(BackForwardCacheMetricsTest, DISABLED_TimeRecordedWhenRendererIsKilled) {
   // Need to enable back-forward cache to make sure a page is put into the
   // cache.
   base::test::ScopedFeatureList scoped_feature_list;
@@ -247,11 +241,9 @@ TEST_F(BackForwardCacheMetricsTest, AllFeaturesCovered) {
       /* WebSchedulerTrackedFeature::kFreezeEventListener =*/10,
       /* WebSchedulerTrackedFeature::kResumeEventListener =*/11,
       /* WebSchedulerTrackedFeature::kServiceWorkerControlledPage =*/16,
-      /* WebSchedulerTrackedFeature::kOutstandingIndexedDBTransaction =*/17,
       /* WebSchedulerTrackedFeature::kHasScriptableFramesInMultipleTabs =*/18,
       /* WebSchedulerTrackedFeature::kRequestedGeolocationPermission =*/19,
       /* WebSchedulerTrackedFeature::kRequestedNotificationsPermission =*/20,
-      /* WebSchedulerTrackedFeature::kIndexedDBConnection =*/28,
       /* WebSchedulerTrackedFeature::kWebGL =*/29,
       /* WebSchedulerTrackedFeature::kWebVR =*/30,
       /* WebSchedulerTrackedFeature::kWakeLock =*/35,

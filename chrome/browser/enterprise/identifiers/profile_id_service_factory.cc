@@ -34,13 +34,12 @@ ProfileIdServiceFactory::ProfileIdServiceFactory()
 
 ProfileIdServiceFactory::~ProfileIdServiceFactory() = default;
 
-std::unique_ptr<KeyedService>
-ProfileIdServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* ProfileIdServiceFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   auto* profile = Profile::FromBrowserContext(context);
   DCHECK(profile);
-  return std::make_unique<ProfileIdService>(
-      std::make_unique<ProfileIdDelegateImpl>(profile), profile->GetPrefs());
+  return new ProfileIdService(std::make_unique<ProfileIdDelegateImpl>(profile),
+                              profile->GetPrefs());
 }
 
 }  // namespace enterprise

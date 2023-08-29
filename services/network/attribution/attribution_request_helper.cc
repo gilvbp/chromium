@@ -316,7 +316,9 @@ void AttributionRequestHelper::OnDoneProcessingVerificationResponse(
   for (size_t i = 0; i < redemption_tokens.size(); ++i) {
     auto verification = TriggerVerification::Create(
         /*token=*/std::move(redemption_tokens.at(i)),
-        std::move(verification_operation->aggregatable_report_ids.at(i)));
+        /*aggregatable_report_id=*/verification_operation
+            ->aggregatable_report_ids.at(i)
+            .AsLowercaseString());
     CHECK(verification.has_value());
     verifications.push_back(std::move(verification.value()));
   }

@@ -56,15 +56,15 @@ DevToolsURLLoaderInterceptor::InterceptionStage RequestStageToInterceptorStage(
 }
 
 Response ToInterceptionPatterns(
-    Maybe<Array<Fetch::RequestPattern>>& maybe_patterns,
+    const Maybe<Array<Fetch::RequestPattern>>& maybe_patterns,
     std::vector<DevToolsURLLoaderInterceptor::Pattern>* result) {
   result->clear();
-  if (!maybe_patterns.has_value()) {
+  if (!maybe_patterns.isJust()) {
     result->emplace_back("*", base::flat_set<blink::mojom::ResourceType>(),
                          DevToolsURLLoaderInterceptor::REQUEST);
     return Response::Success();
   }
-  Array<Fetch::RequestPattern>& patterns = maybe_patterns.value();
+  Array<Fetch::RequestPattern>& patterns = *maybe_patterns.fromJust();
   for (const std::unique_ptr<Fetch::RequestPattern>& pattern : patterns) {
     base::flat_set<blink::mojom::ResourceType> resource_types;
     std::string resource_type = pattern->GetResourceType("");
@@ -110,13 +110,13 @@ void FetchHandler::Enable(Maybe<Array<Fetch::RequestPattern>> patterns,
     callback->sendFailure(response);
     return;
   }
-  if (!interception_patterns.size() && handleAuth.value_or(false)) {
+  if (!interception_patterns.size() && handleAuth.fromMaybe(false)) {
     callback->sendFailure(Response::InvalidParams(
         "Can\'t specify empty patterns with handleAuth set"));
     return;
   }
   interceptor_->SetPatterns(std::move(interception_patterns),
-                            handleAuth.value_or(false));
+                            handleAuth.fromMaybe(false));
   update_loader_factories_callback_.Run(
       base::BindOnce(&EnableCallback::sendSuccess, std::move(callback)));
 }
@@ -205,8 +205,8 @@ void FetchHandler::FulfillRequest(
     return;
   }
   std::string status_phrase =
-      responsePhrase.has_value()
-          ? responsePhrase.value()
+      responsePhrase.isJust()
+          ? responsePhrase.fromJust()
           : net::GetHttpReasonPhrase(
                 static_cast<net::HttpStatusCode>(responseCode));
   if (status_phrase.empty()) {
@@ -217,13 +217,13 @@ void FetchHandler::FulfillRequest(
   std::string headers =
       base::StringPrintf("HTTP/1.1 %d %s", responseCode, status_phrase.c_str());
   headers.append(1, '\0');
-  if (responseHeaders.has_value()) {
-    if (binaryResponseHeaders.has_value()) {
+  if (responseHeaders.isJust()) {
+    if (binaryResponseHeaders.isJust()) {
       callback->sendFailure(Response::InvalidParams(
           "Only one of responseHeaders or binaryHeaders may be present"));
       return;
     }
-    for (const auto& entry : responseHeaders.value()) {
+    for (const auto& entry : *responseHeaders.fromJust()) {
       if (!ValidateHeaders(entry.get(), callback.get()))
         return;
       headers.append(entry->GetName());
@@ -231,8 +231,8 @@ void FetchHandler::FulfillRequest(
       headers.append(entry->GetValue());
       headers.append(1, '\0');
     }
-  } else if (binaryResponseHeaders.has_value()) {
-    Binary response_headers = binaryResponseHeaders.value();
+  } else if (binaryResponseHeaders.isJust()) {
+    Binary response_headers = binaryResponseHeaders.fromJust();
     headers.append(reinterpret_cast<const char*>(response_headers.data()),
                    response_headers.size());
     if (headers.back() != '\0')
@@ -242,7 +242,7 @@ void FetchHandler::FulfillRequest(
   auto modifications =
       std::make_unique<DevToolsURLLoaderInterceptor::Modifications>(
           base::MakeRefCounted<net::HttpResponseHeaders>(headers),
-          body.has_value() ? body.value().bytes() : nullptr);
+          body.isJust() ? body.fromJust().bytes() : nullptr);
   interceptor_->ContinueInterceptedRequest(requestId, std::move(modifications),
                                            WrapCallback(std::move(callback)));
 }
@@ -261,10 +261,11 @@ void FetchHandler::ContinueRequest(
   }
   std::unique_ptr<DevToolsURLLoaderInterceptor::Modifications::HeadersVector>
       request_headers;
-  if (headers.has_value()) {
+  if (headers.isJust()) {
     request_headers = std::make_unique<
         DevToolsURLLoaderInterceptor::Modifications::HeadersVector>();
-    for (auto& entry : headers.value()) {
+    for (const std::unique_ptr<Fetch::HeaderEntry>& entry :
+         *headers.fromJust()) {
       if (!ValidateHeaders(entry.get(), callback.get()))
         return;
       request_headers->emplace_back(entry->GetName(), entry->GetValue());
@@ -325,18 +326,18 @@ void FetchHandler::ContinueResponse(
     callback->sendFailure(Response::ServerError("Fetch domain is not enabled"));
     return;
   }
-  if (responseCode.has_value() &&
-      (responseHeaders.has_value() || binaryResponseHeaders.has_value())) {
+  if (responseCode.isJust() &&
+      (responseHeaders.isJust() || binaryResponseHeaders.isJust())) {
     auto wrapped_callback = std::make_unique<
         CallbackWrapper<ContinueResponseCallback, FulfillRequestCallback>>(
         std::move(callback));
-    FulfillRequest(requestId, responseCode.value(), std::move(responseHeaders),
-                   std::move(binaryResponseHeaders), {},
-                   std::move(responsePhrase), std::move(wrapped_callback));
+    FulfillRequest(requestId, responseCode.fromJust(),
+                   std::move(responseHeaders), std::move(binaryResponseHeaders),
+                   {}, std::move(responsePhrase), std::move(wrapped_callback));
     return;
   }
-  if (!responseCode.has_value() && !responsePhrase.has_value() &&
-      !responseHeaders.has_value() && !binaryResponseHeaders.has_value()) {
+  if (!responseCode.isJust() && !responsePhrase.isJust() &&
+      !responseHeaders.isJust() && !binaryResponseHeaders.isJust()) {
     interceptor_->ContinueInterceptedRequest(
         requestId,
         std::make_unique<DevToolsURLLoaderInterceptor::Modifications>(),

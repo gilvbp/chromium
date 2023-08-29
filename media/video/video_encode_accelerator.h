@@ -20,7 +20,6 @@
 #include "media/base/svc_scalability_mode.h"
 #include "media/base/video_bitrate_allocation.h"
 #include "media/base/video_codecs.h"
-#include "media/base/video_encoder.h"
 #include "media/base/video_types.h"
 #include "media/video/video_encoder_info.h"
 #include "third_party/abseil-cpp/absl/types/optional.h"
@@ -151,7 +150,6 @@ class MEDIA_EXPORT VideoEncodeAccelerator {
     kNoMode = 0,  // for uninitialized profiles only
     kConstantMode = 0b0001,
     kVariableMode = 0b0010,
-    kExternalMode = 0b0100,
   };
 
   // Specification of an encoding profile supported by an encoder.
@@ -187,7 +185,11 @@ class MEDIA_EXPORT VideoEncodeAccelerator {
     // Indicates if video content should be treated as a "normal" camera feed
     // or as generated (e.g. screen capture).
     enum class ContentType { kCamera, kDisplay };
-
+    enum class InterLayerPredMode : int {
+      kOff = 0,      // Inter-layer prediction is disabled.
+      kOn = 1,       // Inter-layer prediction is enabled.
+      kOnKeyPic = 2  // Inter-layer prediction is enabled for key picture.
+    };
     // Indicates the storage type of a video frame provided on Encode().
     // kShmem if a video frame has a shared memory.
     // kGpuMemoryBuffer if a video frame has a GpuMemoryBuffer.
@@ -227,8 +229,7 @@ class MEDIA_EXPORT VideoEncodeAccelerator {
            absl::optional<StorageType> storage_type = absl::nullopt,
            ContentType content_type = ContentType::kCamera,
            const std::vector<SpatialLayer>& spatial_layers = {},
-           SVCInterLayerPredMode inter_layer_pred =
-               SVCInterLayerPredMode::kOnKeyPic);
+           InterLayerPredMode inter_layer_pred = InterLayerPredMode::kOnKeyPic);
 
     ~Config();
 
@@ -290,7 +291,7 @@ class MEDIA_EXPORT VideoEncodeAccelerator {
     std::vector<SpatialLayer> spatial_layers;
 
     // Indicates the inter layer prediction mode for SVC encoding.
-    SVCInterLayerPredMode inter_layer_pred;
+    InterLayerPredMode inter_layer_pred;
 
     // This flag forces the encoder to use low latency mode, suitable for
     // RTC use cases.
@@ -375,13 +376,6 @@ class MEDIA_EXPORT VideoEncodeAccelerator {
   //  |force_keyframe| forces the encoding of a keyframe for this frame.
   virtual void Encode(scoped_refptr<VideoFrame> frame, bool force_keyframe) = 0;
 
-  // Encodes the given frame.
-  // Parameters:
-  //  |frame| is the VideoFrame that is to be encoded.
-  //  |options| provides extra details for encoding |frame|.
-  virtual void Encode(scoped_refptr<VideoFrame> frame,
-                      const VideoEncoder::EncodeOptions& options);
-
   // Send a bitstream buffer to the encoder to be used for storing future
   // encoded output.  Each call here with a given |buffer| will cause the buffer
   // to be filled once, then returned with BitstreamBufferReady().
@@ -389,7 +383,8 @@ class MEDIA_EXPORT VideoEncodeAccelerator {
   //  |buffer| is the bitstream buffer to use for output.
   virtual void UseOutputBitstreamBuffer(BitstreamBuffer buffer) = 0;
 
-  // Request a change to the encoding parameters.
+  // Request a change to the encoding parameters. This is only a request,
+  // fulfilled on a best-effort basis.
   // Parameters:
   //  |bitrate| is the requested new bitrate. The bitrate mode cannot be changed
   //  using this method and attempting to do so will result in an error.
@@ -398,9 +393,9 @@ class MEDIA_EXPORT VideoEncodeAccelerator {
   virtual void RequestEncodingParametersChange(const Bitrate& bitrate,
                                                uint32_t framerate) = 0;
 
-  // Request a change to the encoding parameters. If not implemented, default
-  // behavior is to get the sum over layers and pass to version with bitrate
-  // as uint32_t.
+  // Request a change to the encoding parameters. This is only a request,
+  // fulfilled on a best-effort basis. If not implemented, default behavior is
+  // to get the sum over layers and pass to version with bitrate as uint32_t.
   // Parameters:
   //  |bitrate| is the requested new bitrate, per spatial and temporal layer.
   //  |framerate| is the requested new framerate, in frames per second.

@@ -231,7 +231,6 @@ ContentAnalysisDialog::ContentAnalysisDialog(
       files_count_(files_count),
       download_item_(download_item),
       is_cloud_(is_cloud) {
-  DVLOG(1) << __func__;
   DCHECK(delegate_);
   SetOwnedByWidget(true);
   set_fixed_width(views::LayoutProvider::Get()->GetDistanceMetric(
@@ -253,11 +252,10 @@ ContentAnalysisDialog::ContentAnalysisDialog(
   // now, ignore input events manually.
   top_level_contents_ =
       constrained_window::GetTopLevelWebContents(web_contents_)->GetWeakPtr();
-  top_level_contents_->StoreFocus();
+  top_level_contents_->ClearFocusedElement();
   top_level_contents_->SetIgnoreInputEvents(true);
 
   if (ShowDialogDelay().is_zero() || !is_pending()) {
-    DVLOG(1) << __func__ << ": Showing in ctor";
     ShowDialogNow();
   } else {
     content::GetUIThreadTaskRunner({})->PostDelayedTask(
@@ -275,15 +273,9 @@ ContentAnalysisDialog::ContentAnalysisDialog(
 }
 
 void ContentAnalysisDialog::ShowDialogNow() {
-  if (will_be_deleted_soon_) {
-    DVLOG(1) << __func__ << ": aborting since dialog will be deleted soon";
-    return;
-  }
-
   // If the web contents is still valid when the delay timer goes off and the
   // dialog has not yet been shown, show it now.
   if (web_contents_ && !contents_view_) {
-    DVLOG(1) << __func__ << ": first time";
     first_shown_timestamp_ = base::TimeTicks::Now();
     constrained_window::ShowWebModalDialogViews(this, web_contents_);
     if (observer_for_testing)
@@ -367,7 +359,6 @@ bool ContentAnalysisDialog::ShouldShowCloseButton() const {
 
 views::View* ContentAnalysisDialog::GetContentsView() {
   if (!contents_view_) {
-    DVLOG(1) << __func__ << ": first time";
     contents_view_ = new views::BoxLayoutView();  // Owned by caller.
     contents_view_->SetOrientation(views::BoxLayout::Orientation::kVertical);
     // Padding to distance the top image from the icon and message.
@@ -470,12 +461,8 @@ void ContentAnalysisDialog::ShowResult(FinalContentAnalysisResult result) {
 }
 
 ContentAnalysisDialog::~ContentAnalysisDialog() {
-  DVLOG(1) << __func__;
-
-  if (top_level_contents_) {
+  if (top_level_contents_)
     top_level_contents_->SetIgnoreInputEvents(false);
-    top_level_contents_->RestoreFocus();
-  }
   if (download_item_)
     download_item_->RemoveObserver(this);
   if (observer_for_testing)
@@ -980,15 +967,14 @@ bool ContentAnalysisDialog::is_print_scan() const {
   return access_point_ == safe_browsing::DeepScanAccessPoint::PRINT;
 }
 
-void ContentAnalysisDialog::CancelDialogAndDelete() {
+bool ContentAnalysisDialog::CancelDialogAndDelete() {
   if (contents_view_) {
-    DVLOG(1) << __func__ << ": dialog will be canceled";
     CancelDialog();
   } else {
-    DVLOG(1) << __func__ << ": dialog will be deleted soon";
-    will_be_deleted_soon_ = true;
     content::GetUIThreadTaskRunner({})->DeleteSoon(FROM_HERE, this);
   }
+
+  return true;
 }
 
 ui::ColorId ContentAnalysisDialog::GetSideImageLogoColor() const {

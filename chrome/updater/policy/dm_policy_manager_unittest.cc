@@ -8,10 +8,9 @@
 #include "base/memory/ref_counted.h"
 #include "build/build_config.h"
 #include "chrome/updater/constants.h"
-#include "chrome/updater/util/unit_test_util.h"
+#include "chrome/updater/util/unittest_util.h"
 #include "components/policy/proto/device_management_backend.pb.h"
 #include "testing/gtest/include/gtest/gtest.h"
-#include "third_party/abseil-cpp/absl/types/optional.h"
 
 namespace updater {
 
@@ -104,23 +103,15 @@ const uint8_t kOmahaPolicyResponseData[] = {
 
 }  // namespace
 
-TEST(DMPolicyManager, DeviceManagementOverride) {
-  ::wireless_android_enterprise_devicemanagement::OmahaSettingsClientProto
-      omaha_settings;
-
-  EXPECT_TRUE(base::MakeRefCounted<DMPolicyManager>(omaha_settings, true)
-                  ->HasActiveDevicePolicies());
-  EXPECT_FALSE(base::MakeRefCounted<DMPolicyManager>(omaha_settings, false)
-                   ->HasActiveDevicePolicies());
-}
-
 TEST(DMPolicyManager, PolicyManagerFromEmptyProto) {
   ::wireless_android_enterprise_devicemanagement::OmahaSettingsClientProto
       omaha_settings;
 
   auto policy_manager(base::MakeRefCounted<DMPolicyManager>(omaha_settings));
 
-  EXPECT_TRUE(policy_manager->HasActiveDevicePolicies());
+#if !BUILDFLAG(IS_LINUX)
+  EXPECT_EQ(policy_manager->HasActiveDevicePolicies(), base::IsManagedDevice());
+#endif  // BUILDFLAG(IS_LINUX)
   EXPECT_EQ(policy_manager->source(), "DeviceManagement");
 
   EXPECT_EQ(policy_manager->GetLastCheckPeriod(), absl::nullopt);
@@ -198,7 +189,9 @@ TEST(DMPolicyManager, PolicyManagerFromProto) {
 
   auto policy_manager(base::MakeRefCounted<DMPolicyManager>(omaha_settings));
 
-  EXPECT_TRUE(policy_manager->HasActiveDevicePolicies());
+#if !BUILDFLAG(IS_LINUX)
+  EXPECT_EQ(policy_manager->HasActiveDevicePolicies(), base::IsManagedDevice());
+#endif  // BUILDFLAG(IS_LINUX)
   EXPECT_EQ(policy_manager->source(), "DeviceManagement");
 
   // Verify global policies
@@ -286,7 +279,7 @@ TEST(DMPolicyManager, PolicyManagerFromDMResponse) {
 
   auto policy_manager(base::MakeRefCounted<DMPolicyManager>(omaha_settings));
 
-  EXPECT_TRUE(policy_manager->HasActiveDevicePolicies());
+  EXPECT_EQ(policy_manager->HasActiveDevicePolicies(), base::IsManagedDevice());
   EXPECT_EQ(policy_manager->source(), "DeviceManagement");
 
   EXPECT_EQ(policy_manager->GetLastCheckPeriod(), absl::nullopt);

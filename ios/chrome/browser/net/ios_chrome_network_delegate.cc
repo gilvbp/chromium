@@ -23,7 +23,6 @@
 #include "ios/web/public/thread/web_thread.h"
 #include "net/base/load_flags.h"
 #include "net/base/net_errors.h"
-#include "net/cookies/cookie_inclusion_status.h"
 #include "net/cookies/cookie_options.h"
 #include "net/cookies/cookie_setting_override.h"
 #include "net/http/http_status_code.h"
@@ -96,8 +95,7 @@ bool IOSChromeNetworkDelegate::OnAnnotateAndMoveUserBlockedCookies(
 bool IOSChromeNetworkDelegate::OnCanSetCookie(
     const net::URLRequest& request,
     const net::CanonicalCookie& cookie,
-    net::CookieOptions* options,
-    net::CookieInclusionStatus* inclusion_status) {
+    net::CookieOptions* options) {
   // Null during tests, or when we're running in the system context.
   if (!cookie_settings_)
     return true;

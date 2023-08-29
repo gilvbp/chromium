@@ -6,6 +6,8 @@ package org.chromium.chrome.browser.bookmarks;
 
 import android.content.ComponentName;
 
+import androidx.annotation.VisibleForTesting;
+
 import org.chromium.chrome.R;
 import org.chromium.chrome.browser.preferences.SharedPreferencesManager;
 import org.chromium.chrome.browser.profiles.Profile;
@@ -65,6 +67,7 @@ public class BookmarkPage extends BasicNativePage {
         super.destroy();
     }
 
+    @VisibleForTesting
     public BookmarkManagerCoordinator getManagerForTesting() {
         return mBookmarkManagerCoordinator;
     }

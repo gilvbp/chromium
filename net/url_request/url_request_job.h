@@ -252,11 +252,6 @@ class NET_EXPORT URLRequestJob {
   virtual void SetEarlyResponseHeadersCallback(
       ResponseHeadersCallback callback) {}
 
-  // Set a callback that will be invoked when a matching shared dictionary is
-  // available to determine whether it is allowed to use the dictionary.
-  virtual void SetIsSharedDictionaryReadAllowedCallback(
-      base::RepeatingCallback<bool()> callback) {}
-
   // Causes the current transaction always close its active socket on
   // destruction. Does not close H2/H3 sessions.
   virtual void CloseConnectionOnDestruction();
@@ -290,8 +285,7 @@ class NET_EXPORT URLRequestJob {
 
   // Delegates to URLRequest.
   bool CanSetCookie(const net::CanonicalCookie& cookie,
-                    CookieOptions* options,
-                    CookieInclusionStatus* inclusion_status) const;
+                    CookieOptions* options) const;
 
   // Notifies the job that headers have been received.
   void NotifyHeadersComplete();

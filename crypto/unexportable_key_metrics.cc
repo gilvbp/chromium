@@ -296,9 +296,7 @@ void MaybeMeasureTpmOperations() {
                       base::FEATURE_ENABLED_BY_DEFAULT);
   if (base::FeatureList::IsEnabled(kTpmLatencyMetrics)) {
     base::ThreadPool::PostTask(
-        FROM_HERE,
-        {base::MayBlock(), base::TaskPriority::BEST_EFFORT,
-         base::TaskShutdownBehavior::CONTINUE_ON_SHUTDOWN},
+        FROM_HERE, {base::MayBlock(), base::TaskPriority::BEST_EFFORT},
         base::BindOnce(&MeasureTpmOperationsInternal));
   }
 }

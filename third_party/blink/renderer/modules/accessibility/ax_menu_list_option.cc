@@ -53,8 +53,7 @@ AXObject* AXMenuListOption::ComputeParentAXMenuPopupFor(
   DCHECK(option);
 
   HTMLSelectElement* select = option->OwnerSelectElement();
-  if (!select || !AXObjectCacheImpl::ShouldCreateAXMenuListFor(
-                     select->GetLayoutObject())) {
+  if (!select || !select->UsesMenuList()) {
     // If it's an <option> that is not inside of a menulist, we want it to
     // return to the caller and use the default logic.
     return nullptr;

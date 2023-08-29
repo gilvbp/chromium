@@ -13,18 +13,16 @@
 #include <vector>
 
 #include "base/allocator/partition_allocator/address_space_randomization.h"
-#include "base/allocator/partition_allocator/page_allocator_constants.h"
 #include "base/allocator/partition_allocator/partition_alloc_base/cpu.h"
 #include "base/allocator/partition_allocator/partition_alloc_base/logging.h"
-#include "base/allocator/partition_allocator/partition_alloc_base/notreached.h"
 #include "base/allocator/partition_allocator/partition_alloc_config.h"
+#include "base/allocator/partition_allocator/partition_alloc_notreached.h"
 #include "base/allocator/partition_allocator/tagging.h"
 #include "build/build_config.h"
 
-#if defined(LINUX_NAME_REGION)
+#if BUILDFLAG(IS_ANDROID)
 #include "base/debug/proc_maps_linux.h"
-#endif
-
+#endif  // BUILDFLAG(IS_ANDROID)
 #include "testing/gtest/include/gtest/gtest.h"
 
 #if BUILDFLAG(IS_POSIX)
@@ -46,6 +44,16 @@
 #if !defined(MEMORY_TOOL_REPLACES_ALLOCATOR)
 
 namespace partition_alloc::internal {
+
+#if BUILDFLAG(IS_ANDROID)
+namespace base::debug {
+
+using ::base::debug::MappedMemoryRegion;
+using ::base::debug::ParseProcMaps;
+using ::base::debug::ReadProcMaps;
+
+}  // namespace base::debug
+#endif
 
 namespace {
 
@@ -482,47 +490,33 @@ TEST(PartitionAllocPageAllocatorTest, MAYBE_ReadExecutePages) {
 
 #endif  // BUILDFLAG(IS_POSIX)
 
-#if defined(LINUX_NAME_REGION)
+#if BUILDFLAG(IS_ANDROID)
 TEST(PartitionAllocPageAllocatorTest, PageTagging) {
-  size_t size = PageAllocationGranularity();
   uintptr_t buffer =
-      AllocPages(size, PageAllocationGranularity(),
+      AllocPages(PageAllocationGranularity(), PageAllocationGranularity(),
                  PageAccessibilityConfiguration(
                      PageAccessibilityConfiguration::kInaccessible),
                  PageTag::kChromium);
-  ASSERT_TRUE(buffer);
+  EXPECT_TRUE(buffer);
 
-  auto is_region_named = [](uintptr_t start_address) {
-    std::string proc_maps;
-    EXPECT_TRUE(::base::debug::ReadProcMaps(&proc_maps));
-    std::vector<::base::debug::MappedMemoryRegion> regions;
-    EXPECT_TRUE(::base::debug::ParseProcMaps(proc_maps, &regions));
+  std::string proc_maps;
+  EXPECT_TRUE(base::debug::ReadProcMaps(&proc_maps));
+  std::vector<base::debug::MappedMemoryRegion> regions;
+  EXPECT_TRUE(base::debug::ParseProcMaps(proc_maps, &regions));
 
-    bool found = false;
-    for (const auto& region : regions) {
-      if (region.start == start_address) {
-        found = true;
-        return "[anon:chromium]" == region.path;
-      }
+  bool found = false;
+  for (const auto& region : regions) {
+    if (region.start == buffer) {
+      found = true;
+      EXPECT_EQ("[anon:chromium]", region.path);
+      break;
     }
-    EXPECT_TRUE(found);
-    return false;
-  };
+  }
 
-  bool before = is_region_named(buffer);
-  DecommitAndZeroSystemPages(buffer, size);
-  bool after = is_region_named(buffer);
-
-#if BUILDFLAG(IS_ANDROID)
-  EXPECT_TRUE(before) << "VMA tagging should always work on Android";
-#endif
-  // When not running on Android, the prctl() command may be defined in the
-  // headers, but not be implemented by the host kernel.
-  EXPECT_EQ(before, after);
-
-  FreePages(buffer, size);
+  FreePages(buffer, PageAllocationGranularity());
+  EXPECT_TRUE(found);
 }
-#endif  // defined(LINUX_NAME_REGION)
+#endif  // BUILDFLAG(IS_ANDROID)
 
 TEST(PartitionAllocPageAllocatorTest, DecommitErasesMemory) {
   if (!DecommittedMemoryIsAlwaysZeroed()) {

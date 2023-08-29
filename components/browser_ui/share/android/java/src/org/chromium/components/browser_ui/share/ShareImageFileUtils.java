@@ -38,7 +38,6 @@ import org.chromium.content_public.browser.RenderWidgetHostView;
 import org.chromium.content_public.browser.WebContents;
 import org.chromium.ui.UiUtils;
 import org.chromium.ui.base.Clipboard;
-import org.chromium.url.GURL;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -422,8 +421,8 @@ public class ShareImageFileUtils {
         String path = file.getPath();
         long length = file.length();
 
-        return DownloadUtils.addCompletedDownload(title, title, getImageMimeType(file), path,
-                length, GURL.emptyGURL(), GURL.emptyGURL());
+        return DownloadUtils.addCompletedDownload(
+                title, title, getImageMimeType(file), path, length, null, null);
     }
 
     @RequiresApi(29)

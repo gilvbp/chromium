@@ -56,7 +56,8 @@ void SettingsWindowManager::ForceDeprecatedSettingsWindowForTesting() {
 }
 
 // static
-bool SettingsWindowManager::UseDeprecatedSettingsWindow(Profile* profile) {
+bool SettingsWindowManager::UseDeprecatedSettingsWindow(
+    const Profile* profile) {
   return !web_app::AreWebAppsEnabled(profile) ||
          chrome::IsRunningInForcedAppMode() ||
          g_force_deprecated_settings_window_for_testing;

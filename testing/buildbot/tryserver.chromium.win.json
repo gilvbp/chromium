@@ -13,13 +13,16 @@
         },
         "name": "media_foundation_browser_tests 8086:9bc5",
         "swarming": {
+          "can_use_on_swarming_builders": true,
           "containment_type": "AUTO",
-          "dimensions": {
-            "display_attached": "1",
-            "gpu": "8086:9bc5-31.0.101.2111",
-            "os": "Windows-10",
-            "pool": "chromium.tests.gpu"
-          },
+          "dimension_sets": [
+            {
+              "display_attached": "1",
+              "gpu": "8086:9bc5-31.0.101.2111",
+              "os": "Windows-10",
+              "pool": "chromium.tests.gpu"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "browser_tests",
@@ -36,12 +39,15 @@
         },
         "name": "gles2_conform_d3d9_test 10de:2184",
         "swarming": {
-          "dimensions": {
-            "display_attached": "1",
-            "gpu": "10de:2184-27.21.14.5638",
-            "os": "Windows-10-18363",
-            "pool": "chromium.tests.gpu"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "display_attached": "1",
+              "gpu": "10de:2184-27.21.14.5638",
+              "os": "Windows-10-18363",
+              "pool": "chromium.tests.gpu"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "gles2_conform_test",
@@ -58,13 +64,16 @@
         },
         "name": "gles2_conform_d3d9_test 8086:9bc5",
         "swarming": {
+          "can_use_on_swarming_builders": true,
           "containment_type": "AUTO",
-          "dimensions": {
-            "display_attached": "1",
-            "gpu": "8086:9bc5-31.0.101.2111",
-            "os": "Windows-10",
-            "pool": "chromium.tests.gpu"
-          },
+          "dimension_sets": [
+            {
+              "display_attached": "1",
+              "gpu": "8086:9bc5-31.0.101.2111",
+              "os": "Windows-10",
+              "pool": "chromium.tests.gpu"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "gles2_conform_test",
@@ -82,12 +91,15 @@
         },
         "name": "gles2_conform_gl_test 10de:2184",
         "swarming": {
-          "dimensions": {
-            "display_attached": "1",
-            "gpu": "10de:2184-27.21.14.5638",
-            "os": "Windows-10-18363",
-            "pool": "chromium.tests.gpu"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "display_attached": "1",
+              "gpu": "10de:2184-27.21.14.5638",
+              "os": "Windows-10-18363",
+              "pool": "chromium.tests.gpu"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "gles2_conform_test",
@@ -105,13 +117,16 @@
         },
         "name": "gles2_conform_gl_test 8086:9bc5",
         "swarming": {
+          "can_use_on_swarming_builders": true,
           "containment_type": "AUTO",
-          "dimensions": {
-            "display_attached": "1",
-            "gpu": "8086:9bc5-31.0.101.2111",
-            "os": "Windows-10",
-            "pool": "chromium.tests.gpu"
-          },
+          "dimension_sets": [
+            {
+              "display_attached": "1",
+              "gpu": "8086:9bc5-31.0.101.2111",
+              "os": "Windows-10",
+              "pool": "chromium.tests.gpu"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "gles2_conform_test",
@@ -127,12 +142,15 @@
         },
         "name": "gles2_conform_test 10de:2184",
         "swarming": {
-          "dimensions": {
-            "display_attached": "1",
-            "gpu": "10de:2184-27.21.14.5638",
-            "os": "Windows-10-18363",
-            "pool": "chromium.tests.gpu"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "display_attached": "1",
+              "gpu": "10de:2184-27.21.14.5638",
+              "os": "Windows-10-18363",
+              "pool": "chromium.tests.gpu"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "gles2_conform_test",
@@ -148,13 +166,16 @@
         },
         "name": "gles2_conform_test 8086:9bc5",
         "swarming": {
+          "can_use_on_swarming_builders": true,
           "containment_type": "AUTO",
-          "dimensions": {
-            "display_attached": "1",
-            "gpu": "8086:9bc5-31.0.101.2111",
-            "os": "Windows-10",
-            "pool": "chromium.tests.gpu"
-          },
+          "dimension_sets": [
+            {
+              "display_attached": "1",
+              "gpu": "8086:9bc5-31.0.101.2111",
+              "os": "Windows-10",
+              "pool": "chromium.tests.gpu"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "gles2_conform_test",
@@ -167,12 +188,15 @@
         },
         "name": "gpu_unittests 10de:2184",
         "swarming": {
-          "dimensions": {
-            "display_attached": "1",
-            "gpu": "10de:2184-27.21.14.5638",
-            "os": "Windows-10-18363",
-            "pool": "chromium.tests.gpu"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "display_attached": "1",
+              "gpu": "10de:2184-27.21.14.5638",
+              "os": "Windows-10-18363",
+              "pool": "chromium.tests.gpu"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "gpu_unittests",
@@ -185,13 +209,16 @@
         },
         "name": "gpu_unittests 8086:9bc5",
         "swarming": {
+          "can_use_on_swarming_builders": true,
           "containment_type": "AUTO",
-          "dimensions": {
-            "display_attached": "1",
-            "gpu": "8086:9bc5-31.0.101.2111",
-            "os": "Windows-10",
-            "pool": "chromium.tests.gpu"
-          },
+          "dimension_sets": [
+            {
+              "display_attached": "1",
+              "gpu": "8086:9bc5-31.0.101.2111",
+              "os": "Windows-10",
+              "pool": "chromium.tests.gpu"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "gpu_unittests",
@@ -208,12 +235,15 @@
         },
         "name": "services_webnn_unittests 10de:2184",
         "swarming": {
-          "dimensions": {
-            "display_attached": "1",
-            "gpu": "10de:2184-27.21.14.5638",
-            "os": "Windows-10-18363",
-            "pool": "chromium.tests.gpu"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "display_attached": "1",
+              "gpu": "10de:2184-27.21.14.5638",
+              "os": "Windows-10-18363",
+              "pool": "chromium.tests.gpu"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "services_unittests",
@@ -230,13 +260,16 @@
         },
         "name": "services_webnn_unittests 8086:9bc5",
         "swarming": {
+          "can_use_on_swarming_builders": true,
           "containment_type": "AUTO",
-          "dimensions": {
-            "display_attached": "1",
-            "gpu": "8086:9bc5-31.0.101.2111",
-            "os": "Windows-10",
-            "pool": "chromium.tests.gpu"
-          },
+          "dimension_sets": [
+            {
+              "display_attached": "1",
+              "gpu": "8086:9bc5-31.0.101.2111",
+              "os": "Windows-10",
+              "pool": "chromium.tests.gpu"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "services_unittests",
@@ -252,12 +285,15 @@
         },
         "name": "xr_browser_tests 10de:2184",
         "swarming": {
-          "dimensions": {
-            "display_attached": "1",
-            "gpu": "10de:2184-27.21.14.5638",
-            "os": "Windows-10-18363",
-            "pool": "chromium.tests.gpu"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "display_attached": "1",
+              "gpu": "10de:2184-27.21.14.5638",
+              "os": "Windows-10-18363",
+              "pool": "chromium.tests.gpu"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "xr_browser_tests",
@@ -273,13 +309,16 @@
         },
         "name": "xr_browser_tests 8086:9bc5",
         "swarming": {
+          "can_use_on_swarming_builders": true,
           "containment_type": "AUTO",
-          "dimensions": {
-            "display_attached": "1",
-            "gpu": "8086:9bc5-31.0.101.2111",
-            "os": "Windows-10",
-            "pool": "chromium.tests.gpu"
-          },
+          "dimension_sets": [
+            {
+              "display_attached": "1",
+              "gpu": "8086:9bc5-31.0.101.2111",
+              "os": "Windows-10",
+              "pool": "chromium.tests.gpu"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "xr_browser_tests",
@@ -313,12 +352,15 @@
         },
         "should_retry_with_patch": false,
         "swarming": {
-          "dimensions": {
-            "display_attached": "1",
-            "gpu": "10de:2184-27.21.14.5638",
-            "os": "Windows-10-18363",
-            "pool": "chromium.tests.gpu"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "display_attached": "1",
+              "gpu": "10de:2184-27.21.14.5638",
+              "os": "Windows-10-18363",
+              "pool": "chromium.tests.gpu"
+            }
+          ],
           "idempotent": false,
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
@@ -350,13 +392,16 @@
         },
         "should_retry_with_patch": false,
         "swarming": {
+          "can_use_on_swarming_builders": true,
           "containment_type": "AUTO",
-          "dimensions": {
-            "display_attached": "1",
-            "gpu": "8086:9bc5-31.0.101.2111",
-            "os": "Windows-10",
-            "pool": "chromium.tests.gpu"
-          },
+          "dimension_sets": [
+            {
+              "display_attached": "1",
+              "gpu": "8086:9bc5-31.0.101.2111",
+              "os": "Windows-10",
+              "pool": "chromium.tests.gpu"
+            }
+          ],
           "idempotent": false,
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
@@ -384,12 +429,15 @@
         },
         "should_retry_with_patch": false,
         "swarming": {
-          "dimensions": {
-            "display_attached": "1",
-            "gpu": "10de:2184-27.21.14.5638",
-            "os": "Windows-10-18363",
-            "pool": "chromium.tests.gpu"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "display_attached": "1",
+              "gpu": "10de:2184-27.21.14.5638",
+              "os": "Windows-10-18363",
+              "pool": "chromium.tests.gpu"
+            }
+          ],
           "idempotent": false,
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
@@ -417,13 +465,16 @@
         },
         "should_retry_with_patch": false,
         "swarming": {
+          "can_use_on_swarming_builders": true,
           "containment_type": "AUTO",
-          "dimensions": {
-            "display_attached": "1",
-            "gpu": "8086:9bc5-31.0.101.2111",
-            "os": "Windows-10",
-            "pool": "chromium.tests.gpu"
-          },
+          "dimension_sets": [
+            {
+              "display_attached": "1",
+              "gpu": "8086:9bc5-31.0.101.2111",
+              "os": "Windows-10",
+              "pool": "chromium.tests.gpu"
+            }
+          ],
           "idempotent": false,
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
@@ -448,12 +499,15 @@
         "name": "passthrough_command_buffer_perftests 10de:2184",
         "should_retry_with_patch": false,
         "swarming": {
-          "dimensions": {
-            "display_attached": "1",
-            "gpu": "10de:2184-27.21.14.5638",
-            "os": "Windows-10-18363",
-            "pool": "chromium.tests.gpu"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "display_attached": "1",
+              "gpu": "10de:2184-27.21.14.5638",
+              "os": "Windows-10-18363",
+              "pool": "chromium.tests.gpu"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test_id_prefix": "ninja://gpu:command_buffer_perftests/",
@@ -481,12 +535,15 @@
         },
         "should_retry_with_patch": false,
         "swarming": {
-          "dimensions": {
-            "display_attached": "1",
-            "gpu": "10de:2184-27.21.14.5638",
-            "os": "Windows-10-18363",
-            "pool": "chromium.tests.gpu"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "display_attached": "1",
+              "gpu": "10de:2184-27.21.14.5638",
+              "os": "Windows-10-18363",
+              "pool": "chromium.tests.gpu"
+            }
+          ],
           "idempotent": false,
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
@@ -515,13 +572,16 @@
         },
         "should_retry_with_patch": false,
         "swarming": {
+          "can_use_on_swarming_builders": true,
           "containment_type": "AUTO",
-          "dimensions": {
-            "display_attached": "1",
-            "gpu": "8086:9bc5-31.0.101.2111",
-            "os": "Windows-10",
-            "pool": "chromium.tests.gpu"
-          },
+          "dimension_sets": [
+            {
+              "display_attached": "1",
+              "gpu": "8086:9bc5-31.0.101.2111",
+              "os": "Windows-10",
+              "pool": "chromium.tests.gpu"
+            }
+          ],
           "idempotent": false,
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
@@ -536,8 +596,7 @@
           "--passthrough",
           "-v",
           "--stable-jobs",
-          "--extra-browser-args=--enable-logging=stderr --js-flags=--expose-gc",
-          "--jobs=4"
+          "--extra-browser-args=--enable-logging=stderr --js-flags=--expose-gc"
         ],
         "isolate_name": "telemetry_gpu_integration_test",
         "merge": {
@@ -550,12 +609,15 @@
         },
         "should_retry_with_patch": false,
         "swarming": {
-          "dimensions": {
-            "display_attached": "1",
-            "gpu": "10de:2184-27.21.14.5638",
-            "os": "Windows-10-18363",
-            "pool": "chromium.tests.gpu"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "display_attached": "1",
+              "gpu": "10de:2184-27.21.14.5638",
+              "os": "Windows-10-18363",
+              "pool": "chromium.tests.gpu"
+            }
+          ],
           "idempotent": false,
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
@@ -570,8 +632,7 @@
           "--passthrough",
           "-v",
           "--stable-jobs",
-          "--extra-browser-args=--enable-logging=stderr --js-flags=--expose-gc",
-          "--jobs=4"
+          "--extra-browser-args=--enable-logging=stderr --js-flags=--expose-gc"
         ],
         "isolate_name": "telemetry_gpu_integration_test",
         "merge": {
@@ -584,13 +645,16 @@
         },
         "should_retry_with_patch": false,
         "swarming": {
+          "can_use_on_swarming_builders": true,
           "containment_type": "AUTO",
-          "dimensions": {
-            "display_attached": "1",
-            "gpu": "8086:9bc5-31.0.101.2111",
-            "os": "Windows-10",
-            "pool": "chromium.tests.gpu"
-          },
+          "dimension_sets": [
+            {
+              "display_attached": "1",
+              "gpu": "8086:9bc5-31.0.101.2111",
+              "os": "Windows-10",
+              "pool": "chromium.tests.gpu"
+            }
+          ],
           "idempotent": false,
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
@@ -621,12 +685,15 @@
         },
         "should_retry_with_patch": false,
         "swarming": {
-          "dimensions": {
-            "display_attached": "1",
-            "gpu": "10de:2184-27.21.14.5638",
-            "os": "Windows-10-18363",
-            "pool": "chromium.tests.gpu"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "display_attached": "1",
+              "gpu": "10de:2184-27.21.14.5638",
+              "os": "Windows-10-18363",
+              "pool": "chromium.tests.gpu"
+            }
+          ],
           "idempotent": false,
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com",
           "shards": 20
@@ -658,13 +725,16 @@
         },
         "should_retry_with_patch": false,
         "swarming": {
+          "can_use_on_swarming_builders": true,
           "containment_type": "AUTO",
-          "dimensions": {
-            "display_attached": "1",
-            "gpu": "8086:9bc5-31.0.101.2111",
-            "os": "Windows-10",
-            "pool": "chromium.tests.gpu"
-          },
+          "dimension_sets": [
+            {
+              "display_attached": "1",
+              "gpu": "8086:9bc5-31.0.101.2111",
+              "os": "Windows-10",
+              "pool": "chromium.tests.gpu"
+            }
+          ],
           "idempotent": false,
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com",
           "shards": 20
@@ -695,12 +765,15 @@
         },
         "should_retry_with_patch": false,
         "swarming": {
-          "dimensions": {
-            "display_attached": "1",
-            "gpu": "10de:2184-27.21.14.5638",
-            "os": "Windows-10-18363",
-            "pool": "chromium.tests.gpu"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "display_attached": "1",
+              "gpu": "10de:2184-27.21.14.5638",
+              "os": "Windows-10-18363",
+              "pool": "chromium.tests.gpu"
+            }
+          ],
           "idempotent": false,
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com",
           "shards": 2
@@ -731,13 +804,16 @@
         },
         "should_retry_with_patch": false,
         "swarming": {
+          "can_use_on_swarming_builders": true,
           "containment_type": "AUTO",
-          "dimensions": {
-            "display_attached": "1",
-            "gpu": "8086:9bc5-31.0.101.2111",
-            "os": "Windows-10",
-            "pool": "chromium.tests.gpu"
-          },
+          "dimension_sets": [
+            {
+              "display_attached": "1",
+              "gpu": "8086:9bc5-31.0.101.2111",
+              "os": "Windows-10",
+              "pool": "chromium.tests.gpu"
+            }
+          ],
           "idempotent": false,
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com",
           "shards": 2
@@ -768,12 +844,15 @@
         },
         "should_retry_with_patch": false,
         "swarming": {
-          "dimensions": {
-            "display_attached": "1",
-            "gpu": "10de:2184-27.21.14.5638",
-            "os": "Windows-10-18363",
-            "pool": "chromium.tests.gpu"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "display_attached": "1",
+              "gpu": "10de:2184-27.21.14.5638",
+              "os": "Windows-10-18363",
+              "pool": "chromium.tests.gpu"
+            }
+          ],
           "idempotent": false,
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com",
           "shards": 2
@@ -804,13 +883,16 @@
         },
         "should_retry_with_patch": false,
         "swarming": {
+          "can_use_on_swarming_builders": true,
           "containment_type": "AUTO",
-          "dimensions": {
-            "display_attached": "1",
-            "gpu": "8086:9bc5-31.0.101.2111",
-            "os": "Windows-10",
-            "pool": "chromium.tests.gpu"
-          },
+          "dimension_sets": [
+            {
+              "display_attached": "1",
+              "gpu": "8086:9bc5-31.0.101.2111",
+              "os": "Windows-10",
+              "pool": "chromium.tests.gpu"
+            }
+          ],
           "idempotent": false,
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com",
           "shards": 2
@@ -840,12 +922,15 @@
         },
         "should_retry_with_patch": false,
         "swarming": {
-          "dimensions": {
-            "display_attached": "1",
-            "gpu": "10de:2184-27.21.14.5638",
-            "os": "Windows-10-18363",
-            "pool": "chromium.tests.gpu"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "display_attached": "1",
+              "gpu": "10de:2184-27.21.14.5638",
+              "os": "Windows-10-18363",
+              "pool": "chromium.tests.gpu"
+            }
+          ],
           "idempotent": false,
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com",
           "shards": 2
@@ -875,13 +960,16 @@
         },
         "should_retry_with_patch": false,
         "swarming": {
+          "can_use_on_swarming_builders": true,
           "containment_type": "AUTO",
-          "dimensions": {
-            "display_attached": "1",
-            "gpu": "8086:9bc5-31.0.101.2111",
-            "os": "Windows-10",
-            "pool": "chromium.tests.gpu"
-          },
+          "dimension_sets": [
+            {
+              "display_attached": "1",
+              "gpu": "8086:9bc5-31.0.101.2111",
+              "os": "Windows-10",
+              "pool": "chromium.tests.gpu"
+            }
+          ],
           "idempotent": false,
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com",
           "shards": 2

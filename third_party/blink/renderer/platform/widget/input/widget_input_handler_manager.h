@@ -190,11 +190,6 @@ class PLATFORM_EXPORT WidgetInputHandlerManager final
     return main_thread_task_runner_.get();
   }
 
-  // Immediately dispatches all queued events in both the main and compositor
-  // queues such that the queues are emptied. Invokes the passed closure when
-  // both main and compositor thread queues have been processed.
-  void FlushEventQueuesForTesting(base::OnceClosure done_callback);
-
  protected:
   friend class base::RefCountedThreadSafe<WidgetInputHandlerManager>;
   ~WidgetInputHandlerManager() override;
@@ -295,10 +290,6 @@ class PLATFORM_EXPORT WidgetInputHandlerManager final
 
   void RecordMetricsForDroppedEventsBeforePaint(const base::TimeTicks&);
 
-  // Helpers for FlushEventQueuesForTesting.
-  void FlushCompositorQueueForTesting();
-  void FlushMainThreadQueueForTesting(base::OnceClosure done);
-
   // Only valid to be called on the main thread.
   base::WeakPtr<WidgetBase> widget_;
   base::WeakPtr<mojom::blink::FrameWidgetInputHandler>
@@ -338,28 +329,24 @@ class PLATFORM_EXPORT WidgetInputHandlerManager final
   bool uses_input_handler_ = false;
 
   struct UmaData {
-    // Saves the number of user-interactions that would be dropped by the
-    // DropInputEventsBeforeFirstPaint feature (i.e. before receiving the first
-    // presentation of content).
-    int suppressed_interactions_count = 0;
-
     // Saves the number of events that would be dropped by the
     // DropInputEventsBeforeFirstPaint feature (i.e. before receiving the first
-    // presentation of content).
-    int suppressed_events_count = 0;
+    // presentation of content). This is important because it shows how many
+    // times user tried to interact with page but the event was dropped.
+    int suppressed_events_count_ = 0;
 
     // Saves most recent input event time that would be dropped by the
     // DropInputEventsBeforeFirstPaint feature (i.e. before receiving the first
     // presentation of content). If this is after the first paint timestamp,
     // we log the difference to track the worst dropped event experienced.
-    base::TimeTicks most_recent_suppressed_event_time;
+    base::TimeTicks most_recent_suppressed_event_time_;
 
     // Control of UMA. We emit one UMA metric per navigation telling us
     // whether any non-move input arrived before we starting updating the page
     // or displaying content to the user. It must be atomic because navigation
     // can occur on the renderer thread (resetting this) coincident with the UMA
     // being sent on the compositor thread.
-    bool have_emitted_uma{false};
+    bool have_emitted_uma_{false};
   };
 
   base::Lock uma_data_lock_;

@@ -36,9 +36,8 @@ TEST(InternalPopupMenuTest, ShowSelectDisplayNone) {
   )HTML");
   document.View()->UpdateAllLifecyclePhasesForTest();
 
-  auto* div = document.getElementById(AtomicString("container"));
-  auto* select =
-      To<HTMLSelectElement>(document.getElementById(AtomicString("select")));
+  auto* div = document.getElementById("container");
+  auto* select = To<HTMLSelectElement>(document.getElementById("select"));
   ASSERT_TRUE(select);
   auto* menu = MakeGarbageCollected<InternalPopupMenu>(
       MakeGarbageCollected<EmptyChromeClient>(), *select);

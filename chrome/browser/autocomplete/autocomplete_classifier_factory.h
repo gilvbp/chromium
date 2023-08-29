@@ -37,7 +37,7 @@ class AutocompleteClassifierFactory : public ProfileKeyedServiceFactory {
 
   // BrowserContextKeyedServiceFactory:
   bool ServiceIsNULLWhileTesting() const override;
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* profile) const override;
 };
 

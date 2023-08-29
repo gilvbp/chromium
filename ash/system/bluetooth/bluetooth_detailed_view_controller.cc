@@ -151,11 +151,13 @@ void BluetoothDetailedViewController::OnDeviceListItemSelected(
 }
 
 void BluetoothDetailedViewController::BluetoothEnabledStateChanged() {
+  const bool bluetooth_enabled_state =
+      IsBluetoothEnabledOrEnabling(system_state_);
   if (view_)
-    view_->UpdateBluetoothEnabledState(system_state_);
+    view_->UpdateBluetoothEnabledState(bluetooth_enabled_state);
   if (device_list_controller_) {
     device_list_controller_->UpdateBluetoothEnabledState(
-        IsBluetoothEnabledOrEnabling(system_state_));
+        bluetooth_enabled_state);
   }
 }
 

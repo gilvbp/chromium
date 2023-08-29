@@ -21,6 +21,10 @@
 #import "ui/display/screen_base.h"
 #endif
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace {
 
 // If true, +setUpForTestCase will be called from -setUp.  This flag is used to
@@ -87,6 +91,10 @@ bool g_needs_set_up_for_test_case = true;
     DCHECK(!screen->HasDisplayObservers());
   }
 #endif
+  if ([[AppLaunchManager sharedManager] appIsLaunched]) {
+    [CoverageUtils writeClangCoverageProfile];
+    [CoverageUtils resetCoverageProfileCounters];
+  }
   g_needs_set_up_for_test_case = true;
   [super tearDown];
 }

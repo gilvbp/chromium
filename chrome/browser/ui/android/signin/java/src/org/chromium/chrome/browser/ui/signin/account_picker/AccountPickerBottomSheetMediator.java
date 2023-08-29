@@ -4,6 +4,7 @@
 
 package org.chromium.chrome.browser.ui.signin.account_picker;
 
+import android.accounts.Account;
 import android.accounts.AccountManager;
 import android.app.Activity;
 import android.content.Intent;
@@ -25,7 +26,6 @@ import org.chromium.components.signin.AccountManagerFacade;
 import org.chromium.components.signin.AccountManagerFacadeProvider;
 import org.chromium.components.signin.AccountUtils;
 import org.chromium.components.signin.AccountsChangeObserver;
-import org.chromium.components.signin.base.CoreAccountInfo;
 import org.chromium.components.signin.base.GoogleServiceAuthError;
 import org.chromium.components.signin.base.GoogleServiceAuthError.State;
 import org.chromium.components.signin.metrics.AccountConsistencyPromoAction;
@@ -52,9 +52,9 @@ class AccountPickerBottomSheetMediator implements AccountPickerCoordinator.Liste
     private final AccountManagerFacade mAccountManagerFacade;
     private final DeviceLockActivityLauncher mDeviceLockActivityLauncher;
 
-    private @Nullable String mSelectedAccountEmail;
-    private @Nullable String mDefaultAccountEmail;
-    private @Nullable String mAddedAccountEmail;
+    private @Nullable String mSelectedAccountName;
+    private @Nullable String mDefaultAccountName;
+    private @Nullable String mAddedAccountName;
 
     private final PropertyObserver<PropertyKey> mModelPropertyChangedObserver;
     private final ObservableSupplierImpl<Boolean> mBackPressStateChangedSupplier =
@@ -87,9 +87,9 @@ class AccountPickerBottomSheetMediator implements AccountPickerCoordinator.Liste
 
         mAccountManagerFacade = AccountManagerFacadeProvider.getInstance();
         mAccountManagerFacade.addObserver(this);
-        mAddedAccountEmail = null;
-        updateAccounts(AccountUtils.getCoreAccountInfosIfFulfilledOrEmpty(
-                mAccountManagerFacade.getCoreAccountInfos()));
+        mAddedAccountName = null;
+        updateAccounts(
+                AccountUtils.getAccountsIfFulfilledOrEmpty(mAccountManagerFacade.getAccounts()));
     }
 
     /**
@@ -120,8 +120,8 @@ class AccountPickerBottomSheetMediator implements AccountPickerCoordinator.Liste
                 return;
             }
             logAccountConsistencyPromoAction(AccountConsistencyPromoAction.ADD_ACCOUNT_COMPLETED);
-            mAddedAccountEmail = data.getStringExtra(AccountManager.KEY_ACCOUNT_NAME);
-            onAccountSelected(mAddedAccountEmail);
+            mAddedAccountName = data.getStringExtra(AccountManager.KEY_ACCOUNT_NAME);
+            onAccountSelected(mAddedAccountName);
         };
         mAccountManagerFacade.createAddAccountIntent(intent -> {
             if (intent == null) {
@@ -161,8 +161,8 @@ class AccountPickerBottomSheetMediator implements AccountPickerCoordinator.Liste
      * Implements {@link AccountsChangeObserver}.
      */
     @Override
-    public void onCoreAccountInfosChanged() {
-        mAccountManagerFacade.getCoreAccountInfos().then(this::updateAccounts);
+    public void onAccountsChanged() {
+        mAccountManagerFacade.getAccounts().then(this::updateAccounts);
     }
 
     /**
@@ -192,43 +192,42 @@ class AccountPickerBottomSheetMediator implements AccountPickerCoordinator.Liste
         mModel.set(AccountPickerBottomSheetProperties.VIEW_STATE, ViewState.SIGNIN_GENERAL_ERROR);
     }
 
-    private void updateAccounts(List<CoreAccountInfo> coreAccountInfos) {
-        if (coreAccountInfos.isEmpty()) {
+    private void updateAccounts(List<Account> accounts) {
+        if (accounts.isEmpty()) {
             // If all accounts disappeared, no matter if the account list is collapsed or expanded,
             // we will go to the zero account screen.
             mModel.set(AccountPickerBottomSheetProperties.VIEW_STATE, ViewState.NO_ACCOUNTS);
-            mSelectedAccountEmail = null;
-            mDefaultAccountEmail = null;
+            mSelectedAccountName = null;
+            mDefaultAccountName = null;
             mModel.set(AccountPickerBottomSheetProperties.SELECTED_ACCOUNT_DATA, null);
             return;
         }
 
-        mDefaultAccountEmail = coreAccountInfos.get(0).getEmail();
+        mDefaultAccountName = accounts.get(0).name;
         @ViewState
         int viewState = mModel.get(AccountPickerBottomSheetProperties.VIEW_STATE);
         if (viewState == ViewState.NO_ACCOUNTS) {
             // When a non-empty account list appears while it is currently zero-account screen,
             // we should change the screen to collapsed account list and set the selected account
             // to the first account of the account list
-            setSelectedAccountName(mDefaultAccountEmail);
+            setSelectedAccountName(mDefaultAccountName);
             mModel.set(AccountPickerBottomSheetProperties.VIEW_STATE,
                     ViewState.COLLAPSED_ACCOUNT_LIST);
         } else if (viewState == ViewState.COLLAPSED_ACCOUNT_LIST
-                && AccountUtils.findCoreAccountInfoByEmail(coreAccountInfos, mSelectedAccountEmail)
-                        == null) {
+                && AccountUtils.findAccountByName(accounts, mSelectedAccountName) == null) {
             // When it is already collapsed account list, we update the selected account only
             // when the current selected account name is no longer in the new account list
-            setSelectedAccountName(mDefaultAccountEmail);
+            setSelectedAccountName(mDefaultAccountName);
         }
     }
 
     private void setSelectedAccountName(String accountName) {
-        mSelectedAccountEmail = accountName;
-        updateSelectedAccountData(mSelectedAccountEmail);
+        mSelectedAccountName = accountName;
+        updateSelectedAccountData(mSelectedAccountName);
     }
 
     private void updateSelectedAccountData(String accountEmail) {
-        if (TextUtils.equals(mSelectedAccountEmail, accountEmail)) {
+        if (TextUtils.equals(mSelectedAccountName, accountEmail)) {
             mModel.set(AccountPickerBottomSheetProperties.SELECTED_ACCOUNT_DATA,
                     mProfileDataCache.getProfileDataOrDefault(accountEmail));
         }
@@ -254,8 +253,8 @@ class AccountPickerBottomSheetMediator implements AccountPickerCoordinator.Liste
         if (viewState == ViewState.COLLAPSED_ACCOUNT_LIST
                 || viewState == ViewState.SIGNIN_GENERAL_ERROR) {
             if (BuildInfo.getInstance().isAutomotive) {
-                mDeviceLockActivityLauncher.launchDeviceLockActivity(
-                        mActivity, mSelectedAccountEmail, mWindowAndroid, (resultCode, data) -> {
+                mDeviceLockActivityLauncher.launchDeviceLockActivity(mActivity, true,
+                        mSelectedAccountName, mWindowAndroid, (resultCode, data) -> {
                             if (resultCode == Activity.RESULT_OK) {
                                 signIn();
                             }
@@ -272,10 +271,10 @@ class AccountPickerBottomSheetMediator implements AccountPickerCoordinator.Liste
 
     private void signIn() {
         mModel.set(AccountPickerBottomSheetProperties.VIEW_STATE, ViewState.SIGNIN_IN_PROGRESS);
-        if (TextUtils.equals(mSelectedAccountEmail, mAddedAccountEmail)) {
+        if (TextUtils.equals(mSelectedAccountName, mAddedAccountName)) {
             logAccountConsistencyPromoAction(
                     AccountConsistencyPromoAction.SIGNED_IN_WITH_ADDED_ACCOUNT);
-        } else if (TextUtils.equals(mSelectedAccountEmail, mDefaultAccountEmail)) {
+        } else if (TextUtils.equals(mSelectedAccountName, mDefaultAccountName)) {
             logAccountConsistencyPromoAction(
                     AccountConsistencyPromoAction.SIGNED_IN_WITH_DEFAULT_ACCOUNT);
         } else {
@@ -288,7 +287,7 @@ class AccountPickerBottomSheetMediator implements AccountPickerCoordinator.Liste
                     .clearWebSigninAccountPickerActiveDismissalCount();
         }
 
-        mAccountPickerDelegate.signIn(mSelectedAccountEmail, this::onSigninFailed);
+        mAccountPickerDelegate.signIn(mSelectedAccountName, this::onSigninFailed);
     }
 
     private void onSigninFailed(GoogleServiceAuthError error) {
@@ -313,7 +312,7 @@ class AccountPickerBottomSheetMediator implements AccountPickerCoordinator.Liste
             }
         };
         mAccountManagerFacade.updateCredentials(
-                AccountUtils.createAccountFromName(mSelectedAccountEmail), mActivity,
+                AccountUtils.createAccountFromName(mSelectedAccountName), mActivity,
                 onUpdateCredentialsCompleted);
     }
 

@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 source_set("bandwidth") {
+  configs += [ "//build/config/compiler:enable_arc" ]
   sources = [
     "bandwidth_management_table_view_controller.h",
     "bandwidth_management_table_view_controller.mm",
@@ -32,6 +33,7 @@ source_set("bandwidth") {
 }
 
 source_set("unit_tests") {
+  configs += [ "//build/config/compiler:enable_arc" ]
   testonly = true
   sources = [
     "bandwidth_management_table_view_controller_unittest.mm",

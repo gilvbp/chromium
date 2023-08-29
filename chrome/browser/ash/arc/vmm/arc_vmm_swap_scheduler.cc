@@ -67,9 +67,7 @@ void ArcVmmSwapScheduler::OnVmSwapping(
   if (signal.name() != kArcVmName) {
     return;
   }
-  if (signal.state() == vm_tools::concierge::SWAPPING_OUT) {
-    local_state()->SetTime(prefs::kArcVmmSwapOutTime, base::Time::Now());
-  }
+  local_state()->SetTime(prefs::kArcVmmSwapOutTime, base::Time::Now());
 }
 
 void ArcVmmSwapScheduler::SetSwapoutThrottleInterval(base::TimeDelta interval) {

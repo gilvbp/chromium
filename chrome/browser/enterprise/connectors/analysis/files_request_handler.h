@@ -14,7 +14,6 @@
 #include "chrome/browser/enterprise/connectors/analysis/request_handler_base.h"
 #include "chrome/browser/safe_browsing/cloud_content_scanning/binary_upload_service.h"
 #include "chrome/browser/safe_browsing/cloud_content_scanning/file_opening_job.h"
-#include "components/enterprise/common/proto/connectors.pb.h"
 #include "components/file_access/scoped_file_access.h"
 
 namespace safe_browsing {
@@ -65,7 +64,6 @@ class FilesRequestHandler : public RequestHandlerBase {
       const std::string& user_action_id,
       const std::string& tab_title,
       safe_browsing::DeepScanAccessPoint access_point,
-      ContentAnalysisRequest::Reason reason,
       const std::vector<base::FilePath>& paths,
       CompletionCallback callback)>;
 
@@ -84,7 +82,6 @@ class FilesRequestHandler : public RequestHandlerBase {
       const std::string& user_action_id,
       const std::string& tab_title,
       safe_browsing::DeepScanAccessPoint access_point,
-      ContentAnalysisRequest::Reason reason,
       const std::vector<base::FilePath>& paths,
       CompletionCallback callback);
 
@@ -108,7 +105,6 @@ class FilesRequestHandler : public RequestHandlerBase {
       const std::string& user_action_id,
       const std::string& tab_title,
       safe_browsing::DeepScanAccessPoint access_point,
-      ContentAnalysisRequest::Reason reason,
       const std::vector<base::FilePath>& paths,
       CompletionCallback callback);
 

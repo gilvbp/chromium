@@ -19,7 +19,6 @@
 #include "components/prefs/pref_change_registrar.h"
 #include "components/prefs/pref_registry_simple.h"
 #include "components/prefs/pref_service.h"
-#include "services/network/public/cpp/shared_url_loader_factory.h"
 #include "third_party/icu/source/i18n/astro.h"
 
 namespace ash {
@@ -46,10 +45,10 @@ constexpr int kDefaultSunriseTimeOffsetMinutes = 6 * 60;
 
 GeolocationController::GeolocationController(
     scoped_refptr<network::SharedURLLoaderFactory> factory)
-    : simple_geolocation_provider_(std::make_unique<SimpleGeolocationProvider>(
-          this,
-          std::move(factory),
-          SimpleGeolocationProvider::DefaultGeolocationProviderURL())),
+    : factory_(factory.get()),
+      provider_(this,
+                std::move(factory),
+                SimpleGeolocationProvider::DefaultGeolocationProviderURL()),
       backoff_delay_(kMinimumDelayAfterFailure),
       timer_(std::make_unique<base::OneShotTimer>()),
       scoped_session_observer_(this) {
@@ -161,11 +160,6 @@ GeolocationController::GetNextRequestDelayAfterSuccessForTesting() {
   return kNextRequestDelayAfterSuccess;
 }
 
-network::SharedURLLoaderFactory*
-GeolocationController::GetSharedURLLoaderFactoryForTesting() {
-  return simple_geolocation_provider_->GetSharedURLLoaderFactoryForTesting();
-}
-
 void GeolocationController::SetTimerForTesting(
     std::unique_ptr<base::OneShotTimer> timer) {
   timer_ = std::move(timer);
@@ -178,13 +172,6 @@ void GeolocationController::SetClockForTesting(base::Clock* clock) {
 void GeolocationController::SetLocalTimeConverterForTesting(
     const LocalTimeConverter* local_time_converter) {
   local_time_converter_ = local_time_converter;
-}
-
-void GeolocationController::SetGeolocationProviderForTesting(
-    std::unique_ptr<SimpleGeolocationProvider> simple_geolocation_provider) {
-  simple_geolocation_provider_ = std::move(simple_geolocation_provider);
-  // Immediately schedule a new request to receive a geoposition event.
-  ScheduleNextRequest(base::Seconds(0));
 }
 
 void GeolocationController::SetCurrentTimezoneIdForTesting(
@@ -230,25 +217,14 @@ void GeolocationController::OnGeoposition(const Geoposition& position,
   StoreCachedGeoposition();
 
   if (previous_sunset && previous_sunrise) {
-    const base::Time new_sunset = GetSunsetTime();
-    const base::Time new_sunrise = GetSunriseTime();
-    if (previous_sunset.value() == kNoSunRiseSet ||
-        previous_sunrise.value() == kNoSunRiseSet ||
-        new_sunrise == kNoSunRiseSet || new_sunset == kNoSunRiseSet) {
-      // Any time an area with no sunrise|set is involved, consider it a
-      // *possible* change. Sunrise|set timestamps for these areas are all the
-      // same, so there's no way to tell if it implies a timezone change.
-      possible_change_in_timezone = true;
-    } else {
-      // If the change in geoposition results in an hour or more in either
-      // sunset or sunrise times indicates of a possible timezone change.
-      constexpr base::TimeDelta kOneHourDuration = base::Hours(1);
-      possible_change_in_timezone =
-          (GetSunsetTime() - previous_sunset.value()).magnitude() >
-              kOneHourDuration ||
-          (GetSunriseTime() - previous_sunrise.value()).magnitude() >
-              kOneHourDuration;
-    }
+    // If the change in geoposition results in an hour or more in either sunset
+    // or sunrise times indicates of a possible timezone change.
+    constexpr base::TimeDelta kOneHourDuration = base::Hours(1);
+    possible_change_in_timezone =
+        (GetSunsetTime() - previous_sunset.value()).magnitude() >
+            kOneHourDuration ||
+        (GetSunriseTime() - previous_sunrise.value()).magnitude() >
+            kOneHourDuration;
   }
 
   NotifyGeopositionChange(possible_change_in_timezone);
@@ -284,7 +260,7 @@ void GeolocationController::NotifyGeopositionChange(
 
 void GeolocationController::RequestGeoposition() {
   VLOG(1) << "Requesting a new geoposition";
-  simple_geolocation_provider_->RequestGeolocation(
+  provider_.RequestGeolocation(
       kGeolocationRequestTimeout, /*send_wifi_access_points=*/false,
       /*send_cell_towers=*/false,
       base::BindOnce(&GeolocationController::OnGeoposition,
@@ -295,15 +271,11 @@ base::Time GeolocationController::GetSunRiseSet(bool sunrise) const {
   if (!geoposition_) {
     VLOG(1) << "Invalid geoposition. Using default time for "
             << (sunrise ? "sunrise." : "sunset.");
-    const absl::optional<base::Time> default_value =
-        TimeOfDay(sunrise ? kDefaultSunriseTimeOffsetMinutes
-                          : kDefaultSunsetTimeOffsetMinutes)
-            .SetClock(clock_)
-            .SetLocalTimeConverter(local_time_converter_)
-            .ToTimeToday();
-    // TODO(b/294437057): Change this method's return value to return a type
-    // that makes this failure more obvious to the caller.
-    return default_value.value_or(base::Time());
+    return TimeOfDay(sunrise ? kDefaultSunriseTimeOffsetMinutes
+                             : kDefaultSunsetTimeOffsetMinutes)
+        .SetClock(clock_)
+        .SetLocalTimeConverter(local_time_converter_)
+        .ToTimeToday();
   }
 
   icu::CalendarAstronomer astro(geoposition_->longitude,
@@ -314,18 +286,13 @@ base::Time GeolocationController::GetSunRiseSet(bool sunrise) const {
   // See the documentation of icu::CalendarAstronomer::getSunRiseSet().
   // Note that the icu calendar works with milliseconds since epoch, and
   // base::Time::FromDoubleT() / ToDoubleT() work with seconds since epoch.
-  const absl::optional<base::Time> midday_today =
+  const double midday_today_sec =
       TimeOfDay(12 * 60)
           .SetClock(clock_)
           .SetLocalTimeConverter(local_time_converter_)
-          .ToTimeToday();
-  if (!midday_today) {
-    // TODO(b/294437057): Change this method's return value to return a type
-    // that makes this failure more obvious to the caller.
-    return base::Time();
-  }
-
-  astro.setTime(midday_today->ToDoubleT() * 1000.0);
+          .ToTimeToday()
+          .ToDoubleT();
+  astro.setTime(midday_today_sec * 1000.0);
   const double sun_rise_set_ms = astro.getSunRiseSet(sunrise);
   // If there is 24 hours of daylight or darkness, `CalendarAstronomer` returns
   // a very large negative value. Any timestamp before or at the epoch

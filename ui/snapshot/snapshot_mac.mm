@@ -6,11 +6,15 @@
 
 #import <Cocoa/Cocoa.h>
 
-#include "base/apple/scoped_cftyperef.h"
 #include "base/check_op.h"
 #include "base/functional/callback.h"
+#include "base/mac/scoped_cftyperef.h"
 #include "ui/gfx/geometry/rect.h"
 #include "ui/gfx/image/image.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace ui {
 
@@ -40,10 +44,9 @@ bool GrabViewSnapshot(gfx::NativeView native_view,
   DCHECK_LE(screen_snapshot_bounds.right(), view_bounds.right());
   DCHECK_LE(screen_snapshot_bounds.bottom(), view_bounds.bottom());
 
-  base::apple::ScopedCFTypeRef<CGImageRef> windowSnapshot(
-      CGWindowListCreateImage(
-          screen_snapshot_bounds.ToCGRect(), kCGWindowListOptionIncludingWindow,
-          window.windowNumber, kCGWindowImageBoundsIgnoreFraming));
+  base::ScopedCFTypeRef<CGImageRef> windowSnapshot(CGWindowListCreateImage(
+      screen_snapshot_bounds.ToCGRect(), kCGWindowListOptionIncludingWindow,
+      window.windowNumber, kCGWindowImageBoundsIgnoreFraming));
   if (CGImageGetWidth(windowSnapshot) <= 0)
     return false;
 

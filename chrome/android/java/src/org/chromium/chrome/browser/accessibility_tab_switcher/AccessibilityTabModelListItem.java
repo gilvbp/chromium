@@ -654,6 +654,7 @@ public class AccessibilityTabModelListItem extends FrameLayout implements OnClic
         if (mListener != null) mListener.tabChanged(tab.getId());
     }
 
+    @VisibleForTesting
     public View getCloseButtonForTests() {
         return mCloseButton;
     }

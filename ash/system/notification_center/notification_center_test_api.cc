@@ -11,7 +11,6 @@
 #include "ash/shelf/shelf.h"
 #include "ash/shell.h"
 #include "ash/system/message_center/ash_message_popup_collection.h"
-#include "ash/system/message_center/message_center_utils.h"
 #include "ash/system/message_center/unified_message_center_bubble.h"
 #include "ash/system/notification_center/notification_center_bubble.h"
 #include "ash/system/notification_center/notification_center_tray.h"
@@ -335,10 +334,7 @@ views::View* NotificationCenterTestApi::GetClearAllButton() {
 
 std::string NotificationCenterTestApi::NotificationIdToParentNotificationId(
     const std::string& id) {
-  return id + message_center_utils::GenerateGroupParentNotificationIdSuffix(
-                  message_center::MessageCenter::Get()
-                      ->FindNotificationById(id)
-                      ->notifier_id());
+  return id + message_center::kIdSuffixForGroupContainerNotification;
 }
 
 views::FocusRing* NotificationCenterTestApi::GetFocusRing() const {

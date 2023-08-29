@@ -8,7 +8,6 @@
 #include <stddef.h>
 
 #include "base/containers/contains.h"
-#include "base/memory/raw_ref.h"
 #include "components/autofill/content/renderer/form_cache.h"
 #include "third_party/blink/public/web/web_form_control_element.h"
 
@@ -17,7 +16,9 @@ namespace autofill {
 // Exposes some testing operations for FormCache.
 class FormCacheTestApi {
  public:
-  explicit FormCacheTestApi(FormCache* form_cache) : form_cache_(*form_cache) {}
+  explicit FormCacheTestApi(FormCache* form_cache) : form_cache_(form_cache) {
+    DCHECK(form_cache_);
+  }
 
   // For a given |control_element| check whether it is eligible for manual
   // filling on form interaction.
@@ -32,8 +33,8 @@ class FormCacheTestApi {
     return form_cache_->initial_select_values_.size();
   }
 
-  size_t initial_selectlist_values_size() {
-    return form_cache_->initial_selectlist_values_.size();
+  size_t initial_selectmenu_values_size() {
+    return form_cache_->initial_selectmenu_values_.size();
   }
 
   size_t initial_checked_state_size() {
@@ -43,12 +44,8 @@ class FormCacheTestApi {
   size_t extracted_forms_size() { return form_cache_->extracted_forms_.size(); }
 
  private:
-  const raw_ref<FormCache> form_cache_;
+  FormCache* form_cache_;
 };
-
-inline FormCacheTestApi test_api(FormCache& form_cache) {
-  return FormCacheTestApi(&form_cache);
-}
 
 }  // namespace autofill
 

@@ -19,7 +19,6 @@
 namespace ash {
 
 class FaceMLAppUI;
-class FaceMLPageHandler;
 
 // The WebUIConfig for chrome://face-ml.
 class FaceMLAppUIConfig : public SystemWebAppUIConfig<FaceMLAppUI> {
@@ -55,7 +54,6 @@ class FaceMLAppUI : public ui::MojoWebUIController,
       this};
 
   std::unique_ptr<FaceMLUserProvider> user_provider_;
-  std::unique_ptr<FaceMLPageHandler> page_handler_;
 
   WEB_UI_CONTROLLER_TYPE_DECL();
 };

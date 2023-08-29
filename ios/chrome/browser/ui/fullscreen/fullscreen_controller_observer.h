@@ -7,13 +7,11 @@
 
 #import <UIKit/UIKit.h>
 
-#import "base/observer_list_types.h"
-
 class FullscreenController;
 @class FullscreenAnimator;
 
 // Interface for listening to fullscreen state.
-class FullscreenControllerObserver : public base::CheckedObserver {
+class FullscreenControllerObserver {
  public:
   FullscreenControllerObserver() = default;
 
@@ -21,7 +19,7 @@ class FullscreenControllerObserver : public base::CheckedObserver {
   FullscreenControllerObserver& operator=(const FullscreenControllerObserver&) =
       delete;
 
-  ~FullscreenControllerObserver() override;
+  virtual ~FullscreenControllerObserver() = default;
 
   // Invoked when the maximum or minimum viewport insets for `controller` have
   // been updated.

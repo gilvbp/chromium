@@ -53,7 +53,7 @@ TEST_F(LayoutNGListItemTest, InsideWithFirstLine) {
   )HTML");
 
   Element* container = GetElementById("container");
-  container->classList().Add(AtomicString("after"));
+  container->classList().Add("after");
   GetDocument().UpdateStyleAndLayoutTree();
 
   // The list-item should have a marker.

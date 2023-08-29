@@ -18,7 +18,6 @@
 #include "base/test/gmock_move_support.h"
 #include "base/test/mock_callback.h"
 #include "build/branding_buildflags.h"
-#include "chrome/browser/chrome_browser_main_extra_parts_nacl_deprecation.h"
 #include "chrome/browser/plugins/plugin_prefs.h"
 #include "chrome/browser/ui/browser.h"
 #include "chrome/browser/ui/tabs/tab_strip_model.h"
@@ -67,8 +66,6 @@ using ::testing::SizeIs;
 
 class PluginInfoHostImplTest : public InProcessBrowserTest {
  public:
-  PluginInfoHostImplTest() { feature_list_.InitAndEnableFeature(kNaclAllow); }
-
   void SetUpOnMainThread() override {
     int active_render_process_id = browser()
                                        ->tab_strip_model()
@@ -107,7 +104,6 @@ class PluginInfoHostImplTest : public InProcessBrowserTest {
   }
 
   std::unique_ptr<PluginInfoHostImpl> plugin_info_host_impl_;
-  base::test::ScopedFeatureList feature_list_;
 };
 
 #if BUILDFLAG(ENABLE_PDF)

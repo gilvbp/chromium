@@ -258,6 +258,10 @@ bool MediaControlInputElement::IsOverflowElement() const {
   return is_overflow_element_;
 }
 
+bool MediaControlInputElement::IsMouseFocusable() const {
+  return false;
+}
+
 bool MediaControlInputElement::IsMediaControlElement() const {
   return true;
 }
@@ -286,10 +290,6 @@ void MediaControlInputElement::SetClass(const String& class_name,
 void MediaControlInputElement::UpdateDisplayType() {
   if (overflow_element_)
     overflow_element_->UpdateDisplayType();
-}
-
-void MediaControlInputElement::UpdateAriaLabel(const String& new_aria_label) {
-  aria_label_ = new_aria_label;
 }
 
 gfx::Size MediaControlInputElement::GetSizeOrDefault() const {

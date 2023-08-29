@@ -8,40 +8,11 @@
 #include "base/containers/circular_deque.h"
 #include "base/memory/scoped_refptr.h"
 #include "base/memory/weak_ptr.h"
-#include "base/metrics/histogram_functions.h"
-#include "base/no_destructor.h"
-#include "base/notreached.h"
-#include "base/strings/strcat.h"
 #include "base/task/sequenced_task_runner.h"
-#include "base/time/time.h"
 #include "components/unexportable_keys/background_task.h"
 #include "components/unexportable_keys/background_task_priority.h"
 
 namespace unexportable_keys {
-
-namespace {
-const char kBaseTaskDurationHistogramName[] =
-    "Crypto.UnexportableKeys.BackgroundTaskDuration";
-
-const std::string& GetTaskDurationHistogramNameForPriority(
-    BackgroundTaskPriority priority) {
-  switch (priority) {
-    case BackgroundTaskPriority::kBestEffort:
-      static const base::NoDestructor<std::string> kBestEffortHistogramName(
-          base::StrCat({kBaseTaskDurationHistogramName, ".BestEffort"}));
-      return *kBestEffortHistogramName;
-    case BackgroundTaskPriority::kUserVisible:
-      static const base::NoDestructor<std::string> kUserVisibleHistogramName(
-          base::StrCat({kBaseTaskDurationHistogramName, ".UserVisible"}));
-      return *kUserVisibleHistogramName;
-    case BackgroundTaskPriority::kUserBlocking:
-      static const base::NoDestructor<std::string> kUserBlockingHistogramName(
-          base::StrCat({kBaseTaskDurationHistogramName, ".UserBlocking"}));
-      return *kUserBlockingHistogramName;
-  }
-  NOTREACHED_NORETURN();
-}
-}  // namespace
 
 BackgroundLongTaskScheduler::BackgroundLongTaskScheduler(
     scoped_refptr<base::SequencedTaskRunner> background_task_runner)
@@ -51,9 +22,8 @@ BackgroundLongTaskScheduler::BackgroundLongTaskScheduler(
 
 BackgroundLongTaskScheduler::~BackgroundLongTaskScheduler() = default;
 
-void BackgroundLongTaskScheduler::PostTask(
-    std::unique_ptr<BackgroundTask> task) {
-  BackgroundTaskPriority priority = task->GetPriority();
+void BackgroundLongTaskScheduler::PostTask(std::unique_ptr<BackgroundTask> task,
+                                           BackgroundTaskPriority priority) {
   GetTaskQueueForPriority(priority).push_back(std::move(task));
   // If no task is running, schedule `task` immediately.
   if (!running_task_) {
@@ -63,12 +33,6 @@ void BackgroundLongTaskScheduler::PostTask(
 
 void BackgroundLongTaskScheduler::OnTaskCompleted(BackgroundTask* task) {
   DCHECK_EQ(running_task_.get(), task);
-
-  base::TimeDelta duration = task->GetElapsedTimeSinceCreation();
-  base::UmaHistogramMediumTimes(kBaseTaskDurationHistogramName, duration);
-  base::UmaHistogramMediumTimes(
-      GetTaskDurationHistogramNameForPriority(task->GetPriority()), duration);
-
   running_task_.reset();
   MaybeRunNextPendingTask();
 }

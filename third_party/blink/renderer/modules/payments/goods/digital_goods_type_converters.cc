@@ -78,9 +78,7 @@ blink::ItemDetails* TypeConverter<blink::ItemDetails*, ItemDetailsPtr>::Convert(
   WTF::Vector<WTF::String> icon_urls;
   if (input->icon_urls.has_value()) {
     for (const blink::KURL& icon_url : input->icon_urls.value()) {
-      if (icon_url.IsValid() && !icon_url.IsEmpty()) {
-        icon_urls.push_back(icon_url.GetString());
-      }
+      icon_urls.push_back(icon_url.GetString());
     }
   }
   output->setIconURLs(std::move(icon_urls));

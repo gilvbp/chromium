@@ -29,8 +29,7 @@ class DOMTask final : public GarbageCollected<DOMTask> {
  public:
   DOMTask(ScriptPromiseResolver*,
           V8SchedulerPostTaskCallback*,
-          AbortSignal* abort_source,
-          DOMTaskSignal* priority_source,
+          DOMTaskSignal*,
           DOMScheduler::DOMTaskQueue*,
           base::TimeDelta delay);
 
@@ -48,14 +47,12 @@ class DOMTask final : public GarbageCollected<DOMTask> {
   // catching any errors and retrieving the result.
   void InvokeInternal(ScriptState*);
   void OnAbort();
-  void RemoveAbortAlgorithm();
 
   TaskHandle task_handle_;
   Member<V8SchedulerPostTaskCallback> callback_;
   Member<ScriptPromiseResolver> resolver_;
   probe::AsyncTaskContext async_task_context_;
-  Member<AbortSignal> abort_source_;
-  Member<DOMTaskSignal> priority_source_;
+  Member<DOMTaskSignal> signal_;
   Member<AbortSignal::AlgorithmHandle> abort_handle_;
   // Do not remove. For dynamic priority task queues, |task_queue_| ensures that
   // the associated WebSchedulingTaskQueue stays alive until after this task

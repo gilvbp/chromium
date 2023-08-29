@@ -25,8 +25,10 @@ BASE_DECLARE_FEATURE(kIdentityStatusConsistency);
 
 extern const char kClearTokenService[];
 
+extern const char kDisableSigninScopedDeviceId[];
+
 #if BUILDFLAG(ENABLE_BOUND_SESSION_CREDENTIALS)
-BASE_DECLARE_FEATURE(kEnableBoundSessionCredentials);
+BASE_DECLARE_FEATURE(kEnableBoundSessionCrendentials);
 bool IsBoundSessionCredentialsEnabled();
 #endif
 
@@ -39,8 +41,6 @@ BASE_DECLARE_FEATURE(kForceStartupSigninPromo);
 #endif
 
 BASE_DECLARE_FEATURE(kTangibleSync);
-
-BASE_DECLARE_FEATURE(kSearchEngineChoice);
 
 }  // namespace switches
 

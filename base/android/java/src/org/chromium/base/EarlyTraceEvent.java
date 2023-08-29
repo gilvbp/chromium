@@ -301,6 +301,7 @@ public class EarlyTraceEvent {
         }
     }
 
+    @VisibleForTesting
     static List<Event> getMatchingCompletedEventsForTesting(String eventName) {
         synchronized (sLock) {
             List<Event> matchingEvents = new ArrayList<Event>();

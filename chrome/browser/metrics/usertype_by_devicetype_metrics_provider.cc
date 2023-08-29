@@ -95,7 +95,7 @@ UserTypeByDeviceTypeMetricsProvider::GetUserSegment(Profile* profile) {
   }
 
   // Check for Managed Guest Session
-  if (profiles::IsManagedGuestSession()) {
+  if (profiles::IsPublicSession()) {
     return UserSegment::kManagedGuestSession;
   }
 

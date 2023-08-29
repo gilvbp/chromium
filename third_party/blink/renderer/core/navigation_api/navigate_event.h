@@ -25,7 +25,6 @@
 
 namespace blink {
 
-class AbortController;
 class AbortSignal;
 class NavigationDestination;
 class NavigateEventInit;
@@ -43,15 +42,13 @@ class NavigateEvent final : public Event,
  public:
   static NavigateEvent* Create(ExecutionContext* context,
                                const AtomicString& type,
-                               NavigateEventInit* init,
-                               AbortController* controller = nullptr) {
-    return MakeGarbageCollected<NavigateEvent>(context, type, init, controller);
+                               NavigateEventInit* init) {
+    return MakeGarbageCollected<NavigateEvent>(context, type, init);
   }
 
   NavigateEvent(ExecutionContext* context,
                 const AtomicString& type,
-                NavigateEventInit* init,
-                AbortController* controller);
+                NavigateEventInit* init);
 
   void SetDispatchParams(NavigateEventDispatchParams* dispatch_params) {
     dispatch_params_ = dispatch_params;
@@ -66,7 +63,6 @@ class NavigateEvent final : public Event,
   FormData* formData() const { return form_data_; }
   String downloadRequest() const { return download_request_; }
   ScriptValue info() const { return info_; }
-  bool hasUAVisualTransition() const { return has_ua_visual_transition_; }
   void intercept(NavigationInterceptOptions*, ExceptionState&);
   void commit(ExceptionState&);
 
@@ -111,12 +107,10 @@ class NavigateEvent final : public Event,
   bool can_intercept_;
   bool user_initiated_;
   bool hash_change_;
-  Member<AbortController> controller_;
   Member<AbortSignal> signal_;
   Member<FormData> form_data_;
   String download_request_;
   ScriptValue info_;
-  bool has_ua_visual_transition_ = false;
   absl::optional<V8NavigationFocusReset> focus_reset_behavior_ = absl::nullopt;
   absl::optional<V8NavigationScrollBehavior> scroll_behavior_ = absl::nullopt;
   absl::optional<V8NavigationCommitBehavior> commit_behavior_ = absl::nullopt;

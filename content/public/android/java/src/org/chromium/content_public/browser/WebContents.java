@@ -10,6 +10,7 @@ import android.os.Parcelable;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 
 import org.chromium.blink_public.input.SelectionGranularity;
 import org.chromium.ui.OverscrollRefreshHandler;
@@ -374,6 +375,7 @@ public interface WebContents extends Parcelable {
      *                 will be made on the main thread.
      *                 If no result is required, pass null.
      */
+    @VisibleForTesting
     void evaluateJavaScriptForTests(String script, @Nullable JavaScriptCallback callback);
 
     /**
@@ -441,12 +443,6 @@ public interface WebContents extends Parcelable {
      * @param stylusWritingHandler the object that implements StylusWritingHandler interface.
      */
     void setStylusWritingHandler(StylusWritingHandler stylusWritingHandler);
-
-    /**
-     * @return {@link StylusWritingImeCallback} which is used to implement the
-     * IME functionality for the Stylus handwriting feature.
-     */
-    StylusWritingImeCallback getStylusWritingImeCallback();
 
     /**
      * Returns {@link EventForwarder} which is used to forward input/view events

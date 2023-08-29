@@ -239,14 +239,13 @@ class MediaItemUIDeviceSelectorViewTest : public ChromeViewsTestBase {
       const std::string& current_device = "1",
       bool has_audio_output = true,
       global_media_controls::GlobalMediaControlsEntryPoint entry_point =
-          global_media_controls::GlobalMediaControlsEntryPoint::kToolbarIcon,
-      bool show_devices = false) {
+          global_media_controls::GlobalMediaControlsEntryPoint::kToolbarIcon) {
     client_remote_.reset();
     device_list_host_ = std::make_unique<MockDeviceListHost>();
     auto device_selector_view = std::make_unique<MediaItemUIDeviceSelectorView>(
         kItemId, delegate, device_list_host_->BindNewPipeAndPassRemote(),
         client_remote_.BindNewPipeAndPassReceiver(), has_audio_output,
-        entry_point, /*show_expand_button=*/false, show_devices);
+        entry_point);
     device_selector_view->UpdateCurrentAudioDevice(current_device);
     return device_selector_view;
   }
@@ -335,17 +334,8 @@ TEST_F(MediaItemUIDeviceSelectorViewTest, DeviceEntryContainerVisibility) {
   // for a presentation request.
   view_ = CreateDeviceSelectorView(
       &delegate, "1",
-      /*has_audio_output=*/true,
+      /* has_audio_output */ true,
       global_media_controls::GlobalMediaControlsEntryPoint::kPresentation);
-  EXPECT_TRUE(view_->GetDeviceEntryViewVisibilityForTesting());
-
-  // The device entry container should be expanded if it is requested to show
-  // devices.
-  view_ = CreateDeviceSelectorView(
-      &delegate, "1",
-      /*has_audio_output=*/true,
-      global_media_controls::GlobalMediaControlsEntryPoint::kSystemTray,
-      /*show_devices=*/true);
   EXPECT_TRUE(view_->GetDeviceEntryViewVisibilityForTesting());
 }
 

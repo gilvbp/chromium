@@ -7,6 +7,10 @@
 #import "components/policy/core/common/policy_loader_ios_constants.h"
 #import "testing/platform_test.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 using PolicyUtilTest = PlatformTest;
 
 // Tests that IsApplicationManagedByPlatform() returns false when the

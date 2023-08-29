@@ -92,20 +92,8 @@ DataUsage NearbyShareSettings::GetDataUsage() const {
 }
 
 Visibility NearbyShareSettings::GetVisibility() const {
-  int visibility_int =
-      pref_service_->GetInteger(prefs::kNearbySharingBackgroundVisibilityName);
-
-  // If Visibility is set to kYourDevices and Self Share is toggled from enabled
-  // to disabled, `visibility_int` will have a greater enum value than
-  // `Visibility::kMaxValue`, causing UB. In this case, the visibility is set to
-  // kNoOne instead.
-  if (visibility_int > static_cast<int>(Visibility::kMaxValue)) {
-    pref_service_->SetInteger(prefs::kNearbySharingBackgroundVisibilityName,
-                              static_cast<int>(Visibility::kNoOne));
-    return Visibility::kNoOne;
-  } else {
-    return static_cast<Visibility>(visibility_int);
-  }
+  return static_cast<Visibility>(
+      pref_service_->GetInteger(prefs::kNearbySharingBackgroundVisibilityName));
 }
 
 const std::vector<std::string> NearbyShareSettings::GetAllowedContacts() const {

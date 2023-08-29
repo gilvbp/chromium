@@ -4,10 +4,14 @@
 
 #include "ui/base/interaction/interaction_test_util_mac.h"
 
-#include "base/apple/foundation_util.h"
+#include "base/mac/foundation_util.h"
 #include "ui/base/cocoa/menu_controller.h"
 #include "ui/base/interaction/element_tracker_mac.h"
 #include "ui/base/models/menu_model.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace ui::test {
 
@@ -33,7 +37,7 @@ ActionResult InteractionTestUtilSimulatorMac::SelectMenuItem(
   }
 
   MenuControllerCocoa* controller =
-      base::apple::ObjCCastStrict<MenuControllerCocoa>([menu delegate]);
+      base::mac::ObjCCastStrict<MenuControllerCocoa>([menu delegate]);
   if (!controller) {
     LOG(ERROR) << "Cannot retrieve MenuControllerCocoa from menu.";
     return ActionResult::kFailed;

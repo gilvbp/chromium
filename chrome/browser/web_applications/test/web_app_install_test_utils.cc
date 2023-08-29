@@ -20,6 +20,7 @@
 #include "chrome/browser/web_applications/web_app_install_info.h"
 #include "chrome/browser/web_applications/web_app_install_utils.h"
 #include "chrome/browser/web_applications/web_app_provider.h"
+#include "chrome/browser/web_applications/web_app_sources.h"
 #include "chrome/common/buildflags.h"
 #include "chrome/common/chrome_switches.h"
 #include "components/webapps/browser/install_result_code.h"
@@ -30,6 +31,11 @@
 
 namespace web_app {
 namespace test {
+namespace {
+using WebAppSourcesSet = base::EnumSet<WebAppManagement::Type,
+                                       WebAppManagement::kMinValue,
+                                       WebAppManagement::kMaxValue>;
+}
 
 void WaitUntilReady(WebAppProvider* provider) {
   if (provider->on_registry_ready().is_signaled())
@@ -116,7 +122,7 @@ void UninstallWebApp(Profile* profile, const AppId& app_id) {
   WebAppProvider* const provider = WebAppProvider::GetForTest(profile);
   base::test::TestFuture<webapps::UninstallResultCode> future;
   DCHECK(provider->registrar_unsafe().CanUserUninstallWebApp(app_id));
-  provider->scheduler().UninstallWebApp(
+  provider->install_finalizer().UninstallWebApp(
       app_id, webapps::WebappUninstallSource::kAppMenu, future.GetCallback());
   EXPECT_TRUE(UninstallSucceeded(future.Get()));
 
@@ -132,14 +138,15 @@ bool UninstallAllWebApps(Profile* profile) {
   std::vector<AppId> app_ids = provider->registrar_unsafe().GetAppIds();
   for (auto& app_id : app_ids) {
     const WebApp* app = provider->registrar_unsafe().GetAppById(app_id);
-    WebAppManagementTypes sources = app->GetSources();
+    WebAppSourcesSet sources =
+        WebAppSourcesSet::FromEnumBitmask(app->GetSources().to_ullong());
 
     // Non-user installs first, as they block user uninstalls.
     for (WebAppManagement::Type source : sources) {
       if (source == WebAppManagement::kSync)
         continue;
       base::test::TestFuture<webapps::UninstallResultCode> result;
-      provider->scheduler().RemoveInstallSource(
+      provider->install_finalizer().UninstallExternalWebApp(
           app_id, source, webapps::WebappUninstallSource::kTestCleanup,
           result.GetCallback());
       if (!result.Wait() ||
@@ -154,7 +161,7 @@ bool UninstallAllWebApps(Profile* profile) {
       if (source != WebAppManagement::kSync)
         continue;
       base::test::TestFuture<webapps::UninstallResultCode> result;
-      provider->scheduler().UninstallWebApp(
+      provider->install_finalizer().UninstallWebApp(
           app_id, webapps::WebappUninstallSource::kTestCleanup,
           result.GetCallback());
       if (!result.Wait() ||

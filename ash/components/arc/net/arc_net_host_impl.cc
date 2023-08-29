@@ -466,9 +466,7 @@ void ArcNetHostImpl::CreateNetworkWithEapTranslated(
       wifi_dict.Set(onc::wifi::kPassphrase, details->passphrase.value());
     }
   }
-  if (details->bssid.has_value()) {
-    wifi_dict.Set(onc::wifi::kBSSIDRequested, details->bssid.value());
-  }
+  wifi_dict.Set(onc::wifi::kBSSID, cfg->bssid);
   if (cfg->bssid_allowlist.has_value()) {
     wifi_dict.Set(onc::wifi::kBSSIDAllowlist,
                   TranslateStringListToValue(cfg->bssid_allowlist.value()));
@@ -1398,10 +1396,5 @@ void ArcNetHostImpl::EnsureFactoryBuilt() {
   ArcNetHostImplFactory::GetInstance();
 }
 
-void ArcNetHostImpl::NotifyAndroidWifiMulticastLockChange(bool is_held) {
-  ash::PatchPanelClient::Get()->NotifyAndroidWifiMulticastLockChange(is_held);
-}
-
-void ArcNetHostImpl::NotifySocketConnectionEvent(
-    mojom::SocketConnectionEventPtr msg) {}
+void ArcNetHostImpl::NotifyAndroidWifiMulticastLockChange(bool is_held) {}
 }  // namespace arc

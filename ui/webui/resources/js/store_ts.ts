@@ -2,44 +2,36 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-/**
- * @fileoverview a base class and utility types for managing javascript WebUI
- * state in a redux-like fashion.
- */
-
 export interface Action {
   name: string;
 }
 
-export type DeferredAction<A extends Action = Action> =
-    (callback: (p: A|null) => void) => void;
+export type DeferredAction = (callback: (p: Action|null) => void) => void;
 
-export type Reducer<S, A extends Action = Action> = (state: S, action: A) => S;
-
-export interface StoreObserver<S> {
-  onStateChanged(newState: S): void;
+export interface StoreObserver<T> {
+  onStateChanged(newState: T): void;
 }
 
 /**
  * A generic datastore for the state of a page, where the state is publicly
  * readable but can only be modified by dispatching an Action.
- * The Store should be extended by specifying S, the page state type
+ * The Store should be extended by specifying T, the page state type
  * associated with the store.
  */
-export class Store<S, A extends Action = Action> {
-  data: S;
-  private reducer_: Reducer<S, A>;
+export class Store<T> {
+  data: T;
+  private reducer_: (state: T, action: Action) => T;
   protected initialized_: boolean = false;
-  private queuedActions_: Array<DeferredAction<A>> = [];
-  private observers_: Array<StoreObserver<S>> = [];
+  private queuedActions_: DeferredAction[] = [];
+  private observers_: Array<StoreObserver<T>> = [];
   private batchMode_: boolean = false;
 
-  constructor(emptyState: S, reducer: Reducer<S, A>) {
+  constructor(emptyState: T, reducer: (state: T, action: Action) => T) {
     this.data = emptyState;
     this.reducer_ = reducer;
   }
 
-  init(initialState: S) {
+  init(initialState: T) {
     this.data = initialState;
 
     this.queuedActions_.forEach((action) => {
@@ -55,17 +47,13 @@ export class Store<S, A extends Action = Action> {
     return this.initialized_;
   }
 
-  addObserver(observer: StoreObserver<S>) {
+  addObserver(observer: StoreObserver<T>) {
     this.observers_.push(observer);
   }
 
-  removeObserver(observer: StoreObserver<S>) {
+  removeObserver(observer: StoreObserver<T>) {
     const index = this.observers_.indexOf(observer);
     this.observers_.splice(index, 1);
-  }
-
-  hasObserver(observer: StoreObserver<S>): boolean {
-    return this.observers_.includes(observer);
   }
 
   /**
@@ -94,7 +82,7 @@ export class Store<S, A extends Action = Action> {
    * the |dispatch| callback can be called asynchronously to dispatch Actions
    * directly to the Store.
    */
-  dispatchAsync(action: DeferredAction<A>) {
+  dispatchAsync(action: DeferredAction) {
     if (!this.initialized_) {
       this.queuedActions_.push(action);
       return;
@@ -107,17 +95,17 @@ export class Store<S, A extends Action = Action> {
    * observers of the change. If the Store has not yet been initialized, the
    * action will be queued and performed upon initialization.
    */
-  dispatch(action: A|null) {
+  dispatch(action: Action|null) {
     this.dispatchAsync(function(dispatch) {
       dispatch(action);
     });
   }
 
-  private dispatchInternal_(action: DeferredAction<A>) {
+  private dispatchInternal_(action: DeferredAction) {
     action(this.reduce.bind(this));
   }
 
-  reduce(action: A|null) {
+  reduce(action: Action|null) {
     if (!action) {
       return;
     }
@@ -131,7 +119,7 @@ export class Store<S, A extends Action = Action> {
     }
   }
 
-  protected notifyObservers_(state: S) {
+  protected notifyObservers_(state: T) {
     this.observers_.forEach(function(o) {
       o.onStateChanged(state);
     });

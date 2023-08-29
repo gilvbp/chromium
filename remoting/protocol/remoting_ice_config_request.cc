@@ -38,30 +38,17 @@ constexpr net::NetworkTrafficAnnotationTag kTrafficAnnotation =
             "When a Chrome Remote Desktop session is being connected and "
             "periodically (less frequent than once per hour) while a session "
             "is active, if the configuration is expired."
-          user_data {
-            type: ACCESS_TOKEN
-          }
           data:
-            "OAuth token for the following use cases:"
-            " 1) Human user (for consumer It2Me) "
-            " 2) ChromeOS Enterprise robot (for commercial It2Me) "
-            " 3) Chromoting robot (for remote access, aka Me2Me) "
+            "None (anonymous request)."
           destination: GOOGLE_OWNED_SERVICE
-          internal {
-            contacts { owners: "//remoting/OWNERS" }
-          }
-          last_reviewed: "2023-07-28"
         }
         policy {
           cookies_allowed: NO
           setting:
             "This request cannot be stopped in settings, but will not be sent "
             "if the user does not use Chrome Remote Desktop."
-          chrome_policy {
-            RemoteAccessHostFirewallTraversal {
-              RemoteAccessHostFirewallTraversal: false
-            }
-          }
+          policy_exception_justification:
+            "Not implemented."
         })");
 
 constexpr char kGetIceConfigPath[] = "/v1/networktraversal:geticeconfig";

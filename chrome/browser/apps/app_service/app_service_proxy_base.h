@@ -123,17 +123,11 @@ class AppServiceProxyBase : public KeyedService,
       bool allow_placeholder_icon,
       LoadIconCallback callback) override;
 
-  // Launches the app for the given `app_id`.
-  //
-  // - `event_flags` is a bitset of ui::EventFlags providing additional context
-  // about the action which launches the app (e.g. a middle click indicating
-  // opening a background tab).
-  // - `launch_source` is the UI surface which is launching the app (e.g. shelf,
-  // search box).
-  // - `window_info` specifies the desired location of the new app window
-  // (e.g. window bounds, display ID). If `window_info` is nullptr, the app
-  // publisher will position the new app window using its default behavior (e.g.
-  // on the currently active display).
+  // Launches the app for the given |app_id|. |event_flags| provides additional
+  // context about the action which launches the app (e.g. a middle click
+  // indicating opening a background tab). |launch_source| is the possible app
+  // launch sources, e.g. from Shelf, from the search box, etc. |window_info| is
+  // the window information to launch an app, e.g. display_id, window bounds.
   //
   // Note: prefer using LaunchSystemWebAppAsync() for launching System Web Apps,
   // as that is robust to the choice of profile and avoids needing to specify an
@@ -152,19 +146,11 @@ class AppServiceProxyBase : public KeyedService,
                           LaunchSource launch_source,
                           std::vector<base::FilePath> file_paths);
 
-  // Launches an app for the given `app_id`, passing `intent` to the app.
-  //
-  // - `event_flags` is a bitset of ui::EventFlags providing additional context
-  // about the action which launches the app (e.g. a middle click indicating
-  // opening a background tab).
-  // - `launch_source` is the UI surface which is launching the app (e.g. shelf,
-  // search box).
-  // - `window_info` specifies the desired location of the new app window
-  // (e.g. window bounds, display ID). If `window_info` is nullptr, the app
-  // publisher will position the new app window using its default behavior (e.g.
-  // on the currently active display).
-  // - `callback` will be called with the result of the launch once it is
-  // complete.
+  // Launches an app for the given |app_id|, passing |intent| to the app.
+  // |event_flags| provides additional context about the action which launch the
+  // app (e.g. a middle click indicating opening a background tab).
+  // |launch_source| is the possible app launch sources. |window_info| is the
+  // window information to launch an app, e.g. display_id, window bounds.
   virtual void LaunchAppWithIntent(const std::string& app_id,
                                    int32_t event_flags,
                                    IntentPtr intent,
@@ -172,19 +158,11 @@ class AppServiceProxyBase : public KeyedService,
                                    WindowInfoPtr window_info,
                                    LaunchCallback callback);
 
-  // Launches an app for the given `app_id`, passing `url` to the app.
-  //
-  // - `event_flags` is a bitset of ui::EventFlags providing additional context
-  // about the action which launches the app (e.g. a middle click indicating
-  // opening a background tab).
-  // - `launch_source` is the UI surface which is launching the app (e.g. shelf,
-  // search box).
-  // - `window_info` specifies the desired location of the new app window
-  // (e.g. window bounds, display ID). If `window_info` is nullptr, the app
-  // publisher will position the new app window using its default behavior (e.g.
-  // on the currently active display).
-  // - `callback` will be called with the result of the launch once it is
-  // complete.
+  // Launches an app for the given |app_id|, passing |url| to the app.
+  // |event_flags| provides additional context about the action which launch the
+  // app (e.g. a middle click indicating opening a background tab).
+  // |launch_source| is the possible app launch sources. |window_info| is the
+  // window information to launch an app, e.g. display_id, window bounds.
   void LaunchAppWithUrl(const std::string& app_id,
                         int32_t event_flags,
                         GURL url,
@@ -192,7 +170,7 @@ class AppServiceProxyBase : public KeyedService,
                         WindowInfoPtr window_info = nullptr,
                         LaunchCallback callback = base::DoNothing());
 
-  // Launches an app for the given `params.app_id`. The `params` can also
+  // Launches an app for the given |params.app_id|. The |params| can also
   // contain other param such as launch container, window diposition, etc.
   // Currently the return value in the callback will only be filled up for
   // Chrome OS web apps and Chrome apps.
@@ -260,6 +238,15 @@ class AppServiceProxyBase : public KeyedService,
   // applied) which can handle |files|.
   std::vector<IntentLaunchInfo> GetAppsForFiles(
       std::vector<apps::IntentFilePtr> files);
+
+  // Adds a preferred app for |url|.
+  // Deprecated, prefer calling SetSupportedLinksPreference() instead.
+  // TODO(crbug.com/1416434): Migrate existing users.
+  void AddPreferredApp(const std::string& app_id, const GURL& url);
+  // Adds a preferred app for |intent|. Only supports link intents.
+  // Deprecated, prefer calling SetSupportedLinksPreference() instead.
+  // TODO(crbug.com/1416434): Migrate existing users.
+  void AddPreferredApp(const std::string& app_id, const IntentPtr& intent);
 
   // Sets |app_id| as the preferred app for all of its supported links ('view'
   // intent filters with a scheme and host). Any existing preferred apps for

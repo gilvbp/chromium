@@ -77,8 +77,7 @@ int AutocompleteClassifier::DefaultOmniboxProviders() {
       AutocompleteProvider::TYPE_SEARCH | AutocompleteProvider::TYPE_SHORTCUTS |
       (OmniboxFieldTrial::IsFuzzyUrlSuggestionsEnabled()
            ? AutocompleteProvider::TYPE_HISTORY_FUZZY
-           : 0) |
-      AutocompleteProvider::TYPE_CALCULATOR;
+           : 0);
 }
 
 void AutocompleteClassifier::Classify(

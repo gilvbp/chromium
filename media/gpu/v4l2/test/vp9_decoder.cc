@@ -5,7 +5,11 @@
 #include "media/gpu/v4l2/test/vp9_decoder.h"
 
 #include <linux/v4l2-controls.h>
-#include <linux/videodev2.h>
+
+// ChromeOS specific header; does not exist upstream
+#if BUILDFLAG(IS_CHROMEOS)
+#include <linux/media/vp9-ctrls-upstream.h>
+#endif
 
 #include <sys/ioctl.h>
 
@@ -16,6 +20,7 @@
 #include "media/filters/ivf_parser.h"
 #include "media/filters/vp9_parser.h"
 #include "media/gpu/macros.h"
+#include "media/gpu/v4l2/test/upstream_pix_fmt.h"
 
 namespace media {
 
@@ -487,7 +492,8 @@ VideoDecoder::Result Vp9Decoder::DecodeNextFrame(const int frame_number,
   // dimensions and format will be ready. Specifying V4L2_CTRL_WHICH_CUR_VAL
   // when VIDIOC_S_EXT_CTRLS processes the request immediately so that the frame
   // is parsed by the driver and the state is readied.
-  v4l2_ioctl_->SetExtCtrls(OUTPUT_queue_, &ext_ctrls, is_OUTPUT_queue_new);
+  v4l2_ioctl_->SetExtCtrls(OUTPUT_queue_, &ext_ctrls,
+                           is_OUTPUT_queue_new && cur_val_is_supported_);
   v4l2_ioctl_->MediaRequestIocQueue(OUTPUT_queue_);
 
   if (!CAPTURE_queue_) {

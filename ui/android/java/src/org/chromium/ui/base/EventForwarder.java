@@ -81,12 +81,8 @@ public class EventForwarder {
 
     @CalledByNative
     private static EventForwarder create(long nativeEventForwarder, boolean isDragDropEnabled) {
-        final boolean isAtLeastU = Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE;
-        final boolean convertTrackpadEventsToMouse = isAtLeastU
-                && UiAndroidFeatureMap.isEnabled(
-                        UiAndroidFeatures.CONVERT_TRACKPAD_EVENTS_TO_MOUSE);
-        return new EventForwarder(
-                nativeEventForwarder, isDragDropEnabled, convertTrackpadEventsToMouse);
+        return new EventForwarder(nativeEventForwarder, isDragDropEnabled,
+                UiAndroidFeatureMap.isEnabled(UiAndroidFeatures.CONVERT_TRACKPAD_EVENTS_TO_MOUSE));
     }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
@@ -591,6 +587,7 @@ public class EventForwarder {
         EventForwarderJni.get().scrollTo(mNativeEventForwarder, EventForwarder.this, xPix, yPix);
     }
 
+    @VisibleForTesting
     public void doubleTapForTest(long timeMs, int x, int y) {
         if (mNativeEventForwarder == 0) return;
         EventForwarderJni.get().doubleTap(mNativeEventForwarder, EventForwarder.this, timeMs, x, y);

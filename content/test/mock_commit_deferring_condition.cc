@@ -19,10 +19,10 @@ class MockCommitDeferringCondition : public CommitDeferringCondition {
   // is called by the delegate. It will receive the |resume| callback which can
   // be used to unblock an asynchronously deferred condition.
   MockCommitDeferringCondition(NavigationHandle& handle,
-                               CommitDeferringCondition::Result result,
+                               bool is_ready_to_commit,
                                WillCommitCallback on_will_commit_navigation)
       : CommitDeferringCondition(handle),
-        result_(result),
+        is_ready_to_commit_(is_ready_to_commit),
         on_will_commit_navigation_(std::move(on_will_commit_navigation)) {}
   ~MockCommitDeferringCondition() override = default;
 
@@ -31,10 +31,9 @@ class MockCommitDeferringCondition : public CommitDeferringCondition {
       delete;
 
   Result WillCommitNavigation(base::OnceClosure resume) override {
-    if (on_will_commit_navigation_) {
+    if (on_will_commit_navigation_)
       std::move(on_will_commit_navigation_).Run(std::move(resume));
-    }
-    return result_;
+    return is_ready_to_commit_ ? Result::kProceed : Result::kDefer;
   }
 
   base::WeakPtr<MockCommitDeferringCondition> AsWeakPtr() {
@@ -42,16 +41,16 @@ class MockCommitDeferringCondition : public CommitDeferringCondition {
   }
 
  private:
-  const CommitDeferringCondition::Result result_;
+  const bool is_ready_to_commit_;
   WillCommitCallback on_will_commit_navigation_;
   base::WeakPtrFactory<MockCommitDeferringCondition> weak_factory_{this};
 };
 
 MockCommitDeferringConditionWrapper::MockCommitDeferringConditionWrapper(
     NavigationHandle& handle,
-    CommitDeferringCondition::Result result) {
+    bool is_ready_to_commit) {
   condition_ = std::make_unique<MockCommitDeferringCondition>(
-      handle, result,
+      handle, is_ready_to_commit,
       base::BindOnce(
           &MockCommitDeferringConditionWrapper::WillCommitNavigationCalled,
           weak_factory_.GetWeakPtr()));
@@ -105,10 +104,10 @@ void MockCommitDeferringConditionWrapper::WillCommitNavigationCalled(
 
 MockCommitDeferringConditionInstaller::MockCommitDeferringConditionInstaller(
     const GURL& url,
-    CommitDeferringCondition::Result result,
+    bool is_ready_to_commit,
     CommitDeferringConditionRunner::InsertOrder order)
     : url_(url),
-      result_(result),
+      is_ready_to_commit_(is_ready_to_commit),
       generator_id_(
           CommitDeferringConditionRunner::InstallConditionGeneratorForTesting(
               base::BindRepeating(
@@ -138,8 +137,8 @@ MockCommitDeferringConditionInstaller::Install(
       << "MockCommitDeferringConditionInstaller can only be used on a single "
          "navigation, received second navigation to: "
       << url_;
-  installed_condition_ =
-      std::make_unique<MockCommitDeferringConditionWrapper>(handle, result_);
+  installed_condition_ = std::make_unique<MockCommitDeferringConditionWrapper>(
+      handle, is_ready_to_commit_);
   if (was_installed_closure_)
     std::move(was_installed_closure_).Run();
   return installed_condition_->PassToDelegate();

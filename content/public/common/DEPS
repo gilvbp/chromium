@@ -1,5 +1,4 @@
 include_rules = [
-  "+device/vr/buildflags",
   "+services/device/public/mojom",
   "+services/network/public/cpp/constants.h",
   "+services/network/public/mojom",

@@ -20,10 +20,7 @@
 #include "base/functional/callback.h"
 #include "cc/paint/paint_flags.h"
 #include "cc/paint/paint_shader.h"
-#include "chromeos/constants/chromeos_features.h"
 #include "third_party/abseil-cpp/absl/types/optional.h"
-#include "ui/chromeos/styles/cros_tokens_color_mappings.h"
-#include "ui/color/color_id.h"
 #include "ui/gfx/canvas.h"
 #include "ui/gfx/color_analysis.h"
 #include "ui/gfx/color_utils.h"
@@ -136,13 +133,8 @@ ScrollableUsersListView::GradientParams::BuildForStyle(LoginDisplayStyle style,
       SkColor dark_muted_color = view->GetColorProvider()->GetColor(
           kColorAshLoginScrollableUserListBackground);
 
-      ui::ColorId tint_color_id =
-          chromeos::features::IsJellyEnabled()
-              ? static_cast<ui::ColorId>(cros_tokens::kCrosSysScrim2)
-              : kColorAshShieldAndBase80;
-
       SkColor tint_color = color_utils::GetResultingPaintColor(
-          view->GetColorProvider()->GetColor(tint_color_id),
+          view->GetColorProvider()->GetColor(kColorAshShieldAndBase80),
           SkColorSetA(dark_muted_color, SK_AlphaOPAQUE));
 
       GradientParams params;
@@ -193,9 +185,10 @@ ScrollableUsersListView::ScrollableUsersListView(
       views::BoxLayout::CrossAxisAlignment::kCenter);
 
   for (std::size_t i = 1u; i < users.size(); ++i) {
-    auto* view = new LoginUserView(display_style, false /*show_dropdown*/,
-                                   base::BindRepeating(on_tap_user, i - 1),
-                                   base::RepeatingClosure());
+    auto* view =
+        new LoginUserView(display_style, false /*show_dropdown*/,
+                          base::BindRepeating(on_tap_user, i - 1),
+                          base::RepeatingClosure(), base::RepeatingClosure());
     user_views_.push_back(view);
     view->UpdateForUser(users[i], false /*animate*/);
     user_view_host_->AddChildView(view);
@@ -319,12 +312,7 @@ void ScrollableUsersListView::OnPaintBackground(gfx::Canvas* canvas) {
     cc::PaintFlags flags;
     flags.setAntiAlias(true);
     flags.setStyle(cc::PaintFlags::kFill_Style);
-
-    ui::ColorId background_color_id =
-        chromeos::features::IsJellyEnabled()
-            ? static_cast<ui::ColorId>(cros_tokens::kCrosSysScrim2)
-            : kColorAshShieldAndBase80;
-    flags.setColor(GetColorProvider()->GetColor(background_color_id));
+    flags.setColor(GetColorProvider()->GetColor(kColorAshShieldAndBase80));
     canvas->DrawRoundRect(render_bounds,
                           login::kNonBlurredWallpaperBackgroundRadiusDp, flags);
   }

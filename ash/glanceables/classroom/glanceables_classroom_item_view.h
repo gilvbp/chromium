@@ -5,34 +5,27 @@
 #ifndef ASH_GLANCEABLES_CLASSROOM_GLANCEABLES_CLASSROOM_ITEM_VIEW_H_
 #define ASH_GLANCEABLES_CLASSROOM_GLANCEABLES_CLASSROOM_ITEM_VIEW_H_
 
-#include "ash/ash_export.h"
 #include "ash/glanceables/classroom/glanceables_classroom_types.h"
-#include "base/functional/callback_forward.h"
-#include "ui/views/controls/button/button.h"
+#include "ui/views/controls/label.h"
+#include "ui/views/layout/flex_layout_view.h"
 
 namespace ash {
 
-struct GlanceablesClassroomAssignment;
-
 // A view which shows information about a single assignment in the classroom
 // glanceable.
-class ASH_EXPORT GlanceablesClassroomItemView : public views::Button {
+class GlanceablesClassroomItemView : public views::FlexLayoutView {
  public:
   METADATA_HEADER(GlanceablesClassroomItemView);
 
-  GlanceablesClassroomItemView(const GlanceablesClassroomAssignment* assignment,
-                               base::RepeatingClosure pressed_callback,
-                               size_t item_index,
-                               size_t last_item_index);
-
+  explicit GlanceablesClassroomItemView(
+      const GlanceablesClassroomStudentAssignment* assignment);
   GlanceablesClassroomItemView(const GlanceablesClassroomItemView&) = delete;
   GlanceablesClassroomItemView& operator=(const GlanceablesClassroomItemView&) =
       delete;
   ~GlanceablesClassroomItemView() override;
 
-  // views::Button:
-  void GetAccessibleNodeData(ui::AXNodeData* node_data) override;
-  void Layout() override;
+ private:
+  raw_ptr<views::Label, ExperimentalAsh> placeholder_label_ = nullptr;
 };
 
 }  // namespace ash

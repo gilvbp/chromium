@@ -27,7 +27,7 @@ class XRInputSource;
 class XRPose;
 class XRSession;
 
-class XRSpace : public EventTarget {
+class XRSpace : public EventTargetWithInlineData {
   DEFINE_WRAPPERTYPEINFO();
 
  protected:

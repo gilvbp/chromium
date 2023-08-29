@@ -30,7 +30,7 @@ class CartServiceFactory : public ProfileKeyedServiceFactory {
   CartServiceFactory();
   ~CartServiceFactory() override;
 
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* context) const override;
 };
 

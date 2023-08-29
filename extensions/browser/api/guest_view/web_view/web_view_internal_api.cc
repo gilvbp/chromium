@@ -89,14 +89,14 @@ uint32_t MaskForKey(const char* key) {
 
 extensions::mojom::HostID GenerateHostIDFromEmbedder(
     const extensions::Extension* extension,
-    content::RenderFrameHost* embedder_rfh) {
+    content::WebContents* web_contents) {
   if (extension) {
     return extensions::mojom::HostID(
         extensions::mojom::HostID::HostType::kExtensions, extension->id());
   }
 
-  if (embedder_rfh && embedder_rfh->GetMainFrame()->GetWebUI()) {
-    const GURL& url = embedder_rfh->GetSiteInstance()->GetSiteURL();
+  if (web_contents && web_contents->GetWebUI()) {
+    const GURL& url = web_contents->GetSiteInstance()->GetSiteURL();
     return extensions::mojom::HostID(
         extensions::mojom::HostID::HostType::kWebUi, url.spec());
   }
@@ -472,7 +472,8 @@ ExecuteCodeFunction::InitResult WebViewInternalExecuteCodeFunction::Init() {
     return set_init_result(SUCCESS);
   }
 
-  if (render_frame_host() && render_frame_host()->GetMainFrame()->GetWebUI()) {
+  WebContents* web_contents = GetSenderWebContents();
+  if (web_contents && web_contents->GetWebUI()) {
     const GURL& url = render_frame_host()->GetSiteInstance()->GetSiteURL();
     set_host_id(extensions::mojom::HostID(
         extensions::mojom::HostID::HostType::kWebUi, url.spec()));
@@ -591,8 +592,9 @@ WebViewInternalAddContentScriptsFunction::Run() {
 
   GURL owner_base_url(
       render_frame_host()->GetSiteInstance()->GetSiteURL().GetWithEmptyPath());
+  content::WebContents* sender_web_contents = GetSenderWebContents();
   extensions::mojom::HostID host_id =
-      GenerateHostIDFromEmbedder(extension(), render_frame_host());
+      GenerateHostIDFromEmbedder(extension(), sender_web_contents);
   bool incognito_enabled = browser_context()->IsOffTheRecord();
 
   std::string error;
@@ -633,8 +635,9 @@ WebViewInternalRemoveContentScriptsFunction::Run() {
       WebViewContentScriptManager::Get(browser_context());
   DCHECK(manager);
 
+  content::WebContents* sender_web_contents = GetSenderWebContents();
   extensions::mojom::HostID host_id =
-      GenerateHostIDFromEmbedder(extension(), render_frame_host());
+      GenerateHostIDFromEmbedder(extension(), sender_web_contents);
 
   std::vector<std::string> script_name_list;
   if (params->script_name_list)
@@ -859,48 +862,18 @@ WebViewInternalLoadDataWithBaseUrlFunction::Run() {
       web_view_internal::LoadDataWithBaseUrl::Params::Create(args());
   EXTENSION_FUNCTION_VALIDATE(params);
 
-  // Check that the provided URLs are valid.
-  // |data_url| must be a valid data URL.
-  const GURL data_url(params->data_url);
-  if (!data_url.is_valid() || !data_url.SchemeIs(url::kDataScheme)) {
-    return RespondNow(ExtensionFunction::Error(
-        "Invalid data URL \"*\".", data_url.possibly_invalid_spec()));
-  }
-
-  // |base_url| must be a valid URL. It is also limited to URLs that the owner
-  // is trusted to have control over.
-  WebViewGuest& guest = GetGuest();
-  const url::Origin& owner_origin = guest.owner_rfh()->GetLastCommittedOrigin();
-  const GURL base_url(params->base_url);
-  const bool base_in_owner_origin = owner_origin.IsSameOriginWith(base_url);
-  if (!base_url.is_valid() ||
-      (!base_url.SchemeIsHTTPOrHTTPS() && !base_in_owner_origin)) {
-    return RespondNow(ExtensionFunction::Error(
-        "Invalid base URL \"*\".", base_url.possibly_invalid_spec()));
-  }
-
   // If a virtual URL was provided, use it. Otherwise, the user will be shown
   // the data URL.
-  const GURL virtual_url(params->virtual_url ? *params->virtual_url
-                                             : params->data_url);
-  // |virtual_url| must be a valid URL.
-  if (!virtual_url.is_valid()) {
-    return RespondNow(ExtensionFunction::Error(
-        "Invalid virtual URL \"*\".", virtual_url.possibly_invalid_spec()));
-  }
+  std::string virtual_url =
+      params->virtual_url ? *params->virtual_url : params->data_url;
 
-  // Set up the parameters to load |data_url| with the specified |base_url|.
-  content::NavigationController::LoadURLParams load_params(data_url);
-  load_params.load_type = content::NavigationController::LOAD_TYPE_DATA;
-  load_params.base_url_for_data_url = base_url;
-  load_params.virtual_url_for_data_url = virtual_url;
-  load_params.override_user_agent =
-      content::NavigationController::UA_OVERRIDE_INHERIT;
-
-  // Navigate to the data URL.
-  guest.GetController().LoadURLWithParams(load_params);
-
-  return RespondNow(ExtensionFunction::NoArguments());
+  std::string error;
+  bool successful = GetGuest().LoadDataWithBaseURL(GURL(params->data_url),
+                                                   GURL(params->base_url),
+                                                   GURL(virtual_url), &error);
+  if (successful)
+    return RespondNow(NoArguments());
+  return RespondNow(Error(std::move(error)));
 }
 
 WebViewInternalGoFunction::WebViewInternalGoFunction() {

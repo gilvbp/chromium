@@ -102,6 +102,9 @@ void AttributionReportNetworkSender::SendReport(GURL url,
   resource_request->trusted_params->isolation_info =
       net::IsolationInfo::CreateTransient();
 
+  // TODO(https://crbug.com/1058018): Update the "policy" field in the traffic
+  // annotation when a setting to disable the API is properly
+  // surfaced/implemented.
   net::NetworkTrafficAnnotationTag traffic_annotation =
       net::DefineNetworkTrafficAnnotation("conversion_measurement_report", R"(
         semantics {
@@ -127,13 +130,8 @@ void AttributionReportNetworkSender::SendReport(GURL url,
         policy {
           cookies_allowed: NO
           setting:
-            "This feature can be controlled via the 'Ad measurement' setting "
-            "in the 'Ad privacy' section of 'Privacy and Security'."
-          chrome_policy {
-            PrivacySandboxAdMeasurementEnabled {
-              PrivacySandboxAdMeasurementEnabled: false
-            }
-          }
+            "This feature cannot be disabled by settings."
+          policy_exception_justification: "Not implemented."
         })");
 
   auto simple_url_loader = network::SimpleURLLoader::Create(

@@ -23,7 +23,7 @@ class ScriptState;
 class WakeLockManager;
 
 class MODULES_EXPORT WakeLockSentinel final
-    : public EventTarget,
+    : public EventTargetWithInlineData,
       public ActiveScriptWrappable<WakeLockSentinel>,
       public ExecutionContextLifecycleObserver {
   DEFINE_WRAPPERTYPEINFO();

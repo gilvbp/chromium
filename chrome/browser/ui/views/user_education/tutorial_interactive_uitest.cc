@@ -56,7 +56,7 @@ class TutorialInteractiveUitest : public InProcessBrowserTest {
 
   void TearDownOnMainThread() override {
     auto* const service = GetTutorialService();
-    service->CancelTutorialIfRunning();
+    service->AbortTutorial(absl::nullopt);
     service->tutorial_registry()->RemoveTutorialForTesting(kTestTutorialId);
   }
 
@@ -75,16 +75,16 @@ class TutorialInteractiveUitest : public InProcessBrowserTest {
   TutorialDescription GetDefaultTutorialDescription() {
     TutorialDescription description;
     description.steps.emplace_back(
-        TutorialDescription::BubbleStep(kToolbarAppMenuButtonElementId)
+        TutorialDescription::BubbleStep(kAppMenuButtonElementId)
             .SetBubbleBodyText(IDS_TUTORIAL_TAB_GROUP_ADD_TAB_TO_GROUP)
             .SetBubbleArrow(HelpBubbleArrow::kTopRight));
     description.steps.emplace_back(
         TutorialDescription::EventStep(kCustomEventType1));
     description.steps.emplace_back(
         TutorialDescription::HiddenStep::WaitForActivated(
-            kToolbarAppMenuButtonElementId));
+            kAppMenuButtonElementId));
     description.steps.emplace_back(
-        TutorialDescription::BubbleStep(kToolbarAppMenuButtonElementId)
+        TutorialDescription::BubbleStep(kAppMenuButtonElementId)
             .SetBubbleBodyText(IDS_TUTORIAL_TAB_GROUP_ADD_TAB_TO_GROUP)
             .SetBubbleArrow(HelpBubbleArrow::kTopRight));
     return description;
@@ -105,7 +105,7 @@ IN_PROC_BROWSER_TEST_F(TutorialInteractiveUitest, SampleTutorial) {
 
   InteractionTestUtilBrowser test_util;
   EXPECT_EQ(ui::test::ActionResult::kSucceeded,
-            test_util.PressButton(GetElement(kToolbarAppMenuButtonElementId)));
+            test_util.PressButton(GetElement(kAppMenuButtonElementId)));
 
   // Simulate click on close button.
   EXPECT_CALL_IN_SCOPE(
@@ -135,7 +135,7 @@ class WebUITutorialInteractiveUitest : public InteractiveBrowserTest {
 
   void TearDownOnMainThread() override {
     auto* const service = GetTutorialService();
-    service->CancelTutorialIfRunning();
+    service->AbortTutorial(absl::nullopt);
     service->tutorial_registry()->RemoveTutorialForTesting(kTestTutorialId);
     EXPECT_TRUE(embedded_test_server()->ShutdownAndWaitUntilComplete());
     InteractiveBrowserTest::TearDownOnMainThread();
@@ -159,7 +159,7 @@ class WebUITutorialInteractiveUitest : public InteractiveBrowserTest {
     description.steps.emplace_back(
         TutorialDescription::EventStep(kCustomEventType1));
     description.steps.emplace_back(
-        TutorialDescription::BubbleStep(kToolbarAppMenuButtonElementId)
+        TutorialDescription::BubbleStep(kAppMenuButtonElementId)
             .SetBubbleBodyText(IDS_TUTORIAL_TAB_GROUP_ADD_TAB_TO_GROUP));
     return description;
   }

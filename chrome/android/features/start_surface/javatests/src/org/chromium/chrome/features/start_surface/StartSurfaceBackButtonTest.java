@@ -16,6 +16,7 @@ import static org.chromium.chrome.features.start_surface.StartSurfaceTestUtils.S
 import static org.chromium.chrome.features.start_surface.StartSurfaceTestUtils.START_SURFACE_TEST_SINGLE_ENABLED_PARAMS;
 import static org.chromium.chrome.features.start_surface.StartSurfaceTestUtils.sClassParamsForStartSurfaceTest;
 import static org.chromium.ui.test.util.ViewUtils.onViewWaiting;
+import static org.chromium.ui.test.util.ViewUtils.waitForView;
 
 import android.os.Build;
 import android.view.View;
@@ -65,7 +66,6 @@ import org.chromium.chrome.test.util.browser.suggestions.mostvisited.FakeMostVis
 import org.chromium.content_public.browser.test.util.TestThreadUtils;
 import org.chromium.content_public.browser.test.util.TestTouchUtils;
 import org.chromium.ui.test.util.UiRestriction;
-import org.chromium.ui.test.util.ViewUtils;
 
 import java.io.IOException;
 import java.util.List;
@@ -78,8 +78,7 @@ import java.util.concurrent.ExecutionException;
 @UseRunnerDelegate(ChromeJUnit4RunnerDelegate.class)
 @Restriction(
         {UiRestriction.RESTRICTION_TYPE_PHONE, Restriction.RESTRICTION_TYPE_NON_LOW_END_DEVICE})
-@EnableFeatures(
-        {ChromeFeatureList.START_SURFACE_ANDROID + "<Study", ChromeFeatureList.EMPTY_STATES})
+@EnableFeatures({ChromeFeatureList.START_SURFACE_ANDROID + "<Study"})
 @DoNotBatch(reason = "StartSurface*Test tests startup behaviours and thus can't be batched.")
 @CommandLineFlags.
 Add({ChromeSwitches.DISABLE_FIRST_RUN_EXPERIENCE, "force-fieldtrials=Study/Group"})
@@ -120,6 +119,7 @@ public class StartSurfaceBackButtonTest {
     @Before
     public void setUp() throws IOException {
         StartSurfaceTestUtils.setUpStartSurfaceTests(mImmediateReturn, mActivityTestRule);
+
         mLayoutChangedCallbackHelper = new CallbackHelper();
 
         if (isInstantReturn()) {
@@ -152,7 +152,7 @@ public class StartSurfaceBackButtonTest {
     @Test
     @MediumTest
     @Feature({"StartSurface"})
-    @DisableFeatures(ChromeFeatureList.BACK_GESTURE_REFACTOR)
+    @DisableFeatures({ChromeFeatureList.BACK_GESTURE_REFACTOR})
     @CommandLineFlags.Add({START_SURFACE_TEST_SINGLE_ENABLED_PARAMS})
     public void testShow_SingleAsHomepage_BackButton_ClosableTab() {
         if (!mImmediateReturn) {
@@ -174,7 +174,7 @@ public class StartSurfaceBackButtonTest {
     @Test
     @MediumTest
     @Feature({"StartSurface"})
-    @EnableFeatures(ChromeFeatureList.BACK_GESTURE_REFACTOR)
+    @EnableFeatures({ChromeFeatureList.BACK_GESTURE_REFACTOR})
     @CommandLineFlags.Add({START_SURFACE_TEST_SINGLE_ENABLED_PARAMS})
     public void testShow_SingleAsHomepage_BackButton_ClosableTab_BackGestureRefactor() {
         testShow_SingleAsHomepage_BackButton_ClosableTab();
@@ -242,7 +242,6 @@ public class StartSurfaceBackButtonTest {
         singleAsHomepage_BackButtonWithTabSwitcher();
     }
 
-    @SuppressWarnings("CheckReturnValue")
     private void singleAsHomepage_BackButtonWithTabSwitcher() {
         if (!mImmediateReturn) {
             StartSurfaceTestUtils.pressHomePageButton(mActivityTestRule.getActivity());
@@ -263,12 +262,10 @@ public class StartSurfaceBackButtonTest {
         }
 
         // Enters the tab switcher, and choose the new tab. After the tab is opening, press back.
-        // TODO(crbug.com/1469988): This is a no-op, replace with ViewUtils.waitForVisibleView().
-        ViewUtils.isEventuallyVisible(withId(R.id.tab_switcher_button));
+        waitForView(withId(R.id.tab_switcher_button));
         TabUiTestHelper.enterTabSwitcher(cta);
         StartSurfaceTestUtils.waitForTabSwitcherVisible(cta);
-        // TODO(crbug.com/1469988): This is a no-op, replace with ViewUtils.waitForVisibleView().
-        ViewUtils.isEventuallyVisible(withId(R.id.tab_list_view));
+        waitForView(withId(R.id.tab_list_view));
         onView(allOf(withParent(withId(TabUiTestHelper.getTabSwitcherParentId(cta))),
                        withId(R.id.tab_list_view)))
                 .perform(RecyclerViewActions.actionOnItemAtPosition(1, click()));
@@ -353,7 +350,7 @@ public class StartSurfaceBackButtonTest {
     // clang-format off
     @CommandLineFlags.Add({START_SURFACE_TEST_SINGLE_ENABLED_PARAMS})
     @DisabledTest(message = "https://crbug.com/1246457")
-    @DisableFeatures(ChromeFeatureList.BACK_GESTURE_REFACTOR)
+    @DisableFeatures({ChromeFeatureList.BACK_GESTURE_REFACTOR})
     public void testSwipeBackOnStartSurfaceHomePage() throws ExecutionException {
         // clang-format on
         verifySwipeBackOnStartSurfaceHomePage();
@@ -364,7 +361,7 @@ public class StartSurfaceBackButtonTest {
     @Feature({"StartSurface"})
     @CommandLineFlags.Add({START_SURFACE_TEST_SINGLE_ENABLED_PARAMS})
     @DisabledTest(message = "https://crbug.com/1246457")
-    @EnableFeatures(ChromeFeatureList.BACK_GESTURE_REFACTOR)
+    @EnableFeatures({ChromeFeatureList.BACK_GESTURE_REFACTOR})
     public void testSwipeBackOnStartSurfaceHomePage_BackGestureRefactor()
             throws ExecutionException {
         verifySwipeBackOnStartSurfaceHomePage();

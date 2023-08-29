@@ -57,7 +57,6 @@ import org.chromium.chrome.browser.xsurface.ListLayoutHelper;
 import org.chromium.chrome.browser.xsurface.feed.StreamType;
 import org.chromium.chrome.test.util.browser.Features;
 import org.chromium.chrome.test.util.browser.Features.DisableFeatures;
-import org.chromium.chrome.test.util.browser.Features.EnableFeatures;
 import org.chromium.components.prefs.PrefService;
 import org.chromium.components.search_engines.TemplateUrlService;
 import org.chromium.components.signin.identitymanager.IdentityManager;
@@ -71,9 +70,10 @@ import org.chromium.ui.modelutil.PropertyModel;
 // TODO(crbug.com/1353777): Disabling the feature explicitly, because native is not
 // available to provide a default value. This should be enabled if the feature is enabled by
 // default or removed if the flag is removed.
-@DisableFeatures(ChromeFeatureList.SYNC_ANDROID_LIMIT_NTP_PROMO_IMPRESSIONS)
-@EnableFeatures({ChromeFeatureList.WEB_FEED, ChromeFeatureList.INTEREST_FEED_V2_HEARTS,
-        ChromeFeatureList.WEB_FEED_SORT, ChromeFeatureList.FEED_HEADER_STICK_TO_TOP})
+@Features.DisableFeatures(ChromeFeatureList.SYNC_ANDROID_LIMIT_NTP_PROMO_IMPRESSIONS)
+@Features.EnableFeatures({ChromeFeatureList.WEB_FEED, ChromeFeatureList.INTEREST_FEED_V2_HEARTS,
+        ChromeFeatureList.WEB_FEED_SORT, ChromeFeatureList.FEED_MULTI_COLUMN,
+        ChromeFeatureList.FEED_HEADER_STICK_TO_TOP})
 public class FeedSurfaceMediatorTest {
     static final @Px int TOOLBAR_HEIGHT = 10;
     @Rule
@@ -164,13 +164,18 @@ public class FeedSurfaceMediatorTest {
         Profile.setLastUsedProfileForTesting(mProfileMock);
         IdentityServicesProvider.setInstanceForTests(mIdentityService);
         TemplateUrlServiceFactory.setInstanceForTesting(mUrlService);
-        SignInPromo.setDisablePromoForTesting(true);
+        SignInPromo.setDisablePromoForTests(true);
     }
 
     @After
     public void tearDown() {
         if (mFeedSurfaceMediator != null) mFeedSurfaceMediator.destroy();
         FeedSurfaceMediator.setPrefForTest(null, null);
+        FeedFeatures.setFakePrefsForTest(null);
+        Profile.setLastUsedProfileForTesting(null);
+        IdentityServicesProvider.setInstanceForTests(null);
+        TemplateUrlServiceFactory.setInstanceForTesting(null);
+        SignInPromo.setDisablePromoForTests(false);
     }
 
     @Test
@@ -764,8 +769,8 @@ public class FeedSurfaceMediatorTest {
     public void testStreamsMediatorImpl_switchToStreamKind() {
         PropertyModel model = SectionHeaderListProperties.create(TOOLBAR_HEIGHT);
         PropertyModel forYou = SectionHeaderProperties.createSectionHeader("For you");
-
-        getOnSectionHeaderSelectedListener(model, forYou, true);
+        OnSectionHeaderSelectedListener listener =
+                getOnSectionHeaderSelectedListener(model, forYou, true);
 
         Stream.StreamsMediator streamsMediator = mFeedSurfaceMediator.new StreamsMediatorImpl();
         streamsMediator.switchToStreamKind(StreamKind.FOR_YOU);

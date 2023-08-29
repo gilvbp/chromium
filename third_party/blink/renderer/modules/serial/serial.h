@@ -30,7 +30,7 @@ class SerialPort;
 class SerialPortRequestOptions;
 class SerialPortFilter;
 
-class MODULES_EXPORT Serial final : public EventTarget,
+class MODULES_EXPORT Serial final : public EventTargetWithInlineData,
                                     public Supplement<NavigatorBase>,
                                     public ExecutionContextLifecycleObserver,
                                     public mojom::blink::SerialServiceClient {

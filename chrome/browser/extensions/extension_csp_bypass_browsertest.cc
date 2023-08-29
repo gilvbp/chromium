@@ -21,12 +21,10 @@ namespace extensions {
 namespace {
 
 // Returns true if |window.scriptExecuted| is true for the given frame.
-bool WasFrameWithScriptLoaded(content::RenderFrameHost* render_frame_host) {
-  if (!render_frame_host) {
+bool WasFrameWithScriptLoaded(content::RenderFrameHost* rfh) {
+  if (!rfh)
     return false;
-  }
-  return content::EvalJs(render_frame_host, "!!window.scriptExecuted")
-      .ExtractBool();
+  return content::EvalJs(rfh, "!!window.scriptExecuted").ExtractBool();
 }
 
 class ExtensionCSPBypassTest : public ExtensionBrowserTest {
@@ -85,8 +83,7 @@ class ExtensionCSPBypassTest : public ExtensionBrowserTest {
   }
 
   bool CanLoadScript(const Extension* extension) {
-    content::RenderFrameHost* render_frame_host =
-        web_contents()->GetPrimaryMainFrame();
+    content::RenderFrameHost* rfh = web_contents()->GetPrimaryMainFrame();
     std::string code = base::StringPrintf(
         R"(
         function canLoadScript() {
@@ -105,7 +102,7 @@ class ExtensionCSPBypassTest : public ExtensionBrowserTest {
         canLoadScript();
         )",
         extension->GetResourceURL("script.js").spec().c_str());
-    return EvalJs(render_frame_host, code).ExtractBool();
+    return EvalJs(rfh, code).ExtractBool();
   }
 
   content::RenderFrameHost* GetFrameByName(const std::string& name) {

@@ -24,6 +24,15 @@ extern const char kIphIgnoreCount[];
 
 extern const char kIphLastIgnoreTime[];
 
+bool GetBoolWebAppPref(const PrefService* pref_service,
+                       const AppId& app_id,
+                       base::StringPiece path);
+
+void UpdateBoolWebAppPref(PrefService* pref_service,
+                          const AppId& app_id,
+                          base::StringPiece path,
+                          bool value);
+
 absl::optional<int> GetIntWebAppPref(const PrefService* pref_service,
                                      const AppId& app_id,
                                      base::StringPiece path);
@@ -32,6 +41,15 @@ void UpdateIntWebAppPref(PrefService* pref_service,
                          const AppId& app_id,
                          base::StringPiece path,
                          int value);
+
+absl::optional<double> GetDoubleWebAppPref(const PrefService* pref_service,
+                                           const AppId& app_id,
+                                           base::StringPiece path);
+
+void UpdateDoubleWebAppPref(PrefService* pref_service,
+                            const AppId& app_id,
+                            base::StringPiece path,
+                            double value);
 
 absl::optional<base::Time> GetTimeWebAppPref(const PrefService* pref_service,
                                              const AppId& app_id,
@@ -72,7 +90,6 @@ bool ShouldShowIph(PrefService* pref_service, const AppId& app_id);
 extern const char kLastTimeMlInstallIgnored[];
 extern const char kLastTimeMlInstallDismissed[];
 extern const char kConsecutiveMlInstallNotAcceptedCount[];
-extern const char kMLPromotionGuardrailBlockReason[];
 
 // The user has ignored the installation dialog and it went away due to
 // another interaction (e.g. the tab was changed, page navigated, etc).

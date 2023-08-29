@@ -117,6 +117,7 @@ FrameSchedulerImpl::FrameSchedulerImpl(
       main_thread_scheduler_(main_thread_scheduler),
       parent_page_scheduler_(parent_page_scheduler),
       delegate_(delegate),
+      throttling_state_(SchedulingLifecycleState::kNotThrottled),
       frame_visible_(true,
                      "FrameScheduler.FrameVisible",
                      &tracing_controller_,
@@ -332,10 +333,10 @@ void FrameSchedulerImpl::AddTaskTime(base::TimeDelta time) {
       base::Milliseconds(100);
   if (!delegate_)
     return;
-  unreported_task_time_ += time;
-  if (unreported_task_time_ >= kTaskDurationSendThreshold) {
-    delegate_->UpdateTaskTime(unreported_task_time_);
-    unreported_task_time_ = base::TimeDelta();
+  task_time_ += time;
+  if (task_time_ >= kTaskDurationSendThreshold) {
+    delegate_->UpdateTaskTime(task_time_);
+    task_time_ = base::TimeDelta();
   }
 }
 
@@ -494,7 +495,6 @@ QueueTraits FrameSchedulerImpl::CreateQueueTraitsForTaskType(TaskType type) {
               QueueTraits::PrioritisationType::kPostMessageForwarding);
     case TaskType::kDeprecatedNone:
     case TaskType::kMainThreadTaskQueueV8:
-    case TaskType::kMainThreadTaskQueueV8LowPriority:
     case TaskType::kMainThreadTaskQueueCompositor:
     case TaskType::kMainThreadTaskQueueDefault:
     case TaskType::kMainThreadTaskQueueInput:
@@ -561,8 +561,7 @@ void FrameSchedulerImpl::DidStartProvisionalLoad() {
 
 void FrameSchedulerImpl::DidCommitProvisionalLoad(
     bool is_web_history_inert_commit,
-    NavigationType navigation_type,
-    DidCommitProvisionalLoadParams params) {
+    NavigationType navigation_type) {
   bool is_outermost_main_frame =
       GetFrameType() == FrameType::kMainFrame && !is_in_embedded_frame_tree_;
   bool is_same_document = navigation_type == NavigationType::kSameDocument;
@@ -573,9 +572,7 @@ void FrameSchedulerImpl::DidCommitProvisionalLoad(
   }
 
   if (is_outermost_main_frame && !is_same_document) {
-    unreported_task_time_ = base::TimeDelta();
-  } else {
-    unreported_task_time_ = params.previous_document_unreported_task_time;
+    task_time_ = base::TimeDelta();
   }
 
   main_thread_scheduler_->DidCommitProvisionalLoad(

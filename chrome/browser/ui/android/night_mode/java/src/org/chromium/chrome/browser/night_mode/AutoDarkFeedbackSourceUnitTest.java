@@ -26,15 +26,13 @@ import org.chromium.chrome.browser.flags.ChromeFeatureList;
 import org.chromium.chrome.browser.night_mode.AutoDarkFeedbackSourceUnitTest.ShadowWebContentsDarkModeController;
 import org.chromium.chrome.browser.profiles.Profile;
 import org.chromium.chrome.test.util.browser.Features;
-import org.chromium.chrome.test.util.browser.Features.DisableFeatures;
-import org.chromium.chrome.test.util.browser.Features.EnableFeatures;
 import org.chromium.content_public.browser.BrowserContextHandle;
 import org.chromium.url.GURL;
 
 /** Unit test for {@link AutoDarkFeedbackSource}. */
 @RunWith(BaseRobolectricTestRunner.class)
 @Config(shadows = ShadowWebContentsDarkModeController.class)
-@EnableFeatures(ChromeFeatureList.DARKEN_WEBSITES_CHECKBOX_IN_THEMES_SETTING)
+@Features.EnableFeatures(ChromeFeatureList.DARKEN_WEBSITES_CHECKBOX_IN_THEMES_SETTING)
 public class AutoDarkFeedbackSourceUnitTest {
     @Implements(WebContentsDarkModeController.class)
     static class ShadowWebContentsDarkModeController {
@@ -74,7 +72,7 @@ public class AutoDarkFeedbackSourceUnitTest {
     }
 
     @Test
-    @DisableFeatures(ChromeFeatureList.DARKEN_WEBSITES_CHECKBOX_IN_THEMES_SETTING)
+    @Features.DisableFeatures(ChromeFeatureList.DARKEN_WEBSITES_CHECKBOX_IN_THEMES_SETTING)
     public void testDisabled_FeatureNotEnabled() {
         ShadowWebContentsDarkModeController.sEnabledState = true;
         doTestFeedbackSource(AutoDarkFeedbackSource.DISABLED_VALUE);

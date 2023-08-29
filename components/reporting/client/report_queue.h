@@ -33,8 +33,7 @@ namespace reporting {
 // void SendMessage(google::protobuf::ImportantMessage important_message,
 //                  reporting::ReportQueue::EnqueueCallback done_cb) {
 //   // Create configuration.
-//   StatusOr<reporting::ReportQueueConfiguration> config_result =
-//      reporting::ReportQueueConfiguration::Create({...}).Set...().Build();
+//   auto config_result = reporting::ReportQueueConfiguration::Create(...);
 //   // Bail out if configuration failed to create.
 //   if (!config_result.ok()) {
 //     std::move(done_cb).Run(config_result.status());
@@ -82,8 +81,7 @@ namespace reporting {
 // less_important_message,
 //                  reporting::ReportQueue::EnqueueCallback done_cb) {
 //   // Create configuration.
-//   StatusOr<reporting::ReportQueueConfiguration> config_result =
-//      reporting::ReportQueueConfiguration::Create({...}).Set...().Build();
+//   auto config_result = reporting::ReportQueueConfiguration::Create(...);
 //   // Bail out if configuration failed to create.
 //   if (!config_result.ok()) {
 //     std::move(done_cb).Run(config_result.status());

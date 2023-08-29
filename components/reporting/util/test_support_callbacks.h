@@ -21,7 +21,8 @@
 #include "base/thread_annotations.h"
 #include "testing/gtest/include/gtest/gtest.h"
 
-namespace reporting::test {
+namespace reporting {
+namespace test {
 
 // Usage (in tests only):
 //
@@ -165,7 +166,7 @@ class TestCallbackWaiter : public TestEvent<bool> {
 
   void Attach(int more = 1) {
     const int old_counter = counter_.Increment(more);
-    CHECK_GT(old_counter, 0) << "Cannot attach when already being released";
+    DCHECK_GT(old_counter, 0) << "Cannot attach when already being released";
   }
 
   void Signal() {
@@ -202,6 +203,8 @@ class TestCallbackAutoWaiter : public TestCallbackWaiter {
   TestCallbackAutoWaiter();
   ~TestCallbackAutoWaiter();
 };
-}  // namespace reporting::test
+
+}  // namespace test
+}  // namespace reporting
 
 #endif  // COMPONENTS_REPORTING_UTIL_TEST_SUPPORT_CALLBACKS_H_

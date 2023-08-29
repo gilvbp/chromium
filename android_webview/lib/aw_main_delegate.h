@@ -26,8 +26,6 @@ class AwContentRendererClient;
 // this class runs per process, (browser and renderer) so when making changes
 // make sure to properly conditionalize for browser vs. renderer wherever
 // needed.
-//
-// Lifetime: Singleton
 class AwMainDelegate : public content::ContentMainDelegate {
  public:
   AwMainDelegate();

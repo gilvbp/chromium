@@ -21,10 +21,8 @@ import {FocusRowMixin} from 'chrome://resources/cr_elements/focus_row_mixin.js';
 import {assert} from 'chrome://resources/js/assert_ts.js';
 import {focusWithoutInk} from 'chrome://resources/js/focus_without_ink.js';
 import {loadTimeData} from 'chrome://resources/js/load_time_data.js';
-import {mojoString16ToString} from 'chrome://resources/js/mojo_type_util.js';
 import {sanitizeInnerHtml} from 'chrome://resources/js/parse_html_subset.js';
 import {htmlEscape} from 'chrome://resources/js/util_ts.js';
-import {String16} from 'chrome://resources/mojo/mojo/public/mojom/base/string16.mojom-webui.js';
 import {beforeNextRender, PolymerElement} from 'chrome://resources/polymer/v3_0/polymer/polymer_bundled.min.js';
 
 import {BrowserProxy} from './browser_proxy.js';
@@ -66,16 +64,9 @@ export class DownloadsItemElement extends DownloadsItemElementBase {
         value: true,
       },
 
-      shouldLinkFilename_: {
-        computed: 'computeShouldLinkFilename_(' +
-            'data.dangerType, completelyOnDisk_)',
-        type: Boolean,
-        value: true,
-      },
-
       hasShowInFolderLink_: {
         computed: 'computeHasShowInFolderLink_(' +
-            'data.state, data.fileExternallyRemoved, data.dangerType)',
+            'data.state, data.fileExternallyRemoved)',
         type: Boolean,
         value: true,
       },
@@ -129,20 +120,19 @@ export class DownloadsItemElement extends DownloadsItemElementBase {
       },
 
       showCancel_: {
-        computed: 'computeShowCancel_(data.state, updateDeepScanningUx_)',
+        computed: 'computeShowCancel_(data.state)',
         type: Boolean,
         value: false,
       },
 
       showProgress_: {
-        computed: 'computeShowProgress_(showCancel_, data.percent,' +
-            'updateDeepScanningUx_)',
+        computed: 'computeShowProgress_(showCancel_, data.percent)',
         type: Boolean,
         value: false,
       },
 
       showOpenNow_: {
-        computed: 'computeShowOpenNow_(data.state, updateDeepScanningUx_)',
+        computed: 'computeShowOpenNow_(data.state)',
         type: Boolean,
         value: false,
       },
@@ -151,17 +141,6 @@ export class DownloadsItemElement extends DownloadsItemElementBase {
         computed: 'computeShowDeepScan_(data.state)',
         type: Boolean,
         value: false,
-      },
-
-      showOpenAnyway_: {
-        computed: 'computeShowOpenAnyway_(data.dangerType)',
-        type: Boolean,
-        value: false,
-      },
-
-      updateDeepScanningUx_: {
-        type: Boolean,
-        value: () => loadTimeData.getBoolean('updateDeepScanningUX'),
       },
 
       useFileIcon_: Boolean,
@@ -189,8 +168,6 @@ export class DownloadsItemElement extends DownloadsItemElementBase {
   private showProgress_: boolean;
   private useFileIcon_: boolean;
   private restoreFocusAfterCancel_: boolean = false;
-  private updateDeepScanningUx_: boolean;
-  private completelyOnDisk_: boolean;
   override overrideCustomEquivalent: boolean;
 
   constructor() {
@@ -228,10 +205,10 @@ export class DownloadsItemElement extends DownloadsItemElementBase {
   }
 
   /**
-   * @return A JS string of the display URL.
+   * @return A reasonably long URL.
    */
-  private getDisplayUrlStr_(displayUrl: String16): string {
-    return mojoString16ToString(displayUrl);
+  private chopUrl_(url: string): string {
+    return url.slice(0, 300);
   }
 
   private computeClass_(): string {
@@ -257,21 +234,8 @@ export class DownloadsItemElement extends DownloadsItemElementBase {
         !this.data.fileExternallyRemoved;
   }
 
-  private computeShouldLinkFilename_(): boolean {
-    if (this.data === undefined) {
-      return false;
-    }
-
-    return this.completelyOnDisk_ &&
-        this.data.dangerType !== DangerType.DEEP_SCANNED_FAILED;
-  }
-
   private computeHasShowInFolderLink_(): boolean {
-    if (this.data === undefined) {
-      return false;
-    }
-
-    return this.data.dangerType !== DangerType.DEEP_SCANNED_FAILED &&
+    return loadTimeData.getBoolean('hasShowInFolder') &&
         this.computeCompletelyOnDisk_();
   }
 
@@ -302,29 +266,16 @@ export class DownloadsItemElement extends DownloadsItemElementBase {
     return this.computeDescription_() !== '';
   }
 
-  private computeSecondLineVisible_(): boolean {
-    return this.updateDeepScanningUx_ && this.data &&
-        this.data.state === States.ASYNC_SCANNING;
-  }
-
   private computeDescription_(): string {
-    if (!this.data) {
-      return '';
-    }
-
     const data = this.data;
 
     switch (data.state) {
       case States.COMPLETE:
         switch (data.dangerType) {
           case DangerType.DEEP_SCANNED_SAFE:
-            return this.updateDeepScanningUx_ ?
-                '' :
-                loadTimeData.getString('deepScannedSafeDesc');
+            return loadTimeData.getString('deepScannedSafeDesc');
           case DangerType.DEEP_SCANNED_OPENED_DANGEROUS:
             return loadTimeData.getString('deepScannedOpenedDangerousDesc');
-          case DangerType.DEEP_SCANNED_FAILED:
-            return loadTimeData.getString('deepScannedFailedDesc');
         }
         break;
 
@@ -386,10 +337,6 @@ export class DownloadsItemElement extends DownloadsItemElementBase {
         return 'cr:warning';
       }
 
-      if (dangerType === DangerType.DEEP_SCANNED_FAILED) {
-        return 'cr:info';
-      }
-
       const ERROR_TYPES = [
         DangerType.SENSITIVE_CONTENT_BLOCK,
         DangerType.BLOCKED_TOO_LARGE,
@@ -400,7 +347,7 @@ export class DownloadsItemElement extends DownloadsItemElementBase {
       }
 
       if (this.data.state === States.ASYNC_SCANNING) {
-        return this.updateDeepScanningUx_ ? 'cr:warning' : 'cr:info';
+        return 'cr:info';
       }
 
       if (this.data.state === States.PROMPT_FOR_SCANNING) {
@@ -421,8 +368,7 @@ export class DownloadsItemElement extends DownloadsItemElementBase {
       const dangerType = this.data.dangerType as DangerType;
       if ((loadTimeData.getBoolean('requestsApVerdicts') &&
            dangerType === DangerType.UNCOMMON_CONTENT) ||
-          dangerType === DangerType.SENSITIVE_CONTENT_WARNING ||
-          dangerType === DangerType.DEEP_SCANNED_FAILED) {
+          dangerType === DangerType.SENSITIVE_CONTENT_WARNING) {
         return 'yellow';
       }
 
@@ -436,7 +382,7 @@ export class DownloadsItemElement extends DownloadsItemElementBase {
       }
 
       if (this.data.state === States.ASYNC_SCANNING) {
-        return this.updateDeepScanningUx_ ? 'yellow' : 'grey';
+        return 'grey';
       }
 
       if (this.data.state === States.PROMPT_FOR_SCANNING) {
@@ -517,33 +463,24 @@ export class DownloadsItemElement extends DownloadsItemElementBase {
   }
 
   private computeShowCancel_(): boolean {
-    return !!this.data &&
-        (this.data.state === States.IN_PROGRESS ||
-         this.data.state === States.PAUSED ||
-         (this.data.state === States.ASYNC_SCANNING &&
-          !this.updateDeepScanningUx_));
+    return this.data.state === States.IN_PROGRESS ||
+        this.data.state === States.PAUSED ||
+        this.data.state === States.ASYNC_SCANNING;
   }
 
   private computeShowProgress_(): boolean {
-    if (this.data && this.data.state === States.ASYNC_SCANNING) {
-      return true;
-    }
     return this.showCancel_ && this.data.percent >= -1 &&
+        this.data.state !== States.ASYNC_SCANNING &&
         this.data.state !== States.PROMPT_FOR_SCANNING;
   }
 
   private computeShowOpenNow_(): boolean {
     const allowOpenNow = loadTimeData.getBoolean('allowOpenNow');
-    return !!this.data && this.data.state === States.ASYNC_SCANNING &&
-        allowOpenNow && !this.updateDeepScanningUx_;
+    return this.data.state === States.ASYNC_SCANNING && allowOpenNow;
   }
 
   private computeShowDeepScan_(): boolean {
     return this.data.state === States.PROMPT_FOR_SCANNING;
-  }
-
-  private computeShowOpenAnyway_(): boolean {
-    return this.data.dangerType === DangerType.DEEP_SCANNED_FAILED;
   }
 
   private computeTag_(): string {
@@ -564,8 +501,7 @@ export class DownloadsItemElement extends DownloadsItemElementBase {
   }
 
   private isIndeterminate_(): boolean {
-    return this.data.state === States.ASYNC_SCANNING ||
-        this.data.percent === -1;
+    return this.data.percent === -1;
   }
 
   private observeControlledBy_() {
@@ -578,11 +514,6 @@ export class DownloadsItemElement extends DownloadsItemElementBase {
   }
 
   private observeIsDangerous_() {
-    const removeFileUrlLinks = () => {
-      this.$.url.removeAttribute('href');
-      this.$['file-link'].removeAttribute('href');
-    };
-
     if (!this.data) {
       return;
     }
@@ -591,44 +522,30 @@ export class DownloadsItemElement extends DownloadsItemElementBase {
       DangerType.SENSITIVE_CONTENT_BLOCK,
       DangerType.BLOCKED_TOO_LARGE,
       DangerType.BLOCKED_PASSWORD_PROTECTED,
-      DangerType.DEEP_SCANNED_FAILED,
     ];
 
-    // Handle various dangerous cases.
     if (this.isDangerous_) {
-      removeFileUrlLinks();
+      this.$.url.removeAttribute('href');
       this.useFileIcon_ = false;
-      return;
-    }
-    if (OVERRIDDEN_ICON_TYPES.includes(this.data.dangerType as DangerType)) {
+    } else if (OVERRIDDEN_ICON_TYPES.includes(
+                   this.data.dangerType as DangerType)) {
       this.useFileIcon_ = false;
-      return;
-    }
-    if (this.data.state === States.ASYNC_SCANNING) {
+    } else if (this.data.state === States.ASYNC_SCANNING) {
       this.useFileIcon_ = false;
-      return;
-    }
-    if (this.data.state === States.PROMPT_FOR_SCANNING) {
+    } else if (this.data.state === States.PROMPT_FOR_SCANNING) {
       this.useFileIcon_ = false;
-      return;
-    }
-
-    // The file is not dangerous. Link the url if supplied.
-    if (this.data.url) {
-      this.$.url.href = this.data.url.url;
     } else {
-      removeFileUrlLinks();
+      this.$.url.href = this.data.url;
+      const path = this.data.filePath;
+      IconLoaderImpl.getInstance()
+          .loadIcon(this.$['file-icon'], path)
+          .then(success => {
+            if (path === this.data.filePath &&
+                this.data.state !== States.ASYNC_SCANNING) {
+              this.useFileIcon_ = success;
+            }
+          });
     }
-
-    const path = this.data.filePath;
-    IconLoaderImpl.getInstance()
-        .loadIcon(this.$['file-icon'], path)
-        .then(success => {
-          if (path === this.data.filePath &&
-              this.data.state !== States.ASYNC_SCANNING) {
-            this.useFileIcon_ = success;
-          }
-        });
   }
 
   private onCancelClick_() {
@@ -656,10 +573,6 @@ export class DownloadsItemElement extends DownloadsItemElementBase {
     this.mojoHandler_!.reviewDangerousRequiringGesture(this.data.id);
   }
 
-  private onOpenAnywayClick_() {
-    this.mojoHandler_!.openFileRequiringGesture(this.data.id);
-  }
-
   private onDragStart_(e: Event) {
     e.preventDefault();
     this.mojoHandler_!.drag(this.data.id);
@@ -671,9 +584,6 @@ export class DownloadsItemElement extends DownloadsItemElementBase {
   }
 
   private onUrlClick_() {
-    if (!this.data.url) {
-      return;
-    }
     chrome.send(
         'metricsHandler:recordAction', ['Downloads_OpenUrlOfDownloadedItem']);
   }

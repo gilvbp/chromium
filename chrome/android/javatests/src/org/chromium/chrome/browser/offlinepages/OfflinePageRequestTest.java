@@ -57,6 +57,7 @@ public class OfflinePageRequestTest {
 
     @Test
     @SmallTest
+    @DisabledTest(message = "crbug.com/786233")
     public void testLoadOfflinePageOnDisconnectedNetwork() throws Exception {
         EmbeddedTestServer testServer = EmbeddedTestServer.createAndStartServer(
                 ApplicationProvider.getApplicationContext());
@@ -88,6 +89,7 @@ public class OfflinePageRequestTest {
 
     @Test
     @SmallTest
+    @DisabledTest(message = "crbug.com/786233")
     public void testLoadOfflinePageWithFragmentOnDisconnectedNetwork() throws Exception {
         EmbeddedTestServer testServer = EmbeddedTestServer.createAndStartServer(
                 ApplicationProvider.getApplicationContext());

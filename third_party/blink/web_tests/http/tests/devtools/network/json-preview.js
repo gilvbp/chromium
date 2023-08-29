@@ -5,8 +5,6 @@
 import {TestRunner} from 'test_runner';
 import {NetworkTestRunner} from 'network_test_runner';
 
-import * as SDK from 'devtools/core/sdk/sdk.js';
-
 (async function() {
   TestRunner.addResult(`Tests that resources with JSON MIME types are previewed with the JSON viewer.\n`);
   await TestRunner.loadLegacyModule('source_frame');
@@ -14,7 +12,7 @@ import * as SDK from 'devtools/core/sdk/sdk.js';
 
   function createNetworkRequestWithJSONMIMEType(type) {
     TestRunner.addResult('Creating a NetworkRequest with type: ' + type);
-    var request = SDK.NetworkRequest.NetworkRequest.create(0, 'http://localhost');
+    var request = SDK.NetworkRequest.create(0, 'http://localhost');
     request.mimeType = type;
     request.setContentDataProvider(
         () => Promise.resolve(

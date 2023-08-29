@@ -6,8 +6,6 @@ import {TestRunner} from 'test_runner';
 import {ApplicationTestRunner} from 'application_test_runner';
 import {ConsoleTestRunner} from 'console_test_runner';
 
-import * as SDK from 'devtools/core/sdk/sdk.js';
-
 (async function() {
   TestRunner.addResult(`Tests that cookies are properly shown after oopif refresh`);
   await TestRunner.loadLegacyModule('console');
@@ -19,7 +17,7 @@ import * as SDK from 'devtools/core/sdk/sdk.js';
   await TestRunner.showPanel('console');
   await TestRunner.showPanel('resources');
 
-  UI.panels.resources.showCookies(SDK.TargetManager.TargetManager.instance().rootTarget(), 'http://127.0.0.1:8000');
+  UI.panels.resources.showCookies(SDK.targetManager.rootTarget(), 'http://127.0.0.1:8000');
   await ApplicationTestRunner.waitForCookies();
 
   await TestRunner.navigatePromise('resources/page-out.html');

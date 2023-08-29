@@ -493,16 +493,19 @@ public class QuickActionSearchWidgetProviderDelegate {
     }
 
     /** Returns the Medium widget variant for testing purposes. */
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     WidgetVariant getMediumWidgetVariantForTesting() {
         return mMediumWidgetVariant;
     }
 
     /** Returns the Small widget variant for testing purposes. */
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     WidgetVariant getSmallWidgetVariantForTesting() {
         return mSmallWidgetVariant;
     }
 
     /** Returns the Extra-small widget variant for testing purposes. */
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     WidgetVariant getExtraSmallWidgetVariantForTesting() {
         return mExtraSmallWidgetVariant;
     }

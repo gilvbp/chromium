@@ -4,6 +4,8 @@
 
 package org.chromium.net;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import static org.junit.Assert.assertThrows;
 
 import static org.chromium.net.truth.UrlResponseInfoSubject.assertThat;

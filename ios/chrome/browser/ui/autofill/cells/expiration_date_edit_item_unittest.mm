@@ -4,7 +4,7 @@
 
 #import "ios/chrome/browser/ui/autofill/cells/expiration_date_edit_item.h"
 
-#import "base/apple/foundation_util.h"
+#import "base/mac/foundation_util.h"
 #import "ios/chrome/browser/shared/ui/table_view/chrome_table_view_styler.h"
 #import "ios/chrome/browser/ui/autofill/cells/expiration_date_edit_item_delegate.h"
 #import "ios/chrome/browser/ui/autofill/expiration_date_picker.h"
@@ -13,6 +13,10 @@
 #import "testing/platform_test.h"
 #import "third_party/ocmock/OCMock/OCMock.h"
 #import "third_party/ocmock/gtest_support.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace {
 
@@ -31,7 +35,7 @@ TEST_F(ExpirationDateEditItemTest, ConfigureCellSetsFieldName) {
   ASSERT_TRUE([view isMemberOfClass:[ExpirationDateEditCell class]]);
 
   ExpirationDateEditCell* cell =
-      base::apple::ObjCCastStrict<ExpirationDateEditCell>(view);
+      base::mac::ObjCCastStrict<ExpirationDateEditCell>(view);
   EXPECT_EQ(0U, cell.textLabel.text.length);
 
   ChromeTableViewStyler* styler = [[ChromeTableViewStyler alloc] init];
@@ -50,7 +54,7 @@ TEST_F(ExpirationDateEditItemTest, PickingDateUpdatesItemAndTextField) {
 
   id view = [[[item cellClass] alloc] init];
   ExpirationDateEditCell* cell =
-      base::apple::ObjCCastStrict<ExpirationDateEditCell>(view);
+      base::mac::ObjCCastStrict<ExpirationDateEditCell>(view);
 
   NSString* month = @"10";
   NSString* year = @"9999";
@@ -83,7 +87,7 @@ TEST_F(ExpirationDateEditItemTest,
   ASSERT_TRUE([view isMemberOfClass:[ExpirationDateEditCell class]]);
 
   ExpirationDateEditCell* cell =
-      base::apple::ObjCCastStrict<ExpirationDateEditCell>(view);
+      base::mac::ObjCCastStrict<ExpirationDateEditCell>(view);
 
   ChromeTableViewStyler* styler = [[ChromeTableViewStyler alloc] init];
   [item configureCell:cell withStyler:styler];

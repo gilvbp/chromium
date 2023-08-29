@@ -64,9 +64,8 @@ AppServiceAppIconLoader::AppServiceAppIconLoader(
     int resource_size_in_dip,
     AppIconLoaderDelegate* delegate)
     : AppIconLoader(profile, resource_size_in_dip, delegate) {
-  app_registry_cache_observer_.Observe(
-      &apps::AppServiceProxyFactory::GetForProfile(profile)
-           ->AppRegistryCache());
+  Observe(&apps::AppServiceProxyFactory::GetForProfile(profile)
+               ->AppRegistryCache());
 }
 
 AppServiceAppIconLoader::~AppServiceAppIconLoader() = default;
@@ -128,7 +127,7 @@ void AppServiceAppIconLoader::OnAppUpdate(const apps::AppUpdate& update) {
 
 void AppServiceAppIconLoader::OnAppRegistryCacheWillBeDestroyed(
     apps::AppRegistryCache* cache) {
-  app_registry_cache_observer_.Reset();
+  Observe(nullptr);
 }
 
 void AppServiceAppIconLoader::CallLoadIcon(const std::string& app_id,
@@ -138,12 +137,12 @@ void AppServiceAppIconLoader::CallLoadIcon(const std::string& app_id,
 
   auto icon_type = apps::IconType::kStandard;
 
-  // When a GuestOS shelf app_id doesn't belong to a registered app, use a
-  // default icon corresponding to the type of VM the window came from.
+  // When Crostini generates shelf id as the app_id, which couldn't match to an
+  // app, the default penguin icon should be loaded.
   if (guest_os::IsUnregisteredCrostiniShelfAppId(app_id)) {
     proxy->LoadIconFromIconKey(
-        guest_os::GetAppType(profile(), app_id), app_id, apps::IconKey(),
-        icon_type, icon_size_in_dip(), allow_placeholder_icon,
+        apps::AppType::kCrostini, app_id, apps::IconKey(), icon_type,
+        icon_size_in_dip(), allow_placeholder_icon,
         base::BindOnce(&AppServiceAppIconLoader::OnLoadIcon,
                        weak_ptr_factory_.GetWeakPtr(), app_id));
     return;

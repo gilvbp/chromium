@@ -288,6 +288,8 @@ class NotificationSchedulerImpl : public NotificationScheduler,
 
   // NotificationBackgroundTaskScheduler::Handler implementation.
   void OnStartTask(TaskFinishedCallback callback) override {
+    stats::LogBackgroundTaskEvent(stats::BackgroundTaskEvent::kStart);
+
     // Updates the impression data to compute daily notification shown budget.
     context_->impression_tracker()->AnalyzeImpressionHistory();
 
@@ -295,7 +297,10 @@ class NotificationSchedulerImpl : public NotificationScheduler,
     FindNotificationToShow(std::move(callback));
   }
 
-  void OnStopTask() override { ScheduleBackgroundTask(); }
+  void OnStopTask() override {
+    stats::LogBackgroundTaskEvent(stats::BackgroundTaskEvent::kStopByOS);
+    ScheduleBackgroundTask();
+  }
 
   void FindNotificationToShow(TaskFinishedCallback task_finish_callback) {
     DisplayDecider::Results results;
@@ -325,6 +330,7 @@ class NotificationSchedulerImpl : public NotificationScheduler,
     // Schedule the next background task based on scheduled notifications.
     ScheduleBackgroundTask();
 
+    stats::LogBackgroundTaskEvent(stats::BackgroundTaskEvent::kFinish);
     std::move(task_finish_callback).Run(false /*need_reschedule*/);
   }
 

@@ -8,6 +8,10 @@
 #import "ios/chrome/common/credential_provider/constants.h"
 #import "ios/chrome/common/ui/colors/semantic_color_names.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace {
 
 // Spacing above the label.

@@ -48,7 +48,7 @@ suite(destination_search_test_chromeos.suiteName, function() {
     nativeLayer.setLocalDestinationCapabilities(
         getCddTemplate('FooDevice', 'FooName'));
     destinationStore.init(
-        false /* pdfPrinterDisabled */, false /* saveToDriveDisabled */,
+        false /* pdfPrinterDisabled */, true /* isDriveMounted */,
         'FooDevice' /* printerName */,
         '' /* serializedDefaultDestinationSelectionRulesStr */,
         [] /* recentDestinations */);

@@ -74,8 +74,8 @@ em::DeviceRegisterRequest::Flavor EnrollmentModeToRegistrationFlavor(
     EnrollmentConfig::Mode mode) {
   switch (mode) {
     case EnrollmentConfig::MODE_NONE:
-    case EnrollmentConfig::DEPRECATED_MODE_ENROLLED_ROLLBACK:
-    case EnrollmentConfig::DEPRECATED_MODE_OFFLINE_DEMO:
+    case EnrollmentConfig::OBSOLETE_MODE_ENROLLED_ROLLBACK:
+    case EnrollmentConfig::MODE_OFFLINE_DEMO_DEPRECATED:
       break;
     case EnrollmentConfig::MODE_MANUAL:
       return em::DeviceRegisterRequest::FLAVOR_ENROLLMENT_MANUAL;
@@ -265,7 +265,7 @@ void EnrollmentHandler::StartEnrollment() {
     return;
   }
 
-  // Currently reven devices don't support server-backed state keys, but they
+  // Currently reven devices don't support sever-backed state keys, but they
   // also don't support FRE/AutoRE so don't block enrollment on the
   // availability of state keys.
   // TODO(b/208705225): Remove this special case when reven supports state keys.

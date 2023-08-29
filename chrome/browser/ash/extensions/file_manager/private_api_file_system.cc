@@ -8,10 +8,10 @@
 #include <sys/xattr.h>
 
 #include <algorithm>
+#include <cctype>
 #include <cstdint>
 #include <iterator>
 #include <memory>
-#include <string>
 #include <utility>
 #include <vector>
 
@@ -35,9 +35,6 @@
 #include "base/task/thread_pool.h"
 #include "base/threading/platform_thread.h"
 #include "base/values.h"
-#include "chrome/browser/ash/app_list/search/local_image_search/local_image_search_service.h"
-#include "chrome/browser/ash/app_list/search/local_image_search/local_image_search_service_factory.h"
-#include "chrome/browser/ash/app_list/search/search_features.h"
 #include "chrome/browser/ash/arc/fileapi/arc_documents_provider_root.h"
 #include "chrome/browser/ash/arc/fileapi/arc_documents_provider_root_map.h"
 #include "chrome/browser/ash/arc/fileapi/arc_documents_provider_util.h"
@@ -72,7 +69,6 @@
 #include "chrome/browser/chromeos/policy/dlp/dlp_file_destination.h"
 #include "chrome/browser/chromeos/policy/dlp/dlp_rules_manager.h"
 #include "chrome/browser/chromeos/policy/dlp/dlp_rules_manager_factory.h"
-#include "chrome/browser/enterprise/data_controls/component.h"
 #include "chrome/browser/metrics/chrome_metrics_service_accessor.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/profiles/profile_manager.h"
@@ -95,7 +91,6 @@
 #include "content/public/common/url_constants.h"
 #include "extensions/browser/extension_function.h"
 #include "extensions/browser/extension_util.h"
-#include "private_api_file_system.h"
 #include "services/device/public/mojom/mtp_manager.mojom.h"
 #include "services/device/public/mojom/mtp_storage_info.mojom.h"
 #include "storage/browser/file_system/external_mount_points.h"
@@ -316,28 +311,6 @@ absl::optional<policy::Policy> ApiPolicyErrorTypeToChromeEnum(
   return absl::nullopt;
 }
 
-// Handles a callback from the LocalImageSearchService. The job of this function
-// is to process the `matched` results and deliver them to the given callback.
-void OnImageSearchDone(
-    base::FilePath root_path,
-    base::Time modified_time,
-    FileManagerPrivateInternalSearchFilesFunction::OnResultsReadyCallback
-        callback,
-    const std::vector<app_list::FileSearchResult>& matched) {
-  std::vector<std::pair<base::FilePath, bool>> results;
-  for (const app_list::FileSearchResult& match : matched) {
-    DVLOG(1) << "File image search inspecting " << match.file_path;
-    if (!root_path.IsParent(match.file_path)) {
-      continue;
-    }
-    if (match.last_modified < modified_time) {
-      continue;
-    }
-    results.emplace_back(match.file_path, false);
-  }
-  std::move(callback).Run(results);
-}
-
 }  // namespace
 
 ExtensionFunction::ResponseAction
@@ -359,7 +332,8 @@ ExtensionFunction::ResponseAction FileManagerPrivateGrantAccessFunction::Run() {
       file_manager::util::GetFileSystemContextForRenderFrameHost(
           Profile::FromBrowserContext(browser_context()), render_frame_host());
 
-  auto* const backend = ash::FileSystemBackend::Get(*file_system_context);
+  storage::ExternalFileSystemBackend* const backend =
+      file_system_context->external_backend();
   DCHECK(backend);
 
   const std::vector<Profile*>& profiles =
@@ -964,12 +938,6 @@ FileManagerPrivateInternalGetDisallowedTransfersFunction::Run() {
     return RespondNow(Error("File URL was invalid"));
   }
 
-  // If the new UX flow is enabled, return an empty list so the copy/move
-  // operation can start.
-  if (base::FeatureList::IsEnabled(features::kNewFilesPolicyUX)) {
-    return RespondNow(WithArguments(base::Value::List()));
-  }
-
   policy::DlpFilesControllerAsh* files_controller =
       static_cast<policy::DlpFilesControllerAsh*>(
           rules_manager->GetDlpFilesController());
@@ -1197,8 +1165,8 @@ FileManagerPrivateGetDialogCallerFunction::Run() {
           GetSenderWebContents());
   base::Value::Dict info;
   if (caller.has_value()) {
-    if (caller->url().has_value()) {
-      info.Set("url", caller->url()->spec());
+    if (caller->url_or_path().has_value()) {
+      info.Set("url", caller->url_or_path().value());
     }
     if (caller->component().has_value()) {
       info.Set("component",
@@ -1222,8 +1190,8 @@ FileManagerPrivateInternalResolveIsolatedEntriesFunction::Run() {
           profile, render_frame_host());
   DCHECK(file_system_context.get());
 
-  const auto* external_backend =
-      ash::FileSystemBackend::Get(*file_system_context);
+  const storage::ExternalFileSystemBackend* external_backend =
+      file_system_context->external_backend();
   DCHECK(external_backend);
 
   file_manager::util::FileDefinitionList file_definition_list;
@@ -1351,10 +1319,10 @@ FileManagerPrivateSearchFilesByHashesFunction::Run() {
   Profile* const profile = Profile::FromBrowserContext(browser_context());
   drive::EventLogger* const logger = file_manager::util::GetLogger(profile);
   if (logger) {
-    logger->Log(logging::LOGGING_INFO,
-                "%s[%s] called. (volume id: %s, number of hashes: %zd)", name(),
-                request_uuid().AsLowercaseString().c_str(),
-                params->volume_id.c_str(), params->hash_list.size());
+    logger->Log(logging::LOG_INFO,
+                "%s[%d] called. (volume id: %s, number of hashes: %zd)", name(),
+                request_id(), params->volume_id.c_str(),
+                params->hash_list.size());
   }
   set_log_on_completion(true);
 
@@ -1461,15 +1429,8 @@ FileManagerPrivateInternalSearchFilesFunction::Run() {
     return RespondNow(Error("maxResults must be non-negative"));
   }
 
-  ash::RecentSource::FileType file_type;
-  if (!file_manager::util::ToRecentSourceFileType(search_params.category,
-                                                  &file_type)) {
-    return RespondNow(
-        Error("Cannot convert category * to file type",
-              api::file_manager_private::ToString(search_params.category)));
-  }
-
   base::FilePath root_path;
+
   Profile* profile = Profile::FromBrowserContext(browser_context());
   const std::string root_url = search_params.root_url.value_or("");
   if (root_url.empty()) {
@@ -1483,37 +1444,12 @@ FileManagerPrivateInternalSearchFilesFunction::Run() {
     root_path = url.path();
   }
 
-  size_t max_results =
-      base::internal::checked_cast<size_t>(search_params.max_results);
-  base::Time modified_time =
-      base::Time::FromJsTime(search_params.modified_timestamp);
+  ash::RecentSource::FileType file_type;
+  if (!file_manager::util::ToRecentSourceFileType(search_params.category,
+                                                  &file_type)) {
+    return RespondNow(Error("Cannot convert category to file type"));
+  }
 
-  // Barrier that collects results from the file search by name and image
-  // search by (query) terms. Explicitly waits for 2 tasks to complete.
-  auto barrier_callback = base::BarrierCallback<FileSearchResults>(
-      2,
-      base::BindOnce(
-          &FileManagerPrivateInternalSearchFilesFunction::OnSearchByPatternDone,
-          this));
-
-  RunFileSearchByName(profile, root_path, search_params.query, modified_time,
-                      file_type, max_results, barrier_callback);
-  RunImageSearchByQuery(root_path, search_params.query, modified_time,
-                        max_results, barrier_callback);
-
-  return RespondLater();
-}
-
-void FileManagerPrivateInternalSearchFilesFunction::RunFileSearchByName(
-    Profile* profile,
-    base::FilePath root_path,
-    const std::string& query,
-    base::Time modified_time,
-    ash::RecentSource::FileType file_type,
-    size_t max_results,
-    OnResultsReadyCallback callback) {
-  // If trash is enabled for the given profile, generate all trash paths that
-  // are to be excluded when searching for matching files.
   std::vector<base::FilePath> excluded_paths;
   if (file_manager::trash::IsTrashEnabledForProfile((profile))) {
     auto enabled_trash_locations =
@@ -1524,52 +1460,24 @@ void FileManagerPrivateInternalSearchFilesFunction::RunFileSearchByName(
           it.first.Append(it.second.relative_folder_path));
     }
   }
+
   base::ThreadPool::PostTaskAndReplyWithResult(
       FROM_HERE, {base::MayBlock(), base::TaskPriority::BEST_EFFORT},
-      base::BindOnce(&SearchByPattern, root_path, excluded_paths, query,
-                     modified_time, file_type, max_results),
-      std::move(callback));
-}
+      base::BindOnce(
+          &SearchByPattern, root_path, excluded_paths, search_params.query,
+          base::Time::FromJsTime(search_params.modified_timestamp), file_type,
+          base::internal::checked_cast<size_t>(search_params.max_results)),
+      base::BindOnce(
+          &FileManagerPrivateInternalSearchFilesFunction::OnSearchByPatternDone,
+          this));
 
-void FileManagerPrivateInternalSearchFilesFunction::RunImageSearchByQuery(
-    base::FilePath root_path,
-    const std::string& query,
-    base::Time modified_time,
-    size_t max_results,
-    OnResultsReadyCallback callback) {
-  // If the feature is not enabled or the query is too short return empty match.
-  std::u16string q16 = base::UTF8ToUTF16(query);
-  if (!search_features::IsLauncherImageSearchEnabled() ||
-      app_list::IsQueryTooShort(q16)) {
-    std::move(callback).Run({});
-    return;
-  }
-
-  app_list::LocalImageSearchServiceFactory::GetForBrowserContext(
-      browser_context())
-      ->Search(q16, max_results,
-               base::BindOnce(&OnImageSearchDone, root_path, modified_time,
-                              std::move(callback)));
+  return RespondLater();
 }
 
 void FileManagerPrivateInternalSearchFilesFunction::OnSearchByPatternDone(
-    std::vector<FileSearchResults> all_results) {
-  // Remove duplicates as image search and name search do not interact with each
-  // other.
-  FileSearchResults unique_results;
-  std::set<base::FilePath> found;
-  for (const auto& results : all_results) {
-    for (const auto& [file_path, is_directory] : results) {
-      if (base::Contains(found, file_path)) {
-        continue;
-      }
-      found.insert(file_path);
-      unique_results.emplace_back(file_path, is_directory);
-    }
-  }
-
+    const std::vector<std::pair<base::FilePath, bool>>& results) {
   base::Value::List entries;
-  for (const auto& result : unique_results) {
+  for (const auto& result : results) {
     std::string mount_name;
     std::string file_system_name;
     std::string full_path;
@@ -1659,30 +1567,13 @@ FileManagerPrivateInternalStartIOTaskFunction::Run() {
     return RespondNow(Error("Cannot find VolumeManager"));
   }
 
-  storage::ExternalMountPoints* mount_points =
-      storage::ExternalMountPoints::GetSystemInstance();
-
   std::vector<storage::FileSystemURL> source_urls;
   for (const std::string& url : params->urls) {
-    GURL gurl(url);
     storage::FileSystemURL cracked_url =
-        file_system_context->CrackURLInFirstPartyContext(gurl);
+        file_system_context->CrackURLInFirstPartyContext(GURL(url));
     if (!cracked_url.is_valid()) {
       return RespondNow(Error("Invalid source URL *", Redact(url)));
     }
-    base::FilePath virtual_path;
-    const bool result =
-        file_manager::util::ConvertAbsoluteFilePathToRelativeFileSystemPath(
-            profile, gurl, cracked_url.path(), &virtual_path);
-    if (!result) {
-      LOG(WARNING) << "Failed to convert file_system_url to relative file "
-                      "system path, type: "
-                   << cracked_url.type();
-      continue;
-    }
-    cracked_url = mount_points->CreateCrackedFileSystemURL(
-        cracked_url.storage_key(), storage::kFileSystemTypeExternal,
-        virtual_path);
     source_urls.push_back(std::move(cracked_url));
   }
 
@@ -1823,50 +1714,18 @@ FileManagerPrivateResumeIOTaskFunction::Run() {
   }
 
   file_manager::io_task::ResumeParams io_task_resume_params;
-  if (params->params.conflict_params) {
-    io_task_resume_params.conflict_params.emplace();
-    io_task_resume_params.conflict_params->conflict_resolve =
-        params->params.conflict_params->conflict_resolve.value_or("");
-    io_task_resume_params.conflict_params->conflict_apply_to_all =
-        params->params.conflict_params->conflict_apply_to_all.value_or(false);
-  }
-  if (params->params.policy_params) {
-    absl::optional<policy::Policy> policy =
-        ApiPolicyErrorTypeToChromeEnum(params->params.policy_params->type);
-    if (policy.has_value()) {
-      io_task_resume_params.policy_params.emplace();
-      io_task_resume_params.policy_params->type = policy.value();
-    }
+  io_task_resume_params.conflict_params->conflict_resolve =
+      params->params.conflict_params->conflict_resolve.value_or("");
+  io_task_resume_params.conflict_params->conflict_apply_to_all =
+      params->params.conflict_params->conflict_apply_to_all.value_or(false);
+  absl::optional<policy::Policy> policy =
+      ApiPolicyErrorTypeToChromeEnum(params->params.policy_params->type);
+  if (policy.has_value()) {
+    io_task_resume_params.policy_params->type = policy.value();
   }
 
   volume_manager->io_task_controller()->Resume(
       params->task_id, std::move(io_task_resume_params));
-
-  return RespondNow(NoArguments());
-}
-
-ExtensionFunction::ResponseAction
-FileManagerPrivateDismissIOTaskFunction::Run() {
-  DCHECK_CURRENTLY_ON(BrowserThread::UI);
-
-  using extensions::api::file_manager_private::DismissIOTask::Params;
-  const absl::optional<Params> params = Params::Create(args());
-  EXTENSION_FUNCTION_VALIDATE(params);
-
-  if (params->task_id <= 0) {
-    return RespondNow(Error("Invalid task id"));
-  }
-
-  policy::FilesPolicyNotificationManager* manager =
-      policy::FilesPolicyNotificationManagerFactory::GetForBrowserContext(
-          browser_context());
-  if (!manager) {
-    LOG(ERROR) << "No FilesPolicyNotificationManager instantiated,"
-                  "can't notify about task_id "
-               << params->task_id;
-    return RespondNow(NoArguments());
-  }
-  manager->OnErrorItemDismissed(params->task_id);
 
   return RespondNow(NoArguments());
 }
@@ -1896,7 +1755,7 @@ FileManagerPrivateShowPolicyDialogFunction::Run() {
     LOG(ERROR) << "No FilesPolicyNotificationManager instantiated,"
                   "can't show policy dialog for task_id "
                << params->task_id;
-    return RespondNow(NoArguments());
+    Respond(NoArguments());
   }
   manager->ShowDialog(params->task_id, type);
 

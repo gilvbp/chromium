@@ -51,15 +51,7 @@ enum class AuctionResult {
   // Obsolete:
   // kWinningComponentSellerWorkletCrashed = 11,
 
-  // The bidding and auction server response could not be parsed or was
-  // invalid.
-  kInvalidServerResponse = 12,
-
-  // The auction nonce passed into a call to runAdAuction didn't come from a
-  // prior call to createAuctionNonce.
-  kInvalidAuctionNonce = 13,
-
-  kMaxValue = kInvalidAuctionNonce
+  kMaxValue = kComponentLostAuction
 };
 
 }  // namespace content

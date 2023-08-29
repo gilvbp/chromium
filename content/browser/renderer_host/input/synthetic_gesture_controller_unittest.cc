@@ -121,18 +121,10 @@ WebInputEvent::Type WebTouchPointStateToEventType(
   }
 }
 
-class MockGestureParams : public SyntheticGestureParams {
- public:
-  GestureType GetGestureType() const override {
-    return SyntheticGestureParams::TAP_GESTURE;
-  }
-};
-
-class MockSyntheticGesture : public SyntheticGestureBase<MockGestureParams> {
+class MockSyntheticGesture : public SyntheticGesture {
  public:
   MockSyntheticGesture(bool* finished, int num_steps)
-      : SyntheticGestureBase(MockGestureParams()),
-        finished_(finished),
+      : finished_(finished),
         num_steps_(num_steps),
         step_count_(0) {
     *finished_ = false;
@@ -806,7 +798,6 @@ class DummySyntheticGestureControllerDelegate
  private:
   // SyntheticGestureController::Delegate:
   bool HasGestureStopped() override { return true; }
-  bool IsHidden() const override { return false; }
 };
 
 }  // namespace

@@ -56,10 +56,9 @@ IN_PROC_BROWSER_TEST_F(WebAppPrefMigrationBrowserTest, PRE_Migration) {
   {
     UpdateIntWebAppPref(prefs(), app_id, "latest_web_app_install_source",
                         static_cast<int>(kExpectedInstallSource));
-    ScopedRegistryUpdate update =
-        WebAppProvider::GetForTest(browser()->profile())
-            ->sync_bridge_unsafe()
-            .BeginUpdate();
+    ScopedRegistryUpdate update(
+        &WebAppProvider::GetForTest(browser()->profile())
+             ->sync_bridge_unsafe());
     WebApp* web_app = update->UpdateApp(app_id);
     web_app->SetLatestInstallSource(absl::nullopt);
   }

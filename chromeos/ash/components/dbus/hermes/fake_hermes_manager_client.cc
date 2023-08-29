@@ -95,9 +95,6 @@ void FakeHermesManagerClient::ParseCommandLineSwitch() {
 }
 
 void FakeHermesManagerClient::NotifyAvailableEuiccListChanged() {
-  HermesEuiccClient::TestInterface* euicc_client_test =
-      HermesEuiccClient::Get()->GetTestInterface();
-  euicc_client_test->UpdateShillDeviceSimSlotInfo();
   for (auto& observer : observers()) {
     observer.OnAvailableEuiccListChanged();
   }

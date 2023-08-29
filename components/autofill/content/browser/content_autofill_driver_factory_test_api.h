@@ -9,7 +9,7 @@
 #include <string>
 
 #include "base/memory/ptr_util.h"
-#include "base/memory/raw_ref.h"
+#include "base/memory/raw_ptr.h"
 #include "components/autofill/content/browser/content_autofill_driver_factory.h"
 #include "components/autofill/core/browser/test_autofill_client.h"
 
@@ -49,14 +49,11 @@ class ContentAutofillDriverFactoryTestApi {
 
   void set_client(AutofillClient* client) { factory_->client_ = client; }
 
- private:
-  const raw_ref<ContentAutofillDriverFactory> factory_;
-};
+  ContentAutofillRouter& router() { return factory_->router_; }
 
-inline ContentAutofillDriverFactoryTestApi test_api(
-    ContentAutofillDriverFactory& factory) {
-  return ContentAutofillDriverFactoryTestApi(&factory);
-}
+ private:
+  raw_ptr<ContentAutofillDriverFactory> factory_;
+};
 
 }  // namespace autofill
 

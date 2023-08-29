@@ -24,9 +24,13 @@
 #import "net/test/embedded_test_server/request_handler_util.h"
 #import "ui/base/l10n/l10n_util.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 using base::test::ios::kWaitForUIElementTimeout;
 using base::test::ios::WaitUntilConditionOrTimeout;
-using chrome_test_util::ContextMenuItemWithAccessibilityLabelId;
+using chrome_test_util::ButtonWithAccessibilityLabelId;
 
 namespace {
 
@@ -110,6 +114,14 @@ void AssertPinnedCellMovedToGridView(NSString* tab_title) {
   GREYAssertTrue(self.testServer->Start(), @"Test server failed to start");
 }
 
+- (AppLaunchConfiguration)appConfigurationForTestCase {
+  AppLaunchConfiguration config;
+  config.additional_args.push_back(
+      "--enable-features=" + std::string(kEnablePinnedTabs.name) + ":" +
+      kEnablePinnedTabsOverflowParam + "/true");
+  return config;
+}
+
 - (void)setUp {
   [super setUp];
 
@@ -140,7 +152,7 @@ void AssertPinnedCellMovedToGridView(NSString* tab_title) {
       performAction:grey_longPress()];
 
   // Tap on "Pin Tab" context menu action.
-  [[EarlGrey selectElementWithMatcher:ContextMenuItemWithAccessibilityLabelId(
+  [[EarlGrey selectElementWithMatcher:ButtonWithAccessibilityLabelId(
                                           IDS_IOS_CONTENT_CONTEXT_PINTAB)]
       performAction:grey_tap()];
 
@@ -176,7 +188,7 @@ void AssertPinnedCellMovedToGridView(NSString* tab_title) {
       performAction:grey_longPress()];
 
   // Tap on "Pin Tab" context menu action.
-  [[EarlGrey selectElementWithMatcher:ContextMenuItemWithAccessibilityLabelId(
+  [[EarlGrey selectElementWithMatcher:ButtonWithAccessibilityLabelId(
                                           IDS_IOS_CONTENT_CONTEXT_PINTAB)]
       performAction:grey_tap()];
 
@@ -208,7 +220,7 @@ void AssertPinnedCellMovedToGridView(NSString* tab_title) {
       performAction:grey_longPress()];
 
   // Tap on "Unpin Tab" context menu action.
-  [[EarlGrey selectElementWithMatcher:ContextMenuItemWithAccessibilityLabelId(
+  [[EarlGrey selectElementWithMatcher:ButtonWithAccessibilityLabelId(
                                           IDS_IOS_CONTENT_CONTEXT_UNPINTAB)]
       performAction:grey_tap()];
 
@@ -240,7 +252,7 @@ void AssertPinnedCellMovedToGridView(NSString* tab_title) {
       performAction:grey_longPress()];
 
   // Tap on "Unpin Tab" context menu action.
-  [[EarlGrey selectElementWithMatcher:ContextMenuItemWithAccessibilityLabelId(
+  [[EarlGrey selectElementWithMatcher:ButtonWithAccessibilityLabelId(
                                           IDS_IOS_CONTENT_CONTEXT_UNPINTAB)]
       performAction:grey_tap()];
 

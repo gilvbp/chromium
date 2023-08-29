@@ -4,7 +4,7 @@
 
 #import "ios/chrome/browser/ui/sharing/qr_generator/qr_generator_coordinator.h"
 
-#import "base/apple/foundation_util.h"
+#import "base/mac/foundation_util.h"
 #import "base/test/task_environment.h"
 #import "ios/chrome/browser/shared/coordinator/scene/scene_state.h"
 #import "ios/chrome/browser/shared/coordinator/scene/scene_state_browser_agent.h"
@@ -21,6 +21,10 @@
 #import "testing/platform_test.h"
 #import "third_party/ocmock/OCMock/OCMock.h"
 #import "url/gurl.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 class QRGeneratorCoordinatorTest : public PlatformTest {
  protected:
@@ -79,7 +83,7 @@ TEST_F(QRGeneratorCoordinatorTest, Done_DispatchesCommand) {
       isKindOfClass:[QRGeneratorViewController class]]);
 
   QRGeneratorViewController* viewController =
-      base::apple::ObjCCastStrict<QRGeneratorViewController>(
+      base::mac::ObjCCastStrict<QRGeneratorViewController>(
           base_view_controller_.presentedViewController);
 
   // Mimick click on done button.
@@ -105,7 +109,7 @@ TEST_F(QRGeneratorCoordinatorTest, ShareAction) {
   [coordinator_ start];
 
   QRGeneratorViewController* viewController =
-      base::apple::ObjCCastStrict<QRGeneratorViewController>(
+      base::mac::ObjCCastStrict<QRGeneratorViewController>(
           base_view_controller_.presentedViewController);
 
   id vcPartialMock = OCMPartialMock(viewController);
@@ -129,7 +133,7 @@ TEST_F(QRGeneratorCoordinatorTest, LearnMore) {
   [coordinator_ start];
 
   QRGeneratorViewController* viewController =
-      base::apple::ObjCCastStrict<QRGeneratorViewController>(
+      base::mac::ObjCCastStrict<QRGeneratorViewController>(
           base_view_controller_.presentedViewController);
 
   __block PopoverLabelViewController* popoverViewController;
@@ -139,7 +143,7 @@ TEST_F(QRGeneratorCoordinatorTest, LearnMore) {
                                         UIViewController* givenVC) {
         if ([givenVC isKindOfClass:[PopoverLabelViewController class]]) {
           popoverViewController =
-              base::apple::ObjCCastStrict<PopoverLabelViewController>(givenVC);
+              base::mac::ObjCCastStrict<PopoverLabelViewController>(givenVC);
           return YES;
         }
         return NO;

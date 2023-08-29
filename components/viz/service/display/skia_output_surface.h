@@ -11,6 +11,7 @@
 
 #include "build/build_config.h"
 #include "components/viz/common/quads/aggregated_render_pass.h"
+#include "components/viz/common/resources/resource_format.h"
 #include "components/viz/common/resources/resource_id.h"
 #include "components/viz/service/display/external_use_client.h"
 #include "components/viz/service/display/output_surface.h"
@@ -53,7 +54,7 @@ class VIZ_SERVICE_EXPORT SkiaOutputSurface : public OutputSurface,
  public:
   using OverlayList = std::vector<OverlayCandidate>;
 
-  SkiaOutputSurface();
+  explicit SkiaOutputSurface(OutputSurface::Type type);
 
   SkiaOutputSurface(const SkiaOutputSurface&) = delete;
   SkiaOutputSurface& operator=(const SkiaOutputSurface&) = delete;

@@ -95,7 +95,8 @@ ExecutionContext::~ExecutionContext() = default;
 
 // static
 ExecutionContext* ExecutionContext::From(const ScriptState* script_state) {
-  return ToExecutionContext(script_state);
+  v8::HandleScope scope(script_state->GetIsolate());
+  return ToExecutionContext(script_state->GetContext());
 }
 
 // static
@@ -265,6 +266,13 @@ void ExecutionContext::FileSharedArrayBufferCreationIssue() {
   // In enforced mode, the SAB constructor isn't available.
   AuditsIssue::ReportSharedArrayBufferIssue(
       this, true, SharedArrayBufferIssueType::kCreationIssue);
+}
+
+void ExecutionContext::ReportNavigatorUserAgentAccess() {
+  if (has_filed_navigator_user_agent_issue_)
+    return;
+  has_filed_navigator_user_agent_issue_ = true;
+  AuditsIssue::ReportNavigatorUserAgentAccess(this, Url().GetString());
 }
 
 void ExecutionContext::AddConsoleMessageImpl(

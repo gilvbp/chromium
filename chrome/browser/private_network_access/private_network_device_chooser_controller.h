@@ -16,7 +16,6 @@
 #include "base/scoped_observation.h"
 #include "chrome/browser/private_network_access/chrome_private_network_device_chooser.h"
 #include "components/permissions/chooser_controller.h"
-#include "services/network/public/mojom/url_loader_network_service_observer.mojom.h"
 #include "third_party/blink/public/mojom/private_network_device/private_network_device.mojom.h"
 #include "url/origin.h"
 
@@ -31,9 +30,8 @@ class PrivateNetworkDeviceChooserController
  public:
   PrivateNetworkDeviceChooserController(
       content::RenderFrameHost* render_frame_host,
-      blink::mojom::PrivateNetworkDevicePtr device,
-      network::mojom::URLLoaderNetworkServiceObserver::
-          OnPrivateNetworkAccessPermissionRequiredCallback callback);
+      std::unique_ptr<blink::mojom::PrivateNetworkDevice> device,
+      ChromePrivateNetworkDeviceChooser::EventHandler event_handler);
 
   PrivateNetworkDeviceChooserController(
       const PrivateNetworkDeviceChooserController&) = delete;
@@ -54,16 +52,16 @@ class PrivateNetworkDeviceChooserController
   void Cancel() override;
   void Close() override;
 
-  void ReplaceDeviceForTesting(blink::mojom::PrivateNetworkDevicePtr device);
+  void ReplaceDeviceForTesting(
+      std::unique_ptr<blink::mojom::PrivateNetworkDevice> device);
 
  private:
   bool DisplayDevice(const blink::mojom::PrivateNetworkDevice& device) const;
 
   url::Origin origin_;
 
-  blink::mojom::PrivateNetworkDevicePtr device_;
-  network::mojom::URLLoaderNetworkServiceObserver::
-      OnPrivateNetworkAccessPermissionRequiredCallback callback_;
+  std::unique_ptr<blink::mojom::PrivateNetworkDevice> device_;
+  const ChromePrivateNetworkDeviceChooser::EventHandler event_handler_;
 
   base::WeakPtrFactory<PrivateNetworkDeviceChooserController> weak_factory_{
       this};

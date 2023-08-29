@@ -33,6 +33,8 @@ class WebUIWebAppBrowserTest : public WebAppControllerBrowserTest {
   ~WebUIWebAppBrowserTest() override = default;
 
   void SetUp() override {
+    features_.InitAndEnableFeature(
+        password_manager::features::kPasswordManagerRedesign);
     ASSERT_TRUE(embedded_test_server()->Start());
     WebAppControllerBrowserTest::SetUp();
   }

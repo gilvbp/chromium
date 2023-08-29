@@ -35,9 +35,6 @@ SVGResource* CSSURIValue::EnsureResourceReference() const {
 }
 
 void CSSURIValue::ReResolveUrl(const Document& document) const {
-  if (relative_url_.empty()) {
-    return;
-  }
   KURL url = document.CompleteURL(relative_url_);
   AtomicString url_string(url.GetString());
   if (url_string == absolute_url_) {
@@ -98,17 +95,12 @@ bool CSSURIValue::Equals(const CSSURIValue& other) const {
 CSSURIValue* CSSURIValue::ComputedCSSValue(
     const KURL& base_url,
     const WTF::TextEncoding& charset) const {
-  if (relative_url_.empty()) {
-    return MakeGarbageCollected<CSSURIValue>(relative_url_, KURL());
-  }
-  const KURL resolved_url = charset.IsValid()
-                                ? KURL(base_url, relative_url_, charset)
-                                : KURL(base_url, relative_url_);
-  if (is_local_) {
-    return MakeGarbageCollected<CSSURIValue>(relative_url_, resolved_url);
+  if (!charset.IsValid()) {
+    return MakeGarbageCollected<CSSURIValue>(
+        AtomicString(KURL(base_url, relative_url_).GetString()));
   }
   return MakeGarbageCollected<CSSURIValue>(
-      AtomicString(resolved_url.GetString()));
+      AtomicString(KURL(base_url, relative_url_, charset).GetString()));
 }
 
 void CSSURIValue::TraceAfterDispatch(blink::Visitor* visitor) const {

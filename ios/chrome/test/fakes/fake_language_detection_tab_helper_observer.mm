@@ -7,6 +7,10 @@
 #import "base/logging.h"
 #import "components/translate/core/common/language_detection_details.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 FakeLanguageDetectionTabHelperObserver::FakeLanguageDetectionTabHelperObserver(
     web::WebState* web_state)
     : web_state_(web_state) {

@@ -13,9 +13,10 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 
+import androidx.annotation.VisibleForTesting;
+
 import org.chromium.base.ContextUtils;
 import org.chromium.base.Log;
-import org.chromium.base.ResettersForTesting;
 import org.chromium.base.ThreadUtils;
 
 import java.util.List;
@@ -73,10 +74,9 @@ public class LocationProviderAndroid implements LocationListener, LocationProvid
     @Override
     public void onProviderDisabled(String provider) {}
 
+    @VisibleForTesting
     public void setLocationManagerForTesting(LocationManager manager) {
-        var oldValue = mLocationManager;
         mLocationManager = manager;
-        ResettersForTesting.register(() -> mLocationManager = oldValue);
     }
 
     private void createLocationManagerIfNeeded() {

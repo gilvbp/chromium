@@ -48,8 +48,7 @@ class ASH_EXPORT DateTray : public TrayBackgroundView,
   void UpdateAfterLoginStatusChange() override;
   void ShowBubble() override;
   void CloseBubble() override;
-  void HideBubbleWithView(const TrayBubbleView* bubble_view) override;
-  void HideBubble(const TrayBubbleView* bubble_view) override;
+  void HideBubbleWithView(const TrayBubbleView* bubble_view) override {}
   void ClickedOutsideBubble() override;
   void UpdateTrayItemColor(bool is_active) override;
 
@@ -60,15 +59,11 @@ class ASH_EXPORT DateTray : public TrayBackgroundView,
   // Callback called when this tray is pressed.
   void OnButtonPressed(const ui::Event& event);
 
-  // `from_keyboard` - whether `ShowGlanceableBubble()` is being shown in
-  // response to a keyboard event.
-  void ShowGlanceableBubble(bool from_keyboard);
+  void ShowGlanceableBubble();
   void HideGlanceableBubble();
 
  private:
   friend class DateTrayTest;
-  friend class GlanceablesPixelTest;
-  friend class GlanceablesV2BrowserTest;
 
   // Owned by the views hierarchy.
   raw_ptr<TimeTrayItemView, ExperimentalAsh> time_view_ = nullptr;

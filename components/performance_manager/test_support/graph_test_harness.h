@@ -35,7 +35,7 @@ class TestNodeWrapper {
   template <typename... Args>
   static TestNodeWrapper<NodeClass> Create(GraphImpl* graph, Args&&... args);
 
-  TestNodeWrapper() = default;
+  TestNodeWrapper() {}
 
   explicit TestNodeWrapper(std::unique_ptr<NodeClass> impl)
       : impl_(std::move(impl)) {
@@ -43,16 +43,9 @@ class TestNodeWrapper {
   }
 
   TestNodeWrapper(TestNodeWrapper&& other) : impl_(std::move(other.impl_)) {}
-  TestNodeWrapper& operator=(TestNodeWrapper&& other) {
-    if (this != &other) {
-      reset();
-      impl_ = std::move(other.impl_);
-    }
-    return *this;
-  }
 
-  TestNodeWrapper(const TestNodeWrapper& other) = delete;
-  TestNodeWrapper& operator=(const TestNodeWrapper& other) = delete;
+  void operator=(TestNodeWrapper&& other) { impl_ = std::move(other.impl_); }
+  void operator=(const TestNodeWrapper& other) = delete;
 
   ~TestNodeWrapper() { reset(); }
 
@@ -126,11 +119,12 @@ struct TestNodeWrapper<PageNodeImpl>::Factory {
       const WebContentsProxy& wc_proxy = WebContentsProxy(),
       const std::string& browser_context_id = std::string(),
       const GURL& url = GURL(),
-      PagePropertyFlags initial_property_flags = {},
+      bool is_visible = false,
+      bool is_audible = false,
       base::TimeTicks visibility_change_time = base::TimeTicks::Now(),
       PageNode::PageState page_state = PageNode::PageState::kActive) {
     return std::make_unique<PageNodeImpl>(wc_proxy, browser_context_id, url,
-                                          initial_property_flags,
+                                          is_visible, is_audible,
                                           visibility_change_time, page_state);
   }
 };

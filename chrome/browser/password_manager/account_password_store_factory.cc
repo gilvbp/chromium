@@ -25,7 +25,6 @@
 #include "chrome/browser/profiles/profile_manager.h"
 #include "components/keyed_service/content/browser_context_dependency_manager.h"
 #include "components/password_manager/core/browser/affiliation/affiliations_prefetcher.h"
-#include "components/password_manager/core/browser/features/password_features.h"
 #include "components/password_manager/core/browser/login_database.h"
 #include "components/password_manager/core/browser/password_manager_constants.h"
 #include "components/password_manager/core/browser/password_manager_util.h"
@@ -33,6 +32,7 @@
 #include "components/password_manager/core/browser/password_store_built_in_backend.h"
 #include "components/password_manager/core/browser/password_store_factory_util.h"
 #include "components/password_manager/core/browser/password_store_interface.h"
+#include "components/password_manager/core/common/password_manager_features.h"
 #include "components/prefs/pref_service.h"
 #include "content/public/browser/browser_context.h"
 #include "content/public/browser/network_service_instance.h"
@@ -73,7 +73,7 @@ class UnsyncedCredentialsDeletionNotifierImpl
   base::WeakPtr<UnsyncedCredentialsDeletionNotifier> GetWeakPtr() override;
 
  private:
-  const raw_ptr<Profile, AcrossTasksDanglingUntriaged> profile_;
+  const raw_ptr<Profile, DanglingUntriaged> profile_;
   base::WeakPtrFactory<UnsyncedCredentialsDeletionNotifier> weak_ptr_factory_{
       this};
 };
@@ -171,13 +171,11 @@ AccountPasswordStoreFactory::BuildServiceInstanceFor(
 #if BUILDFLAG(IS_ANDROID)
       new password_manager::PasswordStore(
           std::make_unique<password_manager::PasswordStoreBuiltInBackend>(
-              std::move(login_db),
-              syncer::WipeModelUponSyncDisabledBehavior::kAlways));
+              std::move(login_db)));
 #else
       new password_manager::PasswordStore(
           std::make_unique<password_manager::PasswordStoreBuiltInBackend>(
               std::move(login_db),
-              syncer::WipeModelUponSyncDisabledBehavior::kAlways,
               std::make_unique<UnsyncedCredentialsDeletionNotifierImpl>(
                   profile)));
 #endif

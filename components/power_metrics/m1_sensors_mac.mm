@@ -12,9 +12,13 @@
 #include <utility>
 
 #include "base/apple/bridging.h"
-#include "base/apple/foundation_util.h"
+#include "base/mac/foundation_util.h"
 #include "base/memory/ptr_util.h"
 #include "components/power_metrics/m1_sensors_internal_types_mac.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 extern "C" {
 
@@ -34,7 +38,7 @@ namespace {
 
 absl::optional<double> GetEventFloatValue(IOHIDServiceClientRef service,
                                           int64_t event_type) {
-  base::apple::ScopedCFTypeRef<CFTypeRef> event(
+  base::ScopedCFTypeRef<CFTypeRef> event(
       IOHIDServiceClientCopyEvent(service, event_type, 0, 0));
   if (!event)
     return absl::nullopt;
@@ -52,7 +56,7 @@ M1SensorsReader::~M1SensorsReader() = default;
 
 // static
 std::unique_ptr<M1SensorsReader> M1SensorsReader::Create() {
-  base::apple::ScopedCFTypeRef<IOHIDEventSystemClientRef> system(
+  base::ScopedCFTypeRef<IOHIDEventSystemClientRef> system(
       IOHIDEventSystemClientCreate(kCFAllocatorDefault));
 
   if (system == nil)
@@ -68,7 +72,7 @@ std::unique_ptr<M1SensorsReader> M1SensorsReader::Create() {
 }
 
 M1SensorsReader::TemperaturesCelsius M1SensorsReader::ReadTemperatures() {
-  base::apple::ScopedCFTypeRef<CFArrayRef> services(
+  base::ScopedCFTypeRef<CFArrayRef> services(
       IOHIDEventSystemClientCopyServices(system_.get()));
 
   // There are multiple temperature sensors on P-Cores and E-Cores. Count and
@@ -82,9 +86,8 @@ M1SensorsReader::TemperaturesCelsius M1SensorsReader::ReadTemperatures() {
     IOHIDServiceClientRef service =
         (IOHIDServiceClientRef)CFArrayGetValueAtIndex(services, i);
 
-    base::apple::ScopedCFTypeRef<CFStringRef> product(
-        base::apple::CFCast<CFStringRef>(
-            IOHIDServiceClientCopyProperty(service, CFSTR(kIOHIDProductKey))));
+    base::ScopedCFTypeRef<CFStringRef> product(base::mac::CFCast<CFStringRef>(
+        IOHIDServiceClientCopyProperty(service, CFSTR(kIOHIDProductKey))));
     if (product == nil) {
       continue;
     }
@@ -118,7 +121,7 @@ M1SensorsReader::TemperaturesCelsius M1SensorsReader::ReadTemperatures() {
 }
 
 M1SensorsReader::M1SensorsReader(
-    base::apple::ScopedCFTypeRef<IOHIDEventSystemClientRef> system)
+    base::ScopedCFTypeRef<IOHIDEventSystemClientRef> system)
     : system_(std::move(system)) {}
 
 }  // namespace power_metrics

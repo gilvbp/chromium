@@ -4,8 +4,6 @@
 
 import {TestRunner} from 'test_runner';
 
-import * as Common from 'devtools/core/common/common.js';
-
 (async function() {
   TestRunner.addResult(`Tests that the changes sidebar contains the changed uisourcecodes.\n`);
   await TestRunner.loadLegacyModule('workspace_diff');
@@ -67,6 +65,6 @@ import * as Common from 'devtools/core/common/common.js';
 
   function addUISourceCode(url, content) {
     return project.addContentProvider(
-        url, TextUtils.StaticContentProvider.fromString(url, Common.ResourceType.resourceTypes.Stylesheet, content));
+        url, TextUtils.StaticContentProvider.fromString(url, Common.resourceTypes.Stylesheet, content));
   }
 })();

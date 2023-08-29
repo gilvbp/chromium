@@ -584,10 +584,8 @@ void MockRenderProcessHost::ReinitializeLogging(
 }
 #endif  // BUILDFLAG(IS_CHROMEOS_ASH)
 
-RenderProcessHost::FilterURLResult MockRenderProcessHost::FilterURL(
-    bool empty_allowed,
-    GURL* url) {
-  return RenderProcessHostImpl::FilterURL(this, empty_allowed, url);
+void MockRenderProcessHost::FilterURL(bool empty_allowed, GURL* url) {
+  RenderProcessHostImpl::FilterURL(this, empty_allowed, url);
 }
 
 void MockRenderProcessHost::EnableAudioDebugRecordings(

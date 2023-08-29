@@ -44,15 +44,6 @@ class MockAccessibilityPrivate {
       DICTATION_CONTEXT_CHECKING: 'dictationContextChecking',
     };
 
-    this.AssistiveTechnologyType = {
-      CHROME_VOX: 'chromeVox',
-      SELECT_TO_SPEAK: 'selectToSpeak',
-      SWITCH_ACCESS: 'switchAccess',
-      AUTO_CLICK: 'autoClick',
-      MAGNIFIER: 'magnifier',
-      DICTATION: 'dictation',
-    };
-
     this.DictationBubbleIconType = {
       HIDDEN: 'hidden',
       STANDBY: 'standby',
@@ -72,10 +63,6 @@ class MockAccessibilityPrivate {
     };
 
     this.SyntheticKeyboardEventType = {KEYDOWN: 'keydown', KEYUP: 'keyup'};
-
-    this.ToastType = {
-      DICTATION_NO_FOCUSED_TEXT_FIELD: 'dictationNoFocusedTextField',
-    };
 
     /** @private {function<number, number>} */
     this.boundsListener_ = null;
@@ -232,9 +219,8 @@ class MockAccessibilityPrivate {
    * assume that it is only setting one set of rings at a time, and safely
    * extract focusRingInfos[0].rects.
    * @param {!Array<!chrome.accessibilityPrivate.FocusRingInfo>} focusRingInfos
-   * @param {chrome.accessibilityPrivate.AssistiveTechnologyType} atType
    */
-  setFocusRings(focusRingInfos, atType) {
+  setFocusRings(focusRingInfos) {
     this.focusRings_ = focusRingInfos;
   }
 
@@ -488,7 +474,4 @@ class MockAccessibilityPrivate {
         await getFileBytes(`${pumpkinDir}/es_es/pumpkin_config.binarypb`);
     MockAccessibilityPrivate.pumpkinData_ = data;
   }
-
-  /** @param {!chrome.accessibilityPrivate.ToastType} type */
-  showToast(type) {}
 }

@@ -109,23 +109,6 @@ absl::optional<base::TimeTicks> ScrollTimeline::CurrentTime(
   DCHECK_GE(current_offset, 0);
 
   double start_offset = 0;
-  if (is_active_tree) {
-    DCHECK(active_offsets());
-    start_offset = active_offsets()->start;
-  } else {
-    DCHECK(pending_offsets());
-    start_offset = pending_offsets()->start;
-  }
-
-  int64_t progress_us = base::ClampRound((current_offset - start_offset) *
-                                         kScrollTimelineMicrosecondsPerPixel);
-  return base::TimeTicks() + base::Microseconds(progress_us);
-}
-
-absl::optional<base::TimeTicks> ScrollTimeline::Duration(
-    const ScrollTree& scroll_tree,
-    bool is_active_tree) const {
-  double start_offset = 0;
   double end_offset = 0;
   if (is_active_tree) {
     DCHECK(active_offsets());
@@ -136,9 +119,19 @@ absl::optional<base::TimeTicks> ScrollTimeline::Duration(
     start_offset = pending_offsets()->start;
     end_offset = pending_offsets()->end;
   }
-  int64_t duration_us = base::ClampRound((end_offset - start_offset) *
-                                         kScrollTimelineMicrosecondsPerPixel);
-  return base::TimeTicks() + base::Microseconds(duration_us);
+
+  // TODO(crbug.com/1338167): Update once
+  // github.com/w3c/csswg-drafts/issues/7401 is resolved.
+  double progress =
+      end_offset == start_offset
+          ? 1
+          : (current_offset - start_offset) / (end_offset - start_offset);
+
+  // Round to nearest microsecond for integer-backed TimeTicks
+  // (compare blink::TimeTolerance).
+  int64_t progress_us =
+      base::ClampRound(progress * kScrollTimelineDurationMs * 1000);
+  return base::TimeTicks() + base::Microseconds(progress_us);
 }
 
 void ScrollTimeline::PushPropertiesTo(AnimationTimeline* impl_timeline) {

@@ -1,5 +1,14 @@
 const STORE_URL = '/speculation-rules/prerender/resources/key-value-store.py';
 
+function assertSpeculationRulesIsSupported() {
+  assert_implements(
+      'supports' in HTMLScriptElement,
+      'HTMLScriptElement.supports is not supported');
+  assert_implements(
+      HTMLScriptElement.supports('speculationrules'),
+      '<script type="speculationrules"> is not supported');
+}
+
 // Starts prerendering for `url`.
 function startPrerendering(url) {
   // Adds <script type="speculationrules"> and specifies a prerender candidate
@@ -340,9 +349,14 @@ function test_prerender_defer(fn, label) {
  * @param {RemoteContextConfig|object} extraConfig
  * @returns {Promise<RemoteContextWrapper>}
  */
-function addPrerenderRC(referrerRemoteContext, extraConfig) {
-  return referrerRemoteContext.helper.createContext({
+async function addPrerenderRC(referrerRemoteContext, extraConfig) {
+  let savedURL;
+  const prerenderedRC = await referrerRemoteContext.helper.createContext({
     executorCreator(url) {
+      // Save the URL which the remote context helper framework assembled for
+      // us, so that we can attach it to the returned `RemoteContextWrapper`.
+      savedURL = url;
+
       return referrerRemoteContext.executeScript(url => {
         const script = document.createElement("script");
         script.type = "speculationrules";
@@ -358,6 +372,9 @@ function addPrerenderRC(referrerRemoteContext, extraConfig) {
       }, [url]);
     }, extraConfig
   });
+
+  prerenderedRC.url = savedURL;
+  return prerenderedRC;
 }
 
 /**

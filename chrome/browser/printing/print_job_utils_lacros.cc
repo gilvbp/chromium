@@ -4,7 +4,6 @@
 
 #include "chrome/browser/printing/print_job_utils_lacros.h"
 
-#include "base/check_op.h"
 #include "base/functional/callback_helpers.h"
 #include "base/strings/utf_string_conversions.h"
 #include "chrome/browser/printing/print_job.h"
@@ -31,10 +30,8 @@ crosapi::mojom::PrintJobPtr PrintJobToMojom(int job_id,
   }
   const PrintSettings& settings = document.settings();
   int duplex = static_cast<int>(settings.duplex_mode());
-  CHECK_GE(duplex, 0);
-  CHECK_LT(duplex, 3);
-
-  CHECK_NE(settings.color(), mojom::ColorModel::kUnknownColorModel);
+  DCHECK(duplex >= 0);
+  DCHECK(duplex < 3);
   return crosapi::mojom::PrintJob::New(
       base::UTF16ToUTF8(settings.device_name()), base::UTF16ToUTF8(title),
       job_id, document.page_count(), source, source_id, settings.color(),

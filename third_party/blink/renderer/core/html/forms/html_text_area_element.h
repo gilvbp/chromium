@@ -60,7 +60,6 @@ class CORE_EXPORT HTMLTextAreaElement final : public TextControlElement {
   // Sets the suggested value and puts the element into
   // WebAutofillState::kPreviewed state if |value| is non-empty, or
   // WebAutofillState::kNotFilled otherwise.
-  // A null value indicates that the suggested value should be hidden.
   void SetSuggestedValue(const String& value) override;
 
   // For ValidityState
@@ -141,7 +140,7 @@ class CORE_EXPORT HTMLTextAreaElement final : public TextControlElement {
 
   bool MatchesReadOnlyPseudoClass() const override;
   bool MatchesReadWritePseudoClass() const override;
-  void CloneNonAttributePropertiesFrom(const Element&, NodeCloningData&) final;
+  void CloneNonAttributePropertiesFrom(const Element&, CloneChildrenFlag) final;
 
   // If the String* argument is 0, apply value().
   bool ValueMissing(const String*) const;

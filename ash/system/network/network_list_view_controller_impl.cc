@@ -185,8 +185,6 @@ void NetworkListViewControllerImpl::GetNetworkStateList() {
 
 void NetworkListViewControllerImpl::OnGetNetworkStateList(
     std::vector<NetworkStatePropertiesPtr> networks) {
-  int old_position = network_detailed_network_view()->GetScrollPosition();
-
   // Indicates the current position a view will be added to in
   // `NetworkDetailedNetworkView` scroll list.
   size_t index = 0;
@@ -269,14 +267,6 @@ void NetworkListViewControllerImpl::OnGetNetworkStateList(
             ->GetNetworkList(NetworkType::kMobile)
             ->ReorderChildView(mobile_status_message_, mobile_item_index++);
       }
-
-      if (ShouldAddESimEntry()) {
-        mobile_item_index = CreateConfigureNetworkEntry(
-            &add_esim_entry_, NetworkType::kMobile, mobile_item_index);
-      } else {
-        RemoveAndResetViewIfExists(&add_esim_entry_);
-      }
-
       network_detailed_network_view()->ReorderMobileListView(index++);
     } else {
       network_detailed_network_view()
@@ -349,8 +339,7 @@ void NetworkListViewControllerImpl::OnGetNetworkStateList(
       RemoveAndResetViewIfExists(&unknown_header_);
     }
     if (is_wifi_enabled_) {
-      network_item_index = CreateConfigureNetworkEntry(
-          &join_wifi_entry_, NetworkType::kWiFi, network_item_index);
+      network_item_index = CreateJoinWifiEntry(network_item_index);
     } else {
       RemoveAndResetViewIfExists(&join_wifi_entry_);
     }
@@ -380,10 +369,6 @@ void NetworkListViewControllerImpl::OnGetNetworkStateList(
 
   FocusLastSelectedView();
   network_detailed_network_view()->NotifyNetworkListChanged();
-
-  // Resets the scrolling position to the old position to avoid and position
-  // change during reordering the child views in the list.
-  network_detailed_network_view()->ScrollToPosition(old_position);
 }
 
 void NetworkListViewControllerImpl::UpdateNetworkTypeExistence(
@@ -480,23 +465,6 @@ void NetworkListViewControllerImpl::MaybeShowConnectionWarningManagedIcon(
   } else {
     is_vpn_managed_ = false;
   }
-}
-
-bool NetworkListViewControllerImpl::ShouldAddESimEntry() const {
-  const bool is_add_esim_enabled =
-      is_mobile_network_enabled_ && !IsCellularDeviceInhibited();
-
-  bool is_add_esim_visible = IsESimSupported();
-  const GlobalPolicy* global_policy = model()->global_policy();
-
-  // Adding new cellular networks is disallowed when only policy cellular
-  // networks are allowed by admin.
-  if (!global_policy || global_policy->allow_only_policy_cellular_networks) {
-    is_add_esim_visible = false;
-  }
-  // The entry navigates to Settings, only add it if this can occur.
-  return is_add_esim_enabled && is_add_esim_visible &&
-         TrayPopupUtils::CanOpenWebUISettings();
 }
 
 void NetworkListViewControllerImpl::OnGetManagedPropertiesResult(
@@ -674,18 +642,15 @@ size_t NetworkListViewControllerImpl::CreateWifiGroupHeader(
   return index;
 }
 
-size_t NetworkListViewControllerImpl::CreateConfigureNetworkEntry(
-    HoverHighlightView** configure_network_entry_ptr,
-    NetworkType type,
-    size_t index) {
-  if (*configure_network_entry_ptr) {
-    network_detailed_network_view()->GetNetworkList(type)->ReorderChildView(
-        *configure_network_entry_ptr, index++);
+size_t NetworkListViewControllerImpl::CreateJoinWifiEntry(size_t index) {
+  if (join_wifi_entry_) {
+    network_detailed_network_view()
+        ->GetNetworkList(NetworkType::kWiFi)
+        ->ReorderChildView(join_wifi_entry_, index++);
     return index;
   }
 
-  *configure_network_entry_ptr =
-      network_detailed_network_view()->AddConfigureNetworkEntry(type);
+  join_wifi_entry_ = network_detailed_network_view()->AddJoinNetworkEntry();
   return index++;
 }
 
@@ -732,7 +697,9 @@ void NetworkListViewControllerImpl::UpdateWifiSection() {
                                     /*is_on=*/is_wifi_enabled_,
                                     /*animate_toggle=*/true);
 
+  if (features::IsQsRevampEnabled()) {
     network_detailed_network_view()->UpdateWifiStatus(is_wifi_enabled_);
+  }
 
   if (!is_wifi_enabled_) {
     if (features::IsQsRevampEnabled()) {
@@ -766,9 +733,6 @@ void NetworkListViewControllerImpl::UpdateMobileToggleAndSetStatusMessage() {
     mobile_header_view_->SetToggleState(/*enabled=*/false,
                                         /*is_on=*/false,
                                         /*animate_toggle=*/true);
-    // Updates the Mobile status to `true` so that the info label will be
-    // visible, although the toggle is off.
-    network_detailed_network_view()->UpdateMobileStatus(true);
     return;
   }
 
@@ -782,8 +746,6 @@ void NetworkListViewControllerImpl::UpdateMobileToggleAndSetStatusMessage() {
       mobile_header_view_->SetToggleState(/*enabled=*/false,
                                           /*is_on=*/true,
                                           /*animate_toggle=*/true);
-      network_detailed_network_view()->UpdateMobileStatus(true);
-
       RemoveAndResetViewIfExists(&mobile_status_message_);
       return;
     }
@@ -810,14 +772,14 @@ void NetworkListViewControllerImpl::UpdateMobileToggleAndSetStatusMessage() {
                                         /*animate_toggle=*/true);
 
     if (cellular_state == DeviceStateType::kDisabling) {
-      network_detailed_network_view()->UpdateMobileStatus(true);
       CreateInfoLabelIfMissingAndUpdate(
           IDS_ASH_STATUS_TRAY_NETWORK_MOBILE_DISABLING,
           &mobile_status_message_);
       return;
     }
-
-    network_detailed_network_view()->UpdateMobileStatus(cellular_enabled);
+    if (features::IsQsRevampEnabled()) {
+      network_detailed_network_view()->UpdateMobileStatus(cellular_enabled);
+    }
 
     if (cellular_enabled) {
       if (has_mobile_networks_) {
@@ -825,12 +787,6 @@ void NetworkListViewControllerImpl::UpdateMobileToggleAndSetStatusMessage() {
         return;
       }
 
-      // For QsRevamp: if `add_esim_entry_` is added, don't show the no mobile
-      // network label.
-      if (features::IsQsRevampEnabled() && ShouldAddESimEntry()) {
-        RemoveAndResetViewIfExists(&mobile_status_message_);
-        return;
-      }
       CreateInfoLabelIfMissingAndUpdate(IDS_ASH_STATUS_TRAY_NO_MOBILE_NETWORKS,
                                         &mobile_status_message_);
       return;
@@ -854,7 +810,6 @@ void NetworkListViewControllerImpl::UpdateMobileToggleAndSetStatusMessage() {
                                           /*animate_toggle=*/true);
       CreateInfoLabelIfMissingAndUpdate(
           IDS_ASH_STATUS_TRAY_INITIALIZING_CELLULAR, &mobile_status_message_);
-      network_detailed_network_view()->UpdateMobileStatus(true);
       return;
     }
     mobile_header_view_->SetToggleState(
@@ -863,9 +818,6 @@ void NetworkListViewControllerImpl::UpdateMobileToggleAndSetStatusMessage() {
     CreateInfoLabelIfMissingAndUpdate(
         IDS_ASH_STATUS_TRAY_ENABLING_MOBILE_ENABLES_BLUETOOTH,
         &mobile_status_message_);
-    // Updates the Mobile status to `true` so that the info label will be
-    // visible, although the toggle is off.
-    network_detailed_network_view()->UpdateMobileStatus(true);
     return;
   }
 
@@ -875,8 +827,6 @@ void NetworkListViewControllerImpl::UpdateMobileToggleAndSetStatusMessage() {
   mobile_header_view_->SetToggleState(/*enabled=*/!is_secondary_user,
                                       /*is_on=*/tether_enabled,
                                       /*animate_toggle=*/true);
-  network_detailed_network_view()->UpdateMobileStatus(tether_enabled);
-
   if (tether_enabled && !has_mobile_networks_) {
     CreateInfoLabelIfMissingAndUpdate(
         IDS_ASH_STATUS_TRAY_NO_MOBILE_DEVICES_FOUND, &mobile_status_message_);

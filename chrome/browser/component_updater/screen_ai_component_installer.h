@@ -24,8 +24,6 @@ class ScreenAIComponentInstallerPolicy : public ComponentInstallerPolicy {
 
   static void DeleteComponent();
 
-  static std::string GetOmahaId();
-
  private:
   // ComponentInstallerPolicy::
   bool SupportsGroupPolicyEnabledComponentUpdates() const override;

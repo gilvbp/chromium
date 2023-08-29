@@ -40,8 +40,7 @@ NssServiceFactory* NssServiceFactory::GetInstance() {
   return instance.get();
 }
 
-std::unique_ptr<KeyedService>
-NssServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* NssServiceFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
-  return std::make_unique<NssService>(context);
+  return new NssService(context);
 }

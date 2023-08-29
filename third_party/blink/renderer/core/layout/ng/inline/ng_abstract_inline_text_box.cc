@@ -229,11 +229,11 @@ NGAbstractInlineTextBox* NGAbstractInlineTextBox::NextInlineTextBox() const {
   return GetOrCreate(next);
 }
 
-PhysicalRect NGAbstractInlineTextBox::LocalBounds() const {
-  if (const NGInlineCursor& cursor = GetCursor()) {
-    return cursor.Current().RectInContainerFragment();
-  }
-  return PhysicalRect();
+LayoutRect NGAbstractInlineTextBox::LocalBounds() const {
+  const NGInlineCursor& cursor = GetCursor();
+  if (!cursor)
+    return LayoutRect();
+  return cursor.Current().RectInContainerFragment().ToLayoutRect();
 }
 
 unsigned NGAbstractInlineTextBox::Len() const {

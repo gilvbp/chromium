@@ -70,7 +70,7 @@ class CORE_EXPORT PerformanceNavigationTiming final
  private:
   friend class PerformanceNavigationTimingActivationStart;
 
-  static AtomicString GetNavigationTimingType(WebNavigationType);
+  static AtomicString GetNavigationType(WebNavigationType);
 
   const DocumentTiming* GetDocumentTiming() const;
 

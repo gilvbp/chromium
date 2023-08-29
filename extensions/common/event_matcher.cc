@@ -46,9 +46,8 @@ bool EventMatcher::MatchNonURLCriteria(
   if (event_info.has_window_exposed_by_default) {
     // An event with a |window_exposed_by_default| set is only
     // relevant to the listener if no window type filter is set.
-    if (GetWindowTypeCount() > 0) {
+    if (HasWindowTypes())
       return false;
-    }
     return event_info.window_exposed_by_default;
   }
 
@@ -107,6 +106,14 @@ bool EventMatcher::GetWindowType(int i, std::string* window_type_out) const {
     }
   }
   return false;
+}
+
+bool EventMatcher::HasWindowTypes() const {
+  return GetWindowTypeCount() != 0;
+}
+
+int EventMatcher::GetRoutingID() const {
+  return routing_id_;
 }
 
 }  // namespace extensions

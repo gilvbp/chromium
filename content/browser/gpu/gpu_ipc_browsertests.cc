@@ -306,7 +306,8 @@ IN_PROC_BROWSER_TEST_F(BrowserGpuChannelHostFactoryTest,
   attributes.bind_generates_resource = false;
 
   auto impl = std::make_unique<gpu::CommandBufferProxyImpl>(
-      GetGpuChannel(), content::kGpuStreamIdDefault,
+      GetGpuChannel(), GetFactory()->GetGpuMemoryBufferManager(),
+      content::kGpuStreamIdDefault,
       base::SingleThreadTaskRunner::GetCurrentDefault());
   ASSERT_EQ(
       impl->Initialize(gpu::kNullSurfaceHandle, nullptr,

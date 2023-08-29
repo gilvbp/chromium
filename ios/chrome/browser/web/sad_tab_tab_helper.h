@@ -7,13 +7,11 @@
 
 #import <Foundation/Foundation.h>
 
-#include "base/memory/weak_ptr.h"
 #include "base/time/time.h"
 #include "base/timer/elapsed_timer.h"
 #include "ios/web/public/web_state_observer.h"
 #import "ios/web/public/web_state_user_data.h"
 
-@class NotificationObserverBridge;
 @protocol SadTabTabHelperDelegate;
 
 // SadTabTabHelper listens to RenderProcessGone events and presents a
@@ -65,7 +63,12 @@ class SadTabTabHelper : public web::WebStateUserData<SadTabTabHelper>,
   void ReloadTab();
 
   // Called when the app becomes active.
-  void OnAppDidBecomeActive(NSNotification* notification);
+  void OnAppDidBecomeActive();
+
+  // Adds UIApplicationDidBecomeActiveNotification observer.
+  void AddApplicationDidBecomeActiveObserver();
+  // Removes UIApplicationDidBecomeActiveNotification observer.
+  void RemoveApplicationDidBecomeActiveObserver();
 
   // WebStateObserver:
   void WasShown(web::WebState* web_state) override;
@@ -109,10 +112,7 @@ class SadTabTabHelper : public web::WebStateUserData<SadTabTabHelper>,
   __weak id<SadTabTabHelperDelegate> delegate_ = nil;
 
   // Observer for UIApplicationDidBecomeActiveNotification.
-  __strong NotificationObserverBridge* application_did_become_active_observer_ =
-      nil;
-
-  base::WeakPtrFactory<SadTabTabHelper> weak_factory_{this};
+  __strong id<NSObject> application_did_become_active_observer_ = nil;
 
   WEB_STATE_USER_DATA_KEY_DECL();
 };

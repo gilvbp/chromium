@@ -35,9 +35,6 @@ public class CachedFlag extends Flag {
     /**
      * @deprecated This is the constructor for legacy CachedFlags that predate unifying them
      * under a SharedPreferences prefix.
-     *
-     * TODO(crbug.com/1446352): After Oct/2023, remove this constructor and migrate all usages to
-     * the constructor without |sharedPreferenceKey|.
      */
     @Deprecated
     public CachedFlag(String featureName, String sharedPreferenceKey, boolean defaultValue) {
@@ -122,28 +119,20 @@ public class CachedFlag extends Flag {
      */
     void cacheFeature() {
         boolean isEnabledInNative = ChromeFeatureList.isEnabled(mFeatureName);
-
         SharedPreferencesManager.getInstance().writeBoolean(
-                getNewSharedPreferenceKey(), isEnabledInNative);
-
-        // TODO(crbug.com/1446352): After Oct/2023, stop writing the legacy SharedPreferences key.
-        if (mLegacySharedPreferenceKey != null) {
-            SharedPreferencesManager.getInstance().writeBoolean(
-                    mLegacySharedPreferenceKey, isEnabledInNative);
-        }
+                getSharedPreferenceKey(), isEnabledInNative);
     }
 
-    private String getNewSharedPreferenceKey() {
-        return ChromePreferenceKeys.FLAGS_CACHED.createKey(mFeatureName);
+    @Nullable
+    String getLegacySharedPreferenceKey() {
+        return mLegacySharedPreferenceKey;
     }
 
     String getSharedPreferenceKey() {
-        // TODO(crbug.com/1446352): After Oct/2023, return the new SharedPreferences key and stop
-        // returning legacy keys.
         if (mLegacySharedPreferenceKey != null) {
             return mLegacySharedPreferenceKey;
         } else {
-            return getNewSharedPreferenceKey();
+            return ChromePreferenceKeys.FLAGS_CACHED.createKey(mFeatureName);
         }
     }
 
@@ -156,14 +145,12 @@ public class CachedFlag extends Flag {
         }
     }
 
+    @VisibleForTesting
     public static void resetDiskForTesting() {
         SharedPreferencesManager.getInstance().removeKeysWithPrefix(
                 ChromePreferenceKeys.FLAGS_CACHED);
-
-        // TODO(crbug.com/1446352): After Oct/2023, remove this since all legacy SharedPreferences
-        // keys will have been migrated to prefixed keys.
         for (Map.Entry<String, CachedFlag> e : ChromeFeatureList.sAllCachedFlags.entrySet()) {
-            String legacyPreferenceKey = e.getValue().mLegacySharedPreferenceKey;
+            String legacyPreferenceKey = e.getValue().getLegacySharedPreferenceKey();
             if (legacyPreferenceKey != null) {
                 SharedPreferencesManager.getInstance().removeKey(legacyPreferenceKey);
             }

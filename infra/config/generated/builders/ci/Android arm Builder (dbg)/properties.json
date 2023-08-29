@@ -7,7 +7,7 @@
             "builder_id": {
               "bucket": "ci",
               "builder": "Android arm Builder (dbg)",
-              "project": "chromium"
+              "project": "chromium-m116"
             },
             "builder_spec": {
               "build_gs_bucket": "chromium-android-archive",
@@ -18,7 +18,7 @@
               },
               "legacy_chromium_config": {
                 "apply_configs": [
-                  "download_xr_test_apks"
+                  "download_vr_test_apks"
                 ],
                 "build_config": "Debug",
                 "config": "android",
@@ -39,7 +39,7 @@
         {
           "bucket": "ci",
           "builder": "Android arm Builder (dbg)",
-          "project": "chromium"
+          "project": "chromium-m116"
         }
       ]
     }
@@ -47,8 +47,7 @@
   "$build/reclient": {
     "instance": "rbe-chromium-trusted",
     "jobs": 250,
-    "metrics_project": "chromium-reclient-metrics",
-    "scandeps_server": true
+    "metrics_project": "chromium-reclient-metrics"
   },
   "$recipe_engine/resultdb/test_presentation": {
     "column_keys": [],
@@ -60,6 +59,6 @@
   "builder_group": "chromium.android",
   "recipe": "chromium",
   "sheriff_rotations": [
-    "android"
+    "chrome_browser_release"
   ]
 }

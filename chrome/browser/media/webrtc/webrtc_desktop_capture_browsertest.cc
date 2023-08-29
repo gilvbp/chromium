@@ -307,14 +307,8 @@ class WebRtcDesktopCaptureBrowserTest : public WebRtcTestBase {
   FakeDesktopMediaPickerFactory picker_factory_;
 };
 
-// TODO(crbug.com/1449889): Fails on MAC.
-#if BUILDFLAG(IS_MAC)
-#define MAYBE_TabCaptureProvidesMinFps DISABLED_TabCaptureProvidesMinFps
-#else
-#define MAYBE_TabCaptureProvidesMinFps TabCaptureProvidesMinFps
-#endif
 IN_PROC_BROWSER_TEST_F(WebRtcDesktopCaptureBrowserTest,
-                       MAYBE_TabCaptureProvidesMinFps) {
+                       TabCaptureProvidesMinFps) {
   constexpr int kFps = 30;
   constexpr const char* const kFpsString = "30";
   constexpr int kTestTimeSeconds = 2;
@@ -407,7 +401,7 @@ IN_PROC_BROWSER_TEST_F(WebRtcDesktopCaptureBrowserTest,
 }
 
 // TODO(crbug.com/1450456) flaky on ASan bots
-#if defined(ADDRESS_SANITIZER) || defined(MEMORY_SANITIZER)
+#if defined(ADDRESS_SANITIZER)
 #define MAYBE_RunP2PScreenshareWhileSharingTab \
   DISABLED_RunP2PScreenshareWhileSharingTab
 #else

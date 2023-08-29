@@ -15,4 +15,3 @@ SafeBrowsing:
   - ClientSidePhishingProtectionAllowed
   - SafeBrowsingExtensionProtectionAllowed
   - SafeBrowsingProxiedRealTimeChecksAllowed
-  - SafeBrowsingSurveysEnabled

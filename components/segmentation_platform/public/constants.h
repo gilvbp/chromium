@@ -12,8 +12,6 @@
 
 namespace segmentation_platform {
 
-// SEGMENTATION_CLIENT_KEYS_BEGIN
-
 // The key to be used for adaptive toolbar feature.
 const char kAdaptiveToolbarSegmentationKey[] = "adaptive_toolbar";
 const char kAdaptiveToolbarUmaName[] = "AdaptiveToolbar";
@@ -100,24 +98,6 @@ const char kDeviceTierUmaName[] = "DeviceTier";
 const char kTabResumptionClassifierKey[] = "tab_resupmtion_classifier";
 const char kTabResumptionClassifierUmaName[] = "TabResumptionClassifier";
 
-const char kIosModuleRankerKey[] = "ios_module_ranker";
-const char kIosModuleRankerUmaName[] = "IosModuleRanker";
-
-// This key is used to decide what modules a user should see on their Desktop
-// New Tab Page.
-const char kDesktopNtpModuleKey[] = "desktop_ntp_module";
-const char kDesktopNtpModuleUmaName[] = "DesktopNtpModule";
-
-const char kOptimizationTargetSegmentationDummyKey[] = "segmentation_dummy";
-const char kOptimizationTargetSegmentationDummyUmaName[] = "SegmentationDummy";
-
-// SEGMENTATION_CLIENT_KEYS_END
-
-// Please keep the UMA names for keys in sync with SegmentationKey variant in
-// //tools/metrics/histograms/metadata/segmentation_platform/histograms.xml.
-// Should also update the field trials allowlist in
-// go/segmentation-field-trials-map.
-
 // Config parameter name specified in experiment configs. Any experiment config
 // or feature can include this param and segmentation will enable the config for
 // storing cached results.
@@ -135,12 +115,18 @@ constexpr char kVariationsParamNameUnknownSelectionTTLDays[] =
 
 const char kSubsegmentDiscreteMappingSuffix[] = "_subsegment";
 
+// Returns an UMA display string for the given `segmentation_key`.
+const char* SegmentationKeyToUmaName(const std::string& segmentation_key);
+
 // Returns an UMA histogram variant for the given segment_id.
-// TODO(ssid): Move this to stats.cc since, no need to be in public.
 std::string SegmentIdToHistogramVariant(proto::SegmentId segment_id);
 
 // Returns Subsegment key for the given `segmentation_key`.
 std::string GetSubsegmentKey(const std::string& segmentation_key);
+
+// Returns PredictorType for the given `segmentation_key`
+proto::Predictor::PredictorTypeCase GetClassifierType(
+    const std::string& segmentation_key);
 
 // TODO(shaktisahu): Move these to a nicer location.
 
@@ -165,7 +151,7 @@ const char kSearchUserModelLabelHigh[] = "High";
 
 // Labels for device tier model.
 // Any updates to these strings need to also update the field trials allowlist
-// in go/segmentation-field-trials-map.
+// in go/segmentation-field-trials-map.;
 const char kDeviceTierSegmentLabelNone[] = "None";
 const char kDeviceTierSegmentLabelLow[] = "Low";
 const char kDeviceTierSegmentLabelMedium[] = "Medium";
@@ -173,26 +159,10 @@ const char kDeviceTierSegmentLabelHigh[] = "High";
 
 // Labels for tablet productivity user model.
 // Any updates to these strings need to also update the field trials allowlist
-// in go/segmentation-field-trials-map.
+// in go/segmentation-field-trials-map.;
 const char kTabletProductivityUserModelLabelNone[] = "None";
 const char kTabletProductivityUserModelLabelMedium[] = "Medium";
 const char kTabletProductivityUserModelLabelHigh[] = "High";
-
-// Labels for IOS modules for ranking.
-const char kMostVisitedTiles[] = "MostVisitedTiles";
-const char kShortcuts[] = "Shortcuts";
-const char kSafetyCheck[] = "SafetyCheck";
-
-// Input Context keys for freshness for IOS modules.
-const char kMostVisitedTilesFreshness[] = "most_visited_tiles_freshness";
-const char kShortcutsFreshness[] = "shortcuts_freshness";
-const char kSafetyCheckFreshness[] = "safety_check_freshness";
-
-// Labels for desktop new tab page drive module model.
-// Any updates to these strings need to also update the field trials allowlist
-// in go/segmentation-field-trials-map.
-const char kDesktopNtpDriveModuleLabelShow[] = "show_drive";
-const char kDesktopNtpDriveModuleLabelDontShow[] = "dont_show_drive";
 
 // Custom inputs for contextual page actions model.
 const char kContextualPageActionModelInputPriceTracking[] = "can_track_price";

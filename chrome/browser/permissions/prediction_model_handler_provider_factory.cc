@@ -43,8 +43,7 @@ PredictionModelHandlerProviderFactory::PredictionModelHandlerProviderFactory()
 PredictionModelHandlerProviderFactory::
     ~PredictionModelHandlerProviderFactory() = default;
 
-std::unique_ptr<KeyedService>
-PredictionModelHandlerProviderFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* PredictionModelHandlerProviderFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   Profile* profile = Profile::FromBrowserContext(context);
   OptimizationGuideKeyedService* optimization_guide =
@@ -52,8 +51,7 @@ PredictionModelHandlerProviderFactory::BuildServiceInstanceForBrowserContext(
 
   if (!optimization_guide)
     return nullptr;
-  return std::make_unique<permissions::PredictionModelHandlerProvider>(
-      optimization_guide);
+  return new permissions::PredictionModelHandlerProvider(optimization_guide);
 }
 
 bool PredictionModelHandlerProviderFactory::ServiceIsCreatedWithBrowserContext()

@@ -14,9 +14,13 @@
 #import "ios/chrome/common/ui/colors/semantic_color_names.h"
 #import "ios/chrome/common/ui/util/constraints_ui_util.h"
 #import "ios/chrome/common/ui/util/ui_util.h"
-#import "ios/chrome/grit/ios_chromium_strings.h"
+#import "ios/chrome/grit/ios_google_chrome_strings.h"
 #import "ios/chrome/grit/ios_strings.h"
 #import "ui/base/l10n/l10n_util_mac.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace {
 
@@ -31,7 +35,7 @@ const CGFloat kContentBottomInset = 24.0f;
 const CGFloat kReducedContentBottomInset = 10.0f;
 
 // Vertical spacing between the content views.
-const CGFloat kContentVerticalSpacing = 16.0f;
+const float kContentVerticalSpacing = 20.0f;
 
 // The corner radius of this container.
 const float kCornerRadius = 24;
@@ -44,10 +48,8 @@ const int kModuleMaxHeight = 150;
 
 const CGFloat kSeparatorHeight = 0.5;
 
-// The horizontal trailing spacing between the top horizontal StackView
-// (containing the title and any subtitle/See More buttons) and the module's
-// overall vertical container StackView when there is none between the overall
-// vertical StackView and this container .
+// The margin spacing between the top horizontal StackView (containing the title
+// and "See More" button) and the module's overall vertical container StackView.
 const CGFloat kTitleStackViewTrailingMargin = 16.0f;
 
 }  // namespace
@@ -63,7 +65,6 @@ const CGFloat kTitleStackViewTrailingMargin = 16.0f;
   NSLayoutConstraint* _contentViewWidthAnchor;
   id<MagicStackModuleContainerDelegate> _delegate;
   UILabel* _title;
-  UILabel* _subtitle;
 }
 
 - (instancetype)initWithType:(ContentSuggestionsModuleType)type {
@@ -106,16 +107,7 @@ const CGFloat kTitleStackViewTrailingMargin = 16.0f;
     _title.accessibilityTraits |= UIAccessibilityTraitHeader;
     _title.accessibilityIdentifier =
         [MagicStackModuleContainer titleStringForModule:type];
-    [_title setContentHuggingPriority:UILayoutPriorityDefaultLow
-                              forAxis:UILayoutConstraintAxisHorizontal];
     [titleStackView addArrangedSubview:_title];
-    // `setContentHuggingPriority:` does not guarantee that titleStackView
-    // completely resists vertical expansion since UIStackViews do not have
-    // intrinsic contentSize. Constraining the title label to the StackView will
-    // ensure contentView expands.
-    [NSLayoutConstraint activateConstraints:@[
-      [_title.bottomAnchor constraintEqualToAnchor:titleStackView.bottomAnchor]
-    ]];
 
     if ([self shouldShowSeeMore]) {
       UIButton* showMoreButton = [[UIButton alloc] init];
@@ -129,8 +121,6 @@ const CGFloat kTitleStackViewTrailingMargin = 16.0f;
       showMoreButton.titleLabel.numberOfLines = 2;
       showMoreButton.titleLabel.lineBreakMode = NSLineBreakByWordWrapping;
       showMoreButton.titleLabel.adjustsFontForContentSizeCategory = YES;
-      showMoreButton.contentHorizontalAlignment =
-          UIControlContentHorizontalAlignmentTrailing;
       [showMoreButton
           setContentCompressionResistancePriority:UILayoutPriorityRequired
                                           forAxis:
@@ -138,32 +128,7 @@ const CGFloat kTitleStackViewTrailingMargin = 16.0f;
       [showMoreButton addTarget:self
                          action:@selector(seeMoreButtonWasTapped:)
                forControlEvents:UIControlEventTouchUpInside];
-      [showMoreButton
-          setContentHuggingPriority:UILayoutPriorityDefaultHigh
-                            forAxis:UILayoutConstraintAxisHorizontal];
       [titleStackView addArrangedSubview:showMoreButton];
-    } else if ([self shouldShowSubtitle]) {
-      // TODO(crbug.com/1474992): Update MagicStackModuleContainer to take an id
-      // config in its initializer so the container can build itself from a
-      // passed config/state object.
-      NSString* subtitle = [delegate subtitleStringForModule:type];
-
-      _subtitle = [[UILabel alloc] init];
-      _subtitle.text = subtitle;
-      _subtitle.font = [MagicStackModuleContainer fontForSubtitle];
-      _subtitle.textColor = [UIColor colorNamed:kTextSecondaryColor];
-      _subtitle.numberOfLines = 0;
-      _subtitle.lineBreakMode = NSLineBreakByWordWrapping;
-      _subtitle.accessibilityTraits |= UIAccessibilityTraitHeader;
-      _subtitle.accessibilityIdentifier = subtitle;
-      [_subtitle setContentHuggingPriority:UILayoutPriorityRequired
-                                   forAxis:UILayoutConstraintAxisHorizontal];
-      [_subtitle
-          setContentCompressionResistancePriority:UILayoutPriorityRequired
-                                          forAxis:
-                                              UILayoutConstraintAxisHorizontal];
-
-      [titleStackView addArrangedSubview:_subtitle];
     }
 
     UIStackView* stackView = [[UIStackView alloc] init];
@@ -175,17 +140,12 @@ const CGFloat kTitleStackViewTrailingMargin = 16.0f;
     [stackView addSubview:contentView];
     if ([_title.text length] > 0) {
       [stackView addArrangedSubview:titleStackView];
-      // Ensure that there is horizontal trailing spacing between the title
-      // stackview content and the module. The overall StackView has no trailing
-      // spacing for kCompactedSetUpList.
-      CGFloat trailingSpacing =
-          _type == ContentSuggestionsModuleType::kCompactedSetUpList
-              ? -kTitleStackViewTrailingMargin
-              : 0;
+      // Add constraints to the title so that it doesn't grow wider than the
+      // content view when dynamic type is set very large.
       [NSLayoutConstraint activateConstraints:@[
-        [titleStackView.trailingAnchor
-            constraintEqualToAnchor:stackView.trailingAnchor
-                           constant:trailingSpacing],
+        [titleStackView.widthAnchor
+            constraintEqualToAnchor:contentView.widthAnchor
+                           constant:-kTitleStackViewTrailingMargin],
       ]];
     }
     if ([self shouldShowSeparator]) {
@@ -210,25 +170,17 @@ const CGFloat kTitleStackViewTrailingMargin = 16.0f;
     _contentViewWidthAnchor = [contentView.widthAnchor
         constraintEqualToConstant:[self contentViewWidth]];
     [NSLayoutConstraint activateConstraints:@[ _contentViewWidthAnchor ]];
-    // Configures `contentView` to be the view willing to expand if needed to
-    // fill extra vertical space in the container.
-    [contentView
-        setContentCompressionResistancePriority:UILayoutPriorityDefaultLow
-                                        forAxis:UILayoutConstraintAxisVertical];
-    // Ensures that the modules conforms to a height of kModuleMaxHeight. For
-    // the MVT when it lives outside of the Magic Stack to stay as close to its
-    // intrinsic size as possible, the constraint is configured to be less than
-    // or equal to.
-    if (_type == ContentSuggestionsModuleType::kMostVisited &&
-        !ShouldPutMostVisitedSitesInMagicStack()) {
-      [NSLayoutConstraint activateConstraints:@[
-        [self.heightAnchor constraintLessThanOrEqualToConstant:kModuleMaxHeight]
-      ]];
-    } else {
-      [NSLayoutConstraint activateConstraints:@[
-        [self.heightAnchor constraintEqualToConstant:kModuleMaxHeight]
-      ]];
-    }
+    // Ensures that the modules do not become larger than kModuleMaxHeight. The
+    // less than or equal to constraint coupled with a UIViewNoIntrinsicMetric
+    // vertical intrinsic content size declaration allows for it to still
+    // vertically shrink to intrinsic content size. In practice, the largest
+    // module will determine the height of all the modules, but it should not
+    // grow taller than kModuleMaxHeight. The less than or equal to
+    // configuration is for the MVT when it lives outside of the Magic Stack to
+    // stay as close to its intrinsic size as possible.
+    [NSLayoutConstraint activateConstraints:@[
+      [self.heightAnchor constraintLessThanOrEqualToConstant:kModuleMaxHeight]
+    ]];
 
     [self addSubview:stackView];
     AddSameConstraintsWithInsets(stackView, self, [self contentMargins]);
@@ -254,18 +206,12 @@ const CGFloat kTitleStackViewTrailingMargin = 16.0f;
             IDS_IOS_CONTENT_SUGGESTIONS_MOST_VISITED_MODULE_TITLE);
       }
       return @"";
-    case ContentSuggestionsModuleType::kTabResumption:
-      return l10n_util::GetNSString(IDS_IOS_TAB_RESUMPTION_TITLE);
     case ContentSuggestionsModuleType::kSetUpListSync:
     case ContentSuggestionsModuleType::kSetUpListDefaultBrowser:
     case ContentSuggestionsModuleType::kSetUpListAutofill:
     case ContentSuggestionsModuleType::kCompactedSetUpList:
     case ContentSuggestionsModuleType::kSetUpListAllSet:
       return l10n_util::GetNSString(IDS_IOS_SET_UP_LIST_TITLE);
-    case ContentSuggestionsModuleType::kSafetyCheck:
-    case ContentSuggestionsModuleType::kSafetyCheckMultiRow:
-    case ContentSuggestionsModuleType::kSafetyCheckMultiRowOverflow:
-      return l10n_util::GetNSString(IDS_IOS_SAFETY_CHECK_TITLE);
     default:
       NOTREACHED();
       return @"";
@@ -274,10 +220,6 @@ const CGFloat kTitleStackViewTrailingMargin = 16.0f;
 
 + (UIFont*)fontForTitle {
   return CreateDynamicFont(UIFontTextStyleFootnote, UIFontWeightSemibold);
-}
-
-+ (UIFont*)fontForSubtitle {
-  return CreateDynamicFont(UIFontTextStyleFootnote, UIFontWeightRegular);
 }
 
 - (NSDirectionalEdgeInsets)contentMargins {
@@ -290,8 +232,6 @@ const CGFloat kTitleStackViewTrailingMargin = 16.0f;
       break;
     case ContentSuggestionsModuleType::kMostVisited:
     case ContentSuggestionsModuleType::kShortcuts:
-    case ContentSuggestionsModuleType::kSafetyCheckMultiRow:
-    case ContentSuggestionsModuleType::kSafetyCheckMultiRowOverflow:
       contentMargins.bottom = kReducedContentBottomInset;
       break;
     default:
@@ -384,20 +324,9 @@ const CGFloat kTitleStackViewTrailingMargin = 16.0f;
   }
 }
 
-- (BOOL)shouldShowSubtitle {
-  switch (_type) {
-    case ContentSuggestionsModuleType::kSafetyCheck:
-    case ContentSuggestionsModuleType::kSafetyCheckMultiRow:
-      return YES;
-    default:
-      return NO;
-  }
-}
-
 - (BOOL)shouldShowSeeMore {
   switch (_type) {
     case ContentSuggestionsModuleType::kCompactedSetUpList:
-    case ContentSuggestionsModuleType::kSafetyCheckMultiRowOverflow:
       return YES;
     default:
       return NO;
@@ -410,7 +339,6 @@ const CGFloat kTitleStackViewTrailingMargin = 16.0f;
     case ContentSuggestionsModuleType::kSetUpListDefaultBrowser:
     case ContentSuggestionsModuleType::kSetUpListAutofill:
     case ContentSuggestionsModuleType::kSetUpListAllSet:
-    case ContentSuggestionsModuleType::kSafetyCheck:
       return YES;
     default:
       return NO;

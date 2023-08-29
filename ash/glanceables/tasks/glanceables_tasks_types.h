@@ -45,8 +45,7 @@ struct ASH_EXPORT GlanceablesTask {
                   bool completed,
                   const absl::optional<base::Time>& due,
                   bool has_subtasks,
-                  bool has_email_link,
-                  bool has_notes);
+                  bool has_email_link);
   GlanceablesTask(const GlanceablesTask&) = delete;
   GlanceablesTask& operator=(const GlanceablesTask&) = delete;
   ~GlanceablesTask();
@@ -69,9 +68,6 @@ struct ASH_EXPORT GlanceablesTask {
 
   // Indicates whether the task has an attached email link.
   const bool has_email_link;
-
-  // Indicates whether the task has additional notes.
-  const bool has_notes;
 };
 
 }  // namespace ash

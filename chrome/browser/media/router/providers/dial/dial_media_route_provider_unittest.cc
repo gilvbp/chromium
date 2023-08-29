@@ -112,7 +112,7 @@ class DialMediaRouteProviderTest : public ::testing::Test {
     activity_manager_ = activity_manager.get();
     provider_->SetActivityManagerForTest(std::move(activity_manager));
 
-    task_environment_.RunUntilIdle();
+    base::RunLoop().RunUntilIdle();
 
     // Observe media routes in order for DialMediaRouteProvider to send back
     // route updates.
@@ -160,7 +160,7 @@ class DialMediaRouteProviderTest : public ::testing::Test {
         base::BindOnce(&DialMediaRouteProviderTest::ExpectRouteResult,
                        base::Unretained(this),
                        mojom::RouteRequestResultCode::OK));
-    task_environment_.RunUntilIdle();
+    base::RunLoop().RunUntilIdle();
   }
 
   void TestCreateRoute() {
@@ -178,7 +178,7 @@ class DialMediaRouteProviderTest : public ::testing::Test {
             received_messages.emplace_back(std::move(message));
         });
     provider_->StartListeningForRouteMessages(route_->media_route_id());
-    task_environment_.RunUntilIdle();
+    base::RunLoop().RunUntilIdle();
 
     // RECEIVER_ACTION and NEW_SESSION messages are sent from MRP to page when
     // |provider_->CreateRoute()| succeeds.
@@ -228,7 +228,7 @@ class DialMediaRouteProviderTest : public ::testing::Test {
     EXPECT_CALL(*mock_sink_service_.app_discovery_service(),
                 DoFetchDialAppInfo(_, _));
     provider_->SendRouteMessage(route_id, kClientConnectMessage);
-    task_environment_.RunUntilIdle();
+    base::RunLoop().RunUntilIdle();
     auto app_info_cb =
         mock_sink_service_.app_discovery_service()->PassCallback();
     ASSERT_FALSE(app_info_cb.is_null());
@@ -246,7 +246,7 @@ class DialMediaRouteProviderTest : public ::testing::Test {
              DialAppInfoResult(
                  CreateParsedDialAppInfoPtr("YouTube", DialAppState::kStopped),
                  DialAppInfoResultCode::kOk));
-    task_environment_.RunUntilIdle();
+    base::RunLoop().RunUntilIdle();
     ASSERT_EQ(1u, received_messages.size());
     ExpectDialInternalMessageType(received_messages[0],
                                   DialInternalMessageType::kCustomDialLaunch);
@@ -283,7 +283,7 @@ class DialMediaRouteProviderTest : public ::testing::Test {
     provider_->SendRouteMessage(
         route_id, base::StringPrintf(kCustomDialLaunchMessage,
                                      custom_dial_launch_seq_number_));
-    task_environment_.RunUntilIdle();
+    base::RunLoop().RunUntilIdle();
 
     // Simulate a successful launch response.
     app_instance_url_ = GURL(app_launch_url_.spec() + "/run");
@@ -295,7 +295,7 @@ class DialMediaRouteProviderTest : public ::testing::Test {
     std::vector<MediaRoute> routes;
     EXPECT_CALL(mock_router_, OnRoutesUpdated(_, Not(IsEmpty())))
         .WillOnce(SaveArg<1>(&routes));
-    task_environment_.RunUntilIdle();
+    base::RunLoop().RunUntilIdle();
 
     ASSERT_EQ(1u, routes.size());
     EXPECT_EQ(routes[0], *route_);
@@ -370,7 +370,7 @@ class DialMediaRouteProviderTest : public ::testing::Test {
         OnPresentationConnectionStateChanged(
             route_id, blink::mojom::PresentationConnectionState::TERMINATED));
     EXPECT_CALL(mock_router_, OnRoutesUpdated(_, IsEmpty()));
-    task_environment_.RunUntilIdle();
+    base::RunLoop().RunUntilIdle();
 
     ASSERT_EQ(1u, received_messages.size());
     ExpectDialInternalMessageType(received_messages[0],
@@ -398,7 +398,7 @@ class DialMediaRouteProviderTest : public ::testing::Test {
     provider_->TerminateRoute(
         route_id, base::BindOnce(&DialMediaRouteProviderTest::OnTerminateRoute,
                                  base::Unretained(this)));
-    task_environment_.RunUntilIdle();
+    base::RunLoop().RunUntilIdle();
 
     // The DialActivityManager requests to confirm the state of the app, so we
     // tell it that the app is still running.
@@ -407,7 +407,7 @@ class DialMediaRouteProviderTest : public ::testing::Test {
         DialAppInfoResult(
             CreateParsedDialAppInfoPtr("YouTube", DialAppState::kRunning),
             DialAppInfoResultCode::kOk));
-    task_environment_.RunUntilIdle();
+    base::RunLoop().RunUntilIdle();
   }
 
   MOCK_METHOD2(OnTerminateRoute,
@@ -415,9 +415,7 @@ class DialMediaRouteProviderTest : public ::testing::Test {
                     mojom::RouteRequestResultCode));
 
  protected:
-  content::BrowserTaskEnvironment task_environment_{
-      base::test::TaskEnvironment::ThreadPoolExecutionMode::QUEUED};
-
+  content::BrowserTaskEnvironment task_environment_;
   data_decoder::test::InProcessDataDecoder in_process_data_decoder_;
 
   network::TestURLLoaderFactory loader_factory_;
@@ -457,7 +455,7 @@ TEST_F(DialMediaRouteProviderTest, AddRemoveSinkQuery) {
               OnSinksReceived(mojom::MediaRouteProviderId::DIAL, youtube_source,
                               IsEmpty(), youtube_origins));
   provider_->StartObservingMediaSinks(youtube_source);
-  task_environment_.RunUntilIdle();
+  base::RunLoop().RunUntilIdle();
 
   MediaSinkInternal sink = CreateDialSink(1);
   std::vector<MediaSinkInternal> sinks = {sink};
@@ -467,12 +465,12 @@ TEST_F(DialMediaRouteProviderTest, AddRemoveSinkQuery) {
               OnSinksReceived(mojom::MediaRouteProviderId::DIAL, youtube_source,
                               sinks, youtube_origins));
   mock_sink_service_.NotifyAvailableSinks("YouTube");
-  task_environment_.RunUntilIdle();
+  base::RunLoop().RunUntilIdle();
 
   EXPECT_CALL(mock_router_, OnSinksReceived(_, _, _, _)).Times(0);
   provider_->StopObservingMediaSinks(youtube_source);
   mock_sink_service_.NotifyAvailableSinks("YouTube");
-  task_environment_.RunUntilIdle();
+  base::RunLoop().RunUntilIdle();
 }
 
 TEST_F(DialMediaRouteProviderTest, AddSinkQuerySameMediaSource) {
@@ -482,7 +480,7 @@ TEST_F(DialMediaRouteProviderTest, AddSinkQuerySameMediaSource) {
   EXPECT_CALL(mock_router_, OnSinksReceived(mojom::MediaRouteProviderId::DIAL,
                                             youtube_source, IsEmpty(), _));
   provider_->StartObservingMediaSinks(youtube_source);
-  task_environment_.RunUntilIdle();
+  base::RunLoop().RunUntilIdle();
 
   EXPECT_CALL(mock_sink_service_, DoStartMonitoringAvailableSinksForApp(_))
       .Times(0);
@@ -490,13 +488,13 @@ TEST_F(DialMediaRouteProviderTest, AddSinkQuerySameMediaSource) {
               OnSinksReceived(mojom::MediaRouteProviderId::DIAL, _, _, _))
       .Times(0);
   provider_->StartObservingMediaSinks(youtube_source);
-  task_environment_.RunUntilIdle();
+  base::RunLoop().RunUntilIdle();
 
   EXPECT_CALL(mock_router_, OnSinksReceived(_, _, _, _)).Times(0);
   provider_->StopObservingMediaSinks(youtube_source);
   provider_->StopObservingMediaSinks(youtube_source);
   mock_sink_service_.NotifyAvailableSinks("YouTube");
-  task_environment_.RunUntilIdle();
+  base::RunLoop().RunUntilIdle();
 }
 
 TEST_F(DialMediaRouteProviderTest,
@@ -508,7 +506,7 @@ TEST_F(DialMediaRouteProviderTest,
   EXPECT_CALL(mock_router_, OnSinksReceived(mojom::MediaRouteProviderId::DIAL,
                                             youtube_source1, IsEmpty(), _));
   provider_->StartObservingMediaSinks(youtube_source1);
-  task_environment_.RunUntilIdle();
+  base::RunLoop().RunUntilIdle();
 
   MediaSinkInternal sink = CreateDialSink(1);
   std::vector<MediaSinkInternal> sinks = {sink};
@@ -522,25 +520,25 @@ TEST_F(DialMediaRouteProviderTest,
   EXPECT_CALL(mock_router_, OnSinksReceived(mojom::MediaRouteProviderId::DIAL,
                                             youtube_source2, sinks, _));
   provider_->StartObservingMediaSinks(youtube_source2);
-  task_environment_.RunUntilIdle();
+  base::RunLoop().RunUntilIdle();
 
   EXPECT_CALL(mock_router_, OnSinksReceived(mojom::MediaRouteProviderId::DIAL,
                                             youtube_source1, sinks, _));
   EXPECT_CALL(mock_router_, OnSinksReceived(mojom::MediaRouteProviderId::DIAL,
                                             youtube_source2, sinks, _));
   mock_sink_service_.NotifyAvailableSinks("YouTube");
-  task_environment_.RunUntilIdle();
+  base::RunLoop().RunUntilIdle();
 
   provider_->StopObservingMediaSinks(youtube_source1);
   EXPECT_CALL(mock_router_, OnSinksReceived(mojom::MediaRouteProviderId::DIAL,
                                             youtube_source2, sinks, _));
   mock_sink_service_.NotifyAvailableSinks("YouTube");
-  task_environment_.RunUntilIdle();
+  base::RunLoop().RunUntilIdle();
 
   provider_->StopObservingMediaSinks(youtube_source2);
   EXPECT_CALL(mock_router_, OnSinksReceived(_, _, _, _)).Times(0);
   mock_sink_service_.NotifyAvailableSinks("YouTube");
-  task_environment_.RunUntilIdle();
+  base::RunLoop().RunUntilIdle();
 }
 
 TEST_F(DialMediaRouteProviderTest, AddSinkQueryDifferentApps) {
@@ -551,14 +549,14 @@ TEST_F(DialMediaRouteProviderTest, AddSinkQueryDifferentApps) {
   EXPECT_CALL(mock_router_, OnSinksReceived(mojom::MediaRouteProviderId::DIAL,
                                             youtube_source, IsEmpty(), _));
   provider_->StartObservingMediaSinks(youtube_source);
-  task_environment_.RunUntilIdle();
+  base::RunLoop().RunUntilIdle();
 
   EXPECT_CALL(mock_sink_service_,
               DoStartMonitoringAvailableSinksForApp("Netflix"));
   EXPECT_CALL(mock_router_, OnSinksReceived(mojom::MediaRouteProviderId::DIAL,
                                             netflix_source, IsEmpty(), _));
   provider_->StartObservingMediaSinks(netflix_source);
-  task_environment_.RunUntilIdle();
+  base::RunLoop().RunUntilIdle();
 
   MediaSinkInternal sink = CreateDialSink(1);
   std::vector<MediaSinkInternal> sinks = {sink};
@@ -566,13 +564,13 @@ TEST_F(DialMediaRouteProviderTest, AddSinkQueryDifferentApps) {
   EXPECT_CALL(mock_router_, OnSinksReceived(mojom::MediaRouteProviderId::DIAL,
                                             youtube_source, sinks, _));
   mock_sink_service_.NotifyAvailableSinks("YouTube");
-  task_environment_.RunUntilIdle();
+  base::RunLoop().RunUntilIdle();
 
   mock_sink_service_.SetAvailableSinks("Netflix", sinks);
   EXPECT_CALL(mock_router_, OnSinksReceived(mojom::MediaRouteProviderId::DIAL,
                                             netflix_source, sinks, _));
   mock_sink_service_.NotifyAvailableSinks("Netflix");
-  task_environment_.RunUntilIdle();
+  base::RunLoop().RunUntilIdle();
 
   provider_->StopObservingMediaSinks(youtube_source);
   provider_->StopObservingMediaSinks(netflix_source);
@@ -580,7 +578,7 @@ TEST_F(DialMediaRouteProviderTest, AddSinkQueryDifferentApps) {
   EXPECT_CALL(mock_router_, OnSinksReceived(_, _, _, _)).Times(0);
   mock_sink_service_.NotifyAvailableSinks("YouTube");
   mock_sink_service_.NotifyAvailableSinks("Netflix");
-  task_environment_.RunUntilIdle();
+  base::RunLoop().RunUntilIdle();
 }
 
 TEST_F(DialMediaRouteProviderTest, ListenForRouteMessages) {
@@ -590,7 +588,7 @@ TEST_F(DialMediaRouteProviderTest, ListenForRouteMessages) {
   auto& message_sender = provider_->message_sender_;
   EXPECT_CALL(mock_router_, OnRouteMessagesReceived(_, _)).Times(0);
   message_sender->SendMessages(route_id, std::move(messages1));
-  task_environment_.RunUntilIdle();
+  base::RunLoop().RunUntilIdle();
 
   EXPECT_CALL(mock_router_, OnRouteMessagesReceived(route_id, _))
       .WillOnce([&](const auto& route_id, auto messages) {
@@ -600,7 +598,7 @@ TEST_F(DialMediaRouteProviderTest, ListenForRouteMessages) {
       });
 
   provider_->StartListeningForRouteMessages(route_id);
-  task_environment_.RunUntilIdle();
+  base::RunLoop().RunUntilIdle();
 
   EXPECT_CALL(mock_router_, OnRouteMessagesReceived(route_id, _))
       .WillOnce([&](const auto& route_id, auto messages) {
@@ -612,7 +610,7 @@ TEST_F(DialMediaRouteProviderTest, ListenForRouteMessages) {
   std::vector<RouteMessagePtr> messages2;
   messages2.emplace_back(message_util::RouteMessageFromString("message2"));
   message_sender->SendMessages(route_id, std::move(messages2));
-  task_environment_.RunUntilIdle();
+  base::RunLoop().RunUntilIdle();
 
   provider_->StopListeningForRouteMessages(route_id);
   EXPECT_CALL(mock_router_, OnRouteMessagesReceived(_, _)).Times(0);
@@ -620,7 +618,7 @@ TEST_F(DialMediaRouteProviderTest, ListenForRouteMessages) {
   std::vector<RouteMessagePtr> messages3;
   messages3.emplace_back(message_util::RouteMessageFromString("message3"));
   message_sender->SendMessages(route_id, std::move(messages3));
-  task_environment_.RunUntilIdle();
+  base::RunLoop().RunUntilIdle();
 }
 
 TEST_F(DialMediaRouteProviderTest, CreateRoute) {
@@ -686,7 +684,7 @@ TEST_F(DialMediaRouteProviderTest, CreateRouteTerminatesExistingRoute) {
         }
       });
   provider_->StartListeningForRouteMessages(route_->media_route_id());
-  task_environment_.RunUntilIdle();
+  base::RunLoop().RunUntilIdle();
 
   // Verify received route message.
   ASSERT_EQ(2u, received_messages.size());
@@ -712,7 +710,7 @@ TEST_F(DialMediaRouteProviderTest, CreateRouteTerminatesExistingRoute) {
       base::BindOnce(&DialMediaRouteProviderTest::ExpectRouteResult,
                      base::Unretained(this),
                      mojom::RouteRequestResultCode::OK));
-  task_environment_.RunUntilIdle();
+  base::RunLoop().RunUntilIdle();
 
   // Verify that the new route is created with a different presentation_id.
   EXPECT_EQ(presentation_id_2, route_->presentation_id());
@@ -763,7 +761,7 @@ TEST_F(DialMediaRouteProviderTest, GetDialAppinfoExtraData) {
               DoFetchDialAppInfo(_, _));
   provider_->SendRouteMessage(
       route_id, base::StringPrintf(kDialAppInfoRequestMessage, seq_number));
-  task_environment_.RunUntilIdle();
+  base::RunLoop().RunUntilIdle();
   auto app_info_cb = mock_sink_service_.app_discovery_service()->PassCallback();
   ASSERT_FALSE(app_info_cb.is_null());
 
@@ -794,7 +792,7 @@ TEST_F(DialMediaRouteProviderTest, GetDialAppinfoExtraData) {
                   *message.FindStringByDottedPath(
                       "message.extraData.additionalKey2"));
       });
-  task_environment_.RunUntilIdle();
+  base::RunLoop().RunUntilIdle();
 }
 
 }  // namespace media_router

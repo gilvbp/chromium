@@ -93,10 +93,6 @@ class TestDeviceEventDispatcherEvdev : public DeviceEventDispatcherEvdev {
     event_factory_evdev_->DispatchTouchpadDevicesUpdated(devices,
                                                          has_haptic_touchpad);
   }
-  void DispatchGraphicsTabletDevicesUpdated(
-      const std::vector<InputDevice>& devices) override {
-    event_factory_evdev_->DispatchGraphicsTabletDevicesUpdated(devices);
-  }
   void DispatchUncategorizedDevicesUpdated(
       const std::vector<InputDevice>& devices) override {
     event_factory_evdev_->DispatchUncategorizedDevicesUpdated(devices);
@@ -106,9 +102,6 @@ class TestDeviceEventDispatcherEvdev : public DeviceEventDispatcherEvdev {
   }
   void DispatchStylusStateChanged(StylusState stylus_state) override {
     event_factory_evdev_->DispatchStylusStateChanged(stylus_state);
-  }
-  void DispatchAnyKeysPressedUpdated(bool any) override {
-    event_factory_evdev_->DispatchAnyKeysPressedUpdated(any);
   }
 
   void DispatchGamepadEvent(const GamepadEvent& event) override {

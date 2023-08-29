@@ -7,8 +7,19 @@
 
 #include "build/build_config.h"
 #include "build/chromeos_buildflags.h"
-#include "content/public/browser/notification_types.h"
 #include "extensions/buildflags/buildflags.h"
+
+#if BUILDFLAG(ENABLE_EXTENSIONS)
+#include "extensions/browser/notification_types.h"
+#else
+#include "content/public/browser/notification_types.h"
+#endif
+
+#if BUILDFLAG(ENABLE_EXTENSIONS)
+#define PREVIOUS_END extensions::NOTIFICATION_EXTENSIONS_END
+#else
+#define PREVIOUS_END content::NOTIFICATION_CONTENT_END
+#endif
 
 // **
 // ** NOTICE
@@ -24,7 +35,7 @@
 namespace chrome {
 
 enum NotificationType {
-  NOTIFICATION_CHROME_START = content::NOTIFICATION_CONTENT_END,
+  NOTIFICATION_CHROME_START = PREVIOUS_END,
 
   // Authentication ----------------------------------------------------------
 

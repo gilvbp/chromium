@@ -3,13 +3,11 @@
 // found in the LICENSE file.
 
 #include "components/supervised_user/core/browser/permission_request_creator_impl.h"
-
 #include <memory>
-#include <utility>
 
+#include "base/check.h"
 #include "base/functional/bind.h"
 #include "base/functional/callback.h"
-#include "components/supervised_user/core/browser/fetcher_config.h"
 #include "components/supervised_user/core/browser/proto/kidschromemanagement_messages.pb.h"
 #include "components/supervised_user/core/browser/proto_fetcher.h"
 
@@ -48,6 +46,8 @@ void OnFailure(ProtoFetcherStatus error,
 }
 
 void OnResponse(
+    std::unique_ptr<DeferredProtoFetcher<
+        kids_chrome_management::CreatePermissionRequestResponse>> fetcher,
     PermissionRequestCreator::SuccessCallback callback,
     ProtoFetcherStatus status,
     std::unique_ptr<kids_chrome_management::CreatePermissionRequestResponse>
@@ -58,29 +58,15 @@ void OnResponse(
   }
   OnSuccess(*response, std::move(callback));
 }
-
-// Flips order of arguments so that the sole unbound argument will be the
-// request.
-std::unique_ptr<DeferredProtoFetcher<
-    kids_chrome_management::CreatePermissionRequestResponse>>
-FetcherFactory(
-    signin::IdentityManager* identity_manager,
-    scoped_refptr<network::SharedURLLoaderFactory> url_loader_factory,
-    const FetcherConfig& config,
-    const kids_chrome_management::PermissionRequest& request) {
-  return CreatePermissionRequestFetcher(*identity_manager, url_loader_factory,
-                                        request, config);
-}
-
 }  // namespace
 
 PermissionRequestCreatorImpl::PermissionRequestCreatorImpl(
     signin::IdentityManager* identity_manager,
     scoped_refptr<network::SharedURLLoaderFactory> url_loader_factory)
-    : fetch_manager_(base::BindRepeating(&FetcherFactory,
-                                         identity_manager,
-                                         url_loader_factory,
-                                         kCreatePermissionRequestConfig)) {}
+    : identity_manager_(identity_manager),
+      url_loader_factory_(url_loader_factory) {
+  CHECK(identity_manager);
+}
 
 PermissionRequestCreatorImpl::~PermissionRequestCreatorImpl() = default;
 
@@ -98,8 +84,17 @@ void PermissionRequestCreatorImpl::CreateURLAccessRequest(
   request.set_event_type(
       kids_chrome_management::FamilyEventType::PERMISSION_CHROME_URL);
 
-  fetch_manager_.Fetch(request,
-                       base::BindOnce(&OnResponse, std::move(callback)));
+  std::unique_ptr<DeferredProtoFetcher<
+      kids_chrome_management::CreatePermissionRequestResponse>>
+      fetcher = CreatePermissionRequestFetcher(*identity_manager_,
+                                               url_loader_factory_, request);
+
+  auto* fetcher_ptr = fetcher.get();
+  fetcher_ptr->Start(
+      base::BindOnce(&OnResponse,
+                     // The fetcher is bound to ensure its lifetime, but is not
+                     // used in the response processing.
+                     std::move(fetcher), std::move(callback)));
 }
 
 }  // namespace supervised_user

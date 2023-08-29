@@ -12,6 +12,10 @@
 #import "ios/chrome/browser/shared/model/browser_state/chrome_browser_state.h"
 #import "ios/chrome/browser/shared/model/browser_state/chrome_browser_state_manager.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 IncognitoWebStateObserver::IncognitoWebStateObserver() {
   std::vector<ChromeBrowserState*> browser_states =
       GetApplicationContext()
@@ -37,12 +41,12 @@ IncognitoWebStateObserver::Observer::~Observer() {}
 
 #pragma mark - WebStateListObserver
 
-void IncognitoWebStateObserver::Observer::WebStateListDidChange(
+void IncognitoWebStateObserver::Observer::WebStateListChanged(
     WebStateList* web_state_list,
     const WebStateListChange& change,
-    const WebStateListStatus& status) {
+    const WebStateSelection& selection) {
   switch (change.type()) {
-    case WebStateListChange::Type::kStatusOnly:
+    case WebStateListChange::Type::kSelectionOnly:
       // Do nothing when a WebState is selected and its status is updated.
       break;
     case WebStateListChange::Type::kDetach:

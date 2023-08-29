@@ -10,7 +10,6 @@
 #include "base/functional/callback_forward.h"
 #include "base/memory/scoped_refptr.h"
 #include "base/memory/weak_ptr.h"
-#include "base/sequence_checker.h"
 #include "chrome/updater/app/server/posix/mojom/updater_service_internal.mojom.h"
 #include "chrome/updater/update_service_internal.h"
 #include "chrome/updater/updater_scope.h"
@@ -24,21 +23,18 @@ class IsolatedConnection;
 
 namespace updater {
 
-using RpcError = int;
-
-class UpdateServiceInternalProxyImpl
-    : public base::RefCountedThreadSafe<UpdateServiceInternalProxyImpl> {
+class UpdateServiceInternalProxy : public UpdateServiceInternal {
  public:
-  // Creates an UpdateServiceInternalProxyImpl which is not bound to a remote.
-  // It establishes a connection lazily and can be used immediately.
-  explicit UpdateServiceInternalProxyImpl(UpdaterScope scope);
+  // Creates an UpdateServiceInternalProxy which is not bound to a remote. It
+  // establishes a connection lazily and can be used immediately.
+  explicit UpdateServiceInternalProxy(UpdaterScope scope);
 
-  void Run(base::OnceCallback<void(absl::optional<RpcError>)> callback);
-  void Hello(base::OnceCallback<void(absl::optional<RpcError>)> callback);
+  // Overrides for UpdateServiceInternal.
+  void Run(base::OnceClosure callback) override;
+  void Hello(base::OnceClosure callback) override;
 
  private:
-  friend class base::RefCountedThreadSafe<UpdateServiceInternalProxyImpl>;
-  ~UpdateServiceInternalProxyImpl();
+  ~UpdateServiceInternalProxy() override;
 
   void EnsureConnecting();
   void OnDisconnected();
@@ -52,9 +48,9 @@ class UpdateServiceInternalProxyImpl
       GUARDED_BY_CONTEXT(sequence_checker_);
   mojo::Remote<mojom::UpdateServiceInternal> remote_
       GUARDED_BY_CONTEXT(sequence_checker_);
-  base::WeakPtrFactory<UpdateServiceInternalProxyImpl> weak_factory_{this};
+  base::WeakPtrFactory<UpdateServiceInternalProxy> weak_factory_{this};
 };
 
 }  // namespace updater
 
-#endif  // CHROME_UPDATER_IPC_UPDATE_SERVICE_INTERNAL_PROXY_POSIX_H_
+#endif  // CHROME_UPDATER_UPDATE_SERVICE_INTERNAL_PROXY_POSIX_H_

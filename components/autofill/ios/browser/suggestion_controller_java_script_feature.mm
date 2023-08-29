@@ -13,6 +13,10 @@
 #include "base/values.h"
 #import "components/autofill/ios/browser/autofill_java_script_feature.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace autofill {
 
 namespace {
@@ -63,9 +67,7 @@ SuggestionControllerJavaScriptFeature::GetInstance() {
 
 SuggestionControllerJavaScriptFeature::SuggestionControllerJavaScriptFeature()
     : web::JavaScriptFeature(
-          // TODO(crbug.com/1175793): Move autofill code to kIsolatedWorld
-          // once all scripts are converted to JavaScriptFeatures.
-          web::ContentWorld::kPageContentWorld,
+          web::ContentWorld::kIsolatedWorld,
           {FeatureScript::CreateWithFilename(
               kScriptName,
               FeatureScript::InjectionTime::kDocumentStart,

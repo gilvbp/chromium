@@ -39,10 +39,9 @@ PowerBookmarkServiceFactory::PowerBookmarkServiceFactory()
 
 PowerBookmarkServiceFactory::~PowerBookmarkServiceFactory() = default;
 
-std::unique_ptr<KeyedService>
-PowerBookmarkServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* PowerBookmarkServiceFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
-  return std::make_unique<power_bookmarks::PowerBookmarkService>(
+  return new power_bookmarks::PowerBookmarkService(
       BookmarkModelFactory::GetInstance()->GetForBrowserContext(context),
       context->GetPath().AppendASCII("power_bookmarks"),
       content::GetUIThreadTaskRunner({}),

@@ -10,7 +10,6 @@
 #include <vector>
 
 #include "android_webview/browser/aw_browser_context.h"
-#include "android_webview/browser/aw_browser_context_store.h"
 #include "android_webview/browser/aw_browser_main_parts.h"
 #include "android_webview/browser/aw_browser_process.h"
 #include "android_webview/browser/aw_client_hints_controller_delegate.h"
@@ -36,7 +35,6 @@
 #include "android_webview/common/aw_content_client.h"
 #include "android_webview/common/aw_descriptors.h"
 #include "android_webview/common/aw_features.h"
-#include "android_webview/common/aw_paths.h"
 #include "android_webview/common/aw_switches.h"
 #include "android_webview/common/mojom/render_message_filter.mojom.h"
 #include "android_webview/common/url_constants.h"
@@ -45,7 +43,6 @@
 #include "base/base_paths_android.h"
 #include "base/base_switches.h"
 #include "base/command_line.h"
-#include "base/containers/contains.h"
 #include "base/feature_list.h"
 #include "base/files/scoped_file.h"
 #include "base/functional/bind.h"
@@ -106,7 +103,6 @@
 #include "net/net_buildflags.h"
 #include "net/ssl/ssl_cert_request_info.h"
 #include "net/ssl/ssl_info.h"
-#include "services/cert_verifier/public/mojom/cert_verifier_service_factory.mojom.h"
 #include "services/metrics/public/cpp/ukm_source_id.h"
 #include "services/network/network_service.h"
 #include "services/network/public/cpp/resource_request.h"
@@ -209,7 +205,7 @@ std::string AwContentBrowserClient::GetAcceptLangsImpl() {
 
   // If accept languages do not contain en-US, add in en-US which will be
   // used with a lower q-value.
-  if (!base::Contains(locales_string, "en-US")) {
+  if (locales_string.find("en-US") == std::string::npos) {
     locales_string += ",en-US";
   }
   return locales_string;
@@ -242,12 +238,6 @@ AwContentBrowserClient::~AwContentBrowserClient() {}
 
 void AwContentBrowserClient::OnNetworkServiceCreated(
     network::mojom::NetworkService* network_service) {
-  // TODO(https://crbug.com/1085233): If CertVerifierServiceFactory is moved to
-  // a separate process, this will likely need to be set somewhere else instead
-  // of here.
-  content::GetCertVerifierServiceFactory()->SetUseChromeRootStore(
-      false, base::DoNothing());
-
   content::GetNetworkService()->SetUpHttpAuth(
       network::mojom::HttpAuthStaticParams::New());
   content::GetNetworkService()->ConfigureHttpAuthPrefs(
@@ -287,7 +277,8 @@ void AwContentBrowserClient::ConfigureNetworkContextParams(
 }
 
 AwBrowserContext* AwContentBrowserClient::InitBrowserContext() {
-  return AwBrowserContextStore::GetOrCreateInstance()->GetDefault();
+  browser_context_ = std::make_unique<AwBrowserContext>();
+  return browser_context_.get();
 }
 
 std::unique_ptr<content::BrowserMainParts>
@@ -374,7 +365,7 @@ void AwContentBrowserClient::AppendExtraCommandLineSwitches(
     };
 
     command_line->CopySwitchesFrom(*base::CommandLine::ForCurrentProcess(),
-                                   kSwitchNames);
+                                   kSwitchNames, std::size(kSwitchNames));
   }
 }
 
@@ -403,8 +394,8 @@ AwContentBrowserClient::GetGeneratedCodeCacheSettings(
   // roughly 2x what it was before the code cache was implemented.
   // TODO(crbug/893318): webview should have smarter cache sizing logic.
   AwBrowserContext* browser_context = static_cast<AwBrowserContext*>(context);
-  return content::GeneratedCodeCacheSettings(
-      true, 10 * 1024 * 1024, browser_context->GetHttpCachePath());
+  return content::GeneratedCodeCacheSettings(true, 10 * 1024 * 1024,
+                                             browser_context->GetCacheDir());
 }
 
 void AwContentBrowserClient::AllowCertificateError(
@@ -433,14 +424,12 @@ void AwContentBrowserClient::AllowCertificateError(
 }
 
 base::OnceClosure AwContentBrowserClient::SelectClientCertificate(
-    content::BrowserContext* browser_context,
     content::WebContents* web_contents,
     net::SSLCertRequestInfo* cert_request_info,
     net::ClientCertIdentityList client_certs,
     std::unique_ptr<content::ClientCertificateDelegate> delegate) {
   AwContentsClientBridge* client =
-      web_contents ? AwContentsClientBridge::FromWebContents(web_contents)
-                   : nullptr;
+      AwContentsClientBridge::FromWebContents(web_contents);
   if (client) {
     client->SelectClientCertificate(cert_request_info, std::move(delegate));
   }
@@ -492,17 +481,6 @@ base::FilePath AwContentBrowserClient::GetDefaultDownloadDirectory() {
 std::string AwContentBrowserClient::GetDefaultDownloadName() {
   NOTREACHED() << "Android WebView does not use chromium downloads";
   return std::string();
-}
-
-absl::optional<base::FilePath>
-AwContentBrowserClient::GetLocalTracesDirectory() {
-  base::FilePath user_data_dir;
-  if (!base::PathService::Get(android_webview::DIR_LOCAL_TRACES,
-                              &user_data_dir)) {
-    return absl::nullopt;
-  }
-  DCHECK(!user_data_dir.empty());
-  return user_data_dir;
 }
 
 void AwContentBrowserClient::DidCreatePpapiPlugin(
@@ -1091,16 +1069,14 @@ void AwContentBrowserClient::LogWebFeatureForCurrentPage(
       render_frame_host, feature);
 }
 
-content::ContentBrowserClient::PrivateNetworkRequestPolicyOverride
-AwContentBrowserClient::ShouldOverridePrivateNetworkRequestPolicy(
+bool AwContentBrowserClient::ShouldAllowInsecureLocalNetworkRequests(
     content::BrowserContext* browser_context,
     const url::Origin& origin) {
   // Webview does not implement support for deprecation trials, so webview apps
-  // broken by Private Network Access restrictions cannot help themselves by
+  // broken by Local Network Access restrictions cannot help themselves by
   // registering for the trial.
   // See crbug.com/1255675.
-  return content::ContentBrowserClient::PrivateNetworkRequestPolicyOverride::
-      kForceAllow;
+  return true;
 }
 
 content::SpeechRecognitionManagerDelegate*

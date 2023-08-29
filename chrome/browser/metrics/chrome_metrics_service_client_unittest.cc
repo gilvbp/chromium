@@ -234,13 +234,12 @@ TEST_F(ChromeMetricsServiceClientTest, TestRegisterMetricsServiceProviders) {
 #if BUILDFLAG(IS_CHROMEOS_ASH)
   // AmbientModeMetricsProvider, AssistantServiceMetricsProvider,
   // CrosHealthdMetricsProvider, ChromeOSMetricsProvider,
-  // ChromeOSHistogramMetricsProvider,
   // KeyboardBacklightColorMetricsProvider,
   // PersonalizationAppThemeMetricsProvider, PrinterMetricsProvider,
   // HashedLoggingMetricsProvider, FamilyUserMetricsProvider,
   // FamilyLinkUserMetricsProvider, UpdateEngineMetricsProvider,
   // OsSettingsMetricsProvider, and UserTypeByDeviceTypeMetricsProvider.
-  expected_providers += 14;
+  expected_providers += 13;
 #endif  // BUILDFLAG(IS_CHROMEOS_ASH)
 
 #if !BUILDFLAG(IS_CHROMEOS_ASH)

@@ -150,11 +150,6 @@ class BASE_EXPORT MemoryDumpManager {
     dumper_registrations_ignored_for_testing_ = ignored;
   }
 
-  bool IsInitialized() {
-    AutoLock lock(lock_);
-    return can_request_global_dumps();
-  }
-
   scoped_refptr<SequencedTaskRunner> GetDumpThreadTaskRunner();
 
  private:

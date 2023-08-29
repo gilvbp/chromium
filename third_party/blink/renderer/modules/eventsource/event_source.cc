@@ -387,7 +387,7 @@ void EventSource::Trace(Visitor* visitor) const {
   visitor->Trace(parser_);
   visitor->Trace(loader_);
   visitor->Trace(connect_timer_);
-  EventTarget::Trace(visitor);
+  EventTargetWithInlineData::Trace(visitor);
   ThreadableLoaderClient::Trace(visitor);
   ExecutionContextLifecycleObserver::Trace(visitor);
   EventSourceParser::Client::Trace(visitor);

@@ -6,19 +6,17 @@ import 'chrome://settings/lazy_load.js';
 
 import {loadTimeData} from 'chrome://resources/js/load_time_data.js';
 import {CrDialogElement, SettingsPrivacySandboxAdMeasurementSubpageElement, SettingsPrivacySandboxFledgeSubpageElement, SettingsPrivacySandboxPageElement, SettingsPrivacySandboxTopicsSubpageElement} from 'chrome://settings/lazy_load.js';
-import {CrLinkRowElement, CrSettingsPrefs, HatsBrowserProxyImpl, MetricsBrowserProxyImpl, PrivacySandboxBrowserProxyImpl, Router, routes, SettingsPrefsElement, TrustSafetyInteraction} from 'chrome://settings/settings.js';
+import {CrLinkRowElement, CrSettingsPrefs, MetricsBrowserProxyImpl, PrivacySandboxBrowserProxyImpl, Router, routes, SettingsPrefsElement} from 'chrome://settings/settings.js';
 import {assertDeepEquals, assertEquals, assertFalse, assertTrue} from 'chrome://webui-test/chai_assert.js';
 import {flushTasks, waitAfterNextRender} from 'chrome://webui-test/polymer_test_util.js';
 import {isChildVisible, isVisible} from 'chrome://webui-test/test_util.js';
 
-import {TestHatsBrowserProxy} from './test_hats_browser_proxy.js';
 import {TestMetricsBrowserProxy} from './test_metrics_browser_proxy.js';
 import {TestPrivacySandboxBrowserProxy} from './test_privacy_sandbox_browser_proxy.js';
 
-suite('PrivacySandboxPage', function() {
+suite('PrivacySandboxPageTests', function() {
   let page: SettingsPrivacySandboxPageElement;
   let settingsPrefs: SettingsPrefsElement;
-  let hatsBrowserProxy: TestHatsBrowserProxy;
   let metricsBrowserProxy: TestMetricsBrowserProxy;
 
   suiteSetup(function() {
@@ -32,8 +30,6 @@ suite('PrivacySandboxPage', function() {
   setup(function() {
     metricsBrowserProxy = new TestMetricsBrowserProxy();
     MetricsBrowserProxyImpl.setInstance(metricsBrowserProxy);
-    hatsBrowserProxy = new TestHatsBrowserProxy();
-    HatsBrowserProxyImpl.setInstance(hatsBrowserProxy);
 
     document.body.innerHTML = window.trustedTypes!.emptyHTML;
     document.body.appendChild(settingsPrefs);
@@ -51,12 +47,6 @@ suite('PrivacySandboxPage', function() {
     assertTrue(isChildVisible(page, '#privacySandboxTopicsLinkRow'));
     assertTrue(isChildVisible(page, '#privacySandboxFledgeLinkRow'));
     assertTrue(isVisible(page.$.privacySandboxAdMeasurementLinkRow));
-  });
-
-  test('hatsSurveyRequested', async function() {
-    const result =
-        await hatsBrowserProxy.whenCalled('trustSafetyInteractionOccurred');
-    assertEquals(TrustSafetyInteraction.OPENED_AD_PRIVACY, result);
   });
 
   test('privacySandboxTopicsRowSublabel', async function() {
@@ -150,7 +140,7 @@ suite('PrivacySandboxPage', function() {
   });
 });
 
-suite('RestrictedEnabled', function() {
+suite('PrivacySandboxRestrictedEnabledTests', function() {
   let page: SettingsPrivacySandboxPageElement;
   let settingsPrefs: SettingsPrefsElement;
   let metricsBrowserProxy: TestMetricsBrowserProxy;
@@ -183,11 +173,10 @@ suite('RestrictedEnabled', function() {
   });
 });
 
-suite('TopicsSubpage', function() {
+suite('PrivacySandboxTopicsSubpageTests', function() {
   let page: SettingsPrivacySandboxTopicsSubpageElement;
   let testPrivacySandboxBrowserProxy: TestPrivacySandboxBrowserProxy;
   let settingsPrefs: SettingsPrefsElement;
-  let hatsBrowserProxy: TestHatsBrowserProxy;
   let metricsBrowserProxy: TestMetricsBrowserProxy;
 
   suiteSetup(function() {
@@ -203,8 +192,6 @@ suite('TopicsSubpage', function() {
     PrivacySandboxBrowserProxyImpl.setInstance(testPrivacySandboxBrowserProxy);
     metricsBrowserProxy = new TestMetricsBrowserProxy();
     MetricsBrowserProxyImpl.setInstance(metricsBrowserProxy);
-    hatsBrowserProxy = new TestHatsBrowserProxy();
-    HatsBrowserProxyImpl.setInstance(hatsBrowserProxy);
 
     document.body.innerHTML = window.trustedTypes!.emptyHTML;
     document.body.appendChild(settingsPrefs);
@@ -229,12 +216,6 @@ suite('TopicsSubpage', function() {
     assertTrue(!!dialog);
     assertTrue(dialog.open);
   }
-
-  test('hatsSurveyRequested', async function() {
-    const result =
-        await hatsBrowserProxy.whenCalled('trustSafetyInteractionOccurred');
-    assertEquals(TrustSafetyInteraction.OPENED_TOPICS_SUBPAGE, result);
-  });
 
   test('enableTopicsToggle', async function() {
     page.setPrefValue('privacy_sandbox.m1.topics_enabled', false);
@@ -510,7 +491,7 @@ suite('TopicsSubpage', function() {
   });
 });
 
-suite('TopicsSubpageEmpty', function() {
+suite('PrivacySandboxTopicsSubpageEmptyTests', function() {
   let page: SettingsPrivacySandboxTopicsSubpageElement;
   let testPrivacySandboxBrowserProxy: TestPrivacySandboxBrowserProxy;
   let metricsBrowserProxy: TestMetricsBrowserProxy;
@@ -600,11 +581,10 @@ suite('TopicsSubpageEmpty', function() {
   });
 });
 
-suite('FledgeSubpage', function() {
+suite('PrivacySandboxFledgeSubpageTests', function() {
   let page: SettingsPrivacySandboxFledgeSubpageElement;
   let testPrivacySandboxBrowserProxy: TestPrivacySandboxBrowserProxy;
   let settingsPrefs: SettingsPrefsElement;
-  let hatsBrowserProxy: TestHatsBrowserProxy;
   let metricsBrowserProxy: TestMetricsBrowserProxy;
 
   suiteSetup(function() {
@@ -620,8 +600,6 @@ suite('FledgeSubpage', function() {
     PrivacySandboxBrowserProxyImpl.setInstance(testPrivacySandboxBrowserProxy);
     metricsBrowserProxy = new TestMetricsBrowserProxy();
     MetricsBrowserProxyImpl.setInstance(metricsBrowserProxy);
-    hatsBrowserProxy = new TestHatsBrowserProxy();
-    HatsBrowserProxyImpl.setInstance(hatsBrowserProxy);
 
     document.body.innerHTML = window.trustedTypes!.emptyHTML;
     document.body.appendChild(settingsPrefs);
@@ -646,12 +624,6 @@ suite('FledgeSubpage', function() {
     assertTrue(!!dialog);
     assertTrue(dialog.open);
   }
-
-  test('hatsSurveyRequested', async function() {
-    const result =
-        await hatsBrowserProxy.whenCalled('trustSafetyInteractionOccurred');
-    assertEquals(TrustSafetyInteraction.OPENED_FLEDGE_SUBPAGE, result);
-  });
 
   test('enableFledgeToggle', async function() {
     page.setPrefValue('privacy_sandbox.m1.fledge_enabled', false);
@@ -909,7 +881,7 @@ suite('FledgeSubpage', function() {
   });
 });
 
-suite('FledgeSubpageEmpty', function() {
+suite('PrivacySandboxFledgeSubpageEmptyTests', function() {
   let page: SettingsPrivacySandboxFledgeSubpageElement;
   let testPrivacySandboxBrowserProxy: TestPrivacySandboxBrowserProxy;
   let metricsBrowserProxy: TestMetricsBrowserProxy;
@@ -999,7 +971,7 @@ suite('FledgeSubpageEmpty', function() {
   });
 });
 
-suite('FledgeSubpageSeeAllSites', function() {
+suite('PrivacySandboxFledgeSubpageSeeAllSitesTests', function() {
   let page: SettingsPrivacySandboxFledgeSubpageElement;
   let testPrivacySandboxBrowserProxy: TestPrivacySandboxBrowserProxy;
   let settingsPrefs: SettingsPrefsElement;
@@ -1181,10 +1153,9 @@ suite('FledgeSubpageSeeAllSites', function() {
   });
 });
 
-suite('AdMeasurementSubpage', function() {
+suite('PrivacySandboxAdMeasurementSubpageTests', function() {
   let page: SettingsPrivacySandboxAdMeasurementSubpageElement;
   let settingsPrefs: SettingsPrefsElement;
-  let hatsBrowserProxy: TestHatsBrowserProxy;
   let metricsBrowserProxy: TestMetricsBrowserProxy;
 
   suiteSetup(function() {
@@ -1198,8 +1169,6 @@ suite('AdMeasurementSubpage', function() {
   setup(function() {
     metricsBrowserProxy = new TestMetricsBrowserProxy();
     MetricsBrowserProxyImpl.setInstance(metricsBrowserProxy);
-    hatsBrowserProxy = new TestHatsBrowserProxy();
-    HatsBrowserProxyImpl.setInstance(hatsBrowserProxy);
 
     document.body.innerHTML = window.trustedTypes!.emptyHTML;
     document.body.appendChild(settingsPrefs);
@@ -1212,12 +1181,6 @@ suite('AdMeasurementSubpage', function() {
 
   teardown(function() {
     Router.getInstance().resetRouteForTesting();
-  });
-
-  test('hatsSurveyRequested', async function() {
-    const result =
-        await hatsBrowserProxy.whenCalled('trustSafetyInteractionOccurred');
-    assertEquals(TrustSafetyInteraction.OPENED_AD_MEASUREMENT_SUBPAGE, result);
   });
 
   test('enableAdMeasurementToggle', async function() {

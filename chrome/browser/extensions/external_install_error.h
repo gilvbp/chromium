@@ -13,7 +13,6 @@
 #include "base/values.h"
 #include "chrome/browser/extensions/extension_install_prompt.h"
 #include "chrome/browser/extensions/webstore_data_fetcher_delegate.h"
-#include "extensions/common/extension_id.h"
 
 class Browser;
 class ExtensionInstallPromptShowParams;
@@ -75,7 +74,7 @@ class ExternalInstallError : public WebstoreDataFetcherDelegate {
   // Return the associated extension, or NULL.
   const Extension* GetExtension() const;
 
-  const ExtensionId& extension_id() const { return extension_id_; }
+  const std::string& extension_id() const { return extension_id_; }
   AlertType alert_type() const { return alert_type_; }
 
   // Returns the setting specified by the following optional sources, by order
@@ -117,7 +116,7 @@ class ExternalInstallError : public WebstoreDataFetcherDelegate {
   raw_ptr<content::BrowserContext> browser_context_;
 
   // The id of the external extension.
-  ExtensionId extension_id_;
+  std::string extension_id_;
 
   // The type of alert to show the user.
   AlertType alert_type_;

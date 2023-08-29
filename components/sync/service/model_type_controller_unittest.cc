@@ -637,6 +637,9 @@ TEST_F(ModelTypeControllerTest, ReportErrorAfterRegisteredWithBackend) {
 }
 
 TEST_F(ModelTypeControllerTest, ClearMetadataWhenDatatypeNotRunning) {
+  base::test::ScopedFeatureList feature_list(
+      syncer::kSyncAllowClearingMetadataWhenDataTypeIsStopped);
+
   {
     InSequence s;
     EXPECT_CALL(*delegate(), OnSyncStopping(KEEP_METADATA));
@@ -657,6 +660,9 @@ TEST_F(ModelTypeControllerTest, ClearMetadataWhenDatatypeNotRunning) {
 }
 
 TEST_F(ModelTypeControllerTest, ClearMetadataWhenDatatypeInFailedState) {
+  base::test::ScopedFeatureList feature_list(
+      syncer::kSyncAllowClearingMetadataWhenDataTypeIsStopped);
+
   EXPECT_CALL(*delegate(), ClearMetadataWhileStopped);
   EXPECT_CALL(*delegate(), OnSyncStopping(CLEAR_METADATA)).Times(0);
 

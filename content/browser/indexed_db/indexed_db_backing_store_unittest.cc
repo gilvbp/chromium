@@ -30,7 +30,6 @@
 #include "base/test/bind.h"
 #include "base/test/scoped_feature_list.h"
 #include "base/test/task_environment.h"
-#include "base/test/test_future.h"
 #include "base/time/default_clock.h"
 #include "base/uuid.h"
 #include "components/services/storage/indexed_db/locks/partitioned_lock_manager.h"
@@ -45,6 +44,7 @@
 #include "content/browser/indexed_db/indexed_db_factory.h"
 #include "content/browser/indexed_db/indexed_db_leveldb_coding.h"
 #include "content/browser/indexed_db/indexed_db_leveldb_operations.h"
+#include "content/browser/indexed_db/indexed_db_metadata_coding.h"
 #include "content/browser/indexed_db/indexed_db_value.h"
 #include "mojo/public/cpp/bindings/self_owned_receiver.h"
 #include "net/base/features.h"
@@ -55,6 +55,7 @@
 #include "storage/browser/test/mock_quota_manager_proxy.h"
 #include "storage/browser/test/mock_special_storage_policy.h"
 #include "testing/gtest/include/gtest/gtest.h"
+#include "third_party/blink/public/common/indexeddb/web_idb_types.h"
 #include "third_party/blink/public/common/storage_key/storage_key.h"
 #include "third_party/blink/public/mojom/indexeddb/indexeddb.mojom.h"
 
@@ -421,10 +422,10 @@ class IndexedDBBackingStoreTest : public testing::Test {
       }
       // All leveldb databases are closed, and they can be deleted.
       for (auto bucket_locator : idb_context_->GetAllBuckets()) {
-        base::test::TestFuture<bool> success;
-        idb_context_->DeleteForStorageKey(bucket_locator.storage_key,
-                                          success.GetCallback());
-        EXPECT_TRUE(success.Get());
+        bool success = false;
+        storage::mojom::IndexedDBControlAsyncWaiter waiter(idb_context_.get());
+        waiter.DeleteForStorageKey(bucket_locator.storage_key, &success);
+        EXPECT_TRUE(success);
       }
     }
     if (temp_dir_.IsValid())
@@ -1547,11 +1548,13 @@ TEST_F(IndexedDBBackingStoreTest, CreateDatabase) {
         const bool multi_entry = true;
         const IndexedDBKeyPath index_key_path(u"index_key");
 
+        IndexedDBMetadataCoding metadata_coding;
+
         {
           IndexedDBDatabaseMetadata database;
-          database.name = database_name;
-          database.version = version;
-          leveldb::Status s = backing_store()->CreateDatabase(database);
+          leveldb::Status s = metadata_coding.CreateDatabase(
+              backing_store()->db(), backing_store()->origin_identifier(),
+              database_name, version, &database);
           EXPECT_TRUE(s.ok());
           EXPECT_GT(database.id, 0);
           database_id = database.id;
@@ -1563,15 +1566,16 @@ TEST_F(IndexedDBBackingStoreTest, CreateDatabase) {
           transaction.Begin(CreateDummyLock());
 
           IndexedDBObjectStoreMetadata object_store;
-          s = backing_store()->CreateObjectStore(
-              &transaction, database.id, object_store_id, object_store_name,
-              object_store_key_path, auto_increment, &object_store);
+          s = metadata_coding.CreateObjectStore(
+              transaction.transaction(), database.id, object_store_id,
+              object_store_name, object_store_key_path, auto_increment,
+              &object_store);
           EXPECT_TRUE(s.ok());
 
           IndexedDBIndexMetadata index;
-          s = backing_store()->CreateIndex(
-              &transaction, database.id, object_store.id, index_id, index_name,
-              index_key_path, unique, multi_entry, &index);
+          s = metadata_coding.CreateIndex(
+              transaction.transaction(), database.id, object_store.id, index_id,
+              index_name, index_key_path, unique, multi_entry, &index);
           EXPECT_TRUE(s.ok());
 
           bool succeeded = false;
@@ -1585,7 +1589,8 @@ TEST_F(IndexedDBBackingStoreTest, CreateDatabase) {
         {
           IndexedDBDatabaseMetadata database;
           bool found;
-          leveldb::Status s = backing_store()->ReadMetadataForDatabaseName(
+          leveldb::Status s = metadata_coding.ReadMetadataForDatabaseName(
+              backing_store()->db(), backing_store()->origin_identifier(),
               database_name, &database, &found);
           EXPECT_TRUE(s.ok());
           EXPECT_TRUE(found);
@@ -1629,25 +1634,25 @@ TEST_F(IndexedDBBackingStoreTest, GetDatabaseNames) {
   // stale data, and should not be enumerated.
   const std::u16string db2_name(u"db2");
   const int64_t db2_version = IndexedDBDatabaseMetadata::DEFAULT_VERSION;
+  IndexedDBMetadataCoding metadata_coding;
 
   IndexedDBDatabaseMetadata db1;
-  db1.name = db1_name;
-  db1.version = db1_version;
-  leveldb::Status s = backing_store()->CreateDatabase(db1);
-
+  leveldb::Status s = metadata_coding.CreateDatabase(
+      backing_store()->db(), backing_store()->origin_identifier(), db1_name,
+      db1_version, &db1);
   EXPECT_TRUE(s.ok());
   EXPECT_GT(db1.id, 0LL);
 
   IndexedDBDatabaseMetadata db2;
-  db2.name = db2_name;
-  db2.version = db2_version;
-  s = backing_store()->CreateDatabase(db2);
-
+  s = metadata_coding.CreateDatabase(backing_store()->db(),
+                                     backing_store()->origin_identifier(),
+                                     db2_name, db2_version, &db2);
   EXPECT_TRUE(s.ok());
   EXPECT_GT(db2.id, db1.id);
 
   std::vector<std::u16string> names;
-  s = backing_store()->GetDatabaseNames(&names);
+  s = metadata_coding.ReadDatabaseNames(
+      backing_store()->db(), backing_store()->origin_identifier(), &names);
   EXPECT_TRUE(s.ok());
   ASSERT_EQ(1U, names.size());
   EXPECT_EQ(db1_name, names[0]);
@@ -1858,11 +1863,13 @@ TEST_F(IndexedDBBackingStoreTest, SchemaUpgradeWithoutBlobsSurvives) {
   const bool auto_increment = true;
   const IndexedDBKeyPath object_store_key_path(u"object_store_key");
 
+  IndexedDBMetadataCoding metadata_coding;
+
   {
     IndexedDBDatabaseMetadata database;
-    database.name = database_name;
-    database.version = version;
-    leveldb::Status s = backing_store()->CreateDatabase(database);
+    leveldb::Status s = metadata_coding.CreateDatabase(
+        backing_store()->db(), backing_store()->origin_identifier(),
+        database_name, version, &database);
     EXPECT_TRUE(s.ok());
     EXPECT_GT(database.id, 0);
     database_id = database.id;
@@ -1874,9 +1881,10 @@ TEST_F(IndexedDBBackingStoreTest, SchemaUpgradeWithoutBlobsSurvives) {
     transaction.Begin(CreateDummyLock());
 
     IndexedDBObjectStoreMetadata object_store;
-    s = backing_store()->CreateObjectStore(
-        &transaction, database.id, object_store_id, object_store_name,
-        object_store_key_path, auto_increment, &object_store);
+    s = metadata_coding.CreateObjectStore(
+        transaction.transaction(), database.id, object_store_id,
+        object_store_name, object_store_key_path, auto_increment,
+        &object_store);
     EXPECT_TRUE(s.ok());
 
     bool succeeded = false;
@@ -1961,11 +1969,13 @@ TEST_F(IndexedDBBackingStoreTestWithBlobs, SchemaUpgradeWithBlobsCorrupt) {
   const bool auto_increment = true;
   const IndexedDBKeyPath object_store_key_path(u"object_store_key");
 
+  IndexedDBMetadataCoding metadata_coding;
+
   {
     IndexedDBDatabaseMetadata database;
-    database.name = database_name;
-    database.version = version;
-    leveldb::Status s = backing_store()->CreateDatabase(database);
+    leveldb::Status s = metadata_coding.CreateDatabase(
+        backing_store()->db(), backing_store()->origin_identifier(),
+        database_name, version, &database);
     EXPECT_TRUE(s.ok());
     EXPECT_GT(database.id, 0);
     database_id = database.id;
@@ -1977,9 +1987,10 @@ TEST_F(IndexedDBBackingStoreTestWithBlobs, SchemaUpgradeWithBlobsCorrupt) {
     transaction.Begin(CreateDummyLock());
 
     IndexedDBObjectStoreMetadata object_store;
-    s = backing_store()->CreateObjectStore(
-        &transaction, database.id, object_store_id, object_store_name,
-        object_store_key_path, auto_increment, &object_store);
+    s = metadata_coding.CreateObjectStore(
+        transaction.transaction(), database.id, object_store_id,
+        object_store_name, object_store_key_path, auto_increment,
+        &object_store);
     EXPECT_TRUE(s.ok());
 
     bool succeeded = false;
@@ -2075,11 +2086,13 @@ TEST_F(IndexedDBBackingStoreTestWithBlobs, SchemaUpgradeV3ToV4) {
   const bool auto_increment = true;
   const IndexedDBKeyPath object_store_key_path(u"object_store_key");
 
+  IndexedDBMetadataCoding metadata_coding;
+
   {
     IndexedDBDatabaseMetadata database;
-    database.name = database_name;
-    database.version = version;
-    leveldb::Status s = backing_store()->CreateDatabase(database);
+    leveldb::Status s = metadata_coding.CreateDatabase(
+        backing_store()->db(), backing_store()->origin_identifier(),
+        database_name, version, &database);
     EXPECT_TRUE(s.ok());
     EXPECT_GT(database.id, 0);
     database_id = database.id;
@@ -2091,9 +2104,10 @@ TEST_F(IndexedDBBackingStoreTestWithBlobs, SchemaUpgradeV3ToV4) {
     transaction.Begin(CreateDummyLock());
 
     IndexedDBObjectStoreMetadata object_store;
-    s = backing_store()->CreateObjectStore(
-        &transaction, database.id, object_store_id, object_store_name,
-        object_store_key_path, auto_increment, &object_store);
+    s = metadata_coding.CreateObjectStore(
+        transaction.transaction(), database.id, object_store_id,
+        object_store_name, object_store_key_path, auto_increment,
+        &object_store);
     EXPECT_TRUE(s.ok());
 
     bool succeeded = false;
@@ -2226,11 +2240,13 @@ TEST_F(IndexedDBBackingStoreTestWithBlobs, SchemaUpgradeV4ToV5) {
   // context writes something there to check.
   blob_context_->SetWriteFilesToDisk(true);
 
+  IndexedDBMetadataCoding metadata_coding;
+
   {
     IndexedDBDatabaseMetadata database;
-    database.name = database_name;
-    database.version = version;
-    leveldb::Status s = backing_store()->CreateDatabase(database);
+    leveldb::Status s = metadata_coding.CreateDatabase(
+        backing_store()->db(), backing_store()->origin_identifier(),
+        database_name, version, &database);
     EXPECT_TRUE(s.ok());
     EXPECT_GT(database.id, 0);
     database_id = database.id;
@@ -2242,9 +2258,10 @@ TEST_F(IndexedDBBackingStoreTestWithBlobs, SchemaUpgradeV4ToV5) {
     transaction.Begin(CreateDummyLock());
 
     IndexedDBObjectStoreMetadata object_store;
-    s = backing_store()->CreateObjectStore(
-        &transaction, database.id, object_store_id, object_store_name,
-        object_store_key_path, auto_increment, &object_store);
+    s = metadata_coding.CreateObjectStore(
+        transaction.transaction(), database.id, object_store_id,
+        object_store_name, object_store_key_path, auto_increment,
+        &object_store);
     EXPECT_TRUE(s.ok());
 
     bool succeeded = false;

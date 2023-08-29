@@ -42,11 +42,7 @@ void IOTask::Pause(PauseParams params) {}
 
 void IOTask::Resume(ResumeParams) {}
 
-void IOTask::CompleteWithError(PolicyError policy_error) {}
-
-bool PolicyError::operator==(const PolicyError& other) const = default;
-
-bool PolicyError::operator!=(const PolicyError& other) const = default;
+void IOTask::CompleteWithError(PolicyErrorType policy_error) {}
 
 bool ConflictPauseParams::operator==(const ConflictPauseParams& other) const =
     default;
@@ -84,10 +80,8 @@ ResumeParams& ResumeParams::operator=(ResumeParams&& other) = default;
 ResumeParams::~ResumeParams() = default;
 
 EntryStatus::EntryStatus(storage::FileSystemURL file_url,
-                         absl::optional<base::File::Error> file_error,
-                         absl::optional<storage::FileSystemURL> source_url)
-    : url(file_url), error(file_error), source_url(source_url) {}
-
+                         absl::optional<base::File::Error> file_error)
+    : url(file_url), error(file_error) {}
 EntryStatus::~EntryStatus() = default;
 
 EntryStatus::EntryStatus(EntryStatus&& other) = default;
@@ -100,7 +94,7 @@ ProgressStatus::ProgressStatus(ProgressStatus&& other) = default;
 ProgressStatus& ProgressStatus::operator=(ProgressStatus&& other) = default;
 
 bool ProgressStatus::IsPaused() const {
-  return state == State::kPaused;
+  return state == State::kPaused && !policy_error.has_value();
 }
 
 bool ProgressStatus::IsCompleted() const {
@@ -110,7 +104,7 @@ bool ProgressStatus::IsCompleted() const {
 
 bool ProgressStatus::HasWarning() const {
   // We should show a warning if the task is paused because of policy.
-  return IsPaused() && pause_params.policy_params.has_value();
+  return state == State::kPaused && pause_params.policy_params.has_value();
 }
 
 bool ProgressStatus::HasPolicyError() const {
@@ -194,7 +188,7 @@ void DummyIOTask::Cancel() {
   progress_.state = State::kCancelled;
 }
 
-void DummyIOTask::CompleteWithError(PolicyError policy_error) {
+void DummyIOTask::CompleteWithError(PolicyErrorType policy_error) {
   progress_.state = State::kError;
   progress_.policy_error = policy_error;
 }

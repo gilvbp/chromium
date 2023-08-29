@@ -5,16 +5,12 @@
 #ifndef CHROME_BROWSER_PRINTING_PRINT_BROWSERTEST_H_
 #define CHROME_BROWSER_PRINTING_PRINT_BROWSERTEST_H_
 
-#include <map>
-#include <memory>
+#include "chrome/test/base/in_process_browser_test.h"
+
 #include <string>
 
-#include "base/memory/ref_counted.h"
-#include "base/memory/scoped_refptr.h"
-#include "base/memory/weak_ptr.h"
 #include "build/build_config.h"
 #include "chrome/browser/printing/browser_printing_context_factory_for_test.h"
-#include "chrome/test/base/in_process_browser_test.h"
 #include "components/printing/common/print.mojom.h"
 #include "content/public/browser/render_frame_host.h"
 #include "content/public/browser/web_contents.h"
@@ -29,17 +25,9 @@ class TestPrintRenderFrame;
 
 class PrintBrowserTest : public InProcessBrowserTest {
  public:
-  enum class InvokePrintMethod {
-    // Browser starts print (e.g., like CTRL+P keyboard shortcut).
-    kStartPrint,
-    // Initiate printing for from JavaScript.
-    kWindowDotPrint,
-  };
-
   struct PrintParams {
     bool print_only_selection = false;
     int pages_per_sheet = 1;
-    InvokePrintMethod invoke_method = InvokePrintMethod::kStartPrint;
   };
 
   PrintBrowserTest();
@@ -53,13 +41,10 @@ class PrintBrowserTest : public InProcessBrowserTest {
 
   void AddPrinter(const std::string& printer_name);
   void SetPrinterNameForSubsequentContexts(const std::string& printer_name);
-
   void PrintAndWaitUntilPreviewIsReady();
   void PrintAndWaitUntilPreviewIsReady(const PrintParams& params);
-  // Returns the Print Preview dialog.
-  content::WebContents* PrintAndWaitUntilPreviewIsReadyAndLoaded();
-  content::WebContents* PrintAndWaitUntilPreviewIsReadyAndLoaded(
-      const PrintParams& params);
+  void PrintAndWaitUntilPreviewIsReadyAndLoaded();
+  void PrintAndWaitUntilPreviewIsReadyAndLoaded(const PrintParams& params);
 
   void SetNumExpectedMessages(unsigned int num);
   void ResetNumReceivedMessages();
@@ -81,12 +66,6 @@ class PrintBrowserTest : public InProcessBrowserTest {
   }
 
  protected:
-  void OnNewDocument(
-#if BUILDFLAG(IS_MAC)
-      bool destination_is_preview,
-#endif
-      const PrintSettings& settings);
-
   TestPrintBackend* test_print_backend() { return test_print_backend_.get(); }
 
   BrowserPrintingContextFactoryForTest* test_printing_context_factory() {
@@ -97,49 +76,15 @@ class PrintBrowserTest : public InProcessBrowserTest {
     rendered_page_count_ = page_count;
   }
 
-  int new_document_called_count() const { return new_document_called_count_; }
-
   const absl::optional<PrintSettings>& document_print_settings() const {
-    return document_print_settings_;
+    return test_printing_context_factory_.document_print_settings();
   }
 
-#if BUILDFLAG(IS_MAC)
-  bool destination_is_preview() const { return destination_is_preview_; }
-#endif
-
  private:
-  // Helper to bounce worker thread callbacks onto PrintBrowserTest's callback
-  // equivalent on the UI thread.
-  class WorkerHelper : public base::RefCountedThreadSafe<WorkerHelper> {
-   public:
-    explicit WorkerHelper(base::WeakPtr<PrintBrowserTest> owner);
-
-    void OnNewDocument(
-#if BUILDFLAG(IS_MAC)
-        bool destination_is_preview,
-#endif
-        const PrintSettings& settings);
-
-   private:
-    friend class base::RefCountedThreadSafe<WorkerHelper>;
-    ~WorkerHelper();
-
-    // Only accessed on the UI thread.
-    const base::WeakPtr<PrintBrowserTest> owner_;
-  };
-
-  content::WebContents* PrintAndWaitUntilPreviewIsReadyAndMaybeLoaded(
-      const PrintParams& params,
-      bool wait_for_loaded);
   TestPrintRenderFrame* GetFrameContent(content::RenderFrameHost* host) const;
   void OverrideBinderForTesting(content::RenderFrameHost* render_frame_host);
   void ShowPrintErrorDialog();
 
-  int new_document_called_count_ = 0;
-  absl::optional<PrintSettings> document_print_settings_;
-#if BUILDFLAG(IS_MAC)
-  bool destination_is_preview_ = false;
-#endif
   uint32_t error_dialog_shown_count_ = 0;
   uint32_t rendered_page_count_ = 0;
   unsigned int num_expected_messages_;
@@ -150,8 +95,6 @@ class PrintBrowserTest : public InProcessBrowserTest {
       frame_content_;
   scoped_refptr<TestPrintBackend> test_print_backend_;
   BrowserPrintingContextFactoryForTest test_printing_context_factory_;
-  scoped_refptr<WorkerHelper> worker_helper_;
-  base::WeakPtrFactory<PrintBrowserTest> weak_factory_{this};
 };
 
 }  // namespace printing

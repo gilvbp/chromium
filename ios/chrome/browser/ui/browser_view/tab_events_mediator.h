@@ -7,10 +7,9 @@
 
 #import <UIKit/UIKit.h>
 
-#import "ios/chrome/browser/ntp/new_tab_page_tab_helper_delegate.h"
-
 class ChromeBrowserState;
 @class NewTabPageCoordinator;
+class SessionRestorationBrowserAgent;
 @protocol SideSwipeToolbarSnapshotProviding;
 @protocol TabConsumer;
 class UrlLoadingNotifierBrowserAgent;
@@ -20,13 +19,17 @@ class WebStateList;
 // The required dependencies are injected into the mediator instance on init,
 // and are generally expected not to change during the mediator's lifetime.
 // The mediator keeps only weak references to injected dependencies.
-@interface TabEventsMediator : NSObject <NewTabPageTabHelperDelegate>
+@interface TabEventsMediator : NSObject
 
 // Consumer for tab UI changes.
 @property(nonatomic, weak) id<TabConsumer> consumer;
-// Snapshot provider for top and bottom toolbars.
+// Handler for the interaction with the primary toolbar, including providing
+// snapshot.
 @property(nonatomic, weak) id<SideSwipeToolbarSnapshotProviding>
-    toolbarSnapshotProvider;
+    primaryToolbarSnapshotProvider;
+// Provider for the bottom toolbar's snapshot.
+@property(nonatomic, weak) id<SideSwipeToolbarSnapshotProviding>
+    secondaryToolbarSnapshotProvider;
 
 // Creates an instance of the mediator. Observers will be installed into all
 // existing web states in `webStateList`. While the mediator is alive,
@@ -38,6 +41,8 @@ class WebStateList;
 // browserState.
 - (instancetype)initWithWebStateList:(WebStateList*)webStateList
                       ntpCoordinator:(NewTabPageCoordinator*)ntpCoordinator
+                    restorationAgent:(SessionRestorationBrowserAgent*)
+                                         sessionRestorationBrowserAgent
                         browserState:(ChromeBrowserState*)browserState
                      loadingNotifier:
                          (UrlLoadingNotifierBrowserAgent*)urlLoadingNotifier;

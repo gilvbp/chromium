@@ -10,8 +10,6 @@
 #include "mojo/public/cpp/bindings/receiver_set.h"
 #include "mojo/public/cpp/bindings/shared_remote.h"
 #include "testing/gmock/include/gmock/gmock.h"
-#include "third_party/abseil-cpp/absl/types/optional.h"
-
 namespace ash {
 namespace nearby {
 
@@ -34,37 +32,37 @@ class MockQuickStartDecoder
 
   MOCK_METHOD(void,
               DecodeBootstrapConfigurations,
-              (const absl::optional<std::vector<uint8_t>>& data,
+              (const std::vector<uint8_t>& data,
                DecodeBootstrapConfigurationsCallback callback),
               (override));
 
   MOCK_METHOD(void,
               DecodeGetAssertionResponse,
-              (const absl::optional<std::vector<uint8_t>>& data,
+              (const std::vector<uint8_t>& data,
                DecodeGetAssertionResponseCallback callback),
               (override));
 
   MOCK_METHOD(void,
               DecodeWifiCredentialsResponse,
-              (const absl::optional<std::vector<uint8_t>>& data,
+              (const std::vector<uint8_t>& data,
                DecodeWifiCredentialsResponseCallback callback),
               (override));
 
   MOCK_METHOD(void,
               DecodeNotifySourceOfUpdateResponse,
-              (const absl::optional<std::vector<uint8_t>>& data,
+              (const std::vector<uint8_t>& data,
                DecodeNotifySourceOfUpdateResponseCallback callback),
               (override));
 
   MOCK_METHOD(void,
               DecodeUserVerificationResult,
-              (const absl::optional<std::vector<uint8_t>>& data,
+              (const std::vector<uint8_t>& data,
                DecodeUserVerificationResultCallback callback),
               (override));
 
   MOCK_METHOD(void,
               DecodeUserVerificationRequested,
-              (const absl::optional<std::vector<uint8_t>>& data,
+              (const std::vector<uint8_t>& data,
                DecodeUserVerificationRequestedCallback callback),
               (override));
 

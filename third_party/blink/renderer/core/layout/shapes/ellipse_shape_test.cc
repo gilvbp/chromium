@@ -5,7 +5,6 @@
 #include "third_party/blink/renderer/core/layout/shapes/ellipse_shape.h"
 
 #include "testing/gtest/include/gtest/gtest.h"
-#include "third_party/blink/renderer/core/testing/core_unit_test_helper.h"
 
 namespace blink {
 
@@ -31,7 +30,7 @@ namespace blink {
 TEST(EllipseShapeTest, ZeroRadii) {
   EllipseShape shape(gfx::PointF(), 0, 0);
   EXPECT_TRUE(shape.IsEmpty());
-  EXPECT_EQ(LogicalRect(), shape.ShapeMarginLogicalBoundingBox());
+  EXPECT_EQ(LayoutRect(), shape.ShapeMarginLogicalBoundingBox());
   EXPECT_INVALID_EXCLUDED_INTERVAL(shape, 0, 0);
   EXPECT_INVALID_EXCLUDED_INTERVAL(shape, -100, 200);
 }
@@ -39,7 +38,7 @@ TEST(EllipseShapeTest, ZeroRadii) {
 TEST(EllipseShapeTest, ZeroRadiusX) {
   EllipseShape shape(gfx::PointF(), 0, 10);
   EXPECT_TRUE(shape.IsEmpty());
-  EXPECT_EQ(LogicalRect(0, -10, 0, 20), shape.ShapeMarginLogicalBoundingBox());
+  EXPECT_EQ(LayoutRect(0, -10, 0, 20), shape.ShapeMarginLogicalBoundingBox());
   EXPECT_INVALID_EXCLUDED_INTERVAL(shape, 0, 0);
   EXPECT_INVALID_EXCLUDED_INTERVAL(shape, -100, 200);
 }
@@ -47,7 +46,7 @@ TEST(EllipseShapeTest, ZeroRadiusX) {
 TEST(EllipseShapeTest, ZeroRadiusY) {
   EllipseShape shape(gfx::PointF(), 10, 0);
   EXPECT_TRUE(shape.IsEmpty());
-  EXPECT_EQ(LogicalRect(-10, 0, 20, 0), shape.ShapeMarginLogicalBoundingBox());
+  EXPECT_EQ(LayoutRect(-10, 0, 20, 0), shape.ShapeMarginLogicalBoundingBox());
   EXPECT_INVALID_EXCLUDED_INTERVAL(shape, 0, 0);
   EXPECT_INVALID_EXCLUDED_INTERVAL(shape, -100, 200);
 }
@@ -56,7 +55,7 @@ TEST(EllipseShapeTest, ZeroRadiiWithMargin) {
   EllipseShape shape(gfx::PointF(10, 20), 0, 0);
   shape.SetShapeMarginForTesting(5);
   EXPECT_TRUE(shape.IsEmpty());
-  EXPECT_EQ(LogicalRect(5, 15, 10, 10), shape.ShapeMarginLogicalBoundingBox());
+  EXPECT_EQ(LayoutRect(5, 15, 10, 10), shape.ShapeMarginLogicalBoundingBox());
   // Both y1 and y2 are above the ellipse.
   EXPECT_INVALID_EXCLUDED_INTERVAL(shape, -100, 0);
   EXPECT_INVALID_EXCLUDED_INTERVAL(shape, -100, 114);
@@ -83,7 +82,7 @@ TEST(EllipseShapeTest, NonZeroRadiiWithMargin) {
   EllipseShape shape(gfx::PointF(10, 20), 20, 10);
   shape.SetShapeMarginForTesting(5);
   EXPECT_FALSE(shape.IsEmpty());
-  EXPECT_EQ(LogicalRect(-15, 5, 50, 30), shape.ShapeMarginLogicalBoundingBox());
+  EXPECT_EQ(LayoutRect(-15, 5, 50, 30), shape.ShapeMarginLogicalBoundingBox());
   // Both y1 and y2 are above the ellipse.
   EXPECT_INVALID_EXCLUDED_INTERVAL(shape, -100, 0);
   EXPECT_INVALID_EXCLUDED_INTERVAL(shape, -100, 104);
@@ -107,12 +106,12 @@ TEST(EllipseShapeTest, NonZeroRadiiWithMargin) {
 }
 
 TEST(EllipseShapeTest, ShapeMarginLogicalBoundingBoxWithFloatValues) {
-  EXPECT_EQ(LogicalRect(LayoutUnit(-2.25f), LayoutUnit(-2.125f), LayoutUnit(7),
-                        LayoutUnit(9.75f)),
+  EXPECT_EQ(LayoutRect(LayoutUnit(-2.25f), LayoutUnit(-2.125f), LayoutUnit(7),
+                       LayoutUnit(9.75f)),
             EllipseShape(gfx::PointF(1.25f, 2.75f), 3.5f, 4.875f)
                 .ShapeMarginLogicalBoundingBox());
-  EXPECT_EQ(LogicalRect(LayoutUnit::Min(), LayoutUnit(), LayoutUnit::Max(),
-                        LayoutUnit()),
+  EXPECT_EQ(LayoutRect(LayoutUnit::Min(), LayoutUnit(), LayoutUnit::Max(),
+                       LayoutUnit()),
             EllipseShape(gfx::PointF(), 1e20f, 1e-20f)
                 .ShapeMarginLogicalBoundingBox());
 }

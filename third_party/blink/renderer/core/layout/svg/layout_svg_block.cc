@@ -55,11 +55,6 @@ void LayoutSVGBlock::WillBeDestroyed() {
 void LayoutSVGBlock::InsertedIntoTree() {
   NOT_DESTROYED();
   LayoutBlockFlow::InsertedIntoTree();
-  // Ensure that the viewport dependency flag gets set on the ancestor chain.
-  if (SVGSelfOrDescendantHasViewportDependency()) {
-    ClearSVGSelfOrDescendantHasViewportDependency();
-    SetSVGSelfOrDescendantHasViewportDependency();
-  }
   LayoutSVGResourceContainer::MarkForLayoutAndParentResourceInvalidation(*this,
                                                                          false);
   if (StyleRef().HasSVGEffect())
@@ -89,21 +84,10 @@ bool LayoutSVGBlock::CheckForImplicitTransformChange(bool bbox_changed) const {
     case ETransformBox::kViewBox:
       return SVGLayoutSupport::LayoutSizeOfNearestViewportChanged(this);
     case ETransformBox::kFillBox:
-    case ETransformBox::kContentBox:
-    case ETransformBox::kStrokeBox:
-    case ETransformBox::kBorderBox:
       return bbox_changed;
   }
   NOTREACHED();
   return false;
-}
-
-void LayoutSVGBlock::UpdateTransformBeforeLayout() {
-  if (!needs_transform_update_) {
-    return;
-  }
-  local_transform_ = TransformHelper::ComputeTransformIncludingMotion(
-      *GetElement(), gfx::RectF());
 }
 
 bool LayoutSVGBlock::UpdateTransformAfterLayout(bool bounds_changed) {
@@ -117,9 +101,8 @@ bool LayoutSVGBlock::UpdateTransformAfterLayout(bool bounds_changed) {
   }
   if (!needs_transform_update_)
     return false;
-  const gfx::RectF reference_box = TransformHelper::ComputeReferenceBox(*this);
-  local_transform_ = TransformHelper::ComputeTransformIncludingMotion(
-      *GetElement(), reference_box);
+  local_transform_ =
+      GetElement()->CalculateTransform(SVGElement::kIncludeMotionTransform);
   needs_transform_update_ = false;
   return true;
 }
@@ -136,7 +119,7 @@ void LayoutSVGBlock::StyleDidChange(StyleDifference diff,
 
   TransformHelper::UpdateOffsetPath(*GetElement(), old_style);
   transform_uses_reference_box_ =
-      TransformHelper::UpdateReferenceBoxDependency(*this);
+      TransformHelper::DependsOnReferenceBox(StyleRef());
 
   if (diff.NeedsFullLayout()) {
     SetNeedsBoundariesUpdate();

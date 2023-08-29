@@ -79,7 +79,7 @@ class FeaturePromoSnoozeInteractiveTest : public InteractiveBrowserTest {
             kSnoozeTestFeature)) {
       promo_controller_->registry()->RegisterFeature(
           user_education::FeaturePromoSpecification::CreateForSnoozePromo(
-              kSnoozeTestFeature, kToolbarAppMenuButtonElementId,
+              kSnoozeTestFeature, kAppMenuButtonElementId,
               IDS_TAB_GROUPS_NEW_GROUP_PROMO));
     }
   }
@@ -170,13 +170,10 @@ class FeaturePromoSnoozeInteractiveTest : public InteractiveBrowserTest {
             user_education::HelpBubbleView::kHelpBubbleElementIdForTesting));
   }
 
-  raw_ptr<NiceMock<feature_engagement::test::MockTracker>,
-          AcrossTasksDanglingUntriaged>
+  raw_ptr<NiceMock<feature_engagement::test::MockTracker>, DanglingUntriaged>
       mock_tracker_;
-  raw_ptr<BrowserFeaturePromoController, AcrossTasksDanglingUntriaged>
-      promo_controller_;
-  raw_ptr<user_education::FeaturePromoSnoozeService,
-          AcrossTasksDanglingUntriaged>
+  raw_ptr<BrowserFeaturePromoController, DanglingUntriaged> promo_controller_;
+  raw_ptr<user_education::FeaturePromoSnoozeService, DanglingUntriaged>
       snooze_service_;
 
  private:

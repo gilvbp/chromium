@@ -19,9 +19,10 @@
 #include "base/types/id_type.h"
 #include "build/build_config.h"
 #include "build/buildflag.h"
-#include "chrome/browser/apps/app_service/app_icon/icon_effects.h"
+#include "chrome/browser/apps/app_service/app_icon/app_icon_util.h"
 #include "chrome/browser/apps/app_service/app_icon/icon_key_util.h"
 #include "chrome/browser/apps/app_service/launch_result_type.h"
+#include "chrome/browser/apps/app_service/paused_apps.h"
 #include "chrome/browser/web_applications/mojom/user_display_mode.mojom.h"
 #include "chrome/browser/web_applications/web_app_constants.h"
 #include "chrome/browser/web_applications/web_app_id.h"
@@ -48,10 +49,10 @@
 
 #if BUILDFLAG(IS_CHROMEOS)
 #include "chrome/browser/apps/app_service/app_notifications.h"
+#include "chrome/browser/apps/app_service/app_web_contents_data.h"
 #include "chrome/browser/apps/app_service/media_requests.h"
-#include "chrome/browser/apps/app_service/paused_apps.h"
 #include "chrome/browser/badging/badge_manager_delegate.h"
-#include "chrome/browser/media/webrtc/media_stream_capture_indicator.h"
+#include "chrome/browser/media/webrtc/media_capture_devices_dispatcher.h"
 #include "chrome/browser/notifications/notification_common.h"
 #include "chrome/browser/notifications/notification_display_service.h"
 #include "content/public/browser/media_request_state.h"
@@ -65,9 +66,10 @@ class Profile;
 class GURL;
 
 namespace apps {
+struct ShareTarget;
 struct AppLaunchParams;
 enum class RunOnOsLoginMode;
-}  // namespace apps
+}
 
 namespace badging {
 class BadgeManager;
@@ -76,7 +78,7 @@ class BadgeManager;
 namespace base {
 class FilePath;
 class Time;
-}  // namespace base
+}
 
 namespace content {
 class WebContents;
@@ -107,7 +109,8 @@ class WebAppPublisherHelper : public WebAppRegistrarObserver,
                               public WebAppInstallManagerObserver,
 #if BUILDFLAG(IS_CHROMEOS)
                               public NotificationDisplayService::Observer,
-                              public MediaStreamCaptureIndicator::Observer,
+                              public MediaCaptureDevicesDispatcher::Observer,
+                              public apps::AppWebContentsData::Client,
 #endif
                               public content_settings::Observer {
  public:
@@ -141,6 +144,11 @@ class WebAppPublisherHelper : public WebAppRegistrarObserver,
   // Indicates if |permission_type| is supported by Web Applications.
   static bool IsSupportedWebAppPermissionType(
       ContentSettingsType permission_type);
+
+  // Converts |uninstall_source| to a |WebappUninstallSource|.
+  static webapps::WebappUninstallSource
+  ConvertUninstallSourceToWebAppUninstallSource(
+      apps::UninstallSource uninstall_source);
 
   // Must be called before profile keyed services are destroyed.
   void Shutdown();
@@ -178,13 +186,11 @@ class WebAppPublisherHelper : public WebAppRegistrarObserver,
 
   void SetIconEffect(const std::string& app_id);
 
-#if BUILDFLAG(IS_CHROMEOS)
   void PauseApp(const std::string& app_id);
 
   void UnpauseApp(const std::string& app_id);
 
   bool IsPaused(const std::string& app_id);
-#endif  // BUILDFLAG(IS_CHROMEOS)
 
   void LoadIcon(const std::string& app_id,
                 apps::IconType icon_type,
@@ -282,9 +288,14 @@ class WebAppPublisherHelper : public WebAppRegistrarObserver,
 
   bool IsShuttingDown() const;
 
+  // Create intent filters for `app_id`. The `app_scope` is needed because
+  // currently the correct app scope is not provided through WebApp API for
+  // shortcuts.
   static apps::IntentFilters CreateIntentFiltersForWebApp(
-      const WebAppProvider& provider,
-      const web_app::WebApp& app);
+      const web_app::AppId& app_id,
+      const GURL& app_scope,
+      const apps::ShareTarget* app_share_target,
+      const apps::FileHandlers* enabled_file_handlers);
 
  private:
 #if BUILDFLAG(IS_CHROMEOS)
@@ -341,11 +352,14 @@ class WebAppPublisherHelper : public WebAppRegistrarObserver,
 #endif
 
 #if BUILDFLAG(IS_CHROMEOS)
-  // MediaStreamCaptureIndicator::Observer:
-  void OnIsCapturingVideoChanged(content::WebContents* web_contents,
-                                 bool is_capturing_video) override;
-  void OnIsCapturingAudioChanged(content::WebContents* web_contents,
-                                 bool is_capturing_audio) override;
+  // MediaCaptureDevicesDispatcher::Observer:
+  void OnRequestUpdate(int render_process_id,
+                       int render_frame_id,
+                       blink::mojom::MediaStreamType stream_type,
+                       content::MediaRequestState state) override;
+
+  // apps::AppWebContentsData::Client:
+  void OnWebContentsDestroyed(content::WebContents* contents) override;
 #endif
 
   // content_settings::Observer:
@@ -434,9 +448,9 @@ class WebAppPublisherHelper : public WebAppRegistrarObserver,
 
   apps_util::IncrementingIconKeyFactory icon_key_factory_;
 
-#if BUILDFLAG(IS_CHROMEOS)
   apps::PausedApps paused_apps_;
 
+#if BUILDFLAG(IS_CHROMEOS)
   base::ScopedObservation<NotificationDisplayService,
                           NotificationDisplayService::Observer>
       notification_display_service_{this};
@@ -445,12 +459,12 @@ class WebAppPublisherHelper : public WebAppRegistrarObserver,
 
   raw_ptr<badging::BadgeManager, DanglingUntriaged> badge_manager_ = nullptr;
 
-  base::ScopedObservation<MediaStreamCaptureIndicator,
-                          MediaStreamCaptureIndicator::Observer>
-      media_indicator_observation_{this};
+  base::ScopedObservation<MediaCaptureDevicesDispatcher,
+                          MediaCaptureDevicesDispatcher::Observer>
+      media_dispatcher_{this};
 
   apps::MediaRequests media_requests_;
-#endif  // BUILDFLAG(IS_CHROMEOS)
+#endif
 
   std::map<std::string, WebAppShortcutsMenuItemInfo> shortcut_id_map_;
   ShortcutId::Generator shortcut_id_generator_;

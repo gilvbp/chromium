@@ -9,7 +9,7 @@
 #include "components/sync/service/sync_service_impl.h"
 
 MigrationWatcher::MigrationWatcher(SyncServiceImplHarness* harness)
-    : harness_(harness) {
+    : harness_(harness), migration_waiter_(nullptr) {
   syncer::BackendMigrator* migrator =
       harness_->service()->GetBackendMigratorForTest();
   // PSS must have a migrator after sync is setup and initial data type

@@ -27,7 +27,7 @@ class PlatformNotificationServiceFactory : public ProfileKeyedServiceFactory {
   PlatformNotificationServiceFactory();
 
   // BrowserContextKeyedServiceFactory implementation.
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* profile) const override;
 };
 

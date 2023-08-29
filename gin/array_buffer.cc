@@ -31,7 +31,8 @@ static_assert(V8_ARRAY_BUFFER_INTERNAL_FIELD_COUNT == 2,
               "array buffers must have two internal fields");
 
 // ArrayBufferAllocator -------------------------------------------------------
-partition_alloc::PartitionRoot* ArrayBufferAllocator::partition_ = nullptr;
+partition_alloc::ThreadSafePartitionRoot* ArrayBufferAllocator::partition_ =
+    nullptr;
 
 void* ArrayBufferAllocator::Allocate(size_t length) {
   unsigned int flags = partition_alloc::AllocFlags::kZeroFill |
@@ -58,12 +59,12 @@ void* ArrayBufferAllocator::AllocateInternal(size_t length,
 }
 
 void ArrayBufferAllocator::Free(void* data, size_t length) {
+  unsigned int flags = 0;
 #ifdef V8_ENABLE_SANDBOX
-  // See |AllocateMemoryWithFlags|.
-  partition_->Free<partition_alloc::FreeFlags::kNoMemoryToolOverride>(data);
-#else
-  partition_->Free(data);
+  // See |AllocateInternal|.
+  flags |= partition_alloc::FreeFlags::kNoMemoryToolOverride;
 #endif
+  partition_->FreeWithFlags(flags, data);
 }
 
 // static
@@ -75,11 +76,16 @@ ArrayBufferAllocator* ArrayBufferAllocator::SharedInstance() {
 // static
 void ArrayBufferAllocator::InitializePartition() {
   static base::NoDestructor<partition_alloc::PartitionAllocator>
-      partition_allocator(partition_alloc::PartitionOptions{
-          .star_scan_quarantine = partition_alloc::PartitionOptions::kAllowed,
-          .backup_ref_ptr = partition_alloc::PartitionOptions::kDisabled,
-          .use_configurable_pool = partition_alloc::PartitionOptions::kAllowed,
-      });
+      partition_allocator{};
+
+  // These configuration options are copied from blink's ArrayBufferPartition.
+  partition_allocator->init(partition_alloc::PartitionOptions{
+      .quarantine = partition_alloc::PartitionOptions::Quarantine::kAllowed,
+      .backup_ref_ptr =
+          partition_alloc::PartitionOptions::BackupRefPtr::kDisabled,
+      .use_configurable_pool =
+          partition_alloc::PartitionOptions::UseConfigurablePool::kIfAvailable,
+  });
 
   partition_ = partition_allocator->root();
 }

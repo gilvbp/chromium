@@ -121,8 +121,7 @@ enum class TriggerDecision {
   kAutomaticTranslationByHref = 17,
   kAutomaticTranslationToPredefinedTarget = 18,
   kShowIcon = 19,
-  kDisabledMatchesPreviousLanguage = 20,
-  kMaxValue = kDisabledMatchesPreviousLanguage,
+  kMaxValue = kShowIcon,
 };
 
 // These values are persisted to logs. Entries should not be renumbered and

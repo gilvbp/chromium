@@ -34,7 +34,6 @@ class WebSocketSBHandshakeThrottle : public blink::WebSocketHandshakeThrottle,
   ~WebSocketSBHandshakeThrottle() override;
 
   void ThrottleHandshake(const blink::WebURL& url,
-                         const blink::WebSecurityOrigin& creator_origin,
                          blink::WebSocketHandshakeThrottle::OnCompletion
                              completion_callback) override;
 

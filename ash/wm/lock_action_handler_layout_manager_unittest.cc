@@ -201,8 +201,7 @@ class LockActionHandlerLayoutManagerTestWithTestBackgroundController
  private:
   // The lock screen action background controller created by
   // |CreateActionBackgroundController|.
-  raw_ptr<TestLockScreenActionBackgroundController,
-          DanglingUntriaged | ExperimentalAsh>
+  raw_ptr<TestLockScreenActionBackgroundController, ExperimentalAsh>
       background_controller_ = nullptr;
 };
 

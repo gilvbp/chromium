@@ -4,13 +4,12 @@
 
 #import "ios/chrome/browser/ui/settings/privacy/privacy_safe_browsing_mediator.h"
 
-#import "base/apple/foundation_util.h"
 #import "base/auto_reset.h"
+#import "base/mac/foundation_util.h"
 #import "base/metrics/user_metrics.h"
 #import "base/metrics/user_metrics_action.h"
 #import "base/notreached.h"
 #import "components/prefs/pref_service.h"
-#import "components/safe_browsing/core/common/features.h"
 #import "components/safe_browsing/core/common/safe_browsing_prefs.h"
 #import "ios/chrome/browser/policy/policy_util.h"
 #import "ios/chrome/browser/settings/sync/utils/sync_util.h"
@@ -32,6 +31,10 @@
 #import "ios/chrome/grit/ios_chromium_strings.h"
 #import "ios/chrome/grit/ios_strings.h"
 #import "ui/base/l10n/l10n_util.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 using ItemArray = NSArray<TableViewItem*>*;
 
@@ -130,29 +133,12 @@ typedef NS_ENUM(NSInteger, ItemType) {
 - (ItemArray)safeBrowsingItems {
   if (!_safeBrowsingItems) {
     NSMutableArray* items = [NSMutableArray array];
-    NSInteger enhancedProtectionSummary;
-    if (base::FeatureList::IsEnabled(
-            safe_browsing::kFriendlierSafeBrowsingSettingsEnhancedProtection)) {
-      enhancedProtectionSummary =
-          IDS_IOS_PRIVACY_SAFE_BROWSING_ENHANCED_PROTECTION_FRIENDLIER_SUMMARY;
-    } else {
-      enhancedProtectionSummary =
-          IDS_IOS_PRIVACY_SAFE_BROWSING_ENHANCED_PROTECTION_SUMMARY;
-    }
-    NSInteger standardProtectionSummary;
-    if (base::FeatureList::IsEnabled(
-            safe_browsing::kFriendlierSafeBrowsingSettingsStandardProtection)) {
-      standardProtectionSummary =
-          IDS_IOS_PRIVACY_SAFE_BROWSING_STANDARD_PROTECTION_FRIENDLIER_SUMMARY;
-    } else {
-      standardProtectionSummary =
-          IDS_IOS_PRIVACY_SAFE_BROWSING_STANDARD_PROTECTION_SUMMARY;
-    }
     TableViewInfoButtonItem* safeBrowsingEnhancedProtectionItem = [self
              infoButtonItemType:ItemTypeSafeBrowsingEnhancedProtection
                         titleId:
                             IDS_IOS_PRIVACY_SAFE_BROWSING_ENHANCED_PROTECTION_TITLE
-                     detailText:enhancedProtectionSummary
+                     detailText:
+                         IDS_IOS_PRIVACY_SAFE_BROWSING_ENHANCED_PROTECTION_SUMMARY
         accessibilityIdentifier:kSettingsSafeBrowsingEnhancedProtectionCellId];
     [items addObject:safeBrowsingEnhancedProtectionItem];
 
@@ -160,23 +146,18 @@ typedef NS_ENUM(NSInteger, ItemType) {
              infoButtonItemType:ItemTypeSafeBrowsingStandardProtection
                         titleId:
                             IDS_IOS_PRIVACY_SAFE_BROWSING_STANDARD_PROTECTION_TITLE
-                     detailText:standardProtectionSummary
+                     detailText:
+                         IDS_IOS_PRIVACY_SAFE_BROWSING_STANDARD_PROTECTION_SUMMARY
         accessibilityIdentifier:kSettingsSafeBrowsingStandardProtectionCellId];
     [items addObject:safeBrowsingStandardProtectionItem];
-    NSInteger noProtectionSummary;
-    if (base::FeatureList::IsEnabled(
-            safe_browsing::kFriendlierSafeBrowsingSettingsEnhancedProtection)) {
-      noProtectionSummary =
-          IDS_IOS_PRIVACY_SAFE_BROWSING_NO_PROTECTION_FRIENDLIER_SUMMARY;
-    } else {
-      noProtectionSummary = IDS_IOS_PRIVACY_SAFE_BROWSING_NO_PROTECTION_SUMMARY;
-    }
+
     if (self.enterpriseEnabled) {
       TableViewInfoButtonItem* safeBrowsingNoProtectionItem = [self
                infoButtonItemType:ItemTypeSafeBrowsingNoProtection
                           titleId:
                               IDS_IOS_PRIVACY_SAFE_BROWSING_NO_PROTECTION_TITLE
-                       detailText:noProtectionSummary
+                       detailText:
+                           IDS_IOS_PRIVACY_SAFE_BROWSING_NO_PROTECTION_SUMMARY
           accessibilityIdentifier:kSettingsSafeBrowsingNoProtectionCellId];
       [items addObject:safeBrowsingNoProtectionItem];
     } else {
@@ -184,7 +165,8 @@ typedef NS_ENUM(NSInteger, ItemType) {
                infoButtonItemType:ItemTypeSafeBrowsingNoProtection
                           titleId:
                               IDS_IOS_PRIVACY_SAFE_BROWSING_NO_PROTECTION_TITLE
-                       detailText:noProtectionSummary
+                       detailText:
+                           IDS_IOS_PRIVACY_SAFE_BROWSING_NO_PROTECTION_SUMMARY
           accessibilityIdentifier:kSettingsSafeBrowsingNoProtectionCellId];
       safeBrowsingNoProtectionItem.infoButtonIsHidden = YES;
       [items addObject:safeBrowsingNoProtectionItem];
@@ -274,7 +256,7 @@ typedef NS_ENUM(NSInteger, ItemType) {
 - (void)updatePrivacySafeBrowsingSectionAndNotifyConsumer:(BOOL)notifyConsumer {
   for (TableViewItem* item in self.safeBrowsingItems) {
     TableViewInfoButtonItem* infoButtonItem =
-        base::apple::ObjCCast<TableViewInfoButtonItem>(item);
+        base::mac::ObjCCast<TableViewInfoButtonItem>(item);
     ItemType type = static_cast<ItemType>(item.type);
     infoButtonItem.iconTintColor = [self shouldItemTypeHaveCheckmark:type]
                                        ? [UIColor colorNamed:kBlueColor]

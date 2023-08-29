@@ -15,7 +15,6 @@ import static org.mockito.Mockito.when;
 
 import static org.chromium.chrome.browser.suggestions.tile.MostVisitedTilesProperties.HORIZONTAL_EDGE_PADDINGS;
 import static org.chromium.chrome.browser.suggestions.tile.MostVisitedTilesProperties.HORIZONTAL_INTERVAL_PADDINGS;
-import static org.chromium.chrome.browser.suggestions.tile.MostVisitedTilesProperties.IS_CONTAINER_VISIBLE;
 import static org.chromium.chrome.browser.suggestions.tile.MostVisitedTilesProperties.IS_MVT_LAYOUT_VISIBLE;
 import static org.chromium.chrome.browser.suggestions.tile.MostVisitedTilesProperties.PLACEHOLDER_VIEW;
 import static org.chromium.chrome.browser.suggestions.tile.MostVisitedTilesProperties.UPDATE_INTERVAL_PADDINGS_TABLET;
@@ -27,11 +26,10 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewStub;
 
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -40,7 +38,6 @@ import org.robolectric.annotation.Config;
 
 import org.chromium.base.test.BaseRobolectricTestRunner;
 import org.chromium.chrome.R;
-import org.chromium.chrome.browser.flags.ChromeFeatureList;
 import org.chromium.chrome.browser.native_page.ContextMenuManager;
 import org.chromium.chrome.browser.offlinepages.OfflinePageBridge;
 import org.chromium.chrome.browser.profiles.Profile;
@@ -48,8 +45,6 @@ import org.chromium.chrome.browser.search_engines.TemplateUrlServiceFactory;
 import org.chromium.chrome.browser.suggestions.SiteSuggestion;
 import org.chromium.chrome.browser.suggestions.SuggestionsUiDelegate;
 import org.chromium.chrome.browser.suggestions.mostvisited.MostVisitedSites;
-import org.chromium.chrome.test.util.browser.Features;
-import org.chromium.chrome.test.util.browser.Features.EnableFeatures;
 import org.chromium.chrome.test.util.browser.suggestions.mostvisited.FakeMostVisitedSites;
 import org.chromium.components.browser_ui.widget.displaystyle.HorizontalDisplayStyle;
 import org.chromium.components.browser_ui.widget.displaystyle.UiConfig;
@@ -109,9 +104,6 @@ public class MostVisitedMediatorUnitTest {
     private PropertyModel mModel;
     private MostVisitedTilesMediator mMediator;
 
-    @Rule
-    public TestRule mProcessor = new Features.JUnitProcessor();
-
     @Before
     public void setUp() {
         MockitoAnnotations.initMocks(this);
@@ -143,6 +135,12 @@ public class MostVisitedMediatorUnitTest {
         Profile.setLastUsedProfileForTesting(mProfile);
         TemplateUrlServiceFactory.setInstanceForTesting(mTemplateUrlService);
         when(mTemplateUrlService.doesDefaultSearchEngineHaveLogo()).thenReturn(true);
+    }
+
+    @After
+    public void tearDown() {
+        Profile.setLastUsedProfileForTesting(null);
+        TemplateUrlServiceFactory.setInstanceForTesting(null);
     }
 
     @Test
@@ -187,27 +185,6 @@ public class MostVisitedMediatorUnitTest {
 
         Assert.assertTrue(mModel.get(IS_MVT_LAYOUT_VISIBLE));
         Assert.assertNotNull(mModel.get(PLACEHOLDER_VIEW));
-    }
-
-    @Test
-    @EnableFeatures({ChromeFeatureList.SURFACE_POLISH})
-    public void testOnTileCountChanged_SurfacePolished() {
-        ArrayList<SiteSuggestion> array = new ArrayList<>();
-        array.add(mData);
-        mMostVisitedSites.setTileSuggestions(array);
-        createMediator();
-
-        Assert.assertTrue(mModel.get(IS_CONTAINER_VISIBLE));
-
-        // When there's no mv tile, the mv tiles container should be hidden.
-        mMostVisitedSites.setTileSuggestions(new ArrayList<>());
-        mMediator.onTileCountChanged();
-        Assert.assertFalse(mModel.get(IS_CONTAINER_VISIBLE));
-
-        // When there is mv tile, the mv tiles container should be shown.
-        mMostVisitedSites.setTileSuggestions(JUnitTestGURLs.HTTP_URL);
-        mMediator.onTileCountChanged();
-        Assert.assertTrue(mModel.get(IS_CONTAINER_VISIBLE));
     }
 
     @Test
@@ -297,7 +274,7 @@ public class MostVisitedMediatorUnitTest {
     public void testSetPortraitPaddings_NonScrollableMVT() {
         mConfiguration.orientation = Configuration.ORIENTATION_PORTRAIT;
         createMediator(/*isScrollableMVTEnabled=*/false,
-                /*isNtpAsHomeSurfaceEnabled=*/false);
+                /*isMultiColumnFeedOnTabletEnabled=*/false);
         mMediator.onTileDataChanged();
         Assert.assertNull(mModel.get(HORIZONTAL_EDGE_PADDINGS));
         Assert.assertNull(mModel.get(HORIZONTAL_INTERVAL_PADDINGS));
@@ -319,7 +296,7 @@ public class MostVisitedMediatorUnitTest {
     public void testSetLandscapePaddings_NonScrollableMVT() {
         mConfiguration.orientation = Configuration.ORIENTATION_LANDSCAPE;
         createMediator(/*isScrollableMVTEnabled=*/false,
-                /*isNtpAsHomeSurfaceEnabled=*/false);
+                /*isMultiColumnFeedOnTabletEnabled=*/false);
         mMediator.onTileDataChanged();
 
         Assert.assertNull(mModel.get(HORIZONTAL_EDGE_PADDINGS));
@@ -339,7 +316,7 @@ public class MostVisitedMediatorUnitTest {
     @Test
     public void testUpdateTilesViewForCarouselLayout() {
         mConfiguration.orientation = Configuration.ORIENTATION_PORTRAIT;
-        createMediator(/*isScrollableMVTEnabled=*/true, /*isNtpAsHomeSurfaceEnabled=*/true);
+        createMediator(/*isScrollableMVTEnabled=*/true, /*isMultiColumnFeedOnTabletEnabled=*/true);
         mMediator.onTileDataChanged();
         Assert.assertEquals("The horizontal edge padding passed to the model is wrong", 0,
                 (int) mModel.get(HORIZONTAL_EDGE_PADDINGS));
@@ -348,7 +325,7 @@ public class MostVisitedMediatorUnitTest {
                 mModel.get(UPDATE_INTERVAL_PADDINGS_TABLET));
 
         mConfiguration.orientation = Configuration.ORIENTATION_LANDSCAPE;
-        createMediator(/*isScrollableMVTEnabled=*/true, /*isNtpAsHomeSurfaceEnabled=*/true);
+        createMediator(/*isScrollableMVTEnabled=*/true, /*isMultiColumnFeedOnTabletEnabled=*/true);
         mMediator.onTileDataChanged();
         Assert.assertEquals("The horizontal edge padding passed to the model is wrong", 0,
                 (int) mModel.get(HORIZONTAL_EDGE_PADDINGS));
@@ -361,7 +338,8 @@ public class MostVisitedMediatorUnitTest {
         createMediator(true, false);
     }
 
-    private void createMediator(boolean isScrollableMVTEnabled, boolean isNtpAsHomeSurfaceEnabled) {
+    private void createMediator(
+            boolean isScrollableMVTEnabled, boolean isMultiColumnFeedOnTabletEnabled) {
         if (!isScrollableMVTEnabled) {
             mMvTilesLayout = Mockito.mock(MostVisitedTilesGridLayout.class);
         } else {
@@ -376,7 +354,7 @@ public class MostVisitedMediatorUnitTest {
         mMediator = new MostVisitedTilesMediator(mResources, mUiConfig, mMvTilesLayout,
                 mNoMvPlaceholderStub, mTileRenderer, mModel, false, isScrollableMVTEnabled, false,
                 mSnapshotTileGridChangedRunnable, mTileCountChangedRunnable,
-                isNtpAsHomeSurfaceEnabled);
+                isMultiColumnFeedOnTabletEnabled);
         mMediator.initWithNative(mSuggestionsUiDelegate, mContextMenuManager, mTileGroupDelegate,
                 mOfflinePageBridge, mTileRenderer);
     }

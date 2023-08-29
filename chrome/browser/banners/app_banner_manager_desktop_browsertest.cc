@@ -34,7 +34,6 @@
 #include "chrome/browser/web_applications/web_app_provider.h"
 #include "chrome/common/chrome_features.h"
 #include "chrome/test/base/ui_test_utils.h"
-#include "chromeos/ash/components/standalone_browser/feature_refs.h"
 #include "components/password_manager/content/common/web_ui_constants.h"
 #include "components/password_manager/core/common/password_manager_features.h"
 #include "components/webapps/browser/banners/app_banner_metrics.h"
@@ -54,9 +53,8 @@ namespace webapps {
 namespace {
 
 std::vector<base::test::FeatureRef> GetDisabledFeatures() {
-// TODO(crbug.com/1462253): Also test with Lacros flags enabled.
 #if BUILDFLAG(IS_CHROMEOS_ASH)
-  return ash::standalone_browser::GetFeatureRefs();
+  return {features::kWebAppsCrosapi, ash::features::kLacrosPrimary};
 #else
   return {};
 #endif
@@ -470,7 +468,8 @@ class AppBannerManagerDesktopBrowserTestForPasswordManagerPage
  public:
   void SetUp() override {
     scoped_feature_list_.InitWithFeatures(
-        /*enabled_features=*/{}, GetDisabledFeatures());
+        {password_manager::features::kPasswordManagerRedesign},
+        GetDisabledFeatures());
     TestAppBannerManagerDesktop::SetUp();
     AppBannerManagerBrowserTestBase::SetUp();
   }

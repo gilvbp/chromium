@@ -4,8 +4,6 @@
 
 #include "ios/chrome/browser/ui/overlays/test/fake_overlay_request_coordinator_delegate.h"
 
-#include "base/containers/contains.h"
-
 FakeOverlayRequestCoordinatorDelegate::FakeOverlayRequestCoordinatorDelegate() =
     default;
 FakeOverlayRequestCoordinatorDelegate::
@@ -13,13 +11,13 @@ FakeOverlayRequestCoordinatorDelegate::
 
 bool FakeOverlayRequestCoordinatorDelegate::HasUIBeenPresented(
     OverlayRequest* request) const {
-  return base::Contains(states_, request) &&
+  return states_.find(request) != states_.end() &&
          states_.at(request) == PresentationState::kPresented;
 }
 
 bool FakeOverlayRequestCoordinatorDelegate::HasUIBeenDismissed(
     OverlayRequest* request) const {
-  return base::Contains(states_, request) &&
+  return states_.find(request) != states_.end() &&
          states_.at(request) == PresentationState::kDismissed;
 }
 

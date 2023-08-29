@@ -8,7 +8,6 @@
 
 #include <algorithm>
 
-#include "base/containers/contains.h"
 #include "base/functional/bind.h"
 #include "base/functional/callback_forward.h"
 #include "base/functional/callback_helpers.h"
@@ -177,9 +176,10 @@ void TestDownloadHttpResponse::StartServing(
     const TestDownloadHttpResponse::Parameters& parameters,
     const GURL& url) {
   base::AutoLock lock(*g_lock.Pointer());
-  auto& parameters_map = g_parameters_map.Get();
-  parameters_map.erase(url);
-  parameters_map.emplace(url, parameters);
+  auto iter = g_parameters_map.Get().find(url);
+  if (iter != g_parameters_map.Get().end())
+    g_parameters_map.Get().erase(iter);
+  g_parameters_map.Get().emplace(url, parameters);
 }
 
 // static
@@ -330,12 +330,14 @@ std::string TestDownloadHttpResponse::GetDefaultResponseHeaders() {
   // Send partial response.
   if (parameters_.support_partial_response && parameters_.support_byte_ranges) {
     bool has_if_range =
-        base::Contains(request_.headers, net::HttpRequestHeaders::kIfRange);
+        request_.headers.find(net::HttpRequestHeaders::kIfRange) !=
+        request_.headers.end();
     if (((has_if_range &&
           request_.headers.at(net::HttpRequestHeaders::kIfRange) ==
               parameters_.etag) ||
          (!has_if_range &&
-          base::Contains(request_.headers, net::HttpRequestHeaders::kRange))) &&
+          request_.headers.find(net::HttpRequestHeaders::kRange) !=
+              request_.headers.end())) &&
         HandleRangeAssumingValidatorMatch(headers)) {
       return headers;
     }
@@ -343,7 +345,8 @@ std::string TestDownloadHttpResponse::GetDefaultResponseHeaders() {
 
   // Send precondition failed for "If-Match" request header.
   if (parameters_.support_partial_response && parameters_.support_byte_ranges &&
-      base::Contains(request_.headers, net::HttpRequestHeaders::kIfMatch)) {
+      request_.headers.find(net::HttpRequestHeaders::kIfMatch) !=
+          request_.headers.end()) {
     if (request_.headers.at(net::HttpRequestHeaders::kIfMatch) !=
             parameters_.etag ||
         !HandleRangeAssumingValidatorMatch(headers)) {

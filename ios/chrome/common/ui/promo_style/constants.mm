@@ -5,8 +5,10 @@
 #import "ios/chrome/common/ui/promo_style/constants.h"
 #import <Foundation/Foundation.h>
 
-NSString* const kPromoStyleHeaderViewBackgroundAccessibilityIdentifier =
-    @"PromoStyleHeaderViewBackgroundAccessibilityIdentifier";
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 NSString* const kPromoStyleTitleAccessibilityIdentifier =
     @"PromoStyleTitleAccessibilityIdentifier";
 NSString* const kPromoStyleSubtitleAccessibilityIdentifier =

@@ -10,7 +10,6 @@
 
 #include "base/containers/queue.h"
 #include "base/gtest_prod_util.h"
-#include "base/memory/raw_ptr_exclusion.h"
 #include "base/memory/weak_ptr.h"
 #include "base/time/time.h"
 #include "base/timer/timer.h"
@@ -61,9 +60,7 @@ class FcmConnectionEstablisher : public ConnectionEstablisher {
         content::ServiceWorkerContext* service_worker_context);
     GURL service_worker_scope;
     MessageType message_type;
-    // This field is not a raw_ptr<> because it was filtered by the rewriter
-    // for: #union
-    RAW_PTR_EXCLUSION content::ServiceWorkerContext* service_worker_context;
+    content::ServiceWorkerContext* service_worker_context;
   };
 
   struct InFlightMessage {

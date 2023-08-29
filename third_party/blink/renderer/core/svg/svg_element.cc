@@ -307,36 +307,27 @@ AffineTransform SVGElement::LocalCoordinateSpaceTransform(CTMScope) const {
 }
 
 bool SVGElement::HasTransform(
-    ApplyMotionTransformTag apply_motion_transform) const {
+    ApplyMotionTransform apply_motion_transform) const {
   return (GetLayoutObject() && GetLayoutObject()->HasTransform()) ||
          (apply_motion_transform == kIncludeMotionTransform &&
-          HasMotionTransform());
+          HasSVGRareData());
 }
 
 AffineTransform SVGElement::CalculateTransform(
-    ApplyMotionTransformTag apply_motion_transform) const {
+    ApplyMotionTransform apply_motion_transform) const {
   const LayoutObject* layout_object = GetLayoutObject();
 
   AffineTransform matrix;
   if (layout_object && layout_object->HasTransform()) {
-    const gfx::RectF reference_box =
-        TransformHelper::ComputeReferenceBox(*layout_object);
     matrix = TransformHelper::ComputeTransform(
-        GetDocument(), layout_object->StyleRef(), reference_box,
-        ComputedStyle::kIncludeTransformOrigin);
+        *layout_object, ComputedStyle::kIncludeTransformOrigin);
   }
 
   // Apply any "motion transform" contribution if requested (and existing.)
-  if (apply_motion_transform == kIncludeMotionTransform) {
-    ApplyMotionTransform(matrix);
-  }
-  return matrix;
-}
-
-void SVGElement::ApplyMotionTransform(AffineTransform& matrix) const {
-  if (HasSVGRareData()) {
+  if (apply_motion_transform == kIncludeMotionTransform && HasSVGRareData())
     matrix.PostConcat(*SvgRareData()->AnimateMotionTransform());
-  }
+
+  return matrix;
 }
 
 Node::InsertionNotificationRequest SVGElement::InsertedInto(
@@ -548,10 +539,9 @@ void SVGElement::InvalidateRelativeLengthClients() {
 
   if (LayoutObject* layout_object = GetLayoutObject()) {
     if (HasRelativeLengths() && layout_object->IsSVGResourceContainer()) {
-      auto* resource_container = To<LayoutSVGResourceContainer>(layout_object);
-      resource_container->SetNeedsLayoutAndFullPaintInvalidation(
-          layout_invalidation_reason::kSizeChanged);
-      resource_container->InvalidateCache();
+      To<LayoutSVGResourceContainer>(layout_object)
+          ->InvalidateCacheAndMarkForLayout(
+              layout_invalidation_reason::kSizeChanged);
     } else if (SelfHasRelativeLengths()) {
       layout_object->SetNeedsLayoutAndFullPaintInvalidation(
           layout_invalidation_reason::kUnknown, kMarkContainerChain);
@@ -911,10 +901,9 @@ static bool HasLoadListener(Element* element) {
         element->GetEventListeners(event_type_names::kLoad);
     if (!entry)
       continue;
-    for (auto& registered_event_listener : *entry) {
-      if (registered_event_listener->Capture()) {
+    for (wtf_size_t i = 0; i < entry->size(); ++i) {
+      if (entry->at(i).Capture())
         return true;
-      }
     }
   }
 
@@ -1059,7 +1048,7 @@ void SVGElement::CollectExtraStyleForPresentationAttribute(
   // attributes that didn't change.
 }
 
-const ComputedStyle* SVGElement::CustomStyleForLayoutObject(
+scoped_refptr<const ComputedStyle> SVGElement::CustomStyleForLayoutObject(
     const StyleRecalcContext& style_recalc_context) {
   SVGElement* corresponding_element = CorrespondingElement();
   if (!corresponding_element) {
@@ -1105,9 +1094,8 @@ const ComputedStyle* SVGElement::BaseComputedStyleForSMIL() {
   if (!HasSVGRareData())
     return EnsureComputedStyle();
   const ComputedStyle* parent_style = nullptr;
-  if (Element* parent = LayoutTreeBuilderTraversal::ParentElement(*this)) {
+  if (ContainerNode* parent = LayoutTreeBuilderTraversal::Parent(*this))
     parent_style = parent->EnsureComputedStyle();
-  }
   return SvgRareData()->OverrideComputedStyle(this, parent_style);
 }
 

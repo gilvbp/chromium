@@ -42,7 +42,6 @@
 #include "chromeos/ash/components/network/prohibited_technologies_handler.h"
 #include "chromeos/ash/components/network/proxy/ui_proxy_config_service.h"
 #include "chromeos/ash/components/network/technology_state_controller.h"
-#include "chromeos/ash/components/network/text_message_suppression_state.h"
 #include "chromeos/ash/components/sync_wifi/network_eligibility_checker.h"
 #include "chromeos/services/network_config/public/cpp/cros_network_config_util.h"
 #include "chromeos/services/network_config/public/mojom/cros_network_config.mojom-shared.h"
@@ -1630,31 +1629,7 @@ mojom::ManagedPropertiesPtr ManagedPropertiesToMojo(
       cellular->sim_locked = cellular_device &&
                              cellular_device->iccid() == cellular->iccid &&
                              cellular_device->IsSimLocked();
-      if (features::IsSuppressTextMessagesEnabled()) {
-        UserTextMessageSuppressionState state =
-            NetworkHandler::Get()
-                ->network_metadata_store()
-                ->GetUserTextMessageSuppressionState(network_state->guid());
-        cellular->allow_text_messages = mojom::ManagedBoolean::New();
-        cellular->allow_text_messages->active_value =
-            state == UserTextMessageSuppressionState::kAllow;
-        PolicyTextMessageSuppressionState policy_state =
-            NetworkHandler::Get()
-                ->managed_network_configuration_handler()
-                ->GetAllowTextMessages();
-        if (policy_state != PolicyTextMessageSuppressionState::kUnset) {
-          cellular->allow_text_messages->policy_value =
-              policy_state == PolicyTextMessageSuppressionState::kAllow;
-          // |active_value| should match policy value when policy is enforced.
-          cellular->allow_text_messages->active_value =
-              cellular->allow_text_messages->policy_value;
-          // We manually set the policy source to device enforced as that aligns
-          // with the implemented behavior. This field is read in WebUI to
-          // determine whether the policy value should be used or not.
-          cellular->allow_text_messages->policy_source = ::chromeos::
-              network_config::mojom::PolicySource::kDevicePolicyEnforced;
-        }
-      }
+
       result->type_properties =
           mojom::NetworkTypeManagedProperties::NewCellular(std::move(cellular));
       break;
@@ -2529,20 +2504,6 @@ void CrosNetworkConfig::SetProperties(const std::string& guid,
     UpdateCustomApnList(network, properties.get());
   }
 
-  if (features::IsSuppressTextMessagesEnabled() &&
-      properties->type_config->is_cellular() &&
-      properties->type_config->get_cellular()->text_message_allow_state) {
-    const bool allow_text_messages =
-        properties->type_config->get_cellular()
-            ->text_message_allow_state->allow_text_messages;
-    UserTextMessageSuppressionState state =
-        allow_text_messages ? UserTextMessageSuppressionState::kAllow
-                            : UserTextMessageSuppressionState::kSuppress;
-    NetworkHandler::Get()
-        ->network_metadata_store()
-        ->SetUserTextMessageSuppressionState(guid, state);
-  }
-
   absl::optional<base::Value::Dict> onc =
       GetOncFromConfigProperties(properties.get(), guid);
   if (!onc) {
@@ -2987,9 +2948,6 @@ void CrosNetworkConfig::GetGlobalPolicy(GetGlobalPolicyCallback callback) {
   result->allow_cellular_sim_lock = GetBoolean(
       global_policy_dict, ::onc::global_network_config::kAllowCellularSimLock,
       /*value_if_key_missing_from_dict=*/result->allow_cellular_sim_lock);
-  result->allow_cellular_hotspot = GetBoolean(
-      global_policy_dict, ::onc::global_network_config::kAllowCellularHotspot,
-      /*value_if_key_missing_from_dict=*/result->allow_cellular_hotspot);
   result->allow_only_policy_cellular_networks =
       GetBoolean(global_policy_dict,
                  ::onc::global_network_config::kAllowOnlyPolicyCellularNetworks,

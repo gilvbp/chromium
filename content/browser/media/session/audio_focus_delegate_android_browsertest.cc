@@ -34,7 +34,7 @@ class AudioFocusDelegateAndroidBrowserTest : public ContentBrowserTest {};
 IN_PROC_BROWSER_TEST_F(AudioFocusDelegateAndroidBrowserTest,
                        MAYBE_OnAudioFocusChangeAfterDtorCrash) {
   std::unique_ptr<MockMediaSessionPlayerObserver> player_observer(
-      new MockMediaSessionPlayerObserver(media::MediaContentType::kPersistent));
+      new MockMediaSessionPlayerObserver(media::MediaContentType::Persistent));
 
   MediaSessionImpl* media_session =
       MediaSessionImpl::Get(shell()->web_contents());

@@ -10,7 +10,6 @@
 #include "build/build_config.h"
 #include "build/chromeos_buildflags.h"
 #include "chrome/browser/shell_integration.h"
-#include "chrome/common/webui_url_constants.h"
 #include "components/omnibox/browser/actions/omnibox_pedal.h"
 #include "components/omnibox/browser/autocomplete_input.h"
 #include "components/omnibox/browser/autocomplete_provider_client.h"
@@ -109,7 +108,7 @@ class OmniboxPedalManagePasswords : public OmniboxPedal {
                          IDS_OMNIBOX_PEDAL_MANAGE_PASSWORDS_SUGGESTION_CONTENTS,
                          IDS_ACC_OMNIBOX_PEDAL_MANAGE_PASSWORDS_SUFFIX,
                          IDS_ACC_OMNIBOX_PEDAL_MANAGE_PASSWORDS),
-            GURL(chrome::kChromeUIPasswordManagerURL)) {}
+            GURL("chrome://settings/passwords")) {}
 
   std::vector<SynonymGroupSpec> SpecifySynonymGroups(
       bool locale_is_english) const override {

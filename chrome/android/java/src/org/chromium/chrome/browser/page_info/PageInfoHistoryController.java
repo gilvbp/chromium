@@ -9,7 +9,8 @@ import android.text.format.DateUtils;
 import android.view.View;
 import android.view.ViewGroup;
 
-import org.chromium.base.ResettersForTesting;
+import androidx.annotation.VisibleForTesting;
+
 import org.chromium.base.supplier.ObservableSupplierImpl;
 import org.chromium.base.supplier.Supplier;
 import org.chromium.chrome.R;
@@ -207,14 +208,13 @@ public class PageInfoHistoryController
     public void onHistoryDeletedExternally() {}
 
     /** @param provider The {@link HistoryProvider} that is used in place of a real one. */
+    @VisibleForTesting
     public static void setProviderForTests(HistoryProvider provider) {
         sProviderForTests = provider;
-        ResettersForTesting.register(() -> sProviderForTests = null);
     }
 
+    @VisibleForTesting
     static void setClockForTesting(Clock clock) {
-        var oldValue = sClock;
         sClock = clock;
-        ResettersForTesting.register(() -> sClock = oldValue);
     }
 }

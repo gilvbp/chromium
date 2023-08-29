@@ -6,7 +6,6 @@
 #define ASH_WEBUI_DEMO_MODE_APP_UI_DEMO_MODE_APP_UNTRUSTED_UI_H_
 
 #include "ash/webui/common/chrome_os_webui_config.h"
-#include "ash/webui/demo_mode_app_ui/demo_mode_app_delegate.h"
 #include "ash/webui/demo_mode_app_ui/mojom/demo_mode_app_untrusted_ui.mojom.h"
 #include "base/files/file_path.h"
 #include "content/public/browser/web_ui_data_source.h"
@@ -34,10 +33,8 @@ class DemoModeAppUntrustedUI
     : public ui::UntrustedWebUIController,
       public mojom::demo_mode::UntrustedPageHandlerFactory {
  public:
-  explicit DemoModeAppUntrustedUI(
-      content::WebUI* web_ui,
-      base::FilePath component_base_path,
-      std::unique_ptr<DemoModeAppDelegate> delegate);
+  explicit DemoModeAppUntrustedUI(content::WebUI* web_ui,
+                                  base::FilePath component_base_path);
   ~DemoModeAppUntrustedUI() override;
 
   DemoModeAppUntrustedUI(const DemoModeAppUntrustedUI&) = delete;
@@ -53,15 +50,11 @@ class DemoModeAppUntrustedUI
       const std::string& resource_path,
       content::WebUIDataSource::GotDataCallback callback);
 
-  DemoModeAppDelegate& delegate() { return *delegate_; }
-
  private:
   // mojom::DemoModePageHandlerFactory
   void CreatePageHandler(
       mojo::PendingReceiver<mojom::demo_mode::UntrustedPageHandler> handler)
       override;
-
-  std::unique_ptr<DemoModeAppDelegate> delegate_;
 
   mojo::Receiver<mojom::demo_mode::UntrustedPageHandlerFactory>
       demo_mode_page_factory_{this};

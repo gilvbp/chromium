@@ -7,7 +7,6 @@
 
 #include <memory>
 
-#include "base/memory/raw_ptr_exclusion.h"
 #include "chromeos/ash/components/multidevice/secure_message_delegate.h"
 #include "chromeos/ash/components/multidevice/secure_message_delegate_impl.h"
 
@@ -71,9 +70,7 @@ class FakeSecureMessageDelegateFactory
   // multidevice::SecureMessageDelegateImpl::Factory:
   std::unique_ptr<multidevice::SecureMessageDelegate> CreateInstance() override;
 
-  // This field is not a raw_ptr<> because it was filtered by the rewriter
-  // for: #constexpr-ctor-field-initializer
-  RAW_PTR_EXCLUSION multidevice::FakeSecureMessageDelegate* instance_ = nullptr;
+  multidevice::FakeSecureMessageDelegate* instance_ = nullptr;
 };
 
 }  // namespace ash::multidevice

@@ -21,6 +21,7 @@ import androidx.annotation.ColorInt;
 import androidx.annotation.Nullable;
 
 import org.chromium.base.ApiCompatibilityUtils;
+import org.chromium.base.metrics.RecordHistogram;
 import org.chromium.chrome.R;
 import org.chromium.chrome.browser.profiles.Profile;
 import org.chromium.components.browser_ui.styles.SemanticColorUtils;
@@ -101,6 +102,7 @@ class ContextMenuHeaderMediator implements View.OnClickListener {
      */
     @Override
     public void onClick(View v) {
+        RecordHistogram.recordBooleanHistogram("ContextMenu.URLClicked", true);
         if (mModel.get(ContextMenuHeaderProperties.URL_MAX_LINES) == Integer.MAX_VALUE) {
             // URL and title should both be expanded.
             assert mModel.get(ContextMenuHeaderProperties.TITLE_MAX_LINES) == Integer.MAX_VALUE;

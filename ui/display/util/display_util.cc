@@ -12,7 +12,6 @@
 #include "base/metrics/histogram_functions.h"
 #include "base/no_destructor.h"
 #include "base/notreached.h"
-#include "components/device_event_log/device_event_log.h"
 #include "ui/display/types/display_snapshot.h"
 #include "ui/display/util/edid_parser.h"
 #include "ui/gfx/icc_profile.h"
@@ -170,12 +169,12 @@ gfx::ColorSpace GetColorSpaceFromEdid(const display::EdidParser& edid_parser) {
 #if BUILDFLAG(IS_CHROMEOS_ASH)
       if (base::FeatureList::IsEnabled(
               display::features::kEnableExternalDisplayHDR10Mode) &&
-          edid_parser.is_external_display() &&
           base::Contains(
               edid_parser.supported_color_primary_matrix_ids(),
               EdidParser::PrimaryMatrixPair(gfx::ColorSpace::PrimaryID::BT2020,
                                             gfx::ColorSpace::MatrixID::RGB))) {
-        return gfx::ColorSpace::CreateHDR10();
+        // Returns HDR10(PQ) color space if the display can support it.
+        color_space_primaries = gfx::ColorSpace::PrimaryID::BT2020;
       }
 #endif
     } else if (base::Contains(edid_parser.supported_color_transfer_ids(),
@@ -235,12 +234,6 @@ bool HasInternalDisplay() {
 }
 
 void SetInternalDisplayIds(base::flat_set<int64_t> display_ids) {
-  // TODO(crbug.com/1457025): Fix isInternal inaccuracies and remove logging.
-  DISPLAY_LOG(DEBUG) << "Internal display ids updated, count: "
-                     << display_ids.size();
-  for (const auto& display_id : display_ids) {
-    DISPLAY_LOG(DEBUG) << "Internal display id: " << display_id;
-  }
   *internal_display_ids() = std::move(display_ids);
 }
 
@@ -349,7 +342,7 @@ gfx::DisplayColorSpaces CreateDisplayColorSpaces(
             display::features::kEnableExternalDisplayHDR10Mode) &&
         snapshot_color_space == gfx::ColorSpace::CreateHDR10()) {
       // This forces the main ui plane to be always HDR10 regardless of
-      // ContentColorUsage. BT2020 primaries require 10-bit buffer.
+      // ContentColorUsage.
       display_color_spaces = gfx::DisplayColorSpaces(
           gfx::ColorSpace::CreateHDR10(), gfx::BufferFormat::RGBA_1010102);
     }

@@ -38,10 +38,4 @@ void DevicePosturePlatformProvider::NotifyDevicePostureChanged(
   provider_->OnDevicePostureChanged(posture);
 }
 
-void DevicePosturePlatformProvider::NotifyWindowSegmentsChanged(
-    const std::vector<gfx::Rect>& segments) {
-  DCHECK(provider_);
-  provider_->OnViewportSegmentsChanged(segments);
-}
-
 }  // namespace device

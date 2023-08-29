@@ -4,6 +4,10 @@
 
 #import "ios/chrome/browser/ui/page_info/page_info_site_security_description.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 @implementation PageInfoSiteSecurityDescription
 
 @end

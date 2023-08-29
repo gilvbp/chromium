@@ -45,9 +45,8 @@ void SVGClipPathElement::SvgAttributeChanged(
     SVGElement::InvalidationGuard invalidation_guard(this);
 
     auto* layout_object = To<LayoutSVGResourceContainer>(GetLayoutObject());
-    if (layout_object) {
-      layout_object->InvalidateCache();
-    }
+    if (layout_object)
+      layout_object->InvalidateCacheAndMarkForLayout();
     return;
   }
 
@@ -60,9 +59,9 @@ void SVGClipPathElement::ChildrenChanged(const ChildrenChange& change) {
   if (change.ByParser())
     return;
 
-  auto* layout_object = To<LayoutSVGResourceContainer>(GetLayoutObject());
-  if (layout_object) {
-    layout_object->InvalidateCache();
+  if (LayoutObject* object = GetLayoutObject()) {
+    object->SetNeedsLayoutAndFullPaintInvalidation(
+        layout_invalidation_reason::kChildChanged);
   }
 }
 

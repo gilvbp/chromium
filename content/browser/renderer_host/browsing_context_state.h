@@ -281,7 +281,7 @@ class CONTENT_EXPORT BrowsingContextState
  protected:
   friend class base::RefCounted<BrowsingContextState>;
 
-  ~BrowsingContextState() override;
+  virtual ~BrowsingContextState();
 
  private:
   RenderFrameProxyHost* GetRenderFrameProxyHostImpl(

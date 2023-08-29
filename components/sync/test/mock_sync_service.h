@@ -5,7 +5,6 @@
 #ifndef COMPONENTS_SYNC_TEST_MOCK_SYNC_SERVICE_H_
 #define COMPONENTS_SYNC_TEST_MOCK_SYNC_SERVICE_H_
 
-#include <map>
 #include <memory>
 #include <string>
 #include <vector>
@@ -15,7 +14,6 @@
 #include "components/signin/public/identity_manager/account_info.h"
 #include "components/sync/engine/cycle/sync_cycle_snapshot.h"
 #include "components/sync/model/type_entities_count.h"
-#include "components/sync/service/local_data_description.h"
 #include "components/sync/service/sync_service.h"
 #include "components/sync/service/sync_token_status.h"
 #include "components/sync/test/sync_user_settings_mock.h"
@@ -88,6 +86,19 @@ class MockSyncService : public SyncService {
               SetInvalidationsForSessionsEnabled,
               (bool enabled),
               (override));
+  MOCK_METHOD(void,
+              AddTrustedVaultDecryptionKeysFromWeb,
+              (const std::string& gaia_id,
+               const std::vector<std::vector<uint8_t>>& keys,
+               int last_key_version),
+              (override));
+  MOCK_METHOD(void,
+              AddTrustedVaultRecoveryMethodFromWeb,
+              (const std::string& gaia_id,
+               const std::vector<uint8_t>& public_key,
+               int method_type_hint,
+               base::OnceClosure callback),
+              (override));
   MOCK_METHOD(void, AddObserver, (SyncServiceObserver * observer), (override));
   MOCK_METHOD(void,
               RemoveObserver,
@@ -144,21 +155,6 @@ class MockSyncService : public SyncService {
               GetDownloadStatusFor,
               (ModelType type),
               (const override));
-  MOCK_METHOD(void,
-              GetTypesWithUnsyncedData,
-              (base::OnceCallback<void(ModelTypeSet)>),
-              (const override));
-  MOCK_METHOD(
-      void,
-      GetLocalDataDescriptions,
-      (ModelTypeSet types,
-       base::OnceCallback<void(std::map<ModelType, LocalDataDescription>)>
-           callback),
-      (override));
-  MOCK_METHOD(void,
-              TriggerLocalDataMigration,
-              (ModelTypeSet types),
-              (override));
 
   // KeyedService implementation.
   MOCK_METHOD(void, Shutdown, (), (override));

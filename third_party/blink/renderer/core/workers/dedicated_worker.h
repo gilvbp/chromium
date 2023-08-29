@@ -95,7 +95,7 @@ class CORE_EXPORT DedicatedWorker final
   void ContextDestroyed() override;
 
   // Implements ScriptWrappable
-  // (via AbstractWorker -> EventTarget -> EventTarget).
+  // (via AbstractWorker -> EventTargetWithInlineData -> EventTarget).
   bool HasPendingActivity() const final;
 
   // Implements WebDedicatedWorker.
@@ -164,7 +164,7 @@ class CORE_EXPORT DedicatedWorker final
       mojo::PendingRemote<mojom::blink::BackForwardCacheControllerHost>
           back_forward_cache_controller_host);
 
-  // Implements EventTarget (via AbstractWorker -> EventTarget).
+  // Implements EventTarget (via AbstractWorker -> EventTargetWithInlineData).
   const AtomicString& InterfaceName() const final;
 
   // The unique identifier for this DedicatedWorker. This is created in the

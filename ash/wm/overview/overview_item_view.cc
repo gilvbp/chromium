@@ -251,8 +251,6 @@ gfx::Size OverviewItemView::GetPreviewViewSize() const {
   return gfx::ToRoundedSize(target_size);
 }
 
-void OverviewItemView::RefreshItemVisuals() {}
-
 views::View* OverviewItemView::GetView() {
   return this;
 }

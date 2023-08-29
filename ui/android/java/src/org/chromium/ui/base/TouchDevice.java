@@ -55,8 +55,8 @@ public class TouchDevice {
      */
     @CalledByNative
     private static int[] availablePointerAndHoverTypes() {
-        int pointerTypes = 0;
-        int hoverTypes = 0;
+        int[] result = new int[2];
+        result[0] = result[1] = 0;
 
         for (int deviceId : InputDevice.getDeviceIds()) {
             InputDevice inputDevice = null;
@@ -68,34 +68,30 @@ public class TouchDevice {
             if (inputDevice == null) continue;
 
             int sources = inputDevice.getSources();
-            boolean isFinePointer = hasSource(sources, InputDevice.SOURCE_MOUSE)
+
+            if (hasSource(sources, InputDevice.SOURCE_MOUSE)
                     || hasSource(sources, InputDevice.SOURCE_STYLUS)
                     || hasSource(sources, InputDevice.SOURCE_TOUCHPAD)
-                    || hasSource(sources, InputDevice.SOURCE_TRACKBALL);
-            if (isFinePointer) {
-                pointerTypes |= PointerType.FINE;
-            }
-            if (hasSource(sources, InputDevice.SOURCE_TOUCHSCREEN)
-                    && (UiAndroidFeatureMap.isEnabled(
-                                UiAndroidFeatures.REPORT_ALL_AVAILABLE_POINTER_TYPES)
-                            || !isFinePointer)) {
-                pointerTypes |= PointerType.COARSE;
+                    || hasSource(sources, InputDevice.SOURCE_TRACKBALL)) {
+                result[0] |= PointerType.FINE;
+            } else if (hasSource(sources, InputDevice.SOURCE_TOUCHSCREEN)) {
+                result[0] |= PointerType.COARSE;
             }
 
             if (hasSource(sources, InputDevice.SOURCE_MOUSE)
                     || hasSource(sources, InputDevice.SOURCE_TOUCHPAD)
                     || hasSource(sources, InputDevice.SOURCE_TRACKBALL)) {
-                hoverTypes |= HoverType.HOVER;
+                result[1] |= HoverType.HOVER;
             }
 
             // Remaining InputDevice sources: SOURCE_DPAD, SOURCE_GAMEPAD, SOURCE_JOYSTICK,
             // SOURCE_KEYBOARD, SOURCE_TOUCH_NAVIGATION, SOURCE_UNKNOWN
         }
 
-        if (pointerTypes == 0) pointerTypes = PointerType.NONE;
-        if (hoverTypes == 0) hoverTypes = HoverType.NONE;
+        if (result[0] == 0) result[0] = PointerType.NONE;
+        if (result[1] == 0) result[1] = HoverType.NONE;
 
-        return new int[] {pointerTypes, hoverTypes};
+        return result;
     }
 
     private static boolean hasSource(int sources, int inputDeviceSource) {

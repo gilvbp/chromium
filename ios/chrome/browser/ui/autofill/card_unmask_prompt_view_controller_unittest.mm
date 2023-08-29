@@ -22,6 +22,10 @@
 #import "testing/gtest_mac.h"
 #import "testing/platform_test.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace {
 
 using ::testing::Eq;
@@ -52,11 +56,6 @@ class MockCardUnmaskPromptController
               (override));
 
   MOCK_METHOD(bool, ShouldRequestExpirationDate, (), (const, override));
-
-  MOCK_METHOD(bool,
-              InputExpirationIsValid,
-              (const std::u16string& month, const std::u16string& year),
-              (const, override));
 };
 
 class MockCardUnmaskPromptViewBridge
@@ -236,11 +235,6 @@ class CardUnmaskPromptViewControllerTest
 
     auto* prompt_controller =
         static_cast<CardUnmaskPromptViewController*>(controller());
-
-    // Mock expiration date validation so the prompt sends test data.
-    ON_CALL(*card_unmask_prompt_controller_, InputExpirationIsValid)
-        .WillByDefault(Return(true));
-
     // ViewController should notify its Controller when the CVC form is
     // submitted.
     EXPECT_CALL(

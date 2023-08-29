@@ -7,6 +7,7 @@ package org.chromium.chrome.browser.page_load_metrics;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.filters.SmallTest;
 
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -34,8 +35,8 @@ import java.util.concurrent.TimeoutException;
  */
 @RunWith(ChromeJUnit4ClassRunner.class)
 @Batch(Batch.PER_CLASS)
-@EnableFeatures(BlinkFeatures.PRERENDER2)
-@DisableFeatures(BlinkFeatures.PRERENDER2_MEMORY_CONTROLS)
+@EnableFeatures({BlinkFeatures.PRERENDER2})
+@DisableFeatures({BlinkFeatures.PRERENDER2_MEMORY_CONTROLS})
 @CommandLineFlags.Add({ChromeSwitches.DISABLE_FIRST_RUN_EXPERIENCE})
 public class PageLoadMetricsTest {
     @Rule
@@ -81,6 +82,11 @@ public class PageLoadMetricsTest {
         mActivityTestRule.startMainActivityOnBlankPage();
         mTestServer = EmbeddedTestServer.createAndStartServer(
                 ApplicationProvider.getApplicationContext());
+    }
+
+    @After
+    public void tearDown() {
+        mTestServer.stopAndDestroyServer();
     }
 
     private void assertMetricsEmitted(PageLoadMetricsTestObserver observer)

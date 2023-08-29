@@ -57,15 +57,14 @@ class ResizeToggleMenu : public views::WidgetObserver,
     void UpdateState();
 
     // Owned by views hierarchy.
-    raw_ptr<views::ImageView, ExperimentalAsh> icon_view_{nullptr};
-    raw_ptr<views::Label, ExperimentalAsh> title_{nullptr};
+    views::ImageView* icon_view_{nullptr};
+    views::Label* title_{nullptr};
 
     const raw_ref<const gfx::VectorIcon, ExperimentalAsh> icon_;
     bool is_selected_{false};
   };
 
-  ResizeToggleMenu(base::OnceClosure on_bubble_widget_closing_callback,
-                   views::Widget* widget,
+  ResizeToggleMenu(views::Widget* widget,
                    ArcResizeLockPrefDelegate* pref_delegate);
   ResizeToggleMenu(const ResizeToggleMenu&) = delete;
   ResizeToggleMenu& operator=(const ResizeToggleMenu&) = delete;
@@ -102,8 +101,6 @@ class ResizeToggleMenu : public views::WidgetObserver,
 
   void CloseBubble();
 
-  base::OnceClosure on_bubble_widget_closing_callback_;
-
   raw_ptr<views::Widget, ExperimentalAsh> widget_;
 
   raw_ptr<ArcResizeLockPrefDelegate, ExperimentalAsh> pref_delegate_;
@@ -118,12 +115,9 @@ class ResizeToggleMenu : public views::WidgetObserver,
   raw_ptr<views::Widget, ExperimentalAsh> bubble_widget_{nullptr};
 
   // Store only for testing.
-  raw_ptr<MenuButtonView, DanglingUntriaged | ExperimentalAsh> phone_button_{
-      nullptr};
-  raw_ptr<MenuButtonView, DanglingUntriaged | ExperimentalAsh> tablet_button_{
-      nullptr};
-  raw_ptr<MenuButtonView, DanglingUntriaged | ExperimentalAsh>
-      resizable_button_{nullptr};
+  raw_ptr<MenuButtonView, ExperimentalAsh> phone_button_{nullptr};
+  raw_ptr<MenuButtonView, ExperimentalAsh> tablet_button_{nullptr};
+  raw_ptr<MenuButtonView, ExperimentalAsh> resizable_button_{nullptr};
 
   base::WeakPtrFactory<ResizeToggleMenu> weak_ptr_factory_{this};
 };

@@ -63,7 +63,8 @@ class LocationProviderWinrt : public LocationProvider {
   mojom::GeopositionPtr CreateGeoposition(
       ABI::Windows::Devices::Geolocation::IGeoposition* geoposition);
 
-  bool is_started_ = false;
+  mojom::GeolocationDiagnostics::ProviderState state_ =
+      mojom::GeolocationDiagnostics::ProviderState::kStopped;
   mojom::GeopositionResultPtr last_result_;
   LocationProviderUpdateCallback location_update_callback_;
   Microsoft::WRL::ComPtr<ABI::Windows::Devices::Geolocation::IGeolocator>

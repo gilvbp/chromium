@@ -43,7 +43,7 @@ class HashRealTimeServiceFactory : public ProfileKeyedServiceFactory {
   ~HashRealTimeServiceFactory() override = default;
 
   // BrowserContextKeyedServiceFactory:
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* context) const override;
 
   static bool IsEnhancedProtectionEnabled(Profile* profile);

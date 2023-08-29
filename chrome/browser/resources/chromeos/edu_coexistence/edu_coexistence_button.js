@@ -8,9 +8,9 @@ import 'chrome://resources/polymer/v3_0/iron-icon/iron-icon.js';
 import './strings.m.js';
 
 import {assert} from 'chrome://resources/ash/common/assert.js';
-import {I18nBehavior, I18nBehaviorInterface} from 'chrome://resources/ash/common/i18n_behavior.js';
+import {I18nBehavior} from 'chrome://resources/ash/common/i18n_behavior.js';
 import {isRTL} from 'chrome://resources/ash/common/util.js';
-import {html, mixinBehaviors, PolymerElement} from 'chrome://resources/polymer/v3_0/polymer/polymer_bundled.min.js';
+import {html, Polymer} from 'chrome://resources/polymer/v3_0/polymer/polymer_bundled.min.js';
 
 /** @enum {string} */
 const ButtonTypes = {
@@ -18,84 +18,82 @@ const ButtonTypes = {
   BACK: 'back',
 };
 
-/**
- * @constructor
- * @extends {PolymerElement}
- * @implements {I18nBehaviorInterface}
- */
-const EduCoexistenceButtonBase = mixinBehaviors([I18nBehavior], PolymerElement);
+Polymer({
+  is: 'edu-coexistence-button',
 
-/**
- * @polymer
- */
-class EduCoexistenceButton extends EduCoexistenceButtonBase {
-  static get is() {
-    return 'edu-coexistence-button';
-  }
+  _template: html`{__html_template__}`,
 
-  static get template() {
-    return html`{__html_template__}`;
-  }
+  behaviors: [I18nBehavior],
 
-  static get properties() {
-    return {
-      /**
-       * Set button type.
-       */
-      buttonType: {
-        type: String,
-        value: ButtonTypes.ACTION,
-      },
+  properties: {
+    /**
+     * Set button type.
+     * @type {!ButtonTypes}
+     */
+    buttonType: {
+      type: String,
+      value: ButtonTypes.ACTION,
+    },
 
-      /**
-       * Button class list string.
-       */
-      buttonClasses: {
-        type: String,
-        computed: 'getClass_(buttonType)',
-      },
+    /**
+     * Button class list string.
+     * @type {!ButtonTypes}
+     */
+    buttonClasses: {
+      type: String,
+      computed: 'getClass_(buttonType, newOobeStyleEnabled)',
+    },
 
-      /**
-       * 'disabled' button attribute.
-       */
-      disabled: {
-        type: Boolean,
-        value: false,
-      },
+    /**
+     * 'disabled' button attribute.
+     * @type {Boolean}
+     */
+    disabled: {
+      type: Boolean,
+      value: false,
+    },
 
-      /**
-       * Whether to use new OOBE style for the button.
-       */
-      newOobeStyleEnabled: {
-        type: Boolean,
-        value: false,
-      },
-    };
-  }
+    /**
+     * Whether to use new OOBE style for the button.
+     * @type {Boolean}
+     */
+    newOobeStyleEnabled: {
+      type: Boolean,
+      value: false,
+    },
+  },
 
   /** @override */
   ready() {
-    super.ready();
     this.assertButtonType_(this.buttonType);
-  }
+  },
 
   /**
-   * @param {string} buttonType
+   * @param {!ButtonTypes} buttonType
    * @private
    */
   assertButtonType_(buttonType) {
     assert(Object.values(ButtonTypes).includes(buttonType));
-  }
+  },
 
   /**
    * @param {!ButtonTypes} buttonType
+   * @param {boolean} newOobeStyleEnabled
    * @return {string} CSS class names
    * @private
    */
-  getClass_(buttonType) {
+  getClass_(buttonType, newOobeStyleEnabled) {
     this.assertButtonType_(buttonType);
-    return buttonType === ButtonTypes.ACTION ? 'action-button' : '';
-  }
+
+    // Disable the border if necessary.
+    const cssClassses = newOobeStyleEnabled ? 'no-border button-radius' : '';
+
+    if (buttonType === ButtonTypes.BACK) {
+      return cssClassses;
+    }
+
+    return 'action-button ' + cssClassses;
+  },
 
   /**
    * @param {!ButtonTypes} buttonType
@@ -105,7 +103,7 @@ class EduCoexistenceButton extends EduCoexistenceButtonBase {
   hasIconBeforeText_(buttonType) {
     this.assertButtonType_(buttonType);
     return buttonType === ButtonTypes.BACK;
-  }
+  },
 
   /**
    * @param {!ButtonTypes} buttonType
@@ -115,7 +113,7 @@ class EduCoexistenceButton extends EduCoexistenceButtonBase {
   hasIconAfterText_(buttonType) {
     this.assertButtonType_(buttonType);
     return false;
-  }
+  },
 
   /**
    * @param {!ButtonTypes} buttonType
@@ -128,7 +126,7 @@ class EduCoexistenceButton extends EduCoexistenceButtonBase {
       return isRTL() ? 'cr:chevron-right' : 'cr:chevron-left';
     }
     return '';
-  }
+  },
 
   /**
    * @param {!ButtonTypes} buttonType
@@ -145,32 +143,25 @@ class EduCoexistenceButton extends EduCoexistenceButtonBase {
       return this.i18n('nextButton');
     }
     return '';  // unreached
-  }
+  },
 
   /**
    * @param {!Event} e
    * @private
    */
-  onClick_(e) {
+  onTap_(e) {
     if (this.disabled) {
       e.stopPropagation();
       return;
     }
     if (this.buttonType === ButtonTypes.BACK) {
-      this.dispatchEvent(new CustomEvent('go-back', {
-        bubbles: true,
-        composed: true,
-      }));
+      this.fire('go-back');
       return;
     }
     if (this.buttonType === ButtonTypes.ACTION) {
-      this.dispatchEvent(new CustomEvent('go-action', {
-        bubbles: true,
-        composed: true,
-      }));
+      this.fire('go-action');
       return;
     }
-  }
-}
+  },
 
-customElements.define(EduCoexistenceButton.is, EduCoexistenceButton);
+});

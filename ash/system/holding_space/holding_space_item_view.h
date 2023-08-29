@@ -85,8 +85,7 @@ class ASH_EXPORT HoldingSpaceItemView : public views::View,
  protected:
   views::Builder<views::ImageView> CreateCheckmarkBuilder();
   views::Builder<views::View> CreatePrimaryActionBuilder(
-      bool apply_accent_colors = false,
-      const gfx::Size& min_size = gfx::Size());
+      const gfx::Size& min_size);
 
   virtual void OnPrimaryActionVisibilityChanged(bool visible) {}
   virtual void OnSelectionUiChanged();
@@ -113,11 +112,10 @@ class ASH_EXPORT HoldingSpaceItemView : public views::View,
   const std::string item_id_;
 
   // Owned by view hierarchy.
-  raw_ptr<views::ImageView, ExperimentalAsh> checkmark_ = nullptr;
-  raw_ptr<views::View, ExperimentalAsh> primary_action_container_ = nullptr;
-  raw_ptr<views::ImageButton, ExperimentalAsh> primary_action_cancel_ = nullptr;
-  raw_ptr<views::ToggleImageButton, ExperimentalAsh> primary_action_pin_ =
-      nullptr;
+  views::ImageView* checkmark_ = nullptr;
+  views::View* primary_action_container_ = nullptr;
+  views::ImageButton* primary_action_cancel_ = nullptr;
+  views::ToggleImageButton* primary_action_pin_ = nullptr;
 
   // Owners for the layers used to paint focused and selected states.
   std::unique_ptr<ui::LayerOwner> selected_layer_owner_;

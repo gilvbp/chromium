@@ -11,6 +11,8 @@
 
 namespace enterprise_connectors {
 
+BASE_DECLARE_FEATURE(kBypassJustificationEnabled);
+
 class ContentAnalysisDelegateBase {
  public:
   virtual ~ContentAnalysisDelegateBase() = default;

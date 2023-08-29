@@ -29,6 +29,18 @@ class PasswordsPrivateRecordPasswordsPageAccessInSettingsFunction
   ResponseAction Run() override;
 };
 
+class PasswordsPrivateChangeSavedPasswordFunction : public ExtensionFunction {
+ public:
+  DECLARE_EXTENSION_FUNCTION("passwordsPrivate.changeSavedPassword",
+                             PASSWORDSPRIVATE_CHANGESAVEDPASSWORD)
+
+ protected:
+  ~PasswordsPrivateChangeSavedPasswordFunction() override = default;
+
+  // ExtensionFunction overrides.
+  ResponseAction Run() override;
+};
+
 class PasswordsPrivateChangeCredentialFunction : public ExtensionFunction {
  public:
   DECLARE_EXTENSION_FUNCTION("passwordsPrivate.changeCredential",
@@ -124,6 +136,7 @@ class PasswordsPrivateGetSavedPasswordListFunction : public ExtensionFunction {
   ResponseAction Run() override;
 
  private:
+  void GetList();
   void GotList(const PasswordsPrivateDelegate::UiEntries& entries);
 };
 
@@ -152,6 +165,7 @@ class PasswordsPrivateGetPasswordExceptionListFunction
   ResponseAction Run() override;
 
  private:
+  void GetList();
   void GotList(const PasswordsPrivateDelegate::ExceptionEntries& entries);
 };
 
@@ -163,34 +177,6 @@ class PasswordsPrivateMovePasswordsToAccountFunction
 
  protected:
   ~PasswordsPrivateMovePasswordsToAccountFunction() override = default;
-
-  // ExtensionFunction overrides.
-  ResponseAction Run() override;
-};
-
-class PasswordsPrivateFetchFamilyMembersFunction : public ExtensionFunction {
- public:
-  DECLARE_EXTENSION_FUNCTION("passwordsPrivate.fetchFamilyMembers",
-                             PASSWORDSPRIVATE_FETCHFAMILYMEMBERS)
-
- protected:
-  ~PasswordsPrivateFetchFamilyMembersFunction() override = default;
-
-  // ExtensionFunction overrides.
-  ResponseAction Run() override;
-
- private:
-  void FamilyFetchCompleted(
-      const api::passwords_private::FamilyFetchResults& results);
-};
-
-class PasswordsPrivateSharePasswordFunction : public ExtensionFunction {
- public:
-  DECLARE_EXTENSION_FUNCTION("passwordsPrivate.sharePassword",
-                             PASSWORDSPRIVATE_SHAREPASSWORD)
-
- protected:
-  ~PasswordsPrivateSharePasswordFunction() override = default;
 
   // ExtensionFunction overrides.
   ResponseAction Run() override;
@@ -252,6 +238,18 @@ class PasswordsPrivateExportPasswordsFunction : public ExtensionFunction {
 
  private:
   void ExportRequestCompleted(const std::string& error);
+};
+
+class PasswordsPrivateCancelExportPasswordsFunction : public ExtensionFunction {
+ public:
+  DECLARE_EXTENSION_FUNCTION("passwordsPrivate.cancelExportPasswords",
+                             PASSWORDSPRIVATE_CANCELEXPORTPASSWORDS)
+
+ protected:
+  ~PasswordsPrivateCancelExportPasswordsFunction() override = default;
+
+  // ExtensionFunction overrides.
+  ResponseAction Run() override;
 };
 
 class PasswordsPrivateRequestExportProgressStatusFunction
@@ -346,6 +344,19 @@ class PasswordsPrivateUnmuteInsecureCredentialFunction
   ResponseAction Run() override;
 };
 
+class PasswordsPrivateRecordChangePasswordFlowStartedFunction
+    : public ExtensionFunction {
+ public:
+  DECLARE_EXTENSION_FUNCTION("passwordsPrivate.recordChangePasswordFlowStarted",
+                             PASSWORDSPRIVATE_RECORDCHANGEPASSWORDFLOWSTARTED)
+
+ protected:
+  ~PasswordsPrivateRecordChangePasswordFlowStartedFunction() override;
+
+  // ExtensionFunction overrides.
+  ResponseAction Run() override;
+};
+
 class PasswordsPrivateStartPasswordCheckFunction : public ExtensionFunction {
  public:
   DECLARE_EXTENSION_FUNCTION("passwordsPrivate.startPasswordCheck",
@@ -359,6 +370,18 @@ class PasswordsPrivateStartPasswordCheckFunction : public ExtensionFunction {
 
  private:
   void OnStarted(password_manager::BulkLeakCheckService::State state);
+};
+
+class PasswordsPrivateStopPasswordCheckFunction : public ExtensionFunction {
+ public:
+  DECLARE_EXTENSION_FUNCTION("passwordsPrivate.stopPasswordCheck",
+                             PASSWORDSPRIVATE_STOPPASSWORDCHECK)
+
+ protected:
+  ~PasswordsPrivateStopPasswordCheckFunction() override;
+
+  // ExtensionFunction overrides.
+  ResponseAction Run() override;
 };
 
 class PasswordsPrivateGetPasswordCheckStatusFunction

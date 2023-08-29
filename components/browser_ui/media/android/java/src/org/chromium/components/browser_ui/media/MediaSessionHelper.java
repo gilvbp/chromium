@@ -102,6 +102,9 @@ public class MediaSessionHelper implements MediaImageCallback {
         public void onPause(int actionSource) {
             if (isNotificationHidingOrHidden()) return;
 
+            MediaSessionUma.recordPause(
+                    MediaSessionHelper.convertMediaActionSourceToUMA(actionSource));
+
             if (mMediaSessionObserver.getMediaSession() == null) return;
 
             mMediaSessionObserver.getMediaSession().suspend();
@@ -110,6 +113,9 @@ public class MediaSessionHelper implements MediaImageCallback {
         @Override
         public void onStop(int actionSource) {
             if (isNotificationHidingOrHidden()) return;
+
+            MediaSessionUma.recordStop(
+                    MediaSessionHelper.convertMediaActionSourceToUMA(actionSource));
 
             if (mMediaSessionObserver.getMediaSession() != null) {
                 mMediaSessionObserver.getMediaSession().stop();

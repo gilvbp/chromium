@@ -11,7 +11,7 @@
       "bounds": [125, 125],
       "backgroundColor": "#0000FF",
       "invalidations": [
-        [0, 0, 125, 125]
+        [50, 50, 75, 75]
       ],
       "transform": 1
     }

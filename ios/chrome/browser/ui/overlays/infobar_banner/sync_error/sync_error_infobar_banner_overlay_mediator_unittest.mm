@@ -25,6 +25,10 @@
 #import "testing/platform_test.h"
 #import "third_party/ocmock/OCMock/OCMock.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 class ChromeBrowserState;
 @protocol SyncPresenter;
 
@@ -111,16 +115,5 @@ TEST_F(SyncErrorInfobarBannerOverlayMediatorTest, MainAction) {
 
   // Verify that the 'Accept()' method is called.
   EXPECT_CALL(*delegate_, Accept());
-  [mediator_ bannerInfobarButtonWasPressed:nil];
-}
-
-// Ensures that calling the -bannerInfobarButtonWasPressed: after the infobar
-// has been removed does not cause a crash. This could happen if the infobar is
-// removed before the banner has finished appearing.
-TEST_F(SyncErrorInfobarBannerOverlayMediatorTest,
-       BannerInfobarButtonWasPressedAfterRemoval) {
-  // Removes the infobar.
-  infobar_ = nullptr;
-
   [mediator_ bannerInfobarButtonWasPressed:nil];
 }

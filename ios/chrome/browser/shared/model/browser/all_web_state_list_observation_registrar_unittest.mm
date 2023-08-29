@@ -15,13 +15,17 @@
 #import "ios/web/public/test/web_task_environment.h"
 #import "testing/platform_test.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 class TestRegisteredWebStateListObserver : public WebStateListObserver {
  public:
-  void WebStateListDidChange(WebStateList* web_state_list,
-                             const WebStateListChange& change,
-                             const WebStateListStatus& status) override {
+  void WebStateListChanged(WebStateList* web_state_list,
+                           const WebStateListChange& change,
+                           const WebStateSelection& selection) override {
     switch (change.type()) {
-      case WebStateListChange::Type::kStatusOnly:
+      case WebStateListChange::Type::kSelectionOnly:
         // Do nothing when a WebState is selected and its status is updated.
         break;
       case WebStateListChange::Type::kDetach:

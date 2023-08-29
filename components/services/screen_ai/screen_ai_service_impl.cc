@@ -178,17 +178,8 @@ void ScreenAIService::InitializeOCR(
   }
 
   bool init_successful = library_->InitOCR(library_path.DirName());
-  base::UmaHistogramBoolean("Accessibility.ScreenAI.OCR.Initialized",
+  base::UmaHistogramBoolean("Accessibility.ScreenAI.OCR.Initalized",
                             init_successful);
-
-  // TODO(crbug.com/1443349): Add a separate initialization interface for
-  // layout extraction.
-  if (features::IsLayoutExtractionEnabled()) {
-    if (!library_->InitLayoutExtraction()) {
-      VLOG(0) << "Could not initialize layout extraction.";
-    }
-  }
-
   if (!init_successful) {
     std::move(callback).Run(false);
     return;
@@ -263,8 +254,8 @@ ScreenAIService::PerformOcrAndRecordMetrics(const SkBitmap& image) {
   base::TimeDelta elapsed_time = base::TimeTicks::Now() - start_time;
 
   base::UmaHistogramTimes("Accessibility.ScreenAI.OCR.Time", elapsed_time);
-  base::UmaHistogramCounts10M("Accessibility.ScreenAI.OCR.ImageSize10M",
-                              image.width() * image.height());
+  base::UmaHistogramCounts1M("Accessibility.ScreenAI.OCR.ImageSize",
+                             image.width() * image.height());
   return result;
 }
 

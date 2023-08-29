@@ -5,8 +5,7 @@
 #include "third_party/blink/renderer/platform/text/hyphenation.h"
 
 #include <CoreFoundation/CoreFoundation.h>
-
-#include "base/apple/scoped_typeref.h"
+#include "base/mac/scoped_typeref.h"
 #include "third_party/blink/renderer/platform/wtf/text/string_view.h"
 #include "third_party/blink/renderer/platform/wtf/text/unicode.h"
 
@@ -14,7 +13,7 @@ namespace blink {
 
 class HyphenationCF final : public Hyphenation {
  public:
-  HyphenationCF(base::apple::ScopedCFTypeRef<CFLocaleRef>& locale_cf)
+  HyphenationCF(base::ScopedCFTypeRef<CFLocaleRef>& locale_cf)
       : locale_cf_(locale_cf) {
     DCHECK(locale_cf_);
   }
@@ -75,14 +74,14 @@ class HyphenationCF final : public Hyphenation {
   }
 
  private:
-  base::apple::ScopedCFTypeRef<CFLocaleRef> locale_cf_;
+  base::ScopedCFTypeRef<CFLocaleRef> locale_cf_;
 };
 
 scoped_refptr<Hyphenation> Hyphenation::PlatformGetHyphenation(
     const AtomicString& locale) {
-  base::apple::ScopedCFTypeRef<CFStringRef> locale_cf_string(
+  base::ScopedCFTypeRef<CFStringRef> locale_cf_string(
       locale.Impl()->CreateCFString());
-  base::apple::ScopedCFTypeRef<CFLocaleRef> locale_cf(
+  base::ScopedCFTypeRef<CFLocaleRef> locale_cf(
       CFLocaleCreate(kCFAllocatorDefault, locale_cf_string));
   if (!CFStringIsHyphenationAvailableForLocale(locale_cf)) {
     return nullptr;

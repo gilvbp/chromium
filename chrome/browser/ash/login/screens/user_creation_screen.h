@@ -25,18 +25,15 @@ class UserCreationScreen
  public:
   enum class Result {
     SIGNIN,
-    SIGNIN_TRIAGE,
-    ADD_CHILD,
-    ENTERPRISE_ENROLL_TRIAGE,
-    ENTERPRISE_ENROLL_SHORTCUT,
+    CHILD_SIGNIN,
+    CHILD_ACCOUNT_CREATE,
+    ENTERPRISE_ENROLL,
     CANCEL,
     SKIPPED,
     KIOSK_ENTERPRISE_ENROLL,
     CONTINUE_QUICK_START_FLOW,
-    SIGNIN_SCHOOL,
   };
 
-  using TView = UserCreationView;
   using ScreenExitCallback = base::RepeatingCallback<void(Result result)>;
 
   class UserCreationScreenExitTestDelegate {
@@ -63,8 +60,6 @@ class UserCreationScreen
 
   static void SetUserCreationScreenExitTestDelegate(
       UserCreationScreenExitTestDelegate* test_delegate);
-
-  void SetChildSetupStep();
 
  private:
   // BaseScreen:

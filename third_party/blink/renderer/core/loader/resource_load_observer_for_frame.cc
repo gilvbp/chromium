@@ -356,12 +356,14 @@ void ResourceLoadObserverForFrame::DidFinishLoading(
     uint64_t identifier,
     base::TimeTicks finish_time,
     int64_t encoded_data_length,
-    int64_t decoded_body_length) {
+    int64_t decoded_body_length,
+    bool should_report_corb_blocking) {
   LocalFrame* frame = document_->GetFrame();
   DCHECK(frame);
   frame->Loader().Progress().CompleteProgress(identifier);
   probe::DidFinishLoading(GetProbe(), identifier, document_loader_, finish_time,
-                          encoded_data_length, decoded_body_length);
+                          encoded_data_length, decoded_body_length,
+                          should_report_corb_blocking);
 
   if (auto* interactive_detector = InteractiveDetector::From(*document_)) {
     interactive_detector->OnResourceLoadEnd(finish_time);

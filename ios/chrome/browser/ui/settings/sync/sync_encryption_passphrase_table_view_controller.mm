@@ -6,9 +6,9 @@
 
 #import <memory>
 
-#import "base/apple/foundation_util.h"
 #import "base/i18n/time_formatting.h"
 #import "base/ios/ios_util.h"
+#import "base/mac/foundation_util.h"
 #import "base/metrics/user_metrics.h"
 #import "base/metrics/user_metrics_action.h"
 #import "base/strings/sys_string_conversions.h"
@@ -44,6 +44,10 @@
 #import "ui/base/l10n/l10n_util.h"
 #import "ui/base/l10n/l10n_util_mac.h"
 #import "url/gurl.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 using sync_encryption_passphrase::ItemTypeEnterPassphrase;
 using sync_encryption_passphrase::ItemTypeError;
@@ -285,7 +289,7 @@ const CGFloat kSpinnerButtonPadding = 18;
   if (SectionIdentifierPassphrase ==
       [self.tableViewModel sectionIdentifierForSectionIndex:section]) {
     TableViewLinkHeaderFooterView* linkView =
-        base::apple::ObjCCastStrict<TableViewLinkHeaderFooterView>(view);
+        base::mac::ObjCCastStrict<TableViewLinkHeaderFooterView>(view);
     linkView.delegate = self;
   }
   return view;
@@ -495,7 +499,7 @@ const CGFloat kSpinnerButtonPadding = 18;
        [self forDecryption])) {
     _syncObserver.reset();
     SettingsNavigationController* settingsNavigationController =
-        base::apple::ObjCCast<SettingsNavigationController>(
+        base::mac::ObjCCast<SettingsNavigationController>(
             self.navigationController);
     // During the sign-in flow it is possible for the Sync state to
     // change when the user is in the Advanced Settings (e.g., if the user
@@ -529,7 +533,7 @@ const CGFloat kSpinnerButtonPadding = 18;
           ->HasPrimaryIdentity(signin::ConsentLevel::kSignin)) {
     return;
   }
-  [base::apple::ObjCCastStrict<SettingsNavigationController>(
+  [base::mac::ObjCCastStrict<SettingsNavigationController>(
       self.navigationController) popViewControllerOrCloseSettingsAnimated:NO];
 }
 

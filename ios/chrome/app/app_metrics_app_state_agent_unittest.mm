@@ -15,6 +15,10 @@
 #import "third_party/ocmock/OCMock/OCMock.h"
 #import "third_party/ocmock/gtest_support.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace {
 
 class FakeProfileSessionDurationsService
@@ -217,7 +221,7 @@ TEST_F(AppMetricsAppStateAgentTest, logStartupDuration) {
   id metricsMediator = [OCMockObject mockForClass:[MetricsMediator class]];
 
   [[metricsMediator expect] createStartupTrackingTask];
-  [[metricsMediator expect] logStartupDuration:nil];
+  [[metricsMediator expect] logStartupDuration:nil connectionInformation:nil];
   [metricsMediator setExpectationOrderMatters:YES];
 
   SceneState* sceneA = [[SceneState alloc] initWithAppState:app_state_];
@@ -255,7 +259,7 @@ TEST_F(AppMetricsAppStateAgentTest, logStartupDurationWhenSafeMode) {
   id metricsMediator = [OCMockObject mockForClass:[MetricsMediator class]];
 
   [[metricsMediator reject] createStartupTrackingTask];
-  [[metricsMediator reject] logStartupDuration:nil];
+  [[metricsMediator reject] logStartupDuration:nil connectionInformation:nil];
 
   app_state_.initStageForTesting = GetMaximalInitStageThatDontAllowLogging();
 

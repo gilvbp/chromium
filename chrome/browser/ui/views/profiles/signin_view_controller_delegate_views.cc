@@ -17,7 +17,7 @@
 #include "chrome/browser/ui/browser_tabstrip.h"
 #include "chrome/browser/ui/browser_window.h"
 #include "chrome/browser/ui/color/chrome_color_id.h"
-#include "chrome/browser/ui/signin/signin_view_controller.h"
+#include "chrome/browser/ui/signin_view_controller.h"
 #include "chrome/browser/ui/tabs/tab_strip_model.h"
 #include "chrome/browser/ui/views/frame/browser_view.h"
 #include "chrome/browser/ui/webui/signin/profile_customization_ui.h"
@@ -57,10 +57,10 @@ const int kSyncConfirmationDialogWidth = 512;
 const int kSyncConfirmationDialogHeight = 487;
 const int kSigninErrorDialogHeight = 164;
 
-#if BUILDFLAG(ENABLE_DICE_SUPPORT) || BUILDFLAG(IS_CHROMEOS_LACROS)
+#if BUILDFLAG(ENABLE_DICE_SUPPORT)
 const int kReauthDialogWidth = 540;
 const int kReauthDialogHeight = 520;
-#endif  // BUILDFLAG(ENABLE_DICE_SUPPORT) || BUILDFLAG(IS_CHROMEOS_LACROS)
+#endif  // BUILDFLAG(ENABLE_DICE_SUPPORT)
 
 int GetSyncConfirmationDialogPreferredHeight(Profile* profile) {
   // If sync is disabled, then the sync confirmation dialog looks like an error
@@ -127,7 +127,7 @@ SigninViewControllerDelegateViews::CreateSigninErrorWebView(Browser* browser) {
                              InitializeSigninWebDialogUI(true));
 }
 
-#if BUILDFLAG(ENABLE_DICE_SUPPORT) || BUILDFLAG(IS_CHROMEOS_LACROS)
+#if BUILDFLAG(ENABLE_DICE_SUPPORT)
 // static
 std::unique_ptr<views::WebView>
 SigninViewControllerDelegateViews::CreateReauthConfirmationWebView(
@@ -137,7 +137,9 @@ SigninViewControllerDelegateViews::CreateReauthConfirmationWebView(
                              kReauthDialogHeight, kReauthDialogWidth,
                              InitializeSigninWebDialogUI(false));
 }
+#endif  // BUILDFLAG(ENABLE_DICE_SUPPORT)
 
+#if BUILDFLAG(ENABLE_DICE_SUPPORT) || BUILDFLAG(IS_CHROMEOS_LACROS)
 // static
 std::unique_ptr<views::WebView>
 SigninViewControllerDelegateViews::CreateProfileCustomizationWebView(
@@ -415,7 +417,7 @@ SigninViewControllerDelegate::CreateSigninErrorDelegate(Browser* browser) {
       browser, ui::MODAL_TYPE_WINDOW, true, false);
 }
 
-#if BUILDFLAG(ENABLE_DICE_SUPPORT) || BUILDFLAG(IS_CHROMEOS_LACROS)
+#if BUILDFLAG(ENABLE_DICE_SUPPORT)
 // static
 SigninViewControllerDelegate*
 SigninViewControllerDelegate::CreateReauthConfirmationDelegate(
@@ -427,7 +429,9 @@ SigninViewControllerDelegate::CreateReauthConfirmationDelegate(
           browser, access_point),
       browser, ui::MODAL_TYPE_CHILD, false, true);
 }
+#endif  // BUILDFLAG(ENABLE_DICE_SUPPORT)
 
+#if BUILDFLAG(ENABLE_DICE_SUPPORT) || BUILDFLAG(IS_CHROMEOS_LACROS)
 // static
 SigninViewControllerDelegate*
 SigninViewControllerDelegate::CreateProfileCustomizationDelegate(

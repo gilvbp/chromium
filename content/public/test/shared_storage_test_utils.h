@@ -8,7 +8,6 @@
 #include <stddef.h>
 #include <string>
 
-#include "base/memory/weak_ptr.h"
 #include "components/services/storage/shared_storage/shared_storage_manager.h"
 #include "content/browser/private_aggregation/private_aggregation_host.h"
 #include "services/network/public/mojom/optional_bool.mojom.h"
@@ -23,7 +22,6 @@ namespace content {
 class RenderFrameHost;
 class SharedStorageWorkletHostManager;
 class StoragePartition;
-class TestSharedStorageHeaderObserver;
 
 using FencedFrameNavigationTarget = absl::variant<GURL, std::string>;
 using OperationResult = storage::SharedStorageManager::OperationResult;
@@ -113,9 +111,6 @@ GetPrivateAggregationSendHistogramSuccessValue();
 
 PrivateAggregationHost::SendHistogramReportResult
 GetPrivateAggregationSendHistogramApiDisabledValue();
-
-base::WeakPtr<TestSharedStorageHeaderObserver>
-CreateAndOverrideSharedStorageHeaderObserver(StoragePartition* partition);
 
 }  // namespace content
 

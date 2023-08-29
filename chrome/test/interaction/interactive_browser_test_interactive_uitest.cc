@@ -71,9 +71,9 @@ IN_PROC_BROWSER_TEST_F(InteractiveBrowserTestUiTest,
       // Simulate press of the menu button and ensure the button activates and
       // the menu appears.
       Do(base::BindOnce([]() { LOG(INFO) << "In second action."; })),
-      PressButton(kToolbarAppMenuButtonElementId),
+      PressButton(kAppMenuButtonElementId),
       AfterActivate(
-          kToolbarAppMenuButtonElementId,
+          kAppMenuButtonElementId,
           base::BindLambdaForTesting(
               [&](ui::InteractionSequence* seq, ui::TrackedElement* el) {
                 // Check AsView() to make sure it correctly returns the view.
@@ -88,7 +88,7 @@ IN_PROC_BROWSER_TEST_F(InteractiveBrowserTestUiTest,
               })),
       AfterShow(AppMenuModel::kMoreToolsMenuItem, base::DoNothing()),
       // Move the mouse to the button and click it. This will hide the menu.
-      MoveMouseTo(kToolbarAppMenuButtonElementId), ClickMouse(),
+      MoveMouseTo(kAppMenuButtonElementId), ClickMouse(),
       AfterHide(AppMenuModel::kMoreToolsMenuItem, base::DoNothing()));
 }
 
@@ -119,7 +119,7 @@ IN_PROC_BROWSER_TEST_F(InteractiveBrowserTestUiTest, TestNameAndDrag) {
                })),
       // Move the mouse to the point. Use the gfx::Point* version so we can
       // dynamically receive the value calculated in the previous step.
-      MoveMouseTo(std::ref(p1)),
+      MoveMouseTo(&p1),
       // Verify that the mouse has been moved to the correct point.
       Check(base::BindLambdaForTesting([&]() {
         gfx::Rect rect(p1, gfx::Size());
@@ -162,7 +162,7 @@ IN_PROC_BROWSER_TEST_F(InteractiveBrowserTestUiTest,
                 WaitForShow(kBrowserViewElementId)),
       InSameContext(Steps(
           ActivateSurface(kBrowserViewElementId), FlushEvents(),
-          MoveMouseTo(kToolbarAppMenuButtonElementId), ClickMouse(),
+          MoveMouseTo(kAppMenuButtonElementId), ClickMouse(),
           SelectMenuItem(AppMenuModel::kDownloadsMenuItem),
           WaitForHide(AppMenuModel::kDownloadsMenuItem),
           // These two types of actions use PostTask() internally and bounce off
@@ -170,7 +170,7 @@ IN_PROC_BROWSER_TEST_F(InteractiveBrowserTestUiTest,
           FlushEvents(), EnsureNotPresent(AppMenuModel::kDownloadsMenuItem),
           // Make sure this picks up the correct button, since it was after a
           // string of non-element-specific actions.
-          WithElement(kToolbarAppMenuButtonElementId,
+          WithElement(kAppMenuButtonElementId,
                       base::BindOnce(base::BindLambdaForTesting(
                           [incognito](ui::TrackedElement* el) {
                             EXPECT_EQ(incognito->window()->GetElementContext(),
@@ -185,7 +185,7 @@ IN_PROC_BROWSER_TEST_F(InteractiveBrowserTestUiTest,
   RunTestSequence(InContext(
       incognito->window()->GetElementContext(),
       Steps(ActivateSurface(kBrowserViewElementId), FlushEvents(),
-            MoveMouseTo(kToolbarAppMenuButtonElementId), ClickMouse(),
+            MoveMouseTo(kAppMenuButtonElementId), ClickMouse(),
             SelectMenuItem(AppMenuModel::kDownloadsMenuItem),
             WaitForHide(AppMenuModel::kDownloadsMenuItem),
             // These two types of actions use PostTask() internally and
@@ -194,7 +194,7 @@ IN_PROC_BROWSER_TEST_F(InteractiveBrowserTestUiTest,
             FlushEvents(), EnsureNotPresent(AppMenuModel::kDownloadsMenuItem),
             // Make sure this picks up the correct button, since it was
             // after a string of non-element-specific actions.
-            WithElement(kToolbarAppMenuButtonElementId,
+            WithElement(kAppMenuButtonElementId,
                         base::BindOnce(base::BindLambdaForTesting(
                             [incognito](ui::TrackedElement* el) {
                               EXPECT_EQ(
@@ -211,7 +211,7 @@ IN_PROC_BROWSER_TEST_F(InteractiveBrowserTestUiTest, ActivateMultipleSurfaces) {
   RunTestSequence(
       InContext(incognito->window()->GetElementContext(),
                 Steps(ActivateSurface(kBrowserViewElementId),
-                      MoveMouseTo(kToolbarAppMenuButtonElementId), ClickMouse(),
+                      MoveMouseTo(kAppMenuButtonElementId), ClickMouse(),
                       SelectMenuItem(AppMenuModel::kDownloadsMenuItem),
                       WaitForHide(AppMenuModel::kDownloadsMenuItem))),
       FlushEvents(),
@@ -220,7 +220,7 @@ IN_PROC_BROWSER_TEST_F(InteractiveBrowserTestUiTest, ActivateMultipleSurfaces) {
                               "programmatically raising/activating windows. "
                               "This invalidates the rest of the test."),
       ActivateSurface(kBrowserViewElementId),
-      MoveMouseTo(kToolbarAppMenuButtonElementId), ClickMouse(),
+      MoveMouseTo(kAppMenuButtonElementId), ClickMouse(),
       WaitForShow(AppMenuModel::kDownloadsMenuItem));
 }
 
@@ -362,8 +362,8 @@ class WebBubbleView : public views::BubbleDialogDelegateView {
     web_view_->LoadInitialURL(url);
   }
 
-  const raw_ptr<Profile> profile_;
-  raw_ptr<views::WebView> web_view_;
+  const base::raw_ptr<Profile> profile_;
+  base::raw_ptr<views::WebView> web_view_;
   std::unique_ptr<content::WebContents> owned_web_contents_;
 };
 

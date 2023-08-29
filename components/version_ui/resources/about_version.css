@@ -112,12 +112,6 @@ body {
   width: 1em;
 }
 
-@media (forced-colors: active) {
-  #copy-to-clipboard-icon {
-    background-color: ButtonText;
-  }
-}
-
 #copy-to-clipboard:hover,
 #copy-os-content-to-clipboard:hover {
   background-color: var(--hover-background-color);

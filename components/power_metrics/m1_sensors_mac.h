@@ -12,7 +12,7 @@
 
 #include <memory>
 
-#include "base/apple/scoped_cftyperef.h"
+#include "base/mac/scoped_cftyperef.h"
 #include "third_party/abseil-cpp/absl/types/optional.h"
 
 namespace power_metrics {
@@ -38,10 +38,10 @@ class M1SensorsReader {
 
  protected:
   explicit M1SensorsReader(
-      base::apple::ScopedCFTypeRef<IOHIDEventSystemClientRef> system);
+      base::ScopedCFTypeRef<IOHIDEventSystemClientRef> system);
 
  private:
-  base::apple::ScopedCFTypeRef<IOHIDEventSystemClientRef> system_;
+  base::ScopedCFTypeRef<IOHIDEventSystemClientRef> system_;
 };
 
 }  // namespace power_metrics

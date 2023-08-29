@@ -545,8 +545,7 @@ const BookmarkNode* AddIfNotBookmarked(BookmarkModel* model,
 
   base::RecordAction(base::UserMetricsAction("BookmarkAdded"));
 
-  const auto* parent_to_use =
-      parent ? parent : GetParentForNewNodes(model, url);
+  const auto* parent_to_use = parent ? parent : GetParentForNewNodes(model);
   return model->AddNewURL(parent_to_use, parent_to_use->children().size(),
                           title, url);
 }
@@ -624,17 +623,11 @@ bool HasDescendantsOf(const std::vector<const BookmarkNode*>& list,
   return false;
 }
 
-const BookmarkNode* GetParentForNewNodes(BookmarkModel* model,
-                                         const GURL& url) {
+const BookmarkNode* GetParentForNewNodes(BookmarkModel* model) {
 #if BUILDFLAG(IS_ANDROID)
   if (!HasUserCreatedBookmarks(model))
     return model->mobile_node();
 #endif
-  const BookmarkNode* parent = model->client()->GetSuggestedSaveLocation(url);
-  if (parent) {
-    return parent;
-  }
-
   std::vector<const BookmarkNode*> nodes =
       GetMostRecentlyModifiedUserFolders(model, 1);
   DCHECK(!nodes.empty());  // This list is always padded with default folders.

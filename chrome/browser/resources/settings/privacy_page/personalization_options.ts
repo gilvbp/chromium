@@ -257,19 +257,8 @@ export class SettingsPersonalizationOptionsElement extends
   // </if><!-- _google_chrome -->
 
   private shouldShowDriveSuggest_(): boolean {
-    if (loadTimeData.getBoolean('driveSuggestNoSetting')) {
-      return false;
-    }
-
-    if (!loadTimeData.getBoolean('driveSuggestAvailable')) {
-      return false;
-    }
-
-    if (loadTimeData.getBoolean('driveSuggestNoSyncRequirement')) {
-      return true;
-    }
-
-    return !!this.syncStatus && !!this.syncStatus.signedIn &&
+    return loadTimeData.getBoolean('driveSuggestAvailable') &&
+        !!this.syncStatus && !!this.syncStatus.signedIn &&
         this.syncStatus.statusAction !== StatusAction.REAUTHENTICATE;
   }
 

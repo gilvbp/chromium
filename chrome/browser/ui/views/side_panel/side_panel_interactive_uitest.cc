@@ -4,7 +4,6 @@
 
 #include "base/test/bind.h"
 #include "base/test/gtest_util.h"
-#include "base/test/scoped_feature_list.h"
 #include "chrome/app/chrome_command_ids.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/ui/browser.h"
@@ -40,13 +39,9 @@ class SidePanelInteractiveTest : public InteractiveBrowserTest {
   ~SidePanelInteractiveTest() override = default;
 
   void SetUp() override {
-    scoped_feature_list_.InitAndEnableFeature(features::kPowerBookmarksSidePanel);
     set_open_about_blank_on_browser_launch(true);
     InteractiveBrowserTest::SetUp();
   }
-
- private:
-  base::test::ScopedFeatureList scoped_feature_list_;
 };
 
 // This test is specifically to guard against this regression
@@ -108,14 +103,13 @@ IN_PROC_BROWSER_TEST_F(SidePanelInteractiveTest, ToggleSidePanelVisibility) {
       // Ensure the side panel isn't open
       EnsureNotPresent(kSidePanelElementId),
       // Click on the toolbar button to open the side panel
-      PressButton(kToolbarSidePanelButtonElementId),
-      WaitForShow(kSidePanelElementId), FlushEvents(),
+      PressButton(kSidePanelButtonElementId), WaitForShow(kSidePanelElementId),
+      FlushEvents(),
       // Click on the toolbar button to close the side panel
-      PressButton(kToolbarSidePanelButtonElementId),
-      WaitForHide(kSidePanelElementId),
+      PressButton(kSidePanelButtonElementId), WaitForHide(kSidePanelElementId),
       // Click on the toolbar button again open the side panel
-      PressButton(kToolbarSidePanelButtonElementId),
-      WaitForShow(kSidePanelElementId), FlushEvents(),
+      PressButton(kSidePanelButtonElementId), WaitForShow(kSidePanelElementId),
+      FlushEvents(),
       // Click on the close button to dismiss the side panel
       PressButton(kSidePanelCloseButtonElementId),
       WaitForHide(kSidePanelElementId));
@@ -130,23 +124,22 @@ IN_PROC_BROWSER_TEST_F(SidePanelInteractiveTest,
       // Ensure the side panel isn't open
       EnsureNotPresent(kSidePanelElementId),
       // Click the toolbar button to open the side panel
-      PressButton(kToolbarSidePanelButtonElementId),
-      WaitForShow(kSidePanelElementId),
+      PressButton(kSidePanelButtonElementId), WaitForShow(kSidePanelElementId),
       // Switch to the bookmarks entry using the header combobox
-      SelectDropdownItem(kSidePanelComboboxElementId,
-                         static_cast<int>(SidePanelEntry::Id::kReadingList)),
-      InstrumentNonTabWebView(kReadLaterWebContentsId,
-                              kReadLaterSidePanelWebViewElementId),
-      FlushEvents(),
-      // Switch to the reading list entry using the header combobox
       SelectDropdownItem(kSidePanelComboboxElementId,
                          static_cast<int>(SidePanelEntry::Id::kBookmarks)),
       InstrumentNonTabWebView(kBookmarksWebContentsId,
                               kBookmarkSidePanelWebViewElementId),
+      FlushEvents(),
+      // Switch to the reading list entry using the header combobox
+      SelectDropdownItem(kSidePanelComboboxElementId,
+                         static_cast<int>(SidePanelEntry::Id::kReadingList)),
+      InstrumentNonTabWebView(kReadLaterWebContentsId,
+                              kReadLaterSidePanelWebViewElementId),
       // Click on the close button to dismiss the side panel
       PressButton(kSidePanelCloseButtonElementId),
       WaitForHide(kSidePanelElementId),
-      EnsureNotPresent(kBookmarkSidePanelWebViewElementId));
+      EnsureNotPresent(kReadLaterSidePanelWebViewElementId));
 }
 
 IN_PROC_BROWSER_TEST_F(SidePanelInteractiveTest,
@@ -163,8 +156,8 @@ IN_PROC_BROWSER_TEST_F(SidePanelInteractiveTest,
       // Ensure the side panel isn't open
       EnsureNotPresent(kSidePanelElementId),
       // Click the toolbar button to open the side panel
-      PressButton(kToolbarSidePanelButtonElementId),
-      WaitForShow(kSidePanelElementId), FlushEvents(),
+      PressButton(kSidePanelButtonElementId), WaitForShow(kSidePanelElementId),
+      FlushEvents(),
       // Switch to the first tab again with the side panel open
       SelectTab(kTabStripElementId, 0),
       // Ensure the side panel is still visible
@@ -180,8 +173,7 @@ IN_PROC_BROWSER_TEST_F(SidePanelInteractiveTest,
       // Ensure the side panel isn't open
       EnsureNotPresent(kSidePanelElementId),
       // Click the toolbar button to open the side panel
-      PressButton(kToolbarSidePanelButtonElementId),
-      WaitForShow(kSidePanelElementId),
+      PressButton(kSidePanelButtonElementId), WaitForShow(kSidePanelElementId),
       // Switch to the bookmarks entry using the header combobox
       SelectDropdownItem(kSidePanelComboboxElementId,
                          static_cast<int>(SidePanelEntry::Id::kBookmarks)),
@@ -190,7 +182,7 @@ IN_PROC_BROWSER_TEST_F(SidePanelInteractiveTest,
       PressButton(kSidePanelCloseButtonElementId),
       WaitForHide(kSidePanelElementId), FlushEvents(),
       // Click on the toolbar button again open the side panel
-      PressButton(kToolbarSidePanelButtonElementId),
+      PressButton(kSidePanelButtonElementId),
       // Verify the bookmarks side panel entry is shown (last seen)
       WaitForShow(kBookmarkSidePanelWebViewElementId),
       EnsureNotPresent(kReadLaterSidePanelWebViewElementId));

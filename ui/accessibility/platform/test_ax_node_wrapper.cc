@@ -860,20 +860,16 @@ bool TestAXNodeWrapper::HasVisibleCaretOrSelection() const {
   return node_->HasVisibleCaretOrSelection();
 }
 
-std::vector<AXPlatformNode*>
-TestAXNodeWrapper::GetSourceNodesForReverseRelations(
+std::set<AXPlatformNode*> TestAXNodeWrapper::GetSourceNodesForReverseRelations(
     ax::mojom::IntAttribute attr) {
   DCHECK(IsNodeIdIntAttribute(attr));
-  return GetNodesFromRelationIdSet(
-      tree_->GetReverseRelations(attr, GetData().id));
+  return GetNodesForNodeIds(tree_->GetReverseRelations(attr, GetData().id));
 }
 
-std::vector<AXPlatformNode*>
-TestAXNodeWrapper::GetSourceNodesForReverseRelations(
+std::set<AXPlatformNode*> TestAXNodeWrapper::GetSourceNodesForReverseRelations(
     ax::mojom::IntListAttribute attr) {
   DCHECK(IsNodeIdIntListAttribute(attr));
-  return GetNodesFromRelationIdSet(
-      tree_->GetReverseRelations(attr, GetData().id));
+  return GetNodesForNodeIds(tree_->GetReverseRelations(attr, GetData().id));
 }
 
 const ui::AXUniqueId& TestAXNodeWrapper::GetUniqueId() const {

@@ -6,20 +6,17 @@
 #define BASE_TEST_TEST_FUTURE_H_
 
 #include <memory>
+#include <string>
 #include <tuple>
 
-#include "base/auto_reset.h"
 #include "base/check.h"
 #include "base/functional/bind.h"
 #include "base/functional/callback_forward.h"
-#include "base/functional/callback_helpers.h"
 #include "base/memory/weak_ptr.h"
 #include "base/run_loop.h"
 #include "base/sequence_checker.h"
-#include "base/strings/to_string.h"
 #include "base/test/test_future_internal.h"
 #include "base/thread_annotations.h"
-#include "testing/gtest/include/gtest/gtest.h"
 #include "third_party/abseil-cpp/absl/types/optional.h"
 
 namespace base::test {
@@ -196,10 +193,7 @@ class TestFuture {
       return true;
     }
 
-    // Wait for the value to arrive.
-    RunLoop loop;
-    AutoReset<RepeatingClosure> quit_loop(&ready_signal_, loop.QuitClosure());
-    loop.Run();
+    run_loop_->Run();
 
     return IsReady();
   }
@@ -212,7 +206,7 @@ class TestFuture {
 
   // Waits for the value to arrive, and returns the I-th value.
   //
-  // Will CHECK if a timeout happens.
+  // Will DCHECK if a timeout happens.
   //
   // Example usage:
   //
@@ -229,7 +223,7 @@ class TestFuture {
 
   // Waits for the value to arrive, and returns the value with the given type.
   //
-  // Will CHECK if a timeout happens.
+  // Will DCHECK if a timeout happens.
   //
   // Example usage:
   //
@@ -308,19 +302,17 @@ class TestFuture {
 
   // Sets the value of the future.
   // This will unblock any pending Wait() or Get() call.
+  // This can only be called once.
   void SetValue(Types... values) {
     DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
 
-    auto new_values = std::make_tuple(std::forward<Types>(values)...);
+    DCHECK(!values_.has_value())
+        << "Overwriting previously stored value of the TestFuture."
+           "If you expect this new value, be sure to first "
+           "consume the stored value by calling `Take()` or `Clear()`";
 
-    EXPECT_FALSE(values_.has_value())
-        << "Received new value " << ToString(new_values)  //
-        << " before old value " << ToString(GetTuple())
-        << " was consumed through Take() or Clear().";
-
-    values_ = std::move(new_values);
-
-    ready_signal_.Run();
+    values_ = std::make_tuple(std::forward<Types>(values)...);
+    run_loop_->Quit();
   }
 
   // Clears the future, allowing it to be reused and accept a new value.
@@ -338,7 +330,7 @@ class TestFuture {
 
   // Waits for the value to arrive, and returns a reference to it.
   //
-  // Will CHECK if a timeout happens.
+  // Will DCHECK if a timeout happens.
   template <typename T = TupleType, internal::EnableIfSingleValue<T> = true>
   [[nodiscard]] const auto& Get() {
     return std::get<0>(GetTuple());
@@ -346,7 +338,7 @@ class TestFuture {
 
   // Waits for the value to arrive, and returns it.
   //
-  // Will CHECK if a timeout happens.
+  // Will DCHECK if a timeout happens.
   template <typename T = TupleType, internal::EnableIfSingleValue<T> = true>
   [[nodiscard]] auto Take() {
     return std::get<0>(TakeTuple());
@@ -358,7 +350,7 @@ class TestFuture {
 
   // Waits for the values to arrive, and returns a tuple with the values.
   //
-  // Will CHECK if a timeout happens.
+  // Will DCHECK if a timeout happens.
   template <typename T = TupleType, internal::EnableIfMultiValue<T> = true>
   [[nodiscard]] const TupleType& Get() {
     return GetTuple();
@@ -366,7 +358,7 @@ class TestFuture {
 
   // Waits for the values to arrive, and moves a tuple with the values out.
   //
-  // Will CHECK if a timeout happens.
+  // Will DCHECK if a timeout happens.
   template <typename T = TupleType, internal::EnableIfMultiValue<T> = true>
   [[nodiscard]] TupleType Take() {
     return TakeTuple();
@@ -376,22 +368,23 @@ class TestFuture {
   [[nodiscard]] const TupleType& GetTuple() {
     DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
     bool success = Wait();
-    CHECK(success) << "Waiting for value timed out.";
+    DCHECK(success) << "Waiting for value timed out.";
     return values_.value();
   }
 
   [[nodiscard]] TupleType TakeTuple() {
     DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
     bool success = Wait();
-    CHECK(success) << "Waiting for value timed out.";
+    DCHECK(success) << "Waiting for value timed out.";
 
+    run_loop_ = std::make_unique<RunLoop>();
     return std::exchange(values_, {}).value();
   }
 
   SEQUENCE_CHECKER(sequence_checker_);
 
-  base::RepeatingClosure ready_signal_ GUARDED_BY_CONTEXT(sequence_checker_) =
-      base::DoNothing();
+  std::unique_ptr<RunLoop> run_loop_ GUARDED_BY_CONTEXT(sequence_checker_) =
+      std::make_unique<RunLoop>();
 
   absl::optional<TupleType> values_ GUARDED_BY_CONTEXT(sequence_checker_);
 

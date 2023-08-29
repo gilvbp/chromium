@@ -4,12 +4,10 @@
 
 #import "ios/chrome/test/earl_grey/chrome_egtest_bundle_main.h"
 
-#import <UIKit/UIKit.h>
 #import <XCTest/XCTest.h>
 #import <objc/runtime.h>
 #import <memory>
 
-#import "base/apple/bundle_locations.h"
 #import "base/at_exit.h"
 #import "base/check.h"
 #import "base/command_line.h"
@@ -21,6 +19,10 @@
 
 #import <grpc/grpc.h>
 #import <grpcpp/grpcpp.h>
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 using chrome_egtest_plugin::TestPluginClient;
 using grpc::Channel;
@@ -57,11 +59,6 @@ class TestMain {
     // Initialize the CommandLine with arguments. ResourceBundle requires
     // CommandLine to exist.
     base::CommandLine::Init(argc, argv);
-
-    // Configures the default framework bundle to point to the test module
-    // bundle instead of the test runner app.
-    base::apple::SetOverrideFrameworkBundle(
-        [NSBundle bundleForClass:[ChromeEGTestBundleMain class]]);
 
     base::i18n::InitializeICU();
 
@@ -180,13 +177,6 @@ class TestMain {
 }
 
 - (void)testBundleDidFinish:(NSBundle*)testBundle {
-  if (_testPluginClient->is_service_enabled()) {
-    NSLog(@"calling testBundleWillFinish to test plugin server");
-    std::string deviceName =
-        base::SysNSStringToUTF8(UIDevice.currentDevice.name);
-    _testPluginClient->TestBundleWillFinish(deviceName);
-  }
-
   [[XCTestObservationCenter sharedTestObservationCenter]
       removeTestObserver:self];
 
@@ -197,9 +187,7 @@ class TestMain {
   if (_testPluginClient->is_service_enabled()) {
     NSLog(@"calling testCaseWillStart to test plugin server");
     std::string testName = base::SysNSStringToUTF8(testCase.name);
-    std::string deviceName =
-        base::SysNSStringToUTF8(UIDevice.currentDevice.name);
-    _testPluginClient->TestCaseWillStart(testName, deviceName);
+    _testPluginClient->TestCaseWillStart(testName);
   }
 }
 
@@ -208,9 +196,7 @@ class TestMain {
   if (_testPluginClient->is_service_enabled()) {
     NSLog(@"calling testCaseDidFail to test plugin server");
     std::string testName = base::SysNSStringToUTF8(testCase.name);
-    std::string deviceName =
-        base::SysNSStringToUTF8(UIDevice.currentDevice.name);
-    _testPluginClient->TestCaseDidFail(testName, deviceName);
+    _testPluginClient->TestCaseDidFail(testName);
   }
 }
 
@@ -218,9 +204,7 @@ class TestMain {
   if (_testPluginClient->is_service_enabled()) {
     NSLog(@"calling testCaseDidFinish to test plugin server");
     std::string testName = base::SysNSStringToUTF8(testCase.name);
-    std::string deviceName =
-        base::SysNSStringToUTF8(UIDevice.currentDevice.name);
-    _testPluginClient->TestCaseDidFinish(testName, deviceName);
+    _testPluginClient->TestCaseDidFinish(testName);
   }
 }
 

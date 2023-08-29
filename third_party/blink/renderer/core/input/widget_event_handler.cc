@@ -35,7 +35,7 @@ WebInputEventResult WidgetEventHandler::HandleInputEvent(
         gfx::ToFlooredPoint(mouse_event.PositionInRootFrame())));
     HitTestResult result = root->GetEventHandler().HitTestResultAtLocation(
         location, HitTestRequest::kReadOnly | HitTestRequest::kActive);
-    result.SetToShadowHostIfInUAShadowRoot();
+    result.SetToShadowHostIfInRestrictedShadowRoot();
     if (result.InnerNodeFrame()) {
       Document* document = result.InnerNodeFrame()->GetDocument();
       if (document) {

@@ -8,7 +8,6 @@
 #include <set>
 #include <utility>
 
-#include "base/containers/contains.h"
 #include "build/build_config.h"
 
 #if BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS)
@@ -237,7 +236,7 @@ class ExternalMojoBroker::ConnectorImpl : public mojom::ExternalConnector {
   void RegisterServiceInstance(
       const std::string& service_name,
       mojo::PendingRemote<mojom::ExternalService> service_remote) {
-    if (base::Contains(services_, service_name)) {
+    if (services_.find(service_name) != services_.end()) {
       LOG(ERROR) << "Duplicate service " << service_name;
       return;
     }

@@ -98,8 +98,7 @@ class PaletteTrayTest : public AshTestBase {
     return Shell::Get()->session_controller()->GetActivePrefService();
   }
 
-  raw_ptr<PaletteTray, DanglingUntriaged | ExperimentalAsh> palette_tray_ =
-      nullptr;  // not owned
+  raw_ptr<PaletteTray, ExperimentalAsh> palette_tray_ = nullptr;  // not owned
 
   std::unique_ptr<PaletteTrayTestApi> test_api_;
 };
@@ -633,8 +632,7 @@ class PaletteTrayTestMultiDisplay : public PaletteTrayTest {
   }
 
  protected:
-  raw_ptr<PaletteTray, DanglingUntriaged | ExperimentalAsh>
-      palette_tray_external_ = nullptr;
+  raw_ptr<PaletteTray, ExperimentalAsh> palette_tray_external_ = nullptr;
 
   std::unique_ptr<PaletteTrayTestApi> test_api_external_;
 };
@@ -761,7 +759,9 @@ TEST_F(PaletteTrayTestMultiDisplay, MirrorModeEnable) {
 
 class PaletteTrayTestWithProjector : public PaletteTrayTest {
  public:
-  PaletteTrayTestWithProjector() = default;
+  PaletteTrayTestWithProjector() {
+    scoped_feature_list_.InitWithFeatures({features::kProjector}, {});
+  }
 
   PaletteTrayTestWithProjector(const PaletteTrayTestWithProjector&) = delete;
   PaletteTrayTestWithProjector& operator=(const PaletteTrayTestWithProjector&) =
@@ -776,8 +776,10 @@ class PaletteTrayTestWithProjector : public PaletteTrayTest {
   }
 
  protected:
-  raw_ptr<ProjectorSessionImpl, DanglingUntriaged | ExperimentalAsh>
-      projector_session_;
+  raw_ptr<ProjectorSessionImpl, ExperimentalAsh> projector_session_;
+
+ private:
+  base::test::ScopedFeatureList scoped_feature_list_;
 };
 
 // Verify that the palette tray is hidden during a Projector session.

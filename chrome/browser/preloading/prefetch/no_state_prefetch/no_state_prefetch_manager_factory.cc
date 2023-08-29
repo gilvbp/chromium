@@ -55,10 +55,9 @@ NoStatePrefetchManagerFactory::NoStatePrefetchManagerFactory()
 
 NoStatePrefetchManagerFactory::~NoStatePrefetchManagerFactory() = default;
 
-std::unique_ptr<KeyedService>
-NoStatePrefetchManagerFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* NoStatePrefetchManagerFactory::BuildServiceInstanceFor(
     content::BrowserContext* browser_context) const {
-  return std::make_unique<NoStatePrefetchManager>(
+  return new NoStatePrefetchManager(
       Profile::FromBrowserContext(browser_context),
       std::make_unique<ChromeNoStatePrefetchManagerDelegate>(
           Profile::FromBrowserContext(browser_context)));

@@ -42,7 +42,6 @@
 
 #if BUILDFLAG(IS_ANDROID)
 #include "base/android/application_status_listener.h"
-#include "chrome/browser/accessibility/accessibility_prefs/android/accessibility_prefs_controller.h"
 #endif  // BUILDFLAG(IS_ANDROID)
 
 class BatteryMetrics;
@@ -86,7 +85,7 @@ class SodaInstallerImplChromeOS;
 }  // namespace speech
 
 namespace screen_ai {
-class ScreenAIInstallState;
+class ScreenAIDownloader;
 }  // namespace screen_ai
 
 // Real implementation of BrowserProcess that creates and returns the services.
@@ -217,7 +216,6 @@ class BrowserProcessImpl : public BrowserProcess,
 #if !BUILDFLAG(IS_ANDROID)
   SerialPolicyAllowedPorts* serial_policy_allowed_ports() override;
   HidSystemTrayIcon* hid_system_tray_icon() override;
-  UsbSystemTrayIcon* usb_system_tray_icon() override;
 #endif
 
   BuildState* GetBuildState() override;
@@ -270,18 +268,12 @@ class BrowserProcessImpl : public BrowserProcess,
   const std::unique_ptr<PrefService> local_state_;
 
   // |metrics_services_manager_| owns this.
-  raw_ptr<ChromeMetricsServicesManagerClient, AcrossTasksDanglingUntriaged>
+  raw_ptr<ChromeMetricsServicesManagerClient, DanglingUntriaged>
       metrics_services_manager_client_ = nullptr;
 
   // Must be destroyed before |local_state_|.
   std::unique_ptr<metrics_services_manager::MetricsServicesManager>
       metrics_services_manager_;
-
-#if BUILDFLAG(IS_ANDROID)
-  // Must be destroyed before |local_state_|.
-  std::unique_ptr<accessibility::AccessibilityPrefsController>
-      accessibility_prefs_controller_;
-#endif
 
   std::unique_ptr<network::NetworkQualityTracker> network_quality_tracker_;
 
@@ -415,7 +407,7 @@ class BrowserProcessImpl : public BrowserProcess,
 #if BUILDFLAG(ENABLE_SCREEN_AI_SERVICE)
   // Used to download Screen AI on demand and keep track of the library
   // availability.
-  std::unique_ptr<screen_ai::ScreenAIInstallState> screen_ai_download_;
+  std::unique_ptr<screen_ai::ScreenAIDownloader> screen_ai_download_;
 #endif
 
   std::unique_ptr<BrowserProcessPlatformPart> platform_part_;
@@ -445,7 +437,6 @@ class BrowserProcessImpl : public BrowserProcess,
 
   std::unique_ptr<SerialPolicyAllowedPorts> serial_policy_allowed_ports_;
   std::unique_ptr<HidSystemTrayIcon> hid_system_tray_icon_;
-  std::unique_ptr<UsbSystemTrayIcon> usb_system_tray_icon_;
 
   BuildState build_state_;
 #endif

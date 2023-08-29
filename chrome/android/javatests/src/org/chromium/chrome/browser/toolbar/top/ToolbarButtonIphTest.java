@@ -21,6 +21,7 @@ import androidx.test.espresso.action.ViewActions;
 import androidx.test.espresso.assertion.ViewAssertions;
 import androidx.test.filters.MediumTest;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -81,6 +82,11 @@ public class ToolbarButtonIphTest {
         // the test case will fail. See https://crbug.com/1144328.
         mActivityTestRule.startMainActivityWithURL(
                 mActivityTestRule.getTestServer().getURL("/chrome/test/data/android/about.html"));
+    }
+
+    @After
+    public void tearDown() {
+        TrackerFactory.setTrackerForTests(null);
     }
 
     @Test

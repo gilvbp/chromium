@@ -6,7 +6,7 @@
 
 #import <UIKit/UIKit.h>
 
-#import "base/apple/foundation_util.h"
+#import "base/mac/foundation_util.h"
 #import "base/test/task_environment.h"
 #import "components/prefs/pref_service.h"
 #import "components/signin/public/base/signin_metrics.h"
@@ -32,6 +32,10 @@
 #import "third_party/ocmock/gtest_support.h"
 #import "ui/base/l10n/l10n_util.h"
 #import "ui/strings/grit/ui_strings.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 class SignoutActionSheetCoordinatorTest : public PlatformTest {
  public:
@@ -65,12 +69,6 @@ class SignoutActionSheetCoordinatorTest : public PlatformTest {
 
     sync_setup_service_mock_ = static_cast<SyncSetupServiceMock*>(
         SyncSetupServiceFactory::GetForBrowserState(browser_state_.get()));
-  }
-
-  void TearDown() override {
-    [signout_coordinator_ stop];
-    signout_coordinator_ = nil;
-    PlatformTest::TearDown();
   }
 
   // Identity services.
@@ -119,10 +117,10 @@ TEST_F(SignoutActionSheetCoordinatorTest, SignedInUserWithSync) {
   ON_CALL(*sync_setup_service_mock_, IsInitialSyncFeatureSetupComplete())
       .WillByDefault(testing::Return(true));
 
-  CreateCoordinator();
-  [signout_coordinator_ start];
+  SignoutActionSheetCoordinator* signout_coordinator = CreateCoordinator();
+  [signout_coordinator start];
 
-  ASSERT_NE(nil, signout_coordinator_.title);
+  ASSERT_NE(nil, signout_coordinator.title);
 }
 
 // Tests that a signed-in user with Sync disabled will have an action sheet with
@@ -133,10 +131,10 @@ TEST_F(SignoutActionSheetCoordinatorTest, SignedInUserWithoutSync) {
   ON_CALL(*sync_setup_service_mock_, IsInitialSyncFeatureSetupComplete())
       .WillByDefault(testing::Return(false));
 
-  CreateCoordinator();
-  [signout_coordinator_ start];
+  SignoutActionSheetCoordinator* signout_coordinator = CreateCoordinator();
+  [signout_coordinator start];
 
-  ASSERT_EQ(nil, signout_coordinator_.title);
+  ASSERT_EQ(nil, signout_coordinator.title);
 }
 
 // Tests that a signed-in user with the forced sign-in policy enabled will have
@@ -151,11 +149,11 @@ TEST_F(SignoutActionSheetCoordinatorTest, SignedInUserWithForcedSignin) {
   ON_CALL(*sync_setup_service_mock_, IsInitialSyncFeatureSetupComplete())
       .WillByDefault(testing::Return(false));
 
-  CreateCoordinator();
-  [signout_coordinator_ start];
+  SignoutActionSheetCoordinator* signout_coordinator = CreateCoordinator();
+  [signout_coordinator start];
 
-  ASSERT_NE(nil, signout_coordinator_.title);
-  ASSERT_NE(nil, signout_coordinator_.message);
+  ASSERT_NE(nil, signout_coordinator.title);
+  ASSERT_NE(nil, signout_coordinator.message);
 }
 
 // Tests that a signed-in managed user with Sync enabled will have an action
@@ -166,10 +164,10 @@ TEST_F(SignoutActionSheetCoordinatorTest, SignedInManagedUserWithSync) {
   ON_CALL(*sync_setup_service_mock_, IsInitialSyncFeatureSetupComplete())
       .WillByDefault(testing::Return(true));
 
-  CreateCoordinator();
-  [signout_coordinator_ start];
+  SignoutActionSheetCoordinator* signout_coordinator = CreateCoordinator();
+  [signout_coordinator start];
 
-  ASSERT_NE(nil, signout_coordinator_.title);
+  ASSERT_NE(nil, signout_coordinator.title);
 }
 
 // Tests that a signed-in managed user with Sync disabled will have an action
@@ -180,8 +178,8 @@ TEST_F(SignoutActionSheetCoordinatorTest, SignedInManagedUserWithoutSync) {
   ON_CALL(*sync_setup_service_mock_, IsInitialSyncFeatureSetupComplete())
       .WillByDefault(testing::Return(false));
 
-  CreateCoordinator();
-  [signout_coordinator_ start];
+  SignoutActionSheetCoordinator* signout_coordinator = CreateCoordinator();
+  [signout_coordinator start];
 
-  ASSERT_EQ(nil, signout_coordinator_.title);
+  ASSERT_EQ(nil, signout_coordinator.title);
 }

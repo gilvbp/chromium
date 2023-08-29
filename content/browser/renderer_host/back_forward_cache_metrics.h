@@ -123,8 +123,7 @@ class BackForwardCacheMetrics
     kFencedFramesEmbedder = 59,
     kCookieDisabled = 60,
     kHTTPAuthRequired = 61,
-    kCookieFlushed = 62,
-    kMaxValue = kCookieFlushed,
+    kMaxValue = kHTTPAuthRequired,
   };
 
   using NotRestoredReasons =
@@ -273,9 +272,6 @@ class BackForwardCacheMetrics
   // Returns if |navigation| is cross-document main frame history navigation.
   static bool IsCrossDocumentMainFrameHistoryNavigation(
       NavigationRequest* navigation);
-
-  // Returns the debug string for `page_stored_result_`.
-  std::string GetPageStoredResultString();
 
  private:
   friend class base::RefCounted<BackForwardCacheMetrics>;

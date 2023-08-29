@@ -37,10 +37,9 @@ OriginTrialsFactory::OriginTrialsFactory()
 
 OriginTrialsFactory::~OriginTrialsFactory() noexcept = default;
 
-std::unique_ptr<KeyedService>
-OriginTrialsFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* OriginTrialsFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
-  return std::make_unique<origin_trials::OriginTrials>(
+  return new origin_trials::OriginTrials(
       std::make_unique<origin_trials::LevelDbPersistenceProvider>(
           context->GetPath(),
           context->GetDefaultStoragePartition()->GetProtoDatabaseProvider()),

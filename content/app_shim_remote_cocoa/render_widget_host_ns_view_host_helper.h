@@ -38,14 +38,14 @@ class RenderWidgetHostNSViewHost;
 // types.
 class RenderWidgetHostNSViewHostHelper {
  public:
-  RenderWidgetHostNSViewHostHelper() = default;
+  RenderWidgetHostNSViewHostHelper() {}
 
   RenderWidgetHostNSViewHostHelper(const RenderWidgetHostNSViewHostHelper&) =
       delete;
   RenderWidgetHostNSViewHostHelper& operator=(
       const RenderWidgetHostNSViewHostHelper&) = delete;
 
-  virtual ~RenderWidgetHostNSViewHostHelper() = default;
+  virtual ~RenderWidgetHostNSViewHostHelper() {}
 
   // Return the RenderWidget's BrowserAccessibilityManager's root accessibility
   // node.

@@ -157,18 +157,18 @@ void UploadCardRequest::ParseResponse(const base::Value::Dict& response) {
     if (virtual_card_enrollment_status) {
       if (*virtual_card_enrollment_status == "ENROLLED") {
         upload_card_response_details_.virtual_card_enrollment_state =
-            CreditCard::VirtualCardEnrollmentState::kEnrolled;
+            CreditCard::VirtualCardEnrollmentState::ENROLLED;
       } else if (*virtual_card_enrollment_status == "ENROLLMENT_ELIGIBLE") {
         upload_card_response_details_.virtual_card_enrollment_state =
-            CreditCard::VirtualCardEnrollmentState::kUnenrolledAndEligible;
+            CreditCard::VirtualCardEnrollmentState::UNENROLLED_AND_ELIGIBLE;
       } else {
         upload_card_response_details_.virtual_card_enrollment_state =
-            CreditCard::VirtualCardEnrollmentState::kUnenrolledAndNotEligible;
+            CreditCard::VirtualCardEnrollmentState::UNENROLLED_AND_NOT_ELIGIBLE;
       }
     }
 
     if (upload_card_response_details_.virtual_card_enrollment_state ==
-        CreditCard::VirtualCardEnrollmentState::kUnenrolledAndEligible) {
+        CreditCard::VirtualCardEnrollmentState::UNENROLLED_AND_ELIGIBLE) {
       const auto* virtual_card_enrollment_data =
           virtual_card_metadata->FindDict("virtual_card_enrollment_data");
       if (virtual_card_enrollment_data) {

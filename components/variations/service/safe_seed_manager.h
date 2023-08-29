@@ -13,10 +13,9 @@
 #include "base/memory/weak_ptr.h"
 #include "base/time/time.h"
 #include "build/chromeos_buildflags.h"
-#include "components/variations/service/safe_seed_manager_interface.h"
 
 #if BUILDFLAG(IS_CHROMEOS_ASH)
-#include "chromeos/ash/components/dbus/featured/featured.pb.h"
+#include "components/variations/cros/featured.pb.h"
 #endif  // BUILDFLAG(IS_CHROMEOS_ASH)
 
 class PrefRegistrySimple;
@@ -46,8 +45,14 @@ class VariationsSeedStore;
 constexpr int kCrashStreakSafeSeedThreshold = 3;
 constexpr int kCrashStreakNullSeedThreshold = 6;
 
+enum class SeedType {
+  kRegularSeed,
+  kSafeSeed,
+  kNullSeed,
+};
+
 // The primary class that encapsulates state for managing the safe seed.
-class SafeSeedManager : public SafeSeedManagerInterface {
+class SafeSeedManager {
  public:
   // Creates a SafeSeedManager instance and updates a safe mode pref,
   // kVariationsFailedToFetchSeedStreak, for bookkeeping.
@@ -56,7 +61,7 @@ class SafeSeedManager : public SafeSeedManagerInterface {
   SafeSeedManager(const SafeSeedManager&) = delete;
   SafeSeedManager& operator=(const SafeSeedManager&) = delete;
 
-  ~SafeSeedManager() override;
+  virtual ~SafeSeedManager();
 
   // Registers safe mode prefs in Local State.
   static void RegisterPrefs(PrefRegistrySimple* registry);
@@ -64,26 +69,28 @@ class SafeSeedManager : public SafeSeedManagerInterface {
   // Returns the type of seed the client should use.  Uses Regular seed by
   // default, but will use Safe seed, and Null seed after continual crashes or
   // network fetch failures.
-  SeedType GetSeedType() const override;
+  // Virtual for testing.
+  virtual SeedType GetSeedType() const;
 
   // Stores the combined server and client state that control the active
   // variations state. May be called at most once per Chrome app launch. As an
   // optimization, should not be called when running in safe mode.
-  void SetActiveSeedState(
+  // Virtual for testing.
+  virtual void SetActiveSeedState(
       const std::string& seed_data,
       const std::string& base64_seed_signature,
       int seed_milestone,
       std::unique_ptr<ClientFilterableState> client_filterable_state,
-      base::Time seed_fetch_time) override;
+      base::Time seed_fetch_time);
 
   // Records that a fetch has started: pessimistically increments the
   // corresponding failure streak for safe mode.
-  void RecordFetchStarted() override;
+  void RecordFetchStarted();
 
   // Records a successful fetch: resets the failure streaks for safe mode.
   // Writes the currently active seed to the |seed_store| as a safe seed, if
   // appropriate.
-  void RecordSuccessfulFetch(VariationsSeedStore* seed_store) override;
+  void RecordSuccessfulFetch(VariationsSeedStore* seed_store);
 
  private:
   FRIEND_TEST_ALL_PREFIXES(SafeSeedManagerTest, GetSafeSeedStateForPlatform);

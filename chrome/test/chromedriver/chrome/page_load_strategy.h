@@ -5,7 +5,6 @@
 #ifndef CHROME_TEST_CHROMEDRIVER_CHROME_PAGE_LOAD_STRATEGY_H_
 #define CHROME_TEST_CHROMEDRIVER_CHROME_PAGE_LOAD_STRATEGY_H_
 
-#include "chrome/test/chromedriver/chrome/devtools_event_listener.h"
 #include "chrome/test/chromedriver/chrome/status.h"
 #include "chrome/test/chromedriver/chrome/web_view.h"
 
@@ -14,13 +13,15 @@ class JavaScriptDialogManager;
 class Status;
 class Timeout;
 
-class PageLoadStrategy : public DevToolsEventListener {
+class PageLoadStrategy {
  public:
   enum LoadingState {
     kUnknown,
     kLoading,
     kNotLoading,
   };
+
+  virtual ~PageLoadStrategy() = default;
 
   static PageLoadStrategy* Create(
       std::string strategy,

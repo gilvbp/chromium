@@ -36,12 +36,10 @@ class VisibleTimeRequestTriggerTest : public testing::Test {
       base::TimeDelta start_time,
       bool destination_is_loaded = false,
       bool show_reason_tab_switching = false,
-      bool show_reason_bfcache_restore = false,
-      bool show_reason_unfolding = false) {
+      bool show_reason_bfcache_restore = false) {
     return RecordContentToVisibleTimeRequest::New(
         StartTimeFromDelta(start_time), destination_is_loaded,
-        show_reason_tab_switching, show_reason_bfcache_restore,
-        show_reason_unfolding);
+        show_reason_tab_switching, show_reason_bfcache_restore);
   }
 
   // Expects that all fields of `request` and `expected` match.

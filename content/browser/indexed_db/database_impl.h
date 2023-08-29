@@ -21,6 +21,10 @@
 #include "third_party/blink/public/common/indexeddb/indexeddb_key_path.h"
 #include "third_party/blink/public/mojom/indexeddb/indexeddb.mojom.h"
 
+namespace base {
+class SequencedTaskRunner;
+}
+
 namespace blink {
 class IndexedDBKeyRange;
 }
@@ -32,20 +36,15 @@ class IndexedDBDispatcherHost;
 
 class DatabaseImpl : public blink::mojom::IDBDatabase {
  public:
-  static mojo::PendingAssociatedRemote<blink::mojom::IDBDatabase> CreateAndBind(
-      std::unique_ptr<IndexedDBConnection> connection,
-      const storage::BucketInfo& bucket,
-      IndexedDBDispatcherHost* dispatcher_host);
-
-  ~DatabaseImpl() override;
-
- private:
   explicit DatabaseImpl(std::unique_ptr<IndexedDBConnection> connection,
                         const storage::BucketInfo& bucket,
-                        IndexedDBDispatcherHost* dispatcher_host);
+                        IndexedDBDispatcherHost* dispatcher_host,
+                        scoped_refptr<base::SequencedTaskRunner> idb_runner);
 
   DatabaseImpl(const DatabaseImpl&) = delete;
   DatabaseImpl& operator=(const DatabaseImpl&) = delete;
+
+  ~DatabaseImpl() override;
 
   // blink::mojom::IDBDatabase implementation
   void RenameObjectStore(int64_t transaction_id,
@@ -73,6 +72,13 @@ class DatabaseImpl : public blink::mojom::IDBDatabase {
               bool key_only,
               int64_t max_count,
               blink::mojom::IDBDatabase::GetAllCallback callback) override;
+  void BatchGetAll(
+      int64_t transaction_id,
+      int64_t object_store_id,
+      int64_t index_id,
+      const std::vector<blink::IndexedDBKeyRange>& key_ranges,
+      uint32_t max_count,
+      blink::mojom::IDBDatabase::BatchGetAllCallback callback) override;
   void SetIndexKeys(
       int64_t transaction_id,
       int64_t object_store_id,
@@ -94,7 +100,8 @@ class DatabaseImpl : public blink::mojom::IDBDatabase {
              int64_t object_store_id,
              int64_t index_id,
              const blink::IndexedDBKeyRange& key_range,
-             CountCallback callback) override;
+             mojo::PendingAssociatedRemote<blink::mojom::IDBCallbacks>
+                 pending_callbacks) override;
   void DeleteRange(int64_t transaction_id,
                    int64_t object_store_id,
                    const blink::IndexedDBKeyRange& key_range,
@@ -102,7 +109,8 @@ class DatabaseImpl : public blink::mojom::IDBDatabase {
   void GetKeyGeneratorCurrentNumber(
       int64_t transaction_id,
       int64_t object_store_id,
-      GetKeyGeneratorCurrentNumberCallback callback) override;
+      mojo::PendingAssociatedRemote<blink::mojom::IDBCallbacks>
+          pending_callbacks) override;
   void Clear(int64_t transaction_id,
              int64_t object_store_id,
              ClearCallback callback) override;
@@ -123,6 +131,7 @@ class DatabaseImpl : public blink::mojom::IDBDatabase {
   void Abort(int64_t transaction_id) override;
   void DidBecomeInactive() override;
 
+ private:
   storage::BucketLocator bucket_locator() {
     return bucket_info_.ToBucketLocator();
   }
@@ -133,6 +142,7 @@ class DatabaseImpl : public blink::mojom::IDBDatabase {
   scoped_refptr<IndexedDBContextImpl> indexed_db_context_;
   std::unique_ptr<IndexedDBConnection> connection_;
   const storage::BucketInfo bucket_info_;
+  scoped_refptr<base::SequencedTaskRunner> idb_runner_;
 
   SEQUENCE_CHECKER(sequence_checker_);
 };

@@ -27,12 +27,11 @@ CloudProfileReportingServiceFactory::GetForProfile(Profile* profile) {
       GetInstance()->GetServiceForBrowserContext(profile, /*create=*/true));
 }
 
-std::unique_ptr<KeyedService>
-CloudProfileReportingServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* CloudProfileReportingServiceFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   Profile* profile = Profile::FromBrowserContext(context);
 
-  return std::make_unique<CloudProfileReportingService>(
+  return new CloudProfileReportingService(
       profile,
       g_browser_process->browser_policy_connector()
           ->device_management_service(),

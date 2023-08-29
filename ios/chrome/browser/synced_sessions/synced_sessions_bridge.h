@@ -8,36 +8,52 @@
 #import <Foundation/Foundation.h>
 
 #include "base/callback_list.h"
+#include "base/scoped_observation.h"
+#include "components/signin/public/identity_manager/identity_manager.h"
 
+namespace signin {
+class IdentityManager;
+}
 namespace sync_sessions {
 class SessionSyncService;
 }
 
 @protocol SyncedSessionsObserver
-// Notifies when foreign sessions change.
-- (void)onForeignSessionsChanged;
+// Reloads the session data.
+- (void)reloadSessions;
 @end
 
 namespace synced_sessions {
 
 // Bridge class that will notify the panel when the remote sessions content
 // change.
-class SyncedSessionsObserverBridge {
+class SyncedSessionsObserverBridge : public signin::IdentityManager::Observer {
  public:
   SyncedSessionsObserverBridge(id<SyncedSessionsObserver> owner,
+                               signin::IdentityManager* identity_manager,
                                sync_sessions::SessionSyncService* sync_service);
 
   SyncedSessionsObserverBridge(const SyncedSessionsObserverBridge&) = delete;
   SyncedSessionsObserverBridge& operator=(const SyncedSessionsObserverBridge&) =
       delete;
 
-  ~SyncedSessionsObserverBridge() = default;
+  ~SyncedSessionsObserverBridge() override;
+  // signin::IdentityManager::Observer implementation.
+  void OnPrimaryAccountChanged(
+      const signin::PrimaryAccountChangeEvent& event) override;
+
+  // Returns true if user has granted sync consent.
+  bool HasSyncConsent();
 
  private:
   void OnForeignSessionChanged();
 
-  const __weak id<SyncedSessionsObserver> owner_;
-  const base::CallbackListSubscription foreign_session_updated_subscription_;
+  __weak id<SyncedSessionsObserver> owner_ = nil;
+  signin::IdentityManager* identity_manager_ = nullptr;
+  base::ScopedObservation<signin::IdentityManager,
+                          signin::IdentityManager::Observer>
+      identity_manager_observation_{this};
+  base::CallbackListSubscription foreign_session_updated_subscription_;
 };
 
 }  // namespace synced_sessions

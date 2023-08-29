@@ -100,7 +100,6 @@ import org.chromium.chrome.test.util.BookmarkTestUtil;
 import org.chromium.chrome.test.util.ChromeRenderTestRule;
 import org.chromium.chrome.test.util.MenuUtils;
 import org.chromium.chrome.test.util.browser.Features;
-import org.chromium.chrome.test.util.browser.Features.DisableFeatures;
 import org.chromium.components.bookmarks.BookmarkId;
 import org.chromium.components.bookmarks.BookmarkItem;
 import org.chromium.components.bookmarks.BookmarkType;
@@ -130,15 +129,17 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 
 /** Tests for the bookmark manager. */
+// clang-format off
 @RunWith(ParameterizedRunner.class)
 @ParameterAnnotations.UseRunnerDelegate(ChromeJUnit4RunnerDelegate.class)
 @CommandLineFlags.Add({ChromeSwitches.DISABLE_FIRST_RUN_EXPERIENCE})
 // TODO(1406059): Disabling the shopping CPA should not be a requirement for these tests.
-@DisableFeatures({ChromeFeatureList.CONTEXTUAL_PAGE_ACTION_PRICE_TRACKING,
-        ChromeFeatureList.ANDROID_IMPROVED_BOOKMARKS})
+@Features.DisableFeatures({ChromeFeatureList.CONTEXTUAL_PAGE_ACTION_PRICE_TRACKING})
 // TODO(crbug.com/1426138): Investigate batching.
 @DoNotBatch(reason = "BookmarkTest has behaviours and thus can't be batched.")
 public class BookmarkTest {
+    // clang-format on
+
     private static final String TEST_PAGE_URL_GOOGLE = "/chrome/test/data/android/google.html";
     private static final String TEST_PAGE_TITLE_GOOGLE = "The Google";
     private static final String TEST_PAGE_TITLE_GOOGLE2 = "Google";
@@ -199,7 +200,7 @@ public class BookmarkTest {
         mActivityTestRule.startMainActivityOnBlankPage();
         runOnUiThreadBlocking(() -> {
             mBookmarkModel = mActivityTestRule.getActivity().getBookmarkModelForTesting();
-            SyncServiceFactory.setInstanceForTesting(mSyncService);
+            SyncServiceFactory.overrideForTests(mSyncService);
         });
         // Use a custom port so the links are consistent for render tests.
         mActivityTestRule.getEmbeddedTestServerRule().setServerPort(TEST_PORT);
@@ -600,7 +601,7 @@ public class BookmarkTest {
 
     @Test
     @MediumTest
-    @DisableFeatures({ChromeFeatureList.SHOPPING_LIST})
+    @Features.DisableFeatures({ChromeFeatureList.SHOPPING_LIST})
     public void testSearchBookmarks_DeleteFolderWithChildrenInResults() throws Exception {
         BookmarkPromoHeader.forcePromoStateForTesting(SyncPromoState.NO_PROMO);
         BookmarkId testFolder = addFolder(TEST_FOLDER_TITLE);
@@ -726,7 +727,7 @@ public class BookmarkTest {
     @Test
     @MediumTest
     public void testEndIconVisibilityInSelectionMode() throws Exception {
-        addFolder(TEST_FOLDER_TITLE);
+        BookmarkId testId = addFolder(TEST_FOLDER_TITLE);
         addBookmark(TEST_TITLE_A, mTestUrlA);
 
         BookmarkPromoHeader.forcePromoStateForTesting(
@@ -1238,7 +1239,7 @@ public class BookmarkTest {
             assertEquals("Incorrect bookmark type for item 1", BookmarkType.PARTNER,
                     partnerBookmarkId1.getType());
             assertFalse("Partner item 1 should not be movable",
-                    BookmarkUtils.isMovable(mBookmarkModel, partnerBookmarkItem1));
+                    BookmarkUtils.isMovable(partnerBookmarkItem1));
             assertTrue("Partner item 1 should be editable", partnerBookmarkItem1.isEditable());
         });
 
@@ -1257,7 +1258,7 @@ public class BookmarkTest {
             assertEquals("Incorrect bookmark type for item 2", BookmarkType.PARTNER,
                     partnerBookmarkId2.getType());
             assertFalse("Partner item 2 should not be movable",
-                    BookmarkUtils.isMovable(mBookmarkModel, partnerBookmarkItem2));
+                    BookmarkUtils.isMovable(partnerBookmarkItem2));
             assertTrue("Partner item 2 should be editable", partnerBookmarkItem2.isEditable());
         });
 
@@ -1271,7 +1272,7 @@ public class BookmarkTest {
 
     @Test
     @MediumTest
-    @DisableFeatures({ChromeFeatureList.SHOPPING_LIST})
+    @Features.DisableFeatures({ChromeFeatureList.SHOPPING_LIST})
     public void testTopLevelFolderUpdateAfterSync() throws Exception {
         // Set up the test and open the bookmark manager to the Mobile Bookmarks folder.
         BookmarkTestUtil.readPartnerBookmarks(mActivityTestRule);

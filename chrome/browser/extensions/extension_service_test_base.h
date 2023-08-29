@@ -121,8 +121,7 @@ class ExtensionServiceTestBase : public testing::Test {
   virtual void InitializeExtensionService(
       const ExtensionServiceInitParams& params);
 
-  // Initialize an empty ExtensionService using a production, on-disk pref file.
-  // See documentation for |prefs_content|.
+  // Initialize an empty ExtensionService using the default init params.
   void InitializeEmptyExtensionService();
 
   // Initialize an ExtensionService with a few already-installed extensions.

@@ -10,8 +10,8 @@
 #include <string>
 
 #include "base/apple/bridging.h"
-#include "base/apple/foundation_util.h"
-#include "base/apple/scoped_cftyperef.h"
+#include "base/mac/foundation_util.h"
+#include "base/mac/scoped_cftyperef.h"
 #include "base/notreached.h"
 #include "base/strings/sys_string_conversions.h"
 #include "build/build_config.h"
@@ -21,6 +21,10 @@
 #else
 #include <CoreServices/CoreServices.h>
 #endif  // BUILDFLAG(IS_IOS)
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace net {
 
@@ -50,19 +54,19 @@ bool PlatformMimeUtil::GetPlatformMimeTypeFromExtension(
      MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_VERSION_11_0) || \
     (BUILDFLAG(IS_IOS) && __IPHONE_OS_VERSION_MIN_REQUIRED < __IPHONE_14_0)
   else {
-    base::apple::ScopedCFTypeRef<CFStringRef> ext_ref(
+    base::ScopedCFTypeRef<CFStringRef> ext_ref(
         base::SysUTF8ToCFStringRef(ext_nodot));
     if (!ext_ref) {
       return false;
     }
-    base::apple::ScopedCFTypeRef<CFStringRef> uti(
+    base::ScopedCFTypeRef<CFStringRef> uti(
         UTTypeCreatePreferredIdentifierForTag(kUTTagClassFilenameExtension,
                                               ext_ref,
                                               /*inConformingToUTI=*/nullptr));
     if (!uti) {
       return false;
     }
-    base::apple::ScopedCFTypeRef<CFStringRef> mime_ref(
+    base::ScopedCFTypeRef<CFStringRef> mime_ref(
         UTTypeCopyPreferredTagWithClass(uti, kUTTagClassMIMEType));
     if (!mime_ref) {
       return false;
@@ -97,18 +101,18 @@ bool PlatformMimeUtil::GetPlatformPreferredExtensionForMimeType(
      MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_VERSION_11_0) || \
     (BUILDFLAG(IS_IOS) && __IPHONE_OS_VERSION_MIN_REQUIRED < __IPHONE_14_0)
   else {
-    base::apple::ScopedCFTypeRef<CFStringRef> mime_ref(
+    base::ScopedCFTypeRef<CFStringRef> mime_ref(
         base::SysUTF8ToCFStringRef(mime_type));
     if (!mime_ref) {
       return false;
     }
-    base::apple::ScopedCFTypeRef<CFStringRef> uti(
+    base::ScopedCFTypeRef<CFStringRef> uti(
         UTTypeCreatePreferredIdentifierForTag(kUTTagClassMIMEType, mime_ref,
                                               /*inConformingToUTI=*/nullptr));
     if (!uti) {
       return false;
     }
-    base::apple::ScopedCFTypeRef<CFStringRef> ext_ref(
+    base::ScopedCFTypeRef<CFStringRef> ext_ref(
         UTTypeCopyPreferredTagWithClass(uti, kUTTagClassFilenameExtension));
     if (!ext_ref) {
       return false;
@@ -166,17 +170,16 @@ void PlatformMimeUtil::GetPlatformExtensionsForMimeType(
      MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_VERSION_11_0) || \
     (BUILDFLAG(IS_IOS) && __IPHONE_OS_VERSION_MIN_REQUIRED < __IPHONE_14_0)
   else {
-    base::apple::ScopedCFTypeRef<CFStringRef> mime_ref(
+    base::ScopedCFTypeRef<CFStringRef> mime_ref(
         base::SysUTF8ToCFStringRef(mime_type));
     if (mime_ref) {
       bool extensions_found = false;
-      base::apple::ScopedCFTypeRef<CFArrayRef> types(
-          UTTypeCreateAllIdentifiersForTag(kUTTagClassMIMEType, mime_ref,
-                                           nullptr));
+      base::ScopedCFTypeRef<CFArrayRef> types(UTTypeCreateAllIdentifiersForTag(
+          kUTTagClassMIMEType, mime_ref, nullptr));
       if (types) {
         for (CFIndex i = 0; i < CFArrayGetCount(types); i++) {
-          base::apple::ScopedCFTypeRef<CFArrayRef> extensions_list(
-              UTTypeCopyAllTagsWithClass(base::apple::CFCast<CFStringRef>(
+          base::ScopedCFTypeRef<CFArrayRef> extensions_list(
+              UTTypeCopyAllTagsWithClass(base::mac::CFCast<CFStringRef>(
                                              CFArrayGetValueAtIndex(types, i)),
                                          kUTTagClassFilenameExtension));
           if (!extensions_list) {

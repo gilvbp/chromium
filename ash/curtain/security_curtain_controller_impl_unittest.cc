@@ -227,14 +227,9 @@ class SecurityCurtainControllerImplTest : public PowerButtonTestBase {
                        *GetEventGenerator());
   }
 
-  bool IsAudioOutputMuted() {
+  bool IsOutputMuted() {
     return CrasAudioHandler::Get()->IsOutputMutedBySecurityCurtain() &&
            CrasAudioHandler::Get()->IsOutputMuted();
-  }
-
-  bool IsAudioInputMuted() {
-    return CrasAudioHandler::Get()->IsInputMutedBySecurityCurtain() &&
-           CrasAudioHandler::Get()->IsInputMuted();
   }
 
   EventTester CreateEventTesterOnDisplay(const display::Display& display) {
@@ -543,49 +538,14 @@ TEST_F(SecurityCurtainControllerImplTest,
 }
 
 TEST_F(SecurityCurtainControllerImplTest,
-       ShouldMuteAudioOutputMuteWhileCurtainIsEnabled) {
+       ShouldToggleAudioHandlerWhenEnabledAndDisabled) {
   CreateSingleDisplay();
 
-  auto params = init_params();
-  params.mute_audio_output = true;
-  security_curtain_controller().Enable(params);
-  EXPECT_TRUE(IsAudioOutputMuted());
+  security_curtain_controller().Enable(init_params());
+  EXPECT_TRUE(IsOutputMuted());
 
   security_curtain_controller().Disable();
-  EXPECT_FALSE(IsAudioOutputMuted());
-}
-
-TEST_F(SecurityCurtainControllerImplTest,
-       ShouldNotMuteAudioOutputMuteWhenItsNotRequested) {
-  CreateSingleDisplay();
-
-  auto params = init_params();
-  params.mute_audio_output = false;
-  security_curtain_controller().Enable(params);
-  EXPECT_FALSE(IsAudioOutputMuted());
-}
-
-TEST_F(SecurityCurtainControllerImplTest,
-       ShouldMuteAudioInputMuteWhileCurtainIsEnabled) {
-  CreateSingleDisplay();
-
-  auto params = init_params();
-  params.mute_audio_input = true;
-  security_curtain_controller().Enable(params);
-  EXPECT_TRUE(IsAudioInputMuted());
-
-  security_curtain_controller().Disable();
-  EXPECT_FALSE(IsAudioInputMuted());
-}
-
-TEST_F(SecurityCurtainControllerImplTest,
-       ShouldNotMuteAudioInputMuteWhenItsNotRequested) {
-  CreateSingleDisplay();
-
-  auto params = init_params();
-  params.mute_audio_input = false;
-  security_curtain_controller().Enable(params);
-  EXPECT_FALSE(IsAudioInputMuted());
+  EXPECT_FALSE(IsOutputMuted());
 }
 
 TEST_F(SecurityCurtainControllerImplTest,

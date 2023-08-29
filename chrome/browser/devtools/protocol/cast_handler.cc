@@ -264,11 +264,11 @@ void CastHandler::StartObservingForSinks(
   query_result_manager_->SetSourcesForCastMode(
       media_router::MediaCastMode::TAB_MIRROR, {mirroring_source}, origin);
 
-  if (presentation_url.has_value()) {
+  if (presentation_url.isJust()) {
     url::Origin frame_origin =
         web_contents_->GetPrimaryMainFrame()->GetLastCommittedOrigin();
     std::vector<media_router::MediaSource> sources = {
-        media_router::MediaSource(presentation_url.value())};
+        media_router::MediaSource(presentation_url.fromJust())};
     query_result_manager_->SetSourcesForCastMode(
         media_router::MediaCastMode::PRESENTATION, sources, frame_origin);
   }

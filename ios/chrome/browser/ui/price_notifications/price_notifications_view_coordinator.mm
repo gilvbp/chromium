@@ -8,7 +8,7 @@
 #import "base/strings/sys_string_conversions.h"
 #import "components/image_fetcher/core/image_data_fetcher.h"
 #import "components/prefs/pref_service.h"
-#import "ios/chrome/browser/bookmarks/model/local_or_syncable_bookmark_model_factory.h"
+#import "ios/chrome/browser/bookmarks/local_or_syncable_bookmark_model_factory.h"
 #import "ios/chrome/browser/commerce/shopping_service_factory.h"
 #import "ios/chrome/browser/push_notification/push_notification_service.h"
 #import "ios/chrome/browser/shared/coordinator/alert/alert_coordinator.h"
@@ -33,6 +33,10 @@
 #import "services/network/public/cpp/shared_url_loader_factory.h"
 #import "ui/base/device_form_factor.h"
 #import "ui/base/l10n/l10n_util_mac.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 @interface PriceNotificationsViewCoordinator ()
 
@@ -150,7 +154,6 @@
                          completion:nil];
   self.tableViewController = nil;
   self.navigationController = nil;
-  [self dismissAlertCoordinator];
 
   [super stop];
 }
@@ -162,7 +165,6 @@
   if (@available(iOS 15.4, *)) {
     settingURL = UIApplicationOpenNotificationSettingsURLString;
   }
-  __weak PriceNotificationsViewCoordinator* weakSelf = self;
 
   NSString* alertTitle = l10n_util::GetNSString(
       IDS_IOS_PRICE_NOTIFICATIONS_PRICE_TRACK_PERMISSION_REDIRECT_ALERT_TITLE);
@@ -180,9 +182,7 @@
                            title:alertTitle
                          message:alertMessage];
   [_alertCoordinator addItemWithTitle:cancelTitle
-                               action:^{
-                                 [weakSelf dismissAlertCoordinator];
-                               }
+                               action:nil
                                 style:UIAlertActionStyleCancel];
   [_alertCoordinator
       addItemWithTitle:settingsTitle
@@ -191,7 +191,6 @@
                                 openURL:[NSURL URLWithString:settingURL]
                                 options:{}
                       completionHandler:nil];
-                  [weakSelf dismissAlertCoordinator];
                 }
                  style:UIAlertActionStyleDefault];
   [_alertCoordinator start];
@@ -199,7 +198,6 @@
 
 - (void)presentStartPriceTrackingErrorAlertForItem:
     (PriceNotificationsTableViewItem*)item {
-  __weak PriceNotificationsViewCoordinator* weakSelf = self;
   __weak PriceNotificationsPriceTrackingMediator* weakMediator = self.mediator;
   __weak PriceNotificationsTableViewController* weakController =
       self.tableViewController;
@@ -221,13 +219,11 @@
   [_alertCoordinator addItemWithTitle:cancelTitle
                                action:^{
                                  [weakController resetPriceTrackingItem:item];
-                                 [weakSelf dismissAlertCoordinator];
                                }
                                 style:UIAlertActionStyleCancel];
   [_alertCoordinator addItemWithTitle:tryAgainTitle
                                action:^{
                                  [weakMediator trackItem:item];
-                                 [weakSelf dismissAlertCoordinator];
                                }
                                 style:UIAlertActionStyleDefault];
   [_alertCoordinator start];
@@ -245,7 +241,6 @@
   NSString* tryAgainTitle = l10n_util::GetNSString(
       IDS_IOS_PRICE_NOTIFICATIONS_PRICE_TRACK_ERROR_ALERT_REATTEMPT);
 
-  __weak PriceNotificationsViewCoordinator* weakSelf = self;
   [_alertCoordinator stop];
   _alertCoordinator = [[AlertCoordinator alloc]
       initWithBaseViewController:self.tableViewController
@@ -253,14 +248,11 @@
                            title:alertTitle
                          message:alertMessage];
   [_alertCoordinator addItemWithTitle:cancelTitle
-                               action:^{
-                                 [weakSelf dismissAlertCoordinator];
-                               }
+                               action:nil
                                 style:UIAlertActionStyleCancel];
   [_alertCoordinator addItemWithTitle:tryAgainTitle
                                action:^{
                                  [weakMediator stopTrackingItem:item];
-                                 [weakSelf dismissAlertCoordinator];
                                }
                                 style:UIAlertActionStyleDefault];
   [_alertCoordinator start];
@@ -271,11 +263,6 @@
 - (void)dismissButtonTapped {
   [HandlerForProtocol(self.browser->GetCommandDispatcher(),
                       PriceNotificationsCommands) hidePriceNotifications];
-}
-
-- (void)dismissAlertCoordinator {
-  [_alertCoordinator stop];
-  _alertCoordinator = nil;
 }
 
 @end

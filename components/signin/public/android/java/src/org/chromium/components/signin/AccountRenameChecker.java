@@ -86,6 +86,7 @@ public final class AccountRenameChecker {
     /**
      * Overrides the {@link Delegate} for tests.
      */
+    @VisibleForTesting
     public static void overrideDelegateForTests(Delegate delegate) {
         sInstance = new AccountRenameChecker(delegate);
     }

@@ -41,7 +41,6 @@ class DeviceCommandResetEuiccJob : public RemoteCommandJob {
   static void RecordResetEuiccResult(ResetEuiccResult result);
 
   // RemoteCommandJob:
-  bool IsExpired(base::TimeTicks now) override;
   void RunImpl(CallbackWithResult result_callback) override;
 
   void OnResetMemoryResponse(CallbackWithResult result_callback,

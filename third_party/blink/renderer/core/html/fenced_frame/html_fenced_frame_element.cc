@@ -306,11 +306,8 @@ HTMLIFrameElement* HTMLFencedFrameElement::InnerIFrameElement() const {
 
 void HTMLFencedFrameElement::setConfig(FencedFrameConfig* config) {
   config_ = config;
-
   if (config_) {
     NavigateToConfig();
-  } else {
-    Navigate(BlankURL());
   }
 }
 

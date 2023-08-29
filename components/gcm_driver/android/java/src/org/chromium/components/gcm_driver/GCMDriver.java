@@ -6,6 +6,8 @@ package org.chromium.components.gcm_driver;
 
 import android.os.SystemClock;
 
+import androidx.annotation.VisibleForTesting;
+
 import org.chromium.base.Log;
 import org.chromium.base.ThreadUtils;
 import org.chromium.base.annotations.CalledByNative;
@@ -156,6 +158,7 @@ public class GCMDriver {
                 message.getDataKeysAndValuesArray());
     }
 
+    @VisibleForTesting
     public static void overrideSubscriberForTesting(GoogleCloudMessagingSubscriber subscriber) {
         assert sInstance != null;
         assert subscriber != null;

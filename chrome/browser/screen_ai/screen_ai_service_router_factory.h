@@ -6,7 +6,7 @@
 #define CHROME_BROWSER_SCREEN_AI_SCREEN_AI_SERVICE_ROUTER_FACTORY_H_
 
 #include "base/no_destructor.h"
-#include "chrome/browser/profiles/profile_keyed_service_factory.h"
+#include "components/keyed_service/content/browser_context_keyed_service_factory.h"
 
 namespace content {
 class BrowserContext;
@@ -18,7 +18,7 @@ class ScreenAIServiceRouter;
 
 // Factory to get or create an instance of ScreenAIServiceRouter for a
 // BrowserContext.
-class ScreenAIServiceRouterFactory : public ProfileKeyedServiceFactory {
+class ScreenAIServiceRouterFactory : public BrowserContextKeyedServiceFactory {
  public:
   static screen_ai::ScreenAIServiceRouter* GetForBrowserContext(
       content::BrowserContext* context);
@@ -33,7 +33,9 @@ class ScreenAIServiceRouterFactory : public ProfileKeyedServiceFactory {
   ~ScreenAIServiceRouterFactory() override;
 
   // BrowserContextKeyedServiceFactory:
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
+      content::BrowserContext* context) const override;
+  content::BrowserContext* GetBrowserContextToUse(
       content::BrowserContext* context) const override;
 };
 

@@ -16,7 +16,8 @@ namespace ui {
 // being used.
 //
 // This is instantiated in the GPU process and sent to the browser process via
-// the cross-process CoreAnimation API.
+// the cross-process CoreAnimation API. This is intended to be moved entirely
+// to the browser process in https://crbug.com/604052.
 class ACCELERATED_WIDGET_MAC_EXPORT CALayerTreeCoordinator {
  public:
   explicit CALayerTreeCoordinator(bool allow_remote_layers,
@@ -55,7 +56,7 @@ class ACCELERATED_WIDGET_MAC_EXPORT CALayerTreeCoordinator {
   gfx::Size pixel_size_;
   float scale_factor_ = 1;
 
-  CALayer* __strong root_ca_layer_;
+  base::scoped_nsobject<CALayer> root_ca_layer_;
 
   // Frame that has been scheduled, but has not had a subsequent commit call
   // made yet.

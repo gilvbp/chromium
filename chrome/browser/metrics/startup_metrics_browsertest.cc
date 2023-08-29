@@ -52,13 +52,7 @@ void AddProcessCreateMetrics(std::vector<const char*>& v) {
 }  // namespace
 
 // Verify that startup histograms are logged on browser startup.
-// TODO(crbug.com/1459364): Re-enable this test
-#if BUILDFLAG(IS_WIN) && defined(ARCH_CPU_X86_64)
-#define MAYBE_ReportsValues DISABLED_ReportsValues
-#else
-#define MAYBE_ReportsValues ReportsValues
-#endif
-IN_PROC_BROWSER_TEST_F(StartupMetricsTest, MAYBE_ReportsValues) {
+IN_PROC_BROWSER_TEST_F(StartupMetricsTest, ReportsValues) {
   std::vector<const char*> startup_metrics{std::begin(kStartupMetrics),
                                            std::end(kStartupMetrics)};
 

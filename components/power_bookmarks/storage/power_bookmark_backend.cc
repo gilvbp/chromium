@@ -38,35 +38,30 @@ void PowerBookmarkBackend::Init(bool use_database) {
 
   // Substitute a dummy implementation when the feature is disabled.
   if (use_database) {
-    db_ = std::make_unique<PowerBookmarkDatabaseImpl>(database_dir_);
-    bool success = db_->Init();
+    auto database = std::make_unique<PowerBookmarkDatabaseImpl>(database_dir_);
 
     // TODO(crbug.com/1392502): Plumb in syncer::ReportUnrecoverableError as the
     // dump_stack callback.
     auto change_processor =
         std::make_unique<syncer::ClientTagBasedModelTypeProcessor>(
             syncer::POWER_BOOKMARK, /*dump_stack=*/base::RepeatingClosure());
-
     bridge_ = std::make_unique<PowerBookmarkSyncBridge>(
-        db_->GetSyncMetadataDatabase(), this, std::move(change_processor));
-    if (success) {
-      bridge_->Init();
-    } else {
-      bridge_->ReportError(
-          syncer::ModelError(FROM_HERE, "Database failed initialization."));
-    }
+        database->GetSyncMetadataDatabase(), this, std::move(change_processor));
+    db_ = std::move(database);
   } else {
     db_ = std::make_unique<EmptyPowerBookmarkDatabase>();
-    bool success = db_->Init();
-    DCHECK(success);
+  }
+
+  bool success = db_->Init();
+  DCHECK(success);
+
+  if (bridge_) {
+    bridge_->Init();
   }
 }
 
 base::WeakPtr<syncer::ModelTypeControllerDelegate>
 PowerBookmarkBackend::GetSyncControllerDelegate() {
-  if (!bridge_ && bridge_->initialized()) {
-    return nullptr;
-  }
   return bridge_->change_processor()->GetControllerDelegate();
 }
 
@@ -109,7 +104,7 @@ bool PowerBookmarkBackend::CreatePower(std::unique_ptr<Power> power) {
   if (!success) {
     return false;
   }
-  if (bridge_ && bridge_->initialized()) {
+  if (bridge_) {
     bridge_->SendPowerToSync(*power);
   }
   return CommitAndNotify(*transaction);
@@ -147,7 +142,7 @@ bool PowerBookmarkBackend::DeletePower(const base::Uuid& guid) {
   if (!success) {
     return false;
   }
-  if (bridge_ && bridge_->initialized()) {
+  if (bridge_) {
     bridge_->NotifySyncForDeletion(guid.AsLowercaseString());
   }
   return CommitAndNotify(*transaction);
@@ -168,7 +163,7 @@ bool PowerBookmarkBackend::DeletePowersForURL(
   if (!success) {
     return false;
   }
-  if (bridge_ && bridge_->initialized()) {
+  if (bridge_) {
     for (auto const& guid : deleted_guids) {
       bridge_->NotifySyncForDeletion(guid);
     }
@@ -219,7 +214,7 @@ bool PowerBookmarkBackend::CommitAndNotify(Transaction& transaction) {
     NotifyPowersChanged();
     return true;
   } else {
-    if (bridge_ && bridge_->initialized()) {
+    if (bridge_) {
       bridge_->change_processor()->ReportError(syncer::ModelError(
           FROM_HERE, "PowerBookmark database fails to persist data."));
     }

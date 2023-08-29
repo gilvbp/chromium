@@ -37,7 +37,6 @@
 #include "base/test/simple_test_clock.h"
 #include "base/test/test_mock_time_task_runner.h"
 #include "base/test/test_timeouts.h"
-#include "base/test/to_vector.h"
 #include "base/threading/thread_restrictions.h"
 #include "base/time/time.h"
 #include "base/timer/mock_timer.h"
@@ -13809,7 +13808,10 @@ class HostResolverManagerBootstrapTest : public HostResolverManagerDnsTest {
 };
 
 std::vector<IPAddress> IPAddresses(const std::vector<IPEndPoint>& endpoints) {
-  return base::test::ToVector(endpoints, &IPEndPoint::address);
+  std::vector<IPAddress> ip_addresses;
+  base::ranges::transform(endpoints, std::back_inserter(ip_addresses),
+                          &IPEndPoint::address);
+  return ip_addresses;
 }
 
 std::vector<IPAddress> IPAddresses(const AddressList& addresses) {

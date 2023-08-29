@@ -91,7 +91,7 @@ class UkmBackgroundRecorderFactory : public ProfileKeyedServiceFactory {
   UkmBackgroundRecorderFactory();
   ~UkmBackgroundRecorderFactory() override;
 
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* context) const override;
 };
 

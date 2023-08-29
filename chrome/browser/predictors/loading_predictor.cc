@@ -184,9 +184,8 @@ ResourcePrefetchPredictor* LoadingPredictor::resource_prefetch_predictor() {
 }
 
 PreconnectManager* LoadingPredictor::preconnect_manager() {
-  if (shutdown_) {
+  if (shutdown_ || !IsPreconnectFeatureEnabled())
     return nullptr;
-  }
 
   if (!preconnect_manager_) {
     preconnect_manager_ =
@@ -200,9 +199,8 @@ PrefetchManager* LoadingPredictor::prefetch_manager() {
   if (!base::FeatureList::IsEnabled(features::kLoadingPredictorPrefetch))
     return nullptr;
 
-  if (shutdown_) {
+  if (shutdown_ || !IsPreconnectFeatureEnabled())
     return nullptr;
-  }
 
   if (!prefetch_manager_) {
     prefetch_manager_ =

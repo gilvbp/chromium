@@ -50,8 +50,7 @@ class SimpleFontData;
 // This struct should be TriviallyCopyable so that std::copy() is equivalent to
 // memcpy.
 // Because glyph offsets are often zero, particularly for Latin runs, we hold it
-// in |ShapeResult::RunInfo::GlyphDataCollection::offsets_| for reducing memory
-// usage.
+// in |ShapeResult::GlyphData::_offsets_| for reducing memory usage.
 struct HarfBuzzRunGlyphData {
   DISALLOW_NEW();
 

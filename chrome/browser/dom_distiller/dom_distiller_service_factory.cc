@@ -62,8 +62,7 @@ DomDistillerServiceFactory::DomDistillerServiceFactory()
 
 DomDistillerServiceFactory::~DomDistillerServiceFactory() = default;
 
-std::unique_ptr<KeyedService>
-DomDistillerServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* DomDistillerServiceFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   Profile* profile = Profile::FromBrowserContext(context);
   scoped_refptr<base::SequencedTaskRunner> background_task_runner =
@@ -101,9 +100,12 @@ DomDistillerServiceFactory::BuildServiceInstanceForBrowserContext(
       std::make_unique<dom_distiller::android::DistillerUIHandleAndroid>();
 #endif  // BUILDFLAG(IS_ANDROID)
 
-  return std::make_unique<DomDistillerContextKeyedService>(
-      std::move(distiller_factory), std::move(distiller_page_factory),
-      std::move(distilled_page_prefs), std::move(distiller_ui_handle));
+  DomDistillerContextKeyedService* service =
+      new DomDistillerContextKeyedService(
+          std::move(distiller_factory), std::move(distiller_page_factory),
+          std::move(distilled_page_prefs), std::move(distiller_ui_handle));
+
+  return service;
 }
 
 }  // namespace dom_distiller

@@ -64,8 +64,7 @@ class FakeAsynchronousShutdownObjectContainerFactory
   }
 
  private:
-  raw_ptr<FakeAsynchronousShutdownObjectContainer,
-          DanglingUntriaged | ExperimentalAsh>
+  raw_ptr<FakeAsynchronousShutdownObjectContainer, ExperimentalAsh>
       fake_asynchronous_container_;
 };
 
@@ -95,8 +94,7 @@ class FakeSynchronousShutdownObjectContainerFactory
   }
 
  private:
-  raw_ptr<FakeSynchronousShutdownObjectContainer,
-          DanglingUntriaged | ExperimentalAsh>
+  raw_ptr<FakeSynchronousShutdownObjectContainer, ExperimentalAsh>
       fake_synchronous_container_;
 };
 
@@ -118,7 +116,7 @@ class FakeCrashRecoveryManagerFactory
   }
 
  private:
-  raw_ptr<FakeCrashRecoveryManager, DanglingUntriaged | ExperimentalAsh>
+  raw_ptr<FakeCrashRecoveryManager, ExperimentalAsh>
       fake_crash_recovery_manager_;
 };
 
@@ -213,19 +211,17 @@ class TetherComponentImplTest : public testing::Test {
   std::unique_ptr<FakeHostScanScheduler> fake_host_scan_scheduler_;
   std::unique_ptr<FakeTetherDisconnector> fake_tether_disconnector_;
 
-  raw_ptr<FakeSynchronousShutdownObjectContainer,
-          DanglingUntriaged | ExperimentalAsh>
+  raw_ptr<FakeSynchronousShutdownObjectContainer, ExperimentalAsh>
       fake_synchronous_container_;
   std::unique_ptr<FakeSynchronousShutdownObjectContainerFactory>
       fake_synchronous_container_factory_;
 
-  raw_ptr<FakeAsynchronousShutdownObjectContainer,
-          DanglingUntriaged | ExperimentalAsh>
+  raw_ptr<FakeAsynchronousShutdownObjectContainer, ExperimentalAsh>
       fake_asynchronous_container_;
   std::unique_ptr<FakeAsynchronousShutdownObjectContainerFactory>
       fake_asynchronous_container_factory_;
 
-  raw_ptr<FakeCrashRecoveryManager, DanglingUntriaged | ExperimentalAsh>
+  raw_ptr<FakeCrashRecoveryManager, ExperimentalAsh>
       fake_crash_recovery_manager_;
   std::unique_ptr<FakeCrashRecoveryManagerFactory>
       fake_crash_recovery_manager_factory_;

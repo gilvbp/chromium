@@ -9,6 +9,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.IBinder;
 
+import androidx.annotation.VisibleForTesting;
+
 import org.chromium.base.BundleUtils;
 
 /**
@@ -78,6 +80,7 @@ public class SplitCompatService extends Service {
         return super.onUnbind(intent);
     }
 
+    @VisibleForTesting
     public void attachBaseContextForTesting(Context context, Impl impl) {
         mImpl = impl;
         super.attachBaseContext(context);

@@ -71,6 +71,7 @@ class Eviction {
 
   bool NodeIsOldEnough(CacheRankingsBlock* node, int list);
   int SelectListByLength(Rankings::ScopedRankingsBlock* next);
+  void ReportListStats();
 
   raw_ptr<BackendImpl> backend_ = nullptr;
   raw_ptr<Rankings> rankings_;

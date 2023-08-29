@@ -6,7 +6,6 @@
 
 #include <utility>
 
-#include "base/containers/contains.h"
 #include "base/functional/bind.h"
 #include "base/functional/callback_helpers.h"
 #include "base/location.h"
@@ -198,7 +197,7 @@ void FakeStreamChannelFactory::NotifyChannelCreated(
     std::unique_ptr<FakeStreamSocket> owned_channel,
     const std::string& name,
     ChannelCreatedCallback callback) {
-  if (base::Contains(channels_, name)) {
+  if (channels_.find(name) != channels_.end()) {
     std::move(callback).Run(std::move(owned_channel));
   }
 }

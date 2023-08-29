@@ -51,10 +51,9 @@ SupportedLinksInfoBarPrefsServiceFactory::
 SupportedLinksInfoBarPrefsServiceFactory::
     ~SupportedLinksInfoBarPrefsServiceFactory() = default;
 
-std::unique_ptr<KeyedService>
-SupportedLinksInfoBarPrefsServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* SupportedLinksInfoBarPrefsServiceFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
-  return std::make_unique<SupportedLinksInfoBarPrefsService>(
+  return new SupportedLinksInfoBarPrefsService(
       Profile::FromBrowserContext(context));
 }
 

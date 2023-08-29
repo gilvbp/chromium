@@ -8,7 +8,6 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Application;
 import android.app.Application.ActivityLifecycleCallbacks;
-import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.Window;
 
@@ -79,15 +78,6 @@ public class ApplicationStatus {
      */
     private static final Map<Activity, ActivityInfo> sActivityInfo =
             Collections.synchronizedMap(new HashMap<Activity, ActivityInfo>());
-
-    /**
-     * A map to cache TaskId for each {@link Activity}.
-     */
-    public static final Map<Activity, Integer> sActivityTaskId =
-            Collections.synchronizedMap(new HashMap<Activity, Integer>());
-
-    // Shared preferences key for TaskId caching of an activity.
-    private static final String CACHE_ACTIVITY_TASKID_KEY = "cache_activity_taskid_enabled";
 
     @SuppressLint("SupportAnnotationUsage")
     @ApplicationState
@@ -226,29 +216,6 @@ public class ApplicationStatus {
     public static void unregisterTaskVisibilityListener(TaskVisibilityListener listener) {
         if (sTaskVisibilityListeners == null) return;
         sTaskVisibilityListeners.removeObserver(listener);
-    }
-
-    public static void setCachingEnabled(boolean enabled) {
-        SharedPreferences.Editor editor = ContextUtils.getAppSharedPreferences().edit();
-        editor.putBoolean(CACHE_ACTIVITY_TASKID_KEY, enabled).apply();
-    }
-
-    public static boolean isCachingEnabled() {
-        try (StrictModeContext ignored = StrictModeContext.allowDiskReads()) {
-            return ContextUtils.getAppSharedPreferences().getBoolean(
-                    CACHE_ACTIVITY_TASKID_KEY, false);
-        }
-    }
-
-    public static int getTaskId(Activity activity) {
-        if (!isCachingEnabled()) return activity.getTaskId();
-
-        if (!sActivityTaskId.containsKey(activity)) {
-            synchronized (sActivityTaskId) {
-                sActivityTaskId.put(activity, activity.getTaskId());
-            }
-        }
-        return sActivityTaskId.get(activity);
     }
 
     /**
@@ -453,7 +420,7 @@ public class ApplicationStatus {
         }
 
         int oldApplicationState = getStateForApplication();
-        boolean oldTaskVisibility = isTaskVisible(getTaskId(activity));
+        boolean oldTaskVisibility = isTaskVisible(activity.getTaskId());
         ActivityInfo info;
 
         synchronized (sActivityInfo) {
@@ -488,10 +455,10 @@ public class ApplicationStatus {
             }
         }
 
-        boolean taskVisibility = isTaskVisible(getTaskId(activity));
+        boolean taskVisibility = isTaskVisible(activity.getTaskId());
         if (taskVisibility != oldTaskVisibility && sTaskVisibilityListeners != null) {
             for (TaskVisibilityListener listener : sTaskVisibilityListeners) {
-                listener.onTaskVisibilityChanged(getTaskId(activity), taskVisibility);
+                listener.onTaskVisibilityChanged(activity.getTaskId(), taskVisibility);
             }
         }
 
@@ -499,11 +466,6 @@ public class ApplicationStatus {
         if (applicationState != oldApplicationState && sApplicationStateListeners != null) {
             for (ApplicationStateListener listener : sApplicationStateListeners) {
                 listener.onApplicationStateChange(applicationState);
-            }
-        }
-        synchronized (sActivityTaskId) {
-            if (newState == ActivityState.DESTROYED) {
-                sActivityTaskId.remove(activity);
             }
         }
     }
@@ -639,7 +601,7 @@ public class ApplicationStatus {
     public static boolean isTaskVisible(int taskId) {
         assert isInitialized();
         for (Map.Entry<Activity, ActivityInfo> entry : sActivityInfo.entrySet()) {
-            if (getTaskId(entry.getKey()) == taskId) {
+            if (entry.getKey().getTaskId() == taskId) {
                 @ActivityState
                 int state = entry.getValue().getStatus();
                 if (state == ActivityState.RESUMED || state == ActivityState.PAUSED) {

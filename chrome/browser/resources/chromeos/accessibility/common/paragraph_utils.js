@@ -29,11 +29,6 @@ export class ParagraphUtils {
     if (node.role === RoleType.UNKNOWN) {
       return true;
     }
-    // For Android views. Clickable is Android-only property, and clickable is
-    // usually a small meaningful chunk.
-    if (node.clickable) {
-      return true;
-    }
     return false;
   }
 

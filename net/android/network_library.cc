@@ -136,7 +136,7 @@ std::string GetWifiSSID() {
 }
 
 void SetWifiEnabledForTesting(bool enabled) {
-  Java_AndroidNetworkLibrary_setWifiEnabledForTesting(
+  Java_AndroidNetworkLibrary_setWifiEnabled(
       base::android::AttachCurrentThread(), enabled);
 }
 

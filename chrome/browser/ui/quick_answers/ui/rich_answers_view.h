@@ -9,6 +9,7 @@
 
 #include "base/memory/raw_ptr.h"
 #include "base/memory/weak_ptr.h"
+#include "chrome/browser/ui/quick_answers/ui/quick_answers_focus_search.h"
 #include "chrome/browser/ui/quick_answers/ui/rich_answers_pre_target_handler.h"
 #include "ui/base/metadata/metadata_header_macros.h"
 #include "ui/events/event_handler.h"
@@ -22,10 +23,6 @@ namespace views {
 class ImageButton;
 class ImageView;
 }  // namespace views
-
-namespace chromeos::editor_menu {
-class FocusSearch;
-}  // namespace chromeos::editor_menu
 
 class QuickAnswersUiController;
 
@@ -71,7 +68,8 @@ class RichAnswersView : public views::View {
   void OnGoogleSearchLinkClicked();
   void UpdateBounds();
 
-  // FocusSearch::GetFocusableViewsCallback to poll currently focusable views.
+  // QuickAnswersFocusSearch::GetFocusableViewsCallback to poll currently
+  // focusable views.
   std::vector<views::View*> GetFocusableViews();
 
   gfx::Rect anchor_view_bounds_;
@@ -89,7 +87,7 @@ class RichAnswersView : public views::View {
 
   std::unique_ptr<quick_answers::RichAnswersPreTargetHandler>
       rich_answers_view_handler_;
-  std::unique_ptr<chromeos::editor_menu::FocusSearch> focus_search_;
+  std::unique_ptr<QuickAnswersFocusSearch> focus_search_;
   base::WeakPtrFactory<RichAnswersView> weak_factory_{this};
 };
 

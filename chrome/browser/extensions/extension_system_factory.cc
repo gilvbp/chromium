@@ -69,11 +69,9 @@ ExtensionSystemSharedFactory::ExtensionSystemSharedFactory()
 
 ExtensionSystemSharedFactory::~ExtensionSystemSharedFactory() = default;
 
-std::unique_ptr<KeyedService>
-ExtensionSystemSharedFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* ExtensionSystemSharedFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
-  return std::make_unique<ExtensionSystemImpl::Shared>(
-      static_cast<Profile*>(context));
+  return new ExtensionSystemImpl::Shared(static_cast<Profile*>(context));
 }
 
 // ExtensionSystemFactory

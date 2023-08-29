@@ -11,7 +11,6 @@
 #include "ash/system/tray/tray_detailed_view.h"
 #include "base/memory/raw_ptr.h"
 #include "base/memory/weak_ptr.h"
-#include "chromeos/ash/services/bluetooth_config/public/mojom/cros_bluetooth_config.mojom.h"
 #include "ui/base/metadata/metadata_header_macros.h"
 
 namespace views {
@@ -40,9 +39,7 @@ class ASH_EXPORT BluetoothDetailedViewImpl : public BluetoothDetailedView,
 
   // BluetoothDetailedView:
   views::View* GetAsView() override;
-  void UpdateBluetoothEnabledState(
-      const bluetooth_config::mojom::BluetoothSystemState system_state)
-      override;
+  void UpdateBluetoothEnabledState(bool enabled) override;
   BluetoothDeviceListItemView* AddDeviceListItem() override;
   views::View* AddDeviceListSubHeader(const gfx::VectorIcon& icon,
                                       int text_id) override;

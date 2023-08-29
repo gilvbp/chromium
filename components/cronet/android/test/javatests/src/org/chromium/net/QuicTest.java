@@ -8,7 +8,6 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
 import static org.chromium.net.CronetTestRule.getTestStorage;
-import static org.chromium.net.truth.UrlResponseInfoSubject.assertThat;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.LargeTest;
@@ -99,14 +98,13 @@ public class QuicTest {
         requestBuilder.build().start();
         callback.blockForDone();
 
-        assertThat(callback.getResponseInfoWithChecks()).hasHttpStatusCodeThat().isEqualTo(200);
+        assertThat(callback.mResponseInfo.getHttpStatusCode()).isEqualTo(200);
         String expectedContent = "This is a simple text file served by QUIC.\n";
         assertThat(callback.mResponseAsString).isEqualTo(expectedContent);
-        assertIsQuic(callback.getResponseInfoWithChecks());
+        assertIsQuic(callback.mResponseInfo);
         // The total received bytes should be larger than the content length, to account for
         // headers.
-        assertThat(callback.getResponseInfoWithChecks())
-                .hasReceivedByteCountThat()
+        assertThat(callback.mResponseInfo.getReceivedByteCount())
                 .isGreaterThan((long) expectedContent.length());
         CronetTestUtil.nativeFlushWritePropertiesForTesting(cronetEngine);
         assertThat(fileContainsString("local_prefs.json",
@@ -132,13 +130,12 @@ public class QuicTest {
                 cronetEngine.newUrlRequestBuilder(quicURL, callback2, callback2.getExecutor());
         requestBuilder.build().start();
         callback2.blockForDone();
-        assertThat(callback2.getResponseInfoWithChecks()).hasHttpStatusCodeThat().isEqualTo(200);
+        assertThat(callback2.mResponseInfo.getHttpStatusCode()).isEqualTo(200);
         assertThat(callback2.mResponseAsString).isEqualTo(expectedContent);
-        assertIsQuic(callback.getResponseInfoWithChecks());
+        assertIsQuic(callback.mResponseInfo);
         // The total received bytes should be larger than the content length, to account for
         // headers.
-        assertThat(callback2.getResponseInfoWithChecks())
-                .hasReceivedByteCountThat()
+        assertThat(callback2.mResponseInfo.getReceivedByteCount())
                 .isGreaterThan((long) expectedContent.length());
         cronetEngine.shutdown();
     }
@@ -185,10 +182,10 @@ public class QuicTest {
         requestBuilder.build().start();
         callback.blockForDone();
 
-        assertThat(callback.getResponseInfoWithChecks()).hasHttpStatusCodeThat().isEqualTo(200);
+        assertThat(callback.mResponseInfo.getHttpStatusCode()).isEqualTo(200);
         String expectedContent = "This is a simple text file served by QUIC.\n";
         assertThat(callback.mResponseAsString).isEqualTo(expectedContent);
-        assertIsQuic(callback.getResponseInfoWithChecks());
+        assertIsQuic(callback.mResponseInfo);
 
         // Throughput observation is posted to the network quality estimator on the network thread
         // after the UrlRequest is completed. The observations are then eventually posted to
@@ -243,8 +240,8 @@ public class QuicTest {
         requestFinishedListener.blockUntilDone();
         Date endTime = new Date();
 
-        assertThat(callback.getResponseInfoWithChecks()).hasHttpStatusCodeThat().isEqualTo(200);
-        assertIsQuic(callback.getResponseInfoWithChecks());
+        assertThat(callback.mResponseInfo.getHttpStatusCode()).isEqualTo(200);
+        assertIsQuic(callback.mResponseInfo);
 
         RequestFinishedInfo requestInfo = requestFinishedListener.getRequestInfo();
         MetricsTestUtil.checkRequestFinishedInfo(requestInfo, quicURL, startTime, endTime);
@@ -262,8 +259,8 @@ public class QuicTest {
         requestFinishedListener.blockUntilDone();
         endTime = new Date();
 
-        assertThat(callback.getResponseInfoWithChecks()).hasHttpStatusCodeThat().isEqualTo(200);
-        assertIsQuic(callback.getResponseInfoWithChecks());
+        assertThat(callback.mResponseInfo.getHttpStatusCode()).isEqualTo(200);
+        assertIsQuic(callback.mResponseInfo);
 
         requestInfo = requestFinishedListener.getRequestInfo();
         MetricsTestUtil.checkRequestFinishedInfo(requestInfo, quicURL, startTime, endTime);

@@ -6,7 +6,7 @@
 
 #import <UIKit/UIKit.h>
 
-#import "base/apple/foundation_util.h"
+#import "base/mac/foundation_util.h"
 #import "base/test/task_environment.h"
 #import "ios/chrome/browser/shared/model/browser/test/test_browser.h"
 #import "ios/chrome/browser/shared/model/browser_state/test_chrome_browser_state.h"
@@ -17,6 +17,10 @@
 #import "third_party/ocmock/gtest_support.h"
 #import "ui/base/l10n/l10n_util.h"
 #import "ui/strings/grit/ui_strings.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 #pragma mark - Fixture.
 
@@ -49,11 +53,6 @@ class AlertCoordinatorTest : public PlatformTest {
     return alert_coordinator_;
   }
 
-  void TearDown() override {
-    [alert_coordinator_ stop];
-    PlatformTest::TearDown();
-  }
-
  private:
   base::test::TaskEnvironment task_environment_;
   std::unique_ptr<TestChromeBrowserState> browser_state_;
@@ -83,7 +82,7 @@ TEST_F(AlertCoordinatorTest, ValidateIsVisible) {
   ASSERT_TRUE([view_controller.presentedViewController
       isKindOfClass:[UIAlertController class]]);
   UIAlertController* alert_controller =
-      base::apple::ObjCCastStrict<UIAlertController>(
+      base::mac::ObjCCastStrict<UIAlertController>(
           view_controller.presentedViewController);
   EXPECT_EQ(1LU, alert_controller.actions.count);
 }
@@ -124,7 +123,7 @@ TEST_F(AlertCoordinatorTest, TitleAndMessage) {
   ASSERT_TRUE([view_controller.presentedViewController
       isKindOfClass:[UIAlertController class]]);
   UIAlertController* alert_controller =
-      base::apple::ObjCCastStrict<UIAlertController>(
+      base::mac::ObjCCastStrict<UIAlertController>(
           view_controller.presentedViewController);
 
   // Test the results.
@@ -189,7 +188,7 @@ TEST_F(AlertCoordinatorTest, ValidateActions) {
   ASSERT_TRUE([view_controller.presentedViewController
       isKindOfClass:[UIAlertController class]]);
   UIAlertController* alert_controller =
-      base::apple::ObjCCastStrict<UIAlertController>(
+      base::mac::ObjCCastStrict<UIAlertController>(
           view_controller.presentedViewController);
 
   // Test the results.
@@ -205,21 +204,38 @@ TEST_F(AlertCoordinatorTest, ValidateActions) {
 }
 
 // Tests that only the first cancel action is added.
-TEST_F(AlertCoordinatorTest, CancelIsRegistered) {
+TEST_F(AlertCoordinatorTest, OnlyOneCancelAction) {
   // Setup.
   UIViewController* view_controller = GetViewController();
   AlertCoordinator* alert_coordinator = GetAlertCoordinator(view_controller);
 
   NSString* firstButtonTitle = @"Cancel1";
 
-  EXPECT_FALSE(alert_coordinator.cancelButtonAdded);
   // Action.
   [alert_coordinator addItemWithTitle:firstButtonTitle
                                action:nil
                                 style:UIAlertActionStyleCancel];
-  EXPECT_TRUE(alert_coordinator.cancelButtonAdded);
-  //  If death test becomes available, check that adding a second cancel item
-  // lead to a CHECK failure.
+  [alert_coordinator addItemWithTitle:@"Cancel2"
+                               action:nil
+                                style:UIAlertActionStyleCancel];
+
+  // Test.
+  // Present the alert.
+  StartAlertCoordinator();
+
+  // Get the alert.
+  ASSERT_TRUE([view_controller.presentedViewController
+      isKindOfClass:[UIAlertController class]]);
+  UIAlertController* alert_controller =
+      base::mac::ObjCCastStrict<UIAlertController>(
+          view_controller.presentedViewController);
+
+  // Test the results.
+  EXPECT_EQ(1LU, alert_controller.actions.count);
+
+  UIAlertAction* action = [alert_controller.actions objectAtIndex:0];
+  EXPECT_NSEQ(firstButtonTitle, action.title);
+  EXPECT_EQ(UIAlertActionStyleCancel, action.style);
 }
 
 // Tests that the `noInteractionAction` block is called for an alert coordinator
@@ -242,6 +258,29 @@ TEST_F(AlertCoordinatorTest, NoInteractionActionTest) {
 
   // Test.
   EXPECT_TRUE(block_called);
+}
+
+// Tests that the `noInteractionAction` block is not called for an alert
+// coordinator which is dismissed with the cancel button.
+TEST_F(AlertCoordinatorTest, NoInteractionActionWithCancelTest) {
+  // Setup.
+  UIViewController* view_controller = GetViewController();
+  AlertCoordinator* alert_coordinator = GetAlertCoordinator(view_controller);
+
+  __block BOOL block_called = NO;
+
+  alert_coordinator.noInteractionAction = ^{
+    block_called = YES;
+  };
+
+  StartAlertCoordinator();
+
+  // Action.
+  [alert_coordinator executeCancelHandler];
+  [alert_coordinator stop];
+
+  // Test.
+  EXPECT_FALSE(block_called);
 }
 
 // Tests that the alert coordinator is dismissed if destroyed without being
@@ -297,7 +336,7 @@ TEST_F(AlertCoordinatorTest, AlertHasPreferredAction) {
   ASSERT_TRUE([view_controller.presentedViewController
       isKindOfClass:[UIAlertController class]]);
   UIAlertController* alert_controller =
-      base::apple::ObjCCastStrict<UIAlertController>(
+      base::mac::ObjCCastStrict<UIAlertController>(
           view_controller.presentedViewController);
 
   // Test the results.

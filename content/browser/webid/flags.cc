@@ -15,6 +15,10 @@ bool IsFedCmAuthzEnabled() {
   return base::FeatureList::IsEnabled(features::kFedCmAuthz);
 }
 
+bool IsFedCmAutoReauthnEnabled() {
+  return base::FeatureList::IsEnabled(features::kFedCmAutoReauthn);
+}
+
 bool IsFedCmIdpSignoutEnabled() {
   return GetFieldTrialParamByFeatureAsBool(
       features::kFedCm, features::kFedCmIdpSignoutFieldTrialParamName, false);
@@ -39,33 +43,28 @@ bool IsFedCmMetricsEndpointEnabled() {
   return base::FeatureList::IsEnabled(features::kFedCmMetricsEndpoint);
 }
 
+bool IsFedCmRpContextEnabled() {
+  return base::FeatureList::IsEnabled(features::kFedCmRpContext);
+}
+
+bool IsFedCmUserInfoEnabled() {
+  return base::FeatureList::IsEnabled(features::kFedCmUserInfo);
+}
+
 bool IsFedCmSelectiveDisclosureEnabled() {
   return base::FeatureList::IsEnabled(features::kFedCmSelectiveDisclosure);
+}
+
+bool IsFedCmLoginHintEnabled() {
+  return base::FeatureList::IsEnabled(features::kFedCmLoginHint);
 }
 
 bool IsFedCmIdPRegistrationEnabled() {
   return base::FeatureList::IsEnabled(features::kFedCmIdPRegistration);
 }
 
-bool IsFedCmWithoutWellKnownEnforcementEnabled() {
-  return base::FeatureList::IsEnabled(
-      features::kFedCmWithoutWellKnownEnforcement);
-}
-
 bool IsWebIdentityMDocsEnabled() {
   return base::FeatureList::IsEnabled(features::kWebIdentityMDocs);
-}
-
-bool IsFedCmAutoReauthnFlagEnabled() {
-  return base::FeatureList::IsEnabled(features::kFedCmAutoReauthnFlag);
-}
-
-bool IsFedCmHostedDomainEnabled() {
-  return base::FeatureList::IsEnabled(features::kFedCmHostedDomain);
-}
-
-bool IsFedCmErrorEnabled() {
-  return base::FeatureList::IsEnabled(features::kFedCmError);
 }
 
 }  // namespace content

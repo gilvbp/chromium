@@ -4,12 +4,16 @@
 
 #import "ios/chrome/browser/shared/ui/table_view/cells/table_view_illustrated_item.h"
 
-#import "base/apple/foundation_util.h"
 #import "base/ios/ios_util.h"
+#import "base/mac/foundation_util.h"
 #import "ios/chrome/browser/shared/public/features/features.h"
 #import "ios/chrome/browser/shared/ui/table_view/chrome_table_view_styler.h"
 #import "ios/chrome/common/button_configuration_util.h"
 #import "ios/chrome/common/ui/colors/semantic_color_names.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace {
 // The insets of the View content and additional margin for some of its items.
@@ -25,8 +29,6 @@ const CGFloat kButtonTitleHorizontalContentInset = 40.0;
 const CGFloat kButtonTitleVerticalContentInset = 8.0;
 // Button corner radius.
 const CGFloat kButtonCornerRadius = 8.0;
-// Button top padding in addition of the stackview spacing.
-constexpr CGFloat kButtonTopPadding = 14.0;
 }  // namespace
 
 #pragma mark - TableViewIllustratedItem
@@ -45,7 +47,7 @@ constexpr CGFloat kButtonTopPadding = 14.0;
            withStyler:(ChromeTableViewStyler*)styler {
   [super configureCell:tableCell withStyler:styler];
   TableViewIllustratedCell* cell =
-      base::apple::ObjCCastStrict<TableViewIllustratedCell>(tableCell);
+      base::mac::ObjCCastStrict<TableViewIllustratedCell>(tableCell);
   if ([self.accessibilityIdentifier length]) {
     cell.accessibilityIdentifier = self.accessibilityIdentifier;
   }
@@ -66,27 +68,15 @@ constexpr CGFloat kButtonTopPadding = 14.0;
     cell.subtitleLabel.hidden = YES;
   }
   if ([self.buttonText length]) {
-    if (IsUIButtonConfigurationEnabled()) {
-      UIButtonConfiguration* buttonConfiguration = cell.button.configuration;
-      UIFont* font = [UIFont preferredFontForTextStyle:UIFontTextStyleHeadline];
-      NSDictionary* attributes = @{NSFontAttributeName : font};
-      NSMutableAttributedString* attributedString =
-          [[NSMutableAttributedString alloc] initWithString:self.buttonText
-                                                 attributes:attributes];
-      buttonConfiguration.attributedTitle = attributedString;
-      cell.button.configuration = buttonConfiguration;
-    } else {
-      [cell.button setTitle:self.buttonText forState:UIControlStateNormal];
-    }
+    [cell.button setTitle:self.buttonText forState:UIControlStateNormal];
   } else {
-    cell.buttonContainer.hidden = YES;
+    cell.button.hidden = YES;
   }
   // Disable animations when setting the background color to prevent flash on
   // rotation.
-  const BOOL animationsWereEnabled = [UIView areAnimationsEnabled];
   [UIView setAnimationsEnabled:NO];
   cell.backgroundColor = nil;
-  [UIView setAnimationsEnabled:animationsWereEnabled];
+  [UIView setAnimationsEnabled:YES];
 
   if (styler.cellTitleColor) {
     cell.titleLabel.textColor = styler.cellTitleColor;
@@ -124,36 +114,35 @@ constexpr CGFloat kButtonTopPadding = 14.0;
     _subtitleLabel.translatesAutoresizingMaskIntoConstraints = NO;
 
     _button = [[UIButton alloc] init];
+    _button.backgroundColor = [UIColor colorNamed:kBlueColor];
+    [_button.titleLabel
+        setFont:[UIFont preferredFontForTextStyle:UIFontTextStyleHeadline]];
     _button.layer.cornerRadius = kButtonCornerRadius;
     _button.translatesAutoresizingMaskIntoConstraints = NO;
 
-    if (IsUIButtonConfigurationEnabled()) {
-      UIButtonConfiguration* buttonConfiguration =
-          [UIButtonConfiguration plainButtonConfiguration];
-      buttonConfiguration.contentInsets = NSDirectionalEdgeInsetsMake(
-          kButtonTitleVerticalContentInset, kButtonTitleHorizontalContentInset,
-          kButtonTitleVerticalContentInset, kButtonTitleHorizontalContentInset);
-      buttonConfiguration.baseForegroundColor =
-          [UIColor colorNamed:kSolidButtonTextColor];
-      buttonConfiguration.background.backgroundColor =
-          [UIColor colorNamed:kBlueColor];
-      _button.configuration = buttonConfiguration;
+    // TODO(crbug.com/1418068): Simplify after minimum version required is >=
+    // iOS 15.
+    if (base::ios::IsRunningOnIOS15OrLater() &&
+        IsUIButtonConfigurationEnabled()) {
+      if (@available(iOS 15, *)) {
+        UIButtonConfiguration* buttonConfiguration =
+            [UIButtonConfiguration plainButtonConfiguration];
+        buttonConfiguration.contentInsets =
+            NSDirectionalEdgeInsetsMake(kButtonTitleVerticalContentInset,
+                                        kButtonTitleHorizontalContentInset,
+                                        kButtonTitleVerticalContentInset,
+                                        kButtonTitleHorizontalContentInset);
+        _button.configuration = buttonConfiguration;
+      }
     } else {
-      _button.backgroundColor = [UIColor colorNamed:kBlueColor];
-      [_button.titleLabel
-          setFont:[UIFont preferredFontForTextStyle:UIFontTextStyleHeadline]];
       UIEdgeInsets contentInsets = UIEdgeInsetsMake(
           kButtonTitleVerticalContentInset, kButtonTitleHorizontalContentInset,
           kButtonTitleVerticalContentInset, kButtonTitleHorizontalContentInset);
       SetContentEdgeInsets(_button, contentInsets);
     }
 
-    _buttonContainer = [[UIView alloc] init];
-    _buttonContainer.translatesAutoresizingMaskIntoConstraints = NO;
-    [_buttonContainer addSubview:_button];
-
     UIStackView* stackView = [[UIStackView alloc] initWithArrangedSubviews:@[
-      _illustratedImageView, _titleLabel, _subtitleLabel, _buttonContainer
+      _illustratedImageView, _titleLabel, _subtitleLabel, _button
     ]];
     stackView.axis = UILayoutConstraintAxisVertical;
     stackView.alignment = UIStackViewAlignmentCenter;
@@ -183,14 +172,6 @@ constexpr CGFloat kButtonTopPadding = 14.0;
       [_subtitleLabel.trailingAnchor
           constraintEqualToAnchor:stackView.trailingAnchor
                          constant:-kItemMargin],
-      [_button.leadingAnchor
-          constraintEqualToAnchor:_buttonContainer.leadingAnchor],
-      [_button.trailingAnchor
-          constraintEqualToAnchor:_buttonContainer.trailingAnchor],
-      [_button.topAnchor constraintEqualToAnchor:_buttonContainer.topAnchor
-                                        constant:kButtonTopPadding],
-      [_button.bottomAnchor
-          constraintEqualToAnchor:_buttonContainer.bottomAnchor],
 
       [stackView.leadingAnchor
           constraintEqualToAnchor:self.contentView.leadingAnchor
@@ -212,7 +193,7 @@ constexpr CGFloat kButtonTopPadding = 14.0;
   self.illustratedImageView.hidden = NO;
   self.titleLabel.hidden = NO;
   self.subtitleLabel.hidden = NO;
-  self.buttonContainer.hidden = NO;
+  self.button.hidden = NO;
 
   [self.button removeTarget:nil
                      action:nil

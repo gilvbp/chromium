@@ -219,15 +219,12 @@ void IsolateAllSitesForTesting(base::CommandLine* command_line) {
 }
 
 bool CanSameSiteMainFrameNavigationsChangeRenderFrameHosts() {
-  return ShouldCreateNewRenderFrameHostOnSameSiteNavigation(
-             /*is_main_frame=*/true, /*is_local_root=*/true) ||
+  return ShouldCreateNewHostForAllFrames() ||
          CanSameSiteMainFrameNavigationsChangeSiteInstances();
 }
 
-bool WillSameSiteNavigationChangeRenderFrameHosts(bool is_main_frame,
-                                                  bool is_local_root) {
-  return ShouldCreateNewRenderFrameHostOnSameSiteNavigation(is_main_frame,
-                                                            is_local_root);
+bool WillSameSiteNavigationsChangeRenderFrameHosts() {
+  return ShouldCreateNewHostForAllFrames();
 }
 
 bool CanSameSiteMainFrameNavigationsChangeSiteInstances() {

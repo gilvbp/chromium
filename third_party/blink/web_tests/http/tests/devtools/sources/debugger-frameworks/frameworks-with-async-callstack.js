@@ -5,8 +5,6 @@
 import {TestRunner} from 'test_runner';
 import {SourcesTestRunner} from 'sources_test_runner';
 
-import * as Common from 'devtools/core/common/common.js';
-
 (async function() {
   TestRunner.addResult(`Tests the async call stacks and framework black-boxing features working together.\n`);
   await TestRunner.loadLegacyModule('sources');
@@ -45,7 +43,7 @@ import * as Common from 'devtools/core/common/common.js';
   var frameworkRegexString = '/framework\\.js$';
   var maxAsyncCallStackDepth = 8;
 
-  Common.Settings.settingForTest('skipStackFramesPattern').set(frameworkRegexString);
+  Common.settingForTest('skipStackFramesPattern').set(frameworkRegexString);
 
   SourcesTestRunner.setQuiet(true);
   SourcesTestRunner.startDebuggerTest(step1);

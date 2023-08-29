@@ -11,7 +11,6 @@ import androidx.annotation.NonNull;
 
 import org.chromium.base.supplier.ObservableSupplier;
 import org.chromium.base.supplier.OneshotSupplier;
-import org.chromium.base.supplier.Supplier;
 import org.chromium.chrome.R;
 import org.chromium.chrome.browser.ActivityTabProvider;
 import org.chromium.chrome.browser.app.appmenu.AppMenuPropertiesDelegateImpl;
@@ -27,7 +26,6 @@ import org.chromium.chrome.browser.layouts.LayoutStateProvider;
 import org.chromium.chrome.browser.multiwindow.MultiWindowModeStateDispatcher;
 import org.chromium.chrome.browser.offlinepages.OfflinePageUtils;
 import org.chromium.chrome.browser.profiles.Profile;
-import org.chromium.chrome.browser.readaloud.ReadAloudController;
 import org.chromium.chrome.browser.tab.Tab;
 import org.chromium.chrome.browser.tabmodel.TabModelSelector;
 import org.chromium.chrome.browser.toolbar.ToolbarManager;
@@ -57,12 +55,10 @@ public class TabbedAppMenuPropertiesDelegate extends AppMenuPropertiesDelegateIm
             WebFeedSnackbarController.FeedLauncher feedLauncher,
             ModalDialogManager modalDialogManager, SnackbarManager snackbarManager,
             @NonNull OneshotSupplier<IncognitoReauthController>
-                    incognitoReauthControllerOneshotSupplier,
-            Supplier<ReadAloudController> readAloudControllerSupplier) {
+                    incognitoReauthControllerOneshotSupplier) {
         super(context, activityTabProvider, multiWindowModeStateDispatcher, tabModelSelector,
                 toolbarManager, decorView, layoutStateProvider, startSurfaceSupplier,
-                bookmarkModelSupplier, incognitoReauthControllerOneshotSupplier,
-                readAloudControllerSupplier);
+                bookmarkModelSupplier, incognitoReauthControllerOneshotSupplier);
         mAppMenuDelegate = appMenuDelegate;
         mFeedLauncher = feedLauncher;
         mModalDialogManager = modalDialogManager;

@@ -36,13 +36,11 @@
 #include "base/task/task_traits.h"
 #include "base/task/thread_pool.h"
 #include "base/time/time.h"
-#include "base/trace_event/trace_event.h"
 #include "build/build_config.h"
 #include "chrome/browser/web_applications/file_utils_wrapper.h"
 #include "chrome/browser/web_applications/web_app.h"
 #include "chrome/browser/web_applications/web_app_icon_generator.h"
 #include "chrome/browser/web_applications/web_app_install_manager.h"
-#include "chrome/browser/web_applications/web_app_provider.h"
 #include "chrome/browser/web_applications/web_app_registrar.h"
 #include "chrome/browser/web_applications/web_app_utils.h"
 #include "chrome/common/chrome_features.h"
@@ -238,7 +236,6 @@ base::FilePath GetManifestResourcesOtherIconsFileName(
 TypedResult<SkBitmap> ReadIconBlocking(scoped_refptr<FileUtilsWrapper> utils,
                                        const base::FilePath& web_apps_directory,
                                        const IconId& icon_id) {
-  TRACE_EVENT0("ui", "web_app_icon_manager::ReadIconBlocking");
   base::FilePath icon_file = GetIconFileName(web_apps_directory, icon_id);
   auto icon_data = base::MakeRefCounted<base::RefCountedString>();
   if (!utils->ReadFileToString(icon_file, &icon_data->data())) {
@@ -262,7 +259,6 @@ TypedResult<SkBitmap> ReadIconBlocking(scoped_refptr<FileUtilsWrapper> utils,
 TypedResult<base::Time> ReadIconTimeBlocking(
     scoped_refptr<FileUtilsWrapper> utils,
     base::FilePath icon_file) {
-  TRACE_EVENT0("ui", "web_app_icon_manager::ReadIconTimeBlocking");
   base::File::Info file_info;
   if (!utils->GetFileInfo(icon_file, &file_info)) {
     return {.error_log = {CreateError(
@@ -286,7 +282,6 @@ TypedResult<SkBitmap> ReadShortcutsMenuIconBlocking(
     IconPurpose purpose,
     int index,
     int icon_size_px) {
-  TRACE_EVENT0("ui", "web_app_icon_manager::ReadShortcutsMenuIconBlocking");
   base::FilePath icon_file = GetManifestResourcesShortcutsMenuIconFileName(
       web_apps_directory, app_id, purpose, index, icon_size_px);
 
@@ -317,8 +312,6 @@ TypedResult<SkBitmap> ReadHomeTabIconFromFileAndResizeBlocking(
     const GURL& url,
     int icon_size_px,
     const SquareSizePx target_icon_size_px) {
-  TRACE_EVENT0(
-      "ui", "web_app_icon_manager::ReadHomeTabIconFromFileAndResizeBlocking");
   base::FilePath icon_file = GetManifestResourcesOtherIconsFileName(
       web_apps_directory, app_id, url, icon_size_px);
 
@@ -352,7 +345,6 @@ TypedResult<std::map<SquareSizePx, SkBitmap>> ReadIconAndResizeBlocking(
     const base::FilePath& web_apps_directory,
     const IconId& icon_id,
     SquareSizePx target_icon_size_px) {
-  TRACE_EVENT0("ui", "web_app_icon_manager::ReadIconAndResizeBlocking");
   TypedResult<std::map<SquareSizePx, SkBitmap>> result;
 
   TypedResult<SkBitmap> read_result =
@@ -382,7 +374,6 @@ TypedResult<std::map<SquareSizePx, SkBitmap>> ReadIconsBlocking(
     const AppId& app_id,
     IconPurpose purpose,
     const std::vector<SquareSizePx>& icon_sizes) {
-  TRACE_EVENT0("ui", "web_app_icon_manager::ReadIconsBlocking");
   TypedResult<std::map<SquareSizePx, SkBitmap>> result;
 
   for (SquareSizePx icon_size_px : icon_sizes) {
@@ -404,7 +395,6 @@ ReadIconsLastUpdateTimeBlocking(scoped_refptr<FileUtilsWrapper> utils,
                                 const AppId& app_id,
                                 IconPurpose purpose,
                                 const std::vector<SquareSizePx>& icon_sizes) {
-  TRACE_EVENT0("ui", "web_app_icon_manager::ReadIconsLastUpdateTimeBlocking");
   TypedResult<base::flat_map<SquareSizePx, base::Time>> result;
 
   for (SquareSizePx icon_size_px : icon_sizes) {
@@ -426,7 +416,6 @@ TypedResult<IconBitmaps> ReadAllIconsBlocking(
     const AppId& app_id,
     const std::map<IconPurpose, std::vector<SquareSizePx>>&
         icon_purposes_to_sizes) {
-  TRACE_EVENT0("ui", "web_app_icon_manager::ReadAllIconsBlocking");
   TypedResult<IconBitmaps> result;
 
   for (const auto& purpose_sizes : icon_purposes_to_sizes) {
@@ -446,18 +435,16 @@ TypedResult<ShortcutsMenuIconBitmaps> ReadShortcutsMenuIconsBlocking(
     scoped_refptr<FileUtilsWrapper> utils,
     const base::FilePath& web_apps_directory,
     const AppId& app_id,
-    const std::vector<WebAppShortcutsMenuItemInfo>& shortcuts_menu_item_infos) {
-  TRACE_EVENT0("ui", "web_app_icon_manager::ReadShortcutsMenuIconsBlocking");
+    const std::vector<IconSizes>& shortcuts_menu_icons_sizes) {
   TypedResult<ShortcutsMenuIconBitmaps> results;
   int curr_index = 0;
-  for (const auto& item_info : shortcuts_menu_item_infos) {
+  for (const auto& icon_sizes : shortcuts_menu_icons_sizes) {
     IconBitmaps result;
 
     for (IconPurpose purpose : kIconPurposes) {
       std::map<SquareSizePx, SkBitmap> bitmaps;
 
-      for (SquareSizePx icon_size_px :
-           item_info.downloaded_icon_sizes.GetSizesForPurpose(purpose)) {
+      for (SquareSizePx icon_size_px : icon_sizes.GetSizesForPurpose(purpose)) {
         TypedResult<SkBitmap> read_result =
             ReadShortcutsMenuIconBlocking(utils, web_apps_directory, app_id,
                                           purpose, curr_index, icon_size_px);
@@ -475,7 +462,7 @@ TypedResult<ShortcutsMenuIconBitmaps> ReadShortcutsMenuIconsBlocking(
     // item.
     results.value.push_back(std::move(result));
   }
-  CHECK_EQ(shortcuts_menu_item_infos.size(), results.value.size());
+  CHECK_EQ(shortcuts_menu_icons_sizes.size(), results.value.size());
   return results;
 }
 
@@ -488,7 +475,6 @@ absl::optional<IconSrcAndSize> FindBestImageResourceMatch(
     const std::vector<IconPurpose>& purposes,
     const std::vector<blink::Manifest::ImageResource>& icons,
     SquareSizePx min_size) {
-  TRACE_EVENT0("ui", "web_app_icon_manager::FindBestImageResourceMatch");
   IconSrcAndSize best_match;
   IconSrcAndSize biggest_icon;
   best_match.size_px = INT_MAX;
@@ -533,7 +519,6 @@ TypedResult<SkBitmap> ReadHomeTabIconBlocking(
     const AppId& app_id,
     const std::vector<blink::Manifest::ImageResource>& icons,
     const SquareSizePx min_home_tab_icon_size_px) {
-  TRACE_EVENT0("ui", "web_app_icon_manager::ReadHomeTabIconBlocking");
   absl::optional<IconSrcAndSize> best_icon = FindBestImageResourceMatch(
       {IconPurpose::ANY}, icons, min_home_tab_icon_size_px);
   TypedResult<SkBitmap> result;
@@ -555,17 +540,14 @@ ReadShortcutMenuIconsWithTimestampBlocking(
     scoped_refptr<FileUtilsWrapper> utils,
     const base::FilePath& web_apps_directory,
     const AppId& app_id,
-    const std::vector<WebAppShortcutsMenuItemInfo>& shortcuts_menu_icon_infos) {
-  TRACE_EVENT0(
-      "ui", "web_app_icon_manager::ReadShortcutMenuIconsWithTimestampBlocking");
+    const std::vector<IconSizes>& shortcuts_menu_icons_sizes) {
   TypedResult<WebAppIconManager::ShortcutIconDataVector> results;
   int curr_index = 0;
-  for (const auto& icon_info : shortcuts_menu_icon_infos) {
+  for (const auto& icon_sizes : shortcuts_menu_icons_sizes) {
     WebAppIconManager::ShortcutMenuIconTimes data;
     for (IconPurpose purpose : kIconPurposes) {
       base::flat_map<SquareSizePx, base::Time> bitmap_with_time;
-      for (SquareSizePx icon_size_px :
-           icon_info.downloaded_icon_sizes.GetSizesForPurpose(purpose)) {
+      for (SquareSizePx icon_size_px : icon_sizes.GetSizesForPurpose(purpose)) {
         base::FilePath file_name =
             GetManifestResourcesShortcutsMenuIconFileName(
                 web_apps_directory, app_id, purpose, curr_index, icon_size_px);
@@ -584,7 +566,7 @@ ReadShortcutMenuIconsWithTimestampBlocking(
     // item.
     results.value.push_back(std::move(data));
   }
-  CHECK_EQ(shortcuts_menu_icon_infos.size(), results.value.size());
+  CHECK_EQ(shortcuts_menu_icons_sizes.size(), results.value.size());
   return results;
 }
 
@@ -594,7 +576,6 @@ TypedResult<std::vector<uint8_t>> ReadCompressedIconBlocking(
     scoped_refptr<FileUtilsWrapper> utils,
     const base::FilePath& web_apps_directory,
     const IconId& icon_id) {
-  TRACE_EVENT0("ui", "web_app_icon_manager::ReadCompressedIconBlocking");
   base::FilePath icon_file = GetIconFileName(web_apps_directory, icon_id);
 
   std::string icon_data;
@@ -613,8 +594,6 @@ WebAppIconManager::IconFilesCheck CheckForEmptyOrMissingIconFilesBlocking(
     const base::FilePath& web_apps_directory,
     const AppId& app_id,
     base::flat_map<IconPurpose, SortedSizesPx> purpose_to_sizes) {
-  TRACE_EVENT0("ui",
-               "web_app_icon_manager::CheckForEmptyOrMissingIconFilesBlocking");
   WebAppIconManager::IconFilesCheck result;
   for (auto it : purpose_to_sizes) {
     const IconPurpose& purpose = it.first;
@@ -637,8 +616,6 @@ WebAppIconManager::IconFilesCheck CheckForEmptyOrMissingIconFilesBlocking(
 gfx::ImageSkia ConvertUiScaleFactorsBitmapsToImageSkia(
     const std::map<SquareSizePx, SkBitmap>& icon_bitmaps,
     SquareSizeDip size_in_dip) {
-  TRACE_EVENT0("ui",
-               "web_app_icon_manager::ConvertUiScaleFactorsBitmapsToImageSkia");
   gfx::ImageSkia image_skia;
   auto it = icon_bitmaps.begin();
   for (ui::ResourceScaleFactor scale_factor :
@@ -680,8 +657,6 @@ class WriteIconsJob {
       IconBitmaps&& icon_bitmaps,
       ShortcutsMenuIconBitmaps&& shortcuts_menu_icon_bitmaps,
       IconsMap&& other_icons) {
-    TRACE_EVENT0("ui",
-                 "web_app_icon_manager::WriteIconsJob::WriteIconsBlocking");
     WriteIconsJob job(std::move(utils), std::move(web_apps_directory),
                       std::move(app_id), std::move(icon_bitmaps),
                       std::move(shortcuts_menu_icon_bitmaps),
@@ -708,7 +683,6 @@ class WriteIconsJob {
   ~WriteIconsJob() = default;
 
   TypedResult<bool> Execute() {
-    TRACE_EVENT0("ui", "web_app_icon_manager::WriteIconsJob::Execute");
     // Write product icons directly in the app's directory.
     auto result = AtomicallyWriteIcons(
         base::BindRepeating(&WriteIconsJob::WriteProductIcons,
@@ -751,8 +725,6 @@ class WriteIconsJob {
       const base::RepeatingCallback<
           TypedResult<bool>(const base::FilePath& path)>& write_icons_callback,
       const base::FilePath& subdir_for_icons) {
-    TRACE_EVENT0("ui",
-                 "web_app_icon_manager::WriteIconsJob::AtomicallyWriteIcons");
     DCHECK(!subdir_for_icons.IsAbsolute());
     // Create the temp directory under the web apps root.
     // This guarantees it is on the same file system as the WebApp's eventual
@@ -808,8 +780,6 @@ class WriteIconsJob {
   }
 
   TypedResult<bool> WriteProductIcons(const base::FilePath& base_dir) {
-    TRACE_EVENT0("ui",
-                 "web_app_icon_manager::WriteIconsJob::WriteProductIcons");
     for (IconPurpose purpose : kIconPurposes) {
       base::FilePath icons_dir = GetProductIconsDirectory(base_dir, purpose);
 
@@ -833,8 +803,6 @@ class WriteIconsJob {
   // a new directory per shortcut item using its index in the vector.
   TypedResult<bool> WriteShortcutsMenuIcons(
       const base::FilePath& app_manifest_resources_directory) {
-    TRACE_EVENT0(
-        "ui", "web_app_icon_manager::WriteIconsJob::WriteShortcutsMenuIcons");
     for (IconPurpose purpose : kIconPurposes) {
       const base::FilePath shortcuts_menu_icons_dir =
           app_manifest_resources_directory.Append(
@@ -872,7 +840,6 @@ class WriteIconsJob {
 
   TypedResult<bool> WriteOtherIcons(
       const base::FilePath& app_manifest_resources_directory) {
-    TRACE_EVENT0("ui", "web_app_icon_manager::WriteIconsJob::WriteOtherIcons");
     const base::FilePath general_icons_dir =
         app_manifest_resources_directory.Append(
             GetOtherIconsRelativeDirectory());
@@ -911,8 +878,6 @@ class WriteIconsJob {
   // Encodes `bitmap` as a PNG and writes to the given directory.
   TypedResult<bool> EncodeAndWriteIcon(const base::FilePath& icons_dir,
                                        const SkBitmap& bitmap) {
-    TRACE_EVENT0("ui",
-                 "web_app_icon_manager::WriteIconsJob::EncodeAndWriteIcon");
     DCHECK_NE(bitmap.colorType(), kUnknown_SkColorType);
     DCHECK_EQ(bitmap.width(), bitmap.height());
     base::FilePath icon_file =
@@ -947,8 +912,10 @@ class WriteIconsJob {
 
 }  // namespace
 
-WebAppIconManager::WebAppIconManager(Profile* profile)
-    : icon_task_runner_(base::ThreadPool::CreateSequencedTaskRunner(
+WebAppIconManager::WebAppIconManager(Profile* profile,
+                                     scoped_refptr<FileUtilsWrapper> utils)
+    : utils_(std::move(utils)),
+      icon_task_runner_(base::ThreadPool::CreateSequencedTaskRunner(
           {base::MayBlock(), base::TaskPriority::USER_VISIBLE,
            base::TaskShutdownBehavior::BLOCK_SHUTDOWN})) {
   web_apps_directory_ = GetWebAppsRootDirectory(profile);
@@ -958,20 +925,25 @@ WebAppIconManager::WebAppIconManager(Profile* profile)
 
 WebAppIconManager::~WebAppIconManager() = default;
 
+void WebAppIconManager::SetSubsystems(WebAppRegistrar* registrar,
+                                      WebAppInstallManager* install_manager) {
+  registrar_ = registrar;
+  install_manager_ = install_manager;
+}
+
 void WebAppIconManager::WriteData(
     AppId app_id,
     IconBitmaps icon_bitmaps,
     ShortcutsMenuIconBitmaps shortcuts_menu_icon_bitmaps,
     IconsMap other_icons_map,
     WriteDataCallback callback) {
-  TRACE_EVENT0("ui", "WebAppIconManager::WriteData");
   DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
 
   icon_task_runner_->PostTaskAndReplyWithResult(
       FROM_HERE,
       base::BindOnce(
-          &WriteIconsJob::WriteIconsBlocking, provider_->file_utils(),
-          web_apps_directory_, std::move(app_id), std::move(icon_bitmaps),
+          &WriteIconsJob::WriteIconsBlocking, utils_, web_apps_directory_,
+          std::move(app_id), std::move(icon_bitmaps),
           std::move(shortcuts_menu_icon_bitmaps), std::move(other_icons_map)),
       base::BindOnce(&LogErrorsCallCallback<bool>, GetWeakPtr(),
                      std::move(callback)));
@@ -982,19 +954,13 @@ void WebAppIconManager::DeleteData(AppId app_id, WriteDataCallback callback) {
 
   icon_task_runner_->PostTaskAndReplyWithResult(
       FROM_HERE,
-      base::BindOnce(DeleteDataBlocking, provider_->file_utils(),
-                     web_apps_directory_, std::move(app_id)),
+      base::BindOnce(DeleteDataBlocking, utils_, web_apps_directory_,
+                     std::move(app_id)),
       std::move(callback));
 }
 
-void WebAppIconManager::SetProvider(base::PassKey<WebAppProvider>,
-                                    WebAppProvider& provider) {
-  provider_ = &provider;
-}
-
 void WebAppIconManager::Start() {
-  TRACE_EVENT0("ui", "WebAppIconManager::Start");
-  for (const AppId& app_id : provider_->registrar_unsafe().GetAppIds()) {
+  for (const AppId& app_id : registrar_->GetAppIds()) {
     ReadFavicon(app_id);
 
 #if BUILDFLAG(IS_CHROMEOS)
@@ -1002,7 +968,7 @@ void WebAppIconManager::Start() {
     ReadMonochromeFavicon(app_id);
 #endif  // BUILDFLAG(IS_CHROMEOS)
   }
-  install_manager_observation_.Observe(&provider_->install_manager());
+  install_manager_observation_.Observe(install_manager_);
 }
 
 void WebAppIconManager::Shutdown() {}
@@ -1011,7 +977,7 @@ bool WebAppIconManager::HasIcons(const AppId& app_id,
                                  IconPurpose purpose,
                                  const SortedSizesPx& icon_sizes) const {
   DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
-  const WebApp* web_app = provider_->registrar_unsafe().GetAppById(app_id);
+  const WebApp* web_app = registrar_->GetAppById(app_id);
   if (!web_app)
     return false;
 
@@ -1024,7 +990,7 @@ WebAppIconManager::FindIconMatchBigger(const AppId& app_id,
                                        const std::vector<IconPurpose>& purposes,
                                        SquareSizePx min_size) const {
   DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
-  const WebApp* web_app = provider_->registrar_unsafe().GetAppById(app_id);
+  const WebApp* web_app = registrar_->GetAppById(app_id);
   if (!web_app)
     return absl::nullopt;
 
@@ -1052,10 +1018,9 @@ void WebAppIconManager::ReadIcons(const AppId& app_id,
                                   IconPurpose purpose,
                                   const SortedSizesPx& icon_sizes,
                                   ReadIconsCallback callback) {
-  TRACE_EVENT0("ui", "WebAppIconManager::ReadIcons");
   DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
 
-  if (!provider_->registrar_unsafe().GetAppById(app_id)) {
+  if (!registrar_->GetAppById(app_id)) {
     std::move(callback).Run(std::map<SquareSizePx, SkBitmap>());
     return;
   }
@@ -1064,8 +1029,7 @@ void WebAppIconManager::ReadIcons(const AppId& app_id,
   icon_task_runner_->PostTaskAndReplyWithResult(
       FROM_HERE,
       base::BindOnce(
-          ReadIconsBlocking, provider_->file_utils(), web_apps_directory_,
-          app_id, purpose,
+          ReadIconsBlocking, utils_, web_apps_directory_, app_id, purpose,
           std::vector<SquareSizePx>(icon_sizes.begin(), icon_sizes.end())),
       base::BindOnce(&LogErrorsCallCallback<std::map<SquareSizePx, SkBitmap>>,
                      GetWeakPtr(), std::move(callback)));
@@ -1074,19 +1038,17 @@ void WebAppIconManager::ReadIcons(const AppId& app_id,
 void WebAppIconManager::ReadAllShortcutMenuIconsWithTimestamp(
     const AppId& app_id,
     ShortcutIconDataCallback callback) {
-  TRACE_EVENT0("ui",
-               "WebAppIconManager::ReadAllShortcutMenuIconsWithTimestamp");
   DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
-  const WebApp* web_app = provider_->registrar_unsafe().GetAppById(app_id);
+  const WebApp* web_app = registrar_->GetAppById(app_id);
   if (!web_app) {
     std::move(callback).Run(ShortcutIconDataVector());
     return;
   }
   icon_task_runner_->PostTaskAndReplyWithResult(
       FROM_HERE,
-      base::BindOnce(ReadShortcutMenuIconsWithTimestampBlocking,
-                     provider_->file_utils(), web_apps_directory_, app_id,
-                     web_app->shortcuts_menu_item_infos()),
+      base::BindOnce(ReadShortcutMenuIconsWithTimestampBlocking, utils_,
+                     web_apps_directory_, app_id,
+                     web_app->downloaded_shortcuts_menu_icons_sizes()),
       base::BindOnce(&LogErrorsCallCallback<ShortcutIconDataVector>,
                      GetWeakPtr(), std::move(callback)));
 }
@@ -1094,9 +1056,8 @@ void WebAppIconManager::ReadAllShortcutMenuIconsWithTimestamp(
 void WebAppIconManager::ReadIconsLastUpdateTime(
     const AppId& app_id,
     ReadIconsUpdateTimeCallback callback) {
-  TRACE_EVENT0("ui", "WebAppIconManager::ReadIconsLastUpdateTime");
   DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
-  const WebApp* web_app = provider_->registrar_unsafe().GetAppById(app_id);
+  const WebApp* web_app = registrar_->GetAppById(app_id);
   if (!web_app) {
     std::move(callback).Run(base::flat_map<SquareSizePx, base::Time>());
     return;
@@ -1107,8 +1068,8 @@ void WebAppIconManager::ReadIconsLastUpdateTime(
   icon_task_runner_->PostTaskAndReplyWithResult(
       FROM_HERE,
       base::BindOnce(
-          ReadIconsLastUpdateTimeBlocking, provider_->file_utils(),
-          web_apps_directory_, app_id, IconPurpose::ANY,
+          ReadIconsLastUpdateTimeBlocking, utils_, web_apps_directory_, app_id,
+          IconPurpose::ANY,
           std::vector<SquareSizePx>(sizes_px.begin(), sizes_px.end())),
       base::BindOnce(
           &LogErrorsCallCallback<base::flat_map<SquareSizePx, base::Time>>,
@@ -1117,9 +1078,8 @@ void WebAppIconManager::ReadIconsLastUpdateTime(
 
 void WebAppIconManager::ReadAllIcons(const AppId& app_id,
                                      ReadIconBitmapsCallback callback) {
-  TRACE_EVENT0("ui", "WebAppIconManager::ReadAllIcons");
   DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
-  const WebApp* web_app = provider_->registrar_unsafe().GetAppById(app_id);
+  const WebApp* web_app = registrar_->GetAppById(app_id);
   if (!web_app) {
     std::move(callback).Run(IconBitmaps());
     return;
@@ -1135,8 +1095,7 @@ void WebAppIconManager::ReadAllIcons(const AppId& app_id,
 
   icon_task_runner_->PostTaskAndReplyWithResult(
       FROM_HERE,
-      base::BindOnce(ReadAllIconsBlocking, provider_->file_utils(),
-                     web_apps_directory_, app_id,
+      base::BindOnce(ReadAllIconsBlocking, utils_, web_apps_directory_, app_id,
                      std::move(icon_purposes_to_sizes)),
       base::BindOnce(&LogErrorsCallCallback<IconBitmaps>, GetWeakPtr(),
                      std::move(callback)));
@@ -1145,9 +1104,8 @@ void WebAppIconManager::ReadAllIcons(const AppId& app_id,
 void WebAppIconManager::ReadAllShortcutsMenuIcons(
     const AppId& app_id,
     ReadShortcutsMenuIconsCallback callback) {
-  TRACE_EVENT0("ui", "WebAppIconManager::ReadAllShortcutsMenuIcons");
   DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
-  const WebApp* web_app = provider_->registrar_unsafe().GetAppById(app_id);
+  const WebApp* web_app = registrar_->GetAppById(app_id);
   if (!web_app) {
     std::move(callback).Run(ShortcutsMenuIconBitmaps{});
     return;
@@ -1155,9 +1113,9 @@ void WebAppIconManager::ReadAllShortcutsMenuIcons(
 
   icon_task_runner_->PostTaskAndReplyWithResult(
       FROM_HERE,
-      base::BindOnce(ReadShortcutsMenuIconsBlocking, provider_->file_utils(),
+      base::BindOnce(ReadShortcutsMenuIconsBlocking, utils_,
                      web_apps_directory_, app_id,
-                     web_app->shortcuts_menu_item_infos()),
+                     web_app->downloaded_shortcuts_menu_icons_sizes()),
       base::BindOnce(&LogErrorsCallCallback<ShortcutsMenuIconBitmaps>,
                      GetWeakPtr(), std::move(callback)));
 }
@@ -1167,18 +1125,16 @@ void WebAppIconManager::ReadBestHomeTabIcon(
     const std::vector<blink::Manifest::ImageResource>& icons,
     const SquareSizePx min_home_tab_icon_size_px,
     ReadHomeTabIconsCallback callback) {
-  TRACE_EVENT0("ui", "WebAppIconManager::ReadBestHomeTabIcon");
   DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
-  const WebApp* web_app = provider_->registrar_unsafe().GetAppById(app_id);
+  const WebApp* web_app = registrar_->GetAppById(app_id);
   if (!web_app) {
     std::move(callback).Run(SkBitmap());
     return;
   }
   icon_task_runner_->PostTaskAndReplyWithResult(
       FROM_HERE,
-      base::BindOnce(ReadHomeTabIconBlocking, provider_->file_utils(),
-                     web_apps_directory_, app_id, icons,
-                     min_home_tab_icon_size_px),
+      base::BindOnce(ReadHomeTabIconBlocking, utils_, web_apps_directory_,
+                     app_id, icons, min_home_tab_icon_size_px),
       base::BindOnce(&LogErrorsCallCallback<SkBitmap>, GetWeakPtr(),
                      std::move(callback)));
 }
@@ -1188,7 +1144,6 @@ void WebAppIconManager::ReadSmallestIcon(
     const std::vector<IconPurpose>& purposes,
     SquareSizePx min_size_in_px,
     ReadIconWithPurposeCallback callback) {
-  TRACE_EVENT0("ui", "WebAppIconManager::ReadSmallestIcon");
   DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
 
   absl::optional<IconSizeAndPurpose> best_icon =
@@ -1200,8 +1155,8 @@ void WebAppIconManager::ReadSmallestIcon(
 
   icon_task_runner_->PostTaskAndReplyWithResult(
       FROM_HERE,
-      base::BindOnce(ReadIconBlocking, provider_->file_utils(),
-                     web_apps_directory_, std::move(icon_id)),
+      base::BindOnce(ReadIconBlocking, utils_, web_apps_directory_,
+                     std::move(icon_id)),
       base::BindOnce(&LogErrorsCallCallback<SkBitmap>, GetWeakPtr(),
                      std::move(wrapped)));
 }
@@ -1211,7 +1166,6 @@ void WebAppIconManager::ReadSmallestCompressedIcon(
     const std::vector<IconPurpose>& purposes,
     SquareSizePx min_size_in_px,
     ReadCompressedIconWithPurposeCallback callback) {
-  TRACE_EVENT0("ui", "WebAppIconManager::ReadSmallestCompressedIcon");
   DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
 
   absl::optional<IconSizeAndPurpose> best_icon =
@@ -1223,8 +1177,8 @@ void WebAppIconManager::ReadSmallestCompressedIcon(
 
   icon_task_runner_->PostTaskAndReplyWithResult(
       FROM_HERE,
-      base::BindOnce(ReadCompressedIconBlocking, provider_->file_utils(),
-                     web_apps_directory_, std::move(icon_id)),
+      base::BindOnce(ReadCompressedIconBlocking, utils_, web_apps_directory_,
+                     std::move(icon_id)),
       base::BindOnce(&LogErrorsCallCallback<std::vector<uint8_t>>, GetWeakPtr(),
                      std::move(wrapped)));
 }
@@ -1255,7 +1209,6 @@ gfx::ImageSkia WebAppIconManager::GetMonochromeFavicon(
 }
 
 void WebAppIconManager::OnWebAppInstalled(const AppId& app_id) {
-  TRACE_EVENT0("ui", "WebAppIconManager::OnWebAppInstalled");
   ReadFavicon(app_id);
   // Monochrome icons are used in tabbed apps and for ChromeOS notifications.
   ReadMonochromeFavicon(app_id);
@@ -1269,7 +1222,6 @@ void WebAppIconManager::ReadIconAndResize(const AppId& app_id,
                                           IconPurpose purpose,
                                           SquareSizePx desired_icon_size,
                                           ReadIconsCallback callback) {
-  TRACE_EVENT0("ui", "WebAppIconManager::ReadIconAndResize");
   absl::optional<IconSizeAndPurpose> best_icon =
       FindIconMatchBigger(app_id, {purpose}, desired_icon_size);
   if (!best_icon) {
@@ -1284,9 +1236,8 @@ void WebAppIconManager::ReadIconAndResize(const AppId& app_id,
   IconId icon_id(app_id, best_icon->purpose, best_icon->size_px);
   icon_task_runner_->PostTaskAndReplyWithResult(
       FROM_HERE,
-      base::BindOnce(ReadIconAndResizeBlocking, provider_->file_utils(),
-                     web_apps_directory_, std::move(icon_id),
-                     desired_icon_size),
+      base::BindOnce(ReadIconAndResizeBlocking, utils_, web_apps_directory_,
+                     std::move(icon_id), desired_icon_size),
       base::BindOnce(&LogErrorsCallCallback<std::map<SquareSizePx, SkBitmap>>,
                      GetWeakPtr(), std::move(callback)));
 }
@@ -1296,7 +1247,6 @@ void WebAppIconManager::ReadUiScaleFactorsIcons(
     IconPurpose purpose,
     SquareSizeDip size_in_dip,
     ReadImageSkiaCallback callback) {
-  TRACE_EVENT0("ui", "WebAppIconManager::ReadUiScaleFactorsIcons");
   SortedSizesPx ui_scale_factors_px_sizes;
   for (ui::ResourceScaleFactor scale_factor :
        ui::GetSupportedResourceScaleFactors()) {
@@ -1324,7 +1274,6 @@ void WebAppIconManager::OnReadUiScaleFactorsIcons(
     SquareSizeDip size_in_dip,
     ReadImageSkiaCallback callback,
     std::map<SquareSizePx, SkBitmap> icon_bitmaps) {
-  TRACE_EVENT0("ui", "WebAppIconManager::OnReadUiScaleFactorsIcons");
   std::move(callback).Run(
       ConvertUiScaleFactorsBitmapsToImageSkia(icon_bitmaps, size_in_dip));
 }
@@ -1332,8 +1281,7 @@ void WebAppIconManager::OnReadUiScaleFactorsIcons(
 void WebAppIconManager::CheckForEmptyOrMissingIconFiles(
     const AppId& app_id,
     base::OnceCallback<void(IconFilesCheck)> callback) const {
-  TRACE_EVENT0("ui", "WebAppIconManager::CheckForEmptyOrMissingIconFiles");
-  const WebApp* web_app = provider_->registrar_unsafe().GetAppById(app_id);
+  const WebApp* web_app = registrar_->GetAppById(app_id);
   if (!web_app) {
     std::move(callback).Run({});
     return;
@@ -1345,9 +1293,8 @@ void WebAppIconManager::CheckForEmptyOrMissingIconFiles(
 
   icon_task_runner_->PostTaskAndReplyWithResult(
       FROM_HERE,
-      base::BindOnce(CheckForEmptyOrMissingIconFilesBlocking,
-                     provider_->file_utils(), web_apps_directory_, app_id,
-                     std::move(purpose_to_sizes)),
+      base::BindOnce(CheckForEmptyOrMissingIconFilesBlocking, utils_,
+                     web_apps_directory_, app_id, std::move(purpose_to_sizes)),
       std::move(callback));
 }
 
@@ -1381,7 +1328,7 @@ WebAppIconManager::FindIconMatchSmaller(
     const std::vector<IconPurpose>& purposes,
     SquareSizePx max_size) const {
   DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
-  const WebApp* web_app = provider_->registrar_unsafe().GetAppById(app_id);
+  const WebApp* web_app = registrar_->GetAppById(app_id);
   if (!web_app)
     return absl::nullopt;
 
@@ -1399,7 +1346,6 @@ WebAppIconManager::FindIconMatchSmaller(
 }
 
 void WebAppIconManager::ReadFavicon(const AppId& app_id) {
-  TRACE_EVENT0("ui", "WebAppIconManager::ReadFavicon");
   ReadUiScaleFactorsIcons(
       app_id, IconPurpose::ANY, gfx::kFaviconSize,
       base::BindOnce(&WebAppIconManager::OnReadFavicon, GetWeakPtr(), app_id));
@@ -1407,7 +1353,6 @@ void WebAppIconManager::ReadFavicon(const AppId& app_id) {
 
 void WebAppIconManager::OnReadFavicon(const AppId& app_id,
                                       gfx::ImageSkia image_skia) {
-  TRACE_EVENT0("ui", "WebAppIconManager::OnReadFavicon");
   if (!image_skia.isNull())
     favicon_cache_[app_id] = image_skia;
 
@@ -1416,7 +1361,6 @@ void WebAppIconManager::OnReadFavicon(const AppId& app_id,
 }
 
 void WebAppIconManager::ReadMonochromeFavicon(const AppId& app_id) {
-  TRACE_EVENT0("ui", "WebAppIconManager::ReadMonochromeFavicon");
   ReadUiScaleFactorsIcons(
       app_id, IconPurpose::MONOCHROME, gfx::kFaviconSize,
       base::BindOnce(&WebAppIconManager::OnReadMonochromeFavicon, GetWeakPtr(),
@@ -1426,8 +1370,7 @@ void WebAppIconManager::ReadMonochromeFavicon(const AppId& app_id) {
 void WebAppIconManager::OnReadMonochromeFavicon(
     const AppId& app_id,
     gfx::ImageSkia manifest_monochrome_image) {
-  TRACE_EVENT0("ui", "WebAppIconManager::OnReadMonochromeFavicon");
-  const WebApp* web_app = provider_->registrar_unsafe().GetAppById(app_id);
+  const WebApp* web_app = registrar_->GetAppById(app_id);
   if (!web_app)
     return;
 
@@ -1452,7 +1395,6 @@ void WebAppIconManager::OnReadMonochromeFavicon(
 void WebAppIconManager::OnMonochromeIconConverted(
     const AppId& app_id,
     gfx::ImageSkia converted_image) {
-  TRACE_EVENT0("ui", "WebAppIconManager::OnMonochromeIconConverted");
   if (!converted_image.isNull())
     favicon_monochrome_cache_[app_id] = converted_image;
 

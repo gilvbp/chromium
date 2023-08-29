@@ -6,7 +6,11 @@
 
 #include <Foundation/Foundation.h>
 
-#include "base/apple/foundation_util.h"
+#include "base/mac/foundation_util.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 @implementation ElementAppleScript
 
@@ -19,7 +23,7 @@
 // you can call this method.
 - (NSScriptObjectSpecifier*)objectSpecifier {
   return [[NSUniqueIDSpecifier alloc]
-      initWithContainerClassDescription:base::apple::ObjCCast<
+      initWithContainerClassDescription:base::mac::ObjCCast<
                                             NSScriptClassDescription>(
                                             self.container.classDescription)
                      containerSpecifier:self.container.objectSpecifier

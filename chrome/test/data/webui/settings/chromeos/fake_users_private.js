@@ -16,7 +16,6 @@
 export function FakeUsersPrivate() {}
 
 FakeUsersPrivate.prototype = {
-  /** @type {User[]} */
   users: [],
 
   /**

@@ -74,8 +74,7 @@ void LayoutSVGModelObject::MapAncestorToLocal(
 void LayoutSVGModelObject::AbsoluteQuads(Vector<gfx::QuadF>& quads,
                                          MapCoordinatesFlags mode) const {
   NOT_DESTROYED();
-  quads.push_back(
-      LocalToAbsoluteQuad(gfx::QuadF(DecoratedBoundingBox()), mode));
+  quads.push_back(LocalToAbsoluteQuad(gfx::QuadF(StrokeBoundingBox()), mode));
 }
 
 // This method is called from inside PaintOutline(), and since we call
@@ -99,13 +98,21 @@ void LayoutSVGModelObject::AddOutlineRects(OutlineRectCollector& collector,
 
 gfx::RectF LayoutSVGModelObject::LocalBoundingBoxRectForAccessibility() const {
   NOT_DESTROYED();
-  return DecoratedBoundingBox();
+  return StrokeBoundingBox();
 }
 
 void LayoutSVGModelObject::WillBeDestroyed() {
   NOT_DESTROYED();
   SVGResources::ClearEffects(*this);
   LayoutObject::WillBeDestroyed();
+}
+
+AffineTransform LayoutSVGModelObject::CalculateLocalTransform() const {
+  NOT_DESTROYED();
+  auto* element = GetElement();
+  if (element->HasTransform(SVGElement::kIncludeMotionTransform))
+    return element->CalculateTransform(SVGElement::kIncludeMotionTransform);
+  return AffineTransform();
 }
 
 bool LayoutSVGModelObject::CheckForImplicitTransformChange(
@@ -117,9 +124,6 @@ bool LayoutSVGModelObject::CheckForImplicitTransformChange(
     case ETransformBox::kViewBox:
       return SVGLayoutSupport::LayoutSizeOfNearestViewportChanged(this);
     case ETransformBox::kFillBox:
-    case ETransformBox::kContentBox:
-    case ETransformBox::kStrokeBox:
-    case ETransformBox::kBorderBox:
       return bbox_changed;
   }
   NOTREACHED();
@@ -165,11 +169,6 @@ void LayoutSVGModelObject::StyleDidChange(StyleDifference diff,
 void LayoutSVGModelObject::InsertedIntoTree() {
   NOT_DESTROYED();
   LayoutObject::InsertedIntoTree();
-  // Ensure that the viewport dependency flag gets set on the ancestor chain.
-  if (SVGSelfOrDescendantHasViewportDependency()) {
-    ClearSVGSelfOrDescendantHasViewportDependency();
-    SetSVGSelfOrDescendantHasViewportDependency();
-  }
   LayoutSVGResourceContainer::MarkForLayoutAndParentResourceInvalidation(*this,
                                                                          false);
   if (StyleRef().HasSVGEffect())

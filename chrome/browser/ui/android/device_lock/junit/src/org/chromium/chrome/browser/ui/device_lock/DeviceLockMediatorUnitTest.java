@@ -148,7 +148,7 @@ public class DeviceLockMediatorUnitTest {
     public void testDeviceLockMediator_deviceSecure_preExistingDeviceLockIsTrue() {
         doReturn(true).when(mKeyguardManager).isDeviceSecure();
 
-        DeviceLockMediator deviceLockMediator = new DeviceLockMediator(mDelegate, null,
+        DeviceLockMediator deviceLockMediator = new DeviceLockMediator(false, mDelegate, null,
                 mDeviceLockAuthenticatorBridge, mAccountReauthenticationUtils, mActivity, mAccount);
 
         assertTrue("PropertyModel PREEXISTING_DEVICE_LOCK should be True",
@@ -159,7 +159,7 @@ public class DeviceLockMediatorUnitTest {
     public void testDeviceLockMediator_deviceNotSecure_preExistingDeviceLockIsFalse() {
         doReturn(false).when(mKeyguardManager).isDeviceSecure();
 
-        DeviceLockMediator deviceLockMediator = new DeviceLockMediator(mDelegate, null,
+        DeviceLockMediator deviceLockMediator = new DeviceLockMediator(false, mDelegate, null,
                 mDeviceLockAuthenticatorBridge, mAccountReauthenticationUtils, mActivity, mAccount);
 
         assertFalse("PropertyModel PREEXISTING_DEVICE_LOCK should be True",
@@ -180,7 +180,7 @@ public class DeviceLockMediatorUnitTest {
         resolveInfo.activityInfo.name = "ExamplePackage";
 
         doReturn(resolveInfo).when(mPackageManager).resolveActivity(any(), anyInt());
-        DeviceLockMediator deviceLockMediator = new DeviceLockMediator(mDelegate, null,
+        DeviceLockMediator deviceLockMediator = new DeviceLockMediator(false, mDelegate, null,
                 mDeviceLockAuthenticatorBridge, mAccountReauthenticationUtils, mActivity, mAccount);
 
         assertTrue("PropertyModel DEVICE_SUPPORTS_PIN_CREATION_INTENT should be True",
@@ -190,7 +190,7 @@ public class DeviceLockMediatorUnitTest {
     @Test
     public void
     testDeviceLockMediator_deviceLockCreationIntentNotSupported_deviceSupportsPINIntentIsFalse() {
-        DeviceLockMediator deviceLockMediator = new DeviceLockMediator(mDelegate, null,
+        DeviceLockMediator deviceLockMediator = new DeviceLockMediator(false, mDelegate, null,
                 mDeviceLockAuthenticatorBridge, mAccountReauthenticationUtils, mActivity, mAccount);
 
         assertFalse("PropertyModel DEVICE_SUPPORTS_PIN_CREATION_INTENT should be False",
@@ -199,7 +199,7 @@ public class DeviceLockMediatorUnitTest {
 
     @Test
     public void testDeviceLockMediator_inSignInFlow_inSignInFlowIsTrue() {
-        DeviceLockMediator deviceLockMediator = new DeviceLockMediator(mDelegate, null,
+        DeviceLockMediator deviceLockMediator = new DeviceLockMediator(true, mDelegate, null,
                 mDeviceLockAuthenticatorBridge, mAccountReauthenticationUtils, mActivity, mAccount);
 
         assertTrue("PropertyModel IN_SIGN_IN_FLOW should be True",
@@ -208,8 +208,8 @@ public class DeviceLockMediatorUnitTest {
 
     @Test
     public void testDeviceLockMediator_notInSignInFlow_inSignInFlowIsFalse() {
-        DeviceLockMediator deviceLockMediator = new DeviceLockMediator(mDelegate, null,
-                mDeviceLockAuthenticatorBridge, mAccountReauthenticationUtils, mActivity, null);
+        DeviceLockMediator deviceLockMediator = new DeviceLockMediator(false, mDelegate, null,
+                mDeviceLockAuthenticatorBridge, mAccountReauthenticationUtils, mActivity, mAccount);
 
         assertFalse("PropertyModel IN_SIGN_IN_FLOW should be False",
                 deviceLockMediator.getModel().get(IN_SIGN_IN_FLOW));
@@ -218,7 +218,7 @@ public class DeviceLockMediatorUnitTest {
     @Test
     public void
     testCreateDeviceLockOnClick_deviceLockCreatedSuccessfully_callsDelegateOnDeviceLockReady() {
-        testOnClick(mAccount, ON_CREATE_DEVICE_LOCK_CLICKED, mSuccessfulDeviceLockCreation,
+        testOnClick(ON_CREATE_DEVICE_LOCK_CLICKED, mSuccessfulDeviceLockCreation,
                 /* deviceLockChallengeResult */ null, mSuccessfulAccountReauthenticationChallenge,
                 /* deviceLockCreationCalls */ 1,
                 /* deviceLockChallengesTriggered */ 0, /* accountReauthenticationsTriggered */ 1,
@@ -226,19 +226,10 @@ public class DeviceLockMediatorUnitTest {
     }
 
     @Test
-    public void testCreateDeviceLockOnClick_nullAccount_noReauthenticationTriggered() {
-        testOnClick(null, ON_CREATE_DEVICE_LOCK_CLICKED, mSuccessfulDeviceLockCreation,
-                /* deviceLockChallengeResult */ null, mSuccessfulAccountReauthenticationChallenge,
-                /* deviceLockCreationCalls */ 1,
-                /* deviceLockChallengesTriggered */ 0, /* accountReauthenticationsTriggered */ 0,
-                /* onDeviceLockReadyCalls */ 1, /* onDeviceLockRefusedCalls */ 0);
-    }
-
-    @Test
     public void
     testCreateDeviceLockOnClick_previouslySetDeviceLock_callsDelegateOnDeviceLockReady() {
         doReturn(true).when(mKeyguardManager).isDeviceSecure();
-        testOnClick(mAccount, ON_CREATE_DEVICE_LOCK_CLICKED,
+        testOnClick(ON_CREATE_DEVICE_LOCK_CLICKED,
                 /* deviceLockCreationResult */ null, /* deviceLockChallengeResult */ null,
                 mSuccessfulAccountReauthenticationChallenge, /* deviceLockCreationCalls */ 0,
                 /* deviceLockChallengesTriggered */ 0, /* accountReauthenticationsTriggered */ 1,
@@ -247,7 +238,7 @@ public class DeviceLockMediatorUnitTest {
 
     @Test
     public void testCreateDeviceLockOnClick_noDeviceLockCreated_noDelegateCalls() {
-        testOnClick(mAccount, ON_CREATE_DEVICE_LOCK_CLICKED, mFailedDeviceLockCreation,
+        testOnClick(ON_CREATE_DEVICE_LOCK_CLICKED, mFailedDeviceLockCreation,
                 /* deviceLockChallengeResult */ null,
                 /* accountReauthenticationResult */ null, /* deviceLockCreationCalls */ 1,
                 /* deviceLockChallengesTriggered */ 0, /* accountReauthenticationsTriggered */ 0,
@@ -256,7 +247,7 @@ public class DeviceLockMediatorUnitTest {
 
     @Test
     public void testCreateDeviceLockOnClick_rejectedAccountReauthentication_noDelegateCalls() {
-        testOnClick(mAccount, ON_CREATE_DEVICE_LOCK_CLICKED, mSuccessfulDeviceLockCreation,
+        testOnClick(ON_CREATE_DEVICE_LOCK_CLICKED, mSuccessfulDeviceLockCreation,
                 /* deviceLockChallengeResult */ null, mRejectedAccountReauthenticationChallenge,
                 /* deviceLockCreationCalls */ 1,
                 /* deviceLockChallengesTriggered */ 0, /* accountReauthenticationsTriggered */ 1,
@@ -266,7 +257,7 @@ public class DeviceLockMediatorUnitTest {
     @Test
     public void
     testGoToOSSettingsOnClick_deviceLockCreatedSuccessfully_callsDelegateOnDeviceLockReady() {
-        testOnClick(mAccount, ON_GO_TO_OS_SETTINGS_CLICKED, mSuccessfulDeviceLockCreation,
+        testOnClick(ON_GO_TO_OS_SETTINGS_CLICKED, mSuccessfulDeviceLockCreation,
                 /* deviceLockChallengeResult */ null, mSuccessfulAccountReauthenticationChallenge,
                 /* deviceLockCreationCalls */ 1,
                 /* deviceLockChallengesTriggered */ 0, /* accountReauthenticationsTriggered */ 1,
@@ -276,7 +267,7 @@ public class DeviceLockMediatorUnitTest {
     @Test
     public void testGoToOSSettingsOnClick_previouslySetDeviceLock_callsDelegateOnDeviceLockReady() {
         doReturn(true).when(mKeyguardManager).isDeviceSecure();
-        testOnClick(mAccount, ON_GO_TO_OS_SETTINGS_CLICKED,
+        testOnClick(ON_GO_TO_OS_SETTINGS_CLICKED,
                 /* deviceLockCreationResult */ null, /* deviceLockChallengeResult */ null,
                 mSuccessfulAccountReauthenticationChallenge, /* deviceLockCreationCalls */ 0,
                 /* deviceLockChallengesTriggered */ 0, /* accountReauthenticationsTriggered */ 1,
@@ -285,7 +276,7 @@ public class DeviceLockMediatorUnitTest {
 
     @Test
     public void testGoToOSSettingsOnClick_noDeviceLockCreated_noDelegateCalls() {
-        testOnClick(mAccount, ON_GO_TO_OS_SETTINGS_CLICKED, mFailedDeviceLockCreation,
+        testOnClick(ON_GO_TO_OS_SETTINGS_CLICKED, mFailedDeviceLockCreation,
                 /* deviceLockChallengeResult */ null,
                 /* accountReauthenticationResult */ null, /* deviceLockCreationCalls */ 1,
                 /* deviceLockChallengesTriggered */ 0, /* accountReauthenticationsTriggered */ 0,
@@ -294,7 +285,7 @@ public class DeviceLockMediatorUnitTest {
 
     @Test
     public void testGoToOSSettingsOnClick_rejectedAccountReauthentication_noDelegateCalls() {
-        testOnClick(mAccount, ON_GO_TO_OS_SETTINGS_CLICKED, mSuccessfulDeviceLockCreation,
+        testOnClick(ON_GO_TO_OS_SETTINGS_CLICKED, mSuccessfulDeviceLockCreation,
                 /* deviceLockChallengeResult */ null, mRejectedAccountReauthenticationChallenge,
                 /* deviceLockCreationCalls */ 1, /* deviceLockChallengesTriggered */ 0,
                 /* accountReauthenticationsTriggered */ 1, /* onDeviceLockReadyCalls */ 0,
@@ -303,7 +294,7 @@ public class DeviceLockMediatorUnitTest {
 
     @Test
     public void testUserUnderstandsOnClick_successfulChallenges_callsDelegateOnDeviceLockReady() {
-        testOnClick(mAccount, ON_USER_UNDERSTANDS_CLICKED,
+        testOnClick(ON_USER_UNDERSTANDS_CLICKED,
                 /* deviceLockCreationResult */ null, mSuccessfulDeviceLockChallenge,
                 mSuccessfulAccountReauthenticationChallenge, /* deviceLockCreationCalls */ 0,
                 /* deviceLockChallengesTriggered */ 1, /* accountReauthenticationsTriggered */ 1,
@@ -312,7 +303,7 @@ public class DeviceLockMediatorUnitTest {
 
     @Test
     public void testUserUnderstandsOnClick_failedDeviceLockChallenge_noDelegateCalls() {
-        testOnClick(mAccount, ON_USER_UNDERSTANDS_CLICKED,
+        testOnClick(ON_USER_UNDERSTANDS_CLICKED,
                 /* deviceLockCreationResult */ null, mFailedDeviceLockChallenge,
                 /* accountReauthenticationResult */ null, /* deviceLockCreationCalls */ 0,
                 /* deviceLockChallengesTriggered */ 1, /* accountReauthenticationsTriggered */ 0,
@@ -321,7 +312,7 @@ public class DeviceLockMediatorUnitTest {
 
     @Test
     public void testUserUnderstandsOnClick_rejectedAccountReauthentication_noDelegateCalls() {
-        testOnClick(mAccount, ON_USER_UNDERSTANDS_CLICKED,
+        testOnClick(ON_USER_UNDERSTANDS_CLICKED,
                 /* deviceLockCreationResult */ null, mSuccessfulDeviceLockChallenge,
                 mRejectedAccountReauthenticationChallenge, /* deviceLockCreationCalls */ 0,
                 /* deviceLockChallengesTriggered */ 1, /* accountReauthenticationsTriggered */ 1,
@@ -330,7 +321,7 @@ public class DeviceLockMediatorUnitTest {
 
     @Test
     public void testUserUnderstandsOnClick_errorAccountReauthentication_noDelegateCalls() {
-        testOnClick(mAccount, ON_USER_UNDERSTANDS_CLICKED,
+        testOnClick(ON_USER_UNDERSTANDS_CLICKED,
                 /* deviceLockCreationResult */ null, mSuccessfulDeviceLockChallenge,
                 mErrorAccountReauthenticationChallenge, /* deviceLockCreationCalls */ 0,
                 /* deviceLockChallengesTriggered */ 1, /* accountReauthenticationsTriggered */ 1,
@@ -339,15 +330,14 @@ public class DeviceLockMediatorUnitTest {
 
     @Test
     public void testDeviceLockMediator_dismissOnClick_callsDelegateOnDeviceLockRefused() {
-        testOnClick(mAccount, ON_DISMISS_CLICKED,
+        testOnClick(ON_DISMISS_CLICKED,
                 /* deviceLockCreationResult */ null, /* deviceLockChallengeResult */ null,
                 /* accountReauthenticationResult */ null, /* deviceLockCreationCalls */ 0,
                 /* deviceLockChallengesTriggered */ 0, /* accountReauthenticationsTriggered */ 0,
                 /* onDeviceLockReadyCalls */ 0, /* onDeviceLockRefusedCalls */ 1);
     }
 
-    private void testOnClick(Account account,
-            PropertyModel.ReadableObjectPropertyKey<View.OnClickListener> onClick,
+    private void testOnClick(PropertyModel.ReadableObjectPropertyKey<View.OnClickListener> onClick,
             Answer<Object> deviceLockCreationResult, Answer<Object> deviceLockChallengeResult,
             Answer<Object> accountReauthenticationResult, int deviceLockCreationCalls,
             int deviceLockChallengesTriggered, int accountReauthenticationsTriggered,
@@ -369,8 +359,9 @@ public class DeviceLockMediatorUnitTest {
                     .confirmCredentialsOrRecentAuthentication(any(), any(), any(), any());
         }
 
-        DeviceLockMediator deviceLockMediator = new DeviceLockMediator(mDelegate, mWindowAndroid,
-                mDeviceLockAuthenticatorBridge, mAccountReauthenticationUtils, mActivity, account);
+        DeviceLockMediator deviceLockMediator = new DeviceLockMediator(false, mDelegate,
+                mWindowAndroid, mDeviceLockAuthenticatorBridge, mAccountReauthenticationUtils,
+                mActivity, mAccount);
         deviceLockMediator.getModel().get(onClick).onClick(mMockView);
 
         verify(mWindowAndroid, times(deviceLockCreationCalls))

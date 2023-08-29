@@ -7,6 +7,7 @@
 #include <utility>
 
 #include "base/task/single_thread_task_runner.h"
+#include "components/viz/common/resources/resource_format_utils.h"
 #include "components/viz/common/resources/resource_sizes.h"
 #include "gpu/command_buffer/common/shared_image_usage.h"
 #include "gpu/command_buffer/service/abstract_texture_android.h"
@@ -287,7 +288,7 @@ VideoSurfaceTextureImageBacking::ProduceSkiaGanesh(
 
 void VideoSurfaceTextureImageBacking::BeginGLReadAccess(
     const GLuint service_id) {
-  stream_texture_sii_->UpdateAndBindTexImage();
+  stream_texture_sii_->UpdateAndBindTexImage(service_id);
 }
 
 // Representation of VideoSurfaceTextureImageBacking as an overlay plane.

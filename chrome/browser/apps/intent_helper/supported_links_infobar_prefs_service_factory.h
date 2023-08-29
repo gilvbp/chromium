@@ -32,7 +32,7 @@ class SupportedLinksInfoBarPrefsServiceFactory
   ~SupportedLinksInfoBarPrefsServiceFactory() override;
 
   // BrowserContextKeyedServiceFactory:
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* context) const override;
   // Service needs to be running immediately in order to observe uninstalls.
   bool ServiceIsCreatedWithBrowserContext() const override;

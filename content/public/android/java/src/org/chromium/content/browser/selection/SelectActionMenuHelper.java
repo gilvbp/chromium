@@ -342,7 +342,6 @@ public class SelectActionMenuHelper {
                 .setShowAsActionFlags(
                         MenuItem.SHOW_AS_ACTION_ALWAYS | MenuItem.SHOW_AS_ACTION_WITH_TEXT)
                 .setIsEnabled(isEnabled)
-                .setIsIconTintable(true)
                 .build();
     }
 
@@ -355,7 +354,6 @@ public class SelectActionMenuHelper {
                 .setShowAsActionFlags(
                         MenuItem.SHOW_AS_ACTION_ALWAYS | MenuItem.SHOW_AS_ACTION_WITH_TEXT)
                 .setIsEnabled(isEnabled)
-                .setIsIconTintable(true)
                 .build();
     }
 
@@ -368,7 +366,6 @@ public class SelectActionMenuHelper {
                 .setShowAsActionFlags(
                         MenuItem.SHOW_AS_ACTION_ALWAYS | MenuItem.SHOW_AS_ACTION_WITH_TEXT)
                 .setIsEnabled(isEnabled)
-                .setIsIconTintable(true)
                 .build();
     }
 
@@ -380,7 +377,6 @@ public class SelectActionMenuHelper {
                 .setShowAsActionFlags(
                         MenuItem.SHOW_AS_ACTION_ALWAYS | MenuItem.SHOW_AS_ACTION_WITH_TEXT)
                 .setIsEnabled(isEnabled)
-                .setIsIconTintable(true)
                 .build();
     }
 
@@ -393,7 +389,6 @@ public class SelectActionMenuHelper {
                 .setShowAsActionFlags(
                         MenuItem.SHOW_AS_ACTION_ALWAYS | MenuItem.SHOW_AS_ACTION_WITH_TEXT)
                 .setIsEnabled(isEnabled)
-                .setIsIconTintable(true)
                 .build();
     }
 
@@ -416,7 +411,6 @@ public class SelectActionMenuHelper {
                 .setShowAsActionFlags(
                         MenuItem.SHOW_AS_ACTION_ALWAYS | MenuItem.SHOW_AS_ACTION_WITH_TEXT)
                 .setIsEnabled(isEnabled)
-                .setIsIconTintable(true)
                 .build();
     }
 }

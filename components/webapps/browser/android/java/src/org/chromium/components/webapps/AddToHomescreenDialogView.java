@@ -240,6 +240,7 @@ public class AddToHomescreenDialogView
         mDelegate.onViewDismissed();
     }
 
+    @VisibleForTesting
     View getParentViewForTest() {
         return mParentView;
     }

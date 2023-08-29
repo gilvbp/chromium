@@ -83,10 +83,6 @@ signin::Tribool AccountCapabilities::can_toggle_auto_updates() const {
   return GetCapabilityByName(kCanToggleAutoUpdatesName);
 }
 
-signin::Tribool AccountCapabilities::can_use_chrome_ip_protection() const {
-  return GetCapabilityByName(kCanUseChromeIpProtectionName);
-}
-
 signin::Tribool AccountCapabilities::is_allowed_for_machine_learning() const {
   return GetCapabilityByName(kIsAllowedForMachineLearningCapabilityName);
 }
@@ -174,9 +170,4 @@ AccountCapabilities::ConvertToJavaAccountCapabilities(JNIEnv* env) const {
 AccountCapabilities::AccountCapabilities(
     base::flat_map<std::string, bool> capabilities)
     : capabilities_map_(std::move(capabilities)) {}
-
-const base::flat_map<std::string, bool>&
-AccountCapabilities::ConvertToAccountCapabilitiesIOS() {
-  return capabilities_map_;
-}
 #endif

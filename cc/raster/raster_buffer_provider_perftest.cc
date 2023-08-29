@@ -25,7 +25,7 @@
 #include "components/viz/common/gpu/context_cache_controller.h"
 #include "components/viz/common/gpu/raster_context_provider.h"
 #include "components/viz/common/resources/platform_color.h"
-#include "components/viz/common/resources/shared_image_format_utils.h"
+#include "components/viz/common/resources/resource_format_utils.h"
 #include "components/viz/test/test_context_provider.h"
 #include "components/viz/test/test_context_support.h"
 #include "components/viz/test/test_gles2_interface.h"
@@ -74,8 +74,6 @@ class PerfGLES2Interface : public gpu::gles2::GLES2InterfaceStub {
     memcpy(sync_token, &sync_token_data, sizeof(sync_token_data));
   }
 };
-
-}  // namespace
 
 class PerfContextProvider
     : public base::RefCountedThreadSafe<PerfContextProvider>,
@@ -132,9 +130,9 @@ class PerfContextProvider
   void RemoveObserver(viz::ContextLostObserver* obs) override {}
   unsigned int GetGrGLTextureFormat(
       viz::SharedImageFormat format) const override {
-    return viz::SharedImageFormatRestrictedSinglePlaneUtils::
-        ToGLTextureStorageFormat(
-            format, ContextCapabilities().angle_rgbx_internal_format);
+    return viz::TextureStorageFormat(
+        format.resource_format(),
+        ContextCapabilities().angle_rgbx_internal_format);
   }
 
  private:
@@ -152,8 +150,6 @@ class PerfContextProvider
   gpu::Capabilities capabilities_;
   gpu::GpuFeatureInfo gpu_feature_info_;
 };
-
-namespace {
 
 enum RasterBufferProviderType {
   RASTER_BUFFER_PROVIDER_TYPE_ZERO_COPY,
@@ -362,7 +358,6 @@ class RasterBufferProviderPerfTest
 
     RasterCapabilities raster_caps;
     raster_caps.tile_format = viz::SinglePlaneFormat::kRGBA_8888;
-    raster_caps.tile_texture_target = GL_TEXTURE_2D;
 
     switch (GetParam()) {
       case RASTER_BUFFER_PROVIDER_TYPE_ZERO_COPY:
@@ -379,7 +374,7 @@ class RasterBufferProviderPerfTest
         raster_buffer_provider_ = std::make_unique<OneCopyRasterBufferProvider>(
             task_runner_.get(), compositor_context_provider_.get(),
             worker_context_provider_.get(), &gpu_memory_buffer_manager_,
-            std::numeric_limits<int>::max(), false,
+            std::numeric_limits<int>::max(), false, false,
             std::numeric_limits<int>::max(), raster_caps);
         break;
       case RASTER_BUFFER_PROVIDER_TYPE_GPU:
@@ -387,7 +382,8 @@ class RasterBufferProviderPerfTest
         raster_caps.use_gpu_rasterization = true;
         raster_buffer_provider_ = std::make_unique<GpuRasterBufferProvider>(
             compositor_context_provider_.get(), worker_context_provider_.get(),
-            raster_caps, gfx::Size(), true, pending_raster_queries_.get());
+            false, raster_caps, gfx::Size(), true,
+            pending_raster_queries_.get());
         break;
       case RASTER_BUFFER_PROVIDER_TYPE_BITMAP:
         CreateSoftwareResourceProvider();

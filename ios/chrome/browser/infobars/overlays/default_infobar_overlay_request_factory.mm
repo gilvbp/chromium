@@ -13,6 +13,10 @@
 #import "ios/chrome/browser/overlays/public/infobar_banner/save_address_profile_infobar_banner_overlay_request_config.h"
 #import "ios/chrome/browser/overlays/public/infobar_modal/save_address_profile_infobar_modal_overlay_request_config.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 std::unique_ptr<OverlayRequest> DefaultInfobarOverlayRequestFactory(
     InfoBarIOS* infobar_ios,
     InfobarOverlayType overlay_type) {
@@ -25,7 +29,6 @@ std::unique_ptr<OverlayRequest> DefaultInfobarOverlayRequestFactory(
     case InfobarType::kInfobarTypeSaveCard:
     case InfobarType::kInfobarTypeSyncError:
     case InfobarType::kInfobarTypeTranslate:
-    case InfobarType::kInfobarTypeTabPickup:
       return OverlayRequest::CreateWithConfig<
           DefaultInfobarOverlayRequestConfig>(infobar_ios, overlay_type);
 

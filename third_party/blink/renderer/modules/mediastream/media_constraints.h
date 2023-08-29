@@ -273,8 +273,8 @@ struct MediaTrackConstraintSetPlatform {
 
 class MediaConstraints {
  public:
-  MODULES_EXPORT MediaConstraints();
-  MediaConstraints(const MediaConstraints& other);
+  MediaConstraints() = default;
+  MediaConstraints(const MediaConstraints& other) { Assign(other); }
   ~MediaConstraints() { Reset(); }
 
   MediaConstraints& operator=(const MediaConstraints& other) {
@@ -300,7 +300,7 @@ class MediaConstraints {
   MODULES_EXPORT const String ToString() const;
 
  private:
-  WebPrivatePtrForRefCounted<MediaConstraintsPrivate> private_;
+  WebPrivatePtr<MediaConstraintsPrivate> private_;
 };
 
 }  // namespace blink

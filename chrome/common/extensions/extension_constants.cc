@@ -29,6 +29,7 @@ const char kGooglePlayBooksAppId[] = "mmimngoggfoobjdlefbcabngfnmieonb";
 const char kGooglePlayMoviesAppId[] = "gdijeikdkaembjbdobgfkoidjkpbmlkd";
 const char kGooglePlayMusicAppId[] = "icppfcnhkcmnfdhfhphakoifcfokfdhg";
 const char kGooglePlusAppId[] = "dlppkpafhbajpcmmoheippocdidnckmm";
+const char kIdentityApiUiAppId[] = "ahjaciijnoiaklcomgnblndopackapon";
 const char kTextEditorAppId[] = "mmfbcljfglbokpmkimbfghdkjmjhdgbg";
 const char kInAppPaymentsSupportAppId[] = "nmmhkkegccagdldgiimedpiccmgmieda";
 const char kKeyboardExtensionId[] = "mppnpdlheglhdfmldimlhpnegondlapf";
@@ -49,6 +50,7 @@ const char* const kBuiltInFirstPartyExtensionIds[] = {
     kGooglePlusAppId,
     kGoogleSheetsAppId,
     kGoogleSlidesAppId,
+    kIdentityApiUiAppId,
     kTextEditorAppId,
     kInAppPaymentsSupportAppId,
 #if BUILDFLAG(IS_CHROMEOS)
@@ -82,7 +84,6 @@ const char kDeskApiExtensionId[] = "kflgdebkpepnpjobkdfeeipcjdahoomc";
 const char kBruSecurityKeyForwarderExtensionId[] =
     "lcooaekmckohjjnpaaokodoepajbnill";
 const char kODFSExtensionId[] = "gnnndjlaomemikopnjhhnoombakkkkdg";
-const char kPerfettoUIExtensionId[] = "lfmkphfpdbjijhpomgecfikhfohaoine";
 #endif
 #if BUILDFLAG(IS_CHROMEOS_ASH)
 const char kAccessibilityCommonExtensionId[] =

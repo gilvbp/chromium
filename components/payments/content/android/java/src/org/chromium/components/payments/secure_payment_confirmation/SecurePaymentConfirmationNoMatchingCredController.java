@@ -209,6 +209,7 @@ public class SecurePaymentConfirmationNoMatchingCredController {
         return true;
     }
 
+    @VisibleForTesting(otherwise = VisibleForTesting.NONE)
     void setInputProtectorForTesting(InputProtector inputProtector) {
         mInputProtector = inputProtector;
     }
@@ -228,12 +229,14 @@ public class SecurePaymentConfirmationNoMatchingCredController {
      * bypass the input protector. The Java unit tests simulate clicking the button and therefore
      * test the input protector.
      */
+    @VisibleForTesting(otherwise = VisibleForTesting.NONE)
     public boolean optOutForTest() {
         if (mOptOutCallback == null) return false;
         optOut();
         return true;
     }
 
+    @VisibleForTesting(otherwise = VisibleForTesting.NONE)
     public boolean closeForTest() {
         close();
         return true;

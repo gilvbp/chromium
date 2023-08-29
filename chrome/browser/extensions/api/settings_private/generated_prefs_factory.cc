@@ -41,10 +41,9 @@ bool GeneratedPrefsFactory::ServiceIsNULLWhileTesting() const {
   return true;
 }
 
-std::unique_ptr<KeyedService>
-GeneratedPrefsFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* GeneratedPrefsFactory::BuildServiceInstanceFor(
     content::BrowserContext* profile) const {
-  return std::make_unique<GeneratedPrefs>(static_cast<Profile*>(profile));
+  return new GeneratedPrefs(static_cast<Profile*>(profile));
 }
 
 }  // namespace settings_private

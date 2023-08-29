@@ -7,7 +7,6 @@
 #include <memory>
 #include <utility>
 
-#include "ash/constants/ash_features.h"
 #include "ash/constants/notifier_catalogs.h"
 #include "ash/public/cpp/notification_utils.h"
 #include "ash/public/cpp/system_tray_client.h"
@@ -98,17 +97,8 @@ MultiDeviceNotificationPresenter::~MultiDeviceNotificationPresenter() {
 }
 
 void MultiDeviceNotificationPresenter::OnPotentialHostExistsForNewUser() {
-  int title_message_id =
-      IDS_ASH_MULTI_DEVICE_SETUP_NEW_USER_POTENTIAL_HOST_EXISTS_TITLE;
-  if (features::IsPhoneHubOnboardingNotifierRevampEnabled() &&
-      !features::kPhoneHubOnboardingNotifierUseNudge.Get()) {
-    title_message_id =
-        features::kPhoneHubNotifierTextGroup.Get() ==
-                features::PhoneHubNotifierTextGroup::kNotifierTextGroupA
-            ? IDS_ASH_MULTI_DEVICE_SETUP_NOTIFIER_TEXT_WITH_PHONE_HUB
-            : IDS_ASH_MULTI_DEVICE_SETUP_NOTIFIER_TEXT_WITHOUT_PHONE_HUB;
-  }
-  std::u16string title = l10n_util::GetStringUTF16(title_message_id);
+  std::u16string title = l10n_util::GetStringUTF16(
+      IDS_ASH_MULTI_DEVICE_SETUP_NEW_USER_POTENTIAL_HOST_EXISTS_TITLE);
   std::u16string message = l10n_util::GetStringFUTF16(
       IDS_ASH_MULTI_DEVICE_SETUP_NEW_USER_POTENTIAL_HOST_EXISTS_MESSAGE,
       ui::GetChromeOSDeviceName());
@@ -175,11 +165,6 @@ void MultiDeviceNotificationPresenter::RemoveMultiDeviceSetupNotification() {
   notification_status_ = Status::kNoNotificationVisible;
   message_center_->RemoveNotification(kSetupNotificationId,
                                       /* by_user */ false);
-}
-
-void MultiDeviceNotificationPresenter::UpdateIsSetupNotificationInteracted(
-    bool is_setup_notification_interacted) {
-  is_setup_notification_interacted_ = is_setup_notification_interacted;
 }
 
 void MultiDeviceNotificationPresenter::OnUserSessionAdded(
@@ -255,16 +240,6 @@ void MultiDeviceNotificationPresenter::OnNotificationClicked(
   switch (notification_status_) {
     case Status::kNewUserNotificationVisible:
       Shell::Get()->system_tray_model()->client()->ShowMultiDeviceSetup();
-      // If user has not interacted with Phone Hub icon when the notification is
-      // visible, log MultiDeviceSetup.NotificationInteracted event when
-      // notification is clicked.
-      if (!is_setup_notification_interacted_) {
-        base::UmaHistogramCounts100("MultiDeviceSetup.NotificationInteracted",
-                                    1);
-      } else {
-        // Restore the value when the notification is clicked.
-        UpdateIsSetupNotificationInteracted(false);
-      }
       break;
     case Status::kExistingUserHostSwitchedNotificationVisible:
       // Clicks on the 'host switched' and 'Chromebook added' notifications have

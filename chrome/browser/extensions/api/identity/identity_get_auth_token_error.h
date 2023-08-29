@@ -41,7 +41,7 @@ class IdentityGetAuthTokenError {
     kOffTheRecord = 22,
     // kPageLoadFailure = 23,  // Deprecated
     kRemoteConsentPageLoadFailure = 24,
-    // kSetAccountsInCookieFailure = 25, // Deprecated
+    kSetAccountsInCookieFailure = 25,
     kInvalidConsentResult = 26,
     kCanceled = 27,
     kInteractivityDenied = 28,

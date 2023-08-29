@@ -224,9 +224,6 @@ class DEVICE_BLUETOOTH_EXPORT FlossSocketManager : public FlossDBusClient {
   void CompleteRegisterCallback(dbus::Response* response,
                                 dbus::ErrorResponse* error_response);
 
-  // Complete the method call for |UnregisterCallback|.
-  void CompleteUnregisterCallback(DBusResult<bool> result);
-
   // Complete any of |ListenUsingL2cap| or |ListenUsingRfcomm|.
   void CompleteListen(ResponseCallback<BtifStatus> callback,
                       ConnectionStateChanged ready_cb,
@@ -289,7 +286,7 @@ class DEVICE_BLUETOOTH_EXPORT FlossSocketManager : public FlossDBusClient {
 
   // All socket api calls require callback id since callbacks must take
   // ownership of the file descriptors. A value of zero is invalid.
-  CallbackId callback_id_ = kInvalidCallbackId;
+  CallbackId callback_id_ = 0;
 
   // Signal when client is ready to be used.
   base::OnceClosure on_ready_;

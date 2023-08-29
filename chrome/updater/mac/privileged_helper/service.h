@@ -12,7 +12,6 @@
 #include "base/functional/callback_forward.h"
 #include "base/memory/ref_counted.h"
 #include "base/memory/scoped_refptr.h"
-#include "base/task/sequenced_task_runner.h"
 #include "chrome/updater/mac/privileged_helper/service_protocol.h"
 
 namespace base {
@@ -32,13 +31,12 @@ class PrivilegedHelperService
   void SetupSystemUpdater(const std::string& browser_path,
                           base::OnceCallback<void(int)> result);
 
- private:
+ protected:
   friend class base::RefCountedThreadSafe<PrivilegedHelperService>;
 
   virtual ~PrivilegedHelperService();
 
-  scoped_refptr<base::SequencedTaskRunner> main_task_runner_ =
-      base::SequencedTaskRunner::GetCurrentDefault();
+  scoped_refptr<base::SequencedTaskRunner> main_task_runner_;
 };
 
 // Returns true if and only if the app bundle located at `updater_app_bundle`

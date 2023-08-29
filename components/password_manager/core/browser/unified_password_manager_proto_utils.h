@@ -13,7 +13,6 @@ namespace password_manager {
 
 class ListPasswordsResult;
 class PasswordWithLocalData;
-class ListAffiliatedPasswordsResult;
 
 // Returns PasswordWithLocalData based on given `password_form`.
 PasswordWithLocalData PasswordWithLocalDataFromPassword(
@@ -27,10 +26,6 @@ PasswordForm PasswordFromProtoWithLocalData(
 // Converts the `list_result` to PasswordForms and returns them in a vector.
 std::vector<PasswordForm> PasswordVectorFromListResult(
     const ListPasswordsResult& list_result);
-
-// Converts the `list_result` to PasswordForms and returns them in a vector.
-std::vector<PasswordForm> PasswordVectorFromListResult(
-    const ListAffiliatedPasswordsResult& list_result);
 
 }  // namespace password_manager
 

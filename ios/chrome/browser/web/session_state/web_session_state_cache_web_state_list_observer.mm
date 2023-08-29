@@ -9,6 +9,10 @@
 #import "ios/chrome/browser/web/session_state/web_session_state_cache.h"
 #import "ios/chrome/browser/web/session_state/web_session_state_tab_helper.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 WebSessionStateCacheWebStateListObserver::
     WebSessionStateCacheWebStateListObserver(
         WebSessionStateCache* web_session_state_cache)
@@ -21,24 +25,12 @@ WebSessionStateCacheWebStateListObserver::
 
 #pragma mark - WebStateListObserver
 
-void WebSessionStateCacheWebStateListObserver::WebStateListWillChange(
-    WebStateList* web_state_list,
-    const WebStateListChangeDetach& detach_change,
-    const WebStateListStatus& status) {
-  if (!detach_change.is_closing()) {
-    return;
-  }
-
-  [web_session_state_cache_
-      removeSessionStateDataForWebState:detach_change.detached_web_state()];
-}
-
-void WebSessionStateCacheWebStateListObserver::WebStateListDidChange(
+void WebSessionStateCacheWebStateListObserver::WebStateListChanged(
     WebStateList* web_state_list,
     const WebStateListChange& change,
-    const WebStateListStatus& status) {
+    const WebStateSelection& selection) {
   switch (change.type()) {
-    case WebStateListChange::Type::kStatusOnly:
+    case WebStateListChange::Type::kSelectionOnly:
       // Do nothing when a WebState is selected and its status is updated.
       break;
     case WebStateListChange::Type::kDetach:
@@ -59,6 +51,14 @@ void WebSessionStateCacheWebStateListObserver::WebStateListDidChange(
       // Do nothing when a new WebState is inserted.
       break;
   }
+}
+
+void WebSessionStateCacheWebStateListObserver::WillCloseWebStateAt(
+    WebStateList* web_state_list,
+    web::WebState* web_state,
+    int index,
+    bool user_action) {
+  [web_session_state_cache_ removeSessionStateDataForWebState:web_state];
 }
 
 void WebSessionStateCacheWebStateListObserver::WillBeginBatchOperation(

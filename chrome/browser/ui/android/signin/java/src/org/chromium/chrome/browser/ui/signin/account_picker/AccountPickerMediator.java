@@ -4,6 +4,7 @@
 
 package org.chromium.chrome.browser.ui.signin.account_picker;
 
+import android.accounts.Account;
 import android.content.Context;
 import android.text.TextUtils;
 
@@ -19,7 +20,6 @@ import org.chromium.components.signin.AccountManagerFacade;
 import org.chromium.components.signin.AccountManagerFacadeProvider;
 import org.chromium.components.signin.AccountUtils;
 import org.chromium.components.signin.AccountsChangeObserver;
-import org.chromium.components.signin.base.CoreAccountInfo;
 import org.chromium.ui.modelutil.MVCListAdapter;
 import org.chromium.ui.modelutil.PropertyModel;
 
@@ -47,16 +47,16 @@ class AccountPickerMediator implements AccountsChangeObserver, ProfileDataCache.
 
         mAccountManagerFacade.addObserver(this);
         mProfileDataCache.addObserver(this);
-        updateAccounts(AccountUtils.getCoreAccountInfosIfFulfilledOrEmpty(
-                mAccountManagerFacade.getCoreAccountInfos()));
+        updateAccounts(
+                AccountUtils.getAccountsIfFulfilledOrEmpty(mAccountManagerFacade.getAccounts()));
     }
 
     /**
      * Implements {@link AccountsChangeObserver}.
      */
     @Override
-    public void onCoreAccountInfosChanged() {
-        mAccountManagerFacade.getCoreAccountInfos().then(this::updateAccounts);
+    public void onAccountsChanged() {
+        mAccountManagerFacade.getAccounts().then(this::updateAccounts);
     }
 
     /**
@@ -87,16 +87,15 @@ class AccountPickerMediator implements AccountsChangeObserver, ProfileDataCache.
         mAccountManagerFacade.removeObserver(this);
     }
 
-    private void updateAccounts(List<CoreAccountInfo> coreAccountInfos) {
+    private void updateAccounts(List<Account> accounts) {
         mListModel.clear();
 
         // Add an "existing account" row for each account
         final Callback<DisplayableProfileData> callback = profileData
                 -> mAccountPickerListener.onAccountSelected(profileData.getAccountEmail());
-        for (CoreAccountInfo coreAccountInfo : coreAccountInfos) {
+        for (Account account : accounts) {
             PropertyModel model = ExistingAccountRowProperties.createModel(
-                    mProfileDataCache.getProfileDataOrDefault(coreAccountInfo.getEmail()),
-                    callback);
+                    mProfileDataCache.getProfileDataOrDefault(account.name), callback);
             mListModel.add(new MVCListAdapter.ListItem(ItemType.EXISTING_ACCOUNT_ROW, model));
         }
 

@@ -96,9 +96,9 @@ TEST_F(AXPlatformNodeTextProviderTest, CreateDegenerateRangeFromStart) {
 
   // Degenerate range created on root node should be:
   // <>some-textmore-text
-  ComPtr<ITextRangeProvider> text_range_provider;
-  AXPlatformNodeTextProviderWin::CreateDegenerateRangeAtStart(
-      root_platform_node.Get(), &text_range_provider);
+  ComPtr<ITextRangeProvider> text_range_provider =
+      AXPlatformNodeTextProviderWin::CreateDegenerateRangeAtStart(
+          root_platform_node.Get());
   SetOwner(owner, text_range_provider.Get());
   base::win::ScopedBstr text_content;
   EXPECT_HRESULT_SUCCEEDED(
@@ -116,8 +116,9 @@ TEST_F(AXPlatformNodeTextProviderTest, CreateDegenerateRangeFromStart) {
 
   // Degenerate range created on link node should be:
   // <>some textmore text
-  AXPlatformNodeTextProviderWin::CreateDegenerateRangeAtStart(
-      link_platform_node.Get(), &text_range_provider);
+  text_range_provider =
+      AXPlatformNodeTextProviderWin::CreateDegenerateRangeAtStart(
+          link_platform_node.Get());
   SetOwner(owner, text_range_provider.Get());
   EXPECT_HRESULT_SUCCEEDED(
       text_range_provider->GetText(-1, text_content.Receive()));
@@ -129,8 +130,9 @@ TEST_F(AXPlatformNodeTextProviderTest, CreateDegenerateRangeFromStart) {
 
   // Degenerate range created on more text node should be:
   // some text<>more text
-  AXPlatformNodeTextProviderWin::CreateDegenerateRangeAtStart(
-      text2_platform_node.Get(), &text_range_provider);
+  text_range_provider =
+      AXPlatformNodeTextProviderWin::CreateDegenerateRangeAtStart(
+          text2_platform_node.Get());
   SetOwner(owner, text_range_provider.Get());
   EXPECT_HRESULT_SUCCEEDED(
       text_range_provider->GetText(-1, text_content.Receive()));

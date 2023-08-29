@@ -46,7 +46,7 @@ class PermissionAuditingServiceFactory : public ProfileKeyedServiceFactory {
   // BrowserContextKeyedServiceFactory:
   bool ServiceIsCreatedWithBrowserContext() const override;
 
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* context) const override;
 };
 

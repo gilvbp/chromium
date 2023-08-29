@@ -50,7 +50,7 @@ void DecryptingRenderer::Initialize(MediaResource* media_resource,
   DCHECK(client);
 
   // Using |this| with a MediaResource::Type::URL will result in a crash.
-  DCHECK_EQ(media_resource->GetType(), MediaResource::Type::kStream);
+  DCHECK_EQ(media_resource->GetType(), MediaResource::Type::STREAM);
 
   media_resource_ = media_resource;
   client_ = client;

@@ -173,8 +173,7 @@ class HTMLMediaElementEventListenersTest : public PageTestBase {
   void DestroyDocument() { PageTestBase::TearDown(); }
 
   HTMLVideoElement* Video() {
-    return To<HTMLVideoElement>(
-        GetDocument().QuerySelector(AtomicString("video")));
+    return To<HTMLVideoElement>(GetDocument().QuerySelector("video"));
   }
 
   FakeWebMediaPlayer* WebMediaPlayer() {
@@ -268,7 +267,7 @@ TEST_F(HTMLMediaElementEventListenersTest,
        FullscreenDetectorTimerCancelledOnContextDestroy) {
   EXPECT_EQ(Video(), nullptr);
   GetDocument().body()->setInnerHTML("<video></video>");
-  Video()->SetSrc(AtomicString("http://example.com"));
+  Video()->SetSrc("http://example.com");
 
   test::RunPendingTasks();
 
@@ -349,7 +348,7 @@ TEST_F(HTMLMediaElementWithMockSchedulerTest, OneTimeupdatePerSeek) {
   GetDocument().body()->setInnerHTML("<video></video>");
 
   // Set a src to trigger WebMediaPlayer creation.
-  Video()->SetSrc(AtomicString("http://example.com"));
+  Video()->SetSrc("http://example.com");
 
   platform()->RunUntilIdle();
   ASSERT_NE(WebMediaPlayer(), nullptr);
@@ -406,7 +405,7 @@ TEST_F(HTMLMediaElementWithMockSchedulerTest, PeriodicTimeupdateAfterSeek) {
   GetDocument().body()->setInnerHTML("<video></video>");
 
   // Set a src to trigger WebMediaPlayer creation.
-  Video()->SetSrc(AtomicString("http://example.com"));
+  Video()->SetSrc("http://example.com");
 
   platform()->RunUntilIdle();
   EXPECT_NE(WebMediaPlayer(), nullptr);
@@ -642,15 +641,14 @@ TEST_F(HTMLMediaElementWithMockSchedulerTest, CueEnterExitEventLatency) {
   GetDocument().body()->setInnerHTML("<video></video>");
 
   // Set a src to trigger WebMediaPlayer creation.
-  Video()->SetSrc(AtomicString("http://example.com"));
+  Video()->SetSrc("http://example.com");
 
   platform()->RunUntilIdle();
   ASSERT_NE(WebMediaPlayer(), nullptr);
 
   // Create a text track, and fill it with cue data
   auto* text_track =
-      Video()->addTextTrack(AtomicString("subtitles"), g_empty_atom,
-                            g_empty_atom, ASSERT_NO_EXCEPTION);
+      Video()->addTextTrack("subtitles", "", "", ASSERT_NO_EXCEPTION);
 
   auto* listener = MakeGarbageCollected<CueEventListener>();
   for (auto cue_data : kTestCueData) {

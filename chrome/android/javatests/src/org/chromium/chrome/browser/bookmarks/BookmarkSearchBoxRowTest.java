@@ -4,27 +4,9 @@
 
 package org.chromium.chrome.browser.bookmarks;
 
-import static androidx.test.espresso.Espresso.onView;
-import static androidx.test.espresso.action.ViewActions.click;
-import static androidx.test.espresso.assertion.ViewAssertions.matches;
-import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
-import static androidx.test.espresso.matcher.ViewMatchers.withChild;
-import static androidx.test.espresso.matcher.ViewMatchers.withId;
-
-import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-
 import android.app.Activity;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
-import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.FrameLayout;
@@ -38,11 +20,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
 
-import org.chromium.base.Callback;
 import org.chromium.base.test.BaseActivityTestRule;
 import org.chromium.base.test.util.Batch;
 import org.chromium.base.test.util.Criteria;
@@ -53,10 +31,7 @@ import org.chromium.chrome.test.ChromeJUnit4ClassRunner;
 import org.chromium.chrome.test.util.browser.Features;
 import org.chromium.content_public.browser.test.util.KeyUtils;
 import org.chromium.content_public.browser.test.util.TestThreadUtils;
-import org.chromium.ui.modelutil.PropertyModel;
-import org.chromium.ui.modelutil.PropertyModel.WritableBooleanPropertyKey;
-import org.chromium.ui.modelutil.PropertyModel.WritableObjectPropertyKey;
-import org.chromium.ui.modelutil.PropertyModelChangeProcessor;
+import org.chromium.content_public.browser.test.util.TouchCommon;
 import org.chromium.ui.test.util.BlankUiTestActivity;
 import org.chromium.ui.test.util.DisableAnimationsTestRule;
 
@@ -71,22 +46,8 @@ public class BookmarkSearchBoxRowTest {
             new BaseActivityTestRule<>(BlankUiTestActivity.class);
     @Rule
     public TestRule mProcessor = new Features.JUnitProcessor();
-    @Rule
-    public final MockitoRule mMockitoRule = MockitoJUnit.rule();
-
-    @Mock
-    private Callback<String> mSearchTextChangeCallback;
-    @Mock
-    private Runnable mClearSearchTextRunnable;
-    @Mock
-    private Callback<Boolean> mFocusChangeCallback;
-    @Mock
-    private Callback<Boolean> mToggleCallback;
 
     private BookmarkSearchBoxRow mBookmarkSearchBoxRow;
-    private EditText mEditText;
-    private View mShoppingFilterChip;
-    private PropertyModel mPropertyModel;
 
     @Before
     public void setUp() throws Exception {
@@ -108,149 +69,23 @@ public class BookmarkSearchBoxRowTest {
             mBookmarkSearchBoxRow =
                     layoutInflater.inflate(R.layout.bookmark_search_box_row, contentView)
                             .findViewById(R.id.bookmark_toolbar);
-            mEditText = mBookmarkSearchBoxRow.findViewById(R.id.search_text);
-            mShoppingFilterChip = mBookmarkSearchBoxRow.findViewById(R.id.shopping_filter_chip);
-
-            mPropertyModel =
-                    new PropertyModel.Builder(BookmarkSearchBoxRowProperties.ALL_KEYS)
-                            .with(BookmarkSearchBoxRowProperties.SHOPPING_CHIP_VISIBILITY, true)
-                            .with(BookmarkSearchBoxRowProperties.SEARCH_TEXT_CHANGE_CALLBACK,
-                                    mSearchTextChangeCallback)
-                            .with(BookmarkSearchBoxRowProperties.CLEAR_SEARCH_TEXT_RUNNABLE,
-                                    mClearSearchTextRunnable)
-                            .with(BookmarkSearchBoxRowProperties.FOCUS_CHANGE_CALLBACK,
-                                    mFocusChangeCallback)
-                            .with(BookmarkSearchBoxRowProperties.SHOPPING_CHIP_TOGGLE_CALLBACK,
-                                    mToggleCallback)
-                            .build();
-            PropertyModelChangeProcessor.create(
-                    mPropertyModel, mBookmarkSearchBoxRow, BookmarkSearchBoxRowViewBinder::bind);
         });
-    }
-
-    private <T> void setProperty(WritableObjectPropertyKey<T> property, T value) {
-        TestThreadUtils.runOnUiThreadBlocking(() -> mPropertyModel.set(property, value));
-    }
-
-    private void setProperty(WritableBooleanPropertyKey property, boolean value) {
-        TestThreadUtils.runOnUiThreadBlocking(() -> mPropertyModel.set(property, value));
     }
 
     @Test
     @MediumTest
     public void testFocusAndEnter() {
-        onView(withId(R.id.search_text)).perform(click());
+        EditText editText = mBookmarkSearchBoxRow.findViewById(R.id.search_text);
+
+        TestThreadUtils.runOnUiThreadBlocking(() -> TouchCommon.singleClickView(editText));
         CriteriaHelper.pollUiThread(
-                () -> Criteria.checkThat(mEditText.hasFocus(), Matchers.is(true)));
+                () -> Criteria.checkThat(editText.hasFocus(), Matchers.is(true)));
 
-        TestThreadUtils.runOnUiThreadBlocking(() -> {
-            KeyUtils.singleKeyEventView(InstrumentationRegistry.getInstrumentation(), mEditText,
-                    KeyEvent.KEYCODE_ENTER);
-        });
+        TestThreadUtils.runOnUiThreadBlocking(
+                ()
+                        -> KeyUtils.singleKeyEventView(InstrumentationRegistry.getInstrumentation(),
+                                editText, KeyEvent.KEYCODE_ENTER));
         CriteriaHelper.pollUiThread(
-                () -> Criteria.checkThat(mEditText.hasFocus(), Matchers.is(false)));
-    }
-
-    @Test
-    @MediumTest
-    public void testSearchTextAndChangeCallback() {
-        String searchText = "foo";
-        setProperty(BookmarkSearchBoxRowProperties.SEARCH_TEXT, searchText);
-        verify(mSearchTextChangeCallback).onResult(eq(searchText));
-
-        reset(mSearchTextChangeCallback);
-        setProperty(BookmarkSearchBoxRowProperties.SEARCH_TEXT, searchText);
-        verifyNoInteractions(mSearchTextChangeCallback);
-    }
-
-    @Test
-    @MediumTest
-    public void testFocusChangeCallback() {
-        setProperty(BookmarkSearchBoxRowProperties.HAS_FOCUS, true);
-        verify(mFocusChangeCallback).onResult(true);
-
-        setProperty(BookmarkSearchBoxRowProperties.HAS_FOCUS, false);
-        verify(mFocusChangeCallback).onResult(false);
-    }
-
-    @Test
-    @MediumTest
-    public void testShoppingChipVisibility() {
-        assertTrue(mShoppingFilterChip.isShown());
-
-        setProperty(BookmarkSearchBoxRowProperties.SHOPPING_CHIP_VISIBILITY, false);
-        assertFalse(mShoppingFilterChip.isShown());
-    }
-
-    @Test
-    @MediumTest
-    public void testShoppingChipToggleCallback() {
-        setProperty(BookmarkSearchBoxRowProperties.SHOPPING_CHIP_SELECTED, false);
-        onView(withId(R.id.shopping_filter_chip)).perform(click());
-        verify(mToggleCallback).onResult(true);
-
-        setProperty(BookmarkSearchBoxRowProperties.SHOPPING_CHIP_SELECTED, true);
-        onView(withId(R.id.shopping_filter_chip)).perform(click());
-        verify(mToggleCallback).onResult(false);
-    }
-
-    @Test
-    @MediumTest
-    public void testTapSearchRowLayoutClearsSearchFocus() {
-        setProperty(BookmarkSearchBoxRowProperties.HAS_FOCUS, true);
-        verify(mFocusChangeCallback).onResult(true);
-
-        onView(withId(R.id.bookmark_toolbar)).perform(click());
-        verify(mFocusChangeCallback).onResult(false);
-    }
-
-    @Test
-    @MediumTest
-    public void testTogglingChipDoesNotClearSearchFocus() {
-        setProperty(BookmarkSearchBoxRowProperties.HAS_FOCUS, true);
-        verify(mFocusChangeCallback).onResult(true);
-
-        onView(withId(R.id.shopping_filter_chip)).perform(click());
-        verify(mFocusChangeCallback, never()).onResult(false);
-
-        onView(withId(R.id.shopping_filter_chip)).perform(click());
-        verify(mFocusChangeCallback, never()).onResult(false);
-    }
-
-    @Test
-    @MediumTest
-    public void testTapFilterLayoutClearsSearchFocus() {
-        setProperty(BookmarkSearchBoxRowProperties.HAS_FOCUS, true);
-        verify(mFocusChangeCallback).onResult(true);
-
-        onView(withChild(withId(R.id.shopping_filter_chip))).perform(click());
-        verify(mFocusChangeCallback).onResult(false);
-    }
-
-    @Test
-    @MediumTest
-    public void testClearSearchTextButtonAndRunnable() {
-        onView(withId(R.id.clear_text_button)).check(matches(not(isDisplayed())));
-
-        setProperty(BookmarkSearchBoxRowProperties.CLEAR_SEARCH_TEXT_BUTTON_VISIBILITY, true);
-        onView(withId(R.id.clear_text_button)).check(matches(isDisplayed()));
-
-        onView(withId(R.id.clear_text_button)).perform(click());
-        verify(mClearSearchTextRunnable).run();
-    }
-
-    @Test
-    @MediumTest
-    public void testRebindSingleSearchTextChangeCallback() {
-        TestThreadUtils.runOnUiThreadBlocking(() -> {
-            PropertyModelChangeProcessor.create(
-                    mPropertyModel, mBookmarkSearchBoxRow, BookmarkSearchBoxRowViewBinder::bind);
-            PropertyModelChangeProcessor.create(
-                    mPropertyModel, mBookmarkSearchBoxRow, BookmarkSearchBoxRowViewBinder::bind);
-        });
-
-        String searchText = "foo";
-        setProperty(BookmarkSearchBoxRowProperties.SEARCH_TEXT, searchText);
-        verify(mSearchTextChangeCallback, times(1)).onResult(eq(searchText));
+                () -> Criteria.checkThat(editText.hasFocus(), Matchers.is(false)));
     }
 }

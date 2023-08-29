@@ -4,11 +4,15 @@
 
 #import "ios/chrome/browser/ui/omnibox/popup/remote_suggestions_service_observer_bridge.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 RemoteSuggestionsServiceObserverBridge::RemoteSuggestionsServiceObserverBridge(
     id<RemoteSuggestionsServiceObserver> observer)
     : observer_(observer) {}
 
-void RemoteSuggestionsServiceObserverBridge::OnSuggestRequestCreated(
+void RemoteSuggestionsServiceObserverBridge::OnSuggestRequestStarting(
     const base::UnguessableToken& request_id,
     const network::ResourceRequest* request) {
   // TODO: add remote suggestion service arg
@@ -17,21 +21,12 @@ void RemoteSuggestionsServiceObserverBridge::OnSuggestRequestCreated(
                      uniqueIdentifier:request_id];
 }
 
-void RemoteSuggestionsServiceObserverBridge::OnSuggestRequestStarted(
-    const base::UnguessableToken& request_id,
-    network::SimpleURLLoader* loader,
-    const std::string& request_body) {
-  // TODO: notify the observer. For the existing applications on iOS this is
-  //  called immediately after `OnSuggestRequestCreated`. But it is possible for
-  //  this to be called asynchronously in the future.
-}
-
 void RemoteSuggestionsServiceObserverBridge::OnSuggestRequestCompleted(
     const base::UnguessableToken& request_id,
-    const int response_code,
+    const bool response_received,
     const std::unique_ptr<std::string>& response_body) {
   NSString* response_string = nil;
-  if (response_code == 200 && response_body) {
+  if (response_received && response_body) {
     response_string = base::SysUTF8ToNSString(*response_body.get());
   }
   // TODO: add remote suggestion service arg

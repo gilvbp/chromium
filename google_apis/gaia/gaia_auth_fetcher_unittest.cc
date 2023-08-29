@@ -9,7 +9,6 @@
 #include <string>
 #include <vector>
 
-#include "base/containers/contains.h"
 #include "base/functional/bind.h"
 #include "base/json/json_reader.h"
 #include "base/memory/ref_counted.h"
@@ -271,7 +270,7 @@ TEST_F(GaiaAuthFetcherTest, StartAuthCodeForOAuth2TokenExchangeSuccess) {
   EXPECT_EQ(google_apis::GetOmitCredentialsModeForGaiaRequests(),
             received_requests_.at(0).credentials_mode);
   std::string body = GetRequestBodyAsString(&received_requests_.at(0));
-  EXPECT_FALSE(base::Contains(body, "device_type=chrome"));
+  EXPECT_EQ(std::string::npos, body.find("device_type=chrome"));
   EXPECT_TRUE(auth.HasPendingFetch());
 
   auth.TestOnURLLoadCompleteInternal(net::OK, net::HTTP_OK,
@@ -290,8 +289,8 @@ TEST_F(GaiaAuthFetcherTest, StartAuthCodeForOAuth2TokenExchangeDeviceId) {
   EXPECT_EQ(google_apis::GetOmitCredentialsModeForGaiaRequests(),
             received_requests_.at(0).credentials_mode);
   std::string body = GetRequestBodyAsString(&received_requests_.at(0));
-  EXPECT_TRUE(base::Contains(body, "device_type=chrome"));
-  EXPECT_TRUE(base::Contains(body, "device_id=device_ABCDE_1"));
+  EXPECT_NE(std::string::npos, body.find("device_type=chrome"));
+  EXPECT_NE(std::string::npos, body.find("device_id=device_ABCDE_1"));
 }
 
 TEST_F(GaiaAuthFetcherTest,
@@ -309,8 +308,8 @@ TEST_F(GaiaAuthFetcherTest,
   EXPECT_EQ(google_apis::GetOmitCredentialsModeForGaiaRequests(),
             received_requests_.at(0).credentials_mode);
   std::string body = GetRequestBodyAsString(&received_requests_.at(0));
-  EXPECT_TRUE(
-      base::Contains(body, "bound_token_registration_jwt=registration_jwt"));
+  EXPECT_NE(std::string::npos,
+            body.find("bound_token_registration_jwt=registration_jwt"));
   EXPECT_TRUE(auth.HasPendingFetch());
 
   auth.TestOnURLLoadCompleteInternal(net::OK, net::HTTP_OK,

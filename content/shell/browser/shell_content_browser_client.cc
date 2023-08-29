@@ -318,7 +318,6 @@ blink::UserAgentMetadata GetShellUserAgentMetadata() {
 
   metadata.bitness = GetCpuBitness();
   metadata.wow64 = content::IsWoW64();
-  metadata.form_factor = "";  // Empty value signifies desktop.
 
   return metadata;
 }
@@ -399,7 +398,7 @@ bool ShellContentBrowserClient::IsHandledURL(const GURL& url) {
 void ShellContentBrowserClient::AppendExtraCommandLineSwitches(
     base::CommandLine* command_line,
     int child_process_id) {
-  static const char* const kForwardSwitches[] = {
+  static const char* kForwardSwitches[] = {
 #if BUILDFLAG(IS_MAC)
     // Needed since on Mac, content_browsertests doesn't use
     // content_test_launcher.cc and instead uses shell_main.cc. So give a signal
@@ -410,11 +409,10 @@ void ShellContentBrowserClient::AppendExtraCommandLineSwitches(
     switches::kEnableCrashReporter,
     switches::kExposeInternalsForTesting,
     switches::kRunWebTests,
-    switches::kTestRegisterStandardScheme,
   };
 
   command_line->CopySwitchesFrom(*base::CommandLine::ForCurrentProcess(),
-                                 kForwardSwitches);
+                                 kForwardSwitches, std::size(kForwardSwitches));
 
 #if BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS)
   if (base::CommandLine::ForCurrentProcess()->HasSwitch(
@@ -491,16 +489,14 @@ ShellContentBrowserClient::GetGeneratedCodeCacheSettings(
 }
 
 base::OnceClosure ShellContentBrowserClient::SelectClientCertificate(
-    BrowserContext* browser_context,
     WebContents* web_contents,
     net::SSLCertRequestInfo* cert_request_info,
     net::ClientCertIdentityList client_certs,
     std::unique_ptr<ClientCertificateDelegate> delegate) {
-  if (select_client_certificate_callback_ && web_contents) {
+  if (select_client_certificate_callback_)
     return std::move(select_client_certificate_callback_)
         .Run(web_contents, cert_request_info, std::move(client_certs),
              std::move(delegate));
-  }
   return base::OnceClosure();
 }
 
@@ -731,7 +727,6 @@ void ShellContentBrowserClient::ConfigureNetworkContextParamsForShell(
       allow_any_cors_exempt_header_for_browser_;
   context_params->user_agent = GetUserAgent();
   context_params->accept_language = GetAcceptLangs(context);
-  context_params->enable_zstd = true;
   auto exempt_header =
       base::CommandLine::ForCurrentProcess()->GetSwitchValueASCII(
           "cors_exempt_header_list");
@@ -841,17 +836,17 @@ absl::optional<blink::ParsedPermissionsPolicy>
 ShellContentBrowserClient::GetPermissionsPolicyForIsolatedWebApp(
     content::BrowserContext* browser_context,
     const url::Origin& app_origin) {
-  blink::ParsedPermissionsPolicyDeclaration coi_decl(
-      blink::mojom::PermissionsPolicyFeature::kCrossOriginIsolated,
-      /*allowed_origins=*/{},
+  std::vector<blink::OriginWithPossibleWildcards> allowlist;
+  if (auto origin_with_possible_wildcards =
+          blink::OriginWithPossibleWildcards::FromOrigin(app_origin);
+      origin_with_possible_wildcards.has_value()) {
+    allowlist.emplace_back(*origin_with_possible_wildcards);
+  }
+  blink::ParsedPermissionsPolicyDeclaration decl(
+      blink::mojom::PermissionsPolicyFeature::kDirectSockets, allowlist,
       /*self_if_matches=*/absl::nullopt,
-      /*matches_all_origins=*/true, /*matches_opaque_src=*/false);
-
-  blink::ParsedPermissionsPolicyDeclaration socket_decl(
-      blink::mojom::PermissionsPolicyFeature::kDirectSockets,
-      /*allowed_origins=*/{}, app_origin,
       /*matches_all_origins=*/false, /*matches_opaque_src=*/false);
-  return {{coi_decl, socket_decl}};
+  return {{decl}};
 }
 
 // Tests may install their own ShellContentBrowserClient, track the list here.

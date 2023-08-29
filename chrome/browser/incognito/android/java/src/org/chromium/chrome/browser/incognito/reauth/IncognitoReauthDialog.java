@@ -8,6 +8,7 @@ import android.view.View;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
+import androidx.annotation.VisibleForTesting;
 
 import org.chromium.ui.modaldialog.DialogDismissalCause;
 import org.chromium.ui.modaldialog.ModalDialogManager;
@@ -51,8 +52,8 @@ class IncognitoReauthDialog {
                         .with(ModalDialogProperties.CONTROLLER, mModalDialogController)
                         .with(ModalDialogProperties.CUSTOM_VIEW, incognitoReauthView)
                         .with(ModalDialogProperties.CANCEL_ON_TOUCH_OUTSIDE, false)
-                        .with(ModalDialogProperties.DIALOG_STYLES,
-                                ModalDialogProperties.DialogStyles.FULLSCREEN_DARK_DIALOG)
+                        .with(ModalDialogProperties.FULLSCREEN_DIALOG, true)
+                        .with(ModalDialogProperties.EXCEED_MAX_HEIGHT, true)
                         .with(ModalDialogProperties.APP_MODAL_DIALOG_BACK_PRESS_HANDLER,
                                 backPressedCallback)
                         .build();
@@ -77,6 +78,7 @@ class IncognitoReauthDialog {
         mModalDialogManager.dismissDialog(mModalDialogPropertyModel, dismissalCause);
     }
 
+    @VisibleForTesting
     public PropertyModel getModalDialogPropertyModelForTesting() {
         return mModalDialogPropertyModel;
     }

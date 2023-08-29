@@ -16,16 +16,16 @@ import '../../css/cros_button_style.css.js';
 import './info_svg_element.js';
 import './google_photos_shared_album_dialog_element.js';
 
+import {loadTimeData} from 'chrome://resources/ash/common/load_time_data.m.js';
 import {assert} from 'chrome://resources/js/assert_ts.js';
-import {loadTimeData} from 'chrome://resources/js/load_time_data.js';
 
-import {CurrentAttribution, CurrentWallpaper, GooglePhotosPhoto, WallpaperCollection, WallpaperImage, WallpaperLayout, WallpaperType} from '../../personalization_app.mojom-webui.js';
+import {CurrentWallpaper, GooglePhotosPhoto, WallpaperCollection, WallpaperImage, WallpaperLayout, WallpaperType} from '../../personalization_app.mojom-webui.js';
 import {isGooglePhotosSharedAlbumsEnabled, isPersonalizationJellyEnabled} from '../load_time_booleans.js';
 import {Paths} from '../personalization_router_element.js';
 import {WithPersonalizationStore} from '../personalization_store.js';
 import {getCheckmarkIcon, isNonEmptyArray} from '../utils.js';
 
-import {getLocalStorageAttribution, getWallpaperAriaLabel, getWallpaperLayoutEnum, getWallpaperSrc} from './utils.js';
+import {getLocalStorageAttribution, getWallpaperLayoutEnum, getWallpaperSrc} from './utils.js';
 import {getDailyRefreshState, selectGooglePhotosAlbum, setCurrentWallpaperLayout, setDailyRefreshCollectionId, updateDailyRefreshWallpaper} from './wallpaper_controller.js';
 import {getWallpaperProvider} from './wallpaper_interface_provider.js';
 import {WallpaperObserver} from './wallpaper_observer.js';
@@ -70,22 +70,19 @@ export class WallpaperSelected extends WithPersonalizationStore {
 
       photosByAlbumId_: Object,
 
-      attribution_: {
+      image_: {
         type: Object,
-        observer: 'onAttributionChanged_',
+        observer: 'onImageChanged_',
       },
-
-      image_: Object,
 
       imageTitle_: {
         type: String,
-        computed:
-            'computeImageTitle_(image_, attribution_, dailyRefreshState_)',
+        computed: 'computeImageTitle_(image_, dailyRefreshState_)',
       },
 
       imageOtherAttribution_: {
         type: Array,
-        computed: 'computeImageOtherAttribution_(image_, attribution_)',
+        computed: 'computeImageOtherAttribution_(image_)',
       },
 
       dailyRefreshState_: Object,
@@ -173,7 +170,6 @@ export class WallpaperSelected extends WithPersonalizationStore {
   isGooglePhotosAlbumShared: boolean;
   googlePhotosAlbumId: string|undefined;
   path: string;
-  private attribution_: CurrentAttribution|null;
   private image_: CurrentWallpaper|null;
   private imageTitle_: string;
   private imageOtherAttribution_: string[];
@@ -202,13 +198,11 @@ export class WallpaperSelected extends WithPersonalizationStore {
     super.connectedCallback();
     WallpaperObserver.initWallpaperObserverIfNeeded();
     this.watch('error_', state => state.error);
-    this.watch('attribution_', state => state.wallpaper.attribution);
     this.watch('image_', state => state.wallpaper.currentSelected);
     this.watch(
         'isLoading_',
         state => state.wallpaper.loading.setImage > 0 ||
-            state.wallpaper.loading.selected.image ||
-            state.wallpaper.loading.selected.attribution ||
+            state.wallpaper.loading.selected ||
             state.wallpaper.loading.refreshWallpaper);
     this.watch('dailyRefreshState_', state => state.wallpaper.dailyRefresh);
     this.watch(
@@ -228,43 +222,43 @@ export class WallpaperSelected extends WithPersonalizationStore {
   }
 
   private computeImageTitle_(
-      image: CurrentWallpaper|null, attribution: CurrentAttribution|null,
+      image: CurrentWallpaper|null,
       dailyRefreshState: DailyRefreshState|null): string {
-    if (!image || !attribution || image.key !== attribution.key) {
+    if (!image) {
       return this.i18n('unknownImageAttribution');
     }
     if (image.type === WallpaperType.kDefault) {
       return this.i18n('defaultWallpaper');
     }
     const isDailyRefreshActive = !!dailyRefreshState;
-    if (isNonEmptyArray(attribution.attribution)) {
-      const title = attribution.attribution[0];
+    if (isNonEmptyArray(image.attribution)) {
+      const title = image.attribution[0];
       return isDailyRefreshActive ? this.i18n('dailyRefresh') + ': ' + title :
                                     title;
-    }
-    // Fallback to cached attribution.
-    const cachedAttribution = getLocalStorageAttribution(image.key);
-    if (isNonEmptyArray(cachedAttribution)) {
-      const title = cachedAttribution[0];
-      return isDailyRefreshActive ? this.i18n('dailyRefresh') + ': ' + title :
-                                    title;
+    } else {
+      // Fallback to cached attribution.
+      const attribution = getLocalStorageAttribution(image.key);
+      if (isNonEmptyArray(attribution)) {
+        const title = attribution[0];
+        return isDailyRefreshActive ? this.i18n('dailyRefresh') + ': ' + title :
+                                      title;
+      }
     }
     return this.i18n('unknownImageAttribution');
   }
 
-  private computeImageOtherAttribution_(
-      image: CurrentWallpaper|null,
-      attribution: CurrentAttribution|null): string[] {
-    if (!image || !attribution || image.key !== attribution.key) {
+  private computeImageOtherAttribution_(image: CurrentWallpaper|
+                                        null): string[] {
+    if (!image) {
       return [];
     }
-    if (isNonEmptyArray(attribution.attribution)) {
-      return attribution.attribution.slice(1);
+    if (isNonEmptyArray(image.attribution)) {
+      return image.attribution.slice(1);
     }
     // Fallback to cached attribution.
-    const cachedAttribution = getLocalStorageAttribution(image.key);
-    if (isNonEmptyArray(cachedAttribution)) {
-      return cachedAttribution.slice(1);
+    const attribution = getLocalStorageAttribution(image.key);
+    if (isNonEmptyArray(attribution)) {
+      return attribution.slice(1);
     }
     return [];
   }
@@ -299,9 +293,6 @@ export class WallpaperSelected extends WithPersonalizationStore {
         return !!imageIsInCollection;
       // Hide button when viewing Google Photos.
       case Paths.GOOGLE_PHOTOS_COLLECTION:
-        return false;
-      // Hide button when viewing local images.
-      case Paths.LOCAL_COLLECTION:
         return false;
       default:
         return true;
@@ -488,9 +479,38 @@ export class WallpaperSelected extends WithPersonalizationStore {
   }
 
   private getAriaLabel_(
-      image: CurrentWallpaper|null, attribution: CurrentAttribution|null,
+      image: CurrentWallpaper|null,
       dailyRefreshState: DailyRefreshState|null): string {
-    return getWallpaperAriaLabel(image, attribution, dailyRefreshState);
+    if (!image) {
+      return this.i18n('currentlySet') + ' ' +
+          this.i18n('unknownImageAttribution');
+    }
+    if (image.type === WallpaperType.kDefault) {
+      return `${this.i18n('currentlySet')} ${this.i18n('defaultWallpaper')}`;
+    }
+    const isDailyRefreshActive = !!dailyRefreshState;
+    if (isNonEmptyArray(image.attribution)) {
+      return isDailyRefreshActive ?
+          [
+            this.i18n('currentlySet'),
+            this.i18n('dailyRefresh'),
+            ...image.attribution,
+          ].join(' ') :
+          [this.i18n('currentlySet'), ...image.attribution].join(' ');
+    }
+    // Fallback to cached attribution.
+    const attribution = getLocalStorageAttribution(image.key);
+    if (isNonEmptyArray(attribution)) {
+      return isDailyRefreshActive ?
+          [
+            this.i18n('currentlySet'),
+            this.i18n('dailyRefresh'),
+            ...image.attribution,
+          ].join(' ') :
+          [this.i18n('currentlySet'), ...attribution].join(' ');
+    }
+    return this.i18n('currentlySet') + ' ' +
+        this.i18n('unknownImageAttribution');
   }
 
   /**
@@ -501,22 +521,20 @@ export class WallpaperSelected extends WithPersonalizationStore {
   }
 
   /**
-   * Cache the attribution in local storage when attribution is updated
-   * Populate the attribution map in local storage when attribution is updated
+   * Cache the attribution in local storage when image is updated
+   * Populate the attribution map in local storage when image is updated
    */
-  private async onAttributionChanged_(
-      newAttribution: CurrentAttribution|null,
-      oldAttribution: CurrentAttribution|null) {
+  private async onImageChanged_(
+      newImage: CurrentWallpaper|null, oldImage: CurrentWallpaper|null) {
     const attributionMap =
         JSON.parse((window.localStorage['attribution'] || '{}'));
-    const attributeChanged = !!newAttribution && !!oldAttribution &&
-        newAttribution.key !== oldAttribution.key;
-    if (attributionMap.size == 0 || attributeChanged) {
-      if (newAttribution) {
-        attributionMap[newAttribution.key] = newAttribution.attribution;
+    if (attributionMap.size == 0 ||
+        !!newImage && !!oldImage && newImage.key !== oldImage.key) {
+      if (newImage) {
+        attributionMap[newImage.key] = newImage.attribution;
       }
-      if (oldAttribution) {
-        delete attributionMap[oldAttribution.key];
+      if (oldImage) {
+        delete attributionMap[oldImage.key];
       }
       window.localStorage['attribution'] = JSON.stringify(attributionMap);
     }

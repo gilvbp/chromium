@@ -158,10 +158,12 @@ public class MessageCardProviderMediator implements MessageService.MessageObserv
         mUiDismissActionProvider.dismiss(type);
     }
 
+    @VisibleForTesting
     Map<Integer, List<Message>> getReadyMessageItemsForTesting() {
         return mMessageItems;
     }
 
+    @VisibleForTesting
     Map<Integer, Message> getShownMessageItemsForTesting() {
         return mShownMessageItems;
     }

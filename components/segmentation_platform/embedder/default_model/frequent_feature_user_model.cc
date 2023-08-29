@@ -67,7 +67,6 @@ std::unique_ptr<Config> FrequentFeatureUserModel::GetConfig() {
   config->segmentation_uma_name = kFrequentFeatureUserUmaName;
   config->AddSegmentId(SegmentId::FREQUENT_FEATURE_USER_SEGMENT,
                        std::make_unique<FrequentFeatureUserModel>());
-  config->auto_execute_and_cache = true;
   config->segment_selection_ttl = base::Days(7);
   config->unknown_selection_ttl = base::Days(7);
   config->is_boolean_segment = true;
@@ -76,10 +75,10 @@ std::unique_ptr<Config> FrequentFeatureUserModel::GetConfig() {
 }
 
 FrequentFeatureUserModel::FrequentFeatureUserModel()
-    : DefaultModelProvider(kFrequentFeatureUserSegmentId) {}
+    : ModelProvider(kFrequentFeatureUserSegmentId) {}
 
-std::unique_ptr<DefaultModelProvider::ModelConfig>
-FrequentFeatureUserModel::GetModelConfig() {
+void FrequentFeatureUserModel::InitAndFetchModel(
+    const ModelUpdatedCallback& model_updated_callback) {
   proto::SegmentationModelMetadata frequent_feature_user_metadata;
   MetadataWriter writer(&frequent_feature_user_metadata);
   writer.SetDefaultSegmentationMetadataConfig(kMinSignalCollectionLength,
@@ -92,8 +91,10 @@ FrequentFeatureUserModel::GetModelConfig() {
   writer.AddUmaFeatures(kUMAFeatures.data(), kUMAFeatures.size());
 
   constexpr int kModelVersion = 1;
-  return std::make_unique<ModelConfig>(
-      std::move(frequent_feature_user_metadata), kModelVersion);
+  base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
+      FROM_HERE, base::BindRepeating(
+                     model_updated_callback, kFrequentFeatureUserSegmentId,
+                     std::move(frequent_feature_user_metadata), kModelVersion));
 }
 
 void FrequentFeatureUserModel::ExecuteModelWithInput(
@@ -116,6 +117,10 @@ void FrequentFeatureUserModel::ExecuteModelWithInput(
           std::move(callback),
           ModelProvider::Response(
               1, (total_non_search_feature > 0 && inputs[9] > 0) ? 1 : 0)));
+}
+
+bool FrequentFeatureUserModel::ModelAvailable() {
+  return true;
 }
 
 }  // namespace segmentation_platform

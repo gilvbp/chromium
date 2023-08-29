@@ -115,9 +115,9 @@ bool SVGTests::IsValid() const {
       return false;
     for (const auto& extension : extensions) {
       if (extension != html_names::xhtmlNamespaceURI &&
-          extension != mathml_names::kNamespaceURI) {
+          (!RuntimeEnabledFeatures::MathMLCoreEnabled() ||
+           extension != mathml_names::kNamespaceURI))
         return false;
-      }
     }
   }
   return true;

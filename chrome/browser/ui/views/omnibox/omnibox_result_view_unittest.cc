@@ -28,6 +28,8 @@
 #include "ui/aura/env.h"
 #endif
 
+class OmniboxEditModel;
+
 namespace {
 
 // An arbitrary index for the result view under test. Used to test the selection
@@ -36,10 +38,11 @@ static constexpr size_t kTestResultViewIndex = 4;
 
 class TestOmniboxPopupViewViews : public OmniboxPopupViewViews {
  public:
-  explicit TestOmniboxPopupViewViews(OmniboxController* controller)
-      : OmniboxPopupViewViews(/*omnibox_view=*/nullptr,
-                              controller,
-                              /*location_bar_view=*/nullptr),
+  explicit TestOmniboxPopupViewViews(OmniboxEditModel* edit_model)
+      : OmniboxPopupViewViews(
+            /*omnibox_view=*/nullptr,
+            edit_model,
+            /*location_bar_view=*/nullptr),
         selection_(OmniboxPopupSelection(0, OmniboxPopupSelection::NORMAL)) {}
 
   TestOmniboxPopupViewViews(const TestOmniboxPopupViewViews&) = delete;
@@ -72,10 +75,9 @@ class OmniboxResultViewTest : public ChromeViewsTestBase {
 
     omnibox_controller_ = std::make_unique<OmniboxController>(
         /*view=*/nullptr, std::make_unique<TestOmniboxClient>());
-    popup_view_ =
-        std::make_unique<TestOmniboxPopupViewViews>(omnibox_controller_.get());
-    result_view_ =
-        new OmniboxResultView(popup_view_.get(), kTestResultViewIndex);
+    popup_view_ = std::make_unique<TestOmniboxPopupViewViews>(edit_model());
+    result_view_ = new OmniboxResultView(popup_view_.get(), edit_model(),
+                                         kTestResultViewIndex);
 
     views::View* root_view = widget_->GetRootView();
     root_view->SetBoundsRect(gfx::Rect(0, 0, 500, 500));

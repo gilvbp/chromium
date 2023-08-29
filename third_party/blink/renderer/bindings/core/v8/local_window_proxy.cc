@@ -56,8 +56,6 @@
 #include "third_party/blink/renderer/core/inspector/inspector_task_runner.h"
 #include "third_party/blink/renderer/core/inspector/main_thread_debugger.h"
 #include "third_party/blink/renderer/core/loader/frame_loader.h"
-#include "third_party/blink/renderer/core/page/chrome_client.h"
-#include "third_party/blink/renderer/core/page/page.h"
 #include "third_party/blink/renderer/core/probe/core_probes.h"
 #include "third_party/blink/renderer/core/script/modulator.h"
 #include "third_party/blink/renderer/platform/bindings/dom_wrapper_world.h"
@@ -250,7 +248,8 @@ void LocalWindowProxy::CreateContext() {
   DidAttachGlobalObject();
 #endif
 
-  script_state_ = ScriptState::Create(context, world_, GetFrame()->DomWindow());
+  script_state_ = MakeGarbageCollected<ScriptState>(context, world_,
+                                                    GetFrame()->DomWindow());
 
   DCHECK(lifecycle_ == Lifecycle::kContextIsUninitialized ||
          lifecycle_ == Lifecycle::kGlobalObjectIsDetached);
@@ -320,12 +319,10 @@ void LocalWindowProxy::SetupWindowPrototypeChain() {
       GetIsolate(), V8PrivateProperty::CachedAccessor::kWindowProxy)
       .Set(window_wrapper, global_proxy);
 
-  if (GetFrame()->GetPage()->GetChromeClient().IsPopup()) {
-    // TODO(yukishiino): Remove installPagePopupController and implement
-    // PagePopupController in another way.
-    V8PagePopupControllerBinding::InstallPagePopupController(context,
-                                                             window_wrapper);
-  }
+  // TODO(yukishiino): Remove installPagePopupController and implement
+  // PagePopupController in another way.
+  V8PagePopupControllerBinding::InstallPagePopupController(context,
+                                                           window_wrapper);
 }
 
 void LocalWindowProxy::UpdateDocumentProperty() {

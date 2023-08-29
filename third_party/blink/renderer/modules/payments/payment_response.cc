@@ -184,7 +184,7 @@ void PaymentResponse::Trace(Visitor* visitor) const {
   visitor->Trace(details_);
   visitor->Trace(shipping_address_);
   visitor->Trace(payment_state_resolver_);
-  EventTarget::Trace(visitor);
+  EventTargetWithInlineData::Trace(visitor);
   ExecutionContextClient::Trace(visitor);
 }
 

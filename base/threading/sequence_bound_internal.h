@@ -67,11 +67,9 @@ struct CrossThreadTraits {
 template <typename T, typename CrossThreadTraits>
 class Storage {
  public:
-  using element_type = T;
+  using Ptr = T*;
 
-  bool is_null() const { return ptr_ == nullptr; }
-  auto GetPtrForBind() const { return CrossThreadTraits::Unretained(ptr_); }
-  auto GetRefForBind() const { return std::cref(*ptr_); }
+  Ptr get() const { return ptr_; }
 
   // Marked NO_SANITIZE because cfi doesn't like casting uninitialized memory to
   // `T*`. However, this is safe here because:
@@ -93,7 +91,7 @@ class Storage {
     // AlignedAlloc() requires alignment be a multiple of sizeof(void*).
     alloc_ = AlignedAlloc(
         sizeof(T), sizeof(void*) > alignof(T) ? sizeof(void*) : alignof(T));
-    ptr_ = reinterpret_cast<T*>(alloc_.get());
+    ptr_ = reinterpret_cast<Ptr>(alloc_.get());
 
     // Ensure that `ptr_` will be initialized.
     CrossThreadTraits::PostTask(
@@ -123,9 +121,10 @@ class Storage {
     CrossThreadTraits::PostTask(
         task_runner, FROM_HERE,
         CrossThreadTraits::BindOnce(
-            &InternalDestruct,
-            CrossThreadTraits::Unretained(std::exchange(ptr_, nullptr)),
-            CrossThreadTraits::Unretained(std::exchange(alloc_, nullptr))));
+            &InternalDestruct, CrossThreadTraits::Unretained(ptr_),
+            CrossThreadTraits::Unretained(alloc_.get())));
+    ptr_ = nullptr;
+    alloc_ = nullptr;
   }
 
  private:
@@ -146,22 +145,20 @@ class Storage {
   }
 
   // Pointer to the managed `T`.
-  raw_ptr<T> ptr_ = nullptr;
+  Ptr ptr_ = nullptr;
 
   // Storage originally allocated by `AlignedAlloc()`. Maintained separately
   // from  `ptr_` since the original, unadjusted pointer needs to be passed to
   // `AlignedFree()`.
-  raw_ptr<void> alloc_ = nullptr;
+  raw_ptr<void, DanglingUntriaged> alloc_ = nullptr;
 };
 
 template <typename T, typename CrossThreadTraits>
 struct Storage<std::unique_ptr<T>, CrossThreadTraits> {
  public:
-  using element_type = T;
+  using Ptr = T*;
 
-  bool is_null() const { return ptr_ == nullptr; }
-  auto GetPtrForBind() const { return CrossThreadTraits::Unretained(ptr_); }
-  auto GetRefForBind() const { return std::cref(*ptr_); }
+  Ptr get() const { return ptr_; }
 
   template <typename U>
   void Construct(SequencedTaskRunner& task_runner, std::unique_ptr<U> arg) {
@@ -182,9 +179,10 @@ struct Storage<std::unique_ptr<T>, CrossThreadTraits> {
   void Destruct(SequencedTaskRunner& task_runner) {
     CrossThreadTraits::PostTask(
         task_runner, FROM_HERE,
-        CrossThreadTraits::BindOnce(
-            &InternalDestruct,
-            CrossThreadTraits::Unretained(std::exchange(ptr_, nullptr))));
+        CrossThreadTraits::BindOnce(&InternalDestruct,
+                                    CrossThreadTraits::Unretained(ptr_)));
+
+    ptr_ = nullptr;
   }
 
  private:
@@ -195,7 +193,7 @@ struct Storage<std::unique_ptr<T>, CrossThreadTraits> {
   static void InternalDestruct(T* ptr) { delete ptr; }
 
   // Pointer to the heap-allocated `T`.
-  raw_ptr<T> ptr_ = nullptr;
+  Ptr ptr_ = nullptr;
 };
 
 }  // namespace base::sequence_bound_internal

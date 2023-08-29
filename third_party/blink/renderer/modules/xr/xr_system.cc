@@ -1588,7 +1588,8 @@ void XRSystem::FinishSessionCreation(
 void XRSystem::AddedEventListener(
     const AtomicString& event_type,
     RegisteredEventListener& registered_listener) {
-  EventTarget::AddedEventListener(event_type, registered_listener);
+  EventTargetWithInlineData::AddedEventListener(event_type,
+                                                registered_listener);
 
   // If we're adding an event listener we should spin up the service, if we can,
   // so that we can actually register for notifications.
@@ -1746,7 +1747,7 @@ void XRSystem::Trace(Visitor* visitor) const {
   visitor->Trace(fullscreen_exit_observer_);
   Supplement<Navigator>::Trace(visitor);
   ExecutionContextLifecycleObserver::Trace(visitor);
-  EventTarget::Trace(visitor);
+  EventTargetWithInlineData::Trace(visitor);
 }
 
 }  // namespace blink

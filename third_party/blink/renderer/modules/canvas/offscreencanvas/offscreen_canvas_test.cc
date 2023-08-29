@@ -91,7 +91,7 @@ void OffscreenCanvasTest::SetUp() {
       String::FromUTF8("<body><canvas id='c'></canvas></body>"));
 
   auto* canvas_element =
-      To<HTMLCanvasElement>(GetDocument().getElementById(AtomicString("c")));
+      To<HTMLCanvasElement>(GetDocument().getElementById("c"));
 
   DummyExceptionStateForTesting exception_state;
   offscreen_canvas_ = HTMLCanvasElementModule::transferControlToOffscreen(

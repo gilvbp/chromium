@@ -20,11 +20,10 @@ ZeroSuggestCacheServiceFactory* ZeroSuggestCacheServiceFactory::GetInstance() {
   return instance.get();
 }
 
-std::unique_ptr<KeyedService>
-ZeroSuggestCacheServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* ZeroSuggestCacheServiceFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   Profile* profile = Profile::FromBrowserContext(context);
-  return std::make_unique<ZeroSuggestCacheService>(
+  return new ZeroSuggestCacheService(
       profile->GetPrefs(), OmniboxFieldTrial::kZeroSuggestCacheMaxSize.Get());
 }
 

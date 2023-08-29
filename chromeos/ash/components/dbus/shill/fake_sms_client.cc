@@ -17,10 +17,6 @@
 
 namespace ash {
 
-// static
-const char FakeSMSClient::kNumber[] = "000-000-0000";
-const char FakeSMSClient::kTimestamp[] = "Fri Jun  8 13:26:04 EDT 2012";
-
 FakeSMSClient::FakeSMSClient() = default;
 
 FakeSMSClient::~FakeSMSClient() = default;
@@ -41,10 +37,10 @@ void FakeSMSClient::CompleteGetAll() {
   DCHECK(pending_get_all_callback_) << "No pending call to GetAll()";
 
   base::Value::Dict sms;
-  sms.Set("Number", kNumber);
+  sms.Set("Number", "000-000-0000");
   sms.Set("Text", "FakeSMSClient: Test Message: " +
                       pending_get_all_object_path_.value());
-  sms.Set("Timestamp", kTimestamp);
+  sms.Set("Timestamp", "Fri Jun  8 13:26:04 EDT 2012");
   base::SingleThreadTaskRunner::GetCurrentDefault()->PostTask(
       FROM_HERE,
       base::BindOnce(std::move(pending_get_all_callback_), std::move(sms)));

@@ -9,8 +9,8 @@
 #import <LocalAuthentication/LocalAuthentication.h>
 #import <Security/Security.h>
 
-#include "base/apple/scoped_cftyperef.h"
 #include "base/component_export.h"
+#include "base/mac/scoped_cftyperef.h"
 #include "base/no_destructor.h"
 
 namespace device::fido::mac {
@@ -31,18 +31,17 @@ class COMPONENT_EXPORT(DEVICE_FIDO) Keychain {
   Keychain& operator=(const Keychain&) = delete;
 
   // KeyCreateRandomKey wraps the |SecKeyCreateRandomKey| function.
-  virtual base::apple::ScopedCFTypeRef<SecKeyRef> KeyCreateRandomKey(
+  virtual base::ScopedCFTypeRef<SecKeyRef> KeyCreateRandomKey(
       CFDictionaryRef params,
       CFErrorRef* error);
   // KeyCreateSignature wraps the |SecKeyCreateSignature| function.
-  virtual base::apple::ScopedCFTypeRef<CFDataRef> KeyCreateSignature(
+  virtual base::ScopedCFTypeRef<CFDataRef> KeyCreateSignature(
       SecKeyRef key,
       SecKeyAlgorithm algorithm,
       CFDataRef data,
       CFErrorRef* error);
   // KeyCopyPublicKey wraps the |SecKeyCopyPublicKey| function.
-  virtual base::apple::ScopedCFTypeRef<SecKeyRef> KeyCopyPublicKey(
-      SecKeyRef key);
+  virtual base::ScopedCFTypeRef<SecKeyRef> KeyCopyPublicKey(SecKeyRef key);
 
   // ItemCopyMatching wraps the |SecItemCopyMatching| function.
   virtual OSStatus ItemCopyMatching(CFDictionaryRef query, CFTypeRef* result);
@@ -51,7 +50,7 @@ class COMPONENT_EXPORT(DEVICE_FIDO) Keychain {
   // ItemDelete wraps the |SecItemUpdate| function.
   virtual OSStatus ItemUpdate(
       CFDictionaryRef query,
-      base::apple::ScopedCFTypeRef<CFMutableDictionaryRef> keychain_data);
+      base::ScopedCFTypeRef<CFMutableDictionaryRef> keychain_data);
 
  protected:
   Keychain();

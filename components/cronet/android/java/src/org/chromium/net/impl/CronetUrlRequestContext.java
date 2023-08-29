@@ -194,6 +194,7 @@ public class CronetUrlRequestContext extends CronetEngineBase {
         return mLogger;
     }
 
+    @VisibleForTesting
     public boolean getEnableTelemetryForTesting() {
         return mEnableTelemetry;
     }
@@ -205,7 +206,9 @@ public class CronetUrlRequestContext extends CronetEngineBase {
         mThroughputListenerList.disableThreadAsserts();
         mNetworkQualityEstimatorEnabled = builder.networkQualityEstimatorEnabled();
         CronetLibraryLoader.ensureInitialized(builder.getContext(), builder);
-        CronetUrlRequestContextJni.get().setMinLogLevel(getLoggingLevel());
+        if (!IntegratedModeState.INTEGRATED_MODE_ENABLED) {
+            CronetUrlRequestContextJni.get().setMinLogLevel(getLoggingLevel());
+        }
         if (builder.httpCacheMode() == HttpCacheType.DISK) {
             mInUseStoragePath = builder.storagePath();
             synchronized (sInUseStoragePaths) {
@@ -257,11 +260,8 @@ public class CronetUrlRequestContext extends CronetEngineBase {
     }
 
     static CronetSource getCronetSource() {
-        ClassLoader implClassLoader = CronetUrlRequest.class.getClassLoader();
-        if (implClassLoader.toString().startsWith("java.lang.BootClassLoader")) {
-            return CronetSource.CRONET_SOURCE_PLATFORM;
-        }
         ClassLoader apiClassLoader = CronetEngine.class.getClassLoader();
+        ClassLoader implClassLoader = CronetUrlRequest.class.getClassLoader();
         return apiClassLoader.equals(implClassLoader) ? CronetSource.CRONET_SOURCE_STATICALLY_LINKED
                                                       : CronetSource.CRONET_SOURCE_PLAY_SERVICES;
     }
@@ -335,7 +335,6 @@ public class CronetUrlRequestContext extends CronetEngineBase {
             boolean trafficStatsTagSet, int trafficStatsTag, boolean trafficStatsUidSet,
             int trafficStatsUid, RequestFinishedInfo.Listener requestFinishedListener,
             int idempotency, long networkHandle) {
-        // if this request is not bound to network, use the network bound to the engine.
         if (networkHandle == DEFAULT_NETWORK_HANDLE) {
             networkHandle = mNetworkHandle;
         }
@@ -755,7 +754,11 @@ public class CronetUrlRequestContext extends CronetEngineBase {
     private void initNetworkThread() {
         mNetworkThread = Thread.currentThread();
         mInitCompleted.open();
-        Thread.currentThread().setName("ChromiumNet");
+        if (!IntegratedModeState.INTEGRATED_MODE_ENABLED) {
+            // In integrated mode, network thread is shared from the host.
+            // Cronet shouldn't change the property of the thread.
+            Thread.currentThread().setName("ChromiumNet");
+        }
     }
 
     @SuppressWarnings("unused")

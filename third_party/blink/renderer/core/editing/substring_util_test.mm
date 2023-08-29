@@ -17,6 +17,10 @@
 #include "third_party/blink/renderer/platform/testing/unit_test_helpers.h"
 #include "third_party/blink/renderer/platform/testing/url_test_helpers.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace blink {
 
 class SubStringUtilTest : public testing::Test {
@@ -53,7 +57,7 @@ TEST_F(SubStringUtilTest, SubstringUtil) {
       static_cast<WebLocalFrameImpl*>(web_view->MainFrame());
 
   gfx::Point baseline_point;
-  base::apple::ScopedCFTypeRef<CFAttributedStringRef> result =
+  base::ScopedCFTypeRef<CFAttributedStringRef> result =
       SubstringUtil::AttributedSubstringInRange(frame->GetFrame(), 10, 3,
                                                 baseline_point);
   ASSERT_TRUE(result);
@@ -105,7 +109,7 @@ TEST_F(SubStringUtilTest, SubstringUtilPinchZoom) {
       static_cast<WebLocalFrameImpl*>(web_view->MainFrame());
 
   gfx::Point baseline_point;
-  base::apple::ScopedCFTypeRef<CFAttributedStringRef> result =
+  base::ScopedCFTypeRef<CFAttributedStringRef> result =
       SubstringUtil::AttributedSubstringInRange(frame->GetFrame(), 10, 3,
                                                 baseline_point);
   ASSERT_TRUE(result);
@@ -137,7 +141,7 @@ TEST_F(SubStringUtilTest, SubstringUtilIframe) {
       To<LocalFrame>(main_frame->GetFrame()->Tree().FirstChild()));
 
   gfx::Point baseline_point;
-  base::apple::ScopedCFTypeRef<CFAttributedStringRef> result =
+  base::ScopedCFTypeRef<CFAttributedStringRef> result =
       SubstringUtil::AttributedSubstringInRange(child_frame->GetFrame(), 11, 7,
                                                 baseline_point);
   ASSERT_NE(result, nullptr);

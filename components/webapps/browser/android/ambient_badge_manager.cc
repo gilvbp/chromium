@@ -60,12 +60,10 @@ AmbientBadgeManager::~AmbientBadgeManager() {
 void AmbientBadgeManager::MaybeShow(
     const GURL& validated_url,
     const std::u16string& app_name,
-    const std::string& app_identifier,
     std::unique_ptr<AddToHomescreenParams> a2hs_params,
     base::OnceClosure show_banner_callback) {
   validated_url_ = validated_url;
   app_name_ = app_name;
-  app_identifier_ = app_identifier;
   a2hs_params_ = std::move(a2hs_params);
   show_banner_callback_ = std::move(show_banner_callback);
 
@@ -97,7 +95,7 @@ void AmbientBadgeManager::AddToHomescreenFromBadge() {
 
 void AmbientBadgeManager::BadgeDismissed() {
   AppBannerSettingsHelper::RecordBannerEvent(
-      web_contents_.get(), validated_url_, app_identifier_,
+      web_contents_.get(), validated_url_, a2hs_params_->GetAppIdentifier(),
       AppBannerSettingsHelper::APP_BANNER_EVENT_DID_BLOCK,
       AppBannerManager::GetCurrentTime());
 
@@ -109,7 +107,7 @@ void AmbientBadgeManager::BadgeDismissed() {
 
 void AmbientBadgeManager::BadgeIgnored() {
   AppBannerSettingsHelper::RecordBannerEvent(
-      web_contents_.get(), validated_url_, app_identifier_,
+      web_contents_.get(), validated_url_, a2hs_params_->GetAppIdentifier(),
       AppBannerSettingsHelper::APP_BANNER_EVENT_DID_SHOW,
       AppBannerManager::GetCurrentTime());
 
@@ -144,18 +142,8 @@ void AmbientBadgeManager::UpdateState(State state) {
 void AmbientBadgeManager::MaybeShowAmbientBadgeLegacy() {
   // Do not show the ambient badge if it was recently dismissed.
   if (AppBannerSettingsHelper::WasBannerRecentlyBlocked(
-          web_contents_.get(), validated_url_, app_identifier_,
+          web_contents_.get(), validated_url_, a2hs_params_->GetAppIdentifier(),
           AppBannerManager::GetCurrentTime())) {
-    UpdateState(State::kBlocked);
-    return;
-  }
-
-  if (base::FeatureList::IsEnabled(
-          features::kBlockInstallPromptIfIgnoreRecently) &&
-      AppBannerSettingsHelper::WasBannerRecentlyIgnored(
-          web_contents_.get(), validated_url_, app_identifier_,
-          AppBannerManager::GetCurrentTime())) {
-    LOG(ERROR) << "block";
     UpdateState(State::kBlocked);
     return;
   }
@@ -188,11 +176,11 @@ bool AmbientBadgeManager::ShouldSuppressAmbientBadgeOnFirstVisit() {
 
   absl::optional<base::Time> last_could_show_time =
       AppBannerSettingsHelper::GetSingleBannerEvent(
-          web_contents_.get(), validated_url_, app_identifier_,
+          web_contents_.get(), validated_url_, a2hs_params_->GetAppIdentifier(),
           AppBannerSettingsHelper::APP_BANNER_EVENT_COULD_SHOW_AMBIENT_BADGE);
 
   AppBannerSettingsHelper::RecordBannerEvent(
-      web_contents_.get(), validated_url_, app_identifier_,
+      web_contents_.get(), validated_url_, a2hs_params_->GetAppIdentifier(),
       AppBannerSettingsHelper::APP_BANNER_EVENT_COULD_SHOW_AMBIENT_BADGE,
       AppBannerManager::GetCurrentTime());
 
@@ -215,7 +203,7 @@ void AmbientBadgeManager::PerformWorkerCheckForAmbientBadge(
 }
 
 void AmbientBadgeManager::OnWorkerCheckResult(const InstallableData& data) {
-  if (!data.errors.empty()) {
+  if (!data.NoBlockingErrors()) {
     return;
   }
   passed_worker_check_ = true;
@@ -227,7 +215,7 @@ void AmbientBadgeManager::OnWorkerCheckResult(const InstallableData& data) {
 
 void AmbientBadgeManager::MaybeShowAmbientBadgeSmart(
     const InstallableData& data) {
-  if (data.errors.empty()) {
+  if (data.NoBlockingErrors()) {
     passed_worker_check_ = true;
   }
 
@@ -280,13 +268,13 @@ void AmbientBadgeManager::OnGotClassificationResult(
 
 bool AmbientBadgeManager::ShouldMessageBeBlockedByGuardrail() {
   if (AppBannerSettingsHelper::WasBannerRecentlyBlocked(
-          web_contents(), validated_url_, app_identifier_,
+          web_contents(), validated_url_, a2hs_params_->GetAppIdentifier(),
           AppBannerManager::GetCurrentTime())) {
     return true;
   }
 
   if (AppBannerSettingsHelper::WasBannerRecentlyIgnored(
-          web_contents(), validated_url_, app_identifier_,
+          web_contents(), validated_url_, a2hs_params_->GetAppIdentifier(),
           AppBannerManager::GetCurrentTime())) {
     return true;
   }

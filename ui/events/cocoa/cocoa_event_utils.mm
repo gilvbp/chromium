@@ -7,9 +7,13 @@
 #include <Carbon/Carbon.h>  // for <HIToolbox/Events.h>
 #include <IOKit/hidsystem/IOLLEvent.h>  // for NX_ constants
 
-#include "base/apple/scoped_cftyperef.h"
+#include "base/mac/scoped_cftyperef.h"
 #include "ui/events/event_constants.h"
 #include "ui/events/event_utils.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace {
 
@@ -136,7 +140,7 @@ bool IsKeyUpEvent(NSEvent* event) {
 }
 
 std::vector<uint8_t> EventToData(NSEvent* event) {
-  base::apple::ScopedCFTypeRef<CFDataRef> cf_data(
+  base::ScopedCFTypeRef<CFDataRef> cf_data(
       CGEventCreateData(nullptr, event.CGEvent));
   const uint8_t* cf_data_ptr = CFDataGetBytePtr(cf_data.get());
   size_t cf_data_size = CFDataGetLength(cf_data.get());
@@ -144,9 +148,9 @@ std::vector<uint8_t> EventToData(NSEvent* event) {
 }
 
 NSEvent* EventFromData(const std::vector<uint8_t>& data) {
-  base::apple::ScopedCFTypeRef<CFDataRef> cf_data(
+  base::ScopedCFTypeRef<CFDataRef> cf_data(
       CFDataCreate(nullptr, data.data(), data.size()));
-  base::apple::ScopedCFTypeRef<CGEventRef> cg_event(
+  base::ScopedCFTypeRef<CGEventRef> cg_event(
       CGEventCreateFromData(nullptr, cf_data.get()));
   return [NSEvent eventWithCGEvent:cg_event.get()];
 }

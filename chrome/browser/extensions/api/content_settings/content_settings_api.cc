@@ -33,8 +33,8 @@
 #include "extensions/browser/api/content_settings/content_settings_helpers.h"
 #include "extensions/browser/api/content_settings/content_settings_service.h"
 #include "extensions/browser/api/content_settings/content_settings_store.h"
+#include "extensions/browser/extension_prefs_scope.h"
 #include "extensions/browser/extension_util.h"
-#include "extensions/common/api/extension_types.h"
 #include "extensions/common/constants.h"
 #include "extensions/common/error_utils.h"
 
@@ -46,8 +46,6 @@ namespace Set = extensions::api::content_settings::ContentSetting::Set;
 namespace pref_helpers = extensions::preference_helpers;
 
 namespace {
-
-using extensions::api::types::ChromeSettingScope;
 
 bool RemoveContentType(base::Value::List& args,
                        ContentSettingsType* content_type) {
@@ -91,11 +89,11 @@ ContentSettingsContentSettingClearFunction::Run() {
     return RespondNow(Error(kUnknownErrorDoNotUse));
   }
 
-  ChromeSettingScope scope = ChromeSettingScope::kRegular;
+  ExtensionPrefsScope scope = kExtensionPrefsScopeRegular;
   bool incognito = false;
   if (params->details.scope ==
       api::content_settings::Scope::kIncognitoSessionOnly) {
-    scope = ChromeSettingScope::kIncognitoSessionOnly;
+    scope = kExtensionPrefsScopeIncognitoSessionOnly;
     incognito = true;
   }
 
@@ -150,7 +148,7 @@ ContentSettingsContentSettingGetFunction::Run() {
     return RespondNow(Error(extension_misc::kIncognitoErrorMessage));
 
   HostContentSettingsMap* map;
-  scoped_refptr<content_settings::CookieSettings> cookie_settings;
+  content_settings::CookieSettings* cookie_settings;
   Profile* profile = Profile::FromBrowserContext(browser_context());
   if (incognito) {
     if (!profile->HasPrimaryOTRProfile()) {
@@ -160,11 +158,13 @@ ContentSettingsContentSettingGetFunction::Run() {
     }
     map = HostContentSettingsMapFactory::GetForProfile(
         profile->GetPrimaryOTRProfile(/*create_if_needed=*/true));
-    cookie_settings = CookieSettingsFactory::GetForProfile(
-        profile->GetPrimaryOTRProfile(/*create_if_needed=*/true));
+    cookie_settings =
+        CookieSettingsFactory::GetForProfile(
+            profile->GetPrimaryOTRProfile(/*create_if_needed=*/true))
+            .get();
   } else {
     map = HostContentSettingsMapFactory::GetForProfile(profile);
-    cookie_settings = CookieSettingsFactory::GetForProfile(profile);
+    cookie_settings = CookieSettingsFactory::GetForProfile(profile).get();
   }
 
   // TODO(crbug.com/1386190): Consider whether the following check should
@@ -284,11 +284,11 @@ ContentSettingsContentSettingSetFunction::Run() {
     return RespondNow(Error(kUnsupportedEmbeddedException));
   }
 
-  ChromeSettingScope scope = ChromeSettingScope::kRegular;
+  ExtensionPrefsScope scope = kExtensionPrefsScopeRegular;
   bool incognito = false;
   if (params->details.scope ==
       api::content_settings::Scope::kIncognitoSessionOnly) {
-    scope = ChromeSettingScope::kIncognitoSessionOnly;
+    scope = kExtensionPrefsScopeIncognitoSessionOnly;
     incognito = true;
   }
 
@@ -307,7 +307,7 @@ ContentSettingsContentSettingSetFunction::Run() {
       return RespondNow(Error(kIncognitoContextError));
   }
 
-  if (scope == ChromeSettingScope::kIncognitoSessionOnly &&
+  if (scope == kExtensionPrefsScopeIncognitoSessionOnly &&
       !Profile::FromBrowserContext(browser_context())->HasPrimaryOTRProfile()) {
     return RespondNow(Error(extension_misc::kIncognitoSessionOnlyErrorMessage));
   }

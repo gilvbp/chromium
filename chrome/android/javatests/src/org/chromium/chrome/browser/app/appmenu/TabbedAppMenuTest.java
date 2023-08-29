@@ -117,6 +117,7 @@ public class TabbedAppMenuTest {
         ActivityTestUtils.clearActivityOrientation(mActivityTestRule.getActivity());
 
         CompositorAnimationHandler.setTestingMode(false);
+        ShoppingFeatures.setShoppingListEligibleForTesting(null);
 
         TestThreadUtils.runOnUiThreadBlocking(() -> {
             WebsitePreferenceBridge.setCategoryEnabled(Profile.getLastUsedRegularProfile(),
@@ -284,6 +285,8 @@ public class TabbedAppMenuTest {
                 bookmarkStarPropertyModel.get(AppMenuItemProperties.TITLE_CONDENSED));
         mRenderTestRule.render(
                 getListView().getChildAt(0), "rounded_corner_icon_row_page_bookmarked");
+
+        AppMenuPropertiesDelegateImpl.setPageBookmarkedForTesting(null);
     }
 
     @Test
@@ -410,7 +413,7 @@ public class TabbedAppMenuTest {
     @SmallTest
     @Feature({"Browser", "Main"})
     @Restriction(UiRestriction.RESTRICTION_TYPE_PHONE)
-    @EnableFeatures(ChromeFeatureList.BOOKMARKS_REFRESH)
+    @EnableFeatures({ChromeFeatureList.BOOKMARKS_REFRESH})
     public void testAddBookmarkMenuItem() throws IOException {
         ShoppingFeatures.setShoppingListEligibleForTesting(true);
         TestThreadUtils.runOnUiThreadBlocking(() -> mAppMenuHandler.hideAppMenu());
@@ -425,7 +428,7 @@ public class TabbedAppMenuTest {
     @SmallTest
     @Feature({"Browser", "Main", "RenderTest"})
     @Restriction(UiRestriction.RESTRICTION_TYPE_PHONE)
-    @EnableFeatures(ChromeFeatureList.BOOKMARKS_REFRESH)
+    @EnableFeatures({ChromeFeatureList.BOOKMARKS_REFRESH})
     public void testEditBookmarkMenuItem() throws IOException {
         ShoppingFeatures.setShoppingListEligibleForTesting(true);
         TestThreadUtils.runOnUiThreadBlocking(() -> mAppMenuHandler.hideAppMenu());
@@ -444,12 +447,14 @@ public class TabbedAppMenuTest {
         Assert.assertNotEquals("No add bookmark menu item found.", -1, editBookmarkMenuItemIndex);
         mRenderTestRule.render(
                 getListView().getChildAt(editBookmarkMenuItemIndex), "edit_bookmark_list_item");
+
+        AppMenuPropertiesDelegateImpl.setPageBookmarkedForTesting(null);
     }
 
     @Test
     @LargeTest
     @Feature({"Browser", "Main", "QuickDelete", "RenderTest"})
-    @EnableFeatures(ChromeFeatureList.QUICK_DELETE_FOR_ANDROID)
+    @EnableFeatures({ChromeFeatureList.QUICK_DELETE_FOR_ANDROID})
     public void testQuickDeleteMenu_Shown() throws IOException {
         showAppMenuAndAssertMenuShown();
         int quickDeletePosition = AppMenuTestSupport.findIndexOfMenuItemById(
@@ -460,11 +465,11 @@ public class TabbedAppMenuTest {
     @Test
     @SmallTest
     @Feature({"Browser", "Main", "QuickDelete"})
-    @EnableFeatures(ChromeFeatureList.QUICK_DELETE_FOR_ANDROID)
+    @EnableFeatures({ChromeFeatureList.QUICK_DELETE_FOR_ANDROID})
     public void testQuickDeleteMenu_entryFromMenuItemHistogram() throws IOException {
         HistogramWatcher histogramWatcher =
-                HistogramWatcher.newSingleRecordWatcher(QuickDeleteMetricsDelegate.HISTOGRAM_NAME,
-                        QuickDeleteMetricsDelegate.QuickDeleteAction.MENU_ITEM_CLICKED);
+                HistogramWatcher.newSingleRecordWatcher("Privacy.QuickDelete",
+                                QuickDeleteMetricsDelegate.QuickDeleteAction.MENU_ITEM_CLICKED);
 
         MenuUtils.invokeCustomMenuActionSync(InstrumentationRegistry.getInstrumentation(),
                 mActivityTestRule.getActivity(), R.id.quick_delete_menu_id);
@@ -475,7 +480,7 @@ public class TabbedAppMenuTest {
     @Test
     @LargeTest
     @Feature({"Browser", "Main", "QuickDelete"})
-    @EnableFeatures(ChromeFeatureList.QUICK_DELETE_FOR_ANDROID)
+    @EnableFeatures({ChromeFeatureList.QUICK_DELETE_FOR_ANDROID})
     public void testQuickDeleteMenu_NotShownInIncognito() {
         // Hide first any shown app menu as it can interfere with this test.
         hitEnterAndAssertAppMenuDismissed();
@@ -490,7 +495,7 @@ public class TabbedAppMenuTest {
     @Test
     @LargeTest
     @Feature({"Browser", "Main", "QuickDelete"})
-    @DisableFeatures(ChromeFeatureList.QUICK_DELETE_FOR_ANDROID)
+    @DisableFeatures({ChromeFeatureList.QUICK_DELETE_FOR_ANDROID})
     public void testQuickDeleteMenu_NotShown() throws IOException {
         showAppMenuAndAssertMenuShown();
         assertEquals(-1,

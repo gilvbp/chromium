@@ -10,7 +10,6 @@
 #include "base/json/json_reader.h"
 #include "base/strings/utf_string_conversions.h"
 #include "base/values.h"
-#include "build/build_config.h"
 #include "components/autofill/core/browser/autofill_client.h"
 #include "components/autofill/core/browser/personal_data_manager.h"
 #include "services/network/public/cpp/shared_url_loader_factory.h"
@@ -51,7 +50,7 @@ void TestPaymentsClient::UnmaskCard(
     const UnmaskRequestDetails& unmask_request,
     base::OnceCallback<void(AutofillClient::PaymentsRpcResult,
                             UnmaskResponseDetails&)> callback) {
-  unmask_request_ = unmask_request;
+  unmask_request_ = &unmask_request;
 }
 
 void TestPaymentsClient::GetUploadDetails(
@@ -91,7 +90,6 @@ void TestPaymentsClient::UploadCard(
                           upload_card_response_details_);
 }
 
-#if !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_IOS)
 void TestPaymentsClient::MigrateCards(
     const MigrationRequestDetails& details,
     const std::vector<MigratableCreditCard>& migratable_credit_cards,
@@ -99,7 +97,6 @@ void TestPaymentsClient::MigrateCards(
   std::move(callback).Run(AutofillClient::PaymentsRpcResult::kSuccess,
                           std::move(save_result_), "this is display text");
 }
-#endif  // !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_IOS)
 
 void TestPaymentsClient::SelectChallengeOption(
     const SelectChallengeOptionRequestDetails& details,
@@ -152,6 +149,7 @@ void TestPaymentsClient::AddFidoEligibleCard(std::string server_id,
   unmask_details_.offer_fido_opt_in = false;
   unmask_details_.unmask_auth_method = AutofillClient::UnmaskAuthMethod::kFido;
   unmask_details_.fido_eligible_card_ids.insert(server_id);
+  unmask_details_.fido_request_options = base::Value::Dict();
 
   // Building the following JSON structure--
   // fido_request_options = {
@@ -162,20 +160,23 @@ void TestPaymentsClient::AddFidoEligibleCard(std::string server_id,
   //       "credential_id": credential_id,
   //       "authenticator_transport_support": ["INTERNAL"]
   // }]}
+  unmask_details_.fido_request_options->Set("challenge",
+                                            base::Value(kTestChallenge));
+  unmask_details_.fido_request_options->Set("timeout_millis",
+                                            base::Value(kTestTimeoutSeconds));
+  unmask_details_.fido_request_options->Set("relying_party_id",
+                                            base::Value(relying_party_id));
 
-  auto key_info =
-      base::Value::Dict().Set("authenticator_transport_support",
-                              base::Value::List().Append("INTERNAL"));
-  if (!credential_id.empty()) {
+  base::Value::Dict key_info;
+  if (!credential_id.empty())
     key_info.Set("credential_id", base::Value(credential_id));
-  }
-
-  unmask_details_.fido_request_options =
-      base::Value::Dict()
-          .Set("challenge", base::Value(kTestChallenge))
-          .Set("timeout_millis", base::Value(kTestTimeoutSeconds))
-          .Set("relying_party_id", base::Value(relying_party_id))
-          .Set("key_info", base::Value::List().Append(std::move(key_info)));
+  key_info.Set("authenticator_transport_support",
+               base::Value(base::Value::Type::LIST));
+  key_info.FindList("authenticator_transport_support")->Append("INTERNAL");
+  unmask_details_.fido_request_options->Set(
+      "key_info", base::Value(base::Value::Type::LIST));
+  unmask_details_.fido_request_options->FindList("key_info")
+      ->Append(std::move(key_info));
 }
 
 void TestPaymentsClient::SetUploadCardResponseDetailsForUploadCard(

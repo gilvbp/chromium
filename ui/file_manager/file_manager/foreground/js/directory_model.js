@@ -18,8 +18,8 @@ import {PropStatus, SearchLocation, SearchOptions, State} from '../../externs/ts
 import {Store} from '../../externs/ts/store.js';
 import {VolumeInfo} from '../../externs/volume_info.js';
 import {VolumeManager} from '../../externs/volume_manager.js';
-import {changeDirectory} from '../../state/ducks/current_directory.js';
-import {updateSearch} from '../../state/ducks/search.js';
+import {changeDirectory} from '../../state/actions/current_directory.js';
+import {updateSearch} from '../../state/actions/search.js';
 import {getStore} from '../../state/store.js';
 
 import {constants} from './constants.js';
@@ -165,8 +165,8 @@ export class DirectoryModel extends EventTarget {
     this.fileWatcher_.addEventListener(
         'watcher-directory-changed',
         this.onWatcherDirectoryChanged_.bind(this));
-    // For non-watchable directories (e.g. FakeEntry) and volumes (MTP) we need
-    // to subscribe to the IOTask and manually refresh.
+    // For non-watchable directory (e.g. FakeEntry), we need to subscribe to
+    // the IOTask and manually refresh.
     chrome.fileManagerPrivate.onIOTaskProgressStatus.addListener(
         this.updateFileListAfterIOTask_.bind(this));
 
@@ -1713,34 +1713,35 @@ export class DirectoryModel extends EventTarget {
   }
 
   /**
-   * Update the file list when certain IO task is finished. To keep the file
-   * list refresh for non-watchable fake directory entries and volumes, we need
-   * to explicitly subscribe to the IO task status event, and manually refresh.
+   * Update the file list when curtain IO task is finished. Fake directory
+   * entries like RecentEntry is not watchable, to keep the file list
+   * refresh, we need to explicitly subscribe to the IO task status event, and
+   * manually refresh.
    * @param {!chrome.fileManagerPrivate.ProgressStatus} event
    * @private
    */
   updateFileListAfterIOTask_(event) {
-    let rescan = false;
+    /** @type {!Set<!chrome.fileManagerPrivate.IOTaskType>} */
+    const eventTypesRequireRefresh = new Set([
+      chrome.fileManagerPrivate.IOTaskType.DELETE,
+      chrome.fileManagerPrivate.IOTaskType.EMPTY_TRASH,
+      chrome.fileManagerPrivate.IOTaskType.MOVE,
+      chrome.fileManagerPrivate.IOTaskType.RESTORE,
+      chrome.fileManagerPrivate.IOTaskType.RESTORE_TO_DESTINATION,
+      chrome.fileManagerPrivate.IOTaskType.TRASH,
+    ]);
     /** @type {!Set<?VolumeManagerCommon.RootType>} */
-    const fakeDirectoryEntryRootTypes = new Set([
+    const rootTypesRequireRefresh = new Set([
       VolumeManagerCommon.RootType.RECENT,
       VolumeManagerCommon.RootType.TRASH,
     ]);
     const currentRootType = this.getCurrentRootType();
-    const currentVolumeInfo = this.getCurrentVolumeInfo();
-    if (fakeDirectoryEntryRootTypes.has(currentRootType)) {
-      // Refresh if non-watchable fake directory entry.
-      rescan = true;
-    } else if (currentVolumeInfo && !currentVolumeInfo.watchable) {
-      // Refresh if non-watchable volume.
-      rescan = true;
-    }
-    if (!rescan) {
+    if (!rootTypesRequireRefresh.has(currentRootType)) {
       return;
     }
     const isIOTaskFinished =
         event.state === chrome.fileManagerPrivate.IOTaskState.SUCCESS;
-    if (isIOTaskFinished) {
+    if (isIOTaskFinished && eventTypesRequireRefresh.has(event.type)) {
       this.rescanLater(/* refresh= */ false, /* invalidateCache= */ true);
     }
   }

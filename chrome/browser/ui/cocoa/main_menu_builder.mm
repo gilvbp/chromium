@@ -22,6 +22,10 @@
 #import "ui/base/l10n/l10n_util_mac.h"
 #include "ui/strings/grit/ui_strings.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace chrome {
 namespace {
 
@@ -273,7 +277,7 @@ NSMenuItem* BuildViewMenu(NSApplication* nsapp,
                 Item(IDS_ENTER_FULLSCREEN_MAC)
                     .action(@selector(toggleFullScreen:))
                     .is_alternate()
-                    .remove_if(base::mac::MacOSMajorVersion() <= 11)
+                    .remove_if(base::mac::IsAtMostOS11())
                     .key_equivalent(@"f", NSEventModifierFlagCommand |
                                               NSEventModifierFlagControl),
                 Item(IDS_TEXT_DEFAULT_MAC).command_id(IDC_ZOOM_NORMAL),

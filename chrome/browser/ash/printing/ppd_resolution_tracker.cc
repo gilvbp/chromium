@@ -97,9 +97,6 @@ void PpdResolutionTracker::MarkPrinterAsNotAutoconfigurable(
 
 bool PpdResolutionTracker::IsMarkedAsNotAutoconfigurable(
     const std::string& printer_id) const {
-  if (!PrinterStateExists(printer_id)) {
-    return false;
-  }
   return printer_state_.at(printer_id).IsMarkedAsNotAutoconfigurable();
 }
 

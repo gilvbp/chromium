@@ -83,14 +83,13 @@ void AppPreloadServiceFactory::SkipApiKeyCheckForTesting(
   g_skip_api_key_check = skip_api_key_check;
 }
 
-std::unique_ptr<KeyedService>
-AppPreloadServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* AppPreloadServiceFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   Profile* profile = Profile::FromBrowserContext(context);
   if (!IsAvailable(profile)) {
     return nullptr;
   }
-  return std::make_unique<AppPreloadService>(profile);
+  return new AppPreloadService(profile);
 }
 
 bool AppPreloadServiceFactory::ServiceIsCreatedWithBrowserContext() const {

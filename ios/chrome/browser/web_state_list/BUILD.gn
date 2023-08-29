@@ -11,6 +11,7 @@ source_set("session_metrics") {
     "//base",
     "//ios/chrome/browser/shared/model/browser_state",
   ]
+  configs += [ "//build/config/compiler:enable_arc" ]
 }
 
 source_set("web_state_list") {
@@ -38,6 +39,7 @@ source_set("web_state_list") {
     "//ios/web/public/session",
   ]
   frameworks = [ "Foundation.framework" ]
+  configs += [ "//build/config/compiler:enable_arc" ]
 }
 
 source_set("agents") {
@@ -70,11 +72,11 @@ source_set("agents") {
     "//ios/chrome/browser/web",
     "//ios/chrome/browser/web:tab_helper_delegates",
     "//ios/components/security_interstitials:security_interstitials",
-    "//ios/web/common:features",
     "//ios/web/public",
     "//ios/web/public/js_messaging:js_messaging",
   ]
   frameworks = [ "Foundation.framework" ]
+  configs += [ "//build/config/compiler:enable_arc" ]
 }
 
 source_set("unit_tests") {
@@ -108,4 +110,5 @@ source_set("unit_tests") {
     "//ios/web/public/test",
     "//testing/gtest",
   ]
+  configs += [ "//build/config/compiler:enable_arc" ]
 }

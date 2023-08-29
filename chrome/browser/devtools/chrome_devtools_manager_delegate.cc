@@ -303,18 +303,17 @@ void ChromeDevToolsManagerDelegate::ClientDetached(
 
 scoped_refptr<DevToolsAgentHost> ChromeDevToolsManagerDelegate::CreateNewTarget(
     const GURL& url,
-    DevToolsManagerDelegate::TargetType target_type) {
+    bool for_tab) {
   NavigateParams params(ProfileManager::GetLastUsedProfile(), url,
                         ui::PAGE_TRANSITION_AUTO_TOPLEVEL);
   params.disposition = WindowOpenDisposition::NEW_FOREGROUND_TAB;
   Navigate(&params);
   if (!params.navigated_or_inserted_contents)
     return nullptr;
-  return target_type == DevToolsManagerDelegate::kTab
-             ? DevToolsAgentHost::GetOrCreateForTab(
-                   params.navigated_or_inserted_contents)
-             : DevToolsAgentHost::GetOrCreateFor(
-                   params.navigated_or_inserted_contents);
+  return for_tab ? DevToolsAgentHost::GetOrCreateForTab(
+                       params.navigated_or_inserted_contents)
+                 : DevToolsAgentHost::GetOrCreateFor(
+                       params.navigated_or_inserted_contents);
 }
 
 std::vector<content::BrowserContext*>

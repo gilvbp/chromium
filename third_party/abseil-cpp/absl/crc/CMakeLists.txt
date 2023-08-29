@@ -77,7 +77,6 @@ absl_cc_library(
     absl::dynamic_annotations
     absl::endian
     absl::prefetch
-    absl::str_format
     absl::strings
 )
 
@@ -91,7 +90,6 @@ absl_cc_test(
   DEPS
     absl::crc32c
     absl::strings
-    absl::str_format
     GTest::gtest_main
 )
 

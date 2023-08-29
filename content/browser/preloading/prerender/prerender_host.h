@@ -275,10 +275,6 @@ class CONTENT_EXPORT PrerenderHost : public FrameTree::Delegate,
     return attributes_.embedder_histogram_suffix;
   }
 
-  absl::optional<blink::mojom::SpeculationEagerness> eagerness() const {
-    return attributes_.eagerness;
-  }
-
   base::WeakPtr<PreloadingAttempt> preloading_attempt() { return attempt_; }
 
  private:
@@ -291,7 +287,7 @@ class CONTENT_EXPORT PrerenderHost : public FrameTree::Delegate,
   // PreloadingFailureReason for PreloadingAttempt associated with this
   // PrerenderHost.
   void SetTriggeringOutcome(PreloadingTriggeringOutcome outcome);
-  void SetFailureReason(const PrerenderCancellationReason& reason);
+  void SetFailureReason(PrerenderFinalStatus status);
 
   ActivationNavigationParamsMatch
   AreBeginNavigationParamsCompatibleWithNavigation(

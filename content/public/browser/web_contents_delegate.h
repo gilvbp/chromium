@@ -123,8 +123,7 @@ class CONTENT_EXPORT WebContentsDelegate {
   // OpenURL() for these cases which does it for you).
 
   // Returns the WebContents the URL is opened in, or nullptr if the URL wasn't
-  // opened immediately. Note that the URL might be opened in another context
-  // when a nullptr is returned.
+  // opened immediately.
   virtual WebContents* OpenURLFromTab(WebContents* source,
                                       const OpenURLParams& params);
 
@@ -399,15 +398,15 @@ class CONTENT_EXPORT WebContentsDelegate {
   virtual JavaScriptDialogManager* GetJavaScriptDialogManager(
       WebContents* source);
 
-#if BUILDFLAG(IS_ANDROID) || BUILDFLAG(IS_APPLE)
+#if BUILDFLAG(IS_ANDROID) || BUILDFLAG(IS_MAC)
   // Called when color chooser should open. Returns the opened color chooser.
   // Returns nullptr if we failed to open the color chooser. The color chooser
-  // is supported/required for Android or iOS.
+  // is only supported/required for Android.
   virtual std::unique_ptr<ColorChooser> OpenColorChooser(
       WebContents* web_contents,
       SkColor color,
       const std::vector<blink::mojom::ColorSuggestionPtr>& suggestions);
-#endif
+#endif  // BUILDFLAG(IS_ANDROID) || BUILDFLAG(IS_MAC)
 
   // Called when an eye dropper should open. Returns the eye dropper window.
   // The eye dropper is responsible for calling listener->ColorSelected() or
@@ -748,9 +747,6 @@ class CONTENT_EXPORT WebContentsDelegate {
   // It's used to prevent drag and drop between privileged and non-privileged
   // WebContents.
   virtual bool IsPrivileged();
-
-  // Initiates previewing the given `url` within the given `web_contents`.
-  virtual void InitiatePreview(WebContents& web_contents, const GURL& url) {}
 
  protected:
   virtual ~WebContentsDelegate();

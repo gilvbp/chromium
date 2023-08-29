@@ -34,9 +34,7 @@ void TerminaInstaller::CancelInstall() {
   // TODO(b/277835995): Tests demand concurrent installations despite that they
   // need to be mass cancelled here (which is probably unintended). Consider
   // switching to CachedCallback or similar.
-  for (auto& installation : installations_) {
-    installation->CancelGracefully();
-  }
+  installations_.clear();
 }
 
 void TerminaInstaller::Install(

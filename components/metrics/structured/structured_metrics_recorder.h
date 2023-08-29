@@ -53,7 +53,7 @@ namespace metrics::structured {
 class StructuredMetricsRecorder : public Recorder::RecorderImpl {
  public:
   explicit StructuredMetricsRecorder(
-      raw_ptr<metrics::MetricsProvider> system_profile_provider);
+      base::raw_ptr<metrics::MetricsProvider> system_profile_provider);
   ~StructuredMetricsRecorder() override;
   StructuredMetricsRecorder(const StructuredMetricsRecorder&) = delete;
   StructuredMetricsRecorder& operator=(const StructuredMetricsRecorder&) =
@@ -88,7 +88,7 @@ class StructuredMetricsRecorder : public Recorder::RecorderImpl {
   StructuredMetricsRecorder(
       const base::FilePath& device_key_path,
       base::TimeDelta write_delay,
-      raw_ptr<metrics::MetricsProvider> system_profile_provider);
+      base::raw_ptr<metrics::MetricsProvider> system_profile_provider);
 
   PersistentProto<EventsProto>& proto() { return *events_.get(); }
 
@@ -233,7 +233,8 @@ class StructuredMetricsRecorder : public Recorder::RecorderImpl {
 
   // Interface for providing the SystemProfile to metrics.
   // See chrome/browser/metrics/chrome_metrics_service_client.h
-  raw_ptr<metrics::MetricsProvider, DanglingUntriaged> system_profile_provider_;
+  base::raw_ptr<metrics::MetricsProvider, DanglingUntriaged>
+      system_profile_provider_;
 
   // A set of projects that are not allowed to be recorded. This is a cache of
   // GetDisabledProjects().

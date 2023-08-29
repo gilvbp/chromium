@@ -495,6 +495,7 @@ void SyncerProtoUtil::AddRequiredFieldsToClientToServerMessage(
       cycle->context()->bag_of_chips());
   msg->set_api_key(google_apis::GetAPIKey());
   msg->mutable_client_status()->CopyFrom(cycle->context()->client_status());
+  msg->set_invalidator_client_id(cycle->context()->invalidator_client_id());
 }
 
 // static
@@ -509,6 +510,7 @@ SyncerError SyncerProtoUtil::PostClientToServerMessage(
   DCHECK(msg.has_bag_of_chips());
   DCHECK(msg.has_api_key());
   DCHECK(msg.has_client_status());
+  DCHECK(msg.has_invalidator_client_id());
 
   LogClientToServerMessage(msg);
   if (!PostAndProcessHeaders(cycle->context()->connection_manager(), msg,

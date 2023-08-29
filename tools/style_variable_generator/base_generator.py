@@ -102,9 +102,6 @@ class BaseGenerator:
             for name, value in typography['font_families'].items():
                 self.model.Add(VariableType.FONT_FAMILY, name, value, context)
 
-            for name, value in typography['font_faces'].items():
-                self.model.Add(VariableType.FONT_FACE, name, value, context)
-
             for name, value_obj in typography['typefaces'].items():
                 self.model.Add(VariableType.TYPEFACE, name, value_obj, context)
 

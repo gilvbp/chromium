@@ -7,7 +7,6 @@
 #include <memory>
 #include <utility>
 
-#include "base/check_is_test.h"
 #include "base/command_line.h"
 #include "base/feature_list.h"
 #include "base/files/file_path.h"
@@ -17,13 +16,10 @@
 #include "base/metrics/histogram_functions.h"
 #include "base/metrics/user_metrics.h"
 #include "base/no_destructor.h"
-#include "base/synchronization/lock.h"
 #include "base/task/sequenced_task_runner.h"
 #include "base/task/single_thread_task_runner.h"
-#include "base/time/clock.h"
 #include "build/build_config.h"
 #include "components/feature_engagement/internal/availability_model_impl.h"
-#include "components/feature_engagement/internal/blocked_iph_features.h"
 #include "components/feature_engagement/internal/chrome_variations_configuration.h"
 #include "components/feature_engagement/internal/display_lock_controller_impl.h"
 #include "components/feature_engagement/internal/editable_configuration.h"
@@ -40,7 +36,6 @@
 #include "components/feature_engagement/internal/proto/availability.pb.h"
 #include "components/feature_engagement/internal/stats.h"
 #include "components/feature_engagement/internal/system_time_provider.h"
-#include "components/feature_engagement/internal/testing_clock_time_provider.h"
 #include "components/feature_engagement/public/feature_constants.h"
 #include "components/feature_engagement/public/feature_list.h"
 #include "components/feature_engagement/public/group_constants.h"
@@ -105,8 +100,7 @@ Tracker* Tracker::Create(
     const base::FilePath& storage_dir,
     const scoped_refptr<base::SequencedTaskRunner>& background_task_runner,
     leveldb_proto::ProtoDatabaseProvider* db_provider,
-    base::WeakPtr<TrackerEventExporter> event_exporter,
-    const ConfigurationProviderList& configuration_providers) {
+    base::WeakPtr<TrackerEventExporter> event_exporter) {
   DVLOG(2) << "Creating Tracker";
   if (base::FeatureList::IsEnabled(kIPHDemoMode))
     return CreateDemoModeTracker().release();
@@ -121,13 +115,11 @@ Tracker* Tracker::Create(
       std::make_unique<PersistentEventStore>(std::move(event_db));
 
   auto configuration = std::make_unique<ChromeVariationsConfiguration>();
-  configuration->LoadConfigs(configuration_providers, GetAllFeatures(),
-                             GetAllGroups());
+  configuration->ParseConfigs(GetAllFeatures(), GetAllGroups());
 
   auto event_storage_validator =
       std::make_unique<FeatureConfigEventStorageValidator>();
-  event_storage_validator->InitializeFeatures(GetAllFeatures(), GetAllGroups(),
-                                              *configuration);
+  event_storage_validator->InitializeFeatures(GetAllFeatures(), *configuration);
 
   auto raw_event_model = std::make_unique<EventModelImpl>(
       std::move(event_store), std::move(event_storage_validator));
@@ -203,13 +195,9 @@ TrackerImpl::TriggerDetails TrackerImpl::ShouldTriggerHelpUIWithSnooze(
   }
 
   FeatureConfig feature_config = configuration_->GetFeatureConfig(feature);
-  std::vector<GroupConfig> group_configs;
-  for (auto group : feature_config.groups) {
-    group_configs.push_back(configuration_->GetGroupConfigByName(group));
-  }
   ConditionValidator::Result result = condition_validator_->MeetsConditions(
-      feature, feature_config, group_configs, *event_model_,
-      *availability_model_, *display_lock_controller_, configuration_.get(),
+      feature, feature_config, {}, *event_model_, *availability_model_,
+      *display_lock_controller_, configuration_.get(),
       time_provider_->GetCurrentDay());
   if (result.NoErrors()) {
     condition_validator_->NotifyIsShowing(
@@ -261,13 +249,9 @@ bool TrackerImpl::WouldTriggerHelpUI(const base::Feature& feature) const {
   }
 
   FeatureConfig feature_config = configuration_->GetFeatureConfig(feature);
-  std::vector<GroupConfig> group_configs;
-  for (auto group : feature_config.groups) {
-    group_configs.push_back(configuration_->GetGroupConfigByName(group));
-  }
   ConditionValidator::Result result = condition_validator_->MeetsConditions(
-      feature, feature_config, group_configs, *event_model_,
-      *availability_model_, *display_lock_controller_, configuration_.get(),
+      feature, feature_config, {}, *event_model_, *availability_model_,
+      *display_lock_controller_, configuration_.get(),
       time_provider_->GetCurrentDay());
   DVLOG(2) << "Would trigger result for " << feature.name
            << ": trigger=" << result.NoErrors()
@@ -299,15 +283,10 @@ Tracker::TriggerState TrackerImpl::GetTriggerState(
     return Tracker::TriggerState::NOT_READY;
   }
 
-  FeatureConfig feature_config = configuration_->GetFeatureConfig(feature);
-  std::vector<GroupConfig> group_configs;
-  for (auto group : feature_config.groups) {
-    group_configs.push_back(configuration_->GetGroupConfigByName(group));
-  }
   ConditionValidator::Result result = condition_validator_->MeetsConditions(
-      feature, configuration_->GetFeatureConfig(feature), group_configs,
-      *event_model_, *availability_model_, *display_lock_controller_,
-      configuration_.get(), time_provider_->GetCurrentDay());
+      feature, configuration_->GetFeatureConfig(feature), {}, *event_model_,
+      *availability_model_, *display_lock_controller_, configuration_.get(),
+      time_provider_->GetCurrentDay());
 
   if (result.trigger_ok) {
     DVLOG(2) << "TriggerState for " << feature.name << ": "
@@ -392,15 +371,7 @@ void TrackerImpl::UnregisterPriorityNotificationHandler(
 }
 
 const Configuration* TrackerImpl::GetConfigurationForTesting() const {
-  CHECK_IS_TEST();
   return configuration_.get();
-}
-
-void TrackerImpl::SetClockForTesting(const base::Clock& clock,
-                                     base::Time& initial_now) {
-  CHECK_IS_TEST();
-  time_provider_ =
-      std::make_unique<TestingClockTimeProvider>(clock, initial_now);
 }
 
 bool TrackerImpl::IsInitialized() const {
@@ -484,18 +455,29 @@ void TrackerImpl::OnReceiveExportedEvents(
 }
 
 // static
-void Tracker::PropagateTestStateToChildProcess(
-    base::CommandLine& command_line) {
-  auto* const blocked = BlockedIphFeatures::GetInstance();
-  base::AutoLock lock(blocked->GetLock());
-  blocked->MaybeWriteToCommandLine(command_line);
+bool TrackerImpl::IsFeatureBlockedByTest(const base::Feature& feature) {
+  auto& data = GetAllowedTestFeatureMap();
+  // Refcount for nullptr is the number of active ScopedIphFeatureList.
+  if (!data[nullptr]) {
+    return false;
+  }
+
+  // If the refcount for the feature is nonzero, then it is explicitly allowed.
+  if (data[&feature]) {
+    return false;
+  }
+
+  // At least one ScopedIphFeatureList is active and this feature is not
+  // explicitly allowed.
+  return true;
 }
 
 // static
-bool TrackerImpl::IsFeatureBlockedByTest(const base::Feature& feature) {
-  auto* const blocked = BlockedIphFeatures::GetInstance();
-  base::AutoLock lock(blocked->GetLock());
-  return blocked->IsFeatureBlocked(feature.name);
+std::map<const base::Feature*, size_t>&
+TrackerImpl::GetAllowedTestFeatureMap() {
+  static base::NoDestructor<std::map<const base::Feature*, size_t>> instance{
+      {std::make_pair(nullptr, 0)}};
+  return *instance;
 }
 
 }  // namespace feature_engagement

@@ -24,12 +24,10 @@ import org.junit.runners.model.Statement;
 
 import org.chromium.base.CommandLine;
 import org.chromium.base.Log;
-import org.chromium.base.ResettersForTesting;
 import org.chromium.base.test.params.MethodParamAnnotationRule;
 import org.chromium.base.test.util.AndroidSdkLevelSkipCheck;
 import org.chromium.base.test.util.CommandLineFlags;
 import org.chromium.base.test.util.DisableIfSkipCheck;
-import org.chromium.base.test.util.EspressoIdleTimeoutRule;
 import org.chromium.base.test.util.RestrictionSkipCheck;
 import org.chromium.base.test.util.SkipCheck;
 
@@ -38,7 +36,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 /**
  *  A custom runner for JUnit4 tests that checks requirements to conditionally ignore tests.
@@ -240,8 +237,7 @@ public class BaseJUnit4ClassRunner extends AndroidJUnit4ClassRunner {
     @CallSuper
     protected List<TestRule> getDefaultTestRules() {
         return Arrays.asList(new BaseJUnit4TestRule(), new MockitoErrorHandler(),
-                new UnitTestLifetimeAssertRule(),
-                new EspressoIdleTimeoutRule(20, TimeUnit.SECONDS));
+                new UnitTestLifetimeAssertRule(), new ResettersForTestingTestRule());
     }
 
     /**
@@ -283,11 +279,7 @@ public class BaseJUnit4ClassRunner extends AndroidJUnit4ClassRunner {
 
         super.run(notifier);
 
-        try {
-            runPostClassHooks(getDescription().getTestClass());
-        } finally {
-            ResettersForTesting.onAfterClass();
-        }
+        runPostClassHooks(getDescription().getTestClass());
     }
 
     @Override
@@ -297,11 +289,9 @@ public class BaseJUnit4ClassRunner extends AndroidJUnit4ClassRunner {
 
         long start = SystemClock.uptimeMillis();
 
-        ResettersForTesting.setMethodMode();
         runPreTestHooks(method);
 
         super.runChild(method, notifier);
-        ResettersForTesting.onAfterMethod();
 
         runPostTestHooks(method);
 

@@ -93,15 +93,16 @@ class SequenceManagerThreadDelegate : public Thread::Delegate {
     return sequence_manager_->GetTaskRunner();
   }
 
-  void BindToCurrentThread() override {
+  void BindToCurrentThread(TimerSlack timer_slack) override {
     sequence_manager_->BindToMessagePump(
         std::move(message_pump_factory_).Run());
+    sequence_manager_->SetTimerSlack(timer_slack);
   }
 
  private:
   std::unique_ptr<sequence_manager::internal::SequenceManagerImpl>
       sequence_manager_;
-  sequence_manager::TaskQueue::Handle default_task_queue_;
+  scoped_refptr<sequence_manager::TaskQueue> default_task_queue_;
   OnceCallback<std::unique_ptr<MessagePump>()> message_pump_factory_;
 };
 
@@ -117,6 +118,7 @@ Thread::Options::Options(ThreadType thread_type) : thread_type(thread_type) {}
 Thread::Options::Options(Options&& other)
     : message_pump_type(std::move(other.message_pump_type)),
       delegate(std::move(other.delegate)),
+      timer_slack(std::move(other.timer_slack)),
       message_pump_factory(std::move(other.message_pump_factory)),
       stack_size(std::move(other.stack_size)),
       thread_type(std::move(other.thread_type)),
@@ -129,6 +131,7 @@ Thread::Options& Thread::Options::operator=(Thread::Options&& other) {
 
   message_pump_type = std::move(other.message_pump_type);
   delegate = std::move(other.delegate);
+  timer_slack = std::move(other.timer_slack);
   message_pump_factory = std::move(other.message_pump_factory);
   stack_size = std::move(other.stack_size);
   thread_type = std::move(other.thread_type);
@@ -185,6 +188,8 @@ bool Thread::StartWithOptions(Options options) {
   id_ = kInvalidThreadId;
 
   SetThreadWasQuitProperly(false);
+
+  timer_slack_ = options.timer_slack;
 
   if (options.delegate) {
     DCHECK(!options.message_pump_factory);
@@ -372,7 +377,7 @@ void Thread::ThreadMain() {
   // Lazily initialize the |message_loop| so that it can run on this thread.
   DCHECK(delegate_);
   // This binds CurrentThread and SingleThreadTaskRunner::CurrentDefaultHandle.
-  delegate_->BindToCurrentThread();
+  delegate_->BindToCurrentThread(timer_slack_);
   DCHECK(CurrentThread::Get());
   DCHECK(SingleThreadTaskRunner::HasCurrentDefault());
 #if (BUILDFLAG(IS_POSIX) && !BUILDFLAG(IS_NACL)) || BUILDFLAG(IS_FUCHSIA)

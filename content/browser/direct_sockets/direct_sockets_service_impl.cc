@@ -210,10 +210,7 @@ DirectSocketsServiceImpl::DirectSocketsServiceImpl(
     RenderFrameHost* render_frame_host,
     mojo::PendingReceiver<blink::mojom::DirectSocketsService> receiver)
     : DocumentService(*render_frame_host, std::move(receiver)),
-      resolver_(network::SimpleHostResolver::Create(
-          /*network_context_factory=*/base::BindRepeating(
-              &DirectSocketsServiceImpl::GetNetworkContext,
-              base::Unretained(this)))) {
+      resolver_(network::SimpleHostResolver::Create(GetNetworkContext())) {
 #if BUILDFLAG(IS_CHROMEOS)
   firewall_hole_delegate_ = std::make_unique<FirewallHoleDelegate>();
 #endif  // BUILDFLAG(IS_CHROMEOS)

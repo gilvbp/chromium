@@ -159,10 +159,6 @@ void ImmersiveModeControllerChromeos::OnWidgetActivationChanged(
       widget, active || !widget->IsMinimized());
 }
 
-int ImmersiveModeControllerChromeos::GetMinimumContentOffset() const {
-  return 0;
-}
-
 void ImmersiveModeControllerChromeos::LayoutBrowserRootView() {
   views::Widget* widget = browser_view_->frame();
   // Update the window caption buttons.

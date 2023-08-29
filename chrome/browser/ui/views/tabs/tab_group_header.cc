@@ -88,8 +88,8 @@ class TabGroupHighlightPathGenerator : public views::HighlightPathGenerator {
   }
 
  private:
-  const raw_ptr<const views::View, AcrossTasksDanglingUntriaged> chip_;
-  const raw_ptr<const views::View, AcrossTasksDanglingUntriaged> title_;
+  const raw_ptr<const views::View, DanglingUntriaged> chip_;
+  const raw_ptr<const views::View, DanglingUntriaged> title_;
   const raw_ref<const TabGroupStyle> style_;
 };
 
@@ -123,8 +123,9 @@ TabGroupHeader::TabGroupHeader(TabSlotController& tab_slot_controller,
   title_->SetHorizontalAlignment(gfx::ALIGN_LEFT);
   title_->SetElideBehavior(gfx::FADE_TAIL);
 
+  // TODO(crbug.com/1399944): Remove this code after typography is updated.
   if (features::IsChromeRefresh2023()) {
-    title_->SetTextStyle(views::style::STYLE_BODY_4_EMPHASIS);
+    title_->SetLineHeight(16);
   }
 
   // Enable keyboard focus.
@@ -395,11 +396,6 @@ bool TabGroupHeader::DoesIntersectRect(const views::View* target,
 }
 
 int TabGroupHeader::GetDesiredWidth() const {
-  if (features::IsChromeRefresh2023()) {
-    const int overlap_margin = group_style_->GetTabGroupViewOverlap() * 2;
-    return overlap_margin + title_chip_->width();
-  }
-
   // If the tab group is collapsed, we want the right margin of the title to
   // match the left margin. The left margin is always the group stroke inset.
   // Using these values also guarantees the chip aligns with the collapsed
@@ -413,7 +409,7 @@ int TabGroupHeader::GetDesiredWidth() const {
   // during layout however; that would cause an the margin to be visually uneven
   // when the header is in the first slot and thus wouldn't overlap anything to
   // the left.
-  const int overlap_margin = group_style_->GetTabGroupViewOverlap() * 2;
+  const int overlap_margin = tab_style_->GetTabOverlap() * 2;
 
   // The empty and non-empty chips have different sizes and corner radii, but
   // both should look nestled against the group stroke of the tab to the right.
@@ -509,10 +505,11 @@ void TabGroupHeader::VisualsChanged() {
                  content_width + 2 * title_chip_horizontal_inset);
 
     // The bounds and background for the `title_chip_` is set here.
-    const gfx::Point title_chip_origin =
-        group_style_->GetTitleChipOffset(text_height);
-    title_chip_->SetBounds(title_chip_origin.x(), title_chip_origin.y(),
-                           title_chip_width,
+    const int title_chip_content_y_coord =
+        (GetLayoutConstant(TAB_HEIGHT) - text_height) / 2 -
+        title_chip_vertical_inset;
+    title_chip_->SetBounds(TabGroupUnderline::GetStrokeInset(),
+                           title_chip_content_y_coord, title_chip_width,
                            text_height + 2 * title_chip_vertical_inset);
     title_chip_->SetBackground(
         views::CreateRoundedRectBackground(color, corner_radius));
@@ -546,10 +543,6 @@ void TabGroupHeader::VisualsChanged() {
 }
 
 int TabGroupHeader::GetCollapsedHeaderWidth() const {
-  if (features::IsChromeRefresh2023()) {
-    return GetTabSizeInfo().standard_width;
-  }
-
   const int title_adjustment =
       group_style_->GetTitleAdjustmentToTabGroupHeaderDesiredWidth(
           title_->GetText());

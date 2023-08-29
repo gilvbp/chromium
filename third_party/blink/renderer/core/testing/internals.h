@@ -60,7 +60,7 @@ class HTMLIFrameElement;
 class HTMLInputElement;
 class HTMLMediaElement;
 class HTMLSelectElement;
-class HTMLSelectListElement;
+class HTMLSelectMenuElement;
 class HTMLVideoElement;
 class HitTestLayerRectList;
 class HitTestLocation;
@@ -113,11 +113,7 @@ class Internals final : public ScriptWrappable {
 
   ScriptPromise getInitialResourcePriority(ScriptState*,
                                            const String& url,
-                                           Document*,
-                                           bool new_load_only = false);
-  ScriptPromise getInitialResourcePriorityOfNewLoad(ScriptState*,
-                                                    const String& url,
-                                                    Document*);
+                                           Document*);
   String getResourceHeader(const String& url, const String& header, Document*);
 
   bool doesWindowHaveUrlFragment(DOMWindow*);
@@ -470,7 +466,7 @@ class Internals final : public ScriptWrappable {
   int selectPopupItemStyleFontHeight(Node*, int);
   void resetTypeAheadSession(HTMLSelectElement*);
 
-  void resetSelectListTypeAheadSession(HTMLSelectListElement*);
+  void resetSelectMenuTypeAheadSession(HTMLSelectMenuElement*);
 
   StaticSelection* getDragCaret();
   StaticSelection* getSelectionInFlatTree(DOMWindow*, ExceptionState&);

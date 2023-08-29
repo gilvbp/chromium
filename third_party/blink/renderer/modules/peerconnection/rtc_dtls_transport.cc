@@ -181,7 +181,7 @@ void RTCDtlsTransport::Trace(Visitor* visitor) const {
   visitor->Trace(remote_certificates_);
   visitor->Trace(ice_transport_);
   DtlsTransportProxy::Delegate::Trace(visitor);
-  EventTarget::Trace(visitor);
+  EventTargetWithInlineData::Trace(visitor);
   ExecutionContextClient::Trace(visitor);
 }
 

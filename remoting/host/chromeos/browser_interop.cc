@@ -18,8 +18,7 @@
 
 namespace remoting {
 
-std::unique_ptr<ChromotingHostContext>
-BrowserInterop::CreateChromotingHostContext() {
+std::unique_ptr<ChromotingHostContext> CreateChromotingHostContext() {
   return ChromotingHostContext::CreateForChromeOS(
       content::GetIOThreadTaskRunner({}), content::GetUIThreadTaskRunner({}),
       base::ThreadPool::CreateSingleThreadTaskRunner(
@@ -27,7 +26,7 @@ BrowserInterop::CreateChromotingHostContext() {
       g_browser_process->shared_url_loader_factory());
 }
 
-std::unique_ptr<PolicyWatcher> BrowserInterop::CreatePolicyWatcher() {
+std::unique_ptr<PolicyWatcher> CreatePolicyWatcher() {
   return PolicyWatcher::CreateWithPolicyService(
       g_browser_process->policy_service());
 }

@@ -70,7 +70,7 @@ void DisplayPerBucketData(
 
     {
       const auto i =
-          BucketIndexLookup::GetIndexForNeutralBuckets(requested_size);
+          BucketIndexLookup::GetIndexForDefaultBuckets(requested_size);
       alloc_size[i] += requested_size;
       alloc_nums[i]++;
     }

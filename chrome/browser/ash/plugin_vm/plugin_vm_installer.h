@@ -271,9 +271,8 @@ class PluginVmInstaller : public KeyedService,
   device::mojom::WakeLock* GetWakeLock();
 
   raw_ptr<Profile, ExperimentalAsh> profile_ = nullptr;
-  raw_ptr<Observer, DanglingUntriaged | ExperimentalAsh> observer_ = nullptr;
-  raw_ptr<download::BackgroundDownloadService,
-          DanglingUntriaged | ExperimentalAsh>
+  raw_ptr<Observer, ExperimentalAsh> observer_ = nullptr;
+  raw_ptr<download::BackgroundDownloadService, ExperimentalAsh>
       download_service_ = nullptr;
   State state_ = State::kIdle;
   InstallingState installing_state_ = InstallingState::kInactive;

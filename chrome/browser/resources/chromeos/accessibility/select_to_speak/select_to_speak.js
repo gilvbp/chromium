@@ -197,13 +197,11 @@ export class SelectToSpeak {
           'select_to_speak_listen_context_menu_option_text'),
       contexts: ['selection'],
       onclick: () => {
-        this.getFocusedNodeAndSpeakSelectedText_();
+        chrome.automation.getFocus(
+            focusedNode => this.requestSpeakSelectedText_(
+                MetricsUtils.StartSpeechMethod.CONTEXT_MENU, focusedNode));
       },
     });
-    chrome.accessibilityPrivate.onSelectToSpeakContextMenuClicked.addListener(
-        () => {
-          this.getFocusedNodeAndSpeakSelectedText_();
-        });
   }
 
   /**
@@ -292,13 +290,6 @@ export class SelectToSpeak {
       MetricsUtils.recordStartEvent(
           MetricsUtils.StartSpeechMethod.MOUSE, this.prefsManager_);
     });
-  }
-
-  /** @private */
-  getFocusedNodeAndSpeakSelectedText_() {
-    chrome.automation.getFocus(
-        focusedNode => this.requestSpeakSelectedText_(
-            MetricsUtils.StartSpeechMethod.CONTEXT_MENU, focusedNode));
   }
 
   /**
@@ -1622,10 +1613,8 @@ export class SelectToSpeak {
           chrome.i18n.getMessage('select_to_speak_natural_voice_dialog_title');
       const description = chrome.i18n.getMessage(
           'select_to_speak_natural_voice_dialog_description');
-      const cancelName =
-          chrome.i18n.getMessage('select_to_speak_natural_voice_dialog_cancel');
       chrome.accessibilityPrivate.showConfirmationDialog(
-          title, description, cancelName, confirm => {
+          title, description, confirm => {
             this.prefsManager_.setEnhancedNetworkVoicesFromDialog(confirm);
             if (callback !== undefined) {
               callback();

@@ -7,16 +7,11 @@
 
 #import "ios/chrome/browser/ui/toolbar/adaptive_toolbar_view_controller.h"
 
-/// Protected interface of the AdaptiveToolbarViewController.
+// Protected interface of the AdaptiveToolbarViewController.
 @interface AdaptiveToolbarViewController (Subclassing)
 
-/// Reacts to user tapping `collapsedToolbarButton`.
-- (void)collapsedToolbarButtonTapped;
-
-/// Sets location bar view controller. Used to move the location bar between the
-/// adaptive toolbars. Set to nil to remove from toolbar.
-- (void)setLocationBarViewController:
-    (UIViewController*)locationBarViewController;
+// Sets the progress of the progressBar to 1 then hides it.
+- (void)stopProgressBar;
 
 @end
 

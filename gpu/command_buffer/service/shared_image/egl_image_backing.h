@@ -8,6 +8,7 @@
 #include "base/memory/raw_ptr.h"
 #include "base/memory/scoped_refptr.h"
 #include "gpu/command_buffer/service/shared_image/gl_common_image_backing_factory.h"
+#include "gpu/command_buffer/service/shared_image/gl_texture_image_backing_helper.h"
 #include "gpu/command_buffer/service/shared_image/shared_image_backing.h"
 #include "ui/gfx/buffer_types.h"
 #include "ui/gl/gl_bindings.h"
@@ -69,9 +70,9 @@ class EGLImageBacking : public ClearTrackingSharedImageBacking {
   std::unique_ptr<DawnImageRepresentation> ProduceDawn(
       SharedImageManager* manager,
       MemoryTypeTracker* tracker,
-      const wgpu::Device& device,
-      wgpu::BackendType backend_type,
-      std::vector<wgpu::TextureFormat> view_formats) final;
+      WGPUDevice device,
+      WGPUBackendType backend_type,
+      std::vector<WGPUTextureFormat> view_formats) final;
 
  private:
   class TextureHolder;

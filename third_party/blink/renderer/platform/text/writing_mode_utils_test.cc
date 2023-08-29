@@ -29,6 +29,10 @@ TEST(WritingModeUtilsTest, PhysicalToLogicalHorizontalLtr) {
   EXPECT_EQ(kRight, converter.InlineEnd());
   EXPECT_EQ(kTop, converter.BlockStart());
   EXPECT_EQ(kBottom, converter.BlockEnd());
+  EXPECT_EQ(kLeft, converter.LineLeft());
+  EXPECT_EQ(kRight, converter.LineRight());
+  EXPECT_EQ(kTop, converter.Over());
+  EXPECT_EQ(kBottom, converter.Under());
   CheckLegacyLogicalDirections(converter);
 }
 
@@ -40,6 +44,10 @@ TEST(WritingModeUtilsTest, PhysicalToLogicalHorizontalRtl) {
   EXPECT_EQ(kLeft, converter.InlineEnd());
   EXPECT_EQ(kTop, converter.BlockStart());
   EXPECT_EQ(kBottom, converter.BlockEnd());
+  EXPECT_EQ(kLeft, converter.LineLeft());
+  EXPECT_EQ(kRight, converter.LineRight());
+  EXPECT_EQ(kTop, converter.Over());
+  EXPECT_EQ(kBottom, converter.Under());
   CheckLegacyLogicalDirections(converter);
 }
 
@@ -51,6 +59,10 @@ TEST(WritingModeUtilsTest, PhysicalToLogicalVlrLtr) {
   EXPECT_EQ(kBottom, converter.InlineEnd());
   EXPECT_EQ(kLeft, converter.BlockStart());
   EXPECT_EQ(kRight, converter.BlockEnd());
+  EXPECT_EQ(kTop, converter.LineLeft());
+  EXPECT_EQ(kBottom, converter.LineRight());
+  EXPECT_EQ(kRight, converter.Over());
+  EXPECT_EQ(kLeft, converter.Under());
   CheckLegacyLogicalDirections(converter);
 }
 
@@ -62,6 +74,10 @@ TEST(WritingModeUtilsTest, PhysicalToLogicalVlrRtl) {
   EXPECT_EQ(kTop, converter.InlineEnd());
   EXPECT_EQ(kLeft, converter.BlockStart());
   EXPECT_EQ(kRight, converter.BlockEnd());
+  EXPECT_EQ(kTop, converter.LineLeft());
+  EXPECT_EQ(kBottom, converter.LineRight());
+  EXPECT_EQ(kRight, converter.Over());
+  EXPECT_EQ(kLeft, converter.Under());
   CheckLegacyLogicalDirections(converter);
 }
 
@@ -73,6 +89,10 @@ TEST(WritingModeUtilsTest, PhysicalToLogicalVrlLtr) {
   EXPECT_EQ(kBottom, converter.InlineEnd());
   EXPECT_EQ(kRight, converter.BlockStart());
   EXPECT_EQ(kLeft, converter.BlockEnd());
+  EXPECT_EQ(kTop, converter.LineLeft());
+  EXPECT_EQ(kBottom, converter.LineRight());
+  EXPECT_EQ(kRight, converter.Over());
+  EXPECT_EQ(kLeft, converter.Under());
   CheckLegacyLogicalDirections(converter);
 }
 
@@ -84,6 +104,10 @@ TEST(WritingModeUtilsTest, PhysicalToLogicalVrlRtl) {
   EXPECT_EQ(kTop, converter.InlineEnd());
   EXPECT_EQ(kRight, converter.BlockStart());
   EXPECT_EQ(kLeft, converter.BlockEnd());
+  EXPECT_EQ(kTop, converter.LineLeft());
+  EXPECT_EQ(kBottom, converter.LineRight());
+  EXPECT_EQ(kRight, converter.Over());
+  EXPECT_EQ(kLeft, converter.Under());
   CheckLegacyLogicalDirections(converter);
 }
 
@@ -180,6 +204,10 @@ TEST(WritingModeUtilsTest, PhysicalToLogicalGetter) {
   EXPECT_EQ(kTop, getter.InlineEnd());
   EXPECT_EQ(kRight, getter.BlockStart());
   EXPECT_EQ(kLeft, getter.BlockEnd());
+  EXPECT_EQ(kTop, getter.LineLeft());
+  EXPECT_EQ(kBottom, getter.LineRight());
+  EXPECT_EQ(kRight, getter.Over());
+  EXPECT_EQ(kLeft, getter.Under());
   CheckLegacyLogicalDirections(getter);
 }
 
@@ -203,6 +231,16 @@ TEST(WritingModeUtilsTest, LogicalToPhysicalSetter) {
   setter.SetEnd(kInlineEnd);
   setter.SetBefore(kBlockStart);
   setter.SetAfter(kBlockEnd);
+
+  EXPECT_EQ(kBlockEnd, physical_values.Left());
+  EXPECT_EQ(kBlockStart, physical_values.Right());
+  EXPECT_EQ(kInlineEnd, physical_values.Top());
+  EXPECT_EQ(kInlineStart, physical_values.Bottom());
+
+  setter.SetLineRight(kInlineStart);
+  setter.SetLineLeft(kInlineEnd);
+  setter.SetOver(kBlockStart);
+  setter.SetUnder(kBlockEnd);
 
   EXPECT_EQ(kBlockEnd, physical_values.Left());
   EXPECT_EQ(kBlockStart, physical_values.Right());

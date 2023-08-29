@@ -33,7 +33,7 @@ class ScriptPromiseResolver;
 class ScriptState;
 
 class MODULES_EXPORT HIDDevice
-    : public EventTarget,
+    : public EventTargetWithInlineData,
       public ExecutionContextLifecycleObserver,
       public ActiveScriptWrappable<HIDDevice>,
       public device::mojom::blink::HidConnectionClient {

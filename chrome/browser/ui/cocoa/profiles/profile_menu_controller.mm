@@ -9,6 +9,7 @@
 #include <memory>
 
 #include "base/feature_list.h"
+#include "base/mac/scoped_nsobject.h"
 #include "base/metrics/histogram_macros.h"
 #include "base/strings/sys_string_conversions.h"
 #include "chrome/browser/browser_process.h"
@@ -92,7 +93,8 @@ class Observer : public BrowserListObserver, public AvatarMenuObserver {
   if ((self = [super init])) {
     _mainMenuItem = item;
 
-    NSMenu* menu = [[NSMenu alloc] initWithTitle:GetProfileMenuTitle()];
+    base::scoped_nsobject<NSMenu> menu(
+        [[NSMenu alloc] initWithTitle:GetProfileMenuTitle()]);
     [_mainMenuItem setSubmenu:menu];
 
     // This object will be constructed as part of nib loading, which happens
@@ -137,9 +139,10 @@ class Observer : public BrowserListObserver, public AvatarMenuObserver {
     return NO;
 
   if (dock) {
-    NSMenuItem* header = [[NSMenuItem alloc] initWithTitle:GetProfileMenuTitle()
-                                                    action:nil
-                                             keyEquivalent:@""];
+    base::scoped_nsobject<NSMenuItem> header([[NSMenuItem alloc]
+        initWithTitle:GetProfileMenuTitle()
+               action:nil
+        keyEquivalent:@""]);
     [header setEnabled:NO];
     [menu insertItem:header atIndex:offset++];
   }
@@ -260,11 +263,10 @@ class Observer : public BrowserListObserver, public AvatarMenuObserver {
 }
 
 - (NSMenuItem*)createItemWithTitle:(NSString*)title action:(SEL)sel {
-  NSMenuItem* item = [[NSMenuItem alloc] initWithTitle:title
-                                                action:sel
-                                         keyEquivalent:@""];
+  base::scoped_nsobject<NSMenuItem> item(
+      [[NSMenuItem alloc] initWithTitle:title action:sel keyEquivalent:@""]);
   [item setTarget:self];
-  return item;
+  return [item.release() autorelease];
 }
 
 @end

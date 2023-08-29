@@ -23,7 +23,7 @@ class ExtensionSyncServiceFactory : public ProfileKeyedServiceFactory {
   ExtensionSyncServiceFactory();
   ~ExtensionSyncServiceFactory() override;
 
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* context) const override;
 };
 

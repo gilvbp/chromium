@@ -54,10 +54,6 @@ class DEVICE_VR_EXPORT OpenXrDevice
 
   void EnsureRenderLoop();
 
-  void OnCreateInstanceResult(mojom::XRRuntimeSessionOptionsPtr options,
-                              XrResult result,
-                              XrInstance instance);
-
   void OnRequestSessionResult(bool result, mojom::XRSessionPtr session);
   void ForceEndSession(ExitXrPresentReason reason);
   void OnPresentingControllerMojoConnectionError();

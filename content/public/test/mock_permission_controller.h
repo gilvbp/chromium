@@ -45,10 +45,11 @@ class MockPermissionController : public PermissionController {
   MOCK_METHOD2(GetPermissionResultForOriginWithoutContext,
                content::PermissionResult(blink::PermissionType permission,
                                          const url::Origin& requesting_origin));
-  MOCK_METHOD3(GetPermissionResultForOriginWithoutContext,
-               content::PermissionResult(blink::PermissionType permission,
-                                         const url::Origin& requesting_origin,
-                                         const url::Origin& embedding_origin));
+  MOCK_METHOD3(
+      GetPermissionStatusForOriginWithoutContext,
+      blink::mojom::PermissionStatus(blink::PermissionType permission,
+                                     const url::Origin& requesting_origin,
+                                     const url::Origin& embedding_origin));
   MOCK_METHOD3(
       GetPermissionStatusForEmbeddedRequester,
       blink::mojom::PermissionStatus(blink::PermissionType permission,
@@ -58,13 +59,15 @@ class MockPermissionController : public PermissionController {
                bool(blink::PermissionType permission,
                     RenderFrameHost* render_frame_host));
   void RequestPermissionFromCurrentDocument(
+      blink::PermissionType permission,
       RenderFrameHost* render_frame_host,
-      PermissionRequestDescription request_description,
+      bool user_gesture,
       base::OnceCallback<void(blink::mojom::PermissionStatus)> callback)
       override;
   void RequestPermissionsFromCurrentDocument(
+      const std::vector<blink::PermissionType>& permission,
       RenderFrameHost* render_frame_host,
-      PermissionRequestDescription request_description,
+      bool user_gesture,
       base::OnceCallback<
           void(const std::vector<blink::mojom::PermissionStatus>&)> callback)
       override;

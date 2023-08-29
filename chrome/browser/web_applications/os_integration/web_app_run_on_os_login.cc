@@ -11,7 +11,6 @@
 #include "chrome/browser/web_applications/os_integration/os_integration_manager.h"
 #include "chrome/browser/web_applications/os_integration/web_app_shortcut.h"
 #include "chrome/browser/web_applications/web_app_constants.h"
-#include "chrome/browser/web_applications/web_app_provider.h"
 #include "chrome/browser/web_applications/web_app_registry_update.h"
 #include "chrome/browser/web_applications/web_app_sync_bridge.h"
 #include "content/public/browser/browser_task_traits.h"
@@ -44,7 +43,7 @@ void ScheduleRegisterRunOnOsLogin(WebAppSyncBridge* sync_bridge,
   // TODO(crbug.com/1401125): Remove once sub managers have been implemented and
   //  OsIntegrationManager::Synchronize() is running fine.
   if (!AreSubManagersExecuteEnabled()) {
-    ScopedRegistryUpdate update = sync_bridge->BeginUpdate();
+    ScopedRegistryUpdate update(sync_bridge);
     update->UpdateApp(shortcut_info->app_id)
         ->SetRunOnOsLoginOsIntegrationState(RunOnOsLoginMode::kWindowed);
   }
@@ -54,18 +53,19 @@ void ScheduleRegisterRunOnOsLogin(WebAppSyncBridge* sync_bridge,
       std::move(shortcut_info));
 }
 
-void ScheduleUnregisterRunOnOsLogin(WebAppProvider& provider,
+void ScheduleUnregisterRunOnOsLogin(WebAppSyncBridge* sync_bridge,
                                     const std::string& app_id,
                                     const base::FilePath& profile_path,
                                     const std::u16string& shortcut_title,
                                     ResultCallback callback) {
   DCHECK_CURRENTLY_ON(BrowserThread::UI);
+  DCHECK(sync_bridge);
 
   // TODO(crbug.com/1401125): Remove once sub managers have been implemented and
   //  OsIntegrationManager::Synchronize() is running fine.
   if (!AreSubManagersExecuteEnabled() &&
-      provider.registrar_unsafe().IsInstalled(app_id)) {
-    ScopedRegistryUpdate update = provider.sync_bridge_unsafe().BeginUpdate();
+      sync_bridge->registrar().IsInstalled(app_id)) {
+    ScopedRegistryUpdate update(sync_bridge);
     update->UpdateApp(app_id)->SetRunOnOsLoginOsIntegrationState(
         RunOnOsLoginMode::kNotRun);
   }

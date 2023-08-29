@@ -18,6 +18,10 @@
 #import "ios/chrome/browser/sync/sync_setup_service.h"
 #import "ios/chrome/browser/ui/authentication/authentication_flow.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 @interface UserSigninMediator ()
 
 // Manager for the authentication flow.
@@ -127,34 +131,24 @@
                              SigninCoordinatorResultCanceledByUser];
     }
   };
-  [self interruptWithAction:SigninCoordinatorInterrupt::DismissWithoutAnimation
-                 completion:completion];
+  [self cancelAndDismissAuthenticationFlowAnimated:NO completion:completion];
 }
 
-- (void)interruptWithAction:(SigninCoordinatorInterrupt)action
-                 completion:(ProceduralBlock)completion {
-  [self.authenticationFlow interruptWithAction:action];
+- (void)cancelAndDismissAuthenticationFlowAnimated:(BOOL)animated
+                                        completion:(ProceduralBlock)completion {
+  [self.authenticationFlow cancelAndDismissAnimated:animated];
+
   DCHECK(self.delegate);
   switch (self.delegate.signinStateOnStart) {
-    case IdentitySigninStateSignedOut:
-      switch (action) {
-        case SigninCoordinatorInterrupt::UIShutdownNoDismiss:
-          self.authenticationService->SignOut(
-              signin_metrics::ProfileSignout::kAbortSignin,
-              /*force_clear_browsing_data=*/false, nil);
-          if (completion) {
-            completion();
-          }
-          break;
-        case SigninCoordinatorInterrupt::DismissWithoutAnimation:
-        case SigninCoordinatorInterrupt::DismissWithAnimation:
-          self.authenticationService->SignOut(
-              signin_metrics::ProfileSignout::kAbortSignin,
-              /*force_clear_browsing_data=*/false, completion);
-          break;
-      }
+    case IdentitySigninStateSignedOut: {
+      self.authenticationService->SignOut(
+          signin_metrics::ProfileSignout::kAbortSignin,
+          /*force_clear_browsing_data=*/false, completion);
       break;
-    case IdentitySigninStateSignedInWithSyncDisabled:
+    }
+    case IdentitySigninStateSignedInWithSyncDisabled: {
+      DCHECK(!self.authenticationService->GetPrimaryIdentity(
+          signin::ConsentLevel::kSync));
       if ([self.authenticationService->GetPrimaryIdentity(
               signin::ConsentLevel::kSignin)
               isEqual:self.delegate.signinIdentityOnStart]) {
@@ -162,39 +156,23 @@
           completion();
       } else {
         __weak __typeof(self) weakSelf = self;
-        switch (action) {
-          case SigninCoordinatorInterrupt::UIShutdownNoDismiss:
-            // NoDismiss action is called during a shutdown. Unfortunately,
-            // the completion block has to be called synchronously. We can't
-            // wait for the sign-out completion block.
-            // See crbug.com/1455216.
-            self.authenticationService->SignOut(
-                signin_metrics::ProfileSignout::kAbortSignin,
-                /*force_clear_browsing_data=*/false, nil);
-            if (completion) {
-              completion();
-            }
-            break;
-          case SigninCoordinatorInterrupt::DismissWithoutAnimation:
-          case SigninCoordinatorInterrupt::DismissWithAnimation:
-            self.authenticationService->SignOut(
-                signin_metrics::ProfileSignout::kAbortSignin,
-                /*force_clear_browsing_data=*/false, ^() {
-                  [weakSelf signinWithIdentityOnStartAfterSignout];
-                  if (completion) {
-                    completion();
-                  }
-                });
-            break;
-        }
+        self.authenticationService->SignOut(
+            signin_metrics::ProfileSignout::kAbortSignin,
+            /*force_clear_browsing_data=*/false, ^() {
+              [weakSelf signinWithIdentityOnStartAfterSignout];
+              if (completion)
+                completion();
+            });
       }
       break;
-    case IdentitySigninStateSignedInWithSyncEnabled:
+    }
+    case IdentitySigninStateSignedInWithSyncEnabled: {
       // Switching accounts is not possible without sign-out.
       // TODO(crbug.com/1410747): DCHECK failures are reported for this
       // codepath that requires more investigation.
       NOTREACHED();
       break;
+    }
   }
 }
 

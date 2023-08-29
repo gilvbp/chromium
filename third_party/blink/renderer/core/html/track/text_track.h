@@ -50,7 +50,8 @@ class TextTrackList;
 
 using TextTrackMode = V8TextTrackMode::Enum;
 
-class CORE_EXPORT TextTrack : public EventTarget, public TrackBase {
+class CORE_EXPORT TextTrack : public EventTargetWithInlineData,
+                              public TrackBase {
   DEFINE_WRAPPERTYPEINFO();
 
  public:

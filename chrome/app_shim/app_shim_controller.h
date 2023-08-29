@@ -11,7 +11,6 @@
 
 #include "base/files/file_path.h"
 #include "chrome/common/mac/app_shim.mojom.h"
-#include "chrome/services/mac_notifications/public/mojom/mac_notifications.mojom.h"
 #include "mojo/public/cpp/bindings/pending_associated_receiver.h"
 #include "mojo/public/cpp/bindings/pending_receiver.h"
 #include "mojo/public/cpp/bindings/receiver.h"
@@ -19,6 +18,10 @@
 #include "mojo/public/cpp/platform/named_platform_channel.h"
 #include "mojo/public/cpp/system/isolated_connection.h"
 #include "url/gurl.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace apps {
 class MachBootstrapAcceptorTest;
@@ -36,9 +39,7 @@ class ScopedNativeScreen;
 // The AppShimController is responsible for launching and maintaining the
 // connection with the main Chrome process, and generally controls the lifetime
 // of the app shim process.
-class AppShimController
-    : public chrome::mojom::AppShim,
-      public mac_notifications::mojom::MacNotificationProvider {
+class AppShimController : public chrome::mojom::AppShim {
  public:
   struct Params {
     Params();
@@ -77,10 +78,6 @@ class AppShimController
 
   // Called when a item is selected from the application dock menu.
   void CommandFromDock(uint32_t index);
-
-  // Called when an item is selected from the application menu while no windows
-  // are shown.
-  void CommandDispatch(int command_id);
 
   // Called by AppShimDelegate in response to an URL being opened. If this
   // occurs before OnDidFinishLaunching, then the argument is the files that
@@ -150,17 +147,6 @@ class AppShimController
   void UpdateApplicationDockMenu(
       std::vector<chrome::mojom::ApplicationDockMenuItemPtr> dock_menu_items)
       override;
-  void BindNotificationProvider(
-      mojo::PendingReceiver<mac_notifications::mojom::MacNotificationProvider>
-          provider) override;
-
-  // mac_notifications::mojom::MacNotificationProvider implementation.
-  void BindNotificationService(
-      mojo::PendingReceiver<mac_notifications::mojom::MacNotificationService>
-          service,
-      mojo::PendingRemote<
-          mac_notifications::mojom::MacNotificationActionHandler> handler)
-      override;
 
   // Helper function to set up a connection to the AppShimListener at the given
   // Mach endpoint name.
@@ -212,9 +198,6 @@ class AppShimController
   mojo::Remote<chrome::mojom::AppShimHost> host_;
   mojo::PendingReceiver<chrome::mojom::AppShimHost> host_receiver_;
 
-  mojo::Receiver<mac_notifications::mojom::MacNotificationProvider>
-      notifications_receiver_{this};
-
   AppShimDelegate* __strong delegate_;
 
   InitState init_state_ = InitState::kWaitingForAppToFinishLaunch;
@@ -233,11 +216,6 @@ class AppShimController
 
   // The items in the application dock menu.
   std::vector<chrome::mojom::ApplicationDockMenuItemPtr> dock_menu_items_;
-
-  // MacNotificationService implementation used by Chrome to display
-  // notifications in this app shim process.
-  std::unique_ptr<mac_notifications::mojom::MacNotificationService>
-      notification_service_;
 
   NSInteger attention_request_id_ = 0;
 };

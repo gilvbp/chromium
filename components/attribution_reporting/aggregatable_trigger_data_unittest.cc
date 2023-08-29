@@ -12,7 +12,6 @@
 
 #include "base/strings/string_number_conversions.h"
 #include "base/test/values_test_util.h"
-#include "base/time/time.h"
 #include "base/types/expected.h"
 #include "base/values.h"
 #include "components/attribution_reporting/constants.h"
@@ -85,27 +84,21 @@ TEST(AggregatableTriggerDataTest, FromJSON) {
           "filters",
           base::test::ParseJson(R"json({
             "key_piece": "0x1",
-            "filters": {"a": ["b", "c"], "_lookback_window": 1}
+            "filters": {"a": ["b", "c"]}
          })json"),
           *AggregatableTriggerData::Create(
               /*key_piece=*/1, /*source_keys=*/{},
-              FilterPair(/*positive=*/{*FilterConfig::Create(
-                             {{"a", {"b", "c"}}},
-                             /*lookback_window=*/base::Seconds(1))},
-                         /*negative=*/{})),
+              FilterPair(/*positive=*/{{{"a", {"b", "c"}}}}, /*negative=*/{})),
       },
       {
           "not_filters",
           base::test::ParseJson(R"json({
             "key_piece": "0x2",
-            "not_filters": {"a": ["b", "c"], "_lookback_window": 1 }
+            "not_filters": {"a": ["b", "c"]}
           })json"),
           *AggregatableTriggerData::Create(
               /*key_piece=*/2, /*source_keys=*/{},
-              FilterPair(/*positive=*/{},
-                         /*negative=*/{*FilterConfig::Create(
-                             {{"a", {"b", "c"}}},
-                             /*lookback_window=*/base::Seconds(1))})),
+              FilterPair(/*positive=*/{}, /*negative=*/{{{"a", {"b", "c"}}}})),
       },
       {
           "not_dictionary",
@@ -211,14 +204,12 @@ TEST(AggregatableTriggerDataTest, ToJson) {
           *AggregatableTriggerData::Create(
               /*key_piece=*/1,
               /*source_keys=*/{"a", "b"},
-              FilterPair(
-                  /*positive=*/{*FilterConfig::Create(
-                      {{"c", {}}}, /*lookback_window=*/base::Seconds(2))},
-                  /*negative=*/{*FilterConfig::Create({{"d", {}}})})),
+              FilterPair(/*positive=*/{{{"c", {}}}},
+                         /*negative=*/{{{"d", {}}}})),
           R"json({
             "key_piece":"0x1",
             "source_keys": ["a", "b"],
-            "filters": [{"c": [], "_lookback_window": 2}],
+            "filters": [{"c": []}],
             "not_filters": [{"d": []}]
           })json",
       },

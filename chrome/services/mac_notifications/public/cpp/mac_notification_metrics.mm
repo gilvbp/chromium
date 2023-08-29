@@ -8,28 +8,28 @@
 
 #include "base/apple/bundle_locations.h"
 #include "base/metrics/histogram_functions.h"
-#include "base/notreached.h"
 #include "base/strings/strcat.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace mac_notifications {
 
-std::string MacNotificationStyleSuffix(NotificationStyle notification_style) {
-  switch (notification_style) {
-    case NotificationStyle::kBanner:
-      return "Banner";
-    case NotificationStyle::kAlert:
-      return "Alert";
-    case NotificationStyle::kAppShim:
-      return "AppShim";
-  }
-  NOTREACHED();
+bool IsAppBundleAlertStyle() {
+  NSDictionary* infoDictionary = [base::apple::MainBundle() infoDictionary];
+  NSString* alertStyle = infoDictionary[@"NSUserNotificationAlertStyle"];
+  return [alertStyle isEqualToString:@"alert"];
 }
 
-void LogMacNotificationActionReceived(NotificationStyle notification_style,
-                                      bool is_valid) {
+std::string MacNotificationStyleSuffix(bool is_alert) {
+  return is_alert ? "Alert" : "Banner";
+}
+
+void LogMacNotificationActionReceived(bool is_alert, bool is_valid) {
   base::UmaHistogramBoolean(
       base::StrCat({"Notifications.macOS.ActionReceived.",
-                    MacNotificationStyleSuffix(notification_style)}),
+                    MacNotificationStyleSuffix(is_alert)}),
       is_valid);
 }
 

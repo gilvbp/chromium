@@ -13,10 +13,10 @@
 #include "base/allocator/partition_allocator/page_allocator.h"
 #include "base/allocator/partition_allocator/page_allocator_constants.h"
 #include "base/allocator/partition_allocator/partition_alloc_base/debug/debugging_buildflags.h"
-#include "base/allocator/partition_allocator/partition_alloc_base/notreached.h"
 #include "base/allocator/partition_allocator/partition_alloc_buildflags.h"
 #include "base/allocator/partition_allocator/partition_alloc_check.h"
 #include "base/allocator/partition_allocator/partition_alloc_constants.h"
+#include "base/allocator/partition_allocator/partition_alloc_notreached.h"
 #include "base/allocator/partition_allocator/reservation_offset_table.h"
 #include "base/allocator/partition_allocator/thread_isolation/alignment.h"
 #include "build/build_config.h"
@@ -34,12 +34,6 @@ AddressPoolManager& AddressPoolManager::GetInstance() {
   return singleton_;
 }
 
-namespace {
-// Allocations are all performed on behalf of PartitionAlloc.
-constexpr PageTag kPageTag = PageTag::kPartitionAlloc;
-
-}  // namespace
-
 #if BUILDFLAG(HAS_64_BIT_POINTERS)
 
 namespace {
@@ -49,7 +43,7 @@ void DecommitPages(uintptr_t address, size_t size) {
   // Callers rely on the pages being zero-initialized when recommitting them.
   // |DecommitSystemPages| doesn't guarantee this on all operating systems, in
   // particular on macOS, but |DecommitAndZeroSystemPages| does.
-  DecommitAndZeroSystemPages(address, size, kPageTag);
+  DecommitAndZeroSystemPages(address, size);
 }
 
 }  // namespace
@@ -363,7 +357,7 @@ uintptr_t AddressPoolManager::Reserve(pool_handle handle,
       AllocPages(requested_address, length, kSuperPageSize,
                  PageAccessibilityConfiguration(
                      PageAccessibilityConfiguration::kInaccessible),
-                 kPageTag);
+                 PageTag::kPartitionAlloc);
   return address;
 }
 

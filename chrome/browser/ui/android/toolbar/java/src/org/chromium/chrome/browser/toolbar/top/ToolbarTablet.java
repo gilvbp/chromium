@@ -7,7 +7,6 @@ package org.chromium.chrome.browser.toolbar.top;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.AnimatorSet;
-import android.animation.ObjectAnimator;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.res.ColorStateList;
@@ -175,26 +174,6 @@ public class ToolbarTablet
         mShouldAnimateButtonVisibilityChange = false;
         mToolbarButtonsVisible = true;
         mToolbarButtons = new ImageButton[] {mBackButton, mForwardButton, mReloadButton};
-
-        setTooltipTextForToolbarButtons();
-    }
-
-    // Set hover tooltip texts for tablets buttons.
-    @Override
-    public void setTooltipTextForToolbarButtons() {
-        // Set hover tooltip texts for toolbar buttons shared between phones and tablets.
-        super.setTooltipTextForToolbarButtons();
-
-        // Set hover tooltip texts for toolbar buttons that only on tablets.
-        super.setTooltipText(
-                mBackButton, getContext().getString(R.string.accessibility_toolbar_btn_back));
-        super.setTooltipText(
-                mForwardButton, getContext().getString(R.string.accessibility_menu_forward));
-        super.setTooltipText(
-                mReloadButton, getContext().getString(R.string.accessibility_btn_refresh));
-        super.setTooltipText(
-                mBookmarkButton, getContext().getString(R.string.accessibility_menu_bookmark));
-        super.setTooltipText(mSaveOfflineButton, getContext().getString(R.string.download_page));
     }
 
     @Override
@@ -673,13 +652,6 @@ public class ToolbarTablet
         }
 
         ButtonSpec buttonSpec = buttonData.getButtonSpec();
-
-        // Set hover state tooltip text for mic and share button on tablets.
-        if (buttonSpec.getHoverTooltipTextId() != ButtonSpec.INVALID_TOOLTIP_TEXT_ID) {
-            super.setTooltipText(
-                    mOptionalButton, getContext().getString(buttonSpec.getHoverTooltipTextId()));
-        }
-
         mOptionalButtonUsesTint = buttonSpec.getSupportsTinting();
         if (mOptionalButtonUsesTint) {
             ImageViewCompat.setImageTintList(mOptionalButton, getTint());
@@ -713,6 +685,7 @@ public class ToolbarTablet
     }
 
     @Override
+    @VisibleForTesting
     public View getOptionalButtonViewForTesting() {
         return mOptionalButton;
     }
@@ -720,11 +693,6 @@ public class ToolbarTablet
     @Override
     public HomeButton getHomeButton() {
         return mHomeButton;
-    }
-
-    @Override
-    public ToggleTabStackButton getTabSwitcherButton() {
-        return mSwitcherButton;
     }
 
     private void setToolbarButtonsVisible(boolean visible) {
@@ -815,11 +783,7 @@ public class ToolbarTablet
 
         // Create animators for all of the toolbar buttons.
         for (ImageButton button : mToolbarButtons) {
-            ObjectAnimator hideButtonAnimator =
-                    mLocationBar.createHideButtonAnimatorForTablet(button);
-            if (hideButtonAnimator != null) {
-                animators.add(hideButtonAnimator);
-            }
+            animators.add(mLocationBar.createHideButtonAnimatorForTablet(button));
         }
 
         // Add animators for location bar.
@@ -856,10 +820,12 @@ public class ToolbarTablet
         return mToolbarButtons;
     }
 
+    @VisibleForTesting
     void enableButtonVisibilityChangeAnimationForTesting() {
         mShouldAnimateButtonVisibilityChange = true;
     }
 
+    @VisibleForTesting
     void setToolbarButtonsVisibleForTesting(boolean value) {
         mToolbarButtonsVisible = value;
     }

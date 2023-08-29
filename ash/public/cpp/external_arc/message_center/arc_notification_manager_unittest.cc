@@ -112,7 +112,7 @@ class FakeArcNotificationManagerDelegate
   ~FakeArcNotificationManagerDelegate() override = default;
 
   // ArcNotificationManagerDelegate:
-  bool IsManagedGuestSessionOrKiosk() const override { return false; }
+  bool IsPublicSessionOrKiosk() const override { return false; }
   void ShowMessageCenter() override {}
   void HideMessageCenter() override {}
 };

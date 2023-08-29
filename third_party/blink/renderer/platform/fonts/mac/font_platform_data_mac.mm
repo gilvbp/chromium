@@ -27,9 +27,10 @@
 #import <AvailabilityMacros.h>
 
 #include "base/apple/bridging.h"
-#import "base/apple/foundation_util.h"
+#import "base/mac/foundation_util.h"
 #include "third_party/blink/renderer/platform/fonts/font.h"
 #include "third_party/blink/renderer/platform/fonts/font_platform_data.h"
+#include "third_party/blink/renderer/platform/fonts/mac/core_text_font_format_support.h"
 #include "third_party/blink/renderer/platform/fonts/opentype/font_settings.h"
 #include "third_party/blink/renderer/platform/fonts/shaping/harfbuzz_face.h"
 #include "third_party/blink/renderer/platform/web_test_support.h"
@@ -40,6 +41,10 @@
 #include "third_party/skia/include/core/SkTypeface.h"
 #include "third_party/skia/include/core/SkTypes.h"
 #import "third_party/skia/include/ports/SkTypeface_mac.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace {
 constexpr SkFourByteTag kOpszTag = SkSetFourByteTag('o', 'p', 's', 'z');
@@ -92,7 +97,7 @@ bool VariableAxisChangeEffective(SkTypeface* typeface,
 }
 
 static bool CanLoadInProcess(NSFont* ns_font) {
-  base::apple::ScopedCFTypeRef<CGFontRef> cg_font(CTFontCopyGraphicsFont(
+  base::ScopedCFTypeRef<CGFontRef> cg_font(CTFontCopyGraphicsFont(
       base::apple::NSToCFPtrCast(ns_font), /*attributes=*/nullptr));
   NSString* font_name =
       base::apple::CFToNSOwnershipCast(CGFontCopyPostScriptName(cg_font));

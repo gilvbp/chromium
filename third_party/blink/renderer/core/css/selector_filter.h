@@ -41,7 +41,6 @@
 namespace blink {
 
 class CSSSelector;
-class StyleScope;
 
 // SelectorFilter is a bloom filter for rapidly discarding style rules that
 // have ancestor requirements. When we traverse the DOM, we call PushParent()
@@ -107,7 +106,6 @@ class CORE_EXPORT SelectorFilter {
   template <unsigned maximumIdentifierCount>
   inline bool FastRejectSelector(const unsigned* identifier_hashes) const;
   static void CollectIdentifierHashes(const CSSSelector&,
-                                      const StyleScope*,
                                       unsigned* identifier_hashes,
                                       unsigned maximum_identifier_count);
 

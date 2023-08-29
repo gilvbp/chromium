@@ -14,47 +14,37 @@ dictionary AuctionReportBuyersConfig {
   required double scale;
 };
 
-dictionary AuctionAdditionalBidSignature {
-  Uint8Array key;
-  Uint8Array signature;
-};
-
-dictionary AuctionAdditionalBidConfig {
-  required USVString bid;
-  required sequence<AuctionAdditionalBidSignature> signatures;
-};
-
 dictionary AuctionAdConfig {
   required USVString seller;
-
-  // Used for B&A auctions. If present we only look at the seller and
-  // interestGroupBuyers.
-  Promise<Uint8Array> serverResponse;
-  USVString requestId;
-
-  USVString decisionLogicURL;
+  /* required */ USVString decisionLogicURL;
   [ImplementedAs=decisionLogicUrlDeprecated]
   USVString decisionLogicUrl;
   USVString trustedScoringSignalsURL;
   [ImplementedAs=trustedScoringSignalsUrlDeprecated]
   USVString trustedScoringSignalsUrl;
   sequence<USVString> interestGroupBuyers;
-  Promise<any> auctionSignals;
-  Promise<any> sellerSignals;
+  any auctionSignals;
+  any sellerSignals;
 
-  Promise<USVString> directFromSellerSignals;
-  [RuntimeEnabled=FledgeDirectFromSellerSignalsHeaderAdSlot]
-  Promise<DOMString> directFromSellerSignalsHeaderAdSlot;
+  // Really (USVString or Promise<USVString>) directFromSellerSignals;
+  any directFromSellerSignals;
 
   unsigned long long sellerTimeout;
   unsigned short sellerExperimentGroupId;
 
-  Promise<record<USVString, any>> perBuyerSignals;
-  Promise<record<USVString, unsigned long long>> perBuyerTimeouts;
-  Promise<record<USVString, unsigned long long>> perBuyerCumulativeTimeouts;
+  // Really (record<USVString, any> or Promise<record<USVString, any>>)
+  any perBuyerSignals;
+
+  // Really (record<USVString, unsigned long long> or
+  //         Promise<record<USVString, unsigned long long>>)
+  any perBuyerTimeouts;
+  any perBuyerCumulativeTimeouts;
 
   USVString sellerCurrency;
-  Promise<record<USVString, USVString>> perBuyerCurrencies;
+
+  // Really (record<USVString, USVString> or
+  //         Promise<record<USVString, USVString>>)
+  any perBuyerCurrencies;
 
   record<USVString, unsigned short> perBuyerGroupLimits;
   record<USVString, unsigned short> perBuyerExperimentGroupIds;
@@ -69,14 +59,9 @@ dictionary AuctionAdConfig {
 
   AuctionAdInterestGroupSize requestedSize;
 
-  [RuntimeEnabled=FledgeNegativeTargeting]
-  Promise<sequence<AuctionAdditionalBidConfig>> additionalBids;
-
-  [RuntimeEnabled=FledgeNegativeTargeting]
-  USVString auctionNonce;
-
   sequence<AuctionAdConfig> componentAuctions;
   AbortSignal? signal;
 
-  Promise<boolean> resolveToConfig;
+  // Really (boolean or Promise<boolean>)
+  any resolveToConfig;
 };

@@ -17,7 +17,6 @@
 #include "base/time/time.h"
 #include "base/types/cxx23_to_underlying.h"
 #include "components/autofill/core/browser/autofill_manager.h"
-#include "components/autofill/core/common/dense_set.h"
 #include "components/autofill/core/common/unique_ids.h"
 #include "testing/gtest/include/gtest/gtest.h"
 
@@ -29,13 +28,10 @@ enum class AutofillManagerEvent {
   kLanguageDetermined,
   kFormsSeen,
   kTextFieldDidChange,
-  kTextFieldDidScroll,
-  kSelectControlDidChange,
   kAskForValuesToFill,
   kDidFillAutofillFormData,
   kJavaScriptChangedAutofilledValue,
   kFormSubmitted,
-  kMaxValue = kFormSubmitted
 };
 
 // Records AutofillManager::Observer::OnBeforeFoo() events and blocks until the
@@ -86,8 +82,9 @@ class TestAutofillManagerWaiter : public AutofillManager::Observer {
  public:
   using Event = AutofillManagerEvent;
 
-  explicit TestAutofillManagerWaiter(AutofillManager& manager,
-                                     DenseSet<Event> relevant_events = {});
+  explicit TestAutofillManagerWaiter(
+      AutofillManager& manager,
+      std::initializer_list<Event> relevant_events = {});
   TestAutofillManagerWaiter(const TestAutofillManagerWaiter&) = delete;
   TestAutofillManagerWaiter& operator=(const TestAutofillManagerWaiter&) =
       delete;
@@ -167,20 +164,6 @@ class TestAutofillManagerWaiter : public AutofillManager::Observer {
                                  FormGlobalId form,
                                  FieldGlobalId field) override;
 
-  void OnBeforeTextFieldDidScroll(AutofillManager& manager,
-                                  FormGlobalId form,
-                                  FieldGlobalId field) override;
-  void OnAfterTextFieldDidScroll(AutofillManager& manager,
-                                 FormGlobalId form,
-                                 FieldGlobalId field) override;
-
-  void OnBeforeSelectControlDidChange(AutofillManager& manager,
-                                      FormGlobalId form,
-                                      FieldGlobalId field) override;
-  void OnAfterSelectControlDidChange(AutofillManager& manager,
-                                     FormGlobalId form,
-                                     FieldGlobalId field) override;
-
   void OnBeforeAskForValuesToFill(AutofillManager& manager,
                                   FormGlobalId form,
                                   FieldGlobalId field) override;
@@ -200,9 +183,12 @@ class TestAutofillManagerWaiter : public AutofillManager::Observer {
                                                FormGlobalId form,
                                                FieldGlobalId field) override;
 
-  void OnFormSubmitted(AutofillManager& manager, FormGlobalId form) override;
+  void OnBeforeFormSubmitted(AutofillManager& manager,
+                             FormGlobalId form) override;
+  void OnAfterFormSubmitted(AutofillManager& manager,
+                            FormGlobalId form) override;
 
-  DenseSet<Event> relevant_events_;
+  std::vector<Event> relevant_events_;
   std::unique_ptr<State> state_ = std::make_unique<State>();
   base::TimeDelta timeout_ = base::Seconds(30);
   base::ScopedObservation<AutofillManager, AutofillManager::Observer>

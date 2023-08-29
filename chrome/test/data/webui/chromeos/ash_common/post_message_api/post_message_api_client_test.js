@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import {PostMessageApiClient} from 'chrome://resources/ash/common/post_message_api/post_message_api_client.js';
+import {PostMessageAPIClient} from 'chrome://resources/ash/common/post_message_api/post_message_api_client.js';
 import {RequestHandler} from 'chrome://resources/ash/common/post_message_api/post_message_api_request_handler.js';
 
 const ServerOriginURLFilter = 'chrome://chrome-signin/';
@@ -48,7 +48,7 @@ class TestRequestHandler extends RequestHandler {
   }
 }
 
-class TestPostMessageApiClient extends PostMessageApiClient {
+class TestPostMessageAPIClient extends PostMessageAPIClient {
   constructor(requestHandler) {
     super(ServerOriginURLFilter, null);
     this.requestHandler_ = requestHandler;
@@ -102,7 +102,7 @@ class TestPostMessageApiClient extends PostMessageApiClient {
 
           // By this time, multiple requests have been successfully sent and
           // received between the test PostMessageAPIServer and
-          // PostMessageApiClient. Notify the server that the test is
+          // PostMessageAPIClient. Notify the server that the test is
           // successfully completed.
           this.finalize(true);
           this.requestHandler_.onTestFinalized();
@@ -113,7 +113,7 @@ class TestPostMessageApiClient extends PostMessageApiClient {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-  // Construct the PostMessageApiClient so that it can run the tests.
+  // Construct the PostMessageAPIClient so that it can run the tests.
   const postMessageClient =
-      new TestPostMessageApiClient(new TestRequestHandler());
+      new TestPostMessageAPIClient(new TestRequestHandler());
 });

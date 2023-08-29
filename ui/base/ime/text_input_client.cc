@@ -42,7 +42,7 @@ bool TextInputClient::SupportsAlwaysConfirmComposition() {
 }
 #endif
 
-#if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_CHROMEOS_ASH)
+#if BUILDFLAG(IS_WIN)
 ui::TextInputClient::EditingContext TextInputClient::GetTextEditingContext() {
   return {};
 }

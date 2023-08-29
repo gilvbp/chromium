@@ -67,8 +67,7 @@ class NearbyShareDialogUITest : public InProcessBrowserTest {
 };
 
 std::string BuildCloseScript(CloseReason reason) {
-  return base::StringPrintf("chrome.send('close',[%d]);",
-                            static_cast<int>(reason));
+  return base::StringPrintf("chrome.send('close',[%d]);", reason);
 }
 
 }  // namespace

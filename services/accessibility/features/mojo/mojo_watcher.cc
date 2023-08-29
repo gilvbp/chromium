@@ -290,7 +290,7 @@ MojoResult MojoWatcher::Watch(mojo::Handle handle,
     // notify with `ready_result`. Post a notification manually.
     // Safe to use base::Unretained because the persistent_wrap_ adds another
     // ref that won't be cleared until this method executes.
-    CHECK(persistent_wrap_);
+    DCHECK(persistent_wrap_);
     persistent_wrap->ScheduleRunReadyCallback(ready_result);
     return MOJO_RESULT_OK;
   }
@@ -369,7 +369,7 @@ void MojoWatcher::RunReadyCallback(MojoResult result) {
   }
 
   if (arm_result == MOJO_RESULT_FAILED_PRECONDITION) {
-    CHECK(persistent_wrap_);
+    DCHECK(persistent_wrap_);
     persistent_wrap_->ScheduleRunReadyCallback(ready_result);
     return;
   }

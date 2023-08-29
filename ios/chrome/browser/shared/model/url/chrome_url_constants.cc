@@ -59,7 +59,6 @@ const char kChromeUITermsHost[] = "terms";
 const char kChromeUITranslateInternalsHost[] = "translate-internals";
 const char kChromeUIURLKeyedMetricsHost[] = "ukm";
 const char kChromeUIUserActionsHost[] = "user-actions";
-const char kChromeUIUserDefaultsInternalsHost[] = "userdefaults-internals";
 const char kChromeUIVersionHost[] = "version";
 
 // Add hosts here to be included in chrome://chrome-urls (about:about).
@@ -148,6 +147,3 @@ const char kChromeUIAboutNewTabURL[] = "about://newtab/";
 
 const char kManagementLearnMoreURL[] =
     "https://support.google.com/chrome/?p=is_chrome_managed";
-
-const char kEnhancedSafeBrowsingLearnMoreURL[] =
-    "https://support.google.com/chrome?p=safe_browsing_preferences";

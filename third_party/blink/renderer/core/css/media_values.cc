@@ -4,7 +4,6 @@
 
 #include "third_party/blink/renderer/core/css/media_values.h"
 
-#include "third_party/blink/public/common/css/scripting.h"
 #include "third_party/blink/public/platform/web_theme_engine.h"
 #include "third_party/blink/renderer/core/css/css_resolution_units.h"
 #include "third_party/blink/renderer/core/css/css_to_length_conversion_data.h"
@@ -17,12 +16,10 @@
 #include "third_party/blink/renderer/core/dom/document.h"
 #include "third_party/blink/renderer/core/dom/element.h"
 #include "third_party/blink/renderer/core/dom/node_computed_style.h"
-#include "third_party/blink/renderer/core/execution_context/execution_context.h"
 #include "third_party/blink/renderer/core/frame/local_frame.h"
 #include "third_party/blink/renderer/core/frame/local_frame_view.h"
 #include "third_party/blink/renderer/core/frame/settings.h"
 #include "third_party/blink/renderer/core/layout/adjust_for_absolute_zoom.h"
-#include "third_party/blink/renderer/core/media_type_names.h"
 #include "third_party/blink/renderer/core/page/chrome_client.h"
 #include "third_party/blink/renderer/core/page/page.h"
 #include "third_party/blink/renderer/platform/graphics/color_space_gamut.h"
@@ -216,12 +213,6 @@ int MediaValues::CalculateMonochromeBitsPerComponent(LocalFrame* frame) {
   return screen_info.depth_per_component;
 }
 
-bool MediaValues::CalculateInvertedColors(LocalFrame* frame) {
-  DCHECK(frame);
-  DCHECK(frame->GetSettings());
-  return frame->GetSettings()->GetInvertedColors();
-}
-
 float MediaValues::CalculateEmSize(LocalFrame* frame) {
   DCHECK(frame);
   DCHECK(frame->GetDocument());
@@ -256,15 +247,6 @@ float MediaValues::CalculateIcSize(LocalFrame* frame) {
   DCHECK(style);
   return CSSToLengthConversionData::FontSizes(style->GetFontSizeStyle(), style)
       .Ic(/* zoom */ 1.0f);
-}
-
-float MediaValues::CalculateCapSize(LocalFrame* frame) {
-  DCHECK(frame);
-  DCHECK(frame->GetDocument());
-  const ComputedStyle* style = frame->GetDocument()->GetComputedStyle();
-  DCHECK(style);
-  return CSSToLengthConversionData::FontSizes(style->GetFontSizeStyle(), style)
-      .Cap(/* zoom */ 1.0f);
 }
 
 float MediaValues::CalculateLineHeight(LocalFrame* frame) {
@@ -396,17 +378,6 @@ bool MediaValues::CalculatePrefersReducedData(LocalFrame* frame) {
   return override_value.value_or(GetNetworkStateNotifier().SaveDataEnabled());
 }
 
-bool MediaValues::CalculatePrefersReducedTransparency(LocalFrame* frame) {
-  DCHECK(frame);
-  DCHECK(frame->GetSettings());
-  const MediaFeatureOverrides* overrides =
-      frame->GetPage()->GetMediaFeatureOverrides();
-  absl::optional<bool> override_value =
-      overrides ? overrides->GetPrefersReducedTransparency() : absl::nullopt;
-  return override_value.value_or(
-      frame->GetSettings()->GetPrefersReducedTransparency());
-}
-
 ForcedColors MediaValues::CalculateForcedColors(LocalFrame* frame) {
   DCHECK(frame);
   DCHECK(frame->GetSettings());
@@ -459,17 +430,6 @@ int MediaValues::CalculateVerticalViewportSegments(LocalFrame* frame) {
 device::mojom::blink::DevicePostureType MediaValues::CalculateDevicePosture(
     LocalFrame* frame) {
   return frame->GetDevicePosture();
-}
-
-Scripting MediaValues::CalculateScripting(LocalFrame* frame) {
-  DCHECK(frame);
-  DCHECK(frame->GetDocument());
-  if (!frame->GetDocument()->GetExecutionContext()->CanExecuteScripts(
-          kNotAboutToExecuteScript)) {
-    return Scripting::kNone;
-  }
-
-  return Scripting::kEnabled;
 }
 
 bool MediaValues::ComputeLengthImpl(double value,

@@ -4,6 +4,10 @@
 
 #import "ios/chrome/browser/ui/settings/settings_table_view_controller_constants.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 NSString* const kSettingsTableViewId = @"kSettingsTableViewId";
 NSString* const kSettingsSignInCellId = @"kSettingsSignInCellId";
 NSString* const kSettingsSignInDisabledCellId =
@@ -12,7 +16,6 @@ NSString* const kSettingsSignInDisabledByPolicyCellId =
     @"kSettingsSignInDisabledByPolicyCellId";
 NSString* const kSettingsAccountCellId = @"kSettingsAccountCellId";
 NSString* const kSettingsSearchEngineCellId = @"kSettingsSearchEngineCellId";
-NSString* const kSettingsAddressBarCellId = @"kSettingsAddressBarCellId";
 NSString* const kSettingsManagedSearchEngineCellId =
     @"kSettingsManagedSearchEngineCellId";
 NSString* const kSettingsVoiceSearchCellId = @"kSettingsVoiceSearchCellId";
@@ -42,8 +45,6 @@ NSString* const kSettingsPreloadCellId = @"kSettingsPreloadCellId";
 NSString* const kSettingsBlockPopupsCellId = @"kSettingsBlockPopupsCellId";
 NSString* const kSettingsShowLinkPreviewCellId =
     @"kSettingsShowLinkPreviewCellId";
-NSString* const kSettingsDetectAddressesCellId =
-    @"kSettingsDetectAddressesCellId";
 NSString* const kSettingsDefaultAppsCellId = @"kSettingsDefaultAppsCellId";
 NSString* const kSettingsAddLanguageCellId = @"kSettingsAddLanguageCellId";
 NSString* const kSettingsClearBrowsingDataCellId =
@@ -64,4 +65,3 @@ NSString* const kSettingsNotificationsId = @"kSettingsNotificationsId";
 NSString* const kSettingsTabsCellId = @"kSettingsTabsCellId";
 NSString* const kSettingsMoveInactiveTabsCellId =
     @"kSettingsMoveInactiveTabsCellId";
-NSString* const kSettingsTabPickupCellId = @"kSettingsTabPickupCellId";

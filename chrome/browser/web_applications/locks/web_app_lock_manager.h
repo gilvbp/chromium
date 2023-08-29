@@ -25,7 +25,6 @@ namespace web_app {
 class AppLock;
 class AppLockDescription;
 class LockDescription;
-class WebAppCommandManager;
 class NoopLock;
 class SharedWebContentsLock;
 class SharedWebContentsWithAppLock;
@@ -76,11 +75,8 @@ class WebAppLockManager {
  public:
   using PassKey = base::PassKey<WebAppLockManager>;
 
-  WebAppLockManager();
+  explicit WebAppLockManager(WebAppProvider& provider);
   ~WebAppLockManager();
-
-  void SetProvider(base::PassKey<WebAppCommandManager>,
-                   WebAppProvider& provider);
 
   // Returns if the lock for the shared web contents is free.  This means no one
   // is using the shared web contents.
@@ -115,7 +111,7 @@ class WebAppLockManager {
 
   base::Value ToDebugValue() const;
 
-  WebAppProvider& provider() const { return *provider_; }
+  WebAppProvider& provider() const { return provider_.get(); }
 
  private:
   // Acquires the lock for the given `lock`, calling `on_lock_acquired` when
@@ -126,7 +122,7 @@ class WebAppLockManager {
                    const base::Location& location);
 
   content::PartitionedLockManager lock_manager_;
-  raw_ptr<WebAppProvider> provider_;
+  raw_ref<WebAppProvider> provider_;
   base::WeakPtrFactory<WebAppLockManager> weak_factory_{this};
 };
 

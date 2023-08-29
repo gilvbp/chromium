@@ -31,8 +31,6 @@ struct CORE_EXPORT GridItemData {
 
  public:
   GridItemData() = delete;
-  GridItemData(const GridItemData&) = default;
-  GridItemData& operator=(const GridItemData&) = default;
 
   GridItemData(NGBlockNode node,
                const ComputedStyle& root_grid_style,
@@ -168,13 +166,6 @@ struct CORE_EXPORT GridItemData {
                : is_opposite_direction_in_root_grid_rows;
   }
 
-  bool MustCachePlacementIndices(
-      GridTrackSizingDirection track_direction) const {
-    return !is_subgridded_to_parent_grid ||
-           IsConsideredForSizing(track_direction) ||
-           MustConsiderGridItemsForSizing(track_direction);
-  }
-
   bool MustConsiderGridItemsForSizing(
       GridTrackSizingDirection track_direction) const {
     return (track_direction == kForColumns)
@@ -226,7 +217,7 @@ struct CORE_EXPORT GridItemData {
 
   void Trace(Visitor* visitor) const { visitor->Trace(node); }
 
-  NGBlockNode node;
+  const NGBlockNode node;
   GridArea resolved_position;
 
   bool has_subgridded_columns : 1;
@@ -334,16 +325,6 @@ class CORE_EXPORT GridItems {
 
   typedef IteratorBase<false> Iterator;
   typedef IteratorBase<true> ConstIterator;
-
-  GridItems() = default;
-  GridItems(GridItems&&) = default;
-  GridItems& operator=(GridItems&&) = default;
-
-  GridItems(const GridItems& other);
-
-  GridItems& operator=(const GridItems& other) {
-    return *this = GridItems(other);
-  }
 
   Iterator begin() { return {&item_data_, 0}; }
   Iterator end() { return {&item_data_, item_data_.size()}; }

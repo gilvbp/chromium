@@ -15,7 +15,7 @@
 #include "chromeos/crosapi/mojom/nullable_primitives.mojom.h"
 #include "third_party/abseil-cpp/absl/types/optional.h"
 
-namespace ash::converters::diagnostics {
+namespace ash::converters {
 
 // This file contains helper functions used by DiagnosticsService to convert its
 // types to/from cros_healthd DiagnosticsService types.
@@ -72,6 +72,6 @@ auto ConvertDiagnosticsPtr(InputT input) {
                             : nullptr;
 }
 
-}  // namespace ash::converters::diagnostics
+}  // namespace ash::converters
 
 #endif  // CHROME_BROWSER_ASH_TELEMETRY_EXTENSION_DIAGNOSTICS_DIAGNOSTICS_SERVICE_CONVERTERS_H_

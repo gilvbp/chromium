@@ -58,17 +58,10 @@ BASE_FEATURE(kWebAuthnGoogleCorpRemoteDesktopClientPrivilege,
              "WebAuthenticationGoogleCorpRemoteDesktopClientPrivilege",
              base::FEATURE_ENABLED_BY_DEFAULT);
 
-#if BUILDFLAG(IS_ANDROID)
 // Added in M114. Not yet enabled by default.
 BASE_FEATURE(kWebAuthnAndroidCredMan,
              "WebAuthenticationAndroidCredMan",
              base::FEATURE_DISABLED_BY_DEFAULT);
-
-// Added in M118, Not yet enabled by default.
-BASE_FEATURE(kWebAuthnAndroidCredManAndGmsCore,
-             "WebAuthenticationAndroidCredManAndGmsCore",
-             base::FEATURE_DISABLED_BY_DEFAULT);
-#endif  // BUILDFLAG(IS_ANDROID)
 
 // Added in M115. Remove in or after M118.
 BASE_FEATURE(kWebAuthnPinRequiredMeansNotRecognized,
@@ -90,45 +83,20 @@ BASE_FEATURE(kWebAuthnRequireEasyAccessorFieldsInJSON,
              "WebAuthenticationRequireEasyAccessorFieldsInJSON",
              base::FEATURE_ENABLED_BY_DEFAULT);
 
-// Enabled in M118. Remove in or after M121.
+// Not yet enabled by default.
 BASE_FEATURE(kWebAuthnRequireUpToDateJSONForRemoteDesktop,
              "WebAuthenticationRequireUpToDateJSONForRemoteDesktop",
-             base::FEATURE_ENABLED_BY_DEFAULT);
+             base::FEATURE_DISABLED_BY_DEFAULT);
 
-// Enabled in M118. Remove in or after M121.
+// Not yet enabled by default.
 BASE_FEATURE(kWebAuthnICloudKeychain,
              "WebAuthenticationICloudKeychain",
-             base::FEATURE_ENABLED_BY_DEFAULT);
-
-// Enabled in M118. Remove in or after M121.
-BASE_FEATURE(kWebAuthnICloudKeychainForGoogle,
-             "WebAuthenticationICloudKeychainForGoogle",
-             base::FEATURE_ENABLED_BY_DEFAULT);
-
-// Enabled in M118. Remove in or after M121.
-BASE_FEATURE(kWebAuthnICloudKeychainForActiveWithDrive,
-             "WebAuthenticationICloudKeychainForActiveWithDrive",
-             base::FEATURE_ENABLED_BY_DEFAULT);
-
-// Not yet enabled by default.
-BASE_FEATURE(kWebAuthnICloudKeychainForActiveWithoutDrive,
-             "WebAuthenticationICloudKeychainForActiveWithoutDrive",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
-// Enabled in M118. Remove in or after M121.
-BASE_FEATURE(kWebAuthnICloudKeychainForInactiveWithDrive,
-             "WebAuthenticationICloudKeychainForInactiveWithDrive",
-             base::FEATURE_ENABLED_BY_DEFAULT);
-
 // Not yet enabled by default.
-BASE_FEATURE(kWebAuthnICloudKeychainForInactiveWithoutDrive,
-             "WebAuthenticationICloudKeychainForInactiveWithoutDrive",
-             base::FEATURE_DISABLED_BY_DEFAULT);
-
-// Enabled in M117. Remove in or after M120.
 BASE_FEATURE(kWebAuthnNewHybridUI,
              "WebAuthenticationNewHybridUI",
-             base::FEATURE_ENABLED_BY_DEFAULT);
+             base::FEATURE_DISABLED_BY_DEFAULT);
 
 // Enabled in M116. Remove in or after M119.
 BASE_FEATURE(kWebAuthnPrelinkPlayServices,
@@ -143,63 +111,6 @@ BASE_FEATURE(kWebAuthnSkipSingleAccountMacOS,
 // Enabled in M116. Remove in or after M119.
 BASE_FEATURE(kWebAuthnWindowsUIv6,
              "WebAuthenticationWindowsUIv6",
-             base::FEATURE_ENABLED_BY_DEFAULT);
-
-// Not yet enabled by default.
-BASE_FEATURE(kWebAuthnListSyncedPasskeys,
-             "WebAuthenticationListSyncedPasskeys",
-             base::FEATURE_DISABLED_BY_DEFAULT);
-
-// Enabled in M117. Remove in or after M120.
-BASE_FEATURE(kWebAuthConditionalUIExperimentation,
-             "WebAuthenticationConditionalUIExperimentation",
-             base::FEATURE_ENABLED_BY_DEFAULT);
-
-// Enabled in M117. Remove in or after M120.
-BASE_FEATURE(kWebAuthnCableViaCredMan,
-             "WebAuthenticationCableViaCredMan",
-             base::FEATURE_ENABLED_BY_DEFAULT);
-
-// Enabled in M117. Remove in or after M120.
-BASE_FEATURE(kWebAuthnLinkingExperimentation,
-             "WebAuthenticationLinkingExperimentation",
-             base::FEATURE_ENABLED_BY_DEFAULT);
-
-#if !BUILDFLAG(IS_CHROMEOS) && !BUILDFLAG(IS_ANDROID)
-// Not yet enabled by default.
-BASE_FEATURE(kWebAuthnEnclaveAuthenticator,
-             "WebAuthenticationEnclaveAuthenticator",
-             base::FEATURE_DISABLED_BY_DEFAULT);
-#endif
-
-// Enabled in M117. Remove in or after M120.
-BASE_FEATURE(kWebAuthnJSONSerializeRequests,
-             "WebAuthenticationJSONSerializeRequests",
-             base::FEATURE_ENABLED_BY_DEFAULT);
-
-// Enabled in M117. Remove in or after M120.
-BASE_FEATURE(kWebAuthnCachePaaSK,
-             "WebAuthenticationCachePaaSK",
-             base::FEATURE_ENABLED_BY_DEFAULT);
-
-// Enabled in M117. Remove in or after M120.
-BASE_FEATURE(kWebAuthnDontPrelinkInProfiles,
-             "WebAuthenticationDontPrelinkInProfiles",
-             base::FEATURE_ENABLED_BY_DEFAULT);
-
-// Enabled in M118 for macOS only.
-BASE_FEATURE(kWebAuthnNewPasskeyUI,
-             "WebAuthenticationNewPasskeyUI",
-#if BUILDFLAG(IS_MAC)
-             base::FEATURE_ENABLED_BY_DEFAULT
-#else
-             base::FEATURE_DISABLED_BY_DEFAULT
-#endif
-);
-
-// Enabled in M118. Remove in or after M121.
-BASE_FEATURE(kWebAuthnSortRecognizedCredentials,
-             "WebAuthenticationSortRecognizedCredentials",
              base::FEATURE_ENABLED_BY_DEFAULT);
 
 }  // namespace device

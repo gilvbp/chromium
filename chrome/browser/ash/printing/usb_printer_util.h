@@ -7,8 +7,6 @@
 #ifndef CHROME_BROWSER_ASH_PRINTING_USB_PRINTER_UTIL_H_
 #define CHROME_BROWSER_ASH_PRINTING_USB_PRINTER_UTIL_H_
 
-#include <string>
-
 #include "chrome/browser/ash/printing/printer_detector.h"
 #include "mojo/public/cpp/bindings/remote.h"
 #include "services/device/public/mojom/usb_device.mojom-forward.h"
@@ -20,14 +18,10 @@ class UsbPrinterId;
 
 namespace ash {
 
-// Given a usb device, guesses the make and model for a driver lookup.
-std::string GuessEffectiveMakeAndModel(
+std::u16string GetManufacturerName(
     const device::mojom::UsbDeviceInfo& device_info);
 
-std::string GetManufacturerName(
-    const device::mojom::UsbDeviceInfo& device_info);
-
-std::string GetProductName(const device::mojom::UsbDeviceInfo& device_info);
+std::u16string GetProductName(const device::mojom::UsbDeviceInfo& device_info);
 
 std::u16string GetSerialNumber(const device::mojom::UsbDeviceInfo& device_info);
 

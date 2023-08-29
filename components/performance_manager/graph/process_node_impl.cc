@@ -14,7 +14,6 @@
 #include "components/performance_manager/graph/page_node_impl.h"
 #include "components/performance_manager/graph/worker_node_impl.h"
 #include "components/performance_manager/public/execution_context/execution_context_registry.h"
-#include "components/performance_manager/public/resource_attribution/resource_contexts.h"
 #include "components/performance_manager/v8_memory/v8_context_tracker.h"
 #include "content/public/browser/browser_task_traits.h"
 #include "content/public/browser/browser_thread.h"
@@ -23,10 +22,20 @@ namespace performance_manager {
 
 namespace {
 
-void FireBackgroundTracingTriggerOnUI(const std::string& trigger_name) {
+void FireBackgroundTracingTriggerOnUI(
+    const std::string& trigger_name,
+    content::BackgroundTracingManager& manager) {
   DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
 
-  content::BackgroundTracingManager::EmitNamedTrigger(
+  // Don't fire a trigger unless we're in an active tracing scenario.
+  // Renderer-initiated background tracing triggers are always "preemptive"
+  // traces so we expect a scenario to be active.
+  if (!manager.HasActiveScenario())
+    return;
+
+  // Actually fire the trigger. We don't need to know when the trace is being
+  // finalized so pass an empty callback.
+  manager.EmitNamedTrigger(
       content::BackgroundTracingManager::kContentTriggerConfig);
 }
 
@@ -157,7 +166,9 @@ void ProcessNodeImpl::FireBackgroundTracingTrigger(
   DCHECK_EQ(process_type_, content::PROCESS_TYPE_RENDERER);
   content::GetUIThreadTaskRunner({})->PostTask(
       FROM_HERE,
-      base::BindOnce(&FireBackgroundTracingTriggerOnUI, trigger_name));
+      base::BindOnce(
+          &FireBackgroundTracingTriggerOnUI, trigger_name,
+          std::ref(content::BackgroundTracingManager::GetInstance())));
 }
 
 void ProcessNodeImpl::SetProcessExitStatus(int32_t exit_status) {
@@ -217,11 +228,6 @@ PageNodeImpl* ProcessNodeImpl::GetPageNodeIfExclusive() const {
   return page_node;
 }
 
-resource_attribution::ProcessContext ProcessNodeImpl::resource_context() const {
-  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
-  return resource_context_;
-}
-
 RenderProcessHostId ProcessNodeImpl::GetRenderProcessId() const {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   return render_process_host_proxy().render_process_host_id();
@@ -268,8 +274,9 @@ void ProcessNodeImpl::add_hosted_content_type(ContentType content_type) {
 
 // static
 void ProcessNodeImpl::FireBackgroundTracingTriggerOnUIForTesting(
-    const std::string& trigger_name) {
-  FireBackgroundTracingTriggerOnUI(trigger_name);
+    const std::string& trigger_name,
+    content::BackgroundTracingManager& manager) {
+  FireBackgroundTracingTriggerOnUI(trigger_name, manager);
 }
 
 base::WeakPtr<ProcessNodeImpl> ProcessNodeImpl::GetWeakPtrOnUIThread() {
@@ -318,12 +325,6 @@ base::ProcessId ProcessNodeImpl::GetProcessId() const {
 const base::Process& ProcessNodeImpl::GetProcess() const {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   return process();
-}
-
-resource_attribution::ProcessContext ProcessNodeImpl::GetResourceContext()
-    const {
-  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
-  return resource_context();
 }
 
 base::TimeTicks ProcessNodeImpl::GetLaunchTime() const {

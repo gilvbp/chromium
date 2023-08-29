@@ -74,10 +74,9 @@ class ThreadDebuggerCommonImpl : public ThreadDebugger {
  private:
   // V8InspectorClient implementation.
   void beginUserGesture() override;
-  std::unique_ptr<v8_inspector::DeepSerializationResult> deepSerialize(
+  std::unique_ptr<v8_inspector::WebDriverValue> serializeToWebDriverValue(
       v8::Local<v8::Value> v8_value,
-      int max_depth,
-      v8::Local<v8::Object> additional_parameters) override;
+      int max_depth) override;
   std::unique_ptr<v8_inspector::StringBuffer> valueSubtype(
       v8::Local<v8::Value>) override;
   std::unique_ptr<v8_inspector::StringBuffer> descriptionForValueSubtype(

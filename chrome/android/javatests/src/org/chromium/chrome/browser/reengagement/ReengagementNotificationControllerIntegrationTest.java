@@ -91,6 +91,7 @@ public class ReengagementNotificationControllerIntegrationTest {
 
     @After
     public void tearDown() {
+        TrackerFactory.setTrackerForTests(null);
         DefaultBrowserInfo2.clearDefaultInfoForTests();
         FeatureList.resetTestCanUseDefaultsForTesting();
         FeatureList.setTestFeatures(null);
@@ -99,7 +100,6 @@ public class ReengagementNotificationControllerIntegrationTest {
 
     @Test
     @MediumTest
-    @DisabledTest(message = "https://crbug.com/1464558")
     public void testReengagementNotificationSent() {
         DefaultBrowserInfo2.setDefaultInfoForTests(
                 createDefaultInfo(/* passesPrecondition = */ true));
@@ -120,7 +120,6 @@ public class ReengagementNotificationControllerIntegrationTest {
 
     @Test
     @MediumTest
-    @DisabledTest(message = "Flaky on multiple bots, see crbug.com/1459539")
     public void testReengagementDifferentNotificationSent() {
         DefaultBrowserInfo2.setDefaultInfoForTests(
                 createDefaultInfo(/* passesPrecondition = */ true));
@@ -141,7 +140,6 @@ public class ReengagementNotificationControllerIntegrationTest {
 
     @Test
     @MediumTest
-    @DisabledTest(message = "https://crbug.com/1464323")
     public void testReengagementNotificationNotSentDueToIPH() {
         DefaultBrowserInfo2.setDefaultInfoForTests(
                 createDefaultInfo(/* passesPrecondition = */ true));

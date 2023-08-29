@@ -49,16 +49,16 @@ class AndroidMetricsHelper {
     return cpu_abi_bitness_support_;
   }
 
-  // |on_did_create_metrics_log| denotes whether data is emitted in
-  // OnDidCreateMetricsLog, as opposed to in ProvidePreviousSessionData.
-  void EmitHistograms(PrefService* local_state, bool on_did_create_metrics_log);
+  // |current_session| denotes whether data is emitted for the current session,
+  // as opposed to the previous session.
+  void EmitHistograms(PrefService* local_state, bool current_session);
 
   static void RegisterPrefs(PrefRegistrySimple* registry);
 
   // Made public for testing.
   static void SaveLocalState(PrefService* local_state, int version_code_int);
 
-  static void ResetGlobalStateForTesting() { local_state_saved_ = false; }
+  void ResetForTesting() { local_state_saved_ = false; }
 
  private:
   friend struct AndroidMetricsHelperSingletonTraits;
@@ -71,7 +71,7 @@ class AndroidMetricsHelper {
   CpuAbiBitnessSupport cpu_abi_bitness_support_ =
       CpuAbiBitnessSupport::kNeither;
 
-  static inline bool local_state_saved_ = false;
+  bool local_state_saved_ = false;
 };
 
 }  // namespace metrics

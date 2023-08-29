@@ -139,19 +139,11 @@ std::vector<Frame> CaptureScenario(
   return sample;
 }
 
-// TODO(https://crbug.com/1147315): After fix, re-enable on all ASAN bots.
-#if defined(ADDRESS_SANITIZER)
-#define MAYBE_PlainFunction DISABLED_PlainFunction
-#else
-#define MAYBE_PlainFunction PlainFunction
-#endif
 // Checks that the expected information is present in sampled frames.
-TEST(NativeUnwinderAndroidTest, MAYBE_PlainFunction) {
-  const auto sdk_version = base::android::BuildInfo::GetInstance()->sdk_int();
-  if (sdk_version < base::android::SDK_VERSION_NOUGAT) {
-    GTEST_SKIP();
-  }
-
+// TODO(https://crbug.com/1147315): After fix, re-enable on all ASAN bots.
+// TODO(https://crbug.com/1368981): After fix, re-enable on all bots except
+// if defined(ADDRESS_SANITIZER).
+TEST(NativeUnwinderAndroidTest, DISABLED_PlainFunction) {
   UnwindScenario scenario(BindRepeating(&CallWithPlainFunction));
   NativeUnwinderAndroidMapDelegateForTesting map_delegate(
       NativeUnwinderAndroid::CreateMemoryRegionsMap());
@@ -181,20 +173,12 @@ TEST(NativeUnwinderAndroidTest, MAYBE_PlainFunction) {
                                scenario.GetOuterFunctionAddressRange()});
 }
 
-// TODO(https://crbug.com/1147315): After fix, re-enable on all ASAN bots.
-#if defined(ADDRESS_SANITIZER)
-#define MAYBE_Alloca DISABLED_Alloca
-#else
-#define MAYBE_Alloca Alloca
-#endif
 // Checks that the unwinder handles stacks containing dynamically-allocated
 // stack memory.
-TEST(NativeUnwinderAndroidTest, MAYBE_Alloca) {
-  const auto sdk_version = base::android::BuildInfo::GetInstance()->sdk_int();
-  if (sdk_version < base::android::SDK_VERSION_NOUGAT) {
-    GTEST_SKIP();
-  }
-
+// TODO(https://crbug.com/1147315): After fix, re-enable on all ASAN bots.
+// TODO(https://crbug.com/1368981): After fix, re-enable on all bots except
+// if defined(ADDRESS_SANITIZER).
+TEST(NativeUnwinderAndroidTest, DISABLED_Alloca) {
   UnwindScenario scenario(BindRepeating(&CallWithAlloca));
 
   NativeUnwinderAndroidMapDelegateForTesting map_delegate(
@@ -225,20 +209,12 @@ TEST(NativeUnwinderAndroidTest, MAYBE_Alloca) {
                                scenario.GetOuterFunctionAddressRange()});
 }
 
-// TODO(https://crbug.com/1147315): After fix, re-enable on all ASAN bots.
-#if defined(ADDRESS_SANITIZER)
-#define MAYBE_OtherLibrary DISABLED_OtherLibrary
-#else
-#define MAYBE_OtherLibrary OtherLibrary
-#endif
 // Checks that a stack that runs through another library produces a stack with
 // the expected functions.
-TEST(NativeUnwinderAndroidTest, MAYBE_OtherLibrary) {
-  const auto sdk_version = base::android::BuildInfo::GetInstance()->sdk_int();
-  if (sdk_version < base::android::SDK_VERSION_NOUGAT) {
-    GTEST_SKIP();
-  }
-
+// TODO(https://crbug.com/1147315): After fix, re-enable on all ASAN bots.
+// TODO(https://crbug.com/1368981): After fix, re-enable on all bots except
+// if defined(ADDRESS_SANITIZER).
+TEST(NativeUnwinderAndroidTest, DISABLED_OtherLibrary) {
   NativeLibrary other_library = LoadOtherLibrary();
   UnwindScenario scenario(
       BindRepeating(&CallThroughOtherLibrary, Unretained(other_library)));
@@ -389,15 +365,13 @@ TEST(NativeUnwinderAndroidTest, MAYBE_ResumeUnwinding) {
 }
 
 // Checks that java frames can be unwound through.
-TEST(NativeUnwinderAndroidTest, JavaFunction) {
+// Disabled, see: https://crbug.com/1076997
+TEST(NativeUnwinderAndroidTest, DISABLED_JavaFunction) {
   auto* build_info = base::android::BuildInfo::GetInstance();
-  const auto sdk_version = build_info->sdk_int();
-
-  // Skip this test on anything Android O or earlier, because Java unwinding
-  // fails on these.
-  if (sdk_version <= base::android::SDK_VERSION_OREO) {
-    GTEST_SKIP();
-  }
+  // Due to varying availability of compiled java unwind tables, unwinding is
+  // only expected to succeed on > SDK_VERSION_MARSHMALLOW.
+  bool can_always_unwind =
+      build_info->sdk_int() > base::android::SDK_VERSION_MARSHMALLOW;
 
   UnwindScenario scenario(base::BindRepeating(callWithJavaFunction));
 
@@ -415,7 +389,8 @@ TEST(NativeUnwinderAndroidTest, JavaFunction) {
                         ASSERT_TRUE(unwinder->CanUnwindFrom(sample->back()));
                         UnwindResult result = unwinder->TryUnwind(
                             thread_context, stack_top, sample);
-                        EXPECT_EQ(UnwindResult::kCompleted, result);
+                        if (can_always_unwind)
+                          EXPECT_EQ(UnwindResult::kCompleted, result);
                       }));
 
   // Check that all the modules are valid.
@@ -423,9 +398,11 @@ TEST(NativeUnwinderAndroidTest, JavaFunction) {
     EXPECT_NE(nullptr, frame.module);
 
   // The stack should contain a full unwind.
-  ExpectStackContains(sample, {scenario.GetWaitForSampleAddressRange(),
-                               scenario.GetSetupFunctionAddressRange(),
-                               scenario.GetOuterFunctionAddressRange()});
+  if (can_always_unwind) {
+    ExpectStackContains(sample, {scenario.GetWaitForSampleAddressRange(),
+                                 scenario.GetSetupFunctionAddressRange(),
+                                 scenario.GetOuterFunctionAddressRange()});
+  }
 }
 
 TEST(NativeUnwinderAndroidTest, UnwindStackMemoryTest) {

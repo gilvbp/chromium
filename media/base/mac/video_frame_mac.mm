@@ -17,6 +17,10 @@
 #include "ui/gfx/gpu_memory_buffer.h"
 #include "ui/gfx/mac/io_surface.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace media {
 
 namespace {
@@ -99,9 +103,9 @@ void SetCvPixelBufferColorSpace(const gfx::ColorSpace& frame_cs,
 
 }  // namespace
 
-MEDIA_EXPORT base::apple::ScopedCFTypeRef<CVPixelBufferRef>
+MEDIA_EXPORT base::ScopedCFTypeRef<CVPixelBufferRef>
 WrapVideoFrameInCVPixelBuffer(scoped_refptr<VideoFrame> frame) {
-  base::apple::ScopedCFTypeRef<CVPixelBufferRef> pixel_buffer;
+  base::ScopedCFTypeRef<CVPixelBufferRef> pixel_buffer;
   if (!frame) {
     return pixel_buffer;
   }
@@ -219,7 +223,7 @@ WrapVideoFrameInCVPixelBuffer(scoped_refptr<VideoFrame> frame) {
       frame.get(), nullptr, pixel_buffer.InitializeInto());
   if (result != kCVReturnSuccess) {
     DLOG(ERROR) << " CVPixelBufferCreateWithPlanarBytes failed: " << result;
-    return base::apple::ScopedCFTypeRef<CVPixelBufferRef>(nullptr);
+    return base::ScopedCFTypeRef<CVPixelBufferRef>(nullptr);
   }
 
   // The CVPixelBuffer now references the data of the frame, so increment its

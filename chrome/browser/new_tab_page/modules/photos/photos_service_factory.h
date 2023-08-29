@@ -23,7 +23,7 @@ class PhotosServiceFactory : ProfileKeyedServiceFactory {
   ~PhotosServiceFactory() override;
 
   // Uses BrowserContextKeyedServiceFactory to build a PhotosService.
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* context) const override;
 };
 

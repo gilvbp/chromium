@@ -10,6 +10,7 @@
 #include <memory>
 #include <utility>
 
+#include "base/containers/stack_container.h"
 #include "base/functional/bind.h"
 #include "base/location.h"
 #include "base/logging.h"

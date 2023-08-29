@@ -90,8 +90,7 @@ void PageRuleCollector::MatchPageRules(RuleSet* rules,
       });
 
   for (unsigned i = 0; i < matched_page_rules.size(); i++) {
-    result_.AddMatchedProperties(&matched_page_rules[i]->Properties(),
-                                 CascadeOrigin::kNone);
+    result_.AddMatchedProperties(&matched_page_rules[i]->Properties());
   }
 }
 

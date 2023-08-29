@@ -31,12 +31,11 @@ AccessContextAuditService* AccessContextAuditServiceFactory::GetForProfile(
       GetInstance()->GetServiceForBrowserContext(profile, true));
 }
 
-std::unique_ptr<KeyedService>
-AccessContextAuditServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* AccessContextAuditServiceFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   auto context_audit_service = std::make_unique<AccessContextAuditService>();
   context_audit_service->Init(context->GetPath());
-  return context_audit_service;
+  return context_audit_service.release();
 }
 
 bool AccessContextAuditServiceFactory::ServiceIsCreatedWithBrowserContext()

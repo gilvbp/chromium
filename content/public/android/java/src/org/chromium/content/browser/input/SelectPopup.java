@@ -8,6 +8,8 @@ import android.content.Context;
 import android.view.View;
 import android.view.ViewGroup;
 
+import androidx.annotation.VisibleForTesting;
+
 import org.chromium.base.UserData;
 import org.chromium.base.annotations.CalledByNative;
 import org.chromium.base.annotations.JNINamespace;
@@ -179,6 +181,7 @@ public class SelectPopup implements HideablePopup, ViewAndroidDelegate.Container
     /**
      * @return {@code true} if select popup is being shown.
      */
+    @VisibleForTesting
     public boolean isVisibleForTesting() {
         return mPopupView != null;
     }

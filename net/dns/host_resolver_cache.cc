@@ -25,8 +25,6 @@
 
 namespace net {
 
-HostResolverCache::Key::~Key() = default;
-
 HostResolverCache::StaleLookupResult::StaleLookupResult(
     const HostResolverInternalResult& result,
     absl::optional<base::TimeDelta> expired_by,

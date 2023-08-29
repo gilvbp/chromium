@@ -78,13 +78,12 @@ PrivacySandboxServiceFactory::PrivacySandboxServiceFactory()
       first_party_sets::FirstPartySetsPolicyServiceFactory::GetInstance());
 }
 
-std::unique_ptr<KeyedService>
-PrivacySandboxServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* PrivacySandboxServiceFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   Profile* profile = Profile::FromBrowserContext(context);
-  return std::make_unique<PrivacySandboxService>(
+  return new PrivacySandboxService(
       PrivacySandboxSettingsFactory::GetForProfile(profile),
-      CookieSettingsFactory::GetForProfile(profile), profile->GetPrefs(),
+      CookieSettingsFactory::GetForProfile(profile).get(), profile->GetPrefs(),
       profile->GetDefaultStoragePartition()->GetInterestGroupManager(),
       GetProfileType(profile),
       (!profile->IsGuestSession() || profile->IsOffTheRecord())

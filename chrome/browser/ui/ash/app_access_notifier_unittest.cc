@@ -178,11 +178,13 @@ class AppAccessNotifierBaseTest : public testing::Test {
   }
 
   std::vector<std::u16string> GetAppsAccessingCamera() {
-    return app_access_notifier_->GetAppsAccessingCamera();
+    return app_access_notifier_->GetAppsAccessingSensor(
+        ash::SensorDisabledNotificationDelegate::Sensor::kCamera);
   }
 
   std::vector<std::u16string> GetAppsAccessingMicrophone() {
-    return app_access_notifier_->GetAppsAccessingMicrophone();
+    return app_access_notifier_->GetAppsAccessingSensor(
+        ash::SensorDisabledNotificationDelegate::Sensor::kMicrophone);
   }
 
   static apps::AppPtr MakeApp(const std::string app_id,
@@ -249,8 +251,8 @@ class AppAccessNotifierBaseTest : public testing::Test {
   apps::AppRegistryCache registry_cache_secondary_user_;
   apps::AppCapabilityAccessCache capability_access_cache_secondary_user_;
 
-  raw_ptr<ash::FakeChromeUserManager, DanglingUntriaged | ExperimentalAsh>
-      fake_user_manager_ = nullptr;
+  raw_ptr<ash::FakeChromeUserManager, ExperimentalAsh> fake_user_manager_ =
+      nullptr;
   std::unique_ptr<user_manager::ScopedUserManager> scoped_user_manager_;
 
   // This instance is needed for setting up `ash_test_helper_`.

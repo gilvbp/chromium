@@ -139,11 +139,8 @@ void TabContainerImpl::SetAvailableWidthCallback(
 Tab* TabContainerImpl::AddTab(std::unique_ptr<Tab> tab,
                               int model_index,
                               TabPinned pinned) {
-  // First add the tab to the view model, this is done because AddChildView sets
-  // some tooltip information which tries to calculate the hit test, which needs
-  // information about its adjacent tabs which it gets from the view model.
-  AddTabToViewModel(tab.get(), model_index, pinned);
   Tab* tab_ptr = AddChildView(std::move(tab));
+  AddTabToViewModel(tab_ptr, model_index, pinned);
   OrderTabSlotView(tab_ptr);
 
   // Don't animate the first tab, it looks weird, and don't animate anything
@@ -808,7 +805,7 @@ gfx::Size TabContainerImpl::GetMinimumSize() const {
     minimum_width = layout_helper_->CalculateMinimumWidth();
   }
 
-  return gfx::Size(minimum_width.value(), GetLayoutConstant(TAB_STRIP_HEIGHT));
+  return gfx::Size(minimum_width.value(), GetLayoutConstant(TAB_HEIGHT));
 }
 
 gfx::Size TabContainerImpl::CalculatePreferredSize() const {
@@ -824,8 +821,7 @@ gfx::Size TabContainerImpl::CalculatePreferredSize() const {
         layout_helper_->CalculatePreferredWidth());
   }
 
-  return gfx::Size(preferred_width.value(),
-                   GetLayoutConstant(TAB_STRIP_HEIGHT));
+  return gfx::Size(preferred_width.value(), GetLayoutConstant(TAB_HEIGHT));
 }
 
 views::View* TabContainerImpl::GetTooltipHandlerForPoint(
@@ -1119,7 +1115,7 @@ void TabContainerImpl::StartInsertTabAnimation(int model_index) {
   ExitTabClosingMode();
 
   gfx::Rect bounds = GetTabAtModelIndex(model_index)->bounds();
-  bounds.set_height(GetLayoutConstant(TAB_STRIP_HEIGHT));
+  bounds.set_height(GetLayoutConstant(TAB_HEIGHT));
 
   // Adjust the starting bounds of the new tab.
   const int tab_overlap = TabStyle::Get()->GetTabOverlap();
@@ -1425,9 +1421,8 @@ bool TabContainerImpl::IsPointInTab(
   if (tab->parent() != this)
     return false;
 
-  const gfx::Point point_in_tab_coords =
-      View::ConvertPointToTarget(this, tab, point_in_tabstrip_coords);
-  return tab->HitTestPoint(point_in_tab_coords);
+  return tab->HitTestPoint(
+      View::ConvertPointToTarget(this, tab, point_in_tabstrip_coords));
 }
 
 Tab* TabContainerImpl::FindTabHitByPoint(const gfx::Point& point) {

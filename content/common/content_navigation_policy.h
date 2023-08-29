@@ -88,25 +88,12 @@ CONTENT_EXPORT extern const char
 enum class RenderDocumentLevel {
   // Do not reuse RenderFrameHosts when recovering from crashes.
   kCrashedFrame = 1,
-  // Do not reuse RenderFrameHosts when navigating non-local-root subframes.
-  kNonLocalRootSubframe = 2,
-  // Do not reuse RenderFrameHosts when navigating any subframe.
-  kSubframe = 3,
+  // Also do not reuse RenderFrameHosts when navigating subframes.
+  kSubframe = 2,
   // Do not reuse RenderFrameHosts when navigating any frame.
-  kAllFrames = 4,
+  kAllFrames = 3,
 };
-
-// Whether same-site navigations will result in a change of RenderFrameHosts,
-// which will happen when RenderDocument is enabled. Due to the various levels
-// of the feature, the result may differ depending on whether the
-// RenderFrameHost is a main/local root/non-local-root frame, whether it has
-// committed any navigations or not, and whether it's a crashed frame that
-// must be replaced or not.
-CONTENT_EXPORT bool ShouldCreateNewRenderFrameHostOnSameSiteNavigation(
-    bool is_main_frame,
-    bool is_local_root = true,
-    bool has_committed_any_navigation = true,
-    bool must_be_replaced = false);
+CONTENT_EXPORT bool ShouldCreateNewHostForSameSiteSubframe();
 CONTENT_EXPORT bool ShouldCreateNewHostForAllFrames();
 CONTENT_EXPORT RenderDocumentLevel GetRenderDocumentLevel();
 CONTENT_EXPORT std::string GetRenderDocumentLevelName(
@@ -146,10 +133,6 @@ CONTENT_EXPORT bool ShouldQueueNavigationsWhenPendingCommitRFHExists();
 // As part of the Citadel desktop protections, we want to stop allowing calls to
 // CanAccessDataForOrigin on the IO thread, and only allow it on the UI thread.
 CONTENT_EXPORT bool ShouldRestrictCanAccessDataForOriginToUIThread();
-
-// Returns true if data: URL subframes should be put in a separate SiteInstance
-// in the SiteInstanceGroup of the initiator.
-CONTENT_EXPORT bool ShouldCreateSiteInstanceForDataUrls();
 }  // namespace content
 
 #endif  // CONTENT_COMMON_CONTENT_NAVIGATION_POLICY_H_

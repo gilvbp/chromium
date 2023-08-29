@@ -14,10 +14,8 @@
 #include "base/feature_list.h"
 #include "base/functional/bind.h"
 #include "base/lazy_instance.h"
-#include "base/metrics/histogram_functions.h"
 #include "base/metrics/user_metrics.h"
 #include "base/metrics/user_metrics_action.h"
-#include "base/notreached.h"
 #include "base/scoped_observation.h"
 #include "base/strings/utf_string_conversions.h"
 #include "build/build_config.h"
@@ -49,13 +47,13 @@
 #include "components/content_settings/core/browser/content_settings_utils.h"
 #include "components/content_settings/core/browser/cookie_settings.h"
 #include "components/content_settings/core/common/content_settings.h"
-#include "components/content_settings/core/common/content_settings_constraints.h"
 #include "components/content_settings/core/common/content_settings_types.h"
 #include "components/content_settings/core/common/content_settings_utils.h"
 #include "components/custom_handlers/protocol_handler_registry.h"
 #include "components/infobars/content/content_infobar_manager.h"
 #include "components/permissions/permission_decision_auto_blocker.h"
 #include "components/permissions/permission_request_manager.h"
+#include "components/permissions/permission_result.h"
 #include "components/permissions/permission_uma_util.h"
 #include "components/permissions/permission_util.h"
 #include "components/permissions/permissions_client.h"
@@ -80,7 +78,6 @@
 #include "services/device/public/cpp/geolocation/location_system_permission_status.h"
 #include "services/network/public/cpp/is_potentially_trustworthy.h"
 #include "third_party/blink/public/common/associated_interfaces/associated_interface_provider.h"
-#include "third_party/blink/public/common/features.h"
 #include "third_party/blink/public/common/loader/network_utils.h"
 #include "third_party/blink/public/common/permissions/permission_utils.h"
 #include "ui/base/l10n/l10n_util.h"
@@ -108,21 +105,6 @@ using content_settings::SettingSource;
 using device::LocationSystemPermissionStatus;
 
 namespace {
-using ContentSettingBubbleAction =
-    ContentSettingBubbleModel::ContentSettingBubbleAction;
-
-void RecordActionHistogram(ContentSettingsType type,
-                           ContentSettingBubbleAction action) {
-  switch (type) {
-    case ContentSettingsType::STORAGE_ACCESS:
-      base::UmaHistogramEnumeration(
-          "ContentSettings.Bubble.StorageAccess.Action", action);
-      break;
-    default:
-      // Currently only defined and implemented for StorageAccess.
-      NOTREACHED_NORETURN();
-  }
-}
 
 using QuietUiReason = permissions::PermissionRequestManager::QuietUiReason;
 
@@ -144,16 +126,18 @@ bool GetSettingManagedByUser(const GURL& url,
                              ContentSetting* out_setting) {
   HostContentSettingsMap* map =
       HostContentSettingsMapFactory::GetForProfile(profile);
-  SettingInfo info;
+  SettingSource source;
   ContentSetting setting;
   if (type == ContentSettingsType::COOKIES) {
     // TODO(crbug.com/1386190): Consider whether the following check should
     // somehow determine real CookieSettingOverrides rather than default to
     // none.
     setting = CookieSettingsFactory::GetForProfile(profile)->GetCookieSetting(
-        url, url, net::CookieSettingOverrides(), &info);
+        url, url, net::CookieSettingOverrides(), &source);
   } else {
+    SettingInfo info;
     setting = map->GetContentSetting(url, url, type, &info);
+    source = info.source;
   }
 
   if (out_setting)
@@ -161,7 +145,7 @@ bool GetSettingManagedByUser(const GURL& url,
 
   // Prevent creation of content settings for illegal urls like about:blank by
   // disallowing user management.
-  return info.source == SETTING_SOURCE_USER &&
+  return source == SETTING_SOURCE_USER &&
          map->CanSetNarrowestContentSetting(url, url, type);
 }
 
@@ -718,15 +702,7 @@ ContentSettingStorageAccessBubbleModel::ContentSettingStorageAccessBubbleModel(
     Delegate* delegate,
     WebContents* web_contents)
     : ContentSettingBubbleModel(delegate, web_contents) {
-  RecordActionHistogram(ContentSettingsType::STORAGE_ACCESS,
-                        ContentSettingBubbleAction::kOpened);
   set_title(l10n_util::GetStringUTF16(IDS_SITE_SETTINGS_TYPE_STORAGE_ACCESS));
-
-  // TODO(crbug.com/1433644): Consider to add subtitles to all permissions.
-  set_subtitle(url_formatter::FormatUrlForSecurityDisplay(
-      web_contents->GetURL(),
-      url_formatter::SchemeDisplay::OMIT_CRYPTOGRAPHIC));
-
   set_message(l10n_util::GetStringFUTF16(
       IDS_STORAGE_ACCESS_PERMISSION_BUBBLE_MESSAGE,
       url_formatter::FormatUrlForSecurityDisplay(
@@ -737,11 +713,6 @@ ContentSettingStorageAccessBubbleModel::ContentSettingStorageAccessBubbleModel(
       PageSpecificContentSettings::GetForFrame(&GetPage().GetMainDocument());
   set_site_list(page_content_settings->GetTwoSiteRequests(
       ContentSettingsType::STORAGE_ACCESS));
-
-  set_manage_text_style(ManageTextStyle::kHoverButton);
-  set_manage_text(l10n_util::GetStringUTF16(IDS_STORAGE_ACCESS_MANAGE_TEXT));
-  set_manage_tooltip(
-      l10n_util::GetStringUTF16(IDS_STORAGE_ACCESS_MANAGE_TOOLTIP));
 }
 
 ContentSettingStorageAccessBubbleModel::
@@ -763,22 +734,14 @@ void ContentSettingStorageAccessBubbleModel::CommitChanges() {
             ContentSettingsType::STORAGE_ACCESS,
             permissions::PermissionSourceUI::PAGE_ACTION);
     auto* map = HostContentSettingsMapFactory::GetForProfile(GetProfile());
-    content_settings::ContentSettingConstraints constraints;
-    constraints.set_lifetime(
-        blink::features::kStorageAccessAPIExplicitPermissionLifetime.Get());
-    map->SetNarrowestContentSetting(primary, secondary,
-                                    ContentSettingsType::STORAGE_ACCESS,
-                                    setting, constraints);
+    map->SetNarrowestContentSetting(
+        primary, secondary, ContentSettingsType::STORAGE_ACCESS, setting);
   }
 }
 
 void ContentSettingStorageAccessBubbleModel::OnSiteRowClicked(
     const net::SchemefulSite& site,
     bool is_allowed) {
-  RecordActionHistogram(ContentSettingsType::STORAGE_ACCESS,
-                        is_allowed
-                            ? ContentSettingBubbleAction::kPermissionAllowed
-                            : ContentSettingBubbleAction::kPermissionBlocked);
   changed_permissions_[site] = is_allowed;
 }
 
@@ -787,8 +750,6 @@ void ContentSettingStorageAccessBubbleModel::OnManageButtonClicked() {
     return;
   }
 
-  RecordActionHistogram(ContentSettingsType::STORAGE_ACCESS,
-                        ContentSettingBubbleAction::kManageButtonClicked);
   delegate()->ShowContentSettingsPage(ContentSettingsType::STORAGE_ACCESS);
 }
 
@@ -943,7 +904,8 @@ const blink::MediaStreamDevice& GetMediaDeviceById(
 ContentSettingMediaStreamBubbleModel::ContentSettingMediaStreamBubbleModel(
     Delegate* delegate,
     WebContents* web_contents)
-    : ContentSettingBubbleModel(delegate, web_contents) {
+    : ContentSettingBubbleModel(delegate, web_contents),
+      state_(PageSpecificContentSettings::MICROPHONE_CAMERA_NOT_ACCESSED) {
   // TODO(msramek): The media bubble has three states - mic only, camera only,
   // and both. There is a lot of duplicated code which does the same thing
   // for camera and microphone separately. Consider refactoring it to avoid
@@ -958,16 +920,6 @@ ContentSettingMediaStreamBubbleModel::ContentSettingMediaStreamBubbleModel(
       PageSpecificContentSettings::GetForFrame(&GetPage().GetMainDocument());
   state_ = content_settings->GetMicrophoneCameraState();
   DCHECK(CameraAccessed() || MicrophoneAccessed());
-
-  if (CameraAccessed()) {
-    content_settings->OnActivityIndicatorBubbleOpened(
-        ContentSettingsType::MEDIASTREAM_CAMERA);
-  }
-
-  if (MicrophoneAccessed()) {
-    content_settings->OnActivityIndicatorBubbleOpened(
-        ContentSettingsType::MEDIASTREAM_MIC);
-  }
 
   // If the permission is turned off in MacOS system preferences, overwrite
   // the bubble to enable the user to trigger the system dialog.
@@ -993,17 +945,6 @@ ContentSettingMediaStreamBubbleModel::~ContentSettingMediaStreamBubbleModel() =
 void ContentSettingMediaStreamBubbleModel::CommitChanges() {
   PageSpecificContentSettings* content_settings =
       PageSpecificContentSettings::GetForFrame(&GetPage().GetMainDocument());
-
-  if (CameraAccessed()) {
-    content_settings->OnActivityIndicatorBubbleClosed(
-        ContentSettingsType::MEDIASTREAM_CAMERA);
-  }
-
-  if (MicrophoneAccessed()) {
-    content_settings->OnActivityIndicatorBubbleClosed(
-        ContentSettingsType::MEDIASTREAM_MIC);
-  }
-
   if (content_settings->media_stream_access_origin().is_empty()) {
     return;
   }
@@ -1065,19 +1006,19 @@ void ContentSettingMediaStreamBubbleModel::OnDoneButtonClicked() {
 }
 
 bool ContentSettingMediaStreamBubbleModel::MicrophoneAccessed() const {
-  return state_.Has(PageSpecificContentSettings::kMicrophoneAccessed);
+  return (state_ & PageSpecificContentSettings::MICROPHONE_ACCESSED) != 0;
 }
 
 bool ContentSettingMediaStreamBubbleModel::CameraAccessed() const {
-  return state_.Has(PageSpecificContentSettings::kCameraAccessed);
+  return (state_ & PageSpecificContentSettings::CAMERA_ACCESSED) != 0;
 }
 
 bool ContentSettingMediaStreamBubbleModel::MicrophoneBlocked() const {
-  return state_.Has(PageSpecificContentSettings::kMicrophoneBlocked);
+  return (state_ & PageSpecificContentSettings::MICROPHONE_BLOCKED) != 0;
 }
 
 bool ContentSettingMediaStreamBubbleModel::CameraBlocked() const {
-  return state_.Has(PageSpecificContentSettings::kCameraBlocked);
+  return (state_ & PageSpecificContentSettings::CAMERA_BLOCKED) != 0;
 }
 
 void ContentSettingMediaStreamBubbleModel::SetIsUserModifiable() {
@@ -1147,8 +1088,8 @@ void ContentSettingMediaStreamBubbleModel::SetRadioGroup() {
   DCHECK(CameraAccessed() || MicrophoneAccessed());
   int radio_allow_label_id = 0;
   int radio_block_label_id = 0;
-  if (state_.Has(PageSpecificContentSettings::kMicrophoneBlocked) ||
-      state_.Has(PageSpecificContentSettings::kCameraBlocked)) {
+  if (state_ & (PageSpecificContentSettings::MICROPHONE_BLOCKED |
+                PageSpecificContentSettings::CAMERA_BLOCKED)) {
     if (network::IsUrlPotentiallyTrustworthy(url)) {
       radio_item_setting_[0] = CONTENT_SETTING_ALLOW;
       radio_allow_label_id = IDS_BLOCKED_MEDIASTREAM_CAMERA_ALLOW;
@@ -1416,22 +1357,19 @@ ContentSettingGeolocationBubbleModel::ContentSettingGeolocationBubbleModel(
                                      ContentSettingsType::GEOLOCATION) {
   SetCustomLink();
 #if BUILDFLAG(IS_MAC)
-  // Get the stored geolocation content setting and the system permission state
-  // to determine whether geolocation is blocked by a system permission.
-  //
-  // The content setting must be read from HostContentSettingsMap.
-  // PageSpecificContentSettings cannot be used because it combines the
-  // site-level and system-level permissions, indicating the feature is blocked
-  // if either the site-level or system-level permission is not granted. We need
-  // to distinguish these cases to ensure the bubble that launches the system
-  // dialog is not shown if the site-level permission was not granted.
-  const GURL& url = web_contents->GetPrimaryMainFrame()->GetLastCommittedURL();
-  ContentSetting content_setting =
-      HostContentSettingsMapFactory::GetForProfile(GetProfile())
-          ->GetContentSetting(url, url, ContentSettingsType::GEOLOCATION);
-  if (content_setting == CONTENT_SETTING_ALLOW &&
-      device::GeolocationManager::GetInstance()->GetSystemPermission() !=
-          LocationSystemPermissionStatus::kAllowed) {
+  PageSpecificContentSettings* content_settings =
+      PageSpecificContentSettings::GetForFrame(&GetPage().GetMainDocument());
+  if (!content_settings)
+    return;
+
+  bool is_allowed =
+      content_settings->IsContentAllowed(ContentSettingsType::GEOLOCATION);
+
+  device::GeolocationManager* geolocation_manager =
+      device::GeolocationManager::GetInstance();
+  LocationSystemPermissionStatus permission =
+      geolocation_manager->GetSystemPermission();
+  if (permission != LocationSystemPermissionStatus::kAllowed && is_allowed) {
     // If the permission is turned off in MacOS system preferences, overwrite
     // the bubble to enable the user to trigger the system dialog.
     InitializeSystemGeolocationPermissionBubble();
@@ -1733,12 +1671,9 @@ ContentSettingQuietRequestBubbleModel::ContentSettingQuietRequestBubbleModel(
   set_title(l10n_util::GetStringUTF16(bubble_title_string_id));
   switch (*quiet_ui_reason) {
     case QuietUiReason::kEnabledInPrefs:
-      DCHECK(request_type == permissions::RequestType::kNotifications ||
-             request_type == permissions::RequestType::kGeolocation);
+      DCHECK_EQ(request_type, permissions::RequestType::kNotifications);
       set_message(l10n_util::GetStringUTF16(
-          request_type == permissions::RequestType::kNotifications
-              ? IDS_NOTIFICATIONS_QUIET_PERMISSION_BUBBLE_DESCRIPTION
-              : IDS_GEOLOCATION_QUIET_PERMISSION_BUBBLE_DESCRIPTION));
+          IDS_NOTIFICATIONS_QUIET_PERMISSION_BUBBLE_DESCRIPTION));
       set_done_button_text(l10n_util::GetStringUTF16(
           IDS_NOTIFICATIONS_QUIET_PERMISSION_BUBBLE_ALLOW_BUTTON));
       set_show_learn_more(false);

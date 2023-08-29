@@ -31,6 +31,7 @@ import org.robolectric.shadows.ShadowLooper;
 
 import org.chromium.base.ContextUtils;
 import org.chromium.base.test.util.JniMocker;
+import org.chromium.chrome.browser.AppHooks;
 import org.chromium.chrome.browser.base.SplitCompatService;
 import org.chromium.chrome.browser.media.ui.ChromeMediaNotificationControllerDelegate.ListenerServiceImpl;
 import org.chromium.chrome.browser.notifications.NotificationUmaTracker;
@@ -169,6 +170,7 @@ public class MediaNotificationTestBase {
 
     @After
     public void tearDown() {
+        AppHooks.setInstanceForTesting(null);
         MediaNotificationManager.clear(NOTIFICATION_ID);
     }
 

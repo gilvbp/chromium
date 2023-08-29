@@ -14,7 +14,8 @@
 
 // View controller for tangible sync.
 @interface TangibleSyncViewController
-    : PromoStyleViewController <TangibleSyncConsumer>
+    : PromoStyleViewController <InstructionLineTappedListener,
+                                TangibleSyncConsumer>
 
 @property(nonatomic, weak) id<TangibleSyncViewControllerDelegate> delegate;
 

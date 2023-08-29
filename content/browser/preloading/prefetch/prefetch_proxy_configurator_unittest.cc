@@ -110,6 +110,18 @@ class PrefetchProxyConfiguratorTest : public testing::Test {
   std::unique_ptr<TestCustomProxyConfigClient> config_client_;
 };
 
+TEST_F(PrefetchProxyConfiguratorTest, FeatureOff) {
+  base::test::ScopedFeatureList scoped_feature_list;
+  scoped_feature_list.InitAndDisableFeature(
+      features::kPrefetchUseContentRefactor);
+
+  base::RunLoop loop;
+  configurator()->UpdateCustomProxyConfig(loop.QuitClosure());
+  loop.Run();
+
+  EXPECT_FALSE(LatestProxyConfig());
+}
+
 TEST_F(PrefetchProxyConfiguratorTest, ExperimentOverrides) {
   base::test::ScopedFeatureList scoped_feature_list;
   scoped_feature_list.InitAndEnableFeatureWithParameters(
@@ -127,6 +139,9 @@ TEST_F(PrefetchProxyConfiguratorTest, ExperimentOverrides) {
 
 TEST_F(PrefetchProxyConfiguratorTest, Fallback_DoesRandomBackoff_ErrFailed) {
   base::HistogramTester histogram_tester;
+  base::test::ScopedFeatureList scoped_feature_list;
+  scoped_feature_list.InitAndEnableFeature(
+      features::kPrefetchUseContentRefactor);
 
   net::ProxyServer proxy(
       net::GetSchemeFromUriScheme(prefetch_proxy_url().scheme()),
@@ -146,6 +161,9 @@ TEST_F(PrefetchProxyConfiguratorTest, Fallback_DoesRandomBackoff_ErrFailed) {
 
 TEST_F(PrefetchProxyConfiguratorTest, FallbackDoesRandomBackoff_ErrOK) {
   base::HistogramTester histogram_tester;
+  base::test::ScopedFeatureList scoped_feature_list;
+  scoped_feature_list.InitAndEnableFeature(
+      features::kPrefetchUseContentRefactor);
 
   net::ProxyServer proxy(
       net::GetSchemeFromUriScheme(prefetch_proxy_url().scheme()),
@@ -200,6 +218,9 @@ TEST_F(PrefetchProxyConfiguratorTest, TunnelHeaders_200OK) {
 
 TEST_F(PrefetchProxyConfiguratorTest, TunnelHeaders_DifferentProxy) {
   base::HistogramTester histogram_tester;
+  base::test::ScopedFeatureList scoped_feature_list;
+  scoped_feature_list.InitAndEnableFeature(
+      features::kPrefetchUseContentRefactor);
 
   net::ProxyServer proxy(
       net::GetSchemeFromUriScheme(prefetch_proxy_url().scheme()),
@@ -215,6 +236,9 @@ TEST_F(PrefetchProxyConfiguratorTest, TunnelHeaders_DifferentProxy) {
 
 TEST_F(PrefetchProxyConfiguratorTest, TunnelHeaders_500NoRetryAfter) {
   base::HistogramTester histogram_tester;
+  base::test::ScopedFeatureList scoped_feature_list;
+  scoped_feature_list.InitAndEnableFeature(
+      features::kPrefetchUseContentRefactor);
 
   net::ProxyServer proxy(
       net::GetSchemeFromUriScheme(prefetch_proxy_url().scheme()),
@@ -234,6 +258,9 @@ TEST_F(PrefetchProxyConfiguratorTest, TunnelHeaders_500NoRetryAfter) {
 
 TEST_F(PrefetchProxyConfiguratorTest, TunnelHeaders_500WithRetryAfter) {
   base::HistogramTester histogram_tester;
+  base::test::ScopedFeatureList scoped_feature_list;
+  scoped_feature_list.InitAndEnableFeature(
+      features::kPrefetchUseContentRefactor);
 
   net::ProxyServer proxy(
       net::GetSchemeFromUriScheme(prefetch_proxy_url().scheme()),

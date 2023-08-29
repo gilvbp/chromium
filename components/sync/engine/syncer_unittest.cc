@@ -181,7 +181,8 @@ class SyncerTest : public testing::Test,
     context_ = std::make_unique<SyncCycleContext>(
         mock_server_.get(), extensions_activity_.get(), listeners,
         debug_info_getter_.get(), model_type_registry_.get(),
-        local_cache_guid(), mock_server_->store_birthday(), "fake_bag_of_chips",
+        "fake_invalidator_client_id", local_cache_guid(),
+        mock_server_->store_birthday(), "fake_bag_of_chips",
         /*poll_interval=*/base::Minutes(30));
     auto syncer = std::make_unique<Syncer>(&cancelation_signal_);
     // The syncer is destroyed with the scheduler that owns it.

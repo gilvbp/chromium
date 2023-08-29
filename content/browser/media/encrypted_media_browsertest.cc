@@ -108,9 +108,8 @@ class EncryptedMediaTest
     // TODO(xhwang): Even when config change is not supported we still start
     // content shell only to return directly here. We probably should not run
     // these test cases at all.
-    if (CurrentSourceType() != SrcType::MSE) {
+    if (CurrentSourceType() != SrcType::MSE)
       GTEST_SKIP() << "Config change only happens when using MSE.";
-    }
 
     base::StringPairs query_params;
     query_params.emplace_back("keySystem", CurrentKeySystem());
@@ -131,9 +130,8 @@ class EncryptedMediaTest
     query_params.emplace_back("mediaType",
                               media::GetMimeTypeForFile(media_file));
     query_params.emplace_back("keySystem", key_system);
-    if (src_type == SrcType::MSE) {
+    if (src_type == SrcType::MSE)
       query_params.emplace_back("useMSE", "1");
-    }
     RunMediaTestPage(html_page, query_params, expectation, true);
   }
 
@@ -147,9 +145,8 @@ class EncryptedMediaTest
   void RunMultipleFileTest(const std::string& video_file,
                            const std::string& audio_file,
                            const std::string& expected_title) {
-    if (CurrentSourceType() != SrcType::MSE) {
+    if (CurrentSourceType() != SrcType::MSE)
       GTEST_SKIP() << "Can only play MP4 encrypted streams by MSE.";
-    }
 
     base::StringPairs query_params;
     query_params.emplace_back("keySystem", CurrentKeySystem());
@@ -259,18 +256,16 @@ IN_PROC_BROWSER_TEST_P(EncryptedMediaTest, Playback_VideoClearAudio_WebM) {
 IN_PROC_BROWSER_TEST_P(EncryptedMediaTest,
                        MAYBE_Playback_VideoAudio_WebM_Opus) {
 #if BUILDFLAG(IS_ANDROID)
-  if (!media::MediaCodecUtil::IsOpusDecoderAvailable()) {
+  if (!media::MediaCodecUtil::IsOpusDecoderAvailable())
     GTEST_SKIP() << "Opus decoder not available";
-  }
 #endif
   TestSimplePlayback("bear-320x240-opus-a_enc-a.webm");
 }
 
 IN_PROC_BROWSER_TEST_P(EncryptedMediaTest, Playback_VideoAudio_WebM_Opus) {
 #if BUILDFLAG(IS_ANDROID)
-  if (!media::MediaCodecUtil::IsOpusDecoderAvailable()) {
+  if (!media::MediaCodecUtil::IsOpusDecoderAvailable())
     GTEST_SKIP() << "Opus decoder not available";
-  }
 #endif
   TestSimplePlayback("bear-320x240-opus-av_enc-av.webm");
 }
@@ -286,9 +281,8 @@ IN_PROC_BROWSER_TEST_P(EncryptedMediaTest, Playback_VideoAudio_WebM_Opus) {
 IN_PROC_BROWSER_TEST_P(EncryptedMediaTest,
                        MAYBE_Playback_VideoClearAudio_WebM_Opus) {
 #if BUILDFLAG(IS_ANDROID)
-  if (!media::MediaCodecUtil::IsOpusDecoderAvailable()) {
+  if (!media::MediaCodecUtil::IsOpusDecoderAvailable())
     GTEST_SKIP() << "Opus decoder not available";
-  }
 #endif
   TestSimplePlayback("bear-320x240-opus-av_enc-v.webm");
 }
@@ -299,18 +293,16 @@ IN_PROC_BROWSER_TEST_P(EncryptedMediaTest, Playback_AudioOnly_MP4_FLAC) {
 
 IN_PROC_BROWSER_TEST_P(EncryptedMediaTest, Playback_AudioOnly_MP4_OPUS) {
 #if BUILDFLAG(IS_ANDROID)
-  if (!media::MediaCodecUtil::IsOpusDecoderAvailable()) {
+  if (!media::MediaCodecUtil::IsOpusDecoderAvailable())
     GTEST_SKIP() << "Opus decoder not available";
-  }
 #endif
   RunMultipleFileTest(std::string(), "bear-opus-cenc.mp4", media::kEndedTitle);
 }
 
 IN_PROC_BROWSER_TEST_P(EncryptedMediaTest, Playback_VideoOnly_MP4_VP9) {
   // MP4 without MSE is not support yet, http://crbug.com/170793.
-  if (CurrentSourceType() != SrcType::MSE) {
+  if (CurrentSourceType() != SrcType::MSE)
     GTEST_SKIP() << "Can only play MP4 encrypted streams by MSE.";
-  }
 
   TestSimplePlayback("bear-320x240-v_frag-vp9-cenc.mp4");
 }
@@ -318,11 +310,9 @@ IN_PROC_BROWSER_TEST_P(EncryptedMediaTest, Playback_VideoOnly_MP4_VP9) {
 // TODO(crbug.com/707127): Decide when it's supported on Android.
 #if !BUILDFLAG(IS_ANDROID)
 
-#if BUILDFLAG(IS_MAC) || BUILDFLAG(IS_WIN) || \
-    (BUILDFLAG(IS_FUCHSIA) && defined(ARCH_CPU_ARM_FAMILY))
+#if BUILDFLAG(IS_MAC) || (BUILDFLAG(IS_FUCHSIA) && defined(ARCH_CPU_ARM_FAMILY))
 // TODO(https://crbug.com/1222685): Failing on Mac.
 // TODO(https://crbug.com/1280308): Failing on Fuchsia arm.
-// TODO(https://crbug.com/1472415): Failing on Win.
 #define MAYBE_Playback_VideoOnly_WebM_VP9Profile2 \
   DISABLED_Playback_VideoOnly_WebM_VP9Profile2
 #else
@@ -346,9 +336,8 @@ IN_PROC_BROWSER_TEST_P(EncryptedMediaTest,
 IN_PROC_BROWSER_TEST_P(EncryptedMediaTest,
                        MAYBE_Playback_VideoOnly_MP4_VP9Profile2) {
   // MP4 without MSE is not support yet, http://crbug.com/170793.
-  if (CurrentSourceType() != SrcType::MSE) {
+  if (CurrentSourceType() != SrcType::MSE)
     GTEST_SKIP() << "Can only play MP4 encrypted streams by MSE.";
-  }
 
   TestSimplePlayback("bear-320x240-v-vp9_profile2_subsample_cenc-v.mp4");
 }
@@ -374,18 +363,16 @@ IN_PROC_BROWSER_TEST_P(EncryptedMediaTest,
 
 IN_PROC_BROWSER_TEST_P(EncryptedMediaTest, Playback_VideoOnly_MP4_AV1) {
   // MP4 without MSE is not support yet, http://crbug.com/170793.
-  if (CurrentSourceType() != SrcType::MSE) {
+  if (CurrentSourceType() != SrcType::MSE)
     GTEST_SKIP() << "Can only play MP4 encrypted streams by MSE.";
-  }
 
   TestSimplePlayback("bear-av1-cenc.mp4");
 }
 
 IN_PROC_BROWSER_TEST_P(EncryptedMediaTest, Playback_VideoOnly_MP4_AV1_10bit) {
   // MP4 without MSE is not support yet, http://crbug.com/170793.
-  if (CurrentSourceType() != SrcType::MSE) {
+  if (CurrentSourceType() != SrcType::MSE)
     GTEST_SKIP() << "Can only play MP4 encrypted streams by MSE.";
-  }
 
   TestSimplePlayback("bear-av1-320x180-10bit-cenc.mp4");
 }

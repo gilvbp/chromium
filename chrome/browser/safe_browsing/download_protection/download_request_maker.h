@@ -53,9 +53,7 @@ class DownloadRequestMaker {
       int64_t length,
       const std::vector<ClientDownloadRequest::Resource>& resources,
       bool is_user_initiated,
-      ReferrerChainData* referrer_chain_data,
-      base::OnceCallback<void(const FileAnalyzer::Results&)>
-          on_results_callback);
+      ReferrerChainData* referrer_chain_data);
 
   DownloadRequestMaker(const DownloadRequestMaker&) = delete;
   DownloadRequestMaker& operator=(const DownloadRequestMaker&) = delete;
@@ -96,11 +94,10 @@ class DownloadRequestMaker {
   // The current path to the file contents.
   const base::FilePath full_path_;
 
-  // Callback used for handling behavior specific to download items of file
-  // system accesses.
-  base::OnceCallback<void(const FileAnalyzer::Results&)> on_results_callback_;
-
   Callback callback_;
+
+  // Start time of a given asynchronous task. Used for metrics.
+  base::Time start_time_;
 
   base::WeakPtrFactory<DownloadRequestMaker> weakptr_factory_{this};
 };

@@ -4,7 +4,7 @@
 
 #import "ios/chrome/browser/ui/whats_new/cells/whats_new_table_view_item.h"
 
-#import "base/apple/foundation_util.h"
+#import "base/mac/foundation_util.h"
 #import "ios/chrome/browser/shared/ui/symbols/chrome_icon.h"
 #import "ios/chrome/browser/shared/ui/table_view/chrome_table_view_styler.h"
 #import "ios/chrome/browser/shared/ui/util/uikit_ui_util.h"
@@ -12,6 +12,10 @@
 #import "ios/chrome/common/ui/table_view/table_view_cells_constants.h"
 #import "testing/gtest_mac.h"
 #import "testing/platform_test.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace {
 using WhatsNewTableViewItemTest = PlatformTest;
@@ -33,7 +37,7 @@ TEST_F(WhatsNewTableViewItemTest, ItemProperties) {
   ASSERT_TRUE([cell isMemberOfClass:[WhatsNewTableViewCell class]]);
 
   WhatsNewTableViewCell* whats_new_cell =
-      base::apple::ObjCCastStrict<WhatsNewTableViewCell>(cell);
+      base::mac::ObjCCastStrict<WhatsNewTableViewCell>(cell);
 
   ChromeTableViewStyler* styler = [[ChromeTableViewStyler alloc] init];
   [item configureCell:cell withStyler:styler];
@@ -61,7 +65,7 @@ TEST_F(WhatsNewTableViewItemTest, ItemProperties) {
 
   // Check that the main background is set properly.
   UIImageView* main_background_image_view =
-      base::apple::ObjCCastStrict<UIImageView>(
+      base::mac::ObjCCastStrict<UIImageView>(
           whats_new_cell.contentView.subviews[0]);
   EXPECT_NSEQ([[UIImage imageNamed:@"whats_new_icon_tile"]
                   imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate],
@@ -95,7 +99,7 @@ TEST_F(WhatsNewTableViewItemTest, ItemWithoutBackgroundImageView) {
   ASSERT_TRUE([cell isMemberOfClass:[WhatsNewTableViewCell class]]);
 
   WhatsNewTableViewCell* whats_new_cell =
-      base::apple::ObjCCastStrict<WhatsNewTableViewCell>(cell);
+      base::mac::ObjCCastStrict<WhatsNewTableViewCell>(cell);
 
   ChromeTableViewStyler* styler = [[ChromeTableViewStyler alloc] init];
   [item configureCell:cell withStyler:styler];
@@ -124,7 +128,7 @@ TEST_F(WhatsNewTableViewItemTest, ItemWithoutBackgroundImageView) {
 
   // Check that the main background is set properly.
   UIImageView* main_background_image_view =
-      base::apple::ObjCCastStrict<UIImageView>(
+      base::mac::ObjCCastStrict<UIImageView>(
           whats_new_cell.contentView.subviews[0]);
   EXPECT_NSEQ([[UIImage imageNamed:@"whats_new_icon_tile"]
                   imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate],

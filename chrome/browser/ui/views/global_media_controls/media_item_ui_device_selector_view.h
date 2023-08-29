@@ -16,7 +16,6 @@
 #include "components/global_media_controls/public/constants.h"
 #include "components/global_media_controls/public/mojom/device_service.mojom.h"
 #include "components/global_media_controls/public/views/media_item_ui_device_selector.h"
-#include "components/media_message_center/notification_theme.h"
 #include "media/audio/audio_device_description.h"
 #include "mojo/public/cpp/bindings/receiver.h"
 #include "mojo/public/cpp/bindings/remote.h"
@@ -50,9 +49,6 @@ class MediaItemUIDeviceSelectorView
       public global_media_controls::mojom::DeviceListClient {
  public:
   METADATA_HEADER(MediaItemUIDeviceSelectorView);
-
-  // media_color_theme is only set when this device selector view is used on
-  // Chrome OS ash and media::kGlobalMediaControlsCrOSUpdatedUI is enabled.
   MediaItemUIDeviceSelectorView(
       const std::string& item_id,
       MediaItemUIDeviceSelectorDelegate* delegate,
@@ -62,10 +58,7 @@ class MediaItemUIDeviceSelectorView
           receiver,
       bool has_audio_output,
       global_media_controls::GlobalMediaControlsEntryPoint entry_point,
-      bool show_expand_button = true,
-      bool show_devices = false,
-      absl::optional<media_message_center::MediaColorTheme> media_color_theme =
-          absl::nullopt);
+      bool show_expand_button = true);
   ~MediaItemUIDeviceSelectorView() override;
 
   // Called when audio output devices are discovered.
@@ -78,8 +71,6 @@ class MediaItemUIDeviceSelectorView
   void OnColorsChanged(SkColor foreground_color,
                        SkColor background_color) override;
   void UpdateCurrentAudioDevice(const std::string& current_device_id) override;
-  void ShowOrHideDeviceList() override;
-  bool IsDeviceSelectorExpanded() override;
 
   // Called when the audio device switching has become enabled or disabled.
   void UpdateIsAudioDeviceSwitchingEnabled(bool enabled);
@@ -95,6 +86,7 @@ class MediaItemUIDeviceSelectorView
   // MediaItemUIFooterView::Delegate
   void OnDeviceSelected(int tag) override;
   void OnDropdownButtonClicked() override;
+  bool IsDeviceSelectorExpanded() override;
 
   // views::View
   bool OnMousePressed(const ui::MouseEvent& event) override;
@@ -118,6 +110,7 @@ class MediaItemUIDeviceSelectorView
   void UpdateVisibility();
   bool ShouldBeVisible() const;
   void CreateExpandButtonStrip(bool show_expand_button);
+  void ShowOrHideDeviceList();
   void ShowDevices();
   void HideDevices();
   void RemoveDevicesOfType(DeviceEntryUIType type);
@@ -138,7 +131,6 @@ class MediaItemUIDeviceSelectorView
   SkColor foreground_color_ = global_media_controls::kDefaultForegroundColor;
   SkColor background_color_ = global_media_controls::kDefaultBackgroundColor;
   global_media_controls::GlobalMediaControlsEntryPoint const entry_point_;
-  absl::optional<media_message_center::MediaColorTheme> media_color_theme_;
 
   // Child views
   raw_ptr<AudioDeviceEntryView, DanglingUntriaged>

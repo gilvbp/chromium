@@ -37,10 +37,9 @@ OobeCompletionTrackerFactory::OobeCompletionTrackerFactory()
 
 OobeCompletionTrackerFactory::~OobeCompletionTrackerFactory() = default;
 
-std::unique_ptr<KeyedService>
-OobeCompletionTrackerFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* OobeCompletionTrackerFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
-  return std::make_unique<OobeCompletionTracker>();
+  return new OobeCompletionTracker();
 }
 
 }  // namespace multidevice_setup

@@ -24,7 +24,9 @@ struct PartitionAllocatorForTesting : public PartitionAllocator {
   PartitionAllocatorForTesting() : PartitionAllocator() {}
 
   explicit PartitionAllocatorForTesting(PartitionOptions opts)
-      : PartitionAllocator(opts) {}
+      : PartitionAllocator() {
+    PartitionAllocator::init(opts);
+  }
 
   ~PartitionAllocatorForTesting() { reset(); }
 

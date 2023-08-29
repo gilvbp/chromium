@@ -32,14 +32,14 @@ ChromeLabsCoordinator::ChromeLabsCoordinator(ChromeLabsButton* anchor_view,
 
 ChromeLabsCoordinator::~ChromeLabsCoordinator() {
   if (BubbleExists()) {
-    GetChromeLabsBubbleView()->GetWidget()->CloseWithReason(
+    chrome_labs_bubble_view_->GetWidget()->CloseWithReason(
         views::Widget::ClosedReason::kUnspecified);
-    chrome_labs_bubble_view_tracker_.SetView(nullptr);
+    chrome_labs_bubble_view_ = nullptr;
   }
 }
 
 bool ChromeLabsCoordinator::BubbleExists() {
-  return chrome_labs_bubble_view_tracker_.view() != nullptr;
+  return chrome_labs_bubble_view_ != nullptr;
 }
 
 void ChromeLabsCoordinator::Show(ShowUserType user_type) {
@@ -65,15 +65,16 @@ void ChromeLabsCoordinator::Show(ShowUserType user_type) {
 
   auto chrome_labs_bubble_view =
       std::make_unique<ChromeLabsBubbleView>(anchor_view_);
-  chrome_labs_bubble_view_tracker_.SetView(chrome_labs_bubble_view.get());
+  chrome_labs_bubble_view_ = chrome_labs_bubble_view.get();
+  chrome_labs_bubble_view_->View::AddObserver(this);
 
   controller_ = std::make_unique<ChromeLabsViewController>(
-      chrome_labs_model_, chrome_labs_bubble_view.get(), browser_, flags_state_,
+      chrome_labs_model_, chrome_labs_bubble_view_, browser_, flags_state_,
       flags_storage_.get());
 
   // ChromeLabsButton should not appear in the toolbar if there are no
   // experiments to show. Therefore ChromeLabsBubble should not be created.
-  DCHECK_GE(chrome_labs_bubble_view->GetNumLabItems(), 1u);
+  DCHECK_GE(chrome_labs_bubble_view_->GetNumLabItems(), 1u);
 
   views::Widget* const widget = views::BubbleDialogDelegateView::CreateBubble(
       std::move(chrome_labs_bubble_view));
@@ -85,13 +86,13 @@ void ChromeLabsCoordinator::Show(ShowUserType user_type) {
 
 void ChromeLabsCoordinator::Hide() {
   if (BubbleExists()) {
-    GetChromeLabsBubbleView()->GetWidget()->CloseWithReason(
+    chrome_labs_bubble_view_->GetWidget()->CloseWithReason(
         views::Widget::ClosedReason::kUnspecified);
-    // Closing the widget will eventually result in the view tracked being set
-    // to nullptr, but we also set it to nullptr here since we know the widget
-    // will now be destroyed and we shouldn't be accessing the
-    // ChromeLabsBubbleView anymore.
-    chrome_labs_bubble_view_tracker_.SetView(nullptr);
+    // Closing the widget will eventually result in chrome_labs_bubble_view_
+    // being set to nullptr, but we also set it to nullptr here since we know
+    // the widget will now be destroyed and we shouldn't be accessing
+    // chrome_labs_bubble_ anymore.
+    chrome_labs_bubble_view_ = nullptr;
   }
 }
 
@@ -103,7 +104,6 @@ void ChromeLabsCoordinator::ShowOrHide() {
 #endif
   if (BubbleExists()) {
     Hide();
-    return;
   }
   // Ash-chrome uses a different FlagsStorage if the user is the owner. On
   // ChromeOS verifying if the owner is signed in is async operation.
@@ -140,8 +140,6 @@ void ChromeLabsCoordinator::ShowOrHide() {
   Show();
 }
 
-ChromeLabsBubbleView* ChromeLabsCoordinator::GetChromeLabsBubbleView() {
-  return BubbleExists() ? static_cast<ChromeLabsBubbleView*>(
-                              chrome_labs_bubble_view_tracker_.view())
-                        : nullptr;
+void ChromeLabsCoordinator::OnViewIsDeleting(views::View* observed_view) {
+  chrome_labs_bubble_view_ = nullptr;
 }

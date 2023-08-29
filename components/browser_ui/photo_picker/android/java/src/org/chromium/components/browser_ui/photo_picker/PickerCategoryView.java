@@ -670,10 +670,12 @@ public class PickerCategoryView extends RelativeLayout
         sTestFiles = new ArrayList<>(testFiles);
     }
 
+    @VisibleForTesting
     public SelectionDelegate<PickerBitmap> getSelectionDelegateForTesting() {
         return mSelectionDelegate;
     }
 
+    @VisibleForTesting
     public PickerVideoPlayer getVideoPlayerForTesting() {
         return mVideoPlayer;
     }

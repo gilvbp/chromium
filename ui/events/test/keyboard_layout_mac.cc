@@ -15,21 +15,21 @@ PlatformKeyboardLayout GetPlatformKeyboardLayout(KeyboardLayout layout) {
 
   const char kUsInputSourceId[] = "com.apple.keylayout.US";
 
-  base::apple::ScopedCFTypeRef<CFMutableDictionaryRef> input_source_list_filter(
+  base::ScopedCFTypeRef<CFMutableDictionaryRef> input_source_list_filter(
       CFDictionaryCreateMutable(kCFAllocatorDefault, 1,
                                 &kCFTypeDictionaryKeyCallBacks,
                                 &kCFTypeDictionaryValueCallBacks));
-  base::apple::ScopedCFTypeRef<CFStringRef> input_source_id_ref(
+  base::ScopedCFTypeRef<CFStringRef> input_source_id_ref(
       CFStringCreateWithCString(kCFAllocatorDefault, kUsInputSourceId,
                                 kCFStringEncodingUTF8));
   CFDictionaryAddValue(input_source_list_filter, kTISPropertyInputSourceID,
                        input_source_id_ref);
-  base::apple::ScopedCFTypeRef<CFArrayRef> input_source_list(
+  base::ScopedCFTypeRef<CFArrayRef> input_source_list(
       TISCreateInputSourceList(input_source_list_filter, true));
   if (CFArrayGetCount(input_source_list) != 1)
     return PlatformKeyboardLayout();
 
-  return base::apple::ScopedCFTypeRef<TISInputSourceRef>(
+  return base::ScopedCFTypeRef<TISInputSourceRef>(
       (TISInputSourceRef)CFArrayGetValueAtIndex(input_source_list, 0),
       base::scoped_policy::RETAIN);
 }

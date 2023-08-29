@@ -23,6 +23,7 @@ import android.view.DragEvent;
 import android.view.View;
 import android.view.View.DragShadowBuilder;
 import android.view.ViewGroup;
+import android.view.accessibility.AccessibilityManager;
 import android.widget.ImageView;
 
 import androidx.annotation.IntDef;
@@ -39,8 +40,6 @@ import org.chromium.base.compat.ApiHelperForN;
 import org.chromium.base.compat.ApiHelperForO;
 import org.chromium.base.metrics.RecordHistogram;
 import org.chromium.ui.R;
-import org.chromium.ui.accessibility.AccessibilityState;
-import org.chromium.ui.base.MimeTypeUtils;
 import org.chromium.ui.dragdrop.AnimatedImageDragShadowBuilder.CursorOffset;
 import org.chromium.ui.dragdrop.AnimatedImageDragShadowBuilder.DragShadowSpec;
 
@@ -111,10 +110,10 @@ public class DragAndDropDelegateImpl implements DragAndDropDelegate, DragStateTr
             int dragObjRectWidth, int dragObjRectHeight) {
         // Drag and drop is disabled when gesture related a11y service is enabled.
         // See https://crbug.com/1250067.
-        if (AccessibilityState.isTouchExplorationEnabled()
-                || AccessibilityState.isPerformGesturesEnabled()) {
-            return false;
-        }
+        AccessibilityManager a11yManager =
+                (AccessibilityManager) containerView.getContext().getSystemService(
+                        Context.ACCESSIBILITY_SERVICE);
+        if (a11yManager.isEnabled() && a11yManager.isTouchExplorationEnabled()) return false;
 
         ClipData clipdata = buildClipData(dropData);
         if (clipdata == null) {
@@ -209,10 +208,7 @@ public class DragAndDropDelegateImpl implements DragAndDropDelegate, DragStateTr
         int type = getDragTargetType(dropData);
         switch (type) {
             case DragTargetType.TEXT:
-                return new ClipData(null,
-                        new String[] {ClipDescription.MIMETYPE_TEXT_PLAIN,
-                                MimeTypeUtils.CHROME_MIMETYPE_TEXT},
-                        new Item(dropData.text));
+                return ClipData.newPlainText(null, dropData.text);
             case DragTargetType.IMAGE:
                 Uri cachedUri = DropDataProviderUtils.cacheImageData(dropData);
                 // If there's no content provider we shouldn't start the drag.
@@ -237,8 +233,7 @@ public class DragAndDropDelegateImpl implements DragAndDropDelegate, DragStateTr
                     if (intent != null) {
                         return new ClipData(null,
                                 new String[] {ClipDescription.MIMETYPE_TEXT_PLAIN,
-                                        ClipDescription.MIMETYPE_TEXT_INTENT,
-                                        MimeTypeUtils.CHROME_MIMETYPE_LINK},
+                                        ClipDescription.MIMETYPE_TEXT_INTENT},
                                 new Item(getTextForLinkData(dropData), intent, null));
                     }
                 }

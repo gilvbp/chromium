@@ -60,7 +60,6 @@ class ChromeEnterpriseRealTimeUrlLookupService
   bool CanCheckSafeBrowsingHighConfidenceAllowlist() const override;
   bool CanSendRTSampleRequest() const override;
   std::string GetMetricSuffix() const override;
-  void Shutdown() override;
 
  private:
   // RealTimeUrlLookupServiceBase:

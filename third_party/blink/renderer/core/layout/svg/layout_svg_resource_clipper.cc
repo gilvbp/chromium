@@ -26,9 +26,9 @@
 #include "third_party/blink/renderer/core/dom/element_traversal.h"
 #include "third_party/blink/renderer/core/layout/hit_test_result.h"
 #include "third_party/blink/renderer/core/layout/layout_box_model_object.h"
+#include "third_party/blink/renderer/core/layout/svg/svg_layout_support.h"
 #include "third_party/blink/renderer/core/layout/svg/svg_resources.h"
 #include "third_party/blink/renderer/core/layout/svg/transformed_hit_test_location.h"
-#include "third_party/blink/renderer/core/paint/clip_path_clipper.h"
 #include "third_party/blink/renderer/core/paint/paint_info.h"
 #include "third_party/blink/renderer/core/svg/svg_clip_path_element.h"
 #include "third_party/blink/renderer/core/svg/svg_geometry_element.h"
@@ -247,10 +247,9 @@ bool LayoutSVGResourceClipper::HitTestClipContent(
     const gfx::RectF& object_bounding_box,
     const HitTestLocation& location) const {
   NOT_DESTROYED();
-  if (HasClipPath() &&
-      !ClipPathClipper::HitTest(*this, object_bounding_box, location)) {
+  if (!SVGLayoutSupport::IntersectsClipPath(*this, object_bounding_box,
+                                            location))
     return false;
-  }
 
   TransformedHitTestLocation local_location(
       location, CalculateClipTransform(object_bounding_box));
@@ -277,7 +276,7 @@ bool LayoutSVGResourceClipper::HitTestClipContent(
 gfx::RectF LayoutSVGResourceClipper::ResourceBoundingBox(
     const gfx::RectF& reference_box) {
   NOT_DESTROYED();
-  DCHECK(!SelfNeedsFullLayout());
+  DCHECK(!SelfNeedsLayout());
 
   if (local_clip_bounds_.IsEmpty())
     CalculateLocalClipBounds();

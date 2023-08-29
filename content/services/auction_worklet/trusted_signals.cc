@@ -4,7 +4,6 @@
 
 #include "content/services/auction_worklet/trusted_signals.h"
 
-#include <cstddef>
 #include <memory>
 #include <set>
 #include <string>
@@ -41,9 +40,8 @@ namespace {
 // `values` will be. Each entry in `keys` will be added at most once.
 std::string CreateQueryParam(const char* name,
                              const std::set<std::string>& keys) {
-  if (keys.empty()) {
+  if (keys.empty())
     return std::string();
-  }
 
   std::string query_param = base::StringPrintf("&%s=", name);
   bool first_key = true;
@@ -71,23 +69,20 @@ std::map<std::string, AuctionV8Helper::SerializedValue> ParseKeyValueMap(
     v8::Local<v8::Object> v8_object,
     const std::set<std::string>& keys) {
   std::map<std::string, AuctionV8Helper::SerializedValue> out;
-  if (keys.empty()) {
+  if (keys.empty())
     return out;
-  }
 
   for (const auto& key : keys) {
     v8::Local<v8::String> v8_key;
-    if (!v8_helper->CreateUtf8String(key).ToLocal(&v8_key)) {
+    if (!v8_helper->CreateUtf8String(key).ToLocal(&v8_key))
       continue;
-    }
 
     // Skip over missing properties (rather than serializing 'undefined') and
     // also things in the prototype.
     v8::Maybe<bool> has_key =
         v8_object->HasOwnProperty(v8_helper->scratch_context(), v8_key);
-    if (has_key.IsNothing() || !has_key.FromJust()) {
+    if (has_key.IsNothing() || !has_key.FromJust())
       continue;
-    }
 
     v8::Local<v8::Value> v8_value;
     if (!v8_object->Get(v8_helper->scratch_context(), v8_key)
@@ -96,9 +91,8 @@ std::map<std::string, AuctionV8Helper::SerializedValue> ParseKeyValueMap(
     }
     AuctionV8Helper::SerializedValue serialized_value =
         v8_helper->Serialize(v8_helper->scratch_context(), v8_value);
-    if (!serialized_value.IsOK()) {
+    if (!serialized_value.IsOK())
       continue;
-    }
     out[key] = std::move(serialized_value);
   }
   return out;
@@ -113,9 +107,8 @@ std::map<std::string, AuctionV8Helper::SerializedValue> ParseChildKeyValueMap(
     const char* name,
     const std::set<std::string>& keys) {
   std::map<std::string, AuctionV8Helper::SerializedValue> out;
-  if (keys.empty()) {
+  if (keys.empty())
     return out;
-  }
 
   v8::Local<v8::Value> named_object_value;
   // Don't consider the entire object missing (or values other than objects) a
@@ -213,9 +206,8 @@ ParsePriorityVectorsInPerInterestGroupMap(
   TrustedSignals::Result::PriorityVectorMap out;
   for (const auto& interest_group_name : interest_group_names) {
     v8::Local<v8::String> v8_name;
-    if (!v8_helper->CreateUtf8String(interest_group_name).ToLocal(&v8_name)) {
+    if (!v8_helper->CreateUtf8String(interest_group_name).ToLocal(&v8_name))
       continue;
-    }
 
     v8::Local<v8::Value> per_interest_group_data_value;
     if (!per_group_data_object->Get(v8_helper->scratch_context(), v8_name)
@@ -231,9 +223,8 @@ ParsePriorityVectorsInPerInterestGroupMap(
         per_interest_group_data_value.As<v8::Object>();
     absl::optional<TrustedSignals::Result::PriorityVector> priority_vector =
         ParsePriorityVector(v8_helper, per_interest_group_data);
-    if (priority_vector) {
+    if (priority_vector)
       out.emplace(interest_group_name, std::move(*priority_vector));
-    }
   }
   return out;
 }
@@ -289,9 +280,8 @@ TrustedSignals::Result::GetPriorityVector(
     const std::string& interest_group_name) const {
   DCHECK(priority_vectors_.has_value());
   auto result = priority_vectors_->find(interest_group_name);
-  if (result == priority_vectors_->end()) {
+  if (result == priority_vectors_->end())
     return nullptr;
-  }
   return &result->second;
 }
 
@@ -317,7 +307,7 @@ v8::Local<v8::Object> TrustedSignals::Result::GetScoringSignals(
 
   v8::Local<v8::Object> out = v8::Object::New(v8_helper->isolate());
 
-  // Create renderURL sub-object, and add it to `out`.
+  // Create renderURL sub-object, and add it to to `out`.
   v8::Local<v8::Object> render_url_v8_object =
       CreateObjectFromMap(std::vector<std::string>{render_url.spec()},
                           *render_url_data_, v8_helper, context);
@@ -459,8 +449,7 @@ void TrustedSignals::StartDownload(
       AuctionDownloader::DownloadMode::kActualDownload,
       AuctionDownloader::MimeType::kJson,
       base::BindOnce(&TrustedSignals::OnDownloadComplete,
-                     base::Unretained(this)),
-      /*network_events_delegate=*/nullptr);
+                     base::Unretained(this)));
 }
 
 void TrustedSignals::OnDownloadComplete(
@@ -544,9 +533,8 @@ void TrustedSignals::HandleDownloadResultOnV8Thread(
   scoped_refptr<Result> result;
 
   absl::optional<uint32_t> maybe_data_version;
-  if (!data_version_string.empty()) {
+  if (!data_version_string.empty())
     maybe_data_version = data_version;
-  }
 
   if (bidding_signals_keys) {
     // Handle bidding signals case.

@@ -166,16 +166,6 @@ TEST_P(AddressFieldTest, ParseAdminLevel2) {
   ClassifyAndVerify();
 }
 
-// Tests that overflow field is correctly classified.
-TEST_P(AddressFieldTest, ParseOverflow) {
-  // TODO(crbug.com/1441904): Remove once launched.
-  base::test::ScopedFeatureList enabled(
-      features::kAutofillEnableSupportForAddressOverflow);
-
-  AddTextFormFieldData("complemento", "Complemento", ADDRESS_HOME_OVERFLOW);
-  ClassifyAndVerify();
-}
-
 TEST_P(AddressFieldTest, ParseCity) {
   AddTextFormFieldData("city", "City", ADDRESS_HOME_CITY);
   ClassifyAndVerify();
@@ -223,7 +213,6 @@ TEST_P(AddressFieldTest,
   base::test::ScopedFeatureList enabled;
   enabled.InitWithFeatures(
       {
-          features::kAutofillEnableSupportForAddressOverflow,
           features::kAutofillEnableDependentLocalityParsing,
           features::kAutofillEnableSupportForLandmark,
           features::kAutofillEnableSupportForBetweenStreets,
@@ -241,7 +230,6 @@ TEST_P(AddressFieldTest,
   AddTextFormFieldData("entre-calle", "Entre calle",
                        ADDRESS_HOME_BETWEEN_STREETS);
   AddTextFormFieldData("municipio", "Municipio", ADDRESS_HOME_ADMIN_LEVEL2);
-  AddTextFormFieldData("complemento", "Complemento", ADDRESS_HOME_OVERFLOW);
   ClassifyAndVerify();
 }
 

@@ -4,9 +4,7 @@
 
 package org.chromium.components.webauthn;
 
-import android.annotation.SuppressLint;
 import android.app.PendingIntent;
-import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 import android.util.Pair;
@@ -23,15 +21,14 @@ import org.chromium.blink.mojom.PublicKeyCredentialCreationOptions;
 import org.chromium.blink.mojom.PublicKeyCredentialRequestOptions;
 import org.chromium.content_public.browser.RenderFrameHost;
 import org.chromium.content_public.browser.WebAuthenticationDelegate;
+import org.chromium.content_public.browser.WebContentsStatics;
 import org.chromium.mojo.system.MojoException;
 import org.chromium.ui.base.WindowAndroid;
 import org.chromium.url.Origin;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Queue;
-import java.util.Set;
 
 /**
  * Android implementation of the authenticator.mojom interface.
@@ -40,7 +37,6 @@ public final class AuthenticatorImpl implements Authenticator {
     private static final String GMSCORE_PACKAGE_NAME = "com.google.android.gms";
     public static final int GMSCORE_MIN_VERSION = 16890000;
     public static final int GMSCORE_MIN_VERSION_GET_MATCHING_CRED_IDS = 223300000;
-    private final Context mContext;
     private final WebAuthenticationDelegate.IntentSender mIntentSender;
     private final RenderFrameHost mRenderFrameHost;
 
@@ -52,9 +48,6 @@ public final class AuthenticatorImpl implements Authenticator {
      * process.
      */
     private Origin mOrigin;
-
-    /** The origin of the main frame. */
-    private Origin mTopOrigin;
 
     /** The payment information to be added to the "clientDataJson". */
     private PaymentOptions mPayment;
@@ -71,32 +64,28 @@ public final class AuthenticatorImpl implements Authenticator {
     private Queue<org.chromium.mojo.bindings.Callbacks.Callback1<Boolean>>
             mIsUserVerifyingPlatformAuthenticatorAvailableCallbackQueue = new LinkedList<>();
     private Fido2CredentialRequest mPendingFido2CredentialRequest;
-    private Set<Fido2CredentialRequest> mUnclosedFido2CredentialRequests = new HashSet<>();
 
-    // StaticFieldLeak complains that this is a memory leak because
-    // `Fido2CredentialRequest` contains a `Context`. But this field is only
-    // used in tests so a memory leak is irrelevent.
-    @SuppressLint("StaticFieldLeak")
     private static Fido2CredentialRequest sFido2CredentialRequestOverrideForTesting;
 
     /**
      * Builds the Authenticator service implementation.
      *
-     * @param context The context of the AndroidWindow that triggered this operation.
-     * @param intentSender The interface that will be used to start {@link Intent}s from Play
-     *         Services.
      * @param renderFrameHost The host of the frame that has invoked the API.
-     * @param topOrigin The origin of the main frame.
+     * @param intentSender If present then an interface that will be used to start {@link Intent}s
+     *         from Play Services.
      */
-    public AuthenticatorImpl(Context context, WebAuthenticationDelegate.IntentSender intentSender,
-            RenderFrameHost renderFrameHost, Origin topOrigin) {
+    public AuthenticatorImpl(
+            WebAuthenticationDelegate.IntentSender intentSender, RenderFrameHost renderFrameHost) {
         assert renderFrameHost != null;
 
-        mContext = context;
-        mIntentSender = intentSender;
+        if (intentSender != null) {
+            mIntentSender = intentSender;
+        } else {
+            mIntentSender = new WindowIntentSender(renderFrameHost);
+        }
+
         mRenderFrameHost = renderFrameHost;
         mOrigin = mRenderFrameHost.getLastCommittedOrigin();
-        mTopOrigin = topOrigin;
 
         mGmsCorePackageVersion = PackageUtils.getPackageVersion(GMSCORE_PACKAGE_NAME);
     }
@@ -109,9 +98,8 @@ public final class AuthenticatorImpl implements Authenticator {
         if (sFido2CredentialRequestOverrideForTesting != null) {
             return sFido2CredentialRequestOverrideForTesting;
         }
-        Fido2CredentialRequest request = new Fido2CredentialRequest(mIntentSender);
-        mUnclosedFido2CredentialRequests.add(request);
-        return request;
+
+        return new Fido2CredentialRequest(mIntentSender);
     }
 
     /**
@@ -147,8 +135,8 @@ public final class AuthenticatorImpl implements Authenticator {
         }
 
         mPendingFido2CredentialRequest = getFido2CredentialRequest();
-        mPendingFido2CredentialRequest.handleMakeCredentialRequest(mContext, options,
-                mRenderFrameHost, /*maybeClientDataHash=*/null, mOrigin,
+        mPendingFido2CredentialRequest.handleMakeCredentialRequest(options, mRenderFrameHost,
+                mOrigin,
                 (status, response)
                         -> onRegisterResponse(status, response),
                 status -> onError(status));
@@ -171,9 +159,8 @@ public final class AuthenticatorImpl implements Authenticator {
         }
 
         mPendingFido2CredentialRequest = getFido2CredentialRequest();
-        mPendingFido2CredentialRequest.handleGetAssertionRequest(mContext, options,
-                mRenderFrameHost,
-                /*maybeClientDataHash=*/null, mOrigin, mTopOrigin, mPayment,
+        mPendingFido2CredentialRequest.handleGetAssertionRequest(options, mRenderFrameHost, mOrigin,
+                mPayment,
                 (status, response) -> onSignResponse(status, response), status -> onError(status));
     }
 
@@ -193,7 +180,7 @@ public final class AuthenticatorImpl implements Authenticator {
 
         mIsUserVerifyingPlatformAuthenticatorAvailableCallbackQueue.add(decoratedCallback);
         getFido2CredentialRequest().handleIsUserVerifyingPlatformAuthenticatorAvailableRequest(
-                mContext,
+                mRenderFrameHost,
                 isUvpaa -> onIsUserVerifyingPlatformAuthenticatorAvailableResponse(isUvpaa));
     }
 
@@ -241,7 +228,7 @@ public final class AuthenticatorImpl implements Authenticator {
         // credentials on conditional requests, use IsUVPAA as a proxy for availability.
         mIsUserVerifyingPlatformAuthenticatorAvailableCallbackQueue.add(callback);
         getFido2CredentialRequest().handleIsUserVerifyingPlatformAuthenticatorAvailableRequest(
-                mContext,
+                mRenderFrameHost,
                 isUvpaa -> onIsUserVerifyingPlatformAuthenticatorAvailableResponse(isUvpaa));
     }
 
@@ -268,7 +255,7 @@ public final class AuthenticatorImpl implements Authenticator {
         assert mMakeCredentialCallback != null;
         assert status == AuthenticatorStatus.SUCCESS;
         mMakeCredentialCallback.call(status, response, null);
-        cleanupRequest();
+        close();
     }
 
     public void onSignResponse(int status, GetAssertionAuthenticatorResponse response) {
@@ -277,7 +264,7 @@ public final class AuthenticatorImpl implements Authenticator {
 
         assert mGetAssertionCallback != null;
         mGetAssertionCallback.call(status, response, null);
-        cleanupRequest();
+        close();
     }
 
     public void onIsUserVerifyingPlatformAuthenticatorAvailableResponse(boolean isUVPAA) {
@@ -297,22 +284,15 @@ public final class AuthenticatorImpl implements Authenticator {
         } else if (mGetAssertionCallback != null) {
             mGetAssertionCallback.call(status, null, null);
         }
-        if (mPendingFido2CredentialRequest != null) mPendingFido2CredentialRequest.destroyBridge();
-        cleanupRequest();
-    }
-
-    private void cleanupRequest() {
-        mIsOperationPending = false;
-        mMakeCredentialCallback = null;
-        mGetAssertionCallback = null;
-        mPendingFido2CredentialRequest = null;
+        close();
     }
 
     @Override
     public void close() {
-        mUnclosedFido2CredentialRequests.forEach(Fido2CredentialRequest::destroyBridge);
-        mUnclosedFido2CredentialRequests.clear();
-        cleanupRequest();
+        mIsOperationPending = false;
+        mMakeCredentialCallback = null;
+        mGetAssertionCallback = null;
+        mPendingFido2CredentialRequest = null;
     }
 
     @Override
@@ -321,13 +301,14 @@ public final class AuthenticatorImpl implements Authenticator {
     }
 
     /**
-     * Implements {@link IntentSender} using a {@link WindowAndroid}.
+     * Provides a default implementation of {@link IntentSender} when none is provided.
      */
     public static class WindowIntentSender implements WebAuthenticationDelegate.IntentSender {
         private final WindowAndroid mWindow;
 
-        WindowIntentSender(WindowAndroid window) {
-            mWindow = window;
+        WindowIntentSender(RenderFrameHost renderFrameHost) {
+            mWindow = WebContentsStatics.fromRenderFrameHost(renderFrameHost)
+                              .getTopLevelNativeWindow();
         }
 
         @Override

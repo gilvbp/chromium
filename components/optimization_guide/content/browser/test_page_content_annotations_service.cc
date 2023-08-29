@@ -75,7 +75,6 @@ TestPageContentAnnotationsService::TestPageContentAnnotationsService(
                                     /*database_provider=*/nullptr,
                                     /*database_dir=*/base::FilePath(),
                                     /*optimization_guide_logger=*/nullptr,
-                                    /*optimization_guide_decider=*/nullptr,
                                     /*background_task_runner=*/nullptr) {}
 
 }  // namespace optimization_guide

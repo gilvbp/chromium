@@ -12,7 +12,6 @@
 
 #include "base/command_line.h"
 #include "base/memory/raw_ptr.h"
-#include "base/memory/scoped_refptr.h"
 #include "base/strings/utf_string_conversions.h"
 #include "base/test/icu_test_util.h"
 #include "build/build_config.h"
@@ -49,19 +48,10 @@ struct FocusTestEvent {
   FocusManager::FocusChangeReason focus_change_reason;
 };
 
-class FocusTestEventList : public base::RefCounted<FocusTestEventList> {
- public:
-  std::vector<FocusTestEvent> vec;
-
- private:
-  friend class base::RefCounted<FocusTestEventList>;
-  ~FocusTestEventList() = default;
-};
-
 class SimpleTestView : public View {
  public:
-  SimpleTestView(scoped_refptr<FocusTestEventList> event_list, int view_id)
-      : event_list_(std::move(event_list)) {
+  SimpleTestView(std::vector<FocusTestEvent>* event_list, int view_id)
+      : event_list_(event_list) {
     SetFocusBehavior(FocusBehavior::ALWAYS);
     set_suppress_default_focus_handling();
     SetID(view_id);
@@ -71,7 +61,7 @@ class SimpleTestView : public View {
   SimpleTestView& operator=(const SimpleTestView&) = delete;
 
   void OnFocus() override {
-    event_list_->vec.push_back({
+    event_list_->push_back({
         ON_FOCUS,
         GetID(),
         GetFocusManager()->focus_change_reason(),
@@ -79,7 +69,7 @@ class SimpleTestView : public View {
   }
 
   void OnBlur() override {
-    event_list_->vec.push_back({
+    event_list_->push_back({
         ON_BLUR,
         GetID(),
         GetFocusManager()->focus_change_reason(),
@@ -87,46 +77,47 @@ class SimpleTestView : public View {
   }
 
  private:
-  const scoped_refptr<FocusTestEventList> event_list_;
+  raw_ptr<std::vector<FocusTestEvent>> event_list_;
 };
 
 // Tests that the appropriate Focus related methods are called when a View
 // gets/loses focus.
 TEST_F(FocusManagerTest, ViewFocusCallbacks) {
-  auto event_list = base::MakeRefCounted<FocusTestEventList>();
+  std::vector<FocusTestEvent> event_list;
   const int kView1ID = 1;
   const int kView2ID = 2;
-  SimpleTestView* view1 = new SimpleTestView(event_list, kView1ID);
-  SimpleTestView* view2 = new SimpleTestView(event_list, kView2ID);
+
+  SimpleTestView* view1 = new SimpleTestView(&event_list, kView1ID);
+  SimpleTestView* view2 = new SimpleTestView(&event_list, kView2ID);
   GetContentsView()->AddChildView(view1);
   GetContentsView()->AddChildView(view2);
 
   view1->RequestFocus();
-  ASSERT_EQ(1, static_cast<int>(event_list->vec.size()));
-  EXPECT_EQ(ON_FOCUS, event_list->vec[0].type);
-  EXPECT_EQ(kView1ID, event_list->vec[0].view_id);
+  ASSERT_EQ(1, static_cast<int>(event_list.size()));
+  EXPECT_EQ(ON_FOCUS, event_list[0].type);
+  EXPECT_EQ(kView1ID, event_list[0].view_id);
   EXPECT_EQ(FocusChangeReason::kDirectFocusChange,
-            event_list->vec[0].focus_change_reason);
+            event_list[0].focus_change_reason);
 
-  event_list->vec.clear();
+  event_list.clear();
   view2->RequestFocus();
-  ASSERT_EQ(2, static_cast<int>(event_list->vec.size()));
-  EXPECT_EQ(ON_BLUR, event_list->vec[0].type);
-  EXPECT_EQ(kView1ID, event_list->vec[0].view_id);
-  EXPECT_EQ(ON_FOCUS, event_list->vec[1].type);
-  EXPECT_EQ(kView2ID, event_list->vec[1].view_id);
+  ASSERT_EQ(2, static_cast<int>(event_list.size()));
+  EXPECT_EQ(ON_BLUR, event_list[0].type);
+  EXPECT_EQ(kView1ID, event_list[0].view_id);
+  EXPECT_EQ(ON_FOCUS, event_list[1].type);
+  EXPECT_EQ(kView2ID, event_list[1].view_id);
   EXPECT_EQ(FocusChangeReason::kDirectFocusChange,
-            event_list->vec[0].focus_change_reason);
+            event_list[0].focus_change_reason);
   EXPECT_EQ(FocusChangeReason::kDirectFocusChange,
-            event_list->vec[1].focus_change_reason);
+            event_list[1].focus_change_reason);
 
-  event_list->vec.clear();
+  event_list.clear();
   GetFocusManager()->ClearFocus();
-  ASSERT_EQ(1, static_cast<int>(event_list->vec.size()));
-  EXPECT_EQ(ON_BLUR, event_list->vec[0].type);
-  EXPECT_EQ(kView2ID, event_list->vec[0].view_id);
+  ASSERT_EQ(1, static_cast<int>(event_list.size()));
+  EXPECT_EQ(ON_BLUR, event_list[0].type);
+  EXPECT_EQ(kView2ID, event_list[0].view_id);
   EXPECT_EQ(FocusChangeReason::kDirectFocusChange,
-            event_list->vec[0].focus_change_reason);
+            event_list[0].focus_change_reason);
 }
 
 TEST_F(FocusManagerTest, FocusChangeListener) {
@@ -157,8 +148,6 @@ TEST_F(FocusManagerTest, FocusChangeListener) {
   GetFocusManager()->ClearFocus();
   ASSERT_EQ(1, static_cast<int>(listener.focus_changes().size()));
   EXPECT_TRUE(listener.focus_changes()[0] == ViewPair(view2, null_view));
-
-  RemoveFocusChangeListener(&listener);
 }
 
 TEST_F(FocusManagerTest, WidgetFocusChangeListener) {
@@ -196,8 +185,6 @@ TEST_F(FocusManagerTest, WidgetFocusChangeListener) {
   ASSERT_EQ(2u, widget_listener.focus_changes().size());
   EXPECT_EQ(gfx::NativeView(), widget_listener.focus_changes()[0]);
   EXPECT_EQ(native_view2, widget_listener.focus_changes()[1]);
-
-  RemoveWidgetFocusChangeListener(&widget_listener);
 }
 
 TEST_F(FocusManagerTest, CallsNormalAcceleratorTarget) {
@@ -467,7 +454,7 @@ class FocusInAboutToRequestFocusFromTabTraversalView : public View {
   }
 
  private:
-  raw_ptr<views::View, AcrossTasksDanglingUntriaged> view_to_focus_ = nullptr;
+  raw_ptr<views::View, DanglingUntriaged> view_to_focus_ = nullptr;
 };
 }  // namespace
 
@@ -710,9 +697,9 @@ TEST_F(FocusManagerTest, SkipViewsInArrowKeyTraversal) {
 }
 
 TEST_F(FocusManagerTest, StoreFocusedView) {
-  auto event_list = base::MakeRefCounted<FocusTestEventList>();
+  std::vector<FocusTestEvent> event_list;
   const int kView1ID = 1;
-  SimpleTestView* view = new SimpleTestView(event_list, kView1ID);
+  SimpleTestView* view = new SimpleTestView(&event_list, kView1ID);
 
   // Add view to the view hierarchy and make it focusable.
   GetWidget()->GetRootView()->AddChildView(view);
@@ -723,36 +710,36 @@ TEST_F(FocusManagerTest, StoreFocusedView) {
   EXPECT_EQ(nullptr, GetFocusManager()->GetFocusedView());
   EXPECT_TRUE(GetFocusManager()->RestoreFocusedView());
   EXPECT_EQ(view, GetFocusManager()->GetStoredFocusView());
-  ASSERT_EQ(3, static_cast<int>(event_list->vec.size()));
-  EXPECT_EQ(ON_FOCUS, event_list->vec[0].type);
-  EXPECT_EQ(kView1ID, event_list->vec[0].view_id);
+  ASSERT_EQ(3, static_cast<int>(event_list.size()));
+  EXPECT_EQ(ON_FOCUS, event_list[0].type);
+  EXPECT_EQ(kView1ID, event_list[0].view_id);
   EXPECT_EQ(FocusChangeReason::kDirectFocusChange,
-            event_list->vec[0].focus_change_reason);
-  EXPECT_EQ(ON_BLUR, event_list->vec[1].type);
-  EXPECT_EQ(kView1ID, event_list->vec[1].view_id);
+            event_list[0].focus_change_reason);
+  EXPECT_EQ(ON_BLUR, event_list[1].type);
+  EXPECT_EQ(kView1ID, event_list[1].view_id);
   EXPECT_EQ(FocusChangeReason::kDirectFocusChange,
-            event_list->vec[1].focus_change_reason);
-  EXPECT_EQ(ON_FOCUS, event_list->vec[2].type);
-  EXPECT_EQ(kView1ID, event_list->vec[2].view_id);
+            event_list[1].focus_change_reason);
+  EXPECT_EQ(ON_FOCUS, event_list[2].type);
+  EXPECT_EQ(kView1ID, event_list[2].view_id);
   EXPECT_EQ(FocusChangeReason::kFocusRestore,
-            event_list->vec[2].focus_change_reason);
+            event_list[2].focus_change_reason);
 
   // Repeat with |true|.
-  event_list->vec.clear();
+  event_list.clear();
   GetFocusManager()->SetFocusedView(view);
   GetFocusManager()->StoreFocusedView(true);
   EXPECT_EQ(nullptr, GetFocusManager()->GetFocusedView());
   EXPECT_TRUE(GetFocusManager()->RestoreFocusedView());
   EXPECT_EQ(view, GetFocusManager()->GetStoredFocusView());
-  ASSERT_EQ(2, static_cast<int>(event_list->vec.size()));
-  EXPECT_EQ(ON_BLUR, event_list->vec[0].type);
-  EXPECT_EQ(kView1ID, event_list->vec[0].view_id);
+  ASSERT_EQ(2, static_cast<int>(event_list.size()));
+  EXPECT_EQ(ON_BLUR, event_list[0].type);
+  EXPECT_EQ(kView1ID, event_list[0].view_id);
   EXPECT_EQ(FocusChangeReason::kDirectFocusChange,
-            event_list->vec[0].focus_change_reason);
-  EXPECT_EQ(ON_FOCUS, event_list->vec[1].type);
-  EXPECT_EQ(kView1ID, event_list->vec[1].view_id);
+            event_list[0].focus_change_reason);
+  EXPECT_EQ(ON_FOCUS, event_list[1].type);
+  EXPECT_EQ(kView1ID, event_list[1].view_id);
   EXPECT_EQ(FocusChangeReason::kFocusRestore,
-            event_list->vec[1].focus_change_reason);
+            event_list[1].focus_change_reason);
 
   // Necessary for clean teardown.
   GetFocusManager()->ClearFocus();
@@ -1208,13 +1195,10 @@ class RedirectToParentFocusManagerTest : public FocusManagerTest {
   }
 
  protected:
-  raw_ptr<FocusManager, AcrossTasksDanglingUntriaged> parent_focus_manager_ =
-      nullptr;
-  raw_ptr<FocusManager, AcrossTasksDanglingUntriaged> bubble_focus_manager_ =
-      nullptr;
+  raw_ptr<FocusManager, DanglingUntriaged> parent_focus_manager_ = nullptr;
+  raw_ptr<FocusManager, DanglingUntriaged> bubble_focus_manager_ = nullptr;
 
-  raw_ptr<BubbleDialogDelegateView, AcrossTasksDanglingUntriaged> bubble_ =
-      nullptr;
+  raw_ptr<BubbleDialogDelegateView, DanglingUntriaged> bubble_ = nullptr;
 };
 
 // Test that when an accelerator is sent to a bubble that isn't registered,

@@ -3,9 +3,7 @@
 // found in the LICENSE file.
 
 #include "chrome/browser/metrics/structured/metadata_processor_ash.h"
-
-#include "chrome/browser/enterprise/browser_management/management_service_factory.h"
-#include "components/policy/core/common/management/management_service.h"
+#include "chrome/browser/policy/management_utils.h"
 
 namespace metrics::structured {
 
@@ -24,7 +22,7 @@ void MetadataProcessorAsh::OnProvideIndependentMetrics(
 }
 
 bool MetadataProcessorAsh::IsDeviceEnrolled() {
-  return policy::ManagementServiceFactory::GetForPlatform()->IsManaged();
+  return policy::IsDeviceEnterpriseManaged();
 }
 
 }  // namespace metrics::structured

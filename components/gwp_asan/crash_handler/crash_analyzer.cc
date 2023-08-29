@@ -224,10 +224,10 @@ bool CrashAnalyzer::AnalyzeLightweightDetectorCrash(
 
   size_t slot_count = valid_state.num_lightweight_detector_metadata;
   auto metadata_arr =
-      std::make_unique<AllocatorState::LightweightSlotMetadata[]>(slot_count);
+      std::make_unique<AllocatorState::SlotMetadata[]>(slot_count);
   if (!process_snapshot.Memory()->Read(
           valid_state.lightweight_detector_metadata_addr,
-          sizeof(AllocatorState::LightweightSlotMetadata) * slot_count,
+          sizeof(AllocatorState::SlotMetadata) * slot_count,
           metadata_arr.get())) {
     ReportHistogram(
         Crash_Allocator_PARTITIONALLOC,
@@ -239,8 +239,6 @@ bool CrashAnalyzer::AnalyzeLightweightDetectorCrash(
 
   bool seen_candidate_id = false;
   absl::optional<LightweightDetector::MetadataId> metadata_id;
-  std::vector<uint64_t> candidate_addresses;
-
 #if defined(ARCH_CPU_X86_64)
   if (exception->Context()->architecture != crashpad::kCPUArchitectureX86_64) {
     ReportHistogram(
@@ -270,53 +268,60 @@ bool CrashAnalyzer::AnalyzeLightweightDetectorCrash(
 #endif  // BUILDFLAG(IS_WIN)
   ) {
     auto& context = *exception->Context()->x86_64;
-    candidate_addresses = {context.rax, context.rbx, context.rcx, context.rdx,
+    uint64_t cpu_regs[] = {context.rax, context.rbx, context.rcx, context.rdx,
                            context.rdi, context.rsi, context.rbp, context.rsp,
                            context.r8,  context.r9,  context.r10, context.r11,
                            context.r12, context.r13, context.r14, context.r15,
                            context.rip};
-  }
-#else   // defined(ARCH_CPU_X86_64)
-  candidate_addresses = {GetAccessAddress(*exception)};
-#endif  // defined(ARCH_CPU_X86_64)
 
-  for (auto candidate_address : candidate_addresses) {
-    auto candidate_id =
-        LightweightDetector::ExtractMetadataId(candidate_address);
-    if (!candidate_id.has_value()) {
-      continue;
-    }
-    seen_candidate_id = true;
+    for (auto cpu_reg : cpu_regs) {
+      auto candidate_id = LightweightDetector::ExtractMetadataId(cpu_reg);
+      if (!candidate_id.has_value()) {
+        continue;
+      }
+      seen_candidate_id = true;
 
-    if (valid_state.HasLightweightMetadataForId(*candidate_id,
-                                                metadata_arr.get())) {
-      if (!metadata_id.has_value()) {
-        // It's the first time we see an ID with a matching valid slot.
-        metadata_id = candidate_id;
-      } else if (metadata_id != candidate_id) {
-        ReportHistogram(Crash_Allocator_PARTITIONALLOC,
-                        GwpAsanCrashAnalysisResult::
-                            kErrorConflictingLightweightMetadataIds);
-        proto->set_missing_metadata(true);
-        proto->set_internal_error(
-            "Found conflicting lightweight metadata IDs.");
-        return true;
+      if (valid_state.HasLightweightMetadataForId(*candidate_id,
+                                                  metadata_arr.get())) {
+        if (!metadata_id.has_value()) {
+          // It's the first time we see an ID with a matching valid slot.
+          metadata_id = candidate_id;
+        } else if (metadata_id != candidate_id) {
+          ReportHistogram(Crash_Allocator_PARTITIONALLOC,
+                          GwpAsanCrashAnalysisResult::
+                              kErrorConflictingLightweightMetadataIds);
+          proto->set_missing_metadata(true);
+          proto->set_internal_error(
+              "Found conflicting lightweight metadata IDs.");
+          return true;
+        }
       }
     }
   }
-
-  if (!seen_candidate_id) {
-    return false;
+#else   // defined(ARCH_CPU_X86_64)
+  auto candidate_id =
+      LightweightDetector::ExtractMetadataId(GetAccessAddress(*exception));
+  if (candidate_id.has_value()) {
+    seen_candidate_id = true;
+    if (valid_state.HasLightweightMetadataForId(*candidate_id,
+                                                metadata_arr.get())) {
+      metadata_id = candidate_id;
+    }
   }
+#endif  // defined(ARCH_CPU_X86_64)
 
   if (!metadata_id.has_value()) {
-    ReportHistogram(Crash_Allocator_PARTITIONALLOC,
-                    GwpAsanCrashAnalysisResult::
-                        kErrorInvalidOrOutdatedLightweightMetadataIndex);
-    proto->set_missing_metadata(true);
-    proto->set_internal_error(
-        "The computed lightweight metadata index was invalid or outdated.");
-    return true;
+    if (seen_candidate_id) {
+      ReportHistogram(Crash_Allocator_PARTITIONALLOC,
+                      GwpAsanCrashAnalysisResult::
+                          kErrorInvalidOrOutdatedLightweightMetadataIndex);
+      proto->set_missing_metadata(true);
+      proto->set_internal_error(
+          "The computed lightweight metadata index was invalid or outdated.");
+      return true;
+    }
+
+    return false;
   }
 
   auto& metadata = valid_state.GetLightweightSlotMetadataById(
@@ -329,9 +334,8 @@ bool CrashAnalyzer::AnalyzeLightweightDetectorCrash(
   proto->set_allocation_size(metadata.alloc_size);
   if (metadata.dealloc.tid != base::kInvalidThreadId ||
       metadata.dealloc.trace_len) {
-    ReadAllocationInfo(metadata.deallocation_stack_trace,
-                       /* stack_trace_offset = */ 0, metadata.dealloc,
-                       proto->mutable_deallocation());
+    ReadAllocationInfo(metadata.stack_trace_pool, metadata.alloc.trace_len,
+                       metadata.dealloc, proto->mutable_deallocation());
   }
 
   ReportHistogram(Crash_Allocator_PARTITIONALLOC,
@@ -419,7 +423,7 @@ bool CrashAnalyzer::AnalyzeCrashedAllocator(
   }
 
   if (ret == GetMetadataReturnType::kGwpAsanCrash) {
-    AllocatorState::SlotMetadata& metadata = metadata_arr[metadata_idx];
+    SlotMetadata& metadata = metadata_arr[metadata_idx];
     AllocatorState::ErrorType error_type =
         valid_state.GetErrorType(exception_addr, metadata.alloc.trace_collected,
                                  metadata.dealloc.trace_collected);
@@ -444,7 +448,7 @@ bool CrashAnalyzer::AnalyzeCrashedAllocator(
 void CrashAnalyzer::ReadAllocationInfo(
     const uint8_t* stack_trace,
     size_t stack_trace_offset,
-    const AllocatorState::AllocationInfo& slot_info,
+    const SlotMetadata::AllocationInfo& slot_info,
     gwp_asan::Crash_AllocationInfo* proto_info) {
   if (slot_info.tid != base::kInvalidThreadId)
     proto_info->set_thread_id(slot_info.tid);

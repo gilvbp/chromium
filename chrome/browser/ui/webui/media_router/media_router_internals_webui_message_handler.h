@@ -37,7 +37,6 @@ class MediaRouterInternalsWebUIMessageHandler
   void HandleGetProviderState(const base::Value::List& args);
   void HandleGetLogs(const base::Value::List& args);
 
-  void HandleGetMirroringStats(const base::Value::List& args);
   void HandleSetMirroringStatsEnabled(const base::Value::List& args);
   void HandleIsMirroringStatsEnabled(const base::Value::List& args);
 

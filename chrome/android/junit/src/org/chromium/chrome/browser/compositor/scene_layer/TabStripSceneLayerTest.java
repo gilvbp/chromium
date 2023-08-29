@@ -42,13 +42,11 @@ import org.chromium.chrome.browser.compositor.scene_layer.TabStripSceneLayerJni;
 import org.chromium.chrome.browser.flags.ChromeFeatureList;
 import org.chromium.chrome.browser.layouts.scene_layer.SceneLayer;
 import org.chromium.chrome.test.util.browser.Features;
-import org.chromium.chrome.test.util.browser.Features.DisableFeatures;
-import org.chromium.chrome.test.util.browser.Features.EnableFeatures;
 import org.chromium.ui.resources.ResourceManager;
 
 /** Tests for {@link TabStripSceneLayer}. */
 @RunWith(BaseRobolectricTestRunner.class)
-@EnableFeatures({ChromeFeatureList.TAB_STRIP_REDESIGN})
+@Features.EnableFeatures({ChromeFeatureList.TAB_STRIP_REDESIGN})
 @Config(manifest = Config.NONE, qualifiers = "sw600dp")
 public class TabStripSceneLayerTest {
     @Rule
@@ -112,7 +110,7 @@ public class TabStripSceneLayerTest {
         mNewTabButton = new TintedCompositorButton(
                 mContext, 32.f, 32.f, mCompositorOnClickHandler, R.drawable.ic_new_tab_button_tsr);
         mStripLayoutTab = new StripLayoutTab(mContext, 1, mStripLayoutTabDelegate,
-                mTabLoadTrackerCallback, mLayoutUpdateHost, false);
+                mTabLoadTrackerCallback, mLayoutRenderHost, mLayoutUpdateHost, false);
         mTabStripSceneLayer.initializeNativeForTesting();
         mStripLayoutTabs = new StripLayoutTab[] {mStripLayoutTab};
         when(mStripLayoutHelperManager.getNewTabButton()).thenReturn(mNewTabButton);
@@ -126,16 +124,14 @@ public class TabStripSceneLayerTest {
     }
 
     @Test
-    @DisableFeatures(ChromeFeatureList.TAB_STRIP_REDESIGN)
-    @EnableFeatures(ChromeFeatureList.ADVANCED_PERIPHERALS_SUPPORT_TAB_STRIP)
+    @Features.DisableFeatures(ChromeFeatureList.TAB_STRIP_REDESIGN)
     public void testPushAndUpdateStrip() {
         // Setup
         boolean isSelected = false;
-        boolean isHovered = false;
 
         // Call the method being tested.
         mTabStripSceneLayer.pushAndUpdateStrip(mStripLayoutHelperManager, mLayerTitleCache,
-                mResourceManager, mStripLayoutTabs, 1.f, 0, -1);
+                mResourceManager, mStripLayoutTabs, 1.f, 0);
 
         // Verify JNI calls.
         verify(mTabStripSceneMock).beginBuildingFrame(1L, mTabStripSceneLayer, true);
@@ -169,12 +165,12 @@ public class TabStripSceneLayerTest {
                         mStripLayoutTab.getDividerResourceId(), mStripLayoutTab.getResourceId(),
                         mStripLayoutTab.getOutlineResourceId(),
                         mStripLayoutTab.getCloseButton().getTint(),
-                        mStripLayoutTab.getDividerTint(),
-                        mStripLayoutTab.getTint(isSelected, isHovered),
+                        mStripLayoutTab.getDividerTint(), mStripLayoutTab.getTint(isSelected),
                         mStripLayoutTab.getOutlineTint(isSelected), isSelected,
                         mStripLayoutTab.getClosePressed(), 0.f * mDpToPx,
                         mStripLayoutTab.getDrawX() * mDpToPx, mStripLayoutTab.getDrawY() * mDpToPx,
                         mStripLayoutTab.getWidth() * mDpToPx, mStripLayoutTab.getHeight() * mDpToPx,
+                        mStripLayoutTab.getContentOffsetX() * mDpToPx,
                         mStripLayoutTab.getContentOffsetY() * mDpToPx,
                         mStripLayoutTab.getDividerOffsetX() * mDpToPx,
                         mStripLayoutTab.getBottomMargin() * mDpToPx,
@@ -195,11 +191,10 @@ public class TabStripSceneLayerTest {
 
     @Test
     @Feature("Tab Strip Redesign")
-    @EnableFeatures(ChromeFeatureList.ADVANCED_PERIPHERALS_SUPPORT_TAB_STRIP)
     public void testPushAndUpdateStrip_TSR() {
         // Call the method being tested.
         mTabStripSceneLayer.pushAndUpdateStrip(mStripLayoutHelperManager, mLayerTitleCache,
-                mResourceManager, mStripLayoutTabs, 1.f, 0, -1);
+                mResourceManager, mStripLayoutTabs, 1.f, 0);
 
         // Verify TSR JNI calls.
         verify(mTabStripSceneMock)

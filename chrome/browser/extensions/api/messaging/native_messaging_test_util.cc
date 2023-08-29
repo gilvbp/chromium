@@ -130,9 +130,7 @@ void ScopedTestNativeMessagingHost::RegisterTestHost(bool user_level) {
 #if BUILDFLAG(IS_WIN)
 // On Windows, a new codepath is used to directly launch .EXE-based Native
 // Hosts.
-void ScopedTestNativeMessagingHost::RegisterTestExeHost(
-    std::string_view filename,
-    bool user_level) {
+void ScopedTestNativeMessagingHost::RegisterTestExeHost(bool user_level) {
   base::ScopedAllowBlockingForTesting allow_blocking;
   ASSERT_TRUE(temp_dir_.CreateUniqueTempDir());
 
@@ -144,7 +142,12 @@ void ScopedTestNativeMessagingHost::RegisterTestExeHost(
   // Unlike in the |RegisterTestHost| case above, we must leave the Host
   // .exe where it was built, because the Host will fail to run from the
   // temp_dir_ if is_component_build is set for the build.
-  base::FilePath host_path = binary_dir.AppendASCII(filename);
+  //
+  // The Host's filename deliberately contains the character '&' which causes
+  // the Host to fail to launch if cmd.exe is used as an intermediary between
+  // the extension and the host executable. crbug.com/335558
+  base::FilePath host_path =
+      binary_dir.AppendASCII("native_messaging_test_echo_&_host.exe");
   ASSERT_NO_FATAL_FAILURE(WriteTestNativeHostManifest(
       temp_dir_.GetPath(), kHostExeName, host_path, user_level, false));
 }

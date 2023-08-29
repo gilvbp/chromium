@@ -18,7 +18,6 @@
 
 namespace gfx {
 class Canvas;
-class RoundedCornersF;
 }
 
 namespace ui {
@@ -72,6 +71,13 @@ class VIEWS_EXPORT Background {
   SkColor color_ = gfx::kPlaceholderColor;
 };
 
+struct VIEWS_EXPORT Radii {
+  float top_left;
+  float top_right;
+  float bottom_right;
+  float bottom_left;
+};
+
 // Creates a background that fills the canvas in the specified color.
 VIEWS_EXPORT std::unique_ptr<Background> CreateSolidBackground(SkColor color);
 
@@ -82,12 +88,6 @@ VIEWS_EXPORT std::unique_ptr<Background> CreateSolidBackground(SkColor color);
 VIEWS_EXPORT std::unique_ptr<Background> CreateRoundedRectBackground(
     SkColor color,
     float radius,
-    int for_border_thickness = 0);
-
-// Same as above except each corner radius can be different and customized.
-VIEWS_EXPORT std::unique_ptr<Background> CreateRoundedRectBackground(
-    SkColor color,
-    const gfx::RoundedCornersF& radii,
     int for_border_thickness = 0);
 
 // Same as above except it uses the color specified by the views's ColorProvider
@@ -108,7 +108,7 @@ VIEWS_EXPORT std::unique_ptr<Background> CreateThemedRoundedRectBackground(
 // Same as above except each corner radius can be different and customized.
 VIEWS_EXPORT std::unique_ptr<Background> CreateThemedRoundedRectBackground(
     ui::ColorId color_id,
-    const gfx::RoundedCornersF& radii,
+    const Radii& radii,
     int for_border_thickness);
 
 // Creates a background that fills the canvas in the color specified by the

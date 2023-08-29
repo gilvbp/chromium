@@ -282,19 +282,11 @@ export class CrSliderElement extends CrSliderElementBase {
   }
 
   private hideRipple_() {
-    if (this.noink) {
-      return;
-    }
-
     this.getRipple().clear();
     this.showLabel_ = false;
   }
 
   private showRipple_() {
-    if (this.noink) {
-      return;
-    }
-
     this.getRipple().showAndHoldDown();
     this.showLabel_ = true;
   }

@@ -6,8 +6,6 @@ import {TestRunner} from 'test_runner';
 import {SourcesTestRunner} from 'sources_test_runner';
 import {SDKTestRunner} from 'sdk_test_runner';
 
-import * as SDK from 'devtools/core/sdk/sdk.js';
-
 (async function() {
   TestRunner.addResult(`Tests that scripts panel UI elements work as intended.\n`);
   await TestRunner.loadLegacyModule('sources');
@@ -40,7 +38,7 @@ import * as SDK from 'devtools/core/sdk/sdk.js';
 
   function reload() {
     page.reload();
-    return new Promise(fulfill => TestRunner.addSniffer(SDK.ResourceTreeModel.ResourceTreeModel.prototype, 'frameNavigated', fulfill));
+    return new Promise(fulfill => TestRunner.addSniffer(SDK.ResourceTreeModel.prototype, 'frameNavigated', fulfill));
   }
 
   TestRunner.runTestSuite([

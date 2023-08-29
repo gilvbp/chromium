@@ -16,7 +16,6 @@
 #include "chrome/browser/browser_process.h"
 #include "chrome/browser/browser_process_platform_part_ash.h"
 #include "components/reporting/client/report_queue_factory.h"
-#include "components/reporting/proto/synced/record.pb.h"
 #include "components/reporting/util/status.h"
 #include "content/public/browser/browser_task_traits.h"
 #include "content/public/browser/browser_thread.h"
@@ -26,14 +25,9 @@ namespace reporting {
 
 UserEventReporterHelper::UserEventReporterHelper(Destination destination,
                                                  EventType event_type)
-    : report_queue_(ReportQueueFactory::CreateSpeculativeReportQueue(
-          [](Destination destination, EventType event_type) {
-            SourceInfo source_info;
-            source_info.set_source(SourceInfo::ASH);
-            return ReportQueueConfiguration::Create(
-                       {.event_type = event_type, .destination = destination})
-                .SetSourceInfo(std::move(source_info));
-          }(destination, event_type))) {}
+    : report_queue_(
+          ReportQueueFactory::CreateSpeculativeReportQueue(event_type,
+                                                           destination)) {}
 
 UserEventReporterHelper::UserEventReporterHelper(
     std::unique_ptr<ReportQueue, base::OnTaskRunnerDeleter> report_queue)

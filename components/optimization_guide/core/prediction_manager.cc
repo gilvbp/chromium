@@ -17,6 +17,7 @@
 #include "base/metrics/histogram_macros_local.h"
 #include "base/observer_list.h"
 #include "base/path_service.h"
+#include "base/rand_util.h"
 #include "base/sequence_checker.h"
 #include "base/task/sequenced_task_runner.h"
 #include "base/task/single_thread_task_runner.h"
@@ -51,11 +52,45 @@ namespace optimization_guide {
 
 namespace {
 
+// Provide a random time delta in seconds before fetching models.
+base::TimeDelta RandomFetchDelay() {
+  return base::Seconds(
+      base::RandInt(features::PredictionModelFetchRandomMinDelaySecs(),
+                    features::PredictionModelFetchRandomMaxDelaySecs()));
+}
+
 proto::ModelCacheKey GetModelCacheKey(const std::string& locale) {
   proto::ModelCacheKey model_cache_key;
   model_cache_key.set_locale(locale);
   return model_cache_key;
 }
+
+// Util class for recording the state of a prediction model. The result is
+// recorded when it goes out of scope and its destructor is called.
+class ScopedPredictionManagerModelStatusRecorder {
+ public:
+  explicit ScopedPredictionManagerModelStatusRecorder(
+      proto::OptimizationTarget optimization_target)
+      : optimization_target_(optimization_target) {}
+
+  ~ScopedPredictionManagerModelStatusRecorder() {
+    DCHECK_NE(status_, PredictionManagerModelStatus::kUnknown);
+    base::UmaHistogramEnumeration(
+        "OptimizationGuide.ShouldTargetNavigation.PredictionModelStatus",
+        status_);
+
+    base::UmaHistogramEnumeration(
+        "OptimizationGuide.ShouldTargetNavigation.PredictionModelStatus." +
+            GetStringNameForOptimizationTarget(optimization_target_),
+        status_);
+  }
+
+  void set_status(PredictionManagerModelStatus status) { status_ = status; }
+
+ private:
+  PredictionManagerModelStatus status_ = PredictionManagerModelStatus::kUnknown;
+  const proto::OptimizationTarget optimization_target_;
+};
 
 // Util class for recording the construction and validation of a prediction
 // model. The result is recorded when it goes out of scope and its destructor is
@@ -157,13 +192,6 @@ void RecordModelAvailableAtRegistration(
 
 }  // namespace
 
-PredictionManager::ModelRegistrationInfo::ModelRegistrationInfo(
-    absl::optional<proto::Any> metadata,
-    OptimizationTargetModelObserver* model_observer)
-    : metadata(metadata), model_observer(model_observer) {}
-
-PredictionManager::ModelRegistrationInfo::~ModelRegistrationInfo() = default;
-
 PredictionManager::PredictionManager(
     base::WeakPtr<OptimizationGuideStore> model_and_features_store,
     PredictionModelStore* prediction_model_store,
@@ -182,13 +210,6 @@ PredictionManager::PredictionManager(
       optimization_guide_logger_(optimization_guide_logger),
       pref_service_(pref_service),
       component_updates_enabled_provider_(component_updates_enabled_provider),
-      prediction_model_fetch_timer_(
-          pref_service,
-          base::BindRepeating(
-              &PredictionManager::FetchModels,
-              // Its safe to use `base::Unretained(this)` here since
-              // `prediction_model_fetch_timer_` is owned by `this`.
-              base::Unretained(this))),
       clock_(base::DefaultClock::GetInstance()),
       off_the_record_(off_the_record),
       application_locale_(application_locale),
@@ -225,26 +246,24 @@ void PredictionManager::AddObserverForOptimizationTargetModel(
     proto::OptimizationTarget optimization_target,
     const absl::optional<proto::Any>& model_metadata,
     OptimizationTargetModelObserver* observer) {
-  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
-  DCHECK(model_registration_info_map_.find(optimization_target) ==
-         model_registration_info_map_.end());
-  DCHECK(!model_metadata ||
-         IsModelMetadataTypeOnServerAllowlist(*model_metadata));
+  DCHECK(registered_observers_for_optimization_targets_.find(
+             optimization_target) ==
+         registered_observers_for_optimization_targets_.end());
 
   // As DCHECKS don't run in the wild, just do not register the observer if
   // something is already registered for the type. Otherwise, file reads may
   // blow up.
-  if (model_registration_info_map_.find(optimization_target) !=
-      model_registration_info_map_.end()) {
+  if (registered_observers_for_optimization_targets_.find(
+          optimization_target) !=
+      registered_observers_for_optimization_targets_.end()) {
     DLOG(ERROR) << "Did not add observer for optimization target "
                 << static_cast<int>(optimization_target)
                 << " since an observer for the target was already registered ";
     return;
   }
 
-  model_registration_info_map_.emplace(
-      std::piecewise_construct, std::forward_as_tuple(optimization_target),
-      std::forward_as_tuple(model_metadata, observer));
+  registered_observers_for_optimization_targets_[optimization_target]
+      .AddObserver(observer);
   if (optimization_guide_logger_->ShouldEnableDebugLogs()) {
     OPTIMIZATION_GUIDE_LOGGER(
         optimization_guide_common::mojom::LogSource::MODEL_MANAGEMENT,
@@ -262,7 +281,7 @@ void PredictionManager::AddObserverForOptimizationTargetModel(
           optimization_guide_logger_)
           << "OnModelFileUpdated for OptimizationTarget: "
           << optimization_target << "\nFile path: "
-          << model_it->second->GetModelFilePath().AsUTF8Unsafe()
+          << (*model_it->second).GetModelFilePath().AsUTF8Unsafe()
           << "\nHas metadata: " << (model_metadata ? "True" : "False");
     }
     RecordLifecycleState(optimization_target,
@@ -274,6 +293,16 @@ void PredictionManager::AddObserverForOptimizationTargetModel(
       !init_time_.is_null() ? base::TimeTicks::Now() - init_time_
                             : base::TimeDelta());
 
+  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+  if (registered_optimization_targets_and_metadata_.contains(
+          optimization_target)) {
+    return;
+  }
+  DCHECK(!model_metadata ||
+         IsModelMetadataTypeOnServerAllowlist(*model_metadata));
+
+  registered_optimization_targets_and_metadata_.emplace(optimization_target,
+                                                        model_metadata);
   if (optimization_guide_logger_->ShouldEnableDebugLogs()) {
     OPTIMIZATION_GUIDE_LOGGER(
         optimization_guide_common::mojom::LogSource::MODEL_MANAGEMENT,
@@ -285,10 +314,9 @@ void PredictionManager::AddObserverForOptimizationTargetModel(
   if (!store_is_ready_)
     return;
 
-  if (ShouldFetchModels(off_the_record_,
-                        component_updates_enabled_provider_.Run())) {
-    prediction_model_fetch_timer_.ScheduleFetchOnModelRegistration();
-  }
+  // If no fetch is scheduled, maybe schedule one.
+  if (!fetch_timer_.IsRunning())
+    MaybeScheduleFirstModelFetch();
 
   // Otherwise, load prediction models for any newly registered targets.
   LoadPredictionModels({optimization_target});
@@ -297,20 +325,20 @@ void PredictionManager::AddObserverForOptimizationTargetModel(
 void PredictionManager::RemoveObserverForOptimizationTargetModel(
     proto::OptimizationTarget optimization_target,
     OptimizationTargetModelObserver* observer) {
-  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
-  auto registration_info =
-      model_registration_info_map_.find(optimization_target);
-  DCHECK(registration_info != model_registration_info_map_.end());
-  DCHECK(registration_info->second.model_observer == observer);
-  model_registration_info_map_.erase(registration_info);
+  auto observers_it =
+      registered_observers_for_optimization_targets_.find(optimization_target);
+  if (observers_it == registered_observers_for_optimization_targets_.end())
+    return;
+
+  observers_it->second.RemoveObserver(observer);
 }
 
 base::flat_set<proto::OptimizationTarget>
 PredictionManager::GetRegisteredOptimizationTargets() const {
-  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   base::flat_set<proto::OptimizationTarget> optimization_targets;
-  for (const auto& registration_info : model_registration_info_map_) {
-    optimization_targets.insert(registration_info.first);
+  for (const auto& optimization_target_and_metadata :
+       registered_optimization_targets_and_metadata_) {
+    optimization_targets.insert(optimization_target_and_metadata.first);
   }
   return optimization_targets;
 }
@@ -327,9 +355,8 @@ void PredictionManager::SetPredictionModelDownloadManagerForTesting(
       std::move(prediction_model_download_manager);
 }
 
-void PredictionManager::FetchModels() {
+void PredictionManager::FetchModels(bool is_first_model_fetch) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
-  DCHECK(store_is_ready_);
 
   // The histogram that gets recorded here is used for integration tests that
   // pass in a model override. For simplicity, we place the recording of this
@@ -350,12 +377,10 @@ void PredictionManager::FetchModels() {
   if (switches::IsModelOverridePresent())
     return;
 
-  if (!ShouldFetchModels(off_the_record_,
-                         component_updates_enabled_provider_.Run())) {
+  if (!ShouldFetchModels(off_the_record_, pref_service_))
     return;
-  }
 
-  if (prediction_model_fetch_timer_.IsFirstModelFetch()) {
+  if (is_first_model_fetch) {
     DCHECK(!init_time_.is_null());
     base::UmaHistogramMediumTimes(
         "OptimizationGuide.PredictionManager.FirstModelFetchSinceServiceInit",
@@ -364,9 +389,8 @@ void PredictionManager::FetchModels() {
 
   // Models should not be fetched if there are no optimization targets
   // registered.
-  if (model_registration_info_map_.empty()) {
+  if (registered_optimization_targets_and_metadata_.empty())
     return;
-  }
 
   // We should have already created a prediction model download manager if we
   // initiated the fetching of models.
@@ -379,8 +403,9 @@ void PredictionManager::FetchModels() {
         "DownloadServiceAvailabilityBlockedFetch",
         !download_service_available);
     if (!download_service_available) {
-      for (const auto& registration_info : model_registration_info_map_) {
-        RecordLifecycleState(registration_info.first,
+      for (const auto& optimization_target_and_metadata :
+           registered_optimization_targets_and_metadata_) {
+        RecordLifecycleState(optimization_target_and_metadata.first,
                              ModelDeliveryEvent::kDownloadServiceUnavailable);
       }
       // We cannot download any models from the server, so don't refresh them.
@@ -401,18 +426,20 @@ void PredictionManager::FetchModels() {
   }
 
   std::vector<proto::ModelInfo> models_info = std::vector<proto::ModelInfo>();
-  models_info.reserve(model_registration_info_map_.size());
+  models_info.reserve(registered_optimization_targets_and_metadata_.size());
 
   // For now, we will fetch for all registered optimization targets.
-  for (const auto& registration_info : model_registration_info_map_) {
+  for (const auto& optimization_target_and_metadata :
+       registered_optimization_targets_and_metadata_) {
     proto::ModelInfo model_info(base_model_info);
-    model_info.set_optimization_target(registration_info.first);
-    if (registration_info.second.metadata) {
-      *model_info.mutable_model_metadata() = *registration_info.second.metadata;
+    model_info.set_optimization_target(optimization_target_and_metadata.first);
+    if (optimization_target_and_metadata.second.has_value()) {
+      *model_info.mutable_model_metadata() =
+          *optimization_target_and_metadata.second;
     }
 
-    auto model_it =
-        optimization_target_model_info_map_.find(registration_info.first);
+    auto model_it = optimization_target_model_info_map_.find(
+        optimization_target_and_metadata.first);
     if (model_it != optimization_target_model_info_map_.end())
       model_info.set_version(model_it->second.get()->GetVersion());
 
@@ -424,7 +451,7 @@ void PredictionManager::FetchModels() {
           << "Fetching models for Optimization Target "
           << model_info.optimization_target();
     }
-    RecordLifecycleState(registration_info.first,
+    RecordLifecycleState(optimization_target_and_metadata.first,
                          ModelDeliveryEvent::kGetModelsRequest);
   }
 
@@ -434,13 +461,12 @@ void PredictionManager::FetchModels() {
           base::BindOnce(&PredictionManager::OnModelsFetched,
                          ui_weak_ptr_factory_.GetWeakPtr(), models_info));
 
-  if (fetch_initiated) {
-    prediction_model_fetch_timer_.NotifyModelFetchAttempt();
-  }
+  if (fetch_initiated)
+    SetLastModelFetchAttemptTime(clock_->Now());
   // Schedule the next fetch regardless since we may not have initiated a fetch
   // due to a network condition and trying in the next minute to see if that is
   // unblocked is only a timer firing and not an actual query to the server.
-  prediction_model_fetch_timer_.SchedulePeriodicModelsFetch();
+  ScheduleModelsFetch();
 }
 
 void PredictionManager::OnModelsFetched(
@@ -448,7 +474,6 @@ void PredictionManager::OnModelsFetched(
     absl::optional<std::unique_ptr<proto::GetModelsResponse>>
         get_models_response_data) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
-  DCHECK(store_is_ready_);
   if (!get_models_response_data) {
     for (const auto& model_info : models_request_info) {
       RecordLifecycleState(model_info.optimization_target(),
@@ -456,16 +481,14 @@ void PredictionManager::OnModelsFetched(
     }
     return;
   }
+  SetLastModelFetchSuccessTime(clock_->Now());
 
-  if ((*get_models_response_data)->models_size() > 0 ||
-      models_request_info.size() > 0) {
-    UpdatePredictionModels(models_request_info,
-                           (*get_models_response_data)->models());
+  if ((*get_models_response_data)->models_size() > 0) {
+    UpdatePredictionModels((*get_models_response_data)->models());
   }
 
-  prediction_model_fetch_timer_.NotifyModelFetchSuccess();
-  prediction_model_fetch_timer_.Stop();
-  prediction_model_fetch_timer_.SchedulePeriodicModelsFetch();
+  fetch_timer_.Stop();
+  ScheduleModelsFetch();
 }
 
 void PredictionManager::UpdateModelMetadata(
@@ -570,7 +593,6 @@ void PredictionManager::MaybeDownloadOrUpdatePredictionModel(
 }
 
 void PredictionManager::UpdatePredictionModels(
-    const std::vector<proto::ModelInfo>& models_request_info,
     const google::protobuf::RepeatedPtrField<proto::PredictionModel>&
         prediction_models) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
@@ -583,16 +605,14 @@ void PredictionManager::UpdatePredictionModels(
       StoreUpdateData::CreatePredictionModelStoreUpdateData(
           clock_->Now() + features::StoredModelsValidDuration());
   bool has_models_to_update = false;
-  std::set<proto::OptimizationTarget> received_optimization_targets;
   for (const auto& model : prediction_models) {
-    auto optimization_target = model.model_info().optimization_target();
-    received_optimization_targets.emplace(optimization_target);
     if (!model.has_model()) {
       // We already have this updated model, so don't update in store.
       continue;
     }
     DCHECK(!model.model().download_url().empty());
     UpdateModelMetadata(model);
+    auto optimization_target = model.model_info().optimization_target();
     if (ShouldDownloadNewModel(model)) {
       StartModelDownload(optimization_target,
                          GURL(model.model().download_url()));
@@ -630,15 +650,6 @@ void PredictionManager::UpdatePredictionModels(
     }
   }
 
-  for (const auto& model_info : models_request_info) {
-    if (received_optimization_targets.find(model_info.optimization_target()) ==
-        received_optimization_targets.end()) {
-      RemoveModelFromStore(
-          model_info.optimization_target(),
-          PredictionModelStoreModelRemovalReason::kNoModelInGetModelsResponse);
-    }
-  }
-
   if (has_models_to_update && model_and_features_store_) {
     model_and_features_store_->UpdatePredictionModels(
         std::move(prediction_model_update_data),
@@ -649,7 +660,6 @@ void PredictionManager::UpdatePredictionModels(
 
 void PredictionManager::OnModelReady(const base::FilePath& base_model_dir,
                                      const proto::PredictionModel& model) {
-  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   if (switches::IsModelOverridePresent())
     return;
 
@@ -690,7 +700,7 @@ void PredictionManager::OnModelReady(const base::FilePath& base_model_dir,
                        ui_weak_ptr_factory_.GetWeakPtr()));
   }
 
-  if (model_registration_info_map_.contains(
+  if (registered_optimization_targets_and_metadata_.contains(
           model.model_info().optimization_target())) {
     OnLoadPredictionModel(model.model_info().optimization_target(),
                           /*record_availability_metrics=*/false,
@@ -712,7 +722,6 @@ void PredictionManager::OnModelDownloadFailed(
 
 std::vector<optimization_guide_internals::mojom::DownloadedModelInfoPtr>
 PredictionManager::GetDownloadedModelsInfoForWebUI() const {
-  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   std::vector<optimization_guide_internals::mojom::DownloadedModelInfoPtr>
       downloaded_models_info;
   downloaded_models_info.reserve(optimization_target_model_info_map_.size());
@@ -731,32 +740,23 @@ PredictionManager::GetDownloadedModelsInfoForWebUI() const {
 
 void PredictionManager::NotifyObserversOfNewModel(
     proto::OptimizationTarget optimization_target,
-    base::optional_ref<const ModelInfo> model_info) {
-  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
-  auto registration_info_it =
-      model_registration_info_map_.find(optimization_target);
-  if (registration_info_it == model_registration_info_map_.end()) {
+    const ModelInfo& model_info) {
+  auto observers_it =
+      registered_observers_for_optimization_targets_.find(optimization_target);
+  if (observers_it == registered_observers_for_optimization_targets_.end())
     return;
-  }
   RecordLifecycleState(optimization_target,
                        ModelDeliveryEvent::kModelDelivered);
-  registration_info_it->second.model_observer->OnModelUpdated(
-      optimization_target, model_info);
-  if (optimization_guide_logger_->ShouldEnableDebugLogs()) {
-    if (model_info.has_value()) {
+  for (auto& observer : observers_it->second) {
+    observer.OnModelUpdated(optimization_target, model_info);
+    if (optimization_guide_logger_->ShouldEnableDebugLogs()) {
       OPTIMIZATION_GUIDE_LOGGER(
           optimization_guide_common::mojom::LogSource::MODEL_MANAGEMENT,
           optimization_guide_logger_)
           << "OnModelFileUpdated for target: " << optimization_target
-          << "\nFile path: " << model_info->GetModelFilePath().AsUTF8Unsafe()
+          << "\nFile path: " << model_info.GetModelFilePath().AsUTF8Unsafe()
           << "\nHas metadata: "
-          << (model_info->GetModelMetadata() ? "True" : "False");
-    } else {
-      OPTIMIZATION_GUIDE_LOGGER(
-          optimization_guide_common::mojom::LogSource::MODEL_MANAGEMENT,
-          optimization_guide_logger_)
-          << "OnModelFileUpdated for target: " << optimization_target
-          << " for model removed";
+          << (model_info.GetModelMetadata() ? "True" : "False");
     }
   }
 }
@@ -793,11 +793,8 @@ void PredictionManager::MaybeInitializeModelDownloads(
   }
 
   // Only load models if there are optimization targets registered.
-  if (!model_registration_info_map_.empty() &&
-      ShouldFetchModels(off_the_record_,
-                        component_updates_enabled_provider_.Run())) {
-    prediction_model_fetch_timer_.MaybeScheduleFirstModelFetch();
-  }
+  if (!registered_optimization_targets_and_metadata_.empty())
+    MaybeScheduleFirstModelFetch();
 }
 
 void PredictionManager::OnStoreInitialized(
@@ -820,9 +817,8 @@ void PredictionManager::OnStoreInitialized(
           : nullptr);
 
   // Only load models if there are optimization targets registered.
-  if (model_registration_info_map_.empty()) {
+  if (registered_optimization_targets_and_metadata_.empty())
     return;
-  }
 
   // The store is ready so start loading models for the registered optimization
   // targets.
@@ -926,36 +922,18 @@ void PredictionManager::OnProcessLoadedModel(
                              model.model_info().version());
     return;
   }
-  RemoveModelFromStore(
-      model.model_info().optimization_target(),
-      PredictionModelStoreModelRemovalReason::kModelLoadFailed);
-}
-
-void PredictionManager::RemoveModelFromStore(
-    proto::OptimizationTarget optimization_target,
-    PredictionModelStoreModelRemovalReason model_removal_reason) {
-  if (features::IsInstallWideModelStoreEnabled()) {
-    if (prediction_model_store_->HasModel(optimization_target,
-                                          model_cache_key_)) {
-      prediction_model_store_->RemoveModel(
-          optimization_target, model_cache_key_, model_removal_reason);
-      NotifyObserversOfNewModel(optimization_target, absl::nullopt);
-    }
-    return;
-  }
 
   // Remove model from store if it exists.
   OptimizationGuideStore::EntryKey model_entry_key;
   if (model_and_features_store_ &&
       model_and_features_store_->FindPredictionModelEntryKey(
-          optimization_target, &model_entry_key)) {
-    base::UmaHistogramBoolean(
-        "OptimizationGuide.PredictionModelRemoved." +
-            GetStringNameForOptimizationTarget(optimization_target),
-        true);
+          model.model_info().optimization_target(), &model_entry_key)) {
+    LOCAL_HISTOGRAM_BOOLEAN("OptimizationGuide.PredictionModelRemoved." +
+                                GetStringNameForOptimizationTarget(
+                                    model.model_info().optimization_target()),
+                            true);
     model_and_features_store_->RemovePredictionModelFromEntryKey(
         model_entry_key);
-    NotifyObserversOfNewModel(optimization_target, absl::nullopt);
   }
 }
 
@@ -968,7 +946,7 @@ bool PredictionManager::ProcessAndStoreLoadedModel(
     return false;
   if (!model.has_model())
     return false;
-  if (!model_registration_info_map_.contains(
+  if (!registered_optimization_targets_and_metadata_.contains(
           model.model_info().optimization_target())) {
     return false;
   }
@@ -1027,10 +1005,70 @@ void PredictionManager::StoreLoadedModelInfo(
                                                        std::move(model_info));
 }
 
-void PredictionManager::SetClockForTesting(const base::Clock* clock) {
+void PredictionManager::MaybeScheduleFirstModelFetch() {
+  if (!ShouldFetchModels(off_the_record_,
+                         component_updates_enabled_provider_.Run())) {
+    return;
+  }
+
+  // Add a slight delay to allow the rest of the browser startup process to
+  // finish up.
+  fetch_timer_.Start(FROM_HERE, features::PredictionModelFetchStartupDelay(),
+                     base::BindOnce(&PredictionManager::FetchModels,
+                                    base::Unretained(this), true));
+}
+
+base::Time PredictionManager::GetLastFetchAttemptTime() const {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+  return base::Time::FromDeltaSinceWindowsEpoch(base::Microseconds(
+      pref_service_->GetInt64(prefs::kModelAndFeaturesLastFetchAttempt)));
+}
+
+base::Time PredictionManager::GetLastFetchSuccessTime() const {
+  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+  return base::Time::FromDeltaSinceWindowsEpoch(base::Microseconds(
+      pref_service_->GetInt64(prefs::kModelLastFetchSuccess)));
+}
+
+void PredictionManager::ScheduleModelsFetch() {
+  DCHECK(!fetch_timer_.IsRunning());
+  DCHECK(store_is_ready_);
+  const base::TimeDelta time_until_update_time =
+      GetLastFetchSuccessTime() + features::PredictionModelFetchInterval() -
+      clock_->Now();
+  const base::TimeDelta time_until_retry =
+      GetLastFetchAttemptTime() + features::PredictionModelFetchRetryDelay() -
+      clock_->Now();
+  base::TimeDelta fetcher_delay =
+      std::max(time_until_update_time, time_until_retry);
+  if (fetcher_delay <= base::TimeDelta()) {
+    fetch_timer_.Start(FROM_HERE, RandomFetchDelay(),
+                       base::BindOnce(&PredictionManager::FetchModels,
+                                      base::Unretained(this), false));
+    return;
+  }
+  fetch_timer_.Start(FROM_HERE, fetcher_delay, this,
+                     &PredictionManager::ScheduleModelsFetch);
+}
+
+void PredictionManager::SetLastModelFetchAttemptTime(
+    base::Time last_attempt_time) {
+  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+  pref_service_->SetInt64(
+      prefs::kModelAndFeaturesLastFetchAttempt,
+      last_attempt_time.ToDeltaSinceWindowsEpoch().InMicroseconds());
+}
+
+void PredictionManager::SetLastModelFetchSuccessTime(
+    base::Time last_success_time) {
+  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+  pref_service_->SetInt64(
+      prefs::kModelLastFetchSuccess,
+      last_success_time.ToDeltaSinceWindowsEpoch().InMicroseconds());
+}
+
+void PredictionManager::SetClockForTesting(const base::Clock* clock) {
   clock_ = clock;
-  prediction_model_fetch_timer_.SetClockForTesting(clock);  // IN-TEST
 }
 
 base::FilePath PredictionManager::GetBaseModelDirForDownload(
@@ -1045,7 +1083,6 @@ base::FilePath PredictionManager::GetBaseModelDirForDownload(
 void PredictionManager::OverrideTargetModelForTesting(
     proto::OptimizationTarget optimization_target,
     std::unique_ptr<ModelInfo> model_info) {
-  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   if (!model_info) {
     return;
   }

@@ -47,8 +47,6 @@ class MockSmartCardContextFactory
   void ExpectConnectFakeReaderSharedT1(
       mojo::Receiver<device::mojom::SmartCardConnection>& connection_receiver);
 
-  void ClearContextReceivers();
-
  private:
   mojo::ReceiverSet<device::mojom::SmartCardContextFactory> receivers_;
   mojo::ReceiverSet<device::mojom::SmartCardContext> context_receivers_;

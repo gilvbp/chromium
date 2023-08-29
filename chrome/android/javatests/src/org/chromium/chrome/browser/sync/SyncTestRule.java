@@ -171,6 +171,7 @@ public class SyncTestRule extends ChromeTabbedActivityTestRule {
         }
     }
 
+    private Context mContext;
     private FakeServerHelper mFakeServerHelper;
     private SyncService mSyncService;
     private final SigninTestRule mSigninTestRule = new SigninTestRule();
@@ -181,9 +182,10 @@ public class SyncTestRule extends ChromeTabbedActivityTestRule {
 
     private void ruleTearDown() {
         TestThreadUtils.runOnUiThreadBlocking(() -> {
-            mSyncService = null;
             mFakeServerHelper = null;
             FakeServerHelper.destroyInstance();
+            SyncServiceFactory.resetForTests();
+            mSyncService = null;
         });
     }
 
@@ -191,7 +193,7 @@ public class SyncTestRule extends ChromeTabbedActivityTestRule {
 
     /**Getters for Test variables */
     public Context getTargetContext() {
-        return ApplicationProvider.getApplicationContext();
+        return mContext;
     }
 
     public FakeServerHelper getFakeServerHelper() {
@@ -316,6 +318,14 @@ public class SyncTestRule extends ChromeTabbedActivityTestRule {
     }
 
     /*
+     * Sets payments integration to |enabled|.
+     */
+    public void setPaymentsIntegrationEnabled(final boolean enabled) {
+        TestThreadUtils.runOnUiThreadBlocking(
+                () -> PersonalDataManager.setPaymentsIntegrationEnabled(enabled));
+    }
+
+    /*
      * Disables the Sync data type in USER_SELECTABLE_TYPES.
      */
     public void disableDataType(final int userSelectableType) {
@@ -349,9 +359,11 @@ public class SyncTestRule extends ChromeTabbedActivityTestRule {
                 TestThreadUtils.runOnUiThreadBlocking(() -> {
                     SyncService syncService = createSyncServiceImpl();
                     if (syncService != null) {
-                        SyncServiceFactory.setInstanceForTesting(syncService);
+                        SyncServiceFactory.overrideForTests(syncService);
                     }
                     mSyncService = SyncServiceFactory.get();
+
+                    mContext = ApplicationProvider.getApplicationContext();
                     mFakeServerHelper = FakeServerHelper.createInstanceAndGet();
                 });
 

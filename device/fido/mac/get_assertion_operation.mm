@@ -9,10 +9,10 @@
 
 #import <Foundation/Foundation.h>
 
-#include "base/apple/foundation_util.h"
-#include "base/apple/osstatus_logging.h"
-#include "base/apple/scoped_cftyperef.h"
 #include "base/functional/bind.h"
+#include "base/mac/foundation_util.h"
+#include "base/mac/mac_logging.h"
+#include "base/mac/scoped_cftyperef.h"
 #include "base/strings/string_number_conversions.h"
 #include "base/strings/utf_string_conversions.h"
 #include "components/device_event_log/device_event_log.h"
@@ -26,9 +26,13 @@
 #include "device/fido/strings/grit/fido_strings.h"
 #include "ui/base/l10n/l10n_util.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace device::fido::mac {
 
-using base::apple::ScopedCFTypeRef;
+using base::ScopedCFTypeRef;
 
 GetAssertionOperation::GetAssertionOperation(
     CtapGetAssertionRequest request,
@@ -152,11 +156,14 @@ GetAssertionOperation::ResponseForCredential(const Credential& credential,
     return absl::nullopt;
   }
   AuthenticatorGetAssertionResponse response(std::move(authenticator_data),
-                                             std::move(*signature),
-                                             FidoTransportProtocol::kInternal);
+                                             std::move(*signature));
+  response.transport_used = FidoTransportProtocol::kInternal;
   response.credential = PublicKeyCredentialDescriptor(
       CredentialType::kPublicKey, credential.credential_id);
-  response.user_entity = credential.metadata.ToPublicKeyCredentialUserEntity();
+  if (has_uv) {
+    response.user_entity =
+        credential.metadata.ToPublicKeyCredentialUserEntity();
+  }
   return response;
 }
 

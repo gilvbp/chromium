@@ -439,7 +439,7 @@ void ListedElement::FindCustomValidationMessageTextDirection(
 }
 
 void ListedElement::UpdateVisibleValidationMessage() {
-  Element& element = ValidationAnchor();
+  const Element& element = ValidationAnchor();
   Page* page = element.GetDocument().GetPage();
   if (!page || !page->IsPageVisible() || element.GetDocument().UnloadStarted())
     return;
@@ -521,9 +521,9 @@ void ListedElement::ShowValidationMessage() {
   Element& element = ValidationAnchor();
   element.scrollIntoViewIfNeeded(false);
   if (element.IsFocusable())
-    element.Focus();
+    element.Focus(FocusParams(/*gate_on_user_activation=*/true));
   else
-    ToHTMLElement().Focus();
+    ToHTMLElement().Focus(FocusParams(/*gate_on_user_activation=*/true));
   UpdateVisibleValidationMessage();
 }
 

@@ -76,13 +76,11 @@ class SyncSessionsRouterTabHelper
   void NotifyRouter(bool page_load_completed = false);
 
   // |router_| is a KeyedService and is guaranteed to outlive |this|.
-  const raw_ptr<SyncSessionsWebContentsRouter, DanglingUntriaged> router_;
+  raw_ptr<SyncSessionsWebContentsRouter, DanglingUntriaged> router_;
 
-  const raw_ptr<ChromeTranslateClient, AcrossTasksDanglingUntriaged>
-      chrome_translate_client_;
+  raw_ptr<ChromeTranslateClient, DanglingUntriaged> chrome_translate_client_;
 
-  const raw_ptr<favicon::FaviconDriver, AcrossTasksDanglingUntriaged>
-      favicon_driver_;
+  raw_ptr<favicon::FaviconDriver, DanglingUntriaged> favicon_driver_;
 
   WEB_CONTENTS_USER_DATA_KEY_DECL();
 };

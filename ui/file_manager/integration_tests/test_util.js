@@ -39,7 +39,9 @@ export function sendTestMessage(command) {
  *     has elapsed.
  */
 export function wait(time) {
-  return new Promise(resolve => setTimeout(resolve, time));
+  return new Promise(function(resolve) {
+    setTimeout(resolve, time);
+  });
 }
 
 /**
@@ -394,7 +396,6 @@ export let TestEntryFolderFeature;
  *    capabilities: (TestEntryCapabilities|undefined),
  *    folderFeature: (TestEntryFolderFeature|undefined),
  *    pinned: (boolean|undefined),
- *    dirty: (boolean|undefined),
  *    availableOffline: (boolean|undefined),
  *    alternateUrl: (string|undefined),
  *    canPin: (boolean|undefined),
@@ -429,7 +430,6 @@ export class TestEntryInfo {
     this.capabilities = options.capabilities;
     this.folderFeature = options.folderFeature;
     this.pinned = !!options.pinned;
-    this.dirty = !!options.dirty;
     this.availableOffline = !!options.availableOffline;
     this.alternateUrl = options.alternateUrl || '';
     this.canPin = options.canPin !== undefined ? !!options.canPin : true;
@@ -513,18 +513,6 @@ export const ENTRIES = {
     nameText: 'hello.txt',
     sizeText: '51 bytes',
     typeText: 'Plain text',
-  }),
-
-  dirty: new TestEntryInfo({
-    type: EntryType.FILE,
-    sourceFileName: 'text.txt',
-    targetPath: 'dirty.txt',
-    mimeType: 'text/plain',
-    lastModifiedTime: 'Sep 4, 1998, 12:34 PM',
-    nameText: 'dirty.txt',
-    sizeText: '51 bytes',
-    typeText: 'Plain text',
-    dirty: true,
   }),
 
   world: new TestEntryInfo({

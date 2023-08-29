@@ -5,7 +5,6 @@
 #include "ash/webui/file_manager/file_manager_ui.h"
 
 #include "ash/shell.h"
-#include "ash/webui/common/trusted_types_util.h"
 #include "ash/webui/file_manager/file_manager_page_handler.h"
 #include "ash/webui/file_manager/resource_loader.h"
 #include "ash/webui/file_manager/resources/grit/file_manager_swa_resources.h"
@@ -41,6 +40,7 @@ bool IsKioskSession() {
     case user_manager::USER_TYPE_CHILD:
     case user_manager::USER_TYPE_GUEST:
     case user_manager::USER_TYPE_PUBLIC_ACCOUNT:
+    case user_manager::USER_TYPE_ACTIVE_DIRECTORY:
       return false;
     case user_manager::USER_TYPE_KIOSK_APP:
     case user_manager::USER_TYPE_ARC_KIOSK_APP:
@@ -128,7 +128,8 @@ void FileManagerUI::CreateAndAddTrustedAppDataSource(content::WebUI* web_ui,
       "frame-src chrome-untrusted://file-manager "
       "'self';");
 
-  ash::EnableTrustedTypesCSP(source);
+  // TODO(crbug.com/1098685): Trusted Type remaining WebUI.
+  source->DisableTrustedTypesCSP();
 }
 
 int FileManagerUI::GetNumInstances() {
@@ -147,9 +148,6 @@ FileManagerUI::~FileManagerUI() {
   if (!instance_count_) {
     delegate_->ProgressPausedTasks();
     delegate_->ShouldPollDriveHostedPinStates(false);
-    // There might be some tasks blocked by policy that already completed, but
-    // still have a notification so notify FPNM to show them if necessary.
-    delegate_->ShowPolicyNotifications();
   }
 }
 

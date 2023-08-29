@@ -2,12 +2,12 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import {PostMessageApiClient} from 'chrome://resources/ash/common/post_message_api/post_message_api_client.js';
+import {PostMessageAPIClient} from 'chrome://resources/ash/common/post_message_api/post_message_api_client.js';
 
 
 const serverOriginURLFilter = 'chrome://parent-access/';
 
-class TestParentAccessApiClient extends PostMessageApiClient {
+class TestParentAccessAPIClient extends PostMessageAPIClient {
   constructor() {
     super(serverOriginURLFilter, null);
   }
@@ -23,5 +23,5 @@ class TestParentAccessApiClient extends PostMessageApiClient {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-  const parentAccessTestClient = new TestParentAccessApiClient();
+  const parentAccessTestClient = new TestParentAccessAPIClient();
 });

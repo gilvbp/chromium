@@ -16,7 +16,7 @@ suite('touchscreenTesterTestSuite', function() {
   let touchscreenTesterElement = null;
 
   setup(() => {
-    document.body.innerHTML = window.trustedTypes.emptyHTML;
+    document.body.innerHTML = '';
   });
 
   teardown(() => {

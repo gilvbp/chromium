@@ -4,7 +4,8 @@
 
 package org.chromium.chrome.browser.search_engines;
 
-import org.chromium.base.ResettersForTesting;
+import androidx.annotation.VisibleForTesting;
+
 import org.chromium.base.ThreadUtils;
 import org.chromium.base.annotations.NativeMethods;
 import org.chromium.chrome.browser.profiles.Profile;
@@ -30,9 +31,9 @@ public class TemplateUrlServiceFactory {
         return TemplateUrlServiceFactoryJni.get().getTemplateUrlService(profile);
     }
 
+    @VisibleForTesting
     public static void setInstanceForTesting(TemplateUrlService service) {
         sTemplateUrlServiceForTesting = service;
-        ResettersForTesting.register(() -> sTemplateUrlServiceForTesting = null);
     }
 
     // Natives interface is public to allow mocking in tests outside of

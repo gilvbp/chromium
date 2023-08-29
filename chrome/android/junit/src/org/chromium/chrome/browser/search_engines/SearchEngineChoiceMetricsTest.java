@@ -11,6 +11,7 @@ import static org.mockito.Mockito.doReturn;
 
 import androidx.test.filters.SmallTest;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -65,6 +66,12 @@ public final class SearchEngineChoiceMetricsTest {
         doReturn(mInitialSearchEngine)
                 .when(mTemplateUrlService)
                 .getDefaultSearchEngineTemplateUrl();
+    }
+
+    @After
+    public void tearDown() {
+        Profile.setLastUsedProfileForTesting(null);
+        TemplateUrlServiceFactory.setInstanceForTesting(null);
     }
 
     @Test

@@ -155,8 +155,7 @@ TEST_P(ContentToVisibleTimeReporterTest, TimeIsRecorded) {
       blink::mojom::RecordContentToVisibleTimeRequest::New(
           start, tab_state_.destination_is_loaded,
           /*show_reason_tab_switching=*/true,
-          /*show_reason_bfcache_restore=*/false,
-          /*show_reason_unfold=*/false));
+          /*show_reason_bfcache_restore=*/false));
   const auto end = start + kDuration;
   std::move(callback).Run(end);
 
@@ -185,8 +184,7 @@ TEST_P(ContentToVisibleTimeReporterTest, HideBeforePresentFrame) {
       blink::mojom::RecordContentToVisibleTimeRequest::New(
           start1, tab_state_.destination_is_loaded,
           /*show_reason_tab_switching=*/true,
-          /*show_reason_bfcache_restore=*/false,
-          /*show_reason_unfold=*/false));
+          /*show_reason_bfcache_restore=*/false));
 
   task_environment_.FastForwardBy(kDuration);
   tab_switch_time_recorder_.TabWasHidden();
@@ -212,8 +210,7 @@ TEST_P(ContentToVisibleTimeReporterTest, HideBeforePresentFrame) {
       blink::mojom::RecordContentToVisibleTimeRequest::New(
           start2, tab_state_.destination_is_loaded,
           /*show_reason_tab_switching=*/true,
-          /*show_reason_bfcache_restore=*/false,
-          /*show_reason_unfold=*/false));
+          /*show_reason_bfcache_restore=*/false));
   const auto end2 = start2 + kOtherDuration;
   std::move(callback2).Run(end2);
 
@@ -247,8 +244,7 @@ TEST_P(ContentToVisibleTimeReporterTest, MissingTabWasHidden) {
       blink::mojom::RecordContentToVisibleTimeRequest::New(
           start1, tab_state_.destination_is_loaded,
           /*show_reason_tab_switching=*/true,
-          /*show_reason_bfcache_restore=*/false,
-          /*show_reason_unfold=*/false));
+          /*show_reason_bfcache_restore=*/false));
 
   task_environment_.FastForwardBy(kDuration);
 
@@ -260,8 +256,7 @@ TEST_P(ContentToVisibleTimeReporterTest, MissingTabWasHidden) {
       blink::mojom::RecordContentToVisibleTimeRequest::New(
           start2, tab_state_.destination_is_loaded,
           /*show_reason_tab_switching=*/true,
-          /*show_reason_bfcache_restore=*/false,
-          /*show_reason_unfold=*/false));
+          /*show_reason_bfcache_restore=*/false));
   const auto end2 = start2 + kOtherDuration;
   std::move(callback2).Run(end2);
 
@@ -297,8 +292,7 @@ TEST_P(ContentToVisibleTimeReporterTest, BfcacheRestoreTimeIsRecorded) {
       blink::mojom::RecordContentToVisibleTimeRequest::New(
           start, tab_state_.destination_is_loaded,
           /*show_reason_tab_switching=*/false,
-          /*show_reason_bfcache_restore=*/true,
-          /*show_reason_unfold=*/false));
+          /*show_reason_bfcache_restore=*/true));
   const auto end = start + kDuration;
   std::move(callback).Run(end);
 
@@ -319,8 +313,7 @@ TEST_P(ContentToVisibleTimeReporterTest,
       blink::mojom::RecordContentToVisibleTimeRequest::New(
           start, tab_state_.destination_is_loaded,
           /*show_reason_tab_switching=*/true,
-          /*show_reason_bfcache_restore=*/true,
-          /*show_reason_unfold=*/false));
+          /*show_reason_bfcache_restore=*/true));
   const auto end = start + kDuration;
   std::move(callback).Run(end);
 

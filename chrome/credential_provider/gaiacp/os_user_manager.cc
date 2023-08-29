@@ -30,7 +30,6 @@
 #include "chrome/credential_provider/gaiacp/gcp_utils.h"
 #include "chrome/credential_provider/gaiacp/logging.h"
 #include "chrome/credential_provider/gaiacp/reg_utils.h"
-#include "third_party/abseil-cpp/absl/strings/ascii.h"
 
 namespace credential_provider {
 
@@ -100,13 +99,13 @@ HRESULT OSUserManager::GenerateRandomPassword(wchar_t* password, int length) {
   // is for this machine in order to create one that adheres correctly.  For
   // now will generate a random password that fits typical strong password
   // policies on windows.
-  const unsigned char kValidPasswordChars[] =
-      "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-      "abcdefghijklmnopqrstuvwxyz"
-      "`1234567890-="
-      "~!@#$%^&*()_+"
-      "[]\\;',./"
-      "{}|:\"<>?";
+  const wchar_t kValidPasswordChars[] =
+      L"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+      L"abcdefghijklmnopqrstuvwxyz"
+      L"`1234567890-="
+      L"~!@#$%^&*()_+"
+      L"[]\\;',./"
+      L"{}|:\"<>?";
 
   if (length < kMinPasswordLength)
     return E_INVALIDARG;
@@ -142,25 +141,20 @@ HRESULT OSUserManager::GenerateRandomPassword(wchar_t* password, int length) {
         return hr;
       }
 
-      unsigned char c =
-          kValidPasswordChars[r % (std::size(kValidPasswordChars) - 1)];
+      wchar_t c = kValidPasswordChars[r % (std::size(kValidPasswordChars) - 1)];
       *p++ = c;
       ++cur_length;
       --remaining_length;
 
       // Check if we have all the requirements for a strong password.
-      if (absl::ascii_isupper(c)) {
+      if (isupper(c))
         has_upper = 1;
-      }
-      if (absl::ascii_islower(c)) {
+      if (islower(c))
         has_lower = 1;
-      }
-      if (absl::ascii_isdigit(c)) {
+      if (isdigit(c))
         has_digit = 1;
-      }
-      if (absl::ascii_ispunct(c)) {
+      if (ispunct(c))
         has_punct = 1;
-      }
 
       if (IS_PASSWORD_STRONG_ENOUGH())
         break;

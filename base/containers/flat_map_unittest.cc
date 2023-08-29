@@ -5,7 +5,6 @@
 #include "base/containers/flat_map.h"
 
 #include <string>
-#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -460,20 +459,6 @@ TEST(FlatMap, UsingInitializerList) {
   m.upper_bound({11});
   m1.upper_bound({12});
   m.erase({13});
-}
-
-TEST(FlatMap, DeductionGuides) {
-  {
-    std::vector<std::pair<int, float>> v = {{1, 4.0}, {2, 3.0}};
-    flat_map map{v};
-    static_assert(std::is_same_v<decltype(map), flat_map<int, float>>);
-  }
-
-  {
-    std::vector<std::pair<int, float>> v = {{1, 4.0}, {2, 3.0}};
-    flat_map map(std::move(v));
-    static_assert(std::is_same_v<decltype(map), flat_map<int, float>>);
-  }
 }
 
 }  // namespace base

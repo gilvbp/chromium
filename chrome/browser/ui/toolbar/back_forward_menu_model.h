@@ -48,7 +48,12 @@ class BackForwardMenuModel : public ui::MenuModel {
 
   ~BackForwardMenuModel() override;
 
-  // ui::MenuModel:
+  // MenuModel implementation.
+  bool HasIcons() const override;
+  // Returns how many items the menu should show, including history items,
+  // chapter-stops, separators and the Show Full History link. This function
+  // uses GetHistoryItemCount() and GetChapterStopCount() internally to figure
+  // out the total number of items to show.
   size_t GetItemCount() const override;
   ItemType GetTypeAt(size_t index) const override;
   ui::MenuSeparatorType GetSeparatorTypeAt(size_t index) const override;

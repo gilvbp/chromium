@@ -47,11 +47,10 @@ ServiceFactory::ServiceFactory()
 
 ServiceFactory::~ServiceFactory() = default;
 
-std::unique_ptr<KeyedService>
-ServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* ServiceFactory::BuildServiceInstanceFor(
     content::BrowserContext* profile) const {
-  return std::make_unique<Service>(Profile::FromBrowserContext(profile),
-                                   extensions::ExtensionRegistry::Get(profile));
+  return new Service(Profile::FromBrowserContext(profile),
+                     extensions::ExtensionRegistry::Get(profile));
 }
 
 bool ServiceFactory::ServiceIsCreatedWithBrowserContext() const { return true; }

@@ -15,7 +15,6 @@
 #include "base/task/sequenced_task_runner.h"
 #include "base/time/time.h"
 #include "build/build_config.h"
-#include "media/base/video_encoder.h"
 #include "media/base/video_frame_pool.h"
 #include "media/muxers/webm_muxer.h"
 #include "media/renderers/paint_canvas_video_renderer.h"
@@ -39,7 +38,6 @@
 #include "third_party/skia/include/core/SkBitmap.h"
 
 namespace media {
-class VideoEncoderMetricsProvider;
 class VideoFrame;
 }
 
@@ -89,16 +87,11 @@ class VideoTrackRecorder : public TrackRecorder<MediaStreamVideoSink> {
     // Called to indicate there is encoded video data available. |encoded_alpha|
     // represents the encode output of alpha channel when available, can be
     // empty otherwise.
-    virtual void OnEncodedVideo(
-        const media::Muxer::VideoParameters& params,
-        std::string encoded_data,
-        std::string encoded_alpha,
-        absl::optional<media::VideoEncoder::CodecDescription> codec_description,
-        base::TimeTicks timestamp,
-        bool is_key_frame) = 0;
-
-    virtual std::unique_ptr<media::VideoEncoderMetricsProvider>
-    CreateVideoEncoderMetricsProvider() = 0;
+    virtual void OnEncodedVideo(const media::Muxer::VideoParameters& params,
+                                std::string encoded_data,
+                                std::string encoded_alpha,
+                                base::TimeTicks timestamp,
+                                bool is_key_frame) = 0;
 
     // Called on encountering encoder errors.
     virtual void OnVideoEncodingError() = 0;
@@ -122,13 +115,12 @@ class VideoTrackRecorder : public TrackRecorder<MediaStreamVideoSink> {
                  uint8_t level);
   };
 
-  using OnEncodedVideoCB = base::RepeatingCallback<void(
-      const media::Muxer::VideoParameters& params,
-      std::string encoded_data,
-      std::string encoded_alpha,
-      absl::optional<media::VideoEncoder::CodecDescription> codec_description,
-      base::TimeTicks capture_timestamp,
-      bool is_key_frame)>;
+  using OnEncodedVideoCB =
+      base::RepeatingCallback<void(const media::Muxer::VideoParameters& params,
+                                   std::string encoded_data,
+                                   std::string encoded_alpha,
+                                   base::TimeTicks capture_timestamp,
+                                   bool is_key_frame)>;
   using OnErrorCB = base::RepeatingClosure;
 
   // MediaStreamVideoSink implementation
@@ -166,8 +158,7 @@ class VideoTrackRecorder : public TrackRecorder<MediaStreamVideoSink> {
     // Should be called shortly after wrapping the Encoder in a SequenceBound,
     // on the codec-specific task runner.
     void InitializeEncoder(
-        KeyFrameRequestProcessor::Configuration key_frame_config,
-        std::unique_ptr<media::VideoEncoderMetricsProvider> metrics_provider);
+        KeyFrameRequestProcessor::Configuration key_frame_config);
 
     // Start encoding |frame|, returning via |on_encoded_video_cb_|. This
     // call will also trigger an encode configuration upon first frame arrival
@@ -250,7 +241,6 @@ class VideoTrackRecorder : public TrackRecorder<MediaStreamVideoSink> {
     bool awaiting_first_frame_ = true;
     std::vector<uint8_t> resize_buffer_
         ALLOW_DISCOURAGED_TYPE("Avoids conversion when passed to media:: code");
-    std::unique_ptr<media::VideoEncoderMetricsProvider> metrics_provider_;
 
     media::VideoFramePool frame_pool_;
   };
@@ -425,7 +415,7 @@ class MODULES_EXPORT VideoTrackRecorderPassthrough : public VideoTrackRecorder {
                                      base::TimeTicks capture_time) override;
 
  private:
-  void RequestKeyFrame();
+  void RequestRefreshFrame();
   void DisconnectFromTrack();
   void HandleEncodedVideoFrame(
       base::RepeatingCallback<base::TimeTicks()> time_now_callback,

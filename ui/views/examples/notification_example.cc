@@ -76,8 +76,7 @@ void NotificationExample::OnViewAddedToWidget(View* observed_view) {
       ui::ImageModel::FromImage(CreateTestImage(gfx::Size(80, 80), cp)),
       std::u16string(), GURL(),
       message_center::NotifierId(
-          GURL(), l10n_util::GetStringUTF16(IDS_NOTIFICATION_TITLE_LABEL),
-          /*web_app_id=*/absl::nullopt),
+          GURL(), l10n_util::GetStringUTF16(IDS_NOTIFICATION_TITLE_LABEL)),
       data, base::MakeRefCounted<message_center::NotificationDelegate>());
   notification.set_small_image(CreateTestImage(gfx::Size(16, 16), cp));
   notification.set_image(CreateTestImage(gfx::Size(320, 240), cp));

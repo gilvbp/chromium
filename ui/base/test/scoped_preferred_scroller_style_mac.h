@@ -7,7 +7,7 @@
 
 #include <memory>
 
-namespace base::apple {
+namespace base::mac {
 class ScopedObjCClassSwizzler;
 }
 
@@ -27,7 +27,7 @@ class ScopedPreferredScrollerStyle {
   ~ScopedPreferredScrollerStyle();
 
  private:
-  std::unique_ptr<base::apple::ScopedObjCClassSwizzler> swizzler_;
+  std::unique_ptr<base::mac::ScopedObjCClassSwizzler> swizzler_;
 
   // True if the scrollbar style should overlay.
   bool overlay_;

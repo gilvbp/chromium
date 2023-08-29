@@ -11,8 +11,11 @@
 #import <vector>
 
 #import "base/check.h"
-#import "base/containers/contains.h"
 #import "base/strings/sys_string_conversions.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 #pragma mark - SilentlyFailingObject
 
@@ -123,7 +126,8 @@
   BOOL conforming = YES;
   for (unsigned int i = 0; i < methodCount; i++) {
     SEL selector = requiredInstanceMethods[i].name;
-    BOOL targetFound = base::Contains(_forwardingTargets, selector);
+    BOOL targetFound =
+        _forwardingTargets.find(selector) != _forwardingTargets.end();
     if (!targetFound && ![self shouldFailSilentlyForSelector:selector]) {
       conforming = NO;
       break;
@@ -206,8 +210,8 @@
 }
 
 - (BOOL)shouldFailSilentlyForSelector:(SEL)selector {
-  return _preparingForShutdown &&
-         base::Contains(_silentlyFailingTargets, selector);
+  return _preparingForShutdown && _silentlyFailingTargets.find(selector) !=
+                                      _silentlyFailingTargets.end();
 }
 
 @end

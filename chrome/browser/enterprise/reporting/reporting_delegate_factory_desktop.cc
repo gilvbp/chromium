@@ -17,38 +17,37 @@
 namespace enterprise_reporting {
 
 std::unique_ptr<BrowserReportGenerator::Delegate>
-ReportingDelegateFactoryDesktop::GetBrowserReportGeneratorDelegate() const {
+ReportingDelegateFactoryDesktop::GetBrowserReportGeneratorDelegate() {
   return std::make_unique<BrowserReportGeneratorDesktop>();
 }
 
 std::unique_ptr<ProfileReportGenerator::Delegate>
-ReportingDelegateFactoryDesktop::GetProfileReportGeneratorDelegate() const {
+ReportingDelegateFactoryDesktop::GetProfileReportGeneratorDelegate() {
   return std::make_unique<ProfileReportGeneratorDesktop>();
 }
 
 std::unique_ptr<ReportGenerator::Delegate>
-ReportingDelegateFactoryDesktop::GetReportGeneratorDelegate() const {
+ReportingDelegateFactoryDesktop::GetReportGeneratorDelegate() {
   return std::make_unique<ReportGeneratorDesktop>();
 }
 
 std::unique_ptr<ReportScheduler::Delegate>
-ReportingDelegateFactoryDesktop::GetReportSchedulerDelegate() const {
+ReportingDelegateFactoryDesktop::GetReportSchedulerDelegate() {
   return std::make_unique<ReportSchedulerDesktop>();
 }
 
 std::unique_ptr<RealTimeReportGenerator::Delegate>
-ReportingDelegateFactoryDesktop::GetRealTimeReportGeneratorDelegate() const {
+ReportingDelegateFactoryDesktop::GetRealTimeReportGeneratorDelegate() {
   return std::make_unique<RealTimeReportGeneratorDesktop>();
 }
 
 std::unique_ptr<RealTimeReportController::Delegate>
-ReportingDelegateFactoryDesktop::GetRealTimeReportControllerDelegate() const {
+ReportingDelegateFactoryDesktop::GetRealTimeReportControllerDelegate() {
   return std::make_unique<RealTimeReportControllerDesktop>(profile_);
 }
 
 std::unique_ptr<ReportScheduler::Delegate>
-ReportingDelegateFactoryDesktop::GetReportSchedulerDelegate(
-    Profile* profile) const {
+ReportingDelegateFactoryDesktop::GetReportSchedulerDelegate(Profile* profile) {
   return std::make_unique<ReportSchedulerDesktop>(profile);
 }
 

@@ -26,15 +26,17 @@ class DEVICE_VR_EXPORT OpenXrPlatformHelperWindows
   // OpenXrPlatformHelper
   std::unique_ptr<OpenXrGraphicsBinding> GetGraphicsBinding(
       D3D11TextureHelper* texture_helper) override;
-  void GetPlatformCreateInfo(const device::OpenXrCreateInfo& create_info,
-                             PlatformCreateInfoReadyCallback) override;
+  const void* GetPlatformCreateInfo(
+      const OpenXrCreateInfo& create_info) override;
   device::mojom::XRDeviceData GetXRDeviceData() override;
   bool Initialize() override;
 
   // Note that we treat the XrInstance as a singleton on Windows, so we must
   // override CreateInstance/DestroyInstance. See `OpenXrInstanceWrapper` for
   // more context.
-  XrResult CreateInstance(XrInstance* instance, void* create_info) override;
+  XrResult CreateInstance(
+      XrInstance* instance,
+      absl::optional<OpenXrCreateInfo> create_info) override;
   XrResult DestroyInstance(XrInstance& instance) override;
 
   // Methods used by the XrRuntimeProvider to determine if an OpenXr session
@@ -48,6 +50,7 @@ class DEVICE_VR_EXPORT OpenXrPlatformHelperWindows
 
  private:
   XrInstance GetOrCreateXrInstance();
+  bool IsArBlendModeSupported();
 
   // Accessing the LUID is handled via an extension method. We cache that
   // method here once we've loaded it so that we don't have to look it up again,

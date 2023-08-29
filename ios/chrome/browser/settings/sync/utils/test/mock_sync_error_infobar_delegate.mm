@@ -6,6 +6,10 @@
 
 #import "ui/gfx/image/image.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 MockSyncErrorInfoBarDelegate::MockSyncErrorInfoBarDelegate(
     ChromeBrowserState* browser_state,
     id<SyncPresenter> presenter,

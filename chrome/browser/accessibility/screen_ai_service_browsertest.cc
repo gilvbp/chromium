@@ -64,9 +64,7 @@ IN_PROC_BROWSER_TEST_F(ScreenAIServiceTest, DISABLED_ScreenshotTest) {
         run_loop.Quit();
       });
 
-  content::WebContents* web_contents =
-      browser()->tab_strip_model()->GetActiveWebContents();
-  annotator->AnnotateScreenshot(web_contents);
+  browser()->RunScreenAIAnnotator();
   run_loop.Run();
 
   // TODO(crbug.com/1443345): Add a test that mocks

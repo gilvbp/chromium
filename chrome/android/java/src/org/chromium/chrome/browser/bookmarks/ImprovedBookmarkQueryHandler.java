@@ -7,15 +7,27 @@ package org.chromium.chrome.browser.bookmarks;
 import org.chromium.chrome.browser.bookmarks.BookmarkUiPrefs.BookmarkRowSortOrder;
 import org.chromium.components.bookmarks.BookmarkId;
 import org.chromium.components.bookmarks.BookmarkItem;
-import org.chromium.components.power_bookmarks.PowerBookmarkType;
+import org.chromium.components.power_bookmarks.PowerBookmarkMeta;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 
 /** New implementation of {@link BookmarkQueryHandler} that expands the root. */
 public class ImprovedBookmarkQueryHandler implements BookmarkQueryHandler {
+    private static class NoDragWrappedBookmarkItem extends BookmarkItem {
+        NoDragWrappedBookmarkItem(BookmarkItem item) {
+            super(item.getId(), item.getTitle(), item.getUrl(), item.isFolder(), item.getParentId(),
+                    item.isEditable(), item.isManaged(), item.getDateAdded(), item.isRead());
+        }
+
+        @Override
+        public boolean isReorderable() {
+            return false;
+        }
+    }
+
     private final BookmarkModel mBookmarkModel;
     private final BasicBookmarkQueryHandler mBasicBookmarkQueryHandler;
     private final BookmarkUiPrefs mBookmarkUiPrefs;
@@ -23,7 +35,7 @@ public class ImprovedBookmarkQueryHandler implements BookmarkQueryHandler {
     /**
      * Constructs a handle that operates on the given backend.
      * @param bookmarkModel The backend that holds the truth of what the bookmark state looks like.
-     * @param bookmarkUiPrefs Stores the display prefs for bookmarks.
+     * @param bookmarkUiPrefs Stores the display prefs for bookmarmks.
      */
     public ImprovedBookmarkQueryHandler(
             BookmarkModel bookmarkModel, BookmarkUiPrefs bookmarkUiPrefs) {
@@ -40,7 +52,11 @@ public class ImprovedBookmarkQueryHandler implements BookmarkQueryHandler {
     @Override
     public List<BookmarkListEntry> buildBookmarkListForParent(BookmarkId parentId) {
         final List<BookmarkListEntry> bookmarkListEntries;
-        bookmarkListEntries = mBasicBookmarkQueryHandler.buildBookmarkListForParent(parentId);
+        if (Objects.equals(parentId, mBookmarkModel.getRootFolderId())) {
+            bookmarkListEntries = buildBookmarkListForRootView();
+        } else {
+            bookmarkListEntries = mBasicBookmarkQueryHandler.buildBookmarkListForParent(parentId);
+        }
 
         // Don't do anything for ReadingList, they're already sorted with a different mechanism.
         if (!Objects.equals(parentId, mBookmarkModel.getReadingListFolder())) {
@@ -51,18 +67,36 @@ public class ImprovedBookmarkQueryHandler implements BookmarkQueryHandler {
     }
 
     @Override
-    public List<BookmarkListEntry> buildBookmarkListForSearch(
-            String query, Set<PowerBookmarkType> powerFilter) {
+    public List<BookmarkListEntry> buildBookmarkListForSearch(String query) {
         List<BookmarkListEntry> bookmarkListEntries =
-                mBasicBookmarkQueryHandler.buildBookmarkListForSearch(query, powerFilter);
+                mBasicBookmarkQueryHandler.buildBookmarkListForSearch(query);
         sortByStoredPref(bookmarkListEntries);
         return bookmarkListEntries;
     }
 
+    private List<BookmarkListEntry> buildBookmarkListForRootView() {
+        List<BookmarkListEntry> bookmarkListEntries = new ArrayList<>();
+        for (BookmarkId topLevelId : BookmarkUtils.populateTopLevelFolders(mBookmarkModel)) {
+            for (BookmarkId childId : mBookmarkModel.getChildIds(topLevelId)) {
+                bookmarkListEntries.add(listEntryFromIdForRootView(childId));
+            }
+        }
+        bookmarkListEntries.add(listEntryFromIdForRootView(mBookmarkModel.getReadingListFolder()));
+        bookmarkListEntries.add(listEntryFromIdForRootView(mBookmarkModel.getDesktopFolderId()));
+        return bookmarkListEntries;
+    }
+
+    private BookmarkListEntry listEntryFromIdForRootView(BookmarkId bookmarkId) {
+        PowerBookmarkMeta powerBookmarkMeta = mBookmarkModel.getPowerBookmarkMeta(bookmarkId);
+        BookmarkItem bookmarkItem = mBookmarkModel.getBookmarkById(bookmarkId);
+        // Root view items are never re-orderable, as it's not a single folder.
+        bookmarkItem = new NoDragWrappedBookmarkItem(bookmarkItem);
+        return BookmarkListEntry.createBookmarkEntry(
+                bookmarkItem, powerBookmarkMeta, mBookmarkUiPrefs.getBookmarkRowDisplayPref());
+    }
+
     private void sortByStoredPref(List<BookmarkListEntry> bookmarkListEntries) {
         final @BookmarkRowSortOrder int sortOrder = mBookmarkUiPrefs.getBookmarkRowSortOrder();
-        if (sortOrder == BookmarkRowSortOrder.MANUAL) return;
-
         Collections.sort(
                 bookmarkListEntries, (BookmarkListEntry entry1, BookmarkListEntry entry2) -> {
                     BookmarkItem item1 = entry1.getBookmarkItem();
@@ -96,8 +130,6 @@ public class ImprovedBookmarkQueryHandler implements BookmarkQueryHandler {
                 return item1.getTitle().compareToIgnoreCase(item2.getTitle());
             case BookmarkRowSortOrder.REVERSE_ALPHABETICAL:
                 return item2.getTitle().compareToIgnoreCase(item1.getTitle());
-            case BookmarkRowSortOrder.RECENTLY_USED:
-                return Long.compare(item2.getDateLastOpened(), item1.getDateLastOpened());
         }
         return 0;
     }

@@ -12,7 +12,6 @@
 #include "base/functional/callback.h"
 #include "base/memory/scoped_refptr.h"
 #include "base/task/sequenced_task_runner.h"
-#include "build/build_config.h"
 #include "media/base/media_switches.h"
 #include "media/base/video_types.h"
 #include "media/gpu/buildflags.h"
@@ -79,8 +78,8 @@ std::unique_ptr<ImageProcessor> CreateVaapiImageProcessorWithInputCandidates(
       {VideoFrame::STORAGE_GPU_MEMORY_BUFFER});
   return ImageProcessor::Create(
       base::BindRepeating(&VaapiImageProcessorBackend::Create), input_config,
-      output_config, ImageProcessor::OutputMode::IMPORT, std::move(error_cb),
-      std::move(client_task_runner));
+      output_config, ImageProcessor::OutputMode::IMPORT, VIDEO_ROTATION_0,
+      std::move(error_cb), std::move(client_task_runner));
 }
 
 #elif BUILDFLAG(USE_V4L2_CODEC)
@@ -157,7 +156,7 @@ std::unique_ptr<ImageProcessor> CreateV4L2ImageProcessorWithInputCandidates(
     return v4l2_vda_helpers::CreateImageProcessor(
         input_fourcc, *output_fourcc, input_size, output_size, visible_rect,
         VideoFrame::StorageType::STORAGE_GPU_MEMORY_BUFFER, num_buffers,
-        new V4L2Device(), ImageProcessor::OutputMode::IMPORT,
+        V4L2Device::Create(), ImageProcessor::OutputMode::IMPORT,
         std::move(client_task_runner), std::move(error_cb));
   }
   return nullptr;
@@ -195,8 +194,8 @@ std::unique_ptr<ImageProcessor> CreateLibYUVImageProcessorWithInputCandidates(
       {VideoFrame::STORAGE_GPU_MEMORY_BUFFER});
   return ImageProcessor::Create(
       base::BindRepeating(&LibYUVImageProcessorBackend::Create), input_config,
-      output_config, ImageProcessor::OutputMode::IMPORT, std::move(error_cb),
-      std::move(client_task_runner));
+      output_config, ImageProcessor::OutputMode::IMPORT, VIDEO_ROTATION_0,
+      std::move(error_cb), std::move(client_task_runner));
 }
 
 #if defined(ARCH_CPU_ARM_FAMILY)
@@ -220,14 +219,15 @@ std::unique_ptr<ImageProcessor> CreateGLImageProcessorWithInputCandidates(
       Fourcc(Fourcc::NV12), output_size, /*planes=*/{}, gfx::Rect(output_size),
       {VideoFrame::STORAGE_GPU_MEMORY_BUFFER});
 
-  if (!GLImageProcessorBackend::IsSupported(input_config, output_config)) {
+  if (!GLImageProcessorBackend::IsSupported(input_config, output_config,
+                                            VIDEO_ROTATION_0)) {
     return nullptr;
   }
 
   return ImageProcessor::Create(
       base::BindRepeating(&GLImageProcessorBackend::Create), input_config,
-      output_config, ImageProcessor::OutputMode::IMPORT, std::move(error_cb),
-      std::move(client_task_runner));
+      output_config, ImageProcessor::OutputMode::IMPORT, VIDEO_ROTATION_0,
+      std::move(error_cb), std::move(client_task_runner));
 }
 #endif  // defined(ARCH_CPU_ARM_FAMILY)
 #endif
@@ -240,6 +240,7 @@ std::unique_ptr<ImageProcessor> ImageProcessorFactory::Create(
     const ImageProcessor::PortConfig& output_config,
     ImageProcessor::OutputMode output_mode,
     size_t num_buffers,
+    VideoRotation relative_rotation,
     scoped_refptr<base::SequencedTaskRunner> client_task_runner,
     ImageProcessor::ErrorCB error_cb) {
   std::vector<ImageProcessor::CreateBackendCB> create_funcs;
@@ -247,9 +248,8 @@ std::unique_ptr<ImageProcessor> ImageProcessorFactory::Create(
   create_funcs.push_back(
       base::BindRepeating(&VaapiImageProcessorBackend::Create));
 #elif BUILDFLAG(USE_V4L2_CODEC)
-  create_funcs.push_back(base::BindRepeating(&V4L2ImageProcessorBackend::Create,
-                                             base::MakeRefCounted<V4L2Device>(),
-                                             num_buffers));
+  create_funcs.push_back(base::BindRepeating(
+      &V4L2ImageProcessorBackend::Create, V4L2Device::Create(), num_buffers));
 #endif
   create_funcs.push_back(
       base::BindRepeating(&LibYUVImageProcessorBackend::Create));
@@ -258,7 +258,7 @@ std::unique_ptr<ImageProcessor> ImageProcessorFactory::Create(
   for (auto& create_func : create_funcs) {
     image_processor = ImageProcessor::Create(
         std::move(create_func), input_config, output_config, output_mode,
-        error_cb, client_task_runner);
+        relative_rotation, error_cb, client_task_runner);
     if (image_processor)
       return image_processor;
   }
@@ -337,13 +337,9 @@ ImageProcessorFactory::CreateGLImageProcessorWithInputCandidatesForTesting(
     scoped_refptr<base::SequencedTaskRunner> client_task_runner,
     PickFormatCB out_format_picker,
     ImageProcessor::ErrorCB error_cb) {
-#if defined(ARCH_CPU_ARM_FAMILY)
   return CreateGLImageProcessorWithInputCandidates(
       input_candidates, input_visible_rect, output_size, client_task_runner,
       out_format_picker, error_cb);
-#else
-  return nullptr;
-#endif
 }
 #endif
 

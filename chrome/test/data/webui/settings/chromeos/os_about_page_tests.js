@@ -6,7 +6,7 @@ import 'chrome://os-settings/os_settings.js';
 import 'chrome://os-settings/lazy_load.js';
 
 import {CrPolicyIndicatorType} from '//resources/ash/common/cr_policy_indicator_behavior.js';
-import {AboutPageBrowserProxyImpl, BrowserChannel, DeviceNameBrowserProxyImpl, DeviceNameState, LifetimeBrowserProxyImpl, Router, routes, SetDeviceNameResult, setUserActionRecorderForTesting, UpdateStatus, userActionRecorderMojom} from 'chrome://os-settings/os_settings.js';
+import {AboutPageBrowserProxyImpl, BrowserChannel, DeviceNameBrowserProxyImpl, DeviceNameState, LifetimeBrowserProxyImpl, Router, routes, SetDeviceNameResult, UpdateStatus} from 'chrome://os-settings/os_settings.js';
 import {webUIListenerCallback} from 'chrome://resources/ash/common/cr.m.js';
 import {getDeepActiveElement} from 'chrome://resources/ash/common/util.js';
 import {PromiseResolver} from 'chrome://resources/js/promise_resolver.js';
@@ -14,7 +14,6 @@ import {flush} from 'chrome://resources/polymer/v3_0/polymer/polymer_bundled.min
 import {flushTasks, waitAfterNextRender} from 'chrome://webui-test/polymer_test_util.js';
 import {eventToPromise} from 'chrome://webui-test/test_util.js';
 
-import {FakeUserActionRecorder} from './fake_user_action_recorder.js';
 import {TestAboutPageBrowserProxyChromeOS} from './test_about_page_browser_proxy_chromeos.js';
 import {TestDeviceNameBrowserProxy} from './test_device_name_browser_proxy.js';
 import {TestLifetimeBrowserProxy} from './test_os_lifetime_browser_proxy.js';
@@ -28,18 +27,12 @@ suite('AboutPageTest', function() {
   /** @type {?TestLifetimeBrowserProxy} */
   let lifetimeBrowserProxy = null;
 
-  /** @type {?userActionRecorderMojom.UserActionRecorderInterface} */
-  let userActionRecorder = null;
-
   const SPINNER_ICON_LIGHT_MODE =
       'chrome://resources/images/throbber_small.svg';
   const SPINNER_ICON_DARK_MODE =
       'chrome://resources/images/throbber_small_dark.svg';
 
   setup(function() {
-    userActionRecorder = new FakeUserActionRecorder();
-    setUserActionRecorderForTesting(userActionRecorder);
-
     lifetimeBrowserProxy = new TestLifetimeBrowserProxy();
     LifetimeBrowserProxyImpl.setInstance(lifetimeBrowserProxy);
 
@@ -52,7 +45,6 @@ suite('AboutPageTest', function() {
     page.remove();
     page = null;
     Router.getInstance().resetRouteForTesting();
-    setUserActionRecorderForTesting(null);
   });
 
   /**
@@ -80,7 +72,7 @@ suite('AboutPageTest', function() {
     aboutBrowserProxy.reset();
     lifetimeBrowserProxy.reset();
     PolymerTest.clearBody();
-    page = document.createElement('os-about-page');
+    page = document.createElement('os-settings-about-page');
     Router.getInstance().navigateTo(routes.ABOUT);
     document.body.appendChild(page);
     return Promise.all([
@@ -97,7 +89,7 @@ suite('AboutPageTest', function() {
   function navigateToSettingsPageWithId(id) {
     const params = new URLSearchParams();
     params.append('settingId', id);
-    Router.getInstance().navigateTo(routes.ABOUT, params);
+    Router.getInstance().navigateTo(routes.ABOUT_ABOUT, params);
 
     flush();
   }
@@ -447,7 +439,7 @@ suite('AboutPageTest', function() {
 
     const params = new URLSearchParams();
     params.append('settingId', '1703');
-    Router.getInstance().navigateTo(routes.ABOUT, params);
+    Router.getInstance().navigateTo(routes.ABOUT_ABOUT, params);
 
     flush();
 
@@ -601,11 +593,8 @@ suite('AboutPageTest', function() {
       aboutPageEndOfLifeMessage: 'message',
     });
     await initNewPage();
-
-    const subpageTrigger =
-        page.shadowRoot.querySelector('#detailedBuildInfoTrigger');
-    assertTrue(!!subpageTrigger);
-    subpageTrigger.click();
+    assertTrue(!!page.$['detailed-build-info-trigger']);
+    page.$['detailed-build-info-trigger'].click();
     const buildInfoPage =
         page.shadowRoot.querySelector('settings-detailed-build-info-subpage');
     assertTrue(!!buildInfoPage);
@@ -631,10 +620,8 @@ suite('AboutPageTest', function() {
       aboutPageEndOfLifeMessage: '',
     });
     await initNewPage();
-    let subpageTrigger =
-        page.shadowRoot.querySelector('#detailedBuildInfoTrigger');
-    assertTrue(!!subpageTrigger);
-    subpageTrigger.click();
+    assertTrue(!!page.$['detailed-build-info-trigger']);
+    page.$['detailed-build-info-trigger'].click();
     const buildInfoPage =
         page.shadowRoot.querySelector('settings-detailed-build-info-subpage');
     assertTrue(!!buildInfoPage);
@@ -646,42 +633,14 @@ suite('AboutPageTest', function() {
       aboutPageEndOfLifeMessage: 'message',
     });
     await initNewPage();
-    subpageTrigger = page.shadowRoot.querySelector('#detailedBuildInfoTrigger');
-    assertTrue(!!subpageTrigger);
-    subpageTrigger.click();
+    assertTrue(!!page.$['detailed-build-info-trigger']);
+    page.$['detailed-build-info-trigger'].click();
     checkEndOfLifeSection();
   });
 
-  test(
-      'Detailed build info subpage trigger is focused when returning ' +
-          'from subpage',
-      async () => {
-        const triggerSelector = '#detailedBuildInfoTrigger';
-        const subpageTrigger = page.shadowRoot.querySelector(triggerSelector);
-        assertTrue(!!subpageTrigger);
-
-        // Sub-page trigger navigates to Detailed build info subpage
-        subpageTrigger.click();
-        assertEquals(
-            routes.ABOUT_DETAILED_BUILD_INFO,
-            Router.getInstance().currentRoute);
-
-        // Navigate back
-        const popStateEventPromise = eventToPromise('popstate', window);
-        Router.getInstance().navigateToPreviousRoute();
-        await popStateEventPromise;
-        await waitAfterNextRender(page);
-
-        assertEquals(
-            subpageTrigger, page.shadowRoot.activeElement,
-            `${triggerSelector} should be focused.`);
-      });
-
   function getBuildInfoPage() {
-    const subpageTrigger =
-        page.shadowRoot.querySelector('#detailedBuildInfoTrigger');
-    assertTrue(!!subpageTrigger);
-    subpageTrigger.click();
+    assertTrue(!!page.$['detailed-build-info-trigger']);
+    page.$['detailed-build-info-trigger'].click();
     const buildInfoPage =
         page.shadowRoot.querySelector('settings-detailed-build-info-subpage');
     assertTrue(!!buildInfoPage);
@@ -1112,7 +1071,7 @@ suite('DetailedBuildInfoTest', function() {
 
     const params = new URLSearchParams();
     params.append('settingId', '1700');
-    Router.getInstance().navigateTo(routes.ABOUT_DETAILED_BUILD_INFO, params);
+    Router.getInstance().navigateTo(routes.DETAILED_BUILD_INFO, params);
 
     flush();
 
@@ -1165,7 +1124,7 @@ suite('DetailedBuildInfoTest', function() {
 
     const params = new URLSearchParams();
     params.append('settingId', '1708');
-    Router.getInstance().navigateTo(routes.ABOUT_DETAILED_BUILD_INFO, params);
+    Router.getInstance().navigateTo(routes.DETAILED_BUILD_INFO, params);
 
     flush();
 
@@ -1596,7 +1555,7 @@ suite('AboutPageTest_OfficialBuild', function() {
     browserProxy = new TestAboutPageBrowserProxyChromeOS();
     AboutPageBrowserProxyImpl.setInstanceForTesting(browserProxy);
     PolymerTest.clearBody();
-    page = document.createElement('os-about-page');
+    page = document.createElement('os-settings-about-page');
     document.body.appendChild(page);
   });
 
@@ -1619,7 +1578,7 @@ suite('AboutPageTest_OfficialBuild', function() {
 
     const params = new URLSearchParams();
     params.append('settingId', '1705');
-    Router.getInstance().navigateTo(routes.ABOUT, params);
+    Router.getInstance().navigateTo(routes.ABOUT_ABOUT, params);
 
     flush();
 
@@ -1638,7 +1597,7 @@ suite('AboutPageTest_OfficialBuild', function() {
 
     const params = new URLSearchParams();
     params.append('settingId', '1706');
-    Router.getInstance().navigateTo(routes.ABOUT, params);
+    Router.getInstance().navigateTo(routes.ABOUT_ABOUT, params);
 
     flush();
 

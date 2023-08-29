@@ -7,8 +7,6 @@ package org.chromium.net.impl;
 import static android.os.Process.THREAD_PRIORITY_BACKGROUND;
 import static android.os.Process.THREAD_PRIORITY_MORE_FAVORABLE;
 
-import android.content.Context;
-import android.os.Build;
 import android.util.Log;
 
 import org.chromium.net.BidirectionalStream;
@@ -52,13 +50,7 @@ public final class JavaCronetEngine extends CronetEngineBase {
     private final CronetLogger mLogger;
     private final AtomicInteger mActiveRequestCount = new AtomicInteger();
 
-    /** The network handle to be used for requests that do not explicitly specify one. **/
-    private long mNetworkHandle = DEFAULT_NETWORK_HANDLE;
-
-    private final Context mContext;
-
     public JavaCronetEngine(CronetEngineBuilderImpl builder) {
-        mContext = builder.getContext();
         mCronetEngineId = hashCode();
         // On android, all background threads (and all threads that are part
         // of background processes) are put in a cgroup that is allowed to
@@ -120,10 +112,6 @@ public final class JavaCronetEngine extends CronetEngineBase {
         return mLogger;
     }
 
-    Context getContext() {
-        return mContext;
-    }
-
     @Override
     public UrlRequestBase createRequest(String url, UrlRequest.Callback callback, Executor executor,
             int priority, Collection<Object> connectionAnnotations, boolean disableCache,
@@ -132,11 +120,13 @@ public final class JavaCronetEngine extends CronetEngineBase {
             int trafficStatsUid, RequestFinishedInfo.Listener requestFinishedListener,
             int idempotency, long networkHandle) {
         if (networkHandle != DEFAULT_NETWORK_HANDLE) {
-            mNetworkHandle = networkHandle;
+            throw new UnsupportedOperationException(
+                    "The multi-network API is not supported by the Java implementation "
+                    + "of Cronet Engine");
         }
         return new JavaUrlRequest(this, callback, mExecutorService, executor, url, mUserAgent,
                 allowDirectExecutor, trafficStatsTagSet, trafficStatsTag, trafficStatsUidSet,
-                trafficStatsUid, mNetworkHandle);
+                trafficStatsUid);
     }
 
     @Override
@@ -218,11 +208,9 @@ public final class JavaCronetEngine extends CronetEngineBase {
 
     @Override
     public void bindToNetwork(long networkHandle) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
-            throw new UnsupportedOperationException(
-                    "This multi-network Java implementation is available starting from Android Pie");
-        }
-        mNetworkHandle = networkHandle;
+        throw new UnsupportedOperationException(
+                "The multi-network API is not supported by the Java implementation "
+                + "of Cronet Engine");
     }
 
     @Override

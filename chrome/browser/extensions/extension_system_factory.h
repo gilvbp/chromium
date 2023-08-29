@@ -33,7 +33,7 @@ class ExtensionSystemSharedFactory : public ProfileKeyedServiceFactory {
   ~ExtensionSystemSharedFactory() override;
 
   // BrowserContextKeyedServiceFactory implementation:
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* context) const override;
 };
 

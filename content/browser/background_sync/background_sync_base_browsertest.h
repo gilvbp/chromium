@@ -62,17 +62,19 @@ class BackgroundSyncBaseBrowserTest : public ContentBrowserTest {
   // (assertion failure) if the tag isn't registered.
   bool RegistrationPending(const std::string& tag);
 
-  void CompleteDelayedSyncEvent();
+  bool CompleteDelayedSyncEvent();
 
   void SetTestClock(base::SimpleTestClock* clock);
 
   void ClearStoragePartitionData();
 
-  EvalJsResult PopConsoleString();
-  void RegisterServiceWorker();
+  std::string PopConsoleString();
+  bool PopConsole(const std::string& expected_msg);
+  bool RegisterServiceWorker();
   void SetIncognitoMode(bool incognito);
   WebContents* web_contents();
-  void LoadTestPage(const std::string& path);
+  bool LoadTestPage(const std::string& path);
+  std::string RunScript(const std::string& script);
   net::EmbeddedTestServer* https_server() { return https_server_.get(); }
 
  private:

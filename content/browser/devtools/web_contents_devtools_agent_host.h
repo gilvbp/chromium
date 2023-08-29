@@ -26,8 +26,6 @@ class CONTENT_EXPORT WebContentsDevToolsAgentHost
   static WebContentsDevToolsAgentHost* GetOrCreateFor(
       WebContents* web_contents);
 
-  static bool IsDebuggerAttached(WebContents* web_contents);
-
   WebContentsDevToolsAgentHost(const WebContentsDevToolsAgentHost&) = delete;
   WebContentsDevToolsAgentHost& operator=(const WebContentsDevToolsAgentHost&) =
       delete;

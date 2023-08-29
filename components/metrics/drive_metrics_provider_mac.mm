@@ -13,11 +13,15 @@
 #include <sys/stat.h>
 
 #include "base/apple/bridging.h"
-#include "base/apple/foundation_util.h"
-#include "base/apple/scoped_cftyperef.h"
 #include "base/files/file_path.h"
+#include "base/mac/foundation_util.h"
 #include "base/mac/mac_util.h"
+#include "base/mac/scoped_cftyperef.h"
 #include "base/mac/scoped_ioobject.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace metrics {
 
@@ -35,18 +39,18 @@ bool DriveMetricsProvider::HasSeekPenalty(const base::FilePath& path,
   std::string bsd_name("/dev/");
   bsd_name.append(dev_name);
 
-  base::apple::ScopedCFTypeRef<DASessionRef> session(
+  base::ScopedCFTypeRef<DASessionRef> session(
       DASessionCreate(kCFAllocatorDefault));
   if (!session)
     return false;
 
-  base::apple::ScopedCFTypeRef<DADiskRef> disk(
+  base::ScopedCFTypeRef<DADiskRef> disk(
       DADiskCreateFromBSDName(kCFAllocatorDefault, session, bsd_name.c_str()));
   if (!disk)
     return false;
 
   base::mac::ScopedIOObject<io_object_t> io_media(DADiskCopyIOMedia(disk));
-  base::apple::ScopedCFTypeRef<CFDictionaryRef> characteristics(
+  base::ScopedCFTypeRef<CFDictionaryRef> characteristics(
       static_cast<CFDictionaryRef>(IORegistryEntrySearchCFProperty(
           io_media, kIOServicePlane, CFSTR(kIOPropertyDeviceCharacteristicsKey),
           kCFAllocatorDefault,
@@ -54,7 +58,7 @@ bool DriveMetricsProvider::HasSeekPenalty(const base::FilePath& path,
   if (!characteristics)
     return false;
 
-  CFStringRef type_ref = base::apple::GetValueFromDictionary<CFStringRef>(
+  CFStringRef type_ref = base::mac::GetValueFromDictionary<CFStringRef>(
       characteristics, CFSTR(kIOPropertyMediumTypeKey));
   if (!type_ref)
     return false;

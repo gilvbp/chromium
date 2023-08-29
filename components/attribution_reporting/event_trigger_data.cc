@@ -9,7 +9,6 @@
 #include <utility>
 
 #include "base/types/expected.h"
-#include "base/types/expected_macros.h"
 #include "base/values.h"
 #include "components/attribution_reporting/filters.h"
 #include "components/attribution_reporting/parsing_utils.h"
@@ -34,7 +33,9 @@ EventTriggerData::FromJSON(base::Value& value) {
         TriggerRegistrationError::kEventTriggerDataWrongType);
   }
 
-  ASSIGN_OR_RETURN(auto filters, FilterPair::FromJSON(*dict));
+  auto filters = FilterPair::FromJSON(*dict);
+  if (!filters.has_value())
+    return base::unexpected(filters.error());
 
   absl::optional<uint64_t> data;
   if (!ParseUint64(*dict, kTriggerData, data)) {
@@ -55,7 +56,7 @@ EventTriggerData::FromJSON(base::Value& value) {
   }
 
   return EventTriggerData(data.value_or(0), priority.value_or(0), dedup_key,
-                          std::move(filters));
+                          std::move(*filters));
 }
 
 EventTriggerData::EventTriggerData() = default;

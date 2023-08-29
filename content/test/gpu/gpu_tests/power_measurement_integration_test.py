@@ -28,10 +28,8 @@ import os
 import posixpath
 import sys
 import time
-from typing import Any, List, Optional
+from typing import Any, List
 import unittest
-
-import dataclasses  # Built-in, but pylint gives an ordering false positive.
 
 from gpu_tests import common_browser_args as cba
 from gpu_tests import common_typing as ct
@@ -212,24 +210,36 @@ _VIDEO_TEST_SCRIPT = r"""
 """
 
 
-@dataclasses.dataclass
 class _PowerMeasurementTestArguments():
   """Struct-like object for passing power measurement args instead of a dict."""
-  test_func: str
-  repeat: int
-  bypass_ipg: bool
-  underlay: Optional[bool] = None
-  fullscreen: Optional[bool] = None
-  outliers: Optional[int] = None
-  ipg_logdir: Optional[str] = None
-  ipg_duration: Optional[int] = None
-  ipg_delay: Optional[int] = None
-  ipg_resolution: Optional[int] = None
+
+  def __init__(  # pylint: disable=too-many-arguments
+      self,
+      test_func,
+      repeat,
+      bypass_ipg,
+      underlay=None,
+      fullscreen=None,
+      outliers=None,
+      ipg_logdir=None,
+      ipg_duration=None,
+      ipg_delay=None,
+      ipg_resolution=None):
+    self.test_func = test_func
+    self.repeat = repeat
+    self.bypass_ipg = bypass_ipg
+    self.underlay = underlay
+    self.fullscreen = fullscreen
+    self.outliers = outliers
+    self.ipg_logdir = ipg_logdir
+    self.ipg_duration = ipg_duration
+    self.ipg_delay = ipg_delay
+    self.ipg_resolution = ipg_resolution
 
 
 class PowerMeasurementIntegrationTest(gpu_integration_test.GpuIntegrationTest):
 
-  _url_mode: Optional[bool] = None
+  _url_mode = None
 
   @classmethod
   def Name(cls) -> str:

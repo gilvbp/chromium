@@ -4,8 +4,21 @@
 
 package org.chromium.chrome.browser.autofill.editors;
 
+import static org.chromium.chrome.browser.autofill.editors.EditorProperties.ALLOW_DELETE;
+import static org.chromium.chrome.browser.autofill.editors.EditorProperties.CANCEL_RUNNABLE;
+import static org.chromium.chrome.browser.autofill.editors.EditorProperties.CUSTOM_DONE_BUTTON_TEXT;
+import static org.chromium.chrome.browser.autofill.editors.EditorProperties.DELETE_CONFIRMATION_TEXT;
+import static org.chromium.chrome.browser.autofill.editors.EditorProperties.DELETE_CONFIRMATION_TITLE;
+import static org.chromium.chrome.browser.autofill.editors.EditorProperties.DELETE_RUNNABLE;
+import static org.chromium.chrome.browser.autofill.editors.EditorProperties.DONE_RUNNABLE;
+import static org.chromium.chrome.browser.autofill.editors.EditorProperties.EDITOR_FIELDS;
+import static org.chromium.chrome.browser.autofill.editors.EditorProperties.EDITOR_TITLE;
+import static org.chromium.chrome.browser.autofill.editors.EditorProperties.FOOTER_MESSAGE;
+import static org.chromium.chrome.browser.autofill.editors.EditorProperties.FieldProperties.IS_FULL_LINE;
 import static org.chromium.chrome.browser.autofill.editors.EditorProperties.ItemType.DROPDOWN;
 import static org.chromium.chrome.browser.autofill.editors.EditorProperties.ItemType.TEXT_INPUT;
+import static org.chromium.chrome.browser.autofill.editors.EditorProperties.TRIGGER_DONE_CALLBACK_BEFORE_CLOSE_ANIMATION;
+import static org.chromium.chrome.browser.autofill.editors.EditorProperties.TextFieldProperties.TEXT_FORMATTER;
 import static org.chromium.chrome.browser.autofill.editors.EditorProperties.isDropdownField;
 
 import android.animation.Animator;
@@ -18,11 +31,14 @@ import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Handler;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.view.inputmethod.EditorInfo;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
@@ -31,11 +47,12 @@ import android.widget.Spinner;
 import android.widget.TextView;
 
 import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.widget.Toolbar.OnMenuItemClickListener;
 import androidx.core.view.MarginLayoutParamsCompat;
 
 import org.chromium.chrome.browser.autofill.R;
-import org.chromium.chrome.browser.autofill.editors.EditorProperties.FieldItem;
 import org.chromium.chrome.browser.feedback.HelpAndFeedbackLauncher;
 import org.chromium.chrome.browser.util.ChromeAccessibilityUtil;
 import org.chromium.components.browser_ui.settings.SettingsUtils;
@@ -49,13 +66,11 @@ import org.chromium.components.browser_ui.widget.displaystyle.ViewResizer;
 import org.chromium.ui.KeyboardVisibilityDelegate;
 import org.chromium.ui.interpolators.Interpolators;
 import org.chromium.ui.modelutil.ListModel;
-import org.chromium.ui.modelutil.PropertyKey;
+import org.chromium.ui.modelutil.MVCListAdapter.ListItem;
 import org.chromium.ui.modelutil.PropertyModel;
-import org.chromium.ui.modelutil.PropertyModelChangeProcessor;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * The editor dialog. Can be used for editing contact information, shipping address,
@@ -75,26 +90,23 @@ public class EditorDialogView
     /** Duration of the animation to hide the UI. */
     private static final int DIALOG_EXIT_ANIMATION_MS = 195;
 
-    @Nullable
     private static EditorObserverForTest sObserverForTest;
 
     private final Activity mActivity;
     private final HelpAndFeedbackLauncher mHelpLauncher;
     private final Handler mHandler;
+    private final TextView.OnEditorActionListener mEditorActionListener;
     private final int mHalfRowMargin;
     private final List<FieldView> mFieldViews;
-    // TODO(crbug.com/1435314): substitute this with SimpleRecyclerViewMCP.
-    private final List<PropertyModelChangeProcessor<PropertyModel, TextFieldView, PropertyKey>>
-            mTextFieldMCPs;
-    private final List<PropertyModelChangeProcessor<PropertyModel, DropdownFieldView, PropertyKey>>
-            mDropdownFieldMCPs;
     private final List<EditText> mEditableTextFields;
     private final List<Spinner> mDropdownFields;
 
-    private final View mContainerView;
-    private final ViewGroup mContentView;
-    private final View mFooter;
+    private View mLayout;
+    private PropertyModel mEditorModel;
     private Button mDoneButton;
+    private boolean mFormWasValid;
+    private ViewGroup mDataView;
+    private View mFooter;
 
     private Animator mDialogInOutAnimator;
     private boolean mIsDismissed;
@@ -102,17 +114,6 @@ public class EditorDialogView
     private UiConfig mUiConfig;
     @Nullable
     private AlertDialog mConfirmationDialog;
-
-    @Nullable
-    private String mDeleteConfirmationTitle;
-    @Nullable
-    private String mDeleteConfirmationText;
-
-    private Runnable mDeleteRunnable;
-    private Runnable mDoneRunnable;
-    private Runnable mCancelRunnable;
-
-    private boolean mValidateOnShow;
 
     /**
      * Builds the editor dialog.
@@ -128,124 +129,29 @@ public class EditorDialogView
         mHelpLauncher = helpLauncher;
         mHandler = new Handler();
         mIsDismissed = false;
+        mEditorActionListener = new TextView.OnEditorActionListener() {
+            @Override
+            @SuppressWarnings("WrongConstant") // https://crbug.com/1038784
+            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+                if (actionId == EditorInfo.IME_ACTION_DONE) {
+                    mDoneButton.performClick();
+                    return true;
+                } else if (actionId == EditorInfo.IME_ACTION_NEXT) {
+                    View next = v.focusSearch(View.FOCUS_FORWARD);
+                    if (next != null) {
+                        next.requestFocus();
+                        return true;
+                    }
+                }
+                return false;
+            }
+        };
 
         mHalfRowMargin = activity.getResources().getDimensionPixelSize(
                 R.dimen.editor_dialog_section_large_spacing);
         mFieldViews = new ArrayList<>();
-        mTextFieldMCPs = new ArrayList<>();
-        mDropdownFieldMCPs = new ArrayList<>();
         mEditableTextFields = new ArrayList<>();
         mDropdownFields = new ArrayList<>();
-
-        setOnShowListener(this);
-        setOnDismissListener(this);
-
-        mContainerView =
-                LayoutInflater.from(mActivity).inflate(R.layout.payment_request_editor, null);
-        setContentView(mContainerView);
-
-        prepareToolbar();
-
-        mContentView = mContainerView.findViewById(R.id.contents);
-        mFooter = LayoutInflater.from(mActivity).inflate(
-                R.layout.editable_option_editor_footer, null, false);
-        mFooter.findViewById(R.id.button_primary).setId(R.id.editor_dialog_done_button);
-        mFooter.findViewById(R.id.button_secondary).setId(R.id.payments_edit_cancel_button);
-
-        prepareButtons();
-    }
-
-    public void setEditorTitle(String editorTitle) {
-        assert editorTitle != null : "Editor title can't be null";
-        EditorDialogToolbar toolbar = mContainerView.findViewById(R.id.action_bar);
-        toolbar.setTitle(editorTitle);
-    }
-
-    public void setCustomDoneButtonText(@Nullable String customDoneButtonText) {
-        if (customDoneButtonText != null) {
-            mDoneButton.setText(customDoneButtonText);
-        } else {
-            mDoneButton.setText(mActivity.getString(R.string.done));
-        }
-    }
-
-    public void setFooterMessage(@Nullable String footerMessage) {
-        TextView footerText = mFooter.findViewById(R.id.footer_message);
-        if (footerMessage != null) {
-            footerText.setText(footerMessage);
-            footerText.setVisibility(View.VISIBLE);
-        } else {
-            footerText.setVisibility(View.GONE);
-        }
-    }
-
-    public void setDeleteConfirmationTitle(@Nullable String deleteConfirmationTitle) {
-        mDeleteConfirmationTitle = deleteConfirmationTitle;
-    }
-
-    public void setDeleteConfirmationText(@Nullable String deleteConfirmationText) {
-        mDeleteConfirmationText = deleteConfirmationText;
-    }
-
-    public void setShowRequiredIndicator(boolean showRequiredIndicator) {
-        for (FieldView view : mFieldViews) {
-            view.setShowRequiredIndicator(showRequiredIndicator);
-        }
-
-        TextView requiredFieldsNotice = mFooter.findViewById(R.id.required_fields_notice);
-        int requiredFieldsNoticeVisibility = View.GONE;
-        if (showRequiredIndicator) {
-            for (int i = 0; i < mFieldViews.size(); i++) {
-                if (mFieldViews.get(i).isRequired()) {
-                    requiredFieldsNoticeVisibility = View.VISIBLE;
-                    break;
-                }
-            }
-        }
-        requiredFieldsNotice.setVisibility(requiredFieldsNoticeVisibility);
-    }
-
-    public void setAllowDelete(boolean allowDelete) {
-        EditorDialogToolbar toolbar = mContainerView.findViewById(R.id.action_bar);
-        toolbar.setShowDeleteMenuItem(allowDelete);
-    }
-
-    public void setDeleteRunnable(Runnable deleteRunnable) {
-        mDeleteRunnable = deleteRunnable;
-    }
-
-    public void setDoneRunnable(Runnable doneRunnable) {
-        mDoneRunnable = doneRunnable;
-        setDoneRunnableToFields(doneRunnable);
-    }
-
-    private void setDoneRunnableToFields(Runnable doneRunnable) {
-        for (FieldView view : mFieldViews) {
-            if (view instanceof TextFieldView) {
-                ((TextFieldView) view).setDoneRunnable(doneRunnable);
-            }
-        }
-    }
-
-    public void setCancelRunnable(Runnable cancelRunnable) {
-        mCancelRunnable = cancelRunnable;
-    }
-
-    public void setValidateOnShow(boolean validateOnShow) {
-        mValidateOnShow = validateOnShow;
-    }
-
-    public void setVisible(boolean visible) {
-        if (visible) {
-            showDialog();
-        } else {
-            animateOutDialog();
-        }
-    }
-
-    public void setEditorFields(
-            ListModel<FieldItem> editorFields, boolean shouldShowRequiredIndicator) {
-        prepareEditor(editorFields, shouldShowRequiredIndicator);
     }
 
     /** Prevents screenshots of this editor. */
@@ -262,40 +168,51 @@ public class EditorDialogView
      * programmatically.  This is likely due to how we compile the support libraries.
      */
     private void prepareToolbar() {
-        EditorDialogToolbar toolbar =
-                (EditorDialogToolbar) mContainerView.findViewById(R.id.action_bar);
+        EditorDialogToolbar toolbar = (EditorDialogToolbar) mLayout.findViewById(R.id.action_bar);
         toolbar.setBackgroundColor(SemanticColorUtils.getDefaultBgColor(toolbar.getContext()));
         toolbar.setTitleTextAppearance(
                 toolbar.getContext(), R.style.TextAppearance_Headline_Primary);
+        toolbar.setTitle(mEditorModel.get(EDITOR_TITLE));
+        toolbar.setShowDeleteMenuItem(mEditorModel.get(ALLOW_DELETE));
 
         // Show the help article when the help icon is clicked on, or delete
         // the profile and go back when the delete icon is clicked on.
-        toolbar.setOnMenuItemClickListener(item -> {
-            if (item.getItemId() == R.id.delete_menu_id) {
-                if (mDeleteConfirmationTitle != null || mDeleteConfirmationText != null) {
-                    handleDeleteWithConfirmation(mDeleteConfirmationTitle, mDeleteConfirmationText);
-                } else {
-                    handleDelete();
+        toolbar.setOnMenuItemClickListener(new OnMenuItemClickListener() {
+            @Override
+            public boolean onMenuItemClick(MenuItem item) {
+                if (item.getItemId() == R.id.delete_menu_id) {
+                    if (mEditorModel.get(DELETE_CONFIRMATION_TITLE) != null
+                            || mEditorModel.get(DELETE_CONFIRMATION_TEXT) != null) {
+                        handleDeleteWithConfirmation(mEditorModel.get(DELETE_CONFIRMATION_TITLE),
+                                mEditorModel.get(DELETE_CONFIRMATION_TEXT));
+                    } else {
+                        handleDelete();
+                    }
+                } else if (item.getItemId() == R.id.help_menu_id) {
+                    mHelpLauncher.show(
+                            mActivity, mActivity.getString(R.string.help_context_autofill), null);
                 }
-            } else if (item.getItemId() == R.id.help_menu_id) {
-                mHelpLauncher.show(
-                        mActivity, mActivity.getString(R.string.help_context_autofill), null);
+                return true;
             }
-            return true;
         });
 
         // Cancel editing when the user hits the back arrow.
         toolbar.setNavigationContentDescription(R.string.cancel);
         toolbar.setNavigationIcon(getTintedBackIcon());
-        toolbar.setNavigationOnClickListener(view -> mCancelRunnable.run());
+        toolbar.setNavigationOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                animateOutDialog();
+            }
+        });
 
         // The top shadow is handled by the toolbar, so hide the one used in the field editor.
         FadingEdgeScrollView scrollView =
-                (FadingEdgeScrollView) mContainerView.findViewById(R.id.scroll_view);
+                (FadingEdgeScrollView) mLayout.findViewById(R.id.scroll_view);
         scrollView.setEdgeVisibility(EdgeType.NONE, EdgeType.FADING);
 
         // The shadow's top margin doesn't get picked up in the xml; set it programmatically.
-        View shadow = mContainerView.findViewById(R.id.shadow);
+        View shadow = mLayout.findViewById(R.id.shadow);
         LayoutParams params = (LayoutParams) shadow.getLayoutParams();
         params.topMargin = toolbar.getLayoutParams().height;
         shadow.setLayoutParams(params);
@@ -303,8 +220,43 @@ public class EditorDialogView
                 SettingsUtils.getShowShadowOnScrollListener(scrollView, shadow));
     }
 
+    /**
+     * Checks if all of the fields in the form are valid and updates the displayed errors. If there
+     * are any invalid fields, makes sure that one of them is focused. Called when user taps [SAVE].
+     *
+     * @return Whether all fields contain valid information.
+     */
+    public boolean validateForm() {
+        final List<FieldView> invalidViews = getViewsWithInvalidInformation(true);
+
+        // Iterate over all the fields to update what errors are displayed, which is necessary to
+        // to clear existing errors on any newly valid fields.
+        for (int i = 0; i < mFieldViews.size(); i++) {
+            FieldView fieldView = mFieldViews.get(i);
+            fieldView.updateDisplayedError(invalidViews.contains(fieldView));
+        }
+
+        if (!invalidViews.isEmpty()) {
+            // Make sure that focus is on an invalid field.
+            FieldView focusedField = getTextFieldView(getCurrentFocus());
+            if (invalidViews.contains(focusedField)) {
+                // The focused field is invalid, but it may be scrolled off screen. Scroll to it.
+                focusedField.scrollToAndFocus();
+            } else {
+                // Some fields are invalid, but none of the are focused. Scroll to the first invalid
+                // field and focus it.
+                invalidViews.get(0).scrollToAndFocus();
+            }
+        }
+
+        if (!invalidViews.isEmpty() && sObserverForTest != null) {
+            sObserverForTest.onEditorValidationError();
+        }
+
+        return invalidViews.isEmpty();
+    }
+
     /** @return The validatable item for the given view. */
-    @Nullable
     private FieldView getTextFieldView(View v) {
         if (v instanceof TextView && v.getParent() != null && v.getParent() instanceof FieldView) {
             return (FieldView) v.getParent();
@@ -321,9 +273,18 @@ public class EditorDialogView
         if (mDialogInOutAnimator != null) return;
 
         if (view.getId() == R.id.editor_dialog_done_button) {
-            mDoneRunnable.run();
+            if (validateForm()) {
+                if (mEditorModel.get(TRIGGER_DONE_CALLBACK_BEFORE_CLOSE_ANIMATION)
+                        && mEditorModel != null) {
+                    mEditorModel.get(DONE_RUNNABLE).run();
+                    mEditorModel = null;
+                }
+                mFormWasValid = true;
+                animateOutDialog();
+                return;
+            }
         } else if (view.getId() == R.id.payments_edit_cancel_button) {
-            mCancelRunnable.run();
+            animateOutDialog();
         }
     }
 
@@ -334,10 +295,9 @@ public class EditorDialogView
             KeyboardVisibilityDelegate.getInstance().hideKeyboard(getCurrentFocus());
         }
 
-        Animator dropDown = ObjectAnimator.ofFloat(
-                mContainerView, View.TRANSLATION_Y, 0f, mContainerView.getHeight());
-        Animator fadeOut =
-                ObjectAnimator.ofFloat(mContainerView, View.ALPHA, mContainerView.getAlpha(), 0f);
+        Animator dropDown =
+                ObjectAnimator.ofFloat(mLayout, View.TRANSLATION_Y, 0f, mLayout.getHeight());
+        Animator fadeOut = ObjectAnimator.ofFloat(mLayout, View.ALPHA, mLayout.getAlpha(), 0f);
         AnimatorSet animatorSet = new AnimatorSet();
         animatorSet.playTogether(dropDown, fadeOut);
 
@@ -355,6 +315,16 @@ public class EditorDialogView
         mDialogInOutAnimator.start();
     }
 
+    public void setEditorFields(ListModel<ListItem> editorFields) {
+        // The dialog has been dismissed.
+        if (mEditorModel == null) return;
+
+        prepareEditor(editorFields);
+        prepareFooter();
+
+        if (sObserverForTest != null) sObserverForTest.onEditorReadyToEdit();
+    }
+
     public void setAsNotDismissed() {
         mIsDismissed = false;
     }
@@ -366,15 +336,54 @@ public class EditorDialogView
     @Override
     public void onDismiss(DialogInterface dialog) {
         mIsDismissed = true;
+        if (mEditorModel != null) {
+            if (mFormWasValid) {
+                mEditorModel.get(DONE_RUNNABLE).run();
+                mFormWasValid = false;
+            } else {
+                mEditorModel.get(CANCEL_RUNNABLE).run();
+            }
+            mEditorModel = null;
+        }
         removeTextChangedListeners();
     }
 
     private void prepareButtons() {
-        mDoneButton = mFooter.findViewById(R.id.editor_dialog_done_button);
+        mDoneButton = (Button) mLayout.findViewById(R.id.button_primary);
+        mDoneButton.setId(R.id.editor_dialog_done_button);
         mDoneButton.setOnClickListener(this);
+        if (mEditorModel.get(CUSTOM_DONE_BUTTON_TEXT) != null) {
+            mDoneButton.setText(mEditorModel.get(CUSTOM_DONE_BUTTON_TEXT));
+        }
 
-        Button cancelButton = mFooter.findViewById(R.id.payments_edit_cancel_button);
+        Button cancelButton = (Button) mLayout.findViewById(R.id.button_secondary);
+        cancelButton.setId(R.id.payments_edit_cancel_button);
         cancelButton.setOnClickListener(this);
+    }
+
+    private void prepareFooter() {
+        assert mEditorModel != null;
+
+        TextView requiredFieldsNotice = mLayout.findViewById(R.id.required_fields_notice);
+        int requiredFieldsNoticeVisibility = View.GONE;
+        if (mEditorModel.get(EditorProperties.SHOW_REQUIRED_INDICATOR)) {
+            for (int i = 0; i < mFieldViews.size(); i++) {
+                if (mFieldViews.get(i).isRequired()) {
+                    requiredFieldsNoticeVisibility = View.VISIBLE;
+                    break;
+                }
+            }
+        }
+        requiredFieldsNotice.setVisibility(requiredFieldsNoticeVisibility);
+
+        TextView footerMessage = mLayout.findViewById(R.id.footer_message);
+        String footerMessageText = mEditorModel.get(FOOTER_MESSAGE);
+        if (footerMessageText != null) {
+            footerMessage.setText(footerMessageText);
+            footerMessage.setVisibility(View.VISIBLE);
+        } else {
+            footerMessage.setVisibility(View.GONE);
+        }
     }
 
     /**
@@ -385,29 +394,29 @@ public class EditorDialogView
      *
      * @param editorFields the list of fields this editor should display.
      */
-    private void prepareEditor(ListModel<FieldItem> editorFields, boolean showRequiredIndicator) {
+    private void prepareEditor(ListModel<ListItem> editorFields) {
+        assert mEditorModel != null;
+
         // Ensure the layout is empty.
         removeTextChangedListeners();
-        mContentView.removeAllViews();
+        mDataView = (ViewGroup) mLayout.findViewById(R.id.contents);
+        mDataView.removeAllViews();
         mFieldViews.clear();
-        mTextFieldMCPs.forEach(PropertyModelChangeProcessor::destroy);
-        mDropdownFieldMCPs.forEach(PropertyModelChangeProcessor::destroy);
-        mTextFieldMCPs.clear();
-        mDropdownFieldMCPs.clear();
         mEditableTextFields.clear();
         mDropdownFields.clear();
 
         // Add Views for each of the {@link EditorFields}.
-        for (int i = 0; i < editorFields.size(); i++) {
-            FieldItem fieldItem = editorFields.get(i);
-            FieldItem nextFieldItem = null;
+        ListModel<ListItem> fields = mEditorModel.get(EDITOR_FIELDS);
+        for (int i = 0; i < fields.size(); i++) {
+            ListItem fieldItem = fields.get(i);
+            ListItem nextFieldItem = null;
 
-            boolean isLastField = i == editorFields.size() - 1;
-            boolean useFullLine = fieldItem.isFullLine;
+            boolean isLastField = i == fields.size() - 1;
+            boolean useFullLine = fieldItem.model.get(IS_FULL_LINE);
             if (!isLastField && !useFullLine) {
                 // If the next field isn't full, stretch it out.
-                nextFieldItem = editorFields.get(i + 1);
-                if (nextFieldItem.isFullLine) useFullLine = true;
+                nextFieldItem = fields.get(i + 1);
+                if (nextFieldItem.model.get(IS_FULL_LINE)) useFullLine = true;
             }
 
             // Always keep dropdowns and text fields on different lines because of height
@@ -418,15 +427,14 @@ public class EditorDialogView
             }
 
             if (useFullLine || isLastField) {
-                addFieldViewToEditor(mContentView, fieldItem, showRequiredIndicator);
+                addFieldViewToEditor(mDataView, fieldItem);
             } else {
                 // Create a LinearLayout to put it and the next view side by side.
                 LinearLayout rowLayout = new LinearLayout(mActivity);
-                mContentView.addView(rowLayout);
+                mDataView.addView(rowLayout);
 
-                View firstView = addFieldViewToEditor(rowLayout, fieldItem, showRequiredIndicator);
-                View lastView =
-                        addFieldViewToEditor(rowLayout, nextFieldItem, showRequiredIndicator);
+                View firstView = addFieldViewToEditor(rowLayout, fieldItem);
+                View lastView = addFieldViewToEditor(rowLayout, nextFieldItem);
 
                 LinearLayout.LayoutParams firstParams =
                         (LinearLayout.LayoutParams) firstView.getLayoutParams();
@@ -442,11 +450,9 @@ public class EditorDialogView
                 i = i + 1;
             }
         }
-        setDoneRunnableToFields(mDoneRunnable);
 
         // Add the footer.
-        mContentView.addView(mFooter);
-        setShowRequiredIndicator(showRequiredIndicator);
+        mDataView.addView(mFooter);
     }
 
     /**
@@ -457,10 +463,12 @@ public class EditorDialogView
      */
     public void onConfigurationChanged() {
         if (mUiConfig == null) {
-            int minWidePaddingPixels = mActivity.getResources().getDimensionPixelSize(
-                    R.dimen.settings_wide_display_min_padding);
-            mUiConfig = new UiConfig(mContentView);
-            ViewResizer.createAndAttach(mContentView, mUiConfig, 0, minWidePaddingPixels);
+            if (mDataView != null) {
+                int minWidePaddingPixels = mActivity.getResources().getDimensionPixelSize(
+                        R.dimen.settings_wide_display_min_padding);
+                mUiConfig = new UiConfig(mDataView);
+                ViewResizer.createAndAttach(mDataView, mUiConfig, 0, minWidePaddingPixels);
+            }
         } else {
             mUiConfig.updateDisplayStyle();
         }
@@ -475,26 +483,26 @@ public class EditorDialogView
         }
     }
 
-    private View addFieldViewToEditor(
-            ViewGroup parent, final FieldItem fieldItem, boolean showRequiredIndicator) {
+    private View addFieldViewToEditor(ViewGroup parent, final ListItem fieldItem) {
         View childView = null;
 
         switch (fieldItem.type) {
             case DROPDOWN: {
                 DropdownFieldView dropdownView =
-                        new DropdownFieldView(mActivity, parent, fieldItem.model);
-                mDropdownFieldMCPs.add(PropertyModelChangeProcessor.create(fieldItem.model,
-                        dropdownView, EditorDialogViewBinder::bindDropdownFieldView));
+                        new DropdownFieldView(mActivity, parent, fieldItem.model,
+                                mEditorModel.get(EditorProperties.SHOW_REQUIRED_INDICATOR));
                 mFieldViews.add(dropdownView);
                 mDropdownFields.add(dropdownView.getDropdown());
+
                 childView = dropdownView.getLayout();
                 break;
             }
             case TEXT_INPUT: {
-                TextFieldView inputLayout = new TextFieldView(mActivity, fieldItem.model);
-                mTextFieldMCPs.add(PropertyModelChangeProcessor.create(
-                        fieldItem.model, inputLayout, EditorDialogViewBinder::bindTextFieldView));
+                TextFieldView inputLayout = new TextFieldView(mActivity, fieldItem.model,
+                        mEditorActionListener, fieldItem.model.get(TEXT_FORMATTER),
+                        mEditorModel.get(EditorProperties.SHOW_REQUIRED_INDICATOR));
                 mFieldViews.add(inputLayout);
+
                 mEditableTextFields.add(inputLayout.getEditText());
                 childView = inputLayout;
                 break;
@@ -506,16 +514,38 @@ public class EditorDialogView
 
     /**
      * Displays the editor user interface for the given model.
+     *
+     * @param editorModel The description of the editor user interface to display.
      */
-    private void showDialog() {
+    public void show(PropertyModel editorModel) {
         // If an asynchronous task calls show, while the activity is already finishing, return.
         if (mActivity.isFinishing()) return;
 
+        setOnShowListener(this);
+        setOnDismissListener(this);
+        mEditorModel = editorModel;
+        mLayout = LayoutInflater.from(mActivity).inflate(R.layout.payment_request_editor, null);
+        setContentView(mLayout);
+
+        mFooter = LayoutInflater.from(mActivity).inflate(
+                R.layout.editable_option_editor_footer, null, false);
+
+        prepareToolbar();
+        prepareEditor(editorModel.get(EDITOR_FIELDS));
+        prepareFooter();
+        prepareButtons();
         onConfigurationChanged();
 
         // Temporarily hide the content to avoid blink before animation starts.
-        mContainerView.setVisibility(View.INVISIBLE);
+        mLayout.setVisibility(View.INVISIBLE);
         show();
+    }
+
+    /** Rereads the values in the model to update the UI. */
+    public void update() {
+        for (int i = 0; i < mFieldViews.size(); i++) {
+            mFieldViews.get(i).update();
+        }
     }
 
     @Override
@@ -530,12 +560,12 @@ public class EditorDialogView
             mEditableTextFields.get(i).setEnabled(false);
         }
 
-        mContainerView.setVisibility(View.VISIBLE);
-        mContainerView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
-        mContainerView.buildLayer();
-        Animator popUp = ObjectAnimator.ofFloat(
-                mContainerView, View.TRANSLATION_Y, mContainerView.getHeight(), 0f);
-        Animator fadeIn = ObjectAnimator.ofFloat(mContainerView, View.ALPHA, 0f, 1f);
+        mLayout.setVisibility(View.VISIBLE);
+        mLayout.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+        mLayout.buildLayer();
+        Animator popUp =
+                ObjectAnimator.ofFloat(mLayout, View.TRANSLATION_Y, mLayout.getHeight(), 0f);
+        Animator fadeIn = ObjectAnimator.ofFloat(mLayout, View.ALPHA, 0f, 1f);
         AnimatorSet animatorSet = new AnimatorSet();
         animatorSet.playTogether(popUp, fadeIn);
 
@@ -545,7 +575,7 @@ public class EditorDialogView
         mDialogInOutAnimator.addListener(new AnimatorListenerAdapter() {
             @Override
             public void onAnimationEnd(Animator animation) {
-                mContainerView.setLayerType(View.LAYER_TYPE_NONE, null);
+                mLayout.setLayerType(View.LAYER_TYPE_NONE, null);
                 for (int i = 0; i < mEditableTextFields.size(); i++) {
                     mEditableTextFields.get(i).setEnabled(true);
                 }
@@ -559,23 +589,17 @@ public class EditorDialogView
 
     private void initFocus() {
         mHandler.post(() -> {
-            List<FieldView> invalidViews = new ArrayList<>();
-            if (mValidateOnShow) {
-                invalidViews = mFieldViews.stream()
-                                       .filter(view -> !view.validate())
-                                       .collect(Collectors.toList());
-            }
-
             // If TalkBack is enabled, we want to keep the focus at the top
             // because the user would not learn about the elements that are
             // above the focused field.
             if (!ChromeAccessibilityUtil.get().isAccessibilityEnabled()) {
+                List<FieldView> invalidViews = getViewsWithInvalidInformation(false);
                 if (!invalidViews.isEmpty()) {
                     // Immediately focus the first invalid field to make it faster to edit.
                     invalidViews.get(0).scrollToAndFocus();
                 } else {
                     // Trigger default focus as it is not triggered automatically on Android P+.
-                    mContainerView.requestFocus();
+                    mLayout.requestFocus();
                 }
             }
             // Note that keyboard will not be shown for dropdown field since it's not necessary.
@@ -592,8 +616,8 @@ public class EditorDialogView
     }
 
     private void handleDelete() {
-        assert mDeleteRunnable != null;
-        mDeleteRunnable.run();
+        assert mEditorModel.get(DELETE_RUNNABLE) != null;
+        mEditorModel.get(DELETE_RUNNABLE).run();
         animateOutDialog();
     }
 
@@ -630,25 +654,42 @@ public class EditorDialogView
         }
     }
 
+    private List<FieldView> getViewsWithInvalidInformation(boolean findAll) {
+        List<FieldView> invalidViews = new ArrayList<>();
+        for (int i = 0; i < mFieldViews.size(); i++) {
+            FieldView fieldView = mFieldViews.get(i);
+            if (!fieldView.isValid()) {
+                invalidViews.add(fieldView);
+                if (!findAll) break;
+            }
+        }
+        return invalidViews;
+    }
+
     /** @return The View with all fields of this editor. */
-    public View getContentViewForTest() {
-        return mContentView;
+    @VisibleForTesting
+    public View getDataViewForTest() {
+        return mDataView;
     }
 
     /** @return All editable text fields in the editor. Used only for tests. */
+    @VisibleForTesting
     public List<EditText> getEditableTextFieldsForTest() {
         return mEditableTextFields;
     }
 
     /** @return All dropdown fields in the editor. Used only for tests. */
+    @VisibleForTesting
     public List<Spinner> getDropdownFieldsForTest() {
         return mDropdownFields;
     }
 
+    @VisibleForTesting
     public AlertDialog getConfirmationDialogForTest() {
         return mConfirmationDialog;
     }
 
+    @VisibleForTesting
     public static void setEditorObserverForTest(EditorObserverForTest observerForTest) {
         sObserverForTest = observerForTest;
         DropdownFieldView.setEditorObserverForTest(sObserverForTest);

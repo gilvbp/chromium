@@ -7,6 +7,7 @@
 #include <utility>
 
 #include "ash/shell.h"
+#include "base/notreached.h"
 #include "chrome/browser/apps/app_service/intent_util.h"
 #include "chrome/browser/ash/crosapi/window_util.h"
 #include "chrome/browser/sharesheet/sharesheet_service.h"
@@ -35,9 +36,8 @@ SharesheetAsh::SharesheetAsh() = default;
 SharesheetAsh::~SharesheetAsh() = default;
 
 void SharesheetAsh::MaybeSetProfile(Profile* profile) {
-  CHECK(profile);
   if (profile_) {
-    VLOG(1) << "SharesheetAsh is already initialized. Skip init.";
+    LOG(WARNING) << "profile_ is already initialized.";
     return;
   }
 

@@ -40,11 +40,10 @@ AutofillPrivateEventRouterFactory::AutofillPrivateEventRouterFactory()
   DependsOn(autofill::PersonalDataManagerFactory::GetInstance());
 }
 
-std::unique_ptr<KeyedService>
-AutofillPrivateEventRouterFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* AutofillPrivateEventRouterFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   // TODO(1426498): pass router's dependencies directly instead of context.
-  return std::make_unique<AutofillPrivateEventRouter>(context);
+  return AutofillPrivateEventRouter::Create(context);
 }
 
 bool AutofillPrivateEventRouterFactory::

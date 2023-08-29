@@ -37,7 +37,7 @@ class AccessibilityNodeInfoDataWrapper : public AccessibilityInfoDataWrapper {
   int32_t GetId() const override;
   const gfx::Rect GetBounds() const override;
   bool IsVisibleToUser() const override;
-  bool IsWebNode() const override;
+  bool IsVirtualNode() const override;
   bool IsIgnored() const override;
   bool IsImportantInAndroid() const override;
   bool IsFocusableInFullFocusMode() const override;
@@ -85,10 +85,8 @@ class AccessibilityNodeInfoDataWrapper : public AccessibilityInfoDataWrapper {
   bool HasImportantProperty() const;
   bool HasImportantPropertyInternal() const;
 
-  ax::mojom::Role GetChromeRole() const;
-
-  raw_ptr<mojom::AccessibilityNodeInfoData, DanglingUntriaged | ExperimentalAsh>
-      node_ptr_ = nullptr;
+  raw_ptr<mojom::AccessibilityNodeInfoData, ExperimentalAsh> node_ptr_ =
+      nullptr;
 
   // Properties which should be checked for recursive text computation.
   // It's not clear whether labeled by should be taken into account here.
@@ -97,10 +95,9 @@ class AccessibilityNodeInfoDataWrapper : public AccessibilityInfoDataWrapper {
       mojom::AccessibilityStringProperty::CONTENT_DESCRIPTION,
       mojom::AccessibilityStringProperty::STATE_DESCRIPTION};
 
-  // These properties are a cached value so that we can avoid same computation.
+  // This property is a cached value so that we can avoid same computation.
   // mutable because once the value is computed it won't change.
   mutable absl::optional<bool> has_important_property_cache_;
-  mutable absl::optional<bool> is_web_node_;
 };
 
 }  // namespace ax::android

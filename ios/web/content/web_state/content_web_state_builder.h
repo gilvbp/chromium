@@ -27,7 +27,7 @@ void ExtractContentSessionStorage(ContentWebState* web_state,
 // Creates a serializable session storage from `web_state` and
 // `navigation_manager`.
 CRWSessionStorage* BuildContentSessionStorage(
-    const ContentWebState* web_state,
+    ContentWebState* web_state,
     ContentNavigationManager* navigation_manager);
 
 }  // namespace web

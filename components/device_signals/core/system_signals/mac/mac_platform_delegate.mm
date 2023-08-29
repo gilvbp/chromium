@@ -7,12 +7,16 @@
 #include <CoreFoundation/CoreFoundation.h>
 #import <Foundation/Foundation.h>
 
-#import "base/apple/foundation_util.h"
-#include "base/apple/scoped_cftyperef.h"
 #include "base/files/file_path.h"
+#import "base/mac/foundation_util.h"
+#include "base/mac/scoped_cftyperef.h"
 #include "crypto/sha2.h"
 #include "net/cert/asn1_util.h"
 #include "third_party/abseil-cpp/absl/types/optional.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace device_signals {
 
@@ -24,11 +28,11 @@ namespace {
 base::FilePath GetBinaryFilePath(const base::FilePath& file_path) {
   // Try to load the path into a bundle.
   NSBundle* bundle =
-      [NSBundle bundleWithPath:base::apple::FilePathToNSString(file_path)];
+      [NSBundle bundleWithPath:base::mac::FilePathToNSString(file_path)];
   if (bundle) {
     NSString* executable_path = bundle.executablePath;
     if (executable_path) {
-      return base::apple::NSStringToFilePath(executable_path);
+      return base::mac::NSStringToFilePath(executable_path);
     }
   }
 
@@ -45,7 +49,7 @@ absl::optional<base::FilePath> GetBundleFilePath(
     base::FilePath current_path = file_path;
     do {
       NSString* current_path_string =
-          base::apple::FilePathToNSString(current_path);
+          base::mac::FilePathToNSString(current_path);
       NSBundle* bundle = [NSBundle bundleWithPath:current_path_string];
       if (bundle.infoDictionary.count > 0) {
         // Current path points to a bundle that has metadata.
@@ -92,23 +96,23 @@ MacPlatformDelegate::GetSigningCertificatesPublicKeys(
     const base::FilePath& file_path) {
   SigningCertificatesPublicKeys public_keys;
 
-  base::apple::ScopedCFTypeRef<CFURLRef> file_url =
-      base::apple::FilePathToCFURL(file_path);
-  base::apple::ScopedCFTypeRef<SecStaticCodeRef> file_code;
+  base::ScopedCFTypeRef<CFURLRef> file_url =
+      base::mac::FilePathToCFURL(file_path);
+  base::ScopedCFTypeRef<SecStaticCodeRef> file_code;
   if (SecStaticCodeCreateWithPath(file_url, kSecCSDefaultFlags,
                                   file_code.InitializeInto()) !=
       errSecSuccess) {
     return public_keys;
   }
 
-  base::apple::ScopedCFTypeRef<CFDictionaryRef> signing_information;
+  base::ScopedCFTypeRef<CFDictionaryRef> signing_information;
   if (SecCodeCopySigningInformation(file_code, kSecCSSigningInformation,
                                     signing_information.InitializeInto()) !=
       errSecSuccess) {
     return public_keys;
   }
 
-  CFArrayRef cert_chain = base::apple::GetValueFromDictionary<CFArrayRef>(
+  CFArrayRef cert_chain = base::mac::GetValueFromDictionary<CFArrayRef>(
       signing_information, kSecCodeInfoCertificates);
   if (!cert_chain) {
     return public_keys;
@@ -123,8 +127,7 @@ MacPlatformDelegate::GetSigningCertificatesPublicKeys(
   SecCertificateRef leaf_cert = reinterpret_cast<SecCertificateRef>(
       const_cast<void*>(CFArrayGetValueAtIndex(cert_chain, 0)));
 
-  base::apple::ScopedCFTypeRef<CFDataRef> der_data(
-      SecCertificateCopyData(leaf_cert));
+  base::ScopedCFTypeRef<CFDataRef> der_data(SecCertificateCopyData(leaf_cert));
   if (!der_data) {
     return public_keys;
   }

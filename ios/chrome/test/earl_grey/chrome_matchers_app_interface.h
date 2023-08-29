@@ -35,14 +35,6 @@
 // and accessibility trait UIAccessibilityTraitButton.
 + (id<GREYMatcher>)buttonWithAccessibilityLabelID:(int)messageID;
 
-// Matcher for context menu items with accessibility label
-// corresponding to `label`.
-+ (id<GREYMatcher>)contextMenuItemWithAccessibilityLabel:(NSString*)label;
-
-// Matcher for context menu items with accessibility label
-// corresponding to `messageID`.
-+ (id<GREYMatcher>)contextMenuItemWithAccessibilityLabelID:(int)messageID;
-
 // Matcher for element with an image corresponding to `image`.
 + (id<GREYMatcher>)imageViewWithImage:(UIImage*)image;
 
@@ -312,10 +304,6 @@
 // screen.
 + (id<GREYMatcher>)inactiveTabsSettingsButton;
 
-// Returns matcher for the Tab Pickup Settings button on the Tabs Settings
-// screen.
-+ (id<GREYMatcher>)tabPickupSettingsButton;
-
 // Returns matcher for the Tabs Settings button on the main Settings screen.
 + (id<GREYMatcher>)tabsSettingsButton;
 
@@ -536,9 +524,6 @@
 
 // Returns a matcher for the search engine button in the main settings view.
 + (id<GREYMatcher>)settingsSearchEngineButton;
-
-// Returns a matcher for the address bar button in the main settings view.
-+ (id<GREYMatcher>)settingsAddressBarButton;
 
 // Returns a matcher for an autofill suggestion view.
 + (id<GREYMatcher>)autofillSuggestionViewMatcher;

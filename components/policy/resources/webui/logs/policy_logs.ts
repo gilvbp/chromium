@@ -44,7 +44,7 @@ function displayList() {
   }
   logs.forEach(log => {
     const logMessage = document.createElement('li');
-    logMessage.textContent = `[${log.logSeverity}] ${log.message}`;
+    logMessage.textContent = log.message;
     logMessageContainer.appendChild(logMessage);
   });
 }

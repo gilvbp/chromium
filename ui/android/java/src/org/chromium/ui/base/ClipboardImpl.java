@@ -617,6 +617,7 @@ public class ClipboardImpl
      * Allows the ClipboardManager Android Service to be replaced with a mock for tests, returning
      * the original so that it can be restored.
      */
+    @VisibleForTesting
     public ClipboardManager overrideClipboardManagerForTesting(ClipboardManager manager) {
         ClipboardManager oldManager = mClipboardManager;
         mClipboardManager = manager;
@@ -675,6 +676,7 @@ public class ClipboardImpl
         Toast.makeText(mContext, stringId, Toast.LENGTH_SHORT).show();
     }
 
+    @VisibleForTesting
     public static void setSkipImageMimeTypeCheckForTesting(Boolean doSkip) {
         sSkipImageMimeTypeCheckForTesting = doSkip;
     }

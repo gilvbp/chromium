@@ -43,6 +43,7 @@
 
 - (void)dealloc {
   [_rwhv_cocoa removeObserver:self forKeyPath:@"textInputFlags"];
+  [super dealloc];
 }
 
 - (void)reset {
@@ -69,7 +70,7 @@ namespace {
 
 class TextCallbackWaiter {
  public:
-  TextCallbackWaiter() = default;
+  TextCallbackWaiter() {}
 
   TextCallbackWaiter(const TextCallbackWaiter&) = delete;
   TextCallbackWaiter& operator=(const TextCallbackWaiter&) = delete;
@@ -90,7 +91,7 @@ class TextCallbackWaiter {
 
 class TextSelectionWaiter : public TextInputManager::Observer {
  public:
-  explicit TextSelectionWaiter(RenderWidgetHostViewMac* rwhv) {
+  TextSelectionWaiter(RenderWidgetHostViewMac* rwhv) {
     rwhv->GetTextInputManager()->AddObserver(this);
   }
 
@@ -131,7 +132,7 @@ IN_PROC_BROWSER_TEST_F(RenderWidgetHostViewMacTest, GetPageTextForSpeech) {
 }
 
 // Test that -firstRectForCharacterRange:actualRange: works when the range
-// isn't in the active selection, which requires a sync IPC to the renderer.
+// isn't in the active selection, which requres a sync IPC to the renderer.
 IN_PROC_BROWSER_TEST_F(RenderWidgetHostViewMacTest,
                        GetFirstRectForCharacterRangeUncached) {
   GURL url("data:text/html,Hello");
@@ -167,9 +168,9 @@ IN_PROC_BROWSER_TEST_F(RenderWidgetHostViewMacTest, UpdateInputFlags) {
   RenderWidgetHostViewMac* rwhv_mac =
       static_cast<RenderWidgetHostViewMac*>(rwhv);
   RenderWidgetHostViewCocoa* rwhv_cocoa = rwhv_mac->GetInProcessNSView();
-  TextInputFlagChangeWaiter* flag_change_waiter =
+  base::scoped_nsobject<TextInputFlagChangeWaiter> flag_change_waiter(
       [[TextInputFlagChangeWaiter alloc]
-          initWithRenderWidgetHostViewCocoa:rwhv_cocoa];
+          initWithRenderWidgetHostViewCocoa:rwhv_cocoa]);
 
   EXPECT_TRUE(ExecJs(shell(), "ta.focus();"));
   [flag_change_waiter wait];

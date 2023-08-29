@@ -5,15 +5,14 @@
 #ifndef BASE_CONTAINERS_SPAN_RUST_H_
 #define BASE_CONTAINERS_SPAN_RUST_H_
 
+#include "base/rust_buildflags.h"
+
+#if BUILDFLAG(BUILD_RUST_BASE_CONVERSIONS)
+
 #include <stdint.h>
 
 #include "base/containers/span.h"
-#include "base/rust_buildflags.h"
-#include "third_party/rust/cxx/v1/crate/include/cxx.h"
-
-#if !BUILDFLAG(BUILD_RUST_BASE_CONVERSIONS)
-#error "span_rust.h included without BUILD_RUST_BASE_CONVERSIONS"
-#endif
+#include "third_party/rust/cxx/v1/crate/include/cxx.h"  // nogncheck
 
 namespace base {
 
@@ -23,5 +22,7 @@ inline rust::Slice<const uint8_t> SpanToRustSlice(span<const uint8_t> span) {
 }
 
 }  // namespace base
+
+#endif  // BUILDFLAG(BUILD_RUST_BASE_CONVERSIONS)
 
 #endif  // BASE_CONTAINERS_SPAN_RUST_H_

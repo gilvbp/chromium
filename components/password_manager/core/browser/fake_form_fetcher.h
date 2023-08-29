@@ -46,7 +46,7 @@ class FakeFormFetcher : public FormFetcher {
   std::vector<const PasswordForm*> GetNonFederatedMatches() const override;
   std::vector<const PasswordForm*> GetFederatedMatches() const override;
   bool IsBlocklisted() const override;
-  bool IsMovingBlocked(const signin::GaiaIdHash& destination,
+  bool IsMovingBlocked(const autofill::GaiaIdHash& destination,
                        const std::u16string& username) const override;
   const std::vector<const PasswordForm*>& GetAllRelevantMatches()
       const override;

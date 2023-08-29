@@ -11,7 +11,6 @@
 #include "chrome/browser/ash/arc/input_overlay/touch_id_manager.h"
 #include "chrome/browser/ash/arc/input_overlay/touch_injector.h"
 #include "chrome/browser/ash/arc/input_overlay/ui/action_label.h"
-#include "chrome/browser/ash/arc/input_overlay/ui/touch_point.h"
 #include "chrome/browser/ash/arc/input_overlay/ui/ui_utils.h"
 #include "chrome/browser/ash/arc/input_overlay/util.h"
 #include "ui/aura/window.h"
@@ -67,16 +66,19 @@ class ActionTap::ActionTapView : public ActionView {
       return;
     }
 
-    DCHECK(IsInputBound(*input_binding));
     if (labels_.empty()) {
       // Create new action label when initializing.
       labels_ = ActionLabel::Show(this, ActionType::TAP, *input_binding,
                                   TapLabelPosition::kNone);
+    } else if (!IsInputBound(*input_binding)) {
+      // Action label exists but without any bindings.
+      labels_[0]->SetTextActionLabel(
+          std::move(GetDisplayText(ui::DomCode::NONE)));
     } else if (IsKeyboardBound(*input_binding)) {
       // Action label is bound to keyboard key.
       labels_[0]->SetTextActionLabel(
           std::move(GetDisplayText(input_binding->keys()[0])));
-    } else if (IsMouseBound(*input_binding)) {
+    } else {
       // Action label is bound to mouse.
       labels_[0]->SetImageActionLabel(input_binding->mouse_action());
     }
@@ -94,12 +96,13 @@ class ActionTap::ActionTapView : public ActionView {
   }
 
   void OnBindingToKeyboard() override {
-    if (!IsMouseBound(action_->GetCurrentDisplayedInput())) {
+    const auto& input_binding = action_->GetCurrentDisplayedInput();
+    if (!IsMouseBound(input_binding)) {
       return;
     }
 
-    action_->set_pending_input(
-        InputElement::CreateActionTapKeyElement(ui::DomCode::NONE));
+    auto input_element = std::make_unique<InputElement>();
+    action_->set_pending_input(std::move(input_element));
     SetViewContent(BindingOption::kPending);
   }
 
@@ -189,20 +192,14 @@ bool ActionTap::ParseFromJson(const base::Value::Dict& value) {
              : ParseJsonFromMouse(value);
 }
 
-bool ActionTap::InitByAddingNewAction() {
-  if (!Action::InitByAddingNewAction()) {
+bool ActionTap::InitFromEditor() {
+  if (!Action::InitFromEditor()) {
     return false;
   }
 
   original_input_ = InputElement::CreateActionTapKeyElement(ui::DomCode::NONE);
   current_input_ = InputElement::CreateActionTapKeyElement(ui::DomCode::NONE);
   return true;
-}
-
-void ActionTap::InitByChangingActionType(Action* action) {
-  Action::InitByChangingActionType(action);
-  auto dom_code = action->current_input()->keys()[0];
-  current_input_ = InputElement::CreateActionTapKeyElement(dom_code);
 }
 
 bool ActionTap::ParseJsonFromKeyboard(const base::Value::Dict& value) {
@@ -248,7 +245,7 @@ bool ActionTap::RewriteEvent(const ui::Event& origin,
   DCHECK_NE(IsKeyboardBound(*current_input_), IsMouseBound(*current_input_));
   LogEvent(origin);
   // Rewrite for key event.
-  auto content_bounds = touch_injector_->content_bounds_f();
+  auto content_bounds = touch_injector_->content_bounds();
   if (IsKeyboardBound(*current_input())) {
     auto* key_event = origin.AsKeyEvent();
     bool rewritten =
@@ -270,7 +267,7 @@ bool ActionTap::RewriteEvent(const ui::Event& origin,
 
 gfx::PointF ActionTap::GetUICenterPosition() {
   return GetCurrentDisplayedPosition().CalculatePosition(
-      touch_injector_->content_bounds_f());
+      touch_injector_->content_bounds());
 }
 
 std::unique_ptr<ActionView> ActionTap::CreateView(
@@ -284,14 +281,14 @@ void ActionTap::UnbindInput(const InputElement& input_element) {
   if (pending_input_) {
     pending_input_.reset();
   }
-  pending_input_ = InputElement::CreateActionTapKeyElement(ui::DomCode::NONE);
+  pending_input_ = std::make_unique<InputElement>();
   if (!IsBeta() && action_view_) {
     action_view_->set_unbind_label_index(0);
   }
   PostUnbindInputProcess();
 }
 
-ActionType ActionTap::GetType() const {
+ActionType ActionTap::GetType() {
   return ActionType::TAP;
 }
 

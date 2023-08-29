@@ -47,7 +47,6 @@ struct AddressSpaceStats {
 class PA_COMPONENT_EXPORT(PARTITION_ALLOC) AddressSpaceStatsDumper {
  public:
   virtual void DumpStats(const AddressSpaceStats* address_space_stats) = 0;
-  virtual ~AddressSpaceStatsDumper() = default;
 };
 
 }  // namespace partition_alloc

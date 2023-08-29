@@ -7,7 +7,6 @@
 #include "third_party/blink/renderer/core/timing/window_performance.h"
 
 namespace blink {
-
 void WebPerformanceMetricsForNestedContexts::Reset() {
   private_.Reset();
 }

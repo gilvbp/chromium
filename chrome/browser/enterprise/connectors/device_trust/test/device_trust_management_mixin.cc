@@ -24,9 +24,9 @@ namespace enterprise_connectors::test {
 
 namespace {
 
-base::Value GetAllowedHostValue(const std::string& url) {
+base::Value GetAllowedHostValue() {
   base::Value::List list;
-  list.Append(url);
+  list.Append(kAllowedHost);
   return base::Value(std::move(list));
 }
 
@@ -77,18 +77,16 @@ void DeviceTrustManagementMixin::ManageCloudUser() {
   management_context_mixin_->ManageCloudUser();
 }
 
-void DeviceTrustManagementMixin::EnableMachineInlinePolicy(
-    const std::string& url) {
-  SetMachineInlinePolicy(GetAllowedHostValue(url));
+void DeviceTrustManagementMixin::EnableMachineInlinePolicy() {
+  SetMachineInlinePolicy(GetAllowedHostValue());
 }
 
 void DeviceTrustManagementMixin::DisableMachineInlinePolicy() {
   SetMachineInlinePolicy(GetEmptyListValue());
 }
 
-void DeviceTrustManagementMixin::EnableUserInlinePolicy(
-    const std::string& url) {
-  SetUserInlinePolicy(GetAllowedHostValue(url));
+void DeviceTrustManagementMixin::EnableUserInlinePolicy() {
+  SetUserInlinePolicy(GetAllowedHostValue());
 }
 
 void DeviceTrustManagementMixin::DisableUserInlinePolicy() {

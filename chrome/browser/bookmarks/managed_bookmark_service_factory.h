@@ -42,7 +42,7 @@ class ManagedBookmarkServiceFactory : public ProfileKeyedServiceFactory {
   ~ManagedBookmarkServiceFactory() override;
 
   // BrowserStateKeyedServiceFactory implementation.
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* context) const override;
   bool ServiceIsNULLWhileTesting() const override;
 };

@@ -13,9 +13,7 @@
 #import "ios/chrome/browser/shared/model/prefs/pref_names.h"
 #import "ios/chrome/browser/shared/public/commands/browsing_data_commands.h"
 #import "ios/chrome/browser/shared/public/commands/command_dispatcher.h"
-#import "ios/chrome/browser/shared/public/features/features.h"
 #import "ios/chrome/browser/signin/authentication_service_factory.h"
-#import "ios/chrome/browser/signin/chrome_account_manager_service.h"
 #import "ios/chrome/browser/signin/chrome_account_manager_service_factory.h"
 #import "ios/chrome/browser/signin/constants.h"
 #import "ios/chrome/browser/signin/identity_manager_factory.h"
@@ -32,6 +30,10 @@
 #import "ios/chrome/common/ui/colors/semantic_color_names.h"
 #import "ios/chrome/grit/ios_strings.h"
 #import "ui/base/l10n/l10n_util.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 @interface ConsistencyPromoSigninCoordinator () <
     ConsistencyAccountChooserCoordinatorDelegate,
@@ -68,28 +70,6 @@
 
 #pragma mark - Public
 
-+ (instancetype)
-    coordinatorWithBaseViewController:(UIViewController*)viewController
-                              browser:(Browser*)browser
-                          accessPoint:(signin_metrics::AccessPoint)accessPoint {
-  ChromeBrowserState* browserState = browser->GetBrowserState();
-  ChromeAccountManagerService* accountManagerService =
-      ChromeAccountManagerServiceFactory::GetForBrowserState(browserState);
-  BOOL canShowWithZeroIdentities =
-      accessPoint != signin_metrics::AccessPoint::ACCESS_POINT_WEB_SIGNIN &&
-      IsConsistencyNewAccountInterfaceEnabled();
-  if (!accountManagerService->HasIdentities() && !canShowWithZeroIdentities) {
-    RecordConsistencyPromoUserAction(
-        signin_metrics::AccountConsistencyPromoAction::SUPPRESSED_NO_ACCOUNTS,
-        accessPoint);
-    return nil;
-  }
-  return [[ConsistencyPromoSigninCoordinator alloc]
-      initWithBaseViewController:viewController
-                         browser:browser
-                     accessPoint:accessPoint];
-}
-
 - (instancetype)initWithBaseViewController:(UIViewController*)baseViewController
                                    browser:(Browser*)browser
                                accessPoint:
@@ -103,7 +83,7 @@
 
 #pragma mark - SigninCoordinator
 
-- (void)interruptWithAction:(SigninCoordinatorInterrupt)action
+- (void)interruptWithAction:(SigninCoordinatorInterruptAction)action
                  completion:(ProceduralBlock)completion {
   [self.alertCoordinator stop];
   self.alertCoordinator = nil;
@@ -174,7 +154,7 @@
 // Finishes the interrupt process. This method needs to be called once all
 // other dialogs on top of ConsistencyPromoSigninCoordinator are properly
 // dismissed.
-- (void)finalizeInterruptWithAction:(SigninCoordinatorInterrupt)action
+- (void)finalizeInterruptWithAction:(SigninCoordinatorInterruptAction)action
                          completion:(ProceduralBlock)interruptCompletion {
   DCHECK(!self.alertCoordinator);
   DCHECK(!self.addAccountCoordinator);
@@ -190,13 +170,13 @@
     }
   };
   switch (action) {
-    case SigninCoordinatorInterrupt::UIShutdownNoDismiss:
+    case SigninCoordinatorInterruptActionNoDismiss:
       finishCompletionBlock();
       break;
-    case SigninCoordinatorInterrupt::DismissWithoutAnimation:
-    case SigninCoordinatorInterrupt::DismissWithAnimation: {
+    case SigninCoordinatorInterruptActionDismissWithoutAnimation:
+    case SigninCoordinatorInterruptActionDismissWithAnimation: {
       BOOL animated =
-          action == SigninCoordinatorInterrupt::DismissWithAnimation;
+          action == SigninCoordinatorInterruptActionDismissWithAnimation;
       [self.navigationController.presentingViewController
           dismissViewControllerAnimated:animated
                              completion:finishCompletionBlock];
@@ -334,7 +314,7 @@
 
 - (void)consistencyDefaultAccountCoordinatorAllIdentityRemoved:
     (ConsistencyDefaultAccountCoordinator*)coordinator {
-  [self interruptWithAction:SigninCoordinatorInterrupt::DismissWithAnimation
+  [self interruptWithAction:SigninCoordinatorInterruptActionDismissWithAnimation
                  completion:nil];
 }
 
@@ -510,7 +490,6 @@
   [self.alertCoordinator
       addItemWithTitle:l10n_util::GetNSString(IDS_IOS_SIGN_IN_DISMISS)
                 action:^() {
-                  [weakSelf.alertCoordinator stop];
                   weakSelf.alertCoordinator = nil;
                 }
                  style:UIAlertActionStyleCancel];

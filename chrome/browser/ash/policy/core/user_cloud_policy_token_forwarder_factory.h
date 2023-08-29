@@ -33,7 +33,7 @@ class UserCloudPolicyTokenForwarderFactory : public ProfileKeyedServiceFactory {
   ~UserCloudPolicyTokenForwarderFactory() override;
 
   // BrowserContextKeyedServiceFactory:
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* context) const override;
   bool ServiceIsCreatedWithBrowserContext() const override;
   bool ServiceIsNULLWhileTesting() const override;

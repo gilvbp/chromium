@@ -116,13 +116,12 @@ class CONTENT_EXPORT ServiceWorkerControlleeRequestHandler final {
   void ContinueWithRegistration(
       // True when FindRegistrationForClientUrl() is called for navigation.
       bool is_for_navigation,
-      base::TimeTicks find_registration_start_time,
+      base::TimeTicks start_time,
       blink::ServiceWorkerStatusCode status,
       scoped_refptr<ServiceWorkerRegistration> registration);
   void ContinueWithActivatedVersion(
       scoped_refptr<ServiceWorkerRegistration> registration,
-      scoped_refptr<ServiceWorkerVersion> version,
-      base::TimeTicks find_registration_start_time);
+      scoped_refptr<ServiceWorkerVersion> version);
 
   // For forced update.
   void DidUpdateRegistration(

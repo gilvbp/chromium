@@ -155,8 +155,9 @@ void WebUILoginView::InitializeWebView(views::WebView* web_view,
   CreateSessionServiceTabHelper(web_contents);
 
   // Create the password manager that is needed for the proxy.
-  autofill::ChromeAutofillClient::CreateForWebContents(web_contents);
-  ChromePasswordManagerClient::CreateForWebContents(web_contents);
+  ChromePasswordManagerClient::CreateForWebContentsWithAutofillClient(
+      web_contents,
+      autofill::ContentAutofillClient::FromWebContents(web_contents));
 
   // Create the password reuse detection manager.
   ChromePasswordReuseDetectionManagerClient::CreateForWebContents(web_contents);

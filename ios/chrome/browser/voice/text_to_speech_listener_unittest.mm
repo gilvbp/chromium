@@ -14,6 +14,10 @@
 #import "testing/gtest_mac.h"
 #import "testing/platform_test.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace {
 const char kExpectedDecodedData[] = "testaudo32oio";
 NSString* const kHTMLFormat =
@@ -97,10 +101,11 @@ class TextToSpeechListenerTest : public PlatformTest {
   void TestExtraction(NSString* html, NSData* expected_audio_data) {
     [delegate_ setExpectedAudioData:expected_audio_data];
     web::test::LoadHtml(html, web_state());
-    ASSERT_TRUE(base::test::ios::WaitUntilConditionOrTimeout(
-        base::Seconds(1000), true, ^bool {
+    base::test::ios::WaitUntilCondition(
+        ^bool {
           return [delegate_ audioDataReceived];
-        }));
+        },
+        true, base::Seconds(1000));
   }
 
  private:

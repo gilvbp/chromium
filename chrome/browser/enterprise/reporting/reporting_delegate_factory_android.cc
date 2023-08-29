@@ -15,40 +15,39 @@
 namespace enterprise_reporting {
 
 std::unique_ptr<BrowserReportGenerator::Delegate>
-ReportingDelegateFactoryAndroid::GetBrowserReportGeneratorDelegate() const {
+ReportingDelegateFactoryAndroid::GetBrowserReportGeneratorDelegate() {
   return std::make_unique<BrowserReportGeneratorAndroid>();
 }
 
 std::unique_ptr<ProfileReportGenerator::Delegate>
-ReportingDelegateFactoryAndroid::GetProfileReportGeneratorDelegate() const {
+ReportingDelegateFactoryAndroid::GetProfileReportGeneratorDelegate() {
   return std::make_unique<ProfileReportGeneratorAndroid>();
 }
 
 std::unique_ptr<ReportGenerator::Delegate>
-ReportingDelegateFactoryAndroid::GetReportGeneratorDelegate() const {
+ReportingDelegateFactoryAndroid::GetReportGeneratorDelegate() {
   return nullptr;
 }
 
 std::unique_ptr<ReportScheduler::Delegate>
-ReportingDelegateFactoryAndroid::GetReportSchedulerDelegate() const {
+ReportingDelegateFactoryAndroid::GetReportSchedulerDelegate() {
   return std::make_unique<ReportSchedulerAndroid>();
 }
 
 std::unique_ptr<RealTimeReportGenerator::Delegate>
-ReportingDelegateFactoryAndroid::GetRealTimeReportGeneratorDelegate() const {
+ReportingDelegateFactoryAndroid::GetRealTimeReportGeneratorDelegate() {
   // TODO(crbug.com/1228845) Implement RealTimeReportGenerator::Delegate for
   // Android
   return nullptr;
 }
 
 std::unique_ptr<RealTimeReportController::Delegate>
-ReportingDelegateFactoryAndroid::GetRealTimeReportControllerDelegate() const {
+ReportingDelegateFactoryAndroid::GetRealTimeReportControllerDelegate() {
   return std::make_unique<RealTimeReportControllerAndroid>();
 }
 
 std::unique_ptr<ReportScheduler::Delegate>
-ReportingDelegateFactoryAndroid::GetReportSchedulerDelegate(
-    Profile* profile) const {
+ReportingDelegateFactoryAndroid::GetReportSchedulerDelegate(Profile* profile) {
   return std::make_unique<ReportSchedulerAndroid>(profile);
 }
 

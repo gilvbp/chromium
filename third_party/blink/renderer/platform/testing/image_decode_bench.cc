@@ -54,7 +54,7 @@ void DecodeImageData(SharedBuffer* data, ImageMeta* image) {
 
   std::unique_ptr<ImageDecoder> decoder = ImageDecoder::Create(
       data, all_data_received, ImageDecoder::kAlphaPremultiplied,
-      ImageDecoder::kDefaultBitDepth, ColorBehavior::kIgnore);
+      ImageDecoder::kDefaultBitDepth, ColorBehavior::Ignore());
 
   auto start = std::chrono::steady_clock::now();
 

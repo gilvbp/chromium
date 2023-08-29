@@ -5,8 +5,6 @@
 #ifndef MEDIA_BASE_SVC_SCALABILITY_MODE_H_
 #define MEDIA_BASE_SVC_SCALABILITY_MODE_H_
 
-#include <cstddef>
-
 #include "media/base/media_export.h"
 
 namespace media {
@@ -16,7 +14,7 @@ namespace media {
 // These values are persisted to logs. Entries should not be renumbered and
 // numeric values should never be reused. Please keep the consistency with
 // VideoEncoderUseCase in tools/metrics/histograms/enums.xml.
-enum class SVCScalabilityMode : int {
+enum class SVCScalabilityMode {
   kL1T1 = 0,
   kL1T2 = 1,
   kL1T3 = 2,
@@ -55,22 +53,10 @@ enum class SVCScalabilityMode : int {
   kMaxValue = kL3T3KeyShift,
 };
 
-enum class SVCInterLayerPredMode : int {
-  kOff = 0,      // Inter-layer prediction is disabled.
-  kOn = 1,       // Inter-layer prediction is enabled.
-  kOnKeyPic = 2  // Inter-layer prediction is enabled for key picture.
-};
-
 // Gets the WebRTC-SVC Spec defined scalability mode name.
 MEDIA_EXPORT const char* GetScalabilityModeName(
     SVCScalabilityMode scalability_mode);
 
-// Gets the SVCScalabilityMode from |num_spatial_layers|,
-// |num_temporal_layers| and |inter_layer_pred|.
-MEDIA_EXPORT SVCScalabilityMode
-GetSVCScalabilityMode(const size_t num_spatial_layers,
-                      const size_t num_temporal_layers,
-                      SVCInterLayerPredMode inter_layer_pred);
 }  // namespace media
 
 #endif  // MEDIA_BASE_SVC_SCALABILITY_MODE_H_

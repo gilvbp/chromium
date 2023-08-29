@@ -44,7 +44,6 @@ class VIZ_SERVICE_EXPORT DisplayScheduler
   ~DisplayScheduler() override;
 
   // DisplaySchedulerBase implementation.
-  void SetDamageTracker(DisplayDamageTracker* damage_tracker) override;
   void SetVisible(bool visible) override;
   void ForceImmediateSwapIfPossible() override;
   void SetNeedsOneBeginFrame(bool needs_draw) override;
@@ -56,7 +55,7 @@ class VIZ_SERVICE_EXPORT DisplayScheduler
                        base::TimeTicks draw_start,
                        HintSession::BoostType boost_type) override;
 
-  // DisplayDamageTracker::Delegate implementation.
+  // DisplayDamageTrackerObserver implementation.
   void OnDisplayDamaged(SurfaceId surface_id) override;
   void OnRootFrameMissing(bool missing) override;
   void OnPendingSurfacesChanged() override;

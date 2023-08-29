@@ -8,6 +8,10 @@
 #import "ios/web/public/web_state.h"
 #import "services/network/public/mojom/fetch_api.mojom.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 using safe_browsing::ThreatPatternType;
 using security_interstitials::BaseSafeBrowsingErrorUI;
 using security_interstitials::UnsafeResource;
@@ -51,7 +55,20 @@ std::string GetUnsafeResourceMetricPrefix(
       prefix = "billing";
       break;
     case BaseSafeBrowsingErrorUI::SB_REASON_PHISHING:
-      prefix = "phishing";
+      switch (resource.threat_metadata.threat_pattern_type) {
+        case ThreatPatternType::PHISHING:
+        case ThreatPatternType::NONE:
+          prefix = "phishing";
+          break;
+        case ThreatPatternType::SOCIAL_ENGINEERING_ADS:
+          prefix = "social_engineering_ads";
+          break;
+        case ThreatPatternType::SOCIAL_ENGINEERING_LANDING:
+          prefix = "social_engineering_landing";
+          break;
+        default:
+          break;
+      }
       break;
   }
   DCHECK(prefix.length());

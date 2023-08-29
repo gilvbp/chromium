@@ -36,11 +36,9 @@ SyncSessionsWebContentsRouterFactory::SyncSessionsWebContentsRouterFactory()
 SyncSessionsWebContentsRouterFactory::~SyncSessionsWebContentsRouterFactory() =
     default;
 
-std::unique_ptr<KeyedService>
-SyncSessionsWebContentsRouterFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* SyncSessionsWebContentsRouterFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
-  return std::make_unique<SyncSessionsWebContentsRouter>(
-      static_cast<Profile*>(context));
+  return new SyncSessionsWebContentsRouter(static_cast<Profile*>(context));
 }
 
 }  // namespace sync_sessions

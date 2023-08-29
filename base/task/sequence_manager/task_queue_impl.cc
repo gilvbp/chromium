@@ -11,6 +11,7 @@
 
 #include "base/check.h"
 #include "base/compiler_specific.h"
+#include "base/containers/stack_container.h"
 #include "base/feature_list.h"
 #include "base/logging.h"
 #include "base/memory/scoped_refptr.h"
@@ -35,7 +36,6 @@
 #include "base/trace_event/base_tracing.h"
 #include "base/types/pass_key.h"
 #include "build/build_config.h"
-#include "third_party/abseil-cpp/absl/container/inlined_vector.h"
 #include "third_party/abseil-cpp/absl/types/optional.h"
 
 namespace base {
@@ -64,7 +64,7 @@ bool g_is_sweep_cancelled_tasks_enabled =
 #if BUILDFLAG(IS_WIN)
 // An atomic is used here because the flag is queried from other threads when
 // tasks are posted cross-thread, which can race with its initialization.
-std::atomic_bool g_explicit_high_resolution_timer_win{true};
+std::atomic_bool g_explicit_high_resolution_timer_win{false};
 #endif  // BUILDFLAG(IS_WIN)
 
 }  // namespace
@@ -634,8 +634,6 @@ absl::optional<WakeUp> TaskQueueImpl::GetNextDesiredWakeUp() {
   if (main_thread_only().delayed_incoming_queue.empty() || !IsQueueEnabled())
     return absl::nullopt;
 
-  const auto& top_task = main_thread_only().delayed_incoming_queue.top();
-
   // High resolution is needed if the queue contains high resolution tasks and
   // has a priority index <= kNormalPriority (precise execution time is
   // unnecessary for a low priority queue).
@@ -643,13 +641,10 @@ absl::optional<WakeUp> TaskQueueImpl::GetNextDesiredWakeUp() {
                                         GetQueuePriority() <= DefaultPriority()
                                     ? WakeUpResolution::kHigh
                                     : WakeUpResolution::kLow;
-  subtle::DelayPolicy delay_policy = top_task.delay_policy;
-  if (GetQueuePriority() > DefaultPriority() &&
-      delay_policy == subtle::DelayPolicy::kPrecise) {
-    delay_policy = subtle::DelayPolicy::kFlexibleNoSooner;
-  }
+
+  const auto& top_task = main_thread_only().delayed_incoming_queue.top();
   return WakeUp{top_task.delayed_run_time, top_task.leeway, resolution,
-                delay_policy};
+                top_task.delay_policy};
 }
 
 void TaskQueueImpl::OnWakeUp(LazyNow* lazy_now, EnqueueOrder enqueue_order) {
@@ -663,7 +658,7 @@ bool TaskQueueImpl::RemoveAllCanceledDelayedTasksFromFront(LazyNow* lazy_now) {
   // Because task destructors could have a side-effect of posting new tasks, we
   // move all the cancelled tasks into a temporary container before deleting
   // them. This is to avoid the queue from changing while iterating over it.
-  absl::InlinedVector<Task, 8> tasks_to_delete;
+  StackVector<Task, 8> tasks_to_delete;
 
   while (!main_thread_only().delayed_incoming_queue.empty()) {
     const Task& task = main_thread_only().delayed_incoming_queue.top();
@@ -671,11 +666,11 @@ bool TaskQueueImpl::RemoveAllCanceledDelayedTasksFromFront(LazyNow* lazy_now) {
     if (!task.task.IsCancelled())
       break;
 
-    tasks_to_delete.push_back(
+    tasks_to_delete->push_back(
         main_thread_only().delayed_incoming_queue.take_top());
   }
 
-  if (!tasks_to_delete.empty()) {
+  if (!tasks_to_delete->empty()) {
     UpdateWakeUp(lazy_now);
     return true;
   }
@@ -694,7 +689,7 @@ void TaskQueueImpl::MoveReadyDelayedTasksToWorkQueue(
   // Because task destructors could have a side-effect of posting new tasks, we
   // move all the cancelled tasks into a temporary container before deleting
   // them. This is to avoid the queue from changing while iterating over it.
-  absl::InlinedVector<Task, 8> tasks_to_delete;
+  StackVector<Task, 8> tasks_to_delete;
 
   while (!main_thread_only().delayed_incoming_queue.empty()) {
     const Task& task = main_thread_only().delayed_incoming_queue.top();
@@ -707,7 +702,7 @@ void TaskQueueImpl::MoveReadyDelayedTasksToWorkQueue(
 
     Task ready_task = main_thread_only().delayed_incoming_queue.take_top();
     if (is_cancelled) {
-      tasks_to_delete.push_back(std::move(ready_task));
+      tasks_to_delete->push_back(std::move(ready_task));
       continue;
     }
 
@@ -726,7 +721,7 @@ void TaskQueueImpl::MoveReadyDelayedTasksToWorkQueue(
   }
 
   // Explicitly delete tasks last.
-  tasks_to_delete.clear();
+  tasks_to_delete->clear();
 
   UpdateWakeUp(lazy_now);
 }

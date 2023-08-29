@@ -25,7 +25,6 @@ class View;
 namespace ash {
 
 struct AnchoredNudgeData;
-class ScopedNudgePause;
 
 // Class managing anchored nudge requests.
 class ASH_EXPORT AnchoredNudgeManagerImpl : public AnchoredNudgeManager,
@@ -40,8 +39,6 @@ class ASH_EXPORT AnchoredNudgeManagerImpl : public AnchoredNudgeManager,
   void Show(AnchoredNudgeData& nudge_data) override;
   void Cancel(const std::string& id) override;
   void MaybeRecordNudgeAction(NudgeCatalogName catalog_name) override;
-  std::unique_ptr<ScopedNudgePause> CreateScopedPause() override;
-  bool IsNudgeShown(const std::string& id) override;
 
   // Closes all `shown_nudges_`.
   void CloseAllNudges();
@@ -56,40 +53,26 @@ class ASH_EXPORT AnchoredNudgeManagerImpl : public AnchoredNudgeManager,
   // SessionObserver:
   void OnSessionStateChanged(session_manager::SessionState state) override;
 
+  // Returns true if `id` is stored in `shown_nudges_`.
+  bool IsNudgeShown(const std::string& id);
+
   const std::u16string& GetNudgeBodyTextForTest(const std::string& id);
   views::View* GetNudgeAnchorViewForTest(const std::string& id);
-  views::LabelButton* GetNudgeFirstButtonForTest(const std::string& id);
+  views::LabelButton* GetNudgeDismissButtonForTest(const std::string& id);
   views::LabelButton* GetNudgeSecondButtonForTest(const std::string& id);
   AnchoredNudge* GetShownNudgeForTest(const std::string& id);
 
-  // TODO(b/297619385): Move constants to a new constants file.
-  // Nudges with a body text that has at least this number of characters will
-  // update its default duration to medium length.
-  static constexpr int kLongBodyTextLength = 60;
-
-  // Default duration that is used for nudges that expire.
-  static constexpr base::TimeDelta kNudgeDefaultDuration = base::Seconds(6);
-
-  // Duration used for nudges with a button or a body text that has
-  // `kLongBodyTextLength` or more characters.
-  static constexpr base::TimeDelta kNudgeMediumDuration = base::Seconds(10);
-
-  // Duration used for nudges that are meant to persist until the user interacts
-  // with them.
-  static constexpr base::TimeDelta kNudgeLongDuration = base::Minutes(30);
+  // Default nudge duration that is used for nudges that expire.
+  static constexpr base::TimeDelta kAnchoredNudgeDuration = base::Seconds(6);
 
   // Resets the registry map that records the time a nudge was last shown.
   void ResetNudgeRegistryForTesting();
-
-  // Records button pressed metrics.
-  void RecordButtonPressed(NudgeCatalogName catalog_name, bool first_button);
 
  private:
   friend class AnchoredNudgeManagerImplTest;
   class AnchorViewObserver;
   class NudgeWidgetObserver;
   class NudgeHoverObserver;
-  class PausableTimer;
 
   // Returns the registry which keeps track of when a nudge was last shown.
   static std::vector<std::pair<NudgeCatalogName, base::TimeTicks>>&
@@ -103,13 +86,11 @@ class ASH_EXPORT AnchoredNudgeManagerImpl : public AnchoredNudgeManager,
   // `id`, and returns this chained callback. If the provided `callback` is
   // empty, only a `Cancel()` callback will be returned.
   base::RepeatingClosure ChainCancelCallback(base::RepeatingClosure callback,
-                                             NudgeCatalogName catalog_name,
-                                             const std::string& id,
-                                             bool first_button);
+                                             const std::string& id);
 
-  // AnchoredNudgeManager:
-  void Pause() override;
-  void Resume() override;
+  // Manage the dismiss timer for the nudge with given `id`.
+  void StartDismissTimer(const std::string& id);
+  void StopDismissTimer(const std::string& id);
 
   // Maps an `AnchoredNudge` `id` to pointer to the nudge with that id.
   // Used to cache and keep track of nudges that are currently displayed, so
@@ -132,11 +113,8 @@ class ASH_EXPORT AnchoredNudgeManagerImpl : public AnchoredNudgeManager,
       nudge_widget_observers_;
 
   // Maps an `AnchoredNudge` `id` to a timer that's used to dismiss the nudge
-  // after its duration has passed. Hovering over the nudge pauses the timer.
-  std::map<std::string, PausableTimer> dismiss_timers_;
-
-  // Keeps track of the number of `ScopedNudgePause`.
-  int pause_counter_ = 0;
+  // after `kAnchoredNudgeDuration` has passed.
+  std::map<std::string, base::OneShotTimer> dismiss_timers_;
 
   base::WeakPtrFactory<AnchoredNudgeManagerImpl> weak_ptr_factory_{this};
 };

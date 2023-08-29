@@ -25,11 +25,8 @@ class FakeDevicePostureProvider : public mojom::DevicePostureProvider {
 
   // mojom::DevicePostureProvider:
   void AddListenerAndGetCurrentPosture(
-      mojo::PendingRemote<mojom::DevicePostureClient> client,
+      mojo::PendingRemote<mojom::DevicePostureProviderClient> client,
       AddListenerAndGetCurrentPostureCallback callback) override;
-  void AddListenerAndGetCurrentViewportSegments(
-      mojo::PendingRemote<mojom::DeviceViewportSegmentsClient> client,
-      AddListenerAndGetCurrentViewportSegmentsCallback callback) override;
 
   void SetCurrentPostureForTesting(device::mojom::DevicePostureType posture);
   void Bind(mojo::PendingReceiver<mojom::DevicePostureProvider> receiver);
@@ -37,12 +34,9 @@ class FakeDevicePostureProvider : public mojom::DevicePostureProvider {
  private:
   void DispatchPostureChanges();
   mojo::ReceiverSet<mojom::DevicePostureProvider> receivers_;
-  mojo::RemoteSet<mojom::DevicePostureClient> posture_clients_;
-  mojo::RemoteSet<mojom::DeviceViewportSegmentsClient>
-      viewport_segment_clients_;
+  mojo::RemoteSet<mojom::DevicePostureProviderClient> clients_;
   mojom::DevicePostureType current_posture_ =
       mojom::DevicePostureType::kContinuous;
-  std::vector<gfx::Rect> current_viewport_segments_;
 };
 
 }  // namespace device

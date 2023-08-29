@@ -68,6 +68,7 @@ extern const char kHistogramCommitSentToFirstSubresourceLoadStart[];
 extern const char kHistogramNavigationToFirstSubresourceLoadStart[];
 extern const char kHistogramResourceLoadTimePrefix[];
 extern const char kHistogramTotalSubresourceLoadTimeAtFirstContentfulPaint[];
+extern const char kHistogramFirstEligibleToPaint[];
 extern const char kHistogramFirstEligibleToPaintToFirstPaint[];
 
 extern const char kHistogramPageLoadCpuTotalUsage[];

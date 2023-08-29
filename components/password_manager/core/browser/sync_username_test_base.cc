@@ -64,7 +64,6 @@ PasswordForm SyncUsernameTestBase::SimpleGaiaForm(const char* username) {
   form.username_value = ASCIIToUTF16(username);
   form.form_data = CreateSigninFormData(GURL(form.signon_realm), username);
   form.in_store = PasswordForm::Store::kProfileStore;
-  form.match_type = PasswordForm::MatchType::kExact;
   return form;
 }
 
@@ -76,7 +75,6 @@ PasswordForm SyncUsernameTestBase::SimpleNonGaiaForm(const char* username) {
   form.username_value = ASCIIToUTF16(username);
   form.form_data = CreateSigninFormData(GURL(form.signon_realm), username);
   form.in_store = PasswordForm::Store::kProfileStore;
-  form.match_type = PasswordForm::MatchType::kExact;
   return form;
 }
 
@@ -89,7 +87,6 @@ PasswordForm SyncUsernameTestBase::SimpleNonGaiaForm(const char* username,
   form.url = GURL(origin);
   form.form_data = CreateSigninFormData(GURL(form.signon_realm), username);
   form.in_store = PasswordForm::Store::kProfileStore;
-  form.match_type = PasswordForm::MatchType::kExact;
   return form;
 }
 

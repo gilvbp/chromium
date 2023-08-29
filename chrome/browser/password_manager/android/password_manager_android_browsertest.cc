@@ -66,9 +66,8 @@ class PasswordManagerAndroidBrowserTest
   net::EmbeddedTestServer https_server_;
 };
 
-// Disabled due to flakiness, see crbug.com/1464593.
 IN_PROC_BROWSER_TEST_P(PasswordManagerAndroidBrowserTest,
-                       DISABLED_TriggerFormSubmission) {
+                       TriggerFormSubmission) {
   base::HistogramTester uma_recorder;
   bool has_form_tag = GetParam();
   NavigateToFile(has_form_tag ? "/password/simple_password.html"

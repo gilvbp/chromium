@@ -588,8 +588,8 @@ export class AllSitesElement extends AllSitesElementBase {
    */
   private getClearDataButtonString_(): string {
     const buttonStringId = this.isFiltered_() ?
-        'siteSettingsDeleteDisplayedStorageLabel' :
-        'siteSettingsDeleteAllStorageLabel';
+        'siteSettingsClearDisplayedStorageLabel' :
+        'siteSettingsClearAllStorageLabel';
     return this.i18n(buttonStringId);
   }
 
@@ -719,8 +719,8 @@ export class AllSitesElement extends AllSitesElementBase {
    */
   private getClearAllStorageDialogTitle_(): string {
     const titleId = this.isFiltered_() ?
-        'siteSettingsDeleteDisplayedStorageDialogTitle' :
-        'siteSettingsDeleteAllStorageDialogTitle';
+        'siteSettingsClearDisplayedStorageDialogTitle' :
+        'siteSettingsClearAllStorageDialogTitle';
     return loadTimeData.substituteString(this.i18n(titleId), this.totalUsage_);
   }
 
@@ -734,12 +734,12 @@ export class AllSitesElement extends AllSitesElementBase {
     let messageId;
     if (anyAppsInstalled) {
       messageId = this.isFiltered_() ?
-          'siteSettingsDeleteDisplayedStorageConfirmationInstalled' :
-          'siteSettingsDeleteAllStorageConfirmationInstalled';
+          'siteSettingsClearDisplayedStorageConfirmationInstalled' :
+          'siteSettingsClearAllStorageConfirmationInstalled';
     } else {
       messageId = this.isFiltered_() ?
-          'siteSettingsDeleteDisplayedStorageConfirmation' :
-          'siteSettingsDeleteAllStorageConfirmation';
+          'siteSettingsClearDisplayedStorageConfirmation' :
+          'siteSettingsClearAllStorageConfirmation';
     }
 
     return loadTimeData.substituteString(

@@ -17,11 +17,34 @@
 #include "third_party/blink/renderer/platform/bindings/exception_state.h"
 #include "third_party/blink/renderer/platform/wtf/cross_thread_functional.h"
 #include "third_party/webrtc/api/frame_transformer_interface.h"
-#include "third_party/webrtc/api/test/mock_transformable_audio_frame.h"
 
 namespace blink {
 
-using ::testing::NiceMock;
+namespace {
+class FakeTransformableFrame : public webrtc::TransformableAudioFrameInterface {
+ public:
+  FakeTransformableFrame() = default;
+  ~FakeTransformableFrame() override = default;
+
+  rtc::ArrayView<const uint8_t> GetData() const override { return nullptr; }
+  void SetData(rtc::ArrayView<const uint8_t> data) override {}
+  uint32_t GetTimestamp() const override { return 0; }
+  uint32_t GetSsrc() const override { return 0; }
+  // 255 is not a valid payload type (which can be in the range [0..127]).
+  uint8_t GetPayloadType() const override { return 255; }
+  void SetRTPTimestamp(uint32_t timestamp) override {}
+  const webrtc::RTPHeader& GetHeader() const override { return header_; }
+  rtc::ArrayView<const uint32_t> GetContributingSources() const override {
+    return {};
+  }
+  const absl::optional<uint16_t> SequenceNumber() const override {
+    return absl::nullopt;
+  }
+
+ private:
+  webrtc::RTPHeader header_;
+};
+}  // namespace
 
 class RTCEncodedAudioUnderlyingSourceTest : public testing::Test {
  public:
@@ -49,8 +72,7 @@ TEST_F(RTCEncodedAudioUnderlyingSourceTest,
   ScriptPromiseTester read_tester(script_state,
                                   reader->read(script_state, exception_state));
   EXPECT_FALSE(read_tester.IsFulfilled());
-  source->OnFrameFromSource(
-      std::make_unique<NiceMock<webrtc::MockTransformableAudioFrame>>());
+  source->OnFrameFromSource(std::make_unique<FakeTransformableFrame>());
   read_tester.WaitUntilSettled();
   EXPECT_TRUE(read_tester.IsFulfilled());
 
@@ -80,14 +102,12 @@ TEST_F(RTCEncodedAudioUnderlyingSourceTest,
   for (int i = 0; i > RTCEncodedAudioUnderlyingSource::kMinQueueDesiredSize;
        --i) {
     EXPECT_EQ(source->Controller()->DesiredSize(), i);
-    source->OnFrameFromSource(
-        std::make_unique<NiceMock<webrtc::MockTransformableAudioFrame>>());
+    source->OnFrameFromSource(std::make_unique<FakeTransformableFrame>());
   }
   EXPECT_EQ(source->Controller()->DesiredSize(),
             RTCEncodedAudioUnderlyingSource::kMinQueueDesiredSize);
 
-  source->OnFrameFromSource(
-      std::make_unique<NiceMock<webrtc::MockTransformableAudioFrame>>());
+  source->OnFrameFromSource(std::make_unique<FakeTransformableFrame>());
   EXPECT_EQ(source->Controller()->DesiredSize(),
             RTCEncodedAudioUnderlyingSource::kMinQueueDesiredSize);
 

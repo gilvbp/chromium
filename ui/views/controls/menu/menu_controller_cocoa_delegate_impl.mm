@@ -4,10 +4,10 @@
 
 #import "ui/views/controls/menu/menu_controller_cocoa_delegate_impl.h"
 
-#include "base/apple/bridging.h"
-#include "base/apple/foundation_util.h"
 #include "base/logging.h"
-#import "base/message_loop/message_pump_apple.h"
+#include "base/mac/foundation_util.h"
+#import "base/mac/scoped_nsobject.h"
+#import "base/message_loop/message_pump_mac.h"
 #import "skia/ext/skia_utils_mac.h"
 #import "ui/base/cocoa/cocoa_base_utils.h"
 #include "ui/base/interaction/element_tracker_mac.h"
@@ -47,7 +47,7 @@ NSImage* NewTagImage(const ui::ColorProvider* color_provider) {
       color_provider->GetColor(ui::kColorBadgeInCocoaMenuForeground));
 
   NSDictionary* badge_attrs = @{
-    NSFontAttributeName : base::apple::CFToNSPtrCast(badge_font.GetCTFont()),
+    NSFontAttributeName : base::mac::CFToNSCast(badge_font.GetCTFont()),
     NSForegroundColorAttributeName : badge_text_color,
   };
 
@@ -120,10 +120,13 @@ NSImage* IPHDotImage(const ui::ColorProvider* color_provider) {
 
 // --- Private API begin ---
 
-// In macOS 13 and earlier, the internals of menus are handled by HI Toolbox,
-// and the bridge to that code is NSCarbonMenuImpl. Starting with macOS 14, the
-// internals of menus are in NSCocoaMenuImpl. Abstract away into a protocol the
-// (one) common method that this code uses that is present on both Impl classes.
+// Historically, all menu handling in macOS was handled by HI Toolbox, and the
+// bridge from Cocoa to Carbon to use Carbon's menus was the class
+// NSCarbonMenuImpl. However, starting in macOS 13, it looks like this is
+// changing, as now a NSCocoaMenuImpl class exists, which is optionally created
+// in -[NSMenu _createMenuImpl] and may possibly in the future be returned from
+// -[NSMenu _menuImpl]. Therefore, abstract away into a protocol the (one)
+// common method that this code uses that is present on both Impl classes.
 @protocol CrNSMenuImpl <NSObject>
 @optional
 - (void)highlightItemAtIndex:(NSInteger)index;
@@ -136,10 +139,48 @@ NSImage* IPHDotImage(const ui::ColorProvider* color_provider) {
 
 // --- Private API end ---
 
-@implementation MenuControllerCocoaDelegateImpl {
-  NSMutableArray* __strong _menuObservers;
+// An NSTextAttachmentCell to show the [New] tag on a menu item.
+//
+// /!\ WARNING /!\
+//
+// Do NOT update to the "new in macOS 10.11" API of NSTextAttachment.image until
+// macOS 10.15 is the minimum required macOS for Chromium. Because menus are
+// Carbon-based, the new NSTextAttachment.image API did not function correctly
+// until then. Specifically, in macOS 10.11-10.12, images that use the new API
+// do not appear. In macOS 10.13-10.14, the flipped flag of -[NSImage
+// imageWithSize:flipped:drawingHandler:] is not respected. Only when 10.15 is
+// the minimum required OS can https://crrev.com/c/2572937 be relanded.
+@interface NewTagAttachmentCell : NSTextAttachmentCell
+@end
+
+@implementation NewTagAttachmentCell
+
+- (instancetype)initWithColorProvider:(const ui::ColorProvider*)colorProvider {
+  if (self = [super init]) {
+    self.image = NewTagImage(colorProvider);
+  }
+  return self;
+}
+
+- (NSPoint)cellBaselineOffset {
+  // The baseline offset of the badge image to the menu text baseline.
+  const int kBadgeBaselineOffset = features::IsChromeRefresh2023() ? -2 : -4;
+  return NSMakePoint(0, kBadgeBaselineOffset);
+}
+
+- (NSSize)cellSize {
+  return [self.image size];
+}
+
+@end
+
+@interface MenuControllerCocoaDelegateImpl () {
+  NSMutableArray* _menuObservers;
   gfx::Rect _anchorRect;
 }
+@end
+
+@implementation MenuControllerCocoaDelegateImpl
 
 - (instancetype)init {
   if (self = [super init]) {
@@ -150,8 +191,12 @@ NSImage* IPHDotImage(const ui::ColorProvider* color_provider) {
 
 - (void)dealloc {
   for (NSObject* obj in _menuObservers) {
-    [NSNotificationCenter.defaultCenter removeObserver:obj];
+    [[NSNotificationCenter defaultCenter] removeObserver:obj];
   }
+
+  [_menuObservers release];
+
+  [super dealloc];
 }
 
 - (void)setAnchorRect:(gfx::Rect)rect {
@@ -163,18 +208,17 @@ NSImage* IPHDotImage(const ui::ColorProvider* color_provider) {
                       atIndex:(size_t)index
             withColorProvider:(const ui::ColorProvider*)colorProvider {
   if (model->IsNewFeatureAt(index)) {
-    NSTextAttachment* attachment = [[NSTextAttachment alloc] initWithData:nil
-                                                                   ofType:nil];
-    attachment.image = NewTagImage(colorProvider);
-    NSSize newTagSize = attachment.image.size;
+    NSMutableAttributedString* attrTitle = [[[NSMutableAttributedString alloc]
+        initWithString:menuItem.title] autorelease];
 
-    // The baseline offset of the badge image to the menu text baseline.
-    const int kBadgeBaselineOffset = features::IsChromeRefresh2023() ? -2 : -4;
-    attachment.bounds = NSMakeRect(0, kBadgeBaselineOffset, newTagSize.width,
-                                   newTagSize.height);
+    // /!\ WARNING /!\ Do not update this to use NSTextAttachment.image until
+    // macOS 10.15 is the minimum required OS. See the details on the class
+    // comment above.
+    NSTextAttachment* attachment =
+        [[[NSTextAttachment alloc] init] autorelease];
+    attachment.attachmentCell = [[[NewTagAttachmentCell alloc]
+        initWithColorProvider:colorProvider] autorelease];
 
-    NSMutableAttributedString* attrTitle =
-        [[NSMutableAttributedString alloc] initWithString:menuItem.title];
     [attrTitle
         appendAttributedString:[NSAttributedString
                                    attributedStringWithAttachment:attachment]];
@@ -248,7 +292,7 @@ NSImage* IPHDotImage(const ui::ColorProvider* color_provider) {
             // guess whether the menu should appear to the left or right of the
             // anchor, if the anchor is near one side of the screen the menu
             // could end up on the other side.
-            gfx::Rect screen_rect = self->_anchorRect;
+            gfx::Rect screen_rect = _anchorRect;
             CGSize menu_size = [menu_obj size];
             screen_rect.Inset(gfx::Insets::TLBR(
                 0, -menu_size.width, -menu_size.height, -menu_size.width));
@@ -276,7 +320,7 @@ NSImage* IPHDotImage(const ui::ColorProvider* color_provider) {
     };
 
     [_menuObservers
-        addObject:[NSNotificationCenter.defaultCenter
+        addObject:[[NSNotificationCenter defaultCenter]
                       addObserverForName:NSMenuDidBeginTrackingNotification
                                   object:menu
                                    queue:nil
@@ -305,7 +349,7 @@ NSImage* IPHDotImage(const ui::ColorProvider* color_provider) {
     };
 
     [_menuObservers
-        addObject:[NSNotificationCenter.defaultCenter
+        addObject:[[NSNotificationCenter defaultCenter]
                       addObserverForName:NSMenuDidEndTrackingNotification
                                   object:menu
                                    queue:nil

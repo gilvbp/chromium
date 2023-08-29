@@ -6,47 +6,33 @@
 #define THIRD_PARTY_BLINK_RENDERER_CORE_DOM_DOCUMENT_PART_ROOT_H_
 
 #include "third_party/blink/renderer/core/core_export.h"
-#include "third_party/blink/renderer/core/dom/container_node.h"
 #include "third_party/blink/renderer/core/dom/document.h"
 #include "third_party/blink/renderer/core/dom/part_root.h"
-#include "third_party/blink/renderer/platform/bindings/script_wrappable.h"
 
 namespace blink {
 
 // Implementation of the DocumentPartRoot class, which is part of the DOM Parts
 // API. A DocumentPartRoot holds the parts for a Document or DocumentFragment.
 // A Document always owns one DocumentPartRoot.
-class CORE_EXPORT DocumentPartRoot : public ScriptWrappable, public PartRoot {
+class CORE_EXPORT DocumentPartRoot : public PartRoot {
   DEFINE_WRAPPERTYPEINFO();
 
  public:
-  explicit DocumentPartRoot(ContainerNode& root_container)
-      : root_container_(root_container) {}
+  explicit DocumentPartRoot(Document& document) : document_(document) {}
   DocumentPartRoot(const DocumentPartRoot&) = delete;
   ~DocumentPartRoot() override = default;
 
-  Document& GetDocument() const override {
-    return root_container_->GetDocument();
-  }
-  bool IsDocumentPartRoot() const override { return true; }
-  Node* FirstIncludedChildNode() const override {
-    return root_container_->firstChild();
-  }
-  Node* LastIncludedChildNode() const override {
-    return root_container_->lastChild();
-  }
+  Document* GetDocument() const override { return document_; }
+  bool SupportsContainedParts() const override { return true; }
 
+  String ToString() const override { return "DocumentPartRoot"; }
   void Trace(Visitor*) const override;
 
-  // PartRoot API
-  PartRootUnion* clone(ExceptionState&);
-  ContainerNode* rootContainer() const override { return root_container_; }
-
  protected:
-  const PartRoot* GetParentPartRoot() const override { return nullptr; }
+  bool IsDocumentPartRoot() const override { return true; }
 
  private:
-  Member<ContainerNode> root_container_;
+  Member<Document> document_;
 };
 
 }  // namespace blink

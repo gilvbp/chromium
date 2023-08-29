@@ -3,7 +3,7 @@
 # found in the LICENSE file.
 """GPU-specific implementation of the unexpected passes' builders module."""
 
-from typing import Any, Dict, Optional, Set
+import typing
 
 from unexpected_passes_common import builders
 from unexpected_passes_common import constants
@@ -15,10 +15,11 @@ from chrome_telemetry_build import android_browser_types as abt
 class GpuBuilders(builders.Builders):
   def __init__(self, suite: str, include_internal_builders: bool):
     super().__init__(suite, include_internal_builders)
-    self._isolate_names: Optional[Set[str]] = None
-    self._non_chromium_builders: Optional[Set[data_types.BuilderEntry]] = None
+    self._isolate_names = None
+    self._non_chromium_builders = None
 
-  def _BuilderRunsTestOfInterest(self, test_map: Dict[str, Any]) -> bool:
+  def _BuilderRunsTestOfInterest(self, test_map: typing.Dict[str, typing.Any]
+                                 ) -> bool:
     # Builders running tests in Chrome Labs.
     tests = test_map.get('isolated_scripts', [])
     for t in tests:
@@ -37,7 +38,7 @@ class GpuBuilders(builders.Builders):
 
     return False
 
-  def GetIsolateNames(self) -> Set[str]:
+  def GetIsolateNames(self) -> typing.Set[str]:
     if self._isolate_names is None:
       self._isolate_names = {
           'telemetry_gpu_integration_test',
@@ -52,7 +53,7 @@ class GpuBuilders(builders.Builders):
   def GetFakeCiBuilders(self) -> builders.FakeBuildersDict:
     return {}
 
-  def GetNonChromiumBuilders(self) -> Set[data_types.BuilderEntry]:
+  def GetNonChromiumBuilders(self) -> typing.Set[data_types.BuilderEntry]:
     if self._non_chromium_builders is None:
       str_builders = {
           'Win V8 FYI Release (NVIDIA)',

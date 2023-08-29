@@ -156,9 +156,8 @@ bool ContextMenuContentType::SupportsGroupInternal(int group) {
 #endif
 
     case ITEM_GROUP_PASSWORD:
-      return (params_.input_field_type ==
-              blink::mojom::ContextMenuDataInputFieldType::kPassword) ||
-             params_.is_password_type_by_heuristics;
+      return params_.input_field_type ==
+             blink::mojom::ContextMenuDataInputFieldType::kPassword;
 
     case ITEM_GROUP_AUTOFILL:
       return params_.input_field_type !=

@@ -111,8 +111,7 @@ class CrostiniFeaturesAllowedTest : public testing::Test {
   FakeCrostiniFeatures crostini_features_;
   base::test::ScopedFeatureList scoped_feature_list_;
 
-  raw_ptr<ash::FakeChromeUserManager, DanglingUntriaged | ExperimentalAsh>
-      user_manager_;
+  raw_ptr<ash::FakeChromeUserManager, ExperimentalAsh> user_manager_;
   user_manager::ScopedUserManager scoped_user_manager_;
 };
 
@@ -249,8 +248,7 @@ class CrostiniFeaturesAdbSideloadingTest : public testing::Test {
   ash::ScopedCrosSettingsTestHelper scoped_settings_helper_{
       /* create_settings_service=*/false};
 
-  raw_ptr<ash::FakeChromeUserManager, DanglingUntriaged | ExperimentalAsh>
-      user_manager_;
+  raw_ptr<ash::FakeChromeUserManager, ExperimentalAsh> user_manager_;
   user_manager::ScopedUserManager scoped_user_manager_;
 };
 

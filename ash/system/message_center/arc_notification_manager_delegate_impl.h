@@ -22,7 +22,7 @@ class ArcNotificationManagerDelegateImpl
   ~ArcNotificationManagerDelegateImpl() override;
 
   // ArcNotificationManagerDelegate:
-  bool IsManagedGuestSessionOrKiosk() const override;
+  bool IsPublicSessionOrKiosk() const override;
   void ShowMessageCenter() override;
   void HideMessageCenter() override;
 };

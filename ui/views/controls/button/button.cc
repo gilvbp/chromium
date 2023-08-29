@@ -6,6 +6,7 @@
 
 #include <utility>
 
+#include "base/debug/alias.h"
 #include "base/functional/bind.h"
 #include "base/strings/utf_string_conversions.h"
 #include "build/build_config.h"
@@ -64,6 +65,9 @@ void Button::DefaultButtonControllerDelegate::RequestFocusFromEvent() {
 void Button::DefaultButtonControllerDelegate::NotifyClick(
     const ui::Event& event) {
   button()->NotifyClick(event);
+  // Avoid outgoing tail calls to generate better stack frames for a crash.
+  // https://crbug.com/1215247
+  base::debug::Alias(nullptr);
 }
 
 void Button::DefaultButtonControllerDelegate::OnClickCanceled(

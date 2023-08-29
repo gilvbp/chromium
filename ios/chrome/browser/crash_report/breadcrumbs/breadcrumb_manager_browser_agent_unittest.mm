@@ -5,7 +5,6 @@
 #import "ios/chrome/browser/crash_report/breadcrumbs/breadcrumb_manager_browser_agent.h"
 
 #import "base/containers/circular_deque.h"
-#import "base/containers/contains.h"
 #import "base/functional/bind.h"
 #import "components/breadcrumbs/core/breadcrumb_manager.h"
 #import "ios/chrome/browser/crash_report/breadcrumbs/breadcrumb_manager_tab_helper.h"
@@ -30,6 +29,10 @@
 #import "ios/web/public/test/web_task_environment.h"
 #import "ios/web/public/web_state.h"
 #import "testing/platform_test.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace {
 
@@ -139,7 +142,7 @@ TEST_F(BreadcrumbManagerBrowserAgentTest, BatchOperations) {
 
   const auto& events = GetEvents();
   ASSERT_EQ(1u, events.size());
-  EXPECT_TRUE(base::Contains(events.front(), "Inserted 2 tabs"))
+  EXPECT_NE(std::string::npos, events.front().find("Inserted 2 tabs"))
       << events.front();
 
   // Close multiple WebStates.
@@ -152,7 +155,8 @@ TEST_F(BreadcrumbManagerBrowserAgentTest, BatchOperations) {
   }));
 
   ASSERT_EQ(2u, events.size());
-  EXPECT_TRUE(base::Contains(events.back(), "Closed 2 tabs")) << events.back();
+  EXPECT_NE(std::string::npos, events.back().find("Closed 2 tabs"))
+      << events.back();
 }
 
 // Tests logging kBreadcrumbOverlayJsAlert.
@@ -173,9 +177,9 @@ TEST_F(BreadcrumbManagerBrowserAgentTest, JavaScriptAlertOverlay) {
   const auto& events = GetEvents();
   ASSERT_EQ(1u, events.size());
 
-  EXPECT_TRUE(base::Contains(events.back(), kBreadcrumbOverlay))
+  EXPECT_NE(std::string::npos, events.back().find(kBreadcrumbOverlay))
       << events.back();
-  EXPECT_TRUE(base::Contains(events.back(), kBreadcrumbOverlayJsAlert))
+  EXPECT_NE(std::string::npos, events.back().find(kBreadcrumbOverlayJsAlert))
       << events.back();
 }
 
@@ -197,9 +201,9 @@ TEST_F(BreadcrumbManagerBrowserAgentTest, JavaScriptConfirmOverlay) {
   const auto& events = GetEvents();
   ASSERT_EQ(1u, events.size());
 
-  EXPECT_TRUE(base::Contains(events.back(), kBreadcrumbOverlay))
+  EXPECT_NE(std::string::npos, events.back().find(kBreadcrumbOverlay))
       << events.back();
-  EXPECT_TRUE(base::Contains(events.back(), kBreadcrumbOverlayJsConfirm))
+  EXPECT_NE(std::string::npos, events.back().find(kBreadcrumbOverlayJsConfirm))
       << events.back();
 }
 
@@ -222,9 +226,9 @@ TEST_F(BreadcrumbManagerBrowserAgentTest, JavaScriptPromptOverlay) {
   const auto& events = GetEvents();
   ASSERT_EQ(1u, events.size());
 
-  EXPECT_TRUE(base::Contains(events.back(), kBreadcrumbOverlay))
+  EXPECT_NE(std::string::npos, events.back().find(kBreadcrumbOverlay))
       << events.back();
-  EXPECT_TRUE(base::Contains(events.back(), kBreadcrumbOverlayJsPrompt))
+  EXPECT_NE(std::string::npos, events.back().find(kBreadcrumbOverlayJsPrompt))
       << events.back();
 }
 
@@ -245,9 +249,9 @@ TEST_F(BreadcrumbManagerBrowserAgentTest, HttpAuthOverlay) {
   const auto& events = GetEvents();
   ASSERT_EQ(1u, events.size());
 
-  EXPECT_TRUE(base::Contains(events.back(), kBreadcrumbOverlay))
+  EXPECT_NE(std::string::npos, events.back().find(kBreadcrumbOverlay))
       << events.back();
-  EXPECT_TRUE(base::Contains(events.back(), kBreadcrumbOverlayHttpAuth))
+  EXPECT_NE(std::string::npos, events.back().find(kBreadcrumbOverlayHttpAuth))
       << events.back();
 }
 
@@ -268,9 +272,9 @@ TEST_F(BreadcrumbManagerBrowserAgentTest, AppLaunchOverlay) {
   const auto& events = GetEvents();
   ASSERT_EQ(1u, events.size());
 
-  EXPECT_TRUE(base::Contains(events.back(), kBreadcrumbOverlay))
+  EXPECT_NE(std::string::npos, events.back().find(kBreadcrumbOverlay))
       << events.back();
-  EXPECT_TRUE(base::Contains(events.back(), kBreadcrumbOverlayAppLaunch))
+  EXPECT_NE(std::string::npos, events.back().find(kBreadcrumbOverlayAppLaunch))
       << events.back();
 }
 
@@ -290,26 +294,27 @@ TEST_F(BreadcrumbManagerBrowserAgentTest, AlertOverlay) {
   const auto& events = GetEvents();
   ASSERT_EQ(1u, events.size());
 
-  EXPECT_TRUE(base::Contains(events.back(), kBreadcrumbOverlay))
+  EXPECT_NE(std::string::npos, events.back().find(kBreadcrumbOverlay))
       << events.back();
-  EXPECT_TRUE(base::Contains(events.back(), kBreadcrumbOverlayAlert))
+  EXPECT_NE(std::string::npos, events.back().find(kBreadcrumbOverlayAlert))
       << events.back();
-  EXPECT_FALSE(base::Contains(events.back(), kBreadcrumbOverlayActivated))
+  EXPECT_EQ(std::string::npos, events.back().find(kBreadcrumbOverlayActivated))
       << events.back();
 
   // Switching tabs should log new overlay presentations.
   InsertWebState(browser_.get());
   ASSERT_EQ(2u, events.size());
-  EXPECT_TRUE(base::Contains(events.back(), "Insert active Tab"))
+  EXPECT_NE(std::string::npos, events.back().find("Insert active Tab"))
       << events.back();
 
   browser_->GetWebStateList()->ActivateWebStateAt(0);
   ASSERT_EQ(4u, events.size());
   auto activation = std::next(events.begin(), 2);
-  EXPECT_TRUE(base::Contains(*activation, kBreadcrumbOverlay)) << *activation;
-  EXPECT_TRUE(base::Contains(*activation, kBreadcrumbOverlayAlert))
+  EXPECT_NE(std::string::npos, activation->find(kBreadcrumbOverlay))
       << *activation;
-  EXPECT_TRUE(base::Contains(*activation, kBreadcrumbOverlayActivated))
+  EXPECT_NE(std::string::npos, activation->find(kBreadcrumbOverlayAlert))
+      << *activation;
+  EXPECT_NE(std::string::npos, activation->find(kBreadcrumbOverlayActivated))
       << *activation;
   queue->CancelAllRequests();
 }

@@ -8,7 +8,6 @@ import android.text.format.DateUtils;
 
 import org.chromium.base.ApplicationState;
 import org.chromium.base.ApplicationStatus;
-import org.chromium.base.ResettersForTesting;
 import org.chromium.base.ThreadUtils;
 import org.chromium.base.metrics.RecordHistogram;
 import org.chromium.base.metrics.RecordUserAction;
@@ -70,9 +69,7 @@ public class MainIntentBehaviorMetrics {
      * Allows test to override the timeout duration.
      */
     public static void setTimeoutDurationMsForTesting(long duration) {
-        var oldValue = sTimeoutDurationMs;
         sTimeoutDurationMs = duration;
-        ResettersForTesting.register(() -> sTimeoutDurationMs = oldValue);
     }
 
     /**

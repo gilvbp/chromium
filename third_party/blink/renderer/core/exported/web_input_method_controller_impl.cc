@@ -182,6 +182,9 @@ int WebInputMethodControllerImpl::ComputeWebTextInputNextPreviousFlags() {
 }
 
 WebTextInputType WebInputMethodControllerImpl::TextInputType() {
+  if (IsEditContextActive())
+    return GetInputMethodController().GetActiveEditContext()->TextInputType();
+
   return GetFrame()->GetInputMethodController().TextInputType();
 }
 
@@ -189,6 +192,15 @@ void WebInputMethodControllerImpl::GetLayoutBounds(
     gfx::Rect* control_bounds,
     gfx::Rect* selection_bounds) {
   GetInputMethodController().GetLayoutBounds(control_bounds, selection_bounds);
+}
+
+bool WebInputMethodControllerImpl::IsVirtualKeyboardPolicyManual() const {
+  if (IsEditContextActive()) {
+    return GetInputMethodController()
+        .GetActiveEditContext()
+        ->IsVirtualKeyboardPolicyManual();
+  }
+  return false;  // Default should always be automatic.
 }
 
 WebRange WebInputMethodControllerImpl::CompositionRange() const {

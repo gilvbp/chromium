@@ -22,16 +22,12 @@ class AuthHubConnector;
 // as `kFactorReady`, otherwise engine might either ignore attempt it or
 // queue it.
 // This API allows UI elements to send data to engines without exposing
-// any implementation details.
+// any implementation detals.
 class COMPONENT_EXPORT(CHROMEOS_ASH_COMPONENTS_OSAUTH) AuthEngineApi {
  public:
   static void AuthenticateWithPassword(AuthHubConnector* connector,
                                        AshAuthFactor factor,
                                        const std::string& raw_password);
-
-  static void AuthenticateWithPin(AuthHubConnector* connector,
-                                  AshAuthFactor factor,
-                                  const std::string& raw_pin);
 };
 
 }  // namespace ash

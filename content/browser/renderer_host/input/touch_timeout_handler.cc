@@ -11,6 +11,7 @@
 #include "base/metrics/histogram_macros.h"
 #include "base/trace_event/trace_event.h"
 #include "content/browser/renderer_host/input/passthrough_touch_event_queue.h"
+#include "content/common/input/web_touch_event_traits.h"
 #include "ui/events/base_event_utils.h"
 #include "ui/gfx/geometry/point_f.h"
 
@@ -67,7 +68,7 @@ void TouchTimeoutHandler::StartIfNecessary(
   if (!ShouldTouchTriggerTimeout(event.event))
     return;
 
-  if (event.event.IsTouchSequenceStart()) {
+  if (WebTouchEventTraits::IsTouchSequenceStart(event.event)) {
     LogSequenceStartForUMA();
     enabled_for_current_sequence_ = true;
   }
@@ -114,7 +115,7 @@ bool TouchTimeoutHandler::FilterEvent(const WebTouchEvent& event) {
   if (!HasTimeoutEvent())
     return false;
 
-  if (event.IsTouchSequenceStart()) {
+  if (WebTouchEventTraits::IsTouchSequenceStart(event)) {
     // If a new sequence is observed while we're still waiting on the
     // timed-out sequence response, also count the new sequence as timed-out.
     LogSequenceStartForUMA();
@@ -164,7 +165,7 @@ bool TouchTimeoutHandler::AckedTimeoutEventRequiresCancel(
   DCHECK(HasTimeoutEvent());
   if (ack_result != blink::mojom::InputEventResultState::kNoConsumerExists)
     return true;
-  return !timeout_event_.event.IsTouchSequenceStart();
+  return !WebTouchEventTraits::IsTouchSequenceStart(timeout_event_.event);
 }
 
 void TouchTimeoutHandler::SetPendingAckState(

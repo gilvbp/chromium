@@ -8,7 +8,7 @@
  */
 
 import '//resources/polymer/v3_0/iron-icon/iron-icon.js';
-import '//resources/ash/common/quick_unlock/fingerprint_progress.js';
+import '//resources/cr_elements/cr_fingerprint/cr_fingerprint_progress_arc.js';
 import '../../components/oobe_icons.html.js';
 import '../../components/common_styles/oobe_common_styles.css.js';
 import '../../components/common_styles/oobe_dialog_host_styles.css.js';
@@ -63,7 +63,7 @@ const FingerprintSetupBase = mixinBehaviors(
 /**
  * @typedef {{
  *   setupFingerprint:  OobeAdaptiveDialog,
- *   arc:  FingerprintProgressElement,
+ *   arc:  CrFingerprintProgressArcElement,
  * }}
  */
 FingerprintSetupBase.$;
@@ -126,14 +126,6 @@ class FingerprintSetup extends FingerprintSetupBase {
         type: Boolean,
         value: false,
       },
-
-      /**
-       * Indicates whether Jelly is enabled.
-       */
-      isDynamicColor_: {
-        type: Boolean,
-        value: loadTimeData.getBoolean('isOobeJellyEnabled'),
-      },
     };
   }
 
@@ -183,7 +175,6 @@ class FingerprintSetup extends FingerprintSetupBase {
    */
   onEnrollScanDone(scanResult, isComplete, percentComplete) {
     this.setUIStep(FingerprintUIState.PROGRESS);
-    this.$.arc.reset();
 
     this.percentComplete_ = percentComplete;
     this.scanResult_ = scanResult;

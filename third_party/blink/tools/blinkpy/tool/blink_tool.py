@@ -71,7 +71,7 @@ class BlinkTool(Host):
     ]
 
     def __init__(self, path):
-        super().__init__()
+        super(BlinkTool, self).__init__()
         self._path = path
         io_pool = ThreadPoolExecutor(max_workers=RebaselineCL.MAX_WORKERS)
         self.commands = [
@@ -84,14 +84,11 @@ class BlinkTool(Host):
             PrintExpectations(),
             Rebaseline(),
             RebaselineCL(self, io_pool),
-            UpdateMetadata(self, io_pool),
+            UpdateMetadata(self),
             LintWPT(self),
         ]
         self.help_command = HelpCommand(tool=self)
         self.commands.append(self.help_command)
-
-    def __reduce__(self):
-        return (self.__class__, (self._path, ))
 
     def main(self, argv=None):
         argv = argv or sys.argv

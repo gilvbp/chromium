@@ -156,8 +156,7 @@ class MultiWordSuggester : public Suggester {
   absl::optional<int> focused_context_id_;
 
   // Not owned by this class
-  raw_ptr<SuggestionHandlerInterface, DanglingUntriaged | ExperimentalAsh>
-      suggestion_handler_;
+  raw_ptr<SuggestionHandlerInterface, ExperimentalAsh> suggestion_handler_;
 
   // Current suggestion state
   SuggestionState state_;

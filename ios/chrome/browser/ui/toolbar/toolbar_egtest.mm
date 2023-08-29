@@ -19,6 +19,10 @@
 #import "net/test/embedded_test_server/embedded_test_server.h"
 #import "ui/base/l10n/l10n_util_mac.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 using chrome_test_util::OmniboxText;
 using chrome_test_util::SystemSelectionCallout;
 using chrome_test_util::SystemSelectionCalloutCopyButton;
@@ -363,7 +367,7 @@ void WaitForOmniboxSuggestion(NSString* suggestion, int section, int row) {
   [ChromeEarlGrey simulatePhysicalKeyboardEvent:@"b" flags:0];
   WaitForOmniboxSuggestion(@"ab", 0, 0);
 
-  [ChromeEarlGrey simulatePhysicalKeyboardEvent:@"C" flags:UIKeyModifierShift];
+  [ChromeEarlGrey simulatePhysicalKeyboardEvent:@"C" flags:0];
   WaitForOmniboxSuggestion(@"abC", 0, 0);
 
   [ChromeEarlGrey simulatePhysicalKeyboardEvent:@"1" flags:0];
@@ -372,13 +376,13 @@ void WaitForOmniboxSuggestion(NSString* suggestion, int section, int row) {
   [ChromeEarlGrey simulatePhysicalKeyboardEvent:@"2" flags:0];
   WaitForOmniboxSuggestion(@"abC12", 0, 0);
 
-  [ChromeEarlGrey simulatePhysicalKeyboardEvent:@"@" flags:UIKeyModifierShift];
+  [ChromeEarlGrey simulatePhysicalKeyboardEvent:@"@" flags:0];
   WaitForOmniboxSuggestion(@"abC12@", 0, 0);
 
-  [ChromeEarlGrey simulatePhysicalKeyboardEvent:@"{" flags:UIKeyModifierShift];
+  [ChromeEarlGrey simulatePhysicalKeyboardEvent:@"{" flags:0];
   WaitForOmniboxSuggestion(@"abC12@{", 0, 0);
 
-  [ChromeEarlGrey simulatePhysicalKeyboardEvent:@"#" flags:UIKeyModifierShift];
+  [ChromeEarlGrey simulatePhysicalKeyboardEvent:@"#" flags:0];
   WaitForOmniboxSuggestion(@"abC12@{#", 0, 0);
 
   id<GREYMatcher> cancelButton =

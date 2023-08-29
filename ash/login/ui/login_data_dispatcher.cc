@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 #include "ash/login/ui/login_data_dispatcher.h"
+#include "ash/constants/ash_features.h"
 
 class AccountId;
 
@@ -65,6 +66,10 @@ void LoginDataDispatcher::Observer::OnForceOnlineSignInForUser(
 
 void LoginDataDispatcher::Observer::OnLockScreenNoteStateChanged(
     mojom::TrayActionState state) {}
+
+void LoginDataDispatcher::Observer::OnShowEasyUnlockIcon(
+    const AccountId& user,
+    const EasyUnlockIconInfo& icon_info) {}
 
 void LoginDataDispatcher::Observer::OnWarningMessageUpdated(
     const std::u16string& message) {}
@@ -215,6 +220,18 @@ void LoginDataDispatcher::ForceOnlineSignInForUser(const AccountId& user) {
 void LoginDataDispatcher::SetLockScreenNoteState(mojom::TrayActionState state) {
   for (auto& observer : observers_) {
     observer.OnLockScreenNoteStateChanged(state);
+  }
+}
+
+void LoginDataDispatcher::ShowEasyUnlockIcon(
+    const AccountId& user,
+    const EasyUnlockIconInfo& icon_info) {
+  if (base::FeatureList::IsEnabled(ash::features::kSmartLockUIRevamp)) {
+    return;
+  }
+
+  for (auto& observer : observers_) {
+    observer.OnShowEasyUnlockIcon(user, icon_info);
   }
 }
 

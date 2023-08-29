@@ -31,7 +31,6 @@
 #endif  // BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS) || BUILDFLAG(IS_WIN)
 #if BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS)
 #include "base/no_destructor.h"
-#include "chrome/common/media/component_widevine_cdm_hint_file_linux.h"
 #include "components/cdm/common/cdm_manifest.h"
 #include "media/cdm/supported_audio_codecs.h"
 // Needed for WIDEVINE_CDM_MIN_GLIBC_VERSION. This file is in
@@ -42,6 +41,9 @@
 #include <gnu/libc-version.h>
 #include "base/version.h"
 #endif  // defined(WIDEVINE_CDM_MIN_GLIBC_VERSION)
+#if !BUILDFLAG(IS_CHROMEOS_ASH)
+#include "chrome/common/media/component_widevine_cdm_hint_file_linux.h"
+#endif  // !BUILDFLAG(IS_CHROMEOS_ASH)
 #endif  // BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS)
 #endif  // BUILDFLAG(ENABLE_WIDEVINE)
 
@@ -80,7 +82,6 @@ std::unique_ptr<content::CdmInfo> CreateCdmInfoFromWidevineDirectory(
       media::GetPlatformSpecificDirectory(cdm_base_path)
           .Append(base::GetNativeLibraryName(kWidevineCdmLibraryName));
   if (!base::PathExists(cdm_library_path)) {
-    DLOG(ERROR) << __func__ << " no directory: " << cdm_library_path;
     return nullptr;
   }
 
@@ -89,7 +90,6 @@ std::unique_ptr<content::CdmInfo> CreateCdmInfoFromWidevineDirectory(
   base::Version version;
   media::CdmCapability capability;
   if (!ParseCdmManifestFromPath(manifest_path, &version, &capability)) {
-    DLOG(ERROR) << __func__ << " no manifest: " << manifest_path;
     return nullptr;
   }
 
@@ -121,8 +121,8 @@ content::CdmInfo* GetBundledWidevine() {
       }());
   return s_cdm_info->get();
 }
-#endif  // BUILDFLAG(BUNDLE_WIDEVINE_CDM) &&
-        // (BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS))
+#endif  // BUILDFLAG(BUNDLE_WIDEVINE_CDM) && (BUILDFLAG(IS_LINUX) ||
+        // BUILDFLAG(IS_CHROMEOS))
 
 #if BUILDFLAG(ENABLE_WIDEVINE_CDM_COMPONENT) && \
     (BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS))
@@ -145,8 +145,8 @@ content::CdmInfo* GetComponentUpdatedWidevine() {
       }());
   return s_cdm_info->get();
 }
-#endif  // BUILDFLAG(ENABLE_WIDEVINE_CDM_COMPONENT) &&
-        // (BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS))
+#endif  // BUILDFLAG(ENABLE_WIDEVINE_CDM_COMPONENT) && (BUILDFLAG(IS_LINUX) ||
+        // BUILDFLAG(IS_CHROMEOS))
 
 void AddSoftwareSecureWidevine(std::vector<content::CdmInfo>* cdms) {
   DVLOG(1) << __func__;

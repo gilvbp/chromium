@@ -12,11 +12,12 @@ import org.chromium.base.annotations.CalledByNative;
 import org.chromium.base.annotations.JNINamespace;
 import org.chromium.base.annotations.NativeClassQualifiedName;
 import org.chromium.base.annotations.NativeMethods;
+import org.chromium.chrome.browser.feed.hooks.FeedHooks;
+import org.chromium.chrome.browser.feed.hooks.FeedHooksImpl;
 import org.chromium.chrome.browser.feed.v2.ContentOrder;
 import org.chromium.chrome.browser.feed.v2.FeedUserActionType;
 import org.chromium.chrome.browser.xsurface.ImageCacheHelper;
 import org.chromium.chrome.browser.xsurface.ProcessScope;
-import org.chromium.chrome.browser.xsurface_provider.XSurfaceProcessScopeProvider;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.Locale;
@@ -52,8 +53,23 @@ public final class FeedServiceBridge {
         return null;
     }
 
+    private static ProcessScope sXSurfaceProcessScope;
+
     public static ProcessScope xSurfaceProcessScope() {
-        return XSurfaceProcessScopeProvider.getProcessScope();
+        if (sXSurfaceProcessScope != null) {
+            return sXSurfaceProcessScope;
+        }
+        FeedHooks feedHooks = FeedHooksImpl.getInstance();
+        if (!feedHooks.isEnabled()) {
+            return null;
+        }
+        sXSurfaceProcessScope = feedHooks.createProcessScope(
+                getDependencyProviderFactory().createProcessScopeDependencyProvider());
+        return sXSurfaceProcessScope;
+    }
+
+    public static void setProcessScopeForTesting(ProcessScope processScope) {
+        sXSurfaceProcessScope = processScope;
     }
 
     private static FeedServiceUtil sFeedServiceUtil;
@@ -123,6 +139,10 @@ public final class FeedServiceBridge {
         return FeedServiceBridgeJni.get().getLoadMoreTriggerScrollDistanceDp();
     }
 
+    public static void reportOpenVisitComplete(long visitTimeMs) {
+        FeedServiceBridgeJni.get().reportOpenVisitComplete(visitTimeMs);
+    }
+
     public static long getReliabilityLoggingId() {
         return FeedServiceBridgeJni.get().getReliabilityLoggingId();
     }
@@ -185,6 +205,7 @@ public final class FeedServiceBridge {
         void startup();
         int getLoadMoreTriggerLookahead();
         int getLoadMoreTriggerScrollDistanceDp();
+        void reportOpenVisitComplete(long visitTimeMs);
         long getReliabilityLoggingId();
         void reportOtherUserAction(@StreamKind int streamKind, @FeedUserActionType int userAction);
         @ContentOrder

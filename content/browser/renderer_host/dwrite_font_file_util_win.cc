@@ -9,9 +9,12 @@
 #include <vector>
 
 #include "base/i18n/case_conversion.h"
+#include "base/metrics/histogram_functions.h"
+#include "base/metrics/histogram_macros.h"
 #include "base/strings/string_util.h"
 #include "base/strings/utf_string_conversions.h"
 #include "base/trace_event/trace_event.h"
+#include "content/browser/renderer_host/dwrite_font_uma_logging_win.h"
 
 namespace content {
 
@@ -22,6 +25,10 @@ HRESULT FontFilePathAndTtcIndex(IDWriteFont* font,
   HRESULT hr;
   hr = font->CreateFontFace(&font_face);
   if (FAILED(hr)) {
+    base::UmaHistogramSparse("DirectWrite.Fonts.Proxy.CreateFontFaceResult",
+                             hr);
+    LogMessageFilterError(
+        MessageFilterError::ADD_FILES_FOR_FONT_CREATE_FACE_FAILED);
     return hr;
   }
   return FontFilePathAndTtcIndex(font_face.Get(), file_path, ttc_index);
@@ -36,6 +43,8 @@ HRESULT FontFilePathAndTtcIndex(IDWriteFontFace* font_face,
   HRESULT hr;
   hr = font_face->GetFiles(&file_count, nullptr);
   if (FAILED(hr)) {
+    LogMessageFilterError(
+        MessageFilterError::ADD_FILES_FOR_FONT_GET_FILE_COUNT_FAILED);
     return hr;
   }
 
@@ -48,18 +57,24 @@ HRESULT FontFilePathAndTtcIndex(IDWriteFontFace* font_face,
   // files.
   DCHECK_EQ(file_count, 1u);
   if (file_count > 1) {
+    LogMessageFilterError(
+        MessageFilterError::GET_FILE_COUNT_INVALID_NUMBER_OF_FILES);
     return kErrorFontFileUtilTooManyFilesPerFace;
   }
 
   Microsoft::WRL::ComPtr<IDWriteFontFile> font_file;
   hr = font_face->GetFiles(&file_count, &font_file);
   if (FAILED(hr)) {
+    LogMessageFilterError(
+        MessageFilterError::ADD_FILES_FOR_FONT_GET_FILES_FAILED);
     return hr;
   }
 
   Microsoft::WRL::ComPtr<IDWriteFontFileLoader> loader;
   hr = font_file->GetLoader(&loader);
   if (FAILED(hr)) {
+    LogMessageFilterError(
+        MessageFilterError::ADD_FILES_FOR_FONT_GET_LOADER_FAILED);
     return hr;
   }
 
@@ -76,9 +91,11 @@ HRESULT FontFilePathAndTtcIndex(IDWriteFontFace* font_face,
     // happens, we can implement this by exposing the loader via ipc. That
     // will likely be by loading the font data into shared memory, although
     // we could proxy the stream reads directly instead.
+    LogLoaderType(DirectWriteFontLoaderType::OTHER_LOADER);
     DCHECK(false);
     return hr;
   } else if (FAILED(hr)) {
+    LogMessageFilterError(MessageFilterError::ADD_FILES_FOR_FONT_QI_FAILED);
     return hr;
   }
 
@@ -86,12 +103,16 @@ HRESULT FontFilePathAndTtcIndex(IDWriteFontFace* font_face,
   UINT32 key_size;
   hr = font_file->GetReferenceKey(&key, &key_size);
   if (FAILED(hr)) {
+    LogMessageFilterError(
+        MessageFilterError::ADD_LOCAL_FILE_GET_REFERENCE_KEY_FAILED);
     return hr;
   }
 
   UINT32 path_length = 0;
   hr = local_loader->GetFilePathLengthFromKey(key, key_size, &path_length);
   if (FAILED(hr)) {
+    LogMessageFilterError(
+        MessageFilterError::ADD_LOCAL_FILE_GET_PATH_LENGTH_FAILED);
     return hr;
   }
   std::wstring retrieve_file_path;
@@ -100,6 +121,7 @@ HRESULT FontFilePathAndTtcIndex(IDWriteFontFace* font_face,
   hr = local_loader->GetFilePathFromKey(key, key_size, &retrieve_file_path[0],
                                         path_length);
   if (FAILED(hr)) {
+    LogMessageFilterError(MessageFilterError::ADD_LOCAL_FILE_GET_PATH_FAILED);
     return hr;
   }
   // No need for the null-terminator in std::u16string.
@@ -134,8 +156,10 @@ HRESULT AddFilesForFont(IDWriteFont* font,
 
   if (!base::StartsWith(file_path_folded, windows_fonts_path,
                         base::CompareCase::SENSITIVE)) {
+    LogLoaderType(DirectWriteFontLoaderType::FILE_OUTSIDE_SANDBOX);
     path_set->insert(file_path);
   } else {
+    LogLoaderType(DirectWriteFontLoaderType::FILE_SYSTEM_FONT_DIR);
     path_set->insert(file_path);
   }
   return S_OK;

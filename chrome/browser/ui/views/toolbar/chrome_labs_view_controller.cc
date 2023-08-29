@@ -55,8 +55,7 @@ enum class ChromeLabsSelectedLab {
   kWebUITabStripSelected = 6,
   // kTabSearchMediaTabsSelected = 7,
   kChromeRefresh2023Selected = 8,
-  kTabGroupsSaveSelected = 9,
-  kMaxValue = kTabGroupsSaveSelected,
+  kMaxValue = kChromeRefresh2023Selected,
 };
 
 void EmitToHistogram(const std::u16string& selected_lab_state,
@@ -78,9 +77,6 @@ void EmitToHistogram(const std::u16string& selected_lab_state,
   };
 
   const auto get_enum = [](const std::string& internal_name) {
-    if (internal_name == flag_descriptions::kTabGroupsSaveId) {
-      return ChromeLabsSelectedLab::kTabGroupsSaveSelected;
-    }
     if (internal_name == flag_descriptions::kChromeRefresh2023Id) {
       return ChromeLabsSelectedLab::kChromeRefresh2023Selected;
     }

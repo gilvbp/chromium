@@ -43,9 +43,7 @@ public final class Website implements WebsiteEntry {
     private LocalStorageInfo mLocalStorageInfo;
     private FPSCookieInfo mFPSCookieInfo;
     private CookiesInfo mCookiesInfo;
-    private double mZoomFactor;
     private final List<StorageInfo> mStorageInfo = new ArrayList<>();
-    private final List<SharedDictionaryInfo> mSharedDictionaryInfo = new ArrayList<>();
 
     // The collection of chooser-based permissions (e.g. USB device access) granted to this site.
     // Each entry declares its own ContentSettingsType and so depending on how this object was
@@ -286,25 +284,8 @@ public final class Website implements WebsiteEntry {
         mStorageInfo.add(info);
     }
 
-    /**
-     * Sets the zoom factor for the website (see PageZoomUtils.java).
-     *
-     * @param zoomFactor The zoom factor to set the website to.
-     */
-    public void setZoomFactor(double zoomFactor) {
-        mZoomFactor = zoomFactor;
-    }
-
     public List<StorageInfo> getStorageInfo() {
         return new ArrayList<StorageInfo>(mStorageInfo);
-    }
-
-    public void addSharedDictionaryInfo(SharedDictionaryInfo info) {
-        mSharedDictionaryInfo.add(info);
-    }
-
-    public List<SharedDictionaryInfo> getSharedDictionaryInfo() {
-        return new ArrayList<SharedDictionaryInfo>(mSharedDictionaryInfo);
     }
 
     public void setCookiesInfo(CookiesInfo info) {
@@ -317,9 +298,9 @@ public final class Website implements WebsiteEntry {
 
     public void clearAllStoredData(
             BrowserContextHandle browserContextHandle, final StoredDataClearedCallback callback) {
-        // Wait for callbacks from each mStorageInfo and mSharedDictionaryInfo
-        // and a callback from mLocalStorageInfo.
-        int[] storageInfoCallbacksLeft = {mStorageInfo.size() + mSharedDictionaryInfo.size() + 1};
+        // Wait for callbacks from each mStorageInfo and another callback from
+        // mLocalStorageInfo.
+        int[] storageInfoCallbacksLeft = {mStorageInfo.size() + 1};
         StorageInfoClearedCallback clearedCallback = () -> {
             if (--storageInfoCallbacksLeft[0] == 0) callback.onStoredDataCleared();
         };
@@ -331,11 +312,6 @@ public final class Website implements WebsiteEntry {
         }
         for (StorageInfo info : mStorageInfo) info.clear(browserContextHandle, clearedCallback);
         mStorageInfo.clear();
-
-        for (SharedDictionaryInfo info : mSharedDictionaryInfo) {
-            info.clear(browserContextHandle, clearedCallback);
-        }
-        mSharedDictionaryInfo.clear();
     }
 
     /**
@@ -375,12 +351,7 @@ public final class Website implements WebsiteEntry {
         long usage = 0;
         if (mLocalStorageInfo != null) usage += mLocalStorageInfo.getSize();
         for (StorageInfo info : mStorageInfo) usage += info.getSize();
-        for (SharedDictionaryInfo info : mSharedDictionaryInfo) usage += info.getSize();
         return usage;
-    }
-
-    public double getZoomFactor() {
-        return mZoomFactor;
     }
 
     @Override

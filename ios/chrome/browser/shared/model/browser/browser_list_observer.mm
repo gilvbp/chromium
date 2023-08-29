@@ -8,6 +8,10 @@
 
 #import "base/check.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 BrowserListObserver::~BrowserListObserver() {
   DCHECK(!IsInObserverList())
       << "BrowserListObserver needs to be removed from BrowserList observer "

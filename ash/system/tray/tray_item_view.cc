@@ -200,14 +200,14 @@ void TrayItemView::PerformVisibilityAnimation(bool visible) {
 
   if (target_visible_) {
     SetupThroughputTrackerForAnimationSmoothness(
-        GetWidget(), show_throughput_tracker_,
+        GetWidget(), throughput_tracker_,
         kShowAnimationSmoothnessHistogramName);
     animation_->SetSlideDuration(base::Milliseconds(400));
     animation_->Show();
     AnimationProgressed(animation_.get());
   } else {
     SetupThroughputTrackerForAnimationSmoothness(
-        GetWidget(), hide_throughput_tracker_,
+        GetWidget(), throughput_tracker_,
         kHideAnimationSmoothnessHistogramName);
     animation_->SetSlideDuration(base::Milliseconds(100));
     animation_->Hide();
@@ -303,16 +303,10 @@ void TrayItemView::AnimationEnded(const gfx::Animation* animation) {
   views::View::SetVisible(target_visible_);
   layer()->SetOpacity(target_visible_ ? 1.0 : 0.0);
 
-  if (show_throughput_tracker_) {
-    // Reset `show_throughput_tracker_` to reset animation metrics recording.
-    show_throughput_tracker_->Stop();
-    show_throughput_tracker_.reset();
-  }
-
-  if (hide_throughput_tracker_) {
-    // Reset `hide_throughput_tracker_` to reset animation metrics recording.
-    hide_throughput_tracker_->Stop();
-    hide_throughput_tracker_.reset();
+  if (throughput_tracker_) {
+    // Reset `throughput_tracker_` to reset animation metrics recording.
+    throughput_tracker_->Stop();
+    throughput_tracker_.reset();
   }
 
   if (animation_idle_closure_) {

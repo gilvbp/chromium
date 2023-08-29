@@ -49,7 +49,6 @@
 #include "components/autofill/core/browser/webdata/autofill_webdata_service.h"
 #include "components/autofill/core/common/autofill_features.h"
 #include "components/device_reauth/mock_device_authenticator.h"
-#include "components/plus_addresses/plus_address_service.h"
 #include "components/prefs/pref_service.h"
 #include "components/signin/public/identity_manager/identity_test_environment.h"
 #include "components/translate/core/browser/language_state.h"
@@ -131,11 +130,7 @@ class TestAutofillClientTemplate : public T {
     return &mock_autocomplete_history_manager_;
   }
 
-  IbanManager* GetIbanManager() override { return GetMockIbanManager(); }
-
-  plus_addresses::PlusAddressService* GetPlusAddressService() override {
-    return test_plus_address_service_;
-  }
+  IBANManager* GetIBANManager() override { return GetMockIBANManager(); }
 
   MerchantPromoCodeManager* GetMerchantPromoCodeManager() override {
     return &mock_merchant_promo_code_manager_;
@@ -309,10 +304,10 @@ class TestAutofillClientTemplate : public T {
       AutofillClient::MigrationDeleteCardCallback delete_local_card_callback)
       override {}
 
-  void ConfirmSaveIbanLocally(
-      const Iban& iban,
+  void ConfirmSaveIBANLocally(
+      const IBAN& iban,
       bool should_show_prompt,
-      AutofillClient::LocalSaveIbanPromptCallback callback) override {
+      AutofillClient::LocalSaveIBANPromptCallback callback) override {
     confirm_save_iban_locally_called_ = true;
     offer_to_save_iban_bubble_was_shown_ = should_show_prompt;
   }
@@ -391,10 +386,6 @@ class TestAutofillClientTemplate : public T {
       AutofillClient::SaveAddressProfilePromptOptions options,
       AutofillClient::AddressProfileSavePromptCallback callback) override {}
 
-  void ShowEditAddressProfileDialog(const AutofillProfile& profile) override {}
-
-  void ShowDeleteAddressProfileDialog() override {}
-
   bool HasCreditCardScanFeature() override { return false; }
 
   void ScanCreditCard(
@@ -424,14 +415,12 @@ class TestAutofillClientTemplate : public T {
 
   void PinPopupView() override {}
 
-  AutofillClient::PopupOpenArgs GetReopenPopupArgs(
-      AutofillSuggestionTriggerSource trigger_source) const override {
+  AutofillClient::PopupOpenArgs GetReopenPopupArgs() const override {
     return {};
   }
 
   void UpdatePopup(const std::vector<Suggestion>& suggestions,
-                   PopupType popup_type,
-                   AutofillSuggestionTriggerSource trigger_source) override {}
+                   PopupType popup_type) override {}
 
   void HideAutofillPopup(PopupHidingReason reason) override {
     popup_hidden_reason_ = reason;
@@ -442,9 +431,9 @@ class TestAutofillClientTemplate : public T {
 
   PopupHidingReason popup_hiding_reason() { return popup_hidden_reason_; }
 
-  void ShowAutofillErrorDialog(
+  void ShowVirtualCardErrorDialog(
       const AutofillErrorDialogContext& context) override {
-    autofill_error_dialog_shown_ = true;
+    virtual_card_error_dialog_shown_ = true;
     autofill_error_dialog_context_ = context;
   }
 
@@ -460,11 +449,11 @@ class TestAutofillClientTemplate : public T {
 
   bool IsPasswordManagerEnabled() override { return true; }
 
-  void PropagateAutofillPredictionsDeprecated(
+  void PropagateAutofillPredictions(
       AutofillDriver* driver,
       const std::vector<FormStructure*>& forms) override {}
 
-  void DidFillOrPreviewForm(mojom::AutofillActionPersistence action_persistence,
+  void DidFillOrPreviewForm(mojom::RendererFormDataAction action,
                             AutofillTriggerSource trigger_source,
                             bool is_refill) override {}
 
@@ -604,7 +593,7 @@ class TestAutofillClientTemplate : public T {
     return confirm_save_credit_card_locally_called_;
   }
 
-  bool ConfirmSaveIbanLocallyWasCalled() {
+  bool ConfirmSaveIBANLocallyWasCalled() {
     return confirm_save_iban_locally_called_;
   }
 
@@ -616,11 +605,14 @@ class TestAutofillClientTemplate : public T {
     return offer_to_save_credit_card_bubble_was_shown_.value();
   }
 
-  void set_autofill_error_dialog_shown(bool autofill_error_dialog_shown) {
-    autofill_error_dialog_shown_ = autofill_error_dialog_shown;
+  void set_virtual_card_error_dialog_shown(
+      bool virtual_card_error_dialog_shown) {
+    virtual_card_error_dialog_shown_ = virtual_card_error_dialog_shown;
   }
 
-  bool autofill_error_dialog_shown() { return autofill_error_dialog_shown_; }
+  bool virtual_card_error_dialog_shown() {
+    return virtual_card_error_dialog_shown_;
+  }
 
   bool virtual_card_error_dialog_is_permanent_error() {
     return autofill_error_dialog_context().type ==
@@ -640,9 +632,9 @@ class TestAutofillClientTemplate : public T {
     return &mock_autocomplete_history_manager_;
   }
 
-  ::testing::NiceMock<MockIbanManager>* GetMockIbanManager() {
+  ::testing::NiceMock<MockIBANManager>* GetMockIBANManager() {
     if (!mock_iban_manager_) {
-      mock_iban_manager_ = std::make_unique<testing::NiceMock<MockIbanManager>>(
+      mock_iban_manager_ = std::make_unique<testing::NiceMock<MockIBANManager>>(
           test_personal_data_manager_.get());
     }
     return mock_iban_manager_.get();
@@ -681,11 +673,6 @@ class TestAutofillClientTemplate : public T {
     test_shared_loader_factory_ = url_loader_factory;
   }
 
-  void set_plus_address_service(
-      plus_addresses::PlusAddressService* plus_address_service) {
-    test_plus_address_service_ = plus_address_service;
-  }
-
   GURL form_origin() { return form_origin_; }
 
   ukm::TestUkmRecorder* GetTestUkmRecorder() { return &test_ukm_recorder_; }
@@ -694,14 +681,13 @@ class TestAutofillClientTemplate : public T {
   ukm::TestAutoSetUkmRecorder test_ukm_recorder_;
   signin::IdentityTestEnvironment identity_test_env_;
   raw_ptr<syncer::SyncService> test_sync_service_ = nullptr;
-  raw_ptr<plus_addresses::PlusAddressService> test_plus_address_service_ =
-      nullptr;
   TestAddressNormalizer test_address_normalizer_;
   std::unique_ptr<::testing::NiceMock<MockAutofillOptimizationGuide>>
       mock_autofill_optimization_guide_ =
           std::make_unique<testing::NiceMock<MockAutofillOptimizationGuide>>();
   ::testing::NiceMock<MockAutocompleteHistoryManager>
       mock_autocomplete_history_manager_;
+  std::unique_ptr<testing::NiceMock<MockIBANManager>> mock_iban_manager_;
   ::testing::NiceMock<MockMerchantPromoCodeManager>
       mock_merchant_promo_code_manager_;
   ::testing::NiceMock<MockFastCheckoutClient> mock_fast_checkout_client_;
@@ -714,18 +700,15 @@ class TestAutofillClientTemplate : public T {
   // NULL by default.
   std::unique_ptr<PrefService> prefs_;
   std::unique_ptr<TestStrikeDatabase> test_strike_database_;
-
-  std::unique_ptr<TestPersonalDataManager> test_personal_data_manager_;
-  // The below objects must be destroyed before `TestPersonalDataManager`
-  // because they keep a reference to it.
-  std::unique_ptr<AutofillOfferManager> autofill_offer_manager_;
   std::unique_ptr<payments::PaymentsClient> payments_client_;
-  std::unique_ptr<testing::NiceMock<MockIbanManager>> mock_iban_manager_;
-
-  // The below objects must be destroyed before `PaymentsClient` because they
-  // (or their members) keep a reference to it.
   std::unique_ptr<CreditCardCvcAuthenticator> cvc_authenticator_;
   std::unique_ptr<CreditCardOtpAuthenticator> otp_authenticator_;
+
+  // AutofillOfferManager and TestFormDataImporter must be destroyed before
+  // TestPersonalDataManager, because the former's destructors refer to the
+  // latter.
+  std::unique_ptr<TestPersonalDataManager> test_personal_data_manager_;
+  std::unique_ptr<AutofillOfferManager> autofill_offer_manager_;
   std::unique_ptr<FormDataImporter> form_data_importer_;
 
   GURL form_origin_{"https://example.test"};
@@ -741,7 +724,7 @@ class TestAutofillClientTemplate : public T {
 
   bool confirm_save_iban_locally_called_ = false;
 
-  bool autofill_error_dialog_shown_ = false;
+  bool virtual_card_error_dialog_shown_ = false;
 
   // Context parameters that are used to display an error dialog during card
   // number retrieval. This context will have information that the autofill

@@ -20,11 +20,9 @@
 #include "base/threading/platform_thread.h"
 #include "chrome/updater/app/server/win/updater_internal_idl.h"
 #include "chrome/updater/ipc/proxy_impl_base_win.h"
-#include "chrome/updater/ipc/update_service_internal_proxy.h"
 #include "chrome/updater/updater_scope.h"
 #include "chrome/updater/util/win_util.h"
 #include "chrome/updater/win/win_constants.h"
-#include "third_party/abseil-cpp/absl/types/optional.h"
 
 namespace updater {
 namespace {
@@ -34,8 +32,7 @@ namespace {
 class UpdaterInternalCallback
     : public DYNAMICIIDSIMPL(IUpdaterInternalCallback) {
  public:
-  explicit UpdaterInternalCallback(
-      base::OnceCallback<void(absl::optional<RpcError>)> callback)
+  explicit UpdaterInternalCallback(base::OnceClosure callback)
       : callback_(std::move(callback)) {}
 
   UpdaterInternalCallback(const UpdaterInternalCallback&) = delete;
@@ -44,26 +41,26 @@ class UpdaterInternalCallback
   // Overrides for IUpdaterInternalCallback.
   //
   // Invoked by COM RPC on the apartment thread (STA) when the call to any of
-  // the non-blocking `UpdateServiceInternalProxyImpl` functions completes.
+  // the non-blocking `UpdateServiceInternalProxy` functions completes.
   IFACEMETHODIMP Run(LONG result) override;
 
   // Disconnects this callback from its subject and ensures the callbacks are
   // not posted after this function is called. Returns the completion callback
   // so that the owner of this object can take back the callback ownership.
-  base::OnceCallback<void(absl::optional<RpcError>)> Disconnect();
+  base::OnceClosure Disconnect();
 
  private:
   ~UpdaterInternalCallback() override {
     CHECK_EQ(base::PlatformThreadRef(), com_thread_ref_);
     if (callback_)
-      std::move(callback_).Run(absl::nullopt);
+      std::move(callback_).Run();
   }
 
   // The reference of the thread this object is bound to.
   base::PlatformThreadRef com_thread_ref_;
 
   // Called by IUpdaterInternalCallback::Run when the COM RPC call is done.
-  base::OnceCallback<void(absl::optional<RpcError>)> callback_;
+  base::OnceClosure callback_;
 };
 
 IFACEMETHODIMP UpdaterInternalCallback::Run(LONG result) {
@@ -72,8 +69,7 @@ IFACEMETHODIMP UpdaterInternalCallback::Run(LONG result) {
   return S_OK;
 }
 
-base::OnceCallback<void(absl::optional<RpcError>)>
-UpdaterInternalCallback::Disconnect() {
+base::OnceClosure UpdaterInternalCallback::Disconnect() {
   CHECK_EQ(base::PlatformThreadRef(), com_thread_ref_);
   VLOG(2) << __func__;
   return std::move(callback_);
@@ -81,14 +77,14 @@ UpdaterInternalCallback::Disconnect() {
 
 }  // namespace
 
-class UpdateServiceInternalProxyImplImpl
-    : public base::RefCountedThreadSafe<UpdateServiceInternalProxyImplImpl>,
-      public ProxyImplBase<UpdateServiceInternalProxyImplImpl,
+class UpdateServiceInternalProxyImpl
+    : public base::RefCountedThreadSafe<UpdateServiceInternalProxyImpl>,
+      public ProxyImplBase<UpdateServiceInternalProxyImpl,
                            IUpdaterInternal,
                            __uuidof(IUpdaterInternalUser),
                            __uuidof(IUpdaterInternalSystem)> {
  public:
-  explicit UpdateServiceInternalProxyImplImpl(UpdaterScope scope)
+  explicit UpdateServiceInternalProxyImpl(UpdaterScope scope)
       : ProxyImplBase(scope) {}
 
   static auto GetClassGuid(UpdaterScope scope) {
@@ -96,24 +92,24 @@ class UpdateServiceInternalProxyImplImpl
                                   : __uuidof(UpdaterInternalUserClass);
   }
 
-  void Run(base::OnceCallback<void(absl::optional<RpcError>)> callback) {
-    PostRPCTask(base::BindOnce(&UpdateServiceInternalProxyImplImpl::RunOnSTA,
-                               this, std::move(callback)));
+  void Run(base::OnceClosure callback) {
+    PostRPCTask(base::BindOnce(&UpdateServiceInternalProxyImpl::RunOnSTA, this,
+                               std::move(callback)));
   }
 
-  void Hello(base::OnceCallback<void(absl::optional<RpcError>)> callback) {
-    PostRPCTask(base::BindOnce(&UpdateServiceInternalProxyImplImpl::HelloOnSTA,
+  void Hello(base::OnceClosure callback) {
+    PostRPCTask(base::BindOnce(&UpdateServiceInternalProxyImpl::HelloOnSTA,
                                this, std::move(callback)));
   }
 
  private:
-  friend class base::RefCountedThreadSafe<UpdateServiceInternalProxyImplImpl>;
-  ~UpdateServiceInternalProxyImplImpl() = default;
+  friend class base::RefCountedThreadSafe<UpdateServiceInternalProxyImpl>;
+  ~UpdateServiceInternalProxyImpl() = default;
 
-  void RunOnSTA(base::OnceCallback<void(absl::optional<RpcError>)> callback) {
+  void RunOnSTA(base::OnceClosure callback) {
     DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
-    if (HRESULT connection = ConnectToServer(); FAILED(connection)) {
-      std::move(callback).Run(connection);
+    if (!ConnectToServer()) {
+      std::move(callback).Run();
       return;
     }
     auto callback_wrapper =
@@ -121,15 +117,15 @@ class UpdateServiceInternalProxyImplImpl
     HRESULT hr = get_interface()->Run(callback_wrapper.Get());
     if (FAILED(hr)) {
       VLOG(2) << "Failed to call IUpdaterInternal::Run" << std::hex << hr;
-      callback_wrapper->Disconnect().Run(hr);
+      callback_wrapper->Disconnect().Run();
       return;
     }
   }
 
-  void HelloOnSTA(base::OnceCallback<void(absl::optional<RpcError>)> callback) {
+  void HelloOnSTA(base::OnceClosure callback) {
     DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
-    if (HRESULT connection = ConnectToServer(); FAILED(connection)) {
-      std::move(callback).Run(connection);
+    if (!ConnectToServer()) {
+      std::move(callback).Run();
       return;
     }
     auto callback_wrapper =
@@ -137,31 +133,29 @@ class UpdateServiceInternalProxyImplImpl
     HRESULT hr = get_interface()->Hello(callback_wrapper.Get());
     if (FAILED(hr)) {
       VLOG(2) << "Failed to call IUpdaterInternal::Hello" << std::hex << hr;
-      callback_wrapper->Disconnect().Run(hr);
+      callback_wrapper->Disconnect().Run();
       return;
     }
   }
 };
 
-UpdateServiceInternalProxyImpl::UpdateServiceInternalProxyImpl(
-    UpdaterScope scope)
-    : impl_(base::MakeRefCounted<UpdateServiceInternalProxyImplImpl>(scope)) {}
+UpdateServiceInternalProxy::UpdateServiceInternalProxy(UpdaterScope scope)
+    : impl_(base::MakeRefCounted<UpdateServiceInternalProxyImpl>(scope)) {}
 
-UpdateServiceInternalProxyImpl::~UpdateServiceInternalProxyImpl() {
+UpdateServiceInternalProxy::~UpdateServiceInternalProxy() {
   VLOG(1) << __func__;
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
-  UpdateServiceInternalProxyImplImpl::Destroy(std::move(impl_));
+  UpdateServiceInternalProxyImpl::Destroy(impl_);
+  CHECK_EQ(impl_, nullptr);
 }
 
-void UpdateServiceInternalProxyImpl::Run(
-    base::OnceCallback<void(absl::optional<RpcError>)> callback) {
+void UpdateServiceInternalProxy::Run(base::OnceClosure callback) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   VLOG(1) << __func__;
   impl_->Run(base::BindPostTaskToCurrentDefault(std::move(callback)));
 }
 
-void UpdateServiceInternalProxyImpl::Hello(
-    base::OnceCallback<void(absl::optional<RpcError>)> callback) {
+void UpdateServiceInternalProxy::Hello(base::OnceClosure callback) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   VLOG(1) << __func__;
   impl_->Hello(base::BindPostTaskToCurrentDefault(std::move(callback)));
@@ -169,8 +163,7 @@ void UpdateServiceInternalProxyImpl::Hello(
 
 scoped_refptr<UpdateServiceInternal> CreateUpdateServiceInternalProxy(
     UpdaterScope updater_scope) {
-  return base::MakeRefCounted<UpdateServiceInternalProxy>(
-      base::MakeRefCounted<UpdateServiceInternalProxyImpl>(updater_scope));
+  return base::MakeRefCounted<UpdateServiceInternalProxy>(updater_scope);
 }
 
 }  // namespace updater

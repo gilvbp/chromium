@@ -34,7 +34,7 @@
 #endif
 
 #if BUILDFLAG(IS_APPLE)
-#include "base/apple/scoped_nsautorelease_pool.h"
+#include "base/mac/scoped_nsautorelease_pool.h"
 #endif
 
 #if BUILDFLAG(USE_PARTITION_ALLOC_AS_MALLOC) && \
@@ -64,23 +64,18 @@ TimeDelta GetSleepTimeBeforePurge(TimeDelta min_sleep_time) {
 
   // Use the first time a worker goes to sleep in this process as an
   // approximation of the process creation time.
-  static const TimeTicks first_sleep_time = now;
+  static const TimeTicks first_scheduled_wake = now + kFirstSleepLength;
 
   // Align wakeups for purges to reduce the chances of taking the CPU out of
   // sleep multiple times for these operations.
   constexpr TimeDelta kPurgeThreadCacheIdleDelay = Seconds(1);
-
-  // A sleep that occurs within `kFirstSleepLength` of the
-  // first sleep lasts at least `kFirstSleepLength`.
-  if (now <= first_sleep_time + kFirstSleepLength) {
-    min_sleep_time = std::max(kFirstSleepLength, min_sleep_time);
-  }
-
   const TimeTicks snapped_wake =
       (now + min_sleep_time)
           .SnappedToNextTick(TimeTicks(), kPurgeThreadCacheIdleDelay);
 
-  return snapped_wake - now;
+  // Avoid scheduling at |first_scheduled_wake| if it would result in a sleep
+  // that's too short.
+  return std::max(snapped_wake - now, first_scheduled_wake - now);
 }
 #endif  // BUILDFLAG(USE_PARTITION_ALLOC_AS_MALLOC) &&
         // PA_CONFIG(THREAD_CACHE_SUPPORTED)
@@ -120,6 +115,7 @@ void WorkerThread::Delegate::WaitForWork(WaitableEvent* wake_up_event) {
     min_sleep_time = GetSleepTimeBeforePurge(min_sleep_time);
 
   const bool was_signaled = wake_up_event->TimedWait(min_sleep_time);
+
   // Timed out.
   if (!was_signaled) {
     partition_alloc::ThreadCache::PurgeCurrentThread();
@@ -127,8 +123,9 @@ void WorkerThread::Delegate::WaitForWork(WaitableEvent* wake_up_event) {
     // The thread woke up to purge before its standard reclaim time. Sleep for
     // what's remaining until then.
     if (sleep_time > min_sleep_time) {
-      wake_up_event->TimedWait(
-          sleep_time.is_max() ? TimeDelta::Max() : sleep_time - min_sleep_time);
+      wake_up_event->TimedWait(sleep_time.is_max()
+                                   ? base::TimeDelta::Max()
+                                   : sleep_time - min_sleep_time);
     }
   }
 #else
@@ -442,7 +439,7 @@ void WorkerThread::RunWorker() {
   bool got_work_this_wakeup = false;
   while (!ShouldExit()) {
 #if BUILDFLAG(IS_APPLE)
-    apple::ScopedNSAutoreleasePool autorelease_pool;
+    mac::ScopedNSAutoreleasePool autorelease_pool;
 #endif
     absl::optional<WatchHangsInScope> hang_watch_scope;
     if (watch_for_hangs)

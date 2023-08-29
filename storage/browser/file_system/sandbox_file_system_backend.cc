@@ -98,7 +98,6 @@ SandboxFileSystemBackend::GetCopyOrMoveFileValidatorFactory(
 
 std::unique_ptr<FileSystemOperation>
 SandboxFileSystemBackend::CreateFileSystemOperation(
-    OperationType type,
     const FileSystemURL& url,
     FileSystemContext* context,
     base::File::Error* error_code) const {
@@ -117,7 +116,7 @@ SandboxFileSystemBackend::CreateFileSystemOperation(
   else
     operation_context->set_quota_limit_type(QuotaLimitType::kLimited);
 
-  return FileSystemOperation::Create(type, url, context,
+  return FileSystemOperation::Create(url, context,
                                      std::move(operation_context));
 }
 

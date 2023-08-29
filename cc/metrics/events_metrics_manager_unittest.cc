@@ -58,9 +58,8 @@ class EventsMetricsManagerTest : public testing::Test {
     base::TimeTicks arrived_in_browser_main_timestamp =
         test_tick_clock_.NowTicks();
     test_tick_clock_.Advance(base::Microseconds(10));
-    return EventMetrics::CreateForTesting(type, event_time,
-                                          arrived_in_browser_main_timestamp,
-                                          &test_tick_clock_, absl::nullopt);
+    return EventMetrics::CreateForTesting(
+        type, event_time, arrived_in_browser_main_timestamp, &test_tick_clock_);
   }
 
   EventsMetricsManager manager_;

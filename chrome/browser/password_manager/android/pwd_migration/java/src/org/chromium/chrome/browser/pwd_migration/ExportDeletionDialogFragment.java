@@ -10,18 +10,37 @@ import android.os.Bundle;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.DialogFragment;
+import androidx.fragment.app.FragmentManager;
+
+import org.chromium.chrome.browser.password_manager.PasswordStoreBridge;
+import org.chromium.chrome.browser.password_manager.PasswordStoreBridge.PasswordStoreObserver;
+import org.chromium.chrome.browser.password_manager.PasswordStoreCredential;
+import org.chromium.chrome.browser.password_manager.settings.DialogManager;
 
 /**
  * An alert dialog that offers to delete passwords which were exported.
  */
-public class ExportDeletionDialogFragment extends DialogFragment {
-    private Runnable mOnDeletionAcceptedCallback;
+public class ExportDeletionDialogFragment extends DialogFragment implements PasswordStoreObserver {
+    private PasswordStoreBridge mPasswordStoreBridge;
+    private Runnable mHideProgressBarCallback;
     private Dialog mDialog;
+    private DialogManager mProgressBarManager;
+    private FragmentManager mFragmentManager;
 
     public ExportDeletionDialogFragment() {}
 
-    public void initialize(Runnable onDeletionAcceptedCallback) {
-        mOnDeletionAcceptedCallback = onDeletionAcceptedCallback;
+    public void initialize(FragmentManager fragmentManager, Runnable hideProgressBarCallback,
+            PasswordStoreBridge passwordStoreBridge) {
+        mFragmentManager = fragmentManager;
+        mHideProgressBarCallback = hideProgressBarCallback;
+        mPasswordStoreBridge = passwordStoreBridge;
+    }
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        mPasswordStoreBridge.addObserver(this, true);
+        mProgressBarManager = new DialogManager(null);
     }
 
     @Override
@@ -39,8 +58,7 @@ public class ExportDeletionDialogFragment extends DialogFragment {
                                         .getResources()
                                         .getString(R.string.exported_passwords_deletion_dialog_text)
                                         .replace("%1$s",
-                                                PasswordMigrationWarningUtil.getChannelString(
-                                                        getActivity().getApplicationContext())))
+                                                PasswordMigrationWarningUtil.getChannelString()))
                         .setTitle(getActivity().getResources().getString(
                                 R.string.exported_passwords_deletion_dialog_title))
                         .create();
@@ -48,7 +66,21 @@ public class ExportDeletionDialogFragment extends DialogFragment {
     }
 
     private void onDeleteButtonClicked(DialogInterface unused, int unusedButton) {
-        mOnDeletionAcceptedCallback.run();
+        // Tapping the delete button should show a progress bar and start the deletion.
+        showProgressBar();
+        mPasswordStoreBridge.clearAllPasswords();
+    }
+
+    @Override
+    public void onSavedPasswordsChanged(int count) {
+        if (count == 0) {
+            hideProgressBar();
+        }
+    }
+
+    @Override
+    public void onEdit(PasswordStoreCredential credential) {
+        // Won't be used. It's overridden to implement {@link PasswordStoreObserver}.
     }
 
     @Override
@@ -63,5 +95,15 @@ public class ExportDeletionDialogFragment extends DialogFragment {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        mPasswordStoreBridge.removeObserver(this);
+    }
+
+    private void showProgressBar() {
+        ProgressBarDeletionDialog progressBarDialogFragment = new ProgressBarDeletionDialog();
+        mProgressBarManager.show(progressBarDialogFragment, mFragmentManager);
+    }
+
+    private void hideProgressBar() {
+        mProgressBarManager.hide(mHideProgressBarCallback::run);
     }
 }

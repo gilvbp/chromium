@@ -170,9 +170,4 @@ public class ExternalNavigationDelegateImpl implements ExternalNavigationDelegat
         // to maintain that behavior.
         return false;
     }
-
-    @Override
-    public String getSelfScheme() {
-        return null;
-    }
 }

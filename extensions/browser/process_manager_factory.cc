@@ -53,8 +53,8 @@ BrowserContext* ProcessManagerFactory::GetBrowserContextToUse(
     BrowserContext* context) const {
   // ProcessManager::Create handles guest and incognito profiles, returning an
   // IncognitoProcessManager in incognito mode.
-  return ExtensionsBrowserClient::Get()->GetContextOwnInstance(
-      context, /*force_guest_profile=*/true);
+  return ExtensionsBrowserClient::Get()->GetContextForRegularAndIncognito(
+      context, /*force_guest_profile=*/true, /*force_system_profile=*/false);
 }
 
 }  // namespace extensions

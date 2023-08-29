@@ -5,10 +5,11 @@
 #ifndef SERVICES_AUDIO_DEVICE_NOTIFIER_H_
 #define SERVICES_AUDIO_DEVICE_NOTIFIER_H_
 
+#include "base/containers/flat_map.h"
 #include "base/system/system_monitor.h"
 #include "mojo/public/cpp/bindings/pending_receiver.h"
 #include "mojo/public/cpp/bindings/receiver_set.h"
-#include "mojo/public/cpp/bindings/remote_set.h"
+#include "mojo/public/cpp/bindings/remote.h"
 #include "services/audio/public/mojom/device_notifications.mojom.h"
 
 namespace base {
@@ -40,8 +41,10 @@ class DeviceNotifier final : public base::SystemMonitor::DevicesChangedObserver,
 
  private:
   void UpdateListeners();
+  void RemoveListener(int listener_id);
 
-  mojo::RemoteSet<mojom::DeviceListener> listeners_;
+  int next_listener_id_ = 0;
+  base::flat_map<int, mojo::Remote<mojom::DeviceListener>> listeners_;
   mojo::ReceiverSet<mojom::DeviceNotifier> receivers_;
   const scoped_refptr<base::SequencedTaskRunner> task_runner_;
   base::WeakPtrFactory<DeviceNotifier> weak_factory_{this};

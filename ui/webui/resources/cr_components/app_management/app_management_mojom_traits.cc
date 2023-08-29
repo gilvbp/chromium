@@ -106,7 +106,7 @@ bool StructTraits<PermissionDataView, apps::PermissionPtr>::Read(
   if (!data.ReadPermissionType(&permission_type))
     return false;
 
-  apps::Permission::PermissionValue value;
+  apps::PermissionValuePtr value;
   if (!data.ReadValue(&value))
     return false;
 
@@ -205,29 +205,30 @@ bool EnumTraits<TriState, apps::TriState>::FromMojom(TriState input,
 }
 
 PermissionValueDataView::Tag
-UnionTraits<PermissionValueDataView, apps::Permission::PermissionValue>::GetTag(
-    const apps::Permission::PermissionValue& r) {
-  if (absl::holds_alternative<bool>(r)) {
+UnionTraits<PermissionValueDataView, apps::PermissionValuePtr>::GetTag(
+    const apps::PermissionValuePtr& r) {
+  if (absl::holds_alternative<bool>(r->value)) {
     return PermissionValueDataView::Tag::kBoolValue;
-  } else if (absl::holds_alternative<apps::TriState>(r)) {
+  } else if (absl::holds_alternative<apps::TriState>(r->value)) {
     return PermissionValueDataView::Tag::kTristateValue;
   }
   NOTREACHED();
   return PermissionValueDataView::Tag::kBoolValue;
 }
 
-bool UnionTraits<PermissionValueDataView, apps::Permission::PermissionValue>::
-    Read(PermissionValueDataView data, apps::Permission::PermissionValue* out) {
+bool UnionTraits<PermissionValueDataView, apps::PermissionValuePtr>::Read(
+    PermissionValueDataView data,
+    apps::PermissionValuePtr* out) {
   switch (data.tag()) {
     case PermissionValueDataView::Tag::kBoolValue: {
-      *out = data.bool_value();
+      *out = std::make_unique<apps::PermissionValue>(data.bool_value());
       return true;
     }
     case PermissionValueDataView::Tag::kTristateValue: {
       apps::TriState tristate_value;
       if (!data.ReadTristateValue(&tristate_value))
         return false;
-      *out = tristate_value;
+      *out = std::make_unique<apps::PermissionValue>(tristate_value);
       return true;
     }
   }

@@ -39,10 +39,9 @@ AppSyncUIStateFactory::AppSyncUIStateFactory()
 
 AppSyncUIStateFactory::~AppSyncUIStateFactory() = default;
 
-std::unique_ptr<KeyedService>
-AppSyncUIStateFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* AppSyncUIStateFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   Profile* profile = static_cast<Profile*>(context);
   DCHECK(AppSyncUIState::ShouldObserveAppSyncForProfile(profile));
-  return std::make_unique<AppSyncUIState>(profile);
+  return new AppSyncUIState(profile);
 }

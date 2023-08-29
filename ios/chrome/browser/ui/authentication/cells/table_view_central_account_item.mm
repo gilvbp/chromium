@@ -4,8 +4,8 @@
 
 #import "ios/chrome/browser/ui/authentication/cells/table_view_central_account_item.h"
 
-#import "base/apple/foundation_util.h"
 #import "base/check_op.h"
+#import "base/mac/foundation_util.h"
 #import "ios/chrome/browser/shared/ui/symbols/symbols.h"
 #import "ios/chrome/browser/shared/ui/table_view/chrome_table_view_styler.h"
 #import "ios/chrome/browser/shared/ui/util/uikit_ui_util.h"
@@ -16,6 +16,10 @@
 #import "ios/chrome/common/ui/table_view/table_view_cells_constants.h"
 #import "ios/chrome/grit/ios_strings.h"
 #import "ui/base/l10n/l10n_util_mac.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 @implementation TableViewCentralAccountItem
 
@@ -38,7 +42,7 @@
   [super configureCell:cell withStyler:styler];
 
   CGSize tableViewCentralAccountAvartarSize =
-      GetSizeForIdentityAvatarSize(IdentityAvatarSize::Large);
+      GetSizeForIdentityAvatarSize(IdentityAvatarSize::ExtraLarge);
   CHECK_EQ(tableViewCentralAccountAvartarSize.width,
            self.avatarImage.size.width);
   CHECK_EQ(tableViewCentralAccountAvartarSize.height,
@@ -82,12 +86,12 @@
   _avatarImageView.contentMode = UIViewContentModeScaleAspectFit;
   // Creates the image rounded corners.
   _avatarImageView.layer.cornerRadius =
-      GetSizeForIdentityAvatarSize(IdentityAvatarSize::Large).width / 2.0f;
+      GetSizeForIdentityAvatarSize(IdentityAvatarSize::ExtraLarge).width / 2.0f;
   [contentView addSubview:_avatarImageView];
 
   _textLabel = [[UILabel alloc] init];
   _textLabel.translatesAutoresizingMaskIntoConstraints = NO;
-  _textLabel.font = [UIFont preferredFontForTextStyle:UIFontTextStyleHeadline];
+  _textLabel.font = [UIFont preferredFontForTextStyle:UIFontTextStyleBody];
   _textLabel.adjustsFontForContentSizeCategory = YES;
   _textLabel.textColor = [UIColor colorNamed:kTextPrimaryColor];
   [contentView addSubview:_textLabel];
@@ -109,7 +113,7 @@
     // Fix image widths.
     [_avatarImageView.widthAnchor
         constraintEqualToConstant:GetSizeForIdentityAvatarSize(
-                                      IdentityAvatarSize::Large)
+                                      IdentityAvatarSize::ExtraLarge)
                                       .width],
     [_avatarImageView.heightAnchor
         constraintEqualToAnchor:_avatarImageView.widthAnchor],

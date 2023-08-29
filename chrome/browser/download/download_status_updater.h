@@ -72,10 +72,6 @@ class DownloadStatusUpdater
       profile_keep_alives_;
 
 #if BUILDFLAG(IS_CHROMEOS_LACROS)
-  // Looks up the DownloadItem* for a given guid, or returns nullptr if none is
-  // found.
-  download::DownloadItem* GetDownloadItemFromGuid(const std::string& guid);
-
   class Delegate;
   std::unique_ptr<Delegate> delegate_;
 #endif  // BUILDFLAG(IS_CHROMEOS_LACROS)

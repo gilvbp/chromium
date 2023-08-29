@@ -36,8 +36,7 @@ NTPResourceCacheFactory::NTPResourceCacheFactory()
 
 NTPResourceCacheFactory::~NTPResourceCacheFactory() = default;
 
-std::unique_ptr<KeyedService>
-NTPResourceCacheFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* NTPResourceCacheFactory::BuildServiceInstanceFor(
     content::BrowserContext* profile) const {
-  return std::make_unique<NTPResourceCache>(static_cast<Profile*>(profile));
+  return new NTPResourceCache(static_cast<Profile*>(profile));
 }

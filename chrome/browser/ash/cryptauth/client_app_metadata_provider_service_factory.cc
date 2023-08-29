@@ -45,11 +45,10 @@ ClientAppMetadataProviderServiceFactory::
 ClientAppMetadataProviderServiceFactory::
     ~ClientAppMetadataProviderServiceFactory() = default;
 
-std::unique_ptr<KeyedService>
-ClientAppMetadataProviderServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* ClientAppMetadataProviderServiceFactory::BuildServiceInstanceFor(
     content::BrowserContext* browser_context) const {
   Profile* profile = Profile::FromBrowserContext(browser_context);
-  return std::make_unique<ClientAppMetadataProviderService>(
+  return new ClientAppMetadataProviderService(
       profile->GetPrefs(), NetworkHandler::Get()->network_state_handler(),
       instance_id::InstanceIDProfileServiceFactory::GetForProfile(profile));
 }

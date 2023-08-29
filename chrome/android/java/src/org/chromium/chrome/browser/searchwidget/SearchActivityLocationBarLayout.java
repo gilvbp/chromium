@@ -99,7 +99,8 @@ public class SearchActivityLocationBarLayout extends LocationBarLayout {
         String textWithAutocomplete = mUrlCoordinator.getTextWithAutocomplete();
         // Do not prefetch suggestions here; instead, we're asking the server for ZPS directly.
         // Issuing multiple requests would result with only the final one being executed.
-        mAutocompleteCoordinator.onTextChanged(mUrlCoordinator.getTextWithoutAutocomplete());
+        mAutocompleteCoordinator.onTextChanged(
+                mUrlCoordinator.getTextWithoutAutocomplete(), textWithAutocomplete);
 
         if (mPendingBeginQuery) {
             beginQueryInternal(searchType, voiceRecognitionHandler, windowAndroid);

@@ -22,10 +22,7 @@ class DeviceAuthenticatorWin : public ChromeDeviceAuthenticatorCommon {
   // Returns true, when biometrics are available.
   bool CanAuthenticateWithBiometrics() override;
 
-  // Returns true, when biometrics or screen lock is available.
-  bool CanAuthenticateWithBiometricOrScreenLock() override;
-
-  // Triggers an authentication flow based on biometrics.
+  // Trigges an authentication flow based on biometrics.
   // Note: this only supports one authentication request at a time.
   // |use_last_valid_auth| if set to false, ignores the grace 60 seconds
   // period between the last valid authentication and the current
@@ -34,7 +31,7 @@ class DeviceAuthenticatorWin : public ChromeDeviceAuthenticatorCommon {
                     AuthenticateCallback callback,
                     bool use_last_valid_auth) override;
 
-  // Triggers an authentication flow based on biometrics. Request user to
+  // Trigges an authentication flow based on biometrics. Request user to
   // authenticate(a prompt with that information will appear on the screen and
   // the `message` will be displayed there) using their windows hello or if it's
   // not set up, default one with password will appear.

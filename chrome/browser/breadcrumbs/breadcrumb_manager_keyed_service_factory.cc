@@ -36,9 +36,8 @@ BreadcrumbManagerKeyedServiceFactory::BreadcrumbManagerKeyedServiceFactory()
 BreadcrumbManagerKeyedServiceFactory::~BreadcrumbManagerKeyedServiceFactory() =
     default;
 
-std::unique_ptr<KeyedService>
-  BreadcrumbManagerKeyedServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* BreadcrumbManagerKeyedServiceFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
-  return std::make_unique<breadcrumbs::BreadcrumbManagerKeyedService>(
+  return new breadcrumbs::BreadcrumbManagerKeyedService(
       context->IsOffTheRecord());
 }

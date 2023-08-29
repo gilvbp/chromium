@@ -9,7 +9,18 @@ import {flush} from 'chrome://resources/polymer/v3_0/polymer/polymer_bundled.min
 import {assertTrue} from 'chrome://webui-test/chai_assert.js';
 import {eventToPromise} from 'chrome://webui-test/test_util.js';
 
-suite('ExtensionManagerTest', function() {
+
+const extension_manager_tests = {
+  suiteName: 'ExtensionManagerTest',
+  TestNames: {
+    UrlNavigationToActivityLogSuccess:
+        'url navigation to activity log with flag set',
+  },
+};
+
+Object.assign(window, {extension_manager_tests});
+
+suite(extension_manager_tests.suiteName, function() {
   let manager: ExtensionsManagerElement;
 
   function assertViewActive(tagName: string) {
@@ -32,25 +43,28 @@ suite('ExtensionManagerTest', function() {
         eventToPromise('view-enter-start', manager);
   });
 
-  test('UrlNavigationToActivityLogSuccess', function() {
-    assertTrue(manager.showActivityLog);
 
-    // Try to open activity log with a valid ID.
-    navigation.navigateTo({
-      page: Page.ACTIVITY_LOG,
-      extensionId: 'ldnnhddmnhbkjipkidpdiheffobcpfmf',
-    });
-    flush();
+  test(
+      extension_manager_tests.TestNames.UrlNavigationToActivityLogSuccess,
+      function() {
+        assertTrue(manager.showActivityLog);
 
-    // Should be on activity log page.
-    assertViewActive('extensions-activity-log');
+        // Try to open activity log with a valid ID.
+        navigation.navigateTo({
+          page: Page.ACTIVITY_LOG,
+          extensionId: 'ldnnhddmnhbkjipkidpdiheffobcpfmf',
+        });
+        flush();
 
-    // Try to open activity log with an invalid ID.
-    navigation.navigateTo(
-        {page: Page.ACTIVITY_LOG, extensionId: 'z'.repeat(32)});
-    flush();
-    // Should also be on activity log page. See |changePage_| in manager.js
-    // for the use case.
-    assertViewActive('extensions-activity-log');
-  });
+        // Should be on activity log page.
+        assertViewActive('extensions-activity-log');
+
+        // Try to open activity log with an invalid ID.
+        navigation.navigateTo(
+            {page: Page.ACTIVITY_LOG, extensionId: 'z'.repeat(32)});
+        flush();
+        // Should also be on activity log page. See |changePage_| in manager.js
+        // for the use case.
+        assertViewActive('extensions-activity-log');
+      });
 });

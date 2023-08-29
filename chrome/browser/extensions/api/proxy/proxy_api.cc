@@ -72,10 +72,13 @@ void ProxyEventRouter::OnPACScriptError(EventRouterForwarder* event_router,
   base::Value::Dict dict;
   dict.Set(kProxyEventFatalKey, false);
   dict.Set(kProxyEventErrorKey, net::ErrorToString(net::ERR_PAC_SCRIPT_FAILED));
-  std::string error_msg = base::UTF16ToUTF8(error);
+  std::string error_msg;
   if (line_number != -1) {
-    error_msg =
-        base::StringPrintf("line: %d: %s", line_number, error_msg.c_str());
+    base::SStringPrintf(&error_msg,
+                        "line: %d: %s",
+                        line_number, base::UTF16ToUTF8(error).c_str());
+  } else {
+    error_msg = base::UTF16ToUTF8(error);
   }
   dict.Set(kProxyEventDetailsKey, error_msg);
   args.Append(base::Value(std::move(dict)));

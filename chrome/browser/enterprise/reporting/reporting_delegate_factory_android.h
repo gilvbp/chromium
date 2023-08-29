@@ -26,20 +26,20 @@ class ReportingDelegateFactoryAndroid : public ReportingDelegateFactory {
 
   // ReportingDelegateFactory implementation.
   std::unique_ptr<BrowserReportGenerator::Delegate>
-  GetBrowserReportGeneratorDelegate() const override;
+  GetBrowserReportGeneratorDelegate() override;
   std::unique_ptr<ProfileReportGenerator::Delegate>
-  GetProfileReportGeneratorDelegate() const override;
+  GetProfileReportGeneratorDelegate() override;
   std::unique_ptr<ReportGenerator::Delegate> GetReportGeneratorDelegate()
-      const override;
+      override;
   std::unique_ptr<ReportScheduler::Delegate> GetReportSchedulerDelegate()
-      const override;
+      override;
   std::unique_ptr<RealTimeReportGenerator::Delegate>
-  GetRealTimeReportGeneratorDelegate() const override;
+  GetRealTimeReportGeneratorDelegate() override;
   std::unique_ptr<RealTimeReportController::Delegate>
-  GetRealTimeReportControllerDelegate() const override;
+  GetRealTimeReportControllerDelegate() override;
 
   std::unique_ptr<ReportScheduler::Delegate> GetReportSchedulerDelegate(
-      Profile* profile) const;
+      Profile* profile);
 };
 
 }  // namespace enterprise_reporting

@@ -20,8 +20,6 @@
 
 namespace web_app {
 
-class WebAppProvider;
-
 using Locale = std::string;
 
 // Handles reading and writing web app translations data to disk and caching
@@ -32,12 +30,12 @@ class WebAppTranslationManager {
       const std::map<AppId, blink::Manifest::TranslationItem>& cache)>;
   using WriteCallback = base::OnceCallback<void(bool success)>;
 
-  explicit WebAppTranslationManager(Profile* profile);
+  WebAppTranslationManager(Profile* profile,
+                           scoped_refptr<FileUtilsWrapper> utils);
   WebAppTranslationManager(const WebAppTranslationManager&) = delete;
   WebAppTranslationManager& operator=(const WebAppTranslationManager&) = delete;
   ~WebAppTranslationManager();
 
-  void SetProvider(base::PassKey<WebAppProvider>, WebAppProvider& provider);
   void Start();
 
   void WriteTranslations(
@@ -61,8 +59,8 @@ class WebAppTranslationManager {
  private:
   void OnTranslationsRead(ReadCallback callback, const AllTranslations& proto);
 
-  raw_ptr<WebAppProvider> provider_;
   base::FilePath web_apps_directory_;
+  scoped_refptr<FileUtilsWrapper> utils_;
   // Cache of the translations on disk for the current device language.
   std::map<AppId, blink::Manifest::TranslationItem> translation_cache_;
 

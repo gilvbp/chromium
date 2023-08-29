@@ -11,7 +11,7 @@ import '../../css/common.css.js';
 import './albums_subpage_element.js';
 import './ambient_weather_element.js';
 import './ambient_preview_small_element.js';
-import './ambient_theme_list_element.js';
+import './animation_theme_list_element.js';
 import './toggle_row_element.js';
 import './topic_source_list_element.js';
 
@@ -46,7 +46,7 @@ export class AmbientSubpage extends WithPersonalizationStore {
         type: Array,
         value: null,
       },
-      ambientTheme_: {
+      animationTheme_: {
         type: Object,
         value: null,
       },
@@ -70,7 +70,7 @@ export class AmbientSubpage extends WithPersonalizationStore {
       loading_: {
         type: Boolean,
         computed:
-            'computeLoading_(ambientModeEnabled_, albums_, temperatureUnit_, topicSource_, isOnline_)',
+            'computeLoading_(ambientModeEnabled_, albums_, temperatureUnit_, topicSource_)',
         observer: 'onLoadingChanged_',
       },
       isPersonalizationJellyEnabled_: {
@@ -86,12 +86,6 @@ export class AmbientSubpage extends WithPersonalizationStore {
           return isScreenSaverDurationEnabled();
         },
       },
-      isOnline_: {
-        type: Boolean,
-        value() {
-          return window.navigator.onLine;
-        },
-      },
     };
   }
 
@@ -99,13 +93,12 @@ export class AmbientSubpage extends WithPersonalizationStore {
   queryParams: Record<string, string>;
   private albums_: AmbientModeAlbum[]|null;
   private ambientModeEnabled_: boolean|null;
-  private ambientTheme_: AnimationTheme|null;
+  private animationTheme_: AnimationTheme|null;
   private duration_: number|null;
   private temperatureUnit_: TemperatureUnit|null;
   private topicSource_: TopicSource|null;
   private isScreenSaverDurationEnabled_: boolean;
   private isPersonalizationJellyEnabled_: boolean;
-  private isOnline_: boolean;
 
   // Refetch albums if the user is currently viewing ambient subpage, focuses
   // another window, and then re-focuses personalization app.
@@ -123,13 +116,6 @@ export class AmbientSubpage extends WithPersonalizationStore {
         elem.focus();
       }
     });
-
-    window.addEventListener('online', () => {
-      this.isOnline_ = true;
-    });
-    window.addEventListener('offline', () => {
-      this.isOnline_ = false;
-    });
   }
 
   override connectedCallback() {
@@ -143,8 +129,8 @@ export class AmbientSubpage extends WithPersonalizationStore {
         'albums_', state => state.ambient.albums);
     this.watch<AmbientSubpage['ambientModeEnabled_']>(
         'ambientModeEnabled_', state => state.ambient.ambientModeEnabled);
-    this.watch<AmbientSubpage['ambientTheme_']>(
-        'ambientTheme_', state => state.ambient.ambientTheme);
+    this.watch<AmbientSubpage['animationTheme_']>(
+        'animationTheme_', state => state.ambient.animationTheme);
     this.watch<AmbientSubpage['temperatureUnit_']>(
         'temperatureUnit_', state => state.ambient.temperatureUnit);
     this.watch<AmbientSubpage['topicSource_']>(
@@ -237,8 +223,7 @@ export class AmbientSubpage extends WithPersonalizationStore {
   private computeLoading_(): boolean {
     return this.ambientModeEnabled_ === null || this.albums_ === null ||
         this.topicSource_ === null || this.temperatureUnit_ === null ||
-        (this.isScreenSaverDurationEnabled_ && this.duration_ === null) ||
-        !this.isOnline_;
+        (this.isScreenSaverDurationEnabled_ && this.duration_ === null);
   }
 
   private getPlaceholders_(x: number): number[] {

@@ -4,7 +4,7 @@
 
 #import "ios/chrome/browser/ui/authentication/cells/table_view_account_item.h"
 
-#import "base/apple/foundation_util.h"
+#import "base/mac/foundation_util.h"
 #import "ios/chrome/browser/shared/ui/symbols/symbols.h"
 #import "ios/chrome/browser/shared/ui/util/uikit_ui_util.h"
 #import "ios/chrome/browser/ui/settings/cells/settings_cells_constants.h"
@@ -12,6 +12,10 @@
 #import "ios/chrome/common/ui/table_view/table_view_cells_constants.h"
 #import "ios/chrome/grit/ios_strings.h"
 #import "ui/base/l10n/l10n_util_mac.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace {
 
@@ -57,14 +61,14 @@ constexpr CGFloat KErrorIconImageSize = 22.;
   if (self.mode != TableViewAccountModeDisabled) {
     cell.contentView.alpha = 1;
     UIImageView* accessoryImage =
-        base::apple::ObjCCastStrict<UIImageView>(cell.accessoryView);
+        base::mac::ObjCCastStrict<UIImageView>(cell.accessoryView);
     accessoryImage.tintColor =
         [accessoryImage.tintColor colorWithAlphaComponent:1];
   } else {
     cell.userInteractionEnabled = NO;
     cell.contentView.alpha = 0.5;
     UIImageView* accessoryImage =
-        base::apple::ObjCCastStrict<UIImageView>(cell.accessoryView);
+        base::mac::ObjCCastStrict<UIImageView>(cell.accessoryView);
     accessoryImage.tintColor =
         [accessoryImage.tintColor colorWithAlphaComponent:0.5];
   }
@@ -238,7 +242,7 @@ constexpr CGFloat KErrorIconImageSize = 22.;
   self.userInteractionEnabled = YES;
   self.contentView.alpha = 1;
   UIImageView* accessoryImage =
-      base::apple::ObjCCastStrict<UIImageView>(self.accessoryView);
+      base::mac::ObjCCastStrict<UIImageView>(self.accessoryView);
   accessoryImage.tintColor =
       [accessoryImage.tintColor colorWithAlphaComponent:1];
 }

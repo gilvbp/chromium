@@ -6,7 +6,6 @@
 
 #include <stddef.h>
 
-#include "base/containers/contains.h"
 #include "base/logging.h"
 #include "content/common/pepper_plugin_list.h"
 #include "content/renderer/pepper/pepper_plugin_instance_impl.h"
@@ -77,7 +76,7 @@ void PepperPluginRegistry::AddLiveModule(
     const base::FilePath& path,
     const absl::optional<url::Origin>& origin_lock,
     PluginModule* module) {
-  DCHECK(!base::Contains(live_modules_, std::make_pair(path, origin_lock)));
+  DCHECK(live_modules_.find({path, origin_lock}) == live_modules_.end());
   live_modules_[{path, origin_lock}] = module;
 }
 

@@ -11,6 +11,10 @@
 #import "ios/chrome/common/ui/util/constraints_ui_util.h"
 #import "ios/chrome/common/ui/util/dynamic_type_util.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace {
 
 const CGFloat kCountWidth = 20;
@@ -74,7 +78,6 @@ const CGFloat kIconSize = 56;
   if (config.count > 0) {
     self.countLabel.text = [@(config.count) stringValue];
   }
-  self.alpha = config.disabled ? 0.3 : 1.0;
 }
 
 - (UILabel*)countLabel {

@@ -68,6 +68,7 @@ class ProfilePickerHandler : public content::WebUIMessageHandler,
   friend class ProfilePickerHandlerInUserProfileTest;
   friend class ProfilePickerCreationFlowBrowserTest;
   friend class ProfilePickerEnterpriseCreationFlowBrowserTest;
+  friend class ProfilePickerLocalProfileCreationDialogBrowserTest;
   friend class StartupBrowserCreatorPickerInfobarTest;
   FRIEND_TEST_ALL_PREFIXES(ProfilePickerHandlerInUserProfileTest,
                            HandleExtendedAccountInformation);
@@ -98,6 +99,7 @@ class ProfilePickerHandler : public content::WebUIMessageHandler,
   void HandleGetNewProfileSuggestedThemeInfo(const base::Value::List& args);
   void HandleGetProfileThemeInfo(const base::Value::List& args);
   void HandleGetAvailableIcons(const base::Value::List& args);
+  void HandleCreateProfile(const base::Value::List& args);
   // This function creates a new local profile and opens the profile
   // customization in a modal dialog.
   void HandleCreateProfileAndOpenCustomizationDialog(
@@ -119,6 +121,9 @@ class ProfilePickerHandler : public content::WebUIMessageHandler,
                                  bool open_settings,
                                  Browser* browser);
   void OnSwitchToProfileCompleteOpenCustomization(Browser* browser);
+  void OnProfileInitialized(absl::optional<SkColor> profile_color,
+                            bool create_shortcut,
+                            Profile* profile);
   void OnLocalProfileInitialized(absl::optional<SkColor> profile_color,
                                  Profile* profile);
   void PushProfilesList();

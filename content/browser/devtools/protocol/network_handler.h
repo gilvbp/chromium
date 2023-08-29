@@ -305,10 +305,10 @@ class NetworkHandler : public DevToolsDomainHandler,
 
   // Protocol builders.
   static String BuildPrivateNetworkRequestPolicy(
-      network::mojom::PrivateNetworkRequestPolicy policy);
+      network::mojom::LocalNetworkRequestPolicy policy);
   static protocol::Network::IPAddressSpace BuildIpAddressSpace(
       network::mojom::IPAddressSpace space);
-  static std::unique_ptr<protocol::Network::ClientSecurityState>
+  static Maybe<protocol::Network::ClientSecurityState>
   MaybeBuildClientSecurityState(
       const network::mojom::ClientSecurityStatePtr& state);
   static std::unique_ptr<protocol::Network::CorsErrorStatus>

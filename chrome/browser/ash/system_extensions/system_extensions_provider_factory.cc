@@ -38,11 +38,9 @@ SystemExtensionsProviderFactory::SystemExtensionsProviderFactory()
 
 SystemExtensionsProviderFactory::~SystemExtensionsProviderFactory() = default;
 
-std::unique_ptr<KeyedService>
-SystemExtensionsProviderFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* SystemExtensionsProviderFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
-  return std::make_unique<SystemExtensionsProvider>(
-      Profile::FromBrowserContext(context));
+  return new SystemExtensionsProvider(Profile::FromBrowserContext(context));
 }
 
 bool SystemExtensionsProviderFactory::ServiceIsCreatedWithBrowserContext()

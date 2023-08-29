@@ -63,9 +63,8 @@ class ShelfTest : public AshTestBase {
   }
 
  private:
-  raw_ptr<ShelfView, DanglingUntriaged | ExperimentalAsh> shelf_view_ = nullptr;
-  raw_ptr<ShelfModel, DanglingUntriaged | ExperimentalAsh> shelf_model_ =
-      nullptr;
+  raw_ptr<ShelfView, ExperimentalAsh> shelf_view_ = nullptr;
+  raw_ptr<ShelfModel, ExperimentalAsh> shelf_model_ = nullptr;
   std::unique_ptr<ShelfViewTestAPI> test_;
 };
 
@@ -189,8 +188,7 @@ TEST_F(ShelfTest, DisableAutoHide) {
 TEST_F(ShelfTest, ShelfHiddenOnScreenOnSecondaryDisplay) {
   for (const auto& state : {session_manager::SessionState::LOCKED,
                             session_manager::SessionState::LOGIN_PRIMARY}) {
-    SCOPED_TRACE(
-        base::StringPrintf("Testing state: %d", static_cast<int>(state)));
+    SCOPED_TRACE(base::StringPrintf("Testing state: %d", state));
     GetSessionControllerClient()->SetSessionState(state);
     UpdateDisplay("800x600,800x600");
 

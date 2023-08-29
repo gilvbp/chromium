@@ -5,9 +5,6 @@
 import {TestRunner} from 'test_runner';
 import {NetworkTestRunner} from 'network_test_runner';
 
-import * as SDK from 'devtools/core/sdk/sdk.js';
-import * as Network from 'devtools/panels/network/network.js';
-
 (async function() {
   'use strict';
   TestRunner.addResult(`Tests curl command generation\n`);
@@ -18,7 +15,7 @@ import * as Network from 'devtools/panels/network/network.js';
   const NODE_JS = 1;
 
   function newRequest(isBlob, headers, data, opt_url, method = null) {
-    var request = SDK.NetworkRequest.NetworkRequest.create(
+    var request = SDK.NetworkRequest.create(
         0,
         (isBlob === true ? 'blob:' : '') +
             (opt_url || 'http://example.org/path'),
@@ -38,8 +35,8 @@ import * as Network from 'devtools/panels/network/network.js';
 
   async function dumpRequest(headers, data, opt_url, method) {
     const request = newRequest(false, headers, data, opt_url, method);
-    var curlWin = await Network.NetworkLogView.NetworkLogView.generateCurlCommand(request, 'win');
-    var curlUnix = await Network.NetworkLogView.NetworkLogView.generateCurlCommand(request, 'unix');
+    var curlWin = await Network.NetworkLogView.generateCurlCommand(request, 'win');
+    var curlUnix = await Network.NetworkLogView.generateCurlCommand(request, 'unix');
     var powershell = await logView.generatePowerShellCommand(request);
     var fetchForBrowser = await logView.generateFetchCall(request, BROWSER);
     var fetchForNodejs = await logView.generateFetchCall(request, NODE_JS);

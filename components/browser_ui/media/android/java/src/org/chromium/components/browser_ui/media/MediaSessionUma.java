@@ -32,4 +32,18 @@ public class MediaSessionUma {
                     "Media.Session.Play", action, MediaSessionActionSource.NUM_ENTRIES);
         }
     }
+
+    public static void recordPause(@Nullable @MediaSessionActionSource Integer action) {
+        if (action != null) {
+            RecordHistogram.recordEnumeratedHistogram(
+                    "Media.Session.Pause", action, MediaSessionActionSource.NUM_ENTRIES);
+        }
+    }
+
+    public static void recordStop(@Nullable @MediaSessionActionSource Integer action) {
+        if (action != null) {
+            RecordHistogram.recordEnumeratedHistogram(
+                    "Media.Session.Stop", action, MediaSessionActionSource.NUM_ENTRIES);
+        }
+    }
 }

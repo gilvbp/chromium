@@ -10,7 +10,6 @@
 #include "base/functional/bind.h"
 #include "base/memory/scoped_refptr.h"
 #include "base/time/clock.h"
-#include "base/trace_event/trace_event.h"
 #include "components/reading_list/core/proto/reading_list.pb.h"
 #include "components/sync/model/metadata_batch.h"
 #include "url/gurl.h"
@@ -143,7 +142,6 @@ void ReadingListModelStorageImpl::OnReadAllMetadata(
     ReadingListEntries loaded_entries,
     const absl::optional<syncer::ModelError>& error,
     std::unique_ptr<syncer::MetadataBatch> metadata_batch) {
-  TRACE_EVENT0("ui", "ReadingListModelStorageImpl::OnReadAllMetadata");
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   if (error) {
     std::move(load_callback_).Run(base::unexpected(error->message()));

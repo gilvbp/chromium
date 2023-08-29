@@ -43,7 +43,6 @@ class ChromeOmniboxClient : public OmniboxClient {
   bool IsPasteAndGoEnabled() const override;
   bool IsDefaultSearchProviderEnabled() const override;
   SessionID GetSessionID() const override;
-  PrefService* GetPrefs() override;
   bookmarks::BookmarkModel* GetBookmarkModel() override;
   AutocompleteControllerEmitter* GetAutocompleteControllerEmitter() override;
   TemplateURLService* GetTemplateURLService() override;

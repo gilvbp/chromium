@@ -7,12 +7,16 @@
 #include <ostream>
 #include <string>
 
-#include "base/apple/scoped_cftyperef.h"
 #include "base/check.h"
+#include "base/mac/scoped_cftyperef.h"
 #include "base/numerics/safe_conversions.h"
 #include "base/strings/string_piece.h"
 #include "base/strings/sys_string_conversions.h"
 #include "net/base/net_string_util.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace net {
 
@@ -44,7 +48,7 @@ bool ConvertToUtf8(base::StringPiece text,
   if (!CharsetToCFStringEncoding(charset, &encoding))
     return false;
 
-  base::apple::ScopedCFTypeRef<CFStringRef> cfstring(CFStringCreateWithBytes(
+  base::ScopedCFTypeRef<CFStringRef> cfstring(CFStringCreateWithBytes(
       kCFAllocatorDefault, reinterpret_cast<const UInt8*>(text.data()),
       base::checked_cast<CFIndex>(text.length()), encoding,
       /*isExternalRepresentation=*/false));
@@ -77,9 +81,9 @@ bool ConvertToUTF16WithSubstitutions(base::StringPiece text,
 }
 
 bool ToUpper(base::StringPiece16 str, std::u16string* output) {
-  base::apple::ScopedCFTypeRef<CFStringRef> cfstring =
+  base::ScopedCFTypeRef<CFStringRef> cfstring =
       base::SysUTF16ToCFStringRef(str);
-  base::apple::ScopedCFTypeRef<CFMutableStringRef> mutable_cfstring(
+  base::ScopedCFTypeRef<CFMutableStringRef> mutable_cfstring(
       CFStringCreateMutableCopy(kCFAllocatorDefault, /*maxLength=*/0,
                                 cfstring.get()));
   CFStringUppercase(mutable_cfstring.get(), /*locale=*/nullptr);

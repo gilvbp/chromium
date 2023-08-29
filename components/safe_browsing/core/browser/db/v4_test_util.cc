@@ -88,13 +88,12 @@ TestV4StoreFactory::TestV4StoreFactory() = default;
 
 TestV4StoreFactory::~TestV4StoreFactory() = default;
 
-V4StorePtr TestV4StoreFactory::CreateV4Store(
+std::unique_ptr<V4Store> TestV4StoreFactory::CreateV4Store(
     const scoped_refptr<base::SequencedTaskRunner>& task_runner,
     const base::FilePath& store_path) {
-  V4StorePtr new_store(new TestV4Store(task_runner, store_path),
-                       V4StoreDeleter(task_runner));
+  auto new_store = std::make_unique<TestV4Store>(task_runner, store_path);
   new_store->Initialize();
-  return new_store;
+  return std::move(new_store);
 }
 
 TestV4DatabaseFactory::TestV4DatabaseFactory() = default;

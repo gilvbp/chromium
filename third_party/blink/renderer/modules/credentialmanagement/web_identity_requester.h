@@ -30,8 +30,7 @@ class MODULES_EXPORT WebIdentityRequester final
 
   void OnRequestToken(mojom::blink::RequestTokenStatus status,
                       const absl::optional<KURL>& selected_idp_config_url,
-                      const WTF::String& token,
-                      bool is_auto_reauthn);
+                      const WTF::String& token);
 
   // Invoked at most once per token request.
   void RequestToken();
@@ -51,10 +50,6 @@ class MODULES_EXPORT WebIdentityRequester final
   // called directly to when RequestToken would be called if invoked through
   // WebIdentityRequester.
   void StopDelayTimer(bool timer_started_before_onload);
-
-  // Abort an ongoing IdentityCredential request. This will only be called
-  // before the request finishes due to `scoped_abort_state`.
-  void AbortRequest(ScriptState* script_state);
 
   void Trace(Visitor* visitor) const;
 

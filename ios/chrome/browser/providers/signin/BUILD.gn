@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 source_set("chromium_choice") {
+  configs += [ "//build/config/compiler:enable_arc" ]
   sources = [ "chromium_choice.mm" ]
   deps = [
     "//base",
@@ -14,6 +15,7 @@ source_set("chromium_choice") {
 }
 
 source_set("chromium_signin_error") {
+  configs += [ "//build/config/compiler:enable_arc" ]
   sources = [ "chromium_signin_error.mm" ]
   deps = [
     "//base",
@@ -23,6 +25,7 @@ source_set("chromium_signin_error") {
 }
 
 source_set("chromium_signin_identity") {
+  configs += [ "//build/config/compiler:enable_arc" ]
   sources = [ "chromium_signin_identity.mm" ]
   deps = [
     "//base",
@@ -32,6 +35,7 @@ source_set("chromium_signin_identity") {
 }
 
 source_set("chromium_signin_resources") {
+  configs += [ "//build/config/compiler:enable_arc" ]
   sources = [ "chromium_signin_resources.mm" ]
   deps = [
     "//ios/chrome/browser/shared/ui/util",
@@ -41,12 +45,14 @@ source_set("chromium_signin_resources") {
 }
 
 source_set("chromium_signin_sso") {
+  configs += [ "//build/config/compiler:enable_arc" ]
   sources = [ "chromium_signin_sso.mm" ]
   deps = [ "//ios/public/provider/chrome/browser/signin:signin_sso_api" ]
   frameworks = [ "Foundation.framework" ]
 }
 
 source_set("chromium_trusted_vault") {
+  configs += [ "//build/config/compiler:enable_arc" ]
   sources = [ "chromium_trusted_vault.mm" ]
   deps = [
     "//base",

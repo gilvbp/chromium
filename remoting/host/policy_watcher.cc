@@ -182,7 +182,6 @@ base::Value::Dict PolicyWatcher::GetDefaultPolicies() {
 #if BUILDFLAG(IS_CHROMEOS)
   result.Set(key::kRemoteAccessHostAllowEnterpriseRemoteSupportConnections,
              true);
-  result.Set(key::kRemoteAccessHostAllowEnterpriseFileTransfer, false);
 #endif
 #if BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_MAC)
   result.Set(key::kRemoteAccessHostMatchUsername, false);

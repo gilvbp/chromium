@@ -96,8 +96,7 @@ class ProximityAuthMessengerImplTest : public testing::Test {
 
   base::test::ScopedFeatureList scoped_feature_list_;
 
-  raw_ptr<ash::secure_channel::FakeClientChannel,
-          DanglingUntriaged | ExperimentalAsh>
+  raw_ptr<ash::secure_channel::FakeClientChannel, ExperimentalAsh>
       fake_channel_;
 
   std::unique_ptr<TestMessenger> messenger_;

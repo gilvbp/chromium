@@ -22,13 +22,14 @@ class DawnAHardwareBufferImageRepresentation : public DawnImageRepresentation {
       SharedImageManager* manager,
       AndroidImageBacking* backing,
       MemoryTypeTracker* tracker,
-      wgpu::Device device,
-      wgpu::TextureFormat format,
-      std::vector<wgpu::TextureFormat> view_formats,
-      AHardwareBuffer* buffer);
+      WGPUDevice device,
+      WGPUTextureFormat format,
+      std::vector<WGPUTextureFormat> view_formats,
+      AHardwareBuffer* buffer,
+      scoped_refptr<base::RefCountedData<DawnProcTable>> dawn_procs);
   ~DawnAHardwareBufferImageRepresentation() override;
 
-  wgpu::Texture BeginAccess(wgpu::TextureUsage usage) override;
+  WGPUTexture BeginAccess(WGPUTextureUsage usage) override;
   void EndAccess() override;
 
  private:
@@ -37,10 +38,11 @@ class DawnAHardwareBufferImageRepresentation : public DawnImageRepresentation {
   }
 
   base::android::ScopedHardwareBufferHandle handle_;
-  wgpu::Texture texture_;
-  wgpu::Device device_;
-  wgpu::TextureFormat format_;
-  std::vector<wgpu::TextureFormat> view_formats_;
+  WGPUTexture texture_ = nullptr;
+  WGPUDevice device_;
+  WGPUTextureFormat format_;
+  std::vector<WGPUTextureFormat> view_formats_;
+  scoped_refptr<base::RefCountedData<DawnProcTable>> dawn_procs_;
 };
 
 }  // namespace gpu

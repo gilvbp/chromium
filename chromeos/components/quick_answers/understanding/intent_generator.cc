@@ -4,6 +4,7 @@
 
 #include "chromeos/components/quick_answers/understanding/intent_generator.h"
 
+#include <cctype>
 #include <map>
 
 #include "base/i18n/break_iterator.h"
@@ -21,7 +22,6 @@
 #include "chromeos/services/machine_learning/public/cpp/service_connection.h"
 #include "chromeos/services/machine_learning/public/mojom/machine_learning_service.mojom.h"
 #include "components/translate/core/browser/translate_download_manager.h"
-#include "third_party/abseil-cpp/absl/strings/ascii.h"
 #include "ui/base/l10n/l10n_util.h"
 
 namespace quick_answers {
@@ -150,10 +150,9 @@ bool AreTranslationLanguagesSupported(const std::string& source_language,
 }
 
 bool HasDigits(const std::string& word) {
-  for (char c : word) {
-    if (absl::ascii_isdigit(static_cast<unsigned char>(c))) {
+  for (const auto& character : word) {
+    if (std::isdigit(character))
       return true;
-    }
   }
   return false;
 }

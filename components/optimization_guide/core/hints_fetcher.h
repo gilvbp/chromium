@@ -97,7 +97,6 @@ class HintsFetcher {
           optimization_types,
       optimization_guide::proto::RequestContext request_context,
       const std::string& locale,
-      absl::optional<std::string> access_token,
       bool skip_cache,
       HintsFetchedCallback hints_fetched_callback);
 

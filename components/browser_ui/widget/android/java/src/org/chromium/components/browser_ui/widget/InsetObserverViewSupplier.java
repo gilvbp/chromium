@@ -5,6 +5,7 @@
 package org.chromium.components.browser_ui.widget;
 
 import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 
 import org.chromium.base.UnownedUserDataKey;
 import org.chromium.base.supplier.ObservableSupplier;
@@ -40,6 +41,7 @@ public class InsetObserverViewSupplier extends UnownedUserDataSupplier<InsetObse
     }
 
     /** Sets an instance for testing. */
+    @VisibleForTesting
     public static void setInstanceForTesting(InsetObserverView insetObserverView) {
         if (sInstanceForTesting == null) {
             sInstanceForTesting = new ObservableSupplierImpl<>();

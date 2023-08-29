@@ -46,21 +46,10 @@ TEST(AndroidMetricsHelperTest, VersionCode_BadData) {
   EXPECT_EQ(helper->version_code_int(), 0);
 }
 
-class AndroidMetricsHelperHistTest : public testing::Test {
- public:
-  AndroidMetricsHelperHistTest() {
-    AndroidMetricsHelper::RegisterPrefs(pref_service.registry());
-  }
-  ~AndroidMetricsHelperHistTest() override {
-    AndroidMetricsHelper::ResetGlobalStateForTesting();
-  }
-
- protected:
+TEST(AndroidMetricsHelperTest, EmitHistograms_CurrentSession) {
   TestingPrefServiceSimple pref_service;
+  AndroidMetricsHelper::RegisterPrefs(pref_service.registry());
   base::HistogramTester histogram_tester;
-};
-
-TEST_F(AndroidMetricsHelperHistTest, EmitHistograms_CurrentSession) {
   std::unique_ptr<AndroidMetricsHelper> helper(
       AndroidMetricsHelper::CreateInstanceForTest("588700002", true, true));
   helper->EmitHistograms(&pref_service, /*current_session=*/true);
@@ -71,7 +60,10 @@ TEST_F(AndroidMetricsHelperHistTest, EmitHistograms_CurrentSession) {
                                       CpuAbiBitnessSupport::k32And64bit, 1);
 }
 
-TEST_F(AndroidMetricsHelperHistTest, EmitHistograms_LogPreviousSession) {
+TEST(AndroidMetricsHelperTest, EmitHistograms_LogPreviousSession) {
+  TestingPrefServiceSimple pref_service;
+  AndroidMetricsHelper::RegisterPrefs(pref_service.registry());
+  base::HistogramTester histogram_tester;
   std::unique_ptr<AndroidMetricsHelper> helper(
       AndroidMetricsHelper::CreateInstanceForTest("588700002", true, true));
   helper->EmitHistograms(&pref_service, /*current_session=*/false);
@@ -82,8 +74,11 @@ TEST_F(AndroidMetricsHelperHistTest, EmitHistograms_LogPreviousSession) {
                                       CpuAbiBitnessSupport::k32And64bit, 1);
 }
 
-TEST_F(AndroidMetricsHelperHistTest,
-       EmitHistograms_LogPreviousSessionWithSavedLocalState) {
+TEST(AndroidMetricsHelperTest,
+     EmitHistograms_LogPreviousSessionWithSavedLocalState) {
+  TestingPrefServiceSimple pref_service;
+  AndroidMetricsHelper::RegisterPrefs(pref_service.registry());
+  base::HistogramTester histogram_tester;
   AndroidMetricsHelper::SaveLocalState(&pref_service, 588700002);
   std::unique_ptr<AndroidMetricsHelper> helper(
       AndroidMetricsHelper::CreateInstanceForTest("588700006", false, false));
@@ -99,7 +94,10 @@ TEST_F(AndroidMetricsHelperHistTest,
                                       CpuAbiBitnessSupport::kNeither, 1);
 }
 
-TEST_F(AndroidMetricsHelperHistTest, EmitHistograms_BadData) {
+TEST(AndroidMetricsHelperTest, EmitHistograms_BadData) {
+  TestingPrefServiceSimple pref_service;
+  AndroidMetricsHelper::RegisterPrefs(pref_service.registry());
+  base::HistogramTester histogram_tester;
   std::unique_ptr<AndroidMetricsHelper> helper(
       AndroidMetricsHelper::CreateInstanceForTest("5887_000_0_2", true, false));
   helper->EmitHistograms(&pref_service, /*current_session=*/true);

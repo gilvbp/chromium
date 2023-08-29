@@ -516,8 +516,7 @@ class ServiceWorkerMainResourceLoaderTest : public testing::Test {
         base::BindOnce(&ServiceWorkerMainResourceLoaderTest::Fallback,
                        base::Unretained(this)),
         container_host_,
-        /*frame_tree_node_id=*/RenderFrameHost::kNoFrameTreeNodeId,
-        /*find_registration_start_time=*/base::TimeTicks::Now());
+        /*frame_tree_node_id=*/RenderFrameHost::kNoFrameTreeNodeId);
 
     // Load |request.url|.
     loader_->StartRequest(*request, loader_remote_.BindNewPipeAndPassReceiver(),

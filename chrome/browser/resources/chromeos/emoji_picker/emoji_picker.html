@@ -242,7 +242,7 @@
     flex: 1;
   }
 
-  #list-container.error-only>:not(#groups,#dummyTab) {
+  #list-container.error-only>:not(#groups) {
     display: none;
   }
 
@@ -279,8 +279,7 @@
     lazy-indexing="[[searchLazyIndexing]]"
     on-scroll="onSearchScroll"
     category-metadata="[[getCategoryMetadata(gifSupport, category)]]"
-    gif-support$="[[gifSupport]]"
-    close-gif-nudge-overlay="[[closeGifNudgeOverlay]]">
+    gif-support$="[[gifSupport]]">
   </emoji-search>
 
 <div id="list-container" class$="[[computeListContainerClass(category, status)]]">
@@ -421,7 +420,3 @@
     </text-group-button>
   </div>
 </div>
-
-<template is="dom-if" if="[[showGifNudgeOverlay]]">
-  <emoji-gif-nudge-overlay close-overlay="[[closeGifNudgeOverlay]]">
-</template>

@@ -14,6 +14,7 @@
 #include "build/chromeos_buildflags.h"
 #include "chrome/browser/custom_handlers/protocol_handler_registry_factory.h"
 #include "chrome/browser/download/download_permission_request.h"
+#include "chrome/browser/permissions/attestation_permission_request.h"
 #include "chrome/browser/permissions/quiet_notification_permission_ui_config.h"
 #include "chrome/browser/permissions/quiet_notification_permission_ui_state.h"
 #include "chrome/browser/profiles/profile.h"
@@ -125,7 +126,15 @@ class PermissionPromptBubbleBaseViewBrowserTest
   // DialogBrowserTest:
   void ShowUi(const std::string& name) override {
     const std::string& actual_name = name.substr(0, name.find("/"));
-    AddRequestForContentSetting(actual_name);
+    if (actual_name == "security_key") {
+      // This one doesn't have a ContentSettingsType.
+      test_api_->manager()->AddRequest(
+          GetActiveMainFrame(),
+          NewAttestationPermissionRequest(url::Origin::Create(GetTestUrl()),
+                                          base::BindOnce([](bool) {})));
+    } else {
+      AddRequestForContentSetting(actual_name);
+    }
     base::RunLoop().RunUntilIdle();
 
     ChipController* chip_controller = GetChipController();
@@ -384,6 +393,12 @@ IN_PROC_BROWSER_TEST_P(PermissionPromptBubbleBaseViewBrowserTest,
   ShowAndVerifyUi();
 }
 
+// Host wants to access data about your security key.
+IN_PROC_BROWSER_TEST_P(PermissionPromptBubbleBaseViewBrowserTest,
+                       InvokeUi_security_key) {
+  ShowAndVerifyUi();
+}
+
 // Shows a permissions bubble with multiple requests.
 IN_PROC_BROWSER_TEST_P(PermissionPromptBubbleBaseViewBrowserTest,
                        InvokeUi_multiple) {
@@ -434,7 +449,8 @@ IN_PROC_BROWSER_TEST_P(
   EXPECT_TRUE(prompt);
   auto* label_with_link =
       static_cast<views::StyledLabel*>(prompt->GetRootView()->GetViewByID(
-          permissions::PermissionPromptViewID::VIEW_ID_PERMISSION_PROMPT_LINK));
+          permissions::PermissionPromptViewID::
+              VIEW_ID_PERMISSION_PROMPT_DESCRIPTION_WITH_LINK));
   EXPECT_TRUE(label_with_link);
 
   // Click on the help center link and check that it opens on a new tab.

@@ -8,6 +8,10 @@
 #import "components/autofill/core/common/password_form_fill_data.h"
 #import "ios/chrome/browser/autofill/bottom_sheet/autofill_bottom_sheet_tab_helper.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace {
 constexpr char kScriptName[] = "bottom_sheet";
 constexpr char kScriptMessageName[] = "BottomSheetMessage";
@@ -37,9 +41,7 @@ AutofillBottomSheetJavaScriptFeature::GetInstance() {
 
 AutofillBottomSheetJavaScriptFeature::AutofillBottomSheetJavaScriptFeature()
     : web::JavaScriptFeature(
-          // TODO(crbug.com/1175793): Move autofill code to kIsolatedWorld
-          // once all scripts are converted to JavaScriptFeatures.
-          web::ContentWorld::kPageContentWorld,
+          web::ContentWorld::kIsolatedWorld,
           {FeatureScript::CreateWithFilename(
               kScriptName,
               FeatureScript::InjectionTime::kDocumentStart,

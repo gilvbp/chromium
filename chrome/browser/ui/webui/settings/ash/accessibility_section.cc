@@ -9,7 +9,6 @@
 #include <string>
 #include <vector>
 
-#include "ash/color_enhancement/color_enhancement_controller.h"
 #include "ash/constants/ash_features.h"
 #include "ash/constants/ash_pref_names.h"
 #include "ash/public/cpp/accessibility_controller_enums.h"
@@ -21,10 +20,10 @@
 #include "chrome/browser/accessibility/accessibility_state_utils.h"
 #include "chrome/browser/extensions/extension_service.h"
 #include "chrome/browser/speech/extension_api/tts_engine_extension_observer_chromeos.h"
-#include "chrome/browser/ui/webui/ash/settings/search/search_tag_registry.h"
 #include "chrome/browser/ui/webui/settings/accessibility_main_handler.h"
 #include "chrome/browser/ui/webui/settings/ash/accessibility_handler.h"
 #include "chrome/browser/ui/webui/settings/ash/pdf_ocr_handler.h"
+#include "chrome/browser/ui/webui/settings/ash/search/search_tag_registry.h"
 #include "chrome/browser/ui/webui/settings/ash/select_to_speak_handler.h"
 #include "chrome/browser/ui/webui/settings/ash/switch_access_handler.h"
 #include "chrome/browser/ui/webui/settings/ash/tts_handler.h"
@@ -87,7 +86,7 @@ const std::vector<SearchConcept>& GetA11ySearchConcepts() {
         IDS_OS_SETTINGS_TAG_A11Y_TEXT_TO_SPEECH_PAGE_ALT2,
         IDS_OS_SETTINGS_TAG_A11Y_TEXT_TO_SPEECH_PAGE_ALT3,
         IDS_OS_SETTINGS_TAG_A11Y_TEXT_TO_SPEECH_PAGE_ALT4,
-        IDS_OS_SETTINGS_TAG_A11Y_TEXT_TO_SPEECH_PAGE_ALT5}},
+        SearchConcept::kAltTagEnd}},
       {IDS_OS_SETTINGS_TAG_A11Y_DISPLAY_AND_MAGNIFICATION_PAGE,
        mojom::kDisplayAndMagnificationSubpagePath,
        mojom::SearchResultIcon::kA11y,
@@ -420,29 +419,16 @@ GetA11yFullscreenMagnifierFocusFollowingSearchConcepts() {
   return *tags;
 }
 
-const std::vector<SearchConcept>& GetA11yColorCorrectionSearchConcepts() {
-  static const base::NoDestructor<std::vector<SearchConcept>> tags({
-      {IDS_OS_SETTINGS_TAG_A11Y_COLOR_CORRECTION,
-       mojom::kDisplayAndMagnificationSubpagePath,
-       mojom::SearchResultIcon::kA11y,
-       mojom::SearchResultDefaultRank::kMedium,
-       mojom::SearchResultType::kSetting,
-       {.setting = mojom::Setting::kColorCorrectionEnabled},
-       {IDS_OS_SETTINGS_TAG_A11Y_COLOR_CORRECTION_ALT1,
-        IDS_OS_SETTINGS_TAG_A11Y_COLOR_CORRECTION_ALT2,
-        IDS_OS_SETTINGS_TAG_A11Y_COLOR_CORRECTION_ALT3,
-        IDS_OS_SETTINGS_TAG_A11Y_COLOR_CORRECTION_ALT4,
-        IDS_OS_SETTINGS_TAG_A11Y_COLOR_CORRECTION_ALT5}},
-  });
-  return *tags;
-}
-
 bool IsLiveCaptionEnabled() {
   return captions::IsLiveCaptionFeatureSupported();
 }
 
 bool IsAccessibilityChromeVoxPageMigrationEnabled() {
   return ::features::IsAccessibilityChromeVoxPageMigrationEnabled();
+}
+
+bool IsAccessibilitySelectToSpeakPageMigrationEnabled() {
+  return ::features::IsAccessibilitySelectToSpeakPageMigrationEnabled();
 }
 
 bool AreExperimentalAccessibilityColorEnhancementSettingsEnabled() {
@@ -458,17 +444,6 @@ bool IsSwitchAccessTextAllowed() {
 bool AreTabletNavigationButtonsAllowed() {
   return features::IsHideShelfControlsInTabletModeEnabled() &&
          TabletMode::IsBoardTypeMarkedAsTabletCapable();
-}
-
-int GetDisplayAndMangificationLinkDescriptionResourceId() {
-  if (AreExperimentalAccessibilityColorEnhancementSettingsEnabled()) {
-    return IDS_SETTINGS_ACCESSIBILITY_DISPLAY_AND_MAGNIFICATION_LINK_NEW_DESCRIPTION;
-  }
-  return IDS_SETTINGS_ACCESSIBILITY_DISPLAY_AND_MAGNIFICATION_LINK_DESCRIPTION;
-}
-
-bool IsAccessibilityGameFaceIntegrationEnabled() {
-  return ::features::IsAccessibilityGameFaceIntegrationEnabled();
 }
 
 }  // namespace
@@ -522,10 +497,7 @@ AccessibilitySection::~AccessibilitySection() {
 
 void AccessibilitySection::AddLoadTimeData(
     content::WebUIDataSource* html_source) {
-  const bool kIsRevampEnabled =
-      ash::features::IsOsSettingsRevampWayfindingEnabled();
-
-  webui::LocalizedString kLocalizedStrings[] = {
+  static constexpr webui::LocalizedString kLocalizedStrings[] = {
       {"a11yExplanation", IDS_SETTINGS_ACCESSIBILITY_EXPLANATION},
       {"a11yPageTitle", IDS_SETTINGS_ACCESSIBILITY},
       {"a11yWebStore", IDS_SETTINGS_ACCESSIBILITY_WEB_STORE},
@@ -744,6 +716,8 @@ void AccessibilitySection::AddLoadTimeData(
        IDS_SETTINGS_ACCESSIBILITY_DICTATION_SUBTITLE_SODA_DOWNLOAD_ERROR},
       {"dictationLocaleSubLabelOffline",
        IDS_SETTINGS_ACCESSIBILITY_DICTATION_LOCALE_SUB_LABEL_OFFLINE},
+      {"displayAndMagnificationLinkDescription",
+       IDS_SETTINGS_ACCESSIBILITY_DISPLAY_AND_MAGNIFICATION_LINK_DESCRIPTION},
       {"displayAndMagnificationLinkTitle",
        IDS_SETTINGS_ACCESSIBILITY_DISPLAY_AND_MAGNIFICATION_LINK_TITLE},
       {"displayHeading", IDS_SETTINGS_ACCESSIBILITY_DISPLAY_HEADING},
@@ -1053,11 +1027,7 @@ void AccessibilitySection::AddLoadTimeData(
        IDS_SETTINGS_A11Y_TABLET_MODE_SHELF_BUTTONS_DESCRIPTION},
       {"tabletModeShelfNavigationButtonsSettingLabel",
        IDS_SETTINGS_A11Y_TABLET_MODE_SHELF_BUTTONS_LABEL},
-      {"tapDraggingLabel", kIsRevampEnabled
-                               ? IDS_OS_SETTINGS_REVAMP_TAP_DRAGGING_LABEL
-                               : IDS_SETTINGS_TAP_DRAGGING_LABEL},
-      {"tapDraggingDescription",
-       IDS_OS_SETTINGS_REVAMP_TAP_DRAGGING_DESCRIPTION},
+      {"tapDraggingLabel", IDS_SETTINGS_TAP_DRAGGING_LABEL},
       {"textToSpeechEngines", IDS_SETTINGS_TEXT_TO_SPEECH_ENGINES},
       {"textToSpeechHeading",
        IDS_SETTINGS_ACCESSIBILITY_TEXT_TO_SPEECH_HEADING},
@@ -1102,11 +1072,6 @@ void AccessibilitySection::AddLoadTimeData(
   html_source->AddString("selectToSpeakLearnMoreUrl",
                          chrome::kSelectToSpeakLearnMoreURL);
 
-  html_source->AddString(
-      "displayAndMagnificationLinkDescription",
-      l10n_util::GetStringUTF16(
-          GetDisplayAndMangificationLinkDescriptionResourceId()));
-
   html_source->AddBoolean(
       "showExperimentalAccessibilitySwitchAccessImprovedTextInput",
       IsSwitchAccessTextAllowed());
@@ -1120,15 +1085,15 @@ void AccessibilitySection::AddLoadTimeData(
   html_source->AddBoolean("isAccessibilityChromeVoxPageMigrationEnabled",
                           IsAccessibilityChromeVoxPageMigrationEnabled());
 
+  html_source->AddBoolean("isAccessibilitySelectToSpeakPageMigrationEnabled",
+                          IsAccessibilitySelectToSpeakPageMigrationEnabled());
+
   html_source->AddBoolean(
       "areExperimentalAccessibilityColorEnhancementSettingsEnabled",
       AreExperimentalAccessibilityColorEnhancementSettingsEnabled());
 
   html_source->AddBoolean("pdfOcrEnabled",
                           base::FeatureList::IsEnabled(::features::kPdfOcr));
-
-  html_source->AddBoolean("isAccessibilityGameFaceIntegrationEnabled",
-                          IsAccessibilityGameFaceIntegrationEnabled());
 
   ::settings::AddCaptionSubpageStrings(html_source);
 }
@@ -1162,10 +1127,9 @@ mojom::SearchResultIcon AccessibilitySection::GetSectionIcon() const {
   return mojom::SearchResultIcon::kA11y;
 }
 
-const char* AccessibilitySection::GetSectionPath() const {
+std::string AccessibilitySection::GetSectionPath() const {
   return mojom::kAccessibilitySectionPath;
 }
-
 bool AccessibilitySection::LogMetric(mojom::Setting setting,
                                      base::Value& value) const {
   // TODO(accessibility): Ensure to capture metrics for Switch Access's action
@@ -1181,21 +1145,6 @@ bool AccessibilitySection::LogMetric(mojom::Setting setting,
           "ChromeOS.Settings.Accessibility."
           "FullscreenMagnifierMouseFollowingMode",
           static_cast<MagnifierMouseFollowingMode>(value.GetInt()));
-      return true;
-    case mojom::Setting::kColorCorrectionEnabled:
-      base::UmaHistogramBoolean(
-          "ChromeOS.Settings.Accessibility.ColorCorrection.Enabled",
-          value.GetBool());
-      return true;
-    case mojom::Setting::kColorCorrectionFilterType:
-      base::UmaHistogramEnumeration(
-          "ChromeOS.Settings.Accessibility.ColorCorrection.FilterType",
-          static_cast<ColorVisionCorrectionType>(value.GetInt()));
-      return true;
-    case mojom::Setting::kColorCorrectionFilterAmount:
-      base::UmaHistogramPercentage(
-          "ChromeOS.Settings.Accessibility.ColorCorrection.FilterAmount",
-          value.GetInt());
       return true;
 
     default:
@@ -1229,18 +1178,20 @@ void AccessibilitySection::RegisterHierarchy(
         mojom::kChromeVoxSubpagePath);
   }
   // Select to speak options page.
-  generator->RegisterTopLevelSubpage(
-      IDS_SETTINGS_ACCESSIBILITY_SELECT_TO_SPEAK_LINK_TITLE,
-      mojom::Subpage::kSelectToSpeak, mojom::SearchResultIcon::kA11y,
-      mojom::SearchResultDefaultRank::kMedium,
-      mojom::kSelectToSpeakSubpagePath);
-  static constexpr mojom::Setting kSelectToSpeakSettings[] = {
-      mojom::Setting::kSelectToSpeakWordHighlight,
-      mojom::Setting::kSelectToSpeakBackgroundShading,
-      mojom::Setting::kSelectToSpeakNavigationControls,
-  };
-  RegisterNestedSettingBulk(mojom::Subpage::kSelectToSpeak,
-                            kSelectToSpeakSettings, generator);
+  if (IsAccessibilitySelectToSpeakPageMigrationEnabled()) {
+    generator->RegisterTopLevelSubpage(
+        IDS_SETTINGS_ACCESSIBILITY_SELECT_TO_SPEAK_LINK_TITLE,
+        mojom::Subpage::kSelectToSpeak, mojom::SearchResultIcon::kA11y,
+        mojom::SearchResultDefaultRank::kMedium,
+        mojom::kSelectToSpeakSubpagePath);
+    static constexpr mojom::Setting kSelectToSpeakSettings[] = {
+        mojom::Setting::kSelectToSpeakWordHighlight,
+        mojom::Setting::kSelectToSpeakBackgroundShading,
+        mojom::Setting::kSelectToSpeakNavigationControls,
+    };
+    RegisterNestedSettingBulk(mojom::Subpage::kSelectToSpeak,
+                              kSelectToSpeakSettings, generator);
+  }
   // Display and magnification page.
   generator->RegisterTopLevelSubpage(
       IDS_SETTINGS_ACCESSIBILITY_DISPLAY_AND_MAGNIFICATION_LINK_TITLE,
@@ -1288,9 +1239,6 @@ void AccessibilitySection::RegisterHierarchy(
       mojom::Setting::kMonoAudio,
       mojom::Setting::kStartupSound,
       mojom::Setting::kEnableCursorColor,
-      mojom::Setting::kColorCorrectionEnabled,
-      mojom::Setting::kColorCorrectionFilterType,
-      mojom::Setting::kColorCorrectionFilterAmount,
   };
   RegisterNestedSettingBulk(mojom::Subpage::kManageAccessibility,
                             kManageAccessibilitySettings, generator);
@@ -1392,11 +1340,6 @@ void AccessibilitySection::UpdateSearchTags() {
   } else {
     updater.RemoveSearchTags(
         GetA11yFullscreenMagnifierFocusFollowingSearchConcepts());
-  }
-
-  if (::features::
-          AreExperimentalAccessibilityColorEnhancementSettingsEnabled()) {
-    updater.AddSearchTags(GetA11yColorCorrectionSearchConcepts());
   }
 
   if (!pref_service_->GetBoolean(prefs::kAccessibilitySwitchAccessEnabled)) {

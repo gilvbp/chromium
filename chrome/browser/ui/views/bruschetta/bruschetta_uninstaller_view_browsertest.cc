@@ -17,7 +17,9 @@
 class BruschettaUninstallerViewBrowserTest : public DialogBrowserTest {
  public:
   BruschettaUninstallerViewBrowserTest() {
-    feature_list_.InitWithFeatures({ash::features::kBruschetta}, {});
+    feature_list_.InitWithFeatures(
+        {ash::features::kBruschetta, ash::features::kBruschettaAlphaMigrate},
+        {});
   }
 
   BruschettaUninstallerViewBrowserTest(

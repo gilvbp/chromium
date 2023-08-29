@@ -6,59 +6,59 @@ package org.chromium.chrome.browser.omnibox.suggestions.carousel;
 
 import android.content.res.Configuration;
 import android.content.res.Resources;
+import android.view.View;
 
 import androidx.annotation.NonNull;
 
-import org.chromium.chrome.browser.omnibox.OmniboxFeatures;
 import org.chromium.chrome.browser.omnibox.R;
 import org.chromium.chrome.browser.omnibox.styles.OmniboxResourceProvider;
 import org.chromium.chrome.browser.omnibox.suggestions.SuggestionCommonProperties;
 import org.chromium.chrome.browser.omnibox.suggestions.SuggestionCommonProperties.FormFactor;
-import org.chromium.chrome.browser.omnibox.suggestions.base.SpacingRecyclerViewItemDecoration;
+import org.chromium.ui.modelutil.MVCListAdapter.ListItem;
 import org.chromium.ui.modelutil.PropertyKey;
 import org.chromium.ui.modelutil.PropertyModel;
 import org.chromium.ui.modelutil.SimpleRecyclerViewAdapter;
+
+import java.util.List;
 
 /**
  * Binder for the Carousel suggestions.
  */
 public final class BaseCarouselSuggestionViewBinder {
-    private static int sTileViewPadding = -1;
     /** @see PropertyModelChangeProcessor.ViewBinder#bind(Object, Object, Object) */
     public static void bind(PropertyModel model, BaseCarouselSuggestionView view, PropertyKey key) {
-        // Initialize resources we will be frequently accessing.
-        if (sTileViewPadding < 0) {
-            sTileViewPadding = view.getResources().getDimensionPixelSize(R.dimen.tile_view_padding);
-        }
-
         if (key == BaseCarouselSuggestionViewProperties.TILES) {
-            var items = model.get(BaseCarouselSuggestionViewProperties.TILES);
-            var adapter = (SimpleRecyclerViewAdapter) view.getAdapter();
+            final List<ListItem> items = model.get(BaseCarouselSuggestionViewProperties.TILES);
+            final SimpleRecyclerViewAdapter adapter = view.getAdapter();
             if (items != null) {
                 adapter.getModelList().set(items);
             } else {
                 adapter.getModelList().clear();
             }
-        } else if (key == SuggestionCommonProperties.DEVICE_FORM_FACTOR) {
-            int itemDecoration = view.getItemDecorationCount();
-            while (itemDecoration > 0) {
-                itemDecoration--;
-                view.removeItemDecorationAt(itemDecoration);
+        } else if (key == BaseCarouselSuggestionViewProperties.TITLE) {
+            view.getHeaderTextView().setText(model.get(BaseCarouselSuggestionViewProperties.TITLE));
+        } else if (key == BaseCarouselSuggestionViewProperties.SHOW_TITLE) {
+            final boolean showTitle = model.get(BaseCarouselSuggestionViewProperties.SHOW_TITLE);
+            final View headerView = view.getHeaderView();
+            int topPadding = OmniboxResourceProvider.getCarouselTopPadding(view.getContext());
+            final int bottomPadding =
+                    OmniboxResourceProvider.getCarouselBottomPadding(view.getContext());
+            if (showTitle) {
+                headerView.setVisibility(View.VISIBLE);
+                view.setPaddingRelative(0, 0, 0, bottomPadding);
+            } else {
+                headerView.setVisibility(View.GONE);
+                view.setPaddingRelative(0, topPadding, 0, bottomPadding);
             }
-
-            var context = view.getContext();
-            // Adjust the initial offset of the MV Carousel to match the offset of the
-            // suggestion header.
-            int initialSpacing = OmniboxFeatures.shouldShowModernizeVisualUpdate(context)
-                    ? OmniboxResourceProvider.getHeaderStartPadding(context) - sTileViewPadding
-                    : OmniboxResourceProvider.getSideSpacing(context);
-            int itemSpacing = getItemSpacingPx(
-                    model.get(SuggestionCommonProperties.DEVICE_FORM_FACTOR), view.getResources());
-            view.addItemDecoration(
-                    new SpacingRecyclerViewItemDecoration(initialSpacing, itemSpacing / 2));
+        } else if (key == SuggestionCommonProperties.DEVICE_FORM_FACTOR) {
+            view.setItemSpacingPx(getItemSpacingPx(
+                    model.get(SuggestionCommonProperties.DEVICE_FORM_FACTOR), view.getResources()));
         } else if (key == BaseCarouselSuggestionViewProperties.HORIZONTAL_FADE) {
-            view.setHorizontalFadingEdgeEnabled(
+            view.setCarouselHorizontalFade(
                     model.get(BaseCarouselSuggestionViewProperties.HORIZONTAL_FADE));
+        } else if (key == BaseCarouselSuggestionViewProperties.RECYCLED_VIEW_POOL) {
+            view.setCarouselRecycledViewPool(
+                    model.get(BaseCarouselSuggestionViewProperties.RECYCLED_VIEW_POOL));
         }
     }
 

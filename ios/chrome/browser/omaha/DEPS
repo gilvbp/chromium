@@ -1,4 +1,7 @@
-include_rules = [
-  "+ios/chrome/browser/browser_state_metrics/browser_state_metrics.h",
-  "+ios/chrome/browser/upgrade",
-]
+specific_include_rules = {
+  # TODO(crbug.com/1294160): Remove this dependency.
+  "^omaha_service.mm": [
+    "+ios/chrome/browser/ui/util/ui_util.h",
+  ],
+}
+

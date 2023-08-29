@@ -23,4 +23,5 @@ source_set("lens") {
     "//base",
     "//third_party/abseil-cpp:absl",
   ]
+  configs += [ "//build/config/compiler:enable_arc" ]
 }

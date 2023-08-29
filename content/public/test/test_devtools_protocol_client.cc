@@ -79,18 +79,9 @@ void TestDevToolsProtocolClient::AttachToBrowserTarget() {
 
 bool TestDevToolsProtocolClient::HasExistingNotification(
     const std::string& search) const {
-  return HasExistingNotificationMatching(
-      [&search](const base::Value::Dict& notification) {
-        return *notification.FindString(kMethodParam) == search;
-      });
-}
-
-bool TestDevToolsProtocolClient::HasExistingNotificationMatching(
-    base::FunctionRef<bool(const base::Value::Dict&)> pred) const {
   for (const auto& notification : notifications_) {
-    if (pred(notification)) {
+    if (*notification.FindString(kMethodParam) == search)
       return true;
-    }
   }
   return false;
 }

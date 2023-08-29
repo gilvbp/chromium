@@ -36,6 +36,8 @@ class MenuModelBase : public ui::MenuModel {
 
   // ui::MenuModel implementation:
 
+  bool HasIcons() const override { return false; }
+
   size_t GetItemCount() const override { return items_.size(); }
 
   ItemType GetTypeAt(size_t index) const override { return items_[index].type; }

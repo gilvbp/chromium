@@ -49,7 +49,7 @@ suite('<settings-cursor-and-touchpad-page>', () => {
     deviceBrowserProxy.hasPointingStick = false;
     DevicePageBrowserProxyImpl.setInstanceForTesting(deviceBrowserProxy);
 
-    document.body.innerHTML = window.trustedTypes!.emptyHTML;
+    document.body.innerHTML = '';
     Router.getInstance().navigateTo(routes.A11Y_CURSOR_AND_TOUCHPAD);
   });
 
@@ -112,7 +112,7 @@ suite('<settings-cursor-and-touchpad-page>', () => {
         const popStateEventPromise = eventToPromise('popstate', window);
         router.navigateToPreviousRoute();
         await popStateEventPromise;
-        await waitAfterNextRender(page);
+        await waitBeforeNextRender(page);
 
         assertEquals(routes.A11Y_CURSOR_AND_TOUCHPAD, router.currentRoute);
         assertEquals(

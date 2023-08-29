@@ -7,7 +7,8 @@
 #include <memory>
 #include <utility>
 
-#include "build/build_config.h"
+#include "base/strings/utf_string_conversions.h"
+#include "base/test/scoped_feature_list.h"
 #include "chrome/browser/ui/browser.h"
 #include "chrome/browser/ui/browser_window.h"
 #include "chrome/browser/ui/tabs/tab_strip_model.h"
@@ -18,7 +19,10 @@
 #include "chrome/browser/ui/webauthn/authenticator_request_sheet_model.h"
 #include "chrome/browser/ui/webauthn/sheet_models.h"
 #include "chrome/browser/webauthn/authenticator_request_dialog_model.h"
+#include "content/public/common/content_features.h"
 #include "content/public/test/browser_test.h"
+#include "device/fido/features.h"
+#include "ui/gfx/paint_vector_icon.h"
 #include "ui/views/controls/label.h"
 
 namespace {
@@ -125,19 +129,16 @@ class AuthenticatorDialogViewTest : public DialogBrowserTest {
       // "Manage devices" button to be shown.
       device::FidoRequestHandlerBase::TransportAvailabilityInfo
           transport_availability;
-      transport_availability.request_type =
-          device::FidoRequestType::kGetAssertion;
       transport_availability.available_transports = {
           AuthenticatorTransport::kUsbHumanInterfaceDevice,
           AuthenticatorTransport::kHybrid};
 
-      std::vector<std::unique_ptr<device::cablev2::Pairing>> phones;
-      auto pairing = std::make_unique<device::cablev2::Pairing>();
-      pairing->from_sync_deviceinfo = false;
-      pairing->name = "Phone";
-      phones.emplace_back(std::move(pairing));
+      std::array<uint8_t, device::kP256X962Length> public_key = {0};
+      AuthenticatorRequestDialogModel::PairedPhone phone("Phone", 0,
+                                                         public_key);
       dialog_model_->set_cable_transport_info(
-          /*extension_is_v2=*/absl::nullopt, std::move(phones),
+          /*extension_is_v2=*/absl::nullopt,
+          /*paired_phones=*/{phone},
           /*contact_phone_callback=*/base::DoNothing(), "fido://qrcode");
       dialog_model_->StartFlow(std::move(transport_availability),
                                /*is_conditional_mediation=*/false);
@@ -173,13 +174,6 @@ IN_PROC_BROWSER_TEST_F(AuthenticatorDialogViewTest, InvokeUi_default) {
 
 // Test that the models decide to show the "Manage devices" button when a phone
 // is listed.
-// TODO(crbug.com/1474278): Flaky on Mac, Re-enable this test
-#if BUILDFLAG(IS_MAC)
-#define MAYBE_InvokeUi_manage_devices DISABLED_InvokeUi_manage_devices
-#else
-#define MAYBE_InvokeUi_manage_devices InvokeUi_manage_devices
-#endif
-IN_PROC_BROWSER_TEST_F(AuthenticatorDialogViewTest,
-                       MAYBE_InvokeUi_manage_devices) {
+IN_PROC_BROWSER_TEST_F(AuthenticatorDialogViewTest, InvokeUi_manage_devices) {
   ShowAndVerifyUi();
 }

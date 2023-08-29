@@ -44,7 +44,7 @@ public class SearchResumptionModuleView extends LinearLayout {
 
     void setExpandCollapseCallback(Callback<Boolean> callback) {
         mHeaderView.setOnClickListener(v -> {
-            boolean shouldExpand = !mTileContainerView.isExpanded();
+            boolean shouldExpand = mTileContainerView.isExpanded() ? false : true;
             configureExpandedCollapsed(shouldExpand, false /* isFirstSetup */);
             callback.onResult(shouldExpand);
         });

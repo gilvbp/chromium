@@ -5,7 +5,7 @@
 #ifndef CONTENT_BROWSER_ATTRIBUTION_REPORTING_ATTRIBUTION_COOKIE_CHECKER_IMPL_H_
 #define CONTENT_BROWSER_ATTRIBUTION_REPORTING_ATTRIBUTION_COOKIE_CHECKER_IMPL_H_
 
-#include "base/memory/raw_ref.h"
+#include "base/memory/raw_ptr.h"
 #include "content/browser/attribution_reporting/attribution_cookie_checker.h"
 #include "content/common/content_export.h"
 
@@ -16,7 +16,8 @@ class StoragePartitionImpl;
 class CONTENT_EXPORT AttributionCookieCheckerImpl
     : public AttributionCookieChecker {
  public:
-  explicit AttributionCookieCheckerImpl(StoragePartitionImpl*);
+  explicit AttributionCookieCheckerImpl(
+      StoragePartitionImpl* storage_partition);
 
   ~AttributionCookieCheckerImpl() override;
 
@@ -33,7 +34,7 @@ class CONTENT_EXPORT AttributionCookieCheckerImpl
                         base::OnceCallback<void(bool)> callback) override;
 
  private:
-  const raw_ref<StoragePartitionImpl> storage_partition_;
+  const raw_ptr<StoragePartitionImpl> storage_partition_;
 };
 
 }  // namespace content

@@ -58,11 +58,6 @@ class ChromeWebPlatformSecurityMetricsBrowserTest
             // Disabled because some subtests set document.domain and this
             // feature flag prevents that:
             blink::features::kOriginAgentClusterDefaultEnabled,
-
-            // Disabled, because the ORBv02* subtests rely on a counter that
-            // no longer works with ORB "v0.2". (Those subtests should be
-            // removed once "v0.2" launches.)
-            network::features::kOpaqueResponseBlockingV02,
         });
   }
 
@@ -141,8 +136,6 @@ class ChromeWebPlatformSecurityMetricsBrowserTest
     }
   }
 
-  void SetUpORBMetricsTest(bool onload, bool onerror);
-
  private:
   void SetUpOnMainThread() final {
     host_resolver()->AddRule("*", "127.0.0.1");
@@ -198,12 +191,12 @@ IN_PROC_BROWSER_TEST_F(ChromeWebPlatformSecurityMetricsBrowserTest,
 }
 
 IN_PROC_BROWSER_TEST_F(ChromeWebPlatformSecurityMetricsBrowserTest,
-                       PrivateNetworkAccessIgnoredCrossSitePreflightError) {
+                       LocalNetworkAccessIgnoredCrossSitePreflightError) {
   ASSERT_TRUE(content::NavigateToURL(
       web_contents(),
       https_server().GetURL(
           "a.com",
-          "/private_network_access/no-favicon-treat-as-public-address.html")));
+          "/local_network_access/no-favicon-treat-as-public-address.html")));
 
   ASSERT_EQ(true, content::EvalJs(
                       web_contents(),
@@ -220,12 +213,12 @@ IN_PROC_BROWSER_TEST_F(ChromeWebPlatformSecurityMetricsBrowserTest,
 
 IN_PROC_BROWSER_TEST_F(
     ChromeWebPlatformSecurityMetricsBrowserTest,
-    PrivateNetworkAccessIgnoredCrossOriginSameSitePreflightError) {
+    LocalNetworkAccessIgnoredCrossOriginSameSitePreflightError) {
   ASSERT_TRUE(content::NavigateToURL(
       web_contents(),
       https_server().GetURL(
           "a.com",
-          "/private_network_access/no-favicon-treat-as-public-address.html")));
+          "/local_network_access/no-favicon-treat-as-public-address.html")));
 
   ASSERT_EQ(true, content::EvalJs(web_contents(),
                                   content::JsReplace(
@@ -241,12 +234,12 @@ IN_PROC_BROWSER_TEST_F(
 }
 
 IN_PROC_BROWSER_TEST_F(ChromeWebPlatformSecurityMetricsBrowserTest,
-                       PrivateNetworkAccessSameOriginNoIgnoredPreflightError) {
+                       LocalNetworkAccessSameOriginNoIgnoredPreflightError) {
   ASSERT_TRUE(content::NavigateToURL(
       web_contents(),
       https_server().GetURL(
           "a.com",
-          "/private_network_access/no-favicon-treat-as-public-address.html")));
+          "/local_network_access/no-favicon-treat-as-public-address.html")));
 
   ASSERT_EQ(true, content::EvalJs(
                       web_contents(),
@@ -262,15 +255,15 @@ IN_PROC_BROWSER_TEST_F(ChromeWebPlatformSecurityMetricsBrowserTest,
 }
 
 // This test verifies that when a secure context served from the public address
-// space loads a resource from the private network, the correct WebFeature is
+// space loads a resource from the local network, the correct WebFeature is
 // use-counted.
 IN_PROC_BROWSER_TEST_F(ChromeWebPlatformSecurityMetricsBrowserTest,
-                       PrivateNetworkAccessFetchWithPreflight) {
+                       LocalNetworkAccessFetchWithPreflight) {
   ASSERT_TRUE(content::NavigateToURL(
       web_contents(),
       https_server().GetURL(
           "a.com",
-          "/private_network_access/no-favicon-treat-as-public-address.html")));
+          "/local_network_access/no-favicon-treat-as-public-address.html")));
 
   ASSERT_EQ(true,
             content::EvalJs(
@@ -288,12 +281,12 @@ IN_PROC_BROWSER_TEST_F(ChromeWebPlatformSecurityMetricsBrowserTest,
 // the correct WebFeature is use-counted to reflect the suppressed error.
 IN_PROC_BROWSER_TEST_F(
     ChromeWebPlatformSecurityMetricsBrowserTest,
-    PrivateNetworkAccessFetchWithPreflightRepliedWithoutLNAHeaders) {
+    LocalNetworkAccessFetchWithPreflightRepliedWithoutLNAHeaders) {
   ASSERT_EQ(true, content::NavigateToURL(
                       web_contents(),
                       https_server().GetURL(
                           "a.com",
-                          "/private_network_access/"
+                          "/local_network_access/"
                           "no-favicon-treat-as-public-address.html")));
 
   // The server does not reply with valid CORS headers, so the preflight fails.
@@ -314,7 +307,7 @@ IN_PROC_BROWSER_TEST_F(ChromeWebPlatformSecurityMetricsBrowserTest,
   ASSERT_EQ(true,
             content::NavigateToURL(
                 web_contents(), https_server().GetURL("a.com",
-                                                      "/private_network_access/"
+                                                      "/local_network_access/"
                                                       "no-favicon.html")));
 
   base::StringPiece kScriptTemplate = R"(
@@ -352,7 +345,7 @@ IN_PROC_BROWSER_TEST_F(ChromeWebPlatformSecurityMetricsBrowserTest,
   ASSERT_EQ(true,
             content::NavigateToURL(
                 web_contents(), https_server().GetURL("a.com",
-                                                      "/private_network_access/"
+                                                      "/local_network_access/"
                                                       "no-favicon.html")));
 
   base::StringPiece kScriptTemplate = R"(
@@ -2642,68 +2635,5 @@ IN_PROC_BROWSER_TEST_F(ChromeWebPlatformSecurityMetricsBrowserTest,
 //
 // Added by:
 // https://chromium-review.googlesource.com/c/chromium/src/+/2122140
-
-// Test ORB "v0.2" compatibility impact metrics. We'll reuse the same setup
-// four times the same setup, except with different event handlers being set.
-void ChromeWebPlatformSecurityMetricsBrowserTest::SetUpORBMetricsTest(
-    bool onload,
-    bool onerror) {
-  constexpr base::StringPiece probe = R"(
-    const img = document.createElement("img");
-    if ($2) img.onload = _ => 2+2;
-    if ($3) img.onerror = _ => 3+3;
-    img.src = $1;
-    document.body.appendChild(img);
-  )";
-  EXPECT_TRUE(content::NavigateToURL(
-      web_contents(), https_server().GetURL("a.test", "/defaultresponse")));
-  EXPECT_TRUE(content::ExecJs(
-      web_contents(),
-      content::JsReplace(probe,
-                         // A cross-origin resource that will be ORB-blocked.
-                         https_server().GetURL("b.test", "/nosniff.xml"),
-                         onload, onerror)));
-  EXPECT_TRUE(content::WaitForLoadStop(web_contents()));
-}
-
-IN_PROC_BROWSER_TEST_F(ChromeWebPlatformSecurityMetricsBrowserTest,
-                       ORBv02WithoutEventHandlers) {
-  SetUpORBMetricsTest(false, false);
-  CheckCounter(WebFeature::kORBBlockWithoutAnyEventHandler, 1);
-  CheckCounter(WebFeature::kORBBlockWithAnyEventHandler, 0);
-  CheckCounter(WebFeature::kORBBlockWithOnErrorButWithoutOnLoadEventHandler, 0);
-  CheckCounter(WebFeature::kORBBlockWithOnLoadButWithoutOnErrorEventHandler, 0);
-  CheckCounter(WebFeature::kORBBlockWithOnLoadAndOnErrorEventHandler, 0);
-}
-
-IN_PROC_BROWSER_TEST_F(ChromeWebPlatformSecurityMetricsBrowserTest,
-                       ORBv02WithOnLoad) {
-  SetUpORBMetricsTest(true, false);
-  CheckCounter(WebFeature::kORBBlockWithoutAnyEventHandler, 0);
-  CheckCounter(WebFeature::kORBBlockWithAnyEventHandler, 1);
-  CheckCounter(WebFeature::kORBBlockWithOnErrorButWithoutOnLoadEventHandler, 0);
-  CheckCounter(WebFeature::kORBBlockWithOnLoadButWithoutOnErrorEventHandler, 1);
-  CheckCounter(WebFeature::kORBBlockWithOnLoadAndOnErrorEventHandler, 0);
-}
-
-IN_PROC_BROWSER_TEST_F(ChromeWebPlatformSecurityMetricsBrowserTest,
-                       ORBv02WithOnError) {
-  SetUpORBMetricsTest(false, true);
-  CheckCounter(WebFeature::kORBBlockWithoutAnyEventHandler, 0);
-  CheckCounter(WebFeature::kORBBlockWithAnyEventHandler, 1);
-  CheckCounter(WebFeature::kORBBlockWithOnErrorButWithoutOnLoadEventHandler, 1);
-  CheckCounter(WebFeature::kORBBlockWithOnLoadButWithoutOnErrorEventHandler, 0);
-  CheckCounter(WebFeature::kORBBlockWithOnLoadAndOnErrorEventHandler, 0);
-}
-
-IN_PROC_BROWSER_TEST_F(ChromeWebPlatformSecurityMetricsBrowserTest,
-                       ORBv02WithOnLoadAndOnError) {
-  SetUpORBMetricsTest(true, true);
-  CheckCounter(WebFeature::kORBBlockWithoutAnyEventHandler, 0);
-  CheckCounter(WebFeature::kORBBlockWithAnyEventHandler, 1);
-  CheckCounter(WebFeature::kORBBlockWithOnErrorButWithoutOnLoadEventHandler, 0);
-  CheckCounter(WebFeature::kORBBlockWithOnLoadButWithoutOnErrorEventHandler, 0);
-  CheckCounter(WebFeature::kORBBlockWithOnLoadAndOnErrorEventHandler, 1);
-}
 
 }  // namespace

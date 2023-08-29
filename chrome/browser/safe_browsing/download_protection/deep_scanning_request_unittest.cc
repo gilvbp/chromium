@@ -403,8 +403,7 @@ TEST_F(DeepScanningRequestFeaturesEnabledTest, ChecksFeatureFlags) {
               }
             },
             run_loop.QuitClosure()),
-        &download_protection_service_, dlp_and_malware_settings(),
-        /*password=*/"");
+        &download_protection_service_, dlp_and_malware_settings());
     request.Start();
     run_loop.Run();
     expect_dlp_and_malware_tags();
@@ -431,7 +430,7 @@ TEST_F(DeepScanningRequestAllFeaturesEnabledTest,
               }
             },
             run_loop.QuitClosure()),
-        &download_protection_service_, settings().value(), /*password=*/"");
+        &download_protection_service_, settings().value());
     request.Start();
     run_loop.Run();
     EXPECT_EQ(2, download_protection_service_.GetFakeBinaryUploadService()
@@ -459,10 +458,6 @@ TEST_F(DeepScanningRequestAllFeaturesEnabledTest,
                   .request_data()
                   .content_type(),
               "application/octet-stream");
-    EXPECT_EQ(download_protection_service_.GetFakeBinaryUploadService()
-                  ->last_request()
-                  .reason(),
-              enterprise_connectors::ContentAnalysisRequest::NORMAL_DOWNLOAD);
   }
 
   {
@@ -480,7 +475,7 @@ TEST_F(DeepScanningRequestAllFeaturesEnabledTest,
               }
             },
             run_loop.QuitClosure()),
-        &download_protection_service_, settings().value(), /*password=*/"");
+        &download_protection_service_, settings().value());
     request.Start();
     run_loop.Run();
     EXPECT_EQ(1, download_protection_service_.GetFakeBinaryUploadService()
@@ -490,10 +485,6 @@ TEST_F(DeepScanningRequestAllFeaturesEnabledTest,
               download_protection_service_.GetFakeBinaryUploadService()
                   ->last_request()
                   .tags(0));
-    EXPECT_EQ(download_protection_service_.GetFakeBinaryUploadService()
-                  ->last_request()
-                  .reason(),
-              enterprise_connectors::ContentAnalysisRequest::NORMAL_DOWNLOAD);
   }
 
   {
@@ -511,7 +502,7 @@ TEST_F(DeepScanningRequestAllFeaturesEnabledTest,
               }
             },
             run_loop.QuitClosure()),
-        &download_protection_service_, settings().value(), /*password=*/"");
+        &download_protection_service_, settings().value());
     request.Start();
     run_loop.Run();
     EXPECT_EQ(1, download_protection_service_.GetFakeBinaryUploadService()
@@ -520,10 +511,6 @@ TEST_F(DeepScanningRequestAllFeaturesEnabledTest,
     EXPECT_EQ("dlp", download_protection_service_.GetFakeBinaryUploadService()
                          ->last_request()
                          .tags(0));
-    EXPECT_EQ(download_protection_service_.GetFakeBinaryUploadService()
-                  ->last_request()
-                  .reason(),
-              enterprise_connectors::ContentAnalysisRequest::NORMAL_DOWNLOAD);
   }
 
   {
@@ -544,18 +531,13 @@ TEST_F(DeepScanningRequestAllFeaturesEnabledTest,
               }
             },
             run_loop.QuitClosure()),
-        &download_protection_service_, std::move(analysis_settings),
-        /*password=*/"");
+        &download_protection_service_, std::move(analysis_settings));
     request.Start();
     run_loop.Run();
     EXPECT_TRUE(download_protection_service_.GetFakeBinaryUploadService()
                     ->last_request()
                     .tags()
                     .empty());
-    EXPECT_EQ(download_protection_service_.GetFakeBinaryUploadService()
-                  ->last_request()
-                  .reason(),
-              enterprise_connectors::ContentAnalysisRequest::NORMAL_DOWNLOAD);
   }
 }
 
@@ -567,7 +549,7 @@ TEST_F(DeepScanningAPPRequestTest, GeneratesCorrectRequestForConsumer) {
   DeepScanningRequest request(
       &item_, DeepScanningRequest::DeepScanTrigger::TRIGGER_CONSUMER_PROMPT,
       DownloadCheckResult::SAFE, base::DoNothing(),
-      &download_protection_service_, std::move(settings), /*password=*/"");
+      &download_protection_service_, std::move(settings));
   request.Start();
 
   EXPECT_EQ(1, download_protection_service_.GetFakeBinaryUploadService()
@@ -652,7 +634,7 @@ TEST_F(DeepScanningReportingTest, ProcessesResponseCorrectly) {
               }
             },
             base::Unretained(this), run_loop.QuitClosure()),
-        &download_protection_service_, settings().value(), /*password=*/"");
+        &download_protection_service_, settings().value());
 
     enterprise_connectors::ContentAnalysisResponse response;
     response.set_request_token(kScanId);
@@ -723,7 +705,7 @@ TEST_F(DeepScanningReportingTest, ProcessesResponseCorrectly) {
               }
             },
             base::Unretained(this), run_loop.QuitClosure()),
-        &download_protection_service_, settings().value(), /*password=*/"");
+        &download_protection_service_, settings().value());
 
     enterprise_connectors::ContentAnalysisResponse response;
     response.set_request_token(kScanId);
@@ -794,7 +776,7 @@ TEST_F(DeepScanningReportingTest, ProcessesResponseCorrectly) {
               }
             },
             base::Unretained(this), run_loop.QuitClosure()),
-        &download_protection_service_, settings().value(), /*password=*/"");
+        &download_protection_service_, settings().value());
 
     enterprise_connectors::ContentAnalysisResponse response;
     response.set_request_token(kScanId);
@@ -855,7 +837,7 @@ TEST_F(DeepScanningReportingTest, ProcessesResponseCorrectly) {
               }
             },
             base::Unretained(this), run_loop.QuitClosure()),
-        &download_protection_service_, settings().value(), /*password=*/"");
+        &download_protection_service_, settings().value());
 
     enterprise_connectors::ContentAnalysisResponse response;
     response.set_request_token(kScanId);
@@ -916,7 +898,7 @@ TEST_F(DeepScanningReportingTest, ProcessesResponseCorrectly) {
               }
             },
             base::Unretained(this), run_loop.QuitClosure()),
-        &download_protection_service_, settings().value(), /*password=*/"");
+        &download_protection_service_, settings().value());
 
     enterprise_connectors::ContentAnalysisResponse response;
     response.set_request_token(kScanId);
@@ -981,7 +963,7 @@ TEST_F(DeepScanningReportingTest, ProcessesResponseCorrectly) {
               }
             },
             base::Unretained(this), run_loop.QuitClosure()),
-        &download_protection_service_, settings().value(), /*password=*/"");
+        &download_protection_service_, settings().value());
 
     enterprise_connectors::ContentAnalysisResponse response;
 
@@ -1037,7 +1019,7 @@ TEST_F(DeepScanningReportingTest, ProcessesResponseCorrectly) {
               }
             },
             base::Unretained(this), run_loop.QuitClosure()),
-        &download_protection_service_, settings().value(), /*password=*/"");
+        &download_protection_service_, settings().value());
 
     enterprise_connectors::ContentAnalysisResponse response;
 
@@ -1094,7 +1076,7 @@ TEST_F(DeepScanningReportingTest, ProcessesResponseCorrectly) {
               }
             },
             base::Unretained(this), run_loop.QuitClosure()),
-        &download_protection_service_, settings().value(), /*password=*/"");
+        &download_protection_service_, settings().value());
 
     EXPECT_CALL(item_, GetDangerType())
         .WillRepeatedly(Return(download::DownloadDangerType::
@@ -1413,7 +1395,7 @@ TEST_F(DeepScanningReportingTest, Timeout) {
             }
           },
           base::Unretained(this), run_loop.QuitClosure()),
-      &download_protection_service_, settings().value(), /*password=*/"");
+      &download_protection_service_, settings().value());
 
   download_protection_service_.GetFakeBinaryUploadService()->SetResponse(
       download_path_, BinaryUploadService::Result::TIMEOUT,
@@ -1527,7 +1509,7 @@ TEST_P(DeepScanningDownloadRestrictionsTest, GeneratesCorrectReport) {
               }
             },
             base::Unretained(this), run_loop.QuitClosure()),
-        &download_protection_service_, settings().value(), /*password=*/"");
+        &download_protection_service_, settings().value());
 
     enterprise_connectors::ContentAnalysisResponse response;
     response.set_request_token(kScanId);
@@ -1587,7 +1569,7 @@ TEST_P(DeepScanningDownloadRestrictionsTest, GeneratesCorrectReport) {
               }
             },
             base::Unretained(this), run_loop.QuitClosure()),
-        &download_protection_service_, settings().value(), /*password=*/"");
+        &download_protection_service_, settings().value());
 
     enterprise_connectors::ContentAnalysisResponse response;
     response.set_request_token(kScanId);
@@ -1648,7 +1630,7 @@ TEST_P(DeepScanningDownloadRestrictionsTest, GeneratesCorrectReport) {
               }
             },
             base::Unretained(this), run_loop.QuitClosure()),
-        &download_protection_service_, settings().value(), /*password=*/"");
+        &download_protection_service_, settings().value());
 
     enterprise_connectors::ContentAnalysisResponse response;
     response.set_request_token(kScanId);
@@ -1706,7 +1688,7 @@ TEST_P(DeepScanningDownloadRestrictionsTest, GeneratesCorrectReport) {
               }
             },
             base::Unretained(this), run_loop.QuitClosure()),
-        &download_protection_service_, settings().value(), /*password=*/"");
+        &download_protection_service_, settings().value());
 
     enterprise_connectors::ContentAnalysisResponse response;
     response.set_request_token(kScanId);
@@ -1824,7 +1806,7 @@ TEST_F(DeepScanningRequestAllFeaturesEnabledTest, PopulatesRequest) {
             }
           },
           run_loop.QuitClosure()),
-      &download_protection_service_, settings().value(), /*password=*/"");
+      &download_protection_service_, settings().value());
   request.Start();
   run_loop.Run();
   EXPECT_EQ(download_protection_service_.GetFakeBinaryUploadService()

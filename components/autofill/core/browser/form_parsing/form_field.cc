@@ -88,7 +88,7 @@ void FormField::ParseFormFields(
   // Single fields pass.
   ParseSingleFieldForms(fields, page_language, is_form_tag, pattern_source,
                         field_candidates, log_manager);
-  size_t fillable_single_fields = field_candidates.size() - email_count;
+  const size_t fillable_single_fields = field_candidates.size() - email_count;
 
   // Phone pass.
   ParseFormFieldsPass(PhoneField::Parse, processed_fields, field_candidates,
@@ -114,21 +114,10 @@ void FormField::ParseFormFields(
                       field_candidates, page_language, pattern_source,
                       log_manager);
 
-  const size_t candidates_size = field_candidates.size();
   // Credit card pass.
   ParseFormFieldsPass(CreditCardField::Parse, processed_fields,
                       field_candidates, page_language, pattern_source,
                       log_manager);
-  if (base::FeatureList::IsEnabled(
-          features::kAutofillParseVcnCardOnFileStandaloneCvcFields) &&
-      email_count == 0 && candidates_size == field_candidates.size()) {
-    // No email or cc fields found. Standalone CVC field pass for the VCN card
-    // on file case.
-    ParseStandaloneCVCFields(fields, page_language, pattern_source,
-                             field_candidates, log_manager);
-    // Any detected standalone cvc fields are considered fillable single fields.
-    fillable_single_fields += field_candidates.size() - candidates_size;
-  }
 
   // Price pass.
   ParseFormFieldsPass(PriceField::Parse, processed_fields, field_candidates,
@@ -220,20 +209,10 @@ void FormField::ParseSingleFieldForms(
                       log_manager);
 
   // IBAN pass.
-  ParseFormFieldsPass(IbanField::Parse, processed_fields, field_candidates,
-                      page_language, pattern_source, log_manager);
-}
-
-void FormField::ParseStandaloneCVCFields(
-    const std::vector<std::unique_ptr<AutofillField>>& fields,
-    const LanguageCode& page_language,
-    PatternSource pattern_source,
-    FieldCandidatesMap& field_candidates,
-    LogManager* log_manager) {
-  std::vector<AutofillField*> processed_fields = RemoveCheckableFields(fields);
-  ParseFormFieldsPass(StandaloneCvcField::Parse, processed_fields,
-                      field_candidates, page_language, pattern_source,
-                      log_manager);
+  if (base::FeatureList::IsEnabled(features::kAutofillParseIBANFields)) {
+    ParseFormFieldsPass(IBANField::Parse, processed_fields, field_candidates,
+                        page_language, pattern_source, log_manager);
+  }
 }
 
 // static
@@ -400,11 +379,11 @@ std::vector<AutofillField*> FormField::RemoveCheckableFields(
     // Ignore checkable fields as they interfere with parsers assuming context.
     // Eg., while parsing address, "Is PO box" checkbox after ADDRESS_LINE1
     // interferes with correctly understanding ADDRESS_LINE2.
-    // Ignore fields marked as presentational, unless for 'select' fields (for
-    // synthetic fields.)
+    // Ignore fields marked as presentational, unless for 'select' and
+    // 'selectmenu' fields (for synthetic fields.)
     if (IsCheckable(field->check_status) ||
         (field->role == FormFieldData::RoleAttribute::kPresentation &&
-         !field->IsSelectElement())) {
+         !field->IsSelectOrSelectMenuElement())) {
       continue;
     }
     processed_fields.push_back(field.get());
@@ -529,7 +508,7 @@ bool FormField::MatchesFormControlType(base::StringPiece type,
     return true;
 
   if (match_type.contains(MatchFieldType::kSelect) &&
-      (type == "select-one" || type == "selectlist")) {
+      (type == "select-one" || type == "selectmenu")) {
     return true;
   }
 

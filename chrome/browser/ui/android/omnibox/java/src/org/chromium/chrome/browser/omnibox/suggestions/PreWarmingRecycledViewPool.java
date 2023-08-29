@@ -48,7 +48,7 @@ public class PreWarmingRecycledViewPool extends RecycledViewPool {
 
     private OmniboxSuggestionsDropdownAdapter mAdapter;
     private final Handler mHandler;
-    private final FrameLayout mPlaceholderParent;
+    private final FrameLayout mDummyParent;
     private boolean mStopCreatingViews;
     private final List<ViewHolder> mPrewarmedViews = new ArrayList<>(22);
 
@@ -56,7 +56,7 @@ public class PreWarmingRecycledViewPool extends RecycledViewPool {
             OmniboxSuggestionsDropdownAdapter adapter, Context context, Handler handler) {
         mAdapter = adapter;
         mHandler = handler;
-        mPlaceholderParent = new FrameLayout(context);
+        mDummyParent = new FrameLayout(context);
         // The list below should include suggestions defined in OmniboxSuggestionUiType
         // and specify the maximum anticipated volume of suggestions of each type.
         // For readability reasons, keep the order of this list same as the order of
@@ -115,7 +115,7 @@ public class PreWarmingRecycledViewPool extends RecycledViewPool {
     private void createViewHolder(@OmniboxSuggestionUiType int viewType) {
         if (mAdapter == null || mStopCreatingViews) return;
         try (TraceEvent t = TraceEvent.scoped("PreWarmingRecycledViewPool.createNextViewHolder")) {
-            mPrewarmedViews.add(mAdapter.createViewHolder(mPlaceholderParent, viewType));
+            mPrewarmedViews.add(mAdapter.createViewHolder(mDummyParent, viewType));
         }
     }
 

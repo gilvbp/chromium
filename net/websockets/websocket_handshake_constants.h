@@ -26,7 +26,7 @@ namespace net::websockets {
 extern const char kHttpProtocolVersion[];
 
 // The Sec-WebSockey-Key challenge is 16 random bytes, base64 encoded.
-inline constexpr size_t kRawChallengeLength = 16;
+extern const size_t kRawChallengeLength;
 
 // "Sec-WebSocket-Protocol"
 extern const char kSecWebSocketProtocol[];

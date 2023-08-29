@@ -4,18 +4,20 @@
 
 #import "ios/chrome/browser/ui/first_run/uma/uma_table_view_controller.h"
 
-#import "base/apple/foundation_util.h"
 #import "base/check_op.h"
-#import "base/feature_list.h"
-#import "components/sync/base/features.h"
+#import "base/mac/foundation_util.h"
 #import "ios/chrome/browser/shared/ui/table_view/cells/table_view_attributed_string_header_footer_item.h"
 #import "ios/chrome/browser/shared/ui/table_view/cells/table_view_switch_cell.h"
 #import "ios/chrome/browser/shared/ui/table_view/cells/table_view_switch_item.h"
 #import "ios/chrome/common/string_util.h"
 #import "ios/chrome/common/ui/colors/semantic_color_names.h"
 #import "ios/chrome/common/ui/table_view/table_view_cells_constants.h"
-#import "ios/chrome/grit/ios_chromium_strings.h"
+#import "ios/chrome/grit/ios_google_chrome_strings.h"
 #import "ui/base/l10n/l10n_util_mac.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace {
 
@@ -95,7 +97,7 @@ NSMutableAttributedString* AddIndentAttributes(NSString* string,
   NSIndexPath* indexPath = [model indexPathForItemType:sender.tag];
   DCHECK(indexPath);
   TableViewSwitchItem* switchItem =
-      base::apple::ObjCCastStrict<TableViewSwitchItem>(
+      base::mac::ObjCCastStrict<TableViewSwitchItem>(
           [model itemAtIndexPath:indexPath]);
   DCHECK(switchItem);
   self.UMAReportingUserChoice = sender.isOn;
@@ -109,7 +111,7 @@ NSMutableAttributedString* AddIndentAttributes(NSString* string,
                      cellForRowAtIndexPath:indexPath];
   if ([cell isKindOfClass:[TableViewSwitchCell class]]) {
     TableViewSwitchCell* switchCell =
-        base::apple::ObjCCastStrict<TableViewSwitchCell>(cell);
+        base::mac::ObjCCastStrict<TableViewSwitchCell>(cell);
     [switchCell.switchView addTarget:self
                               action:@selector(switchAction:)
                     forControlEvents:UIControlEventValueChanged];
@@ -138,10 +140,8 @@ NSMutableAttributedString* AddIndentAttributes(NSString* string,
   [model addItem:switchItem toSectionWithIdentifier:UMAMainSectionIdentifier];
 
   // Adds the footer.
-  NSString* string = l10n_util::GetNSString(
-      (base::FeatureList::IsEnabled(syncer::kReplaceSyncPromosWithSignInPromos))
-          ? IDS_IOS_FIRST_RUN_UMA_DIALOG_EXPLANATION_NO_SYNC
-          : IDS_IOS_FIRST_RUN_UMA_DIALOG_EXPLANATION);
+  NSString* string =
+      l10n_util::GetNSString(IDS_IOS_FIRST_RUN_UMA_DIALOG_EXPLANATION);
   NSMutableDictionary* regularAttributes = [NSMutableDictionary dictionary];
   [regularAttributes
       setObject:[UIFont preferredFontForTextStyle:UIFontTextStyleFootnote]

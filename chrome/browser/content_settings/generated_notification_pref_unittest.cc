@@ -37,7 +37,8 @@ void ValidateGeneratedPrefSetting(
       generated_pref->SetPref(
           std::make_unique<base::Value>(static_cast<int>(pref_value)).get()),
       settings_private::SetPrefResult::SUCCESS);
-  EXPECT_EQ(map->GetDefaultContentSetting(ContentSettingsType::NOTIFICATIONS),
+  EXPECT_EQ(map->GetDefaultContentSetting(ContentSettingsType::NOTIFICATIONS,
+                                          nullptr),
             expected_content_setting);
 
   EXPECT_EQ(prefs->GetUserPref(prefs::kEnableQuietNotificationPermissionUi)
@@ -300,7 +301,8 @@ TEST_F(GeneratedNotificationPrefTest, UpdatePreferenceInvalidAction) {
             settings_private::SetPrefResult::PREF_NOT_MODIFIABLE);
 
   // Confirm the neither value was modified.
-  EXPECT_EQ(map->GetDefaultContentSetting(ContentSettingsType::NOTIFICATIONS),
+  EXPECT_EQ(map->GetDefaultContentSetting(ContentSettingsType::NOTIFICATIONS,
+                                          nullptr),
             ContentSetting::CONTENT_SETTING_BLOCK);
   EXPECT_FALSE(prefs()
                    ->FindPreference(prefs::kEnableQuietNotificationPermissionUi)
@@ -326,7 +328,8 @@ TEST_F(GeneratedNotificationPrefTest, UpdatePreferenceInvalidAction) {
             settings_private::SetPrefResult::PREF_NOT_MODIFIABLE);
 
   // Confirm the neither value was modified.
-  EXPECT_EQ(map->GetDefaultContentSetting(ContentSettingsType::NOTIFICATIONS),
+  EXPECT_EQ(map->GetDefaultContentSetting(ContentSettingsType::NOTIFICATIONS,
+                                          nullptr),
             ContentSetting::CONTENT_SETTING_ASK);
   EXPECT_FALSE(prefs()
                    ->FindPreference(prefs::kEnableQuietNotificationPermissionUi)
@@ -341,7 +344,8 @@ TEST_F(GeneratedNotificationPrefTest, UpdatePreferenceInvalidAction) {
             settings_private::SetPrefResult::PREF_NOT_MODIFIABLE);
 
   // Confirm the neither value was modified.
-  EXPECT_EQ(map->GetDefaultContentSetting(ContentSettingsType::NOTIFICATIONS),
+  EXPECT_EQ(map->GetDefaultContentSetting(ContentSettingsType::NOTIFICATIONS,
+                                          nullptr),
             ContentSetting::CONTENT_SETTING_ASK);
   EXPECT_FALSE(prefs()
                    ->FindPreference(prefs::kEnableQuietNotificationPermissionUi)

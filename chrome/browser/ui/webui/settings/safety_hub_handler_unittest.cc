@@ -6,26 +6,22 @@
 #include <memory>
 
 #include "base/memory/scoped_refptr.h"
-#include "base/test/gtest_util.h"
 #include "base/test/simple_test_clock.h"
 #include "base/time/clock.h"
 #include "chrome/browser/content_settings/host_content_settings_map_factory.h"
 #include "chrome/browser/history/history_service_factory.h"
-#include "chrome/browser/ui/safety_hub/notification_permission_review_service_factory.h"
-#include "chrome/browser/ui/safety_hub/unused_site_permissions_service.h"
+#include "chrome/browser/permissions/notification_permission_review_service_factory.h"
 #include "chrome/browser/ui/webui/settings/safety_hub_handler.h"
 #include "chrome/browser/ui/webui/settings/site_settings_helper.h"
 #include "chrome/common/chrome_features.h"
 #include "chrome/test/base/testing_profile.h"
-#include "components/content_settings/core/browser/content_settings_registry.h"
 #include "components/content_settings/core/browser/host_content_settings_map.h"
 #include "components/content_settings/core/common/content_settings.h"
 #include "components/content_settings/core/common/content_settings_pattern.h"
 #include "components/content_settings/core/common/content_settings_types.h"
 #include "components/content_settings/core/common/features.h"
 #include "components/permissions/constants.h"
-#include "components/safe_browsing/core/common/safe_browsing_prefs.h"
-#include "components/sync_preferences/testing_pref_service_syncable.h"
+#include "components/permissions/unused_site_permissions_service.h"
 #include "content/public/browser/storage_partition.h"
 #include "content/public/common/content_features.h"
 #include "content/public/test/browser_task_environment.h"
@@ -33,7 +29,6 @@
 #include "testing/gtest/include/gtest/gtest.h"
 #include "url/gurl.h"
 
-enum SettingManager { USER, ADMIN, EXTENSION };
 constexpr char kUnusedTestSite[] = "https://example1.com";
 constexpr char kUsedTestSite[] = "https://example2.com";
 constexpr ContentSettingsType kUnusedPermission =
@@ -67,10 +62,12 @@ class SafetyHubHandlerTest : public testing::Test {
     handler()->AllowJavascript();
 
     // Create a revoked permission.
-    auto dict = base::Value::Dict().Set(
-        permissions::kRevokedKey,
-        base::Value::List().Append(
-            static_cast<int32_t>(ContentSettingsType::GEOLOCATION)));
+    base::Value::Dict dict = base::Value::Dict();
+    base::Value::List permission_type_list = base::Value::List();
+    permission_type_list.Append(
+        static_cast<int32_t>(ContentSettingsType::GEOLOCATION));
+    dict.Set(permissions::kRevokedKey,
+             base::Value::List(std::move(permission_type_list)));
 
     hcsm()->SetWebsiteSettingDefaultScope(
         GURL(kUnusedTestSite), GURL(kUnusedTestSite),
@@ -96,9 +93,10 @@ class SafetyHubHandlerTest : public testing::Test {
   }
 
   void ExpectRevokedPermission() {
-    ContentSettingsForOneType revoked_permissions_list =
-        hcsm()->GetSettingsForOneType(
-            ContentSettingsType::REVOKED_UNUSED_SITE_PERMISSIONS);
+    ContentSettingsForOneType revoked_permissions_list;
+    hcsm()->GetSettingsForOneType(
+        ContentSettingsType::REVOKED_UNUSED_SITE_PERMISSIONS,
+        &revoked_permissions_list);
     EXPECT_EQ(1U, revoked_permissions_list.size());
     EXPECT_EQ(
         ContentSetting::CONTENT_SETTING_ASK,
@@ -115,53 +113,6 @@ class SafetyHubHandlerTest : public testing::Test {
               data.arg1()->GetString());
 
     ASSERT_TRUE(data.arg2()->is_list());
-  }
-
-  void SetPrefsForSafeBrowsing(bool is_enabled,
-                               bool is_enhanced,
-                               SettingManager managed_by) {
-    auto* prefs = profile()->GetTestingPrefService();
-
-    switch (managed_by) {
-      case USER:
-        prefs->SetUserPref(prefs::kSafeBrowsingEnabled,
-                           std::make_unique<base::Value>(is_enabled));
-        prefs->SetUserPref(prefs::kSafeBrowsingEnhanced,
-                           std::make_unique<base::Value>(is_enhanced));
-        break;
-      case ADMIN:
-        prefs->SetManagedPref(prefs::kSafeBrowsingEnabled,
-                              std::make_unique<base::Value>(is_enabled));
-        prefs->SetManagedPref(prefs::kSafeBrowsingEnhanced,
-                              std::make_unique<base::Value>(is_enhanced));
-        break;
-      case EXTENSION:
-        prefs->SetExtensionPref(prefs::kSafeBrowsingEnabled,
-                                std::make_unique<base::Value>(is_enabled));
-        prefs->SetExtensionPref(prefs::kSafeBrowsingEnhanced,
-                                std::make_unique<base::Value>(is_enhanced));
-        break;
-      default:
-        NOTREACHED() << "Unexpected value for managed_by argument. \n";
-    }
-  }
-
-  void ValidateHandleSafeBrowsingState(SafeBrowsingState state) {
-    base::Value::List args;
-    args.Append("getSafeBrowsingState");
-
-    handler()->HandleGetSafeBrowsingState(args);
-
-    const content::TestWebUI::CallData& data = *web_ui()->call_data().back();
-
-    EXPECT_EQ("cr.webUIResponse", data.function_name());
-    ASSERT_TRUE(data.arg1()->is_string());
-    EXPECT_EQ("getSafeBrowsingState", data.arg1()->GetString());
-    // arg2 is a boolean that is true if the callback is successful.
-    ASSERT_TRUE(data.arg2()->is_bool());
-    ASSERT_TRUE(data.arg2());
-    ASSERT_TRUE(data.arg3()->is_int());
-    EXPECT_EQ((std::int32_t)state, data.arg3()->GetInt());
   }
 
   base::Value::List GetOriginList(int size) {
@@ -217,9 +168,10 @@ TEST_F(SafetyHubHandlerTest, HandleAllowPermissionsAgainForUnusedSite) {
   handler()->HandleAllowPermissionsAgainForUnusedSite(args);
 
   // Check there is no origin in revoked permissions list.
-  ContentSettingsForOneType revoked_permissions_list =
-      hcsm()->GetSettingsForOneType(
-          ContentSettingsType::REVOKED_UNUSED_SITE_PERMISSIONS);
+  ContentSettingsForOneType revoked_permissions_list;
+  hcsm()->GetSettingsForOneType(
+      ContentSettingsType::REVOKED_UNUSED_SITE_PERMISSIONS,
+      &revoked_permissions_list);
   EXPECT_EQ(0U, revoked_permissions_list.size());
   // Check if the permissions of url is regranted.
   EXPECT_EQ(
@@ -261,9 +213,9 @@ TEST_F(SafetyHubHandlerTest,
 
   HostContentSettingsMap* content_settings =
       HostContentSettingsMapFactory::GetForProfile(profile());
-  ContentSettingsForOneType ignored_patterns =
-      content_settings->GetSettingsForOneType(
-          ContentSettingsType::NOTIFICATION_PERMISSION_REVIEW);
+  ContentSettingsForOneType ignored_patterns;
+  content_settings->GetSettingsForOneType(
+      ContentSettingsType::NOTIFICATION_PERMISSION_REVIEW, &ignored_patterns);
   ASSERT_EQ(0U, ignored_patterns.size());
 
   base::Value::List args;
@@ -271,8 +223,8 @@ TEST_F(SafetyHubHandlerTest,
   handler()->HandleIgnoreOriginsForNotificationPermissionReview(args);
 
   // Check there is 1 origin in ignore list.
-  ignored_patterns = content_settings->GetSettingsForOneType(
-      ContentSettingsType::NOTIFICATION_PERMISSION_REVIEW);
+  content_settings->GetSettingsForOneType(
+      ContentSettingsType::NOTIFICATION_PERMISSION_REVIEW, &ignored_patterns);
   ASSERT_EQ(1U, ignored_patterns.size());
 
   ValidateNotificationPermissionUpdate();
@@ -287,15 +239,16 @@ TEST_F(SafetyHubHandlerTest,
   // Check there is 1 origin in ignore list.
   HostContentSettingsMap* content_settings =
       HostContentSettingsMapFactory::GetForProfile(profile());
-  ContentSettingsForOneType ignored_patterns =
-      content_settings->GetSettingsForOneType(
-          ContentSettingsType::NOTIFICATION_PERMISSION_REVIEW);
+  ContentSettingsForOneType ignored_patterns;
+  ASSERT_EQ(0U, ignored_patterns.size());
+  content_settings->GetSettingsForOneType(
+      ContentSettingsType::NOTIFICATION_PERMISSION_REVIEW, &ignored_patterns);
   ASSERT_EQ(1U, ignored_patterns.size());
 
   // Check there are no origins in ignore list.
   handler()->HandleUndoIgnoreOriginsForNotificationPermissionReview(args);
-  ignored_patterns = content_settings->GetSettingsForOneType(
-      ContentSettingsType::NOTIFICATION_PERMISSION_REVIEW);
+  content_settings->GetSettingsForOneType(
+      ContentSettingsType::NOTIFICATION_PERMISSION_REVIEW, &ignored_patterns);
   ASSERT_EQ(0U, ignored_patterns.size());
 }
 
@@ -312,9 +265,9 @@ TEST_F(SafetyHubHandlerTest, HandleAllowNotificationPermissionForOrigins) {
   // Check the permission for the two origins is allow.
   HostContentSettingsMap* content_settings =
       HostContentSettingsMapFactory::GetForProfile(profile());
-  ContentSettingsForOneType notification_permissions =
-      content_settings->GetSettingsForOneType(
-          ContentSettingsType::NOTIFICATIONS);
+  ContentSettingsForOneType notification_permissions;
+  content_settings->GetSettingsForOneType(ContentSettingsType::NOTIFICATIONS,
+                                          &notification_permissions);
   auto type = content_settings->GetContentSetting(
       GURL(origins[0].GetString()), GURL(), ContentSettingsType::NOTIFICATIONS);
   ASSERT_EQ(CONTENT_SETTING_ALLOW, type);
@@ -340,9 +293,9 @@ TEST_F(SafetyHubHandlerTest, HandleBlockNotificationPermissionForOrigins) {
   // Check the permission for the two origins is block.
   HostContentSettingsMap* content_settings =
       HostContentSettingsMapFactory::GetForProfile(profile());
-  ContentSettingsForOneType notification_permissions =
-      content_settings->GetSettingsForOneType(
-          ContentSettingsType::NOTIFICATIONS);
+  ContentSettingsForOneType notification_permissions;
+  content_settings->GetSettingsForOneType(ContentSettingsType::NOTIFICATIONS,
+                                          &notification_permissions);
   auto type = content_settings->GetContentSetting(
       GURL(origins[0].GetString()), GURL(), ContentSettingsType::NOTIFICATIONS);
   ASSERT_EQ(CONTENT_SETTING_BLOCK, type);
@@ -378,105 +331,4 @@ TEST_F(SafetyHubHandlerTest, HandleResetNotificationPermissionForOrigins) {
   ASSERT_EQ(CONTENT_SETTING_ASK, type);
 
   ValidateNotificationPermissionUpdate();
-}
-
-TEST_F(SafetyHubHandlerTest, HandleGetSafeBrowsingState_EnabledEnhanced) {
-  SetPrefsForSafeBrowsing(true, true, SettingManager::USER);
-  ValidateHandleSafeBrowsingState(SafeBrowsingState::kEnabledEnhanced);
-
-  SetPrefsForSafeBrowsing(true, true, SettingManager::EXTENSION);
-  ValidateHandleSafeBrowsingState(SafeBrowsingState::kEnabledEnhanced);
-
-  SetPrefsForSafeBrowsing(true, true, SettingManager::ADMIN);
-  ValidateHandleSafeBrowsingState(SafeBrowsingState::kEnabledEnhanced);
-}
-
-TEST_F(SafetyHubHandlerTest, HandleGetSafeBrowsingState_EnabledStandard) {
-  SetPrefsForSafeBrowsing(true, false, SettingManager::USER);
-  ValidateHandleSafeBrowsingState(SafeBrowsingState::kEnabledStandard);
-
-  SetPrefsForSafeBrowsing(true, false, SettingManager::EXTENSION);
-  ValidateHandleSafeBrowsingState(SafeBrowsingState::kEnabledStandard);
-
-  SetPrefsForSafeBrowsing(true, false, SettingManager::ADMIN);
-  ValidateHandleSafeBrowsingState(SafeBrowsingState::kEnabledStandard);
-}
-
-TEST_F(SafetyHubHandlerTest, HandleGetSafeBrowsingState_DisabledByAdmin) {
-  SetPrefsForSafeBrowsing(false, false, SettingManager::ADMIN);
-  ValidateHandleSafeBrowsingState(SafeBrowsingState::kDisabledByAdmin);
-
-  SetPrefsForSafeBrowsing(false, true, SettingManager::ADMIN);
-  ValidateHandleSafeBrowsingState(SafeBrowsingState::kDisabledByAdmin);
-}
-
-TEST_F(SafetyHubHandlerTest, HandleGetSafeBrowsingState_DisabledByExtension) {
-  SetPrefsForSafeBrowsing(false, false, SettingManager::EXTENSION);
-  ValidateHandleSafeBrowsingState(SafeBrowsingState::kDisabledByExtension);
-
-  SetPrefsForSafeBrowsing(false, true, SettingManager::EXTENSION);
-  ValidateHandleSafeBrowsingState(SafeBrowsingState::kDisabledByExtension);
-}
-
-TEST_F(SafetyHubHandlerTest, HandleGetSafeBrowsingState_DisabledByUser) {
-  SetPrefsForSafeBrowsing(false, false, SettingManager::USER);
-  ValidateHandleSafeBrowsingState(SafeBrowsingState::kDisabledByUser);
-
-  SetPrefsForSafeBrowsing(false, true, SettingManager::USER);
-  ValidateHandleSafeBrowsingState(SafeBrowsingState::kDisabledByUser);
-}
-
-// Test that revocation is happen correctly for all content setting types.
-TEST_F(SafetyHubHandlerTest, RevokeAllContentSettingTypes) {
-  // TODO(crbug.com/1459305): Remove this after adding names for those
-  // types.
-  std::list<ContentSettingsType> no_name_types = {
-      ContentSettingsType::MIDI,
-      ContentSettingsType::DURABLE_STORAGE,
-      ContentSettingsType::ACCESSIBILITY_EVENTS,
-      ContentSettingsType::NFC,
-      ContentSettingsType::FILE_SYSTEM_READ_GUARD,
-      ContentSettingsType::CAMERA_PAN_TILT_ZOOM,
-      ContentSettingsType::TOP_LEVEL_STORAGE_ACCESS};
-
-  // Add all content settings in the content setting registry to revoked
-  // permissions list.
-  auto* content_settings_registry =
-      content_settings::ContentSettingsRegistry::GetInstance();
-  for (const content_settings::ContentSettingsInfo* info :
-       *content_settings_registry) {
-    ContentSettingsType type = info->website_settings_info()->type();
-
-    // If the permission can not be tracked, then also can not be revoked.
-    if (!content_settings::CanTrackLastVisit(type)) {
-      continue;
-    }
-
-    // If the permission can not set to ALLOW, then also can not be revoked.
-    if (!content_settings_registry->Get(type)->IsSettingValid(
-            ContentSetting::CONTENT_SETTING_ALLOW)) {
-      continue;
-    }
-
-    // Add the permission to revoked permission list.
-    auto dict = base::Value::Dict().Set(
-        permissions::kRevokedKey,
-        base::Value::List().Append(static_cast<int32_t>(type)));
-    hcsm()->SetWebsiteSettingDefaultScope(
-        GURL(kUnusedTestSite), GURL(kUnusedTestSite),
-        ContentSettingsType::REVOKED_UNUSED_SITE_PERMISSIONS,
-        base::Value(dict.Clone()));
-
-    // Unless the permission in no_name_types, it should be shown on the UI.
-    const auto& revoked_permissions =
-        handler()->PopulateUnusedSitePermissionsData();
-    bool is_no_name_type =
-        (std::find(no_name_types.begin(), no_name_types.end(), type) !=
-         no_name_types.end());
-    if (is_no_name_type) {
-      EXPECT_EQ(revoked_permissions.size(), 0U);
-    } else {
-      EXPECT_EQ(revoked_permissions.size(), 1U);
-    }
-  }
 }

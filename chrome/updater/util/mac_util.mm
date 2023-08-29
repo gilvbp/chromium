@@ -6,13 +6,13 @@
 
 #import <CoreFoundation/CoreFoundation.h>
 
-#include "base/apple/foundation_util.h"
 #include "base/command_line.h"
 #include "base/files/file.h"
 #include "base/files/file_enumerator.h"
 #include "base/files/file_path.h"
 #include "base/files/file_util.h"
 #include "base/logging.h"
+#include "base/mac/foundation_util.h"
 #include "base/mac/mac_util.h"
 #include "base/process/launch.h"
 #include "base/strings/strcat.h"
@@ -27,6 +27,10 @@
 #include "chrome/updater/util/posix_util.h"
 #include "chrome/updater/util/util.h"
 #include "third_party/abseil-cpp/absl/types/optional.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace updater {
 namespace {
@@ -55,11 +59,11 @@ std::string GetDomain(UpdaterScope scope) {
 absl::optional<base::FilePath> GetLibraryFolderPath(UpdaterScope scope) {
   switch (scope) {
     case UpdaterScope::kUser:
-      return base::apple::GetUserLibraryPath();
+      return base::mac::GetUserLibraryPath();
     case UpdaterScope::kSystem: {
       base::FilePath local_library_path;
-      if (!base::apple::GetLocalDirectory(NSLibraryDirectory,
-                                          &local_library_path)) {
+      if (!base::mac::GetLocalDirectory(NSLibraryDirectory,
+                                        &local_library_path)) {
         VLOG(1) << "Could not get local library path";
         return absl::nullopt;
       }
@@ -73,15 +77,12 @@ absl::optional<base::FilePath> GetApplicationSupportDirectory(
   base::FilePath path;
   switch (scope) {
     case UpdaterScope::kUser:
-      if (base::apple::GetUserDirectory(NSApplicationSupportDirectory, &path)) {
+      if (base::mac::GetUserDirectory(NSApplicationSupportDirectory, &path))
         return path;
-      }
       break;
     case UpdaterScope::kSystem:
-      if (base::apple::GetLocalDirectory(NSApplicationSupportDirectory,
-                                         &path)) {
+      if (base::mac::GetLocalDirectory(NSApplicationSupportDirectory, &path))
         return path;
-      }
       break;
   }
 
@@ -261,7 +262,7 @@ absl::optional<base::FilePath> GetWakeTaskPlistPath(UpdaterScope scope) {
     if ([library_paths count] < 1) {
       return absl::nullopt;
     }
-    return base::apple::NSStringToFilePath(library_paths[0])
+    return base::mac::NSStringToFilePath(library_paths[0])
         .Append(IsSystemInstall(scope) ? "LaunchDaemons" : "LaunchAgents")
         .AppendASCII(base::StrCat({GetWakeLaunchdName(scope), ".plist"}));
   }

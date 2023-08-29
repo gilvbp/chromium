@@ -61,7 +61,8 @@ void AudioDevicesPrefHandlerStub::SetDeviceActive(const AudioDevice& device,
 bool AudioDevicesPrefHandlerStub::GetDeviceActive(const AudioDevice& device,
                                                   bool* active,
                                                   bool* activate_by_user) {
-  if (!base::Contains(audio_device_state_map_, device.stable_device_id)) {
+  if (audio_device_state_map_.find(device.stable_device_id) ==
+      audio_device_state_map_.end()) {
     return false;
   }
   *active = audio_device_state_map_[device.stable_device_id].active;
@@ -108,8 +109,9 @@ void AudioDevicesPrefHandlerStub::SetUserPriorityHigherThan(
 }
 
 int AudioDevicesPrefHandlerStub::GetUserPriority(const AudioDevice& device) {
-  if (base::Contains(user_priority_map_, device.stable_device_id)) {
-    return user_priority_map_[device.stable_device_id];
+  if (auto it = user_priority_map_.find(device.stable_device_id);
+      it != user_priority_map_.end()) {
+    return it->second;
   }
   return kUserPriorityNone;
 }
@@ -156,14 +158,6 @@ bool AudioDevicesPrefHandlerStub::GetForceRespectUiGainsState() {
 void AudioDevicesPrefHandlerStub::SetForceRespectUiGainsState(
     bool force_respect_ui_gains) {
   force_respect_ui_gains_ = force_respect_ui_gains;
-}
-
-bool AudioDevicesPrefHandlerStub::GetHfpMicSrState() {
-  return hfp_mic_sr_;
-}
-
-void AudioDevicesPrefHandlerStub::SetHfpMicSrState(bool hfp_mic_sr_state) {
-  hfp_mic_sr_ = hfp_mic_sr_state;
 }
 
 }  // namespace ash

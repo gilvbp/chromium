@@ -68,7 +68,7 @@ void OverlayProcessorSurfaceControl::CheckOverlaySupportImpl(
   for (auto& candidate : *candidates) {
     if (auto override_color_space = GetOverrideColorSpace()) {
       candidate.color_space = override_color_space.value();
-      candidate.hdr_metadata = gfx::HDRMetadata();
+      candidate.hdr_metadata.reset();
     }
 
     // Check if the ColorSpace is supported

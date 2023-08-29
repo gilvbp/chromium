@@ -102,8 +102,6 @@ struct ShortcutsWidget: Widget {
         : Text("IDS_IOS_WIDGET_KIT_EXTENSION_SHORTCUTS_DESCRIPTION_IPAD")
     )
     .supportedFamilies([.systemMedium])
-    .crDisfavoredLocations()
-    .crContentMarginsDisabled()
   }
 }
 
@@ -137,15 +135,6 @@ struct ShortcutsWidgetEntryView: View {
     static let widgetMostVisitedSitesRow = Color("widget_actions_row_background_color")
     static let widgetTextColor = Color("widget_text_color")
     static let widgetSearchBarColor = Color("widget_search_bar_color")
-  }
-
-  // Create a chromewidgetkit:// url to open the given URL.
-  private func convertURL(url: URL) -> URL {
-    let query = URLQueryItem(name: "url", value: url.absoluteString)
-    var urlcomps = URLComponents(
-      url: WidgetConstants.ShortcutsWidget.open, resolvingAgainstBaseURL: false)!
-    urlcomps.queryItems = [query]
-    return urlcomps.url!
   }
 
   // Shows the search bar of the shortcuts widget.
@@ -203,7 +192,7 @@ struct ShortcutsWidgetEntryView: View {
   // Shows the shortcut's icon with website's title on the left.
   @ViewBuilder
   private func oneVisitedSitesView(ntpTile: NTPTile) -> some View {
-    Link(destination: convertURL(url: ntpTile.url)) {
+    Link(destination: ntpTile.url) {
       HStack {
         WebsiteLogo(ntpTile: ntpTile).padding(.leading, 12)
         WebsiteLabel(
@@ -223,10 +212,10 @@ struct ShortcutsWidgetEntryView: View {
     let maxNumberOfShortcuts = 4
     let numberOfShortcuts = min(ntpTiles.count, maxNumberOfShortcuts)
 
-    ForEach(0..<numberOfShortcuts, id: \.self) { index in
+    ForEach(0..<numberOfShortcuts) {
+      index in
       HStack(spacing: 0.5) {
-
-        Link(destination: convertURL(url: ntpTiles[index].url)) {
+        Link(destination: ntpTiles[index].url) {
           WebsiteLogo(ntpTile: ntpTiles[index])
         }
         .accessibilityLabel(ntpTiles[index].title)
@@ -240,8 +229,13 @@ struct ShortcutsWidgetEntryView: View {
   }
 
   var body: some View {
-    VStack(spacing: 0) {
-      searchBar.frame(height: Dimensions.searchAreaHeight)
+    VStack {
+      ZStack {
+        Colors.widgetBackgroundColor.unredacted()
+        VStack {
+          searchBar
+        }.frame(height: Dimensions.searchAreaHeight)
+      }
       ZStack {
         Rectangle()
           .foregroundColor(Colors.widgetMostVisitedSitesRow)
@@ -266,12 +260,8 @@ struct ShortcutsWidgetEntryView: View {
         }
         .frame(minWidth: 0, maxWidth: .infinity)
       }
-      .frame(maxHeight: .infinity)
-    }
-    .crContainerBackground(
-      Colors.widgetBackgroundColor.unredacted()
-    )
-
+      Spacer()
+    }.background(Colors.widgetMostVisitedSitesRow)
   }
 }
 

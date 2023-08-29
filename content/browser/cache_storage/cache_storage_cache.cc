@@ -14,6 +14,7 @@
 
 #include "base/barrier_closure.h"
 #include "base/containers/flat_map.h"
+#include "base/containers/stack_container.h"
 #include "base/files/file_path.h"
 #include "base/functional/bind.h"
 #include "base/functional/callback_helpers.h"
@@ -55,7 +56,6 @@
 #include "services/network/public/mojom/fetch_api.mojom.h"
 #include "storage/browser/quota/quota_manager_proxy.h"
 #include "storage/common/quota/padding_key.h"
-#include "third_party/abseil-cpp/absl/container/inlined_vector.h"
 #include "third_party/blink/public/common/cache_storage/cache_storage_utils.h"
 #include "third_party/blink/public/common/fetch/fetch_api_request_headers_map.h"
 #include "third_party/blink/public/mojom/loader/referrer.mojom.h"
@@ -280,17 +280,17 @@ bool VaryMatches(const blink::FetchAPIRequestHeadersMap& request,
   return true;
 }
 
-// Checks a batch operation list for duplicate entries. Returns any duplicate
-// URL strings that were found. If the return value is empty, then there were no
-// duplicates.
-std::vector<std::string> FindDuplicateOperations(
-    const std::vector<blink::mojom::BatchOperationPtr>& operations) {
+// Check a batch operation list for duplicate entries.  A StackVector
+// must be passed to store any resulting duplicate URL strings.  Returns
+// true if any duplicates were found.
+bool FindDuplicateOperations(
+    const std::vector<blink::mojom::BatchOperationPtr>& operations,
+    std::vector<std::string>* duplicate_url_list_out) {
   using blink::mojom::BatchOperation;
-
-  std::vector<std::string> duplicate_url_list;
+  DCHECK(duplicate_url_list_out);
 
   if (operations.size() < 2) {
-    return duplicate_url_list;
+    return false;
   }
 
   // Create a temporary sorted vector of the operations to support quickly
@@ -301,12 +301,12 @@ std::vector<std::string> FindDuplicateOperations(
   // Note, this will use 512 bytes of stack space on 64-bit devices.  The
   // static size attempts to accommodate most typical Cache.addAll() uses in
   // service worker install events while not blowing up the stack too much.
-  absl::InlinedVector<BatchOperation*, 64> sorted;
-  sorted.reserve(operations.size());
+  base::StackVector<BatchOperation*, 64> sorted;
+  sorted->reserve(operations.size());
   for (const auto& op : operations) {
-    sorted.push_back(op.get());
+    sorted->push_back(op.get());
   }
-  std::sort(sorted.begin(), sorted.end(),
+  std::sort(sorted->begin(), sorted->end(),
             [](BatchOperation* left, BatchOperation* right) {
               return left->request->url < right->request->url;
             });
@@ -316,8 +316,7 @@ std::vector<std::string> FindDuplicateOperations(
   // have the same URL.  This results in an average complexity of O(n log n).
   // If the entire list has entries with the same URL and different VARY
   // headers then this devolves into O(n^2).
-  for (BatchOperation* const* outer = sorted.cbegin(); outer != sorted.cend();
-       ++outer) {
+  for (auto outer = sorted->cbegin(); outer != sorted->cend(); ++outer) {
     const BatchOperation* outer_op = *outer;
 
     // Note, the spec checks CacheQueryOptions like ignoreSearch, etc, but
@@ -330,13 +329,12 @@ std::vector<std::string> FindDuplicateOperations(
 
     // If this entry already matches a duplicate we found, then just skip
     // ahead to find any remaining duplicates.
-    if (!duplicate_url_list.empty() &&
-        outer_op->request->url.spec() == duplicate_url_list.back()) {
+    if (!duplicate_url_list_out->empty() &&
+        outer_op->request->url.spec() == duplicate_url_list_out->back()) {
       continue;
     }
 
-    for (BatchOperation* const* inner = std::next(outer);
-         inner != sorted.cend(); ++inner) {
+    for (auto inner = std::next(outer); inner != sorted->cend(); ++inner) {
       const BatchOperation* inner_op = *inner;
       // Since the list is sorted we can stop looking at neighbors after
       // the first different URL.
@@ -354,13 +352,13 @@ std::vector<std::string> FindDuplicateOperations(
           VaryMatches(outer_op->request->headers, inner_op->request->headers,
                       outer_op->response->response_type,
                       outer_op->response->headers)) {
-        duplicate_url_list.push_back(inner_op->request->url.spec());
+        duplicate_url_list_out->push_back(inner_op->request->url.spec());
         break;
       }
     }
   }
 
-  return duplicate_url_list;
+  return !duplicate_url_list_out->empty();
 }
 
 GURL RemoveQueryParam(const GURL& url) {
@@ -770,13 +768,11 @@ void CacheStorageCache::BatchOperation(
   // "If the result of running Query Cache with operation’s request,
   //  operation’s options, and addedItems is not empty, throw an
   //  InvalidStateError DOMException."
-
-  if (const auto duplicate_url_list = FindDuplicateOperations(operations);
-      !duplicate_url_list.empty()) {
+  std::vector<std::string> duplicate_url_list;
+  if (FindDuplicateOperations(operations, &duplicate_url_list)) {
     // If we found any duplicates we need to at least warn the user.  Format
     // the URL list into a comma-separated list.
-    const std::string url_list_string =
-        base::JoinString(duplicate_url_list, ", ");
+    std::string url_list_string = base::JoinString(duplicate_url_list, ", ");
 
     // Place the duplicate list into an error message.
     message.emplace(

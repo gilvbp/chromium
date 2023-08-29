@@ -103,6 +103,10 @@ const char MediaRouterMetrics::kHistogramUiDialogLoadedWithData[] =
     "MediaRouter.Ui.Dialog.LoadedWithData";
 const char MediaRouterMetrics::kHistogramUiDialogPaint[] =
     "MediaRouter.Ui.Dialog.Paint";
+const char MediaRouterMetrics::kHistogramUiFirstAction[] =
+    "MediaRouter.Ui.FirstAction";
+const char MediaRouterMetrics::kHistogramUiIconStateAtInit[] =
+    "MediaRouter.Ui.IconStateAtInit";
 const char MediaRouterMetrics::kHistogramUiAndroidDialogType[] =
     "MediaRouter.Ui.Android.DialogType";
 const char MediaRouterMetrics::kHistogramUiAndroidDialogAction[] =
@@ -145,10 +149,20 @@ void MediaRouterMetrics::RecordCloseDialogLatency(
 }
 
 // static
+void MediaRouterMetrics::RecordMediaRouterInitialUserAction(
+    MediaRouterUserAction action) {
+  DCHECK_LT(static_cast<int>(action),
+            static_cast<int>(MediaRouterUserAction::TOTAL_COUNT));
+  UMA_HISTOGRAM_ENUMERATION(
+      kHistogramUiFirstAction, static_cast<int>(action),
+      static_cast<int>(MediaRouterUserAction::TOTAL_COUNT));
+}
+
+// static
 void MediaRouterMetrics::RecordMediaRouterFileFormat(
     const media::container_names::MediaContainerName format) {
-  base::UmaHistogramEnumeration(
-      kHistogramMediaRouterFileFormat, format);
+  UMA_HISTOGRAM_ENUMERATION(kHistogramMediaRouterFileFormat, format,
+                            media::container_names::CONTAINER_MAX + 1);
 }
 
 // static
@@ -221,6 +235,13 @@ void MediaRouterMetrics::RecordStopRemoteRoute() {
 // static
 void MediaRouterMetrics::RecordIconStateAtDialogOpen(bool is_pinned) {
   UMA_HISTOGRAM_BOOLEAN(kHistogramUiDialogIconStateAtOpen, is_pinned);
+}
+
+// static
+void MediaRouterMetrics::RecordIconStateAtInit(bool is_pinned) {
+  // Since this gets called only rarely, use base::UmaHistogramBoolean() to
+  // avoid instantiating the caching code.
+  base::UmaHistogramBoolean(kHistogramUiIconStateAtInit, is_pinned);
 }
 
 // static

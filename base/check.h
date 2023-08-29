@@ -10,6 +10,7 @@
 #include "base/base_export.h"
 #include "base/compiler_specific.h"
 #include "base/dcheck_is_on.h"
+#include "base/debug/debugging_buildflags.h"
 #include "base/immediate_crash.h"
 #include "base/location.h"
 

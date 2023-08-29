@@ -42,7 +42,6 @@ class FeatureMap;
 class PhishingDOMFeatureExtractor;
 class PhishingTermFeatureExtractor;
 class PhishingUrlFeatureExtractor;
-class PhishingVisualFeatureExtractor;
 class Scorer;
 
 class PhishingClassifier {
@@ -151,7 +150,6 @@ class PhishingClassifier {
   std::unique_ptr<PhishingUrlFeatureExtractor> url_extractor_;
   std::unique_ptr<PhishingDOMFeatureExtractor> dom_extractor_;
   std::unique_ptr<PhishingTermFeatureExtractor> term_extractor_;
-  std::unique_ptr<PhishingVisualFeatureExtractor> visual_extractor_;
 
   // State for any in-progress extraction.
   std::unique_ptr<FeatureMap> features_;

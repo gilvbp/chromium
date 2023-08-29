@@ -295,7 +295,7 @@ class BLINK_EXPORT WebAXObject {
 #endif
 
  private:
-  WebPrivatePtrForGC<AXObject> private_;
+  WebPrivatePtr<AXObject> private_;
 };
 
 }  // namespace blink

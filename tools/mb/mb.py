@@ -325,6 +325,17 @@ class MetaBuildWrapper:
                            'implies --quiet')
     subp.set_defaults(func=self.CmdLookup)
 
+    subp = subps.add_parser('try',
+                            description='Try your change on a remote builder')
+    AddCommonOptions(subp)
+    subp.add_argument('target',
+                      help='ninja target to build and run')
+    subp.add_argument('--force', default=False, action='store_true',
+                      help='Force the job to run. Ignores local checkout state;'
+                      ' by default, the tool doesn\'t trigger jobs if there are'
+                      ' local changes which are not present on Gerrit.')
+    subp.set_defaults(func=self.CmdTry)
+
     subp = subps.add_parser(
       'run', formatter_class=argparse.RawDescriptionHelpFormatter)
     subp.description = (
@@ -544,6 +555,73 @@ class MetaBuildWrapper:
       self.Print('\nWriting """\\\n%s""" to _path_/args.gn.\n' % gn_args)
       self.PrintCmd(cmd)
     return 0
+
+  def CmdTry(self):
+    ninja_target = self.args.target
+    if ninja_target.startswith('//'):
+      self.Print("Expected a ninja target like base_unittests, got %s" % (
+        ninja_target))
+      return 1
+
+    _, out, _ = self.Run(['git', 'cl', 'diff', '--stat'], force_verbose=False)
+    if out:
+      self.Print("Your checkout appears to local changes which are not uploaded"
+                 " to Gerrit. Changes must be committed and uploaded to Gerrit"
+                 " to be tested using this tool.")
+      if not self.args.force:
+        return 1
+
+    json_path = self.PathJoin(self.chromium_src_dir, 'out.json')
+    try:
+      ret, out, err = self.Run(
+        ['git', 'cl', 'issue', '--json=out.json'], force_verbose=False)
+      if ret != 0:
+        self.Print(
+          "Unable to fetch current issue. Output and error:\n%s\n%s" % (
+            out, err
+        ))
+        return ret
+      with open(json_path) as f:
+        issue_data = json.load(f)
+    finally:
+      if self.Exists(json_path):
+        os.unlink(json_path)
+
+    if not issue_data['issue']:
+      self.Print("Missing issue data. Upload your CL to Gerrit and try again.")
+      return 1
+
+    class LedException(Exception):
+      pass
+
+    def run_cmd(previous_res, cmd):
+      if self.args.verbose:
+        self.Print(('| ' if previous_res else '') + ' '.join(cmd))
+
+      res, out, err = self.Call(cmd, input=previous_res)
+      if res != 0:
+        self.Print("Err while running '%s'. Output:\n%s\nstderr:\n%s" % (
+          ' '.join(cmd), out, err))
+        raise LedException()
+      return out
+
+    try:
+      result = LedResult(None, run_cmd).then(
+        # TODO(martiniss): maybe don't always assume the bucket?
+        'led', 'get-builder', 'luci.chromium.try:%s' % self.args.builder).then(
+        'led', 'edit', '-r', 'chromium_trybot_experimental',
+          '-p', 'tests=["%s"]' % ninja_target).then(
+        'led', 'edit-system', '--tag=purpose:user-debug-mb-try').then(
+        'led', 'edit-cr-cl', issue_data['issue_url']).then(
+        'led', 'launch').result
+    except LedException:
+      self.Print("If this is an unexpected error message, please file a bug"
+                 " with https://goto.google.com/mb-try-bug")
+      raise
+
+    swarming_data = json.loads(result)['swarming']
+    self.Print("Launched task at https://%s/task?id=%s" % (
+      swarming_data['host_name'], swarming_data['task_id']))
 
   def CmdRun(self):
     vals = self.GetConfig()
@@ -1206,6 +1284,22 @@ class MetaBuildWrapper:
         if self.Exists(path):
           self.RemoveFile(path)
 
+  def _FilterOutUnneededSkylabDeps(self, deps):
+    """Filter out the runtime dependencies not used by Skylab.
+
+    Skylab is CrOS infra facilities for us to run hardware tests. These files
+    may appear in the test target's runtime_deps for browser lab, but
+    unnecessary for CrOS lab. E.g. chrome is provisioned by our autotest
+    wrapper in Skylab, not by third_party/chromite.
+    """
+    file_ignore_list = [
+        re.compile(r'.*build/chromeos.*'),
+        re.compile(r'.*build/cros_cache.*'),
+        # No test target should rely on files in [output_dir]/gen.
+        re.compile(r'^gen/.*'),
+    ]
+    return [f for f in deps if not any(r.match(f) for r in file_ignore_list)]
+
   def _DedupDependencies(self, deps):
     """Remove the deps already contained by other paths."""
 
@@ -1266,6 +1360,8 @@ class MetaBuildWrapper:
       command, extra_files = self.GetSwarmingCommand(target, vals)
       runtime_deps = self.ReadFile(path_to_use).splitlines()
       runtime_deps = self._DedupDependencies(runtime_deps)
+      if 'is_skylab=true' in vals['gn_args']:
+        runtime_deps = self._FilterOutUnneededSkylabDeps(runtime_deps)
 
       canonical_target = target.replace(':','_').replace('/','_')
       ret = self.WriteIsolateFiles(build_dir, command, canonical_target,
@@ -2038,16 +2134,13 @@ class MetaBuildWrapper:
   def _CipdPlatform(self):
     """Returns current CIPD platform, e.g. linux-amd64.
 
-    Unless the platform is arm64, assumes amd64.
+    Assumes AMD64.
     """
-    arch = 'amd64'
-    if platform.machine() == 'arm64':
-      arch = arm64
     if self.platform == 'win32':
-      return 'windows-' + arch
+      return 'windows-amd64'
     if self.platform == 'darwin':
-      return 'mac-' + arch
-    return 'linux-' + arch
+      return 'mac-amd64'
+    return 'linux-amd64'
 
   def ExpandUser(self, path):
     # This function largely exists so it can be overridden for testing.
@@ -2123,6 +2216,27 @@ class MetaBuildWrapper:
       self.Print('\nWriting """\\\n%s""" to %s.\n' % (contents, path))
     with open(path, 'w', encoding='utf-8', newline='') as fp:
       return fp.write(contents)
+
+
+class LedResult:
+  """Holds the result of a led operation. Can be chained using |then|."""
+
+  def __init__(self, result, run_cmd):
+    self._result = result
+    self._run_cmd = run_cmd
+
+  @property
+  def result(self):
+    """The mutable result data of the previous led call as decoded JSON."""
+    return self._result
+
+  def then(self, *cmd):
+    """Invoke led, passing it the current `result` data as input.
+
+    Returns another LedResult object with the output of the command.
+    """
+    return self.__class__(
+        self._run_cmd(self._result, cmd), self._run_cmd)
 
 
 def FlattenConfig(config_pool, mixin_pool, config):

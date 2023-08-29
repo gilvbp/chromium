@@ -40,6 +40,7 @@ struct AddToHomescreenParams {
   AddToHomescreenParams();
   ~AddToHomescreenParams();
 
+  std::string GetAppIdentifier();
   bool HasMaskablePrimaryIcon();
 };
 

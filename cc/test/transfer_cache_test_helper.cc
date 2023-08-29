@@ -8,7 +8,6 @@
 #include <utility>
 
 #include "base/check.h"
-#include "base/containers/contains.h"
 #include "base/containers/span.h"
 
 namespace cc {
@@ -86,19 +85,16 @@ ServiceTransferCacheEntry* TransferCacheTestHelper::GetEntryInternal(
     TransferCacheEntryType type,
     uint32_t id) {
   auto key = std::make_pair(type, id);
-  if (locked_entries_.count(key) + local_entries_.count(key) == 0) {
+  if (locked_entries_.count(key) + local_entries_.count(key) == 0)
     return nullptr;
-  }
-  if (!base::Contains(entries_, key)) {
+  if (entries_.find(key) == entries_.end())
     return nullptr;
-  }
   return entries_[key].get();
 }
 
 bool TransferCacheTestHelper::LockEntryInternal(const EntryKey& key) {
-  if (!base::Contains(entries_, key)) {
+  if (entries_.find(key) == entries_.end())
     return false;
-  }
 
   locked_entries_.insert(key);
   EnforceLimits();
@@ -109,7 +105,7 @@ uint32_t TransferCacheTestHelper::CreateEntryInternal(
     const ClientTransferCacheEntry& client_entry,
     char* memory) {
   auto key = std::make_pair(client_entry.Type(), client_entry.Id());
-  DCHECK(!base::Contains(entries_, key));
+  DCHECK(entries_.find(key) == entries_.end());
 
   // Serialize data.
   uint32_t size = client_entry.SerializedSize();

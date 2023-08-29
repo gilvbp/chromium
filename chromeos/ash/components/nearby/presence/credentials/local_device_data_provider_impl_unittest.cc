@@ -19,7 +19,6 @@
 #include "components/signin/public/identity_manager/identity_test_environment.h"
 #include "components/signin/public/identity_manager/identity_test_utils.h"
 #include "testing/gtest/include/gtest/gtest.h"
-#include "third_party/abseil-cpp/absl/strings/ascii.h"
 #include "ui/base/l10n/l10n_util.h"
 #include "ui/chromeos/devicetype_utils.h"
 
@@ -72,7 +71,7 @@ TEST_F(LocalDeviceDataProviderImplTest, DeviceId) {
   std::string id = local_device_data_provider_->GetDeviceId();
   EXPECT_EQ(10u, id.size());
   for (const char c : id) {
-    EXPECT_TRUE(absl::ascii_isalnum(static_cast<unsigned char>(c)));
+    EXPECT_TRUE(std::isalnum(c));
   }
 
   // The ID is persisted.

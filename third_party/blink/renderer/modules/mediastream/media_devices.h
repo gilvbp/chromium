@@ -7,7 +7,6 @@
 
 #include "base/functional/callback.h"
 #include "base/gtest_prod_util.h"
-#include "base/sequence_checker.h"
 #include "build/build_config.h"
 #include "third_party/blink/public/mojom/mediastream/media_devices.mojom-blink.h"
 #include "third_party/blink/renderer/bindings/core/v8/active_script_wrappable.h"
@@ -18,7 +17,6 @@
 #include "third_party/blink/renderer/modules/event_target_modules.h"
 #include "third_party/blink/renderer/modules/mediastream/media_device_info.h"
 #include "third_party/blink/renderer/modules/mediastream/media_stream_track.h"
-#include "third_party/blink/renderer/modules/mediastream/sub_capture_target.h"
 #include "third_party/blink/renderer/modules/mediastream/user_media_request.h"
 #include "third_party/blink/renderer/modules/modules_export.h"
 #include "third_party/blink/renderer/platform/heap/collection_support/heap_hash_map.h"
@@ -53,13 +51,8 @@ enum class EnumerateDevicesResult {
   kMaxValue = kTimedOut
 };
 
-enum class SubCaptureTargetType {
-  kCropTarget,
-  // TODO(crbug.com/1418194): Add kRestrictionTarget.
-};
-
 class MODULES_EXPORT MediaDevices final
-    : public EventTarget,
+    : public EventTargetWithInlineData,
       public ActiveScriptWrappable<MediaDevices>,
       public Supplement<Navigator>,
       public ExecutionContextLifecycleObserver,
@@ -93,15 +86,11 @@ class MODULES_EXPORT MediaDevices final
                               const CaptureHandleConfig*,
                               ExceptionState&);
 
-  // Using ProduceSubCaptureTarget(), CropTarget.fromElement() and similar
-  // static functions can communicate with the browser process through
-  // the mojom pipe that `this` owns.
-  // TODO(crbug.com/1332628): Move most of the logic
-  // into sub_capture_target.cc/h, leaving only communication in MediaDevices.
-  ScriptPromise ProduceSubCaptureTarget(ScriptState*,
-                                        Element*,
-                                        ExceptionState&,
-                                        SubCaptureTargetType);
+  // Using ProduceCropTarget(), CropTarget.fromElement() can communicate
+  // with the browser process through the mojom pipe that `this` owns.
+  // TODO(crbug.com/1332628): Move most of the logic into crop_target.cc/h,
+  // leaving only communication in MediaDevices.
+  ScriptPromise ProduceCropTarget(ScriptState*, Element*, ExceptionState&);
 
   // EventTarget overrides.
   const AtomicString& InterfaceName() const override;
@@ -118,8 +107,25 @@ class MODULES_EXPORT MediaDevices final
   void OnDevicesChanged(mojom::blink::MediaDeviceType,
                         const Vector<WebMediaDeviceInfo>&) override;
 
+  // Callback for testing only.
+  using EnumerateDevicesTestCallback =
+      base::OnceCallback<void(const MediaDeviceInfoVector&)>;
+
   void SetDispatcherHostForTesting(
       mojo::PendingRemote<mojom::blink::MediaDevicesDispatcherHost>);
+
+  void SetEnumerateDevicesCallbackForTesting(
+      EnumerateDevicesTestCallback test_callback) {
+    enumerate_devices_test_callback_ = std::move(test_callback);
+  }
+
+  void SetConnectionErrorCallbackForTesting(base::OnceClosure test_callback) {
+    connection_error_test_callback_ = std::move(test_callback);
+  }
+
+  void SetDeviceChangeCallbackForTesting(base::OnceClosure test_callback) {
+    device_change_test_callback_ = std::move(test_callback);
+  }
 
   void Trace(Visitor*) const override;
 
@@ -137,12 +143,6 @@ class MODULES_EXPORT MediaDevices final
   void ScheduleDispatchEvent(Event*);
   void DispatchScheduledEvents();
   void StartObserving();
-  void FinalizeStartObserving(
-      const Vector<Vector<WebMediaDeviceInfo>>& enumeration,
-      Vector<mojom::blink::VideoInputDeviceCapabilitiesPtr>
-          video_input_capabilities,
-      Vector<mojom::blink::AudioInputDeviceCapabilitiesPtr>
-          audio_input_capabilities);
   void StopObserving();
   void DevicesEnumerated(
       ScriptPromiseResolverWithTracker<EnumerateDevicesResult>* result_tracker,
@@ -168,7 +168,6 @@ class MODULES_EXPORT MediaDevices final
                                    const WTF::String& crop_id);
 #endif
 
-  SEQUENCE_CHECKER(sequence_checker_);
   bool stopped_;
   // Async runner may be null when there is no valid execution context.
   // No async work may be posted in this scenario.
@@ -198,8 +197,9 @@ class MODULES_EXPORT MediaDevices final
       crop_id_resolvers_;
 #endif
 
-  bool starting_observation_ = false;
-  Vector<Vector<WebMediaDeviceInfo>> current_device_infos_;
+  EnumerateDevicesTestCallback enumerate_devices_test_callback_;
+  base::OnceClosure connection_error_test_callback_;
+  base::OnceClosure device_change_test_callback_;
 };
 
 }  // namespace blink

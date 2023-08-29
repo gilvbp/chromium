@@ -240,7 +240,7 @@ public class TabPersistentStore {
          * Called when details about a Tab are read from the metadata file.
          */
         public void onDetailsRead(int index, int id, String url, boolean isStandardActiveIndex,
-                boolean isIncognitoActiveIndex, Boolean isIncognito, boolean fromMerge) {}
+                boolean isIncognitoActiveIndex, Boolean isIncognito) {}
 
         /**
          * To be called when the TabStates have all been loaded.
@@ -491,7 +491,7 @@ public class TabPersistentStore {
             if (mPrefetchTabListTask != null) {
                 stream = mPrefetchTabListTask.get();
 
-                // Restore the tabs for this TabPersistentStore instance if the tab metadata file
+                // Restore the tabs for this TabPeristentStore instance if the tab metadata file
                 // exists.
                 if (stream != null) {
                     mLoadInProgress = true;
@@ -502,7 +502,7 @@ public class TabPersistentStore {
                 }
             }
 
-            // Restore the tabs for the other TabPersistentStore instance if its tab metadata file
+            // Restore the tabs for the other TabPeristentStore instance if its tab metadata file
             // exists.
             if (mPrefetchTabListToMergeTasks.size() > 0) {
                 for (Pair<AsyncTask<DataInputStream>, String> mergeTask :
@@ -514,7 +514,7 @@ public class TabPersistentStore {
                     mPersistencePolicy.setMergeInProgress(true);
                     readSavedStateFile(stream,
                             createOnTabStateReadCallback(mTabModelSelector.isIncognitoSelected(),
-                                    mTabsToRestore.size() != 0),
+                                    mTabsToRestore.size() == 0 ? false : true),
                             null);
                 }
                 if (!mMergedFileNames.isEmpty()) {
@@ -929,19 +929,14 @@ public class TabPersistentStore {
 
     private void addTabToSaveQueueIfApplicable(Tab tab) {
         if (tab == null || tab.isDestroyed()) return;
-        TabStateAttributes tabStateAttributes = TabStateAttributes.from(tab);
         if (mTabsToSave.contains(tab)
-                || tabStateAttributes.getDirtinessState()
-                        == TabStateAttributes.DirtinessState.CLEAN) {
+                || TabStateAttributes.from(tab).getDirtinessState()
+                        == TabStateAttributes.DirtinessState.CLEAN
+                || isTabUrlContentScheme(tab)) {
             return;
         }
 
-        if (isTabUrlContentScheme(tab)
-                || (UrlUtilities.isNTPUrl(tab.getUrl()) && !tab.canGoBack()
-                        && !tab.canGoForward())) {
-            // At present the tab is not in a valid state to save. Reset dirtiness state so that the
-            // next dirtiness change will reattempt the save.
-            tabStateAttributes.clearTabStateDirtiness();
+        if (UrlUtilities.isNTPUrl(tab.getUrl()) && !tab.canGoBack() && !tab.canGoForward()) {
             return;
         }
         mTabsToSave.addLast(tab);
@@ -1234,7 +1229,7 @@ public class TabPersistentStore {
 
                 for (TabPersistentStoreObserver observer : mObservers) {
                     observer.onDetailsRead(index, id, url, isStandardActiveIndex,
-                            isIncognitoActiveIndex, isIncognito, fromMerge);
+                            isIncognitoActiveIndex, isIncognito);
                 }
             }
         };
@@ -1949,22 +1944,27 @@ public class TabPersistentStore {
         return MIGRATE_TO_CRITICAL_PERSISTED_TAB_DATA_DEFAULT_BATCH_SIZE;
     }
 
+    @VisibleForTesting
     SequencedTaskRunner getTaskRunnerForTests() {
         return mSequencedTaskRunner;
     }
 
+    @VisibleForTesting
     void addTabToRestoreForTesting(TabRestoreDetails tabDetails) {
         mTabsToRestore.add(tabDetails);
     }
 
+    @VisibleForTesting
     public TabPersistencePolicy getTabPersistencePolicyForTesting() {
         return mPersistencePolicy;
     }
 
+    @VisibleForTesting
     public List<Pair<AsyncTask<DataInputStream>, String>> getTabListToMergeTasksForTesting() {
         return mPrefetchTabListToMergeTasks;
     }
 
+    @VisibleForTesting
     public AsyncTask<TabState> getPrefetchTabStateActiveTabTaskForTesting() {
         return mPrefetchTabStateActiveTabTask;
     }

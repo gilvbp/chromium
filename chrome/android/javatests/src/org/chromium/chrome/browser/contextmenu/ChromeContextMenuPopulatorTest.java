@@ -160,7 +160,7 @@ public class ChromeContextMenuPopulatorTest {
                         updatedList.add(expectedItemsInGroup[initialListIndex]);
                     }
                 }
-                expectedItemsInGroup = CollectionUtil.integerCollectionToIntArray(updatedList);
+                expectedItemsInGroup = CollectionUtil.integerListToIntArray(updatedList);
             }
 
             if (!Arrays.equals(expectedItemsInGroup, availableInTab)) {

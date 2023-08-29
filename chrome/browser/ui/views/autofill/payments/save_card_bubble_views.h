@@ -70,6 +70,7 @@ class SaveCardBubbleViews : public AutofillBubbleBase,
   void Init() override;
 
   void OnDialogAccepted();
+  void OnDialogCancelled();
 
   ~SaveCardBubbleViews() override;
 

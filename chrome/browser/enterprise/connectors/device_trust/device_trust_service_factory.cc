@@ -45,8 +45,7 @@
 #endif  // BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC)
 
 #if BUILDFLAG(IS_CHROMEOS_ASH)
-#include "chrome/browser/enterprise/connectors/device_trust/ash/ash_attestation_policy_observer.h"
-#include "chrome/browser/enterprise/connectors/device_trust/attestation/ash/ash_attestation_service_impl.h"
+#include "chrome/browser/enterprise/connectors/device_trust/attestation/ash/ash_attestation_service.h"
 #endif  // BUILDFLAG(IS_CHROMEOS_ASH)
 
 namespace {
@@ -121,8 +120,7 @@ bool DeviceTrustServiceFactory::ServiceIsNULLWhileTesting() const {
 
 DeviceTrustServiceFactory::~DeviceTrustServiceFactory() = default;
 
-std::unique_ptr<KeyedService>
-DeviceTrustServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* DeviceTrustServiceFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   auto* profile = Profile::FromBrowserContext(context);
 
@@ -144,13 +142,8 @@ DeviceTrustServiceFactory::BuildServiceInstanceForBrowserContext(
   }
 
 #if BUILDFLAG(IS_CHROMEOS_ASH)
-  std::unique_ptr<AshAttestationServiceImpl> ash_attestation_service =
-      std::make_unique<AshAttestationServiceImpl>(profile);
-  dt_connector_service->AddObserver(
-      std::make_unique<AshAttestationPolicyObserver>(
-          ash_attestation_service->GetWeakPtr()));
   std::unique_ptr<AttestationService> attestation_service =
-      std::move(ash_attestation_service);
+      std::make_unique<AshAttestationService>(profile);
 #else
   DeviceTrustKeyManager* key_manager = nullptr;
   policy::CloudPolicyStore* browser_cloud_policy_store = nullptr;
@@ -203,9 +196,9 @@ DeviceTrustServiceFactory::BuildServiceInstanceForBrowserContext(
 
   // Only return an actual instance if all of the service's dependencies can be
   // resolved (meaning that the current management configuration is supported).
-  return std::make_unique<DeviceTrustService>(std::move(attestation_service),
-                                              std::move(signals_service),
-                                              dt_connector_service);
+  return new DeviceTrustService(std::move(attestation_service),
+                                std::move(signals_service),
+                                dt_connector_service);
 }
 
 }  // namespace enterprise_connectors

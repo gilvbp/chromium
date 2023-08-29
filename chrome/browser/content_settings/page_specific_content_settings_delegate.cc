@@ -24,8 +24,6 @@
 #if BUILDFLAG(ENABLE_EXTENSIONS)
 #include "components/guest_view/browser/guest_view_base.h"
 #endif
-#include "chrome/browser/media/webrtc/media_capture_devices_dispatcher.h"
-#include "components/content_settings/core/common/features.h"
 #include "components/permissions/permission_decision_auto_blocker.h"
 #include "components/permissions/permission_uma_util.h"
 #include "components/prefs/pref_service.h"
@@ -39,14 +37,7 @@ namespace chrome {
 
 PageSpecificContentSettingsDelegate::PageSpecificContentSettingsDelegate(
     content::WebContents* web_contents)
-    : WebContentsObserver(web_contents) {
-  if (base::FeatureList::IsEnabled(
-          content_settings::features::kImprovedSemanticsActivityIndicators)) {
-    media_observation_.Observe(MediaCaptureDevicesDispatcher::GetInstance()
-                                   ->GetMediaStreamCaptureIndicator()
-                                   .get());
-  }
-}
+    : WebContentsObserver(web_contents) {}
 
 PageSpecificContentSettingsDelegate::~PageSpecificContentSettingsDelegate() =
     default;
@@ -57,38 +48,6 @@ PageSpecificContentSettingsDelegate::FromWebContents(
     content::WebContents* web_contents) {
   return static_cast<PageSpecificContentSettingsDelegate*>(
       PageSpecificContentSettings::GetDelegateForWebContents(web_contents));
-}
-
-void PageSpecificContentSettingsDelegate::OnIsCapturingVideoChanged(
-    content::WebContents* web_contents,
-    bool is_capturing_video) {
-  PageSpecificContentSettings* pscs = PageSpecificContentSettings::GetForFrame(
-      web_contents->GetPrimaryMainFrame());
-
-  if (pscs == nullptr) {
-    // There are cases, e.g. MPArch, where there is no active instance of
-    // PageSpecificContentSettings for a frame.
-    return;
-  }
-
-  pscs->OnCapturingStateChanged(ContentSettingsType::MEDIASTREAM_CAMERA,
-                                is_capturing_video);
-}
-
-void PageSpecificContentSettingsDelegate::OnIsCapturingAudioChanged(
-    content::WebContents* web_contents,
-    bool is_capturing_audio) {
-  PageSpecificContentSettings* pscs = PageSpecificContentSettings::GetForFrame(
-      web_contents->GetPrimaryMainFrame());
-
-  if (pscs == nullptr) {
-    // There are cases, e.g. MPArch, where there is no active instance of
-    // PageSpecificContentSettings for a frame.
-    return;
-  }
-
-  pscs->OnCapturingStateChanged(ContentSettingsType::MEDIASTREAM_MIC,
-                                is_capturing_audio);
 }
 
 void PageSpecificContentSettingsDelegate::UpdateLocationBar() {
@@ -106,17 +65,17 @@ void PageSpecificContentSettingsDelegate::UpdateLocationBar() {
   PageSpecificContentSettings::MicrophoneCameraState state =
       pscs->GetMicrophoneCameraState();
 
-  if (state.Has(PageSpecificContentSettings::kCameraAccessed) ||
-      state.Has(PageSpecificContentSettings::kMicrophoneAccessed)) {
+  if ((state & PageSpecificContentSettings::CAMERA_ACCESSED) ||
+      (state & PageSpecificContentSettings::MICROPHONE_ACCESSED)) {
     auto* permission_tracker =
         permissions::PermissionRecoverySuccessRateTracker::FromWebContents(
             web_contents());
 
-    if (state.Has(PageSpecificContentSettings::kMicrophoneAccessed)) {
+    if (state & PageSpecificContentSettings::MICROPHONE_ACCESSED) {
       permission_tracker->TrackUsage(ContentSettingsType::MEDIASTREAM_MIC);
     }
 
-    if (state.Has(PageSpecificContentSettings::kCameraAccessed)) {
+    if (state & PageSpecificContentSettings::CAMERA_ACCESSED) {
       permission_tracker->TrackUsage(ContentSettingsType::MEDIASTREAM_CAMERA);
     }
   }
@@ -219,28 +178,27 @@ bool PageSpecificContentSettingsDelegate::IsMicrophoneCameraStateChanged(
       MediaCaptureDevicesDispatcher::GetInstance()
           ->GetMediaStreamCaptureIndicator();
 
-  if (microphone_camera_state.Has(
-          PageSpecificContentSettings::kMicrophoneAccessed) &&
+  if ((microphone_camera_state &
+       PageSpecificContentSettings::MICROPHONE_ACCESSED) &&
       prefs->GetString(prefs::kDefaultAudioCaptureDevice) !=
           media_stream_selected_audio_device &&
-      media_indicator->IsCapturingAudio(web_contents())) {
+      media_indicator->IsCapturingAudio(web_contents()))
     return true;
-  }
 
-  if (microphone_camera_state.Has(
-          PageSpecificContentSettings::kCameraAccessed) &&
+  if ((microphone_camera_state &
+       PageSpecificContentSettings::CAMERA_ACCESSED) &&
       prefs->GetString(prefs::kDefaultVideoCaptureDevice) !=
           media_stream_selected_video_device &&
-      media_indicator->IsCapturingVideo(web_contents())) {
+      media_indicator->IsCapturingVideo(web_contents()))
     return true;
-  }
 
   return false;
 }
 
 PageSpecificContentSettings::MicrophoneCameraState
 PageSpecificContentSettingsDelegate::GetMicrophoneCameraState() {
-  PageSpecificContentSettings::MicrophoneCameraState state;
+  PageSpecificContentSettings::MicrophoneCameraState state =
+      PageSpecificContentSettings::MICROPHONE_CAMERA_NOT_ACCESSED;
 
   // Include capture devices in the state if there are still consumers of the
   // approved media stream.
@@ -248,9 +206,9 @@ PageSpecificContentSettingsDelegate::GetMicrophoneCameraState() {
       MediaCaptureDevicesDispatcher::GetInstance()
           ->GetMediaStreamCaptureIndicator();
   if (media_indicator->IsCapturingAudio(web_contents()))
-    state.Put(PageSpecificContentSettings::kMicrophoneAccessed);
+    state |= PageSpecificContentSettings::MICROPHONE_ACCESSED;
   if (media_indicator->IsCapturingVideo(web_contents()))
-    state.Put(PageSpecificContentSettings::kCameraAccessed);
+    state |= PageSpecificContentSettings::CAMERA_ACCESSED;
 
   return state;
 }

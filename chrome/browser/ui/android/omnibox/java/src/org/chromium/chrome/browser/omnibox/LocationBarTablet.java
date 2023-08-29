@@ -60,7 +60,7 @@ class LocationBarTablet extends LocationBarLayout {
 
         boolean isRtl = mUrlActionContainer.getLayoutDirection() == LAYOUT_DIRECTION_RTL;
         int urlActionContainerPadding =
-                getResources().getDimensionPixelSize(R.dimen.location_bar_url_action_padding_small);
+                getResources().getDimensionPixelSize(R.dimen.location_bar_url_action_padding);
         mUrlActionContainer.setPadding(
                 isRtl ? urlActionContainerPadding : mUrlActionContainer.getPaddingLeft(),
                 mUrlActionContainer.getPaddingTop(),

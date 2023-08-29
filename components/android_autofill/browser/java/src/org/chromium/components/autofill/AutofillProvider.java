@@ -20,7 +20,6 @@ import androidx.annotation.RequiresApi;
 import androidx.annotation.VisibleForTesting;
 
 import org.chromium.base.ContextUtils;
-import org.chromium.base.ResettersForTesting;
 import org.chromium.base.StrictModeContext;
 import org.chromium.base.annotations.CalledByNative;
 import org.chromium.base.annotations.JNINamespace;
@@ -62,7 +61,7 @@ public class AutofillProvider {
         AutofillManagerWrapper create(Context context);
     }
 
-    private static AutofillManagerWrapperFactoryForTesting sAutofillManagerFactoryForTesting;
+    private static AutofillManagerWrapperFactoryForTesting sAutofillManagerForTestingFactory;
 
     private final String mProviderName;
     private AutofillManagerWrapper mAutofillManager;
@@ -86,8 +85,8 @@ public class AutofillProvider {
         mProviderName = providerName;
         try (ScopedSysTraceEvent e = ScopedSysTraceEvent.scoped("AutofillProvider.constructor")) {
             assert Build.VERSION.SDK_INT >= Build.VERSION_CODES.O;
-            if (sAutofillManagerFactoryForTesting != null) {
-                mAutofillManager = sAutofillManagerFactoryForTesting.create(context);
+            if (sAutofillManagerForTestingFactory != null) {
+                mAutofillManager = sAutofillManagerForTestingFactory.create(context);
             } else {
                 mAutofillManager = new AutofillManagerWrapper(context);
             }
@@ -187,12 +186,13 @@ public class AutofillProvider {
         }
     }
 
+    @VisibleForTesting(otherwise = VisibleForTesting.NONE)
     public static void setAutofillManagerWrapperFactoryForTesting(
             AutofillManagerWrapperFactoryForTesting factory) {
-        sAutofillManagerFactoryForTesting = factory;
-        ResettersForTesting.register(() -> sAutofillManagerFactoryForTesting = null);
+        sAutofillManagerForTestingFactory = factory;
     }
 
+    @VisibleForTesting(otherwise = VisibleForTesting.NONE)
     public void replaceAutofillManagerWrapperForTesting(AutofillManagerWrapper wrapper) {
         mAutofillManager = wrapper;
     }
@@ -585,6 +585,7 @@ public class AutofillProvider {
         }
     }
 
+    @VisibleForTesting
     public AutofillPopup getDatalistPopupForTesting() {
         return mDatalistPopup;
     }

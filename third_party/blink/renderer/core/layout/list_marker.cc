@@ -6,8 +6,6 @@
 
 #include "third_party/blink/renderer/core/css/counter_style.h"
 #include "third_party/blink/renderer/core/css/resolver/style_resolver.h"
-#include "third_party/blink/renderer/core/layout/geometry/logical_rect.h"
-#include "third_party/blink/renderer/core/layout/geometry/writing_mode_converter.h"
 #include "third_party/blink/renderer/core/layout/layout_image_resource_style_image.h"
 #include "third_party/blink/renderer/core/layout/layout_list_marker_image.h"
 #include "third_party/blink/renderer/core/layout/layout_text_fragment.h"
@@ -259,7 +257,7 @@ void ListMarker::UpdateMarkerContentIfNeeded(LayoutObject& marker) {
     if (!child) {
       LayoutListMarkerImage* image =
           LayoutListMarkerImage::CreateAnonymous(&marker.GetDocument());
-      const ComputedStyle* image_style =
+      scoped_refptr<const ComputedStyle> image_style =
           marker.GetDocument()
               .GetStyleResolver()
               .CreateAnonymousStyleWithDisplay(marker.StyleRef(),
@@ -284,7 +282,7 @@ void ListMarker::UpdateMarkerContentIfNeeded(LayoutObject& marker) {
   // |LayoutObject::PropagateStyleToAnonymousChildren()| to avoid unexpected
   // full layout due by style difference. See http://crbug.com/980399
   const auto& style_parent = child ? *child->Parent() : marker;
-  const ComputedStyle* text_style =
+  scoped_refptr<const ComputedStyle> text_style =
       marker.GetDocument().GetStyleResolver().CreateAnonymousStyleWithDisplay(
           style_parent.StyleRef(), marker.StyleRef().Display());
   if (IsA<LayoutTextFragment>(child))
@@ -402,16 +400,15 @@ std::pair<LayoutUnit, LayoutUnit> ListMarker::InlineMarginsForOutside(
   return {margin_start, margin_end};
 }
 
-PhysicalRect ListMarker::RelativeSymbolMarkerRect(
-    const ComputedStyle& style,
-    const AtomicString& list_style,
-    LayoutUnit width) {
+LayoutRect ListMarker::RelativeSymbolMarkerRect(const ComputedStyle& style,
+                                                const AtomicString& list_style,
+                                                LayoutUnit width) {
+  LayoutRect relative_rect;
   const SimpleFontData* font_data = style.GetFont().PrimaryFont();
   DCHECK(font_data);
   if (!font_data)
-    return PhysicalRect();
+    return LayoutRect();
 
-  LogicalRect relative_rect;
   // TODO(wkorman): Review and clean up/document the calculations below.
   // http://crbug.com/543193
   const FontMetrics& font_metrics = font_data->GetFontMetrics();
@@ -419,19 +416,18 @@ PhysicalRect ListMarker::RelativeSymbolMarkerRect(
   if (list_style == keywords::kDisclosureOpen ||
       list_style == keywords::kDisclosureClosed) {
     LayoutUnit marker_size = DisclosureSymbolSize(style);
-    relative_rect = LogicalRect(LayoutUnit(), ascent - marker_size, marker_size,
-                                marker_size);
+    relative_rect = LayoutRect(LayoutUnit(), ascent - marker_size, marker_size,
+                               marker_size);
   } else {
-    LayoutUnit bullet_width = LayoutUnit((ascent * 2 / 3 + 1) / 2);
-    relative_rect = LogicalRect(LayoutUnit(1),
-                                LayoutUnit(3 * (ascent - ascent * 2 / 3) / 2),
-                                bullet_width, bullet_width);
+    int bullet_width = (ascent * 2 / 3 + 1) / 2;
+    relative_rect = LayoutRect(1, 3 * (ascent - ascent * 2 / 3) / 2,
+                               bullet_width, bullet_width);
   }
-  // TextDirection and the outer height don't matter here.
-  WritingModeConverter converter(
-      {ToLineWritingMode(style.GetWritingMode()), TextDirection::kLtr},
-      PhysicalSize(width, LayoutUnit()));
-  return converter.ToPhysical(relative_rect);
+  if (!style.IsHorizontalWritingMode()) {
+    relative_rect = relative_rect.TransposedRect();
+    relative_rect.SetX(width - relative_rect.X() - relative_rect.Width());
+  }
+  return relative_rect;
 }
 
 const CounterStyle& ListMarker::GetCounterStyle(Document& document,

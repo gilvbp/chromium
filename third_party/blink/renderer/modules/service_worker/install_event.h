@@ -11,7 +11,6 @@
 
 namespace blink {
 
-class ExceptionState;
 class ScriptPromise;
 class ScriptState;
 class V8UnionRouterRuleOrRouterRuleSequence;
@@ -37,8 +36,7 @@ class MODULES_EXPORT InstallEvent : public ExtendableEvent {
   const AtomicString& InterfaceName() const override;
 
   ScriptPromise registerRouter(ScriptState*,
-                               const V8UnionRouterRuleOrRouterRuleSequence*,
-                               ExceptionState&);
+                               const V8UnionRouterRuleOrRouterRuleSequence*);
 
  protected:
   const int event_id_;

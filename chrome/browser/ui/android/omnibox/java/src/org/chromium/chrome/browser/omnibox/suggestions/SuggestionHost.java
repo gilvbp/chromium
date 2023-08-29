@@ -5,7 +5,6 @@
 package org.chromium.chrome.browser.omnibox.suggestions;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 
 import org.chromium.components.omnibox.AutocompleteMatch;
 import org.chromium.components.omnibox.action.OmniboxAction;
@@ -31,14 +30,6 @@ public interface SuggestionHost {
             @NonNull AutocompleteMatch suggestion, int position, @NonNull GURL url);
 
     /**
-     * Triggered when the user touches down on a suggestion. Only called for search suggestions.
-     *
-     * @param suggestion Touch-downed Suggestion.
-     * @param position The position of the suggestion on the list.
-     */
-    void onSuggestionTouchDown(@NonNull AutocompleteMatch suggestion, int position);
-
-    /**
      * Triggered when the user clicks one of the OmniboxActions attached to Suggestion.
      *
      * @param action the action the user interacted with
@@ -52,8 +43,10 @@ public interface SuggestionHost {
      *
      * @param suggestion Long-pressed Suggestion.
      * @param titleText The title to display in the delete dialog.
+     * @param position The position of the suggestion on the list.
      */
-    void onDeleteMatch(@NonNull AutocompleteMatch suggestion, @NonNull String titleText);
+    void onDeleteMatch(
+            @NonNull AutocompleteMatch suggestion, @NonNull String titleText, int position);
 
     /**
      * Triggered when the user long presses the omnibox suggestion element (eg. tile).
@@ -62,10 +55,11 @@ public interface SuggestionHost {
      *
      * @param suggestion Long-pressed Suggestion.
      * @param titleText The title to display in the delete dialog.
+     * @param position The position of the suggestion on the list.
      * @param element Element of the suggestion to be deleted.
      */
-    void onDeleteMatchElement(
-            @NonNull AutocompleteMatch suggestion, @NonNull String titleText, int element);
+    void onDeleteMatchElement(@NonNull AutocompleteMatch suggestion, @NonNull String titleText,
+            int position, int element);
 
     /**
      * Triggered when the user selects a switch to tab action.
@@ -86,10 +80,4 @@ public interface SuggestionHost {
      * Clear focus, close the suggestions list and complete the interaction with the Omnibox.
      */
     void finishInteraction();
-
-    /**
-     * Returns query extracted from GURL.
-     */
-    @Nullable
-    String queryFromGurl(GURL url);
 }

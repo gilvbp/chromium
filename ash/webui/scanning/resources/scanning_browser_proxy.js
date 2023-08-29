@@ -9,6 +9,7 @@
  */
 
 import {sendWithPromise} from 'chrome://resources/ash/common/cr.m.js';
+import {addSingletonGetter} from 'chrome://resources/ash/common/cr_deprecated.js';
 
 import {ScanCompleteAction} from './scanning_app_types.js';
 
@@ -181,17 +182,8 @@ export class ScanningBrowserProxyImpl {
   recordNumCompletedScans(numCompletedScans) {
     chrome.send('recordNumCompletedScans', [numCompletedScans]);
   }
-
-  /** @return {!ScanningBrowserProxy} */
-  static getInstance() {
-    return instance || (instance = new ScanningBrowserProxyImpl());
-  }
-
-  /** @param {!ScanningBrowserProxy} obj */
-  static setInstance(obj) {
-    instance = obj;
-  }
 }
 
-/** @type {?ScanningBrowserProxy} */
-let instance = null;
+// The singleton instance_ can be replaced with a test version of this wrapper
+// during testing.
+addSingletonGetter(ScanningBrowserProxyImpl);

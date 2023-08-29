@@ -61,8 +61,8 @@ constexpr char kOAUTHCodeCookie[] = "oauth_code";
 std::string EnrollmentModeToUIMode(policy::EnrollmentConfig::Mode mode) {
   switch (mode) {
     case policy::EnrollmentConfig::MODE_NONE:
-    case policy::EnrollmentConfig::DEPRECATED_MODE_ENROLLED_ROLLBACK:
-    case policy::EnrollmentConfig::DEPRECATED_MODE_OFFLINE_DEMO:
+    case policy::EnrollmentConfig::OBSOLETE_MODE_ENROLLED_ROLLBACK:
+    case policy::EnrollmentConfig::MODE_OFFLINE_DEMO_DEPRECATED:
       break;
     case policy::EnrollmentConfig::MODE_MANUAL:
     case policy::EnrollmentConfig::MODE_MANUAL_REENROLLMENT:
@@ -206,13 +206,13 @@ void EnrollmentScreenHandler::ShowUserError(const std::string& email) {
         l10n_util::GetStringFUTF8(
             IDS_ENTERPRISE_ENROLLMENT_CONSUMER_ACCOUNT_WITH_EDU_PACKAGED_LICENSE_ACCOUNT_CHECK,
             base::ASCIIToUTF16(email)),
-        /*retry=*/true);
+        true);
   } else {
     ShowErrorMessage(
         l10n_util::GetStringFUTF8(
             IDS_ENTERPRISE_ENROLLMENT_CONSUMER_ACCOUNT_WITH_PACKAGED_LICENSE_ACCOUNT_CHECK,
             base::ASCIIToUTF16(email)),
-        /*retry=*/true);
+        true);
   }
 }
 
@@ -258,15 +258,14 @@ void EnrollmentScreenHandler::ShowAuthError(
     case GoogleServiceAuthError::UNEXPECTED_SERVICE_RESPONSE:
     case GoogleServiceAuthError::SERVICE_ERROR:
     case GoogleServiceAuthError::SCOPE_LIMITED_UNRECOVERABLE_ERROR:
-    case GoogleServiceAuthError::CHALLENGE_RESPONSE_REQUIRED:
-      ShowError(IDS_ENTERPRISE_ENROLLMENT_AUTH_FATAL_ERROR, /*retry=*/false);
+      ShowError(IDS_ENTERPRISE_ENROLLMENT_AUTH_FATAL_ERROR, false);
       return;
     case GoogleServiceAuthError::USER_NOT_SIGNED_UP:
-      ShowError(IDS_ENTERPRISE_ENROLLMENT_AUTH_ACCOUNT_ERROR, /*retry=*/true);
+      ShowError(IDS_ENTERPRISE_ENROLLMENT_AUTH_ACCOUNT_ERROR, true);
       return;
     case GoogleServiceAuthError::CONNECTION_FAILED:
     case GoogleServiceAuthError::SERVICE_UNAVAILABLE:
-      ShowError(IDS_ENTERPRISE_ENROLLMENT_AUTH_NETWORK_ERROR, /*retry=*/true);
+      ShowError(IDS_ENTERPRISE_ENROLLMENT_AUTH_NETWORK_ERROR, true);
       return;
     case GoogleServiceAuthError::NUM_STATES:
       break;
@@ -278,12 +277,10 @@ void EnrollmentScreenHandler::ShowOtherError(
     EnrollmentLauncher::OtherError error) {
   switch (error) {
     case EnrollmentLauncher::OTHER_ERROR_DOMAIN_MISMATCH:
-      ShowError(IDS_ENTERPRISE_ENROLLMENT_STATUS_LOCK_WRONG_USER,
-                /*retry=*/true);
+      ShowError(IDS_ENTERPRISE_ENROLLMENT_STATUS_LOCK_WRONG_USER, true);
       return;
     case EnrollmentLauncher::OTHER_ERROR_FATAL:
-      ShowError(IDS_ENTERPRISE_ENROLLMENT_FATAL_ENROLLMENT_ERROR,
-                /*retry=*/true);
+      ShowError(IDS_ENTERPRISE_ENROLLMENT_FATAL_ENROLLMENT_ERROR, true);
       return;
   }
   NOTREACHED();
@@ -300,48 +297,43 @@ void EnrollmentScreenHandler::ShowEnrollmentStatus(
       ShowEnrollmentSuccessScreen();
       return;
     case policy::EnrollmentStatus::NO_STATE_KEYS:
-      ShowError(IDS_ENTERPRISE_ENROLLMENT_STATUS_NO_STATE_KEYS,
-                /*retry=*/false);
+      ShowError(IDS_ENTERPRISE_ENROLLMENT_STATUS_NO_STATE_KEYS, false);
       return;
     case policy::EnrollmentStatus::REGISTRATION_FAILED:
       // Some special cases for generating a nicer message that's more helpful.
       switch (status.client_status()) {
         case policy::DM_STATUS_SERVICE_MANAGEMENT_NOT_SUPPORTED:
           if (policy::EnrollmentRequisitionManager::IsRemoraRequisition()) {
-            ShowError(IDS_ENTERPRISE_ENROLLMENT_ACCOUNT_ERROR_MEETS,
-                      /*retry=*/true);
+            ShowError(IDS_ENTERPRISE_ENROLLMENT_ACCOUNT_ERROR_MEETS, true);
           } else {
-            ShowError(IDS_ENTERPRISE_ENROLLMENT_ACCOUNT_ERROR, /*retry=*/true);
+            ShowError(IDS_ENTERPRISE_ENROLLMENT_ACCOUNT_ERROR, true);
           }
           break;
         case policy::DM_STATUS_SERVICE_MISSING_LICENSES:
           if (policy::EnrollmentRequisitionManager::IsRemoraRequisition()) {
             ShowError(IDS_ENTERPRISE_ENROLLMENT_MISSING_LICENSES_ERROR_MEETS,
-                      /*retry=*/true);
+                      true);
           } else {
-            ShowError(IDS_ENTERPRISE_ENROLLMENT_MISSING_LICENSES_ERROR,
-                      /*retry=*/true);
+            ShowError(IDS_ENTERPRISE_ENROLLMENT_MISSING_LICENSES_ERROR, true);
           }
           break;
         case policy::DM_STATUS_SERVICE_DEPROVISIONED:
-          ShowError(IDS_ENTERPRISE_ENROLLMENT_DEPROVISIONED_ERROR,
-                    /*retry=*/true);
+          ShowError(IDS_ENTERPRISE_ENROLLMENT_DEPROVISIONED_ERROR, true);
           break;
         case policy::DM_STATUS_SERVICE_DOMAIN_MISMATCH:
-          ShowError(IDS_ENTERPRISE_ENROLLMENT_DOMAIN_MISMATCH_ERROR,
-                    /*retry=*/true);
+          ShowError(IDS_ENTERPRISE_ENROLLMENT_DOMAIN_MISMATCH_ERROR, true);
           break;
         case policy::DM_STATUS_SERVICE_CONSUMER_ACCOUNT_WITH_PACKAGED_LICENSE:
           if (features::IsEducationEnrollmentOobeFlowEnabled() &&
               config_.license_type == policy::LicenseType::kEducation) {
             ShowError(
                 IDS_ENTERPRISE_ENROLLMENT_CONSUMER_ACCOUNT_WITH_EDU_PACKAGED_LICENSE,
-                /*retry=*/true);
+                true);
             break;
           } else {
             ShowError(
                 IDS_ENTERPRISE_ENROLLMENT_CONSUMER_ACCOUNT_WITH_PACKAGED_LICENSE,
-                /*retry=*/true);
+                true);
             break;
           }
 
@@ -349,23 +341,23 @@ void EnrollmentScreenHandler::ShowEnrollmentStatus(
             DM_STATUS_SERVICE_ENTERPRISE_ACCOUNT_IS_NOT_ELIGIBLE_TO_ENROLL:
           ShowError(
               IDS_ENTERPRISE_ENROLLMENT_ENTERPRISE_ACCOUNT_IS_NOT_ELIGIBLE_TO_ENROLL,
-              /*retry=*/true);
+              true);
           break;
         case policy::DM_STATUS_SERVICE_ENTERPRISE_TOS_HAS_NOT_BEEN_ACCEPTED:
           if (policy::EnrollmentRequisitionManager::IsRemoraRequisition()) {
             ShowError(
                 IDS_ENTERPRISE_ENROLLMENT_ENTERPRISE_TOS_HAS_NOT_BEEN_ACCEPTED_MEETS,
-                /*retry=*/true);
+                true);
           } else {
             ShowError(
                 IDS_ENTERPRISE_ENROLLMENT_ENTERPRISE_TOS_HAS_NOT_BEEN_ACCEPTED,
-                /*retry=*/true);
+                true);
           }
           break;
         case policy::DM_STATUS_SERVICE_ILLEGAL_ACCOUNT_FOR_PACKAGED_EDU_LICENSE:
           ShowError(
               IDS_ENTERPRISE_ENROLLMENT_ILLEGAL_ACCOUNT_FOR_PACKAGED_EDU_LICENSE,
-              /*retry=*/true);
+              true);
           break;
         case policy::DM_STATUS_SERVICE_INVALID_PACKAGED_DEVICE_FOR_KIOSK:
           ShowError(IDS_ENTERPRISE_ENROLLMENT_INVALID_PACKAGED_DEVICE_FOR_KIOSK,
@@ -376,42 +368,38 @@ void EnrollmentScreenHandler::ShowEnrollmentStatus(
               l10n_util::GetStringFUTF8(
                   IDS_ENTERPRISE_ENROLLMENT_STATUS_REGISTRATION_FAILED,
                   policy::FormatDeviceManagementStatus(status.client_status())),
-              /*retry=*/true);
+              true);
       }
       return;
     case policy::EnrollmentStatus::ROBOT_AUTH_FETCH_FAILED:
-      ShowError(IDS_ENTERPRISE_ENROLLMENT_ROBOT_AUTH_FETCH_FAILED,
-                /*retry=*/true);
+      ShowError(IDS_ENTERPRISE_ENROLLMENT_ROBOT_AUTH_FETCH_FAILED, true);
       return;
     case policy::EnrollmentStatus::ROBOT_REFRESH_FETCH_FAILED:
-      ShowError(IDS_ENTERPRISE_ENROLLMENT_ROBOT_REFRESH_FETCH_FAILED,
-                /*retry=*/true);
+      ShowError(IDS_ENTERPRISE_ENROLLMENT_ROBOT_REFRESH_FETCH_FAILED, true);
       return;
     case policy::EnrollmentStatus::ROBOT_REFRESH_STORE_FAILED:
-      ShowError(IDS_ENTERPRISE_ENROLLMENT_ROBOT_REFRESH_STORE_FAILED,
-                /*retry=*/true);
+      ShowError(IDS_ENTERPRISE_ENROLLMENT_ROBOT_REFRESH_STORE_FAILED, true);
       return;
     case policy::EnrollmentStatus::REGISTRATION_BAD_MODE:
-      ShowError(IDS_ENTERPRISE_ENROLLMENT_STATUS_REGISTRATION_BAD_MODE,
-                /*retry=*/false);
+      ShowError(IDS_ENTERPRISE_ENROLLMENT_STATUS_REGISTRATION_BAD_MODE, false);
       return;
     case policy::EnrollmentStatus::REGISTRATION_CERT_FETCH_FAILED:
       ShowError(IDS_ENTERPRISE_ENROLLMENT_STATUS_REGISTRATION_CERT_FETCH_FAILED,
-                /*retry=*/true);
+                true);
       return;
     case policy::EnrollmentStatus::POLICY_FETCH_FAILED:
       ShowErrorMessage(
           l10n_util::GetStringFUTF8(
               IDS_ENTERPRISE_ENROLLMENT_STATUS_POLICY_FETCH_FAILED,
               policy::FormatDeviceManagementStatus(status.client_status())),
-          /*retry=*/true);
+          true);
       return;
     case policy::EnrollmentStatus::VALIDATION_FAILED:
       ShowErrorMessage(
           l10n_util::GetStringFUTF8(
               IDS_ENTERPRISE_ENROLLMENT_STATUS_VALIDATION_FAILED,
               policy::FormatValidationStatus(status.validation_status())),
-          /*retry=*/true);
+          true);
       return;
     case policy::EnrollmentStatus::LOCK_ERROR:
       switch (status.lock_status()) {
@@ -423,24 +411,20 @@ void EnrollmentScreenHandler::ShowEnrollmentStatus(
           LOG(FATAL) << "Invalid lock status.";
           return;
         case InstallAttributes::LOCK_TIMEOUT:
-          ShowError(IDS_ENTERPRISE_ENROLLMENT_STATUS_LOCK_TIMEOUT,
-                    /*retry=*/false);
+          ShowError(IDS_ENTERPRISE_ENROLLMENT_STATUS_LOCK_TIMEOUT, false);
           return;
         case InstallAttributes::LOCK_BACKEND_INVALID:
         case InstallAttributes::LOCK_ALREADY_LOCKED:
         case InstallAttributes::LOCK_SET_ERROR:
         case InstallAttributes::LOCK_FINALIZE_ERROR:
         case InstallAttributes::LOCK_READBACK_ERROR:
-          ShowError(IDS_ENTERPRISE_ENROLLMENT_STATUS_LOCK_ERROR,
-                    /*retry=*/false);
+          ShowError(IDS_ENTERPRISE_ENROLLMENT_STATUS_LOCK_ERROR, false);
           return;
         case InstallAttributes::LOCK_WRONG_DOMAIN:
-          ShowError(IDS_ENTERPRISE_ENROLLMENT_STATUS_LOCK_WRONG_USER,
-                    /*retry=*/true);
+          ShowError(IDS_ENTERPRISE_ENROLLMENT_STATUS_LOCK_WRONG_USER, true);
           return;
         case InstallAttributes::LOCK_WRONG_MODE:
-          ShowError(IDS_ENTERPRISE_ENROLLMENT_STATUS_LOCK_WRONG_MODE,
-                    /*retry=*/true);
+          ShowError(IDS_ENTERPRISE_ENROLLMENT_STATUS_LOCK_WRONG_MODE, true);
           return;
       }
       NOTREACHED();
@@ -451,27 +435,25 @@ void EnrollmentScreenHandler::ShowEnrollmentStatus(
               IDS_ENTERPRISE_ENROLLMENT_STATUS_STORE_ERROR,
               policy::FormatStoreStatus(status.store_status(),
                                         status.validation_status())),
-          /*retry=*/true);
+          true);
       return;
     case policy::EnrollmentStatus::ATTRIBUTE_UPDATE_FAILED:
-      ShowErrorForDevice(IDS_ENTERPRISE_ENROLLMENT_ATTRIBUTE_ERROR,
-                         /*retry=*/false);
+      ShowErrorForDevice(IDS_ENTERPRISE_ENROLLMENT_ATTRIBUTE_ERROR, false);
       return;
     case policy::EnrollmentStatus::NO_MACHINE_IDENTIFICATION:
       ShowError(IDS_ENTERPRISE_ENROLLMENT_STATUS_NO_MACHINE_IDENTIFICATION,
-                /*retry=*/false);
+                false);
       return;
     case policy::EnrollmentStatus::ACTIVE_DIRECTORY_POLICY_FETCH_FAILED:
       ShowError(IDS_ENTERPRISE_ENROLLMENT_ERROR_ACTIVE_DIRECTORY_POLICY_FETCH,
-                /*retry=*/false);
+                false);
       return;
     case policy::EnrollmentStatus::DM_TOKEN_STORE_FAILED:
       ShowError(IDS_ENTERPRISE_ENROLLMENT_ERROR_SAVE_DEVICE_CONFIGURATION,
-                /*retry=*/false);
+                false);
       return;
     case policy::EnrollmentStatus::MAY_NOT_BLOCK_DEV_MODE:
-      ShowError(IDS_ENTERPRISE_ENROLLMENT_ERROR_MAY_NOT_BLOCK_DEV_MODE,
-                /*retry=*/false);
+      ShowError(IDS_ENTERPRISE_ENROLLMENT_ERROR_MAY_NOT_BLOCK_DEV_MODE, false);
       return;
   }
   NOTREACHED();
@@ -870,13 +852,10 @@ base::Value::Dict EnrollmentScreenHandler::ScreenDataForOAuthEnrollment() {
   screen_data.Set("management_domain", config_.management_domain);
   screen_data.Set("gaia_buttons_type",
                   GetGaiaButtonsTypeString(gaia_buttons_type_));
-  const std::string& app_locale = g_browser_process->GetApplicationLocale();
+  const std::string app_locale = g_browser_process->GetApplicationLocale();
   if (!app_locale.empty())
     screen_data.Set("hl", app_locale);
-  const std::string& email = config_.enrollment_nudge_email;
-  if (!email.empty()) {
-    screen_data.Set("email", email);
-  }
+
   return screen_data;
 }
 

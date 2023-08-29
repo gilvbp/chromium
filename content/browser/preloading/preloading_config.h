@@ -14,15 +14,8 @@
 
 namespace content {
 
-namespace test {
-class PreloadingConfigOverride;
-}  //  namespace test
-
 class CONTENT_EXPORT PreloadingConfig {
  public:
-  PreloadingConfig();
-  ~PreloadingConfig();
-
   static PreloadingConfig& GetInstance();
 
   // Whether the given (|preloading_type|, |predictor|) combination should be
@@ -43,7 +36,7 @@ class CONTENT_EXPORT PreloadingConfig {
   void ParseConfig();
 
  private:
-  friend class content::test::PreloadingConfigOverride;
+  friend class base::NoDestructor<PreloadingConfig>;
 
   struct Key {
     Key(base::StringPiece preloading_type, base::StringPiece predictdor);
@@ -65,20 +58,8 @@ class CONTENT_EXPORT PreloadingConfig {
     bool operator()(const Key& lhs, const Key& rhs) const;
   };
 
-  // Overrides the PreloadingConfig for testing. Returns the previous override,
-  // if any.  The caller is responsible for calling OverrideForTesting with the
-  // previous value once they're done.
-  static PreloadingConfig* OverrideForTesting(
-      PreloadingConfig* config_override);
-
-  // Sets whether the given feature should be held back (disabled) and prevents
-  // sampling UKM logs for that feature.
-  void SetHoldbackForTesting(PreloadingType preloading_type,
-                             PreloadingPredictor predictor,
-                             bool holdback);
-  void SetHoldbackForTesting(base::StringPiece preloading_type,
-                             base::StringPiece predictdor,
-                             bool holdback);
+  PreloadingConfig();
+  ~PreloadingConfig();
 
   base::flat_map<Key, Entry, KeyCompare> entries_;
 };

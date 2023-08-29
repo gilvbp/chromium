@@ -4,7 +4,6 @@
 
 #include "chrome/browser/web_applications/os_integration/web_app_protocol_handler_manager.h"
 #include "base/strings/escape.h"
-#include "chrome/browser/web_applications/test/fake_os_integration_manager.h"
 #include "chrome/browser/web_applications/test/fake_web_app_provider.h"
 #include "chrome/browser/web_applications/test/web_app_install_test_utils.h"
 #include "chrome/browser/web_applications/test/web_app_test.h"
@@ -24,19 +23,17 @@ class WebAppProtocolHandlerManagerTest : public WebAppTest {
     WebAppTest::SetUp();
 
     provider_ = FakeWebAppProvider::Get(profile());
-    provider_->SetOsIntegrationManager(
-        std::make_unique<FakeOsIntegrationManager>(
-            profile(), /*app_shortcut_manager=*/nullptr,
-            /*file_handler_manager=*/nullptr,
-            std::make_unique<WebAppProtocolHandlerManager>(profile()),
-            /*url_handler_manager=*/nullptr));
     test::AwaitStartWebAppProviderAndSubsystems(profile());
+
+    // This is not a WebAppProvider subsystem, so this can be
+    // set after the WebAppProvider has been initialized.
+    protocol_handler_manager_ =
+        std::make_unique<WebAppProtocolHandlerManager>(profile());
+    protocol_handler_manager_->SetSubsystems(&app_registrar());
   }
 
   WebAppProtocolHandlerManager& protocol_handler_manager() {
-    return provider()
-        .os_integration_manager()
-        .protocol_handler_manager_for_testing();
+    return *protocol_handler_manager_;
   }
 
   WebAppProvider& provider() { return *provider_; }
@@ -54,8 +51,7 @@ class WebAppProtocolHandlerManagerTest : public WebAppTest {
     web_app->SetAllowedLaunchProtocols(allowed_launch_protocols);
     web_app->SetDisallowedLaunchProtocols(disallowed_launch_protocols);
     {
-      ScopedRegistryUpdate update =
-          provider().sync_bridge_unsafe().BeginUpdate();
+      ScopedRegistryUpdate update(&provider().sync_bridge_unsafe());
       update->CreateApp(std::move(web_app));
     }
     return app_id;
@@ -79,6 +75,8 @@ class WebAppProtocolHandlerManagerTest : public WebAppTest {
 
  private:
   raw_ptr<FakeWebAppProvider, DanglingUntriaged> provider_;
+
+  std::unique_ptr<WebAppProtocolHandlerManager> protocol_handler_manager_;
 };
 
 TEST_F(WebAppProtocolHandlerManagerTest, GetAppProtocolHandlerInfos) {
@@ -93,7 +91,7 @@ TEST_F(WebAppProtocolHandlerManagerTest, GetAppProtocolHandlerInfos) {
       protocol_handler_manager().GetAppProtocolHandlerInfos(app_id).size(), 0U);
 
   {
-    ScopedRegistryUpdate update = provider().sync_bridge_unsafe().BeginUpdate();
+    ScopedRegistryUpdate update(&provider().sync_bridge_unsafe());
     update->CreateApp(std::move(web_app));
   }
 

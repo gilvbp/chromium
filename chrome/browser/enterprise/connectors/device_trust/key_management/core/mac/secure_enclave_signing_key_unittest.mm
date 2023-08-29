@@ -13,14 +13,18 @@
 #include <vector>
 
 #include "base/apple/bridging.h"
-#include "base/apple/scoped_cftyperef.h"
 #include "base/containers/span.h"
+#include "base/mac/scoped_cftyperef.h"
 #include "base/memory/raw_ptr.h"
 #include "chrome/browser/enterprise/connectors/device_trust/key_management/core/mac/mock_secure_enclave_client.h"
 #include "chrome/browser/enterprise/connectors/device_trust/key_management/core/mac/secure_enclave_client.h"
 #include "chrome/browser/enterprise/connectors/device_trust/key_management/core/shared_command_constants.h"
 #include "testing/gmock/include/gmock/gmock.h"
 #include "testing/gtest/include/gtest/gtest.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 using testing::_;
 using ::testing::InSequence;
@@ -43,7 +47,7 @@ class SecureEnclaveSigningKeyTest : public testing::Test {
  protected:
   // Creates a test key.
   void CreateTestKey() {
-    base::apple::ScopedCFTypeRef<CFMutableDictionaryRef> test_attributes(
+    base::ScopedCFTypeRef<CFMutableDictionaryRef> test_attributes(
         CFDictionaryCreateMutable(kCFAllocatorDefault, 0,
                                   &kCFTypeDictionaryKeyCallBacks,
                                   &kCFTypeDictionaryValueCallBacks));
@@ -52,7 +56,7 @@ class SecureEnclaveSigningKeyTest : public testing::Test {
                          kSecAttrKeyTypeECSECPrimeRandom);
     CFDictionarySetValue(test_attributes, kSecAttrKeySizeInBits,
                          base::apple::NSToCFPtrCast(@256));
-    base::apple::ScopedCFTypeRef<CFMutableDictionaryRef> private_key_params(
+    base::ScopedCFTypeRef<CFMutableDictionaryRef> private_key_params(
         CFDictionaryCreateMutable(kCFAllocatorDefault, 0,
                                   &kCFTypeDictionaryKeyCallBacks,
                                   &kCFTypeDictionaryValueCallBacks));
@@ -60,7 +64,7 @@ class SecureEnclaveSigningKeyTest : public testing::Test {
                          kCFBooleanFalse);
     CFDictionarySetValue(test_attributes, kSecPrivateKeyAttrs,
                          private_key_params);
-    test_key_ = base::apple::ScopedCFTypeRef<SecKeyRef>(
+    test_key_ = base::ScopedCFTypeRef<SecKeyRef>(
         SecKeyCreateRandomKey(test_attributes, nullptr));
   }
 
@@ -78,7 +82,7 @@ class SecureEnclaveSigningKeyTest : public testing::Test {
   raw_ptr<MockSecureEnclaveClient, DanglingUntriaged>
       mock_secure_enclave_client_ = nullptr;
   std::unique_ptr<crypto::UnexportableSigningKey> key_;
-  base::apple::ScopedCFTypeRef<SecKeyRef> test_key_;
+  base::ScopedCFTypeRef<SecKeyRef> test_key_;
 };
 
 // Tests that the GenerateSigningKeySlowly method invokes the SE client's

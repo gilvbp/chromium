@@ -28,13 +28,8 @@ class ScreenAIDownloaderAsh : public mojom::ScreenAIDownloader,
                 screen_ai_downloader);
 
  private:
-  friend class ScreenAIDownloaderAshTest;
-
   // crosapi::mojom::ScreenAIDownloader:
-  void DownloadComponentDeprecated(
-      DownloadComponentDeprecatedCallback callback) override;
-  void GetComponentFolder(bool download_if_needed,
-                          GetComponentFolderCallback callback) override;
+  void DownloadComponent(DownloadComponentCallback callback) override;
   void SetLastUsageTime() override;
 
   // screen_ai::ScreenAIInstallState::Observer:
@@ -48,7 +43,7 @@ class ScreenAIDownloaderAsh : public mojom::ScreenAIDownloader,
   mojo::ReceiverSet<mojom::ScreenAIDownloader> receivers_;
 
   // Callback functions waiting for the result of component download.
-  std::vector<GetComponentFolderCallback> pending_download_callbacks_;
+  std::vector<DownloadComponentCallback> pending_download_callbacks_;
 
   base::WeakPtrFactory<ScreenAIDownloaderAsh> weak_factory_{this};
 };

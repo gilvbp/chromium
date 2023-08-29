@@ -16,7 +16,6 @@
 #include "ash/system/unified/unified_system_tray.h"
 #include "ash/system/unified/unified_system_tray_bubble.h"
 #include "ash/test/ash_test_base.h"
-#include "ash/test/time_of_day_test_util.h"
 #include "base/memory/raw_ptr.h"
 #include "base/test/metrics/histogram_tester.h"
 #include "base/test/scoped_feature_list.h"
@@ -51,9 +50,6 @@ class NightLightFeaturePodControllerTest
   }
 
   void CreateButton() {
-    if (!system_tray_->IsBubbleShown()) {
-      system_tray_->ShowBubble();
-    }
     controller_ = std::make_unique<NightLightFeaturePodController>(
         system_tray_->bubble()->unified_system_tray_controller());
     if (IsQsRevampEnabled()) {
@@ -85,7 +81,7 @@ class NightLightFeaturePodControllerTest
 
  private:
   base::test::ScopedFeatureList feature_list_;
-  raw_ptr<UnifiedSystemTray, DanglingUntriaged | ExperimentalAsh> system_tray_;
+  raw_ptr<UnifiedSystemTray, ExperimentalAsh> system_tray_;
   std::unique_ptr<NightLightFeaturePodController> controller_;
   std::unique_ptr<FeaturePodButton> button_;
   std::unique_ptr<FeatureTile> tile_;
@@ -185,11 +181,11 @@ TEST_P(NightLightFeaturePodControllerTest, Custom) {
   auto* clock_model = Shell::Get()->system_tray_model()->clock();
   const std::u16string start_time_str =
       base::TimeFormatTimeOfDayWithHourClockType(
-          ToTimeToday(controller->GetCustomStartTime()),
+          controller->GetCustomStartTime().ToTimeToday(),
           clock_model->hour_clock_type(), base::kKeepAmPm);
   const std::u16string end_time_str =
       base::TimeFormatTimeOfDayWithHourClockType(
-          ToTimeToday(controller->GetCustomEndTime()),
+          controller->GetCustomEndTime().ToTimeToday(),
           clock_model->hour_clock_type(), base::kKeepAmPm);
   const std::u16string sublabel_on = l10n_util::GetStringFUTF16(
       IDS_ASH_STATUS_TRAY_NIGHT_LIGHT_ON_STATE_CUSTOM_SCHEDULED, end_time_str);

@@ -38,19 +38,28 @@ class WebTestPermissionManager
   ~WebTestPermissionManager() override;
 
   // PermissionManager overrides.
+  void RequestPermission(
+      blink::PermissionType permission,
+      RenderFrameHost* render_frame_host,
+      const GURL& requesting_origin,
+      bool user_gesture,
+      base::OnceCallback<void(blink::mojom::PermissionStatus)> callback)
+      override;
   void RequestPermissions(
-      content::RenderFrameHost* render_frame_host,
-      const content::PermissionRequestDescription& request_description,
+      const std::vector<blink::PermissionType>& permission,
+      RenderFrameHost* render_frame_host,
+      const GURL& requesting_origin,
+      bool user_gesture,
       base::OnceCallback<
           void(const std::vector<blink::mojom::PermissionStatus>&)> callback)
       override;
-
   void ResetPermission(blink::PermissionType permission,
                        const GURL& requesting_origin,
                        const GURL& embedding_origin) override;
   void RequestPermissionsFromCurrentDocument(
+      const std::vector<blink::PermissionType>& permissions,
       content::RenderFrameHost* render_frame_host,
-      const content::PermissionRequestDescription& request_description,
+      bool user_gesture,
       base::OnceCallback<
           void(const std::vector<blink::mojom::PermissionStatus>&)> callback)
       override;
@@ -60,8 +69,7 @@ class WebTestPermissionManager
       const GURL& embedding_origin) override;
   PermissionResult GetPermissionResultForOriginWithoutContext(
       blink::PermissionType permission,
-      const url::Origin& requesting_origin,
-      const url::Origin& embedding_origin) override;
+      const url::Origin& origin) override;
   blink::mojom::PermissionStatus GetPermissionStatusForCurrentDocument(
       blink::PermissionType permission,
       content::RenderFrameHost* render_frame_host) override;
@@ -134,14 +142,6 @@ class WebTestPermissionManager
                                             PermissionDescription::Hash>;
   using DefaultPermissionStatusMap =
       std::unordered_map<blink::PermissionType, blink::mojom::PermissionStatus>;
-
-  // A wrapper function of `GetPermissionStatus`. Called in requesting
-  // permissions to handle the case when `GetPermissionStatus` should behave
-  // differently when requesting and getting permissions.
-  blink::mojom::PermissionStatus GetPermissionStatusForRequestPermission(
-      blink::PermissionType permission,
-      const GURL& requesting_origin,
-      const GURL& embedding_origin);
 
   void OnPermissionChanged(
       const PermissionDescription& permission,

@@ -121,7 +121,12 @@ void LacrosDataMigrationScreen::ShowImpl() {
     return;
   }
 
-  if (mode_str != browser_data_migrator_util::kMoveSwitchValue) {
+  crosapi::browser_util::MigrationMode mode;
+  if (mode_str == browser_data_migrator_util::kCopySwitchValue) {
+    mode = crosapi::browser_util::MigrationMode::kCopy;
+  } else if (mode_str == browser_data_migrator_util::kMoveSwitchValue) {
+    mode = crosapi::browser_util::MigrationMode::kMove;
+  } else {
     NOTREACHED() << "Unsupported mode";
 
     LOG(ERROR) << "Unsupported mode " << switches::kBrowserDataMigrationMode
@@ -131,7 +136,8 @@ void LacrosDataMigrationScreen::ShowImpl() {
     return;
   }
 
-  migrator_->Migrate(base::BindOnce(&LacrosDataMigrationScreen::OnMigrated,
+  migrator_->Migrate(mode,
+                     base::BindOnce(&LacrosDataMigrationScreen::OnMigrated,
                                     weak_factory_.GetWeakPtr()));
 
   if (LoginDisplayHost::default_host() &&

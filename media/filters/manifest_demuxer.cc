@@ -71,11 +71,9 @@ ManifestDemuxer::~ManifestDemuxer() {
 
 ManifestDemuxer::ManifestDemuxer(
     scoped_refptr<base::SequencedTaskRunner> media_task_runner,
-    base::RepeatingCallback<void(base::TimeDelta)> request_seek,
     std::unique_ptr<ManifestDemuxer::Engine> impl,
     MediaLog* media_log)
-    : request_seek_(std::move(request_seek)),
-      media_log_(media_log->Clone()),
+    : media_log_(media_log->Clone()),
       media_task_runner_(std::move(media_task_runner)),
       impl_(std::move(impl)) {}
 
@@ -231,6 +229,7 @@ void ManifestDemuxer::SeekInternal() {
 }
 
 bool ManifestDemuxer::IsSeekable() const {
+  DCHECK(!media_task_runner_->RunsTasksInCurrentSequence());
   return impl_->IsSeekable();
 }
 
@@ -297,16 +296,14 @@ void ManifestDemuxer::SetPlaybackRate(double rate) {
   DCHECK(media_task_runner_->RunsTasksInCurrentSequence());
   bool rate_increase = rate > current_playback_rate_;
   current_playback_rate_ = rate;
-  if (has_pending_event_ || pending_seek_) {
+  if (!rate_increase || pending_seek_ || has_pending_event_) {
     return;
   }
 
-  if (rate_increase || (rate == 0 && !IsSeekable())) {
-    // If the playback rate increased, or it was a pause of live content,
-    // cancel the next event and set a new one.
-    cancelable_next_event_.Cancel();
-    TriggerEvent();
-  }
+  // If the playback rate increased and there isn't already something pending,
+  // cancel the next event and set a new one.
+  cancelable_next_event_.Cancel();
+  TriggerEvent();
 }
 
 bool ManifestDemuxer::AddRole(base::StringPiece role,
@@ -362,7 +359,6 @@ void ManifestDemuxer::RemoveAndReset(base::StringPiece role,
   CHECK(chunk_demuxer_);
   Remove(role, start, end);
   chunk_demuxer_->ResetParserState(std::string(role), start, end, offset);
-  chunk_demuxer_->AbortPendingReads();
 }
 
 void ManifestDemuxer::SetGroupStartIfParsingAndSequenceMode(
@@ -424,17 +420,6 @@ void ManifestDemuxer::OnError(PipelineStatus error) {
 
   host_->OnDemuxerError(std::move(error).AddHere());
   Stop();
-}
-
-void ManifestDemuxer::RequestSeek(base::TimeDelta time) {
-  DCHECK(media_task_runner_->RunsTasksInCurrentSequence());
-  request_seek_.Run(time);
-}
-
-void ManifestDemuxer::SetGroupStartTimestamp(base::StringPiece role,
-                                             base::TimeDelta time) {
-  chunk_demuxer_->SetGroupStartTimestampIfInSequenceMode(std::string(role),
-                                                         time);
 }
 
 ChunkDemuxer* ManifestDemuxer::GetChunkDemuxerForTesting() {

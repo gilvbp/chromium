@@ -61,7 +61,7 @@ function loadingReducer(
         local: {...state.local, data: {...state.local.data, [action.id]: true}},
       };
     case WallpaperActionName.BEGIN_LOAD_SELECTED_IMAGE:
-      return {...state, selected: {attribution: true, image: true}};
+      return {...state, selected: true};
     case WallpaperActionName.BEGIN_SELECT_IMAGE:
       return {...state, setImage: state.setImage + 1};
     case WallpaperActionName.END_SELECT_IMAGE:
@@ -149,9 +149,7 @@ function loadingReducer(
         // loading.selected stays true.
         return state;
       }
-      return {...state, selected: {...state.selected, image: false}};
-    case WallpaperActionName.SET_ATTRIBUTION:
-      return {...state, selected: {...state.selected, attribution: false}};
+      return {...state, selected: false};
     case WallpaperActionName.BEGIN_UPDATE_DAILY_REFRESH_IMAGE:
       return {...state, refreshWallpaper: true};
     case WallpaperActionName.SET_UPDATED_DAILY_REFRESH_IMAGE:
@@ -320,17 +318,6 @@ function localReducer(
           [action.id]: action.data,
         },
       };
-    default:
-      return state;
-  }
-}
-
-function attributionReducer(
-    state: WallpaperState['attribution'], action: Actions,
-    _: PersonalizationState): WallpaperState['attribution'] {
-  switch (action.name) {
-    case WallpaperActionName.SET_ATTRIBUTION:
-      return action.attribution;
     default:
       return state;
   }
@@ -630,7 +617,6 @@ export const wallpaperReducers:
       backdrop: backdropReducer,
       loading: loadingReducer,
       local: localReducer,
-      attribution: attributionReducer,
       currentSelected: currentSelectedReducer,
       pendingSelected: pendingSelectedReducer,
       dailyRefresh: dailyRefreshReducer,

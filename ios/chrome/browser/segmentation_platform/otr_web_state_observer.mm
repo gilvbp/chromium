@@ -13,6 +13,10 @@
 #import "ios/chrome/browser/shared/model/browser_state/chrome_browser_state_manager.h"
 #import "ios/chrome/browser/shared/model/web_state_list/web_state_list_observer.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace segmentation_platform {
 
 class OTRWebStateObserver::WebStateObserver : public WebStateListObserver {
@@ -28,9 +32,9 @@ class OTRWebStateObserver::WebStateObserver : public WebStateListObserver {
   }
 
   // WebStateListObserver
-  void WebStateListDidChange(WebStateList* web_state_list,
-                             const WebStateListChange& change,
-                             const WebStateListStatus& status) override;
+  void WebStateListChanged(WebStateList* web_state_list,
+                           const WebStateListChange& change,
+                           const WebStateSelection& selection) override;
   void BatchOperationEnded(WebStateList* web_state_list) override;
 
  private:
@@ -46,12 +50,12 @@ class OTRWebStateObserver::WebStateObserver : public WebStateListObserver {
 
 #pragma mark - WebStateListObserver
 
-void OTRWebStateObserver::WebStateObserver::WebStateListDidChange(
+void OTRWebStateObserver::WebStateObserver::WebStateListChanged(
     WebStateList* web_state_list,
     const WebStateListChange& change,
-    const WebStateListStatus& status) {
+    const WebStateSelection& selection) {
   switch (change.type()) {
-    case WebStateListChange::Type::kStatusOnly:
+    case WebStateListChange::Type::kSelectionOnly:
       // Do nothing when a WebState is selected and its status is updated.
       break;
     case WebStateListChange::Type::kDetach:

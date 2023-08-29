@@ -95,7 +95,8 @@ void DOMURLUtils::setPort(ScriptState* script_state, const String& value) {
   if (!value.empty()) {
     bool value_overflow;
     kurl.SetPort(value, &value_overflow);
-    if (value_overflow) {
+    if (value_overflow &&
+        base::FeatureList::IsEnabled(features::kURLSetPortCheckOverflow)) {
       UseCounter::Count(ExecutionContext::From(script_state),
                         mojom::blink::WebFeature::kURLSetPortCheckOverflow);
     }

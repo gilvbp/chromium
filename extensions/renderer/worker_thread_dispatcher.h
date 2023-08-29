@@ -26,7 +26,6 @@
 namespace base {
 class SingleThreadTaskRunner;
 class UnguessableToken;
-class Uuid;
 }
 
 namespace content {
@@ -93,7 +92,7 @@ class WorkerThreadDispatcher : public content::RenderThreadObserver,
                       int64_t service_worker_version_id);
 
   void RequestWorker(mojom::RequestParamsPtr params);
-  void SendResponseAck(const base::Uuid& request_uuid);
+  void WorkerResponseAck(int request_id, int64_t service_worker_version_id);
 
   // content::RenderThreadObserver:
   bool OnControlMessageReceived(const IPC::Message& message) override;

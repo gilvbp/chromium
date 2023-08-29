@@ -5,8 +5,6 @@
 import {TestRunner} from 'test_runner';
 import {SourcesTestRunner} from 'sources_test_runner';
 
-import * as Common from 'devtools/core/common/common.js';
-
 (async function() {
   TestRunner.addResult(`Tests NetworkUISourceCodeProvider class.\n`);
   await TestRunner.loadLegacyModule('sources');
@@ -28,8 +26,8 @@ import * as Common from 'devtools/core/common/common.js';
 
   function dumpUISourceCode(uiSourceCode, callback) {
     TestRunner.addResult('UISourceCode: ' + uiSourceCodeURL(uiSourceCode));
-    if (uiSourceCode.contentType() === Common.ResourceType.resourceTypes.Script ||
-        uiSourceCode.contentType() === Common.ResourceType.resourceTypes.Document)
+    if (uiSourceCode.contentType() === Common.resourceTypes.Script ||
+        uiSourceCode.contentType() === Common.resourceTypes.Document)
       TestRunner.addResult(
           'UISourceCode is content script: ' +
           (uiSourceCode.project().type() ===

@@ -5,7 +5,8 @@
 import {fakeHelpContentList, fakeSearchRequest, fakeSearchResponse} from 'chrome://os-feedback/fake_data.js';
 import {FakeHelpContentProvider} from 'chrome://os-feedback/fake_help_content_provider.js';
 import {HelpContentList, SearchResponse} from 'chrome://os-feedback/feedback_types.js';
-import {mojoString16ToString} from 'chrome://resources/js/mojo_type_util.js';
+import {mojoString16ToString} from 'chrome://resources/ash/common/mojo_utils.js';
+
 import {assertDeepEquals, assertEquals} from 'chrome://webui-test/chromeos/chai_assert.js';
 
 export function fakeHelpContentProviderTestSuite() {

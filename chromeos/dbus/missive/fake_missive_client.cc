@@ -48,11 +48,6 @@ void FakeMissiveClient::ReportSuccess(
   return;
 }
 
-void FakeMissiveClient::UpdateConfigInMissive(
-    const reporting::ListOfBlockedDestinations& destinations) {
-  return;
-}
-
 void FakeMissiveClient::UpdateEncryptionKey(
     const reporting::SignedEncryptionInfo& encryption_info) {
   return;

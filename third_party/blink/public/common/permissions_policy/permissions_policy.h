@@ -234,6 +234,10 @@ class BLINK_COMMON_EXPORT PermissionsPolicy {
   void OverwriteHeaderPolicyForClientHints(
       const ParsedPermissionsPolicy& parsed_header);
 
+  // Returns the current state of permissions policies for |origin_|. This
+  // includes the |inherited_policies_| as well as the header policies.
+  PermissionsPolicyFeatureState GetFeatureState() const;
+
   const url::Origin& GetOriginForTest() const { return origin_; }
   const std::map<mojom::PermissionsPolicyFeature, Allowlist>& allowlists()
       const {

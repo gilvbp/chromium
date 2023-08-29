@@ -4,7 +4,9 @@
 
 #import "ios/web/public/web_state_delegate.h"
 
-#import "base/containers/contains.h"
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace web {
 
@@ -63,12 +65,12 @@ UIView* WebStateDelegate::GetWebViewContainer(WebState* source) {
 }
 
 void WebStateDelegate::Attach(WebState* source) {
-  DCHECK(!base::Contains(attached_states_, source));
+  DCHECK(attached_states_.find(source) == attached_states_.end());
   attached_states_.insert(source);
 }
 
 void WebStateDelegate::Detach(WebState* source) {
-  DCHECK(base::Contains(attached_states_, source));
+  DCHECK(attached_states_.find(source) != attached_states_.end());
   attached_states_.erase(source);
 }
 

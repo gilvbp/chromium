@@ -6,6 +6,8 @@ package org.chromium.components.paintpreview.player.frame;
 
 import android.util.Size;
 
+import androidx.annotation.VisibleForTesting;
+
 import org.chromium.base.UnguessableToken;
 import org.chromium.components.paintpreview.player.PlayerCompositorDelegate;
 
@@ -50,6 +52,7 @@ public class PlayerFrameBitmapStateController {
         deleteAll();
     }
 
+    @VisibleForTesting
     void swapForTest() {
         swap(mLoadingBitmapState);
     }

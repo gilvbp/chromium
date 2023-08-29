@@ -20,7 +20,6 @@ enum class BrowsingDataRemoveMask;
 
 @protocol ClearBrowsingDataConsumer <NSObject>
 // Execute action to clear browsing data.
-// `completionBlock` is then executed asynchronously.
 - (void)removeBrowsingDataForBrowserState:(ChromeBrowserState*)browserState
                                timePeriod:(browsing_data::TimePeriod)timePeriod
                                removeMask:(BrowsingDataRemoveMask)removeMask
@@ -31,9 +30,6 @@ enum class BrowsingDataRemoveMask;
 
 // Indicate to user that data has been cleared.
 - (void)showBrowsingHistoryRemovedDialog;
-
-// Dismisses the alert coordinator.
-- (void)dismissAlertCoordinator;
 
 @end
 

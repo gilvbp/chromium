@@ -5,10 +5,16 @@
 #ifndef CHROME_BROWSER_WEB_APPLICATIONS_USER_DISPLAY_MODE_H_
 #define CHROME_BROWSER_WEB_APPLICATIONS_USER_DISPLAY_MODE_H_
 
-#include "chrome/browser/web_applications/mojom/user_display_mode.mojom-shared.h"
+#include <ostream>
+#include <string>
+
+#include "components/services/app_service/public/cpp/app_types.h"
 #include "components/sync/protocol/web_app_specifics.pb.h"
 
 namespace web_app {
+
+std::string ConvertUserDisplayModeToString(
+    mojom::UserDisplayMode user_display_mode);
 
 ::sync_pb::WebAppSpecifics::UserDisplayMode
 ConvertUserDisplayModeToWebAppSpecificsUserDisplayMode(

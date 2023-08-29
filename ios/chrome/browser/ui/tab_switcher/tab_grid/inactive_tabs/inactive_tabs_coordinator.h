@@ -9,7 +9,6 @@
 
 @class InactiveTabsCoordinator;
 @protocol GridCommands;
-@protocol GridToolbarsConfigurationProvider;
 @protocol TabContextMenuProvider;
 
 // Delegate for the coordinator.
@@ -40,9 +39,6 @@
 
 // The GridCommands receiver handling "Close All"-related commands.
 @property(nonatomic, weak, readonly) id<GridCommands> gridCommandsHandler;
-// The mutator receiver handling regular grid calls.
-@property(nonatomic, weak, readonly) id<GridToolbarsConfigurationProvider>
-    toolbarsConfigurationProvider;
 
 // Init the inactive tabs coordinator, all parameters should *not* be nil.
 - (instancetype)

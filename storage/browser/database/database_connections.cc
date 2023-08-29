@@ -7,7 +7,6 @@
 #include <ostream>
 
 #include "base/check.h"
-#include "base/containers/contains.h"
 
 namespace storage {
 
@@ -33,7 +32,7 @@ bool DatabaseConnections::IsDatabaseOpened(
 
 bool DatabaseConnections::IsOriginUsed(
     const std::string& origin_identifier) const {
-  return base::Contains(connections_, origin_identifier);
+  return (connections_.find(origin_identifier) != connections_.end());
 }
 
 bool DatabaseConnections::AddConnection(const std::string& origin_identifier,

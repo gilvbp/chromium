@@ -12,9 +12,12 @@
         },
         "name": "blink_unit_tests",
         "swarming": {
-          "dimensions": {
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "os": "Ubuntu-18.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "blink_unittests",
@@ -27,6 +30,7 @@
           "--num-retries=3",
           "--write-run-histories-to=${ISOLATED_OUTDIR}/run_histories.json"
         ],
+        "check_flakiness_for_new_tests": false,
         "isolate_name": "blink_web_tests",
         "merge": {
           "args": [
@@ -36,14 +40,16 @@
         },
         "name": "blink_web_tests",
         "resultdb": {
-          "enable": true,
-          "has_native_resultdb_integration": true
+          "enable": true
         },
         "results_handler": "layout tests",
         "swarming": {
-          "dimensions": {
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "os": "Ubuntu-18.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com",
           "shards": 5
         },
@@ -56,6 +62,7 @@
           "http/tests/devtools",
           "--write-run-histories-to=${ISOLATED_OUTDIR}/run_histories.json"
         ],
+        "check_flakiness_for_new_tests": false,
         "isolate_name": "blink_web_tests",
         "merge": {
           "args": [
@@ -65,14 +72,16 @@
         },
         "name": "blink_web_tests_dt_tab_target",
         "resultdb": {
-          "enable": true,
-          "has_native_resultdb_integration": true
+          "enable": true
         },
         "results_handler": "layout tests",
         "swarming": {
-          "dimensions": {
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "os": "Ubuntu-18.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com",
           "shards": 5
         },
@@ -83,6 +92,7 @@
           "--num-retries=3",
           "--write-run-histories-to=${ISOLATED_OUTDIR}/run_histories.json"
         ],
+        "check_flakiness_for_new_tests": false,
         "isolate_name": "blink_wpt_tests",
         "merge": {
           "args": [
@@ -92,14 +102,16 @@
         },
         "name": "blink_wpt_tests",
         "resultdb": {
-          "enable": true,
-          "has_native_resultdb_integration": true
+          "enable": true
         },
         "results_handler": "layout tests",
         "swarming": {
-          "dimensions": {
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "os": "Ubuntu-18.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com",
           "shards": 7
         },

@@ -44,9 +44,7 @@ const char* GetNameForProcessType(CurrentProcessType process_type) {
     case CurrentProcessType::PROCESS_SERVICE_PROXY_RESOLVER:
       return "Service: proxy_resolver.mojom.ProxyResolverFactory";
     case CurrentProcessType::PROCESS_SERVICE_CDM:
-      return "Service: media.mojom.CdmServiceBroker";
-    case CurrentProcessType::PROCESS_SERVICE_MEDIA_FOUNDATION:
-      return "Service: media.mojom.MediaFoundationServiceBroker";
+      return "Service: media.mojom.CdmService";
     case CurrentProcessType::PROCESS_SERVICE_VIDEO_CAPTURE:
       return "Service: video_capture.mojom.VideoCaptureService";
     case CurrentProcessType::PROCESS_SERVICE_UNZIPPER:
@@ -139,7 +137,6 @@ ShortProcessType CurrentProcess::GetShortType(TypeKey key) {
     case CurrentProcessType::PROCESS_SERVICE_UTIL_WIN:
     case CurrentProcessType::PROCESS_SERVICE_PROXY_RESOLVER:
     case CurrentProcessType::PROCESS_SERVICE_CDM:
-    case CurrentProcessType::PROCESS_SERVICE_MEDIA_FOUNDATION:
     case CurrentProcessType::PROCESS_SERVICE_VIDEO_CAPTURE:
     case CurrentProcessType::PROCESS_SERVICE_UNZIPPER:
     case CurrentProcessType::PROCESS_SERVICE_MIRRORING:

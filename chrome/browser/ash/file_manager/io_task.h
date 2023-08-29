@@ -7,7 +7,6 @@
 
 #include <cstddef>
 #include <ostream>
-#include <string>
 #include <vector>
 
 #include "base/files/file.h"
@@ -81,26 +80,11 @@ enum class PolicyErrorType {
   kDlpWarningTimeout,
 };
 
-// Holds information about data protection policy errors.
-struct PolicyError {
-  // Type of the error.
-  PolicyErrorType type;
-  // The number of files blocked by the policy.
-  size_t blocked_files = 0;
-  // The name of the first file among those under block restriction. Used for
-  // notifications.
-  std::string file_name;
-
-  bool operator==(const PolicyError& other) const;
-  bool operator!=(const PolicyError& other) const;
-};
-
 // Unique identifier for any type of task.
 using IOTaskId = uint64_t;
 
 // I/O task state::PAUSED parameters when paused to resolve a file name
-// conflict. Currently, only supported by CopyOrMoveIOTask and
-// RestoreToDestinationIOTask.
+// conflict. Currently, only supported by CopyOrMoveIOTask.
 struct ConflictPauseParams {
   // The conflict file name.
   std::string conflict_name;
@@ -118,17 +102,10 @@ struct ConflictPauseParams {
 };
 
 // I/O task state::PAUSED parameters when paused to show a policy warning.
-// Currently, only supported by CopyOrMovePolicyIOTask and
-// RestoreToDestinationIOTask.
+// Currently, only supported by CopyOrMovePolicyIOTask.
 struct PolicyPauseParams {
   // One of kDlp, kEnterpriseConnectors.
   policy::Policy type;
-  // The number of files under warning restriction. Needed to show correct
-  // notifications.
-  size_t warning_files_count = 0;
-  // The name of the first file among those under warning restriction. Used for
-  // notifications.
-  std::string file_name;
 
   bool operator==(const PolicyPauseParams& other) const;
 };
@@ -190,10 +167,8 @@ struct ResumeParams {
 
 // Represents the status of a particular entry in an I/O task.
 struct EntryStatus {
-  EntryStatus(
-      storage::FileSystemURL file_url,
-      absl::optional<base::File::Error> file_error,
-      absl::optional<storage::FileSystemURL> source_url = absl::nullopt);
+  EntryStatus(storage::FileSystemURL file_url,
+              absl::optional<base::File::Error> file_error);
   ~EntryStatus();
 
   EntryStatus(EntryStatus&& other);
@@ -204,10 +179,6 @@ struct EntryStatus {
 
   // May be empty if the entry has not been fully processed yet.
   absl::optional<base::File::Error> error;
-
-  // The source from which the entry identified by `url` is generated. May be
-  // empty if not relevant.
-  absl::optional<storage::FileSystemURL> source_url;
 
   // True if entry is a directory when its metadata is processed.
   bool is_directory = false;
@@ -258,10 +229,10 @@ class ProgressStatus {
   // Task state.
   State state;
 
-  // Information about policy errors that occurred, if any. Empty otherwise.
+  // Type of policy error that occurred, if any. Empty otherwise.
   // Can be set only if Data Leak Prevention or Enterprise Connectors policies
   // apply.
-  absl::optional<PolicyError> policy_error;
+  absl::optional<PolicyErrorType> policy_error;
 
   // I/O Operation type (e.g. copy, move).
   OperationType type;
@@ -344,7 +315,7 @@ class IOTask {
 
   // Aborts the task because of policy error. This should set `policy_error` in
   // the progress and complete the task setting the progress state to |kError|.
-  virtual void CompleteWithError(PolicyError policy_error);
+  virtual void CompleteWithError(PolicyErrorType policy_error);
 
   // Gets the current progress status of the task.
   const ProgressStatus& progress() { return progress_; }
@@ -377,7 +348,7 @@ class DummyIOTask : public IOTask {
   void Pause(PauseParams pause_params) override;
   void Resume(ResumeParams resume_params) override;
   void Cancel() override;
-  void CompleteWithError(PolicyError policy_error) override;
+  void CompleteWithError(PolicyErrorType policy_error) override;
 
  private:
   void DoProgress();

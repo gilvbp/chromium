@@ -385,7 +385,7 @@ void Process::Exited(int exit_code) const {
 #endif
 }
 
-int Process::GetOSPriority() const {
+int Process::GetPriority() const {
   DCHECK(IsValid());
   return getpriority(PRIO_PROCESS, static_cast<id_t>(process_));
 }

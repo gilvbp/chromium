@@ -8,7 +8,6 @@
 #include <utility>
 
 #include "base/command_line.h"
-#include "base/containers/fixed_flat_map.h"
 #include "base/debug/leak_annotations.h"
 #include "base/functional/bind.h"
 #include "base/i18n/rtl.h"
@@ -35,8 +34,6 @@
 #include "chrome/common/chrome_features.h"
 #include "chrome/common/chrome_switches.h"
 #include "ui/base/hit_test.h"
-#include "ui/base/mojom/themes.mojom.h"
-#include "ui/color/color_provider_key.h"
 #include "ui/events/event_handler.h"
 #include "ui/gfx/font_list.h"
 #include "ui/views/controls/menu/menu_runner.h"
@@ -65,48 +62,12 @@
 
 namespace {
 
-// Helper to track whether a ThemeChange event has been received by the widget.
-class ThemeChangedObserver : public views::WidgetObserver {
- public:
-  explicit ThemeChangedObserver(views::Widget* widget) {
-    widget_observation.Observe(widget);
-  }
-  ThemeChangedObserver(const ThemeChangedObserver&) = delete;
-  ThemeChangedObserver& operator=(const ThemeChangedObserver&) = delete;
-  ~ThemeChangedObserver() override = default;
-
-  // views::WidgetObserver:
-  void OnWidgetThemeChanged(views::Widget* widget) override {
-    theme_changed_ = true;
-  }
-
-  bool theme_changed() const { return theme_changed_; }
-
- private:
-  bool theme_changed_ = false;
-  base::ScopedObservation<views::Widget, views::WidgetObserver>
-      widget_observation{this};
-};
-
 bool IsUsingLinuxSystemTheme(Profile* profile) {
 #if BUILDFLAG(IS_LINUX)
   return ThemeServiceFactory::GetForProfile(profile)->UsingSystemTheme();
 #else
   return false;
 #endif
-}
-
-ui::ColorProviderKey::SchemeVariant GetSchemeVariant(
-    ui::mojom::BrowserColorVariant color_variant) {
-  using BCV = ui::mojom::BrowserColorVariant;
-  using SV = ui::ColorProviderKey::SchemeVariant;
-  static constexpr auto kSchemeVariantMap = base::MakeFixedFlatMap<BCV, SV>({
-      {BCV::kTonalSpot, SV::kTonalSpot},
-      {BCV::kNeutral, SV::kNeutral},
-      {BCV::kVibrant, SV::kVibrant},
-      {BCV::kExpressive, SV::kExpressive},
-  });
-  return kSchemeVariantMap.at(color_variant);
 }
 
 }  // namespace
@@ -176,23 +137,8 @@ void BrowserFrame::InitBrowserFrame() {
     }
   }
 
-  params.native_theme = ui::NativeTheme::GetInstanceForNativeUi();
-#if BUILDFLAG(IS_LINUX)
-  const auto* linux_ui_theme =
-      ui::LinuxUiTheme::GetForWindow(GetNativeWindow());
-  // Ignore the system theme for web apps with window-controls-overlay as the
-  // display_override so the web contents can blend with the overlay by using
-  // the developer-provided theme color for a better experience. Context:
-  // https://crbug.com/1219073.
-  // Use the regular NativeTheme instance if running incognito mode, regardless
-  // of system theme (gtk, qt etc).
-  if (!IsIncognitoBrowser() && linux_ui_theme &&
-      !browser_view_->AppUsesWindowControlsOverlay()) {
-    params.native_theme = linux_ui_theme->GetNativeTheme();
-  }
-#endif
-
   Init(std::move(params));
+  SelectNativeTheme();
 
   if (!native_browser_frame_->UsesNativeSystemMenu()) {
     DCHECK(non_client_view());
@@ -233,6 +179,10 @@ void BrowserFrame::LayoutWebAppWindowTitle(
 
 int BrowserFrame::GetTopInset() const {
   return browser_frame_view_->GetTopInset(false);
+}
+
+int BrowserFrame::GetThemeBackgroundXInset() const {
+  return browser_frame_view_->GetThemeBackgroundXInset();
 }
 
 void BrowserFrame::UpdateThrobber(bool running) {
@@ -282,29 +232,14 @@ void BrowserFrame::UserChangedTheme(BrowserThemeChangeType theme_change_type) {
     return;
   }
 
-  if (theme_change_type == BrowserThemeChangeType::kBrowserTheme) {
-    // Browser theme changes are directly observed by the BrowserFrame. However
-    // the other Widgets in the frame's hierarchy may inherit this new theme
-    // information in their ColorProviderKeys and thus should also be forwarded
-    // theme change notifications.
-    Widget::Widgets widgets;
-    GetAllOwnedWidgets(GetNativeView(), &widgets);
-    for (auto* widget : widgets) {
-      widget->ThemeChanged();
-    }
-  }
+  // When the browser theme changes, the NativeTheme may also change.
+  // In Incognito, the usage of dark or normal hinges on the browser theme.
+  if (theme_change_type == BrowserThemeChangeType::kBrowserTheme)
+    SelectNativeTheme();
 
-  // RegenerateFrameOnThemeChange() may or may not result in an implicit call to
-  // ThemeChanged(), regardless of whether the frame was regenerated or not.
-  // Ensure that ThemeChanged() is called for this Widget if no implicit call
-  // occurred.
-  // TODO(crbug.com/1476898): The entire theme propagation system needs to be
-  // moved to scheduling theme changes rather than synchronously demanding a
-  // ThemeChange() event take place. This will reduce a ton of churn resulting
-  // from independent clients increasingly issuing theme change requests.
-  ThemeChangedObserver theme_changed_observer(this);
-  RegenerateFrameOnThemeChange(theme_change_type);
-  if (!theme_changed_observer.theme_changed()) {
+  if (!RegenerateFrameOnThemeChange(theme_change_type)) {
+    // If RegenerateFrame() returns true, ThemeChanged() was implicitly called,
+    // so no need to call it explicitly.
     ThemeChanged();
   }
 }
@@ -344,8 +279,8 @@ const ui::ThemeProvider* BrowserFrame::GetThemeProvider() const {
   return &ThemeService::GetThemeProviderForProfile(browser->profile());
 }
 
-ui::ColorProviderKey::ThemeInitializerSupplier* BrowserFrame::GetCustomTheme()
-    const {
+ui::ColorProviderManager::ThemeInitializerSupplier*
+BrowserFrame::GetCustomTheme() const {
   // Do not return any custom theme if this is an incognito browser.
   if (IsIncognitoBrowser()) {
     return nullptr;
@@ -474,89 +409,70 @@ void BrowserFrame::OnNativeThemeUpdated(ui::NativeTheme* observed_theme) {
   UserChangedTheme(BrowserThemeChangeType::kNativeTheme);
 }
 
-ui::ColorProviderKey BrowserFrame::GetColorProviderKey() const {
+ui::ColorProviderManager::Key BrowserFrame::GetColorProviderKey() const {
   auto key = Widget::GetColorProviderKey();
 
-  key.app_controller = browser_view_->browser()->app_controller();
-
-#if BUILDFLAG(IS_CHROMEOS_ASH)
-  // ChromeOS SystemWebApps use the OS theme all the time.
-  if (ash::IsSystemWebApp(browser_view_->browser())) {
-    return key;
-  }
-#endif  // BUILDFLAG(IS_CHROMEOS_ASH)
-
-  const auto* theme_service =
-      ThemeServiceFactory::GetForProfile(browser_view_->browser()->profile());
-
   // color_mode.
-  [this, &key, theme_service]() {
+  [this, &key]() {
     // Currently the incognito browser is implemented as unthemed dark mode.
     if (IsIncognitoBrowser()) {
-      key.color_mode = ui::ColorProviderKey::ColorMode::kDark;
+      key.color_mode = ui::ColorProviderManager::ColorMode::kDark;
       return;
     }
 
+    const auto* theme_service =
+        ThemeServiceFactory::GetForProfile(browser_view_->browser()->profile());
     const auto browser_color_scheme = theme_service->GetBrowserColorScheme();
 
     if (browser_color_scheme != ThemeService::BrowserColorScheme::kSystem) {
       key.color_mode =
           browser_color_scheme == ThemeService::BrowserColorScheme::kLight
-              ? ui::ColorProviderKey::ColorMode::kLight
-              : ui::ColorProviderKey::ColorMode::kDark;
+              ? ui::ColorProviderManager::ColorMode::kLight
+              : ui::ColorProviderManager::ColorMode::kDark;
     }
   }();
 
-  // is_grayscale.
-  // Incognito mode browser should be forced to grayscale.
-  key.is_grayscale = IsIncognitoBrowser() ||
-                     (theme_service && !theme_service->UsingDeviceTheme() &&
-                      theme_service->GetIsGrayscale());
-
   // user_color.
-  [&key, theme_service]() {
-    // The grayscale theme also assumes that the baseline palette is used.
-    if (key.is_grayscale) {
-      // Baseline palette is used when `ColorProviderKey::user_color` is empty.
+  [this, &key]() {
+#if BUILDFLAG(IS_CHROMEOS_ASH)
+    // ChromeOS SystemWebApps use the OS theme all the time.
+    if (ash::IsSystemWebApp(browser_view_->browser())) {
+      return;
+    }
+#endif  // BUILDFLAG(IS_CHROMEOS_ASH)
+
+    // Incognito profiles should always fall back to the material baseline.
+    if (IsIncognitoBrowser()) {
       key.user_color = absl::nullopt;
       return;
     }
 
-    if (!theme_service) {
-      return;
-    }
-
-    if (theme_service->UsingAutogeneratedTheme()) {
+    const auto* theme_service =
+        ThemeServiceFactory::GetForProfile(browser_view_->browser()->profile());
+    if (theme_service && theme_service->UsingAutogeneratedTheme()) {
       key.user_color = theme_service->GetAutogeneratedThemeColor();
       return;
     }
 
-    if (theme_service->UsingDeviceTheme()) {
-      // Device theme retains the user_color from `Widget`.
-      return;
-    }
-
-    if (theme_service->GetIsBaseline()) {
-      // Baseline theme has to explicitly clear user_color as it might have been
-      // set earlier.
-      key.user_color = absl::nullopt;
-    } else {
+    if (theme_service && theme_service->GetUserColor().has_value()) {
       key.user_color = theme_service->GetUserColor();
     }
   }();
 
-  // scheme_variant.
-  ui::mojom::BrowserColorVariant color_variant =
-      theme_service->GetBrowserColorVariant();
-  if (!theme_service->UsingDeviceTheme() &&
-      color_variant != ui::mojom::BrowserColorVariant::kSystem) {
-    key.scheme_variant = GetSchemeVariant(color_variant);
-  }
-
   // frame_type.
-  key.frame_type = UseCustomFrame() ? ui::ColorProviderKey::FrameType::kChromium
-                                    : ui::ColorProviderKey::FrameType::kNative;
+  key.frame_type = UseCustomFrame()
+                       ? ui::ColorProviderManager::FrameType::kChromium
+                       : ui::ColorProviderManager::FrameType::kNative;
 
+  // app_controller.
+  auto* app_controller = browser_view_->browser()->app_controller();
+  key.app_controller = app_controller;
+
+  // is_grayscale.
+  const auto* theme_service =
+      ThemeServiceFactory::GetForProfile(browser_view_->browser()->profile());
+  key.is_grayscale =
+      !IsIncognitoBrowser() && theme_service && theme_service->GetIsGrayscale();
 
   return key;
 }
@@ -579,6 +495,31 @@ void BrowserFrame::OnTouchUiChanged() {
     non_client_view()->InvalidateLayout();
   }
   GetRootView()->Layout();
+}
+
+void BrowserFrame::SelectNativeTheme() {
+  // Select between regular and Linux toolkit themes.
+  ui::NativeTheme* native_theme = ui::NativeTheme::GetInstanceForNativeUi();
+
+  // Use the regular NativeTheme instance if running incognito mode, regardless
+  // of system theme (gtk, qt etc).
+  if (IsIncognitoBrowser()) {
+    SetNativeTheme(native_theme);
+    return;
+  }
+
+#if BUILDFLAG(IS_LINUX)
+  const auto* linux_ui_theme =
+      ui::LinuxUiTheme::GetForWindow(GetNativeWindow());
+  // Ignore the system theme for web apps with window-controls-overlay as the
+  // display_override so the web contents can blend with the overlay by using
+  // the developer-provided theme color for a better experience. Context:
+  // https://crbug.com/1219073.
+  if (linux_ui_theme && !browser_view_->AppUsesWindowControlsOverlay())
+    native_theme = linux_ui_theme->GetNativeTheme();
+#endif
+
+  SetNativeTheme(native_theme);
 }
 
 bool BrowserFrame::RegenerateFrameOnThemeChange(
@@ -607,8 +548,8 @@ bool BrowserFrame::RegenerateFrameOnThemeChange(
   if (need_regenerate) {
     // This is a heavyweight theme change that requires regenerating the frame
     // as well as repainting the browser window.
-    // Calling FrameTypeChanged() may or may not result in an implicit call to
-    // ThemeChanged().
+    // No need to call ThemeChanged(). It will be implicitly called by
+    // FrameTypeChanged().
     FrameTypeChanged();
     return true;
   }

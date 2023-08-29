@@ -121,13 +121,6 @@ Resource* PreloadRequest::Start(Document* document) {
         network::mojom::AttributionReportingEligibility::kEventSourceOrTrigger);
   }
 
-  bool shared_storage_writable =
-      shared_storage_writable_ &&
-      RuntimeEnabledFeatures::SharedStorageAPIM118Enabled(
-          document->domWindow()) &&
-      document->domWindow()->IsSecureContext();
-  resource_request.SetSharedStorageWritable(shared_storage_writable);
-
   ResourceLoaderOptions options(document->domWindow()->GetCurrentWorld());
   options.initiator_info = initiator_info;
   FetchParameters params(std::move(resource_request), options);
@@ -178,8 +171,6 @@ Resource* PreloadRequest::Start(Document* document) {
     MaybeDisallowFetchForDocWrittenScript(params, *document);
   }
   params.SetRenderBlockingBehavior(render_blocking_behavior_);
-
-  params.SetIsPotentiallyLCPElement(is_potentially_lcp_element_);
 
   return PreloadHelper::StartPreload(resource_type_, params, *document);
 }

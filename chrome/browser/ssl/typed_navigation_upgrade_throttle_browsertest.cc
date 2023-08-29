@@ -21,7 +21,6 @@
 #include "chrome/test/base/ui_test_utils.h"
 #include "components/error_page/common/net_error_info.h"
 #include "components/metrics/content/subprocess_metrics_provider.h"
-#include "components/omnibox/browser/omnibox_controller.h"
 #include "components/omnibox/browser/omnibox_edit_model.h"
 #include "components/omnibox/common/omnibox_features.h"
 #include "components/security_interstitials/content/ssl_error_handler.h"
@@ -375,7 +374,7 @@ class TypedNavigationUpgradeThrottleBrowserTest
 
   void WaitForAutocompleteControllerDone() {
     AutocompleteController* controller =
-        omnibox()->controller()->autocomplete_controller();
+        omnibox()->model()->autocomplete_controller();
     ASSERT_TRUE(controller);
 
     if (controller->done())
@@ -392,7 +391,7 @@ class TypedNavigationUpgradeThrottleBrowserTest
     WaitForAutocompleteControllerDone();
     ASSERT_TRUE(omnibox()->model()->PopupIsOpen());
     EXPECT_EQ(base::UTF8ToUTF16(text),
-              omnibox()->controller()->result().match_at(0).fill_into_edit);
+              omnibox()->model()->result().match_at(0).fill_into_edit);
   }
 
  private:

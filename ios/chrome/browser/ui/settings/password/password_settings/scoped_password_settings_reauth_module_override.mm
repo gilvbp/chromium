@@ -7,6 +7,10 @@
 #import "base/check.h"
 #import "ios/chrome/common/ui/reauthentication/reauthentication_module.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 // static
 raw_ptr<ScopedPasswordSettingsReauthModuleOverride>
     ScopedPasswordSettingsReauthModuleOverride::instance;

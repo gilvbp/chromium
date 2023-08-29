@@ -97,22 +97,19 @@ class ScopedBluetoothConfigTestHelper : public Initializer {
       DeviceNameManager* device_name_manager,
       FastPairDelegate* fast_pair_delegate) override;
 
-  raw_ptr<FakeAdapterStateController, DanglingUntriaged | ExperimentalAsh>
+  raw_ptr<FakeAdapterStateController, ExperimentalAsh>
       fake_adapter_state_controller_;
-  raw_ptr<FakeBluetoothDeviceStatusNotifier,
-          DanglingUntriaged | ExperimentalAsh>
+  raw_ptr<FakeBluetoothDeviceStatusNotifier, ExperimentalAsh>
       fake_bluetooth_device_status_notifier_;
-  raw_ptr<FakeBluetoothPowerController, DanglingUntriaged | ExperimentalAsh>
+  raw_ptr<FakeBluetoothPowerController, ExperimentalAsh>
       fake_bluetooth_power_controller_;
-  raw_ptr<FakeDeviceNameManager, DanglingUntriaged | ExperimentalAsh>
-      fake_device_name_manager_;
-  raw_ptr<FakeDeviceCache, DanglingUntriaged | ExperimentalAsh>
-      fake_device_cache_;
-  raw_ptr<FakeDiscoveredDevicesProvider, DanglingUntriaged | ExperimentalAsh>
+  raw_ptr<FakeDeviceNameManager, ExperimentalAsh> fake_device_name_manager_;
+  raw_ptr<FakeDeviceCache, ExperimentalAsh> fake_device_cache_;
+  raw_ptr<FakeDiscoveredDevicesProvider, ExperimentalAsh>
       fake_discovered_devices_provider_;
-  raw_ptr<FakeDiscoverySessionManager, DanglingUntriaged | ExperimentalAsh>
+  raw_ptr<FakeDiscoverySessionManager, ExperimentalAsh>
       fake_discovery_session_manager_;
-  raw_ptr<FakeDeviceOperationHandler, DanglingUntriaged | ExperimentalAsh>
+  raw_ptr<FakeDeviceOperationHandler, ExperimentalAsh>
       fake_device_operation_handler_;
   session_manager::SessionManager session_manager_;
 };

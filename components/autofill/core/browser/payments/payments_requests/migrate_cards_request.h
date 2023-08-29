@@ -7,7 +7,6 @@
 
 #include <string>
 
-#include "base/containers/span.h"
 #include "base/functional/callback.h"
 #include "base/memory/raw_ref.h"
 #include "components/autofill/core/browser/autofill_client.h"
@@ -24,7 +23,7 @@ class MigrateCardsRequest : public PaymentsRequest {
  public:
   MigrateCardsRequest(
       const PaymentsClient::MigrationRequestDetails& request_details,
-      base::span<const MigratableCreditCard> migratable_credit_cards,
+      const std::vector<MigratableCreditCard>& migratable_credit_cards,
       const bool full_sync_enabled,
       MigrateCardsCallback callback);
   MigrateCardsRequest(const MigrateCardsRequest&) = delete;
@@ -49,7 +48,8 @@ class MigrateCardsRequest : public PaymentsRequest {
                            const std::string& pan_field_name);
 
   const PaymentsClient::MigrationRequestDetails request_details_;
-  const std::vector<MigratableCreditCard> migratable_credit_cards_;
+  const raw_ref<const std::vector<MigratableCreditCard>, DanglingUntriaged>
+      migratable_credit_cards_;
   const bool full_sync_enabled_;
   MigrateCardsCallback callback_;
   std::unique_ptr<std::unordered_map<std::string, std::string>> save_result_;

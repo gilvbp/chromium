@@ -6,13 +6,17 @@
 
 #import "base/feature_list.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 BASE_FEATURE(kFullscreenPromosManagerSkipInternalLimits,
              "FullscreenPromosManagerSkipInternalLimits",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
 BASE_FEATURE(kPromosManagerUsesFET,
              "PromosManagerUsesFET",
-             base::FEATURE_ENABLED_BY_DEFAULT);
+             base::FEATURE_DISABLED_BY_DEFAULT);
 
 bool IsSkippingInternalImpressionLimitsEnabled() {
   return base::FeatureList::IsEnabled(

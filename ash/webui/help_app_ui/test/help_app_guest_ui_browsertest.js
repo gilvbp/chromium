@@ -254,6 +254,7 @@ GUEST_TEST('GuestCanGetDeviceInfo', async () => {
 
   const deviceInfo = await delegate.getDeviceInfo();
   chai.expect(deviceInfo.board).to.be.a('string');
+  chai.expect(deviceInfo.board).not.to.equal('');
 
   chai.expect(deviceInfo.model).to.be.a('string');
   chai.expect(deviceInfo.model).not.to.equal('');

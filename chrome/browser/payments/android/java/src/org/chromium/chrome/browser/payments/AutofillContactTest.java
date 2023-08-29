@@ -11,7 +11,6 @@ import static org.mockito.Mockito.spy;
 import android.content.Context;
 
 import org.junit.Assert;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.ParameterizedRobolectricTestRunner;
@@ -19,8 +18,7 @@ import org.robolectric.ParameterizedRobolectricTestRunner.Parameters;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
 
-import org.chromium.base.test.BaseRobolectricTestRule;
-import org.chromium.components.autofill.AutofillProfile;
+import org.chromium.chrome.browser.autofill.PersonalDataManager.AutofillProfile;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -56,9 +54,6 @@ public class AutofillContactTest {
     }
 
     private static final String INCOMPLETE_MESSAGE = "incomplete";
-
-    @Rule(order = -2)
-    public BaseRobolectricTestRule mBaseRule = new BaseRobolectricTestRule();
 
     private final Context mContext;
     private final String mPayerName;

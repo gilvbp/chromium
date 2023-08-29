@@ -8,9 +8,6 @@
 
 namespace ash {
 
-// ----------------------------------------------------------------------------
-// GlanceablesTaskList:
-
 GlanceablesTaskList::GlanceablesTaskList(const std::string& id,
                                          const std::string& title,
                                          const base::Time& updated)
@@ -26,15 +23,13 @@ GlanceablesTask::GlanceablesTask(const std::string& id,
                                  bool completed,
                                  const absl::optional<base::Time>& due,
                                  bool has_subtasks,
-                                 bool has_email_link,
-                                 bool has_notes)
+                                 bool has_email_link)
     : id(id),
       title(title),
       completed(completed),
       due(due),
       has_subtasks(has_subtasks),
-      has_email_link(has_email_link),
-      has_notes(has_notes) {}
+      has_email_link(has_email_link) {}
 
 GlanceablesTask::~GlanceablesTask() = default;
 

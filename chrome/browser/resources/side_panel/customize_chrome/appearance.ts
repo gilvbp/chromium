@@ -2,20 +2,16 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+import './colors.js';
 import './theme_snapshot.js';
 import './hover_button.js';
 import './strings.m.js'; // Required by <managed-dialog>.
 import 'chrome://resources/cr_components/customize_color_scheme_mode/customize_color_scheme_mode.js';
-import 'chrome://resources/cr_components/theme_color_picker/theme_color_picker.js';
-import 'chrome://resources/cr_components/managed_dialog/managed_dialog.js';
 import 'chrome://resources/cr_elements/cr_button/cr_button.js';
 import 'chrome://resources/cr_elements/cr_hidden_style.css.js';
 import 'chrome://resources/cr_elements/cr_icons.css.js';
-import 'chrome://resources/cr_elements/cr_toggle/cr_toggle.js';
 
-import {CrToggleElement} from 'chrome://resources/cr_elements/cr_toggle/cr_toggle.js';
 import {assert} from 'chrome://resources/js/assert_ts.js';
-import {loadTimeData} from 'chrome://resources/js/load_time_data.js';
 import {PolymerElement} from 'chrome://resources/polymer/v3_0/polymer/polymer_bundled.min.js';
 
 import {getTemplate} from './appearance.html.js';
@@ -29,8 +25,6 @@ export interface AppearanceElement {
     themeSnapshot: HTMLElement,
     setClassicChromeButton: HTMLButtonElement,
     thirdPartyLinkButton: HTMLButtonElement,
-    followThemeToggle: HTMLElement,
-    followThemeToggleControl: CrToggleElement,
   };
 }
 
@@ -68,22 +62,10 @@ export class AppearanceElement extends PolymerElement {
         computed: 'computeShowFirstPartyThemeView_(theme_)',
       },
 
-      showDeviceThemeToggle_: {
-        type: Boolean,
-        value: false,
-        computed: 'computeShowDeviceThemeToggle_(theme_)',
-      },
-
       showClassicChromeButton_: {
         type: Boolean,
         value: false,
         computed: 'computeShowClassicChromeButton_(theme_)',
-      },
-
-      showBottomDivider_: {
-        type: Boolean,
-        computed:
-            'computeShowBottomDivider_(showClassicChromeButton_, showDeviceThemeToggle_)',
       },
 
       showManagedDialog_: Boolean,
@@ -94,10 +76,8 @@ export class AppearanceElement extends PolymerElement {
   private themeButtonClass_: string;
   private thirdPartyThemeId_: string|null = null;
   private thirdPartyThemeName_: string|null = null;
-  private showFirstPartyThemeView_: boolean;
-  private showDeviceThemeToggle_: boolean;
   private showClassicChromeButton_: boolean;
-  private showBottomDivider_: boolean;
+  private showFirstPartyThemeView_: boolean;
   private showManagedDialog_: boolean;
 
   private setThemeListenerId_: number|null = null;
@@ -155,19 +135,10 @@ export class AppearanceElement extends PolymerElement {
     return !!this.theme_ && !this.theme_.thirdPartyThemeInfo;
   }
 
-  private computeShowDeviceThemeToggle_(): boolean {
-    return loadTimeData.getBoolean('showDeviceThemeToggle') &&
-        !(!!this.theme_ && !!this.theme_.thirdPartyThemeInfo);
-  }
-
   private computeShowClassicChromeButton_(): boolean {
     return !!(
         this.theme_ &&
         (this.theme_.backgroundImage || this.theme_.thirdPartyThemeInfo));
-  }
-
-  private computeShowBottomDivider_(): boolean {
-    return !!(this.showClassicChromeButton_ || this.showDeviceThemeToggle_);
   }
 
   private onEditThemeClicked_() {
@@ -189,10 +160,6 @@ export class AppearanceElement extends PolymerElement {
     }
     this.pageHandler_.removeBackgroundImage();
     this.pageHandler_.setDefaultColor();
-  }
-
-  private onFollowThemeToggleChange_(e: CustomEvent<boolean>) {
-    this.pageHandler_.setFollowDeviceTheme(e.detail);
   }
 
   private onManagedDialogClosed_() {

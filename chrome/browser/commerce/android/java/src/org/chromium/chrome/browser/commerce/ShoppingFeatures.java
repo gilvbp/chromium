@@ -4,7 +4,8 @@
 
 package org.chromium.chrome.browser.commerce;
 
-import org.chromium.base.ResettersForTesting;
+import androidx.annotation.VisibleForTesting;
+
 import org.chromium.chrome.browser.profiles.Profile;
 import org.chromium.chrome.browser.profiles.ProfileManager;
 import org.chromium.components.commerce.core.ShoppingService;
@@ -25,8 +26,8 @@ public class ShoppingFeatures {
         return service.isShoppingListEligible();
     }
 
+    @VisibleForTesting
     public static void setShoppingListEligibleForTesting(Boolean eligible) {
         sShoppingListEligibleForTestsing = eligible;
-        ResettersForTesting.register(() -> sShoppingListEligibleForTestsing = null);
     }
 }

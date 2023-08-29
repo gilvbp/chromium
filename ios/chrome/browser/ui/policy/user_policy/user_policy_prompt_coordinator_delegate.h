@@ -8,10 +8,8 @@
 @protocol UserPolicyPromptCoordinatorDelegate <NSObject>
 
 // Called when the presentation did complete. Usually called when the action the
-// user did on the prompt is completed (e.g. after tapping on Continue). Will
-// load enterprise learn more page if `showLearnMoreAfterward` is YES.
-- (void)didCompletePresentationAndShowLearnMoreAfterward:
-    (BOOL)showLearnMoreAfterward;
+// user did on the prompt is completed (e.g. after sign out).
+- (void)didCompletePresentation:(UserPolicyPromptCoordinator*)coordinator;
 
 @end
 

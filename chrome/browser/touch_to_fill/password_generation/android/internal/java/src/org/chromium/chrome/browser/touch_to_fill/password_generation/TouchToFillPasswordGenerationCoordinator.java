@@ -6,13 +6,8 @@ package org.chromium.chrome.browser.touch_to_fill.password_generation;
 
 import static org.chromium.chrome.browser.touch_to_fill.password_generation.TouchToFillPasswordGenerationProperties.ACCOUNT_EMAIL;
 import static org.chromium.chrome.browser.touch_to_fill.password_generation.TouchToFillPasswordGenerationProperties.GENERATED_PASSWORD;
-import static org.chromium.chrome.browser.touch_to_fill.password_generation.TouchToFillPasswordGenerationProperties.PASSWORD_ACCEPTED_CALLBACK;
-import static org.chromium.chrome.browser.touch_to_fill.password_generation.TouchToFillPasswordGenerationProperties.PASSWORD_REJECTED_CALLBACK;
 
 import android.content.Context;
-import android.view.LayoutInflater;
-
-import androidx.annotation.VisibleForTesting;
 
 import org.chromium.components.browser_ui.bottomsheet.BottomSheetController;
 import org.chromium.components.browser_ui.bottomsheet.BottomSheetController.StateChangeReason;
@@ -29,16 +24,6 @@ class TouchToFillPasswordGenerationCoordinator {
     interface Delegate {
         /** Called when the bottom sheet is hidden (both by user and programmatically). */
         void onDismissed();
-
-        /**
-         * Called, when user agrees to use the generated password.
-         *
-         * @param password the password, which was used.
-         */
-        void onGeneratedPasswordAccepted(String password);
-
-        /** Called when the user rejects the generated password. */
-        void onGeneratedPasswordRejected();
     }
 
     private final TouchToFillPasswordGenerationView mTouchToFillPasswordGenerationView;
@@ -51,24 +36,12 @@ class TouchToFillPasswordGenerationCoordinator {
         }
     };
 
-    public TouchToFillPasswordGenerationCoordinator(BottomSheetController bottomSheetController,
-            Context context, Delegate touchToFillPasswordGenerationDelegate) {
-        this(bottomSheetController, createView(context), touchToFillPasswordGenerationDelegate);
-    }
-
-    private static TouchToFillPasswordGenerationView createView(Context context) {
-        return new TouchToFillPasswordGenerationView(context,
-                LayoutInflater.from(context).inflate(
-                        R.layout.touch_to_fill_password_generation, null));
-    }
-
-    @VisibleForTesting
-    TouchToFillPasswordGenerationCoordinator(BottomSheetController bottomSheetController,
-            TouchToFillPasswordGenerationView touchToFillPasswordGenerationView,
+    public TouchToFillPasswordGenerationCoordinator(Context context,
+            BottomSheetController bottomSheetController,
             Delegate touchToFillPasswordGenerationDelegate) {
         mTouchToFillPasswordGenerationDelegate = touchToFillPasswordGenerationDelegate;
         mBottomSheetController = bottomSheetController;
-        mTouchToFillPasswordGenerationView = touchToFillPasswordGenerationView;
+        mTouchToFillPasswordGenerationView = new TouchToFillPasswordGenerationView(context);
     }
 
     /**
@@ -79,8 +52,6 @@ class TouchToFillPasswordGenerationCoordinator {
                 new PropertyModel.Builder(TouchToFillPasswordGenerationProperties.ALL_KEYS)
                         .with(ACCOUNT_EMAIL, account)
                         .with(GENERATED_PASSWORD, generatedPassword)
-                        .with(PASSWORD_ACCEPTED_CALLBACK, this::onGeneratedPasswordAccepted)
-                        .with(PASSWORD_REJECTED_CALLBACK, this::onGeneratedPasswordRejected)
                         .build();
         setUpModelChangeProcessors(model, mTouchToFillPasswordGenerationView);
 
@@ -100,16 +71,6 @@ class TouchToFillPasswordGenerationCoordinator {
         mBottomSheetController.removeObserver(mBottomSheetObserver);
         mBottomSheetController.hideContent(mTouchToFillPasswordGenerationView, true);
         mTouchToFillPasswordGenerationDelegate.onDismissed();
-    }
-
-    private void onGeneratedPasswordAccepted(String password) {
-        mTouchToFillPasswordGenerationDelegate.onGeneratedPasswordAccepted(password);
-        onDismissed(StateChangeReason.INTERACTION_COMPLETE);
-    }
-
-    private void onGeneratedPasswordRejected() {
-        mTouchToFillPasswordGenerationDelegate.onGeneratedPasswordRejected();
-        onDismissed(StateChangeReason.INTERACTION_COMPLETE);
     }
 
     /**

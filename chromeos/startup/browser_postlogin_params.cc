@@ -6,7 +6,6 @@
 
 #include <string>
 
-#include "base/check_is_test.h"
 #include "base/files/file_util.h"
 #include "chromeos/startup/startup.h"
 #include "third_party/abseil-cpp/absl/types/optional.h"
@@ -19,9 +18,8 @@ namespace {
 // If data is missing, or failed to parse, returns a null StructPtr.
 crosapi::mojom::BrowserPostLoginParamsPtr ReadStartupBrowserPostLoginParams() {
   absl::optional<std::string> content = ReadPostLoginData();
-  if (!content) {
+  if (!content)
     return {};
-  }
 
   crosapi::mojom::BrowserPostLoginParamsPtr result;
   if (!crosapi::mojom::BrowserPostLoginParams::Deserialize(
@@ -35,49 +33,37 @@ crosapi::mojom::BrowserPostLoginParamsPtr ReadStartupBrowserPostLoginParams() {
 
 }  // namespace
 
-// static
-void BrowserPostLoginParams::WaitForLogin() {
-  // TODO(crbug.com/1475643): added to investigate the cause of this crash.
-  // Please remove once the cause is identified.
-  LOG(WARNING) << "Waiting for login.";
-
-  auto* instance = GetInstanceInternal();
-  if (!instance->postlogin_params_) {
-    // Fetch the postlogin parameters, or wait for them to be available.
-    instance->postlogin_params_ = ReadStartupBrowserPostLoginParams();
-    CHECK(instance->postlogin_params_);
-  } else {
-    // This code path should only be reached in tests after calling
-    // SetPostLoginParamsForTests.
-    CHECK_IS_TEST();
+BrowserPostLoginParams::BrowserPostLoginParams()
+    : postlogin_params_(ReadStartupBrowserPostLoginParams()) {
+  if (!postlogin_params_) {
+    LOG(WARNING) << "BrowserPostLoginParams is not set. "
+                 << "This message should not appear except for testing.";
+    postlogin_params_ = crosapi::mojom::BrowserPostLoginParams::New();
   }
 }
 
 // static
 void BrowserPostLoginParams::SetPostLoginParamsForTests(
     crosapi::mojom::BrowserPostLoginParamsPtr postlogin_params) {
-  GetInstanceInternal()->postlogin_params_ = std::move(postlogin_params);
+  GetInstance()->postlogin_params_ = std::move(postlogin_params);
 }
 
 // static
 base::ScopedFD BrowserPostLoginParams::CreatePostLoginData() {
-  CHECK(GetInstanceInternal()->postlogin_params_);
+  DCHECK(GetInstance()->postlogin_params_);
   return chromeos::CreateMemFDFromBrowserPostLoginParams(
-      GetInstanceInternal()->postlogin_params_);
+      GetInstance()->postlogin_params_);
 }
 
 // static
 const crosapi::mojom::BrowserPostLoginParams* BrowserPostLoginParams::Get() {
-  CHECK(GetInstanceInternal()->postlogin_params_);
-  return GetInstanceInternal()->postlogin_params_.get();
+  return GetInstance()->postlogin_params_.get();
 }
 
 // static
-BrowserPostLoginParams* BrowserPostLoginParams::GetInstanceInternal() {
+BrowserPostLoginParams* BrowserPostLoginParams::GetInstance() {
   static base::NoDestructor<BrowserPostLoginParams> browser_postlogin_params;
   return browser_postlogin_params.get();
 }
-
-BrowserPostLoginParams::BrowserPostLoginParams() = default;
 
 }  // namespace chromeos

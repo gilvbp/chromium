@@ -20,13 +20,13 @@ static base::LazyInstance<drive::EventLogger>::DestructorAtExit g_logger =
 
 const char* LogSeverityToString(logging::LogSeverity level) {
   switch (level) {
-    case logging::LOGGING_ERROR:
+    case logging::LOG_ERROR:
       return "ERROR";
-    case logging::LOGGING_WARNING:
+    case logging::LOG_WARNING:
       return "WARNING";
-    case logging::LOGGING_INFO:
+    case logging::LOG_INFO:
       return "INFO";
-    case logging::LOGGING_VERBOSE:
+    case logging::LOG_VERBOSE:
       return "VERBOSE";
   }
 

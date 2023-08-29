@@ -56,11 +56,10 @@ BrowserSwitcherServiceFactory::BrowserSwitcherServiceFactory()
 
 BrowserSwitcherServiceFactory::~BrowserSwitcherServiceFactory() = default;
 
-std::unique_ptr<KeyedService>
-BrowserSwitcherServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* BrowserSwitcherServiceFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
-  std::unique_ptr<BrowserSwitcherServiceImpl> instance =
-      std::make_unique<BrowserSwitcherServiceImpl>(Profile::FromBrowserContext(context));
+  auto* instance =
+      new BrowserSwitcherServiceImpl(Profile::FromBrowserContext(context));
   instance->Init();
   return instance;
 }

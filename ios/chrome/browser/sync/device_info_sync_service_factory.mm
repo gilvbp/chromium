@@ -26,6 +26,10 @@
 #import "ios/chrome/browser/sync/sync_invalidations_service_factory.h"
 #import "ios/chrome/common/channel_info.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace {
 
 class DeviceInfoSyncClient : public syncer::DeviceInfoSyncClient {
@@ -56,9 +60,9 @@ class DeviceInfoSyncClient : public syncer::DeviceInfoSyncClient {
   }
 
   // syncer::DeviceInfoSyncClient:
-  syncer::DeviceInfo::PhoneAsASecurityKeyInfo::StatusOrInfo
+  absl::optional<syncer::DeviceInfo::PhoneAsASecurityKeyInfo>
   GetPhoneAsASecurityKeyInfo() const override {
-    return syncer::DeviceInfo::PhoneAsASecurityKeyInfo::NoSupport();
+    return absl::nullopt;
   }
 
   // syncer::DeviceInfoSyncClient:

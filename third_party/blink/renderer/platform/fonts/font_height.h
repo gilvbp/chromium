@@ -39,10 +39,9 @@ struct PLATFORM_EXPORT FontHeight {
     return other.ascent <= ascent && other.descent <= descent;
   }
 
-  // Add the leading space. `leading_space.ascent` will be added into ascent and
-  // `leading_space.descent` will be added to descent.
+  // Add the leading. Half the leading is added to ascent and descent each.
   // https://drafts.csswg.org/css2/visudet.html#leading
-  void AddLeading(const FontHeight& leading_space);
+  void AddLeading(LayoutUnit line_height);
 
   // Move the metrics by the specified amount, in line progression direction.
   void Move(LayoutUnit);

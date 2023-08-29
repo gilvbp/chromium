@@ -70,6 +70,7 @@ class VideoFrame;
 
 namespace blink {
 
+class CanvasImageSource;
 class CanvasResourceProvider;
 class ComputedStyle;
 class Document;
@@ -148,7 +149,9 @@ class CORE_EXPORT CanvasRenderingContext
   // This is only used in WebGL
   void RecordUKMCanvasDrawnToRenderingAPI();
 
-  static CanvasRenderingAPI RenderingAPIFromId(const String& id);
+  static CanvasRenderingAPI RenderingAPIFromId(
+      const String& id,
+      const ExecutionContext* execution_context);
 
   CanvasRenderingContextHost* Host() const { return host_; }
   virtual SkColorInfo CanvasRenderingContextSkColorInfo() const;
@@ -252,12 +255,11 @@ class CORE_EXPORT CanvasRenderingContext
   virtual void ClearRect(double x, double y, double width, double height) {}
   virtual void DidSetSurfaceSize() {}
   virtual void SetShouldAntialias(bool) {}
+  virtual void setFont(const String&) {}
   virtual void StyleDidChange(const ComputedStyle* old_style,
                               const ComputedStyle& new_style) {}
   virtual String GetIdFromControl(const Element* element) { return String(); }
   virtual void ResetUsageTracking() {}
-
-  virtual void setFontForTesting(const String&) { NOTREACHED(); }
 
   // WebGL-specific interface
   virtual bool UsingSwapChain() const { return false; }
@@ -272,7 +274,9 @@ class CORE_EXPORT CanvasRenderingContext
   }
 
   // WebGL & WebGPU-specific interface
-  virtual void SetHdrMetadata(const gfx::HDRMetadata& hdr_metadata) {}
+  virtual void SetHDRConfiguration(
+      gfx::HDRMode hdr_mode,
+      absl::optional<gfx::HDRMetadata> hdr_metadata) {}
   virtual void SetFilterQuality(cc::PaintFlags::FilterQuality) { NOTREACHED(); }
   virtual void Reshape(int width, int height) {}
   virtual int ExternallyAllocatedBufferCountPerPixel() {
@@ -287,6 +291,7 @@ class CORE_EXPORT CanvasRenderingContext
   // Notification the color scheme of the HTMLCanvasElement may have changed.
   virtual void ColorSchemeMayHaveChanged() {}
 
+  bool WouldTaintOrigin(CanvasImageSource*);
   void DidMoveToNewDocument(Document*);
 
   void DetachHost() { host_ = nullptr; }

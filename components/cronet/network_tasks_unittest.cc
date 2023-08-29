@@ -66,6 +66,8 @@ std::unique_ptr<URLRequestContextConfig> CreateSimpleURLRequestContextConfig() {
   return URLRequestContextConfig::CreateURLRequestContextConfig(
       // Enable QUIC.
       true,
+      // QUIC User Agent ID.
+      "Default QUIC User Agent ID",
       // Enable SPDY.
       true,
       // Enable Brotli.

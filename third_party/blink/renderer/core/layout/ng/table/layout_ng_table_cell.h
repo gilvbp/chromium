@@ -51,9 +51,14 @@ class CORE_EXPORT LayoutNGTableCell : public LayoutNGBlockFlow {
   void InvalidateLayoutResultCacheAfterMeasure() const;
 
   LayoutUnit BorderTop() const override;
+
   LayoutUnit BorderBottom() const override;
+
   LayoutUnit BorderLeft() const override;
+
   LayoutUnit BorderRight() const override;
+
+  NGPhysicalBoxStrut BorderBoxOutsets() const override;
 
   LayoutNGTableCell* NextCell() const;
   LayoutNGTableCell* PreviousCell() const;

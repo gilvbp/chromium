@@ -4,7 +4,6 @@
 
 #include "google_apis/gaia/oauth2_access_token_manager.h"
 
-#include "base/containers/contains.h"
 #include "base/memory/ref_counted.h"
 #include "base/test/bind.h"
 #include "base/test/task_environment.h"
@@ -39,7 +38,8 @@ class FakeOAuth2AccessTokenManagerDelegate
       const CoreAccountId& account_id,
       scoped_refptr<network::SharedURLLoaderFactory> url_loader_factory,
       OAuth2AccessTokenConsumer* consumer) override {
-    EXPECT_TRUE(base::Contains(account_ids_to_refresh_tokens_, account_id));
+    EXPECT_NE(account_ids_to_refresh_tokens_.find(account_id),
+              account_ids_to_refresh_tokens_.end());
     return GaiaAccessTokenFetcher::
         CreateExchangeRefreshTokenForAccessTokenInstance(
             consumer, url_loader_factory,
@@ -47,7 +47,8 @@ class FakeOAuth2AccessTokenManagerDelegate
   }
 
   bool HasRefreshToken(const CoreAccountId& account_id) const override {
-    return base::Contains(account_ids_to_refresh_tokens_, account_id);
+    return account_ids_to_refresh_tokens_.find(account_id) !=
+           account_ids_to_refresh_tokens_.end();
   }
 
   scoped_refptr<network::SharedURLLoaderFactory> GetURLLoaderFactory()

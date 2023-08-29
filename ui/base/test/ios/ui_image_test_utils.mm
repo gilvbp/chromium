@@ -4,7 +4,11 @@
 
 #include "ui/base/test/ios/ui_image_test_utils.h"
 
-#include "base/apple/scoped_cftyperef.h"
+#include "base/mac/scoped_cftyperef.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace ui::test::uiimage_utils {
 
@@ -15,20 +19,13 @@ UIImage* UIImageWithSizeAndSolidColor(CGSize const& size, UIColor* color) {
 UIImage* UIImageWithSizeAndSolidColorAndScale(CGSize const& size,
                                               UIColor* color,
                                               CGFloat scale) {
-  UIGraphicsImageRendererFormat* format =
-      [UIGraphicsImageRendererFormat preferredFormat];
-  format.scale = scale;
-  format.opaque = YES;
-
-  UIGraphicsImageRenderer* renderer =
-      [[UIGraphicsImageRenderer alloc] initWithSize:size format:format];
-
-  return
-      [renderer imageWithActions:^(UIGraphicsImageRendererContext* ui_context) {
-        CGContextRef context = ui_context.CGContext;
-        CGContextSetFillColorWithColor(context, [color CGColor]);
-        CGContextFillRect(context, CGRectMake(0, 0, size.width, size.height));
-      }];
+  UIGraphicsBeginImageContextWithOptions(size, /*opaque=*/YES, scale);
+  CGContextRef context = UIGraphicsGetCurrentContext();
+  CGContextSetFillColorWithColor(context, [color CGColor]);
+  CGContextFillRect(context, CGRectMake(0, 0, size.width, size.height));
+  UIImage* image_with_solid_color = UIGraphicsGetImageFromCurrentImageContext();
+  UIGraphicsEndImageContext();
+  return image_with_solid_color;
 }
 
 bool UIImagesAreEqual(UIImage* image_1, UIImage* image_2) {
@@ -38,9 +35,9 @@ bool UIImagesAreEqual(UIImage* image_1, UIImage* image_2) {
   if (!CGSizeEqualToSize(image_1.size, image_2.size))
     return false;
 
-  base::apple::ScopedCFTypeRef<CFDataRef> data_ref_1(
+  base::ScopedCFTypeRef<CFDataRef> data_ref_1(
       CGDataProviderCopyData(CGImageGetDataProvider(image_1.CGImage)));
-  base::apple::ScopedCFTypeRef<CFDataRef> data_ref_2(
+  base::ScopedCFTypeRef<CFDataRef> data_ref_2(
       CGDataProviderCopyData(CGImageGetDataProvider(image_2.CGImage)));
   CFIndex length_1 = CFDataGetLength(data_ref_1);
   CFIndex length_2 = CFDataGetLength(data_ref_2);

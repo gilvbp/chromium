@@ -1488,9 +1488,10 @@ InstallStatus InstallProductsHelper(InstallationState& original_state,
 
 }  // namespace installer
 
-namespace {
-
-int SetupMain() {
+int WINAPI wWinMain(HINSTANCE instance,
+                    HINSTANCE prev_instance,
+                    wchar_t* command_line,
+                    int show_command) {
   // Check to see if the CPU is supported before doing anything else. There's
   // very little than can safely be accomplished if the CPU isn't supported
   // since dependent libraries (e.g., base) may use invalid instructions.
@@ -1732,16 +1733,4 @@ int SetupMain() {
   VLOG(1) << "Installation complete, returning: " << return_code;
 
   return return_code;
-}
-
-}  // namespace
-
-int WINAPI wWinMain(HINSTANCE instance,
-                    HINSTANCE prev_instance,
-                    wchar_t* command_line,
-                    int show_command) {
-  // https://crbug.com/896565: Graceful shutdown sometimes fails for reasons out
-  // of the installer's control. Crashes from such failures are inactionable, so
-  // terminate the process forthwith.
-  base::Process::TerminateCurrentProcessImmediately(SetupMain());
 }

@@ -33,7 +33,7 @@ class AndroidSmsServiceFactory : public BrowserContextKeyedServiceFactory {
   ~AndroidSmsServiceFactory() override;
 
   // BrowserContextKeyedServiceFactory:
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* context) const override;
   content::BrowserContext* GetBrowserContextToUse(
       content::BrowserContext* context) const override;

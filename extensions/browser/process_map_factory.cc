@@ -32,10 +32,9 @@ ProcessMapFactory::ProcessMapFactory()
 
 ProcessMapFactory::~ProcessMapFactory() = default;
 
-std::unique_ptr<KeyedService>
-ProcessMapFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* ProcessMapFactory::BuildServiceInstanceFor(
     BrowserContext* context) const {
-  std::unique_ptr<ProcessMap> process_map = std::make_unique<ProcessMap>();
+  ProcessMap* process_map = new ProcessMap();
   process_map->set_is_lock_screen_context(
       ExtensionsBrowserClient::Get()->IsLockScreenContext(context));
   return process_map;
@@ -44,8 +43,7 @@ ProcessMapFactory::BuildServiceInstanceForBrowserContext(
 BrowserContext* ProcessMapFactory::GetBrowserContextToUse(
     BrowserContext* context) const {
   // Redirected in incognito.
-  return ExtensionsBrowserClient::Get()->GetContextRedirectedToOriginal(
-      context, /*force_guest_profile=*/true);
+  return ExtensionsBrowserClient::Get()->GetOriginalContext(context);
 }
 
 }  // namespace extensions

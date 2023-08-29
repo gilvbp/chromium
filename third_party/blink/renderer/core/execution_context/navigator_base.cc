@@ -47,11 +47,18 @@ NavigatorBase::NavigatorBase(ExecutionContext* context)
 
 String NavigatorBase::userAgent() const {
   ExecutionContext* execution_context = GetExecutionContext();
-  return execution_context ? execution_context->UserAgent() : String();
+  if (!execution_context)
+    return String();
+
+  execution_context->ReportNavigatorUserAgentAccess();
+  return execution_context->UserAgent();
 }
 
 String NavigatorBase::platform() const {
   ExecutionContext* execution_context = GetExecutionContext();
+  // Report as user agent access
+  if (execution_context)
+    execution_context->ReportNavigatorUserAgentAccess();
 
 #if BUILDFLAG(IS_ANDROID)
   // For user-agent reduction phase 6, Android platform should be frozen

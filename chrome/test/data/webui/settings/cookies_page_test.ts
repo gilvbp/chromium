@@ -17,7 +17,7 @@ import {createContentSettingTypeToValuePair, createRawSiteException, createSiteS
 
 // clang-format on
 
-suite('CookiesPageTest', function() {
+suite('CrSettingsCookiesPageTest', function() {
   let siteSettingsBrowserProxy: TestSiteSettingsPrefsBrowserProxy;
   let testMetricsBrowserProxy: TestMetricsBrowserProxy;
   let page: SettingsCookiesPageElement;
@@ -76,7 +76,6 @@ suite('CookiesPageTest', function() {
     assertFalse(isChildVisible(page, '#clearOnExit'));
 
     assertTrue(isChildVisible(page, '#doNotTrack'));
-    // TODO(b/296212999): Remove after b/296212999 is launched.
     assertTrue(isChildVisible(page, '#preloadingLinkRow'));
 
     assertTrue(isChildVisible(page, '#allowThirdParty'));
@@ -86,7 +85,6 @@ suite('CookiesPageTest', function() {
     assertFalse(isChildVisible(page, '#blockAll'));
   });
 
-  // TODO(b/296212999): Remove after b/296212999 is launched.
   test('PreloadingClickRecorded', async function() {
     const linkRow =
         page.shadowRoot!.querySelector<HTMLElement>('#preloadingLinkRow');
@@ -100,9 +98,10 @@ suite('CookiesPageTest', function() {
     assertEquals(routes.PRELOADING, Router.getInstance().getCurrentRoute());
   });
 
-  // TODO(b/296212999): Remove after b/296212999 is launched.
   test('PreloadingSubLabel', async function() {
     assertTrue(isChildVisible(page, '#preloadingLinkRow'));
+    // TODO(crbug.com/1385176): Remove after crbug.com/1385176 is launched.
+    assertFalse(isChildVisible(page, '#preloadingToggle'));
 
     const preloadingPageLinkRow =
         page.shadowRoot!.querySelector<CrLinkRowElement>('#preloadingLinkRow');
@@ -354,7 +353,7 @@ suite('CookiesPageTest', function() {
 });
 
 // TODO(crbug.com/1378703): Remove after crbug/1378703 launched.
-suite('PrivacySandboxSettings4Disabled', function() {
+suite('CrSettingsCookiesPageTest_PrivacySandboxSettings4Disabled', function() {
   let siteSettingsBrowserProxy: TestSiteSettingsPrefsBrowserProxy;
   let testMetricsBrowserProxy: TestMetricsBrowserProxy;
   let page: SettingsCookiesPageElement;
@@ -666,7 +665,7 @@ suite('PrivacySandboxSettings4Disabled', function() {
 });
 
 // TODO(crbug/1349370): Remove after crbug/1349370 is launched.
-suite('FirstPartySetsUIDisabled', function() {
+suite('CrSettingsCookiesPageTest_FirstPartySetsUIDisabled', function() {
   let page: SettingsCookiesPageElement;
   let settingsPrefs: SettingsPrefsElement;
 
@@ -744,7 +743,7 @@ suite(
 
 // <if expr="chromeos_lacros">
 // TODO(crbug/1378703): Remove after crbug/1378703 launched.
-suite('LacrosSecondaryProfile', function() {
+suite('CrSettingsCookiesPageTest_lacrosSecondaryProfile', function() {
   let page: SettingsCookiesPageElement;
   let settingsPrefs: SettingsPrefsElement;
 
@@ -779,20 +778,25 @@ suite('LacrosSecondaryProfile', function() {
 });
 // </if>
 
-// TODO(b/296212999): Remove after b/296212999 is launched.
-suite('PreloadingSubpageMovedToPerformanceSettings', function() {
+// TODO(crbug.com/1385176): Remove after crbug.com/1385176 is launched.
+suite('PreloadingDesktopSettingsSubPageDisabled', function() {
   let page: SettingsCookiesPageElement;
   let settingsPrefs: SettingsPrefsElement;
+  let testMetricsBrowserProxy: TestMetricsBrowserProxy;
 
   suiteSetup(function() {
     loadTimeData.overrideValues({
-      isPerformanceSettingsPreloadingSubpageEnabled: true,
+      showPreloadingSubPage: false,
     });
+
     settingsPrefs = document.createElement('settings-prefs');
     return CrSettingsPrefs.initialized;
   });
 
   setup(function() {
+    testMetricsBrowserProxy = new TestMetricsBrowserProxy();
+    MetricsBrowserProxyImpl.setInstance(testMetricsBrowserProxy);
+
     document.body.innerHTML = window.trustedTypes!.emptyHTML;
     page = document.createElement('settings-cookies-page');
     page.prefs = settingsPrefs.prefs!;
@@ -800,7 +804,18 @@ suite('PreloadingSubpageMovedToPerformanceSettings', function() {
     flush();
   });
 
-  test('PreloadingLinkRowNotShown', function() {
+  test('NetworkPredictionClickRecorded', async function() {
+    const preloadingToggle =
+        page.shadowRoot!.querySelector<HTMLElement>('#preloadingToggle');
+    assertTrue(!!preloadingToggle);
+    preloadingToggle.click();
+    const result =
+        await testMetricsBrowserProxy.whenCalled('recordSettingsPageHistogram');
+    assertEquals(PrivacyElementInteractions.NETWORK_PREDICTION, result);
+  });
+
+  test('PreloadingToggleShown', function() {
+    assertTrue(isChildVisible(page, '#preloadingToggle'));
     assertFalse(isChildVisible(page, '#preloadingLinkRow'));
   });
 });

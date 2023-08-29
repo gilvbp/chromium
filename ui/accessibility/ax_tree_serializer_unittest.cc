@@ -21,8 +21,7 @@ using testing::UnorderedElementsAre;
 
 namespace ui {
 
-using BasicAXTreeSerializer =
-    AXTreeSerializer<const AXNode*, std::vector<const AXNode*>>;
+using BasicAXTreeSerializer = AXTreeSerializer<const AXNode*>;
 
 // The framework for these tests is that each test sets up |treedata0_|
 // and |treedata1_| and then calls GetTreeSerializer, which creates a
@@ -536,7 +535,7 @@ TEST_F(AXTreeSerializerTest, TestPartialSerialization) {
     // The result should be indistinguishable from the source tree.
     std::unique_ptr<AXTreeSource<const AXNode*>> dst_tree_source(
         dst_tree.CreateTreeSource());
-    BasicAXTreeSerializer serializer(dst_tree_source.get());
+    AXTreeSerializer<const AXNode*> serializer(dst_tree_source.get());
     AXTreeUpdate dst_update;
     CHECK(serializer.SerializeChanges(dst_tree.root(), &dst_update));
     ASSERT_EQ(treedata1_.ToString(), dst_update.ToString());

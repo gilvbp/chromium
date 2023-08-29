@@ -2,17 +2,19 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-{%- from 'cpp_macros.tmpl' import
-  include_guard, namespace_begin, namespace_end %}
-
-{%- set header_guard = include_guard("SHARED_MESSAGE_IDS", module.path) %}
+{%- set header_guard = "%s_SHARED_MESSAGE_IDS_H_"|format(
+        module.path|upper|replace("/","_")|replace(".","_")|
+            replace("-", "_")) %}
 
 #ifndef {{header_guard}}
 #define {{header_guard}}
 
 #include <stdint.h>
 
-{{namespace_begin(namespaces_as_array)}}
+{%- for namespace in namespaces_as_array %}
+namespace {{namespace}} {
+{%- endfor %}
+
 namespace internal {
 
 {% for interface in interfaces -%}
@@ -26,6 +28,8 @@ constexpr uint32_t {{method_name}} = {{method.ordinal}};
 {%- endfor %}
 
 }  // namespace internal
-{{namespace_end(namespaces_as_array)}}
+{%- for namespace in namespaces_as_array|reverse %}
+}  // namespace {{namespace}}
+{%- endfor %}
 
 #endif  // {{header_guard}}

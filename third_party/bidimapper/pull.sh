@@ -7,8 +7,6 @@
 # Exit if any command fails
 set -e
 
-cd "$(dirname "${BASH_SOURCE}")"
-
 revision="$1"
 if [[ -z "$revision" ]]; then
   # Fall back to latest revision when it is unspecified

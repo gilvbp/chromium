@@ -121,9 +121,8 @@ class IdleTaskControllerFrameScheduler : public FrameScheduler {
     return WebScopedVirtualTimePauser();
   }
   void DidStartProvisionalLoad() override {}
-  void DidCommitProvisionalLoad(bool,
-                                FrameScheduler::NavigationType,
-                                DidCommitProvisionalLoadParams) override {}
+  void DidCommitProvisionalLoad(bool, FrameScheduler::NavigationType) override {
+  }
   void OnFirstContentfulPaintInMainFrame() override {}
   void OnMainFrameInteractive() override {}
   void OnFirstMeaningfulPaint() override {}

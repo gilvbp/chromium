@@ -9,6 +9,7 @@ import("//printing/buildflags/buildflags.gni")
 java_cpp_enum("browser_enums") {
   sources = [
     "aw_apk_type.h",
+    "aw_contents_io_thread_client.cc",
     "aw_renderer_priority.h",
     "aw_settings.h",
     "lifecycle/webview_app_state_observer.h",
@@ -28,8 +29,6 @@ source_set("browser") {
     "aw_autofill_client.h",
     "aw_browser_context.cc",
     "aw_browser_context.h",
-    "aw_browser_context_store.cc",
-    "aw_browser_context_store.h",
     "aw_browser_main_parts.cc",
     "aw_browser_main_parts.h",
     "aw_browser_permission_request_delegate.h",
@@ -105,8 +104,6 @@ source_set("browser") {
     "aw_speech_recognition_manager_delegate.h",
     "aw_ssl_host_state_delegate.cc",
     "aw_ssl_host_state_delegate.h",
-    "aw_user_agent_metadata.cc",
-    "aw_user_agent_metadata.h",
     "aw_web_contents_delegate.cc",
     "aw_web_contents_delegate.h",
     "aw_web_contents_view_delegate.cc",
@@ -229,7 +226,6 @@ source_set("browser") {
     "//components/embedder_support:embedder_support",
     "//components/embedder_support/android:util",
     "//components/embedder_support/origin_trials",
-    "//components/environment_integrity/android",
     "//components/favicon_base:favicon_base",
     "//components/flags_ui",
     "//components/keyed_service/content",

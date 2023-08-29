@@ -20,7 +20,6 @@ import org.chromium.chrome.browser.app.bookmarks.BookmarkAddEditFolderActivity;
 import org.chromium.chrome.browser.app.bookmarks.BookmarkFolderSelectActivity;
 import org.chromium.chrome.browser.bookmarks.BookmarkUiPrefs.BookmarkRowDisplayPref;
 import org.chromium.chrome.browser.bookmarks.BookmarkUiPrefs.BookmarkRowSortOrder;
-import org.chromium.chrome.browser.bookmarks.BookmarkUiPrefs.Observer;
 import org.chromium.chrome.browser.bookmarks.BookmarkUiState.BookmarkUiMode;
 import org.chromium.components.bookmarks.BookmarkId;
 import org.chromium.components.bookmarks.BookmarkItem;
@@ -36,20 +35,6 @@ import java.util.List;
 /** Responsible for the business logic for the BookmarkManagerToolbar. */
 class BookmarkToolbarMediator implements BookmarkUiObserver, DragListener,
                                          SelectionDelegate.SelectionObserver<BookmarkItem> {
-    private final BookmarkUiPrefs.Observer mBookmarkUiPrefsObserver = new Observer() {
-        @Override
-        public void onBookmarkRowDisplayPrefChanged(@BookmarkRowDisplayPref int displayPref) {
-            mModel.set(BookmarkToolbarProperties.CHECKED_VIEW_MENU_ID,
-                    getMenuIdFromDisplayPref(displayPref));
-        }
-
-        @Override
-        public void onBookmarkRowSortOrderChanged(@BookmarkRowSortOrder int sortOrder) {
-            mModel.set(BookmarkToolbarProperties.CHECKED_SORT_MENU_ID,
-                    getMenuIdFromSortOrder(sortOrder));
-        }
-    };
-
     private final Context mContext;
     private final PropertyModel mModel;
     private final DragReorderableRecyclerViewAdapter mDragReorderableRecyclerViewAdapter;
@@ -81,7 +66,6 @@ class BookmarkToolbarMediator implements BookmarkUiObserver, DragListener,
         mBookmarkModel = bookmarkModel;
         mBookmarkOpener = bookmarkOpener;
         mBookmarkUiPrefs = bookmarkUiPrefs;
-        mBookmarkUiPrefs.addObserver(mBookmarkUiPrefsObserver);
         mBookmarkAddNewFolderCoordinator = bookmarkAddNewFolderCoordinator;
 
         if (BookmarkFeatures.isAndroidImprovedBookmarksEnabled()) {
@@ -95,8 +79,8 @@ class BookmarkToolbarMediator implements BookmarkUiObserver, DragListener,
         }
         bookmarkDelegateSupplier.onAvailable((bookmarkDelegate) -> {
             mBookmarkDelegate = bookmarkDelegate;
-            mModel.set(BookmarkToolbarProperties.NAVIGATE_BACK_RUNNABLE,
-                    this::openParentForCurrentFolder);
+            mModel.set(
+                    BookmarkToolbarProperties.OPEN_FOLDER_CALLBACK, mBookmarkDelegate::openFolder);
             mBookmarkDelegate.addUiObserver(this);
             mBookmarkDelegate.notifyStateChange(this);
         });
@@ -104,14 +88,11 @@ class BookmarkToolbarMediator implements BookmarkUiObserver, DragListener,
 
     boolean onMenuIdClick(@IdRes int id) {
         // Sorting/viewing submenu needs to be caught, but haven't been implemented yet.
+        // TODO(crbug.com/1413463): Handle the new toolbar options.
         if (id == R.id.create_new_folder_menu_id) {
             mBookmarkAddNewFolderCoordinator.show(mCurrentFolder);
             return true;
         } else if (id == R.id.normal_options_submenu) {
-            return true;
-        } else if (id == R.id.sort_by_manual) {
-            mBookmarkUiPrefs.setBookmarkRowSortOrder(BookmarkRowSortOrder.MANUAL);
-            mModel.set(BookmarkToolbarProperties.CHECKED_SORT_MENU_ID, id);
             return true;
         } else if (id == R.id.sort_by_newest) {
             mBookmarkUiPrefs.setBookmarkRowSortOrder(BookmarkRowSortOrder.REVERSE_CHRONOLOGICAL);
@@ -119,10 +100,6 @@ class BookmarkToolbarMediator implements BookmarkUiObserver, DragListener,
             return true;
         } else if (id == R.id.sort_by_oldest) {
             mBookmarkUiPrefs.setBookmarkRowSortOrder(BookmarkRowSortOrder.CHRONOLOGICAL);
-            mModel.set(BookmarkToolbarProperties.CHECKED_SORT_MENU_ID, id);
-            return true;
-        } else if (id == R.id.sort_by_last_opened) {
-            mBookmarkUiPrefs.setBookmarkRowSortOrder(BookmarkRowSortOrder.RECENTLY_USED);
             mModel.set(BookmarkToolbarProperties.CHECKED_SORT_MENU_ID, id);
             return true;
         } else if (id == R.id.sort_by_alpha) {
@@ -160,7 +137,7 @@ class BookmarkToolbarMediator implements BookmarkUiObserver, DragListener,
             List<BookmarkId> list = mSelectionDelegate.getSelectedItemsAsList();
             assert list.size() == 1;
             BookmarkItem item = mBookmarkModel.getBookmarkById(list.get(0));
-            if (item.isFolder() && !BookmarkFeatures.isAndroidImprovedBookmarksEnabled()) {
+            if (item.isFolder()) {
                 BookmarkAddEditFolderActivity.startEditFolderActivity(mContext, item.getId());
             } else {
                 BookmarkUtils.startEditActivity(mContext, item.getId());
@@ -169,13 +146,8 @@ class BookmarkToolbarMediator implements BookmarkUiObserver, DragListener,
         } else if (id == R.id.selection_mode_move_menu_id) {
             List<BookmarkId> list = mSelectionDelegate.getSelectedItemsAsList();
             if (list.size() >= 1) {
-                if (BookmarkFeatures.isAndroidImprovedBookmarksEnabled()) {
-                    BookmarkUtils.startFolderPickerActivity(
-                            mContext, list.toArray(new BookmarkId[0]));
-                } else {
-                    BookmarkFolderSelectActivity.startFolderSelectActivity(
-                            mContext, list.toArray(new BookmarkId[0]));
-                }
+                BookmarkFolderSelectActivity.startFolderSelectActivity(
+                        mContext, list.toArray(new BookmarkId[0]));
                 RecordUserAction.record("MobileBookmarkManagerMoveToFolderBulk");
             }
             return true;
@@ -227,7 +199,6 @@ class BookmarkToolbarMediator implements BookmarkUiObserver, DragListener,
     public void onDestroy() {
         mDragReorderableRecyclerViewAdapter.removeDragListener(this);
         mSelectionDelegate.removeObserver(this);
-        mBookmarkUiPrefs.removeObserver(mBookmarkUiPrefsObserver);
 
         if (mBookmarkDelegate != null) {
             mBookmarkDelegate.removeUiObserver(this);
@@ -237,7 +208,7 @@ class BookmarkToolbarMediator implements BookmarkUiObserver, DragListener,
     @Override
     public void onUiModeChanged(@BookmarkUiMode int mode) {
         if (BookmarkFeatures.isAndroidImprovedBookmarksEnabled()) {
-            // TODO(https://crbug.com/1439583): Update buttons.
+            // TODO(https://crbug.com/1439583): Update title and buttons.
         } else {
             mModel.set(BookmarkToolbarProperties.SOFT_KEYBOARD_VISIBLE,
                     mode == BookmarkUiMode.SEARCHING);
@@ -249,9 +220,6 @@ class BookmarkToolbarMediator implements BookmarkUiObserver, DragListener,
             mModel.set(BookmarkToolbarProperties.TITLE, null);
             mModel.set(BookmarkToolbarProperties.SEARCH_BUTTON_VISIBLE, false);
             mModel.set(BookmarkToolbarProperties.EDIT_BUTTON_VISIBLE, false);
-        } else if (BookmarkFeatures.isAndroidImprovedBookmarksEnabled()
-                && mode == BookmarkUiMode.SEARCHING) {
-            mModel.set(BookmarkToolbarProperties.TITLE, mContext.getString(R.string.bookmarks));
         } else {
             // All modes besides LOADING require a folder to be set. If there's none available,
             // then the button visibilities will be updated accordingly. Additionally, it's
@@ -306,9 +274,8 @@ class BookmarkToolbarMediator implements BookmarkUiObserver, DragListener,
 
         // New folder button.
         if (BookmarkFeatures.isAndroidImprovedBookmarksEnabled()) {
-            mModel.set(BookmarkToolbarProperties.NEW_FOLDER_BUTTON_VISIBLE, true);
-            mModel.set(BookmarkToolbarProperties.NEW_FOLDER_BUTTON_ENABLED,
-                    BookmarkUtils.canAddFolderToParent(mBookmarkModel, mCurrentFolder));
+            mModel.set(BookmarkToolbarProperties.NEW_FOLDER_BUTTON_VISIBLE,
+                    BookmarkUtils.canAddSubfolder(mBookmarkModel, mCurrentFolder));
         }
     }
 
@@ -329,16 +296,6 @@ class BookmarkToolbarMediator implements BookmarkUiObserver, DragListener,
         }
     }
 
-    private @IdRes int getMenuIdFromDisplayPref(@BookmarkRowDisplayPref int displayPref) {
-        switch (displayPref) {
-            case BookmarkRowDisplayPref.COMPACT:
-                return R.id.compact_view;
-            case BookmarkRowDisplayPref.VISUAL:
-                return R.id.visual_view;
-        }
-        return ResourcesCompat.ID_NULL;
-    }
-
     private @IdRes int getMenuIdFromSortOrder(@BookmarkRowSortOrder int sortOrder) {
         switch (sortOrder) {
             case BookmarkRowSortOrder.REVERSE_CHRONOLOGICAL:
@@ -349,18 +306,7 @@ class BookmarkToolbarMediator implements BookmarkUiObserver, DragListener,
                 return R.id.sort_by_alpha;
             case BookmarkRowSortOrder.REVERSE_ALPHABETICAL:
                 return R.id.sort_by_reverse_alpha;
-            case BookmarkRowSortOrder.RECENTLY_USED:
-                return R.id.sort_by_last_opened;
-            case BookmarkRowSortOrder.MANUAL:
-                return R.id.sort_by_manual;
         }
         return ResourcesCompat.ID_NULL;
-    }
-
-    // Private methods.
-
-    private void openParentForCurrentFolder() {
-        mBookmarkDelegate.openFolder(
-                BookmarkUtils.getParentFolderForViewing(mBookmarkModel, mCurrentFolder));
     }
 }

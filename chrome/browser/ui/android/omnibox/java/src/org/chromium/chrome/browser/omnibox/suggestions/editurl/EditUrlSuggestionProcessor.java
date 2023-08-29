@@ -5,23 +5,19 @@
 package org.chromium.chrome.browser.omnibox.suggestions.editurl;
 
 import android.content.Context;
-import android.text.TextUtils;
-
-import androidx.annotation.NonNull;
 
 import org.chromium.base.metrics.RecordUserAction;
 import org.chromium.base.supplier.Supplier;
 import org.chromium.chrome.browser.history_clusters.HistoryClustersTabHelper;
-import org.chromium.chrome.browser.omnibox.OmniboxFeatures;
 import org.chromium.chrome.browser.omnibox.R;
-import org.chromium.chrome.browser.omnibox.styles.OmniboxDrawableState;
-import org.chromium.chrome.browser.omnibox.styles.OmniboxImageSupplier;
 import org.chromium.chrome.browser.omnibox.styles.OmniboxResourceProvider;
-import org.chromium.chrome.browser.omnibox.styles.SuggestionSpannable;
+import org.chromium.chrome.browser.omnibox.suggestions.FaviconFetcher;
 import org.chromium.chrome.browser.omnibox.suggestions.SuggestionHost;
 import org.chromium.chrome.browser.omnibox.suggestions.UrlBarDelegate;
 import org.chromium.chrome.browser.omnibox.suggestions.base.BaseSuggestionViewProcessor;
 import org.chromium.chrome.browser.omnibox.suggestions.base.BaseSuggestionViewProperties.Action;
+import org.chromium.chrome.browser.omnibox.suggestions.base.SuggestionDrawableState;
+import org.chromium.chrome.browser.omnibox.suggestions.base.SuggestionSpannable;
 import org.chromium.chrome.browser.omnibox.suggestions.basic.SuggestionViewProperties;
 import org.chromium.chrome.browser.share.ShareDelegate;
 import org.chromium.chrome.browser.share.ShareDelegate.ShareOrigin;
@@ -34,9 +30,6 @@ import org.chromium.components.ukm.UkmRecorder;
 import org.chromium.ui.base.Clipboard;
 import org.chromium.ui.modelutil.PropertyModel;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
-import java.nio.charset.Charset;
 import java.util.Arrays;
 
 /**
@@ -45,15 +38,25 @@ import java.util.Arrays;
  * the rest of Chrome.
  */
 public class EditUrlSuggestionProcessor extends BaseSuggestionViewProcessor {
-    private final @NonNull UrlBarDelegate mUrlBarDelegate;
-    private final @NonNull Supplier<ShareDelegate> mShareDelegateSupplier;
-    private final @NonNull Supplier<Tab> mTabSupplier;
+    /** The delegate for accessing the location bar for observation and modification. */
+    private final UrlBarDelegate mUrlBarDelegate;
+
+    /** The delegate for accessing the sharing feature. */
+    private final Supplier<ShareDelegate> mShareDelegateSupplier;
+
+    /** A means of accessing the activity's tab. */
+    private final Supplier<Tab> mTabSupplier;
+
+    /** Whether the omnibox has already cleared its content for the focus event. */
     private boolean mHasClearedOmniboxForFocus;
 
+    /**
+     * @param locationBarDelegate A means of modifying the location bar.
+     */
     public EditUrlSuggestionProcessor(Context context, SuggestionHost suggestionHost,
-            UrlBarDelegate locationBarDelegate, OmniboxImageSupplier imageSupplier,
+            UrlBarDelegate locationBarDelegate, FaviconFetcher faviconFetcher,
             Supplier<Tab> tabSupplier, Supplier<ShareDelegate> shareDelegateSupplier) {
-        super(context, suggestionHost, imageSupplier);
+        super(context, suggestionHost, faviconFetcher);
 
         mUrlBarDelegate = locationBarDelegate;
         mTabSupplier = tabSupplier;
@@ -77,6 +80,10 @@ public class EditUrlSuggestionProcessor extends BaseSuggestionViewProcessor {
             return false;
         }
 
+        if (!mHasClearedOmniboxForFocus && mUrlBarDelegate.shouldClearOmniboxOnFocus()) {
+            mHasClearedOmniboxForFocus = true;
+            mUrlBarDelegate.setOmniboxEditingText("");
+        }
         return true;
     }
 
@@ -94,31 +101,41 @@ public class EditUrlSuggestionProcessor extends BaseSuggestionViewProcessor {
     public void populateModel(AutocompleteMatch suggestion, PropertyModel model, int position) {
         super.populateModel(suggestion, model, position);
 
-        var tab = mTabSupplier.get();
-        var title = suggestion.getDescription();
-        if (!tab.isLoading()) {
-            title = tab.getTitle();
-        } else if (TextUtils.isEmpty(title)) {
-            title = mContext.getResources().getText(R.string.tab_loading_default_title).toString();
-        }
-
-        model.set(SuggestionViewProperties.TEXT_LINE_1_TEXT, new SuggestionSpannable(title));
+        model.set(SuggestionViewProperties.TEXT_LINE_1_TEXT,
+                new SuggestionSpannable(mTabSupplier.get().getTitle()));
         model.set(SuggestionViewProperties.TEXT_LINE_2_TEXT,
                 new SuggestionSpannable(suggestion.getDisplayText()));
 
+        setSuggestionDrawableState(model,
+                SuggestionDrawableState.Builder.forDrawableRes(mContext, R.drawable.ic_globe_24dp)
+                        .setAllowTint(true)
+                        .build());
+
         setActionButtons(model,
-                Arrays.asList(new Action(OmniboxDrawableState.forDefaultIcon(
-                                                 mContext, R.drawable.ic_share_white_24dp, true),
-                                      OmniboxResourceProvider.getString(
-                                              mContext, R.string.menu_share_page),
-                                      null, this::onShareLink),
-                        new Action(OmniboxDrawableState.forDefaultIcon(
-                                           mContext, R.drawable.ic_content_copy_black, true),
+                Arrays.asList(
+                        new Action(SuggestionDrawableState.Builder
+                                           .forDrawableRes(mContext, R.drawable.ic_share_white_24dp)
+                                           .setLarge(true)
+                                           .setAllowTint(true)
+                                           .build(),
+                                OmniboxResourceProvider.getString(
+                                        mContext, R.string.menu_share_page),
+                                null, this::onShareLink),
+                        new Action(
+                                SuggestionDrawableState.Builder
+                                        .forDrawableRes(mContext, R.drawable.ic_content_copy_black)
+                                        .setLarge(true)
+                                        .setAllowTint(true)
+                                        .build(),
                                 OmniboxResourceProvider.getString(mContext, R.string.copy_link),
                                 () -> onCopyLink(suggestion)),
                         // TODO(https://crbug.com/1090187): do not re-use bookmark_item_edit here.
-                        new Action(OmniboxDrawableState.forDefaultIcon(
-                                           mContext, R.drawable.bookmark_edit_active, true),
+                        new Action(
+                                SuggestionDrawableState.Builder
+                                        .forDrawableRes(mContext, R.drawable.bookmark_edit_active)
+                                        .setLarge(true)
+                                        .setAllowTint(true)
+                                        .build(),
                                 OmniboxResourceProvider.getString(
                                         mContext, R.string.bookmark_item_edit),
                                 () -> onEditLink(suggestion))));
@@ -135,25 +152,20 @@ public class EditUrlSuggestionProcessor extends BaseSuggestionViewProcessor {
 
     @Override
     protected void onSuggestionClicked(AutocompleteMatch suggestion, int position) {
-        RecordUserAction.record("Omnibox.EditUrlSuggestion.Tap");
-        if (OmniboxFeatures.noopEditUrlSuggestionClicks()) {
-            mSuggestionHost.finishInteraction();
-            return;
-        }
-
         super.onSuggestionClicked(suggestion, position);
+        RecordUserAction.record("Omnibox.EditUrlSuggestion.Tap");
     }
 
     /** Invoked when user interacts with Share action button. */
     private void onShareLink() {
         RecordUserAction.record("Omnibox.EditUrlSuggestion.Share");
-        var webContents = mTabSupplier.get().getWebContents();
-        if (webContents != null) {
-            // TODO(ender): find out if this is still captured anywhere.
+        Tab tab = mTabSupplier.get();
+        if (tab != null && tab.getWebContents() != null) {
             new UkmRecorder.Bridge().recordEventWithBooleanMetric(
-                    webContents, "Omnibox.EditUrlSuggestion.Share", "HasOccurred");
+                    mTabSupplier.get().getWebContents(), "Omnibox.EditUrlSuggestion.Share",
+                    "HasOccurred");
         }
-        mSuggestionHost.finishInteraction();
+        mUrlBarDelegate.clearOmniboxFocus();
         // TODO(mdjones): This should only share the displayed URL instead of the background tab.
         mShareDelegateSupplier.get().share(mTabSupplier.get(), false, ShareOrigin.EDIT_URL);
     }
@@ -168,21 +180,6 @@ public class EditUrlSuggestionProcessor extends BaseSuggestionViewProcessor {
     /** Invoked when user interacts with Edit action button. */
     private void onEditLink(AutocompleteMatch suggestion) {
         RecordUserAction.record("Omnibox.EditUrlSuggestion.Edit");
-
-        var text = OmniboxFeatures.sSearchReadyOmniboxAllowQueryEdit.isEnabled()
-                ? mSuggestionHost.queryFromGurl(suggestion.getUrl())
-                : null;
-
-        if (TextUtils.isEmpty(text)) {
-            // Pass the decoded URL to the Omnibox to avoid %-encoded unicode characters.
-            text = suggestion.getUrl().getSpec();
-            try {
-                text = URLDecoder.decode(text, Charset.defaultCharset().name());
-            } catch (UnsupportedEncodingException | IllegalArgumentException e) {
-                // Text should already contain encoded URL.
-            }
-        }
-
-        mUrlBarDelegate.setOmniboxEditingText(text);
+        mUrlBarDelegate.setOmniboxEditingText(suggestion.getUrl().getSpec());
     }
 }

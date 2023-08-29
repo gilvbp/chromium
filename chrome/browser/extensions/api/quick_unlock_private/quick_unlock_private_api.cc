@@ -24,13 +24,11 @@
 #include "chrome/browser/profiles/profile_manager.h"
 #include "chromeos/ash/components/login/auth/public/authentication_error.h"
 #include "chromeos/ash/components/login/auth/public/user_context.h"
-#include "chromeos/ash/components/osauth/public/auth_session_storage.h"
 #include "components/prefs/pref_service.h"
 #include "components/user_manager/user_manager.h"
 #include "content/public/browser/browser_task_traits.h"
 #include "content/public/browser/browser_thread.h"
 #include "extensions/browser/event_router.h"
-#include "third_party/abseil-cpp/absl/types/optional.h"
 
 namespace extensions {
 
@@ -203,29 +201,9 @@ Profile* GetActiveProfile(content::BrowserContext* browser_context) {
 }
 
 AuthToken* GetActiveProfileAuthToken(content::BrowserContext* browser_context) {
-  CHECK(!ash::features::ShouldUseAuthSessionStorage());
   return ash::quick_unlock::QuickUnlockFactory::GetForProfile(
              GetActiveProfile(browser_context))
       ->GetAuthToken();
-}
-
-absl::optional<std::string> CheckTokenValidity(
-    content::BrowserContext* browser_context,
-    const std::string& token) {
-  if (ash::features::ShouldUseAuthSessionStorage()) {
-    if (!ash::AuthSessionStorage::Get()->IsValid(token)) {
-      return kAuthTokenExpired;
-    }
-  } else {
-    AuthToken* auth_token = GetActiveProfileAuthToken(browser_context);
-    if (!auth_token) {
-      return kAuthTokenExpired;
-    }
-    if (token != auth_token->Identifier()) {
-      return kAuthTokenInvalid;
-    }
-  }
-  return absl::nullopt;
 }
 
 }  // namespace
@@ -282,11 +260,11 @@ ExtensionFunction::ResponseAction
 QuickUnlockPrivateSetLockScreenEnabledFunction::Run() {
   auto params =
       quick_unlock_private::SetLockScreenEnabled::Params::Create(args());
-  absl::optional<std::string> error =
-      CheckTokenValidity(browser_context(), params->token);
-  if (error.has_value()) {
-    return RespondNow(Error(error.value()));
-  }
+  AuthToken* auth_token = GetActiveProfileAuthToken(browser_context());
+  if (!auth_token)
+    return RespondNow(Error(kAuthTokenExpired));
+  if (params->token != auth_token->Identifier())
+    return RespondNow(Error(kAuthTokenInvalid));
 
   GetActiveProfile(browser_context())
       ->GetPrefs()
@@ -310,11 +288,11 @@ QuickUnlockPrivateSetPinAutosubmitEnabledFunction::Run() {
   auto params =
       quick_unlock_private::SetPinAutosubmitEnabled::Params::Create(args());
 
-  absl::optional<std::string> error =
-      CheckTokenValidity(browser_context(), params->token);
-  if (error.has_value()) {
-    return RespondNow(Error(error.value()));
-  }
+  AuthToken* auth_token = GetActiveProfileAuthToken(browser_context());
+  if (!auth_token)
+    return RespondNow(Error(kAuthTokenExpired));
+  if (params->token != auth_token->Identifier())
+    return RespondNow(Error(kAuthTokenInvalid));
 
   Profile* profile = GetActiveProfile(browser_context());
   user_manager::User* user =
@@ -346,6 +324,10 @@ QuickUnlockPrivateCanAuthenticatePinFunction::
 
 ExtensionFunction::ResponseAction
 QuickUnlockPrivateCanAuthenticatePinFunction::Run() {
+  AuthToken* auth_token = GetActiveProfileAuthToken(browser_context());
+  if (!auth_token)
+    return RespondNow(Error(kAuthTokenExpired));
+
   Profile* profile = GetActiveProfile(browser_context());
   user_manager::User* user =
       ash::ProfileHelper::Get()->GetUserByProfile(profile);
@@ -508,11 +490,11 @@ ExtensionFunction::ResponseAction QuickUnlockPrivateSetModesFunction::Run() {
   if (params_->modes.size() > 1)
     return RespondNow(Error(kMultipleModesNotSupported));
 
-  absl::optional<std::string> error =
-      CheckTokenValidity(browser_context(), params_->token);
-  if (error.has_value()) {
-    return RespondNow(Error(error.value()));
-  }
+  AuthToken* auth_token = GetActiveProfileAuthToken(browser_context());
+  if (!auth_token)
+    return RespondNow(Error(kAuthTokenExpired));
+  if (params_->token != auth_token->Identifier())
+    return RespondNow(Error(kAuthTokenInvalid));
 
   // Verify every credential is valid based on policies.
   PrefService* pref_service = GetActiveProfile(browser_context())->GetPrefs();

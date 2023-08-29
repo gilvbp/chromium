@@ -28,7 +28,7 @@ class SerialChooserContextFactory : public ProfileKeyedServiceFactory {
   ~SerialChooserContextFactory() override;
 
   // BrowserContextKeyedServiceFactory methods:
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* profile) const override;
   void BrowserContextShutdown(content::BrowserContext* context) override;
 };

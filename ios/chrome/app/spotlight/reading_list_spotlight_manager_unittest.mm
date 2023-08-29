@@ -13,8 +13,7 @@
 #import "components/favicon/core/large_icon_service_impl.h"
 #import "components/favicon/core/test/mock_favicon_service.h"
 #import "components/reading_list/core/reading_list_model.h"
-#import "ios/chrome/app/spotlight/fake_searchable_item_factory.h"
-#import "ios/chrome/app/spotlight/fake_spotlight_interface.h"
+#import "ios/chrome/app/spotlight/spotlight_interface.h"
 #import "ios/chrome/app/spotlight/spotlight_manager.h"
 #import "ios/chrome/app/spotlight/spotlight_util.h"
 #import "ios/chrome/browser/reading_list/reading_list_model_factory.h"
@@ -30,18 +29,17 @@
 #import "third_party/skia/include/core/SkBitmap.h"
 #import "ui/base/test/ios/ui_image_test_utils.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 using testing::_;
 using ui::test::uiimage_utils::UIImageWithSizeAndSolidColor;
 
 namespace {
-const char kTestURL1[] = "http://www.example1.com/";
-const char kTestURL2[] = "http://www.example2.com/";
-const char kTestURL3[] = "http://www.example3.com/";
-
+const char kTestURL[] = "http://www.example.com/";
 const char kDummyIconUrl[] = "http://www.example.com/touch_icon.png";
-const char kTestTitle1[] = "Test Reading List Item Title1";
-const char kTestTitle2[] = "Test Reading List Item Title2";
-const char kTestTitle3[] = "Test Reading List Item Title3";
+const char kTestTitle[] = "Test Reading List Item Title";
 
 favicon_base::FaviconRawBitmapResult CreateTestBitmap(int w, int h) {
   favicon_base::FaviconRawBitmapResult result;
@@ -68,9 +66,7 @@ class ReadingListSpotlightManagerTest : public PlatformTest {
   ReadingListSpotlightManagerTest() {
     std::vector<scoped_refptr<ReadingListEntry>> initial_entries;
     initial_entries.push_back(base::MakeRefCounted<ReadingListEntry>(
-        GURL(kTestURL1), kTestTitle1, base::Time::Now()));
-    initial_entries.push_back(base::MakeRefCounted<ReadingListEntry>(
-        GURL(kTestURL2), kTestTitle2, base::Time::Now()));
+        GURL(kTestURL), kTestTitle, base::Time::Now()));
 
     TestChromeBrowserState::Builder builder;
     builder.AddTestingFactory(
@@ -84,10 +80,7 @@ class ReadingListSpotlightManagerTest : public PlatformTest {
         browser_state_.get());
 
     CreateMockLargeIconService();
-    spotlightInterface_ = [[FakeSpotlightInterface alloc] init];
-
-    searchableItemFactory_ = [[FakeSearchableItemFactory alloc]
-        initWithDomain:spotlight::DOMAIN_READING_LIST];
+    spotlightInterface_ = [SpotlightInterface defaultInterface];
   }
 
  protected:
@@ -116,8 +109,7 @@ class ReadingListSpotlightManagerTest : public PlatformTest {
   std::unique_ptr<favicon::LargeIconServiceImpl> large_icon_service_;
   base::CancelableTaskTracker cancelable_task_tracker_;
   ReadingListModel* model_;
-  FakeSpotlightInterface* spotlightInterface_;
-  FakeSearchableItemFactory* searchableItemFactory_;
+  SpotlightInterface* spotlightInterface_;
 };
 
 /// Tests that init propagates the `model` and -shutdown removes it.
@@ -125,8 +117,7 @@ TEST_F(ReadingListSpotlightManagerTest, testInitAndShutdown) {
   ReadingListSpotlightManager* manager = [[ReadingListSpotlightManager alloc]
       initWithLargeIconService:large_icon_service_.get()
               readingListModel:model_
-            spotlightInterface:spotlightInterface_
-         searchableItemFactory:searchableItemFactory_];
+            spotlightInterface:[SpotlightInterface defaultInterface]];
 
   EXPECT_EQ(manager.model, model_);
   [manager shutdown];
@@ -134,78 +125,38 @@ TEST_F(ReadingListSpotlightManagerTest, testInitAndShutdown) {
 }
 
 /// Tests that clearAndReindexReadingList actually clears all items (by calling
-/// spotlight api) and adds the items ( by calling the class method
-/// indexAllReadingListItemsg)
+/// spotlight api) and adds the items ( by calling base class method
+/// refreshItemsWithURL)
 TEST_F(ReadingListSpotlightManagerTest, testClearsAndIndexesItems) {
-  FakeSpotlightInterface* fakeSpotlightInterface =
-      [[FakeSpotlightInterface alloc] init];
+  void (^proxyBlock)(NSInvocation*) = ^(NSInvocation* invocation) {
+    void (^passedBlock)(NSError* error);
+    [invocation getArgument:&passedBlock atIndex:3];
+    passedBlock(nil);
+  };
 
-  // When the model is loaded we call clearAndReindexReadingList
-  ReadingListSpotlightManager* manager = [[ReadingListSpotlightManager alloc]
-      initWithLargeIconService:large_icon_service_.get()
-              readingListModel:model_
-            spotlightInterface:fakeSpotlightInterface
-         searchableItemFactory:searchableItemFactory_];
+  GURL ignoredURL = GURL("http://chromium.org");
 
-  // We expect to attempt deleting searchable items.
-  EXPECT_EQ(fakeSpotlightInterface
-                .deleteSearchableItemsWithDomainIdentifiersCallsCount,
-            1u);
-
-  // We expect that we call indexSearchableItems api twice because the fake
-  // reading list storage initially contains 2 items.
-  EXPECT_EQ(fakeSpotlightInterface.indexSearchableItemsCallsCount, 2u);
-
-  [manager shutdown];
-}
-
-/// Test that adding an entry via the app (ADDED_VIA_CURRENT_APP) actually adds
-/// the entry to spotlight via the indexSearchableItemApi
-TEST_F(ReadingListSpotlightManagerTest, testAddEntry) {
-  FakeSpotlightInterface* fakeSpotlightInterface =
-      [[FakeSpotlightInterface alloc] init];
-
-  // When the model is loaded we call clearAndReindexReadingList
-  ReadingListSpotlightManager* manager = [[ReadingListSpotlightManager alloc]
-      initWithLargeIconService:large_icon_service_.get()
-              readingListModel:model_
-            spotlightInterface:fakeSpotlightInterface
-         searchableItemFactory:searchableItemFactory_];
-
-  NSUInteger initialIndexedItemCount =
-      fakeSpotlightInterface.indexSearchableItemsCallsCount;
-
-  model_->AddOrReplaceEntry(GURL(kTestURL3), kTestTitle3,
-                            reading_list::ADDED_VIA_CURRENT_APP,
-                            /*estimated_read_time=*/base::TimeDelta());
-
-  // We expect that we call indexSearchableItems spotlight api when adding a new
-  // entry in reading list.
-  EXPECT_EQ(fakeSpotlightInterface.indexSearchableItemsCallsCount,
-            initialIndexedItemCount + 1);
-
-  [manager shutdown];
-}
-
-/// Test that removing an entry  actually
-/// removes the entry from spotlight via calling
-/// deleteSearchableItemsWithIdentifiers spotlight api.
-TEST_F(ReadingListSpotlightManagerTest, testRemoveEntry) {
-  FakeSpotlightInterface* fakeSpotlightInterface =
-      [[FakeSpotlightInterface alloc] init];
+  id mockSpotlightInterface =
+      [OCMockObject partialMockForObject:spotlightInterface_];
 
   ReadingListSpotlightManager* manager = [[ReadingListSpotlightManager alloc]
       initWithLargeIconService:large_icon_service_.get()
               readingListModel:model_
-            spotlightInterface:fakeSpotlightInterface
-         searchableItemFactory:searchableItemFactory_];
+            spotlightInterface:mockSpotlightInterface];
 
-  model_->RemoveEntryByURL(GURL(kTestURL1));
+  id mockManager = [OCMockObject partialMockForObject:manager];
 
-  // We expect to attempt deleting the item that was removed, from spotlight.
-  EXPECT_EQ(
-      fakeSpotlightInterface.deleteSearchableItemsWithIdentifiersCallsCount,
-      1u);
+  [[[mockSpotlightInterface expect] andDo:proxyBlock]
+      deleteSearchableItemsWithDomainIdentifiers:[OCMArg any]
+                               completionHandler:[OCMArg any]];
+  [[[mockManager expect] ignoringNonObjectArgs]
+      refreshItemsWithURL:ignoredURL
+                    title:[OCMArg any]];
+
+  [mockManager clearAndReindexReadingList];
+
+  EXPECT_OCMOCK_VERIFY(mockSpotlightInterface);
+  EXPECT_OCMOCK_VERIFY(mockManager);
 
   [manager shutdown];
 }

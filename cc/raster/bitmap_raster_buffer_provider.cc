@@ -208,7 +208,7 @@ bool BitmapRasterBufferProvider::CanPartialRasterIntoProvidedResource() const {
 }
 
 bool BitmapRasterBufferProvider::IsResourceReadyToDraw(
-    const ResourcePool::InUsePoolResource& resource) {
+    const ResourcePool::InUsePoolResource& resource) const {
   // Bitmap resources are immediately ready to draw.
   return true;
 }
@@ -216,7 +216,7 @@ bool BitmapRasterBufferProvider::IsResourceReadyToDraw(
 uint64_t BitmapRasterBufferProvider::SetReadyToDrawCallback(
     const std::vector<const ResourcePool::InUsePoolResource*>& resources,
     base::OnceClosure callback,
-    uint64_t pending_callback_id) {
+    uint64_t pending_callback_id) const {
   // Bitmap resources are immediately ready to draw.
   return 0;
 }

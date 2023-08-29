@@ -119,10 +119,10 @@ std::unique_ptr<MessagePort> ChromeMessagingDelegate::CreateReceiverForTab(
   bool include_child_frames =
       receiver_frame_id == -1 && receiver_document_id.empty();
 
-  content::RenderFrameHost* receiver_render_frame_host = nullptr;
+  content::RenderFrameHost* receiver_rfh = nullptr;
   if (include_child_frames) {
     // The target is the active outermost main frame of the WebContents.
-    receiver_render_frame_host = receiver_contents->GetPrimaryMainFrame();
+    receiver_rfh = receiver_contents->GetPrimaryMainFrame();
   } else if (!receiver_document_id.empty()) {
     ExtensionApiFrameIdMap::DocumentId document_id =
         ExtensionApiFrameIdMap::DocumentIdFromString(receiver_document_id);
@@ -131,30 +131,28 @@ std::unique_ptr<MessagePort> ChromeMessagingDelegate::CreateReceiverForTab(
     if (!document_id)
       return nullptr;
 
-    receiver_render_frame_host =
+    receiver_rfh =
         ExtensionApiFrameIdMap::Get()->GetRenderFrameHostByDocumentId(
             document_id);
 
     // If both |document_id| and |receiver_frame_id| are provided they
     // should find the same RenderFrameHost, if not return early.
     if (receiver_frame_id != -1 &&
-        ExtensionApiFrameIdMap::GetRenderFrameHostById(receiver_contents,
-                                                       receiver_frame_id) !=
-            receiver_render_frame_host) {
+        ExtensionApiFrameIdMap::GetRenderFrameHostById(
+            receiver_contents, receiver_frame_id) != receiver_rfh) {
       return nullptr;
     }
   } else {
     DCHECK_GT(receiver_frame_id, -1);
-    receiver_render_frame_host = ExtensionApiFrameIdMap::GetRenderFrameHostById(
+    receiver_rfh = ExtensionApiFrameIdMap::GetRenderFrameHostById(
         receiver_contents, receiver_frame_id);
   }
-  if (!receiver_render_frame_host) {
+  if (!receiver_rfh)
     return nullptr;
-  }
 
   return std::make_unique<ExtensionMessagePort>(
-      channel_delegate, receiver_port_id, extension_id,
-      receiver_render_frame_host, include_child_frames);
+      channel_delegate, receiver_port_id, extension_id, receiver_rfh,
+      include_child_frames);
 }
 
 std::unique_ptr<MessagePort>

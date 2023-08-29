@@ -115,7 +115,7 @@ class IsHistoryURLSyncedChecker : public SingleClientStatusChangeChecker {
 
  private:
   const std::string url_;
-  const raw_ptr<fake_server::FakeServer> fake_server_;
+  raw_ptr<fake_server::FakeServer> fake_server_;
 };
 
 class IsIconURLSyncedChecker : public SingleClientStatusChangeChecker {
@@ -155,7 +155,7 @@ class IsIconURLSyncedChecker : public SingleClientStatusChangeChecker {
  private:
   const std::string page_url_;
   const std::string icon_url_;
-  const raw_ptr<fake_server::FakeServer> fake_server_;
+  raw_ptr<fake_server::FakeServer> fake_server_;
 };
 
 // Checker to block until the history DB for |profile| does / does not have a
@@ -663,7 +663,6 @@ IN_PROC_BROWSER_TEST_F(SingleClientSessionsSyncTest, OpenNewWindow) {
 IN_PROC_BROWSER_TEST_F(SingleClientSessionsSyncTest,
                        GarbageCollectionOfForeignSessions) {
   const std::string kForeignSessionTag = "ForeignSessionTag";
-  const std::string kForeignClientName = "ForeignClientName";
   const SessionID kWindowId = SessionID::FromSerializedValue(5);
   const SessionID kTabId1 = SessionID::FromSerializedValue(1);
   const SessionID kTabId2 = SessionID::FromSerializedValue(2);
@@ -679,7 +678,7 @@ IN_PROC_BROWSER_TEST_F(SingleClientSessionsSyncTest,
   // that such tabs are also subject to garbage collection.
   sync_pb::SessionSpecifics header =
       SessionSyncTestHelper::BuildHeaderSpecificsWithoutWindows(
-          kForeignSessionTag, kForeignClientName);
+          kForeignSessionTag);
   SessionSyncTestHelper::AddWindowSpecifics(kWindowId, {kTabId1}, &header);
 
   for (const sync_pb::SessionSpecifics& specifics : {tab1, tab2, header}) {
@@ -933,7 +932,6 @@ class SingleClientSessionsSyncTestWithFaviconTestServer
 IN_PROC_BROWSER_TEST_F(SingleClientSessionsSyncTestWithFaviconTestServer,
                        MAYBE_ShouldDeleteOnDemandIconsOnSessionsDisabled) {
   const std::string kForeignSessionTag = "ForeignSessionTag";
-  const std::string kForeignClientName = "ForeignClientName";
   const SessionID kWindowId = SessionID::FromSerializedValue(5);
   const SessionID kTabId = SessionID::FromSerializedValue(1);
   const base::Time kLastModifiedTime = base::Time::Now();
@@ -944,7 +942,7 @@ IN_PROC_BROWSER_TEST_F(SingleClientSessionsSyncTestWithFaviconTestServer,
       helper.BuildTabSpecifics(kForeignSessionTag, kWindowId, kTabId);
   sync_pb::SessionSpecifics header =
       SessionSyncTestHelper::BuildHeaderSpecificsWithoutWindows(
-          kForeignSessionTag, kForeignClientName);
+          kForeignSessionTag);
   SessionSyncTestHelper::AddWindowSpecifics(kWindowId, {kTabId}, &header);
   for (const sync_pb::SessionSpecifics& specifics : {tab, header}) {
     sync_pb::EntitySpecifics entity;

@@ -578,7 +578,7 @@ void WorkerOrWorkletGlobalScope::Trace(Visitor* visitor) const {
   visitor->Trace(resource_fetchers_);
   visitor->Trace(subresource_filter_);
   visitor->Trace(script_controller_);
-  EventTarget::Trace(visitor);
+  EventTargetWithInlineData::Trace(visitor);
   ExecutionContext::Trace(visitor);
 }
 

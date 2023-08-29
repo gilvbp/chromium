@@ -15,7 +15,8 @@
 #include "components/user_manager/user_names.h"
 #include "components/user_manager/user_type.h"
 
-namespace ash::chrome_user_manager_util {
+namespace ash {
+namespace chrome_user_manager_util {
 
 bool AreAllUsersAllowed(const user_manager::UserList& users,
                         const enterprise_management::ChromeDeviceSettingsProto&
@@ -48,9 +49,8 @@ bool AreAllUsersAllowed(const user_manager::UserList& users,
     const bool is_gaia_user_allowed =
         allow_new_user || is_user_allowlisted || is_allowed_because_family_link;
     if (!IsUserAllowed(*user, is_guest_allowed,
-                       user->HasGaiaAccount() && is_gaia_user_allowed)) {
+                       user->HasGaiaAccount() && is_gaia_user_allowed))
       return false;
-    }
   }
   return true;
 }
@@ -71,11 +71,12 @@ bool IsUserAllowed(const user_manager::User& user,
   return true;
 }
 
-bool IsManagedGuestSessionOrEphemeralLogin() {
+bool IsPublicSessionOrEphemeralLogin() {
   const user_manager::UserManager* user_manager =
       user_manager::UserManager::Get();
-  return user_manager->IsLoggedInAsManagedGuestSession() ||
+  return user_manager->IsLoggedInAsPublicAccount() ||
          user_manager->IsCurrentUserCryptohomeDataEphemeral();
 }
 
-}  // namespace ash::chrome_user_manager_util
+}  // namespace chrome_user_manager_util
+}  // namespace ash

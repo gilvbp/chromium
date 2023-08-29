@@ -31,8 +31,6 @@
 #include "testing/gtest/include/gtest/gtest.h"
 #include "testing/platform_test.h"
 
-using ::testing::_;
-
 namespace safe_browsing {
 
 namespace {
@@ -42,9 +40,9 @@ namespace {
 constexpr char kUrlWithMatchingHashPrefix1[] = "https://example.a23549";
 constexpr char kUrlWithMatchingHashPrefix2[] = "https://example.a3945";
 
-constexpr char kTestRelayUrl[] = "https://ohttp.endpoint.test/";
+constexpr char kTestRelayUrl[] = "https://ohttp.endpoint.test";
 constexpr char kTestRelayUrlWithinExperiment[] =
-    "https://ohttp.endpoint.testwithinexperiment/";
+    "https://ohttp.endpoint.testWithinExperiment";
 constexpr char kOhttpKey[] = "TestOhttpKey";
 
 // A class for testing requests sent via OHTTP. Call |AddResponse| and
@@ -156,23 +154,6 @@ class TestOhttpKeyService : public OhttpKeyService {
   bool lookup_response_notified_ = false;
 };
 
-class MockWebUIDelegate : public HashRealTimeService::WebUIDelegate {
- public:
-  MockWebUIDelegate() : HashRealTimeService::WebUIDelegate() {}
-  ~MockWebUIDelegate() override = default;
-
-  MOCK_METHOD3(AddToHPRTLookupPings,
-               absl::optional<int>(V5::SearchHashesRequest*,
-                                   std::string,
-                                   std::string));
-  MOCK_METHOD2(AddToHPRTLookupResponses, void(int, V5::SearchHashesResponse*));
-
-  int GetNextToken() { return ++token_counter_; }
-
- private:
-  int token_counter_ = 0;
-};
-
 }  // namespace
 
 class HashRealTimeServiceTest : public PlatformTest {
@@ -221,13 +202,9 @@ class HashRealTimeServiceTest : public PlatformTest {
     }
     ohttp_key_service_ = std::make_unique<TestOhttpKeyService>();
     ohttp_key_service_->SetOhttpKey(kOhttpKey);
-    if (include_web_ui_delegate_) {
-      webui_delegate_ = std::make_unique<MockWebUIDelegate>();
-    }
     service_ = std::make_unique<HashRealTimeService>(
         test_shared_loader_factory_, network_context_callback,
-        cache_manager_ptr, ohttp_key_service_.get(), base::NullCallback(),
-        webui_delegate_.get());
+        cache_manager_ptr, ohttp_key_service_.get(), base::NullCallback());
   }
   void SetUp() override {
     PlatformTest::SetUp();
@@ -479,16 +456,7 @@ class HashRealTimeServiceTest : public PlatformTest {
       SBThreatType expected_locally_cached_results_threat_type,
       int expected_prefix_count,
       int expected_threat_info_size,
-      bool expected_found_unmatched_full_hashes,
-      std::string expected_relay_url) {
-    int next_token = webui_delegate_->GetNextToken();
-    EXPECT_CALL(
-        *webui_delegate_,
-        AddToHPRTLookupPings(testing::NotNull(), expected_relay_url, kOhttpKey))
-        .WillOnce(testing::Return(next_token));
-    EXPECT_CALL(*webui_delegate_,
-                AddToHPRTLookupResponses(next_token, testing::NotNull()))
-        .Times(1);
+      bool expected_found_unmatched_full_hashes) {
     auto num_requests = network_context_.total_requests();
     base::MockCallback<HPRTLookupResponseCallback> response_callback;
     StartSuccessRequest(url, cached_hash_prefixes, response_callback,
@@ -526,12 +494,8 @@ class HashRealTimeServiceTest : public PlatformTest {
       int expected_prefix_count,
       int expected_network_result,
       HashRealTimeService::OperationResult expected_operation_result) {
-    EXPECT_CALL(
-        *webui_delegate_,
-        AddToHPRTLookupPings(testing::NotNull(), kTestRelayUrl, kOhttpKey))
-        .WillOnce(testing::Return(webui_delegate_->GetNextToken()));
-    EXPECT_CALL(*webui_delegate_, AddToHPRTLookupResponses(_, _)).Times(0);
     auto num_requests = network_context_.total_requests();
+
     // Set up request and response.
     auto request = std::make_unique<V5::SearchHashesRequest>();
     for (const auto& hash_prefix : UrlToHashPrefixesAsSet(url)) {
@@ -553,7 +517,7 @@ class HashRealTimeServiceTest : public PlatformTest {
     EXPECT_CALL(response_callback,
                 Run(/*is_lookup_successful=*/false,
                     /*sb_threat_type=*/testing::Eq(absl::nullopt),
-                    /*locally_cached_results_threat_type=*/_))
+                    /*locally_cached_results_threat_type=*/testing::_))
         .Times(1);
     service_->StartLookup(url, is_source_lookup_mechanism_experiment_,
                           response_callback.Get(),
@@ -581,8 +545,6 @@ class HashRealTimeServiceTest : public PlatformTest {
   void RunFullyCachedRequestTest(const GURL& url,
                                  SBThreatType expected_threat_type,
                                  int expected_threat_info_size) {
-    EXPECT_CALL(*webui_delegate_, AddToHPRTLookupPings(_, _, _)).Times(0);
-    EXPECT_CALL(*webui_delegate_, AddToHPRTLookupResponses(_, _)).Times(0);
     auto num_requests = network_context_.total_requests();
     base::MockCallback<HPRTLookupResponseCallback> response_callback;
     // Confirm request response will be called once with the relevant threat
@@ -611,8 +573,6 @@ class HashRealTimeServiceTest : public PlatformTest {
   // should not be made. Confirms that the lookup's callback is called noting
   // the lookup failed.
   void RunBackoffRequestTest(const GURL& url) {
-    EXPECT_CALL(*webui_delegate_, AddToHPRTLookupPings(_, _, _)).Times(0);
-    EXPECT_CALL(*webui_delegate_, AddToHPRTLookupResponses(_, _)).Times(0);
     auto num_requests = network_context_.total_requests();
     base::MockCallback<HPRTLookupResponseCallback> response_callback;
     // Confirm request response will be called once with the relevant threat
@@ -649,7 +609,7 @@ class HashRealTimeServiceTest : public PlatformTest {
 
     // Start lookup.
     base::MockCallback<HPRTLookupResponseCallback> response_callback;
-    EXPECT_CALL(response_callback, Run(_, _, _));
+    EXPECT_CALL(response_callback, Run(testing::_, testing::_, testing::_));
     service_->StartLookup(url, is_source_lookup_mechanism_experiment_,
                           response_callback.Get(),
                           base::SequencedTaskRunner::GetCurrentDefault());
@@ -669,7 +629,7 @@ class HashRealTimeServiceTest : public PlatformTest {
 
     // Start lookup.
     base::MockCallback<HPRTLookupResponseCallback> response_callback;
-    EXPECT_CALL(response_callback, Run(_, _, _));
+    EXPECT_CALL(response_callback, Run(testing::_, testing::_, testing::_));
     service_->StartLookup(url, is_source_lookup_mechanism_experiment_,
                           response_callback.Get(),
                           base::SequencedTaskRunner::GetCurrentDefault());
@@ -688,7 +648,6 @@ class HashRealTimeServiceTest : public PlatformTest {
   }
 
   base::test::ScopedFeatureList feature_list_;
-  std::unique_ptr<MockWebUIDelegate> webui_delegate_;
   std::unique_ptr<HashRealTimeService> service_;
   std::unique_ptr<network::TestURLLoaderFactory> test_url_loader_factory_;
   scoped_refptr<network::SharedURLLoaderFactory> test_shared_loader_factory_;
@@ -703,7 +662,6 @@ class HashRealTimeServiceTest : public PlatformTest {
   std::unique_ptr<base::HistogramTester> histogram_tester_ =
       std::make_unique<base::HistogramTester>();
   bool include_cache_manager_ = true;
-  bool include_web_ui_delegate_ = true;
   bool is_source_lookup_mechanism_experiment_ = false;
 };
 
@@ -718,19 +676,14 @@ TEST_F(HashRealTimeServiceTest, TestLookup_OneHash) {
     SBThreatType expected_threat_type;
     int expected_threat_info_size;
   } test_cases[] = {
-    {absl::nullopt, SB_THREAT_TYPE_SAFE, 0},
-    {V5::ThreatType::SOCIAL_ENGINEERING, SB_THREAT_TYPE_URL_PHISHING, 1},
-    {V5::ThreatType::MALWARE, SB_THREAT_TYPE_URL_MALWARE, 1},
-    {V5::ThreatType::UNWANTED_SOFTWARE, SB_THREAT_TYPE_URL_UNWANTED, 1},
-#if !BUILDFLAG(IS_IOS)
-    {V5::ThreatType::SUSPICIOUS, SB_THREAT_TYPE_SUSPICIOUS_SITE, 1},
-#endif
-    {V5::ThreatType::TRICK_TO_BILL, SB_THREAT_TYPE_BILLING, 1},
-    // Irrelevant threat types should return safe.
-    {V5::ThreatType::API_ABUSE, SB_THREAT_TYPE_SAFE, 0},
-#if BUILDFLAG(IS_IOS)
-    {V5::ThreatType::SUSPICIOUS, SB_THREAT_TYPE_SAFE, 0},
-#endif
+      {absl::nullopt, SB_THREAT_TYPE_SAFE, 0},
+      {V5::ThreatType::SOCIAL_ENGINEERING, SB_THREAT_TYPE_URL_PHISHING, 1},
+      {V5::ThreatType::MALWARE, SB_THREAT_TYPE_URL_MALWARE, 1},
+      {V5::ThreatType::UNWANTED_SOFTWARE, SB_THREAT_TYPE_URL_UNWANTED, 1},
+      {V5::ThreatType::SUSPICIOUS, SB_THREAT_TYPE_SUSPICIOUS_SITE, 1},
+      {V5::ThreatType::TRICK_TO_BILL, SB_THREAT_TYPE_BILLING, 1},
+      // Irrelevant threat type should return safe.
+      {V5::ThreatType::API_ABUSE, SB_THREAT_TYPE_SAFE, 0},
   };
 
   GURL url = GURL("https://example.test");
@@ -748,8 +701,7 @@ TEST_F(HashRealTimeServiceTest, TestLookup_OneHash) {
         SBThreatType::SB_THREAT_TYPE_SAFE,
         /*expected_prefix_count=*/1,
         /*expected_threat_info_size=*/test_case.expected_threat_info_size,
-        /*expected_found_unmatched_full_hashes=*/false,
-        /*expected_relay_url=*/kTestRelayUrl);
+        /*expected_found_unmatched_full_hashes=*/false);
     // Fast forward to avoid subsequent test cases just pulling from the cache.
     task_environment_.FastForwardBy(base::Minutes(10));
   }
@@ -770,8 +722,7 @@ TEST_F(HashRealTimeServiceTest, TestLookup_OverlappingHashPrefixes) {
       SBThreatType::SB_THREAT_TYPE_SAFE,
       /*expected_prefix_count=*/1,
       /*expected_threat_info_size=*/0,
-      /*expected_found_unmatched_full_hashes=*/false,
-      /*expected_relay_url=*/kTestRelayUrl);
+      /*expected_found_unmatched_full_hashes=*/false);
 }
 
 TEST_F(HashRealTimeServiceTest, TestLookup_MaxHashes_Phishing) {
@@ -790,8 +741,7 @@ TEST_F(HashRealTimeServiceTest, TestLookup_MaxHashes_Phishing) {
       SBThreatType::SB_THREAT_TYPE_SAFE,
       /*expected_prefix_count=*/30,
       /*expected_threat_info_size=*/2,
-      /*expected_found_unmatched_full_hashes=*/false,
-      /*expected_relay_url=*/kTestRelayUrl);
+      /*expected_found_unmatched_full_hashes=*/false);
 }
 
 TEST_F(HashRealTimeServiceTest,
@@ -828,8 +778,7 @@ TEST_F(HashRealTimeServiceTest,
       SBThreatType::SB_THREAT_TYPE_SAFE,
       /*expected_prefix_count=*/30,
       /*expected_threat_info_size=*/9,
-      /*expected_found_unmatched_full_hashes=*/false,
-      /*expected_relay_url=*/kTestRelayUrl);
+      /*expected_found_unmatched_full_hashes=*/false);
 }
 
 TEST_F(HashRealTimeServiceTest, TestLookup_MaxHashes_OnlyIrrelevant) {
@@ -862,8 +811,7 @@ TEST_F(HashRealTimeServiceTest, TestLookup_MaxHashes_OnlyIrrelevant) {
       SBThreatType::SB_THREAT_TYPE_SAFE,
       /*expected_prefix_count=*/30,
       /*expected_threat_info_size=*/0,
-      /*expected_found_unmatched_full_hashes=*/false,
-      /*expected_relay_url=*/kTestRelayUrl);
+      /*expected_found_unmatched_full_hashes=*/false);
 }
 
 TEST_F(HashRealTimeServiceTest, TestLookup_CompetingSeverities) {
@@ -879,8 +827,7 @@ TEST_F(HashRealTimeServiceTest, TestLookup_CompetingSeverities) {
       SBThreatType::SB_THREAT_TYPE_SAFE,
       /*expected_prefix_count=*/1,
       /*expected_threat_info_size=*/3,
-      /*expected_found_unmatched_full_hashes=*/false,
-      /*expected_relay_url=*/kTestRelayUrl);
+      /*expected_found_unmatched_full_hashes=*/false);
 }
 
 TEST_F(HashRealTimeServiceTest, TestLookup_Attributes) {
@@ -901,8 +848,7 @@ TEST_F(HashRealTimeServiceTest, TestLookup_Attributes) {
       SBThreatType::SB_THREAT_TYPE_SAFE,
       /*expected_prefix_count=*/1,
       /*expected_threat_info_size=*/3,
-      /*expected_found_unmatched_full_hashes=*/false,
-      /*expected_relay_url=*/kTestRelayUrl);
+      /*expected_found_unmatched_full_hashes=*/false);
 }
 
 TEST_F(HashRealTimeServiceTest, TestLookup_InvalidThreatTypes) {
@@ -917,8 +863,7 @@ TEST_F(HashRealTimeServiceTest, TestLookup_InvalidThreatTypes) {
         SBThreatType::SB_THREAT_TYPE_SAFE,
         /*expected_prefix_count=*/1,
         /*expected_threat_info_size=*/expected_threat_info_size,
-        /*expected_found_unmatched_full_hashes=*/false,
-        /*expected_relay_url=*/kTestRelayUrl);
+        /*expected_found_unmatched_full_hashes=*/false);
   };
   // Sanity check the static casting on a valid threat type is not filtered out.
   run_test(GURL("https://example.test1"), {static_cast<V5::ThreatType>(2)},
@@ -964,8 +909,7 @@ TEST_F(HashRealTimeServiceTest, TestLookup_InvalidAttributes) {
         SBThreatType::SB_THREAT_TYPE_SAFE,
         /*expected_prefix_count=*/1,
         /*expected_threat_info_size=*/1,
-        /*expected_found_unmatched_full_hashes=*/false,
-        /*expected_relay_url=*/kTestRelayUrl);
+        /*expected_found_unmatched_full_hashes=*/false);
   }
   // Threat types are the same.
   {
@@ -988,8 +932,7 @@ TEST_F(HashRealTimeServiceTest, TestLookup_InvalidAttributes) {
         SBThreatType::SB_THREAT_TYPE_SAFE,
         /*expected_prefix_count=*/1,
         /*expected_threat_info_size=*/2,
-        /*expected_found_unmatched_full_hashes=*/false,
-        /*expected_relay_url=*/kTestRelayUrl);
+        /*expected_found_unmatched_full_hashes=*/false);
   }
 }
 
@@ -1009,8 +952,7 @@ TEST_F(HashRealTimeServiceTest, TestLookup_UnmatchedFullHashesInResponse) {
         SBThreatType::SB_THREAT_TYPE_SAFE,
         /*expected_prefix_count=*/1,
         /*expected_threat_info_size=*/0,
-        /*expected_found_unmatched_full_hashes=*/true,
-        /*expected_relay_url=*/kTestRelayUrl);
+        /*expected_found_unmatched_full_hashes=*/true);
   }
   {
     GURL url = GURL("https://example.test3");
@@ -1027,8 +969,7 @@ TEST_F(HashRealTimeServiceTest, TestLookup_UnmatchedFullHashesInResponse) {
         SBThreatType::SB_THREAT_TYPE_SAFE,
         /*expected_prefix_count=*/1,
         /*expected_threat_info_size=*/1,
-        /*expected_found_unmatched_full_hashes=*/true,
-        /*expected_relay_url=*/kTestRelayUrl);
+        /*expected_found_unmatched_full_hashes=*/true);
   }
 }
 
@@ -1048,8 +989,7 @@ TEST_F(HashRealTimeServiceTest, TestLookup_DuplicateFullHashesInResponse) {
       SBThreatType::SB_THREAT_TYPE_SAFE,
       /*expected_prefix_count=*/1,
       /*expected_threat_info_size=*/2,
-      /*expected_found_unmatched_full_hashes=*/false,
-      /*expected_relay_url=*/kTestRelayUrl);
+      /*expected_found_unmatched_full_hashes=*/false);
   // Run it with the server responses backwards as well to confirm order doesn't
   // matter.
   GURL url2 = GURL("https://example.test2");
@@ -1065,8 +1005,7 @@ TEST_F(HashRealTimeServiceTest, TestLookup_DuplicateFullHashesInResponse) {
       SBThreatType::SB_THREAT_TYPE_SAFE,
       /*expected_prefix_count=*/1,
       /*expected_threat_info_size=*/2,
-      /*expected_found_unmatched_full_hashes=*/false,
-      /*expected_relay_url=*/kTestRelayUrl);
+      /*expected_found_unmatched_full_hashes=*/false);
 }
 
 TEST_F(HashRealTimeServiceTest, TestLookup_DuplicateFullHashDetailsInResponse) {
@@ -1085,8 +1024,7 @@ TEST_F(HashRealTimeServiceTest, TestLookup_DuplicateFullHashDetailsInResponse) {
       SBThreatType::SB_THREAT_TYPE_SAFE,
       /*expected_prefix_count=*/1,
       /*expected_threat_info_size=*/4,
-      /*expected_found_unmatched_full_hashes=*/false,
-      /*expected_relay_url=*/kTestRelayUrl);
+      /*expected_found_unmatched_full_hashes=*/false);
 }
 
 TEST_F(HashRealTimeServiceTest, TestLookupFailure_NetError) {
@@ -1104,6 +1042,8 @@ TEST_F(HashRealTimeServiceTest, TestLookupFailure_NetError) {
 }
 TEST_F(HashRealTimeServiceTest, TestLookupFailure_RetriableNetError) {
   GURL url = GURL("https://example.test");
+  // Retriable errors are not yet implemented for the OHTTP path, so they should
+  // still be considered a network error.
   RunRequestFailureTest(
       /*url=*/url, /*response_full_hashes=*/absl::nullopt,
       /*custom_response=*/"",
@@ -1113,7 +1053,7 @@ TEST_F(HashRealTimeServiceTest, TestLookupFailure_RetriableNetError) {
       /*expected_prefix_count=*/1,
       /*expected_network_result=*/net::ERR_INTERNET_DISCONNECTED,
       /*expected_operation_result=*/
-      HashRealTimeService::OperationResult::kRetriableError);
+      HashRealTimeService::OperationResult::kNetworkError);
 }
 TEST_F(HashRealTimeServiceTest, TestLookupFailure_NetErrorHttpCodeFailure) {
   GURL url = GURL("https://example.test");
@@ -1197,13 +1137,11 @@ TEST_F(HashRealTimeServiceTest, TestLookupFailure_MissingCacheDuration) {
 TEST_F(HashRealTimeServiceTest, TestLookupFailure_MissingOhttpKey) {
   GURL url = GURL("https://example.test");
   ohttp_key_service_->SetOhttpKey(absl::nullopt);
-  EXPECT_CALL(*webui_delegate_, AddToHPRTLookupPings(_, _, _)).Times(0);
-  EXPECT_CALL(*webui_delegate_, AddToHPRTLookupResponses(_, _)).Times(0);
   base::MockCallback<HPRTLookupResponseCallback> response_callback;
   EXPECT_CALL(response_callback,
               Run(/*is_lookup_successful=*/false,
                   /*sb_threat_type=*/testing::Eq(absl::nullopt),
-                  /*locally_cached_results_threat_type=*/_))
+                  /*locally_cached_results_threat_type=*/testing::_))
       .Times(1);
   service_->StartLookup(url, is_source_lookup_mechanism_experiment_,
                         response_callback.Get(),
@@ -1275,8 +1213,7 @@ TEST_F(HashRealTimeServiceTest, TestFullyCached_OverlappingHashPrefixes) {
       /*expected_locally_cached_results_threat_type=*/
       SBThreatType::SB_THREAT_TYPE_SAFE,
       /*expected_prefix_count=*/1, /*expected_threat_info_size=*/1,
-      /*expected_found_unmatched_full_hashes=*/false,
-      /*expected_relay_url=*/kTestRelayUrl);
+      /*expected_found_unmatched_full_hashes=*/false);
   ResetMetrics();
   // Start a lookup for url2. This has the same hash prefix as url1, so the
   // results are fully cached, and no request is sent.
@@ -1305,8 +1242,7 @@ TEST_F(HashRealTimeServiceTest, TestPartiallyCached_RequestResultsUsed) {
       /*expected_locally_cached_results_threat_type=*/
       SBThreatType::SB_THREAT_TYPE_URL_UNWANTED,
       /*expected_prefix_count=*/24, /*expected_threat_info_size=*/2,
-      /*expected_found_unmatched_full_hashes=*/false,
-      /*expected_relay_url=*/kTestRelayUrl);
+      /*expected_found_unmatched_full_hashes=*/false);
 }
 
 // Since phishing is more severe than unwanted software, the cached results
@@ -1328,8 +1264,7 @@ TEST_F(HashRealTimeServiceTest, TestPartiallyCached_CachedResultsUsed) {
       /*expected_locally_cached_results_threat_type=*/
       SBThreatType::SB_THREAT_TYPE_URL_PHISHING,
       /*expected_prefix_count=*/24, /*expected_threat_info_size=*/2,
-      /*expected_found_unmatched_full_hashes=*/false,
-      /*expected_relay_url=*/kTestRelayUrl);
+      /*expected_found_unmatched_full_hashes=*/false);
 }
 
 TEST_F(HashRealTimeServiceTest, TestCacheDuration) {
@@ -1353,8 +1288,7 @@ TEST_F(HashRealTimeServiceTest, TestCacheDuration) {
       SBThreatType::SB_THREAT_TYPE_SAFE,
       /*expected_prefix_count=*/1,
       /*expected_threat_info_size=*/0,
-      /*expected_found_unmatched_full_hashes=*/false,
-      /*expected_relay_url=*/kTestRelayUrl);
+      /*expected_found_unmatched_full_hashes=*/false);
 }
 
 TEST_F(HashRealTimeServiceNoCacheManagerTest, TestNoCaching) {
@@ -1371,8 +1305,7 @@ TEST_F(HashRealTimeServiceNoCacheManagerTest, TestNoCaching) {
       SBThreatType::SB_THREAT_TYPE_SAFE,
       /*expected_prefix_count=*/1,
       /*expected_threat_info_size=*/0,
-      /*expected_found_unmatched_full_hashes=*/false,
-      /*expected_relay_url=*/kTestRelayUrl);
+      /*expected_found_unmatched_full_hashes=*/false);
 }
 
 TEST_F(HashRealTimeServiceTest, TestShutdown) {
@@ -1390,7 +1323,8 @@ TEST_F(HashRealTimeServiceTest, TestShutdown) {
     // not called due to shutdown. It should still send the initial request
     // since it happens before Shutdown.
     base::MockCallback<HPRTLookupResponseCallback> response_callback;
-    EXPECT_CALL(response_callback, Run(_, _, _)).Times(0);
+    EXPECT_CALL(response_callback, Run(testing::_, testing::_, testing::_))
+        .Times(0);
     service_->StartLookup(url, is_source_lookup_mechanism_experiment_,
                           response_callback.Get(),
                           base::SequencedTaskRunner::GetCurrentDefault());
@@ -1405,7 +1339,8 @@ TEST_F(HashRealTimeServiceTest, TestShutdown) {
     // shutdown). It should not even trigger a request.
     GURL url = GURL("https://example.test");
     base::MockCallback<HPRTLookupResponseCallback> response_callback;
-    EXPECT_CALL(response_callback, Run(_, _, _)).Times(0);
+    EXPECT_CALL(response_callback, Run(testing::_, testing::_, testing::_))
+        .Times(0);
     service_->StartLookup(url, is_source_lookup_mechanism_experiment_,
                           response_callback.Get(),
                           base::SequencedTaskRunner::GetCurrentDefault());
@@ -1417,19 +1352,6 @@ TEST_F(HashRealTimeServiceTest, TestShutdown) {
 }
 
 TEST_F(HashRealTimeServiceTest, TestLookup_MultipleRequestsAtOnce) {
-  int token1 = webui_delegate_->GetNextToken();
-  int token2 = webui_delegate_->GetNextToken();
-  EXPECT_CALL(*webui_delegate_, AddToHPRTLookupPings(testing::NotNull(),
-                                                     kTestRelayUrl, kOhttpKey))
-      .WillOnce(testing::Return(token1))
-      .WillOnce(testing::Return(token2));
-  EXPECT_CALL(*webui_delegate_,
-              AddToHPRTLookupResponses(token1, testing::NotNull()))
-      .Times(1);
-  EXPECT_CALL(*webui_delegate_,
-              AddToHPRTLookupResponses(token2, testing::NotNull()))
-      .Times(1);
-
   GURL url1 = GURL("https://example.test1");
   GURL url2 = GURL("https://example.test2");
   base::MockCallback<HPRTLookupResponseCallback> response_callback1;
@@ -1458,45 +1380,6 @@ TEST_F(HashRealTimeServiceTest, TestLookup_MultipleRequestsAtOnce) {
   histogram_tester_->ExpectTotalCount(
       /*name=*/"SafeBrowsing.HPRT.Network.Result",
       /*expected_count=*/2);
-}
-
-TEST_F(HashRealTimeServiceTest, TestLookup_WebUiDelegateReturnsNullopt) {
-  EXPECT_CALL(*webui_delegate_, AddToHPRTLookupPings(testing::NotNull(),
-                                                     kTestRelayUrl, kOhttpKey))
-      .WillOnce(testing::Return(absl::nullopt));
-  EXPECT_CALL(*webui_delegate_, AddToHPRTLookupResponses(_, _)).Times(0);
-
-  GURL url = GURL("https://example.test");
-  base::MockCallback<HPRTLookupResponseCallback> response_callback1;
-  StartSuccessRequest(
-      /*url=*/url, /*cached_hash_prefixes=*/{},
-      /*response_callback=*/response_callback1, /*response_full_hashes=*/
-      {CreateFullHashProto({V5::ThreatType::SOCIAL_ENGINEERING},
-                           UrlToSingleFullHash(url))},
-      /*expected_threat_type=*/SBThreatType::SB_THREAT_TYPE_URL_PHISHING,
-      /*expected_locally_cached_results_threat_type=*/
-      SBThreatType::SB_THREAT_TYPE_SAFE);
-
-  task_environment_.RunUntilIdle();
-}
-
-class HashRealTimeServiceNoWebUiDelegateTest : public HashRealTimeServiceTest {
- public:
-  HashRealTimeServiceNoWebUiDelegateTest() { include_web_ui_delegate_ = false; }
-};
-TEST_F(HashRealTimeServiceNoWebUiDelegateTest, TestLookup_NoWebUiDelegate) {
-  GURL url = GURL("https://example.test");
-  base::MockCallback<HPRTLookupResponseCallback> response_callback1;
-  StartSuccessRequest(
-      /*url=*/url, /*cached_hash_prefixes=*/{},
-      /*response_callback=*/response_callback1, /*response_full_hashes=*/
-      {CreateFullHashProto({V5::ThreatType::SOCIAL_ENGINEERING},
-                           UrlToSingleFullHash(url))},
-      /*expected_threat_type=*/SBThreatType::SB_THREAT_TYPE_URL_PHISHING,
-      /*expected_locally_cached_results_threat_type=*/
-      SBThreatType::SB_THREAT_TYPE_SAFE);
-
-  task_environment_.RunUntilIdle();
 }
 
 TEST_F(HashRealTimeServiceTest, TestBackoffModeSet) {
@@ -1537,24 +1420,18 @@ TEST_F(HashRealTimeServiceTest, TestBackoffModeSet) {
 TEST_F(HashRealTimeServiceTest, TestBackoffModeSet_RetriableError) {
   GURL url = GURL("https://example.test");
 
-  // Retriable errors should not trigger backoff mode.
+  // Retriable errors are not yet implemented for the OHTTP path, so they
+  // should still trigger backoff.
   RunSimpleFailingRequest(url, /*net_error=*/net::ERR_INTERNET_DISCONNECTED);
-  RunSimpleFailingRequest(url, /*net_error=*/net::ERR_NETWORK_CHANGED);
+  EXPECT_FALSE(service_->backoff_operator_->IsInBackoffMode());
   RunSimpleFailingRequest(url, /*net_error=*/net::ERR_INTERNET_DISCONNECTED);
-  RunSimpleFailingRequest(url, /*net_error=*/net::ERR_NETWORK_CHANGED);
-  RunSimpleFailingRequest(url, /*net_error=*/net::ERR_INTERNET_DISCONNECTED);
-  RunSimpleFailingRequest(url, /*net_error=*/net::ERR_NETWORK_CHANGED);
   EXPECT_FALSE(service_->backoff_operator_->IsInBackoffMode());
   CheckEnteringBackoffMetric(/*expected_network_result=*/absl::nullopt);
-
-  // Retriable errors should not reset the backoff counter back to 0.
-  RunSimpleFailingRequest(url, /*net_error=*/net::ERR_FAILED);
-  RunSimpleFailingRequest(url, /*net_error=*/net::ERR_FAILED);
+  ResetMetrics();
   RunSimpleFailingRequest(url, /*net_error=*/net::ERR_INTERNET_DISCONNECTED);
-  EXPECT_FALSE(service_->backoff_operator_->IsInBackoffMode());
-  RunSimpleFailingRequest(url, /*net_error=*/net::ERR_FAILED);
   EXPECT_TRUE(service_->backoff_operator_->IsInBackoffMode());
-  CheckEnteringBackoffMetric(/*expected_network_result=*/net::ERR_FAILED);
+  CheckEnteringBackoffMetric(
+      /*expected_network_result=*/net::ERR_INTERNET_DISCONNECTED);
 }
 
 TEST_F(HashRealTimeServiceTest, TestBackoffModeSet_MissingOhttpKey) {
@@ -1564,7 +1441,7 @@ TEST_F(HashRealTimeServiceTest, TestBackoffModeSet_MissingOhttpKey) {
   EXPECT_CALL(response_callback,
               Run(/*is_lookup_successful=*/false,
                   /*sb_threat_type=*/testing::Eq(absl::nullopt),
-                  /*locally_cached_results_threat_type=*/_))
+                  /*locally_cached_results_threat_type=*/testing::_))
       .Times(3);
   service_->StartLookup(url, is_source_lookup_mechanism_experiment_,
                         response_callback.Get(),
@@ -1706,6 +1583,35 @@ TEST_F(HashRealTimeServiceTest, TestIsThreatTypeMoreSevere) {
   }
 }
 
+TEST_F(HashRealTimeServiceTest, TestCanCheckUrl) {
+  auto can_check_url =
+      [](std::string url,
+         network::mojom::RequestDestination request_destination =
+             network::mojom::RequestDestination::kDocument) {
+        EXPECT_TRUE(GURL(url).is_valid());
+        return HashRealTimeService::CanCheckUrl(GURL(url), request_destination);
+      };
+  // Yes: HTTPS and main-frame URL.
+  EXPECT_TRUE(can_check_url("https://example.test/path"));
+  // Yes: HTTP and main-frame URL.
+  EXPECT_TRUE(can_check_url("http://example.test/path"));
+  // No: It's not a mainframe URL.
+  EXPECT_FALSE(can_check_url("https://example.test/path",
+                             network::mojom::RequestDestination::kFrame));
+  // No: The URL scheme is not HTTP/HTTPS.
+  EXPECT_FALSE(can_check_url("ftp://example.test/path"));
+  // No: It's localhost.
+  EXPECT_FALSE(can_check_url("http://localhost/path"));
+  // No: The host is an IP address, but is not publicly routable.
+  EXPECT_FALSE(can_check_url("http://0.0.0.0"));
+  // Yes: The host is an IP address and is publicly routable.
+  EXPECT_TRUE(can_check_url("http://1.0.0.0"));
+  // No: Hostname does not have at least 1 dot.
+  EXPECT_FALSE(can_check_url("https://example/path"));
+  // No: Hostname does not have at least 3 characters.
+  EXPECT_FALSE(can_check_url("https://e./path"));
+}
+
 class HashRealTimeServiceWithinExperimentTest : public HashRealTimeServiceTest {
  public:
   HashRealTimeServiceWithinExperimentTest() {
@@ -1730,8 +1636,7 @@ TEST_F(HashRealTimeServiceWithinExperimentTest, TestLookup_SuccessOverOhttp) {
       SBThreatType::SB_THREAT_TYPE_SAFE,
       /*expected_prefix_count=*/1,
       /*expected_threat_info_size=*/1,
-      /*expected_found_unmatched_full_hashes=*/false,
-      /*expected_relay_url=*/kTestRelayUrlWithinExperiment);
+      /*expected_found_unmatched_full_hashes=*/false);
 }
 
 class HashRealTimeServiceDirectFetchTest : public HashRealTimeServiceTest {
@@ -1787,15 +1692,11 @@ class HashRealTimeServiceDirectFetchTest : public HashRealTimeServiceTest {
                                           "", status);
 
     // Start lookup.
-    EXPECT_CALL(*webui_delegate_,
-                AddToHPRTLookupPings(testing::NotNull(), "", ""))
-        .WillOnce(testing::Return(webui_delegate_->GetNextToken()));
-    EXPECT_CALL(*webui_delegate_, AddToHPRTLookupResponses(_, _)).Times(0);
     base::MockCallback<HPRTLookupResponseCallback> response_callback;
     EXPECT_CALL(response_callback,
                 Run(/*is_lookup_successful=*/false,
                     /*sb_threat_type=*/testing::Eq(absl::nullopt),
-                    /*locally_cached_results_threat_type=*/_))
+                    /*locally_cached_results_threat_type=*/testing::_))
         .Times(1);
     service_->StartLookup(url, is_source_lookup_mechanism_experiment_,
                           response_callback.Get(),
@@ -1837,15 +1738,7 @@ TEST_F(HashRealTimeServiceDirectFetchTest, TestLookup_Success) {
               Run(/*is_lookup_successful=*/true,
                   /*sb_threat_type=*/
                   testing::Optional(SBThreatType::SB_THREAT_TYPE_URL_PHISHING),
-                  /*locally_cached_results_threat_type=*/_))
-      .Times(1);
-
-  int next_token = webui_delegate_->GetNextToken();
-  EXPECT_CALL(*webui_delegate_,
-              AddToHPRTLookupPings(testing::NotNull(), "", ""))
-      .WillOnce(testing::Return(next_token));
-  EXPECT_CALL(*webui_delegate_,
-              AddToHPRTLookupResponses(next_token, testing::NotNull()))
+                  /*locally_cached_results_threat_type=*/testing::_))
       .Times(1);
 
   service_->StartLookup(url, is_source_lookup_mechanism_experiment_,

@@ -46,7 +46,6 @@ bool MetricsProvider::HasIndependentMetrics() {
 }
 
 void MetricsProvider::ProvideIndependentMetrics(
-    base::OnceClosure serialize_log_callback,
     base::OnceCallback<void(bool)> done_callback,
     ChromeUserMetricsExtension* uma_proto,
     base::HistogramSnapshotManager* snapshot_manager) {

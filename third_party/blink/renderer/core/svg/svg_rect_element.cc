@@ -24,7 +24,6 @@
 #include "third_party/blink/renderer/core/layout/svg/layout_svg_rect.h"
 #include "third_party/blink/renderer/core/svg/svg_animated_length.h"
 #include "third_party/blink/renderer/core/svg/svg_length.h"
-#include "third_party/blink/renderer/core/svg/svg_length_functions.h"
 #include "third_party/blink/renderer/platform/heap/garbage_collected.h"
 
 namespace blink {
@@ -81,20 +80,20 @@ void SVGRectElement::Trace(Visitor* visitor) const {
 Path SVGRectElement::AsPath() const {
   Path path;
 
-  const SVGViewportResolver viewport_resolver(*this);
+  SVGLengthContext length_context(this);
   const ComputedStyle& style = ComputedStyleRef();
 
-  gfx::Vector2dF size = VectorForLengthPair(
-      style.UsedWidth(), style.UsedHeight(), viewport_resolver, style);
+  gfx::Vector2dF size = length_context.ResolveLengthPair(
+      style.UsedWidth(), style.UsedHeight(), style);
   if (size.x() < 0 || size.y() < 0 || size.IsZero())
     return path;
 
-  gfx::PointF origin =
-      PointForLengthPair(style.X(), style.Y(), viewport_resolver, style);
-  gfx::RectF rect(origin, gfx::SizeF(size.x(), size.y()));
+  gfx::Vector2dF origin =
+      length_context.ResolveLengthPair(style.X(), style.Y(), style);
+  gfx::RectF rect(origin.x(), origin.y(), size.x(), size.y());
 
   gfx::Vector2dF radii =
-      VectorForLengthPair(style.Rx(), style.Ry(), viewport_resolver, style);
+      length_context.ResolveLengthPair(style.Rx(), style.Ry(), style);
   // Apply the SVG corner radius constraints, per the rect section of the SVG
   // shapes spec: if one of radii.x() and radii.y() is auto or negative, then
   // the other corner radius value is used. If both are auto or negative, then

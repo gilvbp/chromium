@@ -45,8 +45,7 @@ class DummyModulator : public Modulator {
                  network::mojom::RequestDestination destination,
                  const ScriptFetchOptions&,
                  ModuleScriptCustomFetchType,
-                 ModuleTreeClient*,
-                 String referrer) override;
+                 ModuleTreeClient*) override;
   void FetchSingle(const ModuleScriptFetchRequest&,
                    ResourceFetcher*,
                    ModuleGraphLevel,

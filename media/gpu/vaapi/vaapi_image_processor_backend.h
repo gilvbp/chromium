@@ -36,6 +36,7 @@ class VaapiImageProcessorBackend : public ImageProcessorBackend {
       const PortConfig& input_config,
       const PortConfig& output_config,
       OutputMode output_mode,
+      VideoRotation relative_rotation,
       ErrorCB error_cb);
 
   // ImageProcessor implementation.
@@ -50,6 +51,7 @@ class VaapiImageProcessorBackend : public ImageProcessorBackend {
   VaapiImageProcessorBackend(const PortConfig& input_config,
                              const PortConfig& output_config,
                              OutputMode output_mode,
+                             VideoRotation relative_rotation,
                              ErrorCB error_cb);
   ~VaapiImageProcessorBackend() override;
 

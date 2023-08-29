@@ -286,6 +286,7 @@ public class FakeAccountManagerFacade implements AccountManagerFacade {
     @MainThread
     private void fireOnAccountsChangedNotification() {
         for (AccountsChangeObserver observer : mObservers) {
+            observer.onAccountsChanged();
             observer.onCoreAccountInfosChanged();
         }
     }

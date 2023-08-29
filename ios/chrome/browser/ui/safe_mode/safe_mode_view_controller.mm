@@ -11,12 +11,16 @@
 #import "ios/chrome/browser/safe_mode/safe_mode_crashing_modules_config.h"
 #import "ios/chrome/browser/safe_mode/safe_mode_util.h"
 #import "ios/chrome/browser/shared/ui/util/uikit_ui_util.h"
+#import "ios/chrome/browser/ui/fancy_ui/primary_action_button.h"
 #import "ios/chrome/common/crash_report/crash_helper.h"
 #import "ios/chrome/common/ui/colors/semantic_color_names.h"
-#import "ios/chrome/common/ui/util/button_util.h"
 #import "ios/chrome/grit/ios_chromium_strings.h"
 #import "ui/base/device_form_factor.h"
 #import "ui/gfx/ios/NSString+CrStringDrawing.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace {
 const CGFloat kVerticalSpacing = 20;
@@ -205,19 +209,23 @@ const NSTimeInterval kUploadTotalTime = 5;
   [self centerView:description afterView:awSnap];
   [_innerView addSubview:description];
 
-  _startButton = PrimaryActionButton(YES);
+  _startButton = CreatePrimaryActionButton();
   NSString* startText =
       NSLocalizedString(@"IDS_IOS_SAFE_MODE_RELOAD_CHROME", @"");
   [_startButton setTitle:startText forState:UIControlStateNormal];
   [_startButton titleLabel].textAlignment = NSTextAlignmentCenter;
   [_startButton titleLabel].lineBreakMode = NSLineBreakByWordWrapping;
-  [_startButton titleLabel].adjustsFontSizeToFitWidth = YES;
   frame = [_startButton frame];
   frame.size.width =
       (ui::GetDeviceFormFactor() == ui::DEVICE_FORM_FACTOR_TABLET)
           ? kIPadWidth
           : kIPhoneWidth;
-  frame.size.height = _startButton.intrinsicContentSize.height;
+  maxSize = CGSizeMake(frame.size.width, 999999.0f);
+  const CGFloat kButtonBuffer = kVerticalSpacing / 2;
+  CGSize startTextBoundingSize =
+      [startText cr_boundingSizeWithSize:maxSize
+                                    font:[_startButton titleLabel].font];
+  frame.size.height = startTextBoundingSize.height + kButtonBuffer;
   [_startButton setFrame:frame];
   [_startButton addTarget:self
                    action:@selector(startBrowserFromSafeMode)

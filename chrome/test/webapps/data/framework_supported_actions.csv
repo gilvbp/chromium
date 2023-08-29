@@ -1,6 +1,5 @@
-# Action base name,                                    Mac,Win,Lin,Cros
+# Action base name,                                   Mac,Win,Lin,Cros
 check_app_icon,                                        🌕, 🌕,  🌕,   🌕,
-check_app_title,                                       🌕, 🌕,  🌕,   🌕,
 check_app_in_list_icon_correct,                        🌕, 🌕,  🌕,   🌕,
 check_app_in_list_not_locally_installed,               🌕, 🌕,  🌕,   🌕,
 check_app_in_list_tabbed,                              🌕, 🌕,  🌕,   🌓,
@@ -33,7 +32,6 @@ check_window_display_tabbed,                           🌕, 🌕,  🌕,   🌕
 check_window_display_standalone,                       🌕, 🌕,  🌕,   🌕,
 check_window_controls_overlay,                         🌕, 🌕,  🌕,   🌕,
 check_window_controls_overlay_toggle,                  🌕, 🌕,  🌕,   🌕,
-check_window_controls_overlay_toggle_icon,             🌕, 🌕,  🌕,   🌑,
 close_custom_toolbar,                                  🌕, 🌕,  🌕,   🌕,
 close_pwa,                                             🌕, 🌕,  🌕,   🌕,
 maybe_close_pwa,                                       🌕, 🌕,  🌕,   🌕,
@@ -42,8 +40,6 @@ create_shortcuts_from_list,                            🌕, 🌕,  🌕,   🌑
 delete_platform_shortcut,                              🌕, 🌕,  🌕,   🌑,
 disable_window_controls_overlay,                       🌕, 🌕,  🌕,   🌕,
 enable_window_controls_overlay,                        🌕, 🌕,  🌕,   🌕,
-enter_full_screen_app,                                 🌕, 🌕,  🌕,   🌕,
-exit_full_screen_app,                                  🌕, 🌕,  🌕,   🌕,
 create_shortcut,                                       🌕, 🌕,  🌕,   🌕,
 install_locally,                                       🌓, 🌓,  🌓,   🌓,
 install_menu_option,                                   🌕, 🌕,  🌕,   🌕,
@@ -55,7 +51,6 @@ launch_from_chrome_apps,                               🌕, 🌕,  🌕,   🌓
 launch_from_launch_icon,                               🌕, 🌕,  🌕,   🌕,
 launch_from_menu_option,                               🌕, 🌕,  🌕,   🌕,
 launch_from_platform_shortcut,                         🌓, 🌓,  🌓,   🌑,
-manifest_update_title,                                 🌕, 🌕,  🌕,   🌕,
 manifest_update_icon,                                  🌕, 🌕,  🌕,   🌕,
 manifest_update_display,                               🌕, 🌕,  🌕,   🌕,
 manifest_update_scope_to,                              🌕, 🌕,  🌕,   🌕,

@@ -5,9 +5,8 @@
 #ifndef CHROME_BROWSER_POLICY_MESSAGING_LAYER_PUBLIC_REPORT_CLIENT_TEST_UTIL_H_
 #define CHROME_BROWSER_POLICY_MESSAGING_LAYER_PUBLIC_REPORT_CLIENT_TEST_UTIL_H_
 
-#include <string_view>
-
 #include "base/files/file_path.h"
+#include "base/strings/string_piece.h"
 #include "chrome/browser/policy/messaging_layer/public/report_client.h"
 #include "components/reporting/storage/storage_module_interface.h"
 
@@ -19,7 +18,7 @@ class ReportingClient::TestEnvironment {
   // `reporting_path` location and with encryption support included.
   static std::unique_ptr<TestEnvironment> CreateWithLocalStorage(
       const base::FilePath& reporting_path,
-      std::string_view verification_key);
+      base::StringPiece verification_key);
 
   // Factory method creates an environment with a given storage module
   // (usually it is `test::TestStorageModule`).

@@ -226,7 +226,11 @@ class VIEWS_EXPORT NativeWidgetMac : public internal::NativeWidgetPrivate,
       remote_cocoa::mojom::CreateWindowParams* params) {}
 
   // Creates the NSWindow that will be passed to the NativeWidgetNSWindowBridge.
-  // Called by InitNativeWidget.
+  // Called by InitNativeWidget. The return value will be autoreleased.
+  // Note that some tests (in particular, views_unittests that interact
+  // with ScopedFakeNSWindowFullscreen, on 10.10) assume that these windows
+  // are autoreleased, and will crash if the window has a more precise
+  // lifetime.
   virtual NativeWidgetMacNSWindow* CreateNSWindow(
       const remote_cocoa::mojom::CreateWindowParams* params);
 

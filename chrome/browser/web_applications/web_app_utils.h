@@ -12,21 +12,20 @@
 #include <tuple>
 #include <vector>
 
+#include "base/functional/callback_forward.h"
 #include "build/build_config.h"
+#include "build/buildflag.h"
 #include "build/chromeos_buildflags.h"
 #include "chrome/browser/web_applications/mojom/user_display_mode.mojom.h"
-#include "chrome/browser/web_applications/web_app_constants.h"
 #include "chrome/browser/web_applications/web_app_id.h"
+#include "chrome/browser/web_applications/web_app_sources.h"
+#include "components/services/app_service/public/cpp/app_launch_util.h"
 #include "components/services/app_service/public/cpp/file_handler.h"
-#include "content/public/common/alternative_error_page_override_info.mojom-forward.h"
+#include "components/services/app_service/public/cpp/run_on_os_login_types.h"
+#include "content/public/common/alternative_error_page_override_info.mojom.h"
 
 class GURL;
 class Profile;
-
-namespace apps {
-enum class LaunchContainer;
-enum class RunOnOsLoginMode;
-}  // namespace apps
 
 namespace base {
 class FilePath;
@@ -38,6 +37,8 @@ class BrowserContext;
 }
 
 namespace web_app {
+
+class WebAppProvider;
 
 namespace error_page {
 // |alternative_error_page_params| dictionary key values in the
@@ -58,7 +59,7 @@ const char16_t kOfflineIconId[] = u"offlineIcon";
 // Returns false if |profile| is nullptr.
 //
 // Is main WebApp System allowed (WebAppProvider exists):
-bool AreWebAppsEnabled(Profile* profile);
+bool AreWebAppsEnabled(const Profile* profile);
 // Is user allowed to install web apps from UI:
 bool AreWebAppsUserInstallable(Profile* profile);
 
@@ -126,25 +127,25 @@ std::vector<std::u16string> TransformFileExtensionsForDisplay(
     const std::set<std::string>& extensions);
 
 // Check if only |specified_sources| exist in the |sources|
-bool HasAnySpecifiedSourcesAndNoOtherSources(
-    WebAppManagementTypes sources,
-    WebAppManagementTypes specified_sources);
+bool HasAnySpecifiedSourcesAndNoOtherSources(WebAppSources sources,
+                                             WebAppSources specified_sources);
 
 // Check if all types of |sources| are uninstallable by the user.
-bool CanUserUninstallWebApp(WebAppManagementTypes sources);
+bool CanUserUninstallWebApp(WebAppSources sources);
 
 // Extracts app_id from chrome://app-settings/<app-id> URL path.
 AppId GetAppIdFromAppSettingsUrl(const GURL& url);
 
+// Check if |url|'s path is an installed web app.
+bool HasAppSettingsPage(Profile* profile, const GURL& url);
+
 // Returns whether `url` is in scope `scope`. False if scope is invalid.
 bool IsInScope(const GURL& url, const GURL& scope);
 
-// Returns whether the `login_mode` should force a start at OS login.
-bool IsRunOnOsLoginModeEnabledForAutostart(RunOnOsLoginMode login_mode);
-
 #if BUILDFLAG(IS_CHROMEOS)
-// Web apps crosapi (used for Lacros web app management) will be enabled if
-// Lacros is the primary browser.
+// The kLacrosPrimary and kWebAppsCrosapi features are each independently
+// sufficient to enable the web apps Crosapi (used for Lacros web app
+// management).
 bool IsWebAppsCrosapiEnabled();
 #endif
 
@@ -206,6 +207,8 @@ DisplayMode ResolveEffectiveDisplayMode(
 apps::LaunchContainer ConvertDisplayModeToAppLaunchContainer(
     DisplayMode display_mode);
 
+std::string RunOnOsLoginModeToString(RunOnOsLoginMode mode);
+
 // Converts RunOnOsLoginMode from RunOnOsLoginMode to
 // apps::RunOnOsLoginMode.
 apps::RunOnOsLoginMode ConvertOsLoginMode(RunOnOsLoginMode login_mode);
@@ -218,8 +221,6 @@ content::mojom::AlternativeErrorPageOverrideInfoPtr ConstructWebAppErrorPage(
     content::BrowserContext* browser_context,
     std::u16string message,
     std::u16string supplementary_icon);
-
-bool IsValidScopeForLinkCapturing(const GURL& scope);
 
 }  // namespace web_app
 

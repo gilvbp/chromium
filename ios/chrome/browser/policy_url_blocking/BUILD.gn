@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 source_set("policy_url_blocking") {
+  configs += [ "//build/config/compiler:enable_arc" ]
   sources = [
     "policy_url_blocking_service.h",
     "policy_url_blocking_service.mm",
@@ -23,6 +24,7 @@ source_set("policy_url_blocking") {
 }
 
 source_set("util") {
+  configs += [ "//build/config/compiler:enable_arc" ]
   sources = [
     "policy_url_blocking_util.h",
     "policy_url_blocking_util.mm",
@@ -34,7 +36,10 @@ source_set("util") {
 }
 
 source_set("eg2_tests") {
-  configs += [ "//build/config/ios:xctest_config" ]
+  configs += [
+    "//build/config/compiler:enable_arc",
+    "//build/config/ios:xctest_config",
+  ]
   testonly = true
   sources = [ "policy_url_blocking_egtest.mm" ]
   deps = [

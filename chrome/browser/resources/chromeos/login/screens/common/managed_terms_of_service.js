@@ -16,7 +16,6 @@ import '../../components/common_styles/oobe_dialog_host_styles.css.js';
 import '../../components/dialogs/oobe_loading_dialog.js';
 
 import {I18nBehavior} from '//resources/ash/common/i18n_behavior.js';
-import {loadTimeData} from '//resources/ash/common/load_time_data.m.js';
 import {html, mixinBehaviors, PolymerElement} from '//resources/polymer/v3_0/polymer/polymer_bundled.min.js';
 
 import {LoginScreenBehavior, LoginScreenBehaviorInterface} from '../../components/behaviors/login_screen_behavior.js';
@@ -175,8 +174,10 @@ class ManagedTermsOfService extends ManagedTermsOfServiceBase {
   setTermsOfService(termsOfService) {
     this.$.termsOfServiceFrame.src = 'data:text/html;charset=utf-8,' +
         encodeURIComponent('<style>' +
-                           'body {' + this.getServiceLogsFontsStyling() +
+                           'body {' +
+                           '  font-family: Roboto, sans-serif;' +
                            '  color: RGBA(0,0,0,.87);' +
+                           '  font-size: 14sp;' +
                            '  margin : 0;' +
                            '  padding : 0;' +
                            '  white-space: pre-wrap;' +
@@ -198,25 +199,6 @@ class ManagedTermsOfService extends ManagedTermsOfServiceBase {
     // Mark the loading as complete.
     this.acceptButtonDisabled_ = false;
     this.setUIStep(ManagedTermsState.LOADED);
-  }
-
-  /**
-   * Generates fonts styling for the ToS WebView based on OobeJelly flag.
-   * @return {string}
-   * @private
-   */
-  getServiceLogsFontsStyling() {
-    const isOobeJellyEnabled = loadTimeData.getBoolean('isOobeJellyEnabled');
-    if (!isOobeJellyEnabled) {
-      return '  font-family: Roboto, sans-serif;' +
-          '  font-size: 14sp;';
-    }
-    // Those values correspond to the cros-body-2 token.
-    return (
-        '  font-family: Google Sans Text Regular, Google Sans, Roboto, sans-serif;' +
-        '  font-size: 13px;' +
-        '  font-weight: 400;' +
-        '  line-height: 20px;');
   }
 }
 

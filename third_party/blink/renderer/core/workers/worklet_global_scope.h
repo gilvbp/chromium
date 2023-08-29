@@ -128,15 +128,21 @@ class CORE_EXPORT WorkletGlobalScope
 
   // Constructs an instance as a main thread worklet. Must be called on the main
   // thread.
+  // When |create_microtask_queue| is true, creates a microtask queue separated
+  // from the Isolate's default microtask queue.
   WorkletGlobalScope(std::unique_ptr<GlobalScopeCreationParams>,
                      WorkerReportingProxy&,
-                     LocalFrame*);
+                     LocalFrame*,
+                     bool create_microtask_queue);
 
   // Constructs an instance as a threaded worklet. Must be called on a worker
   // thread.
+  // When |create_microtask_queue| is true, creates a microtask queue separated
+  // from the Isolate's default microtask queue.
   WorkletGlobalScope(std::unique_ptr<GlobalScopeCreationParams>,
                      WorkerReportingProxy&,
-                     WorkerThread*);
+                     WorkerThread*,
+                     bool create_microtask_queue);
 
   const BrowserInterfaceBrokerProxy& GetBrowserInterfaceBroker() const override;
 
@@ -168,7 +174,8 @@ class CORE_EXPORT WorkletGlobalScope
                      v8::Isolate*,
                      ThreadType,
                      LocalFrame*,
-                     WorkerThread*);
+                     WorkerThread*,
+                     bool create_microtask_queue);
 
   // Returns a destination used for fetching worklet scripts.
   // https://html.spec.whatwg.org/C/#worklet-destination-type

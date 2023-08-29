@@ -13,7 +13,6 @@
 #include "base/time/clock.h"
 #include "base/time/default_clock.h"
 #include "chrome/browser/dips/dips_utils.h"
-#include "content/public/common/content_features.h"
 #include "sql/database.h"
 #include "sql/init_status.h"
 #include "sql/meta_table.h"
@@ -24,10 +23,6 @@ class DIPSDatabase {
  public:
   // The length of time that will be waited between emitting db health metrics.
   static const base::TimeDelta kMetricsInterval;
-
-  // How long DIPS maintains popups in storage (for recording Popup Heuristic
-  // storage accesses).
-  static const base::TimeDelta kPopupTtl;
 
   // Passing in an absl::nullopt `db_path` causes the db to be created in
   // memory. Init() must be called before using the DIPSDatabase to make sure it
@@ -41,87 +36,44 @@ class DIPSDatabase {
   DIPSDatabase(const DIPSDatabase&) = delete;
   DIPSDatabase& operator=(const DIPSDatabase&) = delete;
 
-  // Updates `db_` to use the latest schema. Returns whether the migration was
-  // successful.
-  bool MigrateAsNeeded();
+  // Updates `db_` to use the latest schema.
+  // Returns whether the migration was successful.
+  bool UpdateSchema();
 
-  // Migrates from v1 to v2 of the DIPS database schema. This migration:
-  // - Makes all timestamp columns nullable instead of using base::Time() as
-  // default.
-  // - Replaces both the first and last stateless bounce columns to track the
-  // first and last bounce times instead.
+  // Migrates from v1 to v2 of the DIPS database schema.
   bool MigrateToVersion2();
-
-  // Migrates from v2 to v3 of the DIPS database schema. This migration adds two
-  // extra columns for recording the first and last time a web authn assertion
-  // was called.
-  bool MigrateToVersion3();
-  bool MigrateToVersion4();
 
   // DIPS Bounce table functions -----------------------------------------------
   bool Write(const std::string& site,
              const TimestampRange& storage_times,
              const TimestampRange& interaction_times,
              const TimestampRange& stateful_bounce_times,
-             const TimestampRange& bounce_times,
-             const TimestampRange& web_authn_assertion_times);
-
-  bool WritePopup(const std::string& opener_site,
-                  const std::string& popup_site,
-                  const uint64_t access_id,
-                  const base::Time& popup_time);
-
-  // This is implicitly `inline`. Don't move its definition to the .cc file.
-  bool HasExpired(absl::optional<base::Time> time) {
-    return time.has_value() &&
-           (time.value() + features::kDIPSInteractionTtl.Get()) < clock_->Now();
-  }
+             const TimestampRange& bounce_times);
 
   absl::optional<StateValue> Read(const std::string& site);
 
-  absl::optional<PopupsStateValue> ReadPopup(const std::string& opener_site,
-                                             const std::string& popup_site);
+  // Note: this doesn't clear expired interactions from the database unlike the
+  // other database querying methods.
+  std::vector<std::string> GetAllSitesForTesting();
 
-  // Note: this doesn't clear expired interactions from the database unlike
-  // the other database querying methods.
-  std::vector<std::string> GetAllSitesForTesting(const DIPSDatabaseTable table);
-
-  // Returns the subset of sites in |sites| WITH user interaction or successful
-  // web authn assertion recorded.
-  //
-  // NOTE: This method's main procedure is performed after calling
-  // `ClearExpiredRows()`.
-  //
-  // TODO(njeunje): Consider making this FilterSites(set<string> sites,
-  // FilterType filter) where FilterType lets us specify if we want to filter
-  // out interactions, web authn assertions, or both. There may be other
-  // criteria that we want to filter for in the future & this name might get
-  // even longer.
-  std::set<std::string> FilterSitesWithInteractionOrWaa(
+  // Returns the subset of sites in |sites| WITH user interaction recorded.
+  std::set<std::string> FilterSitesWithInteraction(
       const std::set<std::string>& sites);
 
   // Returns all sites which bounced the user and aren't protected from DIPS.
   //
   // A site can be protected in several ways:
   // - it's still in its grace period after the first bounce
-  // - it received user interaction or WAA before the first bounce
-  // - it received user interaction or WAA in the grace period after the first
-  // bounce.
-  //
-  // NOTE: This method's main procedure is performed after calling
-  // `ClearExpiredRows()`.
+  // - it received user interaction before the first bounce
+  // - it received user interaction in the grace period after the first bounce
   std::vector<std::string> GetSitesThatBounced(base::TimeDelta grace_period);
 
   // Returns all sites which used storage and aren't protected from DIPS.
   //
   // A site can be protected in several ways:
   // - it's still in its grace period after the first storage
-  // - it received user interaction or WAA before the first storage
-  // - it received user interaction or WAA in the grace period after the first
-  // storage.
-  //
-  // NOTE: This method's main procedure is performed after calling
-  // `ClearExpiredRows()`.
+  // - it received user interaction before the first storage
+  // - it received user interaction in the grace period after the first storage
   std::vector<std::string> GetSitesThatUsedStorage(
       base::TimeDelta grace_period);
 
@@ -130,19 +82,16 @@ class DIPSDatabase {
   //
   // A site can be protected in several ways:
   // - it's still in its grace period after the first stateful bounce
-  // - it received user interaction or WAA before the first stateful bounce
-  // - it received user interaction or WAA in the grace period after the first
-  // stateful bounce.
-  //
-  // NOTE: This method's main procedure is performed after calling
-  // `ClearExpiredRows()`.
+  // - it received user interaction before the first stateful bounce
+  // - it received user interaction in the grace period after the first stateful
+  //   bounce
   std::vector<std::string> GetSitesThatBouncedWithState(
       base::TimeDelta grace_period);
 
   // Deletes all rows in the database whose interactions have expired out.
   //
   // When an interaction happens before a DIPS-triggering action or during the
-  // following grace-period, it protects that site from its data being cleared
+  // following grace-period it protects that site from its data being cleared
   // by DIPS. Further interactions will prolong that protection until the last
   // one reaches the `interaction_ttl`.
   //
@@ -150,20 +99,14 @@ class DIPSDatabase {
   // determining if a site is a tracker for sites that are cleared.
   //
   // Returns the number of rows that are removed.
-  size_t ClearExpiredRows();
+  size_t ClearRowsWithExpiredInteractions();
 
   // Delete the row from the bounces table for `site`. Returns true if query
   // executes successfully.
-  //
-  // NOTE: This method's main procedure is performed after calling
-  // `ClearExpiredRows()`.
-  bool RemoveRow(const DIPSDatabaseTable table, const std::string& site);
+  bool RemoveRow(const std::string& site);
 
-  bool RemoveRows(const DIPSDatabaseTable table,
-                  const std::vector<std::string>& sites);
+  bool RemoveRows(const std::vector<std::string>& sites);
 
-  // NOTE: This method's main procedure is performed after calling
-  // `ClearExpiredRows()`.
   bool RemoveEventsByTime(const base::Time& delete_begin,
                           const base::Time& delete_end,
                           const DIPSEventRemovalType type);
@@ -175,10 +118,7 @@ class DIPSDatabase {
                           const DIPSEventRemovalType type);
 
   // Returns the number of entries present in the database.
-  //
-  // NOTE: This method's main procedure is performed after calling
-  // `ClearExpiredRows()`.
-  size_t GetEntryCount(const DIPSDatabaseTable table);
+  size_t GetEntryCount();
 
   // If the number of entries in the database is greater than
   // |GetMaxEntries()|, garbage collect. Returns the number of entries deleted
@@ -188,17 +128,7 @@ class DIPSDatabase {
   // Removes the |purge_goal| entries with the oldest
   // |MAX(last_user_interaction_time,last_site_storage_time)| value. Returns the
   // number of entries deleted.
-  //
-  // NOTE: The SQLITE sub-query in this method must match that of
-  // `GetGarbageCollectOldestSitesForTesting()`'s query.
-  size_t GarbageCollectOldest(const DIPSDatabaseTable table, int purge_goal);
-
-  // Used for testing the intended behavior `GarbageCollectOldest()`.
-  //
-  // NOTE: The SQLITE query in this method must match that of
-  // `GarbageCollectOldest()`'s sub-query.
-  std::vector<std::string> GetGarbageCollectOldestSitesForTesting(
-      const DIPSDatabaseTable table);
+  size_t GarbageCollectOldest(int purge_goal);
 
   bool in_memory() const {
     DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
@@ -231,13 +161,9 @@ class DIPSDatabase {
   sql::InitStatus Init();
   sql::InitStatus InitImpl();
   sql::InitStatus OpenDatabase();
-  // Creates the bounce table following the latest schema.
   bool InitTables();
 
   // Internal utility functions ------------------------------------------------
-
-  // NOTE: This method's main procedure is performed after calling
-  // `ClearExpiredRows()`.
   bool ClearTimestamps(const base::Time& delete_begin,
                        const base::Time& delete_end,
                        const DIPSEventRemovalType type);
@@ -253,16 +179,10 @@ class DIPSDatabase {
   void DatabaseErrorCallback(int extended_error, sql::Statement* stmt);
 
   // Only ClearTimestamps() should call this method.
-  //
-  // NOTE: This method's main procedure is performed after calling
-  // `ClearExpiredRows()`.
   bool AdjustFirstTimestamps(const base::Time& delete_begin,
                              const base::Time& delete_end,
                              const DIPSEventRemovalType type);
   // Only ClearTimestamps() should call this method.
-  //
-  // NOTE: This method's main procedure is performed after calling
-  // `ClearExpiredRows()`.
   bool AdjustLastTimestamps(const base::Time& delete_begin,
                             const base::Time& delete_end,
                             const DIPSEventRemovalType type);

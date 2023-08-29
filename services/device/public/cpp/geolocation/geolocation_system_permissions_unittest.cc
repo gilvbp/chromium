@@ -36,7 +36,6 @@ class SourceImpl : public device::SystemGeolocationSource {
   void RegisterPositionUpdateCallback(PositionUpdateCallback) override {}
   void StartWatchingPosition(bool) override {}
   void StopWatchingPosition() override {}
-  void RequestPermission() override {}
 #endif
 
   // Helper function to force observer notification (normally done by

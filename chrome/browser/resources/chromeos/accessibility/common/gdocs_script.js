@@ -3,30 +3,23 @@
 // found in the LICENSE file.
 
 function triggerDocsCanvasAnnotationMode() {
+  let extensionId = '';
   if (!chrome.runtime || !chrome.runtime.id) {
     // Manifest v3: Not running in extension's runtime.
     // Parse this script's URL to determine extension ID.
     // The URL will look like
     // `chrome-extension://extensionId/common/gdocs_script.js.
-    const extensionId = document.currentScript.src.split('/')[2];
-    const scriptContents = `
-      window['_docs_annotate_canvas_by_ext'] = "${extensionId}";
-    `;
-    const policy = trustedTypes.createPolicy('gdocsPolicy', {
-      createScript: (text) => text,
-    });
-    const sanitized = policy.createScript(scriptContents);
-    eval(sanitized);
+    extensionId = document.currentScript.src.split('/')[2];
   } else {
     // Manifest v2.
-    const extensionId = chrome.runtime.id;
-    const scriptContents = `
-      window['_docs_annotate_canvas_by_ext'] = "${extensionId}";
-    `;
-    const script = document.createElement('script');
-    script.innerHTML = scriptContents;
-    document.documentElement.appendChild(script);
+    extensionId = chrome.runtime.id;
   }
+  const scriptContents = `
+    window['_docs_annotate_canvas_by_ext'] = "${extensionId}";
+  `;
+  const script = document.createElement('script');
+  script.innerHTML = scriptContents;
+  document.documentElement.appendChild(script);
 }
 
 // Docs renders content in Canvas without annotations by default. This script is

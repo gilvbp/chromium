@@ -13,7 +13,6 @@
 #include "chrome/browser/ui/color/chrome_color_id.h"
 #include "chrome/browser/ui/color/chrome_color_mixer.h"
 #include "chrome/browser/ui/color/material_chrome_color_mixer.h"
-#include "chrome/browser/ui/color/material_new_tab_page_color_mixer.h"
 #include "chrome/browser/ui/color/material_omnibox_color_mixer.h"
 #include "chrome/browser/ui/color/material_side_panel_color_mixer.h"
 #include "chrome/browser/ui/color/material_tab_strip_color_mixer.h"
@@ -55,7 +54,7 @@ bool ChromeColorProviderUtilsCallbacks::ColorIdName(
 }  // namespace
 
 void AddChromeColorMixers(ui::ColorProvider* provider,
-                          const ui::ColorProviderKey& key) {
+                          const ui::ColorProviderManager::Key& key) {
   static base::NoDestructor<ChromeColorProviderUtilsCallbacks>
       chrome_color_provider_utils_callbacks;
   ui::SetColorProviderUtilsCallbacks(
@@ -67,7 +66,6 @@ void AddChromeColorMixers(ui::ColorProvider* provider,
 
   if (features::IsChromeRefresh2023()) {
     AddMaterialChromeColorMixer(provider, key);
-    AddMaterialNewTabPageColorMixer(provider, key);
     AddMaterialOmniboxColorMixer(provider, key);
     AddMaterialSidePanelColorMixer(provider, key);
     AddMaterialTabStripColorMixer(provider, key);

@@ -33,6 +33,3 @@ export {
  * A base class for all Files app(xf) widgets.
  */
 export class XfBase extends LitElement {}
-
-// Expose shadowRootOptions so child classes can use this from XfBase directly.
-XfBase.shadowRootOptions = LitElement.shadowRootOptions;

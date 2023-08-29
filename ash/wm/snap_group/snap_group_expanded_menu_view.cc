@@ -16,6 +16,9 @@
 #include "ash/wm/splitview/split_view_constants.h"
 #include "ash/wm/splitview/split_view_controller.h"
 #include "base/functional/bind.h"
+#include "base/functional/callback_forward.h"
+#include "base/functional/callback_helpers.h"
+#include "ui/base/l10n/l10n_util.h"
 #include "ui/base/metadata/metadata_impl_macros.h"
 #include "ui/compositor/layer.h"
 #include "ui/views/background.h"
@@ -89,12 +92,12 @@ SnapGroupExpandedMenuView::SnapGroupExpandedMenuView(SnapGroup* snap_group)
 SnapGroupExpandedMenuView::~SnapGroupExpandedMenuView() = default;
 
 void SnapGroupExpandedMenuView::OnUpdatePrimaryWindowButtonPressed() {
-  split_view_controller()->OpenPartialOverviewToUpdateSnapGroup(
+  split_view_controller()->OpenOverviewOnTheOtherSideOfTheScreen(
       SplitViewController::SnapPosition::kSecondary);
 }
 
 void SnapGroupExpandedMenuView::OnUpdateSecondaryWindowButtonPressed() {
-  split_view_controller()->OpenPartialOverviewToUpdateSnapGroup(
+  split_view_controller()->OpenOverviewOnTheOtherSideOfTheScreen(
       SplitViewController::SnapPosition::kPrimary);
 }
 
@@ -104,7 +107,7 @@ void SnapGroupExpandedMenuView::OnSwapWindowsButtonPressed() {
 }
 
 void SnapGroupExpandedMenuView::OnUnLockButtonPressed() {
-  SnapGroupController::Get()->RemoveSnapGroup(snap_group_);
+  Shell::Get()->snap_group_controller()->RemoveSnapGroup(snap_group_);
   // `this` will be deleted after this line.
 }
 

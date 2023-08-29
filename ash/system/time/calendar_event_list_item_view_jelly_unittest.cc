@@ -134,8 +134,7 @@ TEST_F(CalendarViewEventListItemViewJellyTest,
       event_list_item_view()->GetAccessibleName());
 }
 
-TEST_F(CalendarViewEventListItemViewJellyTest,
-       EventListViewItemTopRoundedCorners) {
+TEST_F(CalendarViewEventListItemViewJellyTest, TopRoundedCorners) {
   base::Time date;
   ASSERT_TRUE(base::Time::FromString("22 Nov 2021 00:00 UTC", &date));
   SetSelectedDateInController(date);
@@ -148,12 +147,11 @@ TEST_F(CalendarViewEventListItemViewJellyTest,
 
   const ui::Layer* background_layer =
       event_list_item_view()->GetLayersInOrder().back();
-  EXPECT_EQ(gfx::RoundedCornersF(16, 16, 5, 5),
+  EXPECT_EQ(gfx::RoundedCornersF(16, 16, 4, 4),
             background_layer->rounded_corner_radii());
 }
 
-TEST_F(CalendarViewEventListItemViewJellyTest,
-       EventListViewItemBottomRoundedCorners) {
+TEST_F(CalendarViewEventListItemViewJellyTest, BottomRoundedCorners) {
   base::Time date;
   ASSERT_TRUE(base::Time::FromString("22 Nov 2021 00:00 UTC", &date));
   SetSelectedDateInController(date);
@@ -167,12 +165,11 @@ TEST_F(CalendarViewEventListItemViewJellyTest,
 
   const ui::Layer* background_layer =
       event_list_item_view()->GetLayersInOrder().back();
-  EXPECT_EQ(gfx::RoundedCornersF(5, 5, 16, 16),
+  EXPECT_EQ(gfx::RoundedCornersF(4, 4, 16, 16),
             background_layer->rounded_corner_radii());
 }
 
-TEST_F(CalendarViewEventListItemViewJellyTest,
-       EventListViewItemAllRoundedCorners) {
+TEST_F(CalendarViewEventListItemViewJellyTest, AllRoundedCorners) {
   base::Time date;
   ASSERT_TRUE(base::Time::FromString("22 Nov 2021 00:00 UTC", &date));
   SetSelectedDateInController(date);
@@ -187,25 +184,6 @@ TEST_F(CalendarViewEventListItemViewJellyTest,
   const ui::Layer* background_layer =
       event_list_item_view()->GetLayersInOrder().back();
   EXPECT_EQ(gfx::RoundedCornersF(16, 16, 16, 16),
-            background_layer->rounded_corner_radii());
-}
-
-TEST_F(CalendarViewEventListItemViewJellyTest, UpNextViewItemRoundedCorners) {
-  base::Time date;
-  ASSERT_TRUE(base::Time::FromString("22 Nov 2021 00:00 UTC", &date));
-  SetSelectedDateInController(date);
-  const char* start_time_string = "22 Nov 2021 09:00 GMT";
-  const char* end_time_string = "22 Nov 2021 10:00 GMT";
-  const auto event = CreateEvent(start_time_string, end_time_string);
-
-  CreateEventListItemView(
-      date, event.get(),
-      UIParams{/*round_top_corners=*/true, /*round_bottom_corners=*/true,
-               /*is_up_next_event_list_item=*/true});
-
-  const ui::Layer* background_layer =
-      event_list_item_view()->GetLayersInOrder().back();
-  EXPECT_EQ(gfx::RoundedCornersF(20, 20, 20, 20),
             background_layer->rounded_corner_radii());
 }
 
@@ -230,7 +208,6 @@ TEST_F(CalendarViewEventListItemViewJellyTest, FixedLabelWidth) {
       date, event.get(),
       UIParams{/*round_top_corners=*/
                true, /*round_bottom_corners=*/true,
-               /*is_up_next_event_list_item=*/true,
                /*show_event_list_dot=*/true, /*fixed_width=*/fixed_width});
 
   EXPECT_EQ(fixed_width, GetSummaryLabel()->width());
@@ -249,7 +226,6 @@ TEST_F(CalendarViewEventListItemViewJellyTest,
   CreateEventListItemView(date, event.get(),
                           UIParams{/*round_top_corners=*/
                                    true, /*round_bottom_corners=*/true,
-                                   /*is_up_next_event_list_item=*/true,
                                    /*show_event_list_dot=*/false});
 
   // Event list dot should not exist.
@@ -259,7 +235,6 @@ TEST_F(CalendarViewEventListItemViewJellyTest,
   CreateEventListItemView(date, event.get(),
                           UIParams{/*round_top_corners=*/
                                    true, /*round_bottom_corners=*/true,
-                                   /*is_up_next_event_list_item=*/true,
                                    /*show_event_list_dot=*/true});
 
   // Event list dot should exist.

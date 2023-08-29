@@ -28,7 +28,6 @@ import org.chromium.chrome.browser.feed.FeedListContentManager;
 import org.chromium.chrome.browser.feed.FeedListContentManager.FeedContent;
 import org.chromium.chrome.browser.feed.FeedStream;
 import org.chromium.chrome.browser.feed.FeedStreamViewResizer;
-import org.chromium.chrome.browser.feed.FeedSurfaceRendererBridge;
 import org.chromium.chrome.browser.feed.FeedSurfaceScopeDependencyProviderImpl;
 import org.chromium.chrome.browser.feed.FeedSurfaceTracker;
 import org.chromium.chrome.browser.feed.NativeViewListRenderer;
@@ -253,8 +252,7 @@ public class CreatorCoordinator
                 /* FeedContentFirstLoadWatcher */ this,
                 /* streamsMediator */ new StreamsMediatorImpl(),
                 new SingleWebFeedParameters(
-                        mCreatorModel.get(CreatorProperties.WEB_FEED_ID_KEY), mEntryPoint),
-                new FeedSurfaceRendererBridge.Factory() {});
+                        mCreatorModel.get(CreatorProperties.WEB_FEED_ID_KEY), mEntryPoint));
 
         if (mEntryPoint == SingleWebFeedEntryPoint.MENU) {
             mStream.addOnContentChangedListener(new ContentChangedListener());
@@ -546,6 +544,7 @@ public class CreatorCoordinator
         if (mSheetObserver != null) mBottomSheetController.removeObserver(mSheetObserver);
     }
 
+    @VisibleForTesting
     void setStreamForTest(Stream stream) {
         mStream = stream;
     }

@@ -28,7 +28,9 @@ class MEDIA_GPU_EXPORT VP9Picture : public CodecPicture {
   virtual V4L2VP9Picture* AsV4L2VP9Picture();
   virtual VaapiVP9Picture* AsVaapiVP9Picture();
 
-  // Create a copy of this picture (used to implement show_existing_frame).
+  // Create a duplicate instance and copy the data to it. It is used to support
+  // VP9 show_existing_frame feature. Return the scoped_refptr pointing to the
+  // duplicate instance, or nullptr on failure.
   scoped_refptr<VP9Picture> Duplicate();
 
   std::unique_ptr<Vp9FrameHeader> frame_hdr;
@@ -38,11 +40,8 @@ class MEDIA_GPU_EXPORT VP9Picture : public CodecPicture {
  protected:
   ~VP9Picture() override;
 
-  // Create an instance of the same class, and copy any accelerator-specific
-  // fields. Used by Duplicate() which handles copying CodecPicture and
-  // VP9Picture fields.
-  //
-  // All subclasses should override this method.
+ private:
+  // Create a duplicate instance.
   virtual scoped_refptr<VP9Picture> CreateDuplicate();
 };
 

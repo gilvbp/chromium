@@ -15,13 +15,14 @@
 #import "ios/chrome/common/ui/util/text_view_util.h"
 #import "net/base/mac/url_conversions.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace {
 
 // Padding used on the top and bottom edges of the cell.
 const CGFloat kVerticalPadding = 8;
-
-// Horizontal padding used to align the header/footer with the section items.
-const CGFloat kHorizontalSpacingToAlignWithItems = 16.0;
 
 }  // namespace
 
@@ -59,11 +60,6 @@ const CGFloat kHorizontalSpacingToAlignWithItems = 16.0;
   if ([self.urls count] != 0) {
     headerFooter.urls = self.urls;
   }
-
-  if (self.forceIndents) {
-    [headerFooter setForceIndents:YES];
-  }
-
   UIColor* textColor = self.textColor
                            ? self.textColor
                            : [UIColor colorNamed:kTextSecondaryColor];
@@ -81,10 +77,6 @@ const CGFloat kHorizontalSpacingToAlignWithItems = 16.0;
 
 @implementation TableViewLinkHeaderFooterView {
   NSArray<CrURL*>* urls_;
-  // Leading constaint for item.
-  NSLayoutConstraint* leadingConstraint_;
-  // Trailing constraint for item.
-  NSLayoutConstraint* trailingConstraint_;
 }
 
 @synthesize textView = _textView;
@@ -108,21 +100,18 @@ const CGFloat kHorizontalSpacingToAlignWithItems = 16.0;
 
     [self.contentView addSubview:_textView];
 
-    leadingConstraint_ = [_textView.leadingAnchor
-        constraintEqualToAnchor:self.contentView.leadingAnchor
-                       constant:HorizontalPadding()];
-    trailingConstraint_ = [_textView.trailingAnchor
-        constraintEqualToAnchor:self.contentView.trailingAnchor
-                       constant:-HorizontalPadding()];
-
     [NSLayoutConstraint activateConstraints:@[
       [_textView.topAnchor constraintEqualToAnchor:self.contentView.topAnchor
                                           constant:kVerticalPadding],
       [_textView.bottomAnchor
           constraintEqualToAnchor:self.contentView.bottomAnchor
                          constant:-kVerticalPadding],
-      trailingConstraint_,
-      leadingConstraint_,
+      [_textView.trailingAnchor
+          constraintEqualToAnchor:self.contentView.trailingAnchor
+                         constant:-HorizontalPadding()],
+      [_textView.leadingAnchor
+          constraintEqualToAnchor:self.contentView.leadingAnchor
+                         constant:HorizontalPadding()],
     ]];
   }
   return self;
@@ -133,7 +122,6 @@ const CGFloat kHorizontalSpacingToAlignWithItems = 16.0;
   self.textView.text = nil;
   self.delegate = nil;
   self.urls = @[];
-  self.forceIndents = NO;
 }
 
 #pragma mark - Properties
@@ -172,13 +160,6 @@ const CGFloat kHorizontalSpacingToAlignWithItems = 16.0;
     DCHECK(url.gurl.is_valid());
   }
   urls_ = urls;
-}
-
-- (void)setForceIndents:(BOOL)forceIndents {
-  leadingConstraint_.constant =
-      forceIndents ? kHorizontalSpacingToAlignWithItems : HorizontalPadding();
-  trailingConstraint_.constant =
-      forceIndents ? -kHorizontalSpacingToAlignWithItems : -HorizontalPadding();
 }
 
 #pragma mark - UITextViewDelegate

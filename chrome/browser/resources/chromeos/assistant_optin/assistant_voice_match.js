@@ -86,6 +86,15 @@ class AssistantVoiceMatch extends AssistantVoiceMatchBase {
       },
 
       /**
+       * Whether the {prefers-color-scheme: dark}
+       * @private {boolean}
+       */
+      isDarkModeActive_: {
+        type: Boolean,
+        value: false,
+      },
+
+      /**
        * @private {boolean}
        */
       isTabletMode_: {
@@ -290,7 +299,6 @@ class AssistantVoiceMatch extends AssistantVoiceMatchBase {
     } else if (uiStep === VoiceMatchUIState.COMPLETED) {
       return this.i18n('assistantVoiceMatchCompleted');
     }
-    return trustedTypes.emptyHTML;
   }
 
   /**
@@ -308,12 +316,16 @@ class AssistantVoiceMatch extends AssistantVoiceMatchBase {
       return this.i18nAdvanced(
           'assistantVoiceMatchFooterForChild', {substitutions: [childName]});
     }
-    return trustedTypes.emptyHTML;
   }
 
-  getVoiceMatchAnimationUrl_(isTabletMode) {
-    return './assistant_optin/voice_' + (isTabletMode ? 'tablet' : 'laptop') +
+  getReadyImgUrl_(isDarkMode) {
+    return './assistant_optin/assistant_ready_' + (isDarkMode ? 'dm' : 'lm') +
         '.json';
+  }
+
+  getVoiceMatchAnimationUrl_(isDarkMode, isTabletMode) {
+    return './assistant_optin/voice_' + (isTabletMode ? 'tablet' : 'laptop') +
+        '_' + (isDarkMode ? 'dm' : 'lm') + '.json';
   }
 }
 

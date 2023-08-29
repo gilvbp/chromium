@@ -51,7 +51,6 @@ class VideoConferenceAshFeatureClient
       crosapi::mojom::VideoConferenceMediaDevice device,
       bool disabled,
       SetSystemMediaDeviceStatusCallback callback) override;
-  void StopAllScreenShare() override;
 
   // Called when VmCameraMicManager change Camera/Mic accessing state.
   void OnVmDeviceUpdated(VmCameraMicManager::VmType vm_type,

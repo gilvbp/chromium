@@ -4,7 +4,8 @@
 
 package org.chromium.components.background_task_scheduler.internal;
 
-import org.chromium.base.ResettersForTesting;
+import androidx.annotation.VisibleForTesting;
+
 import org.chromium.base.ThreadUtils;
 import org.chromium.components.background_task_scheduler.BackgroundTask;
 import org.chromium.components.background_task_scheduler.BackgroundTaskFactory;
@@ -30,10 +31,9 @@ public final class BackgroundTaskSchedulerFactoryInternal {
         return sBackgroundTaskScheduler;
     }
 
+    @VisibleForTesting
     public static void setSchedulerForTesting(BackgroundTaskScheduler backgroundTaskScheduler) {
-        var oldValue = sBackgroundTaskScheduler;
         sBackgroundTaskScheduler = backgroundTaskScheduler;
-        ResettersForTesting.register(() -> sBackgroundTaskScheduler = oldValue);
     }
 
     /** See {@code BackgroundTaskSchedulerFactory#getBackgroundTaskFromTaskId}. */

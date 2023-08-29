@@ -53,27 +53,25 @@ class TokenHandleFetcherShutdownNotifierFactory
 
 }  // namespace
 
-TokenHandleFetcher::TokenHandleFetcher(Profile* profile,
-                                       TokenHandleUtil* util,
+TokenHandleFetcher::TokenHandleFetcher(TokenHandleUtil* util,
                                        const AccountId& account_id)
-    : profile_(profile), token_handle_util_(util), account_id_(account_id) {
-  CHECK(profile_.get());
-  CHECK(token_handle_util_.get());
-}
+    : token_handle_util_(util), account_id_(account_id) {}
 
 TokenHandleFetcher::~TokenHandleFetcher() {}
 
-void TokenHandleFetcher::BackfillToken(TokenFetchingCallback callback) {
+void TokenHandleFetcher::BackfillToken(Profile* profile,
+                                       TokenFetchingCallback callback) {
+  profile_ = profile;
   callback_ = std::move(callback);
 
-  identity_manager_ = IdentityManagerFactory::GetForProfile(profile_);
+  identity_manager_ = IdentityManagerFactory::GetForProfile(profile);
   // This class doesn't care about browser sync consent.
   if (!identity_manager_->HasAccountWithRefreshToken(
           identity_manager_->GetPrimaryAccountId(
               signin::ConsentLevel::kSignin))) {
     profile_shutdown_subscription_ =
         TokenHandleFetcherShutdownNotifierFactory::GetInstance()
-            ->Get(profile_)
+            ->Get(profile)
             ->Subscribe(
                 base::BindRepeating(&TokenHandleFetcher::OnProfileDestroyed,
                                     base::Unretained(this)));
@@ -115,6 +113,7 @@ void TokenHandleFetcher::OnAccessTokenFetchComplete(
 
 void TokenHandleFetcher::FillForNewUser(const std::string& access_token,
                                         TokenFetchingCallback callback) {
+  profile_ = ProfileHelper::Get()->GetSigninProfile();
   callback_ = std::move(callback);
   FillForAccessToken(access_token);
 }

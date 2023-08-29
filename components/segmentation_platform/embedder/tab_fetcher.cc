@@ -68,24 +68,21 @@ bool TabFetcher::FillAllRemoteTabsAfterTime(
 }
 
 bool TabFetcher::FillAllLocalTabs(std::vector<TabEntry>& tabs) {
-  if (FillAllLocalTabsFromTabModel(tabs)) {
-    return true;
+  if (!session_sync_service_->GetOpenTabsUIDelegate()) {
+    return FillAllLocalTabsFromTabModel(tabs);
   }
-  return FillAllLocalTabsFromSyncSessions(tabs);
+  FillAllLocalTabsFromSyncSessions(tabs);
+  return true;
 }
 
 TabFetcher::Tab TabFetcher::FindTab(const TabEntry& entry) {
   auto* open_ui_delegate = session_sync_service_->GetOpenTabsUIDelegate();
-  if (!open_ui_delegate || entry.session_tag.empty()) {
+  if (!open_ui_delegate) {
     return FindLocalTab(entry);
   }
   const sessions::SessionTab* tab;
   open_ui_delegate->GetForeignTab(entry.session_tag, entry.tab_id, &tab);
-  GURL url =
-      tab->navigations.size() ? tab->navigations.back().virtual_url() : GURL();
-  return Tab{.session_tab = tab,
-             .tab_url = url,
-             .time_since_modified = base::Time::Now() - tab->timestamp};
+  return Tab{.session_tab = tab};
 }
 
 bool TabFetcher::FillAllLocalTabsFromTabModel(std::vector<TabEntry>& tabs) {
@@ -107,6 +104,20 @@ bool TabFetcher::FillAllLocalTabsFromSyncSessions(std::vector<TabEntry>& tabs) {
 TabFetcher::Tab TabFetcher::FindLocalTab(const TabEntry& entry) {
   NOTIMPLEMENTED();
   return Tab{};
+}
+
+base::TimeDelta TabFetcher::GetTimeSinceModified(const TabEntry& tab_entry) {
+  Tab tab = FindTab(tab_entry);
+  if (tab.session_tab) {
+    return base::Time::Now() - tab.session_tab->timestamp;
+  }
+  return GetLocalTabTimeSinceModified(tab);
+}
+
+base::TimeDelta TabFetcher::GetLocalTabTimeSinceModified(
+    const TabFetcher::Tab& tab) {
+  NOTIMPLEMENTED();
+  return base::TimeDelta::Max();
 }
 
 size_t TabFetcher::GetRemoteTabsCountAfterTime(

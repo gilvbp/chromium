@@ -25,6 +25,7 @@
 #include "extensions/browser/api/extensions_api_client.h"
 #include "extensions/browser/event_router.h"
 #include "extensions/browser/extension_host.h"
+#include "extensions/browser/notification_types.h"
 #include "mojo/public/cpp/bindings/pending_remote.h"
 
 #if BUILDFLAG(IS_CHROMEOS_ASH)

@@ -9,7 +9,7 @@
 #include <string>
 #include <utility>
 
-#include "base/check.h"
+#include "base/containers/cxx20_erase.h"
 #include "base/dcheck_is_on.h"
 #include "services/accessibility/android/accessibility_node_info_data_wrapper.h"
 #include "services/accessibility/android/accessibility_window_info_data_wrapper.h"
@@ -32,22 +32,15 @@ using AXWindowBooleanProperty = mojom::AccessibilityWindowBooleanProperty;
 using AXWindowInfoData = mojom::AccessibilityWindowInfoData;
 using AXWindowIntListProperty = mojom::AccessibilityWindowIntListProperty;
 
-// TODO(hirokisato): Enable AXTreeAndroidSerializer's |crash_on_error| once
+// TODO(hirokisato): Enable AXTreeArcSerializer's |crash_on_error| once
 // Android becomes able to send reliable trees.
-AXTreeSourceAndroid::AXTreeSourceAndroid(
-    Delegate* delegate,
-    std::unique_ptr<SerializationDelegate> serialization_delegate,
-    aura::Window* window)
-    : current_tree_serializer_(
-          new AXTreeAndroidSerializer(this, DCHECK_IS_ON())),
+AXTreeSourceAndroid::AXTreeSourceAndroid(Delegate* delegate,
+                                         aura::Window* window)
+    : current_tree_serializer_(new AXTreeArcSerializer(this, DCHECK_IS_ON())),
       is_notification_(false),
       is_input_method_window_(false),
       window_(window),
-      delegate_(delegate),
-      serialization_delegate_(std::move(serialization_delegate)) {
-  CHECK(serialization_delegate_);
-  serialization_delegate_->BindTree(this);
-}
+      delegate_(delegate) {}
 
 AXTreeSourceAndroid::~AXTreeSourceAndroid() {
   Reset();
@@ -162,9 +155,7 @@ void AXTreeSourceAndroid::SerializeNode(AccessibilityInfoDataWrapper* info_data,
 void AXTreeSourceAndroid::NotifyAccessibilityEventInternal(
     const AXEventData& event_data) {
   if (window_id_ != event_data.window_id) {
-    // Root window id is changed. Resetting variables that depends on id.
     android_focused_id_.reset();
-    hooks_.clear();
     window_id_ = event_data.window_id;
   }
   is_notification_ = event_data.notification_key.has_value();
@@ -237,25 +228,26 @@ void AXTreeSourceAndroid::NotifyAccessibilityEventInternal(
       android_focused_id_.has_value() ? GetFromId(*android_focused_id_)
                                       : nullptr;
   std::vector<ui::AXEvent> events;
-  const absl::optional<ax::mojom::Event> event_type = ToAXEvent(
-      event_data.event_type, GetFromId(event_data.source_id), focused_node);
-  if (event_type) {
-    ui::AXEvent event;
-    event.event_type = event_type.value();
-    event.id = event_data.source_id;
+  ui::AXEvent event;
+  event.event_type = ToAXEvent(
+      event_data.event_type,
+      GetPropertyOrNull(event_data.int_list_properties,
+                        ax::android::mojom::AccessibilityEventIntListProperty::
+                            CONTENT_CHANGE_TYPES),
+      GetFromId(event_data.source_id), focused_node);
+  event.id = event_data.source_id;
 
-    int event_from_action;
-    if (GetProperty(event_data.int_properties,
-                    ax::android::mojom::AccessibilityEventIntProperty::ACTION,
-                    &event_from_action)) {
-      event.event_from = ax::mojom::EventFrom::kAction;
+  int event_from_action;
+  if (GetProperty(event_data.int_properties,
+                  ax::android::mojom::AccessibilityEventIntProperty::ACTION,
+                  &event_from_action)) {
+    event.event_from = ax::mojom::EventFrom::kAction;
 
-      event.event_from_action = ConvertToChromeAction(
-          static_cast<mojom::AccessibilityActionType>(event_from_action));
-    }
-
-    events.push_back(std::move(event));
+    event.event_from_action = ConvertToChromeAction(
+        static_cast<mojom::AccessibilityActionType>(event_from_action));
   }
+
+  events.push_back(std::move(event));
 
   // On event type of WINDOW_STATE_CHANGED, update the entire tree so that
   // window location is correctly calculated.
@@ -525,7 +517,7 @@ void AXTreeSourceAndroid::Reset() {
   tree_map_.clear();
   parent_map_.clear();
   computed_bounds_.clear();
-  current_tree_serializer_ = std::make_unique<AXTreeAndroidSerializer>(this);
+  current_tree_serializer_ = std::make_unique<AXTreeArcSerializer>(this);
   root_id_.reset();
   window_id_.reset();
   android_focused_id_.reset();
@@ -671,13 +663,13 @@ void AXTreeSourceAndroid::ComputeAndCacheChildren(
   }
 
   // We sort output nodes only in full focus mode.
-  if (!UseFullFocusMode() || info_data->IsWebNode()) {
+  if (!UseFullFocusMode() || info_data->IsVirtualNode()) {
     return;
   }
 
   // Also don't sort for virtual nodes (e.g. WebView).
   for (const AccessibilityInfoDataWrapper* child : children) {
-    if (child->IsWebNode()) {
+    if (child->IsVirtualNode()) {
       return;
     }
   }

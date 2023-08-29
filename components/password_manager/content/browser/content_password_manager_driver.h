@@ -9,6 +9,7 @@
 #include <string>
 #include <vector>
 
+#include "base/compiler_specific.h"
 #include "base/memory/raw_ptr.h"
 #include "components/autofill/content/common/mojom/autofill_agent.mojom.h"
 #include "components/autofill/content/common/mojom/autofill_driver.mojom.h"
@@ -37,7 +38,8 @@ class ContentPasswordManagerDriver
       public autofill::mojom::PasswordManagerDriver {
  public:
   ContentPasswordManagerDriver(content::RenderFrameHost* render_frame_host,
-                               PasswordManagerClient* client);
+                               PasswordManagerClient* client,
+                               autofill::AutofillClient* autofill_client);
 
   ContentPasswordManagerDriver(const ContentPasswordManagerDriver&) = delete;
   ContentPasswordManagerDriver& operator=(const ContentPasswordManagerDriver&) =
@@ -81,7 +83,7 @@ class ContentPasswordManagerDriver
   void PreviewGenerationSuggestion(const std::u16string& password) override;
   void ClearPreviewedForm() override;
   void SetSuggestionAvailability(
-      autofill::FieldRendererId element_id,
+      autofill::FieldRendererId generation_element_id,
       const autofill::mojom::AutofillState state) override;
   PasswordGenerationFrameHelper* GetPasswordGenerationHelper() override;
   PasswordManager* GetPasswordManager() override;
@@ -89,6 +91,7 @@ class ContentPasswordManagerDriver
   void SendLoggingAvailability() override;
   bool IsInPrimaryMainFrame() const override;
   bool CanShowAutofillUi() const override;
+  ::ui::AXTreeID GetAxTreeId() const override;
   int GetFrameId() const override;
   const GURL& GetLastCommittedURL() const override;
   void AnnotateFieldsWithParsingResult(
@@ -101,6 +104,13 @@ class ContentPasswordManagerDriver
   content::RenderFrameHost* render_frame_host() const {
     return render_frame_host_;
   }
+
+  // Key-press handlers capture the user input into fields while an Autofill
+  // popup is shown. Through these key presses, the user may select suggestions
+  // from the Autofill popup, for example.
+  void SetKeyPressHandler(
+      const content::RenderWidgetHost::KeyPressEventCallback& handler);
+  void UnsetKeyPressHandler();
 
 #if defined(UNIT_TEST)
   // Exposed to allow browser tests to hook the driver.
@@ -128,15 +138,12 @@ class ContentPasswordManagerDriver
   void PasswordFormCleared(const autofill::FormData& form_data) override;
   void RecordSavePasswordProgress(const std::string& log) override;
   void UserModifiedPasswordField() override;
-  void UserModifiedNonPasswordField(autofill::FieldRendererId renderer_id,
-                                    const std::u16string& value,
-                                    bool autocomplete_attribute_has_username,
-                                    bool is_likely_otp) override;
-  void ShowPasswordSuggestions(autofill::FieldRendererId element_id,
-                               const autofill::FormData& form,
-                               uint64_t username_field_index,
-                               uint64_t password_field_index,
-                               base::i18n::TextDirection text_direction,
+  void UserModifiedNonPasswordField(
+      autofill::FieldRendererId renderer_id,
+      const std::u16string& field_name,
+      const std::u16string& value,
+      bool autocomplete_attribute_has_username) override;
+  void ShowPasswordSuggestions(base::i18n::TextDirection text_direction,
                                const std::u16string& typed_username,
                                int options,
                                const gfx::RectF& bounds) override;
@@ -163,8 +170,8 @@ class ContentPasswordManagerDriver
   const mojo::AssociatedRemote<autofill::mojom::PasswordGenerationAgent>&
   GetPasswordGenerationAgent();
 
-  const raw_ptr<content::RenderFrameHost> render_frame_host_;
-  const raw_ptr<PasswordManagerClient> client_;
+  raw_ptr<content::RenderFrameHost, DanglingUntriaged> render_frame_host_;
+  raw_ptr<PasswordManagerClient> client_;
   PasswordGenerationFrameHelper password_generation_helper_;
   PasswordAutofillManager password_autofill_manager_;
 
@@ -178,6 +185,8 @@ class ContentPasswordManagerDriver
 
   mojo::AssociatedReceiver<autofill::mojom::PasswordManagerDriver>
       password_manager_receiver_;
+
+  content::RenderWidgetHost::KeyPressEventCallback key_press_handler_;
 
   base::WeakPtrFactory<ContentPasswordManagerDriver> weak_factory_{this};
 };

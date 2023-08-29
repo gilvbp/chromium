@@ -4,7 +4,7 @@
 
 #include "chrome/browser/companion/core/companion_url_builder.h"
 
-#include "base/base64url.h"
+#include "base/base64.h"
 #include "chrome/browser/companion/core/companion_permission_utils.h"
 #include "chrome/browser/companion/core/constants.h"
 #include "chrome/browser/companion/core/proto/companion_url_params.pb.h"
@@ -116,7 +116,6 @@ std::string CompanionUrlBuilder::BuildCompanionUrlParamProto(
   url_params.set_is_vqs_enabled_on_chrome(base::FeatureList::IsEnabled(
       visual_search::features::kVisualSearchSuggestions));
   url_params.set_is_upload_dialog_supported(true);
-  url_params.set_is_hard_refresh_supported(true);
 #endif
 
   companion::proto::PromoState* promo_state = url_params.mutable_promo_state();
@@ -134,9 +133,7 @@ std::string CompanionUrlBuilder::BuildCompanionUrlParamProto(
       signin_delegate_->ShouldShowRegionSearchIPH());
 
   std::string base64_encoded_proto;
-  base::Base64UrlEncode(url_params.SerializeAsString(),
-                        base::Base64UrlEncodePolicy::OMIT_PADDING,
-                        &base64_encoded_proto);
+  base::Base64Encode(url_params.SerializeAsString(), &base64_encoded_proto);
   return base64_encoded_proto;
 }
 

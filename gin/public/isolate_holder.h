@@ -83,17 +83,13 @@ class GIN_EXPORT IsolateHolder {
       IsolateType isolate_type,
       IsolateCreationMode isolate_creation_mode = IsolateCreationMode::kNormal,
       v8::CreateHistogramCallback create_histogram_callback = nullptr,
-      v8::AddHistogramSampleCallback add_histogram_sample_callback = nullptr,
-      scoped_refptr<base::SingleThreadTaskRunner> low_priority_task_runner =
-          nullptr);
+      v8::AddHistogramSampleCallback add_histogram_sample_callback = nullptr);
   IsolateHolder(
       scoped_refptr<base::SingleThreadTaskRunner> task_runner,
       AccessMode access_mode,
       IsolateType isolate_type,
       std::unique_ptr<v8::Isolate::CreateParams> params,
-      IsolateCreationMode isolate_creation_mode = IsolateCreationMode::kNormal,
-      scoped_refptr<base::SingleThreadTaskRunner> low_priority_task_runner =
-          nullptr);
+      IsolateCreationMode isolate_creation_mode = IsolateCreationMode::kNormal);
   IsolateHolder(const IsolateHolder&) = delete;
   IsolateHolder& operator=(const IsolateHolder&) = delete;
   ~IsolateHolder();
@@ -147,7 +143,7 @@ class GIN_EXPORT IsolateHolder {
   void SetUp(scoped_refptr<base::SingleThreadTaskRunner> task_runner);
 
   std::unique_ptr<v8::SnapshotCreator> snapshot_creator_;
-  raw_ptr<v8::Isolate, AcrossTasksDanglingUntriaged> isolate_;
+  raw_ptr<v8::Isolate, DanglingUntriaged> isolate_;
   std::unique_ptr<PerIsolateData> isolate_data_;
   std::unique_ptr<V8IsolateMemoryDumpProvider> isolate_memory_dump_provider_;
   AccessMode access_mode_;

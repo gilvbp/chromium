@@ -20,8 +20,7 @@
       mobile: true
     }
   });
-  session1.navigate('resources/prerender-echo-header.html');
-  await session1.protocol.Preload.oncePrerenderStatusUpdated(e => e.params.status === 'Ready');
+  await session1.navigate('resources/prerender-echo-header.html');
 
   const session2 = childTargetManager.findAttachedSessionPrerender();
   const dp2 = session2.protocol;

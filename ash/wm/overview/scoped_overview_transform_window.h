@@ -11,7 +11,6 @@
 #include "ash/ash_export.h"
 #include "ash/wm/overview/overview_session.h"
 #include "ash/wm/overview/overview_types.h"
-#include "ash/wm/raster_scale/raster_scale_layer_observer.h"
 #include "base/gtest_prod_util.h"
 #include "base/memory/raw_ptr.h"
 #include "base/memory/weak_ptr.h"
@@ -80,7 +79,7 @@ class ASH_EXPORT ScopedOverviewTransformWindow
   //      OVERVIEW_ANIMATION_RESTORE_WINDOW, &animation_settings);
   //  // Calls to SetTransform & SetOpacity will use the same animation settings
   //  // until animation_settings is destroyed.
-  //  SetTransform(root_window, new_transform) in `overview_utils.h`;
+  //  OverviewUtil::SetTransform(root_window, new_transform);
   //  overview_window.SetOpacity(1);
   void BeginScopedAnimation(OverviewAnimationType animation_type,
                             ScopedAnimationSettings* animation_settings);
@@ -88,7 +87,8 @@ class ASH_EXPORT ScopedOverviewTransformWindow
   // Returns true if this overview window contains the |target|.
   bool Contains(const aura::Window* target) const;
 
-  // Returns transformed bounds of the overview window.
+  // Returns transformed bounds of the overview window. See
+  // OverviewUtil::GetTransformedBounds for more details.
   gfx::RectF GetTransformedBounds() const;
 
   // Returns the kTopViewInset property of |window_| unless there are transient
@@ -118,16 +118,18 @@ class ASH_EXPORT ScopedOverviewTransformWindow
   gfx::RectF ShrinkRectToFitPreservingAspectRatio(const gfx::RectF& rect,
                                                   const gfx::RectF& bounds,
                                                   int top_view_inset,
-                                                  int title_height) const;
+                                                  int title_height);
 
   // Returns the window used to show the content in overview mode.
   // For minimized window this will be a window that hosts mirrored layers.
-  aura::Window* GetOverviewWindow();
+  aura::Window* GetOverviewWindow() const;
 
   // Closes the transient root of the window managed by |this|.
   void Close();
 
-  bool IsMinimizedOrTucked() const;
+  // TODO(sammiequon): Rename this function as tucked floated windows behave the
+  // same way as minimized windows.
+  bool IsMinimized() const;
 
   // Ensures that a window is visible by setting its opacity to 1.
   void EnsureVisible();
@@ -165,7 +167,7 @@ class ASH_EXPORT ScopedOverviewTransformWindow
   FRIEND_TEST_ALL_PREFIXES(OverviewSessionTest, CloseAnimationShadow);
   class LayerCachingAndFilteringObserver;
 
-  // If true, makes `CloseWidget()` execute synchronously when used in tests.
+  // If true, makes Close() execute synchronously when used in tests.
   static void SetImmediateCloseForTests(bool immediate);
 
   // Closes the window managed by |this|.
@@ -215,11 +217,6 @@ class ASH_EXPORT ScopedOverviewTransformWindow
 
   base::ScopedMultiSourceObservation<aura::Window, aura::WindowObserver>
       window_observations_{this};
-
-  // While the transform window exists, apply dynamic raster scale to the
-  // underlying window.
-  absl::optional<ScopedRasterScaleLayerObserverLock>
-      raster_scale_observer_lock_;
 
   base::WeakPtrFactory<ScopedOverviewTransformWindow> weak_ptr_factory_{this};
 };

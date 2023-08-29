@@ -12,12 +12,12 @@
 #include <iterator>
 #include <memory>
 
-#include "base/apple/osstatus_logging.h"
 #include "base/atomic_sequence_num.h"
 #include "base/containers/contains.h"
 #include "base/containers/span.h"
 #include "base/functional/bind.h"
 #include "base/logging.h"
+#include "base/mac/mac_logging.h"
 #include "base/mac/mac_util.h"
 #include "base/memory/ptr_util.h"
 #include "base/memory/scoped_policy.h"
@@ -65,6 +65,11 @@
 namespace media {
 
 namespace {
+
+// Controls whether InitializeVideoToolboxInternal() does preload or not.
+BASE_FEATURE(kSkipVideoToolboxPreload,
+             "SkipVideoToolboxPreload",
+             base::FEATURE_ENABLED_BY_DEFAULT);
 
 // Parameter sets vector contain all PPSs/SPSs(/VPSs)
 using ParameterSets = std::vector<base::span<const uint8_t>>;
@@ -140,11 +145,11 @@ constexpr int kMinOutputsBeforeRASL = 5;
 #endif  // BUILDFLAG(ENABLE_HEVC_PARSER_AND_HW_DECODER)
 
 // Build an |image_config| dictionary for VideoToolbox initialization.
-base::apple::ScopedCFTypeRef<CFMutableDictionaryRef> BuildImageConfig(
+base::ScopedCFTypeRef<CFMutableDictionaryRef> BuildImageConfig(
     CMVideoDimensions coded_dimensions,
     bool is_hbd,
     bool has_alpha) {
-  base::apple::ScopedCFTypeRef<CFMutableDictionaryRef> image_config;
+  base::ScopedCFTypeRef<CFMutableDictionaryRef> image_config;
 
   // Note that 4:2:0 textures cannot be used directly as RGBA in OpenGL, but are
   // lower power than 4:2:2 when composited directly by CoreAnimation.
@@ -157,12 +162,9 @@ base::apple::ScopedCFTypeRef<CFMutableDictionaryRef> BuildImageConfig(
     pixel_format = kCVPixelFormatType_420YpCbCr8VideoRange_8A_TriPlanar;
 
 #define CFINT(i) CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, &i)
-  base::apple::ScopedCFTypeRef<CFNumberRef> cf_pixel_format(
-      CFINT(pixel_format));
-  base::apple::ScopedCFTypeRef<CFNumberRef> cf_width(
-      CFINT(coded_dimensions.width));
-  base::apple::ScopedCFTypeRef<CFNumberRef> cf_height(
-      CFINT(coded_dimensions.height));
+  base::ScopedCFTypeRef<CFNumberRef> cf_pixel_format(CFINT(pixel_format));
+  base::ScopedCFTypeRef<CFNumberRef> cf_width(CFINT(coded_dimensions.width));
+  base::ScopedCFTypeRef<CFNumberRef> cf_height(CFINT(coded_dimensions.height));
 #undef CFINT
   if (!cf_pixel_format.get() || !cf_width.get() || !cf_height.get())
     return image_config;
@@ -184,7 +186,7 @@ base::apple::ScopedCFTypeRef<CFMutableDictionaryRef> BuildImageConfig(
 
 #if BUILDFLAG(ENABLE_HEVC_PARSER_AND_HW_DECODER)
 // Create a CMFormatDescription using the provided |param_sets|.
-base::apple::ScopedCFTypeRef<CMFormatDescriptionRef> CreateVideoFormatHEVC(
+base::ScopedCFTypeRef<CMFormatDescriptionRef> CreateVideoFormatHEVC(
     ParameterSets param_sets) {
   DCHECK(!param_sets.empty());
 
@@ -203,7 +205,7 @@ base::apple::ScopedCFTypeRef<CMFormatDescriptionRef> CreateVideoFormatHEVC(
   // we could get an OSStatus=-12906 kVTCouldNotFindVideoDecoderErr after
   // calling VTDecompressionSessionCreate(), so macOS 11+ is necessary
   // (https://crbug.com/1300444#c9)
-  base::apple::ScopedCFTypeRef<CMFormatDescriptionRef> format;
+  base::ScopedCFTypeRef<CMFormatDescriptionRef> format;
   if (__builtin_available(macOS 11.0, *)) {
     OSStatus status = CMVideoFormatDescriptionCreateFromHEVCParameterSets(
         kCFAllocatorDefault,
@@ -220,7 +222,7 @@ base::apple::ScopedCFTypeRef<CMFormatDescriptionRef> CreateVideoFormatHEVC(
 #endif  // BUILDFLAG(ENABLE_HEVC_PARSER_AND_HW_DECODER)
 
 // Create a CMFormatDescription using the provided |pps| and |sps|.
-base::apple::ScopedCFTypeRef<CMFormatDescriptionRef> CreateVideoFormatH264(
+base::ScopedCFTypeRef<CMFormatDescriptionRef> CreateVideoFormatH264(
     const std::vector<uint8_t>& sps,
     const std::vector<uint8_t>& spsext,
     const std::vector<uint8_t>& pps) {
@@ -242,7 +244,7 @@ base::apple::ScopedCFTypeRef<CMFormatDescriptionRef> CreateVideoFormatH264(
   nalu_data_sizes.push_back(pps.size());
 
   // Construct a new format description from the parameter sets.
-  base::apple::ScopedCFTypeRef<CMFormatDescriptionRef> format;
+  base::ScopedCFTypeRef<CMFormatDescriptionRef> format;
   OSStatus status = CMVideoFormatDescriptionCreateFromH264ParameterSets(
       kCFAllocatorDefault,
       nalu_data_ptrs.size(),     // parameter_set_count
@@ -255,16 +257,15 @@ base::apple::ScopedCFTypeRef<CMFormatDescriptionRef> CreateVideoFormatH264(
   return format;
 }
 
-base::apple::ScopedCFTypeRef<CMFormatDescriptionRef> CreateVideoFormatVP9(
+base::ScopedCFTypeRef<CMFormatDescriptionRef> CreateVideoFormatVP9(
     media::VideoColorSpace color_space,
     media::VideoCodecProfile profile,
     absl::optional<gfx::HDRMetadata> hdr_metadata,
     const gfx::Size& coded_size) {
-  base::apple::ScopedCFTypeRef<CFDictionaryRef> format_config =
-      CreateFormatExtensions(kCMVideoCodecType_VP9, profile, color_space,
-                             hdr_metadata);
+  base::ScopedCFTypeRef<CFDictionaryRef> format_config = CreateFormatExtensions(
+      kCMVideoCodecType_VP9, profile, color_space, hdr_metadata);
 
-  base::apple::ScopedCFTypeRef<CMFormatDescriptionRef> format;
+  base::ScopedCFTypeRef<CMFormatDescriptionRef> format;
   if (!format_config) {
     DLOG(ERROR) << "Failed to configure vp9 decoder.";
     return format;
@@ -286,10 +287,10 @@ bool CreateVideoToolboxSession(
     bool is_hbd,
     bool has_alpha,
     const VTDecompressionOutputCallbackRecord* callback,
-    base::apple::ScopedCFTypeRef<VTDecompressionSessionRef>* session,
+    base::ScopedCFTypeRef<VTDecompressionSessionRef>* session,
     gfx::Size* configured_size) {
   // Prepare VideoToolbox configuration dictionaries.
-  base::apple::ScopedCFTypeRef<CFMutableDictionaryRef> decoder_config(
+  base::ScopedCFTypeRef<CFMutableDictionaryRef> decoder_config(
       CFDictionaryCreateMutable(kCFAllocatorDefault,
                                 1,  // capacity
                                 &kCFTypeDictionaryKeyCallBacks,
@@ -319,7 +320,7 @@ bool CreateVideoToolboxSession(
   CMVideoDimensions visible_dimensions = {
       base::ClampFloor(visible_rect.size.width),
       base::ClampFloor(visible_rect.size.height)};
-  base::apple::ScopedCFTypeRef<CFMutableDictionaryRef> image_config(
+  base::ScopedCFTypeRef<CFMutableDictionaryRef> image_config(
       BuildImageConfig(visible_dimensions, is_hbd, has_alpha));
   if (!image_config) {
     DLOG(ERROR) << "Failed to create decoder image configuration";
@@ -341,6 +342,150 @@ bool CreateVideoToolboxSession(
   *configured_size =
       gfx::Size(visible_rect.size.width, visible_rect.size.height);
 
+  return true;
+}
+
+// The purpose of this function is to preload the generic and hardware-specific
+// libraries required by VideoToolbox before the GPU sandbox is enabled.
+// VideoToolbox normally loads the hardware-specific libraries lazily, so we
+// must actually create a decompression session. If creating a decompression
+// session fails, hardware decoding will be disabled (Initialize() will always
+// return false).
+bool InitializeVideoToolboxInternal() {
+  if (base::FeatureList::IsEnabled(kSkipVideoToolboxPreload)) {
+    // When skipping preload we still need to register vp9, otherwise it won't
+    // work at all.
+#if BUILDFLAG(IS_MAC)
+    // TODO: Enable VP9 for a iOS platform(https://crbug.com/1449877)
+    if (__builtin_available(macOS 11.0, *)) {
+      VTRegisterSupplementalVideoDecoderIfAvailable(kCMVideoCodecType_VP9);
+    }
+#endif
+    return true;
+  }
+
+  VTDecompressionOutputCallbackRecord callback = {0};
+  base::ScopedCFTypeRef<VTDecompressionSessionRef> session;
+  gfx::Size configured_size;
+
+  // Create a h264 hardware decoding session.
+  // SPS and PPS data are taken from a 480p sample (buck2.mp4).
+  const std::vector<uint8_t> sps_h264_normal = {
+      0x67, 0x64, 0x00, 0x1e, 0xac, 0xd9, 0x80, 0xd4, 0x3d, 0xa1, 0x00, 0x00,
+      0x03, 0x00, 0x01, 0x00, 0x00, 0x03, 0x00, 0x30, 0x8f, 0x16, 0x2d, 0x9a};
+  const std::vector<uint8_t> pps_h264_normal = {0x68, 0xe9, 0x7b, 0xcb};
+  if (!CreateVideoToolboxSession(
+          CreateVideoFormatH264(sps_h264_normal, std::vector<uint8_t>(),
+                                pps_h264_normal),
+          /*require_hardware=*/true, /*is_hbd=*/false, /*has_alpha=*/false,
+          &callback, &session, &configured_size)) {
+    DVLOG(1) << "Hardware H264 decoding with VideoToolbox is not supported";
+    return false;
+  }
+
+  session.reset();
+
+  // Create a h264 software decoding session.
+  // SPS and PPS data are taken from a 18p sample (small2.mp4).
+  const std::vector<uint8_t> sps_h264_small = {
+      0x67, 0x64, 0x00, 0x0a, 0xac, 0xd9, 0x89, 0x7e, 0x22, 0x10, 0x00,
+      0x00, 0x3e, 0x90, 0x00, 0x0e, 0xa6, 0x08, 0xf1, 0x22, 0x59, 0xa0};
+  const std::vector<uint8_t> pps_h264_small = {0x68, 0xe9, 0x79, 0x72, 0xc0};
+  if (!CreateVideoToolboxSession(
+          CreateVideoFormatH264(sps_h264_small, std::vector<uint8_t>(),
+                                pps_h264_small),
+          /*require_hardware=*/false, /*is_hbd=*/false, /*has_alpha=*/false,
+          &callback, &session, &configured_size)) {
+    DVLOG(1) << "Software H264 decoding with VideoToolbox is not supported";
+    return false;
+  }
+
+  session.reset();
+
+#if BUILDFLAG(IS_MAC)
+  // TODO: Enable VP9 for a iOS platform(https://crbug.com/1449877)
+  if (__builtin_available(macOS 11.0, *)) {
+    VTRegisterSupplementalVideoDecoderIfAvailable(kCMVideoCodecType_VP9);
+
+    // Create a VP9 decoding session.
+    if (!CreateVideoToolboxSession(
+            CreateVideoFormatVP9(VideoColorSpace::REC709(), VP9PROFILE_PROFILE0,
+                                 absl::nullopt, gfx::Size(720, 480)),
+            /*require_hardware=*/true, /*is_hbd=*/false, /*has_alpha=*/false,
+            &callback, &session, &configured_size)) {
+      DVLOG(1) << "Hardware VP9 decoding with VideoToolbox is not supported";
+
+      // We don't return false here since VP9 support is optional.
+    }
+  }
+#endif
+
+#if BUILDFLAG(ENABLE_HEVC_PARSER_AND_HW_DECODER)
+  if (base::FeatureList::IsEnabled(media::kPlatformHEVCDecoderSupport)) {
+    // Only macOS >= 11.0 will support hevc if we use
+    // CMVideoFormatDescriptionCreateFromHEVCParameterSets
+    // API to create video format
+    if (__builtin_available(macOS 11.0, *)) {
+      session.reset();
+
+      // Create a hevc hardware decoding session.
+      // VPS, SPS and PPS data are taken from a 720p sample
+      // (bear-1280x720-hevc.mp4).
+      const std::vector<uint8_t> vps_hevc_normal = {
+          0x40, 0x01, 0x0c, 0x01, 0xff, 0xff, 0x01, 0x60,
+          0x00, 0x00, 0x03, 0x00, 0x90, 0x00, 0x00, 0x03,
+          0x00, 0x00, 0x03, 0x00, 0x5d, 0x95, 0x98, 0x09};
+
+      const std::vector<uint8_t> sps_hevc_normal = {
+          0x42, 0x01, 0x01, 0x01, 0x60, 0x00, 0x00, 0x03, 0x00, 0x90, 0x00,
+          0x00, 0x03, 0x00, 0x00, 0x03, 0x00, 0x5d, 0xa0, 0x02, 0x80, 0x80,
+          0x2d, 0x16, 0x59, 0x59, 0xa4, 0x93, 0x2b, 0xc0, 0x5a, 0x70, 0x80,
+          0x00, 0x01, 0xf4, 0x80, 0x00, 0x3a, 0x98, 0x04};
+
+      const std::vector<uint8_t> pps_hevc_normal = {0x44, 0x01, 0xc1, 0x72,
+                                                    0xb4, 0x62, 0x40};
+
+      if (!CreateVideoToolboxSession(
+              CreateVideoFormatHEVC(ParameterSets(
+                  {vps_hevc_normal, sps_hevc_normal, pps_hevc_normal})),
+              /*require_hardware=*/true, /*is_hbd=*/false, /*has_alpha=*/false,
+              &callback, &session, &configured_size)) {
+        DVLOG(1) << "Hardware HEVC decoding with VideoToolbox is not supported";
+
+        // We don't return false here since HEVC support is optional.
+      }
+
+      session.reset();
+
+      // Create a hevc software decoding session.
+      // VPS, SPS and PPS data are taken from a 240p sample
+      // (bear-320x240-v_frag-hevc.mp4).
+      const std::vector<uint8_t> vps_hevc_small = {
+          0x40, 0x01, 0x0c, 0x01, 0xff, 0xff, 0x01, 0x60,
+          0x00, 0x00, 0x03, 0x00, 0x90, 0x00, 0x00, 0x03,
+          0x00, 0x00, 0x03, 0x00, 0x3c, 0x95, 0x98, 0x09};
+
+      const std::vector<uint8_t> sps_hevc_small = {
+          0x42, 0x01, 0x01, 0x01, 0x60, 0x00, 0x00, 0x03, 0x00, 0x90,
+          0x00, 0x00, 0x03, 0x00, 0x00, 0x03, 0x00, 0x3c, 0xa0, 0x0a,
+          0x08, 0x0f, 0x16, 0x59, 0x59, 0xa4, 0x93, 0x2b, 0xc0, 0x40,
+          0x40, 0x00, 0x00, 0xfa, 0x40, 0x00, 0x1d, 0x4c, 0x02};
+
+      const std::vector<uint8_t> pps_hevc_small = {0x44, 0x01, 0xc1, 0x72,
+                                                   0xb4, 0x62, 0x40};
+
+      if (!CreateVideoToolboxSession(
+              CreateVideoFormatHEVC(ParameterSets(
+                  {vps_hevc_small, sps_hevc_small, pps_hevc_small})),
+              /*require_hardware=*/false, /*is_hbd=*/false, /*has_alpha=*/false,
+              &callback, &session, &configured_size)) {
+        DVLOG(1) << "Software HEVC decoding with VideoToolbox is not supported";
+
+        // We don't return false here since HEVC support is optional.
+      }
+    }
+  }
+#endif  // BUILDFLAG(ENABLE_HEVC_PARSER_AND_HW_DECODER)
   return true;
 }
 
@@ -406,7 +551,7 @@ gfx::BufferFormat ToBufferFormat(viz::SharedImageFormat format) {
   if (format == viz::MultiPlaneFormat::kP010) {
     return gfx::BufferFormat::P010;
   }
-  NOTREACHED() << "format=" << format.ToString();
+  NOTREACHED();
   return gfx::BufferFormat::RGBA_8888;
 }
 
@@ -468,21 +613,13 @@ class VP9ConfigChangeDetector {
   Vp9Parser vp9_parser_;
 };
 
-void InitializeVideoToolbox() {
+bool InitializeVideoToolbox() {
   // InitializeVideoToolbox() is called only from the GPU process main thread:
   // once for sandbox warmup, and then once each time a VTVideoDecodeAccelerator
   // is initialized. This ensures that everything is loaded whether or not the
   // sandbox is enabled.
-#if BUILDFLAG(IS_MAC)
-  static const bool unused = []() {
-    // TODO: Enable VP9 for a iOS platform(https://crbug.com/1449877)
-    if (__builtin_available(macOS 11.0, *)) {
-      VTRegisterSupplementalVideoDecoderIfAvailable(kCMVideoCodecType_VP9);
-    }
-    return true;
-  }();
-  std::ignore = unused;
-#endif
+  static const bool succeeded = InitializeVideoToolboxInternal();
+  return succeeded;
 }
 
 VTVideoDecodeAccelerator::Task::Task(TaskType type) : type(type) {}
@@ -628,7 +765,10 @@ bool VTVideoDecodeAccelerator::Initialize(const Config& config,
     return false;
   }
 
-  InitializeVideoToolbox();
+  if (!InitializeVideoToolbox()) {
+    DVLOG(2) << "VideoToolbox is unavailable";
+    return false;
+  }
 
   client_ = client;
   config_ = config;
@@ -681,7 +821,7 @@ bool VTVideoDecodeAccelerator::ConfigureDecoder() {
   DVLOG(2) << __func__;
   DCHECK(decoder_task_runner_->RunsTasksInCurrentSequence());
 
-  base::apple::ScopedCFTypeRef<CMFormatDescriptionRef> format;
+  base::ScopedCFTypeRef<CMFormatDescriptionRef> format;
   switch (codec_) {
     case VideoCodec::kH264:
       format = CreateVideoFormatH264(active_sps_, active_spsext_, active_pps_);
@@ -745,7 +885,7 @@ bool VTVideoDecodeAccelerator::ConfigureDecoder() {
 
   // Report whether hardware decode is being used.
   bool using_hardware = false;
-  base::apple::ScopedCFTypeRef<CFBooleanRef> cf_using_hardware;
+  base::ScopedCFTypeRef<CFBooleanRef> cf_using_hardware;
   if (VTSessionCopyProperty(
           session_,
           // kVTDecompressionPropertyKey_UsingHardwareAcceleratedVideoDecoder
@@ -811,7 +951,7 @@ void VTVideoDecodeAccelerator::DecodeTaskVp9(
   }
 
   // Package the data in a CMSampleBuffer.
-  base::apple::ScopedCFTypeRef<CMSampleBufferRef> sample;
+  base::ScopedCFTypeRef<CMSampleBufferRef> sample;
   OSStatus status = CMSampleBufferCreateReady(kCFAllocatorDefault,
                                               data,     // data_buffer
                                               format_,  // format_description
@@ -1142,7 +1282,7 @@ void VTVideoDecodeAccelerator::DecodeTaskH264(
 
   // Create a memory-backed CMBlockBuffer for the translated data.
   // TODO(sandersd): Pool of memory blocks.
-  base::apple::ScopedCFTypeRef<CMBlockBufferRef> data;
+  base::ScopedCFTypeRef<CMBlockBufferRef> data;
   OSStatus status = CMBlockBufferCreateWithMemoryBlock(
       kCFAllocatorDefault,
       nullptr,              // &memory_block
@@ -1193,7 +1333,7 @@ void VTVideoDecodeAccelerator::DecodeTaskH264(
   }
 
   // Package the data in a CMSampleBuffer.
-  base::apple::ScopedCFTypeRef<CMSampleBufferRef> sample;
+  base::ScopedCFTypeRef<CMSampleBufferRef> sample;
   status = CMSampleBufferCreate(kCFAllocatorDefault,
                                 data,        // data_buffer
                                 true,        // data_ready
@@ -1575,7 +1715,7 @@ void VTVideoDecodeAccelerator::DecodeTaskHEVC(
 
   // Create a memory-backed CMBlockBuffer for the translated data.
   // TODO(sandersd): Pool of memory blocks.
-  base::apple::ScopedCFTypeRef<CMBlockBufferRef> data;
+  base::ScopedCFTypeRef<CMBlockBufferRef> data;
   OSStatus status = CMBlockBufferCreateWithMemoryBlock(
       kCFAllocatorDefault,
       nullptr,              // &memory_block
@@ -1626,7 +1766,7 @@ void VTVideoDecodeAccelerator::DecodeTaskHEVC(
   }
 
   // Package the data in a CMSampleBuffer.
-  base::apple::ScopedCFTypeRef<CMSampleBufferRef> sample;
+  base::ScopedCFTypeRef<CMSampleBufferRef> sample;
   status = CMSampleBufferCreate(kCFAllocatorDefault,
                                 data,        // data_buffer
                                 true,        // data_ready
@@ -2163,7 +2303,7 @@ bool VTVideoDecodeAccelerator::SendFrame(const Frame& frame) {
     // will not reuse the IOSurface as long as the SharedImage is alive.
     auto destroy_shared_image_lambda =
         [](gpu::SharedImageStub::SharedImageDestructionCallback callback,
-           base::apple::ScopedCFTypeRef<CVImageBufferRef> image,
+           base::ScopedCFTypeRef<CVImageBufferRef> image,
            scoped_refptr<base::SingleThreadTaskRunner> task_runner) {
           task_runner->PostTask(
               FROM_HERE, base::BindOnce(std::move(callback), gpu::SyncToken()));
@@ -2297,7 +2437,8 @@ VideoDecodeAccelerator::SupportedProfiles
 VTVideoDecodeAccelerator::GetSupportedProfiles(
     const gpu::GpuDriverBugWorkarounds& workarounds) {
   SupportedProfiles profiles;
-  InitializeVideoToolbox();
+  if (!InitializeVideoToolbox())
+    return profiles;
 
   for (const auto& supported_profile : kSupportedProfiles) {
     if (supported_profile == VP9PROFILE_PROFILE0 ||

@@ -36,8 +36,7 @@ class TestSafeBrowsingDatabaseManager : public SafeBrowsingDatabaseManager {
       const GURL& url,
       const SBThreatTypeSet& threat_types,
       Client* client,
-      MechanismExperimentHashDatabaseCache experiment_cache_selection,
-      CheckBrowseUrlType check_type) override;
+      MechanismExperimentHashDatabaseCache experiment_cache_selection) override;
   AsyncMatch CheckCsdAllowlistUrl(const GURL& url, Client* client) override;
   bool CheckDownloadUrl(const std::vector<GURL>& url_chain,
                         Client* client) override;
@@ -52,21 +51,15 @@ class TestSafeBrowsingDatabaseManager : public SafeBrowsingDatabaseManager {
   void MatchDownloadAllowlistUrl(
       const GURL& url,
       base::OnceCallback<void(bool)> callback) override;
-  safe_browsing::ThreatSource GetBrowseUrlThreatSource(
-      CheckBrowseUrlType check_type) const override;
-  safe_browsing::ThreatSource GetNonBrowseUrlThreatSource() const override;
+  safe_browsing::ThreatSource GetThreatSource() const override;
   bool IsDownloadProtectionEnabled() const override;
   void StartOnSBThread(
       scoped_refptr<network::SharedURLLoaderFactory> url_loader_factory,
       const V4ProtocolConfig& config) override;
   void StopOnSBThread(bool shutdown) override;
-  bool IsDatabaseReady() const override;
 
  protected:
   ~TestSafeBrowsingDatabaseManager() override = default;
-
- private:
-  bool enabled_;
 };
 
 }  // namespace safe_browsing

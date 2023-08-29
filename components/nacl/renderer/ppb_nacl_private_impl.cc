@@ -29,7 +29,6 @@
 #include "base/strings/string_util.h"
 #include "base/task/single_thread_task_runner.h"
 #include "base/time/time.h"
-#include "base/types/expected_macros.h"
 #include "build/build_config.h"
 #include "components/nacl/common/nacl_host_messages.h"
 #include "components/nacl/common/nacl_messages.h"
@@ -1208,15 +1207,15 @@ PP_Bool PPBNaClPrivate::GetPnaclResourceInfo(PP_Instance instance,
     buffer.get()[rc] = 0;
 
     // Expect the JSON file to contain a top-level object (dictionary).
-    ASSIGN_OR_RETURN(
-        auto parsed_json,
-        base::JSONReader::ReadAndReturnValueWithError(buffer.get()),
-        [](base::JSONReader::Error error) {
-          return "Parsing resource info failed: JSON parse error: " +
-                 std::move(error).message;
-        });
+    auto parsed_json =
+        base::JSONReader::ReadAndReturnValueWithError(buffer.get());
+    if (!parsed_json.has_value()) {
+      return base::unexpected(
+          "Parsing resource info failed: JSON parse error: " +
+          parsed_json.error().message);
+    }
 
-    auto* json_dict = parsed_json.GetIfDict();
+    auto* json_dict = parsed_json->GetIfDict();
     if (!json_dict) {
       return base::unexpected(
           "Parsing resource info failed: JSON parse error: Not a "
@@ -1234,10 +1233,11 @@ PP_Bool PPBNaClPrivate::GetPnaclResourceInfo(PP_Instance instance,
     }
     return base::ok();
   };
-  RETURN_IF_ERROR(get_info(), [&](std::string error) {
-    load_manager->ReportLoadError(PP_NACL_ERROR_PNACL_RESOURCE_FETCH, error);
+  if (auto info = get_info(); !info.has_value()) {
+    load_manager->ReportLoadError(PP_NACL_ERROR_PNACL_RESOURCE_FETCH,
+                                  info.error());
     return PP_FALSE;
-  });
+  }
   return PP_TRUE;
 }
 

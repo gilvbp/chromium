@@ -21,6 +21,10 @@
 #include "device/bluetooth/bluetooth_low_energy_discovery_manager_mac.h"
 #include "device/bluetooth/public/cpp/bluetooth_uuid.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 @class CBUUID;
 
 @class BluetoothLowEnergyCentralManagerDelegate;

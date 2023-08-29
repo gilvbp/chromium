@@ -20,7 +20,6 @@
 #include "base/uuid.h"
 #include "base/values.h"
 #include "components/bookmarks/browser/bookmark_model.h"
-#include "components/bookmarks/browser/bookmark_uuids.h"
 #include "components/bookmarks/test/test_bookmark_client.h"
 #include "testing/gtest/include/gtest/gtest.h"
 
@@ -659,7 +658,7 @@ TEST_F(BookmarkCodecTest, ReassignDuplicateUuid) {
 
 TEST_F(BookmarkCodecTest, ReassignBannedUuid) {
   const base::Uuid kBannedGuid =
-      base::Uuid::ParseLowercase(kBannedUuidDueToPastSyncBug);
+      base::Uuid::ParseLowercase(BookmarkNode::kBannedUuidDueToPastSyncBug);
   ASSERT_TRUE(kBannedGuid.is_valid());
 
   std::unique_ptr<BookmarkModel> model_to_encode(CreateTestModel1());
@@ -696,12 +695,13 @@ TEST_F(BookmarkCodecTest, ReassignPermanentNodeDuplicateUuid) {
   GetBookmarksBarChildValue(&value, 0, &child_value);
 
   // Change UUID of child to be the root node UUID.
-  child_value->GetDict().Set(BookmarkCodec::kGuidKey, kRootNodeUuid);
+  child_value->GetDict().Set(BookmarkCodec::kGuidKey,
+                             BookmarkNode::kRootNodeUuid);
 
   std::string* child_uuid =
       child_value->GetDict().FindString(BookmarkCodec::kGuidKey);
   ASSERT_TRUE(child_uuid);
-  ASSERT_EQ(kRootNodeUuid, *child_uuid);
+  ASSERT_EQ(BookmarkNode::kRootNodeUuid, *child_uuid);
 
   std::unique_ptr<BookmarkModel> decoded_model(
       TestBookmarkClient::CreateModel());
@@ -710,7 +710,7 @@ TEST_F(BookmarkCodecTest, ReassignPermanentNodeDuplicateUuid) {
                      /*sync_metadata_str=*/nullptr));
 
   EXPECT_TRUE(decoder.uuids_reassigned());
-  EXPECT_NE(base::Uuid::ParseLowercase(kRootNodeUuid),
+  EXPECT_NE(base::Uuid::ParseLowercase(BookmarkNode::kRootNodeUuid),
             decoded_model->bookmark_bar_node()->children()[0]->uuid());
 }
 

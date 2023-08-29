@@ -9,7 +9,6 @@
 
 #include <memory>
 #include <string>
-#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -34,7 +33,6 @@
 #include "printing/emf_win.h"
 #include "printing/pdf_render_settings.h"
 #include "third_party/abseil-cpp/absl/types/optional.h"
-#include "url/gurl.h"
 
 using content::BrowserThread;
 
@@ -46,12 +44,12 @@ namespace {
 // comment records.
 class PostScriptMetaFile : public Emf {
  public:
-  PostScriptMetaFile() = default;
+  PostScriptMetaFile() {}
 
   PostScriptMetaFile(const PostScriptMetaFile&) = delete;
   PostScriptMetaFile& operator=(const PostScriptMetaFile&) = delete;
 
-  ~PostScriptMetaFile() override = default;
+  ~PostScriptMetaFile() override {}
 
  private:
   // Emf:
@@ -73,7 +71,6 @@ class PdfConverterImpl : public PdfConverter {
   PdfConverterImpl(scoped_refptr<base::RefCountedMemory> data,
                    const PdfRenderSettings& conversion_settings,
                    const absl::optional<bool>& use_skia,
-                   const GURL& url,
                    StartCallback start_callback);
 
   PdfConverterImpl(const PdfConverterImpl&) = delete;
@@ -134,15 +131,13 @@ class PdfConverterImpl : public PdfConverter {
   void OnPageDone(base::ReadOnlySharedMemoryRegion emf_region,
                   float scale_factor);
 
-  void OnFailed(std::string_view error_message);
+  void OnFailed(const std::string& error_message);
 
   void RecordConversionMetrics();
 
   const PdfRenderSettings settings_;
 
   absl::optional<bool> use_skia_;
-
-  const GURL url_;
 
   // Document loaded callback.
   PdfConverter::StartCallback start_callback_;
@@ -207,11 +202,9 @@ bool PostScriptMetaFile::SafePlayback(HDC hdc) const {
 PdfConverterImpl::PdfConverterImpl(scoped_refptr<base::RefCountedMemory> data,
                                    const PdfRenderSettings& settings,
                                    const absl::optional<bool>& use_skia,
-                                   const GURL& url,
                                    StartCallback start_callback)
     : settings_(settings),
       use_skia_(use_skia),
-      url_(url),
       start_callback_(std::move(start_callback)) {
   DCHECK_CURRENTLY_ON(BrowserThread::UI);
   DCHECK(start_callback_);
@@ -227,14 +220,14 @@ PdfConverterImpl::~PdfConverterImpl() {
 
 void PdfConverterImpl::Initialize(scoped_refptr<base::RefCountedMemory> data) {
   if (simulate_failure_initializing_conversion_) {
-    OnFailed("Failed to create PDF data mapping.");
+    OnFailed(std::string("Failed to create PDF data mapping."));
     return;
   }
 
   base::MappedReadOnlyRegion memory =
       base::ReadOnlySharedMemoryRegion::Create(data->size());
   if (!memory.IsValid()) {
-    OnFailed("Failed to create PDF data mapping.");
+    OnFailed(std::string("Failed to create PDF data mapping."));
     return;
   }
 
@@ -245,7 +238,7 @@ void PdfConverterImpl::Initialize(scoped_refptr<base::RefCountedMemory> data) {
       pdf_to_emf_converter_factory_.BindNewPipeAndPassReceiver());
   pdf_to_emf_converter_factory_.set_disconnect_handler(base::BindOnce(
       &PdfConverterImpl::OnFailed, weak_ptr_factory_.GetWeakPtr(),
-      "Connection to PdfToEmfConverterFactory error."));
+      std::string("Connection to PdfToEmfConverterFactory error.")));
 
   pdf_to_emf_converter_factory_->CreateConverter(
       std::move(memory.region), settings_,
@@ -261,8 +254,7 @@ void PdfConverterImpl::OnPageCount(
   pdf_to_emf_converter_.Bind(std::move(converter));
   pdf_to_emf_converter_.set_disconnect_handler(base::BindOnce(
       &PdfConverterImpl::OnFailed, weak_ptr_factory_.GetWeakPtr(),
-      "Connection to PdfToEmfConverter error."));
-  pdf_to_emf_converter_->SetWebContentsURL(url_);
+      std::string("Connection to PdfToEmfConverter error.")));
   if (use_skia_) {
     pdf_to_emf_converter_->SetUseSkiaRendererPolicy(*use_skia_);
   }
@@ -280,7 +272,7 @@ void PdfConverterImpl::GetPage(
   get_page_callbacks_.push(GetPageCallbackData(page_index, get_page_callback));
 
   if (!pdf_to_emf_converter_)
-    return OnFailed("No PdfToEmfConverter.");
+    return OnFailed(std::string("No PdfToEmfConverter."));
 
   pdf_to_emf_converter_->ConvertPage(
       page_index, base::BindOnce(&PdfConverterImpl::OnPageDone,
@@ -292,7 +284,7 @@ void PdfConverterImpl::OnPageDone(base::ReadOnlySharedMemoryRegion emf_region,
   DCHECK_CURRENTLY_ON(BrowserThread::UI);
 
   if (get_page_callbacks_.empty())
-    return OnFailed("No get_page callbacks.");
+    return OnFailed(std::string("No get_page callbacks."));
 
   GetPageCallbackData& data = get_page_callbacks_.front();
   std::unique_ptr<MetafilePlayer> metafile;
@@ -323,11 +315,11 @@ void PdfConverterImpl::Stop() {
   pdf_to_emf_converter_.reset();
 }
 
-void PdfConverterImpl::OnFailed(std::string_view error_message) {
+void PdfConverterImpl::OnFailed(const std::string& error_message) {
   DCHECK_CURRENTLY_ON(BrowserThread::UI);
   LOG(ERROR) << "Failed to convert PDF: " << error_message;
   base::WeakPtr<PdfConverterImpl> weak_this = weak_ptr_factory_.GetWeakPtr();
-  if (start_callback_) {
+  if (!start_callback_.is_null()) {
     std::move(start_callback_).Run(/*page_count=*/0);
     if (!weak_this)
       return;  // Protect against the `start_callback_` deleting `this`.
@@ -380,6 +372,9 @@ void PdfConverterImpl::RecordConversionMetrics() {
           "Printing.ConversionSize.PostScript3WithType42Fonts",
           average_page_size_in_kb);
       return;
+    default:
+      NOTREACHED();
+      return;
   }
 }
 
@@ -392,10 +387,9 @@ std::unique_ptr<PdfConverter> PdfConverter::StartPdfConverter(
     scoped_refptr<base::RefCountedMemory> data,
     const PdfRenderSettings& conversion_settings,
     const absl::optional<bool>& use_skia,
-    const GURL& url,
     StartCallback start_callback) {
   return std::make_unique<PdfConverterImpl>(data, conversion_settings, use_skia,
-                                            url, std::move(start_callback));
+                                            std::move(start_callback));
 }
 
 ScopedSimulateFailureCreatingTempFileForTests::

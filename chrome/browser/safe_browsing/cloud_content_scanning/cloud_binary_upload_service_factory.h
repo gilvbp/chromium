@@ -39,7 +39,7 @@ class CloudBinaryUploadServiceFactory : public ProfileKeyedServiceFactory {
   ~CloudBinaryUploadServiceFactory() override = default;
 
   // CloudBrowserContextKeyedServiceFactory:
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* context) const override;
 };
 

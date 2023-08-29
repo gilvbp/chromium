@@ -5,6 +5,7 @@
 #ifndef UI_NATIVE_THEME_NATIVE_THEME_MAC_H_
 #define UI_NATIVE_THEME_NATIVE_THEME_MAC_H_
 
+#include "base/mac/scoped_nsobject.h"
 #include "base/no_destructor.h"
 #include "ui/gfx/geometry/size.h"
 #include "ui/native_theme/native_theme_aura.h"
@@ -128,7 +129,6 @@ class NATIVE_THEME_EXPORT NativeThemeMac : public NativeThemeBase {
 
   enum ScrollbarPart {
     kThumb,
-    kTrack,
     kTrackInnerBorder,
     kTrackOuterBorder,
   };
@@ -149,8 +149,9 @@ class NATIVE_THEME_EXPORT NativeThemeMac : public NativeThemeBase {
     return scale_from_dip * (is_overlay ? 2.0f : 3.0f);
   }
 
-  NativeThemeEffectiveAppearanceObserver* __strong appearance_observer_;
-  id __strong display_accessibility_notification_token_;
+  base::scoped_nsobject<NativeThemeEffectiveAppearanceObserver>
+      appearance_observer_;
+  base::scoped_nsobject<id> high_contrast_notification_token_;
 
   // Used to notify the web native theme of changes to dark mode and high
   // contrast.

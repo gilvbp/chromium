@@ -17,12 +17,9 @@
 #import "base/strings/utf_string_conversions.h"
 #import "components/autofill/core/browser/autofill_save_update_address_profile_delegate_ios.h"
 #import "components/autofill/core/browser/form_data_importer.h"
-#import "components/autofill/core/browser/form_structure.h"
 #import "components/autofill/core/browser/logging/log_manager.h"
 #import "components/autofill/core/browser/payments/autofill_credit_card_filling_infobar_delegate_mobile.h"
-#import "components/autofill/core/browser/payments/autofill_save_card_delegate.h"
 #import "components/autofill/core/browser/payments/autofill_save_card_infobar_delegate_mobile.h"
-#import "components/autofill/core/browser/payments/autofill_save_card_ui_info.h"
 #import "components/autofill/core/browser/payments/credit_card_cvc_authenticator.h"
 #import "components/autofill/core/browser/payments/credit_card_otp_authenticator.h"
 #import "components/autofill/core/browser/payments/payments_client.h"
@@ -68,6 +65,10 @@
 #import "ios/web/public/web_state.h"
 #import "services/network/public/cpp/shared_url_loader_factory.h"
 #import "services/network/public/cpp/weak_wrapper_shared_url_loader_factory.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace autofill {
 
@@ -285,10 +286,8 @@ void ChromeAutofillClientIOS::ConfirmSaveCreditCardLocally(
     LocalSaveCardPromptCallback callback) {
   DCHECK(options.show_prompt);
   infobar_manager_->AddInfoBar(CreateSaveCardInfoBarMobile(
-      std::make_unique<AutofillSaveCardInfoBarDelegateMobile>(
-          AutofillSaveCardUiInfo::CreateForLocalSave(options, card),
-          std::make_unique<AutofillSaveCardDelegate>(std::move(callback),
-                                                     options))));
+      AutofillSaveCardInfoBarDelegateMobile::CreateForLocalSave(
+          options, card, std::move(callback))));
 }
 
 void ChromeAutofillClientIOS::ConfirmAccountNameFixFlow(
@@ -296,7 +295,7 @@ void ChromeAutofillClientIOS::ConfirmAccountNameFixFlow(
   std::u16string account_name = base::UTF8ToUTF16(
       identity_manager_
           ->FindExtendedAccountInfo(identity_manager_->GetPrimaryAccountInfo(
-              signin::ConsentLevel::kSignin))
+              signin::ConsentLevel::kSync))
           .full_name);
 
   card_name_fix_flow_controller_.Show(
@@ -329,11 +328,9 @@ void ChromeAutofillClientIOS::ConfirmSaveCreditCardToCloud(
   AccountInfo account_info = identity_manager_->FindExtendedAccountInfo(
       identity_manager_->GetPrimaryAccountInfo(signin::ConsentLevel::kSignin));
   infobar_manager_->AddInfoBar(CreateSaveCardInfoBarMobile(
-      std::make_unique<AutofillSaveCardInfoBarDelegateMobile>(
-          AutofillSaveCardUiInfo::CreateForUploadSave(
-              options, card, legal_message_lines, account_info),
-          std::make_unique<AutofillSaveCardDelegate>(std::move(callback),
-                                                     options))));
+      AutofillSaveCardInfoBarDelegateMobile::CreateForUploadSave(
+          options, card, std::move(callback), legal_message_lines,
+          account_info)));
 }
 
 void ChromeAutofillClientIOS::CreditCardUploadCompleted(bool card_saved) {
@@ -396,15 +393,6 @@ void ChromeAutofillClientIOS::ConfirmSaveAddressProfile(
       std::move(delegate)));
 }
 
-void ChromeAutofillClientIOS::ShowEditAddressProfileDialog(
-    const AutofillProfile& profile) {
-  NOTREACHED_NORETURN();
-}
-
-void ChromeAutofillClientIOS::ShowDeleteAddressProfileDialog() {
-  NOTREACHED_NORETURN();
-}
-
 bool ChromeAutofillClientIOS::HasCreditCardScanFeature() {
   return false;
 }
@@ -449,16 +437,15 @@ void ChromeAutofillClientIOS::PinPopupView() {
   NOTIMPLEMENTED();
 }
 
-AutofillClient::PopupOpenArgs ChromeAutofillClientIOS::GetReopenPopupArgs(
-    AutofillSuggestionTriggerSource trigger_source) const {
+AutofillClient::PopupOpenArgs ChromeAutofillClientIOS::GetReopenPopupArgs()
+    const {
   NOTIMPLEMENTED();
   return {};
 }
 
 void ChromeAutofillClientIOS::UpdatePopup(
     const std::vector<Suggestion>& suggestions,
-    PopupType popup_type,
-    AutofillSuggestionTriggerSource trigger_source) {
+    PopupType popup_type) {
   NOTIMPLEMENTED();
 }
 
@@ -475,7 +462,7 @@ bool ChromeAutofillClientIOS::IsPasswordManagerEnabled() {
       password_manager::prefs::kCredentialsEnableService);
 }
 
-void ChromeAutofillClientIOS::PropagateAutofillPredictionsDeprecated(
+void ChromeAutofillClientIOS::PropagateAutofillPredictions(
     AutofillDriver* driver,
     const std::vector<FormStructure*>& forms) {
   web::WebFrame* frame = (static_cast<AutofillDriverIOS*>(driver))->web_frame();
@@ -483,25 +470,24 @@ void ChromeAutofillClientIOS::PropagateAutofillPredictionsDeprecated(
     return;
   }
 
+  // Attach listeners to fields which may open the payments bottom sheet if
+  // there are any credit cards to suggest.
+  AutofillBottomSheetTabHelper* helper =
+      AutofillBottomSheetTabHelper::FromWebState(web_state_);
+  if (helper && !personal_data_manager_->GetCreditCardsToSuggest().empty()) {
+    helper->AttachPaymentsListeners(forms, frame->GetFrameId());
+  }
+
   // If the frame exists, then the driver will exist/be created.
   IOSPasswordManagerDriver* password_manager_driver =
       IOSPasswordManagerDriverFactory::FromWebStateAndWebFrame(web_state_,
                                                                frame);
 
-  // TODO(crbug.com/1466435): Remove this interim mapping once AutofillManager
-  // transitions to events that will already have this signature.
-  FormDataAndServerPredictions args = GetFormDataAndServerPredictions(forms);
-  std::vector<const FormData*> form_pointers;
-  form_pointers.reserve(args.form_datas.size());
-  for (const FormData& form : args.form_datas) {
-    form_pointers.push_back(&form);
-  }
-  password_manager_->ProcessAutofillPredictions(
-      password_manager_driver, form_pointers, args.predictions);
+  password_manager_->ProcessAutofillPredictions(password_manager_driver, forms);
 }
 
 void ChromeAutofillClientIOS::DidFillOrPreviewForm(
-    mojom::AutofillActionPersistence action_persistence,
+    mojom::RendererFormDataAction action,
     AutofillTriggerSource trigger_source,
     bool is_refill) {}
 

@@ -22,6 +22,7 @@
 #include "base/functional/callback_helpers.h"
 #include "base/hash/md5.h"
 #include "base/i18n/file_util_icu.h"
+#include "base/notreached.h"
 #include "base/path_service.h"
 #include "base/strings/string_piece.h"
 #include "base/strings/string_util.h"
@@ -149,12 +150,13 @@ bool IsAppShortcutForProfile(const base::FilePath& shortcut_file_name,
 // created. If |creation_reason| is SHORTCUT_CREATION_AUTOMATED and there is an
 // existing shortcut to this app for this profile, does nothing (succeeding).
 // Returns true on success, false on failure.
-// Must be called on a task runner that allows blocking.
+// Must be called on the FILE thread.
 bool CreateShortcutsInPaths(const base::FilePath& web_app_path,
                             const ShortcutInfo& shortcut_info,
                             const std::vector<base::FilePath>& shortcut_paths,
                             ShortcutCreationReason creation_reason,
-                            const std::string& run_on_os_login_mode) {
+                            const std::string& run_on_os_login_mode,
+                            std::vector<base::FilePath>* out_filenames) {
   // Generates file name to use with persisted ico and shortcut file.
   base::FilePath icon_file = GetIconFilePath(web_app_path, shortcut_info.title);
   if (!CheckAndSaveIcon(icon_file, shortcut_info.favicon, false)) {
@@ -189,7 +191,7 @@ bool CreateShortcutsInPaths(const base::FilePath& web_app_path,
       base::UTF8ToWide(app_name), shortcut_info.profile_path));
 
   bool success = true;
-  for (const auto& shortcut_path : shortcut_paths) {
+  for (auto shortcut_path : shortcut_paths) {
     base::FilePath shortcut_file =
         shortcut_path.Append(GetSanitizedFileName(shortcut_info.title))
             .AddExtension(installer::kLnkExt);
@@ -220,13 +222,15 @@ bool CreateShortcutsInPaths(const base::FilePath& web_app_path,
     shortcut_properties.set_dual_mode(false);
     if (!base::PathExists(shortcut_file.DirName()) &&
         !base::CreateDirectory(shortcut_file.DirName())) {
-      success = false;
-      break;
+      NOTREACHED();
+      return false;
     }
     success = base::win::CreateOrUpdateShortcutLink(
                   shortcut_file, shortcut_properties,
                   base::win::ShortcutOperation::kCreateAlways) &&
               success;
+    if (out_filenames)
+      out_filenames->push_back(shortcut_file);
   }
 
   return success;
@@ -570,6 +574,10 @@ bool CreatePlatformShortcuts(const base::FilePath& web_app_path,
   scoped_refptr<OsIntegrationTestOverride> test_override =
       OsIntegrationTestOverride::Get();
 
+  // Shortcut paths under which to create shortcuts.
+  std::vector<base::FilePath> shortcut_paths =
+      GetShortcutPaths(creation_locations);
+
   bool pin_to_taskbar = false;
   // PinShortcutToTaskbar in unit-tests are not preferred as unpinning causes
   // crashes, so use the shortcut override for testing to not pin to taskbar.
@@ -579,18 +587,6 @@ bool CreatePlatformShortcuts(const base::FilePath& web_app_path,
     pin_to_taskbar =
         creation_locations.in_quick_launch_bar && CanPinShortcutToTaskbar();
   }
-
-  // We don't want to actually create shortcuts in the quick launch directory.
-  // Those are created by Windows as a side effect of pinning a shortcut to
-  // the taskbar, e.g., a desktop shortcut. So, create a copy of
-  // shortcut_locations with in_quick_launch_bar turned off and pass that
-  // to GetShortcutPaths.
-  ShortcutLocations shortcut_locations_wo_quick_launch(creation_locations);
-  shortcut_locations_wo_quick_launch.in_quick_launch_bar = false;
-
-  // Shortcut paths under which to create shortcuts.
-  std::vector<base::FilePath> shortcut_paths =
-      GetShortcutPaths(shortcut_locations_wo_quick_launch);
 
   // Create/update the shortcut in the web app path for the "Pin To Taskbar"
   // option in Win7 and Win10 versions that support pinning. We use the web app
@@ -605,7 +601,8 @@ bool CreatePlatformShortcuts(const base::FilePath& web_app_path,
 
   if (!CreateShortcutsInPaths(
           web_app_path, shortcut_info, shortcut_paths, creation_reason,
-          creation_locations.in_startup ? kRunOnOsLoginModeWindowed : "")) {
+          creation_locations.in_startup ? kRunOnOsLoginModeWindowed : "",
+          nullptr)) {
     return false;
   }
 

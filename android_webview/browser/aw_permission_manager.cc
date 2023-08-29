@@ -10,11 +10,9 @@
 #include <utility>
 
 #include "android_webview/browser/aw_browser_permission_request_delegate.h"
-#include "base/containers/contains.h"
 #include "base/functional/bind.h"
 #include "base/functional/callback.h"
 #include "base/logging.h"
-#include "components/permissions/features.h"
 #include "components/permissions/permission_util.h"
 #include "content/public/browser/child_process_security_policy.h"
 #include "content/public/browser/permission_controller.h"
@@ -31,6 +29,17 @@ using RequestPermissionsCallback =
     base::OnceCallback<void(const std::vector<PermissionStatus>&)>;
 
 namespace android_webview {
+
+namespace {
+
+void PermissionRequestResponseCallbackWrapper(
+    base::OnceCallback<void(PermissionStatus)> callback,
+    const std::vector<PermissionStatus>& vector) {
+  DCHECK_EQ(vector.size(), 1ul);
+  std::move(callback).Run(vector.at(0));
+}
+
+}  // namespace
 
 class LastRequestResultCache {
  public:
@@ -174,13 +183,6 @@ class AwPermissionManager::PendingRequest {
     }
     DCHECK(!IsCompleted());
     results[result->second] = status;
-    if (base::FeatureList::IsEnabled(
-            permissions::features::kBlockMidiByDefault)) {
-      if (type == PermissionType::MIDI && status == PermissionStatus::GRANTED) {
-        content::ChildProcessSecurityPolicy::GetInstance()
-            ->GrantSendMidiMessage(render_process_id);
-      }
-    }
     if (type == PermissionType::MIDI_SYSEX &&
         status == PermissionStatus::GRANTED) {
       content::ChildProcessSecurityPolicy::GetInstance()
@@ -199,7 +201,7 @@ class AwPermissionManager::PendingRequest {
   }
 
   bool HasPermissionType(PermissionType type) {
-    return base::Contains(permission_index_map_, type);
+    return permission_index_map_.find(type) != permission_index_map_.end();
   }
 
   bool IsCompleted() const {
@@ -235,18 +237,30 @@ AwPermissionManager::~AwPermissionManager() {
   CancelPermissionRequests();
 }
 
-void AwPermissionManager::RequestPermissions(
+void AwPermissionManager::RequestPermission(
+    PermissionType permission,
     content::RenderFrameHost* render_frame_host,
-    const content::PermissionRequestDescription& request_description,
+    const GURL& requesting_origin,
+    bool user_gesture,
+    base::OnceCallback<void(PermissionStatus)> callback) {
+  RequestPermissions(std::vector<PermissionType>(1, permission),
+                     render_frame_host, requesting_origin, user_gesture,
+                     base::BindOnce(&PermissionRequestResponseCallbackWrapper,
+                                    std::move(callback)));
+}
+
+void AwPermissionManager::RequestPermissions(
+    const std::vector<PermissionType>& permissions,
+    content::RenderFrameHost* render_frame_host,
+    const GURL& requesting_origin,
+    bool user_gesture,
     base::OnceCallback<void(const std::vector<PermissionStatus>&)> callback) {
-  auto const& permissions = request_description.permissions;
   if (permissions.empty()) {
     std::move(callback).Run(std::vector<PermissionStatus>());
     return;
   }
 
   const GURL& embedding_origin = LastCommittedOrigin(render_frame_host);
-  const GURL& requesting_origin = request_description.requesting_origin;
 
   auto pending_request = std::make_unique<PendingRequest>(
       permissions, requesting_origin, embedding_origin,
@@ -310,20 +324,6 @@ void AwPermissionManager::RequestPermissions(
             base::BindOnce(&OnRequestResponse, weak_ptr_factory_.GetWeakPtr(),
                            request_id, permissions[i]));
         break;
-      case PermissionType::CLIPBOARD_SANITIZED_WRITE:
-        // This is the permission for writing vetted data (such as plain text or
-        // sanitized images) using the async clipboard API. Chrome automatically
-        // grants access with a user gesture, and alternatively queries for
-        // gesture-less access with a popup bubble. For now, just grant based on
-        // user gesture.
-        // Reading from the clipboard or writing custom data is represented with
-        // the CLIPBOARD_READ_WRITE permission, and that requires an explicit
-        // user approval, which is not implemented yet. See crbug.com/1271620
-        pending_request_raw->SetPermissionStatus(
-            permissions[i], request_description.user_gesture
-                                ? PermissionStatus::GRANTED
-                                : PermissionStatus::DENIED);
-        break;
       case PermissionType::AUDIO_CAPTURE:
       case PermissionType::VIDEO_CAPTURE:
       case PermissionType::NOTIFICATIONS:
@@ -331,6 +331,7 @@ void AwPermissionManager::RequestPermissions(
       case PermissionType::BACKGROUND_SYNC:
       case PermissionType::ACCESSIBILITY_EVENTS:
       case PermissionType::CLIPBOARD_READ_WRITE:
+      case PermissionType::CLIPBOARD_SANITIZED_WRITE:
       case PermissionType::PAYMENT_HANDLER:
       case PermissionType::BACKGROUND_FETCH:
       case PermissionType::IDLE_DETECTION:
@@ -443,11 +444,13 @@ void AwPermissionManager::ResetPermission(PermissionType permission,
 }
 
 void AwPermissionManager::RequestPermissionsFromCurrentDocument(
+    const std::vector<PermissionType>& permissions,
     content::RenderFrameHost* render_frame_host,
-    const content::PermissionRequestDescription& request_description,
+    bool user_gesture,
     base::OnceCallback<void(const std::vector<blink::mojom::PermissionStatus>&)>
         callback) {
-  RequestPermissions(render_frame_host, request_description,
+  RequestPermissions(permissions, render_frame_host,
+                     LastCommittedOrigin(render_frame_host), user_gesture,
                      std::move(callback));
 }
 
@@ -470,10 +473,9 @@ PermissionStatus AwPermissionManager::GetPermissionStatus(
 content::PermissionResult
 AwPermissionManager::GetPermissionResultForOriginWithoutContext(
     blink::PermissionType permission,
-    const url::Origin& requesting_origin,
-    const url::Origin& embedding_origin) {
-  blink::mojom::PermissionStatus status = GetPermissionStatus(
-      permission, requesting_origin.GetURL(), embedding_origin.GetURL());
+    const url::Origin& origin) {
+  blink::mojom::PermissionStatus status =
+      GetPermissionStatus(permission, origin.GetURL(), origin.GetURL());
 
   return content::PermissionResult(
       status, content::PermissionStatusSource::UNSPECIFIED);

@@ -18,7 +18,6 @@
 #include "base/ranges/algorithm.h"
 #include "base/strings/strcat.h"
 #include "base/strings/utf_string_conversions.h"
-#include "base/types/expected_macros.h"
 #include "chrome/browser/media/router/data_decoder_util.h"
 #include "chrome/browser/media/router/media_router_feature.h"
 #include "chrome/browser/media/router/providers/cast/app_activity.h"
@@ -26,7 +25,6 @@
 #include "chrome/browser/media/router/providers/cast/cast_session_client.h"
 #include "chrome/browser/media/router/providers/cast/mirroring_activity.h"
 #include "chrome/grit/generated_resources.h"
-#include "components/access_code_cast/common/access_code_cast_metrics.h"
 #include "components/media_router/browser/logger_impl.h"
 #include "components/media_router/browser/media_router_metrics.h"
 #include "components/media_router/common/media_source.h"
@@ -46,13 +44,6 @@ namespace media_router {
 namespace {
 
 constexpr char kLoggerComponent[] = "CastActivityManager";
-
-void RecordSavedDeviceConnectDurationMetric(
-    base::Time route_request_creation_timestamp) {
-  base::TimeDelta route_success_time =
-      base::Time::Now() - route_request_creation_timestamp;
-  AccessCodeCastMetrics::RecordSavedDeviceConnectDuration(route_success_time);
-}
 
 }  // namespace
 
@@ -210,6 +201,8 @@ void CastActivityManager::DoLaunchSession(DoLaunchSessionParams params) {
     base::UmaHistogramBoolean(kHistogramAudioSender,
                               cast_source.site_requested_audio_capture());
   }
+  RecordLaunchSessionRequestSupportedAppTypes(
+      cast_source.supported_app_types());
 
   cast_source.ContainsStreamingApp()
       ? AddMirroringActivity(route, app_id, frame_tree_node_id,
@@ -704,7 +697,7 @@ void CastActivityManager::SendRouteJsonMessage(
     const std::string& media_route_id,
     const std::string& message,
     data_decoder::DataDecoder::ValueOrError result) {
-  const auto get_activity = [&]()
+  const auto activity = [&]()
       -> base::expected<std::pair<CastActivity*, std::string>, std::string> {
     if (!result.has_value()) {
       return base::unexpected(
@@ -732,15 +725,16 @@ void CastActivityManager::SendRouteJsonMessage(
           "message.");
     }
     return std::make_pair(it->second.get(), *client_id);
-  };
-  ASSIGN_OR_RETURN(auto activity, get_activity(), [&](std::string error) {
+  }();
+  if (!activity.has_value()) {
     logger_->LogError(
-        mojom::LogCategory::kRoute, kLoggerComponent, std::move(error), "",
+        mojom::LogCategory::kRoute, kLoggerComponent, activity.error(), "",
         MediaRoute::GetMediaSourceIdFromMediaRouteId(media_route_id),
         MediaRoute::GetPresentationIdFromMediaRouteId(media_route_id));
-  });
-  activity.first->SendMessageToClient(
-      std::move(activity.second),
+    return;
+  }
+  activity->first->SendMessageToClient(
+      std::move(activity->second),
       blink::mojom::PresentationConnectionMessage::NewMessage(message));
 }
 
@@ -938,11 +932,6 @@ void CastActivityManager::HandleLaunchSessionResponse(
                    "Successfully Launched the session.", sink.id(),
                    cast_source.source_id(),
                    MediaRoute::GetPresentationIdFromMediaRouteId(route_id));
-
-  if (sink.cast_data().discovery_type ==
-      CastDiscoveryType::kAccessCodeRememberedDevice) {
-    RecordSavedDeviceConnectDurationMetric(params.creation_time);
-  }
 
   std::move(params.callback)
       .Run(route, std::move(presentation_connection),

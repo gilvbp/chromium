@@ -22,7 +22,7 @@ namespace ipcz::reference_drivers {
 
 // A driver transport implementation backed by a Unix domain socket, suitable
 // for use in a multiprocess POSIX testing environment.
-class SocketTransport : public RefCounted<SocketTransport> {
+class SocketTransport : public RefCounted {
  public:
   using Pair = std::pair<Ref<SocketTransport>, Ref<SocketTransport>>;
 
@@ -91,9 +91,7 @@ class SocketTransport : public RefCounted<SocketTransport> {
   FileDescriptor TakeDescriptor();
 
  private:
-  friend class RefCounted<SocketTransport>;
-
-  ~SocketTransport();
+  ~SocketTransport() override;
 
   // Attempts to send `message` without queueing.
   //

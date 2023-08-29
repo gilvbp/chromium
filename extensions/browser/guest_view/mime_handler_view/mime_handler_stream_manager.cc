@@ -61,8 +61,8 @@ KeyedService* MimeHandlerStreamManagerFactory::BuildServiceInstanceFor(
 content::BrowserContext*
 MimeHandlerStreamManagerFactory::GetBrowserContextToUse(
     content::BrowserContext* context) const {
-  return extensions::ExtensionsBrowserClient::Get()
-      ->GetContextRedirectedToOriginal(context, /*force_guest_profile=*/true);
+  return extensions::ExtensionsBrowserClient::Get()->GetOriginalContext(
+      context);
 }
 
 }  // namespace
@@ -98,7 +98,7 @@ class MimeHandlerStreamManager::EmbedderObserver
   const raw_ptr<MimeHandlerStreamManager> stream_manager_;
   const std::string stream_id_;
   int frame_tree_node_id_;
-  content::GlobalRenderFrameHostId render_frame_host_id_;
+  content::GlobalRenderFrameHostId rfh_id_;
   // We get an initial  load notification for the URL the mime handler is
   // serving. We don't want to clean up the stream here. This field helps us
   // track the first load notification. Defaults to true.
@@ -203,8 +203,7 @@ void MimeHandlerStreamManager::EmbedderObserver::ReadyToCommitNavigation(
   if (initial_load_for_frame_) {
     initial_load_for_frame_ = false;
     frame_tree_node_id_ = content::RenderFrameHost::kNoFrameTreeNodeId;
-    render_frame_host_id_ =
-        navigation_handle->GetRenderFrameHost()->GetGlobalId();
+    rfh_id_ = navigation_handle->GetRenderFrameHost()->GetGlobalId();
     return;
   }
   AbortStream();
@@ -232,8 +231,7 @@ void MimeHandlerStreamManager::EmbedderObserver::RenderFrameHostChanged(
   // If this is an unrelated host, ignore.
   if ((frame_tree_node_id_ != content::RenderFrameHost::kNoFrameTreeNodeId &&
        old_host->GetFrameTreeNodeId() != frame_tree_node_id_) ||
-      (render_frame_host_id_ &&
-       (old_host->GetGlobalId() != render_frame_host_id_))) {
+      (rfh_id_ && (old_host->GetGlobalId() != rfh_id_))) {
     return;
   }
 
@@ -244,7 +242,7 @@ void MimeHandlerStreamManager::EmbedderObserver::RenderFrameHostChanged(
   DCHECK(
       (frame_tree_node_id_ == content::RenderFrameHost::kNoFrameTreeNodeId) ||
       (frame_tree_node_id_ == new_host_->GetFrameTreeNodeId()));
-  render_frame_host_id_ = new_host_->GetGlobalId();
+  rfh_id_ = new_host_->GetGlobalId();
   // No need to keep this around anymore since we have valid render frame IDs
   // now.
   frame_tree_node_id_ = content::RenderFrameHost::kNoFrameTreeNodeId;
@@ -270,8 +268,8 @@ bool MimeHandlerStreamManager::EmbedderObserver::IsTrackedRenderFrameHost(
   if (frame_tree_node_id_ != content::RenderFrameHost::kNoFrameTreeNodeId) {
     return render_frame_host->GetFrameTreeNodeId() == frame_tree_node_id_;
   } else {
-    DCHECK(render_frame_host_id_);
-    return render_frame_host->GetGlobalId() == render_frame_host_id_;
+    DCHECK(rfh_id_);
+    return render_frame_host->GetGlobalId() == rfh_id_;
   }
 }
 

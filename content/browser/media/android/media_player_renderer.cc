@@ -76,7 +76,7 @@ void MediaPlayerRenderer::Initialize(media::MediaResource* media_resource,
 
   renderer_client_ = client;
 
-  if (media_resource->GetType() != media::MediaResource::Type::KUrl) {
+  if (media_resource->GetType() != media::MediaResource::Type::URL) {
     DLOG(ERROR) << "MediaResource is not of Type URL";
     std::move(init_cb).Run(media::PIPELINE_ERROR_INITIALIZATION_FAILED);
     return;

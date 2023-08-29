@@ -515,9 +515,6 @@ class PLATFORM_EXPORT ResourceRequestHead {
 
   void SetFetchLikeAPI(bool enabled) { is_fetch_like_api_ = enabled; }
 
-  bool IsFetchLaterAPI() const { return is_fetch_later_api_; }
-  void SetFetchLaterAPI(bool enabled) { is_fetch_later_api_ = enabled; }
-
   bool IsFavicon() const { return is_favicon_; }
 
   void SetFavicon(bool enabled) { is_favicon_ = enabled; }
@@ -601,15 +598,6 @@ class PLATFORM_EXPORT ResourceRequestHead {
   void SetAttributionReportingRuntimeFeatures(
       network::AttributionReportingRuntimeFeatures runtime_features) {
     attribution_reporting_runtime_features_ = runtime_features;
-  }
-
-  const absl::optional<base::UnguessableToken>& GetAttributionSrcToken() const {
-    return attribution_reporting_src_token_;
-  }
-
-  void SetAttributionReportingSrcToken(
-      absl::optional<base::UnguessableToken> src_token) {
-    attribution_reporting_src_token_ = src_token;
   }
 
   bool SharedDictionaryWriterEnabled() const {
@@ -716,11 +704,6 @@ class PLATFORM_EXPORT ResourceRequestHead {
 
   bool is_fetch_like_api_ = false;
 
-  // Indicates that this ResourceRequest represents the requestObject for a
-  // JS fetchLater() call.
-  // https://whatpr.org/fetch/1647/094ea69...152d725.html#fetch-later-method
-  bool is_fetch_later_api_ = false;
-
   bool is_favicon_ = false;
 
   // Currently this is only used when a prefetch request has `as=document`
@@ -765,8 +748,6 @@ class PLATFORM_EXPORT ResourceRequestHead {
 
   network::AttributionReportingRuntimeFeatures
       attribution_reporting_runtime_features_;
-
-  absl::optional<base::UnguessableToken> attribution_reporting_src_token_;
 
   // Indicate the state of CompressionDictionaryTransport feature. When it is
   // true, `use-as-dictionary` response HTTP header may be processed.

@@ -27,7 +27,6 @@
 #include <utility>
 
 #include "base/auto_reset.h"
-#include "base/containers/contains.h"
 #include "base/feature_list.h"
 #include "base/time/time.h"
 #include "net/base/mime_util.h"
@@ -280,19 +279,25 @@ class XMLHttpRequest::BlobLoader final
 
 XMLHttpRequest* XMLHttpRequest::Create(ScriptState* script_state) {
   return MakeGarbageCollected<XMLHttpRequest>(
-      ExecutionContext::From(script_state), &script_state->World());
+      ExecutionContext::From(script_state), script_state->GetIsolate(),
+      &script_state->World());
 }
 
 XMLHttpRequest* XMLHttpRequest::Create(ExecutionContext* context) {
-  return MakeGarbageCollected<XMLHttpRequest>(context, nullptr);
+  v8::Isolate* isolate = context->GetIsolate();
+  CHECK(isolate);
+
+  return MakeGarbageCollected<XMLHttpRequest>(context, isolate, nullptr);
 }
 
 XMLHttpRequest::XMLHttpRequest(ExecutionContext* context,
+                               v8::Isolate* isolate,
                                scoped_refptr<const DOMWrapperWorld> world)
     : ActiveScriptWrappable<XMLHttpRequest>({}),
       ExecutionContextLifecycleObserver(context),
       progress_event_throttle_(
           MakeGarbageCollected<XMLHttpRequestProgressEventThrottle>(this)),
+      isolate_(isolate),
       world_(std::move(world)),
       isolated_world_security_origin_(world_ && world_->IsIsolatedWorld()
                                           ? world_->IsolatedWorldSecurityOrigin(
@@ -302,7 +307,6 @@ XMLHttpRequest::XMLHttpRequest(ExecutionContext* context,
 XMLHttpRequest::~XMLHttpRequest() {
   binary_response_builder_ = nullptr;
   length_downloaded_to_blob_ = 0;
-  response_text_.Clear();
   ReportMemoryUsageToV8();
 }
 
@@ -310,7 +314,8 @@ XMLHttpRequest::State XMLHttpRequest::readyState() const {
   return state_;
 }
 
-String XMLHttpRequest::responseText(ExceptionState& exception_state) {
+v8::Local<v8::String> XMLHttpRequest::responseText(
+    ExceptionState& exception_state) {
   if (response_type_code_ != kResponseTypeDefault &&
       response_type_code_ != kResponseTypeText) {
     exception_state.ThrowDOMException(DOMExceptionCode::kInvalidStateError,
@@ -318,11 +323,19 @@ String XMLHttpRequest::responseText(ExceptionState& exception_state) {
                                       "object's 'responseType' is '' or 'text' "
                                       "(was '" +
                                           responseType() + "').");
-    return String();
+    return v8::Local<v8::String>();
   }
   if (error_ || (state_ != kLoading && state_ != kDone))
-    return String();
-  return response_text_.ToString();
+    return v8::Local<v8::String>();
+  return response_text_.V8Value(isolate_);
+}
+
+v8::Local<v8::String> XMLHttpRequest::ResponseJSONSource() {
+  DCHECK_EQ(response_type_code_, kResponseTypeJSON);
+
+  if (error_ || state_ != kDone)
+    return v8::Local<v8::String>();
+  return response_text_.V8Value(isolate_);
 }
 
 void XMLHttpRequest::InitResponseDocument() {
@@ -337,6 +350,7 @@ void XMLHttpRequest::InitResponseDocument() {
     return;
   }
 
+  auto* document = To<LocalDOMWindow>(GetExecutionContext())->document();
   DocumentInit init = DocumentInit::Create()
                           .WithExecutionContext(GetExecutionContext())
                           .WithAgent(*GetExecutionContext()->GetAgent())
@@ -348,6 +362,7 @@ void XMLHttpRequest::InitResponseDocument() {
     response_document_ = MakeGarbageCollected<XMLDocument>(init);
 
   // FIXME: Set Last-Modified.
+  response_document_->SetContextFeatures(document->GetContextFeatures());
   response_document_->SetMimeType(GetResponseMIMEType());
 }
 
@@ -370,7 +385,7 @@ Document* XMLHttpRequest::responseXML(ExceptionState& exception_state) {
     if (!response_document_)
       return nullptr;
 
-    response_document_->SetContent(response_text_.ToString());
+    response_document_->SetContent(response_text_.Flatten(isolate_));
     if (!response_document_->WellFormed()) {
       response_document_ = nullptr;
     } else {
@@ -384,28 +399,12 @@ Document* XMLHttpRequest::responseXML(ExceptionState& exception_state) {
   return response_document_;
 }
 
-v8::Local<v8::Value> XMLHttpRequest::ResponseJSON(
-    v8::Isolate* isolate,
-    ExceptionState& exception_state) {
-  DCHECK_EQ(response_type_code_, kResponseTypeJSON);
-  DCHECK(!error_);
-  DCHECK_EQ(state_, kDone);
-  // Catch syntax error. Swallows an exception (when thrown) as the
-  // spec says. https://xhr.spec.whatwg.org/#response-body
-  v8::Local<v8::Value> json =
-      FromJSONString(isolate, isolate->GetCurrentContext(),
-                     response_text_.ToString(), exception_state);
-  if (exception_state.HadException()) {
-    exception_state.ClearException();
-    return v8::Null(isolate);
-  }
-  return json;
-}
-
 Blob* XMLHttpRequest::ResponseBlob() {
   DCHECK_EQ(response_type_code_, kResponseTypeBlob);
-  DCHECK(!error_);
-  DCHECK_EQ(state_, kDone);
+
+  // We always return null before kDone.
+  if (error_ || state_ != kDone)
+    return nullptr;
 
   if (!response_blob_) {
     auto blob_data = std::make_unique<BlobData>();
@@ -427,8 +426,9 @@ Blob* XMLHttpRequest::ResponseBlob() {
 
 DOMArrayBuffer* XMLHttpRequest::ResponseArrayBuffer() {
   DCHECK_EQ(response_type_code_, kResponseTypeArrayBuffer);
-  DCHECK(!error_);
-  DCHECK_EQ(state_, kDone);
+
+  if (error_ || state_ != kDone)
+    return nullptr;
 
   if (!response_array_buffer_ && !response_array_buffer_failure_) {
     if (binary_response_builder_ && binary_response_builder_->size()) {
@@ -455,50 +455,6 @@ DOMArrayBuffer* XMLHttpRequest::ResponseArrayBuffer() {
   }
 
   return response_array_buffer_;
-}
-
-// https://xhr.spec.whatwg.org/#dom-xmlhttprequest-response
-ScriptValue XMLHttpRequest::response(ScriptState* script_state,
-                                     ExceptionState& exception_state) {
-  v8::Isolate* isolate = script_state->GetIsolate();
-
-  // The spec handles default or `text` responses as a special case, because
-  // these cases are allowed to access the response while still loading.
-  if (response_type_code_ == kResponseTypeDefault ||
-      response_type_code_ == kResponseTypeText) {
-    const auto& text = responseText(exception_state);
-    if (exception_state.HadException()) {
-      return ScriptValue();
-    }
-    return ScriptValue(isolate,
-                       ToV8Traits<IDLString>::ToV8(script_state, text));
-  }
-
-  if (error_ || state_ != kDone) {
-    return ScriptValue(isolate, v8::Null(isolate));
-  }
-
-  switch (response_type_code_) {
-    case kResponseTypeJSON:
-      return ScriptValue(isolate, ResponseJSON(isolate, exception_state));
-    case kResponseTypeDocument: {
-      Document* document = responseXML(exception_state);
-      if (exception_state.HadException()) {
-        return ScriptValue();
-      }
-      return ScriptValue(isolate, ToV8Traits<IDLNullable<Document>>::ToV8(
-                                      script_state, document));
-    }
-    case kResponseTypeBlob:
-      return ScriptValue(isolate,
-                         ToV8Traits<Blob>::ToV8(script_state, ResponseBlob()));
-    case kResponseTypeArrayBuffer:
-      return ScriptValue(isolate, ToV8Traits<IDLNullable<DOMArrayBuffer>>::ToV8(
-                                      script_state, ResponseArrayBuffer()));
-    default:
-      NOTREACHED();
-      return ScriptValue();
-  }
 }
 
 void XMLHttpRequest::setTimeout(unsigned timeout,
@@ -1598,7 +1554,8 @@ const AtomicString& XMLHttpRequest::getResponseHeader(
 
   if (response_.GetType() == network::mojom::FetchResponseType::kCors &&
       !cors::IsCorsSafelistedResponseHeader(name) &&
-      !base::Contains(access_control_expose_header_set, name.Ascii())) {
+      access_control_expose_header_set.find(name.Ascii()) ==
+          access_control_expose_header_set.end()) {
     LogConsoleError(GetExecutionContext(),
                     "Refused to get unsafe header \"" + name + "\"");
     return g_null_atom;
@@ -1742,6 +1699,12 @@ void XMLHttpRequest::DidFail(uint64_t, const ResourceError& error) {
     return;
   }
 
+  if (error.TrustTokenOperationError() !=
+      network::mojom::TrustTokenOperationStatus::kOk) {
+    trust_token_operation_error_ =
+        TrustTokenErrorToDOMException(error.TrustTokenOperationError());
+  }
+
   HandleNetworkError();
 }
 
@@ -1784,8 +1747,12 @@ void XMLHttpRequest::DidFinishLoadingInternal() {
   }
 
   if (decoder_) {
-    response_text_.Append(decoder_->Flush());
-    ReportMemoryUsageToV8();
+    auto text = decoder_->Flush();
+
+    if (!text.empty() && !response_text_overflow_) {
+      response_text_.Concat(isolate_, text);
+      response_text_overflow_ = response_text_.IsEmpty();
+    }
   }
 
   ClearVariablesForLoading();
@@ -1973,8 +1940,11 @@ void XMLHttpRequest::DidReceiveData(const char* data, unsigned len) {
     if (!decoder_)
       decoder_ = CreateDecoder();
 
-    response_text_.Append(decoder_->Decode(data, len));
-    ReportMemoryUsageToV8();
+    auto text = decoder_->Decode(data, len);
+    if (!text.empty() && !response_text_overflow_) {
+      response_text_.Concat(isolate_, text);
+      response_text_overflow_ = response_text_.IsEmpty();
+    }
   } else if (response_type_code_ == kResponseTypeArrayBuffer ||
              response_type_code_ == kResponseTypeBlob) {
     // Buffer binary data.
@@ -2099,18 +2069,8 @@ void XMLHttpRequest::ReportMemoryUsageToV8() {
           static_cast<int64_t>(length_downloaded_to_blob_last_reported_);
   length_downloaded_to_blob_last_reported_ = length_downloaded_to_blob_;
 
-  // Text
-  const size_t response_text_size =
-      response_text_.Capacity() *
-      (response_text_.Is8Bit() ? sizeof(LChar) : sizeof(UChar));
-  diff += static_cast<int64_t>(response_text_size) -
-          static_cast<int64_t>(response_text_last_reported_size_);
-  response_text_last_reported_size_ = response_text_size;
-
-  if (diff) {
-    GetExecutionContext()->GetIsolate()->AdjustAmountOfExternalAllocatedMemory(
-        diff);
-  }
+  if (diff)
+    isolate_->AdjustAmountOfExternalAllocatedMemory(diff);
 }
 
 void XMLHttpRequest::Trace(Visitor* visitor) const {
@@ -2122,6 +2082,8 @@ void XMLHttpRequest::Trace(Visitor* visitor) const {
   visitor->Trace(progress_event_throttle_);
   visitor->Trace(upload_);
   visitor->Trace(blob_loader_);
+  visitor->Trace(response_text_);
+  visitor->Trace(trust_token_operation_error_);
   XMLHttpRequestEventTarget::Trace(visitor);
   ThreadableLoaderClient::Trace(visitor);
   DocumentParserClient::Trace(visitor);

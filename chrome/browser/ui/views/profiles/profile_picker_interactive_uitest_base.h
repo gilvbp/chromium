@@ -17,6 +17,8 @@ class WithProfilePickerInteractiveUiTestHelpers
 
   void SendCloseWindowKeyboardCommand();
 
+  void SendBackKeyboardCommand();
+
   void SendToggleFullscreenKeyboardCommand();
 
 #if BUILDFLAG(IS_MAC)

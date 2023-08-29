@@ -53,6 +53,10 @@
 #import "ui/base/l10n/l10n_util.h"
 #import "url/gurl.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 using base::RecordAction;
 using base::UserMetricsAction;
 using password_manager::metrics_util::PasswordType;

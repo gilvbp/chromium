@@ -9,11 +9,15 @@
 
 #include <memory>
 
-#include "base/apple/scoped_cftyperef.h"
 #include "base/check.h"
 #include "base/mac/mac_util.h"
+#include "base/mac/scoped_cftyperef.h"
 #include "skia/ext/platform_canvas.h"
 #include "third_party/skia/include/utils/mac/SkCGUtils.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace {
 
@@ -40,7 +44,7 @@ SkBitmap NSImageOrNSImageRepToSkBitmapWithColorSpace(
             (SK_A32_SHIFT == (a) && SK_R32_SHIFT == (r) \
              && SK_G32_SHIFT == (g) && SK_B32_SHIFT == (b))
 #if defined(SK_CPU_LENDIAN) && HAS_ARGB_SHIFTS(24, 16, 8, 0)
-  base::apple::ScopedCFTypeRef<CGContextRef> context(CGBitmapContextCreate(
+  base::ScopedCFTypeRef<CGContextRef> context(CGBitmapContextCreate(
       data, size.width, size.height, 8, size.width * 4, color_space,
       uint32_t{kCGImageAlphaPremultipliedFirst} | kCGBitmapByteOrder32Host));
 #else
@@ -150,7 +154,7 @@ SkColor NSSystemColorToSkColor(NSColor* color) {
 }
 
 SkColor CGColorRefToSkColor(CGColorRef color) {
-  base::apple::ScopedCFTypeRef<CGColorRef> cg_color(
+  base::ScopedCFTypeRef<CGColorRef> cg_color(
       CGColorCreateCopyByMatchingToColorSpace(base::mac::GetSRGBColorSpace(),
                                               kCGRenderingIntentDefault, color,
                                               nullptr));
@@ -160,12 +164,11 @@ SkColor CGColorRefToSkColor(CGColorRef color) {
       .toSkColor();
 }
 
-base::apple::ScopedCFTypeRef<CGColorRef> CGColorCreateFromSkColor(
-    SkColor color) {
+base::ScopedCFTypeRef<CGColorRef> CGColorCreateFromSkColor(SkColor color) {
   CGFloat components[] = {
       SkColorGetR(color) / 255.0f, SkColorGetG(color) / 255.0f,
       SkColorGetB(color) / 255.0f, SkColorGetA(color) / 255.0f};
-  return base::apple::ScopedCFTypeRef<CGColorRef>(
+  return base::ScopedCFTypeRef<CGColorRef>(
       CGColorCreate(base::mac::GetSRGBColorSpace(), components));
 }
 
@@ -228,7 +231,7 @@ NSBitmapImageRep* SkBitmapToNSBitmapImageRepWithColorSpace(
     const SkBitmap& skiaBitmap,
     CGColorSpaceRef colorSpace) {
   // First convert SkBitmap to CGImageRef.
-  base::apple::ScopedCFTypeRef<CGImageRef> cgimage(
+  base::ScopedCFTypeRef<CGImageRef> cgimage(
       SkCreateCGImageRefWithColorspace(skiaBitmap, colorSpace));
   if (!cgimage)
     return nil;

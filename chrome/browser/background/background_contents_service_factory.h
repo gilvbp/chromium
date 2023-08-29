@@ -32,7 +32,7 @@ class BackgroundContentsServiceFactory : public ProfileKeyedServiceFactory {
   ~BackgroundContentsServiceFactory() override;
 
   // BrowserContextKeyedServiceFactory:
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* profile) const override;
   void RegisterProfilePrefs(
       user_prefs::PrefRegistrySyncable* registry) override;

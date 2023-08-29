@@ -4,17 +4,14 @@
 
 #import "ios/chrome/browser/ui/settings/settings_navigation_controller.h"
 
-#import <MaterialComponents/MaterialSnackbar.h>
-
-#import "base/apple/foundation_util.h"
 #import "base/ios/ios_util.h"
+#import "base/mac/foundation_util.h"
 #import "base/metrics/user_metrics.h"
 #import "base/metrics/user_metrics_action.h"
 #import "components/autofill/core/browser/personal_data_manager.h"
 #import "components/password_manager/core/browser/ui/credential_ui_entry.h"
 #import "components/password_manager/core/common/password_manager_features.h"
 #import "components/strings/grit/components_strings.h"
-#import "components/sync/service/sync_service.h"
 #import "ios/chrome/browser/autofill/personal_data_manager_factory.h"
 #import "ios/chrome/browser/shared/model/application_context/application_context.h"
 #import "ios/chrome/browser/shared/model/browser/browser.h"
@@ -23,7 +20,6 @@
 #import "ios/chrome/browser/shared/ui/symbols/chrome_icon.h"
 #import "ios/chrome/browser/shared/ui/table_view/table_view_utils.h"
 #import "ios/chrome/browser/shared/ui/util/uikit_ui_util.h"
-#import "ios/chrome/browser/sync/enterprise_utils.h"
 #import "ios/chrome/browser/sync/sync_service_factory.h"
 #import "ios/chrome/browser/sync/sync_setup_service.h"
 #import "ios/chrome/browser/sync/sync_setup_service_factory.h"
@@ -34,7 +30,6 @@
 #import "ios/chrome/browser/ui/settings/autofill/autofill_profile_table_view_controller.h"
 #import "ios/chrome/browser/ui/settings/clear_browsing_data/clear_browsing_data_coordinator.h"
 #import "ios/chrome/browser/ui/settings/clear_browsing_data/clear_browsing_data_table_view_controller.h"
-#import "ios/chrome/browser/ui/settings/content_settings/content_settings_table_view_controller.h"
 #import "ios/chrome/browser/ui/settings/default_browser/default_browser_settings_table_view_controller.h"
 #import "ios/chrome/browser/ui/settings/google_services/accounts_table_view_controller.h"
 #import "ios/chrome/browser/ui/settings/google_services/google_services_settings_coordinator.h"
@@ -53,14 +48,16 @@
 #import "ios/chrome/browser/ui/settings/settings_table_view_controller.h"
 #import "ios/chrome/browser/ui/settings/sync/sync_encryption_passphrase_table_view_controller.h"
 #import "ios/chrome/browser/ui/settings/tabs/inactive_tabs/inactive_tabs_settings_coordinator.h"
-#import "ios/chrome/browser/ui/settings/tabs/tab_pickup/tab_pickup_settings_coordinator.h"
-#import "ios/chrome/browser/ui/settings/utils/password_utils.h"
 #import "ios/chrome/common/ui/colors/semantic_color_names.h"
 #import "ios/chrome/common/ui/reauthentication/reauthentication_module.h"
 #import "ios/chrome/common/ui/util/constraints_ui_util.h"
 #import "ios/chrome/grit/ios_strings.h"
 #import "ios/public/provider/chrome/browser/user_feedback/user_feedback_api.h"
 #import "ui/base/l10n/l10n_util_mac.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 using password_manager::features::IsPasswordCheckupEnabled;
 
@@ -106,13 +103,9 @@ NSString* const kSettingsDoneButtonId = @"kSettingsDoneButtonId";
 @property(nonatomic, strong)
     PrivacySafeBrowsingCoordinator* privacySafeBrowsingCoordinator;
 
-// Coordinator for the inactive tabs settings.
+// Privacy Safe Browsing coordinator.
 @property(nonatomic, strong)
     InactiveTabsSettingsCoordinator* inactiveTabsSettingsCoordinator;
-
-// Coordinator for the tab pickup settings.
-@property(nonatomic, strong)
-    TabPickupSettingsCoordinator* tabPickupSettingsCoordinator;
 
 // Handler for Snackbar Commands.
 @property(nonatomic, weak) id<SnackbarCommands> snackbarCommandsHandler;
@@ -283,24 +276,6 @@ NSString* const kSettingsDoneButtonId = @"kSettingsDoneButtonId";
         showSavedPasswordsAndStartPasswordCheck:YES
                                showCancelButton:showCancelButton];
   }
-
-  return navigationController;
-}
-
-+ (instancetype)
-    passwordManagerSearchControllerForBrowser:(Browser*)browser
-                                     delegate:
-                                         (id<SettingsNavigationControllerDelegate>)
-                                             delegate {
-  DCHECK(browser);
-
-  SettingsNavigationController* navigationController =
-      [[SettingsNavigationController alloc]
-          initWithRootViewController:nil
-                             browser:browser
-                            delegate:delegate];
-
-  [navigationController showPasswordManagerSearchPage];
 
   return navigationController;
 }
@@ -540,27 +515,6 @@ NSString* const kSettingsDoneButtonId = @"kSettingsDoneButtonId";
   return navigationController;
 }
 
-+ (instancetype)
-    contentSettingsControllerForBrowser:(Browser*)browser
-                               delegate:
-                                   (id<SettingsNavigationControllerDelegate>)
-                                       delegate {
-  UIViewController* controller =
-      [[ContentSettingsTableViewController alloc] initWithBrowser:browser];
-
-  SettingsNavigationController* navigationController =
-      [[SettingsNavigationController alloc]
-          initWithRootViewController:controller
-                             browser:browser
-                            delegate:delegate];
-
-  // Make sure the cancel button is always present, as the Contents Settings
-  // screen isn't just shown from Settings.
-  [controller navigationItem].leftBarButtonItem =
-      [navigationController cancelButton];
-  return navigationController;
-}
-
 #pragma mark - Lifecycle
 
 - (instancetype)initWithRootViewController:(UIViewController*)rootViewController
@@ -648,16 +602,10 @@ NSString* const kSettingsDoneButtonId = @"kSettingsDoneButtonId";
   [self stopClearBrowsingDataCoordinator];
   [self stopPrivacySafeBrowsingCoordinator];
   [self stopPrivacySettingsCoordinator];
-  [self stopInactiveTabSettingsCoordinator];
-  [self stopTabPickupSettingsCoordinator];
 
   // Reset the delegate to prevent any queued transitions from attempting to
   // close the settings.
   self.settingsNavigationDelegate = nil;
-  self.snackbarCommandsHandler = nil;
-  self.currentPresentedViewController = nil;
-  self.presentationController.delegate = nil;
-  _browser = nil;
 }
 
 - (void)closeSettings {
@@ -727,9 +675,6 @@ NSString* const kSettingsDoneButtonId = @"kSettingsDoneButtonId";
     return;
   }
   DCHECK(!self.manageSyncSettingsCoordinator);
-  // TODO(crbug.com/1462552): Remove usage of HasSyncConsent() after kSync
-  // users migrated to kSignin in phase 3. See ConsentLevel::kSync
-  // documentation for details.
   SyncSettingsAccountState accountState =
       SyncServiceFactory::GetForBrowserState(self.browser->GetBrowserState())
               ->HasSyncConsent()
@@ -771,21 +716,6 @@ NSString* const kSettingsDoneButtonId = @"kSettingsDoneButtonId";
                                browser:self.browser];
   self.privacySafeBrowsingCoordinator.delegate = self;
   [self.privacySafeBrowsingCoordinator start];
-}
-
-// Shows the tab pickup settings screen.
-- (void)showTabPickup {
-  if ([self.topViewController
-          isKindOfClass:[TabPickupSettingsCoordinator class]]) {
-    // The top view controller is already the Safe Browsing panel.
-    // No need to open it.
-    return;
-  }
-  DCHECK(!self.tabPickupSettingsCoordinator);
-  self.tabPickupSettingsCoordinator = [[TabPickupSettingsCoordinator alloc]
-      initWithBaseNavigationController:self
-                               browser:self.browser];
-  [self.tabPickupSettingsCoordinator start];
 }
 
 // Stops the underlying Google services settings coordinator if it exists.
@@ -842,15 +772,6 @@ NSString* const kSettingsDoneButtonId = @"kSettingsDoneButtonId";
   }
 }
 
-- (void)showPasswordManagerSearchPage {
-  self.savedPasswordsCoordinator = [[PasswordsCoordinator alloc]
-      initWithBaseNavigationController:self
-                               browser:self.browser];
-  self.savedPasswordsCoordinator.delegate = self;
-  self.savedPasswordsCoordinator.openViewControllerForPasswordSearch = true;
-  [self.savedPasswordsCoordinator start];
-}
-
 - (void)showPasswordDetailsForCredential:
             (password_manager::CredentialUIEntry)credential
                         showCancelButton:(BOOL)showCancelButton {
@@ -859,8 +780,7 @@ NSString* const kSettingsDoneButtonId = @"kSettingsDoneButtonId";
       initWithBaseNavigationController:self
                                browser:self.browser
                             credential:credential
-                          reauthModule:password_manager::
-                                           BuildReauthenticationModule()
+                          reauthModule:[[ReauthenticationModule alloc] init]
                                context:DetailsContext::kOutsideSettings];
   self.passwordDetailsCoordinator.delegate = self;
   self.passwordDetailsCoordinator.showCancelButton = showCancelButton;
@@ -879,18 +799,6 @@ NSString* const kSettingsDoneButtonId = @"kSettingsDoneButtonId";
   [self.clearBrowsingDataCoordinator stop];
   self.clearBrowsingDataCoordinator.delegate = nil;
   self.clearBrowsingDataCoordinator = nil;
-}
-
-// Stops the underlying inactive tabs settings coordinator if it exists.
-- (void)stopInactiveTabSettingsCoordinator {
-  [self.inactiveTabsSettingsCoordinator stop];
-  self.inactiveTabsSettingsCoordinator = nil;
-}
-
-// Stops the underlying tab pickup settings coordinator if it exists.
-- (void)stopTabPickupSettingsCoordinator {
-  [self.tabPickupSettingsCoordinator stop];
-  self.tabPickupSettingsCoordinator = nil;
 }
 
 // Stops the underlying SafetyCheck coordinator if it exists.
@@ -933,6 +841,16 @@ NSString* const kSettingsDoneButtonId = @"kSettingsDoneButtonId";
 
 - (NSString*)manageSyncSettingsCoordinatorTitle {
   return l10n_util::GetNSString(IDS_IOS_MANAGE_SYNC_SETTINGS_TITLE);
+}
+
+- (void)showSignOutToast {
+  [self.snackbarCommandsHandler
+      showSnackbarWithMessage:
+          l10n_util::GetNSString(
+              IDS_IOS_GOOGLE_ACCOUNT_SETTINGS_SIGN_OUT_SNACKBAR_MESSAGE)
+                   buttonText:nil
+                messageAction:nil
+             completionAction:nil];
 }
 
 #pragma mark - PasswordsCoordinatorDelegate
@@ -1041,7 +959,7 @@ NSString* const kSettingsDoneButtonId = @"kSettingsDoneButtonId";
     [self.currentPresentedViewController
         performSelector:@selector(reportBackUserAction)];
   }
-  self.currentPresentedViewController = base::apple::ObjCCast<
+  self.currentPresentedViewController = base::mac::ObjCCast<
       UIViewController<UIAdaptivePresentationControllerDelegate>>(
       viewController);
 }
@@ -1158,7 +1076,6 @@ NSString* const kSettingsDoneButtonId = @"kSettingsDoneButtonId";
 }
 
 - (void)showClearBrowsingDataSettings {
-  [self stopClearBrowsingDataCoordinator];
   self.clearBrowsingDataCoordinator = [[ClearBrowsingDataCoordinator alloc]
       initWithBaseNavigationController:self
                                browser:self.browser];
@@ -1172,27 +1089,6 @@ NSString* const kSettingsDoneButtonId = @"kSettingsDoneButtonId";
 
 - (void)showSafeBrowsingSettings {
   [self showSafeBrowsing];
-}
-
-- (void)showPasswordSearchPage {
-  [self showPasswordManagerSearchPage];
-}
-
-- (void)showTabPickupSettings {
-  [self showTabPickup];
-}
-
-- (void)showContentsSettingsFromViewController:
-    (UIViewController*)baseViewController {
-  if ([self.topViewController
-          isKindOfClass:[ContentSettingsTableViewController class]]) {
-    // The top view controller is already the Contents Settings panel.
-    // No need to open it.
-    return;
-  }
-  ContentSettingsTableViewController* controller =
-      [[ContentSettingsTableViewController alloc] initWithBrowser:self.browser];
-  [self pushViewController:controller animated:YES];
 }
 
 @end

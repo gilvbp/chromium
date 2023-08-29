@@ -57,7 +57,7 @@ declare -A DISPLAY_RES=(
 # Use FHD as default panel.
 DISPLAY_CONFIG=${DISPLAY_RES[fhd]}
 
-LACROS_FEATURES=LacrosOnly
+LACROS_FEATURES=LacrosSupport,LacrosPrimary
 FEATURES=OverviewButton
 
 LACROS_ENABLED=false
@@ -102,8 +102,7 @@ function build_args {
     --ash-host-window-bounds=${DISPLAY_CONFIG} \
     --enable-features=${FEATURES} \
     ${TOUCH_DEVICE_OPTION} \
-    --enable-ash-debug-browser \
-    --lacros-chrome-path=${LACROS_BUILD_DIR}" \
+    --lacros-chrome-path=${LACROS_BUILD_DIR}"
 
   # To enable internal display.
   ARGS="${ARGS} --use-first-display-as-internal"
@@ -117,7 +116,7 @@ function start_ash_chrome {
   build_args
 
   check_chrome_dir "$ASH_CHROME_BUILD_DIR" ash-chrome-build-dir
-  if $LACROS_ENABLED ; then
+  if [ $LACROS_ENABLED ]; then
     check_chrome_dir "$LACROS_BUILD_DIR" lacros-build-dir
   fi
   ensure_user_dir ${USER_DATA_DIR} "ash-chrome"
@@ -125,7 +124,7 @@ function start_ash_chrome {
   cat <<EOF
 tip: Once you finished OOBE, you can login using any string (e.g. 'x').
 EOF
-  if $LACROS_ENABLED ; then
+  if [ $LACROS_ENABLED ]; then
     cat <<EOF
 
 tip: Lacros log file ${LACROS_LOG_FILE}
@@ -186,7 +185,7 @@ command
   --panel=<type>         specifies the panel type. Valid opptions are:
                          wxga(1280x800), fwxga(1355x768), hdp(1600,900),
                          fhd(1920x1080), wuxga(1920,1200), qhd(2560,1440),
-                         qhdp(3200,1800), f4k(3840,2160)
+                         qudp(3200,1800), 4k(3840,2160)
 EOF
 }
 

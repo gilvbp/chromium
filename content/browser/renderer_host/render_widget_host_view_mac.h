@@ -5,16 +5,18 @@
 #ifndef CONTENT_BROWSER_RENDERER_HOST_RENDER_WIDGET_HOST_VIEW_MAC_H_
 #define CONTENT_BROWSER_RENDERER_HOST_RENDER_WIDGET_HOST_VIEW_MAC_H_
 
+#include "base/memory/raw_ptr.h"
+#include "third_party/blink/public/mojom/input/input_handler.mojom-forward.h"
+
 #import <Cocoa/Cocoa.h>
 
 #include <string>
 #include <vector>
 
 #include "base/gtest_prod_util.h"
-#include "base/memory/raw_ptr.h"
+#include "base/mac/scoped_nsobject.h"
 #include "base/memory/weak_ptr.h"
 #include "base/time/time.h"
-#include "base/timer/timer.h"
 #include "components/viz/common/surfaces/surface_id.h"
 #include "content/app_shim_remote_cocoa/render_widget_host_ns_view_host_helper.h"
 #include "content/browser/renderer_host/browser_compositor_view_mac.h"
@@ -25,7 +27,6 @@
 #include "content/common/render_widget_host_ns_view.mojom.h"
 #include "mojo/public/cpp/bindings/associated_receiver.h"
 #include "mojo/public/cpp/bindings/associated_remote.h"
-#include "third_party/blink/public/mojom/input/input_handler.mojom-forward.h"
 #include "third_party/blink/public/mojom/webshare/webshare.mojom.h"
 #include "third_party/blink/public/mojom/widget/record_content_to_visible_time_request.mojom-forward.h"
 #include "ui/accelerated_widget_mac/accelerated_widget_mac.h"
@@ -52,7 +53,6 @@ class ScopedPasswordInputEnabler;
 
 @class NSAccessibilityRemoteUIElement;
 @class RenderWidgetHostViewCocoa;
-@class CursorAccessibilityScaleFactorObserver;
 
 namespace content {
 
@@ -132,8 +132,7 @@ class CONTENT_EXPORT RenderWidgetHostViewMac
   void UpdateCursor(const ui::Cursor& cursor) override;
   void DisplayCursor(const ui::Cursor& cursor) override;
   CursorManager* GetCursorManager() override;
-  void DidNavigateMainFramePreCommit() override;
-  void DidEnterBackForwardCache() override;
+  void OnDidNavigateMainFrameToNewPage() override;
   void SetIsLoading(bool is_loading) override;
   void RenderProcessGone() override;
   void ShowWithVisibility(PageVisibilityState page_visibility) final;
@@ -150,7 +149,6 @@ class CONTENT_EXPORT RenderWidgetHostViewMac
   void EnsureSurfaceSynchronizedForWebTest() override;
   void FocusedNodeChanged(bool is_editable_node,
                           const gfx::Rect& node_bounds_in_screen) override;
-  void InvalidateLocalSurfaceIdAndAllocationGroup() override;
   void ClearFallbackSurfaceForCommitPending() override;
   void ResetFallbackToFirstNavigationSurface() override;
   bool RequestRepaintForTesting() override;
@@ -227,9 +225,7 @@ class CONTENT_EXPORT RenderWidgetHostViewMac
                               RenderWidgetHostViewBase* updated_view) override;
   void OnImeCompositionRangeChanged(
       TextInputManager* text_input_manager,
-      RenderWidgetHostViewBase* updated_view,
-      bool character_bounds_changed,
-      const absl::optional<std::vector<gfx::Rect>>& line_bounds) override;
+      RenderWidgetHostViewBase* updated_view) override;
   void OnSelectionBoundsChanged(
       TextInputManager* text_input_manager,
       RenderWidgetHostViewBase* updated_view) override;
@@ -355,7 +351,7 @@ class CONTENT_EXPORT RenderWidgetHostViewMac
   void ForwardKeyboardEventWithCommands(
       std::unique_ptr<blink::WebCoalescedInputEvent> event,
       const std::vector<uint8_t>& native_event_data,
-      bool skip_if_unhandled,
+      bool skip_in_browser,
       std::vector<blink::mojom::EditCommandPtr> commands) override;
   void RouteOrProcessMouseEvent(
       std::unique_ptr<blink::WebCoalescedInputEvent> event) override;
@@ -468,7 +464,7 @@ class CONTENT_EXPORT RenderWidgetHostViewMac
 
   // When inside a block of handling a keyboard event, returns the
   // RenderWidgetHostImpl to which all keyboard and Ime messages from the NSView
-  // should be forwarded. This exists to preserve historical behavior, and may
+  // should be fowarded. This exists to preserve historical behavior, and may
   // not be the desired behavior.
   // https://crbug.com/831843
   RenderWidgetHostImpl* GetWidgetForKeyboardEvent();
@@ -554,8 +550,6 @@ class CONTENT_EXPORT RenderWidgetHostViewMac
   // OnTooltipTextUpdated() function, if not null.
   void SetTooltipText(const std::u16string& tooltip_text);
 
-  void UpdateWindowsNow();
-
   // Interface through which the NSView is to be manipulated. This points either
   // to |in_process_ns_view_bridge_| or to |remote_ns_view_|.
   raw_ptr<remote_cocoa::mojom::RenderWidgetHostNSView> ns_view_ = nullptr;
@@ -620,9 +614,6 @@ class CONTENT_EXPORT RenderWidgetHostViewMac
 
   std::unique_ptr<CursorManager> cursor_manager_;
 
-  // Observes macOS's accessibility pointer size user preference changes.
-  CursorAccessibilityScaleFactorObserver* __strong cursor_scale_observer_;
-
   // Used to track active password input sessions.
   std::unique_ptr<ui::ScopedPasswordInputEnabler> password_input_enabler_;
 
@@ -677,7 +668,8 @@ class CONTENT_EXPORT RenderWidgetHostViewMac
 
   // Remote accessibility objects corresponding to the NSWindow that this is
   // displayed to the user in.
-  NSAccessibilityRemoteUIElement* __strong remote_window_accessible_;
+  base::scoped_nsobject<NSAccessibilityRemoteUIElement>
+      remote_window_accessible_;
 
   // Used to force the NSApplication's focused accessibility element to be the
   // content::BrowserAccessibilityCocoa accessibility tree when the NSView for
@@ -699,10 +691,6 @@ class CONTENT_EXPORT RenderWidgetHostViewMac
   absl::optional<DisplayFeature> display_feature_;
 
   const uint64_t ns_view_id_;
-
-  // See description of `kDelayUpdateWindowsAfterTextInputStateChanged` for
-  // details.
-  base::OneShotTimer update_windows_timer_;
 
   // Factory used to safely scope delayed calls to ShutdownHost().
   base::WeakPtrFactory<RenderWidgetHostViewMac> weak_factory_;

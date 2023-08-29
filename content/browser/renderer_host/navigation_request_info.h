@@ -50,8 +50,7 @@ struct CONTENT_EXPORT NavigationRequestInfo {
       WeakDocumentPtr initiator_document,
       const GlobalRenderFrameHostId& previous_render_frame_host_id,
       bool allow_cookies_from_browser,
-      int64_t navigation_id,
-      bool shared_storage_writable);
+      int64_t navigation_id);
   NavigationRequestInfo(const NavigationRequestInfo& other) = delete;
   ~NavigationRequestInfo();
 
@@ -146,11 +145,6 @@ struct CONTENT_EXPORT NavigationRequestInfo {
 
   // Unique id that identifies the navigation.
   const int64_t navigation_id;
-
-  // Whether or not the request is eligible to write to shared storage from
-  // response headers. See
-  // https://github.com/WICG/shared-storage#from-response-headers.
-  bool shared_storage_writable;
 };
 
 }  // namespace content

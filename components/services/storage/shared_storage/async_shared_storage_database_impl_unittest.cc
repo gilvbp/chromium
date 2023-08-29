@@ -4,6 +4,7 @@
 
 #include "components/services/storage/shared_storage/async_shared_storage_database_impl.h"
 
+#include <cctype>
 #include <memory>
 #include <queue>
 #include <string>
@@ -36,7 +37,6 @@
 #include "storage/browser/test/mock_special_storage_policy.h"
 #include "testing/gmock/include/gmock/gmock-matchers.h"
 #include "testing/gtest/include/gtest/gtest.h"
-#include "third_party/abseil-cpp/absl/strings/ascii.h"
 #include "third_party/blink/public/common/features.h"
 #include "url/gurl.h"
 #include "url/origin.h"
@@ -777,9 +777,8 @@ std::vector<InitFailureTestCase> GetInitFailureTestCases() {
 [[nodiscard]] std::string PrintToString(const InitFailureTestCase& c) {
   std::string str(c.relative_file_path);
   for (char& ch : str) {
-    if (!absl::ascii_isalpha(static_cast<unsigned char>(ch)) && ch != '_') {
+    if (!std::isalpha(static_cast<unsigned char>(ch)) && ch != '_')
       ch = '_';
-    }
   }
   return str;
 }

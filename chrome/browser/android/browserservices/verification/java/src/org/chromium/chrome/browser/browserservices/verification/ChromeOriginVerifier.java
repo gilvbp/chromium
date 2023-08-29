@@ -248,6 +248,7 @@ public class ChromeOriginVerifier extends OriginVerifier {
     }
 
     /** Clears all known relations. */
+    @VisibleForTesting
     public static void clearCachedVerificationsForTesting() {
         ChromeVerificationResultStore.getInstance().clearStoredRelationships();
     }

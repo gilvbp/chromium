@@ -213,11 +213,14 @@ bool CompareDescendingImportantInfo(
 
 std::unordered_set<std::string> GetSuppressedImportantDomains(
     Profile* profile) {
+  ContentSettingsForOneType content_settings_list;
   HostContentSettingsMap* map =
       HostContentSettingsMapFactory::GetForProfile(profile);
+  map->GetSettingsForOneType(ContentSettingsType::IMPORTANT_SITE_INFO,
+
+                             &content_settings_list);
   std::unordered_set<std::string> ignoring_domains;
-  for (ContentSettingPatternSource& site :
-       map->GetSettingsForOneType(ContentSettingsType::IMPORTANT_SITE_INFO)) {
+  for (ContentSettingPatternSource& site : content_settings_list) {
     GURL origin(site.primary_pattern.ToString());
     if (!origin.is_valid() || base::Contains(ignoring_domains, origin.host())) {
       continue;
@@ -278,12 +281,15 @@ void PopulateInfoMapWithContentTypeAllowed(
     ContentSettingsType content_type,
     ImportantReason reason,
     std::map<std::string, ImportantDomainInfo>* output) {
+  // Grab our content settings list.
+  ContentSettingsForOneType content_settings_list;
+  HostContentSettingsMapFactory::GetForProfile(profile)->GetSettingsForOneType(
+      content_type, &content_settings_list);
+
   // Extract a set of urls, using the primary pattern. We don't handle
   // wildcard patterns.
   std::set<GURL> content_origins;
-  for (const ContentSettingPatternSource& site :
-       HostContentSettingsMapFactory::GetForProfile(profile)
-           ->GetSettingsForOneType(content_type)) {
+  for (const ContentSettingPatternSource& site : content_settings_list) {
     if (site.GetContentSetting() != CONTENT_SETTING_ALLOW)
       continue;
     GURL url(site.primary_pattern.ToString());
@@ -460,7 +466,7 @@ void ImportantSitesUtil::RecordExcludedAndIgnoredImportantSites(
     for (const std::string& ignored_site : ignored_sites) {
       GURL origin("http://" + ignored_site);
       base::Value dict = map->GetWebsiteSetting(
-          origin, origin, ContentSettingsType::IMPORTANT_SITE_INFO);
+          origin, origin, ContentSettingsType::IMPORTANT_SITE_INFO, nullptr);
 
       if (!dict.is_dict())
         dict = base::Value(base::Value::Type::DICT);

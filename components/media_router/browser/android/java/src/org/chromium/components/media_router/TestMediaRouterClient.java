@@ -59,6 +59,11 @@ public class TestMediaRouterClient extends MediaRouterClient {
     }
 
     @Override
+    public boolean isCafMrpDeferredDiscoveryEnabled() {
+        return true;
+    }
+
+    @Override
     public boolean isCastAnotherContentWhileCastingEnabled() {
         return true;
     }

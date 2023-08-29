@@ -8,7 +8,6 @@ import android.content.Context;
 import android.content.res.ColorStateList;
 import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
-import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -29,9 +28,8 @@ public class TileView extends FrameLayout {
     private ImageView mBadgeView;
     private TextView mTitleView;
     private Runnable mOnFocusViaSelectionListener;
+    private ImageView mIconView;
     private RoundedCornerOutlineProvider mRoundingOutline;
-    protected ImageView mIconView;
-    protected View mIconBackgroundView;
 
     /**
      * Constructor for inflating from XML.
@@ -56,7 +54,6 @@ public class TileView extends FrameLayout {
         mIconView = findViewById(R.id.tile_view_icon);
         mBadgeView = findViewById(R.id.offline_badge);
         mTitleView = findViewById(R.id.tile_view_title);
-        mIconBackgroundView = findViewById(R.id.tile_view_icon_background);
         mRoundingOutline = new RoundedCornerOutlineProvider();
         mIconView.setOutlineProvider(mRoundingOutline);
         mIconView.setClipToOutline(true);
@@ -102,6 +99,17 @@ public class TileView extends FrameLayout {
         mTitleView.setText(title);
     }
 
+    /**
+     * Returns the ImageView for the icon.
+     * This method is only to allow legacy code to continue to work. New code should not use this
+     * method.
+     * TODO(crbug.com/1179455): Clean up all usages and remove this method.
+     */
+    @Deprecated
+    public ImageView getIconView() {
+        return mIconView;
+    }
+
     /** Specify the handler that will be invoked when this tile is highlighted by the user. */
     void setOnFocusViaSelectionListener(Runnable listener) {
         mOnFocusViaSelectionListener = listener;
@@ -113,11 +121,12 @@ public class TileView extends FrameLayout {
     }
 
     /** Retrieves the radius used to round the image content. */
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     int getRoundingRadiusForTesting() {
         return mRoundingOutline.getRadiusForTesting();
     }
 
-    @VisibleForTesting(otherwise = VisibleForTesting.PROTECTED)
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     public @NonNull TextView getTitleView() {
         return mTitleView;
     }

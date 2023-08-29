@@ -27,13 +27,10 @@
 #include "build/build_config.h"
 #include "build/chromeos_buildflags.h"
 #include "util/file/file_io.h"
-
-#if !BUILDFLAG(IS_FUCHSIA)
 #include "util/misc/capture_context.h"
-#endif  // !BUILDFLAG(IS_FUCHSIA)
 
 #if BUILDFLAG(IS_APPLE)
-#include "base/apple/scoped_mach_port.h"
+#include "base/mac/scoped_mach_port.h"
 #elif BUILDFLAG(IS_WIN)
 #include <windows.h>
 #include "util/win/scoped_handle.h"
@@ -627,7 +624,7 @@ class CrashpadClient {
   //!     Crashpad exception handler service.
   //!
   //! \return `true` on success, `false` on failure with a message logged.
-  bool SetHandlerMachPort(base::apple::ScopedMachSendRight exception_port);
+  bool SetHandlerMachPort(base::mac::ScopedMachSendRight exception_port);
 
   //! \brief Retrieves a send right to the process’ crash handler Mach port.
   //!
@@ -648,7 +645,7 @@ class CrashpadClient {
   //!     SetHandlerMachService(). This method must only be called after a
   //!     successful call to one of those methods. `MACH_PORT_NULL` on failure
   //!     with a message logged.
-  base::apple::ScopedMachSendRight GetHandlerMachPort() const;
+  base::mac::ScopedMachSendRight GetHandlerMachPort() const;
 #endif
 
 #if BUILDFLAG(IS_WIN) || DOXYGEN
@@ -790,7 +787,7 @@ class CrashpadClient {
 
  private:
 #if BUILDFLAG(IS_APPLE)
-  base::apple::ScopedMachSendRight exception_port_;
+  base::mac::ScopedMachSendRight exception_port_;
 #elif BUILDFLAG(IS_WIN)
   std::wstring ipc_pipe_;
   ScopedKernelHANDLE handler_start_thread_;

@@ -19,7 +19,6 @@ namespace ash {
 
 class UserContext;
 
-namespace legacy {
 // Handles Pin related authentication operations and is the source of truth
 // for the availability of Pin authentication.
 class CryptohomePinEngine {
@@ -71,8 +70,6 @@ class CryptohomePinEngine {
 
   base::WeakPtrFactory<CryptohomePinEngine> weak_factory_{this};
 };
-
-}  // namespace legacy
 
 }  // namespace ash
 

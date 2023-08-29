@@ -46,8 +46,7 @@ testcase.androidPhotosBanner = async () => {
   const photosBannerDismissButton = [
     '#banners > photos-welcome-banner',
     'educational-banner',
-    await remoteCall.isCrosComponents(appId) ? '#dismiss-button' :
-                                               '#dismiss-button-old',
+    '#dismiss-button',
   ];
 
   // Initial state: In the new framework banner is lazily loaded so will not be

@@ -9,7 +9,6 @@
 
 #include "ash/constants/ash_features.h"
 #include "ash/public/cpp/holding_space/holding_space_constants.h"
-#include "ash/public/cpp/holding_space/holding_space_file.h"
 #include "ash/public/cpp/holding_space/holding_space_image.h"
 #include "ash/public/cpp/holding_space/holding_space_item.h"
 #include "ash/public/cpp/holding_space/holding_space_model_observer.h"
@@ -56,8 +55,8 @@ std::unique_ptr<HoldingSpaceImage> CreateFakeHoldingSpaceImage(
 
 std::unique_ptr<HoldingSpaceItem> CreateItem(HoldingSpaceItem::Type type) {
   return HoldingSpaceItem::CreateFileBackedItem(
-      /*type=*/type, HoldingSpaceFile(HoldingSpaceFile::FileSystemType::kTest),
-      base::FilePath("file_path"), GURL("filesystem::file_system_url"),
+      /*type=*/type, base::FilePath("file_path"),
+      GURL("filesystem::file_system_url"),
       /*image_resolver=*/base::BindOnce(&CreateFakeHoldingSpaceImage));
 }
 
@@ -197,9 +196,8 @@ TEST_P(HoldingSpaceModelTest, UpdateItem_AccessibleName) {
 
   // Create a holding space `item`.
   auto item = HoldingSpaceItem::CreateFileBackedItem(
-      /*type=*/GetHoldingSpaceItemType(),
-      HoldingSpaceFile(HoldingSpaceFile::FileSystemType::kTest),
-      base::FilePath("file_path"), GURL("filesystem::file_system_url"),
+      /*type=*/GetHoldingSpaceItemType(), base::FilePath("file_path"),
+      GURL("filesystem::file_system_url"),
       HoldingSpaceProgress(/*current_bytes=*/0, /*total_bytes=*/100),
       /*image_resolver=*/base::BindOnce(&CreateFakeHoldingSpaceImage));
   auto* item_ptr = item.get();
@@ -275,9 +273,8 @@ TEST_P(HoldingSpaceModelTest, UpdateItem_Atomic) {
 
   // Create a holding space `item`.
   auto item = HoldingSpaceItem::CreateFileBackedItem(
-      /*type=*/GetHoldingSpaceItemType(),
-      HoldingSpaceFile(HoldingSpaceFile::FileSystemType::kTest),
-      base::FilePath("file_path"), GURL("filesystem::file_system_url"),
+      /*type=*/GetHoldingSpaceItemType(), base::FilePath("file_path"),
+      GURL("filesystem::file_system_url"),
       HoldingSpaceProgress(/*current_bytes=*/0, /*total_bytes=*/100),
       /*image_resolver=*/base::BindOnce(&CreateFakeHoldingSpaceImage));
   auto* item_ptr = item.get();
@@ -297,12 +294,9 @@ TEST_P(HoldingSpaceModelTest, UpdateItem_Atomic) {
   // Update backing file.
   base::FilePath updated_file_path("updated_file_path");
   GURL updated_file_system_url("filesystem::updated_file_system_url");
-  HoldingSpaceFile::FileSystemType updated_file_system_type(
-      HoldingSpaceFile::FileSystemType::kTest);
   model()
       .UpdateItem(item_ptr->id())
-      ->SetBackingFile(HoldingSpaceFile(updated_file_system_type),
-                       updated_file_path, updated_file_system_url);
+      ->SetBackingFile(updated_file_path, updated_file_system_url);
   EXPECT_EQ(observation.TakeLastUpdatedItem(), item_ptr);
   EXPECT_EQ(observation.TakeLastUpdatedFields(), UpdatedField::kBackingFile);
   EXPECT_EQ(observation.TakeUpdatedItemCount(), 1);
@@ -361,12 +355,10 @@ TEST_P(HoldingSpaceModelTest, UpdateItem_Atomic) {
       CreateInProgressCommand(HoldingSpaceCommandId::kPauseItem));
   updated_file_path = base::FilePath("again_updated_file_path");
   updated_file_system_url = GURL("filesystem::again_updated_file_system_url");
-  updated_file_system_type = HoldingSpaceFile::FileSystemType::kLocal;
   model()
       .UpdateItem(item_ptr->id())
       ->SetAccessibleName(u"updated_accessible_name")
-      .SetBackingFile(HoldingSpaceFile(updated_file_system_type),
-                      updated_file_path, updated_file_system_url)
+      .SetBackingFile(updated_file_path, updated_file_system_url)
       .SetInProgressCommands(in_progress_commands)
       .SetText(u"updated_text")
       .SetSecondaryText(u"updated_secondary_text")
@@ -400,10 +392,8 @@ TEST_P(HoldingSpaceModelTest, UpdateItem_Noop) {
 
   // Create a holding space `item`.
   auto item = HoldingSpaceItem::CreateFileBackedItem(
-      /*type=*/GetHoldingSpaceItemType(),
-      HoldingSpaceFile(HoldingSpaceFile::FileSystemType::kTest),
-      base::FilePath("file_path"), GURL("filesystem::file_system_url"),
-      HoldingSpaceProgress(),
+      /*type=*/GetHoldingSpaceItemType(), base::FilePath("file_path"),
+      GURL("filesystem::file_system_url"), HoldingSpaceProgress(),
       /*image_resolver=*/base::BindOnce(&CreateFakeHoldingSpaceImage));
   auto* item_ptr = item.get();
 
@@ -420,8 +410,7 @@ TEST_P(HoldingSpaceModelTest, UpdateItem_Noop) {
   model()
       .UpdateItem(item_ptr->id())
       ->SetAccessibleName(absl::nullopt)
-      .SetBackingFile(item_ptr->file(), item_ptr->file_path(),
-                      item_ptr->file_system_url())
+      .SetBackingFile(item_ptr->file_path(), item_ptr->file_system_url())
       .SetInProgressCommands({})
       .SetText(absl::nullopt)
       .SetSecondaryText(absl::nullopt)
@@ -439,9 +428,8 @@ TEST_P(HoldingSpaceModelTest, UpdateItem_InProgressCommands) {
 
   // Create an in-progress holding space `item`.
   auto item = HoldingSpaceItem::CreateFileBackedItem(
-      /*type=*/GetHoldingSpaceItemType(),
-      HoldingSpaceFile(HoldingSpaceFile::FileSystemType::kTest),
-      base::FilePath("file_path"), GURL("filesystem::file_system_url"),
+      /*type=*/GetHoldingSpaceItemType(), base::FilePath("file_path"),
+      GURL("filesystem::file_system_url"),
       HoldingSpaceProgress(/*current_bytes=*/0, /*total_bytes=*/100),
       /*image_resolver=*/base::BindOnce(&CreateFakeHoldingSpaceImage));
   auto* item_ptr = item.get();
@@ -516,9 +504,8 @@ TEST_P(HoldingSpaceModelTest, UpdateItem_Progress) {
 
   // Create a holding space `item`.
   auto item = HoldingSpaceItem::CreateFileBackedItem(
-      /*type=*/GetHoldingSpaceItemType(),
-      HoldingSpaceFile(HoldingSpaceFile::FileSystemType::kTest),
-      base::FilePath("file_path"), GURL("filesystem::file_system_url"),
+      /*type=*/GetHoldingSpaceItemType(), base::FilePath("file_path"),
+      GURL("filesystem::file_system_url"),
       HoldingSpaceProgress(/*current_bytes=*/absl::nullopt,
                            /*total_bytes=*/100),
       /*image_resolver=*/base::BindOnce(&CreateFakeHoldingSpaceImage));

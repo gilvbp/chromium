@@ -1277,10 +1277,9 @@ TEST_F(AllowAllRequestsTest, AllowlistedFrameTracking) {
                                     *google_rule_2.id, *google_rule_2.priority);
   EXPECT_EQ(google_rule_2_action, action);
 
-  auto* render_frame_host_tester =
+  auto* rfh_tester =
       content::RenderFrameHostTester::For(web_contents->GetPrimaryMainFrame());
-  content::RenderFrameHost* child =
-      render_frame_host_tester->AppendChild("sub_frame");
+  content::RenderFrameHost* child = rfh_tester->AppendChild("sub_frame");
   ASSERT_TRUE(child);
 
   child = simulate_navigation(child, example_url);

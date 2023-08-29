@@ -32,9 +32,6 @@ class TabGroupStyle {
   // Returns the bounds of a title chip without any text.
   virtual gfx::Rect GetEmptyTitleChipBounds(const TabGroupHeader* header) const;
 
-  // Returns the starting y coordinate of the title chip from the `tabstrip`.
-  virtual gfx::Point GetTitleChipOffset(absl::optional<int> text_height) const;
-
   // Returns the background of a title chip without any text.
   virtual std::unique_ptr<views::Background> GetEmptyTitleChipBackground(
       SkColor color) const;
@@ -58,11 +55,12 @@ class TabGroupStyle {
   // Returns the sync icon width.
   virtual float GetSyncIconWidth() const;
 
+  // Returns the selected opacity value, This value should match the
+  // corresponding value for the matching TabStyle.
+  virtual float GetSelectedTabOpacity() const;
+
   // The radius of the tab group header chip
   virtual int GetChipCornerRadius() const;
-
-  // Overlap between the tab group view and neighbor tab slot
-  virtual int GetTabGroupViewOverlap() const;
 
  protected:
   const raw_ref<const TabGroupViews> tab_group_views_;
@@ -71,7 +69,6 @@ class TabGroupStyle {
 // Styling of tab groups when the #chrome-refresh-2023 flag is on.
 class ChromeRefresh2023TabGroupStyle : public TabGroupStyle {
  public:
-  static int GetTabGroupOverlapAdjustment();
   explicit ChromeRefresh2023TabGroupStyle(const TabGroupViews& tab_group_views);
   ChromeRefresh2023TabGroupStyle(const ChromeRefresh2023TabGroupStyle&) =
       delete;
@@ -94,10 +91,8 @@ class ChromeRefresh2023TabGroupStyle : public TabGroupStyle {
   int GetTitleAdjustmentToTabGroupHeaderDesiredWidth(
       std::u16string title) const override;
   float GetEmptyChipSize() const override;
-  gfx::Point GetTitleChipOffset(absl::optional<int> text_height) const override;
   float GetSyncIconWidth() const override;
   int GetChipCornerRadius() const override;
-  int GetTabGroupViewOverlap() const override;
 };
 
 #endif  // CHROME_BROWSER_UI_VIEWS_TABS_TAB_GROUP_STYLE_H_

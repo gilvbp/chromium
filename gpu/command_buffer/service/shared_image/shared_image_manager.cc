@@ -9,7 +9,6 @@
 #include <memory>
 #include <utility>
 
-#include "base/containers/contains.h"
 #include "base/logging.h"
 #include "base/metrics/histogram_macros.h"
 #include "base/strings/stringprintf.h"
@@ -81,17 +80,17 @@ class SCOPED_LOCKABLE SharedImageManager::AutoLock {
 
 SharedImageManager::SharedImageManager(bool thread_safe,
                                        bool display_context_on_another_thread)
-    : display_context_on_another_thread_(display_context_on_another_thread)
-#if BUILDFLAG(IS_WIN)
-      ,
-      dxgi_shared_handle_manager_(
-          base::MakeRefCounted<DXGISharedHandleManager>())
-#endif
-{
+    : display_context_on_another_thread_(display_context_on_another_thread) {
   DCHECK(!display_context_on_another_thread || thread_safe);
-  if (thread_safe) {
+  if (thread_safe)
     lock_.emplace();
+#if BUILDFLAG(IS_WIN)
+  auto d3d11_device = gl::QueryD3D11DeviceObjectFromANGLE();
+  if (d3d11_device) {
+    dxgi_shared_handle_manager_ =
+        base::MakeRefCounted<DXGISharedHandleManager>(std::move(d3d11_device));
   }
+#endif
   CALLED_ON_VALID_THREAD();
 
   // In tests there might not be a SingleThreadTaskRunner for this thread.
@@ -123,7 +122,7 @@ SharedImageManager::Register(std::unique_ptr<SharedImageBacking> backing,
   DCHECK(backing->mailbox().IsSharedImage());
 
   AutoLock autolock(this);
-  if (base::Contains(images_, backing->mailbox())) {
+  if (images_.find(backing->mailbox()) != images_.end()) {
     LOG(ERROR) << "SharedImageManager::Register: Trying to register an "
                   "already registered mailbox.";
     return nullptr;
@@ -176,8 +175,7 @@ SharedImageManager::ProduceGLTexture(const Mailbox& mailbox,
   auto representation = (*found)->ProduceGLTexture(this, tracker);
   if (!representation) {
     LOG(ERROR) << "SharedImageManager::ProduceGLTexture: Trying to produce a "
-                  "representation from an incompatible backing: "
-               << (*found)->GetName();
+                  "representation from an incompatible mailbox.";
     return nullptr;
   }
 
@@ -200,8 +198,7 @@ SharedImageManager::ProduceGLTexturePassthrough(const Mailbox& mailbox,
   auto representation = (*found)->ProduceGLTexturePassthrough(this, tracker);
   if (!representation) {
     LOG(ERROR) << "SharedImageManager::ProduceGLTexturePassthrough: Trying to "
-                  "produce a representation from an incompatible backing: "
-               << (*found)->GetName();
+                  "produce a representation from an incompatible mailbox.";
     return nullptr;
   }
 
@@ -225,8 +222,7 @@ std::unique_ptr<SkiaImageRepresentation> SharedImageManager::ProduceSkia(
   auto representation = (*found)->ProduceSkia(this, tracker, context_state);
   if (!representation) {
     LOG(ERROR) << "SharedImageManager::ProduceSkia: Trying to produce a "
-                  "Skia representation from an incompatible backing: "
-               << (*found)->GetName();
+                  "Skia representation from an incompatible mailbox.";
     return nullptr;
   }
 
@@ -236,9 +232,9 @@ std::unique_ptr<SkiaImageRepresentation> SharedImageManager::ProduceSkia(
 std::unique_ptr<DawnImageRepresentation> SharedImageManager::ProduceDawn(
     const Mailbox& mailbox,
     MemoryTypeTracker* tracker,
-    const wgpu::Device& device,
-    wgpu::BackendType backend_type,
-    std::vector<wgpu::TextureFormat> view_formats) {
+    WGPUDevice device,
+    WGPUBackendType backend_type,
+    std::vector<WGPUTextureFormat> view_formats) {
   CALLED_ON_VALID_THREAD();
 
   AutoLock autolock(this);
@@ -253,8 +249,7 @@ std::unique_ptr<DawnImageRepresentation> SharedImageManager::ProduceDawn(
       this, tracker, device, backend_type, std::move(view_formats));
   if (!representation) {
     LOG(ERROR) << "SharedImageManager::ProduceDawn: Trying to produce a "
-                  "Dawn representation from an incompatible backing: "
-               << (*found)->GetName();
+                  "Dawn representation from an incompatible mailbox.";
     return nullptr;
   }
 
@@ -277,8 +272,7 @@ std::unique_ptr<OverlayImageRepresentation> SharedImageManager::ProduceOverlay(
   auto representation = (*found)->ProduceOverlay(this, tracker);
   if (!representation) {
     LOG(ERROR) << "SharedImageManager::ProduceOverlay: Trying to produce a "
-                  "Overlay representation from an incompatible backing: "
-               << (*found)->GetName();
+                  "Overlay representation from an incompatible mailbox.";
     return nullptr;
   }
 
@@ -303,8 +297,7 @@ std::unique_ptr<VaapiImageRepresentation> SharedImageManager::ProduceVASurface(
 
   if (!representation) {
     LOG(ERROR) << "SharedImageManager::ProduceVASurface: Trying to produce a "
-                  "VA-API representation from an incompatible backing: "
-               << (*found)->GetName();
+                  "VA-API representation from an incompatible mailbox.";
     return nullptr;
   }
   return representation;
@@ -385,8 +378,7 @@ SharedImageManager::ProduceLegacyOverlay(const Mailbox& mailbox,
   if (!representation) {
     LOG(ERROR)
         << "SharedImageManager::ProduceLegacyOverlay: Trying to produce a "
-           "Legacy Overlay representation from an incompatible backing: "
-        << (*found)->GetName();
+           "Legacy Overlay representation from an incompatible mailbox.";
     return nullptr;
   }
 

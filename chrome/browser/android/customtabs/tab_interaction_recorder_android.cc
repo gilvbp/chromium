@@ -56,27 +56,20 @@ AutofillObserverImpl::~AutofillObserverImpl() {
   Invalidate();
 }
 
-void AutofillObserverImpl::OnFormSubmitted(autofill::AutofillManager&,
-                                           autofill::FormGlobalId) {
+void AutofillObserverImpl::OnFormSubmitted(autofill::AutofillManager&) {
   OnFormInteraction();
 }
 
-void AutofillObserverImpl::OnAfterSelectControlDidChange(
-    autofill::AutofillManager&,
-    autofill::FormGlobalId,
-    autofill::FieldGlobalId) {
+void AutofillObserverImpl::OnSelectControlDidChange(
+    autofill::AutofillManager&) {
   OnFormInteraction();
 }
 
-void AutofillObserverImpl::OnAfterTextFieldDidChange(autofill::AutofillManager&,
-                                                     autofill::FormGlobalId,
-                                                     autofill::FieldGlobalId) {
+void AutofillObserverImpl::OnTextFieldDidChange(autofill::AutofillManager&) {
   OnFormInteraction();
 }
 
-void AutofillObserverImpl::OnAfterTextFieldDidScroll(autofill::AutofillManager&,
-                                                     autofill::FormGlobalId,
-                                                     autofill::FieldGlobalId) {
+void AutofillObserverImpl::OnTextFieldDidScroll(autofill::AutofillManager&) {
   OnFormInteraction();
 }
 

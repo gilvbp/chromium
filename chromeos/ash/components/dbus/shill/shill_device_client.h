@@ -44,8 +44,6 @@ class COMPONENT_EXPORT(SHILL_CLIENT) ShillDeviceClient {
                            const std::string& name) = 0;
     virtual void RemoveDevice(const std::string& device_path) = 0;
     virtual void ClearDevices() = 0;
-    virtual base::Value* GetDeviceProperty(const std::string& device_path,
-                                           const std::string& name) = 0;
     virtual void SetDeviceProperty(const std::string& device_path,
                                    const std::string& name,
                                    const base::Value& value,

@@ -16,7 +16,6 @@
 #include "base/files/scoped_temp_dir.h"
 #include "base/logging.h"
 #include "base/strings/stringprintf.h"
-#include "base/test/metrics/histogram_tester.h"
 #include "base/test/task_environment.h"
 #include "base/test/test_future.h"
 #include "base/time/time.h"
@@ -109,7 +108,6 @@ class DeviceCommandFetchSupportPacketTest : public ::testing::Test {
   ash::system::FakeStatisticsProvider statistics_provider_;
   base::TimeTicks test_start_time_;
   base::ScopedTempDir temp_dir_;
-  base::HistogramTester histogram_tester_;
 };
 
 TEST_F(DeviceCommandFetchSupportPacketTest, Success) {
@@ -168,10 +166,6 @@ TEST_F(DeviceCommandFetchSupportPacketTest, Success) {
   int64_t file_size;
   ASSERT_TRUE(base::GetFileSize(exported_file, &file_size));
   EXPECT_GT(file_size, 0);
-
-  histogram_tester_.ExpectUniqueSample(
-      kFetchSupportPacketFailureHistogramName,
-      EnterpriseFetchSupportPacketFailureType::kNoFailure, 1);
 }
 
 TEST_F(DeviceCommandFetchSupportPacketTest, FailWithWrongPayload) {
@@ -193,9 +187,6 @@ TEST_F(DeviceCommandFetchSupportPacketTest, FailWithWrongPayload) {
       base::TimeTicks::Now(),
       GenerateCommandProto(kUniqueID, test_start_time_, kWrongPayload),
       em::SignedData()));
-  histogram_tester_.ExpectUniqueSample(
-      kFetchSupportPacketFailureHistogramName,
-      EnterpriseFetchSupportPacketFailureType::kFailedOnWrongCommandPayload, 1);
 }
 
 TEST_F(DeviceCommandFetchSupportPacketTest, FailForNonKioskDevice) {
@@ -225,10 +216,6 @@ TEST_F(DeviceCommandFetchSupportPacketTest, FailForNonKioskDevice) {
   // Expect the job to fail for non-kiosk device.
   EXPECT_EQ(job->status(), RemoteCommandJob::FAILED);
   EXPECT_EQ(*job->GetResultPayload(), kCommandNotEnabledForUserMessage);
-  histogram_tester_.ExpectUniqueSample(kFetchSupportPacketFailureHistogramName,
-                                       EnterpriseFetchSupportPacketFailureType::
-                                           kFailedOnCommandEnabledForUserCheck,
-                                       1);
 }
 
 }  // namespace policy

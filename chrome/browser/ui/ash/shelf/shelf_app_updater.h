@@ -9,12 +9,6 @@
 
 #include "base/memory/raw_ptr.h"
 
-namespace apps {
-class PackageId;
-class PromiseAppUpdate;
-class ShortcutUpdate;
-}
-
 namespace content {
 class BrowserContext;
 }
@@ -39,9 +33,6 @@ class ShelfAppUpdater {
         bool by_migration) {}
     virtual void OnAppUninstalled(content::BrowserContext* browser_context,
                                   const std::string& app_id) {}
-    virtual void OnPromiseAppUpdate(const apps::PromiseAppUpdate& update) {}
-    virtual void OnPromiseAppRemoved(const apps::PackageId& package_id) {}
-    virtual void OnShortcutUpdated(const apps::ShortcutUpdate& update) {}
 
    protected:
     virtual ~Delegate() {}

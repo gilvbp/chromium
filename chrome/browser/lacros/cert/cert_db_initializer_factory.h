@@ -47,7 +47,7 @@ class CertDbInitializerFactory : public ProfileKeyedServiceFactory {
 
   // BrowserStateKeyedServiceFactory
   bool ServiceIsCreatedWithBrowserContext() const override;
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* context) const override;
   bool ServiceIsNULLWhileTesting() const override;
 

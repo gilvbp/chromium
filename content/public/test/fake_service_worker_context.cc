@@ -6,7 +6,6 @@
 
 #include <utility>
 
-#include "base/containers/contains.h"
 #include "base/functional/callback.h"
 #include "base/no_destructor.h"
 #include "base/notreached.h"
@@ -70,7 +69,7 @@ bool FakeServiceWorkerContext::ExecuteScriptForTest(
 }
 bool FakeServiceWorkerContext::MaybeHasRegistrationForStorageKey(
     const blink::StorageKey& key) {
-  return base::Contains(registered_storage_keys_, key);
+  return registered_storage_keys_.find(key) != registered_storage_keys_.end();
 }
 void FakeServiceWorkerContext::GetAllStorageKeysInfo(
     GetUsageInfoCallback callback) {

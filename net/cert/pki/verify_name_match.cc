@@ -10,7 +10,6 @@
 #include "net/der/input.h"
 #include "net/der/parser.h"
 #include "net/der/tag.h"
-#include "third_party/boringssl/src/include/openssl/base.h"
 #include "third_party/boringssl/src/include/openssl/bytestring.h"
 
 namespace net {
@@ -115,7 +114,7 @@ enum CharsetEnforcement {
 [[nodiscard]] bool NormalizeValue(X509NameAttribute attribute,
                                   std::string* output,
                                   CertErrors* errors) {
-  BSSL_CHECK(errors);
+  DCHECK(errors);
 
   if (!attribute.ValueAsStringUnsafe(output)) {
     errors->AddError(kFailedConvertingAttributeValue,
@@ -302,7 +301,7 @@ bool VerifyNameMatchInternal(const der::Input& a,
 bool NormalizeName(const der::Input& name_rdn_sequence,
                    std::string* normalized_rdn_sequence,
                    CertErrors* errors) {
-  BSSL_CHECK(errors);
+  DCHECK(errors);
 
   // RFC 5280 section 4.1.2.4
   // RDNSequence ::= SEQUENCE OF RelativeDistinguishedName

@@ -7,20 +7,25 @@
 
 #import <Foundation/Foundation.h>
 
-enum class BringAndroidTabsTestSession;
+// Enum specifying different foreign sessions used for Bring Android Tabs
+// testing.
+enum class BringAndroidTabsAppInterfaceForeignSession {
+  kRecentFromAndroidPhone,
+  kExpiredFromAndroidPhone,
+  kRecentFromDesktop,
+};
 
 // A container for BringAndroidTabs test cases to create fake foreign sessions
 // and inject them to the sync server used by tests. This also includes helper
 // methods for the tests to read the session properties.
 @interface BringAndroidTabsAppInterface : NSObject
 
-// Adds a session from the test server used by test cases to the fake sync
-// server.
-+ (void)addFakeSyncServerSession:(BringAndroidTabsTestSession)sessionType
-                  fromTestServer:(NSString*)testServerHost;
+// Adds a session to the fake sync server.
++ (void)addSessionToFakeSyncServer:
+    (BringAndroidTabsAppInterfaceForeignSession)session;
 
-// Returns the number of tabs that should be shown in the prompt.
-+ (int)tabsCountForPrompt;
+// Returns the number of tabs in the distant session.
++ (int)tabsCountForSession:(BringAndroidTabsAppInterfaceForeignSession)session;
 
 @end
 

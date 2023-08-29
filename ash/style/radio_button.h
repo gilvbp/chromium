@@ -39,8 +39,7 @@ class ASH_EXPORT RadioButton : public OptionButtonBase {
                        const std::u16string& label = std::u16string(),
                        IconDirection icon_direction = IconDirection::kLeading,
                        IconType icon_type = IconType::kCircle,
-                       const gfx::Insets& insets = kDefaultPadding,
-                       int image_label_spacing = kImageLabelSpacingDP);
+                       const gfx::Insets& insets = kDefaultPadding);
   RadioButton(const RadioButton&) = delete;
   RadioButton& operator=(const RadioButton&) = delete;
   ~RadioButton() override;

@@ -25,7 +25,6 @@
 #include "base/notreached.h"
 #include "base/strings/utf_string_conversions.h"
 #include "chromeos/services/network_config/public/cpp/cros_network_config_util.h"
-#include "components/device_event_log/device_event_log.h"
 #include "components/onc/onc_constants.h"
 #include "third_party/cros_system_api/dbus/service_constants.h"
 #include "third_party/cros_system_api/dbus/shill/dbus-constants.h"
@@ -93,16 +92,11 @@ std::u16string GetSubLabelForConnectedNetwork(
       return l10n_util::GetStringUTF16(
           IDS_ASH_STATUS_TRAY_NETWORK_CELLULAR_TYPE_LTE_PLUS);
     }
-    if (cellular->network_technology == onc::cellular::kTechnology5gNr) {
-      return l10n_util::GetStringUTF16(
-          IDS_ASH_STATUS_TRAY_NETWORK_CELLULAR_TYPE_FIVE_G);
-    }
 
     // All connectivity types exposed by Shill should be covered above. However,
     // as a fail-safe, return the default "Connected" string here to protect
     // against Shill providing an unexpected value.
-    NET_LOG(ERROR) << "Unexpected cellular network technology: "
-                   << cellular->network_technology;
+    NOTREACHED();
     return l10n_util::GetStringUTF16(
         IDS_ASH_STATUS_TRAY_NETWORK_STATUS_CONNECTED);
   }
@@ -124,6 +118,9 @@ std::u16string GetSubLabelForConnectedNetwork(
       return l10n_util::GetStringUTF16(
           IDS_ASH_STATUS_TRAY_NETWORK_SIGNAL_STRONG_SUBLABEL);
   }
+  NOTREACHED();
+  return l10n_util::GetStringUTF16(
+      IDS_ASH_STATUS_TRAY_NETWORK_STATUS_CONNECTED);
 }
 
 // Returns |true| if the network type can be toggled to state |enabled|.

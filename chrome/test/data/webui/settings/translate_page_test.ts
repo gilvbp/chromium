@@ -16,7 +16,17 @@ import {FakeLanguageSettingsPrivate, getFakeLanguagePrefs} from './fake_language
 import {TestLanguagesBrowserProxy} from './test_languages_browser_proxy.js';
 // clang-format on
 
-suite('TranslatePage', function() {
+const translate_page_tests = {
+  TestNames: {
+    TranslateSettings: 'base translate settings',
+    AlwaysTranslateDialog: 'always translate dialog',
+    NeverTranslateDialog: 'never translate dialog',
+  },
+};
+
+Object.assign(window, {translate_page_tests});
+
+suite('translate page settings', function() {
   let languageHelper: LanguageHelper;
   let translatePage: SettingsTranslatePageElement;
   let browserProxy: TestLanguagesBrowserProxy;
@@ -76,7 +86,7 @@ suite('TranslatePage', function() {
     document.body.innerHTML = window.trustedTypes!.emptyHTML;
   });
 
-  suite('TranslateSettings', function() {
+  suite(translate_page_tests.TestNames.TranslateSettings, function() {
     test('change target language', function() {
       const targetLanguageSelector =
           translatePage.shadowRoot!.querySelector<HTMLSelectElement>(
@@ -220,7 +230,7 @@ suite('TranslatePage', function() {
     });
   });
 
-  suite('AlwaysTranslateDialog', function() {
+  suite(translate_page_tests.TestNames.AlwaysTranslateDialog, function() {
     let dialog: SettingsAddLanguagesDialogElement;
     let dialogClosedResolver: PromiseResolver<void>;
     let dialogClosedObserver: MutationObserver;
@@ -290,7 +300,7 @@ suite('TranslatePage', function() {
     });
   });
 
-  suite('NeverTranslateDialog', function() {
+  suite(translate_page_tests.TestNames.NeverTranslateDialog, function() {
     let dialog: SettingsAddLanguagesDialogElement;
     let dialogClosedResolver: PromiseResolver<void>;
     let dialogClosedObserver: MutationObserver;

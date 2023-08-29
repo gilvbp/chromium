@@ -94,9 +94,9 @@ void ChildProcessLauncherHelper::ForceNormalProcessTerminationSync(
   base::EnsureProcessTerminated(std::move(process.process));
 }
 
-void ChildProcessLauncherHelper::SetProcessPriorityOnLauncherThread(
+void ChildProcessLauncherHelper::SetProcessBackgroundedOnLauncherThread(
     base::Process process,
-    base::Process::Priority priority) {}
+    bool is_background) {}
 
 // static
 base::File OpenFileToShare(const base::FilePath& path,

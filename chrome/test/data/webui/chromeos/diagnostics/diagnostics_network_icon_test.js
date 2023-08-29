@@ -18,7 +18,7 @@ suite('diagnosticsNetworkIconTestSuite', function() {
   let diagnosticsNetworkIconElement = null;
 
   setup(() => {
-    document.body.innerHTML = window.trustedTypes.emptyHTML;
+    document.body.innerHTML = '';
   });
 
   teardown(() => {

@@ -4,6 +4,8 @@
 
 package org.chromium.chrome.browser.historyreport;
 
+import androidx.annotation.VisibleForTesting;
+
 import java.io.PrintWriter;
 
 /**
@@ -77,6 +79,7 @@ public interface SearchJniBridge {
         void stopReportingTask();
     }
 
+    @VisibleForTesting
     boolean isStartedForTest();
 
     void dump(PrintWriter writer);

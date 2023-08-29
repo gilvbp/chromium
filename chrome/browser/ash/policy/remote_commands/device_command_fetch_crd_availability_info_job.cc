@@ -4,9 +4,10 @@
 
 #include "chrome/browser/ash/policy/remote_commands/device_command_fetch_crd_availability_info_job.h"
 
+#include <algorithm>
+
 #include "base/functional/bind.h"
 #include "base/json/json_writer.h"
-#include "base/numerics/clamped_math.h"
 #include "base/time/time.h"
 #include "chrome/browser/ash/policy/remote_commands/crd_logging.h"
 #include "chrome/browser/ash/policy/remote_commands/crd_remote_command_utils.h"
@@ -61,10 +62,6 @@ CrdSessionAvailability GetRemoteAccessAvailability(
   return CrdSessionAvailability::AVAILABLE;
 }
 
-int GetDeviceIdleTimeInSeconds() {
-  return base::ClampedNumeric<int32_t>(GetDeviceIdleTime().InSeconds());
-}
-
 }  // namespace
 
 DeviceCommandFetchCrdAvailabilityInfoJob::
@@ -90,7 +87,7 @@ void DeviceCommandFetchCrdAvailabilityInfoJob::SendPayload(
   std::string payload =
       base::WriteJson(
           base::Value::Dict()
-              .Set(kIdleTime, GetDeviceIdleTimeInSeconds())
+              .Set(kIdleTime, static_cast<int>(GetDeviceIdleTime().InSeconds()))
               .Set(kUserSessionType, GetCurrentUserSessionType())
               .Set(kIsInManagedEnvironment, is_in_managed_environment)
               .Set(kSupportedCrdSessionTypes,

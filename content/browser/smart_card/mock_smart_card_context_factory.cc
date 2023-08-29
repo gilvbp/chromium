@@ -52,8 +52,4 @@ void MockSmartCardContextFactory::ExpectConnectFakeReaderSharedT1(
       });
 }
 
-void MockSmartCardContextFactory::ClearContextReceivers() {
-  context_receivers_.Clear();
-}
-
 }  // namespace content

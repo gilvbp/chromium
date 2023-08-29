@@ -52,9 +52,8 @@ class TestOsIntegrationManager : public FakeOsIntegrationManager {
                       std::unique_ptr<WebAppInstallInfo> web_app_info,
                       InstallOsHooksOptions options) override {
     if (options.os_hooks[OsHookType::kRunOnOsLogin]) {
-      ScopedRegistryUpdate update = WebAppProvider::GetForTest(profile_)
-                                        ->sync_bridge_unsafe()
-                                        .BeginUpdate();
+      ScopedRegistryUpdate update(
+          &WebAppProvider::GetForTest(profile_)->sync_bridge_unsafe());
       update->UpdateApp(app_id)->SetRunOnOsLoginOsIntegrationState(
           RunOnOsLoginMode::kWindowed);
     }
@@ -66,9 +65,8 @@ class TestOsIntegrationManager : public FakeOsIntegrationManager {
                         const OsHooksOptions& os_hooks,
                         UninstallOsHooksCallback callback) override {
     if (os_hooks[OsHookType::kRunOnOsLogin]) {
-      ScopedRegistryUpdate update = WebAppProvider::GetForTest(profile_)
-                                        ->sync_bridge_unsafe()
-                                        .BeginUpdate();
+      ScopedRegistryUpdate update(
+          &WebAppProvider::GetForTest(profile_)->sync_bridge_unsafe());
       update->UpdateApp(app_id)->SetRunOnOsLoginOsIntegrationState(
           RunOnOsLoginMode::kNotRun);
     }
@@ -122,7 +120,7 @@ class RunOnOsLoginCommandTest
 
   void RegisterApp(std::unique_ptr<WebApp> web_app) {
     web_app->SetRunOnOsLoginOsIntegrationState(RunOnOsLoginMode::kNotRun);
-    ScopedRegistryUpdate update = sync_bridge().BeginUpdate();
+    ScopedRegistryUpdate update(&sync_bridge());
     update->CreateApp(std::move(web_app));
   }
 
@@ -343,7 +341,7 @@ TEST_P(RunOnOsLoginCommandTest, SyncCommandAndUninstallOSHooks) {
   const AppId app_id = web_app->app_id();
   RegisterApp(std::move(web_app));
   {
-    ScopedRegistryUpdate update = sync_bridge().BeginUpdate();
+    ScopedRegistryUpdate update(&sync_bridge());
     update->UpdateApp(app_id)->SetRunOnOsLoginOsIntegrationState(
         RunOnOsLoginMode::kWindowed);
   }
@@ -453,7 +451,7 @@ TEST_P(RunOnOsLoginCommandTest, VerifySetWorksOnAppWithNoStateDefined) {
   const AppId app_id = web_app->app_id();
   // Run on OS Login state in the web_app DB is not defined.
   {
-    ScopedRegistryUpdate update = sync_bridge().BeginUpdate();
+    ScopedRegistryUpdate update(&sync_bridge());
     update->CreateApp(std::move(web_app));
   }
 
@@ -484,7 +482,7 @@ TEST_P(RunOnOsLoginCommandTest, VerifySyncWorksOnAppWithNoStateDefined) {
   auto web_app = test::CreateWebApp(GURL("https:/default.example/"));
   const AppId app_id = web_app->app_id();
   {
-    ScopedRegistryUpdate update = sync_bridge().BeginUpdate();
+    ScopedRegistryUpdate update(&sync_bridge());
     update->CreateApp(std::move(web_app));
   }
 

@@ -39,7 +39,7 @@ suite('WallpaperPreviewTest', function() {
       async () => {
         personalizationStore.data.wallpaper.loading = {
           ...personalizationStore.data.wallpaper.loading,
-          selected: {attribution: true, image: true},
+          selected: true,
           setImage: 0,
         };
         wallpaperPreviewElement = initElement(WallpaperPreview);
@@ -55,7 +55,7 @@ suite('WallpaperPreviewTest', function() {
         // Loading placeholder should be hidden.
         personalizationStore.data.wallpaper.loading = {
           ...personalizationStore.data.wallpaper.loading,
-          selected: {attribution: false, image: false},
+          selected: false,
           setImage: 0,
         };
         personalizationStore.data.wallpaper.currentSelected =
@@ -69,7 +69,7 @@ suite('WallpaperPreviewTest', function() {
         // come back.
         personalizationStore.data.wallpaper.loading = {
           ...personalizationStore.data.wallpaper.loading,
-          selected: {attribution: false, image: false},
+          selected: false,
           setImage: 1,
         };
         personalizationStore.notifyObservers();
@@ -97,8 +97,7 @@ suite('WallpaperPreviewTest', function() {
     await waitAfterNextRender(wallpaperPreviewElement);
 
     // Still loading.
-    personalizationStore.data.wallpaper.loading.selected.image = true;
-    personalizationStore.data.wallpaper.loading.selected.attribution = true;
+    personalizationStore.data.wallpaper.loading.selected = true;
     personalizationStore.data.wallpaper.currentSelected = null;
     personalizationStore.notifyObservers();
     await waitAfterNextRender(wallpaperPreviewElement);
@@ -108,8 +107,7 @@ suite('WallpaperPreviewTest', function() {
     assertTrue(!!placeholder);
 
     // Loading finished and still no current wallpaper.
-    personalizationStore.data.wallpaper.loading.selected.image = false;
-    personalizationStore.data.wallpaper.loading.selected.attribution = false;
+    personalizationStore.data.wallpaper.loading.selected = false;
     personalizationStore.notifyObservers();
     await waitAfterNextRender(wallpaperPreviewElement);
 

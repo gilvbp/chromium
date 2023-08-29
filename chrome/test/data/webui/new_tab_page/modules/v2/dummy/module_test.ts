@@ -2,11 +2,12 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+import 'chrome://webui-test/mojo_webui_test_support.js';
+
 import {FooHandlerRemote} from 'chrome://new-tab-page/foo.mojom-webui.js';
 import {DummyModuleElement, dummyV2Descriptor, FooProxy} from 'chrome://new-tab-page/lazy_load.js';
 import {CrAutoImgElement} from 'chrome://new-tab-page/new_tab_page.js';
 import {assertEquals, assertFalse, assertTrue} from 'chrome://webui-test/chai_assert.js';
-import {waitAfterNextRender} from 'chrome://webui-test/polymer_test_util.js';
 import {TestMock} from 'chrome://webui-test/test_mock.js';
 import {isVisible} from 'chrome://webui-test/test_util.js';
 
@@ -19,6 +20,7 @@ suite('NewTabPageModulesDummyModuleTest', () => {
     document.body.innerHTML = window.trustedTypes!.emptyHTML;
 
     handler = installMock(FooHandlerRemote, FooProxy.setHandler);
+    handler.setResultFor('getData', Promise.resolve({data: []}));
   });
 
   test('creates module with data', async () => {
@@ -41,12 +43,10 @@ suite('NewTabPageModulesDummyModuleTest', () => {
       },
     ];
     handler.setResultFor('getData', Promise.resolve({data}));
-    const modules = await dummyV2Descriptor.initialize(0) as HTMLElement[];
-    assertEquals(12, modules.length);
-    const module = modules[0]! as DummyModuleElement;
+    const module = await dummyV2Descriptor.initialize(0) as DummyModuleElement;
     assertTrue(!!module);
     document.body.append(module);
-    await waitAfterNextRender(module);
+    module.$.tileList.render();
 
     // Assert.
     assertTrue(isVisible(module.$.tiles));
@@ -59,13 +59,11 @@ suite('NewTabPageModulesDummyModuleTest', () => {
   });
 
   test('creates module without data', async () => {
-    handler.setResultFor('getData', Promise.resolve({data: []}));
     // Act.
-    const modules = await dummyV2Descriptor.initialize(0) as HTMLElement[];
-    const module = modules[0]! as DummyModuleElement;
+    const module = await dummyV2Descriptor.initialize(0) as DummyModuleElement;
     assertTrue(!!module);
     document.body.append(module);
-    await waitAfterNextRender(module);
+    module.$.tileList.render();
 
     // Assert.
     assertFalse(isVisible(module.$.tiles));

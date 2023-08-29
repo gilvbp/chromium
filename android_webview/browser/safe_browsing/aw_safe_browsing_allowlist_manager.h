@@ -50,7 +50,6 @@ struct TrieNode;
 // the size is not enforced here. The list size can be enforced at
 // Java level if necessary.
 //
-// Lifetime: Singleton
 class AwSafeBrowsingAllowlistManager {
  public:
   // Must be constructed on the UI thread.

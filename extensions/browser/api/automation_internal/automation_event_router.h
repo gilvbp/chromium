@@ -21,14 +21,6 @@
 #include "extensions/common/api/automation_internal.h"
 #include "extensions/common/extension_id.h"
 #include "extensions/common/extension_messages.h"
-#include "extensions/common/mojom/automation_registry.mojom.h"
-#include "mojo/public/cpp/bindings/associated_receiver_set.h"
-#include "mojo/public/cpp/bindings/associated_remote.h"
-#include "mojo/public/cpp/bindings/pending_associated_remote.h"
-#include "mojo/public/cpp/bindings/pending_remote.h"
-#include "mojo/public/cpp/bindings/remote.h"
-#include "mojo/public/cpp/bindings/remote_set.h"
-#include "services/accessibility/public/mojom/automation.mojom.h"
 #include "ui/accessibility/ax_tree_id.h"
 
 namespace content {
@@ -39,9 +31,14 @@ namespace ui {
 struct AXActionData;
 }  // namespace ui
 
+struct ExtensionMsg_AccessibilityEventBundleParams;
+struct ExtensionMsg_AccessibilityLocationChangeParams;
+
 namespace extensions {
 struct AutomationListener;
 struct WorkerId;
+
+using RenderProcessHostId = int;
 
 class AutomationEventRouterObserver {
  public:
@@ -49,16 +46,10 @@ class AutomationEventRouterObserver {
   virtual void ExtensionListenerAdded() = 0;
 };
 
-// Routes accessibility events from the browser process to the extension's
-// renderer process.
-class AutomationEventRouter
-    : public content::RenderProcessHostObserver,
-      public AutomationEventRouterInterface,
-      public ui::AXActionHandlerObserver,
-      public extensions::mojom::RendererAutomationRegistry {
+class AutomationEventRouter : public content::RenderProcessHostObserver,
+                              public AutomationEventRouterInterface,
+                              public ui::AXActionHandlerObserver {
  public:
-  using RenderProcessHostId = int;
-
   static AutomationEventRouter* GetInstance();
 
   // Indicates that the listener at |listener_rph_id| wants to receive
@@ -100,7 +91,7 @@ class AutomationEventRouter
                                    const gfx::Point& mouse_location,
                                    std::vector<ui::AXEvent> events) override;
   void DispatchAccessibilityLocationChange(
-      const content::AXLocationChangeNotificationDetails& details) override;
+      const ExtensionMsg_AccessibilityLocationChangeParams& params) override;
   void DispatchTreeDestroyedEvent(ui::AXTreeID tree_id) override;
   void DispatchActionResult(
       const ui::AXActionData& data,
@@ -114,11 +105,6 @@ class AutomationEventRouter
   // it. The caller of this method is responsible for calling it again with
   // |nullptr| before the remote router is destroyed to prevent UaF.
   void RegisterRemoteRouter(AutomationEventRouterInterface* router);
-
-  static void BindForRenderer(
-      RenderProcessHostId render_process_id,
-      mojo::PendingAssociatedReceiver<
-          extensions::mojom::RendererAutomationRegistry> receiver);
 
  private:
   class AutomationListener : public content::WebContentsObserver {
@@ -152,6 +138,9 @@ class AutomationEventRouter
                 ui::AXTreeID source_ax_tree_id,
                 bool desktop);
 
+  void DispatchAccessibilityEventsInternal(
+      const ExtensionMsg_AccessibilityEventBundleParams& events);
+
   // RenderProcessHostObserver:
   void RenderProcessExited(
       content::RenderProcessHost* host,
@@ -175,14 +164,6 @@ class AutomationEventRouter
   // everywhere.
   void UpdateActiveProfile();
 
-  // Returns the listener for the provided ID, or `nullptr` if none is found.
-  AutomationListener* GetListenerByRenderProcessID(
-      const RenderProcessHostId& listener_rph_id) const;
-
-  // ax::mojom::AutomationClient:
-  void BindAutomation(
-      mojo::PendingAssociatedRemote<ax::mojom::Automation> automation) override;
-
   content::NotificationRegistrar registrar_;
   std::vector<std::unique_ptr<AutomationListener>> listeners_;
 
@@ -201,15 +182,7 @@ class AutomationEventRouter
 
   base::ObserverList<AutomationEventRouterObserver>::Unchecked observers_;
 
-  mojo::AssociatedReceiverSet<extensions::mojom::RendererAutomationRegistry,
-                              RenderProcessHostId>
-      receivers_;
-
-  mojo::AssociatedRemoteSet<ax::mojom::Automation> automation_remote_set_;
-
-  base::WeakPtrFactory<AutomationEventRouter> weak_ptr_factory_{this};
   friend struct base::DefaultSingletonTraits<AutomationEventRouter>;
-  friend class AutomationEventRouterExtensionBrowserTest;
 };
 
 }  // namespace extensions

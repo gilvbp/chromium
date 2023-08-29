@@ -10,7 +10,6 @@
 #include "chrome/browser/browser_process.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/ui/browser.h"
-#include "chrome/browser/ui/browser_element_identifiers.h"
 #include "chrome/browser/ui/toolbar/chrome_labs_prefs.h"
 #include "chrome/browser/ui/toolbar/chrome_labs_utils.h"
 #include "chrome/browser/ui/views/frame/browser_view.h"
@@ -24,7 +23,6 @@
 #include "ui/views/accessibility/view_accessibility.h"
 #include "ui/views/controls/button/button_controller.h"
 #include "ui/views/controls/dot_indicator.h"
-#include "ui/views/view_class_properties.h"
 
 ChromeLabsButton::ChromeLabsButton(BrowserView* browser_view,
                                    const ChromeLabsModel* model)
@@ -32,7 +30,6 @@ ChromeLabsButton::ChromeLabsButton(BrowserView* browser_view,
                                         base::Unretained(this))),
       browser_view_(browser_view),
       model_(model) {
-  SetProperty(views::kElementIdentifierKey, kToolbarChromeLabsButtonElementId);
   SetVectorIcons(features::IsChromeRefresh2023() ? kChromeLabsChromeRefreshIcon
                                                  : kChromeLabsIcon,
                  kChromeLabsTouchIcon);

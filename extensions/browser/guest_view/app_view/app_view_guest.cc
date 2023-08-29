@@ -108,18 +108,17 @@ bool AppViewGuest::CompletePendingRequest(
 
 // static
 std::unique_ptr<GuestViewBase> AppViewGuest::Create(
-    content::RenderFrameHost* owner_rfh) {
-  return base::WrapUnique(new AppViewGuest(owner_rfh));
+    WebContents* owner_web_contents) {
+  return base::WrapUnique(new AppViewGuest(owner_web_contents));
 }
 
-AppViewGuest::AppViewGuest(content::RenderFrameHost* owner_rfh)
-    : GuestView<AppViewGuest>(owner_rfh),
+AppViewGuest::AppViewGuest(WebContents* owner_web_contents)
+    : GuestView<AppViewGuest>(owner_web_contents),
       app_view_guest_delegate_(base::WrapUnique(
           ExtensionsAPIClient::Get()->CreateAppViewGuestDelegate())) {
   if (app_view_guest_delegate_) {
-    app_delegate_ =
-        base::WrapUnique(app_view_guest_delegate_->CreateAppDelegate(
-            owner_rfh->GetBrowserContext()));
+    app_delegate_ = base::WrapUnique(
+        app_view_guest_delegate_->CreateAppDelegate(owner_web_contents));
   }
 }
 
@@ -236,7 +235,7 @@ void AppViewGuest::DidInitialize(const base::Value::Dict& create_params) {
 }
 
 void AppViewGuest::MaybeRecreateGuestContents(
-    content::RenderFrameHost* outer_contents_frame) {
+    content::WebContents* embedder_web_contents) {
   if (AreWebviewMPArchBehaviorsEnabled(browser_context())) {
     // This situation is not possible for AppView.
     NOTREACHED();

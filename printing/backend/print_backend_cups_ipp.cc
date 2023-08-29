@@ -98,19 +98,15 @@ mojom::ResultCode PrintBackendCupsIpp::GetPrinterSemanticCapsAndDefaults(
   return mojom::ResultCode::kSuccess;
 }
 
-std::vector<std::string> PrintBackendCupsIpp::GetPrinterDriverInfo(
+std::string PrintBackendCupsIpp::GetPrinterDriverInfo(
     const std::string& printer_name) {
-  std::vector<std::string> result;
   std::unique_ptr<CupsPrinter> printer(
       cups_connection_->GetPrinter(printer_name));
   if (!printer)
-    return result;
+    return std::string();
 
   DCHECK_EQ(printer_name, printer->GetName());
-  result.emplace_back(printer->GetInfo());
-  result.emplace_back(printer->GetMakeAndModel());
-  result.emplace_back(cupsUserAgent());
-  return result;
+  return printer->GetMakeAndModel();
 }
 
 bool PrintBackendCupsIpp::IsValidPrinter(const std::string& printer_name) {

@@ -21,7 +21,6 @@ source_set("file_util") {
     "//components/safe_browsing:buildflags",
     "//extensions/buildflags:buildflags",
     "//mojo/public/cpp/bindings",
-    "//third_party/zlib",
   ]
 
   public_deps = [
@@ -132,7 +131,6 @@ source_set("test_support") {
     "//extensions/buildflags:buildflags",
     "//mojo/public/cpp/bindings",
     "//testing/gmock",
-    "//third_party/abseil-cpp:absl",
   ]
 }
 

@@ -13,7 +13,25 @@ import {eventToPromise} from 'chrome://webui-test/test_util.js';
 import {TestService} from './test_service.js';
 import {createExtensionInfo, testVisible} from './test_util.js';
 
-suite('ExtensionToolbarTest', function() {
+/** @fileoverview Suite of tests for extension-toolbar. */
+const extension_toolbar_tests = {
+  suiteName: 'ExtensionToolbarTest',
+  TestNames: {
+    Layout: 'layout',
+    ClickHandlers: 'click handlers',
+    DevModeToggle: 'dev mode toggle',
+    // <if expr="chromeos_ash">
+    KioskMode: 'kiosk mode button',
+    // </if>
+    FailedUpdateFiresLoadError:
+        'failed local extension update files load error',
+    NarrowModeShowsMenu: 'narrow mode shows menu',
+  },
+};
+
+Object.assign(window, {extension_toolbar_tests});
+
+suite(extension_toolbar_tests.suiteName, function() {
   let mockDelegate: TestService;
   let toolbar: ExtensionsToolbarElement;
 
@@ -38,7 +56,7 @@ suite('ExtensionToolbarTest', function() {
     document.body.appendChild(toastManager);
   });
 
-  test('Layout', function() {
+  test(extension_toolbar_tests.TestNames.Layout, function() {
     const boundTestVisible = testVisible.bind(null, toolbar);
     boundTestVisible('#devMode', true);
     assertEquals(toolbar.$.devMode.disabled, false);
@@ -63,7 +81,7 @@ suite('ExtensionToolbarTest', function() {
     boundTestVisible('#updateNow', true);
   });
 
-  test('DevModeToggle', function() {
+  test(extension_toolbar_tests.TestNames.DevModeToggle, function() {
     const toggle = toolbar.$.devMode;
     assertFalse(toggle.disabled);
 
@@ -82,7 +100,7 @@ suite('ExtensionToolbarTest', function() {
     assertTrue(toggle.disabled);
   });
 
-  test('ClickHandlers', async function() {
+  test(extension_toolbar_tests.TestNames.ClickHandlers, async function() {
     toolbar.set('inDevMode', true);
     flush();
     const toastManager = getToastManager();
@@ -123,7 +141,8 @@ suite('ExtensionToolbarTest', function() {
 
   /** Tests that the update button properly fires the load-error event. */
   test(
-      'FailedUpdateFiresLoadError', async function() {
+      extension_toolbar_tests.TestNames.FailedUpdateFiresLoadError,
+      async function() {
         const item = document.createElement('extensions-item');
         item.data = createExtensionInfo();
         item.delegate = mockDelegate;
@@ -163,7 +182,7 @@ suite('ExtensionToolbarTest', function() {
         await verifyLoadErrorFired(true);
       });
 
-  test('NarrowModeShowsMenu', function() {
+  test(extension_toolbar_tests.TestNames.NarrowModeShowsMenu, function() {
     toolbar.narrow = true;
     assertTrue(toolbar.$.toolbar.showMenu);
 
@@ -172,7 +191,7 @@ suite('ExtensionToolbarTest', function() {
   });
 
   // <if expr="chromeos_ash">
-  test('KioskMode', function() {
+  test(extension_toolbar_tests.TestNames.KioskMode, function() {
     const button = toolbar.$.kioskExtensions;
     assertTrue(button.hidden);
     toolbar.kioskEnabled = true;

@@ -10,10 +10,7 @@
 
 @protocol ApplicationCommands;
 @class PasswordCheckupCoordinator;
-namespace password_manager {
-enum class WarningType;
-}
-@protocol ReauthenticationProtocol;
+@class ReauthenticationModule;
 
 // Delegate for PasswordCheckupCoordinator.
 @protocol PasswordCheckupCoordinatorDelegate
@@ -31,7 +28,7 @@ enum class WarningType;
     initWithBaseNavigationController:
         (UINavigationController*)navigationController
                              browser:(Browser*)browser
-                        reauthModule:(id<ReauthenticationProtocol>)reauthModule
+                        reauthModule:(ReauthenticationModule*)reauthModule
                             referrer:(password_manager::PasswordCheckReferrer)
                                          referrer NS_DESIGNATED_INITIALIZER;
 
@@ -41,10 +38,6 @@ enum class WarningType;
 @property(nonatomic, weak) id<PasswordCheckupCoordinatorDelegate> delegate;
 
 @property(nonatomic, weak) id<ApplicationCommands> dispatcher;
-
-// Show the Password Issues page for `warningType`.
-- (void)showPasswordIssuesWithWarningType:
-    (password_manager::WarningType)warningType;
 
 @end
 

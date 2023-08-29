@@ -18,28 +18,15 @@
 
 class PrefService;
 
-namespace signin {
-class IdentityManager;
-}  // namespace signin
-
-namespace network {
-class SharedURLLoaderFactory;
-}  // namespace network
-
 namespace ash::nearby::presence {
-
-class NearbyPresenceCredentialManager;
 
 class NearbyPresenceServiceImpl
     : public NearbyPresenceService,
       public KeyedService,
       public ::ash::nearby::presence::mojom::ScanObserver {
  public:
-  NearbyPresenceServiceImpl(
-      PrefService* pref_service,
-      ash::nearby::NearbyProcessManager* process_manager,
-      signin::IdentityManager* identity_manager,
-      scoped_refptr<network::SharedURLLoaderFactory> url_loader_factory);
+  NearbyPresenceServiceImpl(PrefService* pref_service,
+                            ash::nearby::NearbyProcessManager* process_manager);
   NearbyPresenceServiceImpl(const NearbyPresenceServiceImpl&) = delete;
   NearbyPresenceServiceImpl& operator=(const NearbyPresenceServiceImpl&) =
       delete;
@@ -49,18 +36,16 @@ class NearbyPresenceServiceImpl
   void StartScan(
       ScanFilter scan_filter,
       ScanDelegate* scan_delegate,
-      base::OnceCallback<void(std::unique_ptr<ScanSession>, StatusCode)>
+      base::OnceCallback<void(std::unique_ptr<ScanSession>, PresenceStatus)>
           on_start_scan_callback) override;
-  void Initialize(base::OnceClosure on_initialized_callback) override;
-  void UpdateCredentials() override;
 
  private:
   void OnScanStarted(
       ScanDelegate* scan_delegate,
-      base::OnceCallback<void(std::unique_ptr<ScanSession>, StatusCode)>
+      base::OnceCallback<void(std::unique_ptr<ScanSession>, PresenceStatus)>
           on_start_scan_callback,
       mojo::PendingRemote<mojom::ScanSession> pending_remote,
-      mojo_base::mojom::AbslStatusCode status);
+      PresenceStatus status);
   void OnScanSessionDisconnect(ScanDelegate* scan_delegate);
   void OnNearbyProcessStopped(
       ash::nearby::NearbyProcessManager::NearbyProcessShutdownReason);
@@ -75,19 +60,11 @@ class NearbyPresenceServiceImpl
   void OnDeviceChanged(mojom::PresenceDevicePtr device) override;
   void OnDeviceLost(mojom::PresenceDevicePtr device) override;
 
-  void OnCredentialManagerInitialized(
-      base::OnceClosure on_initialized_callback,
-      std::unique_ptr<NearbyPresenceCredentialManager>
-          initialized_credential_manager);
-  void UpdateCredentialsAfterCredentialManagerInitialized();
-
-  const raw_ptr<PrefService> pref_service_ = nullptr;
-  const raw_ptr<signin::IdentityManager> identity_manager_ = nullptr;
-  scoped_refptr<network::SharedURLLoaderFactory> url_loader_factory_;
-  const raw_ptr<ash::nearby::NearbyProcessManager> process_manager_ = nullptr;
+  const raw_ptr<PrefService, DanglingUntriaged> pref_service_ = nullptr;
+  const raw_ptr<ash::nearby::NearbyProcessManager, DanglingUntriaged>
+      process_manager_ = nullptr;
   std::unique_ptr<ash::nearby::NearbyProcessManager::NearbyProcessReference>
       process_reference_;
-  std::unique_ptr<NearbyPresenceCredentialManager> credential_manager_;
 
   mojo::Receiver<::ash::nearby::presence::mojom::ScanObserver> scan_observer_{
       this};

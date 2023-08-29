@@ -147,6 +147,8 @@ bool SystemSupportsHardFailRevocationChecking() {
 }
 
 bool SystemUsesChromiumEVMetadata() {
+  if (UsingBuiltinCertVerifier())
+    return true;
 #if defined(PLATFORM_USES_CHROMIUM_EV_METADATA)
   return true;
 #else

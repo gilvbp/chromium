@@ -96,7 +96,7 @@ class AudioRendererMixerTest
 
   AudioRendererMixer* GetMixer(const base::UnguessableToken& owner_token,
                                const AudioParameters& params,
-                               AudioLatency::Type latency,
+                               AudioLatency::LatencyType latency,
                                const OutputDeviceInfo& sink_info,
                                scoped_refptr<AudioRendererSink> sink) final {
     return mixer_.get();
@@ -382,7 +382,7 @@ class AudioRendererMixerTest
     auto input = base::MakeRefCounted<AudioRendererMixerInput>(
         this, base::UnguessableToken::Create(),
         // default device ID.
-        std::string(), AudioLatency::Type::kPlayback);
+        std::string(), AudioLatency::LATENCY_PLAYBACK);
     input->GetOutputDeviceInfoAsync(
         base::DoNothing());  // Primes input, needed for tests.
     task_env_.RunUntilIdle();

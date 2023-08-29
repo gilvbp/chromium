@@ -12,15 +12,13 @@
 #include "ash/test/pixel/ash_pixel_differ.h"
 #include "ash/test/pixel/ash_pixel_test_init_params.h"
 #include "base/test/scoped_feature_list.h"
-#include "chromeos/constants/chromeos_features.h"
 
 namespace ash {
 
 class NotificationCenterTrayPixelTest : public AshTestBase {
  public:
   NotificationCenterTrayPixelTest() {
-    scoped_feature_list_.InitWithFeatures(
-        {features::kQsRevamp, chromeos::features::kJelly}, {});
+    scoped_feature_list_.InitWithFeatures({features::kQsRevamp}, {});
   }
 
   // AshTestBase:
@@ -51,7 +49,8 @@ TEST_F(NotificationCenterTrayPixelTest,
 
   EXPECT_TRUE(test_api()->GetTray()->GetVisible());
   EXPECT_TRUE(GetPixelDiffer()->CompareUiComponentsOnPrimaryScreen(
-      "check_view", /*revision_number=*/2, test_api()->GetTray()));
+      "check_view",
+      /*revision_number=*/0, test_api()->GetTray()));
 }
 
 TEST_F(NotificationCenterTrayPixelTest,
@@ -63,7 +62,7 @@ TEST_F(NotificationCenterTrayPixelTest,
   EXPECT_TRUE(test_api()->GetTray()->GetVisible());
   EXPECT_TRUE(GetPixelDiffer()->CompareUiComponentsOnPrimaryScreen(
       "check_view",
-      /*revision_number=*/1, test_api()->GetTray()));
+      /*revision_number=*/0, test_api()->GetTray()));
 }
 
 // Tests the UI of the notification center tray when connecting a secondary
@@ -83,7 +82,7 @@ TEST_F(NotificationCenterTrayPixelTest,
 
   // Check the UI of the notification center tray on the secondary display.
   EXPECT_TRUE(GetPixelDiffer()->CompareUiComponentsOnSecondaryScreen(
-      "check_view", /*revision_number=*/2,
+      "check_view", /*revision_number=*/0,
       test_api()->GetTrayOnDisplay(secondary_display_id)));
 }
 

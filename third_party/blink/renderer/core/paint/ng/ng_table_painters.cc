@@ -398,7 +398,7 @@ class TableCellBackgroundClipper {
       return;
 
     PhysicalRect clip_rect = cell_rect;
-    clip_rect.Contract(table_cell.BorderOutsets());
+    clip_rect.Expand(table_cell.BorderInsets());
     context.Save();
     context.Clip(ToPixelSnappedRect(clip_rect));
   }

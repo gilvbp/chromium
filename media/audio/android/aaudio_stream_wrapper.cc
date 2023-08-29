@@ -100,15 +100,15 @@ AAudioStreamWrapper::AAudioStreamWrapper(DataCallback* callback,
   CHECK(callback_);
 
   switch (params.latency_tag()) {
-    case AudioLatency::Type::kExactMS:
-    case AudioLatency::Type::kInteractive:
-    case AudioLatency::Type::kRtc:
+    case AudioLatency::LATENCY_EXACT_MS:
+    case AudioLatency::LATENCY_INTERACTIVE:
+    case AudioLatency::LATENCY_RTC:
       performance_mode_ = AAUDIO_PERFORMANCE_MODE_LOW_LATENCY;
       break;
-    case AudioLatency::Type::kPlayback:
+    case AudioLatency::LATENCY_PLAYBACK:
       performance_mode_ = AAUDIO_PERFORMANCE_MODE_POWER_SAVING;
       break;
-    case AudioLatency::Type::kUnknown:
+    default:
       performance_mode_ = AAUDIO_PERFORMANCE_MODE_NONE;
   }
 

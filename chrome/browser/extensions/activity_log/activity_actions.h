@@ -14,7 +14,6 @@
 #include "base/time/time.h"
 #include "base/values.h"
 #include "chrome/common/extensions/api/activity_log_private.h"
-#include "extensions/common/extension_id.h"
 #include "url/gurl.h"
 
 namespace extensions {
@@ -56,7 +55,7 @@ class Action : public base::RefCountedThreadSafe<Action> {
   scoped_refptr<Action> Clone() const;
 
   // The extension which caused this record to be generated.
-  const ExtensionId& extension_id() const { return extension_id_; }
+  const std::string& extension_id() const { return extension_id_; }
 
   // The time the record was generated (or some approximation).
   const base::Time& time() const { return time_; }
@@ -132,7 +131,7 @@ class Action : public base::RefCountedThreadSafe<Action> {
  private:
   friend class base::RefCountedThreadSafe<Action>;
 
-  ExtensionId extension_id_;
+  std::string extension_id_;
   base::Time time_;
   ActionType action_type_;
   std::string api_name_;

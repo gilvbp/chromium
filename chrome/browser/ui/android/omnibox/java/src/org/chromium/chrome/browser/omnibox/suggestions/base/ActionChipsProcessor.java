@@ -10,7 +10,6 @@ import android.util.ArrayMap;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import org.chromium.chrome.browser.omnibox.OmniboxMetrics;
 import org.chromium.chrome.browser.omnibox.suggestions.SuggestionHost;
 import org.chromium.components.browser_ui.widget.chips.ChipProperties;
 import org.chromium.components.omnibox.AutocompleteMatch;
@@ -41,17 +40,12 @@ public class ActionChipsProcessor {
     }
 
     public void onUrlFocusChange(boolean hasFocus) {
-        // Note: do not record any histograms if we did not show Actions.
-        if (hasFocus || mVisibleActions.isEmpty()) {
+        if (hasFocus) {
             return;
         }
-
         mVisibleActions.forEach((OmniboxAction action, Integer position) -> {
-            var wasValid = action.recordActionShown(position, action == mExecutedAction);
-            OmniboxMetrics.recordOmniboxActionIsValid(wasValid);
+            action.recordActionShown(position, action == mExecutedAction);
         });
-
-        OmniboxMetrics.recordOmniboxActionIsUsed(mExecutedAction != null);
         mVisibleActions.clear();
     }
 

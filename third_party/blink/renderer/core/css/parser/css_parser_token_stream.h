@@ -238,7 +238,6 @@ class CORE_EXPORT CSSParserTokenStream {
         // instead.
         next_ = buffer_.back();
         buffer_.pop_back();
-        offset_ = tokenizer_.PreviousOffset();
         break;
       } else if (buffer_.back().GetBlockType() == CSSParserToken::kBlockStart) {
         nesting_level++;

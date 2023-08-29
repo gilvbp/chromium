@@ -17,6 +17,7 @@ import android.widget.TextView;
 
 import androidx.test.filters.SmallTest;
 
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -33,6 +34,7 @@ import org.robolectric.annotation.Config;
 import org.chromium.base.Callback;
 import org.chromium.base.test.BaseRobolectricTestRunner;
 import org.chromium.base.test.util.JniMocker;
+import org.chromium.chrome.browser.autofill.PersonalDataManager.AutofillProfile;
 import org.chromium.chrome.browser.autofill.editors.AddressEditorCoordinator;
 import org.chromium.chrome.browser.flags.ChromeFeatureList;
 import org.chromium.chrome.browser.profiles.Profile;
@@ -41,7 +43,6 @@ import org.chromium.chrome.browser.sync.SyncServiceFactory;
 import org.chromium.chrome.test.util.browser.Features;
 import org.chromium.chrome.test.util.browser.Features.DisableFeatures;
 import org.chromium.chrome.test.util.browser.Features.EnableFeatures;
-import org.chromium.components.autofill.AutofillProfile;
 import org.chromium.components.signin.identitymanager.IdentityManager;
 import org.chromium.components.sync.SyncService;
 import org.chromium.ui.base.TestActivity;
@@ -92,7 +93,7 @@ public class SaveUpdateAddressProfilePromptTest {
     public void setUp() {
         MockitoAnnotations.initMocks(this);
         PersonalDataManager.setInstanceForTesting(mPersonalDataManager);
-        SyncServiceFactory.setInstanceForTesting(mSyncService);
+        SyncServiceFactory.overrideForTests(mSyncService);
         IdentityServicesProvider.setInstanceForTests(mIdentityServicesProvider);
         when(mIdentityServicesProvider.getIdentityManager(any())).thenReturn(mIdentityManager);
 
@@ -103,6 +104,11 @@ public class SaveUpdateAddressProfilePromptTest {
         mJniMocker.mock(
                 SaveUpdateAddressProfilePromptControllerJni.TEST_HOOKS, mPromptControllerJni);
         mJniMocker.mock(AutofillProfileBridgeJni.TEST_HOOKS, mAutofillProfileBridgeJni);
+    }
+
+    @After
+    public void tearDown() {
+        PersonalDataManager.setInstanceForTesting(null);
     }
 
     private void createAndShowPrompt(boolean isUpdate) {
@@ -257,7 +263,7 @@ public class SaveUpdateAddressProfilePromptTest {
 
     @Test
     @SmallTest
-    @DisableFeatures(ChromeFeatureList.AUTOFILL_ADDRESS_PROFILE_SAVE_PROMPT_NICKNAME_SUPPORT)
+    @DisableFeatures({ChromeFeatureList.AUTOFILL_ADDRESS_PROFILE_SAVE_PROMPT_NICKNAME_SUPPORT})
     public void setupAddressNickname_FeatureDisabled() {
         createAndShowPrompt(false);
 

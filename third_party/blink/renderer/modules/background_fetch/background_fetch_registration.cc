@@ -396,7 +396,7 @@ void BackgroundFetchRegistration::Trace(Visitor* visitor) const {
   visitor->Trace(observers_);
   visitor->Trace(registration_service_);
   visitor->Trace(observer_receiver_);
-  EventTarget::Trace(visitor);
+  EventTargetWithInlineData::Trace(visitor);
   ActiveScriptWrappable::Trace(visitor);
 }
 

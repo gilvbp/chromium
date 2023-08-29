@@ -11,7 +11,7 @@ namespace blink {
 
 class XRSession;
 
-class XRLayer : public EventTarget {
+class XRLayer : public EventTargetWithInlineData {
   DEFINE_WRAPPERTYPEINFO();
 
  public:

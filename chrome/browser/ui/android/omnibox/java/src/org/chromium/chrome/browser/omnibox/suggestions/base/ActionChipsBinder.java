@@ -37,10 +37,6 @@ public final class ActionChipsBinder {
             }
             view.setAdapter(adapter);
             view.setVisibility(actionChipsVisibility);
-        } else if (SuggestionCommonProperties.DEVICE_FORM_FACTOR == propertyKey) {
-            view.setHorizontalFadingEdgeEnabled(
-                    model.get(SuggestionCommonProperties.DEVICE_FORM_FACTOR)
-                    == SuggestionCommonProperties.FormFactor.TABLET);
         }
     }
 

@@ -21,12 +21,10 @@ const char kNearbyPresenceSharedCredentialIdListPrefName[] =
     "nearby_presence.shared_credential_id_list";
 const char kNearbyPresenceSchedulingFirstTimeRegistrationPrefName[] =
     "nearby_presence.scheduling.first_time_registration";
-const char kNearbyPresenceSchedulingUploadPrefName[] =
-    "nearby_presence.scheduling.upload";
-const char kNearbyPresenceSchedulingDownloadPrefName[] =
-    "nearby_presence.scheduling.download";
-const char kNearbyPresenceSchedulingCredentialDailySyncPrefName[] =
-    "nearby_presence.scheduling.daily_sync";
+const char kNearbyPresenceSchedulingFirstTimeUploadPrefName[] =
+    "nearby_presence.scheduling.first_time_upload";
+const char kNearbyPresenceSchedulingFirstTimeDownloadPrefName[] =
+    "nearby_presence.scheduling.first_time_download";
 
 }  // namespace prefs
 
@@ -46,11 +44,9 @@ void RegisterNearbyPresenceCredentialPrefs(PrefRegistrySimple* registry) {
   registry->RegisterDictionaryPref(
       prefs::kNearbyPresenceSchedulingFirstTimeRegistrationPrefName);
   registry->RegisterDictionaryPref(
-      prefs::kNearbyPresenceSchedulingUploadPrefName);
+      prefs::kNearbyPresenceSchedulingFirstTimeUploadPrefName);
   registry->RegisterDictionaryPref(
-      prefs::kNearbyPresenceSchedulingDownloadPrefName);
-  registry->RegisterDictionaryPref(
-      prefs::kNearbyPresenceSchedulingCredentialDailySyncPrefName);
+      prefs::kNearbyPresenceSchedulingFirstTimeDownloadPrefName);
 }
 
 }  // namespace ash::nearby::presence

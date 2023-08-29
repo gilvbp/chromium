@@ -17,7 +17,6 @@
 #include "base/uuid.h"
 #include "components/bookmarks/browser/bookmark_model.h"
 #include "components/bookmarks/browser/bookmark_node.h"
-#include "components/bookmarks/browser/bookmark_uuids.h"
 #include "components/bookmarks/test/test_bookmark_client.h"
 #include "components/favicon/core/test/mock_favicon_service.h"
 #include "components/sync/base/unique_position.h"
@@ -84,7 +83,8 @@ MATCHER_P2(ElementRawPointersAre, expected_raw_ptr0, expected_raw_ptr1, "") {
 }
 
 base::Uuid BookmarkBarUuid() {
-  return base::Uuid::ParseLowercase(bookmarks::kBookmarkBarNodeUuid);
+  return base::Uuid::ParseLowercase(
+      bookmarks::BookmarkNode::kBookmarkBarNodeUuid);
 }
 
 // Returns a sync ID mimic-ing what a real server could return, which means it
@@ -95,7 +95,8 @@ std::string GetFakeServerIdFromUuid(const base::Uuid& uuid) {
   // For convenience in tests, |uuid| may refer to permanent nodes too,
   // and yet the returned sync ID will honor the sync ID constants for permanent
   // nodes.
-  if (uuid.AsLowercaseString() == bookmarks::kBookmarkBarNodeUuid) {
+  if (uuid.AsLowercaseString() ==
+      bookmarks::BookmarkNode::kBookmarkBarNodeUuid) {
     return kBookmarkBarId;
   }
   return base::StrCat({"server_id_for_", uuid.AsLowercaseString()});
@@ -1809,7 +1810,8 @@ TEST(BookmarkModelMergerTest, ShouldLogMetricsForkDescendantOfRootNode) {
 
   updates.push_back(CreateUpdateResponseData(
       /*uuid=*/base::Uuid::GenerateRandomV4(),
-      base::Uuid::ParseLowercase(bookmarks::kRootNodeUuid), "Title1",
+      base::Uuid::ParseLowercase(bookmarks::BookmarkNode::kRootNodeUuid),
+      "Title1",
       /*url=*/"http://url1",
       /*is_folder=*/false,
       /*unique_position=*/MakeRandomPosition()));

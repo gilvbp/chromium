@@ -37,7 +37,6 @@ class SyncInvalidationsServiceImpl : public SyncInvalidationsService {
 
   // SyncInvalidationsService implementation.
   void AddListener(InvalidationsListener* listener) override;
-  bool HasListener(InvalidationsListener* listener) override;
   void RemoveListener(InvalidationsListener* listener) override;
   void StartListening() override;
   void StopListening() override;

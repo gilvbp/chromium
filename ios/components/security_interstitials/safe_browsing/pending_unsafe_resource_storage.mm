@@ -4,10 +4,13 @@
 
 #import "ios/components/security_interstitials/safe_browsing/pending_unsafe_resource_storage.h"
 
-#import "base/containers/contains.h"
 #import "base/functional/callback_helpers.h"
 #import "base/memory/ptr_util.h"
 #import "ios/components/security_interstitials/safe_browsing/unsafe_resource_util.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 using safe_browsing::SBThreatType;
 using security_interstitials::UnsafeResource;
@@ -21,7 +24,8 @@ bool IsUnsafeResourcePending(const UnsafeResource& resource) {
   return allow_list &&
          allow_list->IsUnsafeNavigationDecisionPending(decision_url,
                                                        &pending_threat_types) &&
-         base::Contains(pending_threat_types, resource.threat_type);
+         pending_threat_types.find(resource.threat_type) !=
+             pending_threat_types.end();
 }
 }  // namespace
 
@@ -119,7 +123,7 @@ void PendingUnsafeResourceStorage::ResourcePolicyObserver::
   const UnsafeResource* resource = storage_->resource();
   if (policy == SafeBrowsingUrlAllowList::Policy::kPending ||
       url != resource->navigation_url ||
-      !base::Contains(threat_types, resource->threat_type)) {
+      threat_types.find(resource->threat_type) == threat_types.end()) {
     return;
   }
 

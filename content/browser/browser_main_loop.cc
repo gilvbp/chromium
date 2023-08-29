@@ -106,7 +106,6 @@
 #include "content/common/skia_utils.h"
 #include "content/common/thread_pool_util.h"
 #include "content/public/browser/audio_service.h"
-#include "content/public/browser/background_tracing_manager.h"
 #include "content/public/browser/browser_main_parts.h"
 #include "content/public/browser/browser_task_traits.h"
 #include "content/public/browser/browser_thread.h"
@@ -180,7 +179,7 @@
 #endif
 
 #if BUILDFLAG(IS_MAC)
-#include "base/apple/scoped_nsautorelease_pool.h"
+#include "base/mac/scoped_nsautorelease_pool.h"
 #include "content/browser/renderer_host/browser_compositor_view_mac.h"
 #include "content/browser/theme_helper_mac.h"
 #include "ui/accelerated_widget_mac/window_resize_helper_mac.h"
@@ -239,7 +238,7 @@
 #endif
 
 #if defined(ENABLE_IPC_FUZZER) && BUILDFLAG(IS_MAC)
-#include "base/apple/foundation_util.h"
+#include "base/mac/foundation_util.h"
 #endif
 
 #if BUILDFLAG(MOJO_RANDOM_DELAYS_ENABLED)
@@ -331,7 +330,7 @@ bool GetBuildDirectory(base::FilePath* result) {
     return false;
 
 #if BUILDFLAG(IS_MAC)
-  if (base::apple::AmIBundled()) {
+  if (base::mac::AmIBundled()) {
     // The bundled app executables (Chromium, TestShell, etc) live three
     // levels down from the build directory, eg:
     // Chromium.app/Contents/MacOS/Chromium
@@ -754,8 +753,7 @@ void BrowserMainLoop::PostCreateMainMessageLoop() {
   {
     TRACE_EVENT0("startup",
                  "BrowserMainLoop::Subsystem:BrowserAccessibilityStateImpl");
-    browser_accessibility_state_ = BrowserAccessibilityStateImpl::Create();
-    browser_accessibility_state_->InitBackgroundTasks();
+    BrowserAccessibilityStateImpl::GetInstance()->InitBackgroundTasks();
   }
 }
 
@@ -957,8 +955,6 @@ int BrowserMainLoop::PostCreateThreads() {
   TRACE_EVENT0("startup", "BrowserMainLoop::PostCreateThreads");
 
   tracing_controller_ = std::make_unique<content::TracingControllerImpl>();
-  background_tracing_manager_ =
-      content::BackgroundTracingManagerImpl::CreateInstance();
   content::BackgroundTracingManagerImpl::GetInstance()
       .AddMetadataGeneratorFunction();
 
@@ -1201,13 +1197,6 @@ void BrowserMainLoop::ShutdownThreadsAndCleanUp() {
     ResetThread_IO(std::move(io_thread_));
   }
 
-  // Must be done before ThreadPool shutdown since the trace report database
-  // lives on the ThreadPool.
-  {
-    TRACE_EVENT0("shutdown", "BrowserMainLoop::Subsystem::TracingManager");
-    background_tracing_manager_.reset();
-  }
-
   {
     TRACE_EVENT0("shutdown", "BrowserMainLoop::Subsystem:ThreadPool");
     base::ThreadPoolInstance::Get()->Shutdown();
@@ -1428,7 +1417,9 @@ void BrowserMainLoop::PostCreateThreadsImpl() {
     GpuProcessHost::Get(GPU_PROCESS_KIND_SANDBOXED, true /* force_create */);
   }
 
+#if BUILDFLAG(IS_WIN)
   GpuDataManagerImpl::GetInstance()->PostCreateThreads();
+#endif
 
   if (MediaKeysListenerManager::IsMediaKeysListenerManagerEnabled()) {
     media_keys_listener_manager_ =

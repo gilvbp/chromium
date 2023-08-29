@@ -22,6 +22,10 @@
 #import "third_party/ocmock/OCMock/OCMock.h"
 #import "third_party/ocmock/gtest_support.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 class ContentSuggestionsViewControllerTest : public PlatformTest {
  public:
   ContentSuggestionsViewControllerTest() {
@@ -30,9 +34,6 @@ class ContentSuggestionsViewControllerTest : public PlatformTest {
         initWithLocalState:&pref_service_];
     pref_service_.registry()->RegisterIntegerPref(
         prefs::kIosMagicStackSegmentationMVTImpressionsSinceFreshness, -1);
-    pref_service_.registry()->RegisterIntegerPref(
-        prefs::kIosMagicStackSegmentationShortcutsImpressionsSinceFreshness,
-        -1);
     view_controller_.contentSuggestionsMetricsRecorder = metrics_recorder_;
     histogram_tester_.reset(new base::HistogramTester());
   }

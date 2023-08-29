@@ -36,7 +36,7 @@ class TranslateRankerFactory : public BrowserContextKeyedServiceFactory {
   ~TranslateRankerFactory() override;
 
   // BrowserContextKeyedServiceFactory:
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* context) const override;
 
   // Note: In //chrome, when the service is requested for a

@@ -92,18 +92,15 @@ TEST_F(LayoutWorkletTest, ParseProperties) {
   EXPECT_FALSE(GetResult(GetScriptState(), std::move(result)).IsEmpty());
 
   LayoutWorkletGlobalScope* global_scope = GetGlobalScope();
-  CSSLayoutDefinition* definition =
-      global_scope->FindDefinition(AtomicString("foo"));
+  CSSLayoutDefinition* definition = global_scope->FindDefinition("foo");
   EXPECT_NE(nullptr, definition);
 
   Vector<CSSPropertyID> native_invalidation_properties = {
       CSSPropertyID::kFlexBasis};
-  Vector<AtomicString> custom_invalidation_properties = {
-      AtomicString("--prop")};
+  Vector<AtomicString> custom_invalidation_properties = {"--prop"};
   Vector<CSSPropertyID> child_native_invalidation_properties = {
       CSSPropertyID::kMarginTop};
-  Vector<AtomicString> child_custom_invalidation_properties = {
-      AtomicString("--child-prop")};
+  Vector<AtomicString> child_custom_invalidation_properties = {"--child-prop"};
 
   EXPECT_EQ(native_invalidation_properties,
             definition->NativeInvalidationProperties());

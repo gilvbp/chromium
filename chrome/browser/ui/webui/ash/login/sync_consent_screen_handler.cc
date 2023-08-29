@@ -199,9 +199,9 @@ void SyncConsentScreenHandler::DeclareLocalizedValues(
       IDS_LOGIN_OS_SYNC_CONSENT_SCREEN_TOOLTIP_ADDITIONAL_TEXT, builder);
 }
 
-void SyncConsentScreenHandler::Show(bool is_lacros_enabled) {
+void SyncConsentScreenHandler::Show(bool is_arc_restricted) {
   base::Value::Dict data;
-  data.Set("isLacrosEnabled", is_lacros_enabled);
+  data.Set("isArcRestricted", is_arc_restricted);
   ShowInWebUI(std::move(data));
 }
 

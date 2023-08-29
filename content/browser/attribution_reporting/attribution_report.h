@@ -46,6 +46,7 @@ class CONTENT_EXPORT AttributionReport {
   struct CONTENT_EXPORT EventLevelData {
     EventLevelData(uint64_t trigger_data,
                    int64_t priority,
+                   double randomized_trigger_rate,
                    StoredSource);
     EventLevelData(const EventLevelData&);
     EventLevelData& operator=(const EventLevelData&);
@@ -60,6 +61,10 @@ class CONTENT_EXPORT AttributionReport {
 
     // Priority specified in conversion redirect.
     int64_t priority;
+
+    // Randomized trigger rate used at the time this report's source was
+    // registered.
+    double randomized_trigger_rate;
 
     StoredSource source;
 

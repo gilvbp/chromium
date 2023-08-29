@@ -44,14 +44,13 @@ ApkWebAppServiceFactory::ApkWebAppServiceFactory()
 
 ApkWebAppServiceFactory::~ApkWebAppServiceFactory() = default;
 
-std::unique_ptr<KeyedService>
-ApkWebAppServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* ApkWebAppServiceFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   Profile* profile = static_cast<Profile*>(context);
   if (!arc::IsArcAllowedForProfile(profile))
     return nullptr;
 
-  return std::make_unique<ApkWebAppService>(profile, /*test_delegate=*/nullptr);
+  return new ApkWebAppService(profile, /*test_delegate=*/nullptr);
 }
 
 }  // namespace ash

@@ -10,7 +10,6 @@ import {
   Resolution,
 } from '../type.js';
 import {getVideoProcessorHelper} from '../untrusted_scripts.js';
-import {lazySingleton} from '../util.js';
 import {WaitableEvent} from '../waitable_event.js';
 
 import {AsyncWriter} from './async_writer.js';
@@ -27,14 +26,14 @@ import {createPrivateTempVideoFile} from './file_system.js';
 import {FileAccessEntry} from './file_system_access_entry.js';
 
 // This is used like a class constructor.
-// We don't initialize this immediately to avoid side effect on module import.
-const getFFMpegVideoProcessorConstructor = lazySingleton(async () => {
+// eslint-disable-next-line @typescript-eslint/naming-convention
+const FFMpegVideoProcessor = (async () => {
   const workerChannel = new MessageChannel();
   const videoProcessorHelper = await getVideoProcessorHelper();
   await videoProcessorHelper.connectToWorker(
       Comlink.transfer(workerChannel.port2, [workerChannel.port2]));
   return Comlink.wrap<VideoProcessorConstructor>(workerChannel.port1);
-});
+})();
 
 
 /**
@@ -42,7 +41,7 @@ const getFFMpegVideoProcessorConstructor = lazySingleton(async () => {
  */
 async function createVideoProcessor(output: AsyncWriter, videoRotation: number):
     Promise<Comlink.Remote<VideoProcessor>> {
-  return new (await getFFMpegVideoProcessorConstructor())(
+  return new (await FFMpegVideoProcessor)(
       Comlink.proxy(output), createMp4Args(videoRotation, output.seekable()));
 }
 
@@ -52,7 +51,7 @@ async function createVideoProcessor(output: AsyncWriter, videoRotation: number):
 async function createGifVideoProcessor(
     output: AsyncWriter,
     resolution: Resolution): Promise<Comlink.Remote<VideoProcessor>> {
-  return new (await getFFMpegVideoProcessorConstructor())(
+  return new (await FFMpegVideoProcessor)(
       Comlink.proxy(output), createGifArgs(resolution));
 }
 
@@ -60,12 +59,10 @@ async function createGifVideoProcessor(
  * Creates a VideoProcessor instance for recording time-lapse.
  */
 async function createTimeLapseProcessor(
-    output: AsyncWriter,
-    {resolution, fps, videoRotation}: TimeLapseEncoderArgs):
-    Promise<Comlink.Remote<VideoProcessor>> {
-  return new (await getFFMpegVideoProcessorConstructor())(
-      Comlink.proxy(output),
-      createTimeLapseArgs(resolution, fps, videoRotation));
+    output: AsyncWriter, resolution: Resolution,
+    fps: number): Promise<Comlink.Remote<VideoProcessor>> {
+  return new (await FFMpegVideoProcessor)(
+      Comlink.proxy(output), createTimeLapseArgs(resolution, fps));
 }
 
 /**
@@ -174,16 +171,6 @@ export class GifSaver {
   }
 }
 
-/**
- * Necessary arguments for the time-lapse video encoder.
- */
-export interface TimeLapseEncoderArgs {
-  encoderConfig: VideoEncoderConfig;
-  fps: number;
-  resolution: Resolution;
-  videoRotation?: number;
-}
-
 class TimeLapseFixedSpeedSaver {
   private maxWrittenFrame: number|null = null;
 
@@ -214,11 +201,11 @@ class TimeLapseFixedSpeedSaver {
     await this.processor.close();
   }
 
-  static async create(speed: number, args: TimeLapseEncoderArgs):
+  static async create(speed: number, resolution: Resolution, fps: number):
       Promise<TimeLapseFixedSpeedSaver> {
     const file = await createPrivateTempVideoFile(`tmp-video-${speed}x.mp4`);
     const writer = await file.getWriter();
-    const processor = await createTimeLapseProcessor(writer, args);
+    const processor = await createTimeLapseProcessor(writer, resolution, fps);
     return new TimeLapseFixedSpeedSaver(speed, file, processor);
   }
 }
@@ -313,14 +300,16 @@ export class TimeLapseSaver {
    */
   private onError: ErrorCallback|null = null;
 
-  private constructor(private readonly encoderArgs: TimeLapseEncoderArgs) {
+  private constructor(
+      encoderConfig: VideoEncoderConfig,
+      private readonly resolution: Resolution, private readonly fps: number) {
     this.encoder = new VideoEncoder({
       error: (error) => {
         throw error;
       },
       output: (chunk) => this.onFrameEncoded(chunk),
     });
-    this.encoder.configure(encoderArgs.encoderConfig);
+    this.encoder.configure(encoderConfig);
   }
 
   /**
@@ -331,8 +320,7 @@ export class TimeLapseSaver {
     this.currSpeedSaver = await this.createSaver(speed);
     this.nextSpeedSaver =
         await this.createSaver(TimeLapseSaver.getNextSpeed(speed));
-    this.speedCheckpoint =
-        speed * TIME_LAPSE_MAX_DURATION * this.encoderArgs.fps;
+    this.speedCheckpoint = speed * TIME_LAPSE_MAX_DURATION * this.fps;
     setTimeout(() => this.manageSavers(), SAVER_MANAGER_TIMEOUT_MS);
   }
 
@@ -427,8 +415,7 @@ export class TimeLapseSaver {
     const speed = this.currSpeedSaver.speed;
     this.nextSpeedSaver =
         await this.createSaver(TimeLapseSaver.getNextSpeed(speed));
-    this.speedCheckpoint =
-        speed * TIME_LAPSE_MAX_DURATION * this.encoderArgs.fps;
+    this.speedCheckpoint = speed * TIME_LAPSE_MAX_DURATION * this.fps;
 
     // Drops unused frames.
     for (const frameNo of Array.from(this.frames.keys())) {
@@ -492,24 +479,22 @@ export class TimeLapseSaver {
    * Creates a saver for the given |speed|.
    */
   async createSaver(speed: number): Promise<TimeLapseFixedSpeedSaver> {
-    return TimeLapseFixedSpeedSaver.create(speed, this.encoderArgs);
+    return TimeLapseFixedSpeedSaver.create(speed, this.resolution, this.fps);
   }
 
   /**
-   * Creates a video saver with encoder using given |encoderArgs| and the
-   * initial |speed|.
+   * Creates a video saver with encoder using given |encoderConfig|.
    */
-  static async create(encoderArgs: TimeLapseEncoderArgs, speed: number):
-      Promise<TimeLapseSaver> {
-    const encoderSupport =
-        await VideoEncoder.isConfigSupported(encoderArgs.encoderConfig);
+  static async create(
+      encoderConfig: VideoEncoderConfig, resolution: Resolution, fps: number,
+      speed: number): Promise<TimeLapseSaver> {
+    const encoderSupport = await VideoEncoder.isConfigSupported(encoderConfig);
     if (!encoderSupport.supported) {
       throw new Error('Video encoder is not supported.');
     }
 
-    encoderArgs.fps =
-        encoderArgs.fps > 0 ? encoderArgs.fps : TIME_LAPSE_DEFAULT_FRAME_RATE;
-    const saver = new TimeLapseSaver(encoderArgs);
+    fps = fps > 0 ? fps : TIME_LAPSE_DEFAULT_FRAME_RATE;
+    const saver = new TimeLapseSaver(encoderConfig, resolution, fps);
     await saver.init(speed);
     return saver;
   }

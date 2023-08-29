@@ -21,6 +21,7 @@
 #include "net/base/address_tracker_linux.h"
 #include "net/base/ip_address.h"
 #include "net/base/ip_endpoint.h"
+#include "net/base/network_change_notifier.h"
 #include "net/base/network_interfaces.h"
 #include "net/dns/dns_config.h"
 #include "net/dns/dns_config_service.h"
@@ -52,6 +53,39 @@ bool IsVpnPresent() {
 
 // static
 constexpr base::TimeDelta DnsConfigServiceAndroid::kConfigChangeDelay;
+
+class DnsConfigServiceAndroid::Watcher
+    : public DnsConfigService::Watcher,
+      public NetworkChangeNotifier::NetworkChangeObserver {
+ public:
+  explicit Watcher(DnsConfigServiceAndroid& service)
+      : DnsConfigService::Watcher(service) {}
+  ~Watcher() override {
+    NetworkChangeNotifier::RemoveNetworkChangeObserver(this);
+  }
+
+  Watcher(const Watcher&) = delete;
+  Watcher& operator=(const Watcher&) = delete;
+
+  // DnsConfigService::Watcher:
+  bool Watch() override {
+    CheckOnCorrectSequence();
+
+    // On Android, assume DNS config may have changed on every network change.
+    NetworkChangeNotifier::AddNetworkChangeObserver(this);
+
+    // Hosts file should never change on Android (and watching it is
+    // problematic; see http://crbug.com/600442), so don't watch it.
+
+    return true;
+  }
+
+  // NetworkChangeNotifier::NetworkChangeObserver:
+  void OnNetworkChanged(NetworkChangeNotifier::ConnectionType type) override {
+    if (type != NetworkChangeNotifier::CONNECTION_NONE)
+      OnConfigChanged(true);
+  }
+};
 
 class DnsConfigServiceAndroid::ConfigReader : public SerialWorker {
  public:
@@ -160,9 +194,6 @@ DnsConfigServiceAndroid::DnsConfigServiceAndroid()
 
 DnsConfigServiceAndroid::~DnsConfigServiceAndroid() {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
-  if (is_watching_network_change_) {
-    NetworkChangeNotifier::RemoveNetworkChangeObserver(this);
-  }
   if (config_reader_)
     config_reader_->Cancel();
 }
@@ -179,25 +210,11 @@ void DnsConfigServiceAndroid::ReadConfigNow() {
 
 bool DnsConfigServiceAndroid::StartWatching() {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
-  CHECK(!is_watching_network_change_);
-  is_watching_network_change_ = true;
-
-  // On Android, assume DNS config may have changed on every network change.
-  NetworkChangeNotifier::AddNetworkChangeObserver(this);
-
-  // Hosts file should never change on Android (and watching it is
-  // problematic; see http://crbug.com/600442), so don't watch it.
-
-  return true;
+  // TODO(crbug.com/116139): re-start watcher if that makes sense.
+  watcher_ = std::make_unique<Watcher>(*this);
+  return watcher_->Watch();
 }
 
-void DnsConfigServiceAndroid::OnNetworkChanged(
-    NetworkChangeNotifier::ConnectionType type) {
-  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
-  if (type != NetworkChangeNotifier::CONNECTION_NONE) {
-    OnConfigChanged(/*succeeded=*/true);
-  }
-}
 }  // namespace internal
 
 // static

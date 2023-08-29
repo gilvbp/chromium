@@ -5,14 +5,11 @@
 #include "chrome/browser/ui/views/web_apps/web_app_integration_test_driver.h"
 
 #include <codecvt>
-#include <map>
 #include <ostream>
 #include <string>
-#include <utility>
 
 #include "base/command_line.h"
 #include "base/containers/contains.h"
-#include "base/containers/extend.h"
 #include "base/containers/flat_map.h"
 #include "base/containers/flat_set.h"
 #include "base/feature_list.h"
@@ -20,7 +17,6 @@
 #include "base/files/file_util.h"
 #include "base/functional/bind.h"
 #include "base/functional/callback_helpers.h"
-#include "base/json/json_reader.h"
 #include "base/location.h"
 #include "base/memory/raw_ptr.h"
 #include "base/notreached.h"
@@ -38,7 +34,6 @@
 #include "build/chromeos_buildflags.h"
 #include "chrome/app/chrome_command_ids.h"
 #include "chrome/browser/apps/app_service/app_icon/app_icon_source.h"
-#include "chrome/browser/apps/app_service/app_registry_cache_waiter.h"
 #include "chrome/browser/apps/app_service/app_service_proxy_factory.h"
 #include "chrome/browser/apps/intent_helper/intent_picker_features.h"
 #include "chrome/browser/banners/test_app_banner_manager_desktop.h"
@@ -51,13 +46,10 @@
 #include "chrome/browser/ui/browser_dialogs.h"
 #include "chrome/browser/ui/browser_finder.h"
 #include "chrome/browser/ui/browser_list.h"
-#include "chrome/browser/ui/exclusive_access/exclusive_access_manager.h"
-#include "chrome/browser/ui/exclusive_access/exclusive_access_test.h"
 #include "chrome/browser/ui/intent_picker_tab_helper.h"
 #include "chrome/browser/ui/startup/startup_browser_creator.h"
 #include "chrome/browser/ui/startup/web_app_startup_utils.h"
 #include "chrome/browser/ui/ui_features.h"
-#include "chrome/browser/ui/views/create_application_shortcut_view_test_support.h"
 #include "chrome/browser/ui/views/frame/browser_view.h"
 #include "chrome/browser/ui/views/frame/browser_view_layout.h"
 #include "chrome/browser/ui/views/frame/toolbar_button_provider.h"
@@ -73,7 +65,6 @@
 #include "chrome/browser/ui/views/web_apps/frame_toolbar/window_controls_overlay_toggle_button.h"
 #include "chrome/browser/ui/views/web_apps/pwa_confirmation_bubble_view.h"
 #include "chrome/browser/ui/web_applications/app_browser_controller.h"
-#include "chrome/browser/ui/web_applications/sub_apps_install_dialog_controller.h"
 #include "chrome/browser/ui/web_applications/test/web_app_browsertest_util.h"
 #include "chrome/browser/ui/web_applications/web_app_dialog_utils.h"
 #include "chrome/browser/ui/web_applications/web_app_launch_utils.h"
@@ -83,16 +74,13 @@
 #include "chrome/browser/ui/webui/web_app_internals/web_app_internals_handler.h"
 #include "chrome/browser/web_applications/app_service/web_app_publisher_helper.h"
 #include "chrome/browser/web_applications/commands/run_on_os_login_command.h"
-#include "chrome/browser/web_applications/externally_managed_app_manager.h"
 #include "chrome/browser/web_applications/manifest_update_manager.h"
 #include "chrome/browser/web_applications/mojom/user_display_mode.mojom.h"
 #include "chrome/browser/web_applications/os_integration/web_app_file_handler_registration.h"
 #include "chrome/browser/web_applications/os_integration/web_app_shortcut.h"
 #include "chrome/browser/web_applications/policy/web_app_policy_constants.h"
 #include "chrome/browser/web_applications/policy/web_app_policy_manager.h"
-#include "chrome/browser/web_applications/preinstalled_web_app_config_utils.h"
-#include "chrome/browser/web_applications/preinstalled_web_app_manager.h"
-#include "chrome/browser/web_applications/test/debug_info_printer.h"
+#include "chrome/browser/web_applications/test/app_registry_cache_waiter.h"
 #include "chrome/browser/web_applications/test/os_integration_test_override_impl.h"
 #include "chrome/browser/web_applications/test/web_app_icon_test_utils.h"
 #include "chrome/browser/web_applications/test/web_app_install_test_utils.h"
@@ -124,7 +112,6 @@
 #include "components/webapps/browser/uninstall_result_code.h"
 #include "content/public/browser/browser_task_traits.h"
 #include "content/public/browser/browser_thread.h"
-#include "content/public/browser/notification_service.h"
 #include "content/public/common/content_features.h"
 #include "content/public/common/content_switches.h"
 #include "content/public/test/browser_test_utils.h"
@@ -139,7 +126,6 @@
 #include "testing/gtest/include/gtest/gtest.h"
 #include "third_party/abseil-cpp/absl/types/optional.h"
 #include "third_party/blink/public/common/features.h"
-#include "third_party/blink/public/mojom/frame/fullscreen.mojom.h"
 #include "third_party/blink/public/mojom/manifest/display_mode.mojom-shared.h"
 #include "third_party/re2/src/re2/re2.h"
 #include "ui/accessibility/ax_action_data.h"
@@ -148,7 +134,6 @@
 #include "ui/views/test/widget_test.h"
 #include "ui/views/widget/widget.h"
 #include "ui/webui/resources/cr_components/app_management/app_management.mojom-forward.h"
-#include "url/gurl.h"
 
 #if BUILDFLAG(IS_CHROMEOS)
 #include "chrome/browser/apps/app_service/app_service_proxy.h"
@@ -161,13 +146,12 @@
 
 #if BUILDFLAG(IS_CHROMEOS_ASH)
 #include "ash/constants/ash_features.h"
-#include "chromeos/ash/components/standalone_browser/feature_refs.h"
 #endif
 
 #if BUILDFLAG(IS_CHROMEOS_LACROS)
-#include "base/test/test_future.h"
 #include "base/version.h"
 #include "chrome/browser/apps/app_service/app_service_proxy_lacros.h"
+#include "chromeos/crosapi/mojom/test_controller.mojom-test-utils.h"
 #include "chromeos/crosapi/mojom/test_controller.mojom.h"
 #include "chromeos/lacros/lacros_service.h"
 #include "chromeos/lacros/lacros_test_helper.h"
@@ -178,6 +162,7 @@
 #include <ImageIO/ImageIO.h>
 
 #include "base/mac/mac_util.h"
+#include "base/process/launch.h"
 #include "chrome/browser/apps/app_shim/app_shim_manager_mac.h"
 #include "chrome/browser/apps/app_shim/web_app_shim_manager_delegate_mac.h"
 #include "chrome/browser/chrome_browser_main.h"
@@ -343,7 +328,7 @@ base::flat_map<Site, SiteConfig> g_site_configs = {
           "/webapps_integration/standalone/not_start_url/basic.html",
       .relative_manifest_id =
           "webapps_integration/standalone/not_start_url/basic.html",
-      .app_name = "Not Start URL",
+      .app_name = "Site A",
       .wco_not_enabled_title = u"Not Start URL",
       .icon_color = SK_ColorGREEN}},
     {Site::kScreenshots,
@@ -586,7 +571,7 @@ class UninstallCompleteWaiter final : public BrowserListObserver,
   const AppId app_id_;
   bool uninstall_complete_ = false;
   base::RunLoop run_loop_;
-  apps::AppReadinessWaiter app_unregistration_waiter_;
+  AppReadinessWaiter app_unregistration_waiter_;
 
   base::ScopedObservation<WebAppInstallManager, WebAppInstallManagerObserver>
       observation_{this};
@@ -680,15 +665,15 @@ void WaitForAndAcceptInstallDialogForSite(InstallableSite site) {
 // earlier tests.
 void ReinitializeAppService(Profile* profile) {
   if (chromeos::IsAshVersionAtLeastForTesting(base::Version({108, 0, 5354}))) {
-    base::test::TestFuture<void> future;
-    chromeos::LacrosService::Get()
-        ->GetRemote<crosapi::mojom::TestController>()
-        ->ReinitializeAppService(future.GetCallback());
-    ASSERT_TRUE(future.Wait());
+    crosapi::mojom::TestControllerAsyncWaiter(
+        chromeos::LacrosService::Get()
+            ->GetRemote<crosapi::mojom::TestController>()
+            .get())
+        .ReinitializeAppService();
 
     apps::AppServiceProxyFactory::GetForProfile(profile)
         ->ReinitializeForTesting(profile);
-    apps::AppTypeInitializationWaiter(profile, apps::AppType::kWeb).Await();
+    AppTypeInitializationWaiter(profile, apps::AppType::kWeb).Await();
   } else {
     LOG(ERROR) << "Cannot ReinitializeAppService - Unsupported ash version.";
   }
@@ -884,11 +869,14 @@ void WebAppIntegrationTestDriver::TearDownOnMainThread() {
       if (provider->registrar_unsafe().IsInstalled(app_id)) {
         DCHECK(app->CanUserUninstallWebApp());
         UninstallCompleteWaiter uninstall_waiter(profile, app_id);
-        base::test::TestFuture<webapps::UninstallResultCode> future;
-        provider->scheduler().UninstallWebApp(
+        base::RunLoop run_loop;
+        provider->install_finalizer().UninstallWebApp(
             app_id, webapps::WebappUninstallSource::kAppsPage,
-            future.GetCallback());
-        EXPECT_TRUE(UninstallSucceeded(future.Get()));
+            base::BindLambdaForTesting([&](webapps::UninstallResultCode code) {
+              EXPECT_EQ(code, webapps::UninstallResultCode::kSuccess);
+              run_loop.Quit();
+            }));
+        run_loop.Run();
         uninstall_waiter.Wait();
       }
       LOG(INFO) << "TearDownOnMainThread: Uninstall complete.";
@@ -898,6 +886,12 @@ void WebAppIntegrationTestDriver::TearDownOnMainThread() {
     provider->command_manager().AwaitAllCommandsCompleteForTesting();
     FlushShortcutTasks();
   }
+  LOG(INFO) << "TearDownOnMainThread: Deleting dangling shortcuts.";
+  // TODO(crbug.com/1273568): Investigate the true source of flakiness instead
+  // of papering over it here.
+#if BUILDFLAG(IS_MAC) || BUILDFLAG(IS_WIN) || BUILDFLAG(IS_LINUX)
+  ASSERT_TRUE(override_registration_->test_override->ForceDeleteAllShortcuts());
+#endif
   LOG(INFO)
       << "TearDownOnMainThread: Destroying shortcut override and waiting.";
   override_registration_.reset();
@@ -906,56 +900,58 @@ void WebAppIntegrationTestDriver::TearDownOnMainThread() {
 
   // Print debug information if there was a failure.
   if (testing::Test::HasFailure()) {
+    for (auto* profile : GetAllProfiles()) {
+      base::RunLoop debug_info_loop;
+      WebAppInternalsHandler::BuildDebugInfo(
+          profile, base::BindLambdaForTesting([&](base::Value debug_info) {
+            LOG(INFO) << "chrome://web-app-internals for profile "
+                      << profile->GetDebugName() << ":";
+            LOG(INFO) << debug_info.DebugString();
+            debug_info_loop.Quit();
+          }));
+      debug_info_loop.Run();
+    }
+    // On Mac OS also include system log output, as that is the only place logs
+    // from app shims would end up. Do note that this log will include messages
+    // from all tests that were running at the time, not just this test.
+#if BUILDFLAG(IS_MAC)
     base::TimeDelta log_time = base::TimeTicks::Now() - start_time_;
-    test::LogDebugInfoToConsole(GetAllProfiles(), log_time);
+    std::vector<std::string> log_argv = {
+        "log",
+        "show",
+        "--process",
+        "app_mode_loader",
+        "--last",
+        base::StringPrintf("%" PRId64 "s", log_time.InSeconds() + 1)};
+    std::string log_output;
+    base::GetAppOutputAndError(log_argv, &log_output);
+    LOG(INFO) << "System logs:\n" << log_output;
+#endif
   }
 }
 
+// TODO(crbug.com/1378267): Figure out a way to handle the kUninstall logic and
+// close both the manifest update dialog as well as the uninstall dialog to
+// prevent the app_id_update_dialog_waiter_ from hanging.
 void WebAppIntegrationTestDriver::HandleAppIdentityUpdateDialogResponse(
     UpdateDialogResponse response) {
-  // This is used to test the silent updating of policy installed apps
-  // which do not trigger the manifest update dialog to be shown.
-  if (response == UpdateDialogResponse::kSkipDialog) {
-    return;
-  }
-
   // Resetting the global test state for app identity update dialogs so that
   // tests can accept/cancel the app identity update dialog.
   update_dialog_scope_ =
       web_app::SetIdentityUpdateDialogActionForTesting(absl::nullopt);
-  views::Widget* manifest_update_widget =
-      app_id_update_dialog_waiter_->WaitIfNeededAndGet();
-  ASSERT_TRUE(manifest_update_widget != nullptr);
-  auto uninstall_dialog_view = std::make_unique<views::NamedWidgetShownWaiter>(
-      views::test::AnyWidgetTestPasskey{}, "WebAppUninstallDialogDelegateView");
-  views::Widget* uninstall_dialog_widget = nullptr;
+  views::Widget* widget = app_id_update_dialog_waiter_->WaitIfNeededAndGet();
+  ASSERT_TRUE(widget != nullptr);
   switch (response) {
     case UpdateDialogResponse::kAcceptUpdate:
-      views::test::AcceptDialog(manifest_update_widget);
+      views::test::AcceptDialog(widget);
       break;
     case UpdateDialogResponse::kCancelDialogAndUninstall:
-      manifest_update_widget->widget_delegate()
-          ->AsDialogDelegate()
-          ->CancelDialog();
-      uninstall_dialog_widget = uninstall_dialog_view->WaitIfNeededAndGet();
-      ASSERT_NE(uninstall_dialog_widget, nullptr);
-      views::test::AcceptDialog(uninstall_dialog_widget);
+      views::test::CancelDialog(widget);
       break;
-    case UpdateDialogResponse::kCancelUninstallAndAcceptUpdate: {
-      manifest_update_widget->widget_delegate()
-          ->AsDialogDelegate()
-          ->CancelDialog();
-      uninstall_dialog_widget = uninstall_dialog_view->WaitIfNeededAndGet();
-      ASSERT_NE(uninstall_dialog_widget, nullptr);
-      views::test::WidgetDestroyedWaiter uninstall_destroyed(
-          uninstall_dialog_widget);
-      views::test::CancelDialog(uninstall_dialog_widget);
-      uninstall_destroyed.Wait();
-      views::test::AcceptDialog(manifest_update_widget);
-      break;
-    }
-    case UpdateDialogResponse::kSkipDialog:
-      NOTREACHED_NORETURN();
+    // The app identity update dialog cannot be used to skip an update.
+    case UpdateDialogResponse::kSkipUpdate:
+      NOTREACHED_NORETURN()
+          << "Cannot skip an update from the app identity dialog";
   }
 }
 
@@ -964,35 +960,33 @@ void WebAppIntegrationTestDriver::AwaitManifestUpdate(Site site) {
     return;
   }
   AppId app_id = GetAppIdBySiteMode(site);
-  const WebApp* web_app = provider()->registrar_unsafe().GetAppById(app_id);
-  // If the update resulted in an uninstall, then no need to wait.
-  if (web_app) {
-    if (!previous_manifest_updates_.contains(app_id)) {
-      waiting_for_update_id_ = app_id;
-      waiting_for_update_run_loop_ = std::make_unique<base::RunLoop>();
-      // Only close windows if immediate updating is not enabled.
-      if (!base::FeatureList::IsEnabled(
-              features::kWebAppManifestImmediateUpdating)) {
-        Browser* browser = GetAppBrowserForAppId(profile(), app_id);
-        while (browser != nullptr) {
-          if (browser == app_browser_) {
-            app_browser_ = nullptr;
-          }
-          delegate_->CloseBrowserSynchronously(browser);
-          browser = GetAppBrowserForAppId(profile(), app_id);
+  ASSERT_TRUE(provider()->registrar_unsafe().GetAppById(app_id));
+  if (!previous_manifest_updates_.contains(app_id)) {
+    waiting_for_update_id_ = app_id;
+    waiting_for_update_run_loop_ = std::make_unique<base::RunLoop>();
+    // Only close windows if immediate updating is not enabled.
+    if (!base::FeatureList::IsEnabled(
+            features::kWebAppManifestImmediateUpdating)) {
+      Browser* browser = GetAppBrowserForAppId(profile(), app_id);
+      while (browser != nullptr) {
+        if (browser == app_browser_) {
+          app_browser_ = nullptr;
         }
+        delegate_->CloseBrowserSynchronously(browser);
+        browser = GetAppBrowserForAppId(profile(), app_id);
       }
-      waiting_for_update_run_loop_->Run();
-      waiting_for_update_run_loop_.reset();
     }
-
-    // Wait for the app's scope in the App Service app cache to be consistent
-    // with the app's scope in the web app database. Returns immediately if they
-    // are already consistent.
-    apps::WebAppScopeWaiter(profile(), app_id,
-                            provider()->registrar_unsafe().GetAppScope(app_id))
-        .Await();
+    waiting_for_update_run_loop_->Run();
+    waiting_for_update_run_loop_.reset();
   }
+
+  // Wait for the app's scope in the App Service app cache to be consistent with
+  // the app's scope in the web app database. Returns immediately if they are
+  // already consistent.
+  WebAppScopeWaiter(profile(), app_id,
+                    provider()->registrar_unsafe().GetAppScope(app_id))
+      .Await();
+
   AfterStateChangeAction();
 }
 
@@ -1110,34 +1104,6 @@ void WebAppIntegrationTestDriver::EnableRunOnOsLoginFromAppHome(Site site) {
   AfterStateChangeAction();
 }
 
-void WebAppIntegrationTestDriver::EnterFullScreenApp() {
-  if (!BeforeStateChangeAction(__FUNCTION__)) {
-    return;
-  }
-  FullscreenNotificationObserver fullscreen_observer(app_browser());
-  FullscreenController* fullscreen_controller =
-      app_browser()->exclusive_access_manager()->fullscreen_controller();
-  ASSERT_FALSE(fullscreen_controller->IsFullscreenForBrowser());
-  fullscreen_controller->ToggleBrowserFullscreenMode();
-  fullscreen_observer.Wait();
-  ASSERT_TRUE(fullscreen_controller->IsFullscreenForBrowser());
-  AfterStateChangeAction();
-}
-
-void WebAppIntegrationTestDriver::ExitFullScreenApp() {
-  if (!BeforeStateChangeAction(__FUNCTION__)) {
-    return;
-  }
-  FullscreenNotificationObserver fullscreen_observer(app_browser());
-  FullscreenController* fullscreen_controller =
-      app_browser()->exclusive_access_manager()->fullscreen_controller();
-  ASSERT_TRUE(fullscreen_controller->IsFullscreenForBrowser());
-  fullscreen_controller->ToggleBrowserFullscreenMode();
-  fullscreen_observer.Wait();
-  ASSERT_FALSE(fullscreen_controller->IsFullscreenForBrowser());
-  AfterStateChangeAction();
-}
-
 void WebAppIntegrationTestDriver::DisableFileHandling(Site site) {
   if (!BeforeStateChangeAction(__FUNCTION__)) {
     return;
@@ -1176,7 +1142,7 @@ void WebAppIntegrationTestDriver::CreateShortcut(Site site,
     ASSERT_TRUE(app_browser_);
     ActivateBrowserAndWait(app_browser_);
   }
-  apps::AppReadinessWaiter(profile(), active_app_id_).Await();
+  AppReadinessWaiter(profile(), active_app_id_).Await();
   AfterStateChangeAction();
 }
 
@@ -1203,7 +1169,7 @@ void WebAppIntegrationTestDriver::InstallMenuOption(InstallableSite site) {
   ASSERT_TRUE(app_browser_);
   active_app_id_ = install_observer.Wait();
   ActivateBrowserAndWait(app_browser_);
-  apps::AppReadinessWaiter(profile(), active_app_id_).Await();
+  AppReadinessWaiter(profile(), active_app_id_).Await();
   AfterStateChangeAction();
 }
 
@@ -1226,7 +1192,7 @@ void WebAppIntegrationTestDriver::InstallLocally(Site site) {
   observer.BeginListening();
   app_home_page_handler.InstallAppLocally(app_id);
   observer.Wait();
-  apps::AppReadinessWaiter(profile(), app_id).Await();
+  AppReadinessWaiter(profile(), app_id).Await();
   AfterStateChangeAction();
 }
 #endif
@@ -1269,7 +1235,7 @@ void WebAppIntegrationTestDriver::InstallOmniboxIcon(InstallableSite site) {
   active_app_id_ = install_observer.Wait();
   DCHECK_EQ(app_id, active_app_id_);
   ActivateBrowserAndWait(app_browser_);
-  apps::AppReadinessWaiter(profile(), active_app_id_).Await();
+  AppReadinessWaiter(profile(), active_app_id_).Await();
   AfterStateChangeAction();
 }
 
@@ -1290,32 +1256,6 @@ void WebAppIntegrationTestDriver::InstallPolicyApp(Site site,
   AfterStateChangeAction();
 }
 
-void WebAppIntegrationTestDriver::InstallPreinstalledApp(Site site) {
-  if (!BeforeStateChangeAction(__FUNCTION__)) {
-    return;
-  }
-  // Many CUJs rely on operating on an opened window / tab after installation,
-  // and this state is true for all installations except for policy install. To
-  // help keep CUJs combined for all installs, do a navigation here.
-  MaybeNavigateTabbedBrowserInScope(site);
-  GURL url = GetUrlForSite(site);
-  WebAppTestInstallObserver observer(profile());
-  observer.BeginListening();
-
-  constexpr char kAppConfigTemplate[] =
-      R"({
-        "app_url": "$1",
-        "launch_container": "window",
-        "user_type": ["unmanaged"]
-      })";
-  std::string app_config = base::ReplaceStringPlaceholders(
-      kAppConfigTemplate, {url.spec()}, nullptr);
-  SyncAndInstallPreinstalledAppConfig(url, app_config);
-  active_app_id_ = observer.Wait();
-  apps::AppReadinessWaiter(profile(), active_app_id_).Await();
-  AfterStateChangeAction();
-}
-
 void WebAppIntegrationTestDriver::InstallSubApp(
     Site parentapp,
     Site subapp,
@@ -1323,14 +1263,6 @@ void WebAppIntegrationTestDriver::InstallSubApp(
   if (!BeforeStateChangeAction(__FUNCTION__)) {
     return;
   }
-
-  auto dialog_action =
-      SubAppsInstallDialogController::SetAutomaticActionForTesting(
-          (option == SubAppInstallDialogOptions::kUserDeny)
-              ? SubAppsInstallDialogController::DialogActionForTesting::kCancel
-              : SubAppsInstallDialogController::DialogActionForTesting::
-                    kAccept);
-
   MaybeNavigateTabbedBrowserInScope(parentapp);
   content::WebContents* web_contents = GetCurrentTab(browser());
 
@@ -1352,6 +1284,7 @@ void WebAppIntegrationTestDriver::InstallSubApp(
   base::Value::Dict expected_output;
   expected_output.Set(sub_url, "success");
   EXPECT_EQ(expected_output, add_result);
+  // TODO: Use |option| after the dialog was implemented.
   AfterStateChangeAction();
 }
 
@@ -1869,11 +1802,14 @@ void WebAppIntegrationTestDriver::CreateShortcutsFromList(Site site) {
   app_home_page_handler.CreateAppShortcut(app_id,
                                           shortcuts_future.GetCallback());
 #else   // !BUILDFLAG(IS_MAC)
-  CreateChromeApplicationShortcutViewWaiter waiter;
+  views::NamedWidgetShownWaiter waiter(views::test::AnyWidgetTestPasskey{},
+                                       "CreateChromeApplicationShortcutView");
   app_home_page_handler.CreateAppShortcut(app_id,
                                           shortcuts_future.GetCallback());
   FlushShortcutTasks();
-  std::move(waiter).WaitForAndAccept();
+  views::Widget* widget = waiter.WaitIfNeededAndGet();
+  ASSERT_TRUE(widget != nullptr);
+  views::test::AcceptDialog(widget);
 #endif  // BUILDFLAG(IS_MAC)
   EXPECT_TRUE(shortcuts_future.Wait());
   AfterStateChangeAction();
@@ -1970,40 +1906,6 @@ std::vector<base::FilePath> WebAppIntegrationTestDriver::GetTestFilePaths(
       break;
   }
   return file_paths;
-}
-
-// TODO(b/240449120): Remove for testing behavior when preinstalled app
-// CUJs are implemented.
-void WebAppIntegrationTestDriver::SyncAndInstallPreinstalledAppConfig(
-    const GURL& install_url,
-    base::StringPiece app_config_string) {
-  base::AutoReset<bool> bypass_offline_manifest_requirement =
-      PreinstalledWebAppManager::BypassOfflineManifestRequirementForTesting();
-  PreinstalledWebAppManager::BypassOfflineManifestRequirementForTesting();
-  base::FilePath test_config_dir = GetResourceFile(
-      FILE_PATH_LITERAL("webapps_integration/preinstalled_config_dir/"));
-  web_app::SetPreinstalledWebAppConfigDirForTesting(&test_config_dir);
-
-  base::Value::List app_configs;
-  auto json_parse_result =
-      base::JSONReader::ReadAndReturnValueWithError(app_config_string);
-  EXPECT_TRUE(json_parse_result.has_value())
-      << "JSON parse error: " << json_parse_result.error().message;
-  if (!json_parse_result.has_value()) {
-    return;
-  }
-  app_configs.Append(std::move(*json_parse_result));
-  base::AutoReset<const base::Value::List*> configs_for_testing =
-      PreinstalledWebAppManager::SetConfigsForTesting(&app_configs);
-
-  using InstallAppsResults =
-      std::map<GURL, web_app::ExternallyManagedAppManager::InstallResult>;
-  using UninstallAppsResults = std::map<GURL, bool>;
-  base::test::TestFuture<InstallAppsResults, UninstallAppsResults> test_future;
-  provider()->preinstalled_web_app_manager().LoadAndSynchronizeForTesting(
-      test_future.GetCallback());
-  EXPECT_TRUE(test_future.Wait());
-  web_app::SetPreinstalledWebAppConfigDirForTesting(nullptr);
 }
 
 void WebAppIntegrationTestDriver::NavigateAppHome() {
@@ -2173,8 +2075,7 @@ void WebAppIntegrationTestDriver::SetOpenInTabFromAppHome(Site site) {
       WebAppProvider::GetForTest(profile())->sync_bridge_unsafe();
   sync_bridge.SetAppUserDisplayMode(app_id, mojom::UserDisplayMode::kStandalone,
                                     true);
-  apps::AppWindowModeWaiter(profile(), app_id, apps::WindowMode::kWindow)
-      .Await();
+  AppWindowModeWaiter(profile(), app_id, apps::WindowMode::kWindow).Await();
 #else
   content::TestWebUI test_web_ui;
   content::WebContents* web_contents =
@@ -2200,8 +2101,7 @@ void WebAppIntegrationTestDriver::SetOpenInTabFromAppSettings(Site site) {
       WebAppProvider::GetForTest(profile())->sync_bridge_unsafe();
   sync_bridge.SetAppUserDisplayMode(app_id, mojom::UserDisplayMode::kBrowser,
                                     true);
-  apps::AppWindowModeWaiter(profile(), app_id, apps::WindowMode::kBrowser)
-      .Await();
+  AppWindowModeWaiter(profile(), app_id, apps::WindowMode::kBrowser).Await();
 #else
   auto app_management_page_handler = CreateAppManagementPageHandler(profile());
   app_management_page_handler.SetWindowMode(app_id, apps::WindowMode::kBrowser);
@@ -2221,8 +2121,7 @@ void WebAppIntegrationTestDriver::SetOpenInWindowFromAppHome(Site site) {
       WebAppProvider::GetForTest(profile())->sync_bridge_unsafe();
   sync_bridge.SetAppUserDisplayMode(app_id, mojom::UserDisplayMode::kStandalone,
                                     true);
-  apps::AppWindowModeWaiter(profile(), app_id, apps::WindowMode::kWindow)
-      .Await();
+  AppWindowModeWaiter(profile(), app_id, apps::WindowMode::kWindow).Await();
 #else
   content::TestWebUI test_web_ui;
   content::WebContents* web_contents =
@@ -2250,8 +2149,7 @@ void WebAppIntegrationTestDriver::SetOpenInWindowFromAppSettings(Site site) {
       WebAppProvider::GetForTest(profile())->sync_bridge_unsafe();
   sync_bridge.SetAppUserDisplayMode(app_id, mojom::UserDisplayMode::kStandalone,
                                     true);
-  apps::AppWindowModeWaiter(profile(), app_id, apps::WindowMode::kWindow)
-      .Await();
+  AppWindowModeWaiter(profile(), app_id, apps::WindowMode::kWindow).Await();
 #else
   auto app_management_page_handler = CreateAppManagementPageHandler(profile());
   app_management_page_handler.SetWindowMode(app_id, apps::WindowMode::kWindow);
@@ -2540,7 +2438,7 @@ void WebAppIntegrationTestDriver::CorruptAppShim(Site site,
       EXPECT_TRUE(base::WriteFile(bin_path, bin_contents));
 
       // Since we modified the binary, we need to re-sign it.
-      if (base::mac::MacOSMajorVersion() >= 12) {
+      if (base::mac::IsAtLeastOS12()) {
         std::string codesign_output;
         std::vector<std::string> codesign_argv = {
             "codesign", "--force", "--sign", "-", bin_path.value()};
@@ -3028,12 +2926,10 @@ void WebAppIntegrationTestDriver::CheckInstallIconShown() {
   if (!BeforeStateCheckAction(__FUNCTION__)) {
     return;
   }
-  content::WebContents* web_contents = GetCurrentTab(browser());
-  if (webapps::AppBannerManagerDesktop::FromWebContents(web_contents)) {
-    auto* app_banner_manager =
-        webapps::TestAppBannerManagerDesktop::FromWebContents(web_contents);
-    app_banner_manager->WaitForInstallableCheck();
-  }
+  auto* app_banner_manager =
+      webapps::TestAppBannerManagerDesktop::FromWebContents(
+          GetCurrentTab(browser()));
+  app_banner_manager->WaitForInstallableCheck();
   EXPECT_TRUE(pwa_install_view()->GetVisible());
   AfterStateCheckAction();
 }
@@ -3044,12 +2940,10 @@ void WebAppIntegrationTestDriver::CheckInstallIconNotShown() {
   if (!BeforeStateCheckAction(__FUNCTION__)) {
     return;
   }
-  content::WebContents* web_contents = GetCurrentTab(browser());
-  if (webapps::AppBannerManagerDesktop::FromWebContents(web_contents)) {
-    auto* app_banner_manager =
-        webapps::TestAppBannerManagerDesktop::FromWebContents(web_contents);
-    app_banner_manager->WaitForInstallableCheck();
-  }
+  auto* app_banner_manager =
+      webapps::TestAppBannerManagerDesktop::FromWebContents(
+          GetCurrentTab(browser()));
+  app_banner_manager->WaitForInstallableCheck();
   EXPECT_FALSE(pwa_install_view()->GetVisible());
   AfterStateCheckAction();
 }
@@ -3446,27 +3340,6 @@ void WebAppIntegrationTestDriver::CheckWindowControlsOverlayToggle(
   AfterStateCheckAction();
 }
 
-void WebAppIntegrationTestDriver::CheckWindowControlsOverlayToggleIcon(
-    IsShown is_shown) {
-  if (!BeforeStateCheckAction(__FUNCTION__)) {
-    return;
-  }
-  ASSERT_TRUE(app_browser());
-  WebAppFrameToolbarView* toolbar =
-      BrowserView::GetBrowserViewForBrowser(app_browser())
-          ->web_app_frame_toolbar_for_testing();
-  // If toolbar is not visible, then the WCO toggle button is also invisible.
-  if (toolbar->GetVisible()) {
-    ASSERT_EQ(toolbar->get_right_container_for_testing()
-                      ->window_controls_overlay_toggle_button() &&
-                  toolbar->get_right_container_for_testing()
-                      ->window_controls_overlay_toggle_button()
-                      ->GetVisible(),
-              is_shown == IsShown::kShown);
-  }
-  AfterStateCheckAction();
-}
-
 void WebAppIntegrationTestDriver::CheckWindowControlsOverlay(Site site,
                                                              IsOn is_on) {
   if (!BeforeStateCheckAction(__FUNCTION__)) {
@@ -3670,28 +3543,6 @@ void WebAppIntegrationTestDriver::OnWebAppManifestUpdated(
   previous_manifest_updates_.insert(app_id);
   if (waiting_for_update_id_ == app_id) {
     DCHECK(waiting_for_update_run_loop_);
-    waiting_for_update_run_loop_->Quit();
-    waiting_for_update_id_ = absl::nullopt;
-    // The `BeforeState*Action()` methods check that the
-    // `after_state_change_action_state_` has not changed from the current
-    // state. This is great, except for the manifest update edge case, which can
-    // happen asynchronously outside of actions. In this case, re-grab the
-    // snapshot after the update.
-    if (executing_action_level_ == 0 && after_state_change_action_state_) {
-      after_state_change_action_state_ = ConstructStateSnapshot();
-    }
-  }
-}
-
-void WebAppIntegrationTestDriver::OnWebAppUninstalled(
-    const AppId& app_id,
-    webapps::WebappUninstallSource uninstall_source) {
-  if (!waiting_for_update_id_.has_value()) {
-    return;
-  }
-
-  if (waiting_for_update_id_.value() == app_id &&
-      waiting_for_update_run_loop_ != nullptr) {
     waiting_for_update_run_loop_->Quit();
     waiting_for_update_id_ = absl::nullopt;
     // The `BeforeState*Action()` methods check that the
@@ -4039,7 +3890,7 @@ void WebAppIntegrationTestDriver::InstallPolicyAppInternal(
     update->Append(std::move(item));
   }
   active_app_id_ = observer.Wait();
-  apps::AppReadinessWaiter(profile(), active_app_id_).Await();
+  AppReadinessWaiter(profile(), active_app_id_).Await();
 }
 
 void WebAppIntegrationTestDriver::ApplyRunOnOsLoginPolicy(Site site,
@@ -4063,7 +3914,7 @@ void WebAppIntegrationTestDriver::ApplyRunOnOsLoginPolicy(Site site,
 void WebAppIntegrationTestDriver::UninstallPolicyAppById(Profile* profile,
                                                          const AppId& id) {
   base::RunLoop run_loop;
-  apps::AppReadinessWaiter app_registration_waiter(
+  AppReadinessWaiter app_registration_waiter(
       profile, id, apps::Readiness::kUninstalledByNonUser);
   WebAppInstallManagerObserverAdapter observer(profile);
   observer.SetWebAppUninstalledDelegate(
@@ -4110,10 +3961,6 @@ void WebAppIntegrationTestDriver::UninstallPolicyAppById(Profile* profile,
   // App Service.
   if (app == nullptr) {
     app_registration_waiter.Await();
-
-    // Ensure the completion of any additional sub app uninstalls that were
-    // triggered.
-    provider->command_manager().AwaitAllCommandsCompleteForTesting();
   }
   if (app == nullptr && active_app_id_ == id) {
     active_app_id_.clear();
@@ -4493,13 +4340,15 @@ WebAppIntegrationTest::WebAppIntegrationTest() : helper_(this) {
   enabled_features.push_back(features::kDesktopPWAsTabStrip);
   enabled_features.push_back(features::kDesktopPWAsTabStripSettings);
 #if BUILDFLAG(IS_CHROMEOS_ASH)
-  // TODO(crbug.com/1462253): Also test with Lacros flags enabled.
-  base::Extend(disabled_features, ash::standalone_browser::GetFeatureRefs());
+  disabled_features.push_back(features::kWebAppsCrosapi);
+  disabled_features.push_back(ash::features::kLacrosPrimary);
 #endif
 #if BUILDFLAG(IS_CHROMEOS)
   // TODO(crbug.com/1357905): Update test driver to work with new UI.
   disabled_features.push_back(apps::features::kLinkCapturingUiUpdate);
-#endif  // BUILDFLAG(IS_CHROMEOS)
+#else
+  enabled_features.push_back(features::kDesktopPWAsAppHomePage);
+#endif
   scoped_feature_list_.InitWithFeatures(enabled_features, disabled_features);
 }
 
@@ -4507,16 +4356,6 @@ WebAppIntegrationTest::~WebAppIntegrationTest() = default;
 
 void WebAppIntegrationTest::SetUp() {
   helper_.SetUp();
-#if BUILDFLAG(IS_CHROMEOS_LACROS)
-  // TODO(crbug.com/1466885): Remove when M117 reaches stable.
-  if (GetAshChromeVersion() < base::Version({117, 0, 5914})) {
-    StartUniqueAshChrome(
-        /*enabled_features=*/{}, /*disabled_features=*/{},
-        /*additional_cmdline_switches=*/{},
-        "crbug/1466885 switch to shared ash when WebAppIntegrationTest issue "
-        "is fixed");
-  }
-#endif
   InProcessBrowserTest::SetUp();
 }
 

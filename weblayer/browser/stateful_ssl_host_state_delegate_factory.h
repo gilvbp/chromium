@@ -35,7 +35,7 @@ class StatefulSSLHostStateDelegateFactory
       const StatefulSSLHostStateDelegateFactory&) = delete;
 
   // BrowserContextKeyedServiceFactory methods:
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* context) const override;
   content::BrowserContext* GetBrowserContextToUse(
       content::BrowserContext* context) const override;

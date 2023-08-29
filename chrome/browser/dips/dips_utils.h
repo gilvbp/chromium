@@ -50,8 +50,8 @@ const base::FilePath::CharType kDIPSFilename[] = FILE_PATH_LITERAL("DIPS");
 base::FilePath GetDIPSFilePath(content::BrowserContext* context);
 
 // The ProfileSelections used to dictate when the DIPSService should be created,
-// if `features::kDIPS` is enabled, and when the DIPSCleanupService
-// should be created, if `features::kDIPS` is NOT enabled.
+// if `dips::kFeature` is enabled, and when the DIPSCleanupService should be
+// created, if `dips::kFeature` is NOT enabled.
 ProfileSelections GetHumanProfileSelections();
 
 // SiteDataAccessType:
@@ -78,9 +78,14 @@ constexpr SiteDataAccessType operator|(SiteDataAccessType lhs,
 }
 
 // DIPSCookieMode:
-enum class DIPSCookieMode { kBlock3PC, kOffTheRecord_Block3PC };
+enum class DIPSCookieMode {
+  kStandard,
+  kOffTheRecord,
+  kBlock3PC,  // block third-party cookies
+  kOffTheRecord_Block3PC
+};
 
-DIPSCookieMode GetDIPSCookieMode(bool is_otr);
+DIPSCookieMode GetDIPSCookieMode(bool is_otr, bool block_third_party_cookies);
 base::StringPiece GetHistogramSuffix(DIPSCookieMode mode);
 const char* DIPSCookieModeToString(DIPSCookieMode mode);
 std::ostream& operator<<(std::ostream& os, DIPSCookieMode mode);
@@ -134,29 +139,22 @@ bool IsNullOrWithin(const TimestampRange& inner, const TimestampRange& outer);
 
 std::ostream& operator<<(std::ostream& os, TimestampRange type);
 
-// Values for a site in the `bounces` table.
+// StateValue:
 struct StateValue {
   TimestampRange site_storage_times;
   TimestampRange user_interaction_times;
   TimestampRange stateful_bounce_times;
   TimestampRange bounce_times;
-  TimestampRange web_authn_assertion_times;
-};
-
-// Values for a 1P/3P site pair in the `popups` table.
-struct PopupsStateValue {
-  uint64_t access_id;
-  base::Time last_popup_time;
 };
 
 inline bool operator==(const StateValue& lhs, const StateValue& rhs) {
   return std::tie(lhs.site_storage_times, lhs.user_interaction_times,
-                  lhs.stateful_bounce_times, lhs.bounce_times,
-                  lhs.web_authn_assertion_times) ==
+                  lhs.stateful_bounce_times, lhs.bounce_times) ==
          std::tie(rhs.site_storage_times, rhs.user_interaction_times,
-                  rhs.stateful_bounce_times, rhs.bounce_times,
-                  rhs.web_authn_assertion_times);
+                  rhs.stateful_bounce_times, rhs.bounce_times);
 }
+
+enum class DIPSTriggeringAction { kNone, kStorage, kBounce, kStatefulBounce };
 
 // Return the number of seconds in `td`, clamped to [0, 10].
 // i.e. 11 linearly-sized buckets.
@@ -167,15 +165,11 @@ int64_t BucketizeBounceDelay(base::TimeDelta delta);
 // and may change.
 std::string GetSiteForDIPS(const GURL& url);
 
-// Returns true iff `web_contents` contains an iframe whose committed URL
-// belongs to the same site as `url`.
-bool HasSameSiteIframe(content::WebContents* web_contents, const GURL& url);
-
 // Returns `True` iff the `navigation_handle` represents a navigation happening
 // in an iframe of the primary frame tree.
 inline bool IsInPrimaryPageIFrame(
     content::NavigationHandle* navigation_handle) {
-  return navigation_handle && navigation_handle->GetParentFrame()
+  return navigation_handle->GetParentFrame()
              ? navigation_handle->GetParentFrame()->GetPage().IsPrimary()
              : false;
 }
@@ -190,7 +184,7 @@ inline bool IsSameSiteForDIPS(const GURL& url1, const GURL& url2) {
 // in any frame of the primary page.
 // NOTE: This does not include fenced frames.
 inline bool IsInPrimaryPage(content::NavigationHandle* navigation_handle) {
-  return navigation_handle && navigation_handle->GetParentFrame()
+  return navigation_handle->GetParentFrame()
              ? navigation_handle->GetParentFrame()->GetPage().IsPrimary()
              : navigation_handle->IsInPrimaryMainFrame();
 }
@@ -203,11 +197,7 @@ inline bool IsInPrimaryPage(content::RenderFrameHost* rfh) {
 
 // Returns the last committed or the to be committed url of the main frame of
 // the page containing the `navigation_handle`.
-inline absl::optional<GURL> GetFirstPartyURL(
-    content::NavigationHandle* navigation_handle) {
-  if (!navigation_handle) {
-    return absl::nullopt;
-  }
+inline GURL GetFirstPartyURL(content::NavigationHandle* navigation_handle) {
   return navigation_handle->GetParentFrame()
              ? navigation_handle->GetParentFrame()
                    ->GetMainFrame()
@@ -260,11 +250,7 @@ enum class DIPSErrorCode {
   kRead_OpenEndedRange_NullStart = 1,
   kRead_OpenEndedRange_NullEnd = 2,
   kRead_BounceTimesIsntSupersetOfStatefulBounces = 3,
-  kRead_EmptySite_InDb = 4,
-  kRead_EmptySite_NotInDb = 5,
-  kWrite_None = 6,
-  kWrite_EmptySite = 7,
-  kMaxValue = kWrite_EmptySite,
+  kMaxValue = kRead_BounceTimesIsntSupersetOfStatefulBounces,
 };
 
 // DIPSDeletionAction is used in UMA enum histograms to record the actual
@@ -277,18 +263,11 @@ enum class DIPSErrorCode {
 // numeric values should never be reused.
 enum class DIPSDeletionAction {
   kDisallowed = 0,
-  kExceptedAs1p = 1,  // No longer used - merged into 'kExcepted' below.
-  kExceptedAs3p = 2,  // No longer used - merged into 'kExcepted' below.
+  kExceptedAs1p = 1,
+  kExceptedAs3p = 2,
   kEnforced = 3,
   kIgnored = 4,
-  kExcepted = 5,
-  kMaxValue = kExcepted,
-};
-
-enum class DIPSDatabaseTable {
-  kBounces = 1,
-  kPopups = 2,
-  kMaxValue = kPopups,
+  kMaxValue = kIgnored,
 };
 
 #endif  // CHROME_BROWSER_DIPS_DIPS_UTILS_H_

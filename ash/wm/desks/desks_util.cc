@@ -157,11 +157,10 @@ aura::Window* GetDeskContainerForContext(aura::Window* context) {
 const Desk* GetDeskForContext(aura::Window* context) {
   DCHECK(context);
 
-  if (aura::Window* context_desk = GetDeskContainerForContext(context)) {
-    for (auto& desk : DesksController::Get()->desks()) {
-      if (desk->container_id() == context_desk->GetId()) {
-        return desk.get();
-      }
+  for (const auto& desk : DesksController::Get()->desks()) {
+    if (auto* context_desk = GetDeskContainerForContext(context);
+        context_desk && desk.get()->container_id() == context_desk->GetId()) {
+      return desk.get();
     }
   }
 

@@ -4,13 +4,9 @@
 
 #include "chromeos/ash/components/login/hibernate/hibernate_manager.h"
 
-#include "base/containers/contains.h"
 #include "base/files/file_util.h"
 #include "base/functional/bind.h"
 #include "base/logging.h"
-#include "base/no_destructor.h"
-#include "base/strings/strcat.h"
-#include "base/strings/string_util.h"
 #include "base/task/thread_pool.h"
 #include "chromeos/ash/components/cryptohome/userdataauth_util.h"
 #include "chromeos/ash/components/dbus/hiberman/hiberman_client.h"
@@ -26,12 +22,6 @@ constexpr const char kSystemMissingDevSnapshot[] =
 
 constexpr const char kCryptoPath[] = "/proc/crypto";
 constexpr const char kDevSnapshotPath[] = "/dev/snapshot";
-constexpr const char kHibermanBinaryPath[] = "/usr/sbin/hiberman";
-
-constexpr const char kEnableSuspendToDiskInternalName[] =
-    "enable-suspend-to-disk";
-constexpr const char kEnableSuspendToDiskAllowS4InternalName[] =
-    "enable-suspend-to-disk-allow-s4";
 
 // HasAESKL will return true if the system is using aeskl (AES w/
 // KeyLocker). The reason for this is because keylocker requires suspend to
@@ -48,7 +38,7 @@ bool HasAESKL() {
       return false;
     }
 
-    return base::Contains(crypto_info, "aeskl");
+    return (crypto_info.find("aeskl") != std::string::npos);
   }();
   return hasKL;
 }
@@ -62,91 +52,73 @@ bool HasSnapshotDevice() {
   return hasSnapshotDev;
 }
 
-// Returns true if the system has a hiberman binary.
-bool HasHibermanBinary() {
-  static bool hasHibermanBinary = []() -> bool {
-    return base::PathExists(base::FilePath(kHibermanBinaryPath));
-  }();
-  return hasHibermanBinary;
-}
-
 bool g_platform_support_test_complete = false;
 
 }  // namespace
 
-HibernateManager::HibernateManager() = default;
+HibernateManager::HibernateManager() {}
 
 HibernateManager::~HibernateManager() = default;
 
-HibernateManager* HibernateManager::Get() {
-  static base::NoDestructor<HibernateManager> hibernate;
-  return hibernate.get();
+base::WeakPtr<HibernateManager> HibernateManager::AsWeakPtr() {
+  return weak_factory_.GetWeakPtr();
 }
 
 void HibernateManager::InitializePlatformSupport() {
   HasSnapshotDevice();
   HasAESKL();
-  HasHibermanBinary();
   g_platform_support_test_complete = true;
 }
 
-// static
-bool HibernateManager::HasAESKL() {
-  return ash::HasAESKL();
+void HibernateManager::PrepareHibernateAndMaybeResumeAuthOp(
+    std::unique_ptr<UserContext> user_context,
+    AuthOperationCallback callback) {
+  PrepareHibernateAndMaybeResume(
+      std::move(user_context),
+      base::BindOnce(&HibernateManager::ResumeFromHibernateAuthOpCallback,
+                     weak_factory_.GetWeakPtr(), std::move(callback)));
 }
 
-// static
-bool HibernateManager::IsHibernateSupported() {
-  return ash::HasHibermanBinary();
-}
-
-void HibernateManager::SetAuthSessionID(const std::string& auth_session_id) {
-  auth_session_id_ = auth_session_id;
-}
-
-void HibernateManager::MaybeResume(const std::set<std::string>& user_prefs) {
-  if (auth_session_id_.empty()) {
-    return;
-  }
-
+void HibernateManager::PrepareHibernateAndMaybeResume(
+    std::unique_ptr<UserContext> user_context,
+    HibernateResumeCallback callback) {
   auto* client = HibermanClient::Get();
   bool aborted = false;
-
-  bool enabled = client->IsEnabled();
-  bool s4_enabled = client->IsHibernateToS4Enabled();
-
-  for (const auto& flag : user_prefs) {
-    if (base::StartsWith(
-            flag, base::StrCat({kEnableSuspendToDiskInternalName, "@"}))) {
-      enabled = !base::EndsWith(flag, "@0");
-    } else if (base::StartsWith(
-                   flag, base::StrCat(
-                             {kEnableSuspendToDiskAllowS4InternalName, "@"}))) {
-      s4_enabled = !base::EndsWith(flag, "@0");
-    }
-  }
 
   if (!client) {
     aborted = true;
   } else if (!client->IsAlive() || !g_platform_support_test_complete) {
     aborted = true;
     client->AbortResumeHibernate(kHibermanNotReady);
-  } else if (!enabled) {
-    aborted = true;
-    client->AbortResumeHibernate(kFeatureNotEnabled);
-  } else if (HasAESKL() && !s4_enabled) {
+  } else if (HasAESKL()) {
     aborted = true;
     client->AbortResumeHibernate(kSystemHasAESKL);
   } else if (!HasSnapshotDevice()) {
     aborted = true;
     client->AbortResumeHibernate(kSystemMissingDevSnapshot);
+  } else if (!client->IsEnabled()) {
+    aborted = true;
+    client->AbortResumeHibernate(kFeatureNotEnabled);
   }
 
-  if (!aborted) {
-    client->ResumeFromHibernate(auth_session_id_);
+  if (aborted) {
+    // Always run the callback so we don't block login.
+    std::move(callback).Run(std::move(user_context), true);
+    return;
   }
 
-  auth_session_id_.clear();
+  // In a successful resume case, this function never returns, as execution
+  // continues in the resumed hibernation image.
+  client->ResumeFromHibernateAS(
+      user_context->GetAuthSessionId(),
+      base::BindOnce(std::move(callback), std::move(user_context)));
+}
+
+void HibernateManager::ResumeFromHibernateAuthOpCallback(
+    AuthOperationCallback callback,
+    std::unique_ptr<UserContext> user_context,
+    bool resume_call_successful) {
+  std::move(callback).Run(std::move(user_context), absl::nullopt);
 }
 
 }  // namespace ash

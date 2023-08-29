@@ -4,19 +4,18 @@
 
 package org.chromium.chrome.browser.autofill.editors;
 
-import static org.chromium.chrome.browser.autofill.editors.EditorProperties.VISIBLE;
-
 import android.app.Activity;
 
 import androidx.annotation.IntDef;
 import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 
 import org.chromium.chrome.browser.autofill.AutofillAddress;
+import org.chromium.chrome.browser.autofill.PersonalDataManager.AutofillProfile;
 import org.chromium.chrome.browser.feedback.HelpAndFeedbackLauncher;
 import org.chromium.chrome.browser.profiles.Profile;
 import org.chromium.chrome.browser.signin.services.IdentityServicesProvider;
 import org.chromium.chrome.browser.sync.SyncServiceFactory;
-import org.chromium.components.autofill.AutofillProfile;
 import org.chromium.ui.modelutil.PropertyModel;
 import org.chromium.ui.modelutil.PropertyModelChangeProcessor;
 
@@ -152,10 +151,10 @@ public class AddressEditorCoordinator {
      * Shows editor dialog to the user.
      */
     public void showEditorDialog() {
-        mEditorModel = mMediator.getEditorModel();
+        mEditorModel = mMediator.buildEditorModel();
         PropertyModelChangeProcessor.create(
-                mEditorModel, mEditorDialog, EditorDialogViewBinder::bindEditorDialogView);
-        mEditorModel.set(VISIBLE, true);
+                mEditorModel, mEditorDialog, EditorDialogViewBinder::bindEditorDialogView, false);
+        mEditorDialog.show(mEditorModel);
     }
 
     /**
@@ -192,6 +191,7 @@ public class AddressEditorCoordinator {
     /**
      * @return editor dialog view for testing purposes.
      */
+    @VisibleForTesting
     public EditorDialogView getEditorDialogForTesting() {
         return mEditorDialog;
     }

@@ -39,10 +39,11 @@ class CORE_EXPORT LayoutVideo final : public LayoutMedia {
   explicit LayoutVideo(HTMLVideoElement*);
   ~LayoutVideo() override;
 
-  static PhysicalSize DefaultSize();
+  static LayoutSize DefaultSize();
 
   PhysicalRect ReplacedContentRectFrom(
-      const PhysicalRect& base_content_rect) const final;
+      const LayoutSize size,
+      const NGPhysicalBoxStrut& border_padding) const final;
 
   bool SupportsAcceleratedRendering() const;
 
@@ -69,7 +70,7 @@ class CORE_EXPORT LayoutVideo final : public LayoutMedia {
   void UpdateFromElement() final;
   void InvalidateCompositing();
 
-  PhysicalSize CalculateIntrinsicSize(float scale);
+  LayoutSize CalculateIntrinsicSize(float scale);
   void UpdateIntrinsicSize();
 
   void ImageChanged(WrappedImagePtr, CanDeferInvalidation) override;
@@ -88,7 +89,7 @@ class CORE_EXPORT LayoutVideo final : public LayoutMedia {
   }
   CompositingReasons AdditionalCompositingReasons() const override;
 
-  PhysicalSize cached_image_size_;
+  LayoutSize cached_image_size_;
 };
 
 template <>

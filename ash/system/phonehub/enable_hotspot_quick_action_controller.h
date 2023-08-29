@@ -27,7 +27,6 @@ class EnableHotspotQuickActionController
   // QuickActionControllerBase:
   QuickActionItem* CreateItem() override;
   void OnButtonPressed(bool is_now_enabled) override;
-  void UpdateQuickActionItemUi() override;
 
   // phonehub::TetherController::Observer:
   void OnTetherStatusChanged() override;

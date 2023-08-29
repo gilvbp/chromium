@@ -4,6 +4,10 @@
 
 #import "ios/chrome/browser/ui/alert_view/alert_action.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 @implementation AlertAction
 
 - (instancetype)initWithTitle:(NSString*)title

@@ -9,7 +9,6 @@
 #include "ash/components/arc/arc_prefs.h"
 #include "ash/resources/vector_icons/vector_icons.h"
 #include "ash/webui/file_manager/file_manager_ui.h"
-#include "ash/webui/settings/public/constants/routes.mojom.h"
 #include "base/functional/bind.h"
 #include "base/functional/callback_forward.h"
 #include "base/functional/callback_helpers.h"
@@ -31,7 +30,7 @@
 #include "chrome/browser/ash/policy/dlp/files_policy_notification_manager_factory.h"
 #include "chrome/browser/platform_util.h"
 #include "chrome/browser/ui/settings_window_manager_chromeos.h"
-#include "chrome/common/extensions/api/file_manager_private.h"
+#include "chrome/browser/ui/webui/settings/chromeos/constants/routes.mojom.h"
 #include "chrome/grit/generated_resources.h"
 #include "components/prefs/pref_service.h"
 #include "content/public/browser/browser_task_traits.h"
@@ -193,10 +192,6 @@ std::u16string GetIOTaskMessage(Profile* profile,
                       .value()));
 }
 }  // namespace
-
-std::string GetNotificationId(io_task::IOTaskId task_id) {
-  return base::StrCat({kSwaFileOperationPrefix, base::NumberToString(task_id)});
-}
 
 NotificationPtr CreateSystemNotification(
     const std::string& notification_id,
@@ -478,9 +473,18 @@ void SystemNotificationManager::HandleDeviceEvent(
 
 static const char kBulkPinningNotificationId[] = "drive-bulk-pinning-error";
 
-void SystemNotificationManager::HandleBulkPinningNotificationClick() {
-  chrome::SettingsWindowManager::GetInstance()->ShowOSSettings(
-      profile_, chromeos::settings::mojom::kGoogleDriveSubpagePath);
+void SystemNotificationManager::HandleBulkPinningNotificationClick(
+    absl::optional<int> button_index) {
+  if (button_index.has_value()) {
+    VLOG(1) << "Click on button #" << *button_index;
+    DCHECK_EQ(*button_index, 0);
+    drive_settings_open_count_++;
+    chrome::SettingsWindowManager::GetInstance()->ShowOSSettings(
+        profile_, chromeos::settings::mojom::kGoogleDriveSubpagePath);
+  } else {
+    VLOG(1) << "Click on notification body";
+  }
+
   GetNotificationDisplayService()->Close(NotificationHandler::Type::TRANSIENT,
                                          kBulkPinningNotificationId);
 }
@@ -496,56 +500,32 @@ NotificationPtr SystemNotificationManager::MakeBulkPinningErrorNotification(
   }
 
   // Remember the bulk-pinning stage.
-  using enum BulkPinStage;
   const BulkPinStage old_stage = bulk_pin_stage_;
   bulk_pin_stage_ = progress.stage;
 
-  if (old_stage != BULK_PIN_STAGE_SYNCING) {
+  // Check the bulk-pinning stage.
+  using enum fmp::BulkPinStage;
+  if (bulk_pin_stage_ != BULK_PIN_STAGE_NOT_ENOUGH_SPACE ||
+      old_stage != BULK_PIN_STAGE_SYNCING) {
+    VLOG(1) << "Ignored BulkPinProgress event with stage '"
+            << ToString(bulk_pin_stage_) << "'";
     return nullptr;
   }
 
-  // Check the bulk-pinning stage.
-  switch (bulk_pin_stage_) {
-    case BULK_PIN_STAGE_NONE:
-    case BULK_PIN_STAGE_STOPPED:
-    case BULK_PIN_STAGE_PAUSED_OFFLINE:
-    case BULK_PIN_STAGE_PAUSED_BATTERY_SAVER:
-    case BULK_PIN_STAGE_GETTING_FREE_SPACE:
-    case BULK_PIN_STAGE_LISTING_FILES:
-    case BULK_PIN_STAGE_SYNCING:
-    case BULK_PIN_STAGE_SUCCESS:
-      return nullptr;
-
-    case BULK_PIN_STAGE_NOT_ENOUGH_SPACE:
-    case BULK_PIN_STAGE_CANNOT_GET_FREE_SPACE:
-    case BULK_PIN_STAGE_CANNOT_LIST_FILES:
-    case BULK_PIN_STAGE_CANNOT_ENABLE_DOCS_OFFLINE:
-      break;
-  }
-
+  // Not enough space for bulk-pinning.
   VLOG(1) << "Creating bulk-pinning error notification";
-  int title_id, message_id;
-
-  if (bulk_pin_stage_ == BULK_PIN_STAGE_NOT_ENOUGH_SPACE) {
-    if (progress.emptied_queue) {
-      title_id = IDS_FILE_BROWSER_DRIVE_SYNC_TURNED_OFF_TITLE;
-      message_id =
-          IDS_FILE_BROWSER_BULK_PINNING_NOT_ENOUGH_SPACE_NOTIFICATION_2;
-    } else {
-      title_id = IDS_FILE_BROWSER_DRIVE_SYNC_ERROR_TITLE;
-      message_id = IDS_FILE_BROWSER_BULK_PINNING_NOT_ENOUGH_SPACE_NOTIFICATION;
-    }
-  } else {
-    title_id = IDS_FILE_BROWSER_DRIVE_SYNC_TURNED_OFF_TITLE;
-    message_id = IDS_FILE_BROWSER_BULK_PINNING_ERROR;
-  }
-
   NotificationPtr notification = CreateSystemNotification(
-      kBulkPinningNotificationId, GetStringUTF16(title_id),
-      GetStringUTF16(message_id),
-      BindRepeating(
+      kBulkPinningNotificationId,
+      GetStringUTF16(IDS_FILE_BROWSER_DRIVE_SYNC_ERROR_TITLE),
+      GetStringUTF16(
+          IDS_FILE_BROWSER_BULK_PINNING_NOT_ENOUGH_SPACE_NOTIFICATION),
+      MakeRefCounted<HandleNotificationClickDelegate>(BindRepeating(
           &SystemNotificationManager::HandleBulkPinningNotificationClick,
-          weak_ptr_factory_.GetWeakPtr()));
+          weak_ptr_factory_.GetWeakPtr())));
+
+  // Add button to the notification.
+  notification->set_buttons(
+      {ButtonInfo(GetStringUTF16(IDS_FILE_BROWSER_SETTINGS_LABEL))});
 
   return notification;
 }
@@ -776,7 +756,8 @@ void SystemNotificationManager::HandleEvent(const Event& event) {
 
 void SystemNotificationManager::HandleIOTaskProgress(
     const ProgressStatus& status) {
-  std::string id = GetNotificationId(status.task_id);
+  std::string id = base::StrCat(
+      {kSwaFileOperationPrefix, base::NumberToString(status.task_id)});
 
   // If there are any SWA windows open, remove the IOTask progress from system
   // notifications.
@@ -798,7 +779,7 @@ void SystemNotificationManager::HandleIOTaskProgress(
       return;
     }
     Dismiss(id);
-    manager->ShowFilesPolicyNotification(id, status);
+    manager->ShowsFilesPolicyNotification(id, status);
     return;
   }
 

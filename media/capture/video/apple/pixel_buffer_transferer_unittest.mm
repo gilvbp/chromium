@@ -15,6 +15,10 @@
 #include "testing/gmock/include/gmock/gmock.h"
 #include "testing/gtest/include/gtest/gtest.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace media {
 
 namespace {
@@ -52,7 +56,7 @@ TEST(PixelBufferTransfererTest, CanCopyYuvsAndVerifyColor) {
       CreateYuvsPixelBufferFromSingleRgbColor(kWidth, kHeight, kColorR, kColorG,
                                               kColorB);
   // Destination buffer: A same-sized YUVS buffer.
-  base::apple::ScopedCFTypeRef<CVPixelBufferRef> destination =
+  base::ScopedCFTypeRef<CVPixelBufferRef> destination =
       PixelBufferPool::Create(kPixelFormat, kWidth, kHeight, 1)->CreateBuffer();
   EXPECT_TRUE(transferer.TransferImage(source->pixel_buffer, destination));
   // Verify the result is the same color.
@@ -79,7 +83,7 @@ TEST(PixelBufferTransfererTest, MAYBE_CanScaleYuvsAndVerifyColor) {
       CreateYuvsPixelBufferFromSingleRgbColor(kSourceWidth, kSourceHeight,
                                               kColorR, kColorG, kColorB);
   // Destination buffer: A downscaled YUVS buffer.
-  base::apple::ScopedCFTypeRef<CVPixelBufferRef> destination =
+  base::ScopedCFTypeRef<CVPixelBufferRef> destination =
       PixelBufferPool::Create(kPixelFormat, kDestinationWidth,
                               kDestinationHeight, 1)
           ->CreateBuffer();
@@ -106,7 +110,7 @@ TEST(PixelBufferTransfererTest, CanScaleYuvsAndVerifyCheckerPattern) {
           CreateArgbCheckerPatternBuffer(kSourceWidth, kSourceHeight,
                                          kSourceNumTilesAcross));
   // Destination buffer: A downscaled YUVS buffer.
-  base::apple::ScopedCFTypeRef<CVPixelBufferRef> destination =
+  base::ScopedCFTypeRef<CVPixelBufferRef> destination =
       PixelBufferPool::Create(kPixelFormatYuvs, kDestinationWidth,
                               kDestinationHeight, 1)
           ->CreateBuffer();
@@ -147,7 +151,7 @@ TEST(PixelBufferTransfererTest, MAYBE_CanStretchYuvsAndVerifyCheckerPattern) {
           CreateArgbCheckerPatternBuffer(kSourceWidth, kSourceHeight,
                                          kSourceNumTilesAcross));
   // Destination buffer: A downscaled YUVS buffer.
-  base::apple::ScopedCFTypeRef<CVPixelBufferRef> destination =
+  base::ScopedCFTypeRef<CVPixelBufferRef> destination =
       PixelBufferPool::Create(kPixelFormatYuvs, kDestinationWidth,
                               kDestinationHeight, 1)
           ->CreateBuffer();
@@ -181,7 +185,7 @@ TEST(PixelBufferTransfererTest, MAYBE_CanStretchYuvsAndVerifyColor) {
       CreateYuvsPixelBufferFromSingleRgbColor(kSourceWidth, kSourceHeight,
                                               kColorR, kColorG, kColorB);
   // Destination buffer: A streched YUVS buffer.
-  base::apple::ScopedCFTypeRef<CVPixelBufferRef> destination =
+  base::ScopedCFTypeRef<CVPixelBufferRef> destination =
       PixelBufferPool::Create(kPixelFormat, kDestinationWidth,
                               kDestinationHeight, 1)
           ->CreateBuffer();
@@ -204,7 +208,7 @@ TEST(PixelBufferTransfererTest, CanConvertAndStretchSimultaneouslyYuvsToNv12) {
       CreateYuvsPixelBufferFromSingleRgbColor(kSourceWidth, kSourceHeight,
                                               kColorR, kColorG, kColorB);
   // Destination buffer: A streched NV12 buffer.
-  base::apple::ScopedCFTypeRef<CVPixelBufferRef> destination =
+  base::ScopedCFTypeRef<CVPixelBufferRef> destination =
       PixelBufferPool::Create(kDestinationPixelFormat, kDestinationWidth,
                               kDestinationHeight, 1)
           ->CreateBuffer();
@@ -234,7 +238,7 @@ TEST_P(PixelBufferTransfererParameterizedTest,
       CreateYuvsPixelBufferFromSingleRgbColor(kWidth, kHeight, kColorR, kColorG,
                                               kColorB);
   // YUVS -> pixel_format_from
-  base::apple::ScopedCFTypeRef<CVPixelBufferRef> pixel_buffer_from;
+  base::ScopedCFTypeRef<CVPixelBufferRef> pixel_buffer_from;
   if (pixel_format_from == kPixelFormatYuvs) {
     pixel_buffer_from = original_yuvs_buffer->pixel_buffer;
   } else {
@@ -247,14 +251,14 @@ TEST_P(PixelBufferTransfererParameterizedTest,
   ASSERT_TRUE(pixel_buffer_from);
 
   // pixel_format_from -> pixel_format_to
-  base::apple::ScopedCFTypeRef<CVPixelBufferRef> pixel_buffer_to =
+  base::ScopedCFTypeRef<CVPixelBufferRef> pixel_buffer_to =
       PixelBufferPool::Create(pixel_format_to, kWidth, kHeight, 1)
           ->CreateBuffer();
   EXPECT_TRUE(transferer.TransferImage(pixel_buffer_from, pixel_buffer_to));
 
   // We always convert back to YUVS because this is the only format that the
   // testing utilities can convert to/from RGB.
-  base::apple::ScopedCFTypeRef<CVPixelBufferRef> final_yuvs_buffer;
+  base::ScopedCFTypeRef<CVPixelBufferRef> final_yuvs_buffer;
   // pixel_format_to -> YUVS
   if (pixel_format_to == kPixelFormatYuvs) {
     final_yuvs_buffer = pixel_buffer_to;

@@ -77,12 +77,6 @@ export interface NativeLayerCros {
    * the result from opening Print Preview.
    */
   recordPrintAttemptOutcome(printAttemptOutcome: PrintAttemptOutcome): void;
-
-  /**
-   * Returns whether or not the manage printers button should be displayed for
-   * the given print preview initiator.
-   */
-  getShowManagePrinters(): Promise<boolean>;
 }
 
 export class NativeLayerCrosImpl implements NativeLayerCros {
@@ -119,10 +113,6 @@ export class NativeLayerCrosImpl implements NativeLayerCros {
 
   recordPrintAttemptOutcome(printAttemptOutcome: PrintAttemptOutcome) {
     chrome.send('recordPrintAttemptOutcome', [printAttemptOutcome]);
-  }
-
-  getShowManagePrinters() {
-    return sendWithPromise('getShowManagePrinters');
   }
 
   static getInstance(): NativeLayerCros {

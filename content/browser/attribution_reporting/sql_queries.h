@@ -110,6 +110,7 @@ inline constexpr const char kSetReportTimeSql[] =
   prefix "reporting_origin,"                   \
   prefix "source_time,"                        \
   prefix "expiry_time,"                        \
+  prefix "event_report_window_time,"           \
   prefix "aggregatable_report_window_time,"    \
   prefix "source_type,"                        \
   prefix "attribution_logic,"                  \
@@ -121,8 +122,7 @@ inline constexpr const char kSetReportTimeSql[] =
   prefix "aggregatable_source,"                \
   prefix "filter_data,"                        \
   prefix "event_level_active,"                 \
-  prefix "aggregatable_active,"                \
-  prefix "read_only_source_data"
+  prefix "aggregatable_active"
 
 inline constexpr const char kReadSourceToAttributeSql[] =
     "SELECT " ATTRIBUTION_SOURCE_COLUMNS_SQL("")
@@ -176,15 +176,6 @@ inline constexpr const char kRateLimitSourceAllowedSql[] =
     "AND source_site=? "
     "AND reporting_site=? "
     "AND source_expiry_or_attribution_time>?";
-
-static_assert(static_cast<int>(RateLimitTable::Scope::kSource) == 0,
-              "update `scope=0` query below");
-inline constexpr const char kRateLimitSourceAllowedDestinationRateLimitSql[] =
-    "SELECT destination_site,reporting_site FROM rate_limits "
-    "WHERE scope=0 "
-    "AND source_site=? "
-    "AND source_expiry_or_attribution_time>? "
-    "AND time>?";
 
 inline constexpr const char kRateLimitSelectReportingOriginsSql[] =
     "SELECT reporting_origin FROM rate_limits "

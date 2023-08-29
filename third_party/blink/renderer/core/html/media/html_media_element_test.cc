@@ -56,18 +56,17 @@ enum class TestURLScheme {
 AtomicString SrcSchemeToURL(TestURLScheme scheme) {
   switch (scheme) {
     case TestURLScheme::kHttp:
-      return AtomicString("http://example.com/foo.mp4");
+      return "http://example.com/foo.mp4";
     case TestURLScheme::kHttps:
-      return AtomicString("https://example.com/foo.mp4");
+      return "https://example.com/foo.mp4";
     case TestURLScheme::kFtp:
-      return AtomicString("ftp://example.com/foo.mp4");
+      return "ftp://example.com/foo.mp4";
     case TestURLScheme::kFile:
-      return AtomicString("file:///foo/bar.mp4");
+      return "file:///foo/bar.mp4";
     case TestURLScheme::kData:
-      return AtomicString("data:video/mp4;base64,XXXXXXX");
+      return "data:video/mp4;base64,XXXXXXX";
     case TestURLScheme::kBlob:
-      return AtomicString(
-          "blob:http://example.com/00000000-0000-0000-0000-000000000000");
+      return "blob:http://example.com/00000000-0000-0000-0000-000000000000";
     default:
       NOTREACHED();
   }
@@ -582,9 +581,6 @@ TEST_P(HTMLMediaElementTest, effectiveMediaVolume) {
 }
 
 TEST_P(HTMLMediaElementTest, preloadType) {
-  AtomicString auto_string("auto");
-  AtomicString none_string("none");
-  AtomicString metadata_string("metadata");
   struct TestData {
     bool data_saver_enabled;
     bool is_cellular;
@@ -592,25 +588,23 @@ TEST_P(HTMLMediaElementTest, preloadType) {
     AtomicString preload_to_set;
     AtomicString preload_expected;
   } test_data[] = {
-      // Tests for conditions in which preload type should be overridden to
-      // none_string.
-      {false, false, TestURLScheme::kHttp, auto_string, auto_string},
-      {true, false, TestURLScheme::kHttps, auto_string, auto_string},
-      {true, false, TestURLScheme::kFtp, metadata_string, metadata_string},
-      {false, false, TestURLScheme::kHttps, auto_string, auto_string},
-      {false, false, TestURLScheme::kFile, auto_string, auto_string},
-      {false, false, TestURLScheme::kData, metadata_string, metadata_string},
-      {false, false, TestURLScheme::kBlob, auto_string, auto_string},
-      {false, false, TestURLScheme::kFile, none_string, none_string},
-      // Tests for conditions in which preload type should be overridden to
-      // metadata_string.
-      {false, true, TestURLScheme::kHttp, auto_string, metadata_string},
-      {false, true, TestURLScheme::kHttp, AtomicString("scheme"),
-       metadata_string},
-      {false, true, TestURLScheme::kHttp, none_string, none_string},
-      // Tests that the preload is overridden to metadata_string.
-      {false, false, TestURLScheme::kHttp, AtomicString("foo"),
-       metadata_string},
+      // Tests for conditions in which preload type should be overriden to
+      // "none".
+      {false, false, TestURLScheme::kHttp, "auto", "auto"},
+      {true, false, TestURLScheme::kHttps, "auto", "auto"},
+      {true, false, TestURLScheme::kFtp, "metadata", "metadata"},
+      {false, false, TestURLScheme::kHttps, "auto", "auto"},
+      {false, false, TestURLScheme::kFile, "auto", "auto"},
+      {false, false, TestURLScheme::kData, "metadata", "metadata"},
+      {false, false, TestURLScheme::kBlob, "auto", "auto"},
+      {false, false, TestURLScheme::kFile, "none", "none"},
+      // Tests for conditions in which preload type should be overriden to
+      // "metadata".
+      {false, true, TestURLScheme::kHttp, "auto", "metadata"},
+      {false, true, TestURLScheme::kHttp, "scheme", "metadata"},
+      {false, true, TestURLScheme::kHttp, "none", "none"},
+      // Tests that the preload is overriden to "metadata".
+      {false, false, TestURLScheme::kHttp, "foo", "metadata"},
   };
 
   int index = 0;
@@ -1210,7 +1204,7 @@ TEST_P(HTMLMediaElementTest, SendMediaMetadataChangedToObserver) {
   media::AudioCodec audio_codec = media::AudioCodec::kUnknown;
   media::VideoCodec video_codec = media::VideoCodec::kUnknown;
   media::MediaContentType media_content_type =
-      media::MediaContentType::kTransient;
+      media::MediaContentType::Transient;
 
   NotifyMediaMetadataChanged(has_audio, has_video, audio_codec, video_codec,
                              media_content_type, is_encrypted_media);
@@ -1219,7 +1213,7 @@ TEST_P(HTMLMediaElementTest, SendMediaMetadataChangedToObserver) {
   // Change values and test again.
   has_audio = true;
   has_video = false;
-  media_content_type = media::MediaContentType::kOneShot;
+  media_content_type = media::MediaContentType::OneShot;
   NotifyMediaMetadataChanged(has_audio, has_video, audio_codec, video_codec,
                              media_content_type, is_encrypted_media);
   EXPECT_TRUE(ReceivedMessageMediaMetadataChanged(has_audio, has_video,
@@ -1253,7 +1247,7 @@ TEST_P(HTMLMediaElementTest, SendRemotePlaybackMetadataChangeToObserver) {
   bool is_remote_playback_started = false;
   bool is_encrypted_media = false;
   NotifyMediaMetadataChanged(true, true, audio_codec, video_codec,
-                             media::MediaContentType::kTransient,
+                             media::MediaContentType::Transient,
                              is_encrypted_media);
   NotifyRemotePlaybackDisabled(is_remote_playback_disabled);
   EXPECT_TRUE(ReceivedRemotePlaybackMetadataChange(
@@ -1317,8 +1311,7 @@ TEST_P(HTMLMediaElementTest,
 
   // Setting the controlsList attribute to a valid value should not show the
   // controls.
-  Media()->setAttribute(blink::html_names::kControlslistAttr,
-                        AtomicString("nofullscreen"));
+  Media()->setAttribute(blink::html_names::kControlslistAttr, "nofullscreen");
   EXPECT_FALSE(MediaShouldShowAllControls());
 
   // Removing the controlsList attribute should show the controls.
@@ -1327,14 +1320,12 @@ TEST_P(HTMLMediaElementTest,
 
   // Setting the controlsList attribute to an invalid value should still show
   // the controls.
-  Media()->setAttribute(blink::html_names::kControlslistAttr,
-                        AtomicString("foo"));
+  Media()->setAttribute(blink::html_names::kControlslistAttr, "foo");
   EXPECT_TRUE(MediaShouldShowAllControls());
 
   // Setting the controlsList attribute to another valid value should not show
   // the controls.
-  Media()->setAttribute(blink::html_names::kControlslistAttr,
-                        AtomicString("noplaybackrate"));
+  Media()->setAttribute(blink::html_names::kControlslistAttr, "noplaybackrate");
   EXPECT_FALSE(MediaShouldShowAllControls());
 
   // If the user explicitly shows them, that should override the controlsList

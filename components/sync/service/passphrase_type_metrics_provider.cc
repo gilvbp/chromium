@@ -23,13 +23,10 @@ absl::optional<PassphraseTypeForMetrics> GetPassphraseTypeForSingleProfile(
   }
 
   const SyncUserSettings* user_settings = sync_service.GetUserSettings();
-  CHECK(user_settings);
+  // Guaranteed by sync transport state.
+  DCHECK(user_settings);
 
-  // Note: The PassphraseType should always be known here, since the
-  // TransportState is active.
-  // TODO(crbug.com/1466401): Can this be CHECKed?
-  switch (user_settings->GetPassphraseType().value_or(
-      PassphraseType::kImplicitPassphrase)) {
+  switch (user_settings->GetPassphraseType()) {
     case PassphraseType::kImplicitPassphrase:
       return PassphraseTypeForMetrics::kImplicitPassphrase;
     case PassphraseType::kKeystorePassphrase:

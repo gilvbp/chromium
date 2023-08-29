@@ -18,6 +18,10 @@
 #import "components/variations/variations_crash_keys.h"
 #import "components/version_info/version_info.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 using previous_session_info_constants::DeviceBatteryState;
 using previous_session_info_constants::DeviceThermalState;
 using previous_session_info_constants::kPreviousSessionInfoParamsPrefix;
@@ -149,8 +153,6 @@ NSString* const kPreviousSessionInfoMemoryFootprint =
 NSString* const kPreviousSessionInfoTabCount = @"PreviousSessionInfoTabCount";
 NSString* const kPreviousSessionInfoOTRTabCount =
     @"PreviousSessionInfoOTRTabCount";
-NSString* const kPreviousSessionInfoWarmStartCount =
-    @"PreviousSessionInfoWarmStartCount";
 }  // namespace previous_session_info_constants
 
 @interface PreviousSessionInfo () {
@@ -188,7 +190,6 @@ NSString* const kPreviousSessionInfoWarmStartCount =
 @property(nonatomic, assign) NSInteger tabCount;
 @property(nonatomic, assign) NSInteger OTRTabCount;
 @property(atomic, strong) NSString* breadcrumbs;
-@property(nonatomic, assign) NSInteger warmStartCount;
 
 @end
 
@@ -280,6 +281,9 @@ static PreviousSessionInfo* gSharedInstance = nil;
       }
     }
     gSharedInstance.reportParameters = reportParameters;
+    // TODO(crbug.com/1360033) Remove old deprecated params key, remove this
+    // after a few milestones.
+    [defaults removeObjectForKey:@"PreviousSessionInfoParams"];
 
     gSharedInstance.memoryFootprint =
         [defaults integerForKey:previous_session_info_constants::
@@ -293,9 +297,6 @@ static PreviousSessionInfo* gSharedInstance = nil;
     gSharedInstance.OTRTabCount =
         [defaults integerForKey:previous_session_info_constants::
                                     kPreviousSessionInfoOTRTabCount];
-    gSharedInstance.warmStartCount =
-        [defaults integerForKey:previous_session_info_constants::
-                                    kPreviousSessionInfoWarmStartCount];
   }
   return gSharedInstance;
 }
@@ -586,25 +587,6 @@ static PreviousSessionInfo* gSharedInstance = nil;
 - (void)resetConnectedSceneSessionIDs {
   self.connectedSceneSessionsIDs = [[NSMutableSet alloc] init];
   [self synchronizeSceneSessionIDs];
-}
-
-- (void)incrementWarmStartCount {
-  NSUserDefaults* defaults = NSUserDefaults.standardUserDefaults;
-  NSInteger warmStartCount =
-      [defaults integerForKey:previous_session_info_constants::
-                                  kPreviousSessionInfoWarmStartCount];
-  [defaults setInteger:warmStartCount + 1
-                forKey:previous_session_info_constants::
-                           kPreviousSessionInfoWarmStartCount];
-  [defaults synchronize];
-}
-
-- (void)resetWarmStartCount {
-  [NSUserDefaults.standardUserDefaults
-      setInteger:0
-          forKey:previous_session_info_constants::
-                     kPreviousSessionInfoWarmStartCount];
-  [NSUserDefaults.standardUserDefaults synchronize];
 }
 
 - (base::ScopedClosureRunner)startSessionRestoration {

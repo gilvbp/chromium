@@ -57,7 +57,7 @@ void LayoutQuote::WillBeDestroyed() {
     GetDocument()
         .GetStyleEngine()
         .EnsureStyleContainmentScopeTree()
-        .UpdateOutermostQuotesDirtyScope(scope_);
+        .UpdateOutermostDirtyScope(scope_);
     scope_->DetachQuote(*this);
   }
   LayoutInline::WillBeDestroyed();
@@ -70,7 +70,7 @@ void LayoutQuote::WillBeRemovedFromTree() {
     GetDocument()
         .GetStyleEngine()
         .EnsureStyleContainmentScopeTree()
-        .UpdateOutermostQuotesDirtyScope(scope_);
+        .UpdateOutermostDirtyScope(scope_);
     scope_->DetachQuote(*this);
   }
 }

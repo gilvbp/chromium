@@ -240,12 +240,10 @@ class BatteryIconView : public BatteryInfoViewBase {
         ContentLayerType::kBatterySystemInfoBackgroundColor);
 
     PowerStatus::BatteryImageInfo info =
-        PowerStatus::Get()->GenerateBatteryImageInfo(battery_icon_color,
-                                                     badge_color);
+        PowerStatus::Get()->GetBatteryImageInfo();
     info.alert_if_low = false;
-
     battery_image_->SetImage(PowerStatus::GetBatteryImage(
-        info, kUnifiedTrayBatteryIconSize, battery_image_->GetColorProvider()));
+        info, kUnifiedTrayBatteryIconSize, battery_icon_color, badge_color));
   }
 
   // Owned by this view, which is owned by views hierarchy.
@@ -256,12 +254,12 @@ class BatteryIconView : public BatteryInfoViewBase {
 std::u16string FormatDate(const base::Time& time) {
   // Use 'short' month format (e.g., "Oct") followed by non-padded day of
   // month (e.g., "2", "10").
-  return base::LocalizedTimeFormatWithPattern(time, "LLLd");
+  return base::TimeFormatWithPattern(time, "LLLd");
 }
 
 std::u16string FormatDayOfWeek(const base::Time& time) {
   // Use 'short' day of week format (e.g., "Wed").
-  return base::LocalizedTimeFormatWithPattern(time, "EEE");
+  return base::TimeFormatWithPattern(time, "EEE");
 }
 
 // Returns whether SmartChargingUI should be used.
@@ -308,9 +306,7 @@ class DateView : public views::Button, public ClockObserver {
   raw_ptr<views::Label, ExperimentalAsh> label_;
 
   // Unowned.
-  const raw_ptr<UnifiedSystemTrayController,
-                DanglingUntriaged | ExperimentalAsh>
-      controller_;
+  const raw_ptr<UnifiedSystemTrayController, ExperimentalAsh> controller_;
 };
 
 DateView::DateView(UnifiedSystemTrayController* controller)

@@ -101,7 +101,6 @@ class MediaControllerMock : public media_session::mojom::MediaController {
   MOCK_METHOD(void, Raise, ());
   MOCK_METHOD(void, SetMute, (bool mute));
   MOCK_METHOD(void, RequestMediaRemoting, ());
-  MOCK_METHOD(void, EnterAutoPictureInPicture, ());
 
   void AddObserver(
       mojo::PendingRemote<media_session::mojom::MediaControllerObserver> remote)

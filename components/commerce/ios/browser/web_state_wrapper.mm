@@ -11,6 +11,10 @@
 #include "ios/web/public/js_messaging/web_frames_manager.h"
 #include "ios/web/public/web_state.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace commerce {
 
 WebStateWrapper::WebStateWrapper(web::WebState* web_state)

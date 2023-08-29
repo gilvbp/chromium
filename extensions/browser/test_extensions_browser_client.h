@@ -72,7 +72,7 @@ class TestExtensionsBrowserClient : public ExtensionsBrowserClient {
   bool IsShuttingDown() override;
   bool AreExtensionsDisabled(const base::CommandLine& command_line,
                              content::BrowserContext* context) override;
-  bool IsValidContext(void* context) override;
+  bool IsValidContext(content::BrowserContext* context) override;
   bool IsSameContext(content::BrowserContext* first,
                      content::BrowserContext* second) override;
   bool HasOffTheRecordContext(content::BrowserContext* context) override;
@@ -81,17 +81,18 @@ class TestExtensionsBrowserClient : public ExtensionsBrowserClient {
   content::BrowserContext* GetOriginalContext(
       content::BrowserContext* context) override;
 
-  content::BrowserContext* GetContextRedirectedToOriginal(
+  content::BrowserContext* GetRedirectedContextInIncognito(
       content::BrowserContext* context,
-      bool force_guest_profile) override;
-  content::BrowserContext* GetContextOwnInstance(
+      bool force_guest_profile,
+      bool force_system_profile) override;
+  content::BrowserContext* GetContextForRegularAndIncognito(
       content::BrowserContext* context,
-      bool force_guest_profile) override;
-  content::BrowserContext* GetContextForOriginalOnly(
+      bool force_guest_profile,
+      bool force_system_profile) override;
+  content::BrowserContext* GetRegularProfile(
       content::BrowserContext* context,
-      bool force_guest_profile) override;
-  bool AreExtensionsDisabledForContext(
-      content::BrowserContext* context) override;
+      bool force_guest_profile,
+      bool force_system_profile) override;
 
 #if BUILDFLAG(IS_CHROMEOS_ASH)
   std::string GetUserIdHashFromContext(

@@ -4,7 +4,6 @@
 
 #include "components/sync/nigori/nigori_state.h"
 
-#include <cstdint>
 #include <vector>
 
 #include "base/base64.h"
@@ -51,22 +50,16 @@ KeyDerivationParams CustomPassphraseKeyDerivationParamsFromProto(
 }
 
 // |encrypted| must not be null.
-bool EncryptEncryptionKeys(const CryptographerImpl& cryptographer,
-                           sync_pb::EncryptedData* encrypted) {
+bool EncryptKeyBag(const CryptographerImpl& cryptographer,
+                   sync_pb::EncryptedData* encrypted) {
   DCHECK(encrypted);
   DCHECK(cryptographer.CanEncrypt());
 
   sync_pb::CryptographerData proto = cryptographer.ToProto();
   DCHECK(!proto.key_bag().key().empty());
 
-  sync_pb::EncryptionKeys keys_for_encryption;
-
-  keys_for_encryption.mutable_key()->CopyFrom(proto.key_bag().key());
-  keys_for_encryption.mutable_cross_user_sharing_private_key()->CopyFrom(
-      proto.cross_user_sharing_keys().private_key());
-
   // Encrypt the bag with the default Nigori.
-  return cryptographer.Encrypt(keys_for_encryption, encrypted);
+  return cryptographer.Encrypt(proto.key_bag(), encrypted);
 }
 
 // Writes deprecated per-type encryption fields. Can be removed once <M82
@@ -135,12 +128,8 @@ NigoriState NigoriState::CreateFromLocalProto(
     const sync_pb::NigoriModel& proto) {
   NigoriState state;
 
-  state.cryptographer = CryptographerImpl::FromProto(
-      proto.cryptographer_data(),
-      proto.has_cross_user_sharing_public_key()
-          ? absl::optional<uint32_t>(
-                proto.cross_user_sharing_public_key().version())
-          : absl::nullopt);
+  state.cryptographer =
+      CryptographerImpl::FromProto(proto.cryptographer_data());
 
   if (proto.has_pending_keys()) {
     state.pending_keys = proto.pending_keys();
@@ -264,8 +253,7 @@ sync_pb::NigoriModel NigoriState::ToLocalProto() const {
 sync_pb::NigoriSpecifics NigoriState::ToSpecificsProto() const {
   sync_pb::NigoriSpecifics specifics;
   if (cryptographer->CanEncrypt()) {
-    EncryptEncryptionKeys(*cryptographer,
-                          specifics.mutable_encryption_keybag());
+    EncryptKeyBag(*cryptographer, specifics.mutable_encryption_keybag());
   } else {
     DCHECK(pending_keys.has_value());
     // This case is reachable only from processor's GetAllNodesForDebugging(),

@@ -88,9 +88,9 @@ TEST_F(FrameCaretTest, ShouldNotBlinkWhenSelectionLooseFocus) {
       "<div id='outer' tabindex='-1'>"
       "<div id='input' contenteditable>foo</div>"
       "</div>");
-  Element* input = GetDocument().QuerySelector(AtomicString("#input"));
+  Element* input = GetDocument().QuerySelector("#input");
   input->Focus();
-  Element* outer = GetDocument().QuerySelector(AtomicString("#outer"));
+  Element* outer = GetDocument().QuerySelector("#outer");
   outer->Focus();
   UpdateAllLifecyclePhasesForTest();
   const SelectionInDOMTree& selection = Selection().GetSelectionInDOMTree();

@@ -25,19 +25,19 @@ struct SuggestionsContext;
 // Per-profile IBAN Manager. This class handles IBAN-related functionality
 // such as retrieving IBAN data, managing IBAN suggestions, filling IBAN fields,
 // and handling form submission data when there is an IBAN field present.
-class IbanManager : public SingleFieldFormFiller,
+class IBANManager : public SingleFieldFormFiller,
                     public KeyedService,
                     public AutofillSubject {
  public:
   // Initializes the instance with the given parameters. `personal_data_manager`
   // is a profile-scope data manager used to retrieve IBAN data from the
   // local autofill table.
-  explicit IbanManager(PersonalDataManager* personal_data_manager);
+  explicit IBANManager(PersonalDataManager* personal_data_manager);
 
-  IbanManager(const IbanManager&) = delete;
-  IbanManager& operator=(const IbanManager&) = delete;
+  IBANManager(const IBANManager&) = delete;
+  IBANManager& operator=(const IBANManager&) = delete;
 
-  ~IbanManager() override;
+  ~IBANManager() override;
 
   // SingleFieldFormFiller overrides:
   [[nodiscard]] bool OnGetSingleFieldSuggestions(
@@ -56,7 +56,7 @@ class IbanManager : public SingleFieldFormFiller,
   void OnSingleFieldSuggestionSelected(const std::u16string& value,
                                        PopupItemId popup_item_id) override;
 
-  base::WeakPtr<IbanManager> GetWeakPtr();
+  base::WeakPtr<IBANManager> GetWeakPtr();
 
  private:
   // Records metrics related to the IBAN suggestions popup.
@@ -76,14 +76,15 @@ class IbanManager : public SingleFieldFormFiller,
 
   // Sends suggestions for |ibans| to the |query_handler|'s handler for display
   // in the associated Autofill popup.
-  void SendIbanSuggestions(const std::vector<Iban*>& ibans,
+  void SendIBANSuggestions(const std::vector<IBAN*>& ibans,
                            const QueryHandler& query_handler);
 
-  const raw_ptr<PersonalDataManager> personal_data_manager_;
+  raw_ptr<PersonalDataManager, DanglingUntriaged> personal_data_manager_ =
+      nullptr;
 
   UmaRecorder uma_recorder_;
 
-  base::WeakPtrFactory<IbanManager> weak_ptr_factory_{this};
+  base::WeakPtrFactory<IBANManager> weak_ptr_factory_{this};
 };
 
 }  // namespace autofill

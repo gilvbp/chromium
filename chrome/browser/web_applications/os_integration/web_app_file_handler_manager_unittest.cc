@@ -12,7 +12,6 @@
 #include "base/run_loop.h"
 #include "base/test/bind.h"
 #include "chrome/browser/web_applications/os_integration/web_app_file_handler_registration.h"
-#include "chrome/browser/web_applications/test/fake_os_integration_manager.h"
 #include "chrome/browser/web_applications/test/fake_web_app_file_handler_manager.h"
 #include "chrome/browser/web_applications/test/fake_web_app_provider.h"
 #include "chrome/browser/web_applications/test/web_app_install_test_utils.h"
@@ -164,37 +163,36 @@ class WebAppFileHandlerManagerTest : public WebAppTest {
   void SetUp() override {
     WebAppTest::SetUp();
 
-    auto file_handler_manager =
-        std::make_unique<FakeWebAppFileHandlerManager>(profile());
-    file_handler_manager_ = file_handler_manager.get();
-    fake_provider()
-        .os_integration_manager()
-        .AsTestOsIntegrationManager()
-        ->SetFileHandlerManager(std::move(file_handler_manager));
+    provider_ = FakeWebAppProvider::Get(profile());
     test::AwaitStartWebAppProviderAndSubsystems(profile());
+
+    // This is not a WebAppProvider subsystem, so this can be
+    // set after the WebAppProvider has been initialized.
+    file_handler_manager_ =
+        std::make_unique<FakeWebAppFileHandlerManager>(profile());
+    file_handler_manager_->SetSubsystems(&sync_bridge());
 
     auto web_app = test::CreateWebApp();
     app_id_ = web_app->app_id();
     {
-      ScopedRegistryUpdate update =
-          fake_provider().sync_bridge_unsafe().BeginUpdate();
+      ScopedRegistryUpdate update(&sync_bridge());
       update->CreateApp(std::move(web_app));
     }
-  }
-
-  void TearDown() override {
-    file_handler_manager_ = nullptr;
-    WebAppTest::TearDown();
   }
 
   FakeWebAppFileHandlerManager& file_handler_manager() {
     return *file_handler_manager_;
   }
 
+  WebAppProvider& provider() { return *provider_; }
+
+  WebAppSyncBridge& sync_bridge() { return provider_->sync_bridge_unsafe(); }
+
   const AppId& app_id() const { return app_id_; }
 
  private:
-  raw_ptr<FakeWebAppFileHandlerManager> file_handler_manager_ = nullptr;
+  raw_ptr<FakeWebAppProvider, DanglingUntriaged> provider_;
+  std::unique_ptr<FakeWebAppFileHandlerManager> file_handler_manager_;
 
   AppId app_id_;
 };

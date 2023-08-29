@@ -2,9 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// TODO: Rename this file since it's used for more than command-line
-// installations now.
-
 #ifndef CHROME_BROWSER_WEB_APPLICATIONS_ISOLATED_WEB_APPS_INSTALL_ISOLATED_WEB_APP_FROM_COMMAND_LINE_H_
 #define CHROME_BROWSER_WEB_APPLICATIONS_ISOLATED_WEB_APPS_INSTALL_ISOLATED_WEB_APP_FROM_COMMAND_LINE_H_
 
@@ -29,16 +26,12 @@ class Profile;
 namespace web_app {
 
 class IsolatedWebAppUrlInfo;
-class WebAppProvider;
-
-using MaybeInstallIsolatedWebAppCommandSuccess =
-    base::expected<InstallIsolatedWebAppCommandSuccess, std::string>;
-using MaybeIwaLocation =
-    base::expected<absl::optional<IsolatedWebAppLocation>, std::string>;
 
 void GetIsolatedWebAppLocationFromCommandLine(
     const base::CommandLine& command_line,
-    base::OnceCallback<void(MaybeIwaLocation)> callback);
+    base::OnceCallback<void(
+        base::expected<absl::optional<IsolatedWebAppLocation>, std::string>)>
+        callback);
 
 bool HasIwaInstallSwitch(const base::CommandLine& command_line);
 
@@ -62,9 +55,11 @@ class IsolatedWebAppCommandLineInstallManager {
   explicit IsolatedWebAppCommandLineInstallManager(Profile& profile);
   ~IsolatedWebAppCommandLineInstallManager();
 
-  void SetProvider(base::PassKey<WebAppProvider>, WebAppProvider& provider);
+  void SetSubsystems(WebAppCommandScheduler* command_scheduler);
 
   void Start();
+
+  void Shutdown();
 
   // Install an IWA from command line, if the command line specifies the
   // appropriate switches.
@@ -74,25 +69,14 @@ class IsolatedWebAppCommandLineInstallManager {
       std::unique_ptr<ScopedProfileKeepAlive> optional_profile_keep_alive,
       base::TaskPriority task_priority);
 
-  void InstallIsolatedWebAppFromDevModeProxy(
-      const GURL& gurl,
-      base::OnceCallback<void(MaybeInstallIsolatedWebAppCommandSuccess)>
-          callback);
-
   void OnReportInstallationResultForTesting(
-      base::RepeatingCallback<void(MaybeInstallIsolatedWebAppCommandSuccess)>
+      base::RepeatingCallback<void(
+          base::expected<InstallIsolatedWebAppCommandSuccess, std::string>)>
           on_report_installation_result) {
     on_report_installation_result_ = std::move(on_report_installation_result);
   }
 
  private:
-  void InstallIsolatedWebAppFromLocation(
-      std::unique_ptr<ScopedKeepAlive> keep_alive,
-      std::unique_ptr<ScopedProfileKeepAlive> optional_profile_keep_alive,
-      MaybeIwaLocation location,
-      base::OnceCallback<void(MaybeInstallIsolatedWebAppCommandSuccess)>
-          callback);
-
   void OnGetIsolatedWebAppLocationFromCommandLine(
       std::unique_ptr<ScopedKeepAlive> keep_alive,
       std::unique_ptr<ScopedProfileKeepAlive> optional_profile_keep_alive,
@@ -103,22 +87,18 @@ class IsolatedWebAppCommandLineInstallManager {
       std::unique_ptr<ScopedKeepAlive> keep_alive,
       std::unique_ptr<ScopedProfileKeepAlive> optional_profile_keep_alive,
       const IsolatedWebAppLocation& location,
-      base::OnceCallback<void(MaybeInstallIsolatedWebAppCommandSuccess)>
-          callback,
       base::expected<IsolatedWebAppUrlInfo, std::string> url_info);
 
   void OnInstallIsolatedWebApp(
-      base::OnceCallback<void(MaybeInstallIsolatedWebAppCommandSuccess)>
-          callback,
       base::expected<InstallIsolatedWebAppCommandSuccess,
                      InstallIsolatedWebAppCommandError> result);
 
   void ReportInstallationResult(
-      MaybeInstallIsolatedWebAppCommandSuccess result);
+      base::expected<InstallIsolatedWebAppCommandSuccess, std::string> result);
 
   raw_ref<Profile> profile_;
 
-  raw_ptr<WebAppProvider> provider_ = nullptr;
+  raw_ptr<WebAppCommandScheduler> command_scheduler_;
 
   base::RepeatingCallback<void(
       base::expected<InstallIsolatedWebAppCommandSuccess, std::string>)>

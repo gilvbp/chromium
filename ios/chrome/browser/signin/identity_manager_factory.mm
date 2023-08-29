@@ -17,7 +17,6 @@
 #import "components/signin/public/base/signin_client.h"
 #import "components/signin/public/identity_manager/identity_manager.h"
 #import "components/signin/public/identity_manager/identity_manager_builder.h"
-#import "components/sync/base/features.h"
 #import "ios/chrome/app/tests_hook.h"
 #import "ios/chrome/browser/shared/model/application_context/application_context.h"
 #import "ios/chrome/browser/shared/model/browser_state/chrome_browser_state.h"
@@ -26,6 +25,10 @@
 #import "ios/chrome/browser/signin/device_accounts_provider_impl.h"
 #import "ios/chrome/browser/signin/identity_manager_factory_observer.h"
 #import "ios/chrome/browser/signin/signin_client_factory.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 void IdentityManagerFactory::RegisterBrowserStatePrefs(
     user_prefs::PrefRegistrySyncable* registry) {
@@ -95,8 +98,6 @@ std::unique_ptr<KeyedService> IdentityManagerFactory::BuildServiceInstanceFor(
   params.account_tracker_service = std::make_unique<AccountTrackerService>();
   params.account_tracker_service->Initialize(params.pref_service,
                                              params.profile_path);
-  params.should_verify_scope_access =
-      !base::FeatureList::IsEnabled(syncer::kReplaceSyncPromosWithSignInPromos);
 
   std::unique_ptr<ProfileOAuth2TokenServiceDelegate> delegate =
       std::make_unique<ProfileOAuth2TokenServiceIOSDelegate>(

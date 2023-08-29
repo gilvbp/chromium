@@ -14,6 +14,15 @@
 
 namespace weblayer {
 
+namespace {
+
+favicon::LargeFaviconProvider* GetLargeFaviconProvider(
+    content::BrowserContext* browser_context) {
+  return FaviconServiceImplFactory::GetForBrowserContext(browser_context);
+}
+
+}  // namespace
+
 // static
 FaviconServiceImpl* FaviconServiceImplFactory::GetForBrowserContext(
     content::BrowserContext* browser_context) {
@@ -33,7 +42,10 @@ FaviconServiceImplFactory* FaviconServiceImplFactory::GetInstance() {
 FaviconServiceImplFactory::FaviconServiceImplFactory()
     : BrowserContextKeyedServiceFactory(
           "FaviconServiceImpl",
-          BrowserContextDependencyManager::GetInstance()) {}
+          BrowserContextDependencyManager::GetInstance()) {
+  favicon::SetLargeFaviconProviderGetter(
+      base::BindRepeating(&GetLargeFaviconProvider));
+}
 
 FaviconServiceImplFactory::~FaviconServiceImplFactory() = default;
 

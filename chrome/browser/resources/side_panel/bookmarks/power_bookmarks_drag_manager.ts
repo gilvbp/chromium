@@ -18,8 +18,6 @@ export enum DropPosition {
 }
 
 interface PowerBookmarksDragDelegate extends HTMLElement {
-  getFallbackBookmark(): chrome.bookmarks.BookmarkTreeNode;
-  getFallbackDropTargetElement(): HTMLElement;
   onFinishDrop(dropTarget: chrome.bookmarks.BookmarkTreeNode): void;
 }
 
@@ -27,8 +25,6 @@ class DragSession {
   private delegate_: PowerBookmarksDragDelegate;
   private dragData_: chrome.bookmarkManagerPrivate.DragData;
   private lastDragOverElement_: PowerBookmarkRowElement|null = null;
-  private lastDropTargetBookmark_: chrome.bookmarks.BookmarkTreeNode|null =
-      null;
   private lastPointerWasTouch_ = false;
 
   constructor(
@@ -48,78 +44,62 @@ class DragSession {
     const dragOverElement = e.composedPath().find(target => {
       return target instanceof PowerBookmarkRowElement;
     }) as PowerBookmarkRowElement;
-
     if (!dragOverElement) {
-      // Invalid drag over element. Cancel session.
-      this.cancel();
-      return;
-    } else if (dragOverElement === this.lastDragOverElement_) {
-      // State has not changed, nothing to update.
       return;
     }
 
-    this.resetState_();
+    if (dragOverElement !== this.lastDragOverElement_) {
+      this.resetState_();
+    }
 
     const dragOverBookmark = dragOverElement.bookmark;
-    let dropTargetBookmark = dragOverBookmark;
-
-    const invalidDropTarget = dropTargetBookmark.unmodifiable ||
-        dropTargetBookmark.url ||
+    const isInvalidDragOverTarget = dragOverBookmark.unmodifiable ||
+        dragOverBookmark.url ||
         (this.dragData_.elements &&
          this.dragData_.elements.some(
-             element => element.id === dropTargetBookmark.id));
-    if (invalidDropTarget) {
-      dropTargetBookmark = this.delegate_.getFallbackBookmark();
-    }
+             element => element.id === dragOverBookmark.id));
 
-    const draggedBookmarks = this.dragData_.elements!;
-    let dropTargetIsParent = true;
-    draggedBookmarks.forEach((bookmark: chrome.bookmarks.BookmarkTreeNode) => {
-      if (bookmark.parentId !== dropTargetBookmark.id) {
-        dropTargetIsParent = false;
-      }
-    });
-    if (draggedBookmarks.length === 0 || dropTargetIsParent) {
-      this.cancel();
+    if (isInvalidDragOverTarget) {
+      this.lastDragOverElement_ = null;
       return;
     }
 
-    if (dragOverBookmark.url) {
-      this.delegate_.getFallbackDropTargetElement().setAttribute(
-          DROP_POSITION_ATTR, DropPosition.INTO);
-    } else {
-      dragOverElement.setAttribute(DROP_POSITION_ATTR, DropPosition.INTO);
+    if (isInvalidDragOverTarget) {
+      this.lastDragOverElement_ = null;
+      return;
     }
+
+    dragOverElement.setAttribute(DROP_POSITION_ATTR, DropPosition.INTO);
     this.lastDragOverElement_ = dragOverElement;
-    this.lastDropTargetBookmark_ = dropTargetBookmark;
   }
 
   cancel() {
     this.resetState_();
     this.lastDragOverElement_ = null;
-    this.lastDropTargetBookmark_ = null;
   }
 
   finish() {
-    // TODO(crbug/1444154): Ensure it is possible to drag bookmarks into an
-    // empty active folder.
-    if (!this.lastDropTargetBookmark_) {
+    if (!this.lastDragOverElement_) {
       return;
     }
+
+    const dropTargetBookmark = this.lastDragOverElement_.bookmark;
+    this.resetState_();
+
+    const draggedBookmarks = this.dragData_.elements!;
+    if (draggedBookmarks.length === 0) {
+      return;
+    }
+
     chrome.bookmarkManagerPrivate
-        .drop(this.lastDropTargetBookmark_.id, /* index */ undefined)
-        .then(() => {
-          this.delegate_.onFinishDrop(this.lastDropTargetBookmark_!);
-          this.cancel();
-        });
+        .drop(dropTargetBookmark.id, /* index */ undefined)
+        .then(() => this.delegate_.onFinishDrop(dropTargetBookmark));
   }
 
   private resetState_() {
     if (this.lastDragOverElement_) {
       this.lastDragOverElement_.removeAttribute(DROP_POSITION_ATTR);
     }
-    this.delegate_.getFallbackDropTargetElement().removeAttribute(
-        DROP_POSITION_ATTR);
   }
 
   static createFromBookmark(
@@ -142,7 +122,6 @@ export class PowerBookmarksDragManager {
   }
 
   startObserving() {
-    this.eventTracker_.removeAll();
     this.eventTracker_.add(
         this.delegate_, 'dragstart',
         (e: Event) => this.onDragStart_(e as DragEvent));

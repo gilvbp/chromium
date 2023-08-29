@@ -25,14 +25,11 @@
 #include "base/strings/string_util.h"
 #include "base/strings/utf_string_conversions.h"
 #include "base/system/sys_info.h"
-#include "base/time/time.h"
-#include "base/types/cxx23_to_underlying.h"
 #include "chrome/browser/ash/accessibility/magnification_manager.h"
 #include "chrome/browser/ash/base/locale_util.h"
 #include "chrome/browser/ash/child_accounts/parent_access_code/parent_access_service.h"
 #include "chrome/browser/ash/crosapi/browser_util.h"
 #include "chrome/browser/ash/drive/file_system_util.h"
-#include "chrome/browser/ash/input_method/editor_consent_store.h"
 #include "chrome/browser/ash/input_method/input_method_persistence.h"
 #include "chrome/browser/ash/input_method/input_method_syncer.h"
 #include "chrome/browser/ash/login/hid_detection_revamp_field_trial.h"
@@ -280,7 +277,6 @@ void Preferences::RegisterProfilePrefs(
   // Do not sync kDriveFsBulkPinningEnabled as this maintains files that are
   // locally pinned to this device and should not sync the state across multiple
   // devices.
-  registry->RegisterBooleanPref(drive::prefs::kDriveFsBulkPinningVisible, true);
   registry->RegisterBooleanPref(drive::prefs::kDriveFsBulkPinningEnabled,
                                 false);
   // We don't sync ::prefs::kLanguageCurrentInputMethod and PreviousInputMethod
@@ -297,16 +293,10 @@ void Preferences::RegisterProfilePrefs(
   registry->RegisterBooleanPref(prefs::kAssistPredictiveWritingEnabled, true);
   registry->RegisterBooleanPref(prefs::kEmojiSuggestionEnabled, true);
   registry->RegisterBooleanPref(prefs::kEmojiSuggestionEnterpriseAllowed, true);
-  registry->RegisterBooleanPref(prefs::kOrcaEnabled, false);
   registry->RegisterBooleanPref(
       prefs::kManagedPhysicalKeyboardAutocorrectAllowed, true);
   registry->RegisterBooleanPref(
       prefs::kManagedPhysicalKeyboardPredictiveWritingAllowed, true);
-  registry->RegisterIntegerPref(
-      prefs::kOrcaConsentStatus,
-      base::to_underlying(input_method::ConsentStatus::kUnset));
-  registry->RegisterIntegerPref(prefs::kOrcaConsentWindowDismissCount, 0);
-  registry->RegisterBooleanPref(prefs::kEmojiPickerGifSupportEnabled, true);
   registry->RegisterDictionaryPref(
       ::prefs::kLanguageInputMethodSpecificSettings);
   registry->RegisterBooleanPref(prefs::kLastUsedImeShortcutReminderDismissed,
@@ -491,10 +481,10 @@ void Preferences::RegisterProfilePrefs(
 
   registry->RegisterBooleanPref(::prefs::kHatsPeripheralsIsSelected, false);
 
-  registry->RegisterBooleanPref(::prefs::kHatsPrivacyHubPostLaunchIsSelected,
+  registry->RegisterBooleanPref(::prefs::kHatsPrivacyHubBaselineIsSelected,
                                 false);
 
-  registry->RegisterInt64Pref(::prefs::kHatsPrivacyHubPostLaunchCycleEndTs, 0);
+  registry->RegisterInt64Pref(::prefs::kHatsPrivacyHubBaselineCycleEndTs, 0);
 
   // Personalization HaTS survey prefs for avatar, screensaver, and wallpaper
   // features.
@@ -606,8 +596,6 @@ void Preferences::RegisterProfilePrefs(
   registry->RegisterInt64Pref(::prefs::kHatsBorealisGamesSurveyCycleEndTs, 0);
   registry->RegisterBooleanPref(::prefs::kHatsBorealisGamesSurveyIsSelected,
                                 false);
-  registry->RegisterTimePref(
-      ::prefs::kHatsBorealisGamesLastInteractionTimestamp, base::Time());
 
   registry->RegisterBooleanPref(prefs::kShowDisplaySizeScreenEnabled, true);
 
@@ -615,8 +603,6 @@ void Preferences::RegisterProfilePrefs(
 
   registry->RegisterBooleanPref(::prefs::kHasResetFirst7DaysSettingsUsedCount,
                                 false);
-
-  registry->RegisterBooleanPref(::prefs::kHasEverRevokedMetricsConsent, true);
 }
 
 void Preferences::InitUserPrefs(sync_preferences::PrefServiceSyncable* prefs) {
@@ -1124,7 +1110,7 @@ void Preferences::ApplyPreferences(ApplyReason reason,
       split_values = base::SplitString(value, ",", base::TRIM_WHITESPACE,
                                        base::SPLIT_WANT_ALL);
     }
-    ime_state_->SetEnabledExtensionImes(split_values);
+    ime_state_->SetEnabledExtensionImes(&split_values);
   }
 
   if (pref_name == ::prefs::kLanguageImeMenuActivated &&
@@ -1318,23 +1304,20 @@ void Preferences::SetInputMethodList() {
 }
 
 void Preferences::UpdateAutoRepeatRate() {
-  input_method::AutoRepeatRate rate{
-      .initial_delay =
-          base::Milliseconds(xkb_auto_repeat_delay_pref_.GetValue()),
-      .repeat_interval =
-          base::Milliseconds(xkb_auto_repeat_interval_pref_.GetValue()),
-  };
-  DCHECK(rate.initial_delay.is_positive());
-  DCHECK(rate.repeat_interval.is_positive());
+  input_method::AutoRepeatRate rate;
+  rate.initial_delay_in_ms = xkb_auto_repeat_delay_pref_.GetValue();
+  rate.repeat_interval_in_ms = xkb_auto_repeat_interval_pref_.GetValue();
+  DCHECK(rate.initial_delay_in_ms > 0);
+  DCHECK(rate.repeat_interval_in_ms > 0);
   input_method::InputMethodManager::Get()->GetImeKeyboard()->SetAutoRepeatRate(
       rate);
 
   user_manager::KnownUser known_user(g_browser_process->local_state());
   known_user.SetIntegerPref(user_->GetAccountId(), prefs::kXkbAutoRepeatDelay,
-                            rate.initial_delay.InMilliseconds());
+                            rate.initial_delay_in_ms);
   known_user.SetIntegerPref(user_->GetAccountId(),
                             prefs::kXkbAutoRepeatInterval,
-                            rate.repeat_interval.InMilliseconds());
+                            rate.repeat_interval_in_ms);
 }
 
 void Preferences::ActiveUserChanged(user_manager::User* active_user) {

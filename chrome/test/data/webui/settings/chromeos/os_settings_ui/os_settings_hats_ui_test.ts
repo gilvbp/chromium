@@ -4,9 +4,8 @@
 
 /** @fileoverview Suite of tests for the OS Settings ui for hats. */
 
-import 'chrome://os-settings/os_settings.js';
-
-import {CrSettingsPrefs, CrToolbarSearchFieldElement, OsSettingsHatsBrowserProxyImpl, OsSettingsSearchBoxElement, OsSettingsUiElement, OsToolbarElement} from 'chrome://os-settings/os_settings.js';
+import {CrSettingsPrefs, OsSettingsHatsBrowserProxyImpl, OsSettingsSearchBoxElement, OsSettingsUiElement, OsToolbarElement} from 'chrome://os-settings/os_settings.js';
+import {CrToolbarSearchFieldElement} from 'chrome://resources/cr_elements/cr_toolbar/cr_toolbar_search_field.js';
 import {assert} from 'chrome://resources/js/assert_ts.js';
 import {flush} from 'chrome://resources/polymer/v3_0/polymer/polymer_bundled.min.js';
 import {eventToPromise} from 'chrome://webui-test/test_util.js';
@@ -24,7 +23,7 @@ suite('OSSettingsUiHats', function() {
     browserProxy = new TestOsSettingsHatsBrowserProxy();
     OsSettingsHatsBrowserProxyImpl.setInstanceForTesting(browserProxy);
 
-    document.body.innerHTML = window.trustedTypes!.emptyHTML;
+    document.body.innerHTML = '';
     ui = document.createElement('os-settings-ui');
     document.body.appendChild(ui);
     await CrSettingsPrefs.initialized;

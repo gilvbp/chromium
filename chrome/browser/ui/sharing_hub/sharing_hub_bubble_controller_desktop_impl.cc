@@ -95,7 +95,7 @@ SharingHubBubbleControllerDesktopImpl::GetFirstPartyActions() {
 
   SharingHubModel* model = GetSharingHubModel();
   if (model) {
-    actions = model->GetFirstPartyActionList(&GetWebContents());
+    model->GetFirstPartyActionList(&GetWebContents(), &actions);
   }
 
   return actions;

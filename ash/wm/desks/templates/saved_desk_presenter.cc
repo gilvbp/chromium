@@ -297,8 +297,7 @@ class WindowCloseObserver : public aura::WindowObserver {
 
   // The desk that the user has saved and that we will remove once windows have
   // been removed.
-  raw_ptr<const Desk, DanglingUntriaged | ExperimentalAsh> desk_to_remove_ =
-      nullptr;
+  raw_ptr<const Desk, ExperimentalAsh> desk_to_remove_ = nullptr;
 
   // UUID and name of the saved desk.
   const base::Uuid saved_desk_uuid_;
@@ -455,6 +454,10 @@ void SavedDeskPresenter::SaveOrUpdateSavedDesk(
     saved_desk->set_template_name(
         AppendDuplicateNumberToDuplicateName(saved_desk->template_name()));
   }
+
+  // TODO(crbug.com/1442076): Remove after issue is root caused.
+  LOG(ERROR) << "Windows written to file by Ash: \n"
+             << saved_desk->ToDebugString();
 
   // Save or update `desk_template` as an entry in DeskModel.
   GetDeskModel()->AddOrUpdateEntry(

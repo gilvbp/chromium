@@ -21,7 +21,6 @@ const base::Feature* const kAllFeatures[] = {
     &kIPHAdaptiveButtonInTopToolbarCustomizationVoiceSearchFeature,
     &kIPHAdaptiveButtonInTopToolbarCustomizationAddToBookmarksFeature,
     &kIPHAdaptiveButtonInTopToolbarCustomizationTranslateFeature,
-    &kIPHAdaptiveButtonInTopToolbarCustomizationReadAloudFeature,
     &kIPHAddToHomescreenMessageFeature,
     &kIPHAutoDarkOptOutFeature,
     &kIPHAutoDarkUserEducationMessageFeature,
@@ -83,6 +82,7 @@ const base::Feature* const kAllFeatures[] = {
     &kIPHRequestDesktopSiteDefaultOnFeature,
     &kIPHRequestDesktopSiteOptInFeature,
     &kIPHRequestDesktopSiteExceptionsGenericFeature,
+    &kIPHRequestDesktopSiteExceptionsSpecificFeature,
     &kIPHShoppingListMenuItemFeature,
     &kIPHShoppingListSaveFlowFeature,
     &kIPHTabGroupsQuicklyComparePagesFeature,
@@ -126,6 +126,7 @@ const base::Feature* const kAllFeatures[] = {
     &kIPHiOSDefaultBrowserOverflowMenuBadgeFeature,
     &kIPHiOSDefaultBrowserSettingsBadgeFeature,
     &kIPHiOSPromoAppStoreFeature,
+    &kIPHTabPinnedFeature,
     &kIPHiOSPromoWhatsNewFeature,
     &kIPHiOSPromoPostRestoreFeature,
     &kIPHiOSPromoCredentialProviderExtensionFeature,
@@ -136,7 +137,6 @@ const base::Feature* const kAllFeatures[] = {
     &kIPHiOSShareToolbarItemFeature,
     &kIPHiOSDefaultBrowserVideoPromoTriggerFeature,
     &kIPHiOSPromoPostRestoreDefaultBrowserFeature,
-    &kIPHiOSPromoPasswordManagerWidgetFeature,
 #endif  // BUILDFLAG(IS_IOS)
 #if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_APPLE) || BUILDFLAG(IS_LINUX) || \
     BUILDFLAG(IS_CHROMEOS) || BUILDFLAG(IS_FUCHSIA)
@@ -146,10 +146,8 @@ const base::Feature* const kAllFeatures[] = {
     &kIPHCompanionSidePanelRegionSearchFeature,
     &kIPHDesktopTabGroupsNewGroupFeature,
     &kIPHDesktopCustomizeChromeFeature,
-    &kIPHDesktopCustomizeChromeRefreshFeature,
     &kIPHDownloadToolbarButtonFeature,
     &kIPHExtensionsMenuFeature,
-    &kIPHExtensionsRequestAccessButtonFeature,
     &kIPHFocusHelpBubbleScreenReaderPromoFeature,
     &kIPHGMCCastStartStopFeature,
     &kIPHHighEfficiencyModeFeature,
@@ -164,7 +162,6 @@ const base::Feature* const kAllFeatures[] = {
     &kIPHPowerBookmarksSidePanelFeature,
     &kIPHPriceInsightsPageActionIconLabelFeature,
     &kIPHPriceTrackingChipFeature,
-    &kIPHPriceTrackingEmailConsentFeature,
     &kIPHPriceTrackingPageActionIconLabelFeature,
     &kIPHReadingListDiscoveryFeature,
     &kIPHReadingListEntryPointFeature,
@@ -187,9 +184,7 @@ const base::Feature* const kAllFeatures[] = {
 #if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_APPLE) || BUILDFLAG(IS_LINUX) || \
     BUILDFLAG(IS_CHROMEOS) || BUILDFLAG(IS_ANDROID) || BUILDFLAG(IS_FUCHSIA)
     &kIPHAutofillExternalAccountProfileSuggestionFeature,
-    &kIPHAutofillVirtualCardCVCSuggestionFeature,
     &kIPHAutofillVirtualCardSuggestionFeature,
-    &kIPHCookieControlsFeature,
 #endif  // BUILDFLAG(IS_WIN) || BUILDFLAG(IS_APPLE) || BUILDFLAG(IS_LINUX) ||
         // BUILDFLAG(IS_CHROMEOS) || BUILDFLAG(IS_ANDROID) ||
         // BUILDFLAG(IS_FUCHSIA)
@@ -197,42 +192,12 @@ const base::Feature* const kAllFeatures[] = {
 #if BUILDFLAG(IS_CHROMEOS_ASH)
     &kIPHGoogleOneOfferNotificationFeature,
     &kIPHLauncherSearchHelpUiFeature,
-    &kIPHScalableIphTimerBasedOneFeature,
-    &kIPHScalableIphTimerBasedTwoFeature,
-    &kIPHScalableIphTimerBasedThreeFeature,
-    &kIPHScalableIphTimerBasedFourFeature,
-    &kIPHScalableIphTimerBasedFiveFeature,
-    &kIPHScalableIphTimerBasedSixFeature,
-    &kIPHScalableIphTimerBasedSevenFeature,
-    &kIPHScalableIphTimerBasedEightFeature,
-    &kIPHScalableIphTimerBasedNineFeature,
-    &kIPHScalableIphTimerBasedTenFeature,
-    &kIPHScalableIphUnlockedBasedOneFeature,
-    &kIPHScalableIphUnlockedBasedTwoFeature,
-    &kIPHScalableIphUnlockedBasedThreeFeature,
-    &kIPHScalableIphUnlockedBasedFourFeature,
-    &kIPHScalableIphUnlockedBasedFiveFeature,
-    &kIPHScalableIphUnlockedBasedSixFeature,
-    &kIPHScalableIphUnlockedBasedSevenFeature,
-    &kIPHScalableIphUnlockedBasedEightFeature,
-    &kIPHScalableIphUnlockedBasedNineFeature,
-    &kIPHScalableIphUnlockedBasedTenFeature,
-    &kIPHScalableIphHelpAppBasedNudgeFeature,
-    &kIPHScalableIphHelpAppBasedOneFeature,
-    &kIPHScalableIphHelpAppBasedTwoFeature,
-    &kIPHScalableIphHelpAppBasedThreeFeature,
-    &kIPHScalableIphHelpAppBasedFourFeature,
-    &kIPHScalableIphHelpAppBasedFiveFeature,
-    &kIPHScalableIphHelpAppBasedSixFeature,
-    &kIPHScalableIphHelpAppBasedSevenFeature,
-    &kIPHScalableIphHelpAppBasedEightFeature,
-    &kIPHScalableIphHelpAppBasedNineFeature,
-    &kIPHScalableIphHelpAppBasedTenFeature,
 #endif  // BUILDFLAG(IS_CHROMEOS_ASH)
 
 #if !BUILDFLAG(IS_ANDROID) && BUILDFLAG(GOOGLE_CHROME_BRANDING)
     &kIPHiOSPasswordPromoDesktopFeature,
 #endif  // !BUILDFLAG(IS_ANDROID) && BUILDFLAG(GOOGLE_CHROME_BRANDING)
+
 };
 }  // namespace
 

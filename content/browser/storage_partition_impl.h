@@ -94,7 +94,6 @@ class PrivateAggregationManagerImpl;
 class PushMessagingContext;
 class ResourceCacheManager;
 class QuotaContext;
-class SharedDictionaryAccessObserver;
 class SharedStorageHeaderObserver;
 class SharedStorageWorkletHostManager;
 class SharedWorkerServiceImpl;
@@ -348,12 +347,6 @@ class CONTENT_EXPORT StoragePartitionImpl
       const scoped_refptr<net::HttpResponseHeaders>& head_headers,
       mojo::PendingRemote<network::mojom::AuthChallengeResponder>
           auth_challenge_responder) override;
-  void OnPrivateNetworkAccessPermissionRequired(
-      const GURL& url,
-      const net::IPAddress& ip_address,
-      const std::string& private_network_device_id,
-      const std::string& private_network_device_name,
-      OnPrivateNetworkAccessPermissionRequiredCallback callback) override;
   void OnClearSiteData(
       const GURL& url,
       const std::string& header_value,
@@ -437,9 +430,6 @@ class CONTENT_EXPORT StoragePartitionImpl
   mojo::PendingRemote<network::mojom::TrustTokenAccessObserver>
   CreateTrustTokenAccessObserverForServiceWorker();
 
-  mojo::PendingRemote<network::mojom::SharedDictionaryAccessObserver>
-  CreateSharedDictionaryAccessObserverForServiceWorker();
-
   mojo::PendingRemote<network::mojom::URLLoaderNetworkServiceObserver>
   CreateAuthCertObserverForServiceWorker();
 
@@ -513,7 +503,6 @@ class CONTENT_EXPORT StoragePartitionImpl
   class URLLoaderFactoryForBrowserProcess;
   class ServiceWorkerCookieAccessObserver;
   class ServiceWorkerTrustTokenAccessObserver;
-  class ServiceWorkerSharedDictionaryAccessObserver;
 
   friend class BackgroundSyncManagerTest;
   friend class BackgroundSyncServiceImplTestHarness;
@@ -772,11 +761,6 @@ class CONTENT_EXPORT StoragePartitionImpl
   // about Trust Token accesses made by a service worker in this process.
   mojo::UniqueReceiverSet<network::mojom::TrustTokenAccessObserver>
       service_worker_trust_token_observers_;
-
-  // A set of connections to the network service used to notify browser process
-  // about shared dictionary accesses made by a service worker in this process.
-  mojo::UniqueReceiverSet<network::mojom::SharedDictionaryAccessObserver>
-      service_worker_shared_dictionary_observers_;
 
   mojo::ReceiverSet<network::mojom::URLLoaderNetworkServiceObserver,
                     URLLoaderNetworkContext>

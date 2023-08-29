@@ -110,7 +110,6 @@ class RTCRtpReceiver final : public ScriptWrappable,
       scoped_refptr<base::SingleThreadTaskRunner> task_runner);
   void SetVideoUnderlyingSink(
       RTCEncodedVideoUnderlyingSink* new_underlying_sink);
-  void LogMessage(const std::string& message);
 
   Member<RTCPeerConnection> pc_;
   std::unique_ptr<RTCRtpReceiverPlatform> receiver_;

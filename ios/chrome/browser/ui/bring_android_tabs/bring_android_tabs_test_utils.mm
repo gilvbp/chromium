@@ -4,13 +4,11 @@
 
 #import "ios/chrome/browser/ui/bring_android_tabs/bring_android_tabs_test_utils.h"
 
-#import "base/strings/sys_string_conversions.h"
 #import "ios/chrome/browser/bring_android_tabs/features.h"
 #import "ios/chrome/browser/signin/fake_system_identity.h"
 #import "ios/chrome/browser/ui/authentication/signin_earl_grey.h"
 #import "ios/chrome/browser/ui/authentication/signin_earl_grey_ui_test_util.h"
 #import "ios/chrome/browser/ui/bring_android_tabs/bring_android_tabs_app_interface.h"
-#import "ios/chrome/browser/ui/bring_android_tabs/bring_android_tabs_test_session.h"
 #import "ios/chrome/browser/ui/bring_android_tabs/constants.h"
 #import "ios/chrome/common/ui/promo_style/constants.h"
 #import "ios/chrome/test/earl_grey/chrome_earl_grey.h"
@@ -19,9 +17,12 @@
 #import "ios/testing/earl_grey/app_launch_configuration.h"
 #import "ios/testing/earl_grey/app_launch_manager.h"
 #import "ios/testing/earl_grey/earl_grey_test.h"
-#import "url/gurl.h"
 
 #import <memory>
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace {
 
@@ -80,14 +81,6 @@ void CompleteFREWithSyncEnabled(BOOL sync) {
   }
 }
 
-void AddSessionToFakeSyncServerFromTestServer(
-    BringAndroidTabsTestSession session,
-    const GURL& test_server) {
-  [BringAndroidTabsAppInterface
-      addFakeSyncServerSession:session
-                fromTestServer:base::SysUTF8ToNSString(test_server.spec())];
-}
-
 void SignInAndSync() {
   FakeSystemIdentity* fake_identity = [FakeSystemIdentity fakeIdentity1];
   [SigninEarlGrey addFakeIdentity:fake_identity];
@@ -125,18 +118,14 @@ void VerifyTabListPromptVisibility(BOOL visibility) {
                                    : grey_notVisible()];
 }
 
-int GetTabCountOnPrompt() {
-  return [BringAndroidTabsAppInterface tabsCountForPrompt];
-}
-
-void VerifyThatPromptDoesNotShowOnRestart(BOOL bottom_message,
-                                          const GURL& test_server) {
+void VerifyThatPromptDoesNotShowOnRestart(BOOL bottom_message) {
   AppLaunchConfiguration config =
       GetConfiguration(/*is_android_switcher=*/YES,
                        /*show_bottom_message=*/bottom_message);
   [[AppLaunchManager sharedManager] ensureAppLaunchedWithConfiguration:config];
-  AddSessionToFakeSyncServerFromTestServer(
-      BringAndroidTabsTestSession::kRecentFromAndroidPhone, test_server);
+  [BringAndroidTabsAppInterface
+      addSessionToFakeSyncServer:BringAndroidTabsAppInterfaceForeignSession::
+                                     kRecentFromAndroidPhone];
   CompleteFREWithSyncEnabled(YES);
   [ChromeEarlGreyUI openTabGrid];
   if (bottom_message) {

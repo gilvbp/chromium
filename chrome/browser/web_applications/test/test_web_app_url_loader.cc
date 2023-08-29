@@ -6,7 +6,7 @@
 
 #include "base/containers/contains.h"
 #include "base/functional/callback.h"
-#include "base/task/sequenced_task_runner.h"
+#include "base/task/single_thread_task_runner.h"
 
 namespace web_app {
 
@@ -70,8 +70,17 @@ void TestWebAppUrlLoader::LoadUrl(const GURL& url,
   if (responses.results.empty())
     next_result_map_.erase(url);
 
-  base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
+  base::SingleThreadTaskRunner::GetCurrentDefault()->PostTask(
       FROM_HERE, base::BindOnce(std::move(callback), result));
+}
+
+void TestWebAppUrlLoader::SetPrepareForLoadResultLoaded() {
+  AddPrepareForLoadResults({WebAppUrlLoader::Result::kUrlLoaded});
+}
+
+void TestWebAppUrlLoader::AddPrepareForLoadResults(
+    const std::vector<Result>& results) {
+  AddNextLoadUrlResults(GURL(url::kAboutBlankURL), results);
 }
 
 TestWebAppUrlLoader::UrlResponses::UrlResponses() = default;

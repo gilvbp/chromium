@@ -52,7 +52,6 @@
       </if>
       <if expr="toolkit_views">
         <structure type="chrome_scaled_image" name="IDR_AUTOFILL_OFFERS" file="common/autofill_offers.png" />
-        <structure type="chrome_scaled_image" name="IDR_AUTOFILL_OFFERS_CHROME_REFRESH_2023" file="common/autofill_offers_chrome_refresh_2023.png" />
       </if>
       <if expr="chromeos_ash">
         <structure type="chrome_scaled_image" name="IDR_AVATAR_HOLDER" file="cros/avatar_holder.png" />
@@ -129,14 +128,6 @@
         <structure type="chrome_scaled_image" name="IDR_NTP_FAVICON" file="common/favicon_ntp.png" />
         <structure type="chrome_scaled_image" name="IDR_PASSWORD_CHECK" file="common/password_check.png" />
         <structure type="chrome_scaled_image" name="IDR_PASSWORD_CHECK_DARK" file="common/password_check_dark.png" />
-        <if expr="_google_chrome">
-          <then>
-            <structure type="chrome_scaled_image" name="IDR_PASSWORD_MANAGER_FAVICON" file="google_chrome/favicon_chrome_password_manager.png" />
-          </then>
-          <else>
-            <structure type="chrome_scaled_image" name="IDR_PASSWORD_MANAGER_FAVICON" file="chromium/favicon_password_manager.png" />
-          </else>
-        </if>
       </if>
       <structure type="chrome_scaled_image" name="IDR_PLUGINS_FAVICON" file="common/favicon_plugins.png" />
       <if expr="not is_android">

@@ -16,54 +16,43 @@ FakePrintscanmgrClient::~FakePrintscanmgrClient() = default;
 void FakePrintscanmgrClient::Init(dbus::Bus* bus) {}
 
 void FakePrintscanmgrClient::CupsAddManuallyConfiguredPrinter(
-    const printscanmgr::CupsAddManuallyConfiguredPrinterRequest& request,
-    chromeos::DBusMethodCallback<
-        printscanmgr::CupsAddManuallyConfiguredPrinterResponse> callback) {
-  printers_.insert(request.name());
-  printscanmgr::CupsAddManuallyConfiguredPrinterResponse response;
-  response.set_result(
-      printscanmgr::AddPrinterResult::ADD_PRINTER_RESULT_SUCCESS);
+    const std::string& name,
+    const std::string& uri,
+    const std::string& ppd_contents,
+    CupsAddPrinterCallback callback) {
+  printers_.insert(name);
   base::SingleThreadTaskRunner::GetCurrentDefault()->PostTask(
-      FROM_HERE, base::BindOnce(std::move(callback), response));
+      FROM_HERE, base::BindOnce(std::move(callback), 0));
 }
 
 void FakePrintscanmgrClient::CupsAddAutoConfiguredPrinter(
-    const printscanmgr::CupsAddAutoConfiguredPrinterRequest& request,
-    chromeos::DBusMethodCallback<
-        printscanmgr::CupsAddAutoConfiguredPrinterResponse> callback) {
-  printers_.insert(request.name());
-  printscanmgr::CupsAddAutoConfiguredPrinterResponse response;
-  response.set_result(
-      printscanmgr::AddPrinterResult::ADD_PRINTER_RESULT_SUCCESS);
+    const std::string& name,
+    const std::string& uri,
+    CupsAddPrinterCallback callback) {
+  printers_.insert(name);
   base::SingleThreadTaskRunner::GetCurrentDefault()->PostTask(
-      FROM_HERE, base::BindOnce(std::move(callback), response));
+      FROM_HERE, base::BindOnce(std::move(callback), 0));
 }
 
 void FakePrintscanmgrClient::CupsRemovePrinter(
-    const printscanmgr::CupsRemovePrinterRequest& request,
-    chromeos::DBusMethodCallback<printscanmgr::CupsRemovePrinterResponse>
-        callback,
+    const std::string& name,
+    CupsRemovePrinterCallback callback,
     base::OnceClosure error_callback) {
-  const bool has_printer = base::Contains(printers_, request.name());
+  const bool has_printer = base::Contains(printers_, name);
   if (has_printer) {
-    printers_.erase(request.name());
+    printers_.erase(name);
   }
 
-  printscanmgr::CupsRemovePrinterResponse response;
-  response.set_result(has_printer);
   base::SingleThreadTaskRunner::GetCurrentDefault()->PostTask(
-      FROM_HERE, base::BindOnce(std::move(callback), response));
+      FROM_HERE, base::BindOnce(std::move(callback), has_printer));
 }
 
 void FakePrintscanmgrClient::CupsRetrievePrinterPpd(
-    const printscanmgr::CupsRetrievePpdRequest& request,
-    chromeos::DBusMethodCallback<printscanmgr::CupsRetrievePpdResponse>
-        callback,
+    const std::string& name,
+    CupsRetrievePrinterPpdCallback callback,
     base::OnceClosure error_callback) {
-  printscanmgr::CupsRetrievePpdResponse response;
-  response.set_ppd(std::string(ppd_data_.begin(), ppd_data_.end()));
   base::SingleThreadTaskRunner::GetCurrentDefault()->PostTask(
-      FROM_HERE, base::BindOnce(std::move(callback), response));
+      FROM_HERE, base::BindOnce(std::move(callback), ppd_data_));
 }
 
 void FakePrintscanmgrClient::SetPpdDataForTesting(

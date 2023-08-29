@@ -405,10 +405,7 @@ void AccelerometerProviderMojo::RegisterAccelerometerWithId(int32_t id) {
     return;
   }
 
-  if (accelerometer.remote.is_bound()) {
-    // Has already been registered.
-    return;
-  }
+  DCHECK(!accelerometer.remote.is_bound());
   DCHECK(!accelerometer.samples_observer.get());
 
   if (!sensor_service_remote_.is_bound()) {

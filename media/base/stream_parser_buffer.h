@@ -138,6 +138,13 @@ class MEDIA_EXPORT StreamParserBuffer : public DecoderBuffer {
                                                     bool is_key_frame,
                                                     Type type,
                                                     TrackId track_id);
+  static scoped_refptr<StreamParserBuffer> CopyFrom(const uint8_t* data,
+                                                    int data_size,
+                                                    const uint8_t* side_data,
+                                                    int side_data_size,
+                                                    bool is_key_frame,
+                                                    Type type,
+                                                    TrackId track_id);
   static scoped_refptr<StreamParserBuffer> FromExternalMemory(
       std::unique_ptr<ExternalMemory> external_memory,
       bool is_key_frame,
@@ -193,6 +200,8 @@ class MEDIA_EXPORT StreamParserBuffer : public DecoderBuffer {
                      TrackId track_id);
   StreamParserBuffer(const uint8_t* data,
                      int data_size,
+                     const uint8_t* side_data,
+                     int side_data_size,
                      bool is_key_frame,
                      Type type,
                      TrackId track_id);

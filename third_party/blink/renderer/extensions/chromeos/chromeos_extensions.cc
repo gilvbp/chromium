@@ -25,18 +25,9 @@ void ChromeOSDataPropertyGetCallback(
                              info.Holder()->GetCreationContextChecked());
 }
 
-// Whether we should install ChromeOS extensions in `execution_context`.
-bool IsSupportedExecutionContext(ExecutionContext* execution_context) {
-  if (!execution_context) {
-    return false;
-  }
-  return execution_context->IsWindow() ||
-         execution_context->IsServiceWorkerGlobalScope();
-}
-
 void InstallChromeOSExtensions(ScriptState* script_state) {
   auto* execution_context = ExecutionContext::From(script_state);
-  if (!IsSupportedExecutionContext(execution_context) ||
+  if (!execution_context || !execution_context->IsServiceWorkerGlobalScope() ||
       !RuntimeEnabledFeatures::BlinkExtensionChromeOSEnabled()) {
     return;
   }

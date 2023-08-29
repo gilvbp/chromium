@@ -71,22 +71,19 @@ Position AdjustedSelectionStartForStyleComputation(const Position& position) {
 bool EditingStyleUtilities::HasAncestorVerticalAlignStyle(Node& node,
                                                           CSSValueID value) {
   for (Node& runner : NodeTraversal::InclusiveAncestorsOf(node)) {
-    if (Element* ancestor = DynamicTo<Element>(runner)) {
-      auto* ancestor_style =
-          MakeGarbageCollected<CSSComputedStyleDeclaration>(ancestor);
-      if (GetIdentifierValue(ancestor_style, CSSPropertyID::kVerticalAlign) ==
-          value) {
-        return true;
-      }
-    }
+    auto* ancestor_style =
+        MakeGarbageCollected<CSSComputedStyleDeclaration>(&runner);
+    if (GetIdentifierValue(ancestor_style, CSSPropertyID::kVerticalAlign) ==
+        value)
+      return true;
   }
   return false;
 }
 
 EditingStyle*
 EditingStyleUtilities::CreateWrappingStyleForAnnotatedSerialization(
-    Element* context) {
-  // TODO(editing-dev): Change this function to take |const Element&|.
+    ContainerNode* context) {
+  // TODO(editing-dev): Change this function to take |const ContainerNode&|.
   // Tracking bug for this is crbug.com/766448.
   DCHECK(context);
   EditingStyle* wrapping_style = MakeGarbageCollected<EditingStyle>(
@@ -109,7 +106,7 @@ EditingStyleUtilities::CreateWrappingStyleForAnnotatedSerialization(
 }
 
 EditingStyle* EditingStyleUtilities::CreateWrappingStyleForSerialization(
-    Element* context) {
+    ContainerNode* context) {
   DCHECK(context);
   EditingStyle* wrapping_style = MakeGarbageCollected<EditingStyle>();
 
@@ -232,11 +229,7 @@ bool EditingStyleUtilities::HasTransparentBackgroundColor(
 
 const CSSValue* EditingStyleUtilities::BackgroundColorValueInEffect(
     Node* node) {
-  Element* ancestor = DynamicTo<Element>(node);
-  if (!ancestor && node) {
-    ancestor = FlatTreeTraversal::ParentElement(*node);
-  }
-  for (; ancestor; ancestor = FlatTreeTraversal::ParentElement(*ancestor)) {
+  for (Node* ancestor = node; ancestor; ancestor = ancestor->parentNode()) {
     auto* ancestor_style =
         MakeGarbageCollected<CSSComputedStyleDeclaration>(ancestor);
     if (!HasTransparentBackgroundColor(ancestor_style)) {

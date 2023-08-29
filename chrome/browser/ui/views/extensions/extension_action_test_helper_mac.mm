@@ -8,6 +8,10 @@
 
 #import "ui/base/test/windowed_nsnotification_observer.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 bool ExtensionActionTestHelper::WaitForPopup() {
   NSWindow* window = GetPopupNativeView().GetNativeNSView().window;
   if (!window)

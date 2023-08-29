@@ -48,7 +48,7 @@ class LocalDOMWindow;
 class SpeechRecognitionController;
 
 class MODULES_EXPORT SpeechRecognition final
-    : public EventTarget,
+    : public EventTargetWithInlineData,
       public ActiveScriptWrappable<SpeechRecognition>,
       public ExecutionContextLifecycleObserver,
       public mojom::blink::SpeechRecognitionSessionClient,

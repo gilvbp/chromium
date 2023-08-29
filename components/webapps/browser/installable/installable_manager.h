@@ -15,7 +15,6 @@
 #include "base/memory/raw_ptr.h"
 #include "base/memory/scoped_refptr.h"
 #include "base/memory/weak_ptr.h"
-#include "base/task/cancelable_task_tracker.h"
 #include "base/task/sequenced_task_runner.h"
 #include "base/time/time.h"
 #include "build/build_config.h"
@@ -23,27 +22,16 @@
 #include "components/webapps/browser/installable/installable_logging.h"
 #include "components/webapps/browser/installable/installable_params.h"
 #include "components/webapps/browser/installable/installable_task_queue.h"
-#include "components/webapps/common/web_page_metadata.mojom.h"
-#include "components/webapps/common/web_page_metadata_agent.mojom.h"
 #include "content/public/browser/installability_error.h"
 #include "content/public/browser/service_worker_context.h"
 #include "content/public/browser/service_worker_context_observer.h"
 #include "content/public/browser/web_contents_observer.h"
 #include "content/public/browser/web_contents_user_data.h"
-#include "mojo/public/cpp/bindings/associated_remote.h"
 #include "third_party/blink/public/mojom/manifest/manifest.mojom.h"
 #include "third_party/skia/include/core/SkBitmap.h"
 #include "url/gurl.h"
 
-namespace favicon_base {
-struct LargeIconImageResult;
-}
-
 namespace webapps {
-
-namespace test {
-extern int g_minimum_favicon_size_for_testing;
-}  // namespace test
 
 // This class is responsible for fetching the resources required to check and
 // install a site.
@@ -113,6 +101,7 @@ class InstallableManager
   friend class content::WebContentsUserData<InstallableManager>;
   friend class AddToHomescreenDataFetcherTest;
   friend class InstallableManagerBrowserTest;
+  friend class InstallableManagerOfflineCapabilityBrowserTest;
   friend class InstallableManagerUnitTest;
   friend class TestInstallableManager;
   FRIEND_TEST_ALL_PREFIXES(InstallableManagerBrowserTest,
@@ -122,9 +111,12 @@ class InstallableManager
                            CheckLazyServiceWorkerNoFetchHandlerFails);
   FRIEND_TEST_ALL_PREFIXES(InstallableManagerBrowserTest,
                            ManifestUrlChangeFlushesState);
-  FRIEND_TEST_ALL_PREFIXES(InstallableManagerBrowserTest,
+  FRIEND_TEST_ALL_PREFIXES(InstallableManagerOfflineCapabilityBrowserTest,
                            CheckLazyServiceWorkerPassesWhenWaiting);
-  FRIEND_TEST_ALL_PREFIXES(InstallableManagerBrowserTest, CheckWebapp);
+  FRIEND_TEST_ALL_PREFIXES(InstallableManagerOfflineCapabilityBrowserTest,
+                           CheckWebapp);
+  FRIEND_TEST_ALL_PREFIXES(InstallableManagerOfflineCapabilityBrowserTest,
+                           CheckNotOfflineCapableStartUrl);
   FRIEND_TEST_ALL_PREFIXES(InstallableManagerInPrerenderingBrowserTest,
                            InstallableManagerInPrerendering);
   FRIEND_TEST_ALL_PREFIXES(InstallableManagerInPrerenderingBrowserTest,
@@ -133,6 +125,8 @@ class InstallableManager
                            NotNotifyManifestUrlChangedInActivation);
 
   using IconPurpose = blink::mojom::ManifestImageResource_Purpose;
+
+  enum class IconUsage { kPrimary, kSplash };
 
   struct EligiblityProperty {
     EligiblityProperty();
@@ -158,15 +152,6 @@ class InstallableManager
 
     std::vector<InstallableStatusCode> errors;
     bool is_valid = false;
-    bool fetched = false;
-  };
-
-  struct WebPageMetadataProperty {
-    WebPageMetadataProperty();
-    ~WebPageMetadataProperty();
-
-    InstallableStatusCode error = NO_ERROR_DETECTED;
-    mojom::WebPageMetadataPtr metadata = mojom::WebPageMetadata::New();
     bool fetched = false;
   };
 
@@ -196,8 +181,17 @@ class InstallableManager
     bool fetched = false;
   };
 
-  // Returns true if the primary icon is fetched.
-  bool IsPrimaryIconFetched() const;
+  // Returns true if an icon for the given usage is fetched successfully, or
+  // doesn't need to fallback to another icon purpose (i.e. MASKABLE icon
+  // allback to ANY icon).
+  bool IsIconFetchComplete(IconUsage usage) const;
+
+  // Returns true if we have tried fetching maskable icon. Note that this also
+  // returns true if the fallback icon(IconPurpose::ANY) is fetched.
+  bool IsMaskableIconFetched(IconUsage usage) const;
+
+  // Sets the icon matching |usage| as fetched.
+  void SetIconFetched(IconUsage usage);
 
   // Returns a vector with all errors encountered for the resources requested in
   // |params|, or an empty vector if there is no error.
@@ -209,9 +203,9 @@ class InstallableManager
   InstallableStatusCode valid_manifest_error() const;
   void set_valid_manifest_error(InstallableStatusCode error_code);
   InstallableStatusCode worker_error() const;
-  InstallableStatusCode icon_error();
-  GURL& icon_url();
-  const SkBitmap* icon();
+  InstallableStatusCode icon_error(IconUsage usage);
+  GURL& icon_url(IconUsage usage);
+  const SkBitmap* icon(IconUsage usage);
 
   // Returns the WebContents to which this object is attached, or nullptr if the
   // WebContents doesn't exist or is currently being destroyed.
@@ -245,27 +239,21 @@ class InstallableManager
   void CheckManifestValid(bool check_webapp_manifest_display);
   bool IsManifestValidForWebApp(const blink::mojom::Manifest& manifest,
                                 bool check_webapp_manifest_display);
-
-  void FetchWebPageMetadata();
-  void OnDidGetWebPageMetadata(
-      mojo::AssociatedRemote<mojom::WebPageMetadataAgent> metadata_agent,
-      mojom::WebPageMetadataPtr web_page_metadata);
-  void OnMetadataAgentDisconnect();
-
   void CheckServiceWorker();
   void OnDidCheckHasServiceWorker(
       base::TimeTicks check_service_worker_start_time,
       content::ServiceWorkerCapability capability);
+  void OnDidCheckOfflineCapability(
+      base::TimeTicks check_service_worker_start_time,
+      bool enforce_offline_capability,
+      content::OfflineCapability capability,
+      int64_t service_worker_registration_id);
 
-  void CheckAndFetchBestPrimaryIcon(bool prefer_maskable);
-  void TryFetchingNextIcon();
-  void OnIconFetched(GURL icon_url,
-                     const IconPurpose purpose,
-                     const SkBitmap& bitmap);
-
-  void FetchFavicon();
-  void OnFaviconFetched(
-      const favicon_base::LargeIconImageResult& bitmap_result);
+  void CheckAndFetchBestIcon(int ideal_icon_size_in_px,
+                             int minimum_icon_size_in_px,
+                             IconPurpose purpose,
+                             IconUsage usage);
+  void OnIconFetched(GURL icon_url, IconUsage usage, const SkBitmap& bitmap);
 
   void CheckAndFetchScreenshots();
 
@@ -294,12 +282,9 @@ class InstallableManager
   std::unique_ptr<EligiblityProperty> eligibility_;
   std::unique_ptr<ManifestProperty> manifest_;
   std::unique_ptr<ValidManifestProperty> valid_manifest_;
-  std::unique_ptr<WebPageMetadataProperty> web_page_metadata_;
   std::unique_ptr<ServiceWorkerProperty> worker_;
-  std::unique_ptr<IconProperty> primary_icon_;
+  std::map<IconUsage, IconProperty> icons_;
   std::vector<Screenshot> screenshots_;
-
-  std::vector<IconPurpose> downloading_icons_type_;
 
   // A map of screenshots downloaded. Used temporarily until images are moved to
   // the screenshots_ member.
@@ -310,9 +295,6 @@ class InstallableManager
 
   // Whether all screenshots have been fetched.
   bool is_screenshots_fetch_complete_ = false;
-
-  bool favicon_fetched_ = false;
-  base::CancelableTaskTracker favicon_task_tracker_;
 
   // Owned by the storage partition attached to the content::WebContents which
   // this object is scoped to.

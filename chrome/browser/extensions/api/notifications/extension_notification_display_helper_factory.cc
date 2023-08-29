@@ -39,11 +39,11 @@ ExtensionNotificationDisplayHelperFactory::
 ExtensionNotificationDisplayHelperFactory::
     ~ExtensionNotificationDisplayHelperFactory() = default;
 
-std::unique_ptr<KeyedService> ExtensionNotificationDisplayHelperFactory::
-    BuildServiceInstanceForBrowserContext(
-        content::BrowserContext* context) const {
+KeyedService*
+ExtensionNotificationDisplayHelperFactory::BuildServiceInstanceFor(
+    content::BrowserContext* context) const {
   Profile* profile = Profile::FromBrowserContext(context);
-  return std::make_unique<ExtensionNotificationDisplayHelper>(profile);
+  return new ExtensionNotificationDisplayHelper(profile);
 }
 
 }  // namespace extensions

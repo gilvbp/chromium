@@ -13,13 +13,11 @@ import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
 import org.chromium.base.supplier.DestroyableObservableSupplier;
-import org.chromium.base.supplier.ObservableSupplier;
 import org.chromium.base.supplier.Supplier;
 import org.chromium.chrome.browser.app.download.home.DownloadPage;
 import org.chromium.chrome.browser.bookmarks.BookmarkPage;
 import org.chromium.chrome.browser.browser_controls.BrowserControlsMarginSupplier;
 import org.chromium.chrome.browser.browser_controls.BrowserControlsStateProvider;
-import org.chromium.chrome.browser.compositor.layouts.content.TabContentManager;
 import org.chromium.chrome.browser.fullscreen.BrowserControlsManager;
 import org.chromium.chrome.browser.history.HistoryManagerUtils;
 import org.chromium.chrome.browser.history.HistoryPage;
@@ -64,7 +62,6 @@ public class NativePageFactory {
     private final WindowAndroid mWindowAndroid;
     private final Supplier<Toolbar> mToolbarSupplier;
     private final HomeSurfaceTracker mHomeSurfaceTracker;
-    private final ObservableSupplier<TabContentManager> mTabContentManagerSupplier;
     private NewTabPageUma mNewTabPageUma;
 
     private NativePageBuilder mNativePageBuilder;
@@ -78,8 +75,7 @@ public class NativePageFactory {
             @NonNull TabModelSelector tabModelSelector,
             @NonNull Supplier<ShareDelegate> shareDelegateSupplier,
             @NonNull WindowAndroid windowAndroid, @NonNull Supplier<Toolbar> toolbarSupplier,
-            @Nullable HomeSurfaceTracker homeSurfaceTracker,
-            @Nullable ObservableSupplier<TabContentManager> tabContentManagerSupplier) {
+            @Nullable HomeSurfaceTracker homeSurfaceTracker) {
         mActivity = activity;
         mBottomSheetController = sheetController;
         mBrowserControlsManager = browserControlsManager;
@@ -91,7 +87,6 @@ public class NativePageFactory {
         mWindowAndroid = windowAndroid;
         mToolbarSupplier = toolbarSupplier;
         mHomeSurfaceTracker = homeSurfaceTracker;
-        mTabContentManagerSupplier = tabContentManagerSupplier;
     }
 
     private NativePageBuilder getBuilder() {
@@ -99,8 +94,7 @@ public class NativePageFactory {
             mNativePageBuilder = new NativePageBuilder(mActivity, this::getNewTabPageUma,
                     mBottomSheetController, mBrowserControlsManager, mCurrentTabSupplier,
                     mSnackbarManagerSupplier, mLifecycleDispatcher, mTabModelSelector,
-                    mShareDelegateSupplier, mWindowAndroid, mToolbarSupplier, mHomeSurfaceTracker,
-                    mTabContentManagerSupplier);
+                    mShareDelegateSupplier, mWindowAndroid, mToolbarSupplier, mHomeSurfaceTracker);
         }
         return mNativePageBuilder;
     }
@@ -127,7 +121,6 @@ public class NativePageFactory {
         private final WindowAndroid mWindowAndroid;
         private final Supplier<Toolbar> mToolbarSupplier;
         private final HomeSurfaceTracker mHomeSurfaceTracker;
-        private final ObservableSupplier<TabContentManager> mTabContentManagerSupplier;
 
         public NativePageBuilder(Activity activity, Supplier<NewTabPageUma> uma,
                 BottomSheetController sheetController,
@@ -135,8 +128,7 @@ public class NativePageFactory {
                 Supplier<SnackbarManager> snackbarManagerSupplier,
                 ActivityLifecycleDispatcher lifecycleDispatcher, TabModelSelector tabModelSelector,
                 Supplier<ShareDelegate> shareDelegateSupplier, WindowAndroid windowAndroid,
-                Supplier<Toolbar> toolbarSupplier, HomeSurfaceTracker homeSurfaceTracker,
-                ObservableSupplier<TabContentManager> tabContentManagerSupplier) {
+                Supplier<Toolbar> toolbarSupplier, HomeSurfaceTracker homeSurfaceTracker) {
             mActivity = activity;
             mUma = uma;
             mBottomSheetController = sheetController;
@@ -149,7 +141,6 @@ public class NativePageFactory {
             mWindowAndroid = windowAndroid;
             mToolbarSupplier = toolbarSupplier;
             mHomeSurfaceTracker = homeSurfaceTracker;
-            mTabContentManagerSupplier = tabContentManagerSupplier;
         }
 
         protected NativePage buildNewTabPage(Tab tab, String url) {
@@ -162,8 +153,7 @@ public class NativePageFactory {
                     DeviceFormFactor.isWindowOnTablet(mWindowAndroid), mUma.get(),
                     ColorUtils.inNightMode(mActivity), nativePageHost, tab, url,
                     mBottomSheetController, mShareDelegateSupplier, mWindowAndroid,
-                    mToolbarSupplier, new SettingsLauncherImpl(), mHomeSurfaceTracker,
-                    mTabContentManagerSupplier);
+                    mToolbarSupplier, new SettingsLauncherImpl(), mHomeSurfaceTracker);
         }
 
         protected NativePage buildBookmarksPage(Tab tab) {
@@ -257,6 +247,7 @@ public class NativePageFactory {
         return page;
     }
 
+    @VisibleForTesting
     void setNativePageBuilderForTesting(NativePageBuilder builder) {
         mNativePageBuilder = builder;
     }

@@ -50,7 +50,8 @@ void ProfileMenuCoordinator::Show(bool is_source_accelerator) {
         std::make_unique<IncognitoMenuView>(avatar_toolbar_button, &browser);
   } else {
 #if BUILDFLAG(IS_CHROMEOS_ASH)
-    // Note: on Ash, Guest Sessions have incognito profiles.
+    // Note: on Ash, Guest Sessions have incognito profiles, and use
+    // BUBBLE_VIEW_MODE_INCOGNITO.
     NOTREACHED_NORETURN() << "The profile menu is not implemented on Ash.";
 #else
     bubble = std::make_unique<ProfileMenuView>(avatar_toolbar_button, &browser);

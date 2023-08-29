@@ -43,8 +43,8 @@ struct V8ReturnValue {
   // Main world or not
   enum MainWorld { kMainWorld };
 
-  // The return value can be a cross origin object.
-  enum MaybeCrossOrigin { kMaybeCrossOrigin };
+  // The return value can be a cross origin window.
+  enum MaybeCrossOriginWindow { kMaybeCrossOriginWindow };
 
   // Returns the exposed object of the given type.
   enum InterfaceObject { kInterfaceObject };
@@ -341,7 +341,7 @@ template <typename CallbackInfo>
 void V8SetReturnValue(const CallbackInfo& info,
                       const ScriptWrappable* value,
                       const ScriptWrappable* receiver,
-                      V8ReturnValue::MaybeCrossOrigin) {
+                      V8ReturnValue::MaybeCrossOriginWindow) {
   if (UNLIKELY(!value))
     return info.GetReturnValue().SetNull();
   ScriptWrappable* wrappable = const_cast<ScriptWrappable*>(value);
@@ -350,53 +350,45 @@ void V8SetReturnValue(const CallbackInfo& info,
                                        receiver)) {
     return;
   }
-  // Check whether the creation context is available, and if not, use the
-  // current context. When a cross-origin Window is associated with a
-  // v8::Context::NewRemoteContext(), there is no creation context in the usual
-  // sense. It's ok to use the current context in that case because:
+  // Use the current context in case of the Window objects.
+  //
+  // Reasons are:
   // 1) The Window objects must have their own creation context and must never
   //    need a creation context to be specified.
-  // 2) Even though a v8::Context is not necessary in case
+  // 2) In the case that info.This() is an object created by
+  //    v8::Context::NewRemoteContext(), there is no associated context.
+  // 3) Despite that a v8::Context is not necessary in case
   //    of Window objects, v8::Isolate and DOMWrapperWorld are still necessary
-  //    to create an appropriate wrapper object, and the ScriptState associated
-  //    with the current context will still have the correct v8::Isolate and
-  //    DOMWrapperWorld.
-  v8::Local<v8::Context> context;
-  if (!V8ReturnValue::CreationContext(info)->GetCreationContext().ToLocal(
-          &context)) {
-    context = info.GetIsolate()->GetCurrentContext();
-  }
-  V8ReturnValue::SetWrapper(info, wrappable, context);
+  //    to create an appropriate wrapper object.  A ScriptState of the current
+  //    context best serves this purpose.
+  V8ReturnValue::SetWrapper(info, wrappable,
+                            info.GetIsolate()->GetCurrentContext());
 }
 
 template <typename CallbackInfo>
 void V8SetReturnValue(const CallbackInfo& info,
                       const ScriptWrappable& value,
                       const ScriptWrappable* receiver,
-                      V8ReturnValue::MaybeCrossOrigin) {
+                      V8ReturnValue::MaybeCrossOriginWindow) {
   ScriptWrappable* wrappable = const_cast<ScriptWrappable*>(&value);
   if (DOMDataStore::SetReturnValueFast(info.GetReturnValue(), wrappable,
                                        V8ReturnValue::CreationContext(info),
                                        receiver)) {
     return;
   }
-  // Check whether the creation context is available, and if not, use the
-  // current context. When a cross-origin Window is associated with a
-  // v8::Context::NewRemoteContext(), there is no creation context in the usual
-  // sense. It's ok to use the current context in that case because:
+  // Use the current context in case of the Window objects.
+  //
+  // Reasons are:
   // 1) The Window objects must have their own creation context and must never
   //    need a creation context to be specified.
-  // 2) Even though a v8::Context is not necessary in case
+  // 2) In the case that info.This() is an object created by
+  //    v8::Context::NewRemoteContext(), there is no associated context.
+  // 3) Despite that a v8::Context is not necessary in case
   //    of Window objects, v8::Isolate and DOMWrapperWorld are still necessary
-  //    to create an appropriate wrapper object, and the ScriptState associated
-  //    with the current context will still have the correct v8::Isolate and
-  //    DOMWrapperWorld.
-  v8::Local<v8::Context> context;
-  if (!V8ReturnValue::CreationContext(info)->GetCreationContext().ToLocal(
-          &context)) {
-    context = info.GetIsolate()->GetCurrentContext();
-  }
-  V8ReturnValue::SetWrapper(info, wrappable, context);
+  //    to create an appropriate wrapper object.  A ScriptState of the current
+  //    context best serves this purpose.
+  V8ReturnValue::SetWrapper(info, wrappable,
+                            info.GetIsolate()->GetCurrentContext());
 }
 
 template <typename CallbackInfo>

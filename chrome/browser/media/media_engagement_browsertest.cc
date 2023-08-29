@@ -243,9 +243,7 @@ class MediaEngagementBrowserTest : public InProcessBrowserTest {
   }
 
   void CloseTab() {
-    const int previous_tab_count = browser()->tab_strip_model()->count();
-    browser()->tab_strip_model()->CloseWebContentsAt(0, 0);
-    EXPECT_EQ(previous_tab_count - 1, browser()->tab_strip_model()->count());
+    EXPECT_TRUE(browser()->tab_strip_model()->CloseWebContentsAt(0, 0));
   }
 
   void LoadSubFrame(const GURL& url) {
@@ -950,7 +948,7 @@ class MediaEngagementContentsObserverPrerenderBrowserTest
   ~MediaEngagementContentsObserverPrerenderBrowserTest() override = default;
 
   void SetUpOnMainThread() override {
-    prerender_helper_->RegisterServerRequestMonitor(embedded_test_server());
+    prerender_helper_->SetUp(embedded_test_server());
     MediaEngagementContentsObserverMPArchBrowserTest::SetUpOnMainThread();
   }
 

@@ -1,6 +1,5 @@
 include_rules = [
   "+components/autofill/core/common",
-  "+components/content_settings",
   "+components/feed/core/shared_prefs",
   "+components/google",
   "+components/grit",

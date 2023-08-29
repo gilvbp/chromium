@@ -28,6 +28,10 @@
 #import "ios/web/common/features.h"
 #import "ios/web/public/ui/crw_web_view_proxy.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace {
 // This enum is used to record the overscroll actions performed by the user on
 // the histogram named `OverscrollActions`.
@@ -117,6 +121,9 @@ UIEdgeInsets TopContentInset(UIScrollView* scrollView, CGFloat topInset) {
 }
 
 }  // namespace
+
+NSString* const kOverscrollActionsWillStart = @"OverscrollActionsWillStart";
+NSString* const kOverscrollActionsDidEnd = @"OverscrollActionsDidStop";
 
 // This protocol describes the subset of methods used between the
 // CRWWebViewScrollViewProxy and the UIWebView.
@@ -809,6 +816,9 @@ UIEdgeInsets TopContentInset(UIScrollView* scrollView, CGFloat topInset) {
                          self.initialContentInset + statusBarFrame.size.height,
                          0);
       self.panPointScreenOrigin = CGPointZero;
+      [[NSNotificationCenter defaultCenter]
+          postNotificationName:kOverscrollActionsDidEnd
+                        object:self];
       [self resetScrollViewTopContentInset];
       self.disablingFullscreen = NO;
       if (_shouldInvalidate) {
@@ -823,10 +833,10 @@ UIEdgeInsets TopContentInset(UIScrollView* scrollView, CGFloat topInset) {
         if (previousOverscrollState == OverscrollState::NO_PULL_STARTED) {
           UIView* view = [self.delegate
               toolbarSnapshotViewForOverscrollActionsController:self];
-          if (view) {
-            // The NTP does not grab a snapshot
-            [self.overscrollActionView addSnapshotView:view];
-          }
+          [self.overscrollActionView addSnapshotView:view];
+          [[NSNotificationCenter defaultCenter]
+              postNotificationName:kOverscrollActionsWillStart
+                            object:self];
           self.disablingFullscreen = YES;
         }
         [CATransaction begin];

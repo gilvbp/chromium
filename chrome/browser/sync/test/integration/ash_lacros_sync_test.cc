@@ -5,7 +5,6 @@
 #include "ash/constants/ash_features.h"
 #include "chrome/browser/ash/crosapi/browser_util.h"
 #include "chrome/browser/sync/test/integration/sync_test.h"
-#include "chromeos/ash/components/standalone_browser/feature_refs.h"
 #include "components/power_bookmarks/core/power_bookmark_features.h"
 #include "components/sync/base/features.h"
 #include "components/sync/service/sync_service.h"
@@ -19,8 +18,10 @@ namespace {
 class LacrosOnlyAshSyncTest : public SyncTest {
  public:
   LacrosOnlyAshSyncTest() : SyncTest(SINGLE_CLIENT) {
-    feature_list_.InitWithFeatures(ash::standalone_browser::GetFeatureRefs(),
-                                   {});
+    feature_list_.InitWithFeatures(
+        {ash::features::kLacrosSupport, ash::features::kLacrosPrimary,
+         ash::features::kLacrosOnly},
+        {});
   }
   ~LacrosOnlyAshSyncTest() override = default;
 

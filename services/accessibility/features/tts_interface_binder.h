@@ -6,7 +6,7 @@
 #define SERVICES_ACCESSIBILITY_FEATURES_TTS_INTERFACE_BINDER_H_
 
 #include "services/accessibility/features/interface_binder.h"
-#include "services/accessibility/public/mojom/accessibility_service.mojom-forward.h"
+#include "services/accessibility/public/mojom/accessibility_service.mojom.h"
 
 namespace ax {
 
@@ -14,8 +14,9 @@ namespace ax {
 // AccessibilityServiceClient that connects back to the main OS process.
 class TtsInterfaceBinder : public InterfaceBinder {
  public:
-  explicit TtsInterfaceBinder(
-      mojom::AccessibilityServiceClient* ax_service_client);
+  TtsInterfaceBinder(
+      base::WeakPtr<mojom::AccessibilityServiceClient> ax_service_client,
+      scoped_refptr<base::SequencedTaskRunner> main_runner);
   ~TtsInterfaceBinder() override;
   TtsInterfaceBinder(const TtsInterfaceBinder&) = delete;
   TtsInterfaceBinder& operator=(const TtsInterfaceBinder&) = delete;
@@ -25,10 +26,8 @@ class TtsInterfaceBinder : public InterfaceBinder {
   void BindReceiver(mojo::GenericPendingReceiver tts_receiver) override;
 
  private:
-  // The caller must ensure the client outlives `this`. Here, this is guaranteed
-  // because the client is always a `AssistiveTechnologyControllerImpl`, which
-  // transitively owns `this` via `V8Manager`.
-  raw_ptr<mojom::AccessibilityServiceClient> ax_service_client_;
+  base::WeakPtr<mojom::AccessibilityServiceClient> ax_service_client_;
+  scoped_refptr<base::SequencedTaskRunner> main_runner_;
 };
 
 }  // namespace ax

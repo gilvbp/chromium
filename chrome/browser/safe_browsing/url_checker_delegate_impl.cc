@@ -8,6 +8,7 @@
 #include "base/functional/bind.h"
 #include "base/ranges/algorithm.h"
 #include "build/build_config.h"
+#include "chrome/browser/android/customtabs/client_data_header_web_contents_observer.h"
 #include "chrome/browser/browser_process.h"
 #include "chrome/browser/preloading/prefetch/no_state_prefetch/chrome_no_state_prefetch_contents_delegate.h"
 #include "chrome/browser/profiles/profile.h"
@@ -30,7 +31,6 @@
 #include "services/network/public/cpp/features.h"
 
 #if BUILDFLAG(IS_ANDROID)
-#include "chrome/browser/android/customtabs/client_data_header_web_contents_observer.h"
 #include "chrome/browser/android/tab_android.h"
 #endif
 

@@ -19,7 +19,6 @@
 #include "ash/system/holding_space/holding_space_progress_indicator_util.h"
 #include "ash/system/holding_space/holding_space_tray_icon.h"
 #include "ash/system/progress_indicator/progress_indicator.h"
-#include "ash/system/progress_indicator/progress_indicator_animation_registry.h"
 #include "ash/system/tray/tray_constants.h"
 #include "base/functional/bind.h"
 #include "base/i18n/rtl.h"
@@ -201,7 +200,7 @@ class HoldingSpaceTrayIconPreview::ImageLayerOwner
     progress_ring_animation_changed_subscription_ =
         HoldingSpaceAnimationRegistry::GetInstance()
             ->AddProgressRingAnimationChangedCallbackForKey(
-                ProgressIndicatorAnimationRegistry::AsAnimationKey(item_),
+                /*animation_key=*/item_,
                 base::IgnoreArgs<ProgressRingAnimation*>(
                     base::BindRepeating(&ImageLayerOwner::UpdateTransform,
                                         base::Unretained(this))));
@@ -347,8 +346,7 @@ class HoldingSpaceTrayIconPreview::ImageLayerOwner
         !item_->progress().IsHidden() && !item_->progress().IsComplete();
     const bool is_item_animating_progress_ring =
         HoldingSpaceAnimationRegistry::GetInstance()
-            ->GetProgressRingAnimationForKey(
-                ProgressIndicatorAnimationRegistry::AsAnimationKey(item_));
+            ->GetProgressRingAnimationForKey(item_);
 
     const gfx::Transform target_transform =
         is_item_visibly_in_progress || is_item_animating_progress_ring
@@ -424,7 +422,7 @@ void HoldingSpaceTrayIconPreview::AnimateIn(base::TimeDelta additional_delay) {
   if (!NeedsLayer()) {
     // Since the holding space tray icon preview will not be animated, any
     // associated progress icon animation can `Start()` immediately.
-    auto key = progress_indicator_->animation_key();
+    auto* key = progress_indicator_->animation_key();
     auto* registry = HoldingSpaceAnimationRegistry::GetInstance();
     auto* animation = registry->GetProgressIconAnimationForKey(key);
     if (animation && !animation->HasAnimated())
@@ -474,8 +472,7 @@ void HoldingSpaceTrayIconPreview::AnimateIn(base::TimeDelta additional_delay) {
   auto observer = std::make_unique<CallbackLayerAnimationObserver>();
   sequence->AddObserver(observer.get());
   observer->SetAnimationCompletedCallback(base::BindOnce(
-      [](CallbackLayerAnimationObserver* observer,
-         ProgressIndicatorAnimationRegistry::AnimationKey key) {
+      [](CallbackLayerAnimationObserver* observer, const void* key) {
         auto* registry = HoldingSpaceAnimationRegistry::GetInstance();
         auto* animation = registry->GetProgressIconAnimationForKey(key);
         if (animation && !animation->HasAnimated())

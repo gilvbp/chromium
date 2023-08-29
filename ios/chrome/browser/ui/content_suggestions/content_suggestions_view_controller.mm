@@ -4,16 +4,13 @@
 
 #import "ios/chrome/browser/ui/content_suggestions/content_suggestions_view_controller.h"
 
-#import "base/apple/foundation_util.h"
+#import "base/mac/foundation_util.h"
 #import "base/metrics/user_metrics.h"
 #import "base/metrics/user_metrics_action.h"
-#import "base/time/time.h"
-#import "components/segmentation_platform/public/features.h"
 #import "components/strings/grit/components_strings.h"
 #import "ios/chrome/browser/drag_and_drop/url_drag_drop_handler.h"
 #import "ios/chrome/browser/ntp/set_up_list_item.h"
 #import "ios/chrome/browser/ntp/set_up_list_item_type.h"
-#import "ios/chrome/browser/safety_check/ios_chrome_safety_check_manager_constants.h"
 #import "ios/chrome/browser/shared/public/features/features.h"
 #import "ios/chrome/browser/shared/ui/util/uikit_ui_util.h"
 #import "ios/chrome/browser/ui/content_suggestions/cells/content_suggestions_cells_constants.h"
@@ -37,15 +34,10 @@
 #import "ios/chrome/browser/ui/content_suggestions/content_suggestions_metrics_recorder.h"
 #import "ios/chrome/browser/ui/content_suggestions/content_suggestions_view_controller_audience.h"
 #import "ios/chrome/browser/ui/content_suggestions/ntp_home_constant.h"
-#import "ios/chrome/browser/ui/content_suggestions/safety_check/safety_check_state.h"
-#import "ios/chrome/browser/ui/content_suggestions/safety_check/safety_check_view.h"
-#import "ios/chrome/browser/ui/content_suggestions/safety_check/types.h"
-#import "ios/chrome/browser/ui/content_suggestions/safety_check/utils.h"
 #import "ios/chrome/browser/ui/content_suggestions/set_up_list/set_up_list_item_view.h"
 #import "ios/chrome/browser/ui/content_suggestions/set_up_list/set_up_list_item_view_data.h"
 #import "ios/chrome/browser/ui/content_suggestions/set_up_list/set_up_list_view.h"
 #import "ios/chrome/browser/ui/content_suggestions/set_up_list/utils.h"
-#import "ios/chrome/browser/ui/content_suggestions/tab_resumption/tab_resumption_view.h"
 #import "ios/chrome/browser/ui/ntp/new_tab_page_header_constants.h"
 #import "ios/chrome/browser/ui/start_surface/start_surface_features.h"
 #import "ios/chrome/browser/ui/toolbar/public/toolbar_utils.h"
@@ -55,10 +47,13 @@
 #import "ios/chrome/common/ui/colors/semantic_color_names.h"
 #import "ios/chrome/common/ui/favicon/favicon_view.h"
 #import "ios/chrome/common/ui/util/constraints_ui_util.h"
-#import "third_party/abseil-cpp/absl/types/optional.h"
 #import "ui/base/device_form_factor.h"
 #import "ui/base/l10n/l10n_util.h"
 #import "url/gurl.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace {
 
@@ -76,9 +71,6 @@ const float kMagicStackSpacing = 10.0f;
 // The max width of the SetUpList on phone and tablet.
 const CGFloat kSetUpListWidthRegular = 393;
 const CGFloat kSetUpListWidthWide = 418;
-
-// The distance in which a replaced/replacing module will fade out/in of view.
-const float kMagicStackReplaceModuleFadeAnimationDistance = 50;
 
 // The duration of the animation that hides the Set Up List.
 const base::TimeDelta kSetUpListHideAnimationDuration = base::Milliseconds(250);
@@ -114,9 +106,6 @@ const base::TimeDelta kSetUpListHideAnimationDuration = base::Milliseconds(250);
 // Module Container for the `mostVisitedViews` when being shown in Magic Stack.
 @property(nonatomic, strong)
     MagicStackModuleContainer* mostVisitedModuleContainer;
-// Module Container for the tab resumption tile.
-@property(nonatomic, strong)
-    MagicStackModuleContainer* tabResumptionModuleContainer;
 // Width Anchor of the Most Visited Tiles container.
 @property(nonatomic, strong)
     NSLayoutConstraint* mostVisitedContainerWidthAnchor;
@@ -133,14 +122,6 @@ const base::TimeDelta kSetUpListHideAnimationDuration = base::Milliseconds(250);
     NSMutableArray<ContentSuggestionsShortcutTileView*>* shortcutsViews;
 // The SetUpListView, if it is currently being displayed.
 @property(nonatomic, strong) SetUpListView* setUpListView;
-// The current state of the Safety Check.
-@property(nonatomic, strong) SafetyCheckState* safetyCheckState;
-// The SafetyCheckView, if it is currently being displayed.
-@property(nonatomic, strong) SafetyCheckView* safetyCheckView;
-// Module Container for the `safetyCheckView` when being shown in Magic Stack.
-@property(nonatomic, strong)
-    MagicStackModuleContainer* safetyCheckModuleContainer;
-
 @end
 
 @implementation ContentSuggestionsViewController {
@@ -148,7 +129,7 @@ const base::TimeDelta kSetUpListHideAnimationDuration = base::Milliseconds(250);
   NSLayoutConstraint* _returnToRecentTabWidthAnchor;
   UIScrollView* _magicStackScrollView;
   UIStackView* _magicStack;
-  BOOL _magicStackRankReceived;
+  BOOL _shouldShowMagicStack;
   NSMutableArray<NSNumber*>* _magicStackModuleOrder;
   NSLayoutConstraint* _magicStackScrollViewWidthAnchor;
   NSArray<SetUpListItemViewData*>* _savedSetUpListItems;
@@ -157,7 +138,6 @@ const base::TimeDelta kSetUpListHideAnimationDuration = base::Milliseconds(250);
   SetUpListItemView* _setUpListAutofillItemView;
   SetUpListItemView* _setUpListAllSetItemView;
   NSMutableArray<SetUpListItemView*>* _compactedSetUpListViews;
-  TabResumptionView* _tabResumptionView;
 }
 
 - (instancetype)init {
@@ -205,8 +185,7 @@ const base::TimeDelta kSetUpListHideAnimationDuration = base::Milliseconds(250);
     [self.verticalStackView.trailingAnchor
         constraintEqualToAnchor:self.view.trailingAnchor],
     [self.verticalStackView.topAnchor
-        constraintEqualToAnchor:self.view.topAnchor
-                       constant:content_suggestions::HeaderBottomPadding()],
+        constraintEqualToAnchor:self.view.topAnchor],
     [self.verticalStackView.bottomAnchor
         constraintEqualToAnchor:self.view.bottomAnchor
                        constant:-bottomSpacing]
@@ -214,10 +193,8 @@ const base::TimeDelta kSetUpListHideAnimationDuration = base::Milliseconds(250);
 
   if (self.returnToRecentTabTile) {
     [self addUIElement:self.returnToRecentTabTile
-        withCustomBottomSpacing:
-            IsMagicStackEnabled()
-                ? kMostVisitedBottomMargin
-                : content_suggestions::kReturnToRecentTabSectionBottomMargin];
+        withCustomBottomSpacing:content_suggestions::
+                                    kReturnToRecentTabSectionBottomMargin];
     [self layoutReturnToRecentTabTile];
   }
   if ([self.mostVisitedViews count] > 0) {
@@ -229,7 +206,7 @@ const base::TimeDelta kSetUpListHideAnimationDuration = base::Milliseconds(250);
   }
   if (self.shortcutsViews) {
     self.shortcutsStackView = [self createShortcutsStackView];
-    if (!IsMagicStackEnabled()) {
+    if (!_shouldShowMagicStack) {
       [self addUIElement:self.shortcutsStackView
           withCustomBottomSpacing:kMostVisitedBottomMargin];
       CGFloat width =
@@ -245,13 +222,8 @@ const base::TimeDelta kSetUpListHideAnimationDuration = base::Milliseconds(250);
     }
   }
 
-  if (IsSafetyCheckMagicStackEnabled() && self.safetyCheckState) {
-    [self createSafetyCheck:self.safetyCheckState];
-  }
-
-  // Only Create Magic Stack if the ranking has been received. It can be delayed
-  // to after -viewDidLoad if fecthing from Segmentation Platform.
-  if (IsMagicStackEnabled() && _magicStackRankReceived) {
+  if (_shouldShowMagicStack) {
+    CHECK(IsMagicStackEnabled());
     [self createMagicStack];
   }
 }
@@ -305,10 +277,8 @@ const base::TimeDelta kSetUpListHideAnimationDuration = base::Milliseconds(250);
     [self.verticalStackView insertArrangedSubview:self.returnToRecentTabTile
                                           atIndex:0];
     [self.verticalStackView
-        setCustomSpacing:IsMagicStackEnabled()
-                             ? kMostVisitedBottomMargin
-                             : content_suggestions::
-                                   kReturnToRecentTabSectionBottomMargin
+        setCustomSpacing:content_suggestions::
+                             kReturnToRecentTabSectionBottomMargin
                afterView:self.returnToRecentTabTile];
     [self layoutReturnToRecentTabTile];
     [self.audience returnToRecentTabWasAdded];
@@ -442,17 +412,8 @@ const base::TimeDelta kSetUpListHideAnimationDuration = base::Milliseconds(250);
 
 - (void)setMagicStackOrder:(NSArray<NSNumber*>*)order {
   CHECK([order count] > 0);
-  _magicStackRankReceived = YES;
+  _shouldShowMagicStack = YES;
   _magicStackModuleOrder = [order mutableCopy];
-  if (self.viewLoaded &&
-      base::FeatureList::IsEnabled(segmentation_platform::features::
-                                       kSegmentationPlatformIosModuleRanker)) {
-    // Magic Stack order is only passed to the VC late when fetching it from the
-    // Segmentation Platform
-    [self createMagicStack];
-    [self.view setNeedsLayout];
-    [self.view layoutIfNeeded];
-  }
 }
 
 - (void)scrollToNextMagicStackModuleForCompletedModule:
@@ -665,34 +626,6 @@ const base::TimeDelta kSetUpListHideAnimationDuration = base::Milliseconds(250);
   }];
 }
 
-- (void)showSafetyCheck:(SafetyCheckState*)state {
-  _safetyCheckState = state;
-
-  if (!self.viewLoaded) {
-    return;
-  }
-
-  if (self.safetyCheckModuleContainer) {
-    [self.safetyCheckModuleContainer removeFromSuperview];
-  }
-
-  [self createSafetyCheck:state];
-
-  int checkIssuesCount = CheckIssuesCount(state);
-
-  ContentSuggestionsModuleType type =
-      ContentSuggestionsModuleType::kSafetyCheck;
-
-  if (checkIssuesCount > 2) {
-    type = ContentSuggestionsModuleType::kSafetyCheckMultiRowOverflow;
-  } else if (checkIssuesCount > 1) {
-    type = ContentSuggestionsModuleType::kSafetyCheckMultiRow;
-  }
-
-  [_magicStack insertArrangedSubview:self.safetyCheckModuleContainer
-                             atIndex:[self indexForMagicStackModule:type]];
-}
-
 - (CGFloat)contentSuggestionsHeight {
   CGFloat height = 0;
   if ([self.mostVisitedViews count] > 0 &&
@@ -702,7 +635,7 @@ const base::TimeDelta kSetUpListHideAnimationDuration = base::Milliseconds(250);
                   .height +
               kMostVisitedBottomMargin;
   }
-  if (IsMagicStackEnabled()) {
+  if (_shouldShowMagicStack) {
     height += _magicStackScrollView.contentSize.height;
   } else {
     if ([self.shortcutsViews count] > 0) {
@@ -719,25 +652,6 @@ const base::TimeDelta kSetUpListHideAnimationDuration = base::Milliseconds(250);
     height += self.setUpListView.frame.size.height;
   }
   return height;
-}
-
-- (void)showTabResumptionWithItem:(TabResumptionItem*)item {
-  CHECK(IsTabResumptionEnabled());
-  [self logTopModuleImpressionForType:ContentSuggestionsModuleType::
-                                          kTabResumption];
-  _tabResumptionView = [[TabResumptionView alloc] initWithItem:item];
-  [_tabResumptionModuleContainer removeFromSuperview];
-  _tabResumptionModuleContainer = [[MagicStackModuleContainer alloc]
-      initWithContentView:_tabResumptionView
-                     type:ContentSuggestionsModuleType::kTabResumption
-                 delegate:self];
-
-  if (self.viewLoaded) {
-    [_magicStack insertArrangedSubview:_tabResumptionModuleContainer
-                               atIndex:[self indexForMagicStackModule:
-                                                 ContentSuggestionsModuleType::
-                                                     kTabResumption]];
-  }
 }
 
 #pragma mark - SetUpListItemViewTapDelegate methods
@@ -863,31 +777,11 @@ const base::TimeDelta kSetUpListHideAnimationDuration = base::Milliseconds(250);
 }
 
 - (void)seeMoreWasTappedForModuleType:(ContentSuggestionsModuleType)type {
-  if (type == ContentSuggestionsModuleType::kSafetyCheckMultiRowOverflow) {
-    [self.audience didSelectSafetyCheckItem:SafetyCheckItemType::kDefault];
-    return;
-  }
-
-  if (type == ContentSuggestionsModuleType::kCompactedSetUpList) {
-    [self.audience showSetUpListShowMoreMenu];
-    return;
-  }
+  [self.audience showSetUpListShowMoreMenu];
 }
 
 - (void)neverShowModuleType:(ContentSuggestionsModuleType)type {
   [self.audience neverShowModuleType:type];
-}
-
-- (NSString*)subtitleStringForModule:(ContentSuggestionsModuleType)type {
-  if (type == ContentSuggestionsModuleType::kSafetyCheck ||
-      type == ContentSuggestionsModuleType::kSafetyCheckMultiRow) {
-    absl::optional<base::Time> lastRunTime =
-        absl::optional<base::Time>(_safetyCheckState.lastRunTime);
-
-    return FormatElapsedTimeSinceLastSafetyCheck(lastRunTime);
-  }
-
-  return @"";
 }
 
 #pragma mark - Private
@@ -970,30 +864,6 @@ const base::TimeDelta kSetUpListHideAnimationDuration = base::Milliseconds(250);
   }
 }
 
-- (void)createSafetyCheck:(SafetyCheckState*)state {
-  self.safetyCheckState = state;
-
-  self.safetyCheckView = [[SafetyCheckView alloc] initWithState:state];
-
-  self.safetyCheckView.delegate = self.audience;
-
-  int checkIssuesCount = CheckIssuesCount(state);
-
-  ContentSuggestionsModuleType type =
-      ContentSuggestionsModuleType::kSafetyCheck;
-
-  if (checkIssuesCount > 2) {
-    type = ContentSuggestionsModuleType::kSafetyCheckMultiRowOverflow;
-  } else if (checkIssuesCount > 1) {
-    type = ContentSuggestionsModuleType::kSafetyCheckMultiRow;
-  }
-
-  self.safetyCheckModuleContainer = [[MagicStackModuleContainer alloc]
-      initWithContentView:self.safetyCheckView
-                     type:type
-                 delegate:self];
-}
-
 // Add the elements in `mostVisitedViews` into `verticalStackView`.
 - (void)populateMostVisitedModule {
   for (ContentSuggestionsMostVisitedTileView* view in self.mostVisitedViews) {
@@ -1070,10 +940,6 @@ const base::TimeDelta kSetUpListHideAnimationDuration = base::Milliseconds(250);
     ContentSuggestionsModuleType type =
         (ContentSuggestionsModuleType)[moduleType intValue];
     switch (type) {
-      case ContentSuggestionsModuleType::kTabResumption: {
-        [_magicStack addArrangedSubview:_tabResumptionModuleContainer];
-        break;
-      }
       case ContentSuggestionsModuleType::kShortcuts: {
         self.shortcutsModuleContainer = [[MagicStackModuleContainer alloc]
             initWithContentView:self.shortcutsStackView
@@ -1135,14 +1001,6 @@ const base::TimeDelta kSetUpListHideAnimationDuration = base::Milliseconds(250);
                                type:type
                            delegate:self];
         [_magicStack addArrangedSubview:setUpListAllSetModule];
-        break;
-      }
-      case ContentSuggestionsModuleType::kSafetyCheck:
-      case ContentSuggestionsModuleType::kSafetyCheckMultiRow:
-      case ContentSuggestionsModuleType::kSafetyCheckMultiRowOverflow: {
-        if (IsSafetyCheckMagicStackEnabled()) {
-          [_magicStack addArrangedSubview:self.safetyCheckModuleContainer];
-        }
         break;
       }
       default:
@@ -1232,46 +1090,16 @@ const base::TimeDelta kSetUpListHideAnimationDuration = base::Milliseconds(250);
     }
     // Remove all non-visible modules in reverse order
     int removedModuleCount = [viewIndicesToRemove count];
-    if (removedModuleCount > 0) {
-      for (int i = removedModuleCount - 1; i >= 0; i--) {
-        NSUInteger moduleIndex = [viewIndicesToRemove[i] integerValue];
-        UIView* moduleToRemove =
-            [strongSelf->_magicStack arrangedSubviews][moduleIndex];
-        [moduleToRemove removeFromSuperview];
-        [strongSelf->_magicStackModuleOrder removeObjectAtIndex:moduleIndex];
-      }
-      // Compensate for removed module count so the currently visible module is
-      // still displayed.
-      CGFloat moduleWidth = [MagicStackModuleContainer
-          moduleWidthForHorizontalTraitCollection:self.traitCollection];
-      CGFloat offsetRemoved = (removedModuleCount)*moduleWidth +
-                              ((removedModuleCount)*kMagicStackSpacing);
-      [strongSelf->_magicStackScrollView
-          setContentOffset:CGPointMake(strongSelf->_magicStackScrollView
-                                               .contentOffset.x -
-                                           offsetRemoved,
-                                       strongSelf->_magicStackScrollView
-                                           .contentOffset.y)
-                  animated:NO];
+    for (int i = removedModuleCount - 1; i >= 0; i--) {
+      NSUInteger moduleIndex = [viewIndicesToRemove[i] integerValue];
+      UIView* moduleToRemove =
+          [strongSelf->_magicStack arrangedSubviews][moduleIndex];
+      [moduleToRemove removeFromSuperview];
+      [strongSelf->_magicStackModuleOrder removeObjectAtIndex:moduleIndex];
     }
   };
 
   if (newModule) {
-    ProceduralBlock fadeOtherSetUpListItemsOut = ^{
-      __typeof(self) strongSelf = weakSelf;
-      if (!strongSelf) {
-        return;
-      }
-      for (NSNumber* viewIndex in viewIndicesToRemove) {
-        UIView* view = [strongSelf->_magicStack arrangedSubviews]
-            [[viewIndex integerValue]];
-        // Animate module away in the upward direction.
-        view.transform = CGAffineTransformTranslate(
-            CGAffineTransformIdentity, 0,
-            -kMagicStackReplaceModuleFadeAnimationDistance);
-        view.alpha = 0;
-      }
-    };
     // Replace last Set Up List item with "All Set" hero cell.
     NSUInteger moduleIndexToReplace =
         [[viewIndicesToRemove lastObject] integerValue];
@@ -1279,45 +1107,21 @@ const base::TimeDelta kSetUpListHideAnimationDuration = base::Milliseconds(250);
     [viewIndicesToRemove removeObjectAtIndex:moduleIndexToReplace];
     [self replaceModuleAtIndex:moduleIndexToReplace
                     withModule:newModule
-          additionalAnimations:fadeOtherSetUpListItemsOut
                     completion:removeRemainingModules];
   } else {
     removeRemainingModules();
   }
 }
 
-// Replaces the module at `index` with `newModule` in the Magic Stack along with
-// any additional animations in `additionalAnimations`, executing `completion`
-// after the completion of the replace animation.
+// Replaces the module at `index` with `newModule` in the Magic Stack, executing
+// `completion` after the completion of the replace animation.
 - (void)replaceModuleAtIndex:(NSUInteger)index
                   withModule:(MagicStackModuleContainer*)newModule
-        additionalAnimations:(ProceduralBlock)additionalAnimations
                   completion:(ProceduralBlock)completion {
+  newModule.alpha = 0;
   UIView* moduleToHide = [_magicStack arrangedSubviews][index];
   __weak __typeof(self) weakSelf = self;
-
-  ProceduralBlock animateInNewModule = ^{
-    [UIView animateWithDuration:0.5
-        delay:0.0
-        options:UIViewAnimationOptionTransitionCurlDown
-        animations:^{
-          __typeof(self) strongSelf = weakSelf;
-          if (!strongSelf) {
-            return;
-          }
-          // Fade in new module from the left to the final position in the Magic
-          // Stack.
-          newModule.transform = CGAffineTransformIdentity;
-          newModule.alpha = 1;
-        }
-        completion:^(BOOL finished) {
-          if (completion) {
-            completion();
-          }
-        }];
-  };
-
-  [UIView animateWithDuration:0.5
+  [UIView animateWithDuration:1.0
       delay:0.0
       options:UIViewAnimationOptionTransitionCurlDown
       animations:^{
@@ -1325,31 +1129,22 @@ const base::TimeDelta kSetUpListHideAnimationDuration = base::Milliseconds(250);
         if (!strongSelf) {
           return;
         }
-        // Animate module away in the upward direction.
-        moduleToHide.transform = CGAffineTransformTranslate(
-            CGAffineTransformIdentity, 0,
-            -kMagicStackReplaceModuleFadeAnimationDistance);
+        [strongSelf->_magicStack removeArrangedSubview:moduleToHide];
+        [strongSelf->_magicStack insertArrangedSubview:newModule atIndex:index];
         moduleToHide.alpha = 0;
-        additionalAnimations();
+        newModule.alpha = 1;
       }
       completion:^(BOOL finished) {
         __typeof(self) strongSelf = weakSelf;
         if (!strongSelf) {
           return;
         }
-        // Remove module to hide, add the new module with an initial position to
-        // the left and hidden from view in preparation for a fade in.
-        newModule.alpha = 0;
-        [strongSelf->_magicStack removeArrangedSubview:moduleToHide];
-        [strongSelf->_magicStack insertArrangedSubview:newModule atIndex:index];
-        newModule.transform = CGAffineTransformTranslate(
-            CGAffineTransformIdentity,
-            -kMagicStackReplaceModuleFadeAnimationDistance, 0);
+        if (completion) {
+          completion();
+        }
         [moduleToHide removeFromSuperview];
         [strongSelf->_magicStack setNeedsLayout];
         [strongSelf->_magicStack layoutIfNeeded];
-
-        animateInNewModule();
       }];
 }
 

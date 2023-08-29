@@ -4,9 +4,7 @@
 
 #include "chrome/browser/ui/views/omnibox/omnibox_popup_view_webui_test.h"
 
-#include "base/run_loop.h"
 #include "build/build_config.h"
-#include "chrome/browser/ui/views/omnibox/omnibox_popup_presenter.h"
 
 #if BUILDFLAG(IS_LINUX)
 #include "ui/linux/linux_ui.h"
@@ -20,19 +18,23 @@ OmniboxPopupViewWebUITest::ThemeChangeWaiter::~ThemeChangeWaiter() {
   base::RunLoop(base::RunLoop::Type::kNestableTasksAllowed).Run();
 }
 
-void OmniboxPopupViewWebUITest::CreatePopupForTestQuery() {
-  EXPECT_TRUE(controller()->result().empty());
+views::Widget* OmniboxPopupViewWebUITest::CreatePopupForTestQuery() {
+  EXPECT_TRUE(edit_model()->result().empty());
   EXPECT_FALSE(popup_view()->IsOpen());
+  EXPECT_FALSE(GetPopupWidget());
 
   edit_model()->SetUserText(u"foo");
   AutocompleteInput input(
       u"foo", metrics::OmniboxEventProto::BLANK,
       ChromeAutocompleteSchemeClassifier(browser()->profile()));
   input.set_omit_asynchronous_matches(true);
-  controller()->autocomplete_controller()->Start(input);
+  edit_model()->autocomplete_controller()->Start(input);
 
-  EXPECT_FALSE(controller()->result().empty());
+  EXPECT_FALSE(edit_model()->result().empty());
   EXPECT_TRUE(popup_view()->IsOpen());
+  views::Widget* popup = GetPopupWidget();
+  EXPECT_TRUE(popup);
+  return popup;
 }
 
 void OmniboxPopupViewWebUITest::UseDefaultTheme() {

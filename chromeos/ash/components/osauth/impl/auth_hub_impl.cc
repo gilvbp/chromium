@@ -133,7 +133,7 @@ void AuthHubImpl::StartAuthentication(AccountId account_id,
 
   attempt_handler_ = std::make_unique<AuthHubAttemptHandler>(
       this, *current_attempt_, engines_, cached_factors);
-  raw_ptr<AuthFactorStatusConsumer> status_consumer;
+  base::raw_ptr<AuthFactorStatusConsumer> status_consumer;
   attempt_consumer_->OnUserAuthAttemptConfirmed(
       attempt_handler_->GetConnector(), status_consumer);
   attempt_handler_->SetConsumer(status_consumer);
@@ -143,11 +143,11 @@ void AuthHubImpl::StartAuthentication(AccountId account_id,
 
 bool AuthHubImpl::PurposeMatchesMode(AuthPurpose purpose, AuthHubMode mode) {
   switch (mode) {
-    case AuthHubMode::kLoginScreen:
+    case kLoginScreen:
       return purpose == AuthPurpose::kLogin;
-    case AuthHubMode::kInSession:
+    case kInSession:
       return purpose != AuthPurpose::kLogin;
-    case AuthHubMode::kNone:
+    case kNone:
       NOTREACHED_NORETURN();
   }
 }
@@ -240,7 +240,7 @@ void AuthHubImpl::OnIdle() {
     }
     AuthHubMode mode = *target_mode_;
     target_mode_.reset();
-    SwitchToModeImpl(mode);
+    InitializeForMode(mode);
     return;
   }
 

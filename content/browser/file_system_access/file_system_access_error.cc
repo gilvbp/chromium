@@ -18,7 +18,7 @@ FileSystemAccessErrorPtr Ok() {
 }
 
 FileSystemAccessErrorPtr FromFileError(base::File::Error result,
-                                       std::string_view message) {
+                                       base::StringPiece message) {
   if (result == base::File::FILE_OK)
     return Ok();
   return FileSystemAccessError::New(FileSystemAccessStatus::kFileError, result,
@@ -27,7 +27,7 @@ FileSystemAccessErrorPtr FromFileError(base::File::Error result,
 
 blink::mojom::FileSystemAccessErrorPtr FromStatus(
     blink::mojom::FileSystemAccessStatus status,
-    std::string_view message) {
+    base::StringPiece message) {
   return FileSystemAccessError::New(status, base::File::FILE_OK,
                                     std::string(message));
 }

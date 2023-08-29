@@ -104,8 +104,9 @@ class UninstallCheckboxView : public views::View,
 
     auto checkbox = std::make_unique<views::Checkbox>();
     checkbox->SetAccessibleName(label.get());
-    checkbox->SetEventTargeter(std::make_unique<views::ViewTargeter>(
-        std::make_unique<CheckboxTargeter>()));
+    checkbox_targeter_ = std::make_unique<CheckboxTargeter>();
+    checkbox->SetEventTargeter(
+        std::make_unique<views::ViewTargeter>(checkbox_targeter_.get()));
     checkbox_ = AddChildView(std::move(checkbox));
     AddChildView(std::move(label));
   }
@@ -115,16 +116,18 @@ class UninstallCheckboxView : public views::View,
   View* TargetForRect(View* root, const gfx::Rect& rect) override {
     views::View* target =
         views::ViewTargeterDelegate::TargetForRect(root, rect);
-    if (target->parent() == this || target->parent() == checkbox_) {
-      return checkbox_;
-    }
-    return target;
+
+    if (target->parent() != this)
+      return target;
+
+    return checkbox_;
   }
 
   views::Checkbox* checkbox() { return checkbox_; }
 
  private:
   raw_ptr<views::Checkbox> checkbox_;
+  std::unique_ptr<CheckboxTargeter> checkbox_targeter_;
 };
 
 BEGIN_METADATA(UninstallCheckboxView, views::View)

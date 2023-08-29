@@ -6,7 +6,6 @@ package org.chromium.components.webxr;
 
 import android.app.Activity;
 import android.content.Context;
-import android.content.Intent;
 import android.view.Surface;
 
 import androidx.annotation.IntDef;
@@ -159,53 +158,29 @@ public class XrSessionCoordinator {
     }
 
     @CalledByNative
-    private void startXrSession() {
-        if (DEBUG_LOGS) Log.i(TAG, "startXrSession");
-        // The higher levels should have guaranteed that we're only called if there isn't any other
-        // active session going on.
-        assert (sActiveSessionInstance == null);
-
-        // The active session must be set before creating the host activity, since it will be
-        // notified once the activity is ready.
-        sActiveSessionInstance = this;
-        mActiveSessionType = SessionType.VR;
-        sActiveSessionAvailableSupplier.set(SessionType.VR);
-
-        Intent intent = XrHostActivity.createIntent(getApplicationContext());
-        getApplicationContext().startActivity(intent);
-    }
-
-    @CalledByNative
     private void endSession() {
         if (DEBUG_LOGS) Log.i(TAG, "endSession");
-
-        if (sActiveSessionInstance == null) return;
+        if (mImmersiveOverlay == null) return;
         assert (sActiveSessionInstance == this);
 
-        if (mImmersiveOverlay != null) {
-            mImmersiveOverlay.cleanupAndExit();
-            mImmersiveOverlay = null;
-        }
+        mImmersiveOverlay.cleanupAndExit();
+        mImmersiveOverlay = null;
         mActiveSessionType = SessionType.NONE;
         mWebContents = null;
         sActiveSessionInstance = null;
         sActiveSessionAvailableSupplier.set(SessionType.NONE);
     }
 
-    // Called from XrDelegateImpl and XRHostActivity
-    public static boolean endActiveSession() {
-        if (DEBUG_LOGS) Log.i(TAG, "endActiveSession");
-        // If there's an active immersive session shut it down and return true so that the caller
-        // can take appropriate action, such as consuming a back gesture.
+    // Called from ArDelegateImpl
+    public static boolean onBackPressed() {
+        if (DEBUG_LOGS) Log.i(TAG, "onBackPressed");
+        // If there's an active immersive session, consume the "back" press and shut down the
+        // session.
         if (sActiveSessionInstance != null) {
             sActiveSessionInstance.endSession();
             return true;
         }
         return false;
-    }
-
-    public static boolean hasActiveSession() {
-        return sActiveSessionInstance != null;
     }
 
     public static boolean hasActiveArSession() {
@@ -214,10 +189,6 @@ public class XrSessionCoordinator {
 
     public static XrSessionTypeSupplier getActiveSessionTypeSupplier() {
         return sActiveSessionAvailableSupplier;
-    }
-
-    public static void onActiveXrSessionButtonTouched() {
-        sActiveSessionInstance.onXrSessionButtonTouched();
     }
 
     public void onDrawingSurfaceReady(
@@ -243,39 +214,11 @@ public class XrSessionCoordinator {
                 mNativeXrSessionCoordinator, XrSessionCoordinator.this);
     }
 
-    public void onXrSessionButtonTouched() {
-        if (DEBUG_LOGS) Log.i(TAG, "onXrSessionButtonTouched");
-        if (mNativeXrSessionCoordinator == 0) return;
-        XrSessionCoordinatorJni.get().onXrSessionButtonTouched(
-                mNativeXrSessionCoordinator, XrSessionCoordinator.this);
-    }
-
-    /**
-     * Called when an XrHostActivity has started and is ready to be passed as an argument to
-     * xrCreateInstance().
-     *
-     * @return True if an active session was notified that the activity is ready.
-     */
-    public static boolean onXrHostActivityReady(Activity activity) {
-        if (DEBUG_LOGS) Log.i(TAG, "onXrHostActivityReady");
-        if (sActiveSessionInstance != null) {
-            sActiveSessionInstance.handleXrHostActivityReady(activity);
-            return true;
-        }
-        return false;
-    }
-
-    private void handleXrHostActivityReady(Activity activity) {
-        if (mNativeXrSessionCoordinator == 0) return;
-        XrSessionCoordinatorJni.get().onXrHostActivityReady(
-                mNativeXrSessionCoordinator, XrSessionCoordinator.this, activity);
-    }
-
     @CalledByNative
     private void onNativeDestroy() {
-        // Native destructors should end sessions before destroying the native XrSessionCoordinator
+        // Native destructors should ends sessions before destroying the native XrSessionCoordinator
         // object.
-        assert sActiveSessionInstance != this : "unexpected active session in onNativeDestroy";
+        assert sActiveSessionInstance == null : "unexpected active session in onNativeDestroy";
 
         mNativeXrSessionCoordinator = 0;
     }
@@ -288,8 +231,5 @@ public class XrSessionCoordinator {
                 boolean primary, boolean touching, int pointerId, float x, float y);
         void onDrawingSurfaceDestroyed(
                 long nativeXrSessionCoordinator, XrSessionCoordinator caller);
-        void onXrSessionButtonTouched(long nativeXrSessionCoordinator, XrSessionCoordinator caller);
-        void onXrHostActivityReady(
-                long nativeXrSessionCoordinator, XrSessionCoordinator caller, Activity activity);
     }
 }

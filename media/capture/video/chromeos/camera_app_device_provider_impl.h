@@ -42,8 +42,6 @@ class CAPTURE_EXPORT CameraAppDeviceProviderImpl
       const std::string& device_id,
       bool enabled,
       SetVirtualDeviceEnabledCallback callback) override;
-  void IsDeviceInUse(const std::string& source_id,
-                     IsDeviceInUseCallback callback) override;
 
  private:
   void GetCameraAppDeviceWithDeviceId(
@@ -54,8 +52,6 @@ class CAPTURE_EXPORT CameraAppDeviceProviderImpl
       bool enable,
       SetVirtualDeviceEnabledCallback callback,
       const absl::optional<std::string>& device_id);
-  void IsDeviceInUseWithDeviceId(IsDeviceInUseCallback callback,
-                                 const absl::optional<std::string>& device_id);
 
   mojo::Remote<cros::mojom::CameraAppDeviceBridge> bridge_;
 

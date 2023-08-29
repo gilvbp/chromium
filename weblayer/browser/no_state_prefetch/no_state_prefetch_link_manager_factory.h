@@ -31,7 +31,7 @@ class NoStatePrefetchLinkManagerFactory
   ~NoStatePrefetchLinkManagerFactory() override = default;
 
   // BrowserContextKeyedServiceFactory:
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* browser) const override;
   content::BrowserContext* GetBrowserContextToUse(
       content::BrowserContext* context) const override;

@@ -29,7 +29,6 @@
 #include "third_party/skia/include/core/SkRegion.h"
 #include "third_party/skia/include/core/SkSerialProcs.h"
 #include "third_party/skia/include/core/SkTextBlob.h"
-#include "third_party/skia/include/core/SkTiledImageUtils.h"
 #include "third_party/skia/include/docs/SkPDFDocument.h"
 #include "third_party/skia/include/private/chromium/Slug.h"
 #include "ui/gfx/geometry/skia_conversions.h"
@@ -100,12 +99,11 @@ void DrawImageRect(SkCanvas* canvas,
     m.setRectToRect(src, dst, SkMatrix::ScaleToFit::kFill_ScaleToFit);
     canvas->save();
     canvas->concat(m);
-    SkTiledImageUtils::DrawImage(canvas, image, 0, 0, options, paint);
+    canvas->drawImage(image, 0, 0, options, paint);
     canvas->restore();
     return;
   }
-  SkTiledImageUtils::DrawImageRect(canvas, image, src, dst, options, paint,
-                                   constraint);
+  canvas->drawImageRect(image, src, dst, options, paint, constraint);
 }
 
 #define TYPES(M)      \
@@ -1133,8 +1131,7 @@ void DrawImageOp::RasterWithFlags(const DrawImageOp* op,
     if (!sk_image)
       sk_image = op->image.GetSwSkImage();
 
-    SkTiledImageUtils::DrawImage(canvas, sk_image.get(), op->left, op->top,
-                                 op->sampling, &paint);
+    canvas->drawImage(sk_image.get(), op->left, op->top, op->sampling, &paint);
     return;
   }
 
@@ -1161,11 +1158,10 @@ void DrawImageOp::RasterWithFlags(const DrawImageOp* op,
     canvas->scale(1.f / scale_adjustment.width(),
                   1.f / scale_adjustment.height());
   }
-  SkTiledImageUtils::DrawImage(canvas, decoded_image.image().get(), op->left,
-                               op->top,
-                               PaintFlags::FilterQualityToSkSamplingOptions(
-                                   decoded_image.filter_quality()),
-                               &paint);
+  canvas->drawImage(decoded_image.image().get(), op->left, op->top,
+                    PaintFlags::FilterQualityToSkSamplingOptions(
+                        decoded_image.filter_quality()),
+                    &paint);
 }
 
 void DrawImageRectOp::RasterWithFlags(const DrawImageRectOp* op,

@@ -3,12 +3,16 @@
 // found in the LICENSE file.
 
 #import "ios/chrome/browser/ui/bubble/bubble_view_controller.h"
-#import "base/apple/foundation_util.h"
+#import "base/mac/foundation_util.h"
 #import "ios/chrome/browser/ui/bubble/bubble_unittest_util.h"
 #import "ios/chrome/browser/ui/bubble/bubble_view.h"
 #import "testing/gtest/include/gtest/gtest.h"
 #import "testing/gtest_mac.h"
 #import "testing/platform_test.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 // Fixture to test BubbleViewController.
 class BubbleViewControllerTest : public PlatformTest {
@@ -18,7 +22,7 @@ class BubbleViewControllerTest : public PlatformTest {
         titleText_(@"Title"),
         image_([[UIImage alloc] init]),
         arrowDirection_(BubbleArrowDirectionUp),
-        alignment_(BubbleAlignmentTopOrLeading) {}
+        alignment_(BubbleAlignmentLeading) {}
 
  protected:
   // Text for the bubble view.
@@ -40,7 +44,7 @@ class BubbleViewControllerTest : public PlatformTest {
                                BOOL expectImage,
                                BOOL expectSnoozeButton) {
     BubbleView* bubbleView =
-        base::apple::ObjCCastStrict<BubbleView>(bubbleViewController.view);
+        base::mac::ObjCCastStrict<BubbleView>(bubbleViewController.view);
     EXPECT_TRUE(bubbleView);
     UIView* closeButton = GetCloseButtonFromBubbleView(bubbleView);
     UIView* titleView = GetTitleLabelFromBubbleView(bubbleView);

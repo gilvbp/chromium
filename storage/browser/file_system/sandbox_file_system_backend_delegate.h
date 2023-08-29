@@ -154,6 +154,11 @@ class COMPONENT_EXPORT(STORAGE_BROWSER) SandboxFileSystemBackendDelegate
       FileSystemType type) const;
 
   // FileSystemQuotaUtil overrides.
+  base::File::Error DeleteStorageKeyDataOnFileTaskRunner(
+      FileSystemContext* context,
+      QuotaManagerProxy* proxy,
+      const blink::StorageKey& storage_key,
+      FileSystemType type) override;
   void DeleteCachedDefaultBucket(const blink::StorageKey& storage_key) override;
   base::File::Error DeleteBucketDataOnFileTaskRunner(
       FileSystemContext* context,

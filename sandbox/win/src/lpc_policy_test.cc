@@ -6,6 +6,7 @@
 // lock down.
 
 #include <algorithm>
+#include <cctype>
 
 #include <windows.h>
 #include <winioctl.h>

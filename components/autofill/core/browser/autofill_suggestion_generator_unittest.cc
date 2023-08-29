@@ -14,7 +14,6 @@
 #include "base/uuid.h"
 #include "components/autofill/core/browser/autofill_suggestion_generator.h"
 #include "components/autofill/core/browser/autofill_test_utils.h"
-#include "components/autofill/core/browser/data_model/autofill_wallet_usage_data.h"
 #include "components/autofill/core/browser/data_model/credit_card.h"
 #include "components/autofill/core/browser/data_model/iban.h"
 #include "components/autofill/core/browser/metrics/payments/card_metadata_metrics.h"
@@ -31,7 +30,6 @@
 #include "components/feature_engagement/public/feature_constants.h"
 #include "components/grit/components_scaled_resources.h"
 #include "components/strings/grit/components_strings.h"
-#include "components/sync/test/test_sync_service.h"
 #include "testing/gtest/include/gtest/gtest.h"
 #include "ui/base/l10n/l10n_util.h"
 #include "ui/base/resource/mock_resource_bundle_delegate.h"
@@ -81,22 +79,23 @@ class AutofillSuggestionGeneratorTest : public testing::Test {
                           /*local_state=*/autofill_client_.GetPrefs(),
                           /*identity_manager=*/nullptr,
                           /*history_service=*/nullptr,
-                          /*sync_service=*/&sync_service_,
+                          /*sync_service=*/nullptr,
                           /*strike_database=*/nullptr,
-                          /*image_fetcher=*/nullptr);
+                          /*image_fetcher=*/nullptr,
+                          /*is_off_the_record=*/false);
     suggestion_generator_ = std::make_unique<TestAutofillSuggestionGenerator>(
         &autofill_client_, personal_data());
     autofill_client_.set_autofill_offer_manager(
         std::make_unique<AutofillOfferManager>(
             personal_data(),
-            /*coupon_service_delegate=*/nullptr, /*shopping_service=*/nullptr));
+            /*coupon_service_delegate=*/nullptr));
   }
 
   CreditCard CreateServerCard(
       const std::string& guid = "00000000-0000-0000-0000-000000000001",
       const std::string& server_id = "server_id1",
       int instrument_id = 1) {
-    CreditCard server_card(CreditCard::RecordType::kMaskedServerCard, "a123");
+    CreditCard server_card(CreditCard::MASKED_SERVER_CARD, "a123");
     test::SetCreditCardInfo(&server_card, "Elvis Presley", "1111" /* Visa */,
                             test::NextMonth().c_str(), test::NextYear().c_str(),
                             "1");
@@ -160,7 +159,6 @@ class AutofillSuggestionGeneratorTest : public testing::Test {
       base::test::TaskEnvironment::TimeSource::SYSTEM_TIME};
   test::AutofillUnitTestEnvironment autofill_test_environment_;
   TestAutofillClient autofill_client_;
-  syncer::TestSyncService sync_service_;
   std::unique_ptr<TestAutofillSuggestionGenerator> suggestion_generator_;
   scoped_refptr<AutofillWebDataService> database_;
   testing::NiceMock<ui::MockResourceBundleDelegate> mock_resource_delegate_;
@@ -331,7 +329,7 @@ TEST_F(AutofillSuggestionGeneratorTest,
     for (auto it = all_card_ptrs.begin(); it < all_card_ptrs.end(); it++) {
       (*it)->SetExpirationYear(2001);
     }
-    cards[0]->set_record_type(CreditCard::RecordType::kMaskedServerCard);
+    cards[0]->set_record_type(CreditCard::MASKED_SERVER_CARD);
 
     // Filter the cards while capturing histograms.
     base::HistogramTester histogram_tester;
@@ -412,28 +410,6 @@ TEST_F(AutofillSuggestionGeneratorTest,
             Suggestion::BackendId("00000000-0000-0000-0000-000000000003"));
   EXPECT_EQ(suggestions[2].GetPayload<Suggestion::BackendId>(),
             Suggestion::BackendId("00000000-0000-0000-0000-000000000001"));
-}
-
-// Ensures we appropriately generate suggestions for virtual cards on a
-// standalone CVC field.
-TEST_F(AutofillSuggestionGeneratorTest,
-       GetSuggestionsForVirtualCardStandaloneCvc) {
-  personal_data()->ClearCreditCards();
-  CreditCard virtual_card = test::GetVirtualCard();
-  virtual_card.set_guid("1234");
-  personal_data()->AddServerCreditCard(virtual_card);
-
-  base::flat_map<std::string, VirtualCardUsageData::VirtualCardLastFour>
-      virtual_card_guid_to_last_four_map;
-  virtual_card_guid_to_last_four_map.insert(
-      {virtual_card.guid(),
-       VirtualCardUsageData::VirtualCardLastFour(u"1234")});
-  autofill_metrics::CardMetadataLoggingContext metadata_logging_context;
-  auto suggestions =
-      suggestion_generator()->GetSuggestionsForVirtualCardStandaloneCvc(
-          metadata_logging_context, virtual_card_guid_to_last_four_map);
-
-  ASSERT_EQ(suggestions.size(), 1U);
 }
 
 // Verifies that the `should_display_gpay_logo` is set correctly.
@@ -539,7 +515,7 @@ TEST_F(AutofillSuggestionGeneratorTest, ShouldShowVirtualCardOption) {
   CreditCard server_card =
       CreateServerCard(/*guid=*/"00000000-0000-0000-0000-000000000001");
   server_card.set_virtual_card_enrollment_state(
-      CreditCard::VirtualCardEnrollmentState::kEnrolled);
+      CreditCard::VirtualCardEnrollmentState::ENROLLED);
   personal_data()->AddServerCreditCard(server_card);
 
   // Create a local card with same information.
@@ -560,7 +536,7 @@ TEST_F(AutofillSuggestionGeneratorTest,
   CreditCard server_card =
       CreateServerCard(/*guid=*/"00000000-0000-0000-0000-000000000001");
   server_card.set_virtual_card_enrollment_state(
-      CreditCard::VirtualCardEnrollmentState::kEnrolled);
+      CreditCard::VirtualCardEnrollmentState::ENROLLED);
   personal_data()->AddServerCreditCard(server_card);
   autofill_client()->ResetAutofillOptimizationGuide();
 
@@ -582,7 +558,7 @@ TEST_F(AutofillSuggestionGeneratorTest,
   CreditCard server_card =
       CreateServerCard(/*guid=*/"00000000-0000-0000-0000-000000000001");
   server_card.set_virtual_card_enrollment_state(
-      CreditCard::VirtualCardEnrollmentState::kEnrolled);
+      CreditCard::VirtualCardEnrollmentState::ENROLLED);
   personal_data()->AddServerCreditCard(server_card);
 
   // Create a local card with same information.
@@ -609,7 +585,7 @@ TEST_F(AutofillSuggestionGeneratorTest,
   CreditCard server_card =
       CreateServerCard(/*guid=*/"00000000-0000-0000-0000-000000000001");
   server_card.set_virtual_card_enrollment_state(
-      CreditCard::VirtualCardEnrollmentState::kUnspecified);
+      CreditCard::VirtualCardEnrollmentState::UNSPECIFIED);
   personal_data()->AddServerCreditCard(server_card);
 
   // Create a local card with same information.
@@ -637,25 +613,25 @@ TEST_F(AutofillSuggestionGeneratorTest,
       suggestion_generator()->ShouldShowVirtualCardOption(&local_card));
 }
 
-TEST_F(AutofillSuggestionGeneratorTest, GetIbanSuggestions) {
+TEST_F(AutofillSuggestionGeneratorTest, GetIBANSuggestions) {
   SetUpIbanImageResources();
 
-  auto MakeIban = [](const std::u16string& value,
+  auto MakeIBAN = [](const std::u16string& value,
                      const std::u16string& nickname) {
-    Iban iban(base::Uuid::GenerateRandomV4().AsLowercaseString());
+    IBAN iban(base::Uuid::GenerateRandomV4().AsLowercaseString());
     iban.set_value(value);
     if (!nickname.empty())
       iban.set_nickname(nickname);
     return iban;
   };
-  Iban iban0 = MakeIban(u"CH56 0483 5012 3456 7800 9", u"My doctor's IBAN");
-  Iban iban1 = MakeIban(u"DE91 1000 0000 0123 4567 89", u"My brother's IBAN");
-  Iban iban2 =
-      MakeIban(u"GR96 0810 0010 0000 0123 4567 890", u"My teacher's IBAN");
-  Iban iban3 = MakeIban(u"PK70 BANK 0000 1234 5678 9000", u"");
+  IBAN iban0 = MakeIBAN(u"CH56 0483 5012 3456 7800 9", u"My doctor's IBAN");
+  IBAN iban1 = MakeIBAN(u"DE91 1000 0000 0123 4567 89", u"My brother's IBAN");
+  IBAN iban2 =
+      MakeIBAN(u"GR96 0810 0010 0000 0123 4567 890", u"My teacher's IBAN");
+  IBAN iban3 = MakeIBAN(u"PK70 BANK 0000 1234 5678 9000", u"");
 
   std::vector<Suggestion> iban_suggestions =
-      AutofillSuggestionGenerator::GetSuggestionsForIbans(
+      AutofillSuggestionGenerator::GetSuggestionsForIBANs(
           {&iban0, &iban1, &iban2, &iban3});
 
   // There are 6 suggestions, 4 for IBAN suggestions, followed by a separator,
@@ -810,9 +786,15 @@ TEST_F(AutofillSuggestionGeneratorTest,
 // suggestions. It covers suggestions on Desktop/Android dropdown, and on
 // Android keyboard accessory.
 class AutofillCreditCardSuggestionContentTest
-    : public AutofillSuggestionGeneratorTest {
+    : public AutofillSuggestionGeneratorTest,
+      public testing::WithParamInterface<bool> {
  public:
   AutofillCreditCardSuggestionContentTest() {
+#if BUILDFLAG(IS_ANDROID)
+    keyboard_accessory_enabled_ = GetParam();
+    feature_list_keyboard_accessory_.InitWithFeatureState(
+        features::kAutofillKeyboardAccessory, keyboard_accessory_enabled_);
+#endif
     feature_list_metadata_.InitWithFeatures(
         /*enabled_features=*/{features::kAutofillEnableVirtualCardMetadata,
                               features::kAutofillEnableCardProductName},
@@ -823,7 +805,7 @@ class AutofillCreditCardSuggestionContentTest
 
   bool keyboard_accessory_enabled() const {
 #if BUILDFLAG(IS_ANDROID)
-    return true;
+    return keyboard_accessory_enabled_;
 #else
     return false;
 #endif
@@ -843,12 +825,20 @@ class AutofillCreditCardSuggestionContentTest
 #endif
 
  private:
+#if BUILDFLAG(IS_ANDROID)
+  bool keyboard_accessory_enabled_;
+  base::test::ScopedFeatureList feature_list_keyboard_accessory_;
+#endif
   base::test::ScopedFeatureList feature_list_metadata_;
 };
 
+INSTANTIATE_TEST_SUITE_P(All,
+                         AutofillCreditCardSuggestionContentTest,
+                         testing::Bool());
+
 // Verify that the suggestion's texts are populated correctly for a virtual card
 // suggestion when the cardholder name field is focused.
-TEST_F(AutofillCreditCardSuggestionContentTest,
+TEST_P(AutofillCreditCardSuggestionContentTest,
        CreateCreditCardSuggestion_VirtualCardMetadata_NameField) {
   CreditCard server_card = CreateServerCard();
 
@@ -879,16 +869,15 @@ TEST_F(AutofillCreditCardSuggestionContentTest,
   ASSERT_EQ(virtual_card_name_field_suggestion.labels.size(), 2U);
   ASSERT_EQ(virtual_card_name_field_suggestion.labels[0].size(), 1U);
   EXPECT_EQ(virtual_card_name_field_suggestion.labels[0][0].value,
-            CreditCard::GetObfuscatedStringForCardDigits(
-                ios_obfuscation_length(), u"1111"));
+            internal::GetObfuscatedStringForCardDigits(
+                u"1111", ios_obfuscation_length()));
 #else
   if (keyboard_accessory_enabled()) {
     // There should be only 1 line of label: obfuscated last 4 digits "..1111".
     ASSERT_EQ(virtual_card_name_field_suggestion.labels.size(), 1U);
     ASSERT_EQ(virtual_card_name_field_suggestion.labels[0].size(), 1U);
     EXPECT_EQ(virtual_card_name_field_suggestion.labels[0][0].value,
-              CreditCard::GetObfuscatedStringForCardDigits(
-                  /*obfuscation_length=*/2, u"1111"));
+              internal::GetObfuscatedStringForCardDigits(u"1111", 2));
   } else {
     // There should be 2 lines of labels:
     // 1. Card name + obfuscated last 4 digits "CardName  ....1111". Card name
@@ -898,8 +887,7 @@ TEST_F(AutofillCreditCardSuggestionContentTest,
     ASSERT_EQ(virtual_card_name_field_suggestion.labels[0].size(), 2U);
     EXPECT_EQ(virtual_card_name_field_suggestion.labels[0][0].value, u"Visa");
     EXPECT_EQ(virtual_card_name_field_suggestion.labels[0][1].value,
-              CreditCard::GetObfuscatedStringForCardDigits(
-                  /*obfuscation_length=*/4, u"1111"));
+              internal::GetObfuscatedStringForCardDigits(u"1111", 4));
   }
 #endif
 
@@ -914,7 +902,7 @@ TEST_F(AutofillCreditCardSuggestionContentTest,
 
 // Verify that the suggestion's texts are populated correctly for a virtual card
 // suggestion when the card number field is focused.
-TEST_F(AutofillCreditCardSuggestionContentTest,
+TEST_P(AutofillCreditCardSuggestionContentTest,
        CreateCreditCardSuggestion_VirtualCardMetadata_NumberField) {
   CreditCard server_card = CreateServerCard();
 
@@ -927,10 +915,9 @@ TEST_F(AutofillCreditCardSuggestionContentTest,
 
 #if BUILDFLAG(IS_IOS)
   // Only card number is displayed on the first line.
-  EXPECT_EQ(
-      virtual_card_number_field_suggestion.main_text.value,
-      base::StrCat({u"Visa  ", CreditCard::GetObfuscatedStringForCardDigits(
-                                   ios_obfuscation_length(), u"1111")}));
+  EXPECT_EQ(virtual_card_number_field_suggestion.main_text.value,
+            base::StrCat({u"Visa  ", internal::GetObfuscatedStringForCardDigits(
+                                         u"1111", ios_obfuscation_length())}));
   EXPECT_EQ(virtual_card_number_field_suggestion.minor_text.value, u"");
 #else
   if (keyboard_accessory_enabled()) {
@@ -940,14 +927,12 @@ TEST_F(AutofillCreditCardSuggestionContentTest,
     EXPECT_EQ(virtual_card_number_field_suggestion.main_text.value,
               u"Virtual card  Visa");
     EXPECT_EQ(virtual_card_number_field_suggestion.minor_text.value,
-              CreditCard::GetObfuscatedStringForCardDigits(
-                  /*obfuscation_length=*/2, u"1111"));
+              internal::GetObfuscatedStringForCardDigits(u"1111", 2));
   } else {
     // Card name and the obfuscated last four digits are shown separately.
     EXPECT_EQ(virtual_card_number_field_suggestion.main_text.value, u"Visa");
     EXPECT_EQ(virtual_card_number_field_suggestion.minor_text.value,
-              CreditCard::GetObfuscatedStringForCardDigits(
-                  /*obfuscation_length=*/4, u"1111"));
+              internal::GetObfuscatedStringForCardDigits(u"1111", 4));
   }
 #endif
 
@@ -965,7 +950,7 @@ TEST_F(AutofillCreditCardSuggestionContentTest,
 
 // Verify that the suggestion's texts are populated correctly for a masked
 // server card suggestion when the cardholder name field is focused.
-TEST_F(AutofillCreditCardSuggestionContentTest,
+TEST_P(AutofillCreditCardSuggestionContentTest,
        CreateCreditCardSuggestion_MaskedServerCardMetadata_NameField) {
   CreditCard server_card = CreateServerCard();
 
@@ -985,16 +970,15 @@ TEST_F(AutofillCreditCardSuggestionContentTest,
   ASSERT_EQ(real_card_name_field_suggestion.labels.size(), 1U);
   ASSERT_EQ(real_card_name_field_suggestion.labels[0].size(), 1U);
   EXPECT_EQ(real_card_name_field_suggestion.labels[0][0].value,
-            CreditCard::GetObfuscatedStringForCardDigits(
-                ios_obfuscation_length(), u"1111"));
+            internal::GetObfuscatedStringForCardDigits(
+                u"1111", ios_obfuscation_length()));
 #else
   if (keyboard_accessory_enabled()) {
     // For the keyboard accessory, the label is "..1111".
     ASSERT_EQ(real_card_name_field_suggestion.labels.size(), 1U);
     ASSERT_EQ(real_card_name_field_suggestion.labels[0].size(), 1U);
     EXPECT_EQ(real_card_name_field_suggestion.labels[0][0].value,
-              CreditCard::GetObfuscatedStringForCardDigits(
-                  /*obfuscation_length=*/2, u"1111"));
+              internal::GetObfuscatedStringForCardDigits(u"1111", 2));
   } else {
     // For Desktop/Android, the label is "CardName  ....1111". Card name and
     // last four are shown separately.
@@ -1002,15 +986,14 @@ TEST_F(AutofillCreditCardSuggestionContentTest,
     ASSERT_EQ(real_card_name_field_suggestion.labels[0].size(), 2U);
     EXPECT_EQ(real_card_name_field_suggestion.labels[0][0].value, u"Visa");
     EXPECT_EQ(real_card_name_field_suggestion.labels[0][1].value,
-              CreditCard::GetObfuscatedStringForCardDigits(
-                  /*obfuscation_length=*/4, u"1111"));
+              internal::GetObfuscatedStringForCardDigits(u"1111", 4));
   }
 #endif
 }
 
 // Verify that the suggestion's texts are populated correctly for a masked
 // server card suggestion when the card number field is focused.
-TEST_F(AutofillCreditCardSuggestionContentTest,
+TEST_P(AutofillCreditCardSuggestionContentTest,
        CreateCreditCardSuggestion_MaskedServerCardMetadata_NumberField) {
   CreditCard server_card = CreateServerCard();
 
@@ -1023,19 +1006,17 @@ TEST_F(AutofillCreditCardSuggestionContentTest,
 
 #if BUILDFLAG(IS_IOS)
   // Only the card number is displayed on the first line.
-  EXPECT_EQ(
-      real_card_number_field_suggestion.main_text.value,
-      base::StrCat({u"Visa  ", CreditCard::GetObfuscatedStringForCardDigits(
-                                   ios_obfuscation_length(), u"1111")}));
+  EXPECT_EQ(real_card_number_field_suggestion.main_text.value,
+            base::StrCat({u"Visa  ", internal::GetObfuscatedStringForCardDigits(
+                                         u"1111", ios_obfuscation_length())}));
   EXPECT_EQ(real_card_number_field_suggestion.minor_text.value, u"");
 #else
   // For Desktop/Android, split the first line and populate the card name and
   // the last 4 digits separately.
   EXPECT_EQ(real_card_number_field_suggestion.main_text.value, u"Visa");
   EXPECT_EQ(real_card_number_field_suggestion.minor_text.value,
-            CreditCard::GetObfuscatedStringForCardDigits(
-                /*obfuscation_length=*/keyboard_accessory_enabled() ? 2 : 4,
-                u"1111"));
+            internal::GetObfuscatedStringForCardDigits(
+                u"1111", keyboard_accessory_enabled() ? 2 : 4));
 #endif
 
   // The label is the expiration date formatted as mm/yy.
@@ -1086,8 +1067,8 @@ TEST_P(AutofillCreditCardSuggestionIOSObfuscationLengthContentTest,
   ASSERT_EQ(card_name_field_suggestion.labels.size(), 1U);
   ASSERT_EQ(card_name_field_suggestion.labels[0].size(), 1U);
   EXPECT_EQ(card_name_field_suggestion.labels[0][0].value,
-            CreditCard::GetObfuscatedStringForCardDigits(
-                expected_obfuscation_length(), u"1111"));
+            internal::GetObfuscatedStringForCardDigits(
+                u"1111", expected_obfuscation_length()));
 
   // Card number field suggestion.
   Suggestion card_number_field_suggestion =
@@ -1098,8 +1079,8 @@ TEST_P(AutofillCreditCardSuggestionIOSObfuscationLengthContentTest,
 
   EXPECT_EQ(
       card_number_field_suggestion.main_text.value,
-      base::StrCat({u"Visa  ", CreditCard::GetObfuscatedStringForCardDigits(
-                                   expected_obfuscation_length(), u"1111")}));
+      base::StrCat({u"Visa  ", internal::GetObfuscatedStringForCardDigits(
+                                   u"1111", expected_obfuscation_length())}));
 }
 
 #endif  // BUILDFLAG(IS_IOS)
@@ -1347,10 +1328,13 @@ class AutofillSuggestionGeneratorTestForOffer
     keyboard_accessory_offer_enabled_ = GetParam();
     if (keyboard_accessory_offer_enabled_) {
       scoped_feature_keyboard_accessory_offer_.InitWithFeatures(
-          {features::kAutofillEnableOffersInClankKeyboardAccessory}, {});
+          {features::kAutofillKeyboardAccessory,
+           features::kAutofillEnableOffersInClankKeyboardAccessory},
+          {});
     } else {
       scoped_feature_keyboard_accessory_offer_.InitWithFeatures(
-          {}, {features::kAutofillEnableOffersInClankKeyboardAccessory});
+          {}, {features::kAutofillKeyboardAccessory,
+               features::kAutofillEnableOffersInClankKeyboardAccessory});
     }
 #endif
   }

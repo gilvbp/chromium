@@ -11,9 +11,12 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "os": "Ubuntu-18.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "base_unittests",
@@ -24,9 +27,12 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "os": "Ubuntu-18.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "content_unittests",
@@ -44,9 +50,12 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "os": "Ubuntu-18.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "base_unittests",
@@ -57,9 +66,12 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "os": "Ubuntu-18.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "content_unittests",
@@ -77,10 +89,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "x86-64",
-            "os": "Mac-12"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "x86-64",
+              "os": "Mac-12"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "base_unittests",
@@ -91,10 +106,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "x86-64",
-            "os": "Mac-12"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "x86-64",
+              "os": "Mac-12"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "content_unittests",
@@ -112,10 +130,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "x86-64",
-            "os": "Mac-12"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "x86-64",
+              "os": "Mac-12"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "base_unittests",
@@ -126,10 +147,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "x86-64",
-            "os": "Mac-12"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "x86-64",
+              "os": "Mac-12"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "content_unittests",

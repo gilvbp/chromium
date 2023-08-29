@@ -11,13 +11,11 @@
 #include "base/memory/raw_ptr.h"
 #include "base/memory/scoped_refptr.h"
 #include "base/run_loop.h"
-#include "base/strings/stringprintf.h"
 #include "base/task/sequenced_task_runner.h"
 #include "base/task/single_thread_task_runner.h"
 #include "base/test/bind.h"
 #include "base/test/scoped_feature_list.h"
 #include "base/test/task_environment.h"
-#include "base/test/test_future.h"
 #include "base/time/default_clock.h"
 #include "components/services/storage/indexed_db/locks/partitioned_lock_manager.h"
 #include "components/services/storage/indexed_db/transactional_leveldb/transactional_leveldb_database.h"
@@ -30,9 +28,8 @@
 #include "content/browser/indexed_db/indexed_db_factory.h"
 #include "content/browser/indexed_db/indexed_db_leveldb_coding.h"
 #include "content/browser/indexed_db/indexed_db_leveldb_env.h"
+#include "content/browser/indexed_db/mock_indexed_db_callbacks.h"
 #include "content/browser/indexed_db/mock_indexed_db_database_callbacks.h"
-#include "content/browser/indexed_db/mock_indexed_db_factory_client.h"
-#include "content/browser/indexed_db/mock_mojo_indexed_db_factory_client.h"
 #include "mojo/public/cpp/bindings/pending_associated_remote.h"
 #include "mojo/public/cpp/bindings/pending_remote.h"
 #include "net/base/features.h"
@@ -53,6 +50,9 @@ base::FilePath CreateAndReturnTempDir(base::ScopedTempDir* temp_dir) {
   CHECK(temp_dir->CreateUniqueTempDir());
   return temp_dir->GetPath();
 }
+
+void CreateAndBindTransactionPlaceholder(
+    base::WeakPtr<IndexedDBTransaction> transaction) {}
 
 class LevelDBLock {
  public:
@@ -241,7 +241,10 @@ class IndexedDBTest : public testing::Test,
       }
       // All leveldb databases are closed, and they can be deleted.
       for (auto bucket_locator : context_->GetAllBuckets()) {
-        EXPECT_TRUE(DeleteForStorageKeySync(bucket_locator.storage_key));
+        bool success = false;
+        storage::mojom::IndexedDBControlAsyncWaiter waiter(context_.get());
+        waiter.DeleteForStorageKey(bucket_locator.storage_key, &success);
+        EXPECT_TRUE(success);
       }
     }
 
@@ -251,9 +254,16 @@ class IndexedDBTest : public testing::Test,
 
   base::FilePath GetFilePathForTesting(
       const storage::BucketLocator& bucket_locator) {
-    base::test::TestFuture<const base::FilePath&> path_future;
-    context()->GetFilePathForTesting(bucket_locator, path_future.GetCallback());
-    return path_future.Take();
+    base::FilePath path;
+    base::RunLoop run_loop;
+    context()->GetFilePathForTesting(
+        bucket_locator,
+        base::BindLambdaForTesting([&](const base::FilePath& async_path) {
+          path = async_path;
+          run_loop.Quit();
+        }));
+    run_loop.Run();
+    return path;
   }
 
   bool IsThirdPartyStoragePartitioningEnabled() { return GetParam(); }
@@ -264,12 +274,6 @@ class IndexedDBTest : public testing::Test,
         remote;
     return base::MakeRefCounted<IndexedDBClientStateCheckerWrapper>(
         std::move(remote));
-  }
-
-  bool DeleteForStorageKeySync(blink::StorageKey key) {
-    base::test::TestFuture<bool> success;
-    context()->DeleteForStorageKey(key, success.GetCallback());
-    return success.Get();
   }
 
  protected:
@@ -421,28 +425,30 @@ TEST_P(IndexedDBTest, SetForceKeepSessionState) {
   EXPECT_TRUE(base::DirectoryExists(session_only_path_third_party));
 }
 
-class ForceCloseDBCallbacks : public IndexedDBFactoryClient {
+class ForceCloseDBCallbacks : public IndexedDBCallbacks {
  public:
   ForceCloseDBCallbacks(scoped_refptr<IndexedDBContextImpl> idb_context,
                         const storage::BucketInfo& bucket_info)
-      : IndexedDBFactoryClient(nullptr,
-                               bucket_info,
-                               mojo::NullAssociatedRemote(),
-                               idb_context->IDBTaskRunner()),
+      : IndexedDBCallbacks(nullptr,
+                           bucket_info,
+                           mojo::NullAssociatedRemote(),
+                           idb_context->IDBTaskRunner()),
         idb_context_(idb_context),
         bucket_locator_(bucket_info.ToBucketLocator()) {}
-  ~ForceCloseDBCallbacks() override = default;
 
   ForceCloseDBCallbacks(const ForceCloseDBCallbacks&) = delete;
   ForceCloseDBCallbacks& operator=(const ForceCloseDBCallbacks&) = delete;
 
-  void OnOpenSuccess(std::unique_ptr<IndexedDBConnection> connection,
-                     const IndexedDBDatabaseMetadata& metadata) override {
+  void OnSuccess(std::unique_ptr<IndexedDBConnection> connection,
+                 const IndexedDBDatabaseMetadata& metadata) override {
     connection_ = std::move(connection);
     idb_context_->ConnectionOpened(bucket_locator_);
   }
 
   IndexedDBConnection* connection() { return connection_.get(); }
+
+ protected:
+  ~ForceCloseDBCallbacks() override = default;
 
  private:
   scoped_refptr<IndexedDBContextImpl> idb_context_;
@@ -461,9 +467,9 @@ TEST_P(IndexedDBTest, ForceCloseOpenDatabasesOnDeleteFirstParty) {
   auto closed_db_callbacks =
       base::MakeRefCounted<MockIndexedDBDatabaseCallbacks>();
   auto open_callbacks =
-      std::make_unique<ForceCloseDBCallbacks>(context(), bucket_info);
+      base::MakeRefCounted<ForceCloseDBCallbacks>(context(), bucket_info);
   auto closed_callbacks =
-      std::make_unique<ForceCloseDBCallbacks>(context(), bucket_info);
+      base::MakeRefCounted<ForceCloseDBCallbacks>(context(), bucket_info);
   base::FilePath test_path = GetFilePathForTesting(bucket_locator);
 
   const int64_t host_transaction_id = 0;
@@ -471,22 +477,24 @@ TEST_P(IndexedDBTest, ForceCloseOpenDatabasesOnDeleteFirstParty) {
 
   IndexedDBFactory* factory = context()->GetIDBFactory();
 
-  factory->Open(
-      u"opendb",
-      std::make_unique<IndexedDBPendingConnection>(
-          std::make_unique<ThunkFactoryClient>(*open_callbacks),
-          open_db_callbacks, host_transaction_id, version, base::DoNothing()),
-      bucket_locator, context()->GetDataPath(bucket_locator),
-      CreateTestClientStateWrapper());
+  auto create_transaction_callback1 =
+      base::BindOnce(&CreateAndBindTransactionPlaceholder);
+  factory->Open(u"opendb",
+                std::make_unique<IndexedDBPendingConnection>(
+                    open_callbacks, open_db_callbacks, host_transaction_id,
+                    version, std::move(create_transaction_callback1)),
+                bucket_locator, context()->GetDataPath(bucket_locator),
+                CreateTestClientStateWrapper());
   EXPECT_TRUE(base::DirectoryExists(test_path));
 
-  factory->Open(
-      u"closeddb",
-      std::make_unique<IndexedDBPendingConnection>(
-          std::make_unique<ThunkFactoryClient>(*closed_callbacks),
-          closed_db_callbacks, host_transaction_id, version, base::DoNothing()),
-      bucket_locator, context()->GetDataPath(bucket_locator),
-      CreateTestClientStateWrapper());
+  auto create_transaction_callback2 =
+      base::BindOnce(&CreateAndBindTransactionPlaceholder);
+  factory->Open(u"closeddb",
+                std::make_unique<IndexedDBPendingConnection>(
+                    closed_callbacks, closed_db_callbacks, host_transaction_id,
+                    version, std::move(create_transaction_callback2)),
+                bucket_locator, context()->GetDataPath(bucket_locator),
+                CreateTestClientStateWrapper());
   RunPostedTasks();
   ASSERT_TRUE(closed_callbacks->connection());
   closed_callbacks->connection()->AbortTransactionsAndClose(
@@ -502,7 +510,11 @@ TEST_P(IndexedDBTest, ForceCloseOpenDatabasesOnDeleteFirstParty) {
 
   RunPostedTasks();
 
-  EXPECT_TRUE(DeleteForStorageKeySync(kTestStorageKey));
+  bool success = false;
+  storage::mojom::IndexedDBControlAsyncWaiter waiter(context());
+  waiter.DeleteForStorageKey(kTestStorageKey, &success);
+  EXPECT_TRUE(success);
+
   EXPECT_FALSE(base::DirectoryExists(test_path));
 }
 
@@ -519,9 +531,9 @@ TEST_P(IndexedDBTest, ForceCloseOpenDatabasesOnDeleteThirdParty) {
   auto closed_db_callbacks =
       base::MakeRefCounted<MockIndexedDBDatabaseCallbacks>();
   auto open_callbacks =
-      std::make_unique<ForceCloseDBCallbacks>(context(), bucket_info);
+      base::MakeRefCounted<ForceCloseDBCallbacks>(context(), bucket_info);
   auto closed_callbacks =
-      std::make_unique<ForceCloseDBCallbacks>(context(), bucket_info);
+      base::MakeRefCounted<ForceCloseDBCallbacks>(context(), bucket_info);
   base::FilePath test_path = GetFilePathForTesting(bucket_locator);
 
   const int64_t host_transaction_id = 0;
@@ -529,22 +541,24 @@ TEST_P(IndexedDBTest, ForceCloseOpenDatabasesOnDeleteThirdParty) {
 
   IndexedDBFactory* factory = context()->GetIDBFactory();
 
-  factory->Open(
-      u"opendb",
-      std::make_unique<IndexedDBPendingConnection>(
-          std::make_unique<ThunkFactoryClient>(*open_callbacks),
-          open_db_callbacks, host_transaction_id, version, base::DoNothing()),
-      bucket_locator, context()->GetDataPath(bucket_locator),
-      CreateTestClientStateWrapper());
+  auto create_transaction_callback1 =
+      base::BindOnce(&CreateAndBindTransactionPlaceholder);
+  factory->Open(u"opendb",
+                std::make_unique<IndexedDBPendingConnection>(
+                    open_callbacks, open_db_callbacks, host_transaction_id,
+                    version, std::move(create_transaction_callback1)),
+                bucket_locator, context()->GetDataPath(bucket_locator),
+                CreateTestClientStateWrapper());
   EXPECT_TRUE(base::DirectoryExists(test_path));
 
-  factory->Open(
-      u"closeddb",
-      std::make_unique<IndexedDBPendingConnection>(
-          std::make_unique<ThunkFactoryClient>(*closed_callbacks),
-          closed_db_callbacks, host_transaction_id, version, base::DoNothing()),
-      bucket_locator, context()->GetDataPath(bucket_locator),
-      CreateTestClientStateWrapper());
+  auto create_transaction_callback2 =
+      base::BindOnce(&CreateAndBindTransactionPlaceholder);
+  factory->Open(u"closeddb",
+                std::make_unique<IndexedDBPendingConnection>(
+                    closed_callbacks, closed_db_callbacks, host_transaction_id,
+                    version, std::move(create_transaction_callback2)),
+                bucket_locator, context()->GetDataPath(bucket_locator),
+                CreateTestClientStateWrapper());
   RunPostedTasks();
   ASSERT_TRUE(closed_callbacks->connection());
   closed_callbacks->connection()->AbortTransactionsAndClose(
@@ -560,7 +574,10 @@ TEST_P(IndexedDBTest, ForceCloseOpenDatabasesOnDeleteThirdParty) {
 
   RunPostedTasks();
 
-  EXPECT_TRUE(DeleteForStorageKeySync(kTestStorageKey));
+  bool success = false;
+  storage::mojom::IndexedDBControlAsyncWaiter waiter(context());
+  waiter.DeleteForStorageKey(kTestStorageKey, &success);
+  EXPECT_TRUE(success);
 
   EXPECT_FALSE(base::DirectoryExists(test_path));
 }
@@ -577,13 +594,16 @@ TEST_P(IndexedDBTest, DeleteFailsIfDirectoryLockedFirstParty) {
   auto lock = LockForTesting(test_path);
   ASSERT_TRUE(lock);
 
-  base::test::TestFuture<bool> success_future;
+  bool success = false;
+  base::RunLoop loop;
   context()->IDBTaskRunner()->PostTask(
       FROM_HERE, base::BindLambdaForTesting([&]() {
-        context()->DeleteForStorageKey(kTestStorageKey,
-                                       success_future.GetCallback());
+        storage::mojom::IndexedDBControlAsyncWaiter waiter(context());
+        waiter.DeleteForStorageKey(kTestStorageKey, &success);
+        loop.Quit();
       }));
-  EXPECT_FALSE(success_future.Get());
+  loop.Run();
+  EXPECT_FALSE(success);
 
   EXPECT_TRUE(base::DirectoryExists(test_path));
 }
@@ -602,13 +622,16 @@ TEST_P(IndexedDBTest, DeleteFailsIfDirectoryLockedThirdParty) {
   auto lock = LockForTesting(test_path);
   ASSERT_TRUE(lock);
 
-  base::test::TestFuture<bool> success_future;
+  bool success = false;
+  base::RunLoop loop;
   context()->IDBTaskRunner()->PostTask(
       FROM_HERE, base::BindLambdaForTesting([&]() {
-        context()->DeleteForStorageKey(kTestStorageKey,
-                                       success_future.GetCallback());
+        storage::mojom::IndexedDBControlAsyncWaiter waiter(context());
+        waiter.DeleteForStorageKey(kTestStorageKey, &success);
+        loop.Quit();
       }));
-  EXPECT_FALSE(success_future.Get());
+  loop.Run();
+  EXPECT_FALSE(success);
 
   EXPECT_TRUE(base::DirectoryExists(test_path));
 }
@@ -624,12 +647,14 @@ TEST_P(IndexedDBTest, ForceCloseOpenDatabasesOnCommitFailureFirstParty) {
 
   const int64_t transaction_id = 1;
 
-  auto callbacks = std::make_unique<MockIndexedDBFactoryClient>();
+  auto callbacks = base::MakeRefCounted<MockIndexedDBCallbacks>();
   auto db_callbacks = base::MakeRefCounted<MockIndexedDBDatabaseCallbacks>();
+  auto create_transaction_callback1 =
+      base::BindOnce(&CreateAndBindTransactionPlaceholder);
   auto connection = std::make_unique<IndexedDBPendingConnection>(
-      std::make_unique<ThunkFactoryClient>(*callbacks), db_callbacks,
-      transaction_id, IndexedDBDatabaseMetadata::DEFAULT_VERSION,
-      base::DoNothing());
+      callbacks, db_callbacks, transaction_id,
+      IndexedDBDatabaseMetadata::DEFAULT_VERSION,
+      std::move(create_transaction_callback1));
   factory->Open(u"db", std::move(connection), bucket_locator,
                 context()->GetDataPath(bucket_locator),
                 CreateTestClientStateWrapper());
@@ -663,12 +688,14 @@ TEST_P(IndexedDBTest, ForceCloseOpenDatabasesOnCommitFailureThirdParty) {
 
   const int64_t transaction_id = 1;
 
-  auto callbacks = std::make_unique<MockIndexedDBFactoryClient>();
+  auto callbacks = base::MakeRefCounted<MockIndexedDBCallbacks>();
   auto db_callbacks = base::MakeRefCounted<MockIndexedDBDatabaseCallbacks>();
+  auto create_transaction_callback1 =
+      base::BindOnce(&CreateAndBindTransactionPlaceholder);
   auto connection = std::make_unique<IndexedDBPendingConnection>(
-      std::make_unique<ThunkFactoryClient>(*callbacks), db_callbacks,
-      transaction_id, IndexedDBDatabaseMetadata::DEFAULT_VERSION,
-      base::DoNothing());
+      callbacks, db_callbacks, transaction_id,
+      IndexedDBDatabaseMetadata::DEFAULT_VERSION,
+      std::move(create_transaction_callback1));
   factory->Open(u"db", std::move(connection), bucket_locator,
                 context()->GetDataPath(bucket_locator),
                 CreateTestClientStateWrapper());
@@ -695,10 +722,8 @@ TEST(PartitionedLockManager, TestRangeDifferences) {
   PartitionedLockId lock_id_db1_os1;
   PartitionedLockId lock_id_db1_os2;
   for (int64_t i = 0; i < 512; ++i) {
-    lock_id_db1 = GetDatabaseLockId(
-        base::ASCIIToUTF16(base::StringPrintf("%" PRIx64, i)));
-    lock_id_db2 = GetDatabaseLockId(
-        base::ASCIIToUTF16(base::StringPrintf("%" PRIx64, i + 1)));
+    lock_id_db1 = GetDatabaseLockId(i);
+    lock_id_db2 = GetDatabaseLockId(i + 1);
     lock_id_db1_os1 = GetObjectStoreLockId(i, i);
     lock_id_db1_os2 = GetObjectStoreLockId(i, i + 1);
     EXPECT_NE(lock_id_db1, lock_id_db2);

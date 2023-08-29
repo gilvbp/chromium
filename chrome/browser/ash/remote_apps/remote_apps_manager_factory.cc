@@ -44,8 +44,7 @@ RemoteAppsManagerFactory::RemoteAppsManagerFactory()
 
 RemoteAppsManagerFactory::~RemoteAppsManagerFactory() = default;
 
-std::unique_ptr<KeyedService>
-RemoteAppsManagerFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* RemoteAppsManagerFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   ProfileHelper* profile_helper = ProfileHelper::Get();
   if (!profile_helper)
@@ -58,7 +57,7 @@ RemoteAppsManagerFactory::BuildServiceInstanceForBrowserContext(
     return nullptr;
   }
 
-  return std::make_unique<RemoteAppsManager>(profile);
+  return new RemoteAppsManager(profile);
 }
 
 bool RemoteAppsManagerFactory::ServiceIsCreatedWithBrowserContext() const {

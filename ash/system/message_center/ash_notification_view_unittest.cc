@@ -35,7 +35,6 @@
 #include "base/test/metrics/histogram_tester.h"
 #include "base/test/scoped_feature_list.h"
 #include "base/time/time.h"
-#include "chromeos/constants/chromeos_features.h"
 #include "ui/base/data_transfer_policy/mock_data_transfer_policy_controller.h"
 #include "ui/base/l10n/l10n_util.h"
 #include "ui/compositor/layer.h"
@@ -447,11 +446,7 @@ class AshNotificationViewTest : public AshNotificationViewTestBase {
  public:
   AshNotificationViewTest()
       : AshNotificationViewTestBase(
-            base::test::TaskEnvironment::TimeSource::MOCK_TIME) {
-    // TODO(b/293647571): Remove this feature disablement when the crash has
-    // been fixed.
-    scoped_features_.InitAndDisableFeature(chromeos::features::kJelly);
-  }
+            base::test::TaskEnvironment::TimeSource::MOCK_TIME) {}
 
   // AshNotificationViewTestBase:
   void SetUp() override {
@@ -476,7 +471,6 @@ class AshNotificationViewTest : public AshNotificationViewTestBase {
   AshNotificationView* notification_view() { return notification_view_.get(); }
 
  private:
-  base::test::ScopedFeatureList scoped_features_;
   std::unique_ptr<AshNotificationView> notification_view_;
 };
 
@@ -1033,7 +1027,6 @@ TEST_F(AshNotificationViewTest, SingleToGroupAnimationsRecordSmoothness) {
 
   message_center::MessageCenter::Get()->RemoveAllNotifications(
       /*by_user=*/true, message_center::MessageCenter::RemoveType::ALL);
-  auto notification = CreateTestNotification();
   notification_center_test_api()->ToggleBubble();
 
   auto notification1 = CreateTestNotificationInAGroup();

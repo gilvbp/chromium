@@ -12,7 +12,6 @@
 #include "base/logging.h"
 #include "base/strings/string_util.h"
 #include "base/win/current_module.h"
-#include "base/win/resource_exhaustion.h"
 #include "base/win/wrapped_window_proc.h"
 
 // To avoid conflicts with the macro from the Windows SDK...
@@ -63,7 +62,6 @@ MessageWindow::WindowClass::WindowClass() {
   if (atom_ == 0) {
     PLOG(ERROR)
         << "Failed to register the window class for a message-only window";
-    OnResourceExhausted();
   }
 }
 

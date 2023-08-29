@@ -11,6 +11,7 @@ import static org.mockito.Mockito.verify;
 import android.graphics.drawable.Animatable2;
 import android.graphics.drawable.AnimatedVectorDrawable;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -36,6 +37,11 @@ public class AnimationLooperTest {
     public void setUp() {
         MockitoAnnotations.initMocks(this);
         mAnimationLooper = new AnimationLooper(mAnimatableMock);
+    }
+
+    @After
+    public void tearDown() {
+        AnimationLooper.setAreAnimatorsEnabledForTests(null);
     }
 
     @Test

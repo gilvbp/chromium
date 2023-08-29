@@ -4,6 +4,7 @@
 
 source_set("keyboard") {
   testonly = true
+  configs += [ "//build/config/compiler:enable_arc" ]
   sources = [ "test_keyboard.mm" ]
   deps = [
     "//base",

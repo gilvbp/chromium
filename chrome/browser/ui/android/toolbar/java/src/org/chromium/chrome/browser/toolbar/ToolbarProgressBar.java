@@ -19,6 +19,7 @@ import android.widget.FrameLayout.LayoutParams;
 import android.widget.ProgressBar;
 
 import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 import androidx.core.view.ViewCompat;
 
 import org.chromium.base.MathUtils;
@@ -483,6 +484,7 @@ public class ToolbarProgressBar extends ClipDrawableProgressBar {
     /**
      * @return The number of times the progress bar has been triggered.
      */
+    @VisibleForTesting
     public int getStartCountForTesting() {
         return mProgressStartCount;
     }
@@ -490,6 +492,7 @@ public class ToolbarProgressBar extends ClipDrawableProgressBar {
     /**
      * Reset the number of times the progress bar has been triggered.
      */
+    @VisibleForTesting
     public void resetStartCountForTesting() {
         mProgressStartCount = 0;
     }
@@ -497,6 +500,7 @@ public class ToolbarProgressBar extends ClipDrawableProgressBar {
     /**
      * Start the indeterminate progress bar animation.
      */
+    @VisibleForTesting
     public void startIndeterminateAnimationForTesting() {
         mStartSmoothIndeterminate.run();
     }
@@ -504,6 +508,7 @@ public class ToolbarProgressBar extends ClipDrawableProgressBar {
     /**
      * @return The indeterminate animator.
      */
+    @VisibleForTesting
     public Animator getIndeterminateAnimatorForTesting() {
         return mSmoothProgressAnimator;
     }

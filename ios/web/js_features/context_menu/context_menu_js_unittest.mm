@@ -24,6 +24,10 @@
 #import "testing/gtest_mac.h"
 #import "url/gurl.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 // Unit tests for ios/web/web_state/js/resources/context_menu.js.
 
 using base::test::ios::kWaitForJSCompletionTimeout;

@@ -193,15 +193,9 @@ enum class PreloadingEligibility {
   // Preloading was ineligible because it was triggered under memory pressure.
   kMemoryPressure = 16,
 
-  // Preloading was ineligible because some DevTools client temporarily
+  // Prerendering was ineligible because some DevTools client temporarily
   // disabled.
   kPreloadingDisabledByDevTools = 17,
-
-  // Preloading was ineligible because some triggers only allows https.
-  kHttpsOnly = 18,
-
-  // Preloading was ineligible for non-http(s).
-  kHttpOrHttpsOnly = 19,
 
   // Values between `kPreloadingEligibilityCommonEnd` (inclusive) and
   // `kPreloadingEligibilityContentEnd` (exclusive) are reserved for enums

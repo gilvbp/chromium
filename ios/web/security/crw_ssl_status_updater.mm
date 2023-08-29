@@ -13,7 +13,11 @@
 #import "net/cert/x509_certificate.h"
 #import "url/gurl.h"
 
-using base::apple::ScopedCFTypeRef;
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
+using base::ScopedCFTypeRef;
 using net::CertStatus;
 using web::SecurityStyle;
 

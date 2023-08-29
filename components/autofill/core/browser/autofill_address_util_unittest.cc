@@ -8,7 +8,6 @@
 #include "base/test/scoped_feature_list.h"
 #include "base/uuid.h"
 #include "components/autofill/core/browser/autofill_test_utils.h"
-#include "components/autofill/core/browser/geo/address_i18n.h"
 #include "components/autofill/core/common/autofill_features.h"
 #include "testing/gmock/include/gmock/gmock.h"
 #include "testing/gtest/include/gtest/gtest.h"
@@ -43,7 +42,7 @@ class AddressFormattingTest : public ::testing::Test {
 // some countries consist of lines with literals only, which, in case
 // |include_literals| is false, appear empty and should be skipped.
 TEST_F(AddressFormattingTest, GetAddressComponentsSkipsEmptyLines) {
-  std::vector<std::vector<AutofillAddressUIComponent>> lines;
+  std::vector<std::vector<ExtendedAddressUiComponent>> lines;
   std::string components_language_code;
   // For Åland Islands the last line contains "ÅLAND" and should be skipped.
   autofill::GetAddressComponents("AX", GetLocale(), /*include_literals=*/false,
@@ -56,7 +55,7 @@ TEST_F(AddressFormattingTest, GetAddressComponentsSkipsEmptyLines) {
 // Tests that address field extensions are applied to `GetAddressComponents()`,
 // by checking that Great Britain's address format is extended by a state field.
 TEST_F(AddressFormattingTest, GetAddressComponentsWithExtensions) {
-  std::vector<std::vector<AutofillAddressUIComponent>> lines;
+  std::vector<std::vector<ExtendedAddressUiComponent>> lines;
   std::string components_language_code;
   autofill::GetAddressComponents("GB", GetLocale(), /*include_literals=*/false,
                                  &lines, &components_language_code);
@@ -65,17 +64,15 @@ TEST_F(AddressFormattingTest, GetAddressComponentsWithExtensions) {
   // Because `include_literals=false`, accessing `.field` is valid.
   auto state_line = base::ranges::find_if(lines, [](const auto& line) {
     return line.size() == 1 &&
-           line[0].field == i18n::TypeForField(
-                                ::i18n::addressinput::AddressField::ADMIN_AREA);
+           line[0].field == ::i18n::addressinput::AddressField::ADMIN_AREA;
   });
   ASSERT_NE(state_line, lines.end());
   EXPECT_EQ((*state_line)[0].length_hint,
-            AutofillAddressUIComponent::HINT_LONG);
+            ::i18n::addressinput::AddressUiComponent::HINT_LONG);
   // The prior component on the previous line should be the postal code.
   ASSERT_NE(state_line, lines.begin());
-  EXPECT_EQ(
-      (--state_line)->back().field,
-      i18n::TypeForField(::i18n::addressinput::AddressField::POSTAL_CODE));
+  EXPECT_EQ((--state_line)->back().field,
+            ::i18n::addressinput::AddressField::POSTAL_CODE);
 }
 
 TEST_F(AddressFormattingTest, GetEnvelopeStyleAddressSanity) {

@@ -8,6 +8,10 @@
 
 #import "remoting/ios/app/remoting_theme.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 static const CGFloat kImageViewSize = 24;
 static const CGFloat kImageViewPaddingLeading = 16;
 static const CGFloat kLabelViewsPaddingLeading = 16;

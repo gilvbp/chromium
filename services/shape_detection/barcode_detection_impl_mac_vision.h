@@ -16,6 +16,10 @@
 #include "services/shape_detection/public/mojom/barcodedetection.mojom.h"
 #include "services/shape_detection/public/mojom/barcodedetection_provider.mojom.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 class SkBitmap;
 class VisionAPIInterface;
 
@@ -25,6 +29,8 @@ namespace shape_detection {
 // framework (https://developer.apple.com/documentation/vision).
 class BarcodeDetectionImplMacVision : public mojom::BarcodeDetection {
  public:
+  static bool IsBlockedMacOSVersion();
+
   explicit BarcodeDetectionImplMacVision(
       mojom::BarcodeDetectorOptionsPtr options);
 

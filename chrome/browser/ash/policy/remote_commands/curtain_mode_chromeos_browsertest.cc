@@ -104,7 +104,8 @@ class CurtainModeChromeOsPixelTest
 
   [[nodiscard]] bool CompareWithScreenshot(const views::Widget& widget,
                                            const std::string& screenshot) {
-    views::ViewSkiaGoldPixelDiff pixel_diff(
+    views::ViewSkiaGoldPixelDiff pixel_diff;
+    pixel_diff.Init(
         /*screenshot_prefix=*/
         ::testing::UnitTest::GetInstance()->current_test_suite()->name());
     return pixel_diff.CompareViewScreenshot(screenshot, widget.GetRootView());

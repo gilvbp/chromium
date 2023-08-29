@@ -8,6 +8,10 @@
 #import "ios/chrome/common/credential_provider/constants.h"
 #import "ios/chrome/common/ui/colors/semantic_color_names.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace {
 NSString* const kConsentViewControllerIdentifier =
     @"ConsentViewControllerIdentifier";
@@ -40,7 +44,7 @@ NSString* const kConsentViewControllerIdentifier =
   self.titleText =
       NSLocalizedString(@"IDS_IOS_CREDENTIAL_PROVIDER_CONSENT_TITLE",
                         @"The title in the consent screen.");
-  self.bannerSize = BannerImageSizeType::kStandard;
+  self.isTallBanner = NO;
   self.shouldShowLearnMoreButton = YES;
   self.primaryActionString = NSLocalizedString(
       @"IDS_IOS_CREDENTIAL_PROVIDER_CONSENT_BUTTON_TITLE",

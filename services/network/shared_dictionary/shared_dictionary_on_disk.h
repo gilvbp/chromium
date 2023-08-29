@@ -9,7 +9,6 @@
 
 #include "base/component_export.h"
 #include "base/functional/callback.h"
-#include "base/time/time.h"
 #include "base/unguessable_token.h"
 #include "net/base/hash_value.h"
 #include "net/disk_cache/disk_cache.h"
@@ -46,8 +45,8 @@ class COMPONENT_EXPORT(NETWORK_SERVICE) SharedDictionaryOnDisk
  private:
   enum class State { kLoading, kDone, kFailed };
 
-  void OnEntry(base::Time open_start_time, disk_cache::EntryResult result);
-  void OnDataRead(base::Time read_start_time, int result);
+  void OnEntry(disk_cache::EntryResult result);
+  void OnDataRead(int result);
 
   void SetState(State state);
 

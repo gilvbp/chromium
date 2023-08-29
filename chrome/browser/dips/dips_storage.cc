@@ -13,9 +13,8 @@
 #include "base/task/sequenced_task_runner.h"
 #include "base/task/thread_pool.h"
 #include "base/threading/thread_restrictions.h"
+#include "chrome/browser/dips/dips_features.h"
 #include "chrome/browser/dips/dips_utils.h"
-#include "content/public/common/content_features.h"
-#include "content/public/common/dips_utils.h"
 #include "services/network/public/mojom/clear_data_filter.mojom.h"
 #include "services/network/public/mojom/network_context.mojom.h"
 #include "url/gurl.h"
@@ -87,8 +86,7 @@ DIPSState DIPSStorage::ReadSite(std::string site) {
     DCHECK(state->site_storage_times.has_value() ||
            state->user_interaction_times.has_value() ||
            state->stateful_bounce_times.has_value() ||
-           state->bounce_times.has_value() ||
-           state->web_authn_assertion_times.has_value());
+           state->bounce_times.has_value());
 
     return DIPSState(this, std::move(site), state.value());
   }
@@ -101,27 +99,7 @@ void DIPSStorage::Write(const DIPSState& state) {
 
   db_->Write(state.site(), state.site_storage_times(),
              state.user_interaction_times(), state.stateful_bounce_times(),
-             state.bounce_times(), state.web_authn_assertion_times());
-}
-
-absl::optional<PopupsStateValue> DIPSStorage::ReadPopup(
-    const std::string& first_party_site,
-    const std::string& tracking_site) {
-  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
-  DCHECK(db_);
-
-  return db_->ReadPopup(first_party_site, tracking_site);
-}
-
-bool DIPSStorage::WritePopup(const std::string& first_party_site,
-                             const std::string& tracking_site,
-                             const uint64_t access_id,
-                             const base::Time& popup_time) {
-  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
-  DCHECK(db_);
-
-  return db_->WritePopup(first_party_site, tracking_site, access_id,
-                         popup_time);
+             state.bounce_times());
 }
 
 void DIPSStorage::RemoveEvents(base::Time delete_begin,
@@ -168,16 +146,15 @@ void DIPSStorage::RemoveRows(const std::vector<std::string>& sites) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   DCHECK(db_);
 
-  db_->RemoveRows(DIPSDatabaseTable::kBounces, sites);
+  db_->RemoveRows(sites);
 }
 
-void DIPSStorage::RemoveRowsWithoutInteractionOrWaa(
+void DIPSStorage::RemoveRowsWithoutInteraction(
     const std::set<std::string>& sites) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   DCHECK(db_);
 
-  std::set<std::string> filtered_sites =
-      FilterSitesWithoutInteractionOrWaa(sites);
+  std::set<std::string> filtered_sites = FilterSitesWithoutInteraction(sites);
 
   RemoveRows(
       std::vector<std::string>(filtered_sites.begin(), filtered_sites.end()));
@@ -220,24 +197,6 @@ void DIPSStorage::RecordInteraction(const GURL& url,
   state.update_user_interaction_time(time);
 }
 
-void DIPSStorage::RecordWebAuthnAssertion(const GURL& url,
-                                          base::Time time,
-                                          DIPSCookieMode mode) {
-  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
-  DCHECK(db_);
-
-  DIPSState state = Read(url);
-  if (!state.web_authn_assertion_times().has_value() &&
-      state.site_storage_times().has_value()) {
-    // Site previously wrote to storage. Record metric for the time delay
-    // between first storage and interaction.
-    UmaHistogramTimeToInteraction(time - state.site_storage_times()->first,
-                                  mode);
-  }
-
-  state.update_web_authn_assertion_time(time);
-}
-
 void DIPSStorage::RecordBounce(const GURL& url,
                                base::Time time,
                                bool stateful) {
@@ -250,13 +209,13 @@ void DIPSStorage::RecordBounce(const GURL& url,
   }
 }
 
-std::set<std::string> DIPSStorage::FilterSitesWithoutInteractionOrWaa(
+std::set<std::string> DIPSStorage::FilterSitesWithoutInteraction(
     std::set<std::string> sites) const {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   DCHECK(db_);
 
   std::set<std::string> interacted_sites =
-      db_->FilterSitesWithInteractionOrWaa(sites);
+      db_->FilterSitesWithInteraction(sites);
 
   for (const auto& site : interacted_sites) {
     if (sites.count(site)) {
@@ -292,21 +251,21 @@ std::vector<std::string> DIPSStorage::GetSitesToClear(
     absl::optional<base::TimeDelta> custom_period) const {
   std::vector<std::string> sites_to_clear;
   base::TimeDelta grace_period =
-      custom_period.value_or(features::kDIPSGracePeriod.Get());
+      custom_period.value_or(dips::kGracePeriod.Get());
 
-  switch (features::kDIPSTriggeringAction.Get()) {
-    case content::DIPSTriggeringAction::kNone: {
+  switch (dips::kTriggeringAction.Get()) {
+    case DIPSTriggeringAction::kNone: {
       return {};
     }
-    case content::DIPSTriggeringAction::kStorage: {
+    case DIPSTriggeringAction::kStorage: {
       sites_to_clear = GetSitesThatUsedStorage(grace_period);
       break;
     }
-    case content::DIPSTriggeringAction::kBounce: {
+    case DIPSTriggeringAction::kBounce: {
       sites_to_clear = GetSitesThatBounced(grace_period);
       break;
     }
-    case content::DIPSTriggeringAction::kStatefulBounce: {
+    case DIPSTriggeringAction::kStatefulBounce: {
       sites_to_clear = GetSitesThatBouncedWithState(grace_period);
       break;
     }
@@ -317,17 +276,9 @@ std::vector<std::string> DIPSStorage::GetSitesToClear(
 
 bool DIPSStorage::DidSiteHaveInteractionSince(const GURL& url,
                                               base::Time bound) {
-  auto last_user_interaction_time = LastInteractionTime(url);
-  return last_user_interaction_time.has_value() &&
-         last_user_interaction_time >= bound;
-}
-
-absl::optional<base::Time> DIPSStorage::LastInteractionTime(const GURL& url) {
   const DIPSState state = Read(url);
-  if (!state.user_interaction_times().has_value()) {
-    return absl::nullopt;
-  }
-  return state.user_interaction_times()->second;
+  return state.user_interaction_times().has_value() &&
+         state.user_interaction_times()->second >= bound;
 }
 
 /* static */
@@ -353,8 +304,6 @@ void DIPSStorage::PrepopulateChunk(PrepopulateArgs args) {
       std::min(args.sites.size() - args.offset, g_prepopulate_chunk_size);
   for (size_t i = 0; i < chunk_size; i++) {
     DIPSState state = ReadSite(args.sites[args.offset + i]);
-    // TODO(crbug.com/1446678): Verify whether we need to ignore if WAA is
-    // non-empty regardless of interaction.
     if (state.user_interaction_times().has_value()) {
       continue;
     }

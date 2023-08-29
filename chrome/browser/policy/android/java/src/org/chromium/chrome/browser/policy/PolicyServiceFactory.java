@@ -4,7 +4,8 @@
 
 package org.chromium.chrome.browser.policy;
 
-import org.chromium.base.ResettersForTesting;
+import androidx.annotation.VisibleForTesting;
+
 import org.chromium.base.annotations.JNINamespace;
 import org.chromium.base.annotations.NativeMethods;
 import org.chromium.chrome.browser.profiles.Profile;
@@ -43,9 +44,9 @@ public class PolicyServiceFactory {
     /**
      * @param policyService Mock {@link PolicyService} for testing.
      */
+    @VisibleForTesting
     public static void setPolicyServiceForTest(PolicyService policyService) {
         sPolicyServiceForTest = policyService;
-        ResettersForTesting.register(() -> sPolicyServiceForTest = null);
     }
 
     @NativeMethods

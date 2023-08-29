@@ -163,10 +163,12 @@ class ContentAutofillDriver : public AutofillDriver,
   bool IsPrerendering() const override;
   bool HasSharedAutofillPermission() const override;
   bool CanShowAutofillUi() const override;
+  ui::AXTreeID GetAxTreeId() const override;
   bool RendererIsAvailable() override;
   void HandleParsedForms(const std::vector<FormData>& forms) override {}
   void PopupHidden() override;
   net::IsolationInfo IsolationInfo() override;
+  void SetShouldSuppressKeyboard(bool suppress) override;
 
   // Called to inform the browser that in the field with `form_global_id` and
   // `field_global_id`, the context menu was triggered. This is different from
@@ -183,6 +185,25 @@ class ContentAutofillDriver : public AutofillDriver,
   // Called on certain types of navigations by ContentAutofillDriverFactory.
   void Reset();
 
+  // Key-press handlers capture the user input into fields from the renderer.
+  // The AutofillPopupControllerImpl listens for input while showing a popup.
+  // That way, the user can select suggestions from the popup, for example.
+  //
+  // In a frame-transcending form, the <input> the user queried Autofill from
+  // may be in a different frame than |render_frame_host_|. Therefore,
+  // SetKeyPressHandler() and UnsetKeyPressHandler() are forwarded to the
+  // last-queried source remembered by ContentAutofillRouter.
+  void SetKeyPressHandler(
+      const content::RenderWidgetHost::KeyPressEventCallback& handler);
+  void UnsetKeyPressHandler();
+
+  // Callbacks that are called also in other functions by ContentAutofillRouter.
+  void FocusNoLongerOnFormCallback(bool had_interacted_form);
+  void UnsetKeyPressHandlerCallback();
+  void SetShouldSuppressKeyboardCallback(bool suppress);
+  void OnContextMenuShownInFieldCallback(const FormGlobalId& form_global_id,
+                                         const FieldGlobalId& field_global_id);
+
  private:
   friend class ContentAutofillDriverTestApi;
 
@@ -194,16 +215,11 @@ class ContentAutofillDriver : public AutofillDriver,
   // These events are private to avoid accidental use in the browser.
   // They can be accessed explicitly through browser_events().
   std::vector<FieldGlobalId> FillOrPreviewForm(
-      mojom::AutofillActionPersistence action_persistence,
+      mojom::RendererFormDataAction action,
       const FormData& data,
       const url::Origin& triggered_origin,
       const base::flat_map<FieldGlobalId, ServerFieldType>& field_type_map)
       override;
-  void UndoAutofill(mojom::AutofillActionPersistence action_persistence,
-                    const FormData& data,
-                    const url::Origin& triggered_origin,
-                    const base::flat_map<FieldGlobalId, ServerFieldType>&
-                        field_type_map) override;
   void SendAutofillTypePredictionsToRenderer(
       const std::vector<FormStructure*>& forms) override;
   void RendererShouldAcceptDataListSuggestion(
@@ -274,7 +290,7 @@ class ContentAutofillDriver : public AutofillDriver,
                                base::TimeTicks timestamp) override;
   void DidPreviewAutofillFormData() override;
   void DidEndTextFieldEditing() override;
-  void SelectOrSelectListFieldOptionsDidChange(const FormData& form) override;
+  void SelectFieldOptionsDidChange(const FormData& form) override;
   void JavaScriptChangedAutofilledValue(
       const FormData& form,
       const FormFieldData& field,
@@ -320,9 +336,16 @@ class ContentAutofillDriver : public AutofillDriver,
 
   std::unique_ptr<AutofillManager> autofill_manager_ = nullptr;
 
+  content::RenderWidgetHost::KeyPressEventCallback key_press_handler_;
+
   mojo::AssociatedReceiver<mojom::AutofillDriver> receiver_{this};
 
   mojo::AssociatedRemote<mojom::AutofillAgent> autofill_agent_;
+
+  bool should_suppress_keyboard_ = false;
+
+  content::RenderWidgetHost::SuppressShowingImeCallback
+      suppress_showing_ime_callback_;
 };
 
 }  // namespace autofill

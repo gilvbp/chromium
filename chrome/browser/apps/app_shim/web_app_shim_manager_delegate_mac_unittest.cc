@@ -68,8 +68,7 @@ class MockDelegate : public apps::AppShimManager::Delegate {
               LaunchShim,
               (Profile*,
                const std::string&,
-               LaunchShimUpdateBehavior,
-               ShimLaunchMode,
+               bool,
                apps::ShimLaunchedCallback,
                apps::ShimTerminatedCallback),
               (override));

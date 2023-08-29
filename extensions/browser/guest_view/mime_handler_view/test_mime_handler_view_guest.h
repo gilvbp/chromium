@@ -34,7 +34,7 @@ class TestMimeHandlerViewGuest : public MimeHandlerViewGuest {
       guest_view::TestGuestViewManager* manager);
 
   static std::unique_ptr<GuestViewBase> Create(
-      content::RenderFrameHost* owner_rfh);
+      content::WebContents* owner_web_contents);
 
   // Set a delay in the next creation of a guest's WebContents by |delay|
   // milliseconds.
@@ -63,7 +63,7 @@ class TestMimeHandlerViewGuest : public MimeHandlerViewGuest {
   static void WaitForGuestLoadStartThenStop(GuestViewBase* guest_view);
 
  private:
-  explicit TestMimeHandlerViewGuest(content::RenderFrameHost* owner_rfh);
+  explicit TestMimeHandlerViewGuest(content::WebContents* owner_web_contents);
 
   // Used to call MimeHandlerViewGuest::CreateWebContents using a scoped_ptr for
   // |create_params|.

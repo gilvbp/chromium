@@ -104,6 +104,7 @@ public class CommerceSubscriptionsService implements Destroyable {
         mPriceDropNotificationManager.recordMetricsForNotificationCounts();
     }
 
+    @VisibleForTesting
     void setImplicitSubscriptionsManagerForTesting(ImplicitPriceDropSubscriptionsManager manager) {
         mImplicitPriceDropSubscriptionsManager = manager;
     }

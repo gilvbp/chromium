@@ -134,8 +134,10 @@ void StandaloneBrowserExtensionAppContextMenu::OnGetMenuModel(
         allow_uninstall = update.AllowUninstall().value_or(false);
       });
 
+  std::string sync_id =
+      ChromeShelfController::instance()->shelf_prefs()->GetSyncId(app_id_);
   bool allow_pin_unpin =
-      GetPinnableForAppID(app_id_, ProfileManager::GetPrimaryUserProfile()) ==
+      GetPinnableForAppID(sync_id, ProfileManager::GetPrimaryUserProfile()) ==
       AppListControllerDelegate::PIN_EDITABLE;
 
   auto menu_model = std::make_unique<ui::SimpleMenuModel>(this);

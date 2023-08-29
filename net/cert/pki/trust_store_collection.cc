@@ -4,15 +4,13 @@
 
 #include "net/cert/pki/trust_store_collection.h"
 
-#include "third_party/boringssl/src/include/openssl/base.h"
-
 namespace net {
 
 TrustStoreCollection::TrustStoreCollection() = default;
 TrustStoreCollection::~TrustStoreCollection() = default;
 
 void TrustStoreCollection::AddTrustStore(TrustStore* store) {
-  BSSL_CHECK(store);
+  DCHECK(store);
   stores_.push_back(store);
 }
 

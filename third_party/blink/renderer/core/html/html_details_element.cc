@@ -65,10 +65,6 @@ void HTMLDetailsElement::DispatchPendingEvent(
 
 LayoutObject* HTMLDetailsElement::CreateLayoutObject(
     const ComputedStyle& style) {
-  if (RuntimeEnabledFeatures::DetailsStylingEnabled()) {
-    return HTMLElement::CreateLayoutObject(style);
-  }
-
   return LayoutObject::CreateBlockFlowOrListItem(this, style);
 }
 
@@ -89,17 +85,11 @@ void HTMLDetailsElement::DidAddUserAgentShadowRoot(ShadowRoot& root) {
 
   summary_slot_ = MakeGarbageCollected<HTMLSlotElement>(GetDocument());
   summary_slot_->SetIdAttribute(shadow_element_names::kIdDetailsSummary);
-  if (RuntimeEnabledFeatures::DetailsStylingEnabled()) {
-    summary_slot_->SetShadowPseudoId(shadow_element_names::kIdDetailsSummary);
-  }
   summary_slot_->AppendChild(default_summary);
   root.AppendChild(summary_slot_);
 
   content_slot_ = MakeGarbageCollected<HTMLSlotElement>(GetDocument());
   content_slot_->SetIdAttribute(shadow_element_names::kIdDetailsContent);
-  if (RuntimeEnabledFeatures::DetailsStylingEnabled()) {
-    content_slot_->SetShadowPseudoId(shadow_element_names::kIdDetailsContent);
-  }
   content_slot_->SetInlineStyleProperty(CSSPropertyID::kContentVisibility,
                                         CSSValueID::kHidden);
   content_slot_->EnsureDisplayLockContext().SetIsDetailsSlotElement(true);
@@ -107,8 +97,8 @@ void HTMLDetailsElement::DidAddUserAgentShadowRoot(ShadowRoot& root) {
                                         CSSValueID::kBlock);
   root.AppendChild(content_slot_);
 
-  auto* default_summary_style =
-      MakeGarbageCollected<HTMLStyleElement>(GetDocument());
+  auto* default_summary_style = MakeGarbageCollected<HTMLStyleElement>(
+      GetDocument(), CreateElementFlags::ByCreateElement());
   // This style is required only if this <details> shows the UA-provided
   // <summary>, not a light child <summary>.
   default_summary_style->setTextContent(R"CSS(
@@ -224,10 +214,11 @@ HTMLDetailsElement::OtherElementsInNameGroup() {
   CHECK(RuntimeEnabledFeatures::AccordionPatternEnabled());
   HeapVector<Member<HTMLDetailsElement>> result;
   const AtomicString& name = GetName();
-  if (name.empty()) {
+  if (name.empty() || !IsInTreeScope()) {
     return result;
   }
-  HTMLDetailsElement* details = Traversal<HTMLDetailsElement>::Next(TreeRoot());
+  HTMLDetailsElement* details =
+      Traversal<HTMLDetailsElement>::Next(GetTreeScope().RootNode());
   while (details) {
     if (details != this && details->GetName() == name) {
       result.push_back(details);

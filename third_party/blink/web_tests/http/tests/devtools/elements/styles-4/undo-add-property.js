@@ -5,8 +5,6 @@
 import {TestRunner} from 'test_runner';
 import {ElementsTestRunner} from 'elements_test_runner';
 
-import * as SDK from 'devtools/core/sdk/sdk.js';
-
 (async function() {
   TestRunner.addResult(`Tests that adding a property is undone properly.\n`);
   await TestRunner.loadLegacyModule('elements');
@@ -51,7 +49,7 @@ import * as SDK from 'devtools/core/sdk/sdk.js';
       TestRunner.addResult('(After adding property)');
       await ElementsTestRunner.dumpSelectedElementStyles(true);
 
-      SDK.DOMModel.DOMModelUndoStack.instance().undo();
+      SDK.domModelUndoStack.undo();
       ElementsTestRunner.selectNodeAndWaitForStyles('other', step2);
     }
 
@@ -59,7 +57,7 @@ import * as SDK from 'devtools/core/sdk/sdk.js';
       TestRunner.addResult('(After undo)');
       await ElementsTestRunner.dumpSelectedElementStyles(true);
 
-      SDK.DOMModel.DOMModelUndoStack.instance().redo();
+      SDK.domModelUndoStack.redo();
       ElementsTestRunner.selectNodeAndWaitForStyles('container', step3);
     }
 

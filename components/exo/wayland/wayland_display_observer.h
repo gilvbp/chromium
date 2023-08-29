@@ -101,11 +101,6 @@ class WaylandDisplayHandler : public display::DisplayObserver,
   void SendActiveDisplay() override;
   void OnOutputDestroyed() override;
 
-  // Returns |true| if any metrics were send to the client and a "done" event is
-  // required, |false| otherwise.
-  bool SendXdgOutputMetrics(const display::Display& display,
-                            uint32_t changed_metrics);
-
   // ShellObserver:
   void OnDisplayForNewWindowsChanged() override;
 
@@ -117,12 +112,10 @@ class WaylandDisplayHandler : public display::DisplayObserver,
   raw_ptr<WaylandDisplayOutput, ExperimentalAsh> output_;
 
   // The output resource associated with the display.
-  const raw_ptr<wl_resource, DanglingUntriaged | ExperimentalAsh>
-      output_resource_;
+  const raw_ptr<wl_resource, ExperimentalAsh> output_resource_;
 
   // Resource associated with a zxdg_output_v1 object.
-  raw_ptr<wl_resource, DanglingUntriaged | ExperimentalAsh>
-      xdg_output_resource_ = nullptr;
+  raw_ptr<wl_resource, ExperimentalAsh> xdg_output_resource_ = nullptr;
 
   // The listener is notified when the server-side client destruction begins.
   ClientDestroyListener client_destroy_listener_;

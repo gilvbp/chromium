@@ -404,6 +404,7 @@ class PolicyTemplateChecker(object):
   def __init__(self):
     self.num_policies = 0
     self.num_groups = 0
+    self.num_policies_in_groups = 0
     self.options = None
     self.features = []
     self.schema_validator = SchemaValidator()
@@ -850,7 +851,11 @@ class PolicyTemplateChecker(object):
 
     return False
 
-  def _CheckPolicyDefinition(self, policy, current_version, schemas_by_id):
+  def _CheckPolicyDefinition(self,
+                             policy,
+                             current_version,
+                             schemas_by_id,
+                             is_in_group=False):
     if not isinstance(policy, dict):
       self._Error('Each policy must be a dictionary.', 'policy', None, policy)
       return
@@ -921,6 +926,10 @@ class PolicyTemplateChecker(object):
     self._CheckContains(policy, 'arc_support', str, True)
 
     if policy_type == 'group':
+      # Groups must not be nested.
+      if is_in_group:
+        self._Error('Policy groups must not be nested.', 'policy', policy)
+
       # Each policy group must have a list of policies.
       policies = self._CheckContains(policy, 'policies', list)
 
@@ -1249,6 +1258,8 @@ class PolicyTemplateChecker(object):
 
       # Statistics.
       self.num_policies += 1
+      if is_in_group:
+        self.num_policies_in_groups += 1
 
       self._CheckItems(policy, current_version)
 

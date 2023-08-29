@@ -9,12 +9,12 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "base/apple/mach_logging.h"
 #include "base/bits.h"
 #include "base/command_line.h"
 #include "base/feature_list.h"
 #include "base/logging.h"
 #include "base/mac/mac_util.h"
+#include "base/mac/mach_logging.h"
 #include "base/metrics/histogram_macros.h"
 #include "base/trace_event/trace_event.h"
 #include "ui/gfx/buffer_format_util.h"
@@ -32,8 +32,8 @@ BASE_FEATURE(kIOSurfaceUseNamedSRGBForREC709,
 void AddIntegerValue(CFMutableDictionaryRef dictionary,
                      const CFStringRef key,
                      int32_t value) {
-  base::apple::ScopedCFTypeRef<CFNumberRef> number(
-      CFNumberCreate(nullptr, kCFNumberSInt32Type, &value));
+  base::ScopedCFTypeRef<CFNumberRef> number(
+      CFNumberCreate(NULL, kCFNumberSInt32Type, &value));
   CFDictionaryAddValue(dictionary, key, number.get());
 }
 
@@ -172,23 +172,25 @@ bool IOSurfaceSetColorSpace(IOSurfaceRef io_surface,
   // also not available in some SDK versions.
   // https://crbug.com/1101041: Introduces the HDR copier.
   // https://crbug.com/1061723: Discussion of issues related to HLG.
-  if (color_space == ColorSpace(ColorSpace::PrimaryID::BT2020,
-                                ColorSpace::TransferID::PQ,
-                                ColorSpace::MatrixID::BT2020_NCL,
-                                ColorSpace::RangeID::LIMITED)) {
-    if (__builtin_available(macos 11.0, *)) {
-      color_space_name = kCGColorSpaceITUR_2100_PQ;
-    } else {
-      return true;
-    }
-  } else if (color_space == ColorSpace(ColorSpace::PrimaryID::BT2020,
-                                       ColorSpace::TransferID::HLG,
-                                       ColorSpace::MatrixID::BT2020_NCL,
-                                       ColorSpace::RangeID::LIMITED)) {
-    if (__builtin_available(macos 11.0, *)) {
-      color_space_name = kCGColorSpaceITUR_2100_HLG;
-    } else {
-      return true;
+  if (__builtin_available(macos 10.15, *)) {
+    if (color_space == ColorSpace(ColorSpace::PrimaryID::BT2020,
+                                  ColorSpace::TransferID::PQ,
+                                  ColorSpace::MatrixID::BT2020_NCL,
+                                  ColorSpace::RangeID::LIMITED)) {
+      if (__builtin_available(macos 11.0, *)) {
+        color_space_name = kCGColorSpaceITUR_2100_PQ;
+      } else {
+        return true;
+      }
+    } else if (color_space == ColorSpace(ColorSpace::PrimaryID::BT2020,
+                                         ColorSpace::TransferID::HLG,
+                                         ColorSpace::MatrixID::BT2020_NCL,
+                                         ColorSpace::RangeID::LIMITED)) {
+      if (__builtin_available(macos 11.0, *)) {
+        color_space_name = kCGColorSpaceITUR_2100_HLG;
+      } else {
+        return true;
+      }
     }
   }
   if (color_space_name) {
@@ -215,7 +217,7 @@ bool IOSurfaceSetColorSpace(IOSurfaceRef io_surface,
 
   // Package it as a CFDataRef and send it to the IOSurface.
   std::vector<char> icc_profile_data = icc_profile.GetData();
-  base::apple::ScopedCFTypeRef<CFDataRef> cf_data_icc_profile(CFDataCreate(
+  base::ScopedCFTypeRef<CFDataRef> cf_data_icc_profile(CFDataCreate(
       nullptr, reinterpret_cast<const UInt8*>(icc_profile_data.data()),
       icc_profile_data.size()));
 
@@ -226,15 +228,14 @@ bool IOSurfaceSetColorSpace(IOSurfaceRef io_surface,
 
 }  // namespace internal
 
-base::apple::ScopedCFTypeRef<IOSurfaceRef> CreateIOSurface(
-    const gfx::Size& size,
-    gfx::BufferFormat format,
-    bool should_clear,
-    bool override_rgba_to_bgra) {
+IOSurfaceRef CreateIOSurface(const gfx::Size& size,
+                             gfx::BufferFormat format,
+                             bool should_clear,
+                             bool override_rgba_to_bgra) {
   TRACE_EVENT0("ui", "CreateIOSurface");
   base::TimeTicks start_time = base::TimeTicks::Now();
 
-  base::apple::ScopedCFTypeRef<CFMutableDictionaryRef> properties(
+  base::ScopedCFTypeRef<CFMutableDictionaryRef> properties(
       CFDictionaryCreateMutable(kCFAllocatorDefault, 0,
                                 &kCFTypeDictionaryKeyCallBacks,
                                 &kCFTypeDictionaryValueCallBacks));
@@ -249,7 +250,7 @@ base::apple::ScopedCFTypeRef<IOSurfaceRef> CreateIOSurface(
   // http://crbug.com/527556
   size_t num_planes = gfx::NumberOfPlanesForLinearBufferFormat(format);
   if (num_planes > 1) {
-    base::apple::ScopedCFTypeRef<CFMutableArrayRef> planes(CFArrayCreateMutable(
+    base::ScopedCFTypeRef<CFMutableArrayRef> planes(CFArrayCreateMutable(
         kCFAllocatorDefault, num_planes, &kCFTypeArrayCallBacks));
     size_t total_bytes_alloc = 0;
     for (size_t plane = 0; plane < num_planes; ++plane) {
@@ -268,7 +269,7 @@ base::apple::ScopedCFTypeRef<IOSurfaceRef> CreateIOSurface(
       const size_t plane_offset =
           IOSurfaceAlignProperty(kIOSurfacePlaneOffset, total_bytes_alloc);
 
-      base::apple::ScopedCFTypeRef<CFMutableDictionaryRef> plane_info(
+      base::ScopedCFTypeRef<CFMutableDictionaryRef> plane_info(
           CFDictionaryCreateMutable(kCFAllocatorDefault, 0,
                                     &kCFTypeDictionaryKeyCallBacks,
                                     &kCFTypeDictionaryValueCallBacks));
@@ -301,12 +302,11 @@ base::apple::ScopedCFTypeRef<IOSurfaceRef> CreateIOSurface(
     AddIntegerValue(properties, kIOSurfaceAllocSize, bytes_alloc);
   }
 
-  base::apple::ScopedCFTypeRef<IOSurfaceRef> surface(
-      IOSurfaceCreate(properties));
+  IOSurfaceRef surface = IOSurfaceCreate(properties);
   if (!surface) {
     LOG(ERROR) << "Failed to allocate IOSurface of size " << size.ToString()
                << ".";
-    return base::apple::ScopedCFTypeRef<IOSurfaceRef>();
+    return nullptr;
   }
 
   if (should_clear) {
@@ -338,10 +338,9 @@ void IOSurfaceSetColorSpace(IOSurfaceRef io_surface,
   }
 }
 
-GFX_EXPORT base::apple::ScopedCFTypeRef<IOSurfaceRef>
-IOSurfaceMachPortToIOSurface(
+GFX_EXPORT base::ScopedCFTypeRef<IOSurfaceRef> IOSurfaceMachPortToIOSurface(
     ScopedRefCountedIOSurfaceMachPort io_surface_mach_port) {
-  base::apple::ScopedCFTypeRef<IOSurfaceRef> io_surface;
+  base::ScopedCFTypeRef<IOSurfaceRef> io_surface;
   if (!io_surface_mach_port) {
     DLOG(ERROR) << "Invalid mach port.";
     return io_surface;

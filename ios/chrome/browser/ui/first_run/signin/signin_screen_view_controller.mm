@@ -6,7 +6,6 @@
 
 #import "base/notreached.h"
 #import "base/strings/sys_string_conversions.h"
-#import "components/sync/base/features.h"
 #import "ios/chrome/browser/shared/public/commands/tos_commands.h"
 #import "ios/chrome/browser/shared/ui/elements/activity_overlay_view.h"
 #import "ios/chrome/browser/ui/authentication/views/identity_button_control.h"
@@ -16,9 +15,13 @@
 #import "ios/chrome/common/ui/colors/semantic_color_names.h"
 #import "ios/chrome/common/ui/elements/popover_label_view_controller.h"
 #import "ios/chrome/common/ui/util/constraints_ui_util.h"
-#import "ios/chrome/grit/ios_chromium_strings.h"
+#import "ios/chrome/grit/ios_google_chrome_strings.h"
 #import "ios/chrome/grit/ios_strings.h"
 #import "ui/base/l10n/l10n_util.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace {
 
@@ -50,14 +53,13 @@ NSString* const kEnterpriseIconName = @"enterprise_icon";
 @synthesize isManaged = _isManaged;
 @synthesize screenIntent = _screenIntent;
 @synthesize signinStatus = _signinStatus;
-@synthesize syncEnabled = _syncEnabled;
 
 #pragma mark - UIViewController
 
 - (void)viewDidLoad {
   self.view.accessibilityIdentifier =
       first_run::kFirstRunSignInScreenAccessibilityIdentifier;
-  self.bannerSize = BannerImageSizeType::kStandard;
+  self.isTallBanner = NO;
   self.scrollToEndMandatory = YES;
   self.readMoreString =
       l10n_util::GetNSString(IDS_IOS_FIRST_RUN_SCREEN_READ_MORE);
@@ -68,39 +70,9 @@ NSString* const kEnterpriseIconName = @"enterprise_icon";
   // Set `self.titleText` and `self.subtitleText`.
   switch (self.signinStatus) {
     case SigninScreenConsumerSigninStatusAvailable: {
-      if (!base::FeatureList::IsEnabled(
-              syncer::kReplaceSyncPromosWithSignInPromos)) {
-        self.titleText = l10n_util::GetNSString(IDS_IOS_FIRST_RUN_SIGNIN_TITLE);
-        self.subtitleText =
-            l10n_util::GetNSString(IDS_IOS_FIRST_RUN_SIGNIN_SUBTITLE_SHORT);
-      } else {
-        switch (self.screenIntent) {
-          case SigninScreenConsumerScreenIntentSigninOnly:
-            // Use in the context of the upgrade promo dialog.
-            self.titleText =
-                l10n_util::GetNSString(IDS_IOS_UNO_UPGRADE_PROMO_SIGNIN_TITLE);
-            self.subtitleText =
-                self.syncEnabled
-                    ? l10n_util::GetNSString(
-                          IDS_IOS_UNO_UPGRADE_PROMO_SIGNIN_SUBTITLE)
-                    : l10n_util::GetNSString(
-                          IDS_IOS_UNO_UPGRADE_PROMO_SIGNIN_SUBTITLE_SYNC_DISABLED);
-
-            break;
-          case SigninScreenConsumerScreenIntentWelcomeAndSignin:
-          case SigninScreenConsumerScreenIntentWelcomeWithoutUMAAndSignin:
-            // Use in the context of the FRE dialog.
-            self.titleText =
-                l10n_util::GetNSString(IDS_IOS_FIRST_RUN_SIGNIN_TITLE);
-            self.subtitleText =
-                self.syncEnabled
-                    ? l10n_util::GetNSString(
-                          IDS_IOS_FIRST_RUN_SIGNIN_BENEFITS_SUBTITLE_SHORT)
-                    : l10n_util::GetNSString(
-                          IDS_IOS_FIRST_RUN_SIGNIN_SUBTITLE_SHORT);
-            break;
-        }
-      }
+      self.titleText = l10n_util::GetNSString(IDS_IOS_FIRST_RUN_SIGNIN_TITLE);
+      self.subtitleText =
+          l10n_util::GetNSString(IDS_IOS_FIRST_RUN_SIGNIN_SUBTITLE_SHORT);
       break;
     }
     case SigninScreenConsumerSigninStatusForced: {

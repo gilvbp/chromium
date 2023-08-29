@@ -910,10 +910,6 @@ IN_PROC_BROWSER_TEST_F(MetricIntegrationTest, LCPBreakdownTimings) {
 
   // Verify breakdown timings of LCP are in correct order.
   ExpectUKMPageLoadMetricsInAscendingOrder(
-      PageLoad::kPaintTiming_LargestContentfulPaintImageDiscoveryTimeName,
-      PageLoad::kPaintTiming_LargestContentfulPaintImageLoadStartName);
-
-  ExpectUKMPageLoadMetricsInAscendingOrder(
       PageLoad::kPaintTiming_LargestContentfulPaintImageLoadStartName,
       PageLoad::kPaintTiming_LargestContentfulPaintImageLoadEndName);
 
@@ -986,10 +982,7 @@ IN_PROC_BROWSER_TEST_F(MetricIntegrationTest,
       PageLoad::kPaintTiming_NavigationToLargestContentfulPaint2Name,
       text_element_lcp, epsilon);
 
-  // Verify breakdown timings of LCP are not set for text elements.
-  ExpectUKMPageLoadMetricNonExistence(
-      PageLoad::kPaintTiming_LargestContentfulPaintImageDiscoveryTimeName);
-
+  // Verify the 2 breakdown timings of LCP are not set for text elements.
   ExpectUKMPageLoadMetricNonExistence(
       PageLoad::kPaintTiming_LargestContentfulPaintImageLoadStartName);
 
@@ -1059,10 +1052,6 @@ IN_PROC_BROWSER_TEST_F(MetricIntegrationTest,
   ASSERT_TRUE(ui_test_utils::NavigateToURL(browser(), GURL("about:blank")));
 
   // Verify breakdown timings of LCP are in correct order.
-  ExpectUKMPageLoadMetricsInAscendingOrder(
-      PageLoad::kPaintTiming_LargestContentfulPaintImageDiscoveryTimeName,
-      PageLoad::kPaintTiming_LargestContentfulPaintImageLoadStartName);
-
   ExpectUKMPageLoadMetricsInAscendingOrder(
       PageLoad::kPaintTiming_LargestContentfulPaintImageLoadStartName,
       PageLoad::kPaintTiming_LargestContentfulPaintImageLoadEndName);

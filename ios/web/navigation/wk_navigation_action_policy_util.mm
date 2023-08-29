@@ -8,6 +8,10 @@
 #import "ios/web/common/features.h"
 #import "ios/web/navigation/block_universal_links_buildflags.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace web {
 
 const WKNavigationActionPolicy

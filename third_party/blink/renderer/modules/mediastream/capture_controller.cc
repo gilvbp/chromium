@@ -88,14 +88,6 @@ void CaptureController::SetVideoTrack(MediaStreamTrack* video_track,
   descriptor_id_ = std::move(descriptor_id);
 }
 
-const AtomicString& CaptureController::InterfaceName() const {
-  return event_target_names::kCaptureController;
-}
-
-ExecutionContext* CaptureController::GetExecutionContext() const {
-  return ExecutionContextClient::GetExecutionContext();
-}
-
 void CaptureController::FinalizeFocusDecision() {
   DCHECK(IsMainThread());
 
@@ -127,7 +119,7 @@ void CaptureController::FinalizeFocusDecision() {
 
 void CaptureController::Trace(Visitor* visitor) const {
   visitor->Trace(video_track_);
-  EventTarget::Trace(visitor);
   ExecutionContextClient::Trace(visitor);
+  ScriptWrappable::Trace(visitor);
 }
 }  // namespace blink

@@ -19,26 +19,20 @@ namespace ash {
 
 namespace {
 
-// The width of the media view.
-constexpr int kMediaViewWidth =
-    global_media_controls::kCrOSMediaItemUpdatedUISize.width();
-
-// The height of the media view if there are multiple media items, which only
-// needs to be defined here for QuickSettingsMediaView because it is different
-// from the height when there is only one media item.
-constexpr int kMultipleMediaViewHeight = 170;
+// The dimensions of the overall media view.
+constexpr int kMediaViewWidth = 400;
+constexpr int kMediaViewHeight = 150;
 
 // The y-position of the floating pagination dots view in the media view.
-constexpr int kPaginationViewHeight = 140;
+constexpr int kPaginationViewHeight = 123;
 
 // A scroll view that arranges all the media items in a row and sets which item
 // is shown on the screen by setting the x position of the scroll content.
 class MediaScrollView : public views::ScrollView,
                         public PaginationModelObserver {
  public:
-  MediaScrollView(QuickSettingsMediaView* media_view, PaginationModel* model)
+  explicit MediaScrollView(PaginationModel* model)
       : views::ScrollView(ScrollView::ScrollWithLayers::kEnabled),
-        media_view_(media_view),
         model_(model) {
     observer_.Observe(model_);
     SetContents(std::make_unique<views::BoxLayoutView>());
@@ -57,21 +51,12 @@ class MediaScrollView : public views::ScrollView,
 
   // views::ScrollView:
   gfx::Size CalculatePreferredSize() const override {
-    return gfx::Size(kMediaViewWidth, media_view_->GetMediaViewHeight());
+    return gfx::Size(kMediaViewWidth, kMediaViewHeight);
   }
 
   void Layout() override {
     contents()->SizeToPreferredSize();
     views::ScrollView::Layout();
-  }
-
-  void ScrollRectToVisible(const gfx::Rect& rect) override {
-    // A tab key event can focus a UI element on the previous/next page so we
-    // need to scroll to that page automatically.
-    const int rect_page = rect.x() / kMediaViewWidth;
-    if (rect_page != model_->selected_page()) {
-      model_->SelectPage(rect_page, /*animate=*/true);
-    }
   }
 
   // PaginationModelObserver:
@@ -92,8 +77,6 @@ class MediaScrollView : public views::ScrollView,
   }
 
  private:
-  // |media_view_| is owned by the views hierarchy.
-  raw_ptr<QuickSettingsMediaView> media_view_ = nullptr;
   raw_ptr<PaginationModel> model_ = nullptr;
   base::ScopedObservation<PaginationModel, PaginationModelObserver> observer_{
       this};
@@ -107,7 +90,7 @@ QuickSettingsMediaView::QuickSettingsMediaView(
   // All the views need to paint to layer so that the pagination view can be
   // placed floating above the media scroll view.
   media_scroll_view_ =
-      AddChildView(std::make_unique<MediaScrollView>(this, &pagination_model_));
+      AddChildView(std::make_unique<MediaScrollView>(&pagination_model_));
 
   pagination_view_ =
       AddChildView(std::make_unique<PaginationView>(&pagination_model_));
@@ -128,11 +111,11 @@ QuickSettingsMediaView::~QuickSettingsMediaView() = default;
 // views::View implementations:
 
 gfx::Size QuickSettingsMediaView::CalculatePreferredSize() const {
-  return gfx::Size(kMediaViewWidth, GetMediaViewHeight());
+  return gfx::Size(kMediaViewWidth, kMediaViewHeight);
 }
 
 void QuickSettingsMediaView::Layout() {
-  media_scroll_view_->SetBounds(0, 0, kMediaViewWidth, GetMediaViewHeight());
+  media_scroll_view_->SetBounds(0, 0, kMediaViewWidth, kMediaViewHeight);
 
   // Place the pagination dots view on top of the media view.
   gfx::Size pagination_view_size = pagination_view_->CalculatePreferredSize();
@@ -166,11 +149,8 @@ void QuickSettingsMediaView::ShowItem(
     const std::string& id,
     std::unique_ptr<global_media_controls::MediaItemUIView> item) {
   DCHECK(!base::Contains(items_, id));
+  item->SetPreferredSize(gfx::Size(kMediaViewWidth, kMediaViewHeight));
   items_[id] = media_scroll_view_->contents()->AddChildView(std::move(item));
-
-  // Set the updated size of the media item based on the number of media items.
-  items_[id]->SetPreferredSize(
-      gfx::Size(kMediaViewWidth, GetMediaViewHeight()));
 
   pagination_model_.SetTotalPages(items_.size());
   PreferredSizeChanged();
@@ -209,12 +189,6 @@ void QuickSettingsMediaView::UpdateItemOrder(std::list<std::string> ids) {
     items_[id] = media_scroll_view_->contents()->AddChildView(
         std::move(media_items[id]));
   }
-}
-
-int QuickSettingsMediaView::GetMediaViewHeight() const {
-  return (items_.size() > 1)
-             ? kMultipleMediaViewHeight
-             : global_media_controls::kCrOSMediaItemUpdatedUISize.height();
 }
 
 }  // namespace ash

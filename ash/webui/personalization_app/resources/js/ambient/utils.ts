@@ -6,7 +6,7 @@
  * @fileoverview Utility functions to be used for ambient mode.
  */
 
-import {loadTimeData} from 'chrome://resources/js/load_time_data.js';
+import {loadTimeData} from 'chrome://resources/ash/common/load_time_data.m.js';
 
 import {AnimationTheme, TopicSource} from '../../personalization_app.mojom-webui.js';
 
@@ -52,9 +52,9 @@ export function getZerosArray(x: number): number[] {
  * Note: TopicSource.kVideo is exclusively paired with AnimationTheme.kVideo
  */
 export function isValidTopicSourceAndTheme(
-    topicSource: TopicSource, ambientTheme: AnimationTheme|null) {
-  return (ambientTheme === AnimationTheme.kVideo &&
+    topicSource: TopicSource, animationTheme: AnimationTheme|null) {
+  return (animationTheme === AnimationTheme.kVideo &&
           topicSource === TopicSource.kVideo) ||
-      (ambientTheme !== AnimationTheme.kVideo &&
+      (animationTheme !== AnimationTheme.kVideo &&
        topicSource !== TopicSource.kVideo);
 }

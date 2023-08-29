@@ -35,7 +35,7 @@ suite('AppManagementWindowModeItemTest', function() {
   test(
       'Window Mode Item IS visible when `hideWindowMode` is true',
       async function() {
-        const app = createTestApp('app');
+        const app = createTestApp();
         app.hideWindowMode = false;
 
         await setupWindowModeItem(app);
@@ -46,7 +46,7 @@ suite('AppManagementWindowModeItemTest', function() {
   test(
       'Window Mode Item is NOT visible when `hideWindowMode` is true',
       async function() {
-        const app = createTestApp('app');
+        const app = createTestApp();
         app.hideWindowMode = true;
 
         await setupWindowModeItem(app);

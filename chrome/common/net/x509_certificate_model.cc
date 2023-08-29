@@ -283,7 +283,8 @@ constexpr uint8_t kEkuMsKeyRecoveryAgent[] = {0x2b, 0x06, 0x01, 0x04, 0x01,
 constexpr auto kNameStringHandling =
     net::X509NameAttribute::PrintableStringHandling::kAsUTF8Hack;
 
-std::string ProcessRawBytesWithSeparators(base::span<const unsigned char> data,
+std::string ProcessRawBytesWithSeparators(const unsigned char* data,
+                                          size_t data_length,
                                           char hex_separator,
                                           char line_separator) {
   static const char kHexChars[] = "0123456789ABCDEF";
@@ -293,17 +294,16 @@ std::string ProcessRawBytesWithSeparators(base::span<const unsigned char> data,
   std::string ret;
   size_t kMin = 0U;
 
-  if (data.empty()) {
+  if (!data_length)
     return std::string();
-  }
 
-  ret.reserve(std::max(kMin, data.size() * 3 - 1));
+  ret.reserve(std::max(kMin, data_length * 3 - 1));
 
-  for (size_t i = 0; i < data.size(); ++i) {
+  for (size_t i = 0; i < data_length; ++i) {
     unsigned char b = data[i];
     ret.push_back(kHexChars[(b >> 4) & 0xf]);
     ret.push_back(kHexChars[b & 0xf]);
-    if (i + 1 < data.size()) {
+    if (i + 1 < data_length) {
       if ((i + 1) % 16 == 0)
         ret.push_back(line_separator);
       else
@@ -314,7 +314,7 @@ std::string ProcessRawBytesWithSeparators(base::span<const unsigned char> data,
 }
 
 std::string ProcessRawBytes(base::span<const uint8_t> data) {
-  return ProcessRawBytesWithSeparators(data, ' ', '\n');
+  return ProcessRawBytesWithSeparators(data.data(), data.size(), ' ', '\n');
 }
 
 std::string ProcessRawBytes(net::der::Input data) {
@@ -1308,7 +1308,8 @@ std::string X509CertificateModel::GetVersion() const {
 
 std::string X509CertificateModel::GetSerialNumberHexified() const {
   DCHECK(parsed_successfully_);
-  return ProcessRawBytesWithSeparators(tbs_.serial_number.AsSpan(), ':', ':');
+  return ProcessRawBytesWithSeparators(tbs_.serial_number.UnsafeData(),
+                                       tbs_.serial_number.Length(), ':', ':');
 }
 
 bool X509CertificateModel::GetTimes(base::Time* not_before,
@@ -1552,7 +1553,8 @@ std::string ProcessIDN(const std::string& input) {
 
 std::string ProcessRawSubjectPublicKeyInfo(base::span<const uint8_t> spki_der) {
   bssl::UniquePtr<EVP_PKEY> public_key;
-  if (!net::ParsePublicKey(net::der::Input(spki_der), &public_key)) {
+  if (!net::ParsePublicKey(net::der::Input(spki_der.data(), spki_der.size()),
+                           &public_key)) {
     return std::string();
   }
   switch (EVP_PKEY_id(public_key.get())) {
@@ -1578,9 +1580,9 @@ std::string ProcessRawSubjectPublicKeyInfo(base::span<const uint8_t> spki_der) {
 
   net::der::Input unused_algorithm_tlv;
   net::der::Input subject_public_key_value;
-  if (!ParseSubjectPublicKeyInfo(net::der::Input(spki_der),
-                                 &unused_algorithm_tlv,
-                                 &subject_public_key_value)) {
+  if (!ParseSubjectPublicKeyInfo(
+          net::der::Input(spki_der.data(), spki_der.size()),
+          &unused_algorithm_tlv, &subject_public_key_value)) {
     return std::string();
   }
   return ProcessRawBytes(subject_public_key_value);

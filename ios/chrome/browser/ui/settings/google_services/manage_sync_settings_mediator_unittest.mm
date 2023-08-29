@@ -6,11 +6,11 @@
 
 #import <UIKit/UIKit.h>
 
-#import "base/apple/foundation_util.h"
-#import "base/strings/sys_string_conversions.h"
-#import "base/test/scoped_feature_list.h"
+#import "base/mac/foundation_util.h"
+#import "components/autofill/core/common/autofill_prefs.h"
+#import "components/prefs/pref_registry_simple.h"
+#import "components/prefs/testing_pref_service.h"
 #import "components/signin/public/identity_manager/account_info.h"
-#import "components/sync/base/features.h"
 #import "components/sync/base/user_selectable_type.h"
 #import "components/sync/service/sync_service.h"
 #import "components/sync/test/mock_sync_service.h"
@@ -20,7 +20,6 @@
 #import "ios/chrome/browser/shared/ui/table_view/cells/table_view_detail_icon_item.h"
 #import "ios/chrome/browser/shared/ui/table_view/cells/table_view_image_item.h"
 #import "ios/chrome/browser/shared/ui/table_view/cells/table_view_info_button_item.h"
-#import "ios/chrome/browser/shared/ui/table_view/cells/table_view_text_item.h"
 #import "ios/chrome/browser/shared/ui/table_view/table_view_model.h"
 #import "ios/chrome/browser/signin/authentication_service.h"
 #import "ios/chrome/browser/signin/authentication_service_factory.h"
@@ -33,13 +32,11 @@
 #import "ios/chrome/browser/sync/sync_service_factory.h"
 #import "ios/chrome/browser/sync/sync_setup_service_factory.h"
 #import "ios/chrome/browser/sync/sync_setup_service_mock.h"
-#import "ios/chrome/browser/ui/authentication/cells/table_view_central_account_item.h"
 #import "ios/chrome/browser/ui/settings/cells/settings_image_detail_text_item.h"
 #import "ios/chrome/browser/ui/settings/cells/sync_switch_item.h"
 #import "ios/chrome/browser/ui/settings/google_services/manage_sync_settings_constants.h"
 #import "ios/chrome/browser/ui/settings/google_services/manage_sync_settings_consumer.h"
 #import "ios/chrome/browser/ui/settings/google_services/manage_sync_settings_table_view_controller.h"
-#import "ios/chrome/grit/ios_chromium_strings.h"
 #import "ios/chrome/grit/ios_strings.h"
 #import "ios/chrome/test/ios_chrome_scoped_testing_local_state.h"
 #import "ios/web/public/test/web_task_environment.h"
@@ -52,19 +49,39 @@
 #import "third_party/ocmock/ocmock_extensions.h"
 #import "ui/base/l10n/l10n_util_mac.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 using ::testing::_;
 using ::testing::NiceMock;
 using ::testing::Return;
+
+namespace {
+
+PrefService* SetPrefService() {
+  TestingPrefServiceSimple* prefs = new TestingPrefServiceSimple();
+  PrefRegistrySimple* registry = prefs->registry();
+  registry->RegisterBooleanPref(autofill::prefs::kAutofillWalletImportEnabled,
+                                true);
+
+  return prefs;
+}
+}  // namespace
 
 class ManageSyncSettingsMediatorTest : public PlatformTest {
  public:
   void SetUp() override {
     PlatformTest::SetUp();
 
+    FakeSystemIdentity* identity =
+        [FakeSystemIdentity identityWithEmail:@"foo1@gmail.com"
+                                       gaiaID:@"foo1ID"
+                                         name:@"Fake Foo 1"];
     FakeSystemIdentityManager* system_identity_manager =
         FakeSystemIdentityManager::FromSystemIdentityManager(
             GetApplicationContext()->GetSystemIdentityManager());
-    system_identity_manager->AddIdentity(fakeSystemIdentity_);
+    system_identity_manager->AddIdentity(identity);
 
     TestChromeBrowserState::Builder builder;
     builder.AddTestingFactory(SyncServiceFactory::GetInstance(),
@@ -77,6 +94,12 @@ class ManageSyncSettingsMediatorTest : public PlatformTest {
         AuthenticationServiceFactory::GetDefaultFactory());
     browser_state_ = builder.Build();
 
+    consumer_ = [[ManageSyncSettingsTableViewController alloc]
+        initWithStyle:UITableViewStyleGrouped];
+    [consumer_ loadModel];
+
+    pref_service_ = SetPrefService();
+
     sync_setup_service_mock_ = static_cast<SyncSetupServiceMock*>(
         SyncSetupServiceFactory::GetForBrowserState(browser_state_.get()));
     sync_service_mock_ = static_cast<syncer::MockSyncService*>(
@@ -88,31 +111,23 @@ class ManageSyncSettingsMediatorTest : public PlatformTest {
     AuthenticationService* authentication_service =
         AuthenticationServiceFactory::GetForBrowserState(browser_state_.get());
     authentication_service->SignIn(
-        fakeSystemIdentity_, signin_metrics::AccessPoint::ACCESS_POINT_UNKNOWN);
-  }
+        identity, signin_metrics::AccessPoint::ACCESS_POINT_UNKNOWN);
 
-  // Creates the mediator for a given sync state.
-  void CreateManageSyncSettingsMediator(
-      SyncSettingsAccountState initialAccountState) {
-    ASSERT_FALSE(mediator_);
-    ASSERT_FALSE(consumer_);
-    consumer_ = [[ManageSyncSettingsTableViewController alloc]
-        initWithStyle:UITableViewStyleGrouped];
-    [consumer_ loadModel];
     mediator_ = [[ManageSyncSettingsMediator alloc]
           initWithSyncService:sync_service_mock_
+              userPrefService:pref_service_
               identityManager:IdentityManagerFactory::GetForBrowserState(
                                   browser_state_.get())
-        authenticationService:AuthenticationServiceFactory::GetForBrowserState(
-                                  browser_state_.get())
+        authenticationService:authentication_service
         accountManagerService:ChromeAccountManagerServiceFactory::
                                   GetForBrowserState(browser_state_.get())
-          initialAccountState:initialAccountState];
+          initialAccountState:SyncSettingsAccountState::kSyncing];
     mediator_.syncSetupService = sync_setup_service_mock_;
     mediator_.consumer = consumer_;
   }
 
-  void SimulateFirstSetupSyncOnWithConsentEnabled() {
+  void FirstSetupSyncOnWithConsentEnabled() {
+    mediator_.initialAccountState = SyncSettingsAccountState::kSyncing;
     ON_CALL(*sync_service_mock_->GetMockUserSettings(),
             IsInitialSyncFeatureSetupComplete())
         .WillByDefault(Return(true));
@@ -122,32 +137,21 @@ class ManageSyncSettingsMediatorTest : public PlatformTest {
     ON_CALL(*sync_service_mock_, GetTransportState())
         .WillByDefault(Return(syncer::SyncService::TransportState::ACTIVE));
     CoreAccountInfo account_info;
-    account_info.email = base::SysNSStringToUTF8(fakeSystemIdentity_.userEmail);
+    account_info.email = "foo1@gmail.com";
     ON_CALL(*sync_service_mock_, GetAccountInfo())
         .WillByDefault(Return(account_info));
   }
 
-  void SimulateFirstSetupSyncOff() {
+  void FirstSetupSyncOff() {
+    mediator_.initialAccountState =
+        SyncSettingsAccountState::kAdvancedInitialSyncSetup;
     ON_CALL(*sync_service_mock_, HasSyncConsent()).WillByDefault(Return(false));
     ON_CALL(*sync_setup_service_mock_, IsSyncEverythingEnabled())
         .WillByDefault(Return(true));
     ON_CALL(*sync_service_mock_, GetTransportState())
         .WillByDefault(Return(syncer::SyncService::TransportState::DISABLED));
     CoreAccountInfo account_info;
-    account_info.email = base::SysNSStringToUTF8(fakeSystemIdentity_.userEmail);
-    ON_CALL(*sync_service_mock_, GetAccountInfo())
-        .WillByDefault(Return(account_info));
-  }
-
-  void SimulateFirstSetupSyncOffWithSignedInAccount() {
-    base::test::ScopedFeatureList feature_list;
-    feature_list.InitAndEnableFeature(
-        syncer::kReplaceSyncPromosWithSignInPromos);
-    ON_CALL(*sync_service_mock_, HasSyncConsent()).WillByDefault(Return(false));
-    ON_CALL(*sync_service_mock_, GetTransportState())
-        .WillByDefault(Return(syncer::SyncService::TransportState::ACTIVE));
-    CoreAccountInfo account_info;
-    account_info.email = base::SysNSStringToUTF8(fakeSystemIdentity_.userEmail);
+    account_info.email = "foo1@gmail.com";
     ON_CALL(*sync_service_mock_, GetAccountInfo())
         .WillByDefault(Return(account_info));
   }
@@ -165,21 +169,15 @@ class ManageSyncSettingsMediatorTest : public PlatformTest {
 
   ManageSyncSettingsMediator* mediator_ = nullptr;
   ManageSyncSettingsTableViewController* consumer_ = nullptr;
-
-  FakeSystemIdentity* fakeSystemIdentity_ =
-      [FakeSystemIdentity identityWithEmail:@"foo1@gmail.com"
-                                     gaiaID:@"foo1ID"
-                                       name:@"Fake Foo 1"];
+  PrefService* pref_service_ = nullptr;
 };
 
 // Tests for Advanced Settings items.
 
-// Tests that encryption is accessible even when Sync settings have not been
+// Tests that encryption is  accessible even when Sync settings have not been
 // confirmed.
 TEST_F(ManageSyncSettingsMediatorTest, SyncServiceSetupNotCommitted) {
-  CreateManageSyncSettingsMediator(
-      SyncSettingsAccountState::kAdvancedInitialSyncSetup);
-  SimulateFirstSetupSyncOff();
+  FirstSetupSyncOff();
 
   [mediator_ manageSyncSettingsTableViewControllerLoadModel:mediator_.consumer];
 
@@ -201,8 +199,7 @@ TEST_F(ManageSyncSettingsMediatorTest, SyncServiceSetupNotCommitted) {
 // Tests that encryption is accessible when there is a Sync error due to a
 // missing passphrase, but Sync has otherwise been enabled.
 TEST_F(ManageSyncSettingsMediatorTest, SyncServiceDisabledNeedsPassphrase) {
-  CreateManageSyncSettingsMediator(SyncSettingsAccountState::kSyncing);
-  SimulateFirstSetupSyncOnWithConsentEnabled();
+  FirstSetupSyncOnWithConsentEnabled();
   ON_CALL(*sync_service_mock_, GetUserActionableError())
       .WillByDefault(
           Return(syncer::SyncService::UserActionableError::kNeedsPassphrase));
@@ -221,8 +218,7 @@ TEST_F(ManageSyncSettingsMediatorTest, SyncServiceDisabledNeedsPassphrase) {
 
 // Tests that encryption is accessible when Sync is enabled.
 TEST_F(ManageSyncSettingsMediatorTest, SyncServiceEnabledWithEncryption) {
-  CreateManageSyncSettingsMediator(SyncSettingsAccountState::kSyncing);
-  SimulateFirstSetupSyncOnWithConsentEnabled();
+  FirstSetupSyncOnWithConsentEnabled();
 
   [mediator_ manageSyncSettingsTableViewControllerLoadModel:mediator_.consumer];
 
@@ -241,9 +237,7 @@ TEST_F(ManageSyncSettingsMediatorTest, SyncServiceEnabledWithEncryption) {
 
 // Tests that "Turn off Sync" is hidden when Sync is disabled.
 TEST_F(ManageSyncSettingsMediatorTest, SyncServiceDisabledWithTurnOffSync) {
-  CreateManageSyncSettingsMediator(
-      SyncSettingsAccountState::kAdvancedInitialSyncSetup);
-  SimulateFirstSetupSyncOff();
+  FirstSetupSyncOff();
 
   [mediator_ manageSyncSettingsTableViewControllerLoadModel:mediator_.consumer];
 
@@ -255,8 +249,7 @@ TEST_F(ManageSyncSettingsMediatorTest, SyncServiceDisabledWithTurnOffSync) {
 
 // Tests that "Turn off Sync" is accessible when Sync is enabled.
 TEST_F(ManageSyncSettingsMediatorTest, SyncServiceEnabledWithTurnOffSync) {
-  CreateManageSyncSettingsMediator(SyncSettingsAccountState::kSyncing);
-  SimulateFirstSetupSyncOnWithConsentEnabled();
+  FirstSetupSyncOnWithConsentEnabled();
 
   [mediator_ manageSyncSettingsTableViewControllerLoadModel:mediator_.consumer];
 
@@ -271,8 +264,7 @@ TEST_F(ManageSyncSettingsMediatorTest, SyncServiceEnabledWithTurnOffSync) {
 // forced sign-in policy is enabled.
 TEST_F(ManageSyncSettingsMediatorTest,
        SyncServiceEnabledWithTurnOffSyncWithForcedSigninPolicy) {
-  CreateManageSyncSettingsMediator(SyncSettingsAccountState::kSyncing);
-  SimulateFirstSetupSyncOnWithConsentEnabled();
+  FirstSetupSyncOnWithConsentEnabled();
 
   mediator_.forcedSigninEnabled = YES;
 
@@ -289,15 +281,14 @@ TEST_F(ManageSyncSettingsMediatorTest,
       footerForSectionWithIdentifier:SyncSettingsSectionIdentifier::
                                          SignOutSectionIdentifier];
   TableViewLinkHeaderFooterItem* footerTextItem =
-      base::apple::ObjCCastStrict<TableViewLinkHeaderFooterItem>(footer);
+      base::mac::ObjCCastStrict<TableViewLinkHeaderFooterItem>(footer);
   EXPECT_GT([footerTextItem.text length], 0UL);
 }
 
 // Tests that a Sync error that occurs after the user has loaded the Settings
 // page once will update the full page.
 TEST_F(ManageSyncSettingsMediatorTest, SyncServiceSuccessThenDisabled) {
-  CreateManageSyncSettingsMediator(SyncSettingsAccountState::kSyncing);
-  SimulateFirstSetupSyncOnWithConsentEnabled();
+  FirstSetupSyncOnWithConsentEnabled();
   EXPECT_CALL(*sync_service_mock_, GetDisableReasons())
       .WillOnce(Return(syncer::SyncService::DisableReasonSet()))
       .WillOnce(Return(syncer::SyncService::DisableReasonSet(
@@ -320,8 +311,7 @@ TEST_F(ManageSyncSettingsMediatorTest, SyncServiceSuccessThenDisabled) {
 // Tests that Sync errors display a single error message when loaded one after
 // the other.
 TEST_F(ManageSyncSettingsMediatorTest, SyncServiceMultipleErrors) {
-  CreateManageSyncSettingsMediator(SyncSettingsAccountState::kSyncing);
-  SimulateFirstSetupSyncOnWithConsentEnabled();
+  FirstSetupSyncOnWithConsentEnabled();
   ON_CALL(*sync_service_mock_, GetUserActionableError())
       .WillByDefault(
           Return(syncer::SyncService::UserActionableError::kNeedsPassphrase));
@@ -343,18 +333,44 @@ TEST_F(ManageSyncSettingsMediatorTest, SyncServiceMultipleErrors) {
                                        SyncErrorsSectionIdentifier];
   ASSERT_EQ(1UL, error_items.count);
   TableViewDetailIconItem* error_item =
-      base::apple::ObjCCastStrict<TableViewDetailIconItem>(error_items[0]);
+      base::mac::ObjCCastStrict<TableViewDetailIconItem>(error_items[0]);
   EXPECT_NSEQ(
       error_item.detailText,
       l10n_util::GetNSString(
           IDS_IOS_GOOGLE_SERVICES_SETTINGS_ENTER_PASSPHRASE_TO_START_SYNC));
 }
 
+// Tests that "Turn off Sync" item transition from disabled to enabled goes from
+// hiding to showing the item.
+TEST_F(ManageSyncSettingsMediatorTest,
+       SyncServiceSetupTransitionForTurnOffSync) {
+  // Set Sync disabled expectations.
+  FirstSetupSyncOff();
+
+  [mediator_ manageSyncSettingsTableViewControllerLoadModel:mediator_.consumer];
+
+  // Sign out section not added.
+  EXPECT_FALSE([mediator_.consumer.tableViewModel
+      hasSectionForSectionIdentifier:SyncSettingsSectionIdentifier::
+                                         SignOutSectionIdentifier]);
+
+  // Set Sync enabled expectations.
+  FirstSetupSyncOnWithConsentEnabled();
+
+  // Loads the Sync page again in enabled state.
+  [mediator_ onSyncStateChanged];
+
+  // "Turn off Sync" item is shown.
+  NSArray* shown_sign_out_items = [mediator_.consumer.tableViewModel
+      itemsInSectionWithIdentifier:SyncSettingsSectionIdentifier::
+                                       SignOutSectionIdentifier];
+  EXPECT_EQ(1UL, shown_sign_out_items.count);
+}
+
 // Tests that the items are correct when a sync type list is managed.
 TEST_F(ManageSyncSettingsMediatorTest,
        CheckItemsWhenSyncTypeListHasEnabledItems) {
-  CreateManageSyncSettingsMediator(SyncSettingsAccountState::kSyncing);
-  SimulateFirstSetupSyncOnWithConsentEnabled();
+  FirstSetupSyncOnWithConsentEnabled();
 
   // Set up a policy to disable bookmarks and passwords.
   ON_CALL(*sync_service_mock_->GetMockUserSettings(),
@@ -380,160 +396,11 @@ TEST_F(ManageSyncSettingsMediatorTest,
       continue;
     }
     SyncSwitchItem* switch_item =
-        base::apple::ObjCCastStrict<SyncSwitchItem>(item);
-    if (switch_item.type == PaymentsDataTypeItemType) {
+        base::mac::ObjCCastStrict<SyncSwitchItem>(item);
+    if (switch_item.type == AutocompleteWalletItemType) {
       EXPECT_FALSE(switch_item.enabled);
     } else {
       EXPECT_TRUE(switch_item.enabled);
     }
   }
-}
-
-// Tests that account types for a signed in not syncing account are showing
-// correctly.
-TEST_F(ManageSyncSettingsMediatorTest,
-       CheckAccountSwitchItemsForSignedInNotSyncingAccount) {
-  CreateManageSyncSettingsMediator(SyncSettingsAccountState::kSignedIn);
-  SimulateFirstSetupSyncOffWithSignedInAccount();
-
-  // Loads the Sync page.
-  [mediator_ manageSyncSettingsTableViewControllerLoadModel:mediator_.consumer];
-
-  // Get account switches.
-  NSArray* items = [mediator_.consumer.tableViewModel
-      itemsInSectionWithIdentifier:SyncDataTypeSectionIdentifier];
-
-  for (TableViewItem* item in items) {
-    // Check SyncEverythingItemType does not exist for signed in not syncing
-    // users.
-    EXPECT_FALSE(item.type == SyncEverythingItemType);
-    // Check OpenTabsDataTypeItemType does not exist as it is merged and handled
-    // by Hitstory type.
-    EXPECT_FALSE(item.type == OpenTabsDataTypeItemType);
-  }
-}
-
-// Tests that the account details item is showing for a signed in not syncing
-// account.
-TEST_F(ManageSyncSettingsMediatorTest,
-       CheckAccountItemForSignedInNotSyncingAccount) {
-  CreateManageSyncSettingsMediator(SyncSettingsAccountState::kSignedIn);
-  SimulateFirstSetupSyncOffWithSignedInAccount();
-
-  // Loads the Sync page.
-  [mediator_ manageSyncSettingsTableViewControllerLoadModel:mediator_.consumer];
-
-  // Get account item.
-  NSArray* account_item = [mediator_.consumer.tableViewModel
-      itemsInSectionWithIdentifier:AccountSectionIdentifier];
-
-  EXPECT_EQ(1UL, account_item.count);
-
-  TableViewCentralAccountItem* account_details =
-      base::apple::ObjCCastStrict<TableViewCentralAccountItem>(account_item[0]);
-
-  EXPECT_EQ(account_details.type,
-            SyncSettingsItemType::IdentityAccountItemType);
-  EXPECT_TRUE(account_details.avatarImage);
-  EXPECT_NSEQ(account_details.name, fakeSystemIdentity_.userFullName);
-  EXPECT_NSEQ(account_details.email, fakeSystemIdentity_.userEmail);
-}
-
-// Tests that the sign out item exists in the SignOutSectionIdentifier for a
-// signed in not syncing account along with manage accounts items.
-TEST_F(ManageSyncSettingsMediatorTest,
-       CheckSignOutSectionItemsForSignedInNotSyncingAccount) {
-  CreateManageSyncSettingsMediator(SyncSettingsAccountState::kSignedIn);
-  SimulateFirstSetupSyncOffWithSignedInAccount();
-
-  // Loads the Sync page.
-  [mediator_ manageSyncSettingsTableViewControllerLoadModel:mediator_.consumer];
-
-  // Get section items.
-  NSArray* items = [mediator_.consumer.tableViewModel
-      itemsInSectionWithIdentifier:SignOutSectionIdentifier];
-
-  EXPECT_EQ(ManageGoogleAccountItemType,
-            base::apple::ObjCCastStrict<TableViewItem>(items[0]).type);
-  EXPECT_EQ(ManageAccountsItemType,
-            base::apple::ObjCCastStrict<TableViewItem>(items[1]).type);
-  EXPECT_EQ(SignOutItemType,
-            base::apple::ObjCCastStrict<TableViewItem>(items[2]).type);
-
-  EXPECT_NSEQ(l10n_util::GetNSString(
-                  IDS_IOS_GOOGLE_ACCOUNT_SETTINGS_MANAGE_GOOGLE_ACCOUNT_ITEM),
-              base::apple::ObjCCastStrict<TableViewTextItem>(items[0]).text);
-  EXPECT_NSEQ(l10n_util::GetNSString(
-                  IDS_IOS_GOOGLE_ACCOUNT_SETTINGS_MANAGE_ACCOUNTS_ITEM),
-              base::apple::ObjCCastStrict<TableViewTextItem>(items[1]).text);
-  EXPECT_NSEQ(
-      l10n_util::GetNSString(IDS_IOS_GOOGLE_ACCOUNT_SETTINGS_SIGN_OUT_ITEM),
-      base::apple::ObjCCastStrict<TableViewTextItem>(items[2]).text);
-}
-
-// Tests that Sync errors display as a text button at the top of the page for a
-// signed in not syncing account.
-TEST_F(ManageSyncSettingsMediatorTest,
-       TestSyncErrorsForSignedInNotSyncingAccount) {
-  CreateManageSyncSettingsMediator(SyncSettingsAccountState::kSignedIn);
-  SimulateFirstSetupSyncOffWithSignedInAccount();
-  ON_CALL(*sync_service_mock_, GetUserActionableError())
-      .WillByDefault(
-          Return(syncer::SyncService::UserActionableError::kNeedsPassphrase));
-
-  // Loads the account settings page.
-  [mediator_ manageSyncSettingsTableViewControllerLoadModel:mediator_.consumer];
-
-  EXPECT_TRUE([mediator_.consumer.tableViewModel
-      hasSectionForSectionIdentifier:SyncSettingsSectionIdentifier::
-                                         SyncErrorsSectionIdentifier]);
-  NSArray* error_items = [mediator_.consumer.tableViewModel
-      itemsInSectionWithIdentifier:SyncSettingsSectionIdentifier::
-                                       SyncErrorsSectionIdentifier];
-
-  EXPECT_EQ(2UL, error_items.count);
-  EXPECT_NSEQ(
-      base::apple::ObjCCastStrict<SettingsImageDetailTextItem>(error_items[0])
-          .detailText,
-      l10n_util::GetNSString(
-          IDS_IOS_ACCOUNT_TABLE_ERROR_ENTER_PASSPHRASE_MESSAGE));
-  EXPECT_NSEQ(
-      base::apple::ObjCCastStrict<TableViewTextItem>(error_items[1]).text,
-      l10n_util::GetNSString(
-          IDS_IOS_ACCOUNT_TABLE_ERROR_ENTER_PASSPHRASE_BUTTON));
-}
-
-// Tests the account state transition on sign out.
-// This test to ensure the UI does not crash on sign out because of a missing
-// section in that state. Reference bug crbug.com/1456446.
-TEST_F(ManageSyncSettingsMediatorTest, TestAccountStateTransitionOnSignOut) {
-  // Create mediator with a signed-in account.
-  CreateManageSyncSettingsMediator(SyncSettingsAccountState::kSignedIn);
-  SimulateFirstSetupSyncOffWithSignedInAccount();
-
-  [mediator_ manageSyncSettingsTableViewControllerLoadModel:mediator_.consumer];
-
-  // Verify the sign out section exists.
-  ASSERT_TRUE([mediator_.consumer.tableViewModel
-      hasSectionForSectionIdentifier:SyncSettingsSectionIdentifier::
-                                         SignOutSectionIdentifier]);
-  // Verify the number of section shown in the kSignedIn state.
-  ASSERT_EQ(4, [mediator_.consumer.tableViewModel numberOfSections]);
-
-  // Set sign out expectation with empty account info.
-  ON_CALL(*sync_service_mock_, GetAccountInfo())
-      .WillByDefault(Return(CoreAccountInfo()));
-
-  // Sign out.
-  AuthenticationService* authentication_service =
-      AuthenticationServiceFactory::GetForBrowserState(browser_state_.get());
-  authentication_service->SignOut(signin_metrics::ProfileSignout::kTest,
-                                  /*force_clear_browsing_data=*/true, nil);
-
-  // Reload the Sync page.
-  [mediator_ onSyncStateChanged];
-
-  // Expected sections from the previous kSignedIn state should be showing and
-  // no new sections are added in the kSignedOut state.
-  EXPECT_EQ(4, [mediator_.consumer.tableViewModel numberOfSections]);
 }

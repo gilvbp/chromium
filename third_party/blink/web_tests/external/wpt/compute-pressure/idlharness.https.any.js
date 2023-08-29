@@ -2,7 +2,7 @@
 // META: script=/resources/idlharness.js
 // META: global=window,dedicatedworker,sharedworker
 
-// https://w3c.github.io/compute-pressure/
+// https://wicg.github.io/compute-pressure/
 
 'use strict';
 

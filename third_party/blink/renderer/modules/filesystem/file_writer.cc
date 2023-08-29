@@ -337,7 +337,7 @@ void FileWriter::Dispose() {
 void FileWriter::Trace(Visitor* visitor) const {
   visitor->Trace(error_);
   visitor->Trace(blob_being_written_);
-  EventTarget::Trace(visitor);
+  EventTargetWithInlineData::Trace(visitor);
   FileWriterBase::Trace(visitor);
   ExecutionContextLifecycleObserver::Trace(visitor);
 }

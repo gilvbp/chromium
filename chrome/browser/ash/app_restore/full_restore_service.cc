@@ -7,12 +7,10 @@
 #include "ash/constants/ash_switches.h"
 #include "ash/constants/notifier_catalogs.h"
 #include "ash/public/cpp/notification_utils.h"
-#include "ash/webui/settings/public/constants/routes.mojom.h"
 #include "ash/wm/desks/templates/saved_desk_controller.h"
 #include "base/command_line.h"
 #include "base/metrics/histogram_functions.h"
 #include "base/strings/string_util.h"
-#include "base/trace_event/trace_event.h"
 #include "chrome/app/vector_icons/vector_icons.h"
 #include "chrome/browser/ash/app_restore/app_restore_arc_task_handler.h"
 #include "chrome/browser/ash/app_restore/full_restore_app_launch_handler.h"
@@ -27,6 +25,7 @@
 #include "chrome/browser/notifications/notification_display_service.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/ui/settings_window_manager_chromeos.h"
+#include "chrome/browser/ui/webui/settings/chromeos/constants/routes.mojom.h"
 #include "chrome/browser/web_applications/web_app_utils.h"
 #include "chrome/grit/chromium_strings.h"
 #include "chrome/grit/generated_resources.h"
@@ -117,7 +116,6 @@ bool MaybeCreateFullRestoreServiceForLacros() {
 
 // static
 FullRestoreService* FullRestoreService::GetForProfile(Profile* profile) {
-  TRACE_EVENT0("ui", "FullRestoreService::GetForProfile");
   return static_cast<FullRestoreService*>(
       FullRestoreServiceFactory::GetInstance()->GetForProfile(profile));
 }
@@ -259,7 +257,6 @@ void FullRestoreService::OnTransitionedToNewActiveUser(Profile* profile) {
 }
 
 void FullRestoreService::LaunchBrowserWhenReady() {
-  TRACE_EVENT0("ui", "FullRestoreService::LaunchBrowserWhenReady");
   if (!g_restore_for_testing || !app_launch_handler_)
     return;
 

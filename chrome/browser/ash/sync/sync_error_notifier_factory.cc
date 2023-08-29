@@ -37,8 +37,7 @@ SyncErrorNotifierFactory* SyncErrorNotifierFactory::GetInstance() {
   return instance.get();
 }
 
-std::unique_ptr<KeyedService>
-SyncErrorNotifierFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* SyncErrorNotifierFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   Profile* profile = static_cast<Profile*>(context);
   syncer::SyncService* sync_service =
@@ -48,7 +47,7 @@ SyncErrorNotifierFactory::BuildServiceInstanceForBrowserContext(
     return nullptr;
   }
 
-  return std::make_unique<SyncErrorNotifier>(sync_service, profile);
+  return new SyncErrorNotifier(sync_service, profile);
 }
 
 }  // namespace ash

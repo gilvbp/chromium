@@ -24,7 +24,6 @@
 
 #include "base/check_op.h"
 #include "third_party/blink/renderer/core/core_export.h"
-#include "third_party/blink/renderer/platform/heap/collection_support/heap_deque.h"
 #include "third_party/blink/renderer/platform/heap/collection_support/heap_hash_set.h"
 #include "third_party/blink/renderer/platform/heap/collection_support/heap_vector.h"
 #include "third_party/blink/renderer/platform/heap/garbage_collected.h"
@@ -43,10 +42,7 @@ class LayoutObject;
 class MutationObserverRegistration;
 class NodeListsNodeData;
 class NodeRareData;
-class Part;
 class ScrollTimeline;
-
-using PartsList = HeapDeque<Member<Part>>;
 
 class NodeMutationObserverData final
     : public GarbageCollected<NodeMutationObserverData> {
@@ -94,7 +90,8 @@ class NodeData : public GarbageCollected<NodeData> {
   virtual ~NodeData();
   virtual void Trace(Visitor*) const;
 
-  CORE_EXPORT NodeData(LayoutObject*, const ComputedStyle* computed_style);
+  CORE_EXPORT NodeData(LayoutObject*,
+                       scoped_refptr<const ComputedStyle> computed_style);
   NodeData(const NodeData&) = delete;
   NodeData(NodeData&&);
 
@@ -105,9 +102,9 @@ class NodeData : public GarbageCollected<NodeData> {
   }
 
   const ComputedStyle* GetComputedStyle() const {
-    return computed_style_.Get();
+    return computed_style_.get();
   }
-  void SetComputedStyle(const ComputedStyle* computed_style);
+  void SetComputedStyle(scoped_refptr<const ComputedStyle> computed_style);
 
   void SetIsPseudoElement(bool value) { is_pseudo_element_ = value; }
   bool IsPseudoElement() const { return is_pseudo_element_; }
@@ -133,7 +130,7 @@ class NodeData : public GarbageCollected<NodeData> {
   }
 
  protected:
-  subtle::UncompressedMember<const ComputedStyle> computed_style_;
+  scoped_refptr<const ComputedStyle> computed_style_;
   Member<LayoutObject> layout_object_;
   BitField bit_field_;
   bool is_pseudo_element_ = false;
@@ -228,10 +225,6 @@ class NodeRareData : public NodeData {
   void UnregisterScrollTimeline(ScrollTimeline*);
   void InvalidateAssociatedAnimationEffects();
 
-  void AddDOMPart(Part& part);
-  void RemoveDOMPart(Part& part);
-  PartsList* GetDOMParts() const { return dom_parts_; }
-
   void Trace(blink::Visitor*) const override;
 
  protected:
@@ -256,10 +249,6 @@ class NodeRareData : public NodeData {
   // Keeps strong scroll timeline pointers linked to this node to ensure
   // the timelines are alive as long as the node is alive.
   Member<HeapHashSet<Member<ScrollTimeline>>> scroll_timelines_;
-  // An ordered set of DOM Parts for this Node, in order of construction. This
-  // order is important, since `getParts()` returns a tree-ordered set of parts,
-  // with parts on the same `Node` returned in `Part` construction order.
-  Member<PartsList> dom_parts_;
 };
 
 template <typename T>

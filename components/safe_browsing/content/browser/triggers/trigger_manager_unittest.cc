@@ -141,7 +141,7 @@ class TriggerManagerTest : public ::testing::Test {
     }
     SBErrorOptions options =
         TriggerManager::GetSBErrorDisplayOptions(pref_service_, web_contents);
-    auto result = trigger_manager_.FinishCollectingThreatDetails(
+    bool result = trigger_manager_.FinishCollectingThreatDetails(
         trigger_type, web_contents_key, base::TimeDelta(), false, 0, options);
 
     // Invoke the callback if the report was to be sent.
@@ -151,7 +151,7 @@ class TriggerManagerTest : public ::testing::Test {
       trigger_manager_.ThreatDetailsDone(web_contents_key);
     }
 
-    return result.IsReportSent();
+    return result;
   }
 
   const DataCollectorsMap& data_collectors_map() {

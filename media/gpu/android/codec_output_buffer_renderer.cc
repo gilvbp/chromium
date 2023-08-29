@@ -24,9 +24,7 @@ CodecOutputBufferRenderer::CodecOutputBufferRenderer(
       codec_buffer_wait_coordinator_(std::move(codec_buffer_wait_coordinator)) {
 }
 
-CodecOutputBufferRenderer::~CodecOutputBufferRenderer() {
-  Invalidate();
-}
+CodecOutputBufferRenderer::~CodecOutputBufferRenderer() = default;
 
 bool CodecOutputBufferRenderer::RenderToTextureOwnerBackBuffer() {
   AssertAcquiredDrDcLock();
@@ -50,7 +48,7 @@ bool CodecOutputBufferRenderer::RenderToTextureOwnerBackBuffer() {
     return false;
   }
   if (!output_buffer_->ReleaseToSurface()) {
-    Invalidate();
+    phase_ = Phase::kInvalidated;
     return false;
   }
   phase_ = Phase::kInBackBuffer;
@@ -58,7 +56,9 @@ bool CodecOutputBufferRenderer::RenderToTextureOwnerBackBuffer() {
   return true;
 }
 
-bool CodecOutputBufferRenderer::RenderToTextureOwnerFrontBuffer() {
+bool CodecOutputBufferRenderer::RenderToTextureOwnerFrontBuffer(
+    BindingsMode bindings_mode,
+    GLuint service_id) {
   AssertAcquiredDrDcLock();
   // Normally, we should have a wait coordinator if we're called.  However, if
   // the renderer is torn down (either VideoFrameSubmitter or the whole process)
@@ -69,6 +69,7 @@ bool CodecOutputBufferRenderer::RenderToTextureOwnerFrontBuffer() {
     return false;
 
   if (phase_ == Phase::kInFrontBuffer) {
+    EnsureBoundIfNeeded(bindings_mode, service_id);
     return true;
   }
   if (phase_ == Phase::kInvalidated)
@@ -88,7 +89,7 @@ bool CodecOutputBufferRenderer::RenderToTextureOwnerFrontBuffer() {
     if (!RenderToTextureOwnerBackBuffer()) {
       // RenderTotextureOwnerBackBuffer can fail now only if ReleaseToSurface
       // failed.
-      DCHECK_EQ(phase_, Phase::kInvalidated);
+      DCHECK(phase_ == Phase::kInvalidated);
       return false;
     }
   }
@@ -99,19 +100,27 @@ bool CodecOutputBufferRenderer::RenderToTextureOwnerFrontBuffer() {
     codec_buffer_wait_coordinator_->WaitForFrameAvailable();
 
   codec_buffer_wait_coordinator_->texture_owner()->UpdateTexImage();
-
-  if (frame_info_callback_) {
-    gfx::Size coded_size;
-    gfx::Rect visible_rect;
-    if (texture_owner() && texture_owner()->GetCodedSizeAndVisibleRect(
-                               size(), &coded_size, &visible_rect)) {
-      std::move(frame_info_callback_).Run(coded_size, visible_rect);
-    } else {
-      std::move(frame_info_callback_).Run(absl::nullopt, absl::nullopt);
-    }
+  // if |texture_owner| binds image on update, mark that we bound it.
+  if (codec_buffer_wait_coordinator_->texture_owner()
+          ->binds_texture_on_update()) {
+    was_tex_image_bound_ = true;
   }
 
+  EnsureBoundIfNeeded(bindings_mode, service_id);
   return true;
+}
+
+void CodecOutputBufferRenderer::EnsureBoundIfNeeded(BindingsMode mode,
+                                                    GLuint service_id) {
+  AssertAcquiredDrDcLock();
+  DCHECK(codec_buffer_wait_coordinator_);
+
+  if (mode == BindingsMode::kBindImage) {
+    DCHECK_GT(service_id, 0u);
+    codec_buffer_wait_coordinator_->texture_owner()->EnsureTexImageBound(
+        service_id);
+    was_tex_image_bound_ = true;
+  }
 }
 
 bool CodecOutputBufferRenderer::RenderToOverlay() {
@@ -122,7 +131,7 @@ bool CodecOutputBufferRenderer::RenderToOverlay() {
     return false;
 
   if (!output_buffer_->ReleaseToSurface()) {
-    Invalidate();
+    phase_ = Phase::kInvalidated;
     return false;
   }
   phase_ = Phase::kInFrontBuffer;
@@ -132,16 +141,13 @@ bool CodecOutputBufferRenderer::RenderToOverlay() {
 bool CodecOutputBufferRenderer::RenderToFrontBuffer() {
   AssertAcquiredDrDcLock();
 
-  // Trigger early rendering of the image before it is used for compositing.
-  return codec_buffer_wait_coordinator_ ? RenderToTextureOwnerFrontBuffer()
-                                        : RenderToOverlay();
-}
-
-void CodecOutputBufferRenderer::Invalidate() {
-  phase_ = Phase::kInvalidated;
-  if (frame_info_callback_) {
-    std::move(frame_info_callback_).Run(absl::nullopt, absl::nullopt);
-  }
+  // This code is used to trigger early rendering of the image before it is used
+  // for compositing, there is no need to bind the image. Hence pass texture
+  // service_id as 0.
+  return codec_buffer_wait_coordinator_
+             ? RenderToTextureOwnerFrontBuffer(BindingsMode::kDontBindImage,
+                                               0 /* service_id */)
+             : RenderToOverlay();
 }
 
 }  // namespace media

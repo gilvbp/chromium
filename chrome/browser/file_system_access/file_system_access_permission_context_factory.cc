@@ -48,10 +48,9 @@ FileSystemAccessPermissionContextFactory::
 FileSystemAccessPermissionContextFactory::
     ~FileSystemAccessPermissionContextFactory() = default;
 
-std::unique_ptr<KeyedService>
-FileSystemAccessPermissionContextFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* FileSystemAccessPermissionContextFactory::BuildServiceInstanceFor(
     content::BrowserContext* profile) const {
-  return std::make_unique<ChromeFileSystemAccessPermissionContext>(profile);
+  return new ChromeFileSystemAccessPermissionContext(profile);
 }
 
 void FileSystemAccessPermissionContextFactory::BrowserContextShutdown(

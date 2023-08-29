@@ -37,10 +37,9 @@ bool PageLoadMetricsMemoryTrackerFactory::ServiceIsCreatedWithBrowserContext()
   return base::FeatureList::IsEnabled(features::kV8PerFrameMemoryMonitoring);
 }
 
-std::unique_ptr<KeyedService>
-PageLoadMetricsMemoryTrackerFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* PageLoadMetricsMemoryTrackerFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
-  return std::make_unique<page_load_metrics::PageLoadMetricsMemoryTracker>();
+  return new page_load_metrics::PageLoadMetricsMemoryTracker();
 }
 
 }  // namespace page_load_metrics

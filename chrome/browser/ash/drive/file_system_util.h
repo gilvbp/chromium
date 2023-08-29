@@ -34,14 +34,8 @@ bool IsDriveAvailableForProfile(const Profile* profile);
 // Returns true if Drive is currently enabled for the given Profile.
 bool IsDriveEnabledForProfile(const Profile* profile);
 
-// Returns true if the bulk-pinning feature should be available and visible in
-// the given Profile. Several conditions need to be met for the bulk-pinning
-// feature to be available. This does not indicate whether the bulk-pinning
-// feature has been activated (turned on) by the user. It merely indicates
-// whether the bulk-pinning feature is available and can be turned on by the
-// user if they choose to.
-bool IsDriveFsBulkPinningEnabled(const Profile* profile = nullptr);
-bool IsOobeDrivePinningEnabled(const Profile* profile = nullptr);
+// Returns true if bulk pinning is currently enabled for the given Profile.
+bool IsDriveFsBulkPinningEnabled(const Profile* profile);
 
 // Enum type for describing the current connection status to Drive.
 enum ConnectionStatusType {
@@ -65,10 +59,6 @@ ConnectionStatusType GetDriveConnectionStatus(Profile* profile);
 // Returns true if the supplied mime type is of a pinnable type. This indicates
 // the file can be made available offline.
 bool IsPinnableGDocMimeType(const std::string& mime_type);
-
-// Computes the total content cache size (minus the chunks.db* metadata files).
-int64_t ComputeDriveFsContentCacheSize(
-    const base::FilePath& content_cache_path);
 
 }  // namespace util
 }  // namespace drive

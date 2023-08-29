@@ -91,7 +91,8 @@ void MathMLTokenElement::ChildrenChanged(
 
 LayoutObject* MathMLTokenElement::CreateLayoutObject(
     const ComputedStyle& style) {
-  if (!style.IsDisplayMathType()) {
+  if (!RuntimeEnabledFeatures::MathMLCoreEnabled() ||
+      !style.IsDisplayMathType()) {
     return MathMLElement::CreateLayoutObject(style);
   }
   return MakeGarbageCollected<LayoutNGMathMLBlockFlow>(this);

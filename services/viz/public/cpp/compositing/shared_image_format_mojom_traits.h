@@ -5,8 +5,9 @@
 #ifndef SERVICES_VIZ_PUBLIC_CPP_COMPOSITING_SHARED_IMAGE_FORMAT_MOJOM_TRAITS_H_
 #define SERVICES_VIZ_PUBLIC_CPP_COMPOSITING_SHARED_IMAGE_FORMAT_MOJOM_TRAITS_H_
 
-#include "build/build_config.h"
+#include "components/viz/common/resources/resource_format.h"
 #include "components/viz/common/resources/shared_image_format.h"
+#include "services/viz/public/cpp/compositing/resource_format_mojom_traits.h"
 #include "services/viz/public/mojom/compositing/shared_image_format.mojom-shared.h"
 
 namespace mojo {
@@ -63,14 +64,6 @@ struct StructTraits<
     return format.channel_format;
   }
 
-#if BUILDFLAG(IS_OZONE)
-  static bool prefers_external_sampler(
-      viz::SharedImageFormat::SharedImageFormatUnion::MultiplanarFormat
-          format) {
-    return format.prefers_external_sampler;
-  }
-#endif
-
   static bool Read(
       viz::mojom::MultiplanarFormatDataView data,
       viz::SharedImageFormat::SharedImageFormatUnion::MultiplanarFormat* out);
@@ -86,12 +79,12 @@ struct UnionTraits<viz::mojom::SharedImageFormatDataView,
     if (format.is_multi_plane())
       return viz::mojom::SharedImageFormatDataView::Tag::kMultiplanarFormat;
     else
-      return viz::mojom::SharedImageFormatDataView::Tag::kSingleplanarFormat;
+      return viz::mojom::SharedImageFormatDataView::Tag::kResourceFormat;
   }
 
-  static viz::mojom::SingleplanarFormat singleplanar_format(
+  static viz::ResourceFormat resource_format(
       const viz::SharedImageFormat& format) {
-    return format.singleplanar_format();
+    return format.resource_format();
   }
   static viz::SharedImageFormat::SharedImageFormatUnion::MultiplanarFormat
   multiplanar_format(const viz::SharedImageFormat& format) {

@@ -48,7 +48,8 @@ using testing::Return;
 
 using Checkpoint = testing::MockFunction<void(int step)>;
 
-constexpr base::Time kExampleTime = base::Time::FromJavaTime(1652984901234);
+// TODO(alexmt): Consider making FromJavaTime() constexpr.
+const base::Time kExampleTime = base::Time::FromJavaTime(1652984901234);
 
 constexpr char kExampleOriginUrl[] = "https://origin.example";
 constexpr char kExampleMainFrameUrl[] = "https://main_frame.example";

@@ -39,6 +39,7 @@
 #include "components/device_event_log/device_event_log.h"
 #include "components/performance_manager/public/decorators/page_live_state_decorator.h"
 #include "components/permissions/permission_manager.h"
+#include "components/permissions/permission_result.h"
 #include "content/public/browser/navigation_controller.h"
 #include "content/public/browser/navigation_entry.h"
 #include "content/public/browser/render_frame_host.h"
@@ -511,8 +512,11 @@ void TabLifecycleUnitSource::TabLifecycleUnit::FinishDiscard(
                                                /* needs_reload */ false);
 
   // First try to fast-kill the process, if it's just running a single tab.
+  bool fast_shutdown_success =
+      GetRenderProcessHost()->FastShutdownIfPossible(1u, false);
+
 #if BUILDFLAG(IS_CHROMEOS)
-  if (!GetRenderProcessHost()->FastShutdownIfPossible(1u, false) &&
+  if (!fast_shutdown_success &&
       discard_reason == LifecycleUnitDiscardReason::URGENT) {
     content::RenderFrameHost* main_frame = old_contents->GetPrimaryMainFrame();
     // We avoid fast shutdown on tabs with beforeunload handlers on the main
@@ -521,13 +525,16 @@ void TabLifecycleUnitSource::TabLifecycleUnit::FinishDiscard(
     if (!main_frame->GetSuddenTerminationDisablerState(
             blink::mojom::SuddenTerminationDisablerType::
                 kBeforeUnloadHandler)) {
-      GetRenderProcessHost()->FastShutdownIfPossible(
+      fast_shutdown_success = GetRenderProcessHost()->FastShutdownIfPossible(
           1u, /* skip_unload_handlers */ true);
     }
+    UMA_HISTOGRAM_BOOLEAN(
+        "TabManager.Discarding.DiscardedTabCouldUnsafeFastShutdown",
+        fast_shutdown_success);
   }
-#else
-  GetRenderProcessHost()->FastShutdownIfPossible(1u, false);
 #endif
+  UMA_HISTOGRAM_BOOLEAN("TabManager.Discarding.DiscardedTabCouldFastShutdown",
+                        fast_shutdown_success);
 
   // Replace the discarded tab with the null version.
   const int index = tab_strip_model_->GetIndexOfWebContents(old_contents);

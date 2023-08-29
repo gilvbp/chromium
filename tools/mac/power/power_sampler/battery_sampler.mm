@@ -9,13 +9,17 @@
 #include <IOKit/ps/IOPSKeys.h>
 #include <cstdint>
 
-#include "base/apple/foundation_util.h"
-#include "base/apple/mach_logging.h"
-#include "base/apple/scoped_cftyperef.h"
 #include "base/logging.h"
+#include "base/mac/foundation_util.h"
+#include "base/mac/mach_logging.h"
+#include "base/mac/scoped_cftyperef.h"
 #include "base/mac/scoped_ioobject.h"
 #include "base/memory/ptr_util.h"
 #include "base/time/time.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace power_sampler {
 namespace {
@@ -26,7 +30,7 @@ namespace {
 absl::optional<SInt64> GetValueAsSInt64(CFDictionaryRef description,
                                         CFStringRef key) {
   CFNumberRef number_ref =
-      base::apple::GetValueFromDictionary<CFNumberRef>(description, key);
+      base::mac::GetValueFromDictionary<CFNumberRef>(description, key);
 
   SInt64 value;
   if (number_ref && CFNumberGetValue(number_ref, kCFNumberSInt64Type, &value))
@@ -38,7 +42,7 @@ absl::optional<SInt64> GetValueAsSInt64(CFDictionaryRef description,
 absl::optional<bool> GetValueAsBoolean(CFDictionaryRef description,
                                        CFStringRef key) {
   CFBooleanRef boolean =
-      base::apple::GetValueFromDictionary<CFBooleanRef>(description, key);
+      base::mac::GetValueFromDictionary<CFBooleanRef>(description, key);
   if (!boolean)
     return absl::nullopt;
   return CFBooleanGetValue(boolean);
@@ -128,7 +132,7 @@ Sampler::Sample BatterySampler::GetSample(base::TimeTicks sample_time) {
 // static
 absl::optional<BatterySampler::BatteryData> BatterySampler::MaybeGetBatteryData(
     io_service_t power_source) {
-  base::apple::ScopedCFTypeRef<CFMutableDictionaryRef> dict;
+  base::ScopedCFTypeRef<CFMutableDictionaryRef> dict;
   kern_return_t result = IORegistryEntryCreateCFProperties(
       power_source, dict.InitializeInto(), 0, 0);
   if (result != KERN_SUCCESS) {

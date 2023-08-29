@@ -9,7 +9,6 @@
 #include "base/functional/bind.h"
 #include "base/i18n/rtl.h"
 #include "cc/paint/paint_shader.h"
-#include "third_party/abseil-cpp/absl/types/variant.h"
 #include "third_party/skia/include/core/SkColor.h"
 #include "third_party/skia/include/effects/SkGradientShader.h"
 #include "ui/base/metadata/metadata_impl_macros.h"
@@ -103,11 +102,10 @@ gfx::Size CocoaScrollBarThumb::CalculatePreferredSize() const {
 
 void CocoaScrollBarThumb::OnPaint(gfx::Canvas* canvas) {
   auto params = cocoa_scroll_bar_->GetPainterParams();
-  auto& scrollbar = absl::get<ui::NativeTheme::ScrollbarExtraParams>(params);
   // Set the hover state based only on the thumb.
-  scrollbar.is_hovering = IsStateHovered() || IsStatePressed();
+  params.scrollbar_extra.is_hovering = IsStateHovered() || IsStatePressed();
   ui::NativeTheme::Part thumb_part =
-      scrollbar.orientation ==
+      params.scrollbar_extra.orientation ==
               ui::NativeTheme::ScrollbarOrientation::kHorizontal
           ? ui::NativeTheme::kScrollbarHorizontalThumb
           : ui::NativeTheme::kScrollbarVerticalThumb;
@@ -152,8 +150,8 @@ CocoaScrollBar::CocoaScrollBar(bool horizontal)
                                                 base::Unretained(this))),
       thickness_animation_(this) {
   SetThumb(new CocoaScrollBarThumb(this));
-  bridge_ = [[ViewsScrollbarBridge alloc] initWithDelegate:this];
-  scroller_style_ = [ViewsScrollbarBridge preferredScrollerStyle];
+  bridge_.reset([[ViewsScrollbarBridge alloc] initWithDelegate:this]);
+  scroller_style_ = [ViewsScrollbarBridge getPreferredScrollerStyle];
 
   thickness_animation_.SetSlideDuration(base::Milliseconds(240));
 
@@ -213,12 +211,11 @@ void CocoaScrollBar::OnPaint(gfx::Canvas* canvas) {
   if (!has_scrolltrack_)
     return;
   auto params = GetPainterParams();
-  auto& scrollbar = absl::get<ui::NativeTheme::ScrollbarExtraParams>(params);
   // Transparency of the track is handled by the View opacity, so always draw
   // using the non-overlay path.
-  scrollbar.is_overlay = false;
+  params.scrollbar_extra.is_overlay = false;
   ui::NativeTheme::Part track_part =
-      scrollbar.orientation ==
+      params.scrollbar_extra.orientation ==
               ui::NativeTheme::ScrollbarOrientation::kHorizontal
           ? ui::NativeTheme::kScrollbarHorizontalTrack
           : ui::NativeTheme::kScrollbarVerticalTrack;
@@ -347,7 +344,7 @@ void CocoaScrollBar::ObserveScrollEvent(const ui::ScrollEvent& event) {
 
 void CocoaScrollBar::OnScrollerStyleChanged() {
   NSScrollerStyle scroller_style =
-      [ViewsScrollbarBridge preferredScrollerStyle];
+      [ViewsScrollbarBridge getPreferredScrollerStyle];
   if (scroller_style_ == scroller_style)
     return;
 
@@ -414,19 +411,21 @@ bool CocoaScrollBar::IsScrollbarFullyHidden() const {
 }
 
 ui::NativeTheme::ExtraParams CocoaScrollBar::GetPainterParams() const {
-  ui::NativeTheme::ScrollbarExtraParams scrollbar;
+  ui::NativeTheme::ExtraParams params;
   if (IsHorizontal()) {
-    scrollbar.orientation = ui::NativeTheme::ScrollbarOrientation::kHorizontal;
+    params.scrollbar_extra.orientation =
+        ui::NativeTheme::ScrollbarOrientation::kHorizontal;
   } else if (base::i18n::IsRTL()) {
-    scrollbar.orientation =
+    params.scrollbar_extra.orientation =
         ui::NativeTheme::ScrollbarOrientation::kVerticalOnLeft;
   } else {
-    scrollbar.orientation =
+    params.scrollbar_extra.orientation =
         ui::NativeTheme::ScrollbarOrientation::kVerticalOnRight;
   }
-  scrollbar.is_overlay = GetScrollerStyle() == NSScrollerStyleOverlay;
-  scrollbar.scale_from_dip = 1.0f;
-  return ui::NativeTheme::ExtraParams(scrollbar);
+  params.scrollbar_extra.is_overlay =
+      GetScrollerStyle() == NSScrollerStyleOverlay;
+  params.scrollbar_extra.scale_from_dip = 1.0f;
+  return params;
 }
 
 //////////////////////////////////////////////////////////////////

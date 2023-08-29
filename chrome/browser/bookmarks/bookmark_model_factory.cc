@@ -102,10 +102,9 @@ BookmarkModelFactory::BookmarkModelFactory()
 
 BookmarkModelFactory::~BookmarkModelFactory() = default;
 
-std::unique_ptr<KeyedService>
-BookmarkModelFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* BookmarkModelFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
-  return BuildBookmarkModel(context);
+  return BuildBookmarkModel(context).release();
 }
 
 void BookmarkModelFactory::RegisterProfilePrefs(

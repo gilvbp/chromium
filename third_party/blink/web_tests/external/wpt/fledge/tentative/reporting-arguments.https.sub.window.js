@@ -14,14 +14,12 @@ async function runReportArgumentValidationTest(
     uuid = generateUuid(test);
   await runReportTest(
       test, uuid,
-      { reportResultSuccessCondition:
-          reportResultSuccessCondition,
-        reportResult:
-          `sendReportTo('${createSellerReportUrl(uuid)}');`,
-        reportWinSuccessCondition:
-          reportWinSuccessCondition,
-        reportWin:
-          `sendReportTo('${createBidderReportUrl(uuid)}');` },
+      // reportResult:
+      reportResultSuccessCondition,
+      `sendReportTo('${createSellerReportUrl(uuid)}');`,
+      // reportWin:
+      reportWinSuccessCondition,
+      `sendReportTo('${createBidderReportUrl(uuid)}');`,
       [createSellerReportUrl(uuid), createBidderReportUrl(uuid)]
   );
 }
@@ -34,13 +32,13 @@ promise_test(async test => {
   const uuid = generateUuid(test);
   await runReportTest(
       test, uuid,
-      { reportResult:
-          `sendReportTo('${createSellerReportUrl(uuid)}');
-           return 45;`,
-        reportWinSuccessCondition:
-          'sellerSignals === 45',
-        reportWin:
-          `sendReportTo('${createBidderReportUrl(uuid)}');` },
+      // reportResult:
+      null,
+      `sendReportTo('${createSellerReportUrl(uuid)}');
+      return 45;`,
+      // reportWin:
+      'sellerSignals === 45',
+      `sendReportTo('${createBidderReportUrl(uuid)}');`,
       // expectedReportUrls:
       [createSellerReportUrl(uuid), createBidderReportUrl(uuid)]
   );
@@ -50,13 +48,13 @@ promise_test(async test => {
   const uuid = generateUuid(test);
   await runReportTest(
       test, uuid,
-      { reportResult:
-          `sendReportTo('${createSellerReportUrl(uuid)}');
-           return 'foo';`,
-        reportWinSuccessCondition:
-          'sellerSignals === "foo"',
-        reportWin:
-          `sendReportTo('${createBidderReportUrl(uuid)}');` },
+      // reportResult:
+      null,
+      `sendReportTo('${createSellerReportUrl(uuid)}');
+      return 'foo';`,
+      // reportWin:
+      'sellerSignals === "foo"',
+      `sendReportTo('${createBidderReportUrl(uuid)}');`,
       // expectedReportUrls:
       [createSellerReportUrl(uuid), createBidderReportUrl(uuid)]
   );
@@ -66,13 +64,13 @@ promise_test(async test => {
   const uuid = generateUuid(test);
   await runReportTest(
       test, uuid,
-      { reportResult:
-          `sendReportTo('${createSellerReportUrl(uuid)}');
-           return [3, 1, 2];`,
-        reportWinSuccessCondition:
-          'JSON.stringify(sellerSignals) === "[3,1,2]"',
-        reportWin:
-          `sendReportTo('${createBidderReportUrl(uuid)}');` },
+      // reportResult:
+      null,
+      `sendReportTo('${createSellerReportUrl(uuid)}');
+      return [3, 1, 2];`,
+      // reportWin:
+      'JSON.stringify(sellerSignals) === "[3,1,2]"',
+      `sendReportTo('${createBidderReportUrl(uuid)}');`,
       // expectedReportUrls:
       [createSellerReportUrl(uuid), createBidderReportUrl(uuid)]
   );
@@ -82,13 +80,13 @@ promise_test(async test => {
   const uuid = generateUuid(test);
   await runReportTest(
       test, uuid,
-      { reportResult:
-          `sendReportTo('${createSellerReportUrl(uuid)}');
-           return {a: 4, b:['c', null, {}]};`,
-        reportWinSuccessCondition:
-          `JSON.stringify(sellerSignals) === '{"a":4,"b":["c",null,{}]}'`,
-        reportWin:
-          `sendReportTo('${createBidderReportUrl(uuid)}');` },
+      // reportResult:
+      null,
+      `sendReportTo('${createSellerReportUrl(uuid)}');
+      return {a: 4, b:['c', null, {}]};`,
+      // reportWin:
+      `JSON.stringify(sellerSignals) === '{"a":4,"b":["c",null,{}]}'`,
+      `sendReportTo('${createBidderReportUrl(uuid)}');`,
       // expectedReportUrls:
       [createSellerReportUrl(uuid), createBidderReportUrl(uuid)]
   );
@@ -207,12 +205,10 @@ promise_test(async test => {
 promise_test(async test => {
   const uuid = generateUuid(test);
   await joinInterestGroup(test, uuid,
-    {
-      biddingLogicURL: createBiddingScriptURL({ bid: -2 }),
+                          { biddingLogicUrl: createBiddingScriptUrl({bid: -2}),
                             name: 'other interest group 1' });
   await joinInterestGroup(test, uuid,
-    {
-      biddingLogicURL: createBiddingScriptURL({ bid: -1 }),
+                          { biddingLogicUrl: createBiddingScriptUrl({bid: -1}),
                             name: 'other interest group 2' });
   await runReportArgumentValidationTest(
     test,
@@ -227,16 +223,13 @@ promise_test(async test => {
 promise_test(async test => {
   const uuid = generateUuid(test);
   await joinInterestGroup(test, uuid,
-    {
-      biddingLogicURL: createBiddingScriptURL({ bid: 2 }),
+                          { biddingLogicUrl: createBiddingScriptUrl({bid: 2}),
                             name: 'other interest group 1' });
   await joinInterestGroup(test, uuid,
-    {
-      biddingLogicURL: createBiddingScriptURL({ bid: 5 }),
+                          { biddingLogicUrl: createBiddingScriptUrl({bid: 5}),
                             name: 'other interest group 2' });
   await joinInterestGroup(test, uuid,
-    {
-      biddingLogicURL: createBiddingScriptURL({ bid: 2 }),
+                          { biddingLogicUrl: createBiddingScriptUrl({bid: 2}),
                             name: 'other interest group 3' });
   await runReportArgumentValidationTest(
     test,
@@ -271,8 +264,7 @@ promise_test(async test => {
 promise_test(async test => {
   const uuid = generateUuid(test);
   await joinInterestGroup(test, uuid,
-    {
-      biddingLogicURL: createBiddingScriptURL({ bid: -1 }),
+                          { biddingLogicUrl: createBiddingScriptUrl({bid: -1}),
                             name: 'other interest group 2' });
   await runReportArgumentValidationTest(
     test,
@@ -286,8 +278,7 @@ promise_test(async test => {
 promise_test(async test => {
   const uuid = generateUuid(test);
   await joinInterestGroup(test, uuid,
-    {
-      biddingLogicURL: createBiddingScriptURL({ bid: 1 }),
+    { biddingLogicUrl: createBiddingScriptUrl({bid: 1}),
       name: 'other interest group 2' });
 await runReportArgumentValidationTest(
     test,

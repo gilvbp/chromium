@@ -8,10 +8,14 @@
 
 #include <memory>
 
-#include "base/apple/foundation_util.h"
-#include "base/apple/scoped_objc_class_swizzler.h"
 #include "base/check.h"
+#include "base/mac/foundation_util.h"
+#include "base/mac/scoped_objc_class_swizzler.h"
 #include "base/strings/sys_string_conversions.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 static id __strong g_swizzled_main_bundle = nil;
 
@@ -33,7 +37,7 @@ static id __strong g_swizzled_main_bundle = nil;
 
 - (instancetype)initWithRealBundle:(NSBundle*)bundle {
   _mainBundle = bundle;
-  _bundleID = base::SysUTF8ToNSString(base::apple::BaseBundleID());
+  _bundleID = base::SysUTF8ToNSString(base::mac::BaseBundleID());
   return self;
 }
 
@@ -59,7 +63,7 @@ ScopedBundleSwizzlerMac::ScopedBundleSwizzlerMac() {
   g_swizzled_main_bundle =
       [[TestBundle alloc] initWithRealBundle:original_main_bundle];
 
-  class_swizzler_ = std::make_unique<base::apple::ScopedObjCClassSwizzler>(
+  class_swizzler_ = std::make_unique<base::mac::ScopedObjCClassSwizzler>(
       [NSBundle class], [TestBundle class], @selector(mainBundle));
 }
 

@@ -21,7 +21,7 @@ suite('AppManagementPermissionItemTest', function() {
 
   setup(async function() {
     document.body.innerHTML = window.trustedTypes!.emptyHTML;
-    const app = createTestApp('app');
+    const app = createTestApp();
     testProxy = new TestAppManagementBrowserProxy();
     BrowserProxy.setInstance(testProxy);
 

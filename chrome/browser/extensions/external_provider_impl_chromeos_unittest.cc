@@ -147,8 +147,7 @@ class ExternalProviderImplChromeOSTest : public ExtensionServiceTestBase {
  private:
   std::unique_ptr<base::ScopedPathOverride> external_externsions_overrides_;
   ash::system::ScopedFakeStatisticsProvider fake_statistics_provider_;
-  raw_ptr<ash::FakeChromeUserManager, DanglingUntriaged | ExperimentalAsh>
-      fake_user_manager_;
+  raw_ptr<ash::FakeChromeUserManager, ExperimentalAsh> fake_user_manager_;
   user_manager::ScopedUserManager scoped_user_manager_;
 };
 
@@ -158,7 +157,7 @@ class ExternalProviderImplChromeOSTest : public ExtensionServiceTestBase {
 TEST_F(ExternalProviderImplChromeOSTest, Normal) {
   InitServiceWithExternalProviders(false);
 
-  TestExtensionRegistryObserver observer(registry(), kExternalAppId);
+  TestExtensionRegistryObserver observer(registry());
 
   service_->CheckForExternalUpdates();
 
@@ -214,7 +213,7 @@ TEST_F(ExternalProviderImplChromeOSTest, SyncDisabled) {
 
   InitServiceWithExternalProviders(true);
 
-  TestExtensionRegistryObserver observer(registry(), kStandaloneAppId);
+  TestExtensionRegistryObserver observer(registry());
 
   service_->CheckForExternalUpdates();
 
@@ -242,7 +241,7 @@ TEST_F(ExternalProviderImplChromeOSTest, PolicyDisabled) {
   // Sync is dsabled by policy.
   profile_->GetPrefs()->SetBoolean(syncer::prefs::internal::kSyncManaged, true);
 
-  TestExtensionRegistryObserver observer(registry(), kStandaloneAppId);
+  TestExtensionRegistryObserver observer(registry());
 
   // App sync will wait for priority sync to complete.
   service_->CheckForExternalUpdates();
@@ -270,7 +269,7 @@ TEST_F(ExternalProviderImplChromeOSTest, PriorityCompleted) {
   PrefService* prefs = profile()->GetPrefs();
   prefs->SetBoolean(ash::prefs::kSyncOobeCompleted, true);
 
-  TestExtensionRegistryObserver observer(registry(), kStandaloneAppId);
+  TestExtensionRegistryObserver observer(registry());
 
   // Priority sync completed.
   PrefServiceSyncableFromProfile(profile())

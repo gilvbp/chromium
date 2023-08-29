@@ -4,6 +4,7 @@
 
 #include "chromeos/ui/frame/immersive/immersive_fullscreen_controller.h"
 
+#include "ash/frame/non_client_frame_view_ash.h"
 #include "ash/public/cpp/shelf_config.h"
 #include "ash/public/cpp/shelf_types.h"
 #include "ash/root_window_controller.h"
@@ -13,7 +14,6 @@
 #include "ash/test/ash_test_base.h"
 #include "ash/wm/splitview/split_view_controller.h"
 #include "ash/wm/tablet_mode/tablet_mode_controller.h"
-#include "ash/wm/test/test_non_client_frame_view_ash.h"
 #include "ash/wm/window_state.h"
 #include "base/memory/raw_ptr.h"
 #include "base/test/scoped_feature_list.h"
@@ -126,6 +126,26 @@ class ConsumeEventHandler : public ui::test::TestEventHandler {
 
 /////////////////////////////////////////////////////////////////////////////
 
+class TestWidgetDelegate : public views::WidgetDelegateView {
+ public:
+  TestWidgetDelegate() {
+    SetCanMaximize(true);
+    SetCanResize(true);
+  }
+
+  TestWidgetDelegate(const TestWidgetDelegate&) = delete;
+  TestWidgetDelegate& operator=(const TestWidgetDelegate&) = delete;
+
+  ~TestWidgetDelegate() override = default;
+
+  // views::WidgetDelegateView:
+  bool CanActivate() const override { return true; }
+  std::unique_ptr<views::NonClientFrameView> CreateNonClientFrameView(
+      views::Widget* widget) override {
+    return std::make_unique<NonClientFrameViewAsh>(widget);
+  }
+};
+
 class ImmersiveFullscreenControllerTest : public AshTestBase {
  public:
   enum Modality {
@@ -182,8 +202,7 @@ class ImmersiveFullscreenControllerTest : public AshTestBase {
 
     widget_ = new views::Widget();
     views::Widget::InitParams params;
-    params.activatable = views::Widget::InitParams::Activatable::kYes;
-    params.delegate = new TestWidgetDelegateAsh();
+    params.delegate = new TestWidgetDelegate();
     params.context = GetContext();
     widget_->Init(std::move(params));
     widget_->Show();
@@ -285,10 +304,10 @@ class ImmersiveFullscreenControllerTest : public AshTestBase {
 
   std::unique_ptr<ImmersiveFullscreenControllerTestApi::GlobalAnimationDisabler>
       test_api_animation_disabler_;
-  raw_ptr<views::Widget, DanglingUntriaged | ExperimentalAsh> widget_ =
+  raw_ptr<views::Widget, ExperimentalAsh> widget_ =
       nullptr;  // Owned by the native widget.
-  raw_ptr<views::NativeViewHost, DanglingUntriaged | ExperimentalAsh>
-      content_view_ = nullptr;  // Owned by |widget_|'s root-view.
+  raw_ptr<views::NativeViewHost, ExperimentalAsh> content_view_ =
+      nullptr;  // Owned by |widget_|'s root-view.
   std::unique_ptr<ImmersiveFullscreenControllerTestApi> test_api_;
 
   base::test::ScopedFeatureList scoped_feature_list_;

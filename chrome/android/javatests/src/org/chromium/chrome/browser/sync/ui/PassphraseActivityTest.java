@@ -14,6 +14,7 @@ import androidx.test.core.app.ApplicationProvider;
 import androidx.test.filters.SmallTest;
 import androidx.test.platform.app.InstrumentationRegistry;
 
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -40,6 +41,11 @@ public class PassphraseActivityTest {
     @Before
     public void setUp() {
         mContext = ApplicationProvider.getApplicationContext();
+    }
+
+    @After
+    public void tearDown() {
+        TestThreadUtils.runOnUiThreadBlocking(() -> SyncServiceFactory.resetForTests());
     }
 
     /**
@@ -92,7 +98,7 @@ public class PassphraseActivityTest {
         return TestThreadUtils.runOnUiThreadBlockingNoException(() -> {
             // PSS has to be constructed on the UI thread.
             FakeSyncServiceImpl fakeSyncService = new FakeSyncServiceImpl();
-            SyncServiceFactory.setInstanceForTesting(fakeSyncService);
+            SyncServiceFactory.overrideForTests(fakeSyncService);
             return fakeSyncService;
         });
     }

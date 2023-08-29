@@ -15,9 +15,7 @@ enum class AutofillProgressDialogType {
   // This progress dialog type applies to Android only.
   kAndroidFIDOProgressDialog = 1,
   // Used when unmasking virtual cards.
-  kVirtualCardUnmaskProgressDialog = 2,
-  // Used when conducting a risk-based check for masked server card.
-  kServerCardUnmaskProgressDialog = 3
+  kVirtualCardUnmaskProgressDialog = 2
 };
 
 }  // namespace autofill

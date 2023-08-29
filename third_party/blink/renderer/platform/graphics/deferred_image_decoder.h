@@ -54,7 +54,7 @@ class PLATFORM_EXPORT DeferredImageDecoder final {
       scoped_refptr<SharedBuffer> data,
       bool data_complete,
       ImageDecoder::AlphaOption,
-      ColorBehavior);
+      const ColorBehavior&);
 
   static std::unique_ptr<DeferredImageDecoder> CreateForTesting(
       std::unique_ptr<ImageDecoder>);

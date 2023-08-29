@@ -49,13 +49,12 @@ FeedbackUploaderFactory::FeedbackUploaderFactory()
 
 FeedbackUploaderFactory::~FeedbackUploaderFactory() {}
 
-std::unique_ptr<KeyedService>
-FeedbackUploaderFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* FeedbackUploaderFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   // The returned FeedbackUploader lifetime is bound to that of BrowserContext
   // by the KeyedServiceFactory infrastructure. The FeedbackUploader will be
   // destroyed before the BrowserContext, thus base::Unretained() usage is safe.
-  return std::make_unique<FeedbackUploader>(
+  return new FeedbackUploader(
       context->IsOffTheRecord(), context->GetPath(),
       base::BindOnce(&CreateURLLoaderFactoryForBrowserContext,
                      base::Unretained(context)));

@@ -1,7 +1,8 @@
 monorail {
-  component: "Blink>PermissionsPolicy"
+  component: "Blink>FeaturePolicy"
 }
-team_email: "permissions-dev@chromium.org"
+team_email: "feature-control@chromium.org"
 wpt {
   notify: YES
 }
+

@@ -406,7 +406,7 @@ void EmbeddedWorkerInstance::Start(
     GetContentClient()
         ->browser()
         ->UpdateEnabledBlinkRuntimeFeaturesInIsolatedWorker(
-            context_->wrapper()->browser_context(), params->script_url,
+            process_manager->browser_context(), params->script_url,
             params->forced_enabled_runtime_features);
   }
   CHECK(params->forced_enabled_runtime_features.empty() ||
@@ -414,11 +414,10 @@ void EmbeddedWorkerInstance::Start(
 
   // TODO(crbug.com/862854): Support changes to blink::RendererPreferences while
   // the worker is running.
-  DCHECK(context_->wrapper()->browser_context() ||
-         process_manager->IsShutdown());
+  DCHECK(process_manager->browser_context() || process_manager->IsShutdown());
   params->renderer_preferences = blink::RendererPreferences();
   GetContentClient()->browser()->UpdateRendererPreferencesForWorker(
-      context_->wrapper()->browser_context(), &params->renderer_preferences);
+      process_manager->browser_context(), &params->renderer_preferences);
 
   {
     // Create a RendererPreferenceWatcher to observe updates in the preferences.
@@ -426,7 +425,7 @@ void EmbeddedWorkerInstance::Start(
     params->preference_watcher_receiver =
         watcher_remote.InitWithNewPipeAndPassReceiver();
     GetContentClient()->browser()->RegisterRendererPreferenceWatcher(
-        context_->wrapper()->browser_context(), std::move(watcher_remote));
+        process_manager->browser_context(), std::move(watcher_remote));
   }
 
   // If we allocated a process, WorkerProcessHandle has to be created before
@@ -675,8 +674,6 @@ void EmbeddedWorkerInstance::OnScriptEvaluationStart() {
 void EmbeddedWorkerInstance::OnStarted(
     blink::mojom::ServiceWorkerStartStatus start_status,
     blink::mojom::ServiceWorkerFetchHandlerType fetch_handler_type,
-    bool has_hid_event_handlers,
-    bool has_usb_event_handlers,
     int thread_id,
     blink::mojom::EmbeddedWorkerStartTimingPtr start_timing) {
   TRACE_EVENT0("ServiceWorker", "EmbeddedWorkerInstance::OnStarted");
@@ -713,12 +710,10 @@ void EmbeddedWorkerInstance::OnStarted(
 
   DCHECK_EQ(EmbeddedWorkerStatus::STARTING, status_);
   status_ = EmbeddedWorkerStatus::RUNNING;
-  pause_initializing_global_scope_ = false;
   thread_id_ = thread_id;
   inflight_start_info_.reset();
   for (auto& observer : listener_list_) {
-    observer.OnStarted(start_status, fetch_handler_type, has_hid_event_handlers,
-                       has_usb_event_handlers);
+    observer.OnStarted(start_status, fetch_handler_type);
     // |this| may be destroyed here. Fortunately we know there is only one
     // observer in production code.
   }
@@ -810,8 +805,7 @@ void EmbeddedWorkerInstance::BindUsbService(
     return;
   }
   if (usb_delegate->IsServiceWorkerAllowedForOrigin(origin)) {
-    WebUsbServiceImpl::Create(owner_version_->GetWeakPtr(), origin,
-                              std::move(receiver));
+    WebUsbServiceImpl::Create(context_, origin, std::move(receiver));
   }
 }
 
@@ -1019,7 +1013,6 @@ void EmbeddedWorkerInstance::ReleaseProcess() {
   // from UpdateForegroundPriority() since we don't want it to be
   // re-added at this stage.
   status_ = EmbeddedWorkerStatus::STOPPING;
-  pause_initializing_global_scope_ = false;
   NotifyForegroundServiceWorkerRemoved();
 
   instance_host_receiver_.reset();

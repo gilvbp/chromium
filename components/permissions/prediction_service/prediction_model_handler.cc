@@ -25,7 +25,7 @@ PredictionModelHandler::PredictionModelHandler(
 
 void PredictionModelHandler::OnModelUpdated(
     optimization_guide::proto::OptimizationTarget optimization_target,
-    base::optional_ref<const optimization_guide::ModelInfo> model_info) {
+    const optimization_guide::ModelInfo& model_info) {
   // First invoke parent to update internal status.
   optimization_guide::ModelHandler<
       GeneratePredictionsResponse,

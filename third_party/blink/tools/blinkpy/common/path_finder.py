@@ -27,7 +27,6 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import os
-import posixpath
 import sys
 
 from blinkpy.common.memoized import memoized
@@ -188,9 +187,10 @@ class PathFinder(object):
                                             'perf_tests')
 
     def wpt_prefix(self):
-        # Always use '/' instead of the platform dependent separator.
-        # This should be only used with a test id.
-        return posixpath.join('external', 'wpt', '')
+        return self._filesystem.join('external', 'wpt', '')
+
+    def webdriver_prefix(self):
+        return self._filesystem.join('external', 'wpt', 'webdriver', '')
 
     @memoized
     def _blink_base(self):
@@ -241,11 +241,19 @@ class PathFinder(object):
         # Assume the path already points to a valid WPT and pass through.
         return wpt_path
 
+    def strip_webdriver_tests_path(self, wpt_webdriver_test_path):
+        if self.is_webdriver_test_path(wpt_webdriver_test_path):
+            return wpt_webdriver_test_path[len(self.webdriver_prefix()):]
+        return wpt_webdriver_test_path
+
     def is_wpt_path(self, test_path):
         return test_path.startswith(self.wpt_prefix())
 
     def is_wpt_internal_path(self, test_path):
         return test_path.startswith('wpt_internal/')
+
+    def is_webdriver_test_path(self, test_path):
+        return test_path.startswith(self.webdriver_prefix())
 
     @memoized
     def depot_tools_base(self):

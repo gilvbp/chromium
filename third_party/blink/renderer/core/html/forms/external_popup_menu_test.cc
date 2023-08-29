@@ -195,8 +195,7 @@ TEST_F(ExternalPopupMenuTest, PopupAccountsForVisualViewportTransform) {
       DocumentUpdateReason::kTest);
 
   auto* select = To<HTMLSelectElement>(
-      MainFrame()->GetFrame()->GetDocument()->getElementById(
-          AtomicString("select")));
+      MainFrame()->GetFrame()->GetDocument()->getElementById("select"));
   auto* layout_object = select->GetLayoutObject();
   ASSERT_TRUE(layout_object);
 
@@ -240,8 +239,7 @@ TEST_F(ExternalPopupMenuTest, MAYBE_PopupAccountsForDeviceScaleFactor) {
       DocumentUpdateReason::kTest);
 
   auto* select = To<HTMLSelectElement>(
-      MainFrame()->GetFrame()->GetDocument()->getElementById(
-          AtomicString("select")));
+      MainFrame()->GetFrame()->GetDocument()->getElementById("select"));
   auto* layout_object = select->GetLayoutObject();
   ASSERT_TRUE(layout_object);
 
@@ -258,8 +256,7 @@ TEST_F(ExternalPopupMenuTest, DidAcceptIndex) {
   LoadFrame("select.html");
 
   auto* select = To<HTMLSelectElement>(
-      MainFrame()->GetFrame()->GetDocument()->getElementById(
-          AtomicString("select")));
+      MainFrame()->GetFrame()->GetDocument()->getElementById("select"));
   auto* layout_object = select->GetLayoutObject();
   ASSERT_TRUE(layout_object);
 
@@ -281,8 +278,7 @@ TEST_F(ExternalPopupMenuTest, DidAcceptIndices) {
   LoadFrame("select.html");
 
   auto* select = To<HTMLSelectElement>(
-      MainFrame()->GetFrame()->GetDocument()->getElementById(
-          AtomicString("select")));
+      MainFrame()->GetFrame()->GetDocument()->getElementById("select"));
   auto* layout_object = select->GetLayoutObject();
   ASSERT_TRUE(layout_object);
 
@@ -304,8 +300,7 @@ TEST_F(ExternalPopupMenuTest, DidAcceptIndicesClearSelect) {
   LoadFrame("select.html");
 
   auto* select = To<HTMLSelectElement>(
-      MainFrame()->GetFrame()->GetDocument()->getElementById(
-          AtomicString("select")));
+      MainFrame()->GetFrame()->GetDocument()->getElementById("select"));
   auto* layout_object = select->GetLayoutObject();
   ASSERT_TRUE(layout_object);
 
@@ -327,8 +322,7 @@ TEST_F(ExternalPopupMenuTest, NormalCase) {
 
   // Show the popup-menu.
   auto* select = To<HTMLSelectElement>(
-      MainFrame()->GetFrame()->GetDocument()->getElementById(
-          AtomicString("select")));
+      MainFrame()->GetFrame()->GetDocument()->getElementById("select"));
   auto* layout_object = select->GetLayoutObject();
   ASSERT_TRUE(layout_object);
 
@@ -367,8 +361,7 @@ TEST_F(ExternalPopupMenuTest, ShowPopupThenNavigate) {
 
   // Show the popup-menu.
   auto* document = MainFrame()->GetFrame()->GetDocument();
-  auto* select =
-      To<HTMLSelectElement>(document->getElementById(AtomicString("select")));
+  auto* select = To<HTMLSelectElement>(document->getElementById("select"));
   auto* layout_object = select->GetLayoutObject();
   ASSERT_TRUE(layout_object);
 
@@ -381,8 +374,7 @@ TEST_F(ExternalPopupMenuTest, ShowPopupThenNavigate) {
   base::RunLoop().RunUntilIdle();
 
   // Now HTMLSelectElement should be nullptr and mojo is disconnected.
-  select =
-      To<HTMLSelectElement>(document->getElementById(AtomicString("select")));
+  select = To<HTMLSelectElement>(document->getElementById("select"));
   EXPECT_FALSE(select);
   EXPECT_FALSE(IsBound());
 }
@@ -394,8 +386,7 @@ TEST_F(ExternalPopupMenuTest, EmptySelect) {
   LoadFrame("select.html");
 
   auto* select = To<HTMLSelectElement>(
-      MainFrame()->GetFrame()->GetDocument()->getElementById(
-          AtomicString("emptySelect")));
+      MainFrame()->GetFrame()->GetDocument()->getElementById("emptySelect"));
   EXPECT_TRUE(select);
   select->click();
 }
@@ -408,8 +399,7 @@ TEST_F(ExternalPopupMenuTest, RemoveOnChange) {
 
   // Show the popup-menu.
   auto* document = MainFrame()->GetFrame()->GetDocument();
-  auto* select =
-      To<HTMLSelectElement>(document->getElementById(AtomicString("s")));
+  auto* select = To<HTMLSelectElement>(document->getElementById("s"));
   auto* layout_object = select->GetLayoutObject();
   ASSERT_TRUE(layout_object);
 
@@ -422,7 +412,7 @@ TEST_F(ExternalPopupMenuTest, RemoveOnChange) {
 
   // Just to check the soundness of the test.
   // It should return nullptr as the select has been removed.
-  select = To<HTMLSelectElement>(document->getElementById(AtomicString("s")));
+  select = To<HTMLSelectElement>(document->getElementById("s"));
   EXPECT_FALSE(select);
 }
 
@@ -433,10 +423,9 @@ TEST_F(ExternalPopupMenuTest, RemoveFrameOnChange) {
 
   // Open a popup.
   auto* iframe = To<HTMLIFrameElement>(
-      MainFrame()->GetFrame()->GetDocument()->QuerySelector(
-          AtomicString("iframe")));
-  auto* select = To<HTMLSelectElement>(
-      iframe->contentDocument()->QuerySelector(AtomicString("select")));
+      MainFrame()->GetFrame()->GetDocument()->QuerySelector("iframe"));
+  auto* select =
+      To<HTMLSelectElement>(iframe->contentDocument()->QuerySelector("select"));
   auto* layout_object = select->GetLayoutObject();
   ASSERT_TRUE(layout_object);
 

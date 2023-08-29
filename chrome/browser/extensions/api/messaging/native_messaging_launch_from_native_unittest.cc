@@ -116,7 +116,7 @@ class ExtensionSupportsConnectionFromNativeAppTest : public ::testing::Test {
   content::BrowserTaskEnvironment task_environment_;
   bool has_listener_result_ = true;
   TestingProfile profile_;
-  ExtensionId extension_id_;
+  std::string extension_id_;
 };
 
 TEST_F(ExtensionSupportsConnectionFromNativeAppTest, Success) {

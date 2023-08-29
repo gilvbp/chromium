@@ -4,7 +4,6 @@
 
 #include "media/filters/hls_rendition.h"
 
-#include "media/filters/hls_live_rendition.h"
 #include "media/filters/hls_vod_rendition.h"
 #include "media/filters/manifest_demuxer.h"
 
@@ -50,8 +49,7 @@ HlsRendition::CreateRendition(ManifestDemuxerEngineHost* engine_host,
         engine_host, rendition_host, std::move(role), std::move(playlist),
         duration.value());
   } else {
-    rendition = std::make_unique<HlsLiveRendition>(
-        engine_host, rendition_host, role, std::move(playlist), uri);
+    return HlsDemuxerStatus::Codes::kInvalidManifest;
   }
   return rendition;
 }

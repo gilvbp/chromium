@@ -34,11 +34,8 @@ typedef enum {
 enum class PostSignInAction {
   // No post action after sign-in.
   kNone,
-  // Shows a snackbar displaying the account that just signed-in.
-  kShowSnackbar,
-  // TODO(crbug.com/1462858): Turn on sync was deprecated. Delete this enum
-  // after phase 2 launches on iOS. See ConsentLevel::kSync documentation for
-  // details.
+  // Enables bookmark and reading list account storage.
+  kEnableBookmarkReadingListAccountStorage,
   // Starts sign-in flow for a sync consent.
   // The owner of `AuthenticationFlow` still needs to:
   //  * Record the sync dialog strings.
@@ -55,6 +52,7 @@ enum class IdentityAvatarSize {
   SmallSize,      // 32 pt.
   Regular,        // 40 pt.
   Large,          // 48 pt.
+  ExtraLarge,     // 60 pt.
 };
 
 namespace signin_ui {

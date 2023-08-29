@@ -6,11 +6,10 @@
 
 namespace sql::features {
 
-// When enabled, the `Database::is_open()` method return false for poisoned
-// databases.
+// Clears the Database.db_ member if sqlite3_open_v2() fails.
 // TODO(https://crbug.com/1441955): Remove this flag eventually.
-BASE_FEATURE(kConsiderPoisonedDatabasesClosed,
-             "ConsiderPoisonedDatabasesClosed",
+BASE_FEATURE(kClearDbIfCloseFails,
+             "ClearDbIfCloseFails",
              base::FEATURE_ENABLED_BY_DEFAULT);
 
 // Enable WAL mode for all SQLite databases.

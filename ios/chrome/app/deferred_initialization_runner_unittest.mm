@@ -5,9 +5,12 @@
 #import "ios/chrome/app/deferred_initialization_runner.h"
 
 #import "base/test/ios/wait_util.h"
-#import "base/test/test_timeouts.h"
 #import "base/time/time.h"
 #import "testing/platform_test.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 using DeferredInitializationRunnerTest = PlatformTest;
 
@@ -47,8 +50,7 @@ TEST_F(DeferredInitializationRunnerTest, TestRunBlockSequentially) {
   EXPECT_EQ(2U, [runner numberOfBlocksRemaining]);
 
   // Action.
-  ASSERT_TRUE(base::test::ios::WaitUntilConditionOrTimeout(
-      TestTimeouts::action_timeout(), secondBlockRun));
+  base::test::ios::WaitUntilCondition(secondBlockRun);
 
   // Test.
   EXPECT_TRUE(firstFlag);
@@ -85,8 +87,7 @@ TEST_F(DeferredInitializationRunnerTest, TestRunBlock) {
   [runner enqueueBlockNamed:@"slow block" block:slowBlock];
 
   // Test.
-  ASSERT_TRUE(base::test::ios::WaitUntilConditionOrTimeout(
-      TestTimeouts::action_timeout(), quickBlockRun));
+  base::test::ios::WaitUntilCondition(quickBlockRun);
   EXPECT_TRUE(quickFlag);
   EXPECT_FALSE(slowFlag);
   EXPECT_EQ(1U, [runner numberOfBlocksRemaining]);

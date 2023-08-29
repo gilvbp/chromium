@@ -79,7 +79,8 @@ class VIZ_COMMON_EXPORT TextureDrawQuad : public DrawQuad {
   // creation (e.g. color space, protection type).
   bool is_stream_video : 1;
 
-  gfx::HDRMetadata hdr_metadata;
+  gfx::HDRMode hdr_mode = gfx::HDRMode::kDefault;
+  absl::optional<gfx::HDRMetadata> hdr_metadata;
 
   // kClear if the contents do not require any special protection. See enum of a
   // list of protected content types. Protected contents cannot be displayed via

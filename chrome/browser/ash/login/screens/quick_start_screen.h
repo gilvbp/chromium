@@ -29,19 +29,7 @@ class QuickStartScreen
     UNKNOWN,
   };
 
-  enum class EntryPoint {
-    WELCOME_SCREEN,
-    NETWORK_SCREEN,
-    SIGNIN_SCREEN,
-  };
-
-  enum class Result {
-    // leaving this till the new approach works
-    CANCEL_AND_RETURN_TO_WELCOME,
-    CANCEL_AND_RETURN_TO_NETWORK,
-    CANCEL_AND_RETURN_TO_SIGNIN,
-    WIFI_CONNECTED
-  };
+  enum class Result { CANCEL, WIFI_CONNECTED };
 
   using ScreenExitCallback = base::RepeatingCallback<void(Result result)>;
 
@@ -59,10 +47,6 @@ class QuickStartScreen
   // the screen is shown.
   void SetFlowState(FlowState flow_state);
 
-  // Sets the entry point of quick start screen, this is to determine which
-  // screen to return to if quick start screen is cancelled.
-  void SetEntryPoint(EntryPoint entry_point);
-
  private:
   // BaseScreen:
   bool MaybeSkip(WizardContext& context) override;
@@ -73,9 +57,6 @@ class QuickStartScreen
   // quick_start::TargetDeviceBootstrapController::Observer:
   void OnStatusChanged(
       const quick_start::TargetDeviceBootstrapController::Status& status) final;
-
-  void OnTransferredGoogleAccountDetails(
-      const quick_start::TargetDeviceBootstrapController::Status& status);
 
   // Sets in the UI the discoverable name that will be used for advertising.
   // Android devices will see this fast pair notification 'Chromebook (123)'
@@ -88,7 +69,6 @@ class QuickStartScreen
   void SavePhoneInstanceID();
 
   FlowState flow_state_ = FlowState::UNKNOWN;
-  EntryPoint entry_point_ = EntryPoint::WELCOME_SCREEN;
   std::string discoverable_name_;
   base::WeakPtr<TView> view_;
   ScreenExitCallback exit_callback_;

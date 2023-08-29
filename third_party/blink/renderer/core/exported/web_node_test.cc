@@ -29,20 +29,20 @@ class WebNodeTest : public PageTestBase {
 
 TEST_F(WebNodeTest, QuerySelectorMatches) {
   SetInnerHTML("<div id=x><span class=a></span></div>");
-  WebElement element = Root().QuerySelector(AtomicString(".a"));
+  WebElement element = Root().QuerySelector(".a");
   EXPECT_FALSE(element.IsNull());
   EXPECT_TRUE(element.HasHTMLTagName("span"));
 }
 
 TEST_F(WebNodeTest, QuerySelectorDoesNotMatch) {
   SetInnerHTML("<div id=x><span class=a></span></div>");
-  WebElement element = Root().QuerySelector(AtomicString("section"));
+  WebElement element = Root().QuerySelector("section");
   EXPECT_TRUE(element.IsNull());
 }
 
 TEST_F(WebNodeTest, QuerySelectorError) {
   SetInnerHTML("<div></div>");
-  WebElement element = Root().QuerySelector(AtomicString("@invalid-selector"));
+  WebElement element = Root().QuerySelector("@invalid-selector");
   EXPECT_TRUE(element.IsNull());
 }
 
@@ -77,7 +77,7 @@ TEST_F(WebNodeSimTest, IsFocused) {
 
   css_resource.Start();
 
-  WebNode input_node(GetDocument().getElementById(AtomicString("focusable")));
+  WebNode input_node(GetDocument().getElementById("focusable"));
   EXPECT_FALSE(input_node.IsFocusable());
   EXPECT_FALSE(GetDocument().HaveRenderBlockingStylesheetsLoaded());
 

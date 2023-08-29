@@ -23,7 +23,6 @@
 #include "content/public/browser/browser_thread.h"
 #include "content/public/browser/global_routing_id.h"
 #include "content/public/browser/permission_controller.h"
-#include "content/public/browser/permission_request_description.h"
 #include "content/public/browser/render_process_host.h"
 #include "content/public/common/content_client.h"
 #include "third_party/blink/public/common/features.h"
@@ -124,9 +123,8 @@ void FontAccessManager::EnumerateLocalFonts(
       blink::mojom::UserActivationNotificationType::kNone);
 
   permission_controller->RequestPermissionFromCurrentDocument(
-      rfh,
-      PermissionRequestDescription(blink::PermissionType::LOCAL_FONTS,
-                                   /*user_gesture=*/true),
+      blink::PermissionType::LOCAL_FONTS, rfh,
+      /*user_gesture=*/true,
       base::BindOnce(&FontAccessManager::DidRequestPermission,
                      weak_ptr_factory_.GetWeakPtr(), std::move(callback)));
 }

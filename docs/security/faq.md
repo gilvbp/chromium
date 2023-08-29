@@ -304,8 +304,6 @@ some previously-stored state, such as browsing history.
 No. Chromium once contained a reflected XSS filter called the [XSSAuditor](https://www.chromium.org/developers/design-documents/xss-auditor)
 that was a best-effort second line of defense against reflected XSS flaws found
 in web sites. The XSS Auditor was [removed in Chrome 78](https://groups.google.com/a/chromium.org/forum/#!msg/blink-dev/TuYw-EZhO9g/blGViehIAwAJ).
-Consequently, Chromium no longer takes any special action in response to an
-X-XSS-Protection header.
 
 <a name="TOC-Are-denial-of-service-issues-considered-security-bugs-"></a>
 ### Are denial of service issues considered security bugs?
@@ -656,7 +654,7 @@ allows stuck users to still, for example, conduct searches and access Chrome's
 homepage to hopefully get unstuck.
 
 In order to determine whether key pinning is active, try loading
-[https://pinning-test.badssl.com/](https://pinning-test.badssl.com/). If key
+[https://pinningtest.appspot.com](https://pinningtest.appspot.com). If key
 pinning is active the load will _fail_ with a pinning error.
 
 <a name="TOC-How-does-certificate-transparency-interact-with-local-proxies-and-filters-"></a>
@@ -891,11 +889,6 @@ FAQ](https://chromium.googlesource.com/chromium/src/+/main/docs/security/service
 
 See our dedicated [Extensions Security FAQ](https://chromium.googlesource.com/chromium/src/+/main/extensions/docs/security_faq.md).
 
-<a name="TOC-What-is-the-security-model-for-Chrome-Custom-Tabs-"></a>
-### What's the security model for Chrome Custom Tabs?
-
-See our [Chrome Custom Tabs security FAQ](custom-tabs-faq.md).
-
 <a name="TOC-Are-all-Chrome-updates-important--"></a>
 ### Are all Chrome updates important?
 
@@ -943,4 +936,3 @@ backported. This can happen for several reasons, for example: because they
 depend upon architectural changes (e.g. breaking API changes); because the
 security improvement is a significant new feature; or because the security
 improvement is the removal of a broken feature.
-

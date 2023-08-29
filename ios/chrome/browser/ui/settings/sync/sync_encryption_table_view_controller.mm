@@ -6,16 +6,14 @@
 
 #import <memory>
 
-#import "base/apple/foundation_util.h"
-#import "base/feature_list.h"
+#import "base/mac/foundation_util.h"
 #import "base/metrics/user_metrics.h"
 #import "base/metrics/user_metrics_action.h"
 #import "base/strings/sys_string_conversions.h"
 #import "components/google/core/common/google_util.h"
 #import "components/strings/grit/components_strings.h"
 #import "components/sync/base/command_line_switches.h"
-#import "components/sync/base/features.h"
-#import "components/sync/service/sync_prefs.h"
+#import "components/sync/base/sync_prefs.h"
 #import "components/sync/service/sync_service.h"
 #import "components/sync/service/sync_user_settings.h"
 #import "ios/chrome/browser/net/crurl.h"
@@ -37,10 +35,13 @@
 #import "ios/chrome/browser/ui/settings/sync/sync_encryption_passphrase_table_view_controller.h"
 #import "ios/chrome/common/ui/colors/semantic_color_names.h"
 #import "ios/chrome/common/ui/table_view/table_view_cells_constants.h"
-#import "ios/chrome/grit/ios_chromium_strings.h"
 #import "ios/chrome/grit/ios_strings.h"
 #import "ui/base/l10n/l10n_util_mac.h"
 #import "url/gurl.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace {
 
@@ -143,9 +144,7 @@ typedef NS_ENUM(NSInteger, ItemType) {
   TableViewLinkHeaderFooterItem* footerItem =
       [[TableViewLinkHeaderFooterItem alloc] initWithType:ItemTypeFooter];
   footerItem.text =
-      base::FeatureList::IsEnabled(syncer::kReplaceSyncPromosWithSignInPromos)
-          ? l10n_util::GetNSString(IDS_IOS_SYNC_ENCRYPTION_PASSPHRASE_HINT_UNO)
-          : l10n_util::GetNSString(IDS_IOS_SYNC_ENCRYPTION_PASSPHRASE_HINT);
+      l10n_util::GetNSString(IDS_IOS_SYNC_ENCRYPTION_PASSPHRASE_HINT);
   footerItem.urls = @[ [[CrURL alloc]
       initWithGURL:google_util::AppendGoogleLocaleParam(
                        GURL(kSyncGoogleDashboardURL),
@@ -163,7 +162,7 @@ typedef NS_ENUM(NSInteger, ItemType) {
           [self.tableViewModel sectionIdentifierForSectionIndex:section] &&
       [self.tableViewModel footerForSectionIndex:section]) {
     TableViewLinkHeaderFooterView* footer =
-        base::apple::ObjCCastStrict<TableViewLinkHeaderFooterView>(footerView);
+        base::mac::ObjCCastStrict<TableViewLinkHeaderFooterView>(footerView);
     footer.delegate = self;
   }
   return footerView;
@@ -189,8 +188,11 @@ typedef NS_ENUM(NSInteger, ItemType) {
         SyncCreatePassphraseTableViewController* controller =
             [[SyncCreatePassphraseTableViewController alloc]
                 initWithBrowser:self.browser];
-        controller.dispatcher = self.dispatcher;
-        [self.navigationController pushViewController:controller animated:YES];
+        if (controller) {
+          controller.dispatcher = self.dispatcher;
+          [self.navigationController pushViewController:controller
+                                               animated:YES];
+        }
       }
       break;
     }

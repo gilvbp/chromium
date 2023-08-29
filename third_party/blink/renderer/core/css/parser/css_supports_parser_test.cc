@@ -175,7 +175,6 @@ TEST_F(CSSSupportsParserTest, ConsumeSupportsCondition) {
 
   // <general-enclosed>
   EXPECT_EQ(Result::kUnsupported, ConsumeSupportsCondition("asdf(1)"));
-  EXPECT_EQ(Result::kUnsupported, ConsumeSupportsCondition("asdf()"));
 }
 
 TEST_F(CSSSupportsParserTest, ConsumeSupportsInParens) {
@@ -202,7 +201,6 @@ TEST_F(CSSSupportsParserTest, ConsumeSupportsInParens) {
 
   // <general-enclosed>
   EXPECT_EQ(Result::kUnsupported, ConsumeSupportsInParens("asdf(1)"));
-  EXPECT_EQ(Result::kUnsupported, ConsumeSupportsInParens("asdf()"));
 
   EXPECT_EQ(Result::kSupported,
             ConsumeSupportsInParens("(color:red)and (color:green)"));
@@ -425,9 +423,9 @@ TEST_F(CSSSupportsParserTest, ConsumeGeneralEnclosed) {
   EXPECT_EQ(Result::kUnsupported, ConsumeGeneralEnclosed("max(1, 2)"));
   EXPECT_EQ(Result::kUnsupported, ConsumeGeneralEnclosed("asdf(1, 2)"));
   EXPECT_EQ(Result::kUnsupported, ConsumeGeneralEnclosed("asdf(1, 2)\t"));
-  EXPECT_EQ(Result::kUnsupported, ConsumeGeneralEnclosed("("));
-  EXPECT_EQ(Result::kUnsupported, ConsumeGeneralEnclosed("()"));
-  EXPECT_EQ(Result::kUnsupported, ConsumeGeneralEnclosed("( )"));
+
+  EXPECT_EQ(Result::kParseFailure, ConsumeGeneralEnclosed("("));
+  EXPECT_EQ(Result::kParseFailure, ConsumeGeneralEnclosed("()"));
 
   // Invalid <any-value>:
   EXPECT_EQ(Result::kParseFailure, ConsumeGeneralEnclosed("(asdf})"));

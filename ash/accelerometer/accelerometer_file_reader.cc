@@ -150,7 +150,7 @@ void AccelerometerFileReader::PrepareAndInitialize() {
       {base::MayBlock(), base::TaskPriority::USER_VISIBLE,
        base::TaskShutdownBehavior::CONTINUE_ON_SHUTDOWN});
 
-  initialization_state_ = State::kInitializing;
+  initialization_state_ = State::INITIALIZING;
 
   initialization_timeout_ = base::TimeTicks::Now() + kInitializeTimeout;
 
@@ -160,7 +160,7 @@ void AccelerometerFileReader::PrepareAndInitialize() {
 void AccelerometerFileReader::TriggerRead() {
   DCHECK(base::CurrentUIThread::IsSet());
   switch (initialization_state_) {
-    case State::kSuccess:
+    case State::SUCCESS:
       if (GetECLidAngleDriverStatus() == ECLidAngleDriverStatus::SUPPORTED) {
         blocking_task_runner_->PostTask(
             FROM_HERE,
@@ -168,10 +168,10 @@ void AccelerometerFileReader::TriggerRead() {
                            this));
       }
       break;
-    case State::kFailed:
+    case State::FAILED:
       LOG(ERROR) << "Failed to initialize for accelerometer read.\n";
       break;
-    case State::kInitializing:
+    case State::INITIALIZING:
       ui_task_runner_->PostNonNestableDelayedTask(
           FROM_HERE,
           base::BindOnce(&AccelerometerFileReader::TriggerRead, this),
@@ -182,7 +182,7 @@ void AccelerometerFileReader::TriggerRead() {
 
 void AccelerometerFileReader::CancelRead() {
   DCHECK(base::CurrentUIThread::IsSet());
-  if (initialization_state_ == State::kSuccess &&
+  if (initialization_state_ == State::SUCCESS &&
       GetECLidAngleDriverStatus() == ECLidAngleDriverStatus::SUPPORTED) {
     blocking_task_runner_->PostTask(
         FROM_HERE,
@@ -192,7 +192,7 @@ void AccelerometerFileReader::CancelRead() {
 }
 
 AccelerometerFileReader::InitializationResult::InitializationResult()
-    : initialization_state(State::kInitializing),
+    : initialization_state(State::INITIALIZING),
       ec_lid_angle_driver_status(ECLidAngleDriverStatus::UNKNOWN) {}
 AccelerometerFileReader::InitializationResult::~InitializationResult() =
     default;
@@ -250,7 +250,7 @@ AccelerometerFileReader::InitializeInternal() {
       return result;
     }
 
-    result.initialization_state = State::kFailed;
+    result.initialization_state = State::FAILED;
     return result;
   }
 
@@ -276,7 +276,7 @@ AccelerometerFileReader::InitializeInternal() {
           LOG(ERROR) << "Accelerometer trigger does not exist at "
                      << trigger_now.value();
         }
-        result.initialization_state = State::kFailed;
+        result.initialization_state = State::FAILED;
         return result;
       } else {
         configuration_.trigger_now = trigger_now;
@@ -292,7 +292,7 @@ AccelerometerFileReader::InitializeInternal() {
       return result;
     }
 
-    result.initialization_state = State::kFailed;
+    result.initialization_state = State::FAILED;
     return result;
   }
 
@@ -305,7 +305,7 @@ AccelerometerFileReader::InitializeInternal() {
     if (!base::ReadSymbolicLink(name, &iio_device)) {
       LOG(ERROR) << "Failed to read symbolic link " << kAccelerometerDevicePath
                  << "/" << name.MaybeAsASCII() << "\n";
-      result.initialization_state = State::kFailed;
+      result.initialization_state = State::FAILED;
       return result;
     }
 
@@ -317,13 +317,13 @@ AccelerometerFileReader::InitializeInternal() {
         &location);
     if (legacy_cross_accel) {
       if (!InitializeLegacyAccelerometers(iio_path, name)) {
-        result.initialization_state = State::kFailed;
+        result.initialization_state = State::FAILED;
         return result;
       }
     } else {
       base::TrimWhitespaceASCII(location, base::TRIM_ALL, &location);
       if (!InitializeAccelerometer(iio_path, name, location)) {
-        result.initialization_state = State::kFailed;
+        result.initialization_state = State::FAILED;
         return result;
       }
     }
@@ -341,13 +341,13 @@ AccelerometerFileReader::InitializeInternal() {
                                               : kAccelerometerAxes[j];
         LOG(ERROR) << "Field index for " << kLocationStrings[i] << " " << axis
                    << " axis out of bounds.";
-        result.initialization_state = State::kFailed;
+        result.initialization_state = State::FAILED;
         return result;
       }
     }
   }
 
-  result.initialization_state = State::kSuccess;
+  result.initialization_state = State::SUCCESS;
   result.ec_lid_angle_driver_status =
       (base::SysInfo::IsRunningOnChromeOS() &&
        !base::IsDirectoryEmpty(base::FilePath(kECLidAngleDriverPath)))
@@ -363,7 +363,7 @@ void AccelerometerFileReader::SetStatesWithInitializationResult(
 
   initialization_state_ = result.initialization_state;
   switch (initialization_state_) {
-    case State::kInitializing:
+    case State::INITIALIZING:
       // If we haven't yet passed the timeout cutoff, try this again. This will
       // be scheduled at the same rate as reading.
       if (base::TimeTicks::Now() < initialization_timeout_) {
@@ -374,12 +374,12 @@ void AccelerometerFileReader::SetStatesWithInitializationResult(
             kDelayBetweenReads);
       } else {
         LOG(ERROR) << "Failed to initialize for accelerometer read.\n";
-        initialization_state_ = State::kFailed;
+        initialization_state_ = State::FAILED;
       }
 
       break;
 
-    case State::kSuccess:
+    case State::SUCCESS:
       DCHECK_NE(result.ec_lid_angle_driver_status,
                 ECLidAngleDriverStatus::UNKNOWN);
       SetECLidAngleDriverStatus(result.ec_lid_angle_driver_status);
@@ -396,7 +396,7 @@ void AccelerometerFileReader::SetStatesWithInitializationResult(
 
       break;
 
-    case State::kFailed:
+    case State::FAILED:
       break;
 
     default:

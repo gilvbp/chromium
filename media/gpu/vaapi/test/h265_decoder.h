@@ -79,7 +79,6 @@ class H265Decoder : public VideoDecoder {
                           // properly (e.g. allocate buffers with the new
                           // resolution).
     kRanOutOfStreamData,  // Need more stream data to proceed.
-    kOk,                  // Decoded a frame successfully.
   };
 
   // Process H265 stream structures.
@@ -143,9 +142,9 @@ class H265Decoder : public VideoDecoder {
   bool PerformDpbOperations(const H265SPS* sps);
 
   // This is the main method used for running the decode loop. It will try to
-  // decode a single frame in the stream, or up until it reaches either a
-  // configuration change, or the end of the stream.
-  DecodeResult DecodeNALUs();
+  // decode all frames in the stream until there is a configuration change,
+  // error or the end of the stream is reached.
+  DecodeResult Decode();
 
   // Decoder state.
   State state_;

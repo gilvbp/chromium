@@ -11,7 +11,6 @@ import androidx.core.util.AtomicFile;
 
 import org.chromium.base.ContextUtils;
 import org.chromium.base.Log;
-import org.chromium.base.ResettersForTesting;
 import org.chromium.base.StreamUtil;
 import org.chromium.base.StrictModeContext;
 import org.chromium.base.task.AsyncTask;
@@ -284,22 +283,22 @@ public class MostVisitedSitesMetadataUtils {
         }
     }
 
+    @VisibleForTesting
     public Runnable getCurrentTaskForTesting() {
         return mCurrentTask;
     }
 
+    @VisibleForTesting
     public void setCurrentTaskForTesting(Runnable currentTask) {
-        var oldValue = mCurrentTask;
         mCurrentTask = currentTask;
-        ResettersForTesting.register(() -> mCurrentTask = oldValue);
     }
 
+    @VisibleForTesting
     public void setPendingTaskForTesting(Runnable pendingTask) {
-        var oldValue = mPendingTask;
         mPendingTask = pendingTask;
-        ResettersForTesting.register(() -> mPendingTask = oldValue);
     }
 
+    @VisibleForTesting
     public int getPendingTaskTilesNumForTesting() {
         return mPendingTaskTilesNumForTesting;
     }

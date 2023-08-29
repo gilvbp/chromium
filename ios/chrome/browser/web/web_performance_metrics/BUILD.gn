@@ -6,6 +6,8 @@ import("//ios/build/config.gni")
 import("//ios/web/public/js_messaging/optimize_ts.gni")
 
 source_set("web_performance_metrics") {
+  configs += [ "//build/config/compiler:enable_arc" ]
+
   deps = [
     ":web_performance_metrics_js",
     "//base",
@@ -26,6 +28,7 @@ source_set("web_performance_metrics") {
 
 source_set("unit_tests") {
   testonly = true
+  configs += [ "//build/config/compiler:enable_arc" ]
 
   deps = [
     ":web_performance_metrics",

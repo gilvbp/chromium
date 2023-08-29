@@ -21,16 +21,12 @@
 #include "content/public/test/mock_render_process_host.h"
 #include "content/public/test/web_contents_tester.h"
 #include "testing/gtest/include/gtest/gtest.h"
-#include "third_party/blink/public/mojom/permissions/permission_status.mojom.h"
 
 #if !BUILDFLAG(IS_ANDROID)
 #include "components/permissions/permission_request_manager.h"
 #endif
 
 namespace {
-
-using PermissionStatus = blink::mojom::PermissionStatus;
-
 class TestPermissionContext : public MediaStreamDevicePermissionContext {
  public:
   TestPermissionContext(Profile* profile,
@@ -77,17 +73,17 @@ class MediaStreamDevicePermissionContextTests
                                       secure_url.DeprecatedGetOriginAsURL(),
                                       content_settings_type));
 
-    EXPECT_EQ(PermissionStatus::DENIED,
+    EXPECT_EQ(CONTENT_SETTING_BLOCK,
               permission_context
                   .GetPermissionStatus(nullptr /* render_frame_host */,
                                        insecure_url, insecure_url)
-                  .status);
+                  .content_setting);
 
-    EXPECT_EQ(PermissionStatus::DENIED,
+    EXPECT_EQ(CONTENT_SETTING_BLOCK,
               permission_context
                   .GetPermissionStatus(nullptr /* render_frame_host */,
                                        insecure_url, secure_url)
-                  .status);
+                  .content_setting);
   }
 
   void TestSecureQueryingUrl(ContentSettingsType content_settings_type) {
@@ -101,11 +97,11 @@ class MediaStreamDevicePermissionContextTests
                                       secure_url.DeprecatedGetOriginAsURL(),
                                       content_settings_type));
 
-    EXPECT_EQ(PermissionStatus::ASK,
+    EXPECT_EQ(CONTENT_SETTING_ASK,
               permission_context
                   .GetPermissionStatus(nullptr /* render_frame_host */,
                                        secure_url, secure_url)
-                  .status);
+                  .content_setting);
   }
 
   void TestUseFakeUiSwitch(ContentSettingsType content_setting_type,
@@ -113,11 +109,11 @@ class MediaStreamDevicePermissionContextTests
     GURL secure_url("https://www.example.com");
     TestPermissionContext permission_context(profile(), content_setting_type);
 
-    EXPECT_EQ(PermissionStatus::ASK,
+    EXPECT_EQ(CONTENT_SETTING_ASK,
               permission_context
                   .GetPermissionStatus(nullptr /* render_frame_host */,
                                        secure_url, secure_url)
-                  .status);
+                  .content_setting);
 
     if (use_deny_switch) {
       base::CommandLine::ForCurrentProcess()->AppendSwitchASCII(
@@ -127,12 +123,11 @@ class MediaStreamDevicePermissionContextTests
           switches::kUseFakeUIForMediaStream);
     }
 
-    EXPECT_EQ(
-        use_deny_switch ? PermissionStatus::DENIED : PermissionStatus::GRANTED,
-        permission_context
-            .GetPermissionStatus(nullptr /* render_frame_host */, secure_url,
-                                 secure_url)
-            .status);
+    EXPECT_EQ(use_deny_switch ? CONTENT_SETTING_BLOCK : CONTENT_SETTING_ALLOW,
+              permission_context
+                  .GetPermissionStatus(nullptr /* render_frame_host */,
+                                       secure_url, secure_url)
+                  .content_setting);
 
     base::CommandLine::ForCurrentProcess()->RemoveSwitch(
         switches::kUseFakeUIForMediaStream);

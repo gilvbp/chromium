@@ -13,9 +13,18 @@ MockPermissionManager::MockPermissionManager() = default;
 
 MockPermissionManager::~MockPermissionManager() = default;
 
-void MockPermissionManager::RequestPermissions(
+void MockPermissionManager::RequestPermission(
+    blink::PermissionType permission,
     RenderFrameHost* render_frame_host,
-    const PermissionRequestDescription& request_description,
+    const GURL& requesting_origin,
+    bool user_gesture,
+    base::OnceCallback<void(blink::mojom::PermissionStatus)> callback) {}
+
+void MockPermissionManager::RequestPermissions(
+    const std::vector<blink::PermissionType>& permission,
+    RenderFrameHost* render_frame_host,
+    const GURL& requesting_origin,
+    bool user_gesture,
     base::OnceCallback<void(const std::vector<blink::mojom::PermissionStatus>&)>
         callback) {}
 
@@ -24,8 +33,9 @@ void MockPermissionManager::ResetPermission(blink::PermissionType permission,
                                             const GURL& embedding_origin) {}
 
 void MockPermissionManager::RequestPermissionsFromCurrentDocument(
-    RenderFrameHost* render_frame_host,
-    const PermissionRequestDescription& request_description,
+    const std::vector<blink::PermissionType>& permissions,
+    content::RenderFrameHost* render_frame_host,
+    bool user_gesture,
     base::OnceCallback<void(const std::vector<blink::mojom::PermissionStatus>&)>
         callback) {}
 }  // namespace content

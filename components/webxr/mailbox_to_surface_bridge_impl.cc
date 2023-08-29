@@ -286,6 +286,11 @@ void MailboxToSurfaceBridgeImpl::ResizeSurface(int width, int height) {
 }
 
 bool MailboxToSurfaceBridgeImpl::CopyMailboxToSurfaceAndSwap(
+    const gpu::MailboxHolder& mailbox) {
+  return CopyMailboxToSurfaceAndSwap(mailbox, gfx::Transform());
+}
+
+bool MailboxToSurfaceBridgeImpl::CopyMailboxToSurfaceAndSwap(
     const gpu::MailboxHolder& mailbox,
     const gfx::Transform& uv_transform) {
   if (!IsConnected()) {

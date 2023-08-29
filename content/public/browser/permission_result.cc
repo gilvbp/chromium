@@ -7,7 +7,7 @@
 namespace content {
 
 PermissionResult::PermissionResult(
-    PermissionStatus permission_status,
+    blink::mojom::PermissionStatus permission_status,
     PermissionStatusSource permission_status_source)
     : status(permission_status), source(permission_status_source) {}
 

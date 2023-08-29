@@ -219,36 +219,20 @@ void CheckSoftNavigationHeuristicsTracking(const Document& document,
   }
 }
 
-class PopoverCloseWatcherEventListener : public NativeEventListener {
- public:
-  explicit PopoverCloseWatcherEventListener(HTMLElement* popover)
-      : popover_(popover) {}
-
-  void Invoke(ExecutionContext*, Event* event) override {
-    if (!popover_) {
-      return;
-    }
-    // Don't do anything in response to cancel events, as per the HTML spec
-    if (event->type() == event_type_names::kClose) {
-      popover_->HidePopoverInternal(
-          HidePopoverFocusBehavior::kFocusPreviousElement,
-          HidePopoverTransitionBehavior::kFireEventsAndWaitForTransitions,
-          /*exception_state=*/nullptr);
-    }
-  }
-
-  void Trace(Visitor* visitor) const override {
-    visitor->Trace(popover_);
-    NativeEventListener::Trace(visitor);
-  }
-
- private:
-  WeakMember<HTMLElement> popover_;
-};
-
 }  // anonymous namespace
 
+String HTMLElement::DebugNodeName() const {
+  if (IsA<HTMLDocument>(GetDocument())) {
+    return TagQName().HasPrefix() ? Element::nodeName().UpperASCII()
+                                  : TagQName().LocalName().UpperASCII();
+  }
+  return Element::nodeName();
+}
+
 String HTMLElement::nodeName() const {
+  // localNameUpper may intern and cache an AtomicString.
+  DCHECK(IsMainThread());
+
   // FIXME: Would be nice to have an atomicstring lookup based off uppercase
   // chars that does not have to copy the string on a hit in the hash.
   // FIXME: We should have a way to detect XHTML elements and replace the
@@ -1213,6 +1197,28 @@ PopoverValueType GetPopoverTypeFromAttributeValue(const AtomicString& value) {
 }  // namespace
 
 void HTMLElement::UpdatePopoverAttribute(const AtomicString& value) {
+  if (!RuntimeEnabledFeatures::HTMLPopoverAttributeEnabled(
+          GetDocument().GetExecutionContext())) {
+    // If the feature flag isn't enabled, give a console warning about this
+    // usage of the 'popover' attribute, which is likely to cause breakage when
+    // the feature ships.
+    auto& document = GetDocument();
+    auto* console_message = MakeGarbageCollected<ConsoleMessage>(
+        mojom::blink::ConsoleMessageSource::kOther,
+        mojom::blink::ConsoleMessageLevel::kError,
+        "Found a 'popover' attribute. If you are testing the popover API, you "
+        "must enable Experimental Web Platform Features. If not, note that "
+        "custom attributes must start with 'data-': "
+        "https://html.spec.whatwg.org/multipage/"
+        "dom.html#custom-data-attribute. This usage will *likely cause site "
+        "breakage* when the popover API ships: "
+        "https://chromestatus.com/feature/5463833265045504.");
+    console_message->SetNodes(document.GetFrame(),
+                              {DOMNodeIds::IdForNode(this)});
+    document.AddConsoleMessage(console_message);
+    return;
+  }
+
   PopoverValueType type = GetPopoverTypeFromAttributeValue(value);
   if (type == PopoverValueType::kManual &&
       !EqualIgnoringASCIICase(value, keywords::kManual)) {
@@ -1297,6 +1303,8 @@ PopoverValueType HTMLElement::PopoverType() const {
 
 // This should be true when `:popover-open` should match.
 bool HTMLElement::popoverOpen() const {
+  CHECK(RuntimeEnabledFeatures::HTMLPopoverAttributeEnabled(
+      GetDocument().GetExecutionContext()));
   if (auto* popover_data = GetPopoverData())
     return popover_data->visibilityState() == PopoverVisibilityState::kShowing;
   return false;
@@ -1306,7 +1314,10 @@ bool HTMLElement::IsPopoverReady(PopoverTriggerAction action,
                                  ExceptionState* exception_state,
                                  bool include_event_handler_text,
                                  Document* expected_document) const {
+  CHECK(RuntimeEnabledFeatures::HTMLPopoverAttributeEnabled(
+      GetDocument().GetExecutionContext()));
   CHECK_NE(action, PopoverTriggerAction::kNone);
+  CHECK_NE(action, PopoverTriggerAction::kToggle);
 
   auto maybe_throw_exception = [&exception_state, &include_event_handler_text](
                                    DOMExceptionCode code, const char* msg) {
@@ -1358,13 +1369,12 @@ bool HTMLElement::IsPopoverReady(PopoverTriggerAction action,
                           "hiding a popover element.");
     return false;
   }
-  if (auto* dialog = DynamicTo<HTMLDialogElement>(this)) {
-    if (action == PopoverTriggerAction::kShow && dialog->IsModal()) {
-      maybe_throw_exception(DOMExceptionCode::kInvalidStateError,
-                            "The dialog is already open as a dialog, and "
-                            "therefore cannot be opened as a popover.");
-      return false;
-    }
+  if (action == PopoverTriggerAction::kShow && IsA<HTMLDialogElement>(this) &&
+      hasAttribute(html_names::kOpenAttr)) {
+    maybe_throw_exception(DOMExceptionCode::kInvalidStateError,
+                          "The dialog is already open as a dialog, and "
+                          "therefore cannot be opened as a popover.");
+    return false;
   }
   if (action == PopoverTriggerAction::kShow &&
       Fullscreen::IsFullscreenElement(*this)) {
@@ -1398,6 +1408,8 @@ void MarkPopoverInvokersDirty(const HTMLElement& popover) {
 }  // namespace
 
 bool HTMLElement::togglePopover(ExceptionState& exception_state) {
+  CHECK(RuntimeEnabledFeatures::HTMLPopoverAttributeEnabled(
+      GetDocument().GetExecutionContext()));
   if (popoverOpen()) {
     hidePopover(exception_state);
   } else {
@@ -1412,16 +1424,12 @@ bool HTMLElement::togglePopover(ExceptionState& exception_state) {
 }
 
 bool HTMLElement::togglePopover(bool force, ExceptionState& exception_state) {
+  CHECK(RuntimeEnabledFeatures::HTMLPopoverAttributeEnabled(
+      GetDocument().GetExecutionContext()));
   if (!force && popoverOpen()) {
     hidePopover(exception_state);
   } else if (force && !popoverOpen()) {
     ShowPopoverInternal(/*invoker*/ nullptr, &exception_state);
-  } else {
-    // Throw an exception if this element is disconnected or doesn't have a
-    // popover attribute.
-    IsPopoverReady(PopoverTriggerAction::kToggle, &exception_state,
-                   /*include_event_handler_text=*/false,
-                   /*document=*/nullptr);
   }
 
   if (GetPopoverData()) {
@@ -1437,6 +1445,12 @@ void HTMLElement::showPopover(ExceptionState& exception_state) {
 
 void HTMLElement::ShowPopoverInternal(Element* invoker,
                                       ExceptionState* exception_state) {
+  CHECK(RuntimeEnabledFeatures::HTMLPopoverAttributeEnabled(
+      GetDocument().GetExecutionContext()));
+
+  if (GetPopoverData()) {
+    GetPopoverData()->setInvoker(invoker);
+  }
   if (!IsPopoverReady(PopoverTriggerAction::kShow, exception_state,
                       /*include_event_handler_text=*/false, /*document=*/nullptr)) {
     CHECK(exception_state)
@@ -1445,8 +1459,6 @@ void HTMLElement::ShowPopoverInternal(Element* invoker,
            "shown.";
     return;
   }
-
-  CHECK(!GetPopoverData() || !GetPopoverData()->invoker());
 
   // Fire events by default, unless we're recursively showing this popover.
   PopoverData::ScopedStartShowingOrHiding scoped_was_showing_or_hiding(*this);
@@ -1482,7 +1494,7 @@ void HTMLElement::ShowPopoverInternal(Element* invoker,
   auto original_type = PopoverType();
   if (original_type == PopoverValueType::kAuto ||
       original_type == PopoverValueType::kHint) {
-    const auto* ancestor = FindTopmostPopoverAncestor(*this, invoker);
+    const auto* ancestor = FindTopmostPopoverAncestor(*this);
     if (original_type == PopoverValueType::kHint) {
       CHECK(RuntimeEnabledFeatures::HTMLPopoverHintEnabled());
       // If the new popover is popover=hint, hide other hints first.
@@ -1536,20 +1548,6 @@ void HTMLElement::ShowPopoverInternal(Element* invoker,
       CHECK(RuntimeEnabledFeatures::HTMLPopoverHintEnabled());
       original_document.SetPopoverHintShowing(this);
     }
-
-    if (RuntimeEnabledFeatures::CloseWatcherEnabled()) {
-      auto* close_watcher = CloseWatcher::Create(
-          GetDocument().domWindow(), /*dialog_for_use_counters=*/nullptr);
-      if (close_watcher) {
-        auto* event_listener =
-            MakeGarbageCollected<PopoverCloseWatcherEventListener>(this);
-        close_watcher->addEventListener(event_type_names::kClose,
-                                        event_listener);
-        close_watcher->addEventListener(event_type_names::kCancel,
-                                        event_listener);
-      }
-      GetPopoverData()->setCloseWatcher(close_watcher);
-    }
   }
 
   MarkPopoverInvokersDirty(*this);
@@ -1558,7 +1556,6 @@ void HTMLElement::ShowPopoverInternal(Element* invoker,
   original_document.AddToTopLayer(this);
   // Make the popover match `:popover-open` and remove `display:none` styling:
   GetPopoverData()->setVisibilityState(PopoverVisibilityState::kShowing);
-  GetPopoverData()->setInvoker(invoker);
   PseudoStateChanged(CSSSelector::kPseudoPopoverOpen);
   CHECK(!original_document.AllOpenPopovers().Contains(this));
   original_document.AllOpenPopovers().insert(this);
@@ -1620,6 +1617,8 @@ void HTMLElement::HideAllPopoversUntil(
     HidePopoverFocusBehavior focus_behavior,
     HidePopoverTransitionBehavior transition_behavior,
     HidePopoverIndependence popover_independence) {
+  CHECK(RuntimeEnabledFeatures::HTMLPopoverAttributeEnabled(
+      document.GetExecutionContext()));
   CHECK(!endpoint || endpoint->HasPopoverAttribute());
   CHECK(endpoint ||
         popover_independence == HidePopoverIndependence::kHideUnrelated);
@@ -1662,9 +1661,8 @@ void HTMLElement::HideAllPopoversUntil(
         // If there is a popover=hint showing that is a descendant of something
         // on the popover=auto stack, then the hint should be hidden before that
         // ancestor is hidden, regardless of popover_independence.
-        hint_ancestor = FindTopmostPopoverAncestor(
-            *document.PopoverHintShowing(),
-            document.PopoverHintShowing()->GetPopoverData()->invoker());
+        hint_ancestor =
+            FindTopmostPopoverAncestor(*document.PopoverHintShowing());
         if (!hint_ancestor &&
             popover_independence == HidePopoverIndependence::kHideUnrelated) {
           document.PopoverHintShowing()->HidePopoverInternal(
@@ -1721,6 +1719,8 @@ void HTMLElement::HideAllPopoversUntil(
 }
 
 void HTMLElement::hidePopover(ExceptionState& exception_state) {
+  CHECK(RuntimeEnabledFeatures::HTMLPopoverAttributeEnabled(
+      GetDocument().GetExecutionContext()));
   HidePopoverInternal(
       HidePopoverFocusBehavior::kFocusPreviousElement,
       HidePopoverTransitionBehavior::kFireEventsAndWaitForTransitions,
@@ -1731,6 +1731,9 @@ void HTMLElement::HidePopoverInternal(
     HidePopoverFocusBehavior focus_behavior,
     HidePopoverTransitionBehavior transition_behavior,
     ExceptionState* exception_state) {
+  CHECK(RuntimeEnabledFeatures::HTMLPopoverAttributeEnabled(
+      GetDocument().GetExecutionContext()));
+
   if (!IsPopoverReady(PopoverTriggerAction::kHide, exception_state,
                       /*include_event_handler_text=*/true, /*document=*/nullptr)) {
     return;
@@ -1854,25 +1857,19 @@ void HTMLElement::HidePopoverInternal(
       focus_options->setPreventScroll(true);
       previously_focused_element->Focus(FocusParams(
           SelectionBehaviorOnFocus::kRestore, mojom::blink::FocusType::kScript,
-          /*capabilities=*/nullptr, focus_options));
+          /*capabilities=*/nullptr, focus_options,
+          /*gate_on_user_activation=*/true));
     }
   }
 
-  if (auto* selectlist = popoverOwnerSelectListElement()) {
-    // popoverOwnerSelectListElement() is set on both the <selectlist> listbox
-    // and the <selectlist> autofill preview popover.
-    if (selectlist->ListBoxPart() == this) {
-      selectlist->ListboxWasClosed();
-    }
-  }
-
-  if (auto* close_watcher = GetPopoverData()->closeWatcher()) {
-    close_watcher->destroy();
-    GetPopoverData()->setCloseWatcher(nullptr);
+  if (auto* selectmenu = ownerSelectMenuElement()) {
+    selectmenu->ListboxWasClosed();
   }
 }
 
 void HTMLElement::SetPopoverFocusOnShow() {
+  CHECK(RuntimeEnabledFeatures::HTMLPopoverAttributeEnabled(
+      GetDocument().GetExecutionContext()));
   // The layout must be updated here because we call Element::isFocusable,
   // which requires an up-to-date layout.
   GetDocument().UpdateStyleAndLayoutTreeForNode(this,
@@ -1887,7 +1884,8 @@ void HTMLElement::SetPopoverFocusOnShow() {
     return;
   }
 
-  Element* control = IsAutofocusable() ? this : GetAutofocusDelegate();
+  Element* control =
+      IsAutofocusable() ? this : GetFocusDelegate(/*autofocus_only=*/true);
 
   // If the popover does not use autofocus, then the focus should remain on the
   // currently active element.
@@ -1896,7 +1894,7 @@ void HTMLElement::SetPopoverFocusOnShow() {
     return;
 
   // 3. Run the focusing steps for control.
-  control->Focus();
+  control->Focus(FocusParams(/*gate_on_user_activation=*/true));
 
   // 4. Let topDocument be the active document of control's node document's
   // browsing context's top-level browsing context.
@@ -2009,11 +2007,12 @@ const HTMLElement* NearestTargetPopoverForInvoker(
 // popover=auto popovers can *be* ancestors, and only popover=auto/hint popovers
 // can *have* ancestors.
 const HTMLElement* HTMLElement::FindTopmostPopoverAncestor(
-    HTMLElement& new_popover,
-    Element* new_popovers_invoker) {
+    HTMLElement& new_popover) {
   CHECK(new_popover.HasPopoverAttribute());
   CHECK_NE(new_popover.PopoverType(), PopoverValueType::kManual);
   auto& document = new_popover.GetDocument();
+  CHECK(RuntimeEnabledFeatures::HTMLPopoverAttributeEnabled(
+      document.GetExecutionContext()));
 
   // Build a map from each open popover to its position in the stack.
   HeapHashMap<Member<const HTMLElement>, int> popover_positions;
@@ -2046,7 +2045,7 @@ const HTMLElement* HTMLElement::FindTopmostPopoverAncestor(
   // 2. Anchor attribute.
   check_ancestor(new_popover.anchorElement());
   // 3. Invoker to popover
-  check_ancestor(new_popovers_invoker);
+  check_ancestor(new_popover.GetPopoverData()->invoker());
   return topmost_popover_ancestor;
 }
 
@@ -2062,6 +2061,8 @@ const HTMLElement* FindTopmostRelatedPopover(
     const PopoverAncestorOptionsSet& ancestor_options =
         PopoverAncestorOptionsSet()) {
   auto& document = node.GetDocument();
+  CHECK(RuntimeEnabledFeatures::HTMLPopoverAttributeEnabled(
+      document.GetExecutionContext()));
   // Check if we're in an invoking element or a popover, and choose
   // the higher popover on the stack.
   auto* direct_popover_ancestor = NearestOpenPopover(&node, ancestor_options);
@@ -2088,6 +2089,10 @@ void HTMLElement::HandlePopoverLightDismiss(const Event& event,
                                             const Node& target_node) {
   CHECK(event.isTrusted());
   auto& document = target_node.GetDocument();
+  if (!RuntimeEnabledFeatures::HTMLPopoverAttributeEnabled(
+          document.GetExecutionContext())) {
+    return;
+  }
   if (!document.TopmostPopoverOrHint()) {
     return;
   }
@@ -2125,10 +2130,6 @@ void HTMLElement::HandlePopoverLightDismiss(const Event& event,
       }
     }
   } else if (event_type == event_type_names::kKeydown) {
-    // TODO(http://crbug.com/1171318): Remove this keydown branch once
-    // CloseWatcher has been fully enabled. CloseWatcher will handle escape key
-    // presses instead of this.
-    DCHECK(!RuntimeEnabledFeatures::CloseWatcherEnabled());
     const KeyboardEvent* key_event = DynamicTo<KeyboardEvent>(event);
     if (key_event && key_event->key() == "Escape") {
       CHECK(!event.GetEventPath().IsEmpty());
@@ -2144,6 +2145,8 @@ void HTMLElement::HandlePopoverLightDismiss(const Event& event,
 
 void HTMLElement::InvokePopover(Element* invoker) {
   CHECK(invoker);
+  CHECK(RuntimeEnabledFeatures::HTMLPopoverAttributeEnabled(
+      GetDocument().GetExecutionContext()));
   CHECK(HasPopoverAttribute());
   ShowPopoverInternal(invoker, /*exception_state=*/nullptr);
 }
@@ -2261,15 +2264,16 @@ void HTMLElement::HoveredElementChanged(Element* old_element,
   }
 }
 
-void HTMLElement::SetPopoverOwnerSelectListElement(
-    HTMLSelectListElement* element) {
-  CHECK(RuntimeEnabledFeatures::HTMLSelectListElementEnabled());
+void HTMLElement::SetOwnerSelectMenuElement(HTMLSelectMenuElement* element) {
+  CHECK(RuntimeEnabledFeatures::HTMLSelectMenuElementEnabled());
+  CHECK(RuntimeEnabledFeatures::HTMLPopoverAttributeEnabled(
+      GetDocument().GetExecutionContext()));
   CHECK(HasPopoverAttribute());
-  GetPopoverData()->setOwnerSelectListElement(element);
+  GetPopoverData()->setOwnerSelectMenuElement(element);
 }
 
-HTMLSelectListElement* HTMLElement::popoverOwnerSelectListElement() const {
-  return GetPopoverData() ? GetPopoverData()->ownerSelectListElement()
+HTMLSelectMenuElement* HTMLElement::ownerSelectMenuElement() const {
+  return GetPopoverData() ? GetPopoverData()->ownerSelectMenuElement()
                           : nullptr;
 }
 
@@ -2425,7 +2429,7 @@ static inline bool ElementAffectsDirectionality(const Node* node) {
 void HTMLElement::ChildrenChanged(const ChildrenChange& change) {
   Element::ChildrenChanged(change);
 
-  if (GetDocument().HasDirAttribute()) {
+  if (GetDocument().IsDirAttributeDirty()) {
     AdjustDirectionalityIfNeededAfterChildrenChanged(change);
 
     if (change.IsChildInsertion() && !SelfOrAncestorHasDirAutoAttribute()) {
@@ -2449,9 +2453,6 @@ bool HTMLElement::HasDirectionAuto() const {
          EqualIgnoringASCIICase(direction, "auto");
 }
 
-// TODO(https://crbug.com/576815): Once the CSSPseudoDir flag is
-// removed, this function no longer needs to be templatized over
-// Traversal since it can always use NodeTraversal.
 template <typename Traversal>
 absl::optional<TextDirection> HTMLElement::ResolveAutoDirectionality(
     bool& is_deferred,
@@ -2479,7 +2480,7 @@ absl::optional<TextDirection> HTMLElement::ResolveAutoDirectionality(
     }
 
     auto* slot = ToHTMLSlotElementIfSupportsAssignmentOrNull(node);
-    if (slot && !RuntimeEnabledFeatures::CSSPseudoDirEnabled()) {
+    if (slot) {
       ShadowRoot* root = slot->ContainingShadowRoot();
       // Defer to adjust the directionality to avoid recalcuating slot
       // assignment in FlatTreeTraversal when updating slot.
@@ -2499,18 +2500,6 @@ absl::optional<TextDirection> HTMLElement::ResolveAutoDirectionality(
         node = Traversal::NextSkippingChildren(*node, stay_within);
         continue;
       }
-    }
-
-    // TODO(https://crbug.com/576815): Once we have final spec text for
-    // https://github.com/whatwg/html/issues/3699 we should recheck the
-    // relative order of this check and the "Skip elements with valid
-    // dir attribute" check above, and add tests for the case that
-    // exercises both.  (Note that if the order is switched, this test
-    // needs to consider the dir attribute on the slot element rather
-    // than just jumping to its shadow host.)
-    if (slot && RuntimeEnabledFeatures::CSSPseudoDirEnabled()) {
-      ShadowRoot* root = slot->ContainingShadowRoot();
-      return root->host().CachedDirectionality();
     }
 
     if (node->IsTextNode()) {
@@ -2974,7 +2963,7 @@ int HTMLElement::OffsetTopOrLeft(bool top) {
   if (!layout_object)
     return 0;
 
-  HeapHashSet<Member<TreeScope>> ancestor_tree_scopes = GetAncestorTreeScopes();
+  HashSet<Member<TreeScope>> ancestor_tree_scopes = GetAncestorTreeScopes();
   LayoutUnit offset;
   Element* offset_parent = this;
   bool new_spec_behavior =
@@ -3011,7 +3000,7 @@ int HTMLElement::offsetTopForBinding() {
 
 int HTMLElement::offsetWidthForBinding() {
   GetDocument().EnsurePaintLocationDataValidForNode(
-      this, DocumentUpdateReason::kJavaScript);
+      this, DocumentUpdateReason::kJavaScript, CSSPropertyID::kWidth);
   int result = 0;
   if (const auto* layout_object = GetLayoutBoxModelObject()) {
     result = AdjustedOffsetForZoom(layout_object->OffsetWidth());
@@ -3024,7 +3013,7 @@ int HTMLElement::offsetWidthForBinding() {
 DISABLE_CFI_PERF
 int HTMLElement::offsetHeightForBinding() {
   GetDocument().EnsurePaintLocationDataValidForNode(
-      this, DocumentUpdateReason::kJavaScript);
+      this, DocumentUpdateReason::kJavaScript, CSSPropertyID::kHeight);
   int result = 0;
   if (const auto* layout_object = GetLayoutBoxModelObject()) {
     result = AdjustedOffsetForZoom(layout_object->OffsetHeight());
@@ -3123,17 +3112,10 @@ void HTMLElement::OnDirAttrChanged(const AttributeModificationParams& params) {
       !IsValidDirAttribute(params.new_value))
     return;
 
-  GetDocument().SetHasDirAttribute();
+  GetDocument().SetDirAttributeDirty();
 
   bool is_old_auto = SelfOrAncestorHasDirAutoAttribute();
   bool is_new_auto = HasDirectionAuto();
-
-  if (is_new_auto) {
-    if (auto* input_element = DynamicTo<HTMLInputElement>(*this)) {
-      input_element->EnsureShadowSubtree();
-    }
-  }
-
   bool needs_slot_assignment_recalc = false;
   auto* parent =
       GetParentForDirectionality(*this, needs_slot_assignment_recalc);
@@ -3320,7 +3302,7 @@ void HTMLElement::FinishParsingChildren() {
 void HTMLElement::ParserDidSetAttributes() {
   Element::ParserDidSetAttributes();
 
-  if (GetDocument().HasDirAttribute() && !HasDirectionAuto() &&
+  if (GetDocument().IsDirAttributeDirty() && !HasDirectionAuto() &&
       !ElementAffectsDirectionality(this)) {
     bool needs_slot_assignment_recalc = false;
     auto* parent =

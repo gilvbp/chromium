@@ -41,7 +41,6 @@
 #include "components/autofill/core/common/form_data.h"
 #include "components/autofill/core/common/form_data_predictions.h"
 #include "components/autofill/core/common/form_field_data.h"
-#include "components/autofill/core/common/mojom/autofill_types.mojom-shared.h"
 #include "components/autofill/core/common/password_form_fill_data.h"
 #include "components/autofill/core/common/save_password_progress_logger.h"
 #include "components/password_manager/core/common/password_manager_features.h"
@@ -97,6 +96,7 @@ using form_util::IsOwnedByFrame;
 using form_util::TraverseDomForFourDigitCombinations;
 using mojom::SubmissionSource;
 using ShowAll = PasswordAutofillAgent::ShowAll;
+using GenerationShowing = PasswordAutofillAgent::GenerationShowing;
 using mojom::FocusedFieldType;
 
 namespace {
@@ -182,9 +182,8 @@ class AutofillAgent::DeferringAutofillDriver : public mojom::AutofillDriver {
     DeferMsg(&mojom::AutofillDriver::SelectControlDidChange, form, field,
              bounding_box);
   }
-  void SelectOrSelectListFieldOptionsDidChange(const FormData& form) override {
-    DeferMsg(&mojom::AutofillDriver::SelectOrSelectListFieldOptionsDidChange,
-             form);
+  void SelectFieldOptionsDidChange(const FormData& form) override {
+    DeferMsg(&mojom::AutofillDriver::SelectFieldOptionsDidChange, form);
   }
   void AskForValuesToFill(
       const FormData& form,
@@ -306,6 +305,7 @@ AutofillAgent::AutofillAgent(content::RenderFrame* render_frame,
       password_generation_agent_(password_generation_agent),
       query_node_autofill_state_(WebAutofillState::kNotFilled),
       is_popup_possibly_visible_(false),
+      is_generation_popup_possibly_visible_(false),
       is_user_gesture_required_(true),
       is_secure_context_required_(false),
       form_tracker_(render_frame),
@@ -529,11 +529,6 @@ void AutofillAgent::OnTextFieldDidChange(const WebInputElement& element) {
   DCHECK(!unsafe_render_frame() ||
          IsOwnedByFrame(element, unsafe_render_frame()));
 
-  // The field might have changed while the user was hovering on a suggestion,
-  // the preview in that case should be cleared since new suggestions will be
-  // showing up.
-  ClearPreviewedForm();
-
   if (password_generation_agent_ &&
       password_generation_agent_->TextDidChangeInTextField(element)) {
     is_popup_possibly_visible_ = true;
@@ -643,9 +638,8 @@ void AutofillAgent::TriggerRefillIfNeeded(const FormData& form) {
 }
 
 // mojom::AutofillAgent:
-void AutofillAgent::FillOrPreviewForm(
-    const FormData& form,
-    mojom::AutofillActionPersistence action_persistence) {
+void AutofillAgent::FillOrPreviewForm(const FormData& form,
+                                      mojom::RendererFormDataAction action) {
   // If `element_` is null or not focused, Autofill was either triggered from
   // another frame or the `element_` has been detached from the DOM or the focus
   // was moved otherwise.
@@ -669,17 +663,14 @@ void AutofillAgent::FillOrPreviewForm(
         document, form.fields.front().unique_renderer_id);
   }
 
-  if (element_.IsNull()) {
+  if (element_.IsNull())
     return;
-  }
 
-  // Clear anything that might have been previewing previously.
-  ClearPreviewedForm();
+  if (action == mojom::RendererFormDataAction::kPreview) {
+    ClearPreviewedForm();
 
-  if (action_persistence == mojom::AutofillActionPersistence::kPreview) {
     query_node_autofill_state_ = element_.GetAutofillState();
-    previewed_elements_ = form_util::ApplyAutofillAction(
-        form, element_, mojom::AutofillActionType::kFill, action_persistence);
+    previewed_elements_ = form_util::FillOrPreviewForm(form, element_, action);
 
     if (auto* autofill_driver = unsafe_autofill_driver()) {
       autofill_driver->DidPreviewAutofillFormData();
@@ -689,10 +680,7 @@ void AutofillAgent::FillOrPreviewForm(
 
     query_node_autofill_state_ = element_.GetAutofillState();
     bool filled_some_fields =
-        !form_util::ApplyAutofillAction(form, element_,
-                                        mojom::AutofillActionType::kFill,
-                                        action_persistence)
-             .empty();
+        !form_util::FillOrPreviewForm(form, element_, action).empty();
 
     if (!element_.Form().IsNull()) {
       UpdateLastInteractedForm(element_.Form());
@@ -711,40 +699,6 @@ void AutofillAgent::FillOrPreviewForm(
     TriggerRefillIfNeeded(form);
     SendPotentiallySubmittedFormToBrowser();
   }
-  last_autofill_action_ = mojom::AutofillActionType::kFill;
-}
-
-void AutofillAgent::UndoAutofill(
-    const FormData& form,
-    mojom::AutofillActionPersistence action_persistence) {
-  // If `element_` is null or not focused, Undo was either triggered from
-  // another frame or the `element_` has been detached from the DOM or the focus
-  // was moved otherwise. If `element_` is from a different form than `form`,
-  // then Undo was triggered from a different form in the same frame, and either
-  // this is a subframe and both forms should be filled, or focus has changed
-  // right after the user accepted the suggestions.
-  //
-  // In these cases, we set `element_` to some form field as if Undo had been
-  // triggered from that field. This is necessary because currently
-  // AutofillAgent relies on `element_` in many places.
-  if (!form.fields.empty() && (element_.IsNull() || !element_.Focused() ||
-                               form_util::GetFormRendererId(element_.Form()) !=
-                                   form.unique_renderer_id)) {
-    if (unsafe_render_frame() == nullptr) {
-      return;
-    }
-    WebDocument document = unsafe_render_frame()->GetWebFrame()->GetDocument();
-    element_ = form_util::FindFormControlElementByUniqueRendererId(
-        document, form.fields.front().unique_renderer_id);
-  }
-  if (element_.IsNull()) {
-    return;
-  }
-  if (action_persistence == mojom::AutofillActionPersistence::kFill) {
-    form_util::ApplyAutofillAction(
-        form, element_, mojom::AutofillActionType::kUndo, action_persistence);
-  }
-  last_autofill_action_ = mojom::AutofillActionType::kUndo;
 }
 
 void AutofillAgent::FieldTypePredictionsAvailable(
@@ -781,8 +735,9 @@ void AutofillAgent::ClearPreviewedForm() {
       password_generation_agent_->DidClearGenerationSuggestion(element_)) {
     return;
   }
-  form_util::ClearPreviewedElements(last_autofill_action_, previewed_elements_,
-                                    element_, query_node_autofill_state_);
+
+  form_util::ClearPreviewedElements(previewed_elements_, element_,
+                                    query_node_autofill_state_);
   previewed_elements_ = {};
 }
 
@@ -875,9 +830,9 @@ void AutofillAgent::AcceptDataListSuggestion(
     std::u16string value = input_element.EditingValue().Utf16();
     std::vector<base::StringPiece16> parts = base::SplitStringPiece(
         value, u",", base::KEEP_WHITESPACE, base::SPLIT_WANT_ALL);
-    if (parts.empty()) {
-      parts.emplace_back();
-    }
+    if (parts.size() == 0)
+      parts.push_back(base::StringPiece16());
+
     std::u16string last_part(parts.back());
     // We want to keep just the leading whitespace.
     for (size_t i = 0; i < last_part.size(); ++i) {
@@ -938,9 +893,8 @@ bool AutofillAgent::CollectFormlessElements(FormData* output) const {
 void AutofillAgent::ShowSuggestions(
     const WebFormControlElement& element,
     AutofillSuggestionTriggerSource trigger_source) {
-  // TODO(crbug.com/1467359): Make this a CHECK.
-  DCHECK(!unsafe_render_frame() ||
-         IsOwnedByFrame(element, unsafe_render_frame()));
+  CHECK(!unsafe_render_frame() ||
+        IsOwnedByFrame(element, unsafe_render_frame()));
   CHECK_NE(trigger_source, AutofillSuggestionTriggerSource::kUnspecified);
 
   if (!element.IsEnabled() || element.IsReadOnly())
@@ -976,27 +930,24 @@ void AutofillAgent::ShowSuggestions(
   }
 
   element_ = element;
-  if (form_util::IsAutofillableInputElement(input_element)) {
-    if (password_generation_agent_ &&
-        password_generation_agent_->ShowPasswordGenerationSuggestions(
-            input_element)) {
-      is_popup_possibly_visible_ = true;
-      return;
-    }
-    if (password_autofill_agent_->ShowSuggestions(
-            input_element,
-            ShowAll(ShouldShowFullSuggestionListForPasswordManager(
-                trigger_source, element)))) {
-      is_popup_possibly_visible_ = true;
-      return;
-    }
+  if (form_util::IsAutofillableInputElement(input_element) &&
+      password_autofill_agent_->ShowSuggestions(
+          input_element,
+          ShowAll(ShouldShowFullSuggestionListForPasswordManager(trigger_source,
+                                                                 element)),
+          GenerationShowing(is_generation_popup_possibly_visible_))) {
+    is_popup_possibly_visible_ = true;
+    return;
   }
+
+  if (is_generation_popup_possibly_visible_)
+    return;
 
   // Password field elements should only have suggestions shown by the password
   // autofill agent.
   // The /*disable presubmit*/ comment below is used to disable a presubmit
   // script that ensures that only IsPasswordFieldForAutofill() is used in this
-  // code (it has to appear between the function name and the parenthesis to not
+  // code (it has to appear between the function name and the parentesis to not
   // match a regex). In this specific case we are actually interested in whether
   // the field is currently a password field, not whether it has ever been a
   // password field.
@@ -1175,6 +1126,7 @@ void AutofillAgent::HidePopup() {
     return;
   }
   is_popup_possibly_visible_ = false;
+  is_generation_popup_possibly_visible_ = false;
 
   // The keyboard accessory has a separate, more complex hiding logic.
   if (IsKeyboardAccessoryEnabled())
@@ -1237,14 +1189,13 @@ void AutofillAgent::SelectControlDidChange(
   form_tracker_.SelectControlDidChange(element);
 }
 
-// Notifies the AutofillDriver about changes in the <select> or <selectlist>
-// options in batches.
+// Notifies the AutofillDriver about changes in the <select> options in batches.
 //
 // A batch ends if no event occurred for `kWaitTimeForOptionsChangesMs`
 // milliseconds. For a given batch, the AutofillDriver is informed only about
 // the last FormData. That is, if within one batch the options of different
 // forms changed, all but one of these events will be lost.
-void AutofillAgent::SelectOrSelectListFieldOptionsChanged(
+void AutofillAgent::SelectFieldOptionsChanged(
     const blink::WebFormControlElement& element) {
   DCHECK(!unsafe_render_frame() ||
          IsOwnedByFrame(element, unsafe_render_frame()));
@@ -1252,17 +1203,16 @@ void AutofillAgent::SelectOrSelectListFieldOptionsChanged(
   if (!was_last_action_fill_ || element_.IsNull())
     return;
 
-  if (select_or_selectlist_option_change_batch_timer_.IsRunning()) {
-    select_or_selectlist_option_change_batch_timer_.AbandonAndStop();
-  }
+  if (select_option_change_batch_timer_.IsRunning())
+    select_option_change_batch_timer_.AbandonAndStop();
 
-  select_or_selectlist_option_change_batch_timer_.Start(
+  select_option_change_batch_timer_.Start(
       FROM_HERE, base::Milliseconds(kWaitTimeForOptionsChangesMs),
-      base::BindRepeating(&AutofillAgent::BatchSelectOrSelectListOptionChange,
+      base::BindRepeating(&AutofillAgent::BatchSelectOptionChange,
                           weak_ptr_factory_.GetWeakPtr(), element));
 }
 
-void AutofillAgent::BatchSelectOrSelectListOptionChange(
+void AutofillAgent::BatchSelectOptionChange(
     const blink::WebFormControlElement& element) {
   if (element.GetDocument().IsNull()) {
     return;
@@ -1276,7 +1226,7 @@ void AutofillAgent::BatchSelectOrSelectListOptionChange(
                                             &form, &field) &&
       !field.options.empty()) {
     if (auto* autofill_driver = unsafe_autofill_driver()) {
-      autofill_driver->SelectOrSelectListFieldOptionsDidChange(form);
+      autofill_driver->SelectFieldOptionsDidChange(form);
     }
   }
 }
@@ -1349,10 +1299,24 @@ void AutofillAgent::HandleFocusChangeComplete() {
         focused_element.To<WebFormControlElement>();
     if (form_util::IsTextAreaElementOrTextInput(focused_form_control_element)) {
       FormControlElementClicked(focused_form_control_element);
+    } else if (IsKeyboardAccessoryEnabled()) {
+      if (auto* autofill_driver = unsafe_autofill_driver()) {
+        autofill_driver->HidePopup();
+      }
+    }
+  } else if (IsKeyboardAccessoryEnabled()) {
+    if (auto* autofill_driver = unsafe_autofill_driver()) {
+      autofill_driver->HidePopup();
     }
   }
 
   focused_node_was_last_clicked_ = false;
+
+  if (password_generation_agent_ &&
+      password_generation_agent_->HandleFocusChangeComplete(focused_element)) {
+    is_generation_popup_possibly_visible_ = true;
+    is_popup_possibly_visible_ = true;
+  }
 
   SendPotentiallySubmittedFormToBrowser();
 }

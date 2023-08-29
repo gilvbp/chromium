@@ -58,7 +58,7 @@ suite('inputCardTestSuite', function() {
   let provider = null;
 
   setup(() => {
-    document.body.innerHTML = window.trustedTypes.emptyHTML;
+    document.body.innerHTML = '';
 
     provider = new FakeInputDataProvider();
     setInputDataProviderForTesting(provider);

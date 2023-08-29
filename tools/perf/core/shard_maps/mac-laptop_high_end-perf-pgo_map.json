@@ -361,6 +361,9 @@
                 "begin": 69,
                 "abridged": false
             },
+            "tab_switching.typical_25": {
+                "abridged": false
+            },
             "v8.browsing_desktop": {
                 "end": 26,
                 "abridged": false

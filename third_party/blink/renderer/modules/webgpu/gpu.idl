@@ -23,10 +23,11 @@ typedef (sequence<GPUIntegerCoordinate> or GPUOrigin3DDict) GPUOrigin3D;
 typedef unsigned long GPUFlagsConstant;
 
 [
-    Exposed=(Window, DedicatedWorker),
+    Exposed(Window WebGPU, DedicatedWorker WebGPU),
     SecureContext
 ] interface GPU {
     [
+      RuntimeEnabled=WebGPU,
       CallWith=ScriptState
     ] Promise<GPUAdapter?> requestAdapter(optional GPURequestAdapterOptions options = {});
     GPUTextureFormat getPreferredCanvasFormat();

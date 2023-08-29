@@ -13,8 +13,6 @@
 #include "components/permissions/permission_prompt.h"
 #include "components/permissions/permission_uma_util.h"
 #include "components/permissions/permissions_client.h"
-#include "third_party/abseil-cpp/absl/types/optional.h"
-#include "ui/gfx/geometry/rect.h"
 
 namespace content {
 class WebContents;
@@ -42,7 +40,6 @@ class PermissionPromptAndroid : public PermissionPrompt {
   // PermissionPrompt:
   bool UpdateAnchor() override;
   TabSwitchingBehavior GetTabSwitchingBehavior() override;
-  absl::optional<gfx::Rect> GetViewBoundsInScreen() const override;
 
   void Closing();
   void Accept();

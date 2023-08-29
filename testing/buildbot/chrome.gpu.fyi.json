@@ -8,7 +8,7 @@
     "isolated_scripts": [
       {
         "args": [
-          "expected_color",
+          "maps",
           "--show-stdout",
           "--browser=lacros-chrome",
           "--passthrough",
@@ -26,7 +26,7 @@
         "merge": {
           "script": "//testing/merge_scripts/standard_isolated_script_merge.py"
         },
-        "name": "expected_color_pixel_passthrough_test Ash ToT",
+        "name": "maps_pixel_passthrough_test Ash ToT",
         "precommit_args": [
           "--gerrit-issue=${patch_issue}",
           "--gerrit-patchset=${patch_set}",
@@ -38,12 +38,15 @@
         },
         "should_retry_with_patch": false,
         "swarming": {
+          "can_use_on_swarming_builders": true,
           "containment_type": "AUTO",
-          "dimensions": {
-            "device_type": "jacuzzi",
-            "os": "ChromeOS",
-            "pool": "chrome.tests"
-          },
+          "dimension_sets": [
+            {
+              "device_type": "jacuzzi",
+              "os": "ChromeOS",
+              "pool": "chrome.tests"
+            }
+          ],
           "expiration": 21600,
           "idempotent": false,
           "service_account": "chrome-tester@chops-service-accounts.iam.gserviceaccount.com"
@@ -66,7 +69,6 @@
           "--dont-restore-color-profile-after-test",
           "--test-machine-name",
           "${buildername}",
-          "--jobs=1",
           "--deploy-lacros",
           "--remote=variable_chromeos_device_hostname",
           "--git-revision=${got_revision}"
@@ -87,12 +89,15 @@
         },
         "should_retry_with_patch": false,
         "swarming": {
+          "can_use_on_swarming_builders": true,
           "containment_type": "AUTO",
-          "dimensions": {
-            "device_type": "jacuzzi",
-            "os": "ChromeOS",
-            "pool": "chrome.tests"
-          },
+          "dimension_sets": [
+            {
+              "device_type": "jacuzzi",
+              "os": "ChromeOS",
+              "pool": "chrome.tests"
+            }
+          ],
           "expiration": 21600,
           "idempotent": false,
           "service_account": "chrome-tester@chops-service-accounts.iam.gserviceaccount.com"
@@ -129,12 +134,15 @@
         },
         "should_retry_with_patch": false,
         "swarming": {
+          "can_use_on_swarming_builders": true,
           "containment_type": "AUTO",
-          "dimensions": {
-            "device_type": "jacuzzi",
-            "os": "ChromeOS",
-            "pool": "chrome.tests"
-          },
+          "dimension_sets": [
+            {
+              "device_type": "jacuzzi",
+              "os": "ChromeOS",
+              "pool": "chrome.tests"
+            }
+          ],
           "expiration": 21600,
           "idempotent": false,
           "service_account": "chrome-tester@chops-service-accounts.iam.gserviceaccount.com"
@@ -170,12 +178,15 @@
         },
         "should_retry_with_patch": false,
         "swarming": {
+          "can_use_on_swarming_builders": true,
           "containment_type": "AUTO",
-          "dimensions": {
-            "device_type": "jacuzzi",
-            "os": "ChromeOS",
-            "pool": "chrome.tests"
-          },
+          "dimension_sets": [
+            {
+              "device_type": "jacuzzi",
+              "os": "ChromeOS",
+              "pool": "chrome.tests"
+            }
+          ],
           "expiration": 21600,
           "idempotent": false,
           "service_account": "chrome-tester@chops-service-accounts.iam.gserviceaccount.com"
@@ -195,7 +206,7 @@
     "isolated_scripts": [
       {
         "args": [
-          "expected_color",
+          "maps",
           "--show-stdout",
           "--browser=lacros-chrome",
           "--passthrough",
@@ -213,7 +224,7 @@
         "merge": {
           "script": "//testing/merge_scripts/standard_isolated_script_merge.py"
         },
-        "name": "expected_color_pixel_passthrough_test Ash ToT",
+        "name": "maps_pixel_passthrough_test Ash ToT",
         "precommit_args": [
           "--gerrit-issue=${patch_issue}",
           "--gerrit-patchset=${patch_set}",
@@ -225,12 +236,15 @@
         },
         "should_retry_with_patch": false,
         "swarming": {
+          "can_use_on_swarming_builders": true,
           "containment_type": "AUTO",
-          "dimensions": {
-            "device_type": "octopus",
-            "os": "ChromeOS",
-            "pool": "chrome.tests"
-          },
+          "dimension_sets": [
+            {
+              "device_type": "octopus",
+              "os": "ChromeOS",
+              "pool": "chrome.tests"
+            }
+          ],
           "expiration": 21600,
           "idempotent": false,
           "service_account": "chrome-tester@chops-service-accounts.iam.gserviceaccount.com"
@@ -253,7 +267,6 @@
           "--dont-restore-color-profile-after-test",
           "--test-machine-name",
           "${buildername}",
-          "--jobs=1",
           "--deploy-lacros",
           "--remote=variable_chromeos_device_hostname",
           "--git-revision=${got_revision}"
@@ -274,12 +287,15 @@
         },
         "should_retry_with_patch": false,
         "swarming": {
+          "can_use_on_swarming_builders": true,
           "containment_type": "AUTO",
-          "dimensions": {
-            "device_type": "octopus",
-            "os": "ChromeOS",
-            "pool": "chrome.tests"
-          },
+          "dimension_sets": [
+            {
+              "device_type": "octopus",
+              "os": "ChromeOS",
+              "pool": "chrome.tests"
+            }
+          ],
           "expiration": 21600,
           "idempotent": false,
           "service_account": "chrome-tester@chops-service-accounts.iam.gserviceaccount.com"
@@ -316,12 +332,15 @@
         },
         "should_retry_with_patch": false,
         "swarming": {
+          "can_use_on_swarming_builders": true,
           "containment_type": "AUTO",
-          "dimensions": {
-            "device_type": "octopus",
-            "os": "ChromeOS",
-            "pool": "chrome.tests"
-          },
+          "dimension_sets": [
+            {
+              "device_type": "octopus",
+              "os": "ChromeOS",
+              "pool": "chrome.tests"
+            }
+          ],
           "expiration": 21600,
           "idempotent": false,
           "service_account": "chrome-tester@chops-service-accounts.iam.gserviceaccount.com"
@@ -357,12 +376,15 @@
         },
         "should_retry_with_patch": false,
         "swarming": {
+          "can_use_on_swarming_builders": true,
           "containment_type": "AUTO",
-          "dimensions": {
-            "device_type": "octopus",
-            "os": "ChromeOS",
-            "pool": "chrome.tests"
-          },
+          "dimension_sets": [
+            {
+              "device_type": "octopus",
+              "os": "ChromeOS",
+              "pool": "chrome.tests"
+            }
+          ],
           "expiration": 21600,
           "idempotent": false,
           "service_account": "chrome-tester@chops-service-accounts.iam.gserviceaccount.com"

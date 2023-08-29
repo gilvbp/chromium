@@ -26,7 +26,7 @@ class PrepopulatedComputedStylePropertyMapTest : public PageTestBase {
   }
 
   const CSSValue* GetNativeValue(const CSSPropertyID& property_id) {
-    Element* node = GetDocument().getElementById(AtomicString("target"));
+    Element* node = GetDocument().getElementById("target");
     return CSSProperty::Get(property_id)
         .CSSValueFromComputedStyle(node->ComputedStyleRef(),
                                    nullptr /* layout_object */,
@@ -91,8 +91,7 @@ TEST_F(PrepopulatedComputedStylePropertyMapTest, NativePropertyAccessors) {
 
 TEST_F(PrepopulatedComputedStylePropertyMapTest, CustomPropertyAccessors) {
   Vector<CSSPropertyID> empty_native_properties;
-  Vector<AtomicString> custom_properties(
-      {AtomicString("--foo"), AtomicString("--bar")});
+  Vector<AtomicString> custom_properties({"--foo", "--bar"});
 
   UpdateAllLifecyclePhasesForTest();
   Node* node = PageNode();

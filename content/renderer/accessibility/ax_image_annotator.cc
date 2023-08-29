@@ -210,8 +210,12 @@ void AXImageAnnotator::OnImageUpdated(blink::WebAXObject& image) {
 
 void AXImageAnnotator::OnImageRemoved(blink::WebAXObject& image) {
   DCHECK(!image.IsDetached());
-  DCHECK(base::Contains(image_annotations_, image.AxID()));
-  image_annotations_.erase(image.AxID());
+  auto lookup = image_annotations_.find(image.AxID());
+  if (lookup == image_annotations_.end()) {
+    NOTREACHED() << "Removing an image that has not been added.";
+    return;
+  }
+  image_annotations_.erase(lookup);
 }
 
 // static
@@ -225,13 +229,11 @@ int AXImageAnnotator::GetLengthAfterRemovingStopwords(
       image_name, separators, base::TRIM_WHITESPACE, base::SPLIT_WANT_NONEMPTY);
   int remaining_codepoints = 0;
   for (const std::string& word : words) {
-    if (AXImageStopwords::GetInstance().IsImageStopword(word.c_str())) {
+    if (AXImageStopwords::GetInstance().IsImageStopword(word.c_str()))
       continue;
-    }
 
-    for (base::i18n::UTF8CharIterator iter(word); !iter.end(); iter.Advance()) {
+    for (base::i18n::UTF8CharIterator iter(word); !iter.end(); iter.Advance())
       remaining_codepoints++;
-    }
   }
 
   return remaining_codepoints;

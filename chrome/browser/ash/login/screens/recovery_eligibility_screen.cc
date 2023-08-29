@@ -14,9 +14,7 @@
 #include "chrome/browser/ui/webui/ash/login/recovery_eligibility_screen_handler.h"
 #include "chromeos/ash/components/login/auth/public/user_context.h"
 #include "chromeos/ash/components/login/auth/recovery/recovery_utils.h"
-#include "chromeos/ash/components/osauth/public/auth_session_storage.h"
 #include "components/prefs/pref_service.h"
-#include "third_party/abseil-cpp/absl/types/optional.h"
 
 namespace ash {
 
@@ -62,24 +60,10 @@ bool RecoveryEligibilityScreen::MaybeSkip(WizardContext& wizard_context) {
     exit_callback_.Run(Result::NOT_APPLICABLE);
     return true;
   }
-  std::unique_ptr<UserContext> user_context;
-  if (ash::features::ShouldUseAuthSessionStorage()) {
-    if (!wizard_context.extra_factors_token.has_value()) {
-      exit_callback_.Run(Result::NOT_APPLICABLE);
-      return true;
-    }
-    if (!ash::AuthSessionStorage::Get()->IsValid(
-            wizard_context.extra_factors_token.value())) {
-      exit_callback_.Run(Result::NOT_APPLICABLE);
-      return true;
-    }
-  } else {
-    if (!wizard_context.extra_factors_auth_session.get()) {
-      exit_callback_.Run(Result::NOT_APPLICABLE);
-      return true;
-    }
+  if (!wizard_context.extra_factors_auth_session.get()) {
+    exit_callback_.Run(Result::NOT_APPLICABLE);
+    return true;
   }
-
   if (wizard_context.skip_post_login_screens_for_tests) {
     exit_callback_.Run(Result::NOT_APPLICABLE);
     return true;
@@ -88,17 +72,7 @@ bool RecoveryEligibilityScreen::MaybeSkip(WizardContext& wizard_context) {
 }
 
 void RecoveryEligibilityScreen::ShowImpl() {
-  UserContext* user_context = nullptr;
-  if (ash::features::ShouldUseAuthSessionStorage()) {
-    CHECK(context()->extra_factors_token.has_value());
-    auto* storage = ash::AuthSessionStorage::Get();
-    auto& token = context()->extra_factors_token.value();
-    CHECK(storage->IsValid(token));
-    user_context = storage->Peek(token);
-  } else {
-    user_context = context()->extra_factors_auth_session.get();
-  }
-
+  UserContext* user_context = context()->extra_factors_auth_session.get();
   CHECK(user_context);
   auto supported_factors =
       user_context->GetAuthFactorsConfiguration().get_supported_factors();

@@ -40,7 +40,7 @@ struct COMPONENT_EXPORT(NETWORK_CPP_BASE)
       const net::NetworkIsolationKey& input) {
     return input
         .GetFrameSiteForSerialization(
-            net::NetworkIsolationKey::SerializationPassKey())
+            net::NetworkIsolationKey::SerializationPasskey())
         .value();
   }
 

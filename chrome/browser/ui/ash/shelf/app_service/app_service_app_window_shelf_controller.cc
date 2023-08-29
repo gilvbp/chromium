@@ -594,7 +594,6 @@ void AppServiceAppWindowShelfController::RegisterWindow(
     window->SetProperty(chromeos::kUseOverviewToExitFullscreen, true);
     window->SetProperty(chromeos::kNoExitFullscreenOnLock, true);
     window->SetProperty(chromeos::kUseOverviewToExitPointerLock, true);
-    window->SetProperty(ash::kShowCursorOnKeypress, true);
   } else if (crostini::IsCrostiniWindow(window)) {
     window->SetProperty(chromeos::kUseOverviewToExitFullscreen, true);
     window->SetProperty(chromeos::kUseOverviewToExitPointerLock, true);

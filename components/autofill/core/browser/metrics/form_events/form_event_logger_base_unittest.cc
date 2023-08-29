@@ -14,10 +14,9 @@
 #include "services/metrics/public/cpp/ukm_builders.h"
 #include "testing/gtest/include/gtest/gtest.h"
 
-namespace autofill::autofill_metrics {
-
 using UkmAutofillKeyMetricsType = ukm::builders::Autofill_KeyMetrics;
-using test::CreateTestFormField;
+
+namespace autofill::autofill_metrics {
 
 // Parameterized test where the parameter indicates how far we went through
 // the funnel:
@@ -41,10 +40,9 @@ TEST_P(FormEventLoggerBaseFunnelTest, LogFunnelMetrics) {
   // Create a profile.
   RecreateProfile(/*is_server=*/false);
 
-  FormData form =
-      CreateForm({CreateTestFormField("State", "state", "", "text"),
-                  CreateTestFormField("City", "city", "", "text"),
-                  CreateTestFormField("Street", "street", "", "text")});
+  FormData form = CreateForm({CreateField("State", "state", "", "text"),
+                              CreateField("City", "city", "", "text"),
+                              CreateField("Street", "street", "", "text")});
   std::vector<ServerFieldType> field_types = {
       ADDRESS_HOME_STATE, ADDRESS_HOME_CITY, ADDRESS_HOME_STREET_ADDRESS};
 
@@ -71,7 +69,8 @@ TEST_P(FormEventLoggerBaseFunnelTest, LogFunnelMetrics) {
 
   // Simulate seeing a suggestion.
   if (user_saw_suggestion) {
-    DidShowAutofillSuggestions(form);
+    autofill_manager().DidShowSuggestions(
+        /*has_autofill_suggestions=*/true, form, form.fields[0]);
   }
 
   // Simulate filling the form.
@@ -84,7 +83,7 @@ TEST_P(FormEventLoggerBaseFunnelTest, LogFunnelMetrics) {
   }
 
   FormInteractionsFlowId flow_id =
-      test_api(autofill_manager()).address_form_interactions_flow_id();
+      autofill_manager().address_form_interactions_flow_id_for_test();
   ResetDriverToCommitMetrics();
 
   // Phase 2: Validate Funnel expectations.
@@ -139,7 +138,7 @@ TEST_P(FormEventLoggerBaseFunnelTest, LogFunnelMetrics) {
     histogram_tester.ExpectTotalCount(
         "Autofill.Autocomplete.Off.FillingAcceptance.Address", 0);
     VerifyUkm(
-        &test_ukm_recorder(), form, UkmAutofillKeyMetricsType::kEntryName,
+        test_ukm_recorder_, form, UkmAutofillKeyMetricsType::kEntryName,
         {{{UkmAutofillKeyMetricsType::kFillingReadinessName, 1},
           {UkmAutofillKeyMetricsType::kFillingAcceptanceName, 1},
           {UkmAutofillKeyMetricsType::kFillingCorrectnessName, 1},
@@ -183,10 +182,9 @@ TEST_F(FormEventLoggerBaseFunnelTest, AblationState) {
   // Create a profile.
   RecreateProfile(/*is_server=*/false);
 
-  FormData form =
-      CreateForm({CreateTestFormField("State", "state", "", "text"),
-                  CreateTestFormField("City", "city", "", "text"),
-                  CreateTestFormField("Street", "street", "", "text")});
+  FormData form = CreateForm({CreateField("State", "state", "", "text"),
+                              CreateField("City", "city", "", "text"),
+                              CreateField("Street", "street", "", "text")});
   std::vector<ServerFieldType> field_types = {
       ADDRESS_HOME_STATE, ADDRESS_HOME_CITY, ADDRESS_HOME_STREET_ADDRESS};
 
@@ -242,9 +240,9 @@ void FormEventLoggerBaseKeyMetricsTest::SetUp() {
 
   // Load a fillable form.
   form_ = CreateEmptyForm();
-  form_.fields = {CreateTestFormField("State", "state", "", "text"),
-                  CreateTestFormField("City", "city", "", "text"),
-                  CreateTestFormField("Street", "street", "", "text")};
+  form_.fields = {CreateField("State", "state", "", "text"),
+                  CreateField("City", "city", "", "text"),
+                  CreateField("Street", "street", "", "text")};
   std::vector<ServerFieldType> field_types = {
       ADDRESS_HOME_STATE, ADDRESS_HOME_CITY, ADDRESS_HOME_STREET_ADDRESS};
 
@@ -264,7 +262,7 @@ TEST_F(FormEventLoggerBaseKeyMetricsTest, LogEmptyForm) {
   SubmitForm(form_);
 
   FormInteractionsFlowId flow_id =
-      test_api(autofill_manager()).address_form_interactions_flow_id();
+      autofill_manager().address_form_interactions_flow_id_for_test();
   ResetDriverToCommitMetrics();
 
   histogram_tester.ExpectBucketCount(
@@ -278,7 +276,7 @@ TEST_F(FormEventLoggerBaseKeyMetricsTest, LogEmptyForm) {
   histogram_tester.ExpectTotalCount(
       "Autofill.KeyMetrics.FormSubmission.NotAutofilled.Address", 0);
 
-  VerifyUkm(&test_ukm_recorder(), form_, UkmAutofillKeyMetricsType::kEntryName,
+  VerifyUkm(test_ukm_recorder_, form_, UkmAutofillKeyMetricsType::kEntryName,
             {{{UkmAutofillKeyMetricsType::kFillingReadinessName, 1},
               {UkmAutofillKeyMetricsType::kFillingAssistanceName, 0},
               {UkmAutofillKeyMetricsType::kAutofillFillsName, 0},
@@ -302,7 +300,7 @@ TEST_F(FormEventLoggerBaseKeyMetricsTest, LogNoProfile) {
   SubmitForm(form_);
 
   FormInteractionsFlowId flow_id =
-      test_api(autofill_manager()).address_form_interactions_flow_id();
+      autofill_manager().address_form_interactions_flow_id_for_test();
   ResetDriverToCommitMetrics();
 
   histogram_tester.ExpectBucketCount(
@@ -316,7 +314,7 @@ TEST_F(FormEventLoggerBaseKeyMetricsTest, LogNoProfile) {
   histogram_tester.ExpectBucketCount(
       "Autofill.KeyMetrics.FormSubmission.NotAutofilled.Address", 1, 1);
 
-  VerifyUkm(&test_ukm_recorder(), form_, UkmAutofillKeyMetricsType::kEntryName,
+  VerifyUkm(test_ukm_recorder_, form_, UkmAutofillKeyMetricsType::kEntryName,
             {{{UkmAutofillKeyMetricsType::kFillingReadinessName, 0},
               {UkmAutofillKeyMetricsType::kFillingAssistanceName, 0},
               {UkmAutofillKeyMetricsType::kAutofillFillsName, 0},
@@ -332,14 +330,15 @@ TEST_F(FormEventLoggerBaseKeyMetricsTest, LogUserDoesNotAcceptSuggestion) {
   // Simulate that suggestion is shown but user does not accept it.
   SeeForm(form_);
   autofill_manager().OnAskForValuesToFillTest(form_, form_.fields[0]);
-  DidShowAutofillSuggestions(form_);
+  autofill_manager().DidShowSuggestions(
+      /*has_autofill_suggestions=*/true, form_, form_.fields[0]);
 
   SimulateUserChangedTextField(form_, form_.fields[0]);
   SimulateUserChangedTextField(form_, form_.fields[1]);
   SubmitForm(form_);
 
   FormInteractionsFlowId flow_id =
-      test_api(autofill_manager()).address_form_interactions_flow_id();
+      autofill_manager().address_form_interactions_flow_id_for_test();
   ResetDriverToCommitMetrics();
 
   histogram_tester.ExpectBucketCount(
@@ -353,7 +352,7 @@ TEST_F(FormEventLoggerBaseKeyMetricsTest, LogUserDoesNotAcceptSuggestion) {
   histogram_tester.ExpectBucketCount(
       "Autofill.KeyMetrics.FormSubmission.NotAutofilled.Address", 1, 1);
 
-  VerifyUkm(&test_ukm_recorder(), form_, UkmAutofillKeyMetricsType::kEntryName,
+  VerifyUkm(test_ukm_recorder_, form_, UkmAutofillKeyMetricsType::kEntryName,
             {{{UkmAutofillKeyMetricsType::kFillingReadinessName, 1},
               {UkmAutofillKeyMetricsType::kFillingAcceptanceName, 0},
               {UkmAutofillKeyMetricsType::kFillingAssistanceName, 0},
@@ -370,7 +369,8 @@ TEST_F(FormEventLoggerBaseKeyMetricsTest, LogUserFixesFilledData) {
   // Simulate that suggestion is shown and user accepts it.
   SeeForm(form_);
   autofill_manager().OnAskForValuesToFillTest(form_, form_.fields[0]);
-  DidShowAutofillSuggestions(form_);
+  autofill_manager().DidShowSuggestions(
+      /*has_autofill_suggestions=*/true, form_, form_.fields[0]);
   FillTestProfile(form_);
 
   // Simulate user fixing the address.
@@ -378,7 +378,7 @@ TEST_F(FormEventLoggerBaseKeyMetricsTest, LogUserFixesFilledData) {
   SubmitForm(form_);
 
   FormInteractionsFlowId flow_id =
-      test_api(autofill_manager()).address_form_interactions_flow_id();
+      autofill_manager().address_form_interactions_flow_id_for_test();
   ResetDriverToCommitMetrics();
 
   histogram_tester.ExpectBucketCount(
@@ -392,7 +392,7 @@ TEST_F(FormEventLoggerBaseKeyMetricsTest, LogUserFixesFilledData) {
   histogram_tester.ExpectBucketCount(
       "Autofill.KeyMetrics.FormSubmission.Autofilled.Address", 1, 1);
 
-  VerifyUkm(&test_ukm_recorder(), form_, UkmAutofillKeyMetricsType::kEntryName,
+  VerifyUkm(test_ukm_recorder_, form_, UkmAutofillKeyMetricsType::kEntryName,
             {{{UkmAutofillKeyMetricsType::kFillingReadinessName, 1},
               {UkmAutofillKeyMetricsType::kFillingAcceptanceName, 1},
               {UkmAutofillKeyMetricsType::kFillingCorrectnessName, 0},
@@ -412,7 +412,8 @@ TEST_F(FormEventLoggerBaseKeyMetricsTest,
   // Simulate that suggestion is shown and user accepts it.
   SeeForm(form_);
   autofill_manager().OnAskForValuesToFillTest(form_, form_.fields[0]);
-  DidShowAutofillSuggestions(form_);
+  autofill_manager().DidShowSuggestions(
+      /*has_autofill_suggestions=*/true, form_, form_.fields[0]);
   FillTestProfile(form_);
 
   // Simulate user fixing the address.
@@ -421,7 +422,7 @@ TEST_F(FormEventLoggerBaseKeyMetricsTest,
   // Don't submit form.
 
   FormInteractionsFlowId flow_id =
-      test_api(autofill_manager()).address_form_interactions_flow_id();
+      autofill_manager().address_form_interactions_flow_id_for_test();
   ResetDriverToCommitMetrics();
 
   histogram_tester.ExpectTotalCount(
@@ -435,7 +436,7 @@ TEST_F(FormEventLoggerBaseKeyMetricsTest,
   histogram_tester.ExpectBucketCount(
       "Autofill.KeyMetrics.FormSubmission.Autofilled.Address", 0, 1);
 
-  VerifyUkm(&test_ukm_recorder(), form_, UkmAutofillKeyMetricsType::kEntryName,
+  VerifyUkm(test_ukm_recorder_, form_, UkmAutofillKeyMetricsType::kEntryName,
             {{{UkmAutofillKeyMetricsType::kFillingReadinessName, 0},
               {UkmAutofillKeyMetricsType::kFillingAcceptanceName, 0},
               {UkmAutofillKeyMetricsType::kFillingCorrectnessName, 0},

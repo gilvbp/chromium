@@ -35,10 +35,6 @@ class ASH_EXPORT DeskTextfield : public SystemTextfield,
   // widget or the desk bar widget.
   static void CommitChanges(views::Widget* widget);
 
-  void set_use_default_focus_manager(bool use_default_focus_manager) {
-    use_default_focus_manager_ = use_default_focus_manager;
-  }
-
   // views::View:
   gfx::Size CalculatePreferredSize() const override;
   bool SkipDefaultKeyEventProcessing(const ui::KeyEvent& event) override;
@@ -57,9 +53,6 @@ class ASH_EXPORT DeskTextfield : public SystemTextfield,
   void MaybeSwapHighlightedView(bool right) override;
   void OnViewHighlighted() override;
   void OnViewUnhighlighted() override;
-
- private:
-  bool use_default_focus_manager_ = false;
 };
 
 BEGIN_VIEW_BUILDER(/* no export */, DeskTextfield, views::Textfield)

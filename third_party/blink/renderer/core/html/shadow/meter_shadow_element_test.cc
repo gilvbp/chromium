@@ -31,8 +31,7 @@ TEST_F(MeterShadowElementTest, LayoutObjectIsNotNeeded) {
     <meter id='m' style='-webkit-appearance:none' />
   )HTML");
 
-  auto* meter =
-      To<HTMLMeterElement>(GetDocument().getElementById(AtomicString("m")));
+  auto* meter = To<HTMLMeterElement>(GetDocument().getElementById("m"));
   ASSERT_TRUE(meter);
 
   auto* shadow_element = To<Element>(meter->GetShadowRoot()->firstChild());
@@ -45,7 +44,7 @@ TEST_F(MeterShadowElementTest, LayoutObjectIsNotNeeded) {
   GetDocument().GetStyleEngine().RecalcStyle();
   EXPECT_FALSE(shadow_element->GetComputedStyle());
 
-  const ComputedStyle* style =
+  scoped_refptr<const ComputedStyle> style =
       shadow_element->StyleForLayoutObject(StyleRecalcContext());
   EXPECT_FALSE(shadow_element->LayoutObjectIsNeeded(*style));
 }
@@ -55,8 +54,7 @@ TEST_F(MeterShadowElementTest, OnlyChangeDirectionOnShadowElement) {
     <meter id='m' style='writing-mode:vertical-lr; direction: ltr;' />
   )HTML");
 
-  auto* meter =
-      To<HTMLMeterElement>(GetDocument().getElementById(AtomicString("m")));
+  auto* meter = To<HTMLMeterElement>(GetDocument().getElementById("m"));
   ASSERT_TRUE(meter);
 
   auto* shadow_element = To<Element>(meter->GetShadowRoot()->firstChild());

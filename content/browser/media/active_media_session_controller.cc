@@ -205,7 +205,6 @@ void ActiveMediaSessionController::PerformAction(MediaSessionAction action) {
     case MediaSessionAction::kSetMute:
     case MediaSessionAction::kPreviousSlide:
     case MediaSessionAction::kNextSlide:
-    case MediaSessionAction::kEnterAutoPictureInPicture:
       NOTREACHED_NORETURN();
   }
 }
@@ -259,7 +258,6 @@ ActiveMediaSessionController::MediaSessionActionToKeyCode(
     case MediaSessionAction::kSetMute:
     case MediaSessionAction::kPreviousSlide:
     case MediaSessionAction::kNextSlide:
-    case MediaSessionAction::kEnterAutoPictureInPicture:
       return absl::nullopt;
   }
 }

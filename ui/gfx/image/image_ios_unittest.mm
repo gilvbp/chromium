@@ -8,11 +8,15 @@
 #import <UIKit/UIKit.h>
 #include <stddef.h>
 
-#include "base/apple/scoped_cftyperef.h"
+#include "base/mac/scoped_cftyperef.h"
 #include "testing/gtest/include/gtest/gtest.h"
 #include "third_party/skia/include/core/SkBitmap.h"
 #include "ui/base/resource/resource_scale_factor.h"
 #include "ui/gfx/image/image_skia.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace {
 
@@ -22,9 +26,9 @@ UIImage* UIImageWithSizeAndScale(CGFloat width, CGFloat height, CGFloat scale) {
 
   // Create a UIImage directly from a CGImage in order to control the exact
   // pixel size of the underlying image.
-  base::apple::ScopedCFTypeRef<CGColorSpaceRef> color_space(
+  base::ScopedCFTypeRef<CGColorSpaceRef> color_space(
       CGColorSpaceCreateDeviceRGB());
-  base::apple::ScopedCFTypeRef<CGContextRef> context(CGBitmapContextCreate(
+  base::ScopedCFTypeRef<CGContextRef> context(CGBitmapContextCreate(
       NULL, target_size.width, target_size.height, 8, target_size.width * 4,
       color_space,
       kCGImageAlphaPremultipliedFirst |
@@ -35,7 +39,7 @@ UIImage* UIImageWithSizeAndScale(CGFloat width, CGFloat height, CGFloat scale) {
   CGContextSetFillColorWithColor(context, [[UIColor redColor] CGColor]);
   CGContextFillRect(context, target_rect);
 
-  base::apple::ScopedCFTypeRef<CGImageRef> cg_image(
+  base::ScopedCFTypeRef<CGImageRef> cg_image(
       CGBitmapContextCreateImage(context));
   return [UIImage imageWithCGImage:cg_image
                              scale:scale

@@ -23,14 +23,6 @@ export class NearbyPresenceBrowserProxy {
   }
 
   /**
-   * Triggers NearbyPresenceService to stop a scan if a scan is currently
-   * running.
-   */
-  SendStopScan() {
-    chrome.send('StopPresenceScan');
-  }
-
-  /**
    * Tells NearbyPresenceService to sync Presence credentials.
    */
   SendSyncCredentials() {
@@ -43,10 +35,6 @@ export class NearbyPresenceBrowserProxy {
    */
   SendFirstTimeFlow() {
     chrome.send('FirstTimePresenceFlow');
-  }
-
-  ConnectToPresenceDevice(endpointId) {
-    chrome.send('ConnectToPresenceDevice', [endpointId]);
   }
 }
 

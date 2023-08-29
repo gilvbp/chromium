@@ -6,8 +6,6 @@ import {TestRunner} from 'test_runner';
 import {SourcesTestRunner} from 'sources_test_runner';
 import {ElementsTestRunner} from 'elements_test_runner';
 
-import * as Root from 'devtools/core/root/root.js';
-
 (async function() {
   TestRunner.addResult(`Tests selected call frame does not change when pretty-print is toggled.\n`);
   await TestRunner.loadLegacyModule('sources');
@@ -32,7 +30,7 @@ import * as Root from 'devtools/core/root/root.js';
   var sourceFrame;
 
   function step1() {
-    var testName = Root.Runtime.Runtime.queryParam('test');
+    var testName = Root.Runtime.queryParam('test');
     testName = testName.substring(testName.lastIndexOf('/') + 1);
     SourcesTestRunner.showScriptSource(testName, step2);
   }

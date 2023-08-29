@@ -4,20 +4,15 @@
 
 #include "ui/base/interaction/interactive_test_internal.h"
 
-#include <memory>
-
 #include "base/callback_list.h"
 #include "base/check.h"
 #include "base/containers/contains.h"
-#include "base/functional/bind.h"
-#include "base/functional/overloaded.h"
 #include "base/strings/string_piece_forward.h"
 #include "base/strings/stringprintf.h"
 #include "testing/gtest/include/gtest/gtest.h"
 #include "third_party/abseil-cpp/absl/types/variant.h"
 #include "ui/base/interaction/element_identifier.h"
 #include "ui/base/interaction/element_test_util.h"
-#include "ui/base/interaction/framework_specific_implementation.h"
 
 namespace ui::test::internal {
 
@@ -25,15 +20,6 @@ DEFINE_ELEMENT_IDENTIFIER_VALUE(kInteractiveTestPivotElementId);
 DEFINE_CUSTOM_ELEMENT_EVENT_TYPE(kInteractiveTestPivotEventType);
 
 const char kInteractiveTestFailedMessagePrefix[] = "Interactive test failed ";
-const char kNoCheckDescriptionSpecified[] = "[no description specified]";
-
-StateObserverElement::StateObserverElement(ElementIdentifier id,
-                                           ElementContext context)
-    : TestElementBase(id, context) {}
-
-StateObserverElement::~StateObserverElement() = default;
-
-DEFINE_FRAMEWORK_SPECIFIC_METADATA(StateObserverElement)
 
 InteractiveTestPrivate::InteractiveTestPrivate(
     std::unique_ptr<InteractionTestUtil> test_util)
@@ -127,9 +113,7 @@ TrackedElement* InteractiveTestPrivate::GetPivotElement(
 }
 
 void InteractiveTestPrivate::DoTestSetUp() {}
-void InteractiveTestPrivate::DoTestTearDown() {
-  state_observer_elements_.clear();
-}
+void InteractiveTestPrivate::DoTestTearDown() {}
 
 void InteractiveTestPrivate::OnSequenceComplete() {
   success_ = true;
@@ -155,20 +139,21 @@ void InteractiveTestPrivate::OnSequenceAborted(
 
 void SpecifyElement(ui::InteractionSequence::StepBuilder& builder,
                     ElementSpecifier element) {
-  absl::visit(
-      base::Overloaded{
-          [&builder](ElementIdentifier id) { builder.SetElementID(id); },
-          [&builder](base::StringPiece name) { builder.SetElementName(name); }},
-      element);
+  if (auto* id = absl::get_if<ElementIdentifier>(&element)) {
+    builder.SetElementID(*id);
+  } else {
+    CHECK(absl::holds_alternative<base::StringPiece>(element));
+    builder.SetElementName(absl::get<base::StringPiece>(element));
+  }
 }
 
 std::string DescribeElement(ElementSpecifier element) {
-  return absl::visit(
-      base::Overloaded{[](ElementIdentifier id) { return id.GetName(); },
-                       [](base::StringPiece name) {
-                         return base::StringPrintf("\"%s\"", name.data());
-                       }},
-      element);
+  if (auto* id = absl::get_if<ElementIdentifier>(&element)) {
+    return id->GetName();
+  }
+  CHECK(absl::holds_alternative<base::StringPiece>(element));
+  return base::StringPrintf("\"%s\"",
+                            absl::get<base::StringPiece>(element).data());
 }
 
 InteractionSequence::Builder BuildSubsequence(

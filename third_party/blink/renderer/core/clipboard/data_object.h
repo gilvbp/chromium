@@ -47,7 +47,6 @@ namespace blink {
 class KURL;
 class SystemClipboard;
 class WebDragData;
-class ExecutionContext;
 
 enum class PasteMode;
 
@@ -64,13 +63,9 @@ class CORE_EXPORT DataObject : public GarbageCollected<DataObject>,
     virtual void OnItemListChanged() = 0;
   };
 
-  static DataObject* CreateFromClipboard(ExecutionContext* context,
-                                         SystemClipboard*,
-                                         PasteMode);
   static DataObject* CreateFromClipboard(SystemClipboard*, PasteMode);
   static DataObject* CreateFromString(const String&);
   static DataObject* Create();
-  static DataObject* Create(ExecutionContext* context, const WebDragData&);
   static DataObject* Create(const WebDragData&);
 
   DataObject();
@@ -103,8 +98,7 @@ class CORE_EXPORT DataObject : public GarbageCollected<DataObject>,
   // Used for dragging in files from the desktop.
   bool ContainsFilenames() const;
   Vector<String> Filenames() const;
-  void AddFilename(ExecutionContext* context,
-                   const String& filename,
+  void AddFilename(const String& filename,
                    const String& display_name,
                    const String& file_system_id,
                    scoped_refptr<FileSystemAccessDropData>

@@ -20,7 +20,6 @@
 #include "chrome/browser/apps/app_service/app_service_proxy.h"
 #include "chrome/browser/apps/app_service/app_service_proxy_factory.h"
 #include "chrome/browser/apps/app_service/browser_app_launcher.h"
-#include "chrome/browser/chrome_browser_main_extra_parts_nacl_deprecation.h"
 #include "chrome/browser/content_settings/host_content_settings_map_factory.h"
 #include "chrome/browser/extensions/extension_browsertest.h"
 #include "chrome/browser/profiles/profile.h"
@@ -2083,9 +2082,7 @@ TEST_PPAPI_NACL(MessageLoop_Post)
 class PackagedAppTest : public extensions::ExtensionBrowserTest {
  public:
   explicit PackagedAppTest(const std::string& toolchain)
-      : toolchain_(toolchain) {
-    feature_list_.InitAndEnableFeature(kNaclAllow);
-  }
+      : toolchain_(toolchain) { }
 
   void LaunchTestingApp(const std::string& extension_dirname) {
     base::FilePath data_dir;
@@ -2119,7 +2116,6 @@ class PackagedAppTest : public extensions::ExtensionBrowserTest {
 
  protected:
   std::string toolchain_;
-  base::test::ScopedFeatureList feature_list_;
 };
 
 class NewlibPackagedAppTest : public PackagedAppTest {

@@ -71,6 +71,8 @@ class OfferNotificationBubbleControllerImplTest
   }
 
  protected:
+  base::test::ScopedFeatureList feature_list_;
+
   class MockCouponService : public CouponService {
    public:
     MOCK_METHOD(void,
@@ -81,11 +83,9 @@ class OfferNotificationBubbleControllerImplTest
                 (const autofill::AutofillOfferData& offer));
   };
 
-  void ShowBubble(const AutofillOfferData* offer,
-                  bool expand_notification_icon = false) {
+  void ShowBubble(const AutofillOfferData* offer) {
     controller()->ShowOfferNotificationIfApplicable(
-        offer, &card_, /*should_show_icon_only=*/false,
-        expand_notification_icon);
+        offer, &card_, /*should_show_icon_only=*/false);
   }
 
   void CloseBubble(PaymentsBubbleClosedReason closed_reason =
@@ -164,7 +164,8 @@ class OfferNotificationBubbleControllerImplTest
 TEST_F(OfferNotificationBubbleControllerImplTest, BubbleShown) {
   // Check that bubble is visible.
   AutofillOfferData offer = CreateTestCardLinkedOffer(
-      /*merchant_origins=*/{GURL("https://www.example.com")},
+      /*merchant_origins=*/{GURL("https://www.example.com/first/")
+                                .DeprecatedGetOriginAsURL()},
       /*eligible_instrument_ids=*/{123});
   ShowBubble(&offer);
   EXPECT_TRUE(controller()->GetOfferNotificationBubbleView());
@@ -175,22 +176,21 @@ TEST_F(OfferNotificationBubbleControllerImplTest, BubbleShown) {
 TEST_F(OfferNotificationBubbleControllerImplTest,
        OfferBubbleDismissesOnNavigation) {
   AutofillOfferData offer = CreateTestCardLinkedOffer(
-      /*merchant_origins=*/{GURL("https://www.example.com")},
+      /*merchant_origins=*/{GURL("https://www.example.com/first/")
+                                .DeprecatedGetOriginAsURL()},
       /*eligible_instrument_ids=*/{123});
   ShowBubble(&offer);
   EXPECT_TRUE(controller()->GetOfferNotificationBubbleView());
   test_clock_.Advance(kAutofillBubbleSurviveNavigationTime - base::Seconds(1));
   controller()->ShowOfferNotificationIfApplicable(
-      &offer, nullptr, /*should_show_icon_only=*/true,
-      /*expand_notification_icon=*/false);
+      &offer, nullptr, /*should_show_icon_only=*/true);
   // Ensure the bubble is still there if
   // kOfferNotificationBubbleSurviveNavigationTime hasn't been reached yet.
   EXPECT_TRUE(controller()->GetOfferNotificationBubbleView());
 
   test_clock_.Advance(base::Seconds(2));
   controller()->ShowOfferNotificationIfApplicable(
-      &offer, nullptr, /*should_show_icon_only=*/true,
-      /*expand_notification_icon=*/false);
+      &offer, nullptr, /*should_show_icon_only=*/true);
   // Ensure new page does not have an active offer notification bubble.
   EXPECT_EQ(nullptr, controller()->GetOfferNotificationBubbleView());
 }
@@ -198,7 +198,8 @@ TEST_F(OfferNotificationBubbleControllerImplTest,
 TEST_F(OfferNotificationBubbleControllerImplTest,
        ShownOfferIsRetrievableFromController) {
   AutofillOfferData offer = CreateTestCardLinkedOffer(
-      /*merchant_origins=*/{GURL("https://www.example.com")},
+      /*merchant_origins=*/{GURL("https://www.example.com/first/")
+                                .DeprecatedGetOriginAsURL()},
       /*eligible_instrument_ids=*/{123});
   ShowBubble(&offer);
 
@@ -209,7 +210,8 @@ TEST_F(OfferNotificationBubbleControllerImplTest,
        FreeListing_NotShownWithinTimeGap) {
   base::HistogramTester histogram_tester;
   AutofillOfferData offer = CreateTestFreeListingCouponOffer(
-      /*merchant_origins=*/{GURL("https://www.example.com")},
+      /*merchant_origins=*/{GURL("https://www.example.com/first/")
+                                .DeprecatedGetOriginAsURL()},
       /*promo_code=*/"FREEFALL1234");
   // Try to show a FreeListing coupon whose last shown timestamp is within time
   // gap.
@@ -230,7 +232,8 @@ TEST_F(OfferNotificationBubbleControllerImplTest,
        FreeListing_ShownBeyondTimeGap) {
   base::HistogramTester histogram_tester;
   AutofillOfferData offer = CreateTestFreeListingCouponOffer(
-      /*merchant_origins=*/{GURL("https://www.example.com")},
+      /*merchant_origins=*/{GURL("https://www.example.com/first/")
+                                .DeprecatedGetOriginAsURL()},
       /*promo_code=*/"FREEFALL1234");
   // Try to show a FreeListing coupon whose last shown timestamp is beyond time
   // gap.
@@ -252,7 +255,8 @@ TEST_F(OfferNotificationBubbleControllerImplTest,
 TEST_F(OfferNotificationBubbleControllerImplTest,
        FreeListing_OnCouponInvalidated) {
   AutofillOfferData offer = CreateTestFreeListingCouponOffer(
-      /*merchant_origins=*/{GURL("https://www.example.com")},
+      /*merchant_origins=*/{GURL("https://www.example.com/first/")
+                                .DeprecatedGetOriginAsURL()},
       /*promo_code=*/"FREEFALL1234");
   EXPECT_CALL(mock_coupon_service_, GetCouponDisplayTimestamp(offer))
       .Times(1)
@@ -263,7 +267,8 @@ TEST_F(OfferNotificationBubbleControllerImplTest,
   EXPECT_TRUE(controller()->GetOfferNotificationBubbleView());
 
   AutofillOfferData offer2 = CreateTestFreeListingCouponOffer(
-      /*merchant_origins=*/{GURL("https://www.example.com")},
+      /*merchant_origins=*/{GURL("https://www.example.com/first/")
+                                .DeprecatedGetOriginAsURL()},
       /*promo_code=*/"FREEFALL5678");
   controller()->OnCouponInvalidated(offer2);
   EXPECT_TRUE(controller()->GetOfferNotificationBubbleView());
@@ -275,8 +280,11 @@ TEST_F(OfferNotificationBubbleControllerImplTest,
 // Tests that the offer notification bubble will be shown, and coupon service
 // will not be called for a GPay promo code offer.
 TEST_F(OfferNotificationBubbleControllerImplTest, GPayPromoCode_BubbleShown) {
+  feature_list_.InitAndEnableFeature(
+      autofill::features::kAutofillFillMerchantPromoCodeFields);
   AutofillOfferData offer = CreateTestGPayPromoCodeOffer(
-      /*merchant_origins=*/{GURL("https://www.example.com")},
+      /*merchant_origins=*/{GURL("https://www.example.com/first/")
+                                .DeprecatedGetOriginAsURL()},
       /*promo_code=*/"FREEFALL5678");
   ShowBubble(&offer);
 
@@ -287,16 +295,24 @@ TEST_F(OfferNotificationBubbleControllerImplTest, GPayPromoCode_BubbleShown) {
                 IDS_AUTOFILL_GPAY_PROMO_CODE_OFFERS_REMINDER_TITLE));
 }
 
-// Tests that the offer notification icon will be expanded.
+// Tests that the offer notification bubble will be shown as a free-listing
+// coupon notification bubble when the feature is disabled.
 TEST_F(OfferNotificationBubbleControllerImplTest,
-       OfferNotificationIconShouldBeExpanded) {
-  AutofillOfferData offer = CreateTestFreeListingCouponOffer(
-      /*merchant_origins=*/{GURL("https://www.example.com")},
-      /*promo_code=*/"FREEFALL1234");
-  controller()->ShowOfferNotificationIfApplicable(
-      &offer, nullptr, /*should_show_icon_only=*/true,
-      /*expand_notification_icon=*/true);
+       GPayPromoCode_BubbleShownWithFLCTitle) {
+  feature_list_.InitAndDisableFeature(
+      autofill::features::kAutofillFillMerchantPromoCodeFields);
 
-  EXPECT_TRUE(controller()->ShouldIconExpand());
+  AutofillOfferData offer = CreateTestGPayPromoCodeOffer(
+      /*merchant_origins=*/{GURL("https://www.example.com/first/")
+                                .DeprecatedGetOriginAsURL()},
+      /*promo_code=*/"FREEFALL5678");
+  ShowBubble(&offer);
+
+  EXPECT_CALL(mock_coupon_service_, GetCouponDisplayTimestamp).Times(0);
+  EXPECT_TRUE(controller()->GetOfferNotificationBubbleView());
+  EXPECT_EQ(
+      controller()->GetWindowTitle(),
+      l10n_util::GetStringUTF16(IDS_AUTOFILL_PROMO_CODE_OFFERS_REMINDER_TITLE));
 }
+
 }  // namespace autofill

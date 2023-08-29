@@ -110,51 +110,6 @@ class MutationsDuringClickTracker {
   }
 }
 
-/**
- * Searches page elements for "nointentdetection" meta tag. Returns true if
- * "nointentdetection" meta tag is defined.
- */
-function hasNoIntentDetection() {
-  const metas = document.getElementsByTagName('meta');
-  for (let i = 0; i < metas.length; i++) {
-    if (metas[i]!.getAttribute('name') === 'chrome' &&
-        metas[i]!.getAttribute('content') === 'nointentdetection') {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-/**
- * Searches page elements for "notranslate" meta tag. Returns true if
- * "notranslate" meta tag is defined.
- */
-function hasNoTranslate(): boolean {
-  const metas = document.getElementsByTagName('meta');
-  for (let i = 0; i < metas.length; i++) {
-    if (metas[i]!.getAttribute('name') === 'google' &&
-        metas[i]!.getAttribute('content') === 'notranslate') {
-      return true;
-    }
-  }
-  return false;
-}
-
-/**
- * Gets the content of a meta tag by httpEquiv for `httpEquiv`. The function is
- * case insensitive.
- */
-function getMetaContentByHttpEquiv(httpEquiv: string) {
-  const metaTags = document.getElementsByTagName('meta');
-  for (let metaTag of metaTags) {
-    if (metaTag.httpEquiv.toLowerCase() === httpEquiv) {
-      return metaTag.content;
-    }
-  }
-  return '';
-}
-
 const highlightTextColor = "#000";
 const highlightBackgroundColor = "rgba(20,111,225,0.25)";
 const decorationStyles = 'border-bottom-width: 1px; ' +
@@ -190,12 +145,6 @@ function extractText(maxChars: number, seqId: number): void {
     command: 'annotations.extractedText',
     text: getPageText(maxChars),
     seqId: seqId,
-    metadata: {
-      hasNoIntentDetection: hasNoIntentDetection(),
-      hasNoTranslate: hasNoTranslate(),
-      htmlLang: document.documentElement.lang,
-      httpContentLanguage: getMetaContentByHttpEquiv('content-language'),
-    },
   });
 }
 
@@ -320,68 +269,6 @@ function removeDecorations(): void {
 }
 
 /**
- * Remove current decorations of a given type.
- * @param type - the type of annotations to remove.
- */
-function removeDecorationsWithType(type: string): void {
-  var remainingDecorations = [];
-  for (let decoration of decorations) {
-    const replacements = decoration.replacements;
-    const parentNode = replacements[0]!.parentNode;
-    if (!parentNode)
-      return;
-
-    var hasReplacementOfType = false;
-    var hasReplacementOfAnotherType = false;
-    for (let replacement of replacements) {
-      if (!(replacement instanceof HTMLElement)) {
-        continue;
-      }
-      var element = replacement as HTMLElement;
-      var replacementType = element.getAttribute('data-type');
-      if (replacementType === type) {
-        hasReplacementOfType = true;
-      } else {
-        hasReplacementOfAnotherType = true;
-      }
-    }
-    if (!hasReplacementOfType) {
-      // This decoration is of another type, leave it as it is.
-      remainingDecorations.push(decoration);
-      continue;
-    }
-
-    if (!hasReplacementOfAnotherType) {
-      // Restore previous node
-      parentNode.insertBefore(decoration.original, replacements[0]!);
-      for (let replacement of replacements) {
-        parentNode.removeChild(replacement);
-      }
-      continue;
-    }
-
-    // The decoration is of mixed type. Just remove the style of the replacement
-    // of the needed type as realtering the DOM would have greater effect in
-    // the page.
-    for (let replacement of replacements) {
-      if (!(replacement instanceof HTMLElement)) {
-        continue;
-      }
-      var element = replacement as HTMLElement;
-      var replacementType = element.getAttribute('data-type');
-      if (replacementType !== type) {
-        continue;
-      }
-      element.removeAttribute('role');
-      element.removeAttribute('style');
-      element.setAttribute('data-disabled', 'true');
-    }
-    remainingDecorations.push(decoration);
-  }
-  decorations = remainingDecorations;
-}
-
-/**
  * Removes any highlight on all annotations.
  */
 function removeHighlight(): void {
@@ -495,8 +382,7 @@ function enumerateSectionsNodes(process: EnumNodesFunction): void {
 }
 
 /**
- * Returns first `maxChars` text characters from the page. If intents are
- * disabled, return an empty string.
+ * Returns first `maxChars` text characters from the page.
  * @param maxChars - maximum number of characters to parse out.
  */
 function getPageText(maxChars: number): string {
@@ -538,7 +424,6 @@ function handleTopTap(event: Event) {
   // Nothing happened to the page between `handleTap` and `handleTopTap`.
   if (event.target instanceof HTMLElement &&
       event.target.tagName === 'CHROME_ANNOTATION' &&
-      event.target.getAttribute('data-disabled') !== 'true' &&
       mutationDuringClickObserver &&
       !mutationDuringClickObserver.hasPreventativeActivity(event)) {
     const annotation = event.target;
@@ -632,7 +517,6 @@ function replaceNode(
     element.setAttribute('data-index', '' + replacement.index);
     element.setAttribute('data-data', replacement.data);
     element.setAttribute('data-annotation', replacement.annotationText);
-    element.setAttribute('data-type', replacement.type);
     element.setAttribute('role', 'link');
     // Use textContent not innerText, since setting innerText will cause
     // the text to be parsed and '\n' to be upgraded to <br>.
@@ -679,6 +563,5 @@ gCrWeb.annotations = {
   extractText,
   decorateAnnotations,
   removeDecorations,
-  removeDecorationsWithType,
   removeHighlight,
 };

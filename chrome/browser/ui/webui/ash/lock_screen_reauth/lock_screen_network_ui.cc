@@ -9,7 +9,6 @@
 #include <utility>
 
 #include "ash/public/cpp/network_config_service.h"
-#include "ash/webui/common/trusted_types_util.h"
 #include "base/functional/bind.h"
 #include "base/memory/weak_ptr.h"
 #include "base/values.h"
@@ -74,7 +73,7 @@ LockScreenNetworkUI::LockScreenNetworkUI(content::WebUI* web_ui)
   content::WebUIDataSource* html = content::WebUIDataSource::CreateAndAdd(
       web_ui->GetWebContents()->GetBrowserContext(),
       chrome::kChromeUILockScreenNetworkHost);
-  ash::EnableTrustedTypesCSP(html);
+  webui::EnableTrustedTypesCSP(html);
 
   html->AddLocalizedStrings(localized_strings);
 

@@ -23,9 +23,6 @@ class KioskAshBrowserTestStarter {
   // Must be called in SetUpOnMainThread.
   void SetLacrosAvailabilityPolicy();
 
-  // Must be called in SetUpOnMainThread.
-  void SetUpBrowserManager();
-
  private:
   base::ScopedTempDir scoped_temp_dir_xdg_;
 };

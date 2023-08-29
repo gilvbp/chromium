@@ -9,7 +9,6 @@
 
 #include "base/functional/bind.h"
 #include "base/logging.h"
-#include "base/memory/raw_ptr.h"
 #include "base/memory/weak_ptr.h"
 #include "base/observer_list.h"
 #include "chromeos/ash/components/dbus/chromebox_for_meetings/cfm_observer.h"
@@ -108,7 +107,7 @@ class CfmHotlineClientImpl : public CfmHotlineClient {
     std::move(result_callback).Run(response != nullptr);
   }
 
-  raw_ptr<dbus::ObjectProxy, ExperimentalAsh> dbus_proxy_ = nullptr;
+  dbus::ObjectProxy* dbus_proxy_ = nullptr;
   cfm::CfmObserverList observer_list_;
 
   // Note: This should remain the last member so it'll be destroyed and

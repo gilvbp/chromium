@@ -259,8 +259,9 @@ class ASH_EXPORT NotificationListView
   raw_ptr<MessageViewContainer, ExperimentalAsh>
       expand_or_collapsing_container_ = nullptr;
 
-  // If true, ChildPreferredSizeChanged() will be ignored. Used to prevent
-  // PreferredSizeChanged() triggered by system SetExpanded() calls.
+  // If true, ChildPreferredSizeChanged() will be ignored. This is used in
+  // CollapseAllNotifications() to prevent PreferredSizeChanged() triggered
+  // multiple times because of sequential SetExpanded() calls.
   bool ignore_size_change_ = false;
 
   // If true, OnNotificationRemoved() will be ignored. Used in

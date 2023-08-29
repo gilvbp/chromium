@@ -19,7 +19,6 @@
 #include "extensions/browser/app_window/app_window_geometry_cache.h"
 #include "extensions/common/constants.h"
 #include "extensions/common/extension.h"
-#include "extensions/common/extension_id.h"
 #include "extensions/test/extension_test_message_listener.h"
 #include "extensions/test/result_catcher.h"
 
@@ -31,7 +30,7 @@ using extensions::ResultCatcher;
 class GeometryCacheChangeHelper : AppWindowGeometryCache::Observer {
  public:
   GeometryCacheChangeHelper(AppWindowGeometryCache* cache,
-                            const extensions::ExtensionId& extension_id,
+                            const std::string& extension_id,
                             const std::string& window_id,
                             const gfx::Rect& bounds)
       : cache_(cache),
@@ -55,7 +54,7 @@ class GeometryCacheChangeHelper : AppWindowGeometryCache::Observer {
   }
 
   // Implements the AppWindowGeometryCache::Observer interface.
-  void OnGeometryCacheChanged(const extensions::ExtensionId& extension_id,
+  void OnGeometryCacheChanged(const std::string& extension_id,
                               const std::string& window_id,
                               const gfx::Rect& bounds) override {
     if (extension_id != extension_id_ || window_id != window_id_)
@@ -74,7 +73,7 @@ class GeometryCacheChangeHelper : AppWindowGeometryCache::Observer {
 
  private:
   raw_ptr<AppWindowGeometryCache> cache_;
-  extensions::ExtensionId extension_id_;
+  std::string extension_id_;
   std::string window_id_;
   gfx::Rect bounds_;
   bool satisfied_;

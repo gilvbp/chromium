@@ -38,7 +38,6 @@ export class IpConfigInfoDrawerElement extends IpConfigInfoDrawerElementBase {
       expanded: {
         type: Boolean,
         value: false,
-        reflectToAttribute: true,
       },
 
       gateway: {

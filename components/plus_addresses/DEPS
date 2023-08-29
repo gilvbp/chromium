@@ -1,5 +1,0 @@
-include_rules = [
-  "+components/keyed_service/core",
-  "+components/signin/public",
-  "+net/base",
-]

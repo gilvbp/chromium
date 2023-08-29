@@ -29,7 +29,6 @@
 #include "base/time/default_tick_clock.h"
 #include "base/values.h"
 #include "media/base/media.h"
-#include "media/base/mock_filters.h"
 #include "media/base/video_frame.h"
 #include "media/cast/cast_config.h"
 #include "media/cast/cast_environment.h"
@@ -295,7 +294,6 @@ int main(int argc, char** argv) {
       base::BindOnce(&media::cast::CastSender::InitializeVideo,
                      base::Unretained(cast_sender.get()),
                      fake_media_source->get_video_config(),
-                     std::make_unique<media::MockVideoEncoderMetricsProvider>(),
                      base::BindRepeating(&QuitLoopOnInitializationResult),
                      base::DoNothing()));
   base::RunLoop().Run();  // Wait for video initialization.

@@ -7,8 +7,7 @@
 #import "base/containers/contains.h"
 #import "components/bookmarks/browser/bookmark_model.h"
 #import "components/bookmarks/common/bookmark_features.h"
-#import "components/sync/base/features.h"
-#import "ios/chrome/browser/bookmarks/model/bookmark_model_bridge_observer.h"
+#import "ios/chrome/browser/bookmarks/bookmark_model_bridge_observer.h"
 #import "ios/chrome/browser/signin/authentication_service_observer_bridge.h"
 #import "ios/chrome/browser/sync/sync_observer_bridge.h"
 #import "ios/chrome/browser/ui/bookmarks/bookmark_ui_constants.h"
@@ -17,6 +16,10 @@
 #import "ios/chrome/browser/ui/bookmarks/folder_chooser/bookmarks_folder_chooser_mediator_delegate.h"
 #import "ios/chrome/browser/ui/bookmarks/folder_chooser/bookmarks_folder_chooser_mutator.h"
 #import "ios/chrome/browser/ui/bookmarks/folder_chooser/bookmarks_folder_chooser_sub_data_source_impl.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 using bookmarks::BookmarkModel;
 using bookmarks::BookmarkNode;
@@ -29,14 +32,14 @@ using bookmarks::BookmarkNode;
 @end
 
 @implementation BookmarksFolderChooserMediator {
-  // Data source from localOrSyncable bookmark model;
-  BookmarksFolderChooserSubDataSourceImpl* _localOrSyncableDataSource;
+  // Data source from profile bookmark model;
+  BookmarksFolderChooserSubDataSourceImpl* _profileDataSource;
   // Data source from account bookmark model;
   BookmarksFolderChooserSubDataSourceImpl* _accountDataSource;
   // Set of nodes to hide when displaying folders. This is to avoid to move a
   // folder inside a child folder. These are also the list of nodes that are
   // being edited (moved to a folder). This set may contain nodes from both the
-  // `_localOrSyncableBookmarkModel` and `_accountBookmarkModel`.
+  // `_profileBookmarkModel` and `_accountBookmarkModel`.
   std::set<const BookmarkNode*> _editedNodes;
   // Observer for signin status changes.
   std::unique_ptr<AuthenticationServiceObserverBridge> _authServiceBridge;
@@ -47,16 +50,14 @@ using bookmarks::BookmarkNode;
 }
 
 - (instancetype)
-    initWithLocalOrSyncableBookmarkModel:
-        (BookmarkModel*)localOrSyncableBookmarkModel
-                    accountBookmarkModel:(BookmarkModel*)accountBookmarkModel
-                             editedNodes:
-                                 (std::set<const BookmarkNode*>)editedNodes
-                   authenticationService:(AuthenticationService*)authService
-                             syncService:(syncer::SyncService*)syncService {
-  DCHECK(localOrSyncableBookmarkModel);
-  DCHECK(localOrSyncableBookmarkModel->loaded());
-  if (base::FeatureList::IsEnabled(syncer::kEnableBookmarksAccountStorage)) {
+    initWithProfileBookmarkModel:(BookmarkModel*)profileBookmarkModel
+            accountBookmarkModel:(BookmarkModel*)accountBookmarkModel
+                     editedNodes:(std::set<const BookmarkNode*>)editedNodes
+           authenticationService:(AuthenticationService*)authService
+                     syncService:(syncer::SyncService*)syncService {
+  DCHECK(profileBookmarkModel);
+  DCHECK(profileBookmarkModel->loaded());
+  if (base::FeatureList::IsEnabled(bookmarks::kEnableBookmarksAccountStorage)) {
     DCHECK(accountBookmarkModel);
     DCHECK(accountBookmarkModel->loaded());
   } else {
@@ -66,10 +67,9 @@ using bookmarks::BookmarkNode;
 
   self = [super init];
   if (self) {
-    _localOrSyncableDataSource =
-        [[BookmarksFolderChooserSubDataSourceImpl alloc]
-            initWithBookmarkModel:localOrSyncableBookmarkModel
-                 parentDataSource:self];
+    _profileDataSource = [[BookmarksFolderChooserSubDataSourceImpl alloc]
+        initWithBookmarkModel:profileBookmarkModel
+             parentDataSource:self];
     if (accountBookmarkModel) {
       _accountDataSource = [[BookmarksFolderChooserSubDataSourceImpl alloc]
           initWithBookmarkModel:accountBookmarkModel
@@ -85,9 +85,9 @@ using bookmarks::BookmarkNode;
 }
 
 - (void)disconnect {
-  [_localOrSyncableDataSource disconnect];
-  _localOrSyncableDataSource.consumer = nil;
-  _localOrSyncableDataSource = nil;
+  [_profileDataSource disconnect];
+  _profileDataSource.consumer = nil;
+  _profileDataSource = nil;
   [_accountDataSource disconnect];
   _accountDataSource.consumer = nil;
   _accountDataSource = nil;
@@ -98,7 +98,7 @@ using bookmarks::BookmarkNode;
 }
 
 - (void)dealloc {
-  DCHECK(!_localOrSyncableDataSource);
+  DCHECK(!_profileDataSource);
 }
 
 - (const std::set<const BookmarkNode*>&)editedNodes {
@@ -112,11 +112,11 @@ using bookmarks::BookmarkNode;
   return _accountDataSource;
 }
 
-- (id<BookmarksFolderChooserSubDataSource>)localOrSyncableDataSource {
-  return _localOrSyncableDataSource;
+- (id<BookmarksFolderChooserSubDataSource>)profileDataSource {
+  return _profileDataSource;
 }
 
-- (BOOL)shouldDisplayCloudIconForLocalOrSyncableBookmarks {
+- (BOOL)shouldDisplayCloudIconForProfileBookmarks {
   return bookmark_utils_ios::IsAccountBookmarkStorageOptedIn(_syncService);
 }
 
@@ -191,7 +191,7 @@ using bookmarks::BookmarkNode;
 
 - (void)setConsumer:(id<BookmarksFolderChooserConsumer>)consumer {
   _consumer = consumer;
-  _localOrSyncableDataSource.consumer = consumer;
+  _profileDataSource.consumer = consumer;
   _accountDataSource.consumer = consumer;
 }
 

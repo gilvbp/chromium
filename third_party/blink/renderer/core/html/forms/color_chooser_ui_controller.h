@@ -64,9 +64,9 @@ class CORE_EXPORT ColorChooserUIController
   void DidChooseColor(uint32_t color) final;
 
  protected:
-#if BUILDFLAG(IS_ANDROID) || BUILDFLAG(IS_APPLE)
+#if BUILDFLAG(IS_ANDROID) || BUILDFLAG(IS_MAC)
   void OpenColorChooser();
-#endif
+#endif  // BUILDFLAG(IS_ANDROID) || BUILDFLAG(IS_MAC)
   HeapMojoRemote<mojom::blink::ColorChooser> chooser_;
   Member<blink::ColorChooserClient> client_;
 

@@ -121,11 +121,6 @@ void SafeBrowsingLoudErrorUI::PopulateStringsForHtml(
       break;
   }
 
-  // Change UI based on whether the facelift feature is enabled.
-  load_time_data.Set(
-      "shouldUseNewDangerIcon",
-      base::FeatureList::IsEnabled(safe_browsing::kRedInterstitialFacelift));
-
   // Not used by this interstitial.
   load_time_data.Set("recurrentErrorParagraph", "");
   load_time_data.Set("show_recurrent_error_paragraph", false);
@@ -136,8 +131,7 @@ void SafeBrowsingLoudErrorUI::PopulateStringsForHtml(
 
 void SafeBrowsingLoudErrorUI::HandleCommand(
     SecurityInterstitialCommand command) {
-  if (base::FeatureList::IsEnabled(safe_browsing::kAntiPhishingTelemetry) ||
-      base::FeatureList::IsEnabled(safe_browsing::kRedWarningSurvey)) {
+  if (base::FeatureList::IsEnabled(safe_browsing::kAntiPhishingTelemetry)) {
     UpdateInterstitialInteractionData(command);
   }
 
@@ -256,7 +250,6 @@ void SafeBrowsingLoudErrorUI::HandleCommand(
     case CMD_TEXT_FOUND:
     case CMD_TEXT_NOT_FOUND:
     case CMD_CLOSE_INTERSTITIAL_WITHOUT_UI:
-    case CMD_REQUEST_SITE_ACCESS_PERMISSION:
       break;
   }
 }

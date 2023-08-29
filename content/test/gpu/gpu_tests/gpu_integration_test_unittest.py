@@ -14,8 +14,6 @@ from typing import Dict, List, Optional, Set, Tuple, Type
 import unittest
 import unittest.mock as mock
 
-import dataclasses  # Built-in, but pylint gives an ordering false positive.
-
 import gpu_project_config
 import run_gpu_integration_test
 
@@ -111,7 +109,7 @@ def _GenerateNvidiaExampleTagsForTestClassAndArgs(
   tags = None
   with mock.patch.object(
       test_class, 'ExpectationsFiles', return_value=['exp.txt']):
-    _ = list(test_class.GenerateTestCases__RunGpuTest(args))
+    _ = list(test_class.GenerateGpuTests(args))
     platform = fakes.FakePlatform('win', 'win10')
     browser = fakes.FakeBrowser(platform, 'release')
     browser._returned_system_info = _GetSystemInfo(
@@ -125,14 +123,15 @@ def _GenerateNvidiaExampleTagsForTestClassAndArgs(
   return tags
 
 
-@dataclasses.dataclass
 class _IntegrationTestArgs():
   """Struct-like object for defining an integration test."""
-  test_name: str
-  failures: List[str] = ct.EmptyList()
-  successes: List[str] = ct.EmptyList()
-  skips: List[str] = ct.EmptyList()
-  additional_args: List[str] = ct.EmptyList()
+
+  def __init__(self, test_name: str):
+    self.test_name = test_name
+    self.failures = []
+    self.successes = []
+    self.skips = []
+    self.additional_args = []
 
 
 class GpuIntegrationTestUnittest(unittest.TestCase):
@@ -269,19 +268,21 @@ class GpuIntegrationTestUnittest(unittest.TestCase):
             args,
             target_cpu_bits=31))
 
-  def testGenerateWebglConformanceExampleTagsForAsan(self) -> None:
+  def testGenerateWebglConformanceExampleTagsForWebglVersion1andAsan(self
+                                                                     ) -> None:
     args = gpu_helper.GetMockArgs(webgl_version='1.0.0')
     tag_set = self._TestTagGenerationForMockPlatform(
         webgl1_cit.WebGL1ConformanceIntegrationTest, args, is_asan=True)
-    self.assertTrue(set(['asan']).issubset(tag_set))
-    self.assertFalse(set(['no-asan']) & tag_set)
+    self.assertTrue(set(['asan', 'webgl-version-1']).issubset(tag_set))
+    self.assertFalse(set(['no-asan', 'webgl-version-2']) & tag_set)
 
-  def testGenerateWebglConformanceExampleTagsForNoAsan(self) -> None:
+  def testGenerateWebglConformanceExampleTagsForWebglVersion2andNoAsan(
+      self) -> None:
     args = gpu_helper.GetMockArgs(webgl_version='2.0.0')
     tag_set = self._TestTagGenerationForMockPlatform(
         webgl2_cit.WebGL2ConformanceIntegrationTest, args)
-    self.assertTrue(set(['no-asan']).issubset(tag_set))
-    self.assertFalse(set(['asan']) & tag_set)
+    self.assertTrue(set(['no-asan', 'webgl-version-2']).issubset(tag_set))
+    self.assertFalse(set(['asan', 'webgl-version-1']) & tag_set)
 
   def testWebGlConformanceTimeoutNoAsan(self) -> None:
     instance = webgl1_cit.WebGL1ConformanceIntegrationTest(
@@ -316,7 +317,6 @@ class GpuIntegrationTestUnittest(unittest.TestCase):
             'no-asan',
             'target-cpu-64',
             'no-clang-coverage',
-            'graphite-disabled',
         ]))
 
   @mock.patch('sys.platform', 'darwin')
@@ -343,7 +343,6 @@ class GpuIntegrationTestUnittest(unittest.TestCase):
             'renderer-skia-gl',
             'no-oop-c',
             'no-clang-coverage',
-            'graphite-disabled',
         ]))
 
   @mock.patch('sys.platform', 'darwin')
@@ -368,7 +367,6 @@ class GpuIntegrationTestUnittest(unittest.TestCase):
             'renderer-skia-gl',
             'no-oop-c',
             'no-clang-coverage',
-            'graphite-disabled',
         ]))
 
   @mock.patch.dict(os.environ, clear=True)
@@ -569,6 +567,27 @@ class GpuIntegrationTestUnittest(unittest.TestCase):
                          gpu_integration_test._START_BROWSER_RETRIES)
         self.assertEqual(mock_stop_browser.call_count,
                          gpu_integration_test._START_BROWSER_RETRIES)
+
+  def testConsolidateBrowserArgs(self) -> None:
+    original_args = [
+        '--foo', 'value', '--enable-features', 'A', '--disable-features', 'B',
+        '--bar', '--enable-features=C,D=E'
+    ]
+    consolidated_args = gpu_integration_test._ConsolidateBrowserArgs(
+        original_args)
+    # We use sets for the consolidation check since the order they are appended
+    # is random due to the use of a dict.
+    expected_non_consolidated = ['--foo', 'value', '--bar']
+    expected_consolidated = {
+        '--enable-features=A,C,D=E', '--disable-features=B'
+    }
+    self.assertEqual(
+        len(consolidated_args),
+        len(expected_non_consolidated) + len(expected_consolidated))
+    self.assertEqual(consolidated_args[:len(expected_non_consolidated)],
+                     expected_non_consolidated)
+    self.assertEqual(set(consolidated_args[len(expected_non_consolidated):]),
+                     expected_consolidated)
 
   def _RunIntegrationTest(self, test_args: _IntegrationTestArgs) -> None:
     """Runs an integration and asserts fail/success/skip expectations.

@@ -12,21 +12,18 @@ export class TestAndroidAppsBrowserProxy extends TestBrowserProxy {
     super([
       'requestAndroidAppsInfo',
       'showAndroidAppsSettings',
-      'showPlayStoreApps',
     ]);
   }
 
+  /** @override */
   requestAndroidAppsInfo() {
     this.methodCalled('requestAndroidAppsInfo');
     this.setAndroidAppsState(false, false);
   }
 
+  /** override */
   showAndroidAppsSettings(keyboardAction) {
     this.methodCalled('showAndroidAppsSettings');
-  }
-
-  openGooglePlayStore(url) {
-    this.methodCalled('showPlayStoreApps');
   }
 
   setAndroidAppsState(playStoreEnabled, settingsAppAvailable) {

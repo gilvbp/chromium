@@ -63,6 +63,7 @@ TEST_F(PuffinComponentUnpackerTest, UnpackFullCrx) {
             loop.Quit();
           }));
   loop.Run();
+  DETACH_FROM_SEQUENCE(sequence_checker);
 }
 
 TEST_F(PuffinComponentUnpackerTest, UnpackFileNotFound) {
@@ -84,6 +85,7 @@ TEST_F(PuffinComponentUnpackerTest, UnpackFileNotFound) {
             loop.Quit();
           }));
   loop.Run();
+  DETACH_FROM_SEQUENCE(sequence_checker);
 }
 
 // Tests a mismatch between the public key hash and the id of the component.
@@ -107,6 +109,7 @@ TEST_F(PuffinComponentUnpackerTest, UnpackFileHashMismatch) {
             loop.Quit();
           }));
   loop.Run();
+  DETACH_FROM_SEQUENCE(sequence_checker);
 }
 
 TEST_F(PuffinComponentUnpackerTest, UnpackWithVerifiedContents) {
@@ -132,7 +135,6 @@ TEST_F(PuffinComponentUnpackerTest, UnpackWithVerifiedContents) {
             EXPECT_TRUE(base::DeletePathRecursively(unpack_path));
             loop.Quit();
           }));
-  loop.Run();
 }
 
 }  // namespace update_client

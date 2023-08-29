@@ -286,128 +286,17 @@ class RenderDocumentFeatureTest : public testing::Test {
 
 TEST_F(RenderDocumentFeatureTest, FeatureDisabled) {
   DisableRenderDocument();
-  // Non-local-root subframe.
-  EXPECT_FALSE(ShouldCreateNewRenderFrameHostOnSameSiteNavigation(
-      /*is_main_frame=*/false, /*is_local_root=*/false));
-
-  // Local root subframe.
-  EXPECT_FALSE(ShouldCreateNewRenderFrameHostOnSameSiteNavigation(
-      /*is_main_frame=*/false, /*is_local_root=*/true));
-
-  // Main frame.
-  EXPECT_FALSE(ShouldCreateNewRenderFrameHostOnSameSiteNavigation(
-      /*is_main_frame=*/true, /*is_local_root=*/true));
-
-  // Crashed main frame.
-  EXPECT_TRUE(ShouldCreateNewRenderFrameHostOnSameSiteNavigation(
-      /*is_main_frame=*/true, /*is_local_root=*/true,
-      /*has_committed_any_navigation=*/true, /*must_be_replaced=*/true));
+  EXPECT_FALSE(ShouldCreateNewHostForSameSiteSubframe());
 }
 
 TEST_F(RenderDocumentFeatureTest, LevelCrashed) {
   SetLevel(RenderDocumentLevel::kCrashedFrame);
-  // Non-local-root subframe.
-  EXPECT_FALSE(ShouldCreateNewRenderFrameHostOnSameSiteNavigation(
-      /*is_main_frame=*/false, /*is_local_root=*/false));
-
-  // Local root subframe.
-  EXPECT_FALSE(ShouldCreateNewRenderFrameHostOnSameSiteNavigation(
-      /*is_main_frame=*/false, /*is_local_root=*/true));
-
-  // Main frame.
-  EXPECT_FALSE(ShouldCreateNewRenderFrameHostOnSameSiteNavigation(
-      /*is_main_frame=*/true, /*is_local_root=*/true));
-
-  // Crashed main frame.
-  EXPECT_TRUE(ShouldCreateNewRenderFrameHostOnSameSiteNavigation(
-      /*is_main_frame=*/true, /*is_local_root=*/true,
-      /*has_committed_any_navigation=*/true, /*must_be_replaced=*/true));
+  EXPECT_FALSE(ShouldCreateNewHostForSameSiteSubframe());
 }
 
-TEST_F(RenderDocumentFeatureTest, LevelNonLocalRootSubframe) {
-  SetLevel(RenderDocumentLevel::kNonLocalRootSubframe);
-  // Non-local-root subframe.
-  EXPECT_TRUE(ShouldCreateNewRenderFrameHostOnSameSiteNavigation(
-      /*is_main_frame=*/false, /*is_local_root=*/false));
-
-  // Initial non-local-root subframe.
-  EXPECT_FALSE(ShouldCreateNewRenderFrameHostOnSameSiteNavigation(
-      /*is_main_frame=*/false, /*is_local_root=*/false,
-      /*has_committed_any_navigation=*/false));
-
-  // Crashed non-local-root subframe.
-  EXPECT_TRUE(ShouldCreateNewRenderFrameHostOnSameSiteNavigation(
-      /*is_main_frame=*/false, /*is_local_root=*/false,
-      /*has_committed_any_navigation=*/false, /*must_be_replaced=*/true));
-  EXPECT_TRUE(ShouldCreateNewRenderFrameHostOnSameSiteNavigation(
-      /*is_main_frame=*/false, /*is_local_root=*/false,
-      /*has_committed_any_navigation=*/true, /*must_be_replaced=*/true));
-
-  // Local root subframe.
-  EXPECT_FALSE(ShouldCreateNewRenderFrameHostOnSameSiteNavigation(
-      /*is_main_frame=*/false, /*is_local_root=*/true));
-
-  // Main frame.
-  EXPECT_FALSE(ShouldCreateNewRenderFrameHostOnSameSiteNavigation(
-      /*is_main_frame=*/true, /*is_local_root=*/true));
-}
-
-TEST_F(RenderDocumentFeatureTest, LevelSubframe) {
+TEST_F(RenderDocumentFeatureTest, LevelSub) {
   SetLevel(RenderDocumentLevel::kSubframe);
-
-  // Non-local-root subframe.
-  EXPECT_TRUE(ShouldCreateNewRenderFrameHostOnSameSiteNavigation(
-      /*is_main_frame=*/false, /*is_local_root=*/false));
-
-  // Local root subframe.
-  EXPECT_TRUE(ShouldCreateNewRenderFrameHostOnSameSiteNavigation(
-      /*is_main_frame=*/false, /*is_local_root=*/true));
-
-  // Initial local root subframe.
-  EXPECT_FALSE(ShouldCreateNewRenderFrameHostOnSameSiteNavigation(
-      /*is_main_frame=*/false, /*is_local_root=*/true,
-      /*has_committed_any_navigation=*/false));
-
-  // Crashed local root subframe.
-  EXPECT_TRUE(ShouldCreateNewRenderFrameHostOnSameSiteNavigation(
-      /*is_main_frame=*/false, /*is_local_root=*/true,
-      /*has_committed_any_navigation=*/false, /*must_be_replaced=*/true));
-  EXPECT_TRUE(ShouldCreateNewRenderFrameHostOnSameSiteNavigation(
-      /*is_main_frame=*/false, /*is_local_root=*/true,
-      /*has_committed_any_navigation=*/true, /*must_be_replaced=*/true));
-
-  // Main frame.
-  EXPECT_FALSE(ShouldCreateNewRenderFrameHostOnSameSiteNavigation(
-      /*is_main_frame=*/true, /*is_local_root=*/true));
-}
-
-TEST_F(RenderDocumentFeatureTest, LevelAllFrames) {
-  SetLevel(RenderDocumentLevel::kAllFrames);
-
-  // Non-local-root subframe.
-  EXPECT_TRUE(ShouldCreateNewRenderFrameHostOnSameSiteNavigation(
-      /*is_main_frame=*/false, /*is_local_root=*/false));
-
-  // Local root subframe.
-  EXPECT_TRUE(ShouldCreateNewRenderFrameHostOnSameSiteNavigation(
-      /*is_main_frame=*/false, /*is_local_root=*/true));
-
-  // Main frame.
-  EXPECT_TRUE(ShouldCreateNewRenderFrameHostOnSameSiteNavigation(
-      /*is_main_frame=*/true, /*is_local_root=*/true));
-
-  // Initial main frame.
-  EXPECT_FALSE(ShouldCreateNewRenderFrameHostOnSameSiteNavigation(
-      /*is_main_frame=*/true, /*is_local_root=*/true,
-      /*has_committed_any_navigation=*/false));
-
-  // Crashed main frame.
-  EXPECT_TRUE(ShouldCreateNewRenderFrameHostOnSameSiteNavigation(
-      /*is_main_frame=*/true, /*is_local_root=*/true,
-      /*has_committed_any_navigation=*/false, /*must_be_replaced=*/true));
-  EXPECT_TRUE(ShouldCreateNewRenderFrameHostOnSameSiteNavigation(
-      /*is_main_frame=*/true, /*is_local_root=*/true,
-      /*has_committed_any_navigation=*/true, /*must_be_replaced=*/true));
+  EXPECT_TRUE(ShouldCreateNewHostForSameSiteSubframe());
 }
 
 class RenderFrameHostManagerTest

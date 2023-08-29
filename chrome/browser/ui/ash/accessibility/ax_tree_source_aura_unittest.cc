@@ -33,9 +33,7 @@ using views::Textfield;
 using views::View;
 using views::Widget;
 
-using AuraAXTreeSerializer =
-    ui::AXTreeSerializer<views::AXAuraObjWrapper*,
-                         std::vector<views::AXAuraObjWrapper*>>;
+using AuraAXTreeSerializer = ui::AXTreeSerializer<views::AXAuraObjWrapper*>;
 
 // Helper to count the number of nodes in a tree.
 size_t GetSize(AXAuraObjWrapper* tree) {
@@ -85,9 +83,9 @@ class AXTreeSourceAuraTest : public ChromeViewsTestBase {
   }
 
  protected:
-  raw_ptr<Widget, DanglingUntriaged | ExperimentalAsh> widget_;
-  raw_ptr<View, DanglingUntriaged | ExperimentalAsh> content_;
-  raw_ptr<Textfield, DanglingUntriaged | ExperimentalAsh> textfield_;
+  raw_ptr<Widget, ExperimentalAsh> widget_;
+  raw_ptr<View, ExperimentalAsh> content_;
+  raw_ptr<Textfield, ExperimentalAsh> textfield_;
   AXAuraObjCache cache_;
   // A simulated desktop root with no delegate.
   AXRootObjWrapper root_wrapper_{nullptr, &cache_};

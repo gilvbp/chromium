@@ -10,8 +10,7 @@
 namespace ash {
 
 // Applies web Kiosk restrictions to the browser in Ash.
-class WebKioskBrowserControllerAsh
-    : public chromeos::WebKioskBrowserControllerBase {
+class WebKioskBrowserControllerAsh : public WebKioskBrowserControllerBase {
  public:
   WebKioskBrowserControllerAsh(web_app::WebAppProvider& provider,
                                Browser* browser,

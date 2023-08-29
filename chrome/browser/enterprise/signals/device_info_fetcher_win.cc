@@ -337,11 +337,6 @@ SettingValue GetSecureBootEnabled() {
 
 }  // namespace
 
-// static
-std::unique_ptr<DeviceInfoFetcher> DeviceInfoFetcher::CreateInstanceInternal() {
-  return std::make_unique<DeviceInfoFetcherWin>();
-}
-
 DeviceInfoFetcherWin::DeviceInfoFetcherWin() = default;
 
 DeviceInfoFetcherWin::~DeviceInfoFetcherWin() = default;

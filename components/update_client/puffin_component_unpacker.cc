@@ -89,17 +89,17 @@ void PuffinComponentUnpacker::Verify() {
 
 void PuffinComponentUnpacker::BeginUnzipping() {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+  base::FilePath& destination = unpack_path_;
   if (!base::CreateNewTempDirectory(
           FILE_PATH_LITERAL("chrome_PuffinComponentUnpacker_BeginUnzipping"),
-          &unpack_path_)) {
+          &destination)) {
     VLOG(1) << "Unable to create temporary directory for unpacking.";
-    EndUnpacking(UnpackerError::kUnzipPathError,
-                 ::logging::GetLastSystemErrorCode());
+    EndUnpacking(UnpackerError::kUnzipPathError, 0);
     return;
   }
-  VLOG(1) << "Unpacking in: " << unpack_path_.value();
+  VLOG(1) << "Unpacking in: " << destination.value();
   unzipper_->Unzip(
-      path_, unpack_path_,
+      path_, destination,
       base::BindOnce(&PuffinComponentUnpacker::EndUnzipping, this));
 }
 
@@ -115,7 +115,7 @@ void PuffinComponentUnpacker::EndUnzipping(bool result) {
   // contents are already present in the _metadata folder.
   if (compressed_verified_contents_.empty() ||
       base::PathExists(GetVerifiedContentsPath(unpack_path_))) {
-    EndUnpacking(UnpackerError::kNone);
+    EndUnpacking(UnpackerError::kNone, 0);
     return;
   }
 
@@ -127,7 +127,7 @@ void PuffinComponentUnpacker::UncompressVerifiedContents() {
   if (!compression::GzipUncompress(compressed_verified_contents_,
                                    &verified_contents)) {
     VLOG(1) << "Decompressing verified contents from header failed";
-    EndUnpacking(UnpackerError::kNone);
+    EndUnpacking(UnpackerError::kNone, 0);
     return;
   }
 
@@ -139,7 +139,7 @@ void PuffinComponentUnpacker::StoreVerifiedContentsInExtensionDir(
   base::FilePath metadata_path = unpack_path_.Append(kMetadataFolder);
   if (!base::CreateDirectory(metadata_path)) {
     VLOG(1) << "Could not create metadata directory " << metadata_path;
-    EndUnpacking(UnpackerError::kNone);
+    EndUnpacking(UnpackerError::kNone, 0);
     return;
   }
 
@@ -149,11 +149,11 @@ void PuffinComponentUnpacker::StoreVerifiedContentsInExtensionDir(
   if (!base::WriteFile(verified_contents_path, verified_contents)) {
     VLOG(1) << "Could not write verified contents into file "
             << verified_contents_path;
-    EndUnpacking(UnpackerError::kNone);
+    EndUnpacking(UnpackerError::kNone, 0);
     return;
   }
 
-  EndUnpacking(UnpackerError::kNone);
+  EndUnpacking(UnpackerError::kNone, 0);
 }
 
 void PuffinComponentUnpacker::EndUnpacking(UnpackerError error,

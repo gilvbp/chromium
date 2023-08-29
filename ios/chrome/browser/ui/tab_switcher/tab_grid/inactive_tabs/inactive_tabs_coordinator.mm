@@ -28,11 +28,10 @@
 #import "ios/chrome/common/ui/util/constraints_ui_util.h"
 #import "ios/chrome/grit/ios_strings.h"
 #import "ui/base/l10n/l10n_util.h"
-#import "ui/strings/grit/ui_strings.h"
 
-// To get access to UseSessionSerializationOptimizations().
-// TODO(crbug.com/1383087): remove once the feature is fully launched.
-#import "ios/web/common/features.h"
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 // A view that can be dimmed continusouly between no dimming and being fully
 // dimmed (the view is then fully black).
@@ -97,11 +96,10 @@ const CGFloat kMinForwardVelocityToDismiss = 100;
 // dismissal of the view controller, when the swiped position is already more
 // than half of the screen's width.
 const CGFloat kMinBackwardVelocityToCancelDismiss = 10;
-// When the inactive tabs grid would be emptied (last inactive tab, or closing
-// all inactive tabs via the confirmation dialog), the Inactive Tabs grid is
-// popped, but to avoid having it emptied immediately (producing a glitch),
-// delay the closing of the tab(s) in the mediator.
-const base::TimeDelta kPopUIDelay = base::Seconds(0.3);
+// When closing all inactive tabs via the confirmation dialog, the Inactive Tabs
+// grid is popped, but to avoid having it emptied immediately (producing a
+// glitch), delay the closing of the tabs in the mediator.
+const base::TimeDelta kCloseAllInactiveTabsDelay = base::Seconds(0.3);
 
 }  // namespace
 
@@ -153,11 +151,6 @@ const base::TimeDelta kPopUIDelay = base::Seconds(0.3);
 
   // Provides the context menu for the tabs on the grid.
   __weak id<TabContextMenuProvider> _menuProvider;
-
-  // The navigation controller for inactive tabs settings.
-  SettingsNavigationController* _settingsController;
-
-  ActionSheetCoordinator* _actionSheetCoordinator;
 }
 
 #pragma mark - Public
@@ -182,21 +175,14 @@ const base::TimeDelta kPopUIDelay = base::Seconds(0.3);
   return self.mediator;
 }
 
-- (id<GridToolbarsConfigurationProvider>)toolbarsConfigurationProvider {
-  return self.mediator;
-}
-
 #pragma mark - ChromeCoordinator
 
 - (void)start {
   [super start];
 
   // Create the mediator.
-  SessionRestorationBrowserAgent* sessionRestorationBrowserAgent = nullptr;
-  if (!web::features::UseSessionSerializationOptimizations()) {
-    sessionRestorationBrowserAgent =
-        SessionRestorationBrowserAgent::FromBrowser(self.browser);
-  }
+  SessionRestorationBrowserAgent* sessionRestorationBrowserAgent =
+      SessionRestorationBrowserAgent::FromBrowser(self.browser);
   SnapshotBrowserAgent* snapshotBrowserAgent =
       SnapshotBrowserAgent::FromBrowser(self.browser);
   sessions::TabRestoreService* tabRestoreService =
@@ -297,7 +283,6 @@ const base::TimeDelta kPopUIDelay = base::Seconds(0.3);
 
   [self.userEducationCoordinator stop];
   self.userEducationCoordinator = nil;
-  [self dismissActionSheetCoordinator];
 
   [self.mediator disconnect];
   self.mediator = nil;
@@ -315,25 +300,7 @@ const base::TimeDelta kPopUIDelay = base::Seconds(0.3);
 
 - (void)gridViewController:(GridViewController*)gridViewController
         didCloseItemWithID:(NSString*)itemID {
-  __weak __typeof(self) weakSelf = self;
-  auto closeItem = ^{
-    [weakSelf.mediator closeItemWithID:itemID];
-  };
-
-  NSInteger numberOfTabs = [self.mediator numberOfItems];
-  // If it is the latest item, pop the view (UI change), and defer the model
-  // change after the UI is no longer visible.
-  if (numberOfTabs <= 1) {
-    // Pop the view controller.
-    [_delegate inactiveTabsCoordinatorDidFinish:self];
-    // To prevent the Inactive Tabs grid from being immediately emptied, defer
-    // the closing to after the view is popped.
-    base::SequencedTaskRunner::GetCurrentDefault()->PostDelayedTask(
-        FROM_HERE, base::BindOnce(closeItem), kPopUIDelay);
-  } else {
-    // Otherwise, close the item immediately.
-    closeItem();
-  }
+  [self.mediator closeItemWithID:itemID];
 }
 
 - (void)didTapPlusSignInGridViewController:
@@ -468,33 +435,27 @@ const base::TimeDelta kPopUIDelay = base::Seconds(0.3);
   NSString* message = l10n_util::GetNSString(
       IDS_IOS_INACTIVE_TABS_CLOSE_ALL_CONFIRMATION_MESSAGE);
 
-  [_actionSheetCoordinator stop];
-  _actionSheetCoordinator = [[ActionSheetCoordinator alloc]
-      initWithBaseViewController:self.baseViewController
-                         browser:self.browser
-                           title:title
-                         message:message
-                   barButtonItem:barButtonItem];
+  ActionSheetCoordinator* actionSheetCoordinator =
+      [[ActionSheetCoordinator alloc]
+          initWithBaseViewController:self.baseViewController
+                             browser:self.browser
+                               title:title
+                             message:message
+                       barButtonItem:barButtonItem];
 
   __weak __typeof(self) weakSelf = self;
   NSString* closeAllActionTitle = l10n_util::GetNSString(
       IDS_IOS_INACTIVE_TABS_CLOSE_ALL_CONFIRMATION_OPTION);
-  [_actionSheetCoordinator
+  [actionSheetCoordinator
       addItemWithTitle:closeAllActionTitle
                 action:^{
                   base::RecordAction(base::UserMetricsAction(
                       "MobileInactiveTabsCloseAllConfirm"));
                   [weakSelf closeAllInactiveTabs];
-                  [weakSelf dismissActionSheetCoordinator];
                 }
                  style:UIAlertActionStyleDestructive];
-  [_actionSheetCoordinator
-      addItemWithTitle:l10n_util::GetNSString(IDS_APP_CANCEL)
-                action:^{
-                  [weakSelf dismissActionSheetCoordinator];
-                }
-                 style:UIAlertActionStyleCancel];
-  [_actionSheetCoordinator start];
+
+  [actionSheetCoordinator start];
 }
 
 #pragma mark - SettingsNavigationControllerDelegate
@@ -575,11 +536,6 @@ const base::TimeDelta kPopUIDelay = base::Seconds(0.3);
 }
 
 #pragma mark - Private
-
-- (void)dismissActionSheetCoordinator {
-  [_actionSheetCoordinator stop];
-  _actionSheetCoordinator = nil;
-}
 
 // Called to make the Inactive Tabs grid appear in an animation.
 - (void)animateIn {
@@ -690,16 +646,17 @@ const base::TimeDelta kPopUIDelay = base::Seconds(0.3);
       FROM_HERE, base::BindOnce(^{
         [weakSelf.mediator closeAllItems];
       }),
-      kPopUIDelay);
+      kCloseAllInactiveTabsDelay);
 }
 
 // Presents the Inactive Tabs settings modally in their own navigation
 // controller.
 - (void)presentSettings {
-  _settingsController = [SettingsNavigationController
-      inactiveTabsControllerForBrowser:self.browser
-                              delegate:self];
-  [self.viewController presentViewController:_settingsController
+  SettingsNavigationController* settingsController =
+      [SettingsNavigationController
+          inactiveTabsControllerForBrowser:self.browser
+                                  delegate:self];
+  [self.viewController presentViewController:settingsController
                                     animated:YES
                                   completion:nil];
   self.presentingSettings = YES;
@@ -708,8 +665,6 @@ const base::TimeDelta kPopUIDelay = base::Seconds(0.3);
 // Called when Inactive Tabs settings are dismissed.
 - (void)onSettingsDismissed {
   self.presentingSettings = NO;
-  [_settingsController cleanUpSettings];
-  _settingsController = nil;
   if (self.onSettingsDismissedBlock) {
     self.onSettingsDismissedBlock();
     self.onSettingsDismissedBlock = nil;

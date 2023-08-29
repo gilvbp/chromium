@@ -31,16 +31,13 @@ std::vector<ash::NotifierMetadata> PwaNotifierController::GetNotifierList(
   if (observed_profile_ && !observed_profile_->IsSameOrParent(profile))
     weak_ptr_factory_.InvalidateWeakPtrs();
   observed_profile_ = profile;
-  auto* cache =
-      &apps::AppServiceProxyFactory::GetForProfile(profile)->AppRegistryCache();
-  if (!app_registry_cache_observer_.IsObservingSource(cache)) {
-    app_registry_cache_observer_.Reset();
-    app_registry_cache_observer_.Observe(cache);
-  }
+  apps::AppServiceProxy* service =
+      apps::AppServiceProxyFactory::GetForProfile(profile);
+  Observe(&service->AppRegistryCache());
   package_to_app_ids_.clear();
 
   std::vector<NotifierDataset> notifier_dataset;
-  cache->ForEachApp(
+  service->AppRegistryCache().ForEachApp(
       [&notifier_dataset](const apps::AppUpdate& update) {
         if (update.AppType() != apps::AppType::kWeb)
           return;
@@ -50,7 +47,8 @@ std::vector<ash::NotifierMetadata> PwaNotifierController::GetNotifierList(
               apps::PermissionType::kNotifications) {
             continue;
           }
-          DCHECK(absl::holds_alternative<apps::TriState>(permission->value));
+          DCHECK(absl::holds_alternative<apps::TriState>(
+              permission->value->value));
           // Do not include notifier metadata for system apps.
           if (update.InstallReason() == apps::InstallReason::kSystem) {
             return;
@@ -96,7 +94,8 @@ void PwaNotifierController::SetNotifierEnabled(
 
   auto permission = std::make_unique<apps::Permission>(
       apps::PermissionType::kNotifications,
-      enabled ? apps::TriState::kAllow : apps::TriState::kBlock,
+      enabled ? std::make_unique<apps::PermissionValue>(apps::TriState::kAllow)
+              : std::make_unique<apps::PermissionValue>(apps::TriState::kBlock),
       /*is_managed=*/false);
   apps::AppServiceProxy* service =
       apps::AppServiceProxyFactory::GetForProfile(profile);
@@ -161,5 +160,5 @@ void PwaNotifierController::OnAppUpdate(const apps::AppUpdate& update) {
 
 void PwaNotifierController::OnAppRegistryCacheWillBeDestroyed(
     apps::AppRegistryCache* cache) {
-  app_registry_cache_observer_.Reset();
+  Observe(nullptr);
 }

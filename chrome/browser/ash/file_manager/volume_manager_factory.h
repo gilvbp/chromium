@@ -35,7 +35,7 @@ class VolumeManagerFactory : public ProfileKeyedServiceFactory {
   // BrowserContextKeyedServiceFactory overrides:
   bool ServiceIsCreatedWithBrowserContext() const override;
   bool ServiceIsNULLWhileTesting() const override;
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* context) const override;
 
  private:

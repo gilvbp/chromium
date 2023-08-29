@@ -40,22 +40,18 @@ function distribution {
   (for repo in `cat $scriptdir/git-dirs.txt`; do
     repoline=(${repo//,/ })
     d=${repoline[0]}
+    cd $d
 
-    if [ -d $d ]
-    then
-      cd $d
-
-      for pattern in $( \
-        git log --after="$1-${date}" --before="$2-${date}" \
-          --pretty=format:"%ae" | \
-          grep -Ev ${botpatterns} | awk -F@ '{print $2}'); do
-        if [ -n "${pattern_to_org["$pattern"]}" ]; then
-          echo ${pattern_to_org["$pattern"]}
-        else
-          echo Others
-        fi
-      done
-    fi
+    for pattern in $( \
+      git log --after="$1-${date}" --before="$2-${date}" \
+        --pretty=format:"%ae" | \
+        grep -Ev ${botpatterns} | awk -F@ '{print $2}'); do
+      if [ -n "${pattern_to_org["$pattern"]}" ]; then
+        echo ${pattern_to_org["$pattern"]}
+      else
+        echo Others
+      fi
+    done
     cd $topdir
   done) | sort | uniq -c | sort -nr | awk '{printf("%s,%d\n",$2,$1)}'
 }
@@ -70,5 +66,3 @@ distribution 2017 2018
 distribution 2018 2019
 distribution 2019 2020
 distribution 2020 2021
-distribution 2021 2022
-distribution 2022 2023

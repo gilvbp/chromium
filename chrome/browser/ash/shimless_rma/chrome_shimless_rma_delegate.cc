@@ -7,7 +7,6 @@
 #include <string>
 #include <utility>
 
-#include "ash/constants/ash_features.h"
 #include "ash/constants/ash_switches.h"
 #include "base/check.h"
 #include "base/command_line.h"
@@ -16,7 +15,6 @@
 #include "base/memory/weak_ptr.h"
 #include "chrome/browser/ash/accessibility/accessibility_manager.h"
 #include "chrome/browser/ash/login/chrome_restart_request.h"
-#include "chrome/browser/ash/shimless_rma/diagnostics_app_profile_helper.h"
 #include "chrome/browser/ash/system/device_disabling_manager.h"
 #include "chrome/browser/ui/webui/ash/diagnostics_dialog.h"
 #include "chrome/services/qrcode_generator/public/cpp/qrcode_generator_service.h"
@@ -97,14 +95,6 @@ void ChromeShimlessRmaDelegate::SetQRCodeServiceForTesting(
              qrcode_generator::QRImageGenerator::ResponseCallback callback)>
         qrcode_service_override) {
   qrcode_service_override_ = std::move(qrcode_service_override);
-}
-
-void ChromeShimlessRmaDelegate::PrepareDiagnosticsAppBrowserContext(
-    const base::FilePath& crx_path,
-    const base::FilePath& swbn_path,
-    PrepareDiagnosticsAppBrowserContextCallback callback) {
-  CHECK(::ash::features::IsShimlessRMA3pDiagnosticsEnabled());
-  PrepareDiagnosticsAppProfile(crx_path, swbn_path, std::move(callback));
 }
 
 }  // namespace shimless_rma

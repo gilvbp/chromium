@@ -2135,12 +2135,6 @@ public class WebContentsAccessibilityTreeTest {
 
     @Test
     @SmallTest
-    public void test_search() {
-        performHtmlTest("search.html");
-    }
-
-    @Test
-    @SmallTest
     public void test_section() {
         performHtmlTest("section.html");
     }

@@ -115,6 +115,17 @@ class StoragePartitionSizeEstimator : private CookiesTreeModel::Observer,
     model_loaded_closure_.Run();
   }
 
+  void TreeNodesAdded(ui::TreeModel* model,
+                      ui::TreeModelNode* parent,
+                      size_t start,
+                      size_t count) override {}
+  void TreeNodesRemoved(ui::TreeModel* model,
+                        ui::TreeModelNode* parent,
+                        size_t start,
+                        size_t count) override {}
+  void TreeNodeChanged(ui::TreeModel* model, ui::TreeModelNode* node) override {
+  }
+
   // ProfileObserver:
   void OnProfileWillBeDestroyed(Profile* profile) override {
     // Abort if the Profile is being deleted. |complete_callback_| owns the
@@ -170,9 +181,6 @@ void GetIsolatedWebAppBrowsingDataCommand::StartWithLock(
     url::Origin iwa_origin = url::Origin::Create(web_app.scope());
     for (const content::StoragePartitionConfig& storage_partition_config :
          web_app_registrar.GetIsolatedWebAppStoragePartitionConfigs(app_id)) {
-      if (storage_partition_config.in_memory()) {
-        continue;
-      }
       pending_task_count_++;
       debug_data_.EnsureDict(kDebugOriginKey)->Set(iwa_origin.Serialize(), -1);
       StoragePartitionSizeEstimator::EstimateSize(

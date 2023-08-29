@@ -6,11 +6,9 @@
 
 #include <memory>
 
-#include "base/debug/dump_without_crashing.h"
 #include "base/files/file_path.h"
 #include "base/functional/bind.h"
 #include "base/logging.h"
-#include "base/metrics/histogram_functions.h"
 #include "base/no_destructor.h"
 #include "base/ranges/algorithm.h"
 #include "base/task/thread_pool.h"
@@ -95,18 +93,6 @@ bool ScreenAIInstallState::ShouldInstall(PrefService* local_state) {
   return true;
 }
 
-// static
-void ScreenAIInstallState::RecordComponentInstallationResult(bool install,
-                                                             bool successful) {
-  if (install) {
-    base::UmaHistogramBoolean("Accessibility.ScreenAI.Component.Install",
-                              successful);
-  } else {
-    base::UmaHistogramBoolean("Accessibility.ScreenAI.Component.Uninstall",
-                              successful);
-  }
-}
-
 void ScreenAIInstallState::AddObserver(
     ScreenAIInstallState::Observer* observer) {
   observers_.push_back(observer);
@@ -114,12 +100,8 @@ void ScreenAIInstallState::AddObserver(
 
   // Adding an observer indicates that we need the component.
   SetLastUsageTime();
-  DownloadComponent();
-}
-
-void ScreenAIInstallState::DownloadComponent() {
-  if (MayTryDownload()) {
-    DownloadComponentInternal();
+  if (state_ == State::kNotDownloaded) {
+    DownloadComponent();
   }
 }
 
@@ -159,13 +141,6 @@ void ScreenAIInstallState::SetState(State state) {
     return;
   }
 
-  // Switching state from `Ready` to `Fail` is unexpected and requires
-  // investigation.
-  // TODO(crbug.com/1443345): Remove after verifying this case does not happen.
-  if (state == State::kFailed && state_ == State::kReady) {
-    base::debug::DumpWithoutCrashing();
-  }
-
   state_ = state;
   for (ScreenAIInstallState::Observer* observer : observers_) {
     observer->StateChanged(state_);
@@ -187,26 +162,9 @@ void ScreenAIInstallState::SetComponentReadyForTesting() {
   state_ = State::kReady;
 }
 
-bool ScreenAIInstallState::MayTryDownload() {
-  switch (state_) {
-    case State::kNotDownloaded:
-    case State::kFailed:
-      return true;
-
-    case State::kDownloading:
-    case State::kDownloaded:
-    case State::kReady:
-      return false;
-  }
-}
-
 void ScreenAIInstallState::ResetForTesting() {
   state_ = State::kNotDownloaded;
   component_binary_path_.clear();
-}
-
-void ScreenAIInstallState::SetStateForTesting(State state) {
-  state_ = state;
 }
 
 }  // namespace screen_ai

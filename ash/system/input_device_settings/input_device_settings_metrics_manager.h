@@ -10,7 +10,6 @@
 #include "base/containers/flat_map.h"
 #include "base/containers/flat_set.h"
 #include "components/account_id/account_id.h"
-#include "ui/events/keycodes/keyboard_codes_posix.h"
 
 namespace ash {
 
@@ -31,9 +30,6 @@ class ASH_EXPORT InputDeviceSettingsMetricsManager {
       const mojom::Keyboard& keyboard,
       const mojom::KeyboardSettings& default_settings);
   void RecordModifierRemappingHash(const mojom::Keyboard& keyboard);
-  void RecordSixPackKeyInfo(const mojom::Keyboard& keyboard,
-                            ui::KeyboardCode key_code,
-                            bool is_initial_value);
   void RecordMouseInitialMetrics(const mojom::Mouse& mouse);
   void RecordMouseChangedMetrics(const mojom::Mouse& mouse,
                                  const mojom::MouseSettings& old_settings);
@@ -46,8 +42,6 @@ class ASH_EXPORT InputDeviceSettingsMetricsManager {
   void RecordTouchpadChangedMetrics(
       const mojom::Touchpad& touchpad,
       const mojom::TouchpadSettings& old_settings);
-  void RecordKeyboardMouseComboDeviceMetric(const mojom::Keyboard& keyboard,
-                                            const mojom::Mouse& mouse);
 
  private:
   void RecordKeyboardNumberOfKeysRemapped(const mojom::Keyboard& keyboard);

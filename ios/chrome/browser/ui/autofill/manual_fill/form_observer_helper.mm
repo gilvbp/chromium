@@ -8,6 +8,10 @@
 #import "ios/chrome/browser/shared/model/web_state_list/web_state_list.h"
 #import "ios/chrome/browser/shared/model/web_state_list/web_state_list_observer_bridge.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 @interface FormObserverHelper ()<FormActivityObserver, WebStateListObserving>
 // The WebStateList this instance is observing in order to update the
 // active WebState.
@@ -90,14 +94,14 @@
   }
 }
 
-#pragma mark - WebStateListObserving
+#pragma mark - CRWWebStateListObserver
 
-- (void)didChangeWebStateList:(WebStateList*)webStateList
-                       change:(const WebStateListChange&)change
-                       status:(const WebStateListStatus&)status {
-  if (status.active_web_state_change()) {
-    self.webState = status.new_active_web_state;
-  }
+- (void)webStateList:(WebStateList*)webStateList
+    didChangeActiveWebState:(web::WebState*)newWebState
+                oldWebState:(web::WebState*)oldWebState
+                    atIndex:(int)atIndex
+                     reason:(ActiveWebStateChangeReason)reason {
+  self.webState = newWebState;
 }
 
 #pragma mark - Setters

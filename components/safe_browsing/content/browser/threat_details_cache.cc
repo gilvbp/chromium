@@ -89,8 +89,7 @@ void ThreatDetailsCacheCollector::OpenEntry() {
             "This request fetches different items from safe browsing cache "
             "and DOES NOT make an actual network request."
           trigger:
-            "When safe browsing extended report is collecting data. Triggered "
-            "also when HaTS surveys are enabled."
+            "When safe browsing extended report is collecting data."
           data:
             "None"
           destination: OTHER
@@ -102,8 +101,7 @@ void ThreatDetailsCacheCollector::OpenEntry() {
             "security incident reports to Google via disabling 'Automatically "
             "report details of possible security incidents to Google.' in "
             "Chrome's settings under Advanced Settings, Privacy. The feature "
-            "is disabled by default. Note: if a user takes a survey related "
-            "to security or safety, this feature may be enabled."
+            "is disabled by default."
           chrome_policy {
             SafeBrowsingExtendedReportingEnabled {
               policy_options {mode: MANDATORY}

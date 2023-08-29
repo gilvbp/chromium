@@ -168,8 +168,7 @@ public class InstanceSwitcherCoordinator {
                 .with(ModalDialogProperties.TITLE, title)
                 .with(ModalDialogProperties.POSITIVE_BUTTON_TEXT, null)
                 .with(ModalDialogProperties.NEGATIVE_BUTTON_TEXT, resources, R.string.cancel)
-                .with(ModalDialogProperties.DIALOG_STYLES,
-                        ModalDialogProperties.DialogStyles.DIALOG_WHEN_LARGE)
+                .with(ModalDialogProperties.DIALOG_WHEN_LARGE, true)
                 .build();
     }
 

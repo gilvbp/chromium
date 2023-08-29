@@ -673,6 +673,8 @@ TEST_F(StaleHostResolverTest, CreatedByContext) {
       URLRequestContextConfig::CreateURLRequestContextConfig(
           // Enable QUIC.
           true,
+          // QUIC User Agent ID.
+          "Default QUIC User Agent ID",
           // Enable SPDY.
           true,
           // Enable Brotli.

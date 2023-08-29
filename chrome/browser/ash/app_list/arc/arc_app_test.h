@@ -11,7 +11,6 @@
 
 #include "ash/components/arc/mojom/app.mojom-forward.h"
 #include "base/memory/raw_ptr.h"
-#include "components/user_manager/scoped_user_manager.h"
 
 namespace arc {
 namespace mojom {
@@ -31,6 +30,7 @@ class FakeChromeUserManager;
 }
 
 namespace user_manager {
+class ScopedUserManager;
 class User;
 }
 
@@ -148,8 +148,7 @@ class ArcAppTest {
   // Unowned pointer.
   raw_ptr<Profile, ExperimentalAsh> profile_ = nullptr;
 
-  raw_ptr<ArcAppListPrefs, DanglingUntriaged | ExperimentalAsh>
-      arc_app_list_pref_ = nullptr;
+  raw_ptr<ArcAppListPrefs, ExperimentalAsh> arc_app_list_pref_ = nullptr;
 
   bool wait_default_apps_ = true;
 

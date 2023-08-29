@@ -110,11 +110,9 @@ QuickUnlockFactory::QuickUnlockFactory()
 
 QuickUnlockFactory::~QuickUnlockFactory() = default;
 
-std::unique_ptr<KeyedService>
-QuickUnlockFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* QuickUnlockFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
-  return std::make_unique<QuickUnlockStorage>(
-      Profile::FromBrowserContext(context));
+  return new QuickUnlockStorage(Profile::FromBrowserContext(context));
 }
 
 }  // namespace quick_unlock

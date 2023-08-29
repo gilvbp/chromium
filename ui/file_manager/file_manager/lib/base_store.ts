@@ -105,9 +105,8 @@ export class BaseStore<StateType, ActionType extends BaseAction> {
    * @param observer The instance that was observing the store.
    */
   unsubscribe(observer: StoreObserver<StateType>) {
-    // Create new copy of `observers_` to ensure elements are not removed
-    // from the array in the middle of the loop in `notifyObservers_()`.
-    this.observers_ = this.observers_.filter(o => o !== observer);
+    const index = this.observers_.indexOf(observer);
+    this.observers_.splice(index, 1);
   }
 
   /**
@@ -211,29 +210,4 @@ export class BaseStore<StateType, ActionType extends BaseAction> {
       }
     });
   }
-}
-
-/** A reducer takes a payload and uses it to generate a new state. */
-export type Reducer<StateType, ActionType extends BaseAction> =
-    (state: StateType, payload: ActionType['payload']) => StateType;
-
-/** A map from actions to arrays of reducers. */
-export type ReducersMap<StateType, ActionType extends BaseAction> =
-    Map<ActionType['type'], Array<Reducer<StateType, ActionType>>>;
-
-/**
- * Creates action dispatchers for actions that are handled by a single reducer.
- */
-export function addReducer<StateType, ActionType extends BaseAction>(
-    type: ActionType['type'], reducer: Reducer<StateType, ActionType>,
-    reducerMap: ReducersMap<StateType, ActionType>) {
-  let reducerList = reducerMap.get(type);
-  if (!reducerList) {
-    reducerList = [];
-    reducerMap.set(type, reducerList);
-  }
-  reducerList.push(reducer);
-
-  return (payload: ActionType['payload']): ActionType =>
-             ({type, payload} as ActionType);
 }

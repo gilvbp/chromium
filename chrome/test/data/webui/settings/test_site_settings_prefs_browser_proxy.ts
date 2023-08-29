@@ -5,7 +5,7 @@
 // clang-format off
 import {assert} from 'chrome://resources/js/assert_ts.js';
 import {webUIListenerCallback} from 'chrome://resources/js/cr.js';
-import {StorageAccessSiteException, AppProtocolEntry, ChooserType, ContentSetting, ContentSettingsTypes, HandlerEntry, OriginFileSystemGrants, ProtocolEntry, RawChooserException, RawSiteException, RecentSitePermissions, SiteGroup, SiteSettingSource, SiteSettingsPrefsBrowserProxy, ZoomLevelEntry} from 'chrome://settings/lazy_load.js';
+import {AppProtocolEntry, ChooserType, ContentSetting, ContentSettingsTypes, HandlerEntry, FileSystemGrantsForOrigin, ProtocolEntry, RawChooserException, RawSiteException, RecentSitePermissions, SiteGroup, SiteSettingSource, SiteSettingsPrefsBrowserProxy, ZoomLevelEntry} from 'chrome://settings/lazy_load.js';
 import {TestBrowserProxy} from 'chrome://webui-test/test_browser_proxy.js';
 
 import {createOriginInfo, createSiteGroup,createSiteSettingsPrefs, getContentSettingsTypeFromChooserType, SiteSettingsPref} from './test_util.js';
@@ -30,8 +30,7 @@ export class TestSiteSettingsPrefsBrowserProxy extends TestBrowserProxy
   private isPatternValidForType_: boolean = true;
   private cookieSettingDesciption_: string = '';
   private recentSitePermissions_: RecentSitePermissions[] = [];
-  private fileSystemGrantsList_: OriginFileSystemGrants[] = [];
-  private storageAccessExceptionList_: StorageAccessSiteException[] = [];
+  private fileSystemGrantsList_: FileSystemGrantsForOrigin[] = [];
 
   constructor() {
     super([
@@ -43,7 +42,6 @@ export class TestSiteSettingsPrefsBrowserProxy extends TestBrowserProxy
       'getDefaultValueForContentType',
       'getFormattedBytes',
       'getExceptionList',
-      'getStorageAccessExceptionList',
       'getOriginPermissions',
       'isOriginValid',
       'isPatternValidForType',
@@ -627,28 +625,14 @@ export class TestSiteSettingsPrefsBrowserProxy extends TestBrowserProxy
     return Promise.resolve(`Test Extension ${id}`);
   }
 
-  setFileSystemGrants(fileSystemGrantsForOriginList: OriginFileSystemGrants[]):
-      void {
+  setFileSystemGrants(fileSystemGrantsForOriginList:
+                          FileSystemGrantsForOrigin[]): void {
     this.fileSystemGrantsList_ = fileSystemGrantsForOriginList;
   }
 
-  getFileSystemGrants(): Promise<OriginFileSystemGrants[]> {
+  getFileSystemGrants(): Promise<FileSystemGrantsForOrigin[]> {
     this.methodCalled('getFileSystemGrants');
     return Promise.resolve(this.fileSystemGrantsList_);
-  }
-
-  setStorageAccessExceptionList(storageAccessExceptionList:
-                                    StorageAccessSiteException[]) {
-    this.storageAccessExceptionList_ = storageAccessExceptionList;
-  }
-
-  /** @override */
-  getStorageAccessExceptionList(categorySubtype: ContentSetting):
-      Promise<StorageAccessSiteException[]> {
-    this.methodCalled('getStorageAccessExceptionList', categorySubtype);
-
-    return Promise.resolve(this.storageAccessExceptionList_.filter(
-        site => site.setting === categorySubtype));
   }
 
   revokeFileSystemGrant(origin: string, filePath: string): void {

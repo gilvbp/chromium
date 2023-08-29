@@ -19,7 +19,6 @@
 #include "gin/dictionary.h"
 #include "gin/handle.h"
 #include "gin/object_template_builder.h"
-#include "third_party/abseil-cpp/absl/types/optional.h"
 
 namespace extensions {
 
@@ -49,7 +48,6 @@ gin::ObjectTemplateBuilder APIBindingJSUtil::GetObjectTemplateBuilder(
       .SetMethod("setLastError", &APIBindingJSUtil::SetLastError)
       .SetMethod("clearLastError", &APIBindingJSUtil::ClearLastError)
       .SetMethod("hasLastError", &APIBindingJSUtil::HasLastError)
-      .SetMethod("getLastErrorMessage", &APIBindingJSUtil::GetLastErrorMessage)
       .SetMethod("runCallbackWithLastError",
                  &APIBindingJSUtil::RunCallbackWithLastError)
       .SetMethod("handleException", &APIBindingJSUtil::HandleException)
@@ -207,22 +205,6 @@ void APIBindingJSUtil::HasLastError(gin::Arguments* arguments) {
   bool has_last_error = request_handler_->last_error()->HasError(
       arguments->GetHolderCreationContext());
   arguments->Return(has_last_error);
-}
-
-void APIBindingJSUtil::GetLastErrorMessage(gin::Arguments* arguments) {
-  v8::Isolate* isolate = arguments->isolate();
-  v8::HandleScope handle_scope(isolate);
-
-  absl::optional<std::string> last_error_message =
-      request_handler_->last_error()->GetErrorMessage(
-          arguments->GetHolderCreationContext());
-  if (last_error_message) {
-    arguments->Return(*last_error_message);
-  } else {
-    // TODO(tjudkins): It would be nicer to return a v8::Undefined here, but the
-    // gin converter doesn't support it at the moment.
-    arguments->Return(v8::Local<v8::Value>());
-  }
 }
 
 void APIBindingJSUtil::RunCallbackWithLastError(

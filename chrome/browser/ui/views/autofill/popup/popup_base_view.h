@@ -7,10 +7,8 @@
 
 #include <memory>
 
-#include "base/functional/callback_helpers.h"
 #include "base/memory/raw_ptr.h"
 #include "base/memory/weak_ptr.h"
-#include "base/scoped_observation.h"
 #include "build/build_config.h"
 #include "chrome/browser/ui/autofill/autofill_popup_view_delegate.h"
 #include "chrome/browser/ui/browser.h"
@@ -125,11 +123,6 @@ class PopupBaseView : public PopupRowView::AccessibilitySelectionDelegate,
   // Must return the container view for this popup.
   gfx::NativeView container_view();
 
-  // Scoped observation for focus events.
-  base::ScopedObservation<views::WidgetFocusManager,
-                          views::WidgetFocusChangeListener>
-      focus_observation_{this};
-
   // Controller for this popup. Weak reference.
   base::WeakPtr<AutofillPopupViewDelegate> delegate_;
 
@@ -138,9 +131,6 @@ class PopupBaseView : public PopupRowView::AccessibilitySelectionDelegate,
 
   // Ensures that the menu start event is not fired redundantly.
   bool is_ax_menu_start_event_fired_ = false;
-
-  // Responsible for re-enabling custom cursors on popup destruction.
-  base::ScopedClosureRunner custom_cursor_blocker_;
 };
 
 }  // namespace autofill

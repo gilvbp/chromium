@@ -8,13 +8,8 @@
 #include <string>
 
 #include "base/functional/callback.h"
-#include "build/build_config.h"
 #include "components/autofill/core/browser/address_normalizer.h"
 #include "components/autofill/core/browser/data_model/autofill_profile.h"
-
-#if BUILDFLAG(IS_ANDROID)
-#include "base/android/scoped_java_ref.h"
-#endif
 
 namespace autofill {
 
@@ -32,9 +27,6 @@ class TestAddressNormalizer : public AddressNormalizer {
       int timeout_seconds,
       AddressNormalizer::NormalizationCallback callback) override;
   bool NormalizeAddressSync(AutofillProfile* profile) override;
-#if BUILDFLAG(IS_ANDROID)
-  base::android::ScopedJavaLocalRef<jobject> GetJavaObject() override;
-#endif  // BUILDFLAG(IS_ANDROID)
 
   void OnAddressValidationRulesLoaded(const std::string& region_code,
                                       bool success) override {}

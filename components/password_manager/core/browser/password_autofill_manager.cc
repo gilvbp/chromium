@@ -13,7 +13,6 @@
 #include <vector>
 
 #include "base/base64.h"
-#include "base/feature_list.h"
 #include "base/functional/bind.h"
 #include "base/i18n/case_conversion.h"
 #include "base/logging.h"
@@ -35,7 +34,6 @@
 #include "components/device_reauth/device_authenticator.h"
 #include "components/favicon/core/favicon_util.h"
 #include "components/password_manager/core/browser/affiliation/affiliation_utils.h"
-#include "components/password_manager/core/browser/features/password_features.h"
 #include "components/password_manager/core/browser/password_feature_manager.h"
 #include "components/password_manager/core/browser/password_manager_client.h"
 #include "components/password_manager/core/browser/password_manager_driver.h"
@@ -44,10 +42,10 @@
 #include "components/password_manager/core/browser/password_manager_util.h"
 #include "components/password_manager/core/browser/password_ui_utils.h"
 #include "components/password_manager/core/browser/webauthn_credentials_delegate.h"
+#include "components/password_manager/core/common/password_manager_features.h"
 #include "components/prefs/pref_service.h"
 #include "components/signin/public/base/signin_metrics.h"
 #include "components/strings/grit/components_strings.h"
-#include "components/sync/base/features.h"
 #include "third_party/abseil-cpp/absl/types/optional.h"
 #include "ui/base/l10n/l10n_util.h"
 #include "url/gurl.h"
@@ -249,10 +247,9 @@ void MaybeAppendManagePasswordsEntry(
 }
 
 #if !BUILDFLAG(IS_ANDROID)
-autofill::Suggestion CreateWebAuthnEntry(bool listed_passkeys) {
-  autofill::Suggestion suggestion(l10n_util::GetStringUTF16(
-      listed_passkeys ? IDS_PASSWORD_MANAGER_USE_DIFFERENT_PASSKEY
-                      : IDS_PASSWORD_MANAGER_USE_PASSKEY));
+autofill::Suggestion CreateWebAuthnEntry() {
+  autofill::Suggestion suggestion(
+      l10n_util::GetStringUTF16(IDS_PASSWORD_MANAGER_USE_DEVICE_PASSKEY));
   suggestion.icon = "device";
   suggestion.popup_item_id =
       autofill::PopupItemId::kWebauthnSignInWithAnotherDevice;
@@ -271,10 +268,8 @@ autofill::Suggestion CreateGenerationEntry() {
 
 // Entry for opting in to password account storage and then filling.
 autofill::Suggestion CreateEntryToOptInToAccountStorageThenFill() {
-  autofill::Suggestion suggestion(l10n_util::GetStringUTF16(
-      base::FeatureList::IsEnabled(syncer::kSyncWebauthnCredentials)
-          ? IDS_PASSWORD_MANAGER_OPT_INTO_ACCOUNT_STORE_WITH_PASSKEYS
-          : IDS_PASSWORD_MANAGER_OPT_INTO_ACCOUNT_STORE));
+  autofill::Suggestion suggestion(
+      l10n_util::GetStringUTF16(IDS_PASSWORD_MANAGER_OPT_INTO_ACCOUNT_STORE));
   suggestion.popup_item_id =
       autofill::PopupItemId::kPasswordAccountStorageOptIn;
   suggestion.icon = "google";
@@ -391,8 +386,7 @@ void PasswordAutofillManager::OnPopupHidden() {}
 void PasswordAutofillManager::OnPopupSuppressed() {}
 
 void PasswordAutofillManager::DidSelectSuggestion(
-    const autofill::Suggestion& suggestion,
-    autofill::AutofillSuggestionTriggerSource trigger_source) {
+    const autofill::Suggestion& suggestion) {
   ClearPreviewedForm();
   if (suggestion.popup_item_id ==
           autofill::PopupItemId::kAllSavedPasswordsEntry ||
@@ -430,17 +424,14 @@ void PasswordAutofillManager::OnUnlockItemAccepted(
           : signin_metrics::ReauthAccessPoint::kGeneratePasswordDropdown;
   password_client_->TriggerReauthForPrimaryAccount(
       reauth_access_point,
-      base::BindOnce(
-          &PasswordAutofillManager::OnUnlockReauthCompleted,
-          weak_ptr_factory_.GetWeakPtr(), unlock_item,
-          autofill_client_->GetReopenPopupArgs(
-              autofill::AutofillSuggestionTriggerSource::kPasswordManager)));
+      base::BindOnce(&PasswordAutofillManager::OnUnlockReauthCompleted,
+                     weak_ptr_factory_.GetWeakPtr(), unlock_item,
+                     autofill_client_->GetReopenPopupArgs()));
 }
 
 void PasswordAutofillManager::DidAcceptSuggestion(
     const autofill::Suggestion& suggestion,
-    int position,
-    autofill::AutofillSuggestionTriggerSource trigger_source) {
+    int position) {
   using metrics_util::PasswordDropdownSelectedOption;
   switch (suggestion.popup_item_id) {
     case autofill::PopupItemId::kGeneratePasswordEntry:
@@ -580,6 +571,11 @@ autofill::PopupType PasswordAutofillManager::GetPopupType() const {
   return autofill::PopupType::kPasswords;
 }
 
+absl::variant<autofill::AutofillDriver*, PasswordManagerDriver*>
+PasswordAutofillManager::GetDriver() {
+  return password_manager_driver_.get();
+}
+
 int32_t PasswordAutofillManager::GetWebContentsPopupControllerAxId() const {
   // TODO: Needs to be implemented when we step up accessibility features in the
   // future.
@@ -650,12 +646,11 @@ void PasswordAutofillManager::DeleteFillData() {
 }
 
 void PasswordAutofillManager::OnShowPasswordSuggestions(
-    autofill::FieldRendererId element_id,
     base::i18n::TextDirection text_direction,
     const std::u16string& typed_username,
     int options,
     const gfx::RectF& bounds) {
-  bool autofill_available = ShowPopup(
+  ShowPopup(
       bounds, text_direction,
       BuildSuggestions(typed_username,
                        ForPasswordField(options & autofill::IS_PASSWORD_FIELD),
@@ -663,11 +658,6 @@ void PasswordAutofillManager::OnShowPasswordSuggestions(
                        OffersGeneration(false), ShowPasswordSuggestions(true),
                        ShowWebAuthnCredentials(
                            options & autofill::ACCEPTS_WEBAUTHN_CREDENTIALS)));
-
-  password_manager_driver_->SetSuggestionAvailability(
-      element_id, autofill_available
-                      ? autofill::mojom::AutofillState::kAutofillAvailable
-                      : autofill::mojom::AutofillState::kNoSuggestions);
 }
 
 bool PasswordAutofillManager::MaybeShowPasswordSuggestions(
@@ -751,8 +741,8 @@ std::vector<autofill::Suggestion> PasswordAutofillManager::BuildSuggestions(
           suggestion.custom_icon = page_favicon_;
           suggestion.payload = autofill::Suggestion::BackendId(
               base::Base64Encode(passkey.credential_id()));
-          suggestion.labels = {
-              {autofill::Suggestion::Text(passkey.GetAuthenticatorLabel())}};
+          suggestion.labels = {{autofill::Suggestion::Text(
+              l10n_util::GetStringUTF16(passkey.GetAuthenticatorLabel()))}};
           return suggestion;
         });
   }
@@ -772,10 +762,8 @@ std::vector<autofill::Suggestion> PasswordAutofillManager::BuildSuggestions(
 
 #if !BUILDFLAG(IS_ANDROID)
   // Add "Sign in with another device" button.
-  if (uses_passkeys && delegate->OfferPasskeysFromAnotherDeviceOption()) {
-    bool listed_passkeys = delegate->GetPasskeys().has_value() &&
-                           delegate->GetPasskeys()->size() > 0;
-    suggestions.push_back(CreateWebAuthnEntry(listed_passkeys));
+  if (uses_passkeys) {
+    suggestions.push_back(CreateWebAuthnEntry());
   }
 #endif
 
@@ -835,7 +823,7 @@ bool PasswordAutofillManager::ShowPopup(
   LogMetricsForSuggestions(suggestions);
   autofill::AutofillClient::PopupOpenArgs open_args(
       bounds, text_direction, suggestions,
-      autofill::AutofillSuggestionTriggerSource::kPasswordManager);
+      autofill::AutoselectFirstSuggestion(false));
   autofill_client_->ShowAutofillPopup(open_args,
                                       weak_ptr_factory_.GetWeakPtr());
   return true;
@@ -850,9 +838,7 @@ void PasswordAutofillManager::UpdatePopup(
         autofill::PopupHidingReason::kNoSuggestions);
     return;
   }
-  autofill_client_->UpdatePopup(
-      suggestions, autofill::PopupType::kPasswords,
-      autofill::AutofillSuggestionTriggerSource::kPasswordManager);
+  autofill_client_->UpdatePopup(suggestions, autofill::PopupType::kPasswords);
 }
 
 bool PasswordAutofillManager::FillSuggestion(

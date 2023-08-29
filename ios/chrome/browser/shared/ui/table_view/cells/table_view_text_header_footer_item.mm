@@ -15,12 +15,9 @@
 #import "ios/chrome/common/ui/util/text_view_util.h"
 #import "net/base/mac/url_conversions.h"
 
-namespace {
-
-// Horizontal padding used to align the header/footer with the section items.
-const CGFloat kHorizontalSpacingToAlignWithItems = 16.0;
-
-}  // namespace
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 @implementation TableViewTextHeaderFooterItem
 
@@ -50,11 +47,6 @@ const CGFloat kHorizontalSpacingToAlignWithItems = 16.0;
   if ([self.URLs count] != 0) {
     headerFooter.URLs = self.URLs;
   }
-
-  if (self.forceIndents) {
-    [headerFooter setForceIndents:YES];
-  }
-
   [headerFooter setSubtitle:self.subtitle];
   headerFooter.textLabel.text = self.text;
   headerFooter.textLabel.accessibilityTraits = UIAccessibilityTraitHeader;
@@ -70,12 +62,7 @@ const CGFloat kHorizontalSpacingToAlignWithItems = 16.0;
 
 @end
 
-@implementation TableViewTextHeaderFooterView {
-  // Leading constaint for item.
-  NSLayoutConstraint* leadingAnchorConstraint_;
-  // Trailing constraint for item.
-  NSLayoutConstraint* trailingAnchorConstraint_;
-}
+@implementation TableViewTextHeaderFooterView
 @synthesize subtitleView = _subtitleView;
 @synthesize textLabel = _textLabel;
 
@@ -135,14 +122,14 @@ const CGFloat kHorizontalSpacingToAlignWithItems = 16.0;
         constraintEqualToAnchor:self.contentView.bottomAnchor
                        constant:-kTableViewVerticalSpacing];
     bottomAnchorConstraint.priority = UILayoutPriorityDefaultHigh;
-    leadingAnchorConstraint_ = [containerView.leadingAnchor
+    NSLayoutConstraint* leadingAnchorConstraint = [containerView.leadingAnchor
         constraintEqualToAnchor:self.contentView.leadingAnchor
                        constant:HorizontalPadding()];
-    leadingAnchorConstraint_.priority = UILayoutPriorityDefaultHigh;
-    trailingAnchorConstraint_ = [containerView.trailingAnchor
+    leadingAnchorConstraint.priority = UILayoutPriorityDefaultHigh;
+    NSLayoutConstraint* trailingAnchorConstraint = [containerView.trailingAnchor
         constraintEqualToAnchor:self.contentView.trailingAnchor
                        constant:-HorizontalPadding()];
-    trailingAnchorConstraint_.priority = UILayoutPriorityDefaultHigh;
+    trailingAnchorConstraint.priority = UILayoutPriorityDefaultHigh;
 
     // Set and activate constraints.
     [NSLayoutConstraint activateConstraints:@[
@@ -150,8 +137,8 @@ const CGFloat kHorizontalSpacingToAlignWithItems = 16.0;
       heightConstraint,
       topAnchorConstraint,
       bottomAnchorConstraint,
-      leadingAnchorConstraint_,
-      trailingAnchorConstraint_,
+      leadingAnchorConstraint,
+      trailingAnchorConstraint,
       [containerView.centerYAnchor
           constraintEqualToAnchor:self.contentView.centerYAnchor],
       // Vertical StackView Constraints.
@@ -172,7 +159,6 @@ const CGFloat kHorizontalSpacingToAlignWithItems = 16.0;
   self.subtitleView.text = nil;
   self.delegate = nil;
   self.URLs = @[];
-  self.forceIndents = NO;
 }
 
 #pragma mark - Properties
@@ -208,13 +194,6 @@ const CGFloat kHorizontalSpacingToAlignWithItems = 16.0;
   }
 
   self.subtitleView.attributedText = attributedText;
-}
-
-- (void)setForceIndents:(BOOL)forceIndents {
-  leadingAnchorConstraint_.constant =
-      forceIndents ? kHorizontalSpacingToAlignWithItems : HorizontalPadding();
-  trailingAnchorConstraint_.constant =
-      forceIndents ? -kHorizontalSpacingToAlignWithItems : -HorizontalPadding();
 }
 
 #pragma mark - UITextViewDelegate

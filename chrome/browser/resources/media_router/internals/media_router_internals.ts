@@ -33,9 +33,6 @@ document.addEventListener('DOMContentLoaded', function() {
   const checkbox = getRequiredElement('checkbox-input') as HTMLInputElement;
   sendWithPromise('isMirroringStatsEnabled').then((enabled: boolean) => {
     checkbox.checked = enabled;
-    if (enabled) {
-      sendWithPromise('getMirroringStats').then(displayMirroringStats);
-    }
   });
 
   checkbox.addEventListener('change', async function() {

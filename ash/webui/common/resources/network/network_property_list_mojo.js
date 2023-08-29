@@ -506,18 +506,21 @@ Polymer({
 
     if (key === 'tether.signalStrength') {
       assert(typeof value === 'number');
-      // Possible |signalStrength| values should be from 0 to 100. Add <=
-      // checks for robustness.
-      if (value === 0) {
-        return this.i18n('OncTether-SignalStrength_None');
+      // Possible |signalStrength| values should be 0, 25, 50, 75, and 100. Add
+      // <= checks for robustness.
+      if (value <= 24) {
+        return this.i18n('OncTether-SignalStrength_Weak');
       }
-      if (value <= 25) {
-        return this.i18n('OncTether-SignalStrength_Low');
+      if (value <= 49) {
+        return this.i18n('OncTether-SignalStrength_Okay');
       }
-      if (value <= 50) {
-        return this.i18n('OncTether-SignalStrength_Medium');
+      if (value <= 74) {
+        return this.i18n('OncTether-SignalStrength_Good');
       }
-      return this.i18n('OncTether-SignalStrength_Strong');
+      if (value <= 99) {
+        return this.i18n('OncTether-SignalStrength_Strong');
+      }
+      return this.i18n('OncTether-SignalStrength_VeryStrong');
     }
 
     if (key === 'tether.carrier') {

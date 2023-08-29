@@ -8,128 +8,94 @@ import './edu_coexistence_button.js';
 import './gaia_action_buttons/gaia_action_buttons.js';
 import 'chrome://resources/polymer/v3_0/paper-spinner/paper-spinner-lite.js';
 
-import {WebUIListenerBehavior, WebUIListenerBehaviorInterface} from '//resources/ash/common/web_ui_listener_behavior.js';
-import {assert} from 'chrome://resources/ash/common/assert.js';
-import {html, mixinBehaviors, PolymerElement} from 'chrome://resources/polymer/v3_0/polymer/polymer_bundled.min.js';
+import {WebUIListenerBehavior} from 'chrome://resources/ash/common/web_ui_listener_behavior.js';
+import {html, Polymer} from 'chrome://resources/polymer/v3_0/polymer/polymer_bundled.min.js';
+
+import {AuthParams} from '../../gaia_auth_host/authenticator.js';
 
 import {EduCoexistenceBrowserProxyImpl} from './edu_coexistence_browser_proxy.js';
-import {EduCoexistenceController} from './edu_coexistence_controller.js';
+import {EduCoexistenceController, EduCoexistenceParams} from './edu_coexistence_controller.js';
 
-/**
- * @constructor
- * @extends {PolymerElement}
- * @implements {WebUIListenerBehaviorInterface}
- */
-const EduCoexistenceUiBase =
-    mixinBehaviors([WebUIListenerBehavior], PolymerElement);
+Polymer({
+  is: 'edu-coexistence-ui',
 
-/**
- * @polymer
- */
-class EduCoexistenceUi extends EduCoexistenceUiBase {
-  static get is() {
-    return 'edu-coexistence-ui';
-  }
+  _template: html`{__html_template__}`,
 
-  static get template() {
-    return html`{__html_template__}`;
-  }
+  behaviors: [WebUIListenerBehavior],
 
-  static get properties() {
-    return {
-      /**
-       * Indicates whether the page is loading.
-       * @private
-       */
-      loading_: {
-        type: Boolean,
-        value: true,
-      },
+  properties: {
+    /**
+     * Indicates whether the page is loading.
+     * @private {boolean}
+     */
+    loading_: {
+      type: Boolean,
+      value: true,
+    },
 
-      /**
-       * Indicates whether the GAIA buttons should be shown.
-       * @private
-       */
-      showGaiaButtons_: {
-        type: Boolean,
-        value: false,
-      },
+    /**
+     * Indicates whether the GAIA buttons should be shown.
+     * @private {boolean}
+     */
+    showGaiaButtons_: {
+      type: Boolean,
+      value: false,
+    },
 
-      /**
-       * Indicates whether the GAIA "Next" button should be shown.
-       * @private
-       */
-      showGaiaNextButton_: {
-        type: Boolean,
-        value: false,
-      },
+    /**
+     * Indicates whether the GAIA "Next" button should be shown.
+     * @private {boolean}
+     */
+    showGaiaNextButton_: {
+      type: Boolean,
+      value: false,
+    },
 
-      /**
-       * The EDU Coexistence controller instance.
-       * @private
-       */
-      controller_: Object,
-    };
-  }
+    /**
+     * Indicates whether the new OOBE Layout should be enabled. For simplicity,
+     * this only controls whether particular elements are rendered, and does not
+     * prevent the new oobe adaptive layout features, which will always be
+     * enabled.
+     * @private {boolean}
+     */
+    newOobeLayoutEnabled_: {
+      type: Boolean,
+      value: false,
+    },
 
-  constructor() {
-    super();
-    this.webview_ = null;
-  }
+    /**
+     * Indicates the CSS class used for the buttons-layout for
+     * the buttons at the bottom of the screen.  The layout
+     * differs depending on whether the new OOBE layout is enabled.
+     * @private {string}
+     */
+    buttonsLayoutCssClass_: {
+      type: String,
+      computed: 'getButtonsCssClass_(newOobeLayoutEnabled_)',
+    },
 
-  /** @override */
-  ready() {
-    super.ready();
-    this.addWebUIListener(
-        'load-auth-extension', data => this.loadAuthExtension_(data));
-    this.webview_ = this.$.signinFrame;
+    /**
+     * The EDU Coexistence controller instance.
+     * @private {?EduCoexistenceController}
+     */
+    controller_: Object,
+  },
 
-    this.webview_.addEventListener('loadabort', () => {
-      this.loading_ = false;
-      this.showError_();
-    });
-
-    EduCoexistenceBrowserProxyImpl.getInstance().initializeEduArgs().then(
-        (data) => {
-          this.controller_ =
-              new EduCoexistenceController(this, assert(this.webview_), data);
-          EduCoexistenceBrowserProxyImpl.getInstance().initializeLogin();
-        },
-        (err) => {
-          this.showError_();
-          EduCoexistenceBrowserProxyImpl.getInstance().onError(
-              ['There was an error getting edu coexistence data']);
-        });
-  }
-
-  /** @private */
-  showError_() {
-    this.dispatchEvent(new CustomEvent('go-error', {
-      bubbles: true,
-      composed: true,
-    }));
-  }
-
-  /**
-   * Attempts to close the dialog
-   * @private
-   */
+  /** Attempts to close the dialog */
   closeDialog_() {
     EduCoexistenceBrowserProxyImpl.getInstance().dialogClose();
-  }
+  },
 
-  /** @private */
   loadAuthExtension_(data) {
     // Set up the controller.
     this.controller_.loadAuthExtension(data);
 
     this.webview_.addEventListener('contentload', () => {
       this.loading_ = false;
-      this.configureUiForGaiaFlow_();
+      this.configureUiForGaiaFlow();
     });
-  }
+  },
 
-  /** @private */
   handleGaiaLoginGoBack_(e) {
     e.stopPropagation();
     const backButton = this.root.getElementById('gaia-back-button');
@@ -149,18 +115,27 @@ class EduCoexistenceUi extends EduCoexistenceUiBase {
       }, 1000 /* 1 second */);
       this.webview_.focus();
     });
-  }
+  },
+
+  /** @private */
+  getButtonsCssClass_(newOobeLayoutEnabled) {
+    return newOobeLayoutEnabled ? 'new-oobe-buttons-layout' : 'buttons-layout';
+  },
 
   /**
    * Configures the UI for showing/hiding the GAIA login flow.
-   * @private
    */
-  configureUiForGaiaFlow_() {
+  configureUiForGaiaFlow() {
     const currentUrl = new URL(this.webview_.src);
-    const template = this.shadowRoot.querySelector('edu-coexistence-template');
+    const template = this.$$('edu-coexistence-template');
     const contentContainer = template.$$('div.content-container');
 
     if (currentUrl.hostname !== this.controller_.getFlowOriginHostname()) {
+      this.$$('edu-coexistence-button').newOobeStyleEnabled =
+          this.newOobeLayoutEnabled_;
+
+      this.$$('gaia-action-buttons').roundedButton = this.newOobeLayoutEnabled_;
+
       // Show the GAIA Buttons.
       this.showGaiaButtons_ = true;
       // Shrink the content-container so that the buttons line up more closely
@@ -182,7 +157,32 @@ class EduCoexistenceUi extends EduCoexistenceUiBase {
     }
 
     template.showButtonFooter(this.showGaiaButtons_);
-  }
-}
+  },
 
-customElements.define(EduCoexistenceUi.is, EduCoexistenceUi);
+  /** @override */
+  ready() {
+    this.addWebUIListener(
+        'load-auth-extension', data => this.loadAuthExtension_(data));
+    this.webview_ =
+        /** @type {!WebView} */ (this.$.signinFrame);
+
+    this.webview_.addEventListener('loadabort', () => {
+      this.loading_ = false;
+      this.fire('go-error');
+    });
+
+    EduCoexistenceBrowserProxyImpl.getInstance().initializeEduArgs().then(
+        (data) => {
+          this.controller_ =
+              new EduCoexistenceController(this, this.webview_, data);
+          this.newOobeLayoutEnabled_ =
+              this.controller_.getNewOobeLayoutEnabled();
+          EduCoexistenceBrowserProxyImpl.getInstance().initializeLogin();
+        },
+        (err) => {
+          this.fire('go-error');
+          EduCoexistenceBrowserProxyImpl.getInstance().onError(
+              ['There was an error getting edu coexistence data']);
+        });
+  },
+});

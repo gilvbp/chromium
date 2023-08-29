@@ -152,8 +152,8 @@ TEST_F(GpuChannelManagerTest, OnBackgroundedWithWebGL) {
 // and that polling shuts down the monitoring.
 TEST_F(GpuChannelManagerTest, GpuPeakMemoryOnlyReportedForValidSequence) {
 #if BUILDFLAG(USE_PERFETTO_CLIENT_LIBRARY)
-  base::test::TestTraceProcessor ttp;
-  ttp.StartTrace("gpu");
+  std::unique_ptr<perfetto::TracingSession> session =
+      base::test::StartTrace("gpu");
 #else
   // TODO(crbug.com/1006541): Remove trace_analyzer usage after migration to the
   // SDK.
@@ -182,8 +182,8 @@ TEST_F(GpuChannelManagerTest, GpuPeakMemoryOnlyReportedForValidSequence) {
   EXPECT_EQ(0u, GetManagersPeakMemoryUsage(sequence_num));
 
 #if BUILDFLAG(USE_PERFETTO_CLIENT_LIBRARY)
-  absl::Status status = ttp.StopAndParseTrace();
-  ASSERT_TRUE(status.ok()) << status.message();
+  std::vector<char> trace = base::test::StopTrace(std::move(session));
+  ASSERT_THAT(trace, Not(testing::IsEmpty()));
   std::string query =
       R"(
       SELECT
@@ -205,7 +205,7 @@ TEST_F(GpuChannelManagerTest, GpuPeakMemoryOnlyReportedForValidSequence) {
       where name = 'PeakMemoryTracking'
       ORDER BY ts ASC
       )";
-  auto result = ttp.RunQuery(query);
+  auto result = base::test::RunQuery(query, trace);
   ASSERT_TRUE(result.has_value()) << result.error();
   EXPECT_THAT(result.value(),
               ::testing::ElementsAre(

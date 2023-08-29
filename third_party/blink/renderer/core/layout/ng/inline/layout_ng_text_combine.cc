@@ -45,7 +45,7 @@ LayoutNGTextCombine* LayoutNGTextCombine::CreateAnonymous(
 }
 
 String LayoutNGTextCombine::GetTextContent() const {
-  DCHECK(!NeedsCollectInlines() && GetNGInlineNodeData()) << this;
+  DCHECK(!NeedsCollectInlines() && HasNGInlineNodeData()) << this;
   return GetNGInlineNodeData()->ItemsData(false).text_content;
 }
 
@@ -228,17 +228,15 @@ PhysicalRect LayoutNGTextCombine::RecalcContentsInkOverflow(
 
   // Note: |text_rect| and |ink_overflow| are in logical direction.
   const PhysicalRect text_rect = ComputeTextFrameRect(PhysicalOffset());
-  LogicalRect ink_overflow(text_rect.offset.left, text_rect.offset.top,
-                           text_rect.size.width, text_rect.size.height);
+  LayoutRect ink_overflow = text_rect.ToLayoutRect();
 
   if (style.HasAppliedTextDecorations()) {
     // |LayoutNGTextCombine| does not support decorating box, as it is not
     // supported in vertical flow and text-combine is only for vertical flow.
-    const LogicalRect decoration_rect =
-        NGInkOverflow::ComputeDecorationOverflow(
-            cursor, style, style.GetFont(),
-            /* offset_in_container */ PhysicalOffset(), ink_overflow,
-            /* inline_context */ nullptr);
+    const LayoutRect decoration_rect = NGInkOverflow::ComputeDecorationOverflow(
+        cursor, style, style.GetFont(),
+        /* offset_in_container */ PhysicalOffset(), ink_overflow,
+        /* inline_context */ nullptr);
     ink_overflow.Unite(decoration_rect);
   }
 
@@ -250,7 +248,7 @@ PhysicalRect LayoutNGTextCombine::RecalcContentsInkOverflow(
   PhysicalRect local_ink_overflow =
       WritingModeConverter({style.GetWritingMode(), TextDirection::kLtr},
                            text_rect.size)
-          .ToPhysical(ink_overflow);
+          .ToPhysical(LogicalRect(ink_overflow));
   local_ink_overflow.ExpandEdgesToPixelBoundaries();
   return local_ink_overflow;
 }

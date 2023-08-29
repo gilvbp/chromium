@@ -48,13 +48,12 @@ class NATIVE_THEME_EXPORT NativeThemeFluent : public NativeThemeBase {
                            Part part,
                            State state,
                            const gfx::Rect& rect,
-                           const ScrollbarThumbExtraParams& extra_params,
+                           ScrollbarOverlayColorTheme theme,
                            ColorScheme color_scheme) const override;
   void PaintScrollbarCorner(cc::PaintCanvas* canvas,
                             const ColorProvider* color_provider,
                             State state,
                             const gfx::Rect& rect,
-                            const ScrollbarTrackExtraParams& extra_params,
                             ColorScheme color_scheme) const override;
   gfx::Size GetPartSize(Part part,
                         State state,
@@ -67,15 +66,13 @@ class NATIVE_THEME_EXPORT NativeThemeFluent : public NativeThemeBase {
                    const ColorProvider* color_provider,
                    const gfx::Rect& rect,
                    Part direction,
-                   ColorScheme color_scheme,
-                   const ScrollbarArrowExtraParams& arrow) const;
+                   ColorScheme color_scheme) const;
   void PaintArrow(cc::PaintCanvas* canvas,
                   const ColorProvider* color_provider,
                   const gfx::Rect& rect,
                   Part part,
                   State state,
-                  ColorScheme color_scheme,
-                  const ScrollbarArrowExtraParams& arrow) const;
+                  ColorScheme color_scheme) const;
 
   // Calculates and returns the position and dimensions of the scaled arrow rect
   // within the scrollbar button rect. The goal is to keep the arrow in the

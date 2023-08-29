@@ -80,7 +80,7 @@ typedef NS_ENUM(NSUInteger, InitStage) {
     willTransitionToInitStage:(InitStage)nextInitStage;
 
 // Called right after the app is transitioned out of to the
-// `previousInitStage`. The init stage of the app at that
+// `previousInitStage`. he init stage of the app at that
 // moment is `previousInitStage` + 1.
 - (void)appState:(AppState*)appState
     didTransitionFromInitStage:(InitStage)previousInitStage;

@@ -11,7 +11,6 @@
 #include "base/metrics/user_metrics.h"
 #include "base/metrics/user_metrics_action.h"
 #include "base/ranges/algorithm.h"
-#include "base/types/cxx23_to_underlying.h"
 #include "components/autofill/core/browser/form_data_importer.h"
 #include "components/autofill/core/browser/logging/log_manager.h"
 #include "components/autofill/core/browser/metrics/form_events/form_events.h"
@@ -57,15 +56,14 @@ void CreditCardFormEventLogger::OnDidShowSuggestions(
     const FormStructure& form,
     const AutofillField& field,
     const base::TimeTicks& form_parsed_timestamp,
-    AutofillMetrics::PaymentsSigninState signin_state_for_metrics,
+    AutofillSyncSigninState sync_state,
     bool off_the_record) {
   if (DoSuggestionsIncludeVirtualCard())
     Log(FORM_EVENT_SUGGESTIONS_SHOWN_WITH_VIRTUAL_CARD, form);
 
   // Also perform the logging actions from the base class:
   FormEventLoggerBase::OnDidShowSuggestions(form, field, form_parsed_timestamp,
-                                            signin_state_for_metrics,
-                                            off_the_record);
+                                            sync_state, off_the_record);
 
   suggestion_shown_timestamp_ = AutofillTickClock::NowTicks();
 
@@ -91,8 +89,8 @@ void CreditCardFormEventLogger::OnDidShowSuggestions(
 void CreditCardFormEventLogger::OnDidSelectCardSuggestion(
     const CreditCard& credit_card,
     const FormStructure& form,
-    AutofillMetrics::PaymentsSigninState signin_state_for_metrics) {
-  signin_state_for_metrics_ = signin_state_for_metrics;
+    AutofillSyncSigninState sync_state) {
+  sync_state_ = sync_state;
 
   card_selected_has_offer_ = false;
   if (has_eligible_offer_) {
@@ -103,12 +101,12 @@ void CreditCardFormEventLogger::OnDidSelectCardSuggestion(
 
   latest_selected_card_was_virtual_card_ = false;
   switch (credit_card.record_type()) {
-    case CreditCard::RecordType::kLocalCard:
-    case CreditCard::RecordType::kFullServerCard:
+    case CreditCard::LOCAL_CARD:
+    case CreditCard::FULL_SERVER_CARD:
       // No need to log selections for local/full-server cards -- a selection is
       // always followed by a form fill, which is logged separately.
       break;
-    case CreditCard::RecordType::kMaskedServerCard:
+    case CreditCard::MASKED_SERVER_CARD:
       Log(FORM_EVENT_MASKED_SERVER_CARD_SUGGESTION_SELECTED, form);
       if (!has_logged_masked_server_card_suggestion_selected_) {
         has_logged_masked_server_card_suggestion_selected_ = true;
@@ -120,7 +118,7 @@ void CreditCardFormEventLogger::OnDidSelectCardSuggestion(
         }
       }
       break;
-    case CreditCard::RecordType::kVirtualCard:
+    case CreditCard::VIRTUAL_CARD:
       latest_selected_card_was_virtual_card_ = true;
       Log(FORM_EVENT_VIRTUAL_CARD_SUGGESTION_SELECTED, form);
       if (!has_logged_virtual_card_suggestion_selected_) {
@@ -160,15 +158,17 @@ void CreditCardFormEventLogger::OnDidFillSuggestion(
     const AutofillField& field,
     const base::flat_set<FieldGlobalId>& newly_filled_fields,
     const base::flat_set<FieldGlobalId>& safe_fields,
-    AutofillMetrics::PaymentsSigninState signin_state_for_metrics,
+    AutofillSyncSigninState sync_state,
     const AutofillTriggerSource trigger_source) {
   CreditCard::RecordType record_type = credit_card.record_type();
-  signin_state_for_metrics_ = signin_state_for_metrics;
+  sync_state_ = sync_state;
   ukm::builders::Autofill_CreditCardFill builder =
       form_interactions_ukm_logger_->CreateCreditCardFillBuilder();
   builder.SetFormSignature(HashFormSignature(form.form_signature()));
 
-  form_interactions_ukm_logger_->LogDidFillSuggestion(record_type, form, field);
+  form_interactions_ukm_logger_->LogDidFillSuggestion(
+      record_type,
+      /*is_for_credit_card=*/true, form, field);
 
   AutofillMetrics::LogCreditCardSeamlessnessAtFillTime(
       {.event_logger = raw_ref(*this),
@@ -179,16 +179,16 @@ void CreditCardFormEventLogger::OnDidFillSuggestion(
        .builder = raw_ref(builder)});
 
   switch (record_type) {
-    case CreditCard::RecordType::kLocalCard:
+    case CreditCard::LOCAL_CARD:
       Log(FORM_EVENT_LOCAL_SUGGESTION_FILLED, form);
       break;
-    case CreditCard::RecordType::kMaskedServerCard:
+    case CreditCard::MASKED_SERVER_CARD:
       Log(FORM_EVENT_MASKED_SERVER_CARD_SUGGESTION_FILLED, form);
       break;
-    case CreditCard::RecordType::kFullServerCard:
+    case CreditCard::FULL_SERVER_CARD:
       Log(FORM_EVENT_SERVER_SUGGESTION_FILLED, form);
       break;
-    case CreditCard::RecordType::kVirtualCard:
+    case CreditCard::VIRTUAL_CARD:
       Log(FORM_EVENT_VIRTUAL_CARD_SUGGESTION_FILLED, form);
       break;
   }
@@ -209,15 +209,15 @@ void CreditCardFormEventLogger::OnDidFillSuggestion(
   if (!has_logged_suggestion_filled_) {
     has_logged_suggestion_filled_ = true;
     logged_suggestion_filled_was_server_data_ =
-        record_type == CreditCard::RecordType::kMaskedServerCard ||
-        record_type == CreditCard::RecordType::kFullServerCard ||
-        record_type == CreditCard::RecordType::kVirtualCard;
+        record_type == CreditCard::MASKED_SERVER_CARD ||
+        record_type == CreditCard::FULL_SERVER_CARD ||
+        record_type == CreditCard::VIRTUAL_CARD;
     logged_suggestion_filled_was_masked_server_card_ =
-        record_type == CreditCard::RecordType::kMaskedServerCard;
+        record_type == CreditCard::MASKED_SERVER_CARD;
     logged_suggestion_filled_was_virtual_card_ =
-        record_type == CreditCard::RecordType::kVirtualCard;
+        record_type == CreditCard::VIRTUAL_CARD;
     switch (record_type) {
-      case CreditCard::RecordType::kLocalCard:
+      case CreditCard::LOCAL_CARD:
         // Check if the local card is a duplicate of an existing server card
         // and log an additional metric if so.
         if (personal_data_manager_->IsCardPresentAsBothLocalAndServerCards(
@@ -227,7 +227,7 @@ void CreditCardFormEventLogger::OnDidFillSuggestion(
         }
         Log(FORM_EVENT_LOCAL_SUGGESTION_FILLED_ONCE, form);
         break;
-      case CreditCard::RecordType::kMaskedServerCard:
+      case CreditCard::MASKED_SERVER_CARD:
         Log(FORM_EVENT_MASKED_SERVER_CARD_SUGGESTION_FILLED_ONCE, form);
         if (personal_data_manager_->IsCardPresentAsBothLocalAndServerCards(
                 credit_card)) {
@@ -236,10 +236,10 @@ void CreditCardFormEventLogger::OnDidFillSuggestion(
           server_card_with_local_duplicate_filled_ = true;
         }
         break;
-      case CreditCard::RecordType::kFullServerCard:
+      case CreditCard::FULL_SERVER_CARD:
         Log(FORM_EVENT_SERVER_SUGGESTION_FILLED_ONCE, form);
         break;
-      case CreditCard::RecordType::kVirtualCard:
+      case CreditCard::VIRTUAL_CARD:
         Log(FORM_EVENT_VIRTUAL_CARD_SUGGESTION_FILLED_ONCE, form);
         break;
     }

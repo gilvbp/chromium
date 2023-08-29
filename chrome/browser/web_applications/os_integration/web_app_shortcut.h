@@ -63,7 +63,6 @@ struct ShortcutInfo {
   std::u16string title;
   std::u16string description;
   gfx::ImageFamily favicon;
-  gfx::ImageFamily favicon_maskable;
   base::FilePath profile_path;
   std::string profile_name;
   std::string version_for_display;

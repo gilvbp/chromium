@@ -67,9 +67,8 @@ ChromeAppBannerManagerAndroid::~ChromeAppBannerManagerAndroid() = default;
 
 void ChromeAppBannerManagerAndroid::OnDidPerformInstallableWebAppCheck(
     const InstallableData& data) {
-  if (data.errors.empty()) {
+  if (data.NoBlockingErrors())
     WebApkUkmRecorder::RecordWebApkableVisit(*data.manifest_url);
-  }
 
   AppBannerManagerAndroid::OnDidPerformInstallableWebAppCheck(data);
 }
@@ -89,7 +88,7 @@ void ChromeAppBannerManagerAndroid::MaybeShowAmbientBadge() {
       web_contents(), GetAndroidWeakPtr(), segmentation_platform_service_,
       pref_service_);
   ambient_badge_manager_->MaybeShow(
-      validated_url_, GetAppName(), GetAppIdentifier(),
+      validated_url_, GetAppName(),
       CreateAddToHomescreenParams(InstallableMetrics::GetInstallSource(
           web_contents(), InstallTrigger::AMBIENT_BADGE)),
       base::BindOnce(&ChromeAppBannerManagerAndroid::ShowBannerFromBadge,

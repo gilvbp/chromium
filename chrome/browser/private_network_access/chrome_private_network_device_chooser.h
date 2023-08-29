@@ -10,6 +10,11 @@
 #include "base/functional/callback.h"
 
 namespace content {
+enum class PrivateNetworkDeviceChooserEvent {
+  kDeniedPermission,
+  kCancelled,
+  kSelected,
+};
 class RenderFrameHost;
 }  // namespace content
 
@@ -24,6 +29,10 @@ class ChromePrivateNetworkDeviceChooser {
   ChromePrivateNetworkDeviceChooser& operator=(
       const ChromePrivateNetworkDeviceChooser&) = delete;
   virtual ~ChromePrivateNetworkDeviceChooser();
+
+  using EventHandler =
+      base::RepeatingCallback<void(content::PrivateNetworkDeviceChooserEvent,
+                                   const std::string& device_id)>;
 
  protected:
   ChromePrivateNetworkDeviceChooser();

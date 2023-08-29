@@ -351,7 +351,8 @@ bool LocalDOMWindow::IsCrossSiteSubframeIncludingScheme() const {
 }
 
 LocalDOMWindow* LocalDOMWindow::From(const ScriptState* script_state) {
-  return blink::ToLocalDOMWindow(script_state);
+  v8::HandleScope scope(script_state->GetIsolate());
+  return blink::ToLocalDOMWindow(script_state->GetContext());
 }
 
 mojom::blink::V8CacheOptions LocalDOMWindow::GetV8CacheOptions() const {
@@ -666,9 +667,37 @@ void LocalDOMWindow::ReportDocumentPolicyViolation(
   }
 }
 
+static void RunAddConsoleMessageTask(
+    mojom::blink::ConsoleMessageSource source,
+    mojom::blink::ConsoleMessageLevel level,
+    const String& message,
+    LocalDOMWindow* window,
+    bool discard_duplicates,
+    std::unique_ptr<mojom::blink::ConsoleMessageCategory> category) {
+  auto* console_message =
+      MakeGarbageCollected<ConsoleMessage>(source, level, message);
+  if (category)
+    console_message->SetCategory(*category);
+  window->AddConsoleMessageImpl(console_message, discard_duplicates);
+}
+
 void LocalDOMWindow::AddConsoleMessageImpl(ConsoleMessage* console_message,
                                            bool discard_duplicates) {
-  CHECK(IsContextThread());
+  if (!IsContextThread()) {
+    std::unique_ptr<mojom::blink::ConsoleMessageCategory> category;
+    if (console_message->Category()) {
+      category = std::make_unique<mojom::blink::ConsoleMessageCategory>(
+          *console_message->Category());
+    }
+    PostCrossThreadTask(
+        *GetTaskRunner(TaskType::kInternalInspector), FROM_HERE,
+        CrossThreadBindOnce(&RunAddConsoleMessageTask,
+                            console_message->Source(), console_message->Level(),
+                            console_message->Message(),
+                            WrapCrossThreadPersistent(this), discard_duplicates,
+                            std::move(category)));
+    return;
+  }
 
   if (!GetFrame())
     return;
@@ -1058,7 +1087,9 @@ Screen* LocalDOMWindow::screen() {
     int64_t display_id =
         frame ? frame->GetChromeClient().GetScreenInfo(*frame).display_id
               : Screen::kInvalidDisplayId;
-    screen_ = MakeGarbageCollected<Screen>(this, display_id);
+    screen_ = MakeGarbageCollected<Screen>(
+        this, display_id, /*use_size_override=*/
+        !RuntimeEnabledFeatures::FullscreenScreenSizeMatchesDisplayEnabled());
   }
   return screen_.Get();
 }
@@ -2191,7 +2222,7 @@ DOMWindow* LocalDOMWindow::open(v8::Isolate* isolate,
   frame_request.GetResourceRequest().SetHasUserGesture(has_user_gesture);
   GetFrame()->MaybeLogAdClickNavigation();
 
-  if (window_features.attribution_srcs.has_value()) {
+  if (has_user_gesture && window_features.attribution_srcs.has_value()) {
     // An impression must be attached prior to the
     // `FindOrCreateFrameForNavigation()` call, as that call may result in
     // performing a navigation if the call results in creating a new window with
@@ -2200,8 +2231,7 @@ DOMWindow* LocalDOMWindow::open(v8::Isolate* isolate,
                                     ->GetAttributionSrcLoader()
                                     ->RegisterNavigation(
                                         /*navigation_url=*/completed_url,
-                                        *window_features.attribution_srcs,
-                                        has_user_gesture));
+                                        *window_features.attribution_srcs));
   }
 
   FrameTree::FindResult result =
@@ -2213,14 +2243,8 @@ DOMWindow* LocalDOMWindow::open(v8::Isolate* isolate,
   // If the resulting frame didn't create a new window and fullscreen was
   // requested, reset the flag to prevent making a pre-existing frame
   // fullscreen.
-  if (window_features.is_fullscreen &&
-      (!result.new_window || !window_features.is_popup)) {
+  if (!result.new_window && window_features.is_fullscreen) {
     window_features.is_fullscreen = false;
-    GetFrameConsole()->AddMessage(MakeGarbageCollected<ConsoleMessage>(
-        mojom::blink::ConsoleMessageSource::kJavaScript,
-        mojom::blink::ConsoleMessageLevel::kWarning,
-        "Fullscreen request ignored: 'fullscreen' "
-        "windowFeature flag requires a new popup window."));
     frame_request.SetFeaturesForWindowOpen(window_features);
   }
 
@@ -2471,73 +2495,12 @@ void LocalDOMWindow::SetHasStorageAccess() {
   has_storage_access_ = true;
 }
 
-bool LocalDOMWindow::CanUseWindowingControls(ExceptionState& exception_state) {
-  if (!GetFrame() || !GetFrame()->IsOutermostMainFrame() ||
-      GetFrame()->GetPage()->IsPrerendering()) {
-    exception_state.ThrowDOMException(
-        DOMExceptionCode::kInvalidStateError,
-        "API is only supported in primary top-level browsing contexts.");
-    return false;
-  }
-
-#if !defined(USE_AURA)
-  // TODO(crbug.com/1466851): Make the APIs also work on Mac.
-  exception_state.ThrowDOMException(
-      DOMExceptionCode::kNotSupportedError,
-      "API is only supported on Aura platforms (Win/Lin/CrOS/Fuchsia). This "
-      "excludes Mac and mobile platforms.");
-  return false;
-#else
-  return true;
-#endif
+bool LocalDOMWindow::HadActivationlessPaymentRequest() const {
+  return had_activationless_payment_request_;
 }
 
-void LocalDOMWindow::maximize(ExceptionState& exception_state) {
-  if (!CanUseWindowingControls(exception_state)) {
-    return;
-  }
-
-  // Require user activation.
-  if (!LocalFrame::ConsumeTransientUserActivation(GetFrame())) {
-    exception_state.ThrowDOMException(DOMExceptionCode::kNotAllowedError,
-                                      "API requires user activation.");
-    return;
-  }
-
-#if defined(USE_AURA)
-  GetFrame()->GetLocalFrameHostRemote().Maximize();
-#endif
-}
-
-void LocalDOMWindow::minimize(ExceptionState& exception_state) {
-  if (!CanUseWindowingControls(exception_state)) {
-    return;
-  }
-
-  // Require user activation.
-  if (!LocalFrame::ConsumeTransientUserActivation(GetFrame())) {
-    exception_state.ThrowDOMException(DOMExceptionCode::kNotAllowedError,
-                                      "API requires user activation.");
-    return;
-  }
-
-#if defined(USE_AURA)
-  GetFrame()->GetLocalFrameHostRemote().Minimize();
-#endif
-}
-
-void LocalDOMWindow::restore(ExceptionState& exception_state) {
-  if (!CanUseWindowingControls(exception_state)) {
-    return;
-  }
-
-  // TODO(crbug.com/1466853): Add transient user activation for window.restore.
-  // This one is a bit more involved compared to minimize/maximize since it
-  // requires capability delegation.
-
-#if defined(USE_AURA)
-  GetFrame()->GetLocalFrameHostRemote().Restore();
-#endif
+void LocalDOMWindow::SetHadActivationlessPaymentRequest() {
+  had_activationless_payment_request_ = true;
 }
 
 void LocalDOMWindow::GenerateNewNavigationId() {

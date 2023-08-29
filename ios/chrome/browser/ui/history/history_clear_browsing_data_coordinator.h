@@ -10,9 +10,9 @@
 
 enum class UrlLoadStrategy;
 
+@protocol HistoryUIDelegate;
 @protocol HistoryPresentationDelegate;
 @protocol HistoryClearBrowsingDataLocalCommands;
-@protocol HistoryClearBrowsingDataCoordinatorDelegate;
 
 // Coordinator that presents Clear Browsing Data Table View from History.
 // Delegates are hooked up to History coordinator-specific methods.
@@ -20,8 +20,7 @@ enum class UrlLoadStrategy;
     : ChromeCoordinator <ClearBrowsingDataUIDelegate>
 
 // Delegate for this coordinator.
-@property(nonatomic, weak) id<HistoryClearBrowsingDataCoordinatorDelegate>
-    delegate;
+@property(nonatomic, weak) id<HistoryUIDelegate> delegate;
 
 // Opaque instructions on how to open urls.
 @property(nonatomic) UrlLoadStrategy loadStrategy;

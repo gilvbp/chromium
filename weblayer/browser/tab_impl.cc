@@ -32,6 +32,7 @@
 #include "components/infobars/content/content_infobar_manager.h"
 #include "components/permissions/permission_manager.h"
 #include "components/permissions/permission_request_manager.h"
+#include "components/permissions/permission_result.h"
 #include "components/prefs/pref_service.h"
 #include "components/safe_browsing/core/browser/db/database_manager.h"
 #include "components/sessions/content/session_tab_helper.h"
@@ -791,7 +792,8 @@ void TabImpl::SetDesktopUserAgentEnabled(JNIEnv* env, jboolean enable) {
 
   entry->SetIsOverridingUserAgent(enable);
   web_contents_->NotifyPreferencesChanged();
-  web_contents_->GetController().LoadOriginalRequestURL();
+  web_contents_->GetController().Reload(
+      content::ReloadType::ORIGINAL_REQUEST_URL, true);
 }
 
 jboolean TabImpl::IsDesktopUserAgentEnabled(JNIEnv* env) {

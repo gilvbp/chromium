@@ -8,7 +8,8 @@
 #include "chrome/common/chromeos/extensions/api/diagnostics.h"
 #include "chromeos/crosapi/mojom/diagnostics_service.mojom.h"
 
-namespace chromeos::converters::diagnostics {
+namespace chromeos {
+namespace converters {
 
 bool ConvertMojoRoutine(crosapi::mojom::DiagnosticsRoutineEnum in,
                         chromeos::api::os_diagnostics::RoutineType* out);
@@ -31,6 +32,7 @@ crosapi::mojom::DiagnosticsDiskReadRoutineTypeEnum ConvertDiskReadRoutineType(
 crosapi::mojom::DiagnosticsNvmeSelfTestTypeEnum ConvertNvmeSelfTestRoutineType(
     chromeos::api::os_diagnostics::RunNvmeSelfTestRequest routineType);
 
-}  // namespace chromeos::converters::diagnostics
+}  // namespace converters
+}  // namespace chromeos
 
 #endif  // CHROME_BROWSER_CHROMEOS_EXTENSIONS_TELEMETRY_API_DIAGNOSTICS_DIAGNOSTICS_API_CONVERTERS_H_

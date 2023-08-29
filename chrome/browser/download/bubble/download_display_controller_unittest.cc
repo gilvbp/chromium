@@ -101,8 +101,6 @@ class FakeDownloadDisplay : public DownloadDisplay {
   void SetShouldShowExclusiveAccessBubble(bool show) {
     should_show_exclusive_access_bubble_ = show;
   }
-  void OpenSecuritySubpage(
-      const offline_items_collection::ContentId&) override {}
 
  private:
   bool shown_ = false;

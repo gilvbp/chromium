@@ -17,7 +17,7 @@ suite('ethernetInfoTestSuite', function() {
   let ethernetInfoElement = null;
 
   setup(() => {
-    document.body.innerHTML = window.trustedTypes.emptyHTML;
+    document.body.innerHTML = '';
   });
 
   teardown(() => {

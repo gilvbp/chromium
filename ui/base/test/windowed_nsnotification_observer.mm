@@ -13,6 +13,10 @@
 #include "base/task/single_thread_task_runner.h"
 #include "base/test/test_timeouts.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 @interface WindowedNSNotificationObserver ()
 - (void)onNotification:(NSNotification*)notification;
 @end

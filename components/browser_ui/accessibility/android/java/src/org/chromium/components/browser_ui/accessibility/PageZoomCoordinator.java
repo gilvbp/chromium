@@ -10,11 +10,9 @@ import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 
 import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 
-import org.chromium.base.ResettersForTesting;
 import org.chromium.content_public.browser.BrowserContextHandle;
-import org.chromium.content_public.browser.ContentFeatureList;
-import org.chromium.content_public.browser.ContentFeatureMap;
 import org.chromium.content_public.browser.LoadCommittedDetails;
 import org.chromium.content_public.browser.WebContents;
 import org.chromium.content_public.browser.WebContentsObserver;
@@ -86,9 +84,6 @@ public class PageZoomCoordinator {
 
         // Consume hover events so screen readers do not select web contents behind slider.
         mView.setOnHoverListener((v, event) -> true);
-
-        mModel.set(PageZoomProperties.RESET_ZOOM_VISIBLE,
-                ContentFeatureMap.isEnabled(ContentFeatureList.SMART_ZOOM));
 
         // Adjust bottom margin for any bottom controls
         setBottomMargin(mBottomControlsOffset);
@@ -170,9 +165,9 @@ public class PageZoomCoordinator {
      * Used for testing only, allows a mocked value for the {@link shouldShowMenuItem} method.
      * @param isEnabled     Should show the menu item or not.
      */
+    @VisibleForTesting
     public static void setShouldShowMenuItemForTesting(@Nullable Boolean isEnabled) {
         sShouldShowMenuItemForTesting = isEnabled;
-        ResettersForTesting.register(() -> sShouldShowMenuItemForTesting = null);
     }
 
     /**

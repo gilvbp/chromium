@@ -70,7 +70,7 @@ String Clipboard::ParseWebCustomFormat(const String& format) {
 }
 
 void Clipboard::Trace(Visitor* visitor) const {
-  EventTarget::Trace(visitor);
+  EventTargetWithInlineData::Trace(visitor);
   Supplement<Navigator>::Trace(visitor);
 }
 

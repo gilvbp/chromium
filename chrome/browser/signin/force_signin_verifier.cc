@@ -16,7 +16,7 @@
 #include "chrome/browser/profiles/profile_attributes_storage.h"
 #include "chrome/browser/profiles/profile_manager.h"
 #include "chrome/browser/ui/browser_list.h"
-#include "chrome/browser/ui/profiles/profile_picker.h"
+#include "chrome/browser/ui/profile_picker.h"
 #include "chrome/browser/ui/ui_features.h"
 #include "components/signin/public/base/signin_metrics.h"
 #include "components/signin/public/identity_manager/access_token_info.h"
@@ -136,8 +136,7 @@ void ForceSigninVerifier::SendRequestIfNetworkAvailable(
           "force_signin_verifier", identity_manager_, oauth2_scopes,
           base::BindOnce(&ForceSigninVerifier::OnAccessTokenFetchComplete,
                          weak_factory_.GetWeakPtr()),
-          signin::PrimaryAccountAccessTokenFetcher::Mode::kImmediate,
-          signin::ConsentLevel::kSync);
+          signin::PrimaryAccountAccessTokenFetcher::Mode::kImmediate);
 }
 
 bool ForceSigninVerifier::ShouldSendRequest() {

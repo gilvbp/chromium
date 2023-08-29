@@ -15,6 +15,7 @@ import androidx.annotation.CallSuper;
 
 import org.chromium.base.ApplicationState;
 import org.chromium.base.ApplicationStatus;
+import org.chromium.base.BuildInfo;
 import org.chromium.base.BundleUtils;
 import org.chromium.base.CommandLineInitUtil;
 import org.chromium.base.ContextUtils;
@@ -32,6 +33,7 @@ import org.chromium.base.task.AsyncTask;
 import org.chromium.build.BuildConfig;
 import org.chromium.chrome.browser.ProductConfig;
 import org.chromium.chrome.browser.crash.ApplicationStatusTracker;
+import org.chromium.chrome.browser.crash.FirebaseConfig;
 import org.chromium.chrome.browser.flags.ChromeFeatureList;
 import org.chromium.chrome.browser.language.AppLocaleUtils;
 import org.chromium.chrome.browser.language.GlobalAppLocaleController;
@@ -200,6 +202,8 @@ public class SplitCompatApplication extends Application {
                 AppLocaleUtils.maybeMigrateOverrideLanguage();
             }
         }
+
+        BuildInfo.setFirebaseAppId(FirebaseConfig.getFirebaseAppId());
 
         // WebView installs its own PureJavaExceptionHandler.
         // Incremental install disables process isolation, so things in this block will

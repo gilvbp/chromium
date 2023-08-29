@@ -237,6 +237,7 @@ public class MerchantTrustBottomSheetCoordinator implements View.OnLayoutChangeL
         mCurrentMaxViewHeight = maxViewHeight;
     }
 
+    @VisibleForTesting
     void setMediatorForTesting(MerchantTrustBottomSheetMediator mediator) {
         mMediator = mediator;
     }

@@ -49,7 +49,6 @@
 #include "components/omnibox/browser/autocomplete_match.h"
 #include "components/omnibox/browser/location_bar_model.h"
 #include "components/omnibox/browser/omnibox_client.h"
-#include "components/omnibox/browser/omnibox_controller.h"
 #include "components/omnibox/browser/omnibox_edit_model.h"
 #include "components/omnibox/browser/omnibox_field_trial.h"
 #include "components/omnibox/browser/omnibox_popup_selection.h"
@@ -174,6 +173,8 @@ OmniboxViewViews::OmniboxViewViews(std::unique_ptr<OmniboxClient> client,
                                    const gfx::FontList& font_list)
     : OmniboxView(std::move(client)),
       popup_window_mode_(popup_window_mode),
+      popup_is_webui_(
+          base::FeatureList::IsEnabled(omnibox::kWebUIOmniboxPopup)),
       location_bar_view_(location_bar_view),
       latency_histogram_state_(NOT_ACTIVE),
       friendly_suggestion_text_prefix_length_(0) {
@@ -223,20 +224,18 @@ void OmniboxViewViews::Init() {
   GetRenderText()->set_symmetric_selection_visual_bounds(true);
   InstallPlaceholderText();
   scoped_template_url_service_observation_.Observe(
-      controller()->client()->GetTemplateURLService());
+      model()->client()->GetTemplateURLService());
 
   if (popup_window_mode_) {
     SetReadOnly(true);
   }
 
   if (location_bar_view_) {
-    if (base::FeatureList::IsEnabled(omnibox::kWebUIOmniboxPopup)) {
-      popup_view_ = std::make_unique<OmniboxPopupViewWebUI>(
-          /*omnibox_view=*/this, controller(), location_bar_view_);
-    } else {
-      popup_view_ = std::make_unique<OmniboxPopupViewViews>(
-          /*omnibox_view=*/this, controller(), location_bar_view_);
-    }
+    popup_view_ = popup_is_webui_ ? std::make_unique<OmniboxPopupViewWebUI>(
+                                        this, model(), location_bar_view_)
+                                  : std::make_unique<OmniboxPopupViewViews>(
+                                        this, model(), location_bar_view_);
+
     // Set whether the text should be used to improve typing suggestions.
     SetShouldDoLearning(!location_bar_view_->profile()->IsOffTheRecord());
   }
@@ -315,10 +314,8 @@ void OmniboxViewViews::ResetTabState(content::WebContents* web_contents) {
 }
 
 void OmniboxViewViews::InstallPlaceholderText() {
-  const TemplateURL* const default_provider = controller()
-                                                  ->client()
-                                                  ->GetTemplateURLService()
-                                                  ->GetDefaultSearchProvider();
+  const TemplateURL* const default_provider =
+      model()->client()->GetTemplateURLService()->GetDefaultSearchProvider();
   if (default_provider) {
     SetPlaceholderText(l10n_util::GetStringFUTF16(
         IDS_OMNIBOX_PLACEHOLDER_TEXT, default_provider->short_name()));
@@ -341,8 +338,7 @@ void OmniboxViewViews::EmphasizeURLComponents() {
   SetStyle(gfx::TEXT_STYLE_STRIKE, false);
 
   std::u16string text = GetText();
-  UpdateTextStyle(text, text_is_url,
-                  controller()->client()->GetSchemeClassifier());
+  UpdateTextStyle(text, text_is_url, model()->client()->GetSchemeClassifier());
 }
 
 void OmniboxViewViews::Update() {
@@ -630,8 +626,9 @@ void OmniboxViewViews::OnThemeChanged() {
   views::Textfield::OnThemeChanged();
 
   bool gm3_text_color_enabled =
-      omnibox::IsOmniboxCr23CustomizeGuardedFeatureEnabled(
-          omnibox::kOmniboxSteadyStateTextColor);
+      features::GetChromeRefresh2023Level() ==
+          features::ChromeRefresh2023Level::kLevel2 ||
+      base::FeatureList::IsEnabled(omnibox::kOmniboxSteadyStateTextColor);
 
   set_placeholder_text_color(GetColorProvider()->GetColor(
       gm3_text_color_enabled ? kColorOmniboxText : kColorOmniboxTextDimmed));
@@ -853,7 +850,7 @@ void OmniboxViewViews::SetAccessibilityLabel(const std::u16string& display_text,
     // bypass OmniboxPopupModel and get the label from our synthetic |match|.
     friendly_suggestion_text_ = AutocompleteMatchType::ToAccessibilityLabel(
         match, display_text, OmniboxPopupSelection::kNoMatch,
-        controller()->result().size(), std::u16string(),
+        model()->result().size(), std::u16string(),
         &friendly_suggestion_text_prefix_length_);
   } else {
     friendly_suggestion_text_ =

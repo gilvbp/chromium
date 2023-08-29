@@ -186,8 +186,7 @@ const auto kFormats = ::testing::Values(viz::SinglePlaneFormat::kRGBA_8888,
                                         viz::SinglePlaneFormat::kR_8,
                                         viz::SinglePlaneFormat::kRG_88,
                                         viz::MultiPlaneFormat::kNV12,
-                                        viz::MultiPlaneFormat::kYV12,
-                                        viz::MultiPlaneFormat::kI420);
+                                        viz::MultiPlaneFormat::kYV12);
 
 INSTANTIATE_TEST_SUITE_P(,
                          AngleVulkanImageBackingFactoryTest,

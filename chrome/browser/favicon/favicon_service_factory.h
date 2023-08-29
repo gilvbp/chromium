@@ -45,7 +45,7 @@ class FaviconServiceFactory : public ProfileKeyedServiceFactory {
   ~FaviconServiceFactory() override;
 
   // BrowserContextKeyedServiceFactory:
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* profile) const override;
   bool ServiceIsNULLWhileTesting() const override;
 };

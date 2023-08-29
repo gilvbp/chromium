@@ -133,7 +133,7 @@ class CORE_EXPORT HTMLSelectElement final
 
   void SetOption(unsigned index, HTMLOptionElement*, ExceptionState&);
 
-  HTMLOptionElement* namedItem(const AtomicString& name);
+  Element* namedItem(const AtomicString& name);
   HTMLOptionElement* item(unsigned index);
 
   bool CanSelectAll() const;
@@ -189,7 +189,7 @@ class CORE_EXPORT HTMLSelectElement final
 
   void Trace(Visitor*) const override;
   void CloneNonAttributePropertiesFrom(const Element&,
-                                       NodeCloningData&) override;
+                                       CloneChildrenFlag) override;
 
   // These should be called only if UsesMenuList().
   Element& InnerElement() const;

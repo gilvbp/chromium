@@ -74,7 +74,7 @@ public class DownloadUtils {
      * String, long, boolean)
      */
     public static long addCompletedDownload(String fileName, String description, String mimeType,
-            String filePath, long fileSizeBytes, GURL originalUrl, GURL referer) {
+            String filePath, long fileSizeBytes, String originalUrl, String referer) {
         assert !ThreadUtils.runningOnUiThread();
         assert Build.VERSION.SDK_INT < Build.VERSION_CODES.Q
             : "addCompletedDownload is deprecated in Q, may cause crash.";
@@ -85,8 +85,8 @@ public class DownloadUtils {
         boolean useSystemNotification = !notificationManager.areNotificationsEnabled();
         try {
             // OriginalUri has to be null or non-empty http(s) scheme.
-            Uri originalUri = parseOriginalUrl(originalUrl.getSpec());
-            Uri refererUri = GURL.isEmptyOrInvalid(referer) ? null : Uri.parse(referer.getSpec());
+            Uri originalUri = parseOriginalUrl(originalUrl);
+            Uri refererUri = TextUtils.isEmpty(referer) ? null : Uri.parse(referer);
             return manager.addCompletedDownload(fileName, description, true, mimeType, filePath,
                     fileSizeBytes, useSystemNotification, originalUri, refererUri);
         } catch (Exception e) {

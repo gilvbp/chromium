@@ -6,11 +6,10 @@
 
 #include <memory>
 
-#include "base/apple/foundation_util.h"
-#include "base/apple/osstatus_logging.h"
 #include "base/containers/contains.h"
 #include "base/logging.h"
-#include "base/mac/mac_util.h"
+#include "base/mac/foundation_util.h"
+#include "base/mac/mac_logging.h"
 #include "base/memory/shared_memory_mapping.h"
 #include "base/memory/unsafe_shared_memory_region.h"
 #include "base/notreached.h"
@@ -34,7 +33,7 @@
 // EnableLowLatencyRateControl flag. The flag is actually supported since 11.3,
 // but there we see frame drops even with ample bitrate budget. Excessive frame
 // drops were fixed in 12.0.1.
-#define LOW_LATENCY_AND_SVC_AVAILABLE_VER 12.0.1
+#define LOW_LATENCY_FLAG_AVAILABLE_VER 12.0.1
 
 namespace media {
 
@@ -64,23 +63,6 @@ constexpr VideoCodecProfile kSupportedProfiles[] = {
     HEVCPROFILE_MAIN,
 #endif  // BUILDFLAG(ENABLE_HEVC_PARSER_AND_HW_DECODER)
 };
-
-bool IsSVCSupported(const VideoCodec& codec) {
-#if BUILDFLAG(ENABLE_HEVC_PARSER_AND_HW_DECODER) && defined(ARCH_CPU_ARM_FAMILY)
-  // macOS 14.0+ support SVC HEVC encoding for Apple Silicon chips only.
-  if (codec == VideoCodec::kHEVC) {
-    if (__builtin_available(macOS 14.0, iOS 17.0, *)) {
-      return true;
-    }
-    return false;
-  }
-#endif  // BUILDFLAG(ENABLE_HEVC_PARSER_AND_HW_DECODER) &&
-        // defined(ARCH_CPU_ARM_FAMILY)
-  if (__builtin_available(macOS LOW_LATENCY_AND_SVC_AVAILABLE_VER, *)) {
-    return codec == VideoCodec::kH264;
-  }
-  return false;
-}
 
 static CFStringRef VideoCodecProfileToVTProfile(VideoCodecProfile profile) {
   switch (profile) {
@@ -121,7 +103,7 @@ VideoEncoderInfo GetVideoEncoderInfo(VTSessionRef compression_session,
 #if BUILDFLAG(IS_MAC)
   info.is_hardware_accelerated = false;
 
-  base::apple::ScopedCFTypeRef<CFBooleanRef> cf_using_hardware;
+  base::ScopedCFTypeRef<CFBooleanRef> cf_using_hardware;
   if (VTSessionCopyProperty(
           compression_session,
           kVTCompressionPropertyKey_UsingHardwareAcceleratedVideoEncoder,
@@ -134,7 +116,7 @@ VideoEncoderInfo GetVideoEncoderInfo(VTSessionRef compression_session,
 #endif
 
   absl::optional<int> max_frame_delay_property;
-  base::apple::ScopedCFTypeRef<CFNumberRef> max_frame_delay_count;
+  base::ScopedCFTypeRef<CFNumberRef> max_frame_delay_count;
   if (VTSessionCopyProperty(
           compression_session, kVTCompressionPropertyKey_MaxFrameDelayCount,
           kCFAllocatorDefault, max_frame_delay_count.InitializeInto()) == 0) {
@@ -194,7 +176,7 @@ struct VTVideoEncodeAccelerator::EncodeOutput {
   EncodeOutput& operator=(const EncodeOutput&) = delete;
 
   const VTEncodeInfoFlags info;
-  const base::apple::ScopedCFTypeRef<CMSampleBufferRef> sample_buffer;
+  const base::ScopedCFTypeRef<CMSampleBufferRef> sample_buffer;
   const base::TimeDelta capture_timestamp;
   const gfx::ColorSpace encoded_color_space;
 };
@@ -244,11 +226,9 @@ VTVideoEncodeAccelerator::GetSupportedH264Profiles() {
   // See RequestEncodingParametersChange() for more details.
   profile.rate_control_modes = VideoEncodeAccelerator::kConstantMode |
                                VideoEncodeAccelerator::kVariableMode;
-  // L1T1 = no additional spatial and temporal layer = always supported.
   profile.scalability_modes.push_back(SVCScalabilityMode::kL1T1);
-  if (IsSVCSupported(VideoCodec::kH264)) {
+  if (__builtin_available(macOS LOW_LATENCY_FLAG_AVAILABLE_VER, *))
     profile.scalability_modes.push_back(SVCScalabilityMode::kL1T2);
-  }
 
   for (const auto& supported_profile : kSupportedProfiles) {
     if (VideoCodecProfileToVideoCodec(supported_profile) == VideoCodec::kH264) {
@@ -294,23 +274,20 @@ VTVideoEncodeAccelerator::GetSupportedHEVCProfiles() {
     profile.max_resolution = kMaxSupportedResolution;
     profile.max_framerate_numerator = kMaxFrameRateNumerator;
     profile.max_framerate_denominator = kMaxFrameRateDenominator;
-    // Advertise VBR here, even though the peak bitrate is never actually used.
-    // See RequestEncodingParametersChange() for more details.
     profile.rate_control_modes = VideoEncodeAccelerator::kConstantMode |
                                  VideoEncodeAccelerator::kVariableMode;
-    // L1T1 = no additional spatial and temporal layer = always supported.
-    profile.scalability_modes.push_back(SVCScalabilityMode::kL1T1);
-    if (IsSVCSupported(VideoCodec::kHEVC)) {
-      profile.scalability_modes.push_back(SVCScalabilityMode::kL1T2);
-    }
-
     for (const auto& supported_profile : kSupportedProfiles) {
       if (VideoCodecProfileToVideoCodec(supported_profile) ==
           VideoCodec::kHEVC) {
-        // macOS doesn't support HEVC software encoding on both Intel and Apple
-        // Silicon Macs.
         profile.is_software_codec = false;
         profile.profile = supported_profile;
+        profiles.push_back(profile);
+
+        // macOS doesn't provide a way to enumerate codec details, so just
+        // assume software codec support is the same as hardware, but with
+        // the lowest possible minimum resolution.
+        profile.min_resolution = gfx::Size(2, 2);
+        profile.is_software_codec = true;
         profiles.push_back(profile);
       }
     }
@@ -368,10 +345,10 @@ bool VTVideoEncodeAccelerator::Initialize(const Config& config,
   bitstream_buffer_size_ = config.input_visible_size.GetArea();
   require_low_delay_ = config.require_low_delay;
 
-  if (codec_ == VideoCodec::kH264) {
+  if (codec_ == VideoCodec::kH264 || codec_ == VideoCodec::kHEVC) {
     required_encoder_type_ = config.required_encoder_type;
-  } else if (config.required_encoder_type == Config::EncoderType::kSoftware) {
-    DLOG(ERROR) << "Software encoder selection is only allowed for H264.";
+  } else {
+    DLOG(ERROR) << "Software encoder selection is only allowed for H264/H265.";
   }
 
   if (config.HasTemporalLayer())
@@ -448,7 +425,7 @@ void VTVideoEncodeAccelerator::Encode(scoped_refptr<VideoFrame> frame,
     }
   }
 
-  base::apple::ScopedCFTypeRef<CFDictionaryRef> frame_props =
+  base::ScopedCFTypeRef<CFDictionaryRef> frame_props =
       video_toolbox::DictionaryWithKeyValue(
           kVTEncodeFrameOptionKey_ForceKeyFrame,
           force_keyframe ? kCFBooleanTrue : kCFBooleanFalse);
@@ -534,19 +511,10 @@ void VTVideoEncodeAccelerator::RequestEncodingParametersChange(
   frame_rate_ = framerate;
   video_toolbox::SessionPropertySetter session_property_setter(
       compression_session_);
-  if (!session_property_setter.Set(kVTCompressionPropertyKey_ExpectedFrameRate,
-                                   frame_rate_)) {
-    NotifyErrorStatus(
-        {EncoderStatus::Codes::kSystemAPICallError, "Can't change frame rate"});
-    return;
-  }
-  if (!session_property_setter.Set(
-          kVTCompressionPropertyKey_AverageBitRate,
-          static_cast<int32_t>(bitrate.target_bps()))) {
-    NotifyErrorStatus({EncoderStatus::Codes::kSystemAPICallError,
-                       "Can't change average bitrate"});
-    return;
-  }
+  session_property_setter.Set(kVTCompressionPropertyKey_ExpectedFrameRate,
+                              frame_rate_);
+  session_property_setter.Set(kVTCompressionPropertyKey_AverageBitRate,
+                              static_cast<int32_t>(bitrate.target_bps()));
   // Here in case of VBR we'd like to set more relaxed bitrate constraints.
   // It looks like setting VTCompressionPropertyKey_DataRateLimits should be
   // appropriate her, but it is NOT compatible with
@@ -673,10 +641,8 @@ void VTVideoEncodeAccelerator::ReturnBitstreamBuffer(
   const bool keyframe = !CFDictionaryContainsKey(
       sample_attachments, kCMSampleAttachmentKey_NotSync);
   bool belongs_to_base_layer = true;
-  if (CFBooleanRef value_ptr =
-          base::apple::GetValueFromDictionary<CFBooleanRef>(
-              sample_attachments,
-              kCMSampleAttachmentKey_IsDependedOnByOthers)) {
+  if (CFBooleanRef value_ptr = base::mac::GetValueFromDictionary<CFBooleanRef>(
+          sample_attachments, kCMSampleAttachmentKey_IsDependedOnByOthers)) {
     belongs_to_base_layer = static_cast<bool>(CFBooleanGetValue(value_ptr));
   }
 
@@ -751,14 +717,15 @@ bool VTVideoEncodeAccelerator::CreateCompressionSession(
   }
 #endif
 
-  if (__builtin_available(macOS LOW_LATENCY_AND_SVC_AVAILABLE_VER, *)) {
-    if (require_low_delay_ && IsSVCSupported(codec)) {
+  if (__builtin_available(macOS LOW_LATENCY_FLAG_AVAILABLE_VER, *)) {
+    // Remove the validation once HEVC SVC mode is supported on macOS.
+    if (require_low_delay_ && codec == VideoCodec::kH264) {
       encoder_keys.push_back(
           kVTVideoEncoderSpecification_EnableLowLatencyRateControl);
       encoder_values.push_back(kCFBooleanTrue);
     }
   }
-  base::apple::ScopedCFTypeRef<CFDictionaryRef> encoder_spec =
+  base::ScopedCFTypeRef<CFDictionaryRef> encoder_spec =
       video_toolbox::DictionaryWithKeysAndValues(
           encoder_keys.data(), encoder_values.data(), encoder_keys.size());
 
@@ -808,8 +775,10 @@ bool VTVideoEncodeAccelerator::ConfigureCompressionSession(VideoCodec codec) {
                        "Unsupported profile: " + GetProfileName(profile_)});
     return false;
   }
-  if (!session_property_setter.Set(kVTCompressionPropertyKey_RealTime,
-                                   require_low_delay_)) {
+  // Remove the validation once HEVC SVC mode is supported on macOS.
+  if (!session_property_setter.Set(
+          kVTCompressionPropertyKey_RealTime,
+          require_low_delay_ && codec == VideoCodec::kH264)) {
     NotifyErrorStatus(
         {EncoderStatus::Codes::kEncoderUnsupportedConfig,
          "The video encoder doesn't support compression in real time"});
@@ -829,20 +798,12 @@ bool VTVideoEncodeAccelerator::ConfigureCompressionSession(VideoCodec codec) {
                        "Failed to set max keyframe interval to 7200 frames"});
     return false;
   }
-  // This property may suddenly become unsupported when a second compression
-  // session is created if the codec is H.265 and CPU arch is x64, so we can
-  // always check if the property is supported before setting it.
-  if (session_property_setter.IsSupported(
-          kVTCompressionPropertyKey_MaxKeyFrameIntervalDuration)) {
-    if (!session_property_setter.Set(
-            kVTCompressionPropertyKey_MaxKeyFrameIntervalDuration, 240)) {
-      NotifyErrorStatus(
-          {EncoderStatus::Codes::kEncoderUnsupportedConfig,
-           "Failed to set max keyframe interval duration to 240 seconds"});
-      return false;
-    }
-  } else {
-    DLOG(WARNING) << "MaxKeyFrameIntervalDuration is not supported";
+  if (!session_property_setter.Set(
+          kVTCompressionPropertyKey_MaxKeyFrameIntervalDuration, 240)) {
+    NotifyErrorStatus(
+        {EncoderStatus::Codes::kEncoderUnsupportedConfig,
+         "Failed to set max keyframe interval duration to 240 seconds"});
+    return false;
   }
 
   if (session_property_setter.IsSupported(
@@ -859,28 +820,24 @@ bool VTVideoEncodeAccelerator::ConfigureCompressionSession(VideoCodec codec) {
     DLOG(WARNING) << "MaxFrameDelayCount is not supported";
   }
 
-  if (num_temporal_layers_ != 2) {
-    return true;
-  }
-
-  if (!IsSVCSupported(codec)) {
-    NotifyErrorStatus(
-        {EncoderStatus::Codes::kEncoderUnsupportedConfig,
-         "SVC encoding is not supported on this OS version or hardware"});
-    return false;
-  }
-
-  if (__builtin_available(macOS LOW_LATENCY_AND_SVC_AVAILABLE_VER, *)) {
-    if (!session_property_setter.IsSupported(
-            kVTCompressionPropertyKey_BaseLayerFrameRateFraction)) {
+  // Remove the validation once HEVC SVC mode is supported on macOS.
+  if (num_temporal_layers_ == 2 && codec_ == VideoCodec::kH264) {
+    if (__builtin_available(macOS LOW_LATENCY_FLAG_AVAILABLE_VER, *)) {
+      if (!session_property_setter.IsSupported(
+              kVTCompressionPropertyKey_BaseLayerFrameRateFraction)) {
+        NotifyErrorStatus({EncoderStatus::Codes::kEncoderUnsupportedConfig,
+                           "BaseLayerFrameRateFraction is not supported"});
+        return false;
+      }
+      if (!session_property_setter.Set(
+              kVTCompressionPropertyKey_BaseLayerFrameRateFraction, 0.5)) {
+        NotifyErrorStatus({EncoderStatus::Codes::kEncoderUnsupportedConfig,
+                           "Setting BaseLayerFrameRate property failed"});
+        return false;
+      }
+    } else {
       NotifyErrorStatus({EncoderStatus::Codes::kEncoderUnsupportedConfig,
-                         "BaseLayerFrameRateFraction is not supported"});
-      return false;
-    }
-    if (!session_property_setter.Set(
-            kVTCompressionPropertyKey_BaseLayerFrameRateFraction, 0.5)) {
-      NotifyErrorStatus({EncoderStatus::Codes::kEncoderUnsupportedConfig,
-                         "Setting BaseLayerFrameRate property failed"});
+                         "SVC encoding is not supported on this OS version"});
       return false;
     }
   }

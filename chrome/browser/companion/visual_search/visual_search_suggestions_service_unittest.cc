@@ -77,7 +77,6 @@ TEST_F(VisualSearchSuggestionsServiceTest, OnModelUpdated) {
         EXPECT_TRUE(model.IsValid());
         EXPECT_TRUE(config_proto.empty());
       });
-  service_->SetModelUpdateCallback(std::move(callback));
   service_->OnModelUpdated(optimization_guide::proto::OptimizationTarget::
                                OPTIMIZATION_TARGET_VISUAL_SEARCH_CLASSIFICATION,
                            *model_info_);
@@ -91,7 +90,6 @@ TEST_F(VisualSearchSuggestionsServiceTest,
         EXPECT_FALSE(model.IsValid());
         EXPECT_TRUE(config_proto.empty());
       });
-  service_->SetModelUpdateCallback(std::move(callback));
   service_->OnModelUpdated(optimization_guide::proto::OptimizationTarget::
                                OPTIMIZATION_TARGET_TEXT_EMBEDDER,
                            *model_info_);
@@ -116,7 +114,6 @@ TEST_F(VisualSearchSuggestionsServiceTest, OnModelUpdated_InvalidModelFile) {
         EXPECT_FALSE(model.IsValid());
         EXPECT_TRUE(config_proto.empty());
       });
-  service_->SetModelUpdateCallback(std::move(callback));
   service_->OnModelUpdated(optimization_guide::proto::OptimizationTarget::
                                OPTIMIZATION_TARGET_VISUAL_SEARCH_CLASSIFICATION,
                            *invalid_model_info_);
@@ -129,7 +126,6 @@ TEST_F(VisualSearchSuggestionsServiceTest, OnModelUpdated_ModelAlreadyLoaded) {
         EXPECT_TRUE(model.IsValid());
         EXPECT_TRUE(config_proto.empty());
       });
-  service_->SetModelUpdateCallback(std::move(callback));
   service_->OnModelUpdated(optimization_guide::proto::OptimizationTarget::
                                OPTIMIZATION_TARGET_VISUAL_SEARCH_CLASSIFICATION,
                            *model_info_);
@@ -138,29 +134,5 @@ TEST_F(VisualSearchSuggestionsServiceTest, OnModelUpdated_ModelAlreadyLoaded) {
   service_->OnModelUpdated(optimization_guide::proto::OptimizationTarget::
                                OPTIMIZATION_TARGET_VISUAL_SEARCH_CLASSIFICATION,
                            *model_info_);
-  task_environment_.RunUntilIdle();
-}
-
-TEST_F(VisualSearchSuggestionsServiceTest, OnModelUpdated_NullModelUpdate) {
-  VisualSearchSuggestionsService::ModelUpdateCallback callback =
-      base::BindOnce([](base::File model, std::string config_proto) {
-        EXPECT_TRUE(model.IsValid());
-        EXPECT_TRUE(config_proto.empty());
-      });
-  service_->SetModelUpdateCallback(std::move(callback));
-  service_->OnModelUpdated(optimization_guide::proto::OptimizationTarget::
-                               OPTIMIZATION_TARGET_VISUAL_SEARCH_CLASSIFICATION,
-                           *model_info_);
-  task_environment_.RunUntilIdle();
-
-  // Null model update should unload the model.
-  callback = base::BindOnce([](base::File model, std::string config_proto) {
-    EXPECT_FALSE(model.IsValid());
-    EXPECT_TRUE(config_proto.empty());
-  });
-  service_->OnModelUpdated(optimization_guide::proto::OptimizationTarget::
-                               OPTIMIZATION_TARGET_VISUAL_SEARCH_CLASSIFICATION,
-                           absl::nullopt);
-  service_->SetModelUpdateCallback(std::move(callback));
   task_environment_.RunUntilIdle();
 }

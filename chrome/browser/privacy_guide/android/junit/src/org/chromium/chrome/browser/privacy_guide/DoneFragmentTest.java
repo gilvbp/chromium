@@ -88,6 +88,8 @@ public class DoneFragmentTest {
         if (mScenario != null) {
             mScenario.close();
         }
+        IdentityServicesProvider.setInstanceForTests(null);
+        Profile.setLastUsedProfileForTesting(null);
     }
 
     @Test

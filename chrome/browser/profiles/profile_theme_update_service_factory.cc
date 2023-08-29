@@ -40,15 +40,15 @@ ProfileThemeUpdateServiceFactory::ProfileThemeUpdateServiceFactory()
 
 ProfileThemeUpdateServiceFactory::~ProfileThemeUpdateServiceFactory() = default;
 
-std::unique_ptr<KeyedService>
-ProfileThemeUpdateServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* ProfileThemeUpdateServiceFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
+
   ProfileManager* profile_manager = g_browser_process->profile_manager();
   if (!profile_manager)
     return nullptr;  // Some tests don't have a profile manager.
 
   Profile* profile = Profile::FromBrowserContext(context);
-  return std::make_unique<ProfileThemeUpdateService>(
+  return new ProfileThemeUpdateService(
       profile, &profile_manager->GetProfileAttributesStorage());
 }
 

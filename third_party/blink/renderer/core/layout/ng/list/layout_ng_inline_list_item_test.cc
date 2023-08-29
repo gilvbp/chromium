@@ -21,9 +21,7 @@ li {
   list-style: upper-alpha;
 }
 </style>)HTML");
-  GetDocument()
-      .getElementById(AtomicString("li2"))
-      ->removeAttribute(html_names::kStyleAttr);
+  GetDocument().getElementById("li2")->removeAttribute(html_names::kStyleAttr);
   UpdateAllLifecyclePhasesForTest();
   auto* block_flow = NGOffsetMapping::GetInlineFormattingContextOf(
       *GetLayoutObjectByElementId("li3"));

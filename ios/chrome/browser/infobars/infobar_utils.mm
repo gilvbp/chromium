@@ -11,6 +11,10 @@
 #import "ios/chrome/browser/infobars/infobar_ios.h"
 #import "ios/chrome/browser/infobars/infobar_type.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 std::unique_ptr<infobars::InfoBar> CreateConfirmInfoBar(
     std::unique_ptr<ConfirmInfoBarDelegate> delegate) {
   return std::make_unique<InfoBarIOS>(InfobarType::kInfobarTypeConfirm,

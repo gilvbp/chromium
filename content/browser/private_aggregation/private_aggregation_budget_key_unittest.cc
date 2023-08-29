@@ -14,10 +14,11 @@ namespace content {
 
 namespace {
 
-constexpr base::Time kExampleTime = base::Time::FromJavaTime(1652984901234);
+// TODO(alexmt): Consider making FromJavaTime() constexpr.
+const base::Time kExampleTime = base::Time::FromJavaTime(1652984901234);
 
 // `kExampleTime` floored to a minute boundary.
-constexpr base::Time kExampleMinuteBoundary =
+const base::Time kExampleMinuteBoundary =
     base::Time::FromJavaTime(1652984880000);
 
 constexpr char kExampleOriginUrl[] = "https://origin.example";

@@ -27,13 +27,7 @@ public final class AttrUtils {
     public static @ColorInt int resolveColor(Theme theme, @AttrRes int attrRes) {
         TypedValue typedValue = new TypedValue();
         theme.resolveAttribute(attrRes, typedValue, /*resolveRefs=*/true);
-        if (typedValue.resourceId != 0) {
-            // Color State List
-            return theme.getResources().getColor(typedValue.resourceId, theme);
-        } else {
-            // Color Int
-            return typedValue.data;
-        }
+        return typedValue.data;
     }
 
     /**

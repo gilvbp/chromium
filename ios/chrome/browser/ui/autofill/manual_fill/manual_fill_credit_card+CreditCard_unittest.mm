@@ -10,6 +10,10 @@
 #import "testing/platform_test.h"
 #import "url/gurl.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 using autofill::CreditCard;
 using ManualFillCreditCardFormAutofilliOSTest = PlatformTest;
 
@@ -63,8 +67,7 @@ TEST_F(ManualFillCreditCardFormAutofilliOSTest, CreationObfuscated) {
   NSString* expirationMonth = @"1";
 
   CreditCard autofillCreditCard = CreditCard();
-  autofillCreditCard.set_record_type(
-      autofill::CreditCard::RecordType::kMaskedServerCard);
+  autofillCreditCard.set_record_type(autofill::CreditCard::MASKED_SERVER_CARD);
   autofillCreditCard.set_guid(
       base::UTF16ToASCII(base::SysNSStringToUTF16(GUID)));
   autofillCreditCard.SetNumber(base::SysNSStringToUTF16(number));

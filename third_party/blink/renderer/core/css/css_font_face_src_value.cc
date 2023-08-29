@@ -50,9 +50,6 @@ namespace blink {
 namespace {
 
 String TechnologyToString(CSSFontFaceSrcValue::FontTechnology font_technology) {
-  // According to
-  // https://drafts.csswg.org/cssom/#serialize-a-css-component-value these all
-  // need to be serialized as lowercase.
   switch (font_technology) {
     case CSSFontFaceSrcValue::FontTechnology::kTechnologyVariations:
       return "variations";
@@ -63,11 +60,11 @@ String TechnologyToString(CSSFontFaceSrcValue::FontTechnology font_technology) {
     case CSSFontFaceSrcValue::FontTechnology::kTechnologyPalettes:
       return "palettes";
     case CSSFontFaceSrcValue::FontTechnology::kTechnologyCOLRv0:
-      return "color-colrv0";
+      return "color-COLRv0";
     case CSSFontFaceSrcValue::FontTechnology::kTechnologyCOLRv1:
-      return "color-colrv1";
+      return "color-COLRv1";
     case CSSFontFaceSrcValue::FontTechnology::kTechnologyCDBT:
-      return "color-cbdt";
+      return "color-CBDT";
     case CSSFontFaceSrcValue::FontTechnology::kTechnologySBIX:
       return "color-sbix";
     case CSSFontFaceSrcValue::FontTechnology::kTechnologyUnknown:
@@ -184,9 +181,10 @@ void CSSFontFaceSrcValue::RestoreCachedResourceIfNeeded(
   DCHECK(fetched_);
   DCHECK(context);
   DCHECK(context->Fetcher());
+
+  const KURL url = context->CompleteURL(absolute_resource_);
   context->Fetcher()->EmulateLoadStartedForInspector(
-      fetched_, KURL(absolute_resource_),
-      mojom::blink::RequestContextType::FONT,
+      fetched_, url, mojom::blink::RequestContextType::FONT,
       network::mojom::RequestDestination::kFont,
       fetch_initiator_type_names::kCSS);
 }

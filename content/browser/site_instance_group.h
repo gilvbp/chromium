@@ -71,7 +71,7 @@ class CONTENT_EXPORT SiteInstanceGroup
     : public base::RefCounted<SiteInstanceGroup>,
       public RenderProcessHostObserver {
  public:
-  class CONTENT_EXPORT Observer : public base::CheckedObserver {
+  class CONTENT_EXPORT Observer {
    public:
     // Called when this SiteInstanceGroup transitions to having no active
     // frames, as measured by active_frame_count().
@@ -165,11 +165,6 @@ class CONTENT_EXPORT SiteInstanceGroup
   // Write a representation of this object into a trace.
   void WriteIntoTrace(perfetto::TracedProto<TraceProto> proto) const;
 
-  // Used for setting crashkeys for Bug1470312.
-  bool is_notifying_observers_for_debugging() const {
-    return is_notifying_observers_;
-  }
-
  private:
   friend class RefCounted<SiteInstanceGroup>;
   ~SiteInstanceGroup() override;
@@ -207,10 +202,9 @@ class CONTENT_EXPORT SiteInstanceGroup
   // List of SiteInstanceImpls that belong in this group. When any SiteInstance
   // in the set goes away, it must also be removed from `site_instances_` to
   // prevent UaF.
-  base::flat_set<raw_ptr<SiteInstanceImpl>> site_instances_;
+  base::flat_set<SiteInstanceImpl*> site_instances_;
 
-  base::ObserverList<Observer> observers_;
-  bool is_notifying_observers_ = false;
+  base::ObserverList<Observer, true>::Unchecked observers_;
 
   base::WeakPtrFactory<SiteInstanceGroup> weak_ptr_factory_{this};
 };

@@ -34,6 +34,10 @@
 #import "ios/web/public/web_state.h"
 #import "url/gurl.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 using base::RecordAction;
 using base::UserMetricsAction;
 
@@ -77,7 +81,7 @@ using base::UserMetricsAction;
       break;
     case PopupMenuActionPageBookmark: {
       RecordAction(UserMetricsAction("MobileMenuAddToOrEditBookmark"));
-      LogBookmarkUseForDefaultBrowserPromo();
+      LogLikelyInterestedDefaultBrowserUserActivity(DefaultPromoTypeAllTabs);
       web::WebState* currentWebState = self.delegate.currentWebState;
       if (!currentWebState) {
         return;
@@ -145,7 +149,7 @@ using base::UserMetricsAction;
       break;
     case PopupMenuActionBookmarks:
       RecordAction(UserMetricsAction("MobileMenuAllBookmarks"));
-      LogBookmarkUseForDefaultBrowserPromo();
+      LogLikelyInterestedDefaultBrowserUserActivity(DefaultPromoTypeAllTabs);
       [self.browserCoordinatorCommandsHandler showBookmarksManager];
       break;
     case PopupMenuActionReadingList:

@@ -47,11 +47,10 @@ ImageServiceFactory::ImageServiceFactory()
 
 ImageServiceFactory::~ImageServiceFactory() = default;
 
-std::unique_ptr<KeyedService>
-ImageServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* ImageServiceFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   auto* profile = Profile::FromBrowserContext(context);
-  return std::make_unique<ImageService>(
+  return new ImageService(
       TemplateURLServiceFactory::GetForProfile(profile),
       RemoteSuggestionsServiceFactory::GetForProfile(
           profile, /*create_if_necessary=*/true),

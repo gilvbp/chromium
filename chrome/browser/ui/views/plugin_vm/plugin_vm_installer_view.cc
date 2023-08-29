@@ -580,8 +580,10 @@ std::u16string PluginVmInstallerView::GetDownloadProgressMessage(
         ui::FormatBytesWithUnits(content_length, ui::DATA_UNITS_GIBIBYTE,
                                  /*show_units=*/true));
   } else {
-    return ui::FormatBytesWithUnits(bytes_downloaded, ui::DATA_UNITS_GIBIBYTE,
-                                    /*show_units=*/true);
+    return l10n_util::GetStringFUTF16(
+        IDS_PLUGIN_VM_INSTALLER_DOWNLOAD_PROGRESS_WITHOUT_DOWNLOAD_SIZE_MESSAGE,
+        ui::FormatBytesWithUnits(bytes_downloaded, ui::DATA_UNITS_GIBIBYTE,
+                                 /*show_units=*/true));
   }
 }
 

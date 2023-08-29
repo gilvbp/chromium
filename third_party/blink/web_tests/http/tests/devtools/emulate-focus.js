@@ -4,18 +4,16 @@
 
 import {TestRunner} from 'test_runner';
 
-import * as Common from 'devtools/core/common/common.js';
-
 (async function() {
   TestRunner.addResult(`Tests that focus emulation works.\n`);
   await dumpPageFocus();
 
   TestRunner.addResult('\nEmulating page focus');
-  Common.Settings.moduleSetting('emulatePageFocus').set(true);
+  Common.settings.moduleSetting('emulatePageFocus').set(true);
   await dumpPageFocus();
 
   TestRunner.addResult('\nDisabling focus emulation');
-  Common.Settings.moduleSetting('emulatePageFocus').set(false);
+  Common.settings.moduleSetting('emulatePageFocus').set(false);
   await dumpPageFocus();
 
 

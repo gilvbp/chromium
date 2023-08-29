@@ -5,9 +5,6 @@
 #ifndef CONTENT_PUBLIC_BROWSER_BROWSING_TOPICS_SITE_DATA_MANAGER_H_
 #define CONTENT_PUBLIC_BROWSER_BROWSING_TOPICS_SITE_DATA_MANAGER_H_
 
-#include <map>
-#include <set>
-
 #include "base/containers/flat_set.h"
 #include "base/functional/callback.h"
 #include "components/browsing_topics/common/common_types.h"
@@ -21,9 +18,6 @@ class CONTENT_EXPORT BrowsingTopicsSiteDataManager {
  public:
   using GetBrowsingTopicsApiUsageCallback =
       base::OnceCallback<void(browsing_topics::ApiUsageContextQueryResult)>;
-  using GetContextDomainsFromHashedContextDomainsCallback =
-      base::OnceCallback<void(
-          std::map<browsing_topics::HashedDomain, std::string>)>;
 
   virtual ~BrowsingTopicsSiteDataManager() = default;
 
@@ -51,16 +45,9 @@ class CONTENT_EXPORT BrowsingTopicsSiteDataManager {
   // usage is detected in a context on a page.
   virtual void OnBrowsingTopicsApiUsed(
       const browsing_topics::HashedHost& hashed_main_frame_host,
-      const browsing_topics::HashedDomain& hashed_context_domain,
-      const std::string& context_domain,
+      const base::flat_set<browsing_topics::HashedDomain>&
+          hashed_context_domains,
       base::Time time) = 0;
-
-  // For each hashed context domain, get the stored unhashed version. Only
-  // hashed domains for which there is a corresponding unhashed domain will be
-  // included in the output.
-  virtual void GetContextDomainsFromHashedContextDomains(
-      const std::set<browsing_topics::HashedDomain>& hashed_context_domains,
-      GetContextDomainsFromHashedContextDomainsCallback callback) = 0;
 };
 
 }  // namespace content

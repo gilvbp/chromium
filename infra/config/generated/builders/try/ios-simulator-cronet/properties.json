@@ -7,7 +7,7 @@
             "builder_id": {
               "bucket": "ci",
               "builder": "ios-simulator-cronet",
-              "project": "chromium"
+              "project": "chromium-m116"
             },
             "builder_spec": {
               "build_gs_bucket": "chromium-fyi-archive",
@@ -34,18 +34,17 @@
         {
           "bucket": "ci",
           "builder": "ios-simulator-cronet",
-          "project": "chromium"
+          "project": "chromium-m116"
         }
       ]
     }
   },
   "$build/flakiness": {
-    "check_for_flakiness": true,
-    "check_for_flakiness_with_resultdb": true
+    "check_for_flakiness": true
   },
   "$build/reclient": {
     "instance": "rbe-chromium-untrusted",
-    "jobs": 500,
+    "jobs": 300,
     "metrics_project": "chromium-reclient-metrics",
     "scandeps_server": true
   },
@@ -59,5 +58,5 @@
   "builder_group": "tryserver.chromium.mac",
   "cq": "path-based",
   "recipe": "chromium_trybot",
-  "xcode_build_version": "15a5229h"
+  "xcode_build_version": "14c18"
 }

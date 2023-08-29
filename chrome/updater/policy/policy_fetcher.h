@@ -27,8 +27,7 @@ class PolicyFetcher : public base::RefCountedThreadSafe<PolicyFetcher> {
  public:
   PolicyFetcher(const GURL& server_url,
                 const absl::optional<PolicyServiceProxyConfiguration>&
-                    proxy_configuration,
-                const absl::optional<bool>& override_is_managed_device);
+                    proxy_configuration);
   void FetchPolicies(
       base::OnceCallback<void(int, scoped_refptr<PolicyManagerInterface>)>
           callback);
@@ -56,7 +55,6 @@ class PolicyFetcher : public base::RefCountedThreadSafe<PolicyFetcher> {
   const GURL server_url_;
   const absl::optional<PolicyServiceProxyConfiguration>
       policy_service_proxy_configuration_;
-  const absl::optional<bool> override_is_managed_device_;
   const scoped_refptr<base::SequencedTaskRunner> sequenced_task_runner_;
 };
 

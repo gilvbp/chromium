@@ -4,11 +4,9 @@
 
 #include "ash/system/unified/buttons.h"
 
-#include "ash/ash_element_identifiers.h"
 #include "ash/constants/ash_features.h"
 #include "ash/constants/quick_settings_catalogs.h"
 #include "ash/public/cpp/ash_view_ids.h"
-#include "ash/public/cpp/system_tray_client.h"
 #include "ash/resources/vector_icons/vector_icons.h"
 #include "ash/session/session_controller_impl.h"
 #include "ash/shell.h"
@@ -39,7 +37,6 @@
 #include "ui/views/controls/label.h"
 #include "ui/views/layout/box_layout.h"
 #include "ui/views/layout/fill_layout.h"
-#include "ui/views/view_class_properties.h"
 
 namespace ash {
 
@@ -62,14 +59,6 @@ void ShowEnterpriseInfo(UnifiedSystemTrayController* controller,
   quick_settings_metrics_util::RecordQsButtonActivated(
       QsButtonCatalogName::kManagedButton);
   controller->HandleEnterpriseInfoAction();
-}
-
-// Shows account settings in OS settings, which includes a link to install or
-// open the Family Link app to see supervision settings.
-void ShowAccountSettings() {
-  quick_settings_metrics_util::RecordQsButtonActivated(
-      QsButtonCatalogName::kSupervisedButton);
-  Shell::Get()->system_tray_model()->client()->ShowAccountSettings();
 }
 
 }  // namespace
@@ -183,7 +172,6 @@ EnterpriseManagedView::EnterpriseManagedView(
                            : kUnifiedMenuManagedIcon) {
   DCHECK(Shell::Get());
   SetID(VIEW_ID_QS_MANAGED_BUTTON);
-  SetProperty(views::kElementIdentifierKey, kEnterpriseManagedView);
   Shell::Get()->system_tray_model()->enterprise_domain()->AddObserver(this);
   Shell::Get()->session_controller()->AddObserver(this);
   Update();
@@ -266,7 +254,7 @@ END_METADATA
 ////////////////////////////////////////////////////////////////////////////////
 
 SupervisedUserView::SupervisedUserView()
-    : ManagedStateView(base::BindRepeating(&ShowAccountSettings),
+    : ManagedStateView(PressedCallback(),
                        IDS_ASH_STATUS_TRAY_SUPERVISED_LABEL,
                        GetSupervisedUserIcon()) {
   SetID(VIEW_ID_QS_SUPERVISED_BUTTON);
@@ -276,11 +264,9 @@ SupervisedUserView::SupervisedUserView()
     SetTooltipText(GetSupervisedUserMessage());
   }
 
-  if (features::IsQsRevampEnabled()) {
-    return;
-  }
-  // Pre-QsRevamp clicking the button does nothing.
-  SetCallback(PressedCallback());
+  // TODO(crbug/1026821) Add SupervisedUserView::ButtonPress() overload
+  // to show a similar ui to enterprise managed accounts. Disable button
+  // state for now.
   SetState(ButtonState::STATE_DISABLED);
   views::InkDrop::Get(this)->SetMode(views::InkDropHost::InkDropMode::OFF);
 }
@@ -289,19 +275,18 @@ BEGIN_METADATA(SupervisedUserView, ManagedStateView)
 END_METADATA
 
 ////////////////////////////////////////////////////////////////////////////////
+
 UserAvatarButton::UserAvatarButton(PressedCallback callback)
     : Button(std::move(callback)) {
+  // QsRevamp doesn't use an avatar button. DCHECK because it's a map lookup.
+  DCHECK(!features::IsQsRevampEnabled());
   SetLayoutManager(std::make_unique<views::FillLayout>());
-  SetBorder(views::CreateEmptyBorder(features::IsQsRevampEnabled()
-                                         ? gfx::Insets(0)
-                                         : kUnifiedCircularButtonFocusPadding));
+  SetBorder(views::CreateEmptyBorder(kUnifiedCircularButtonFocusPadding));
   AddChildView(CreateUserAvatarView(0 /* user_index */));
   SetTooltipText(GetUserItemAccessibleString(0 /* user_index */));
   SetInstallFocusRingOnFocus(true);
-  views::FocusRing::Get(this)->SetColorId(
-      features::IsQsRevampEnabled()
-          ? cros_tokens::kCrosSysFocusRing
-          : static_cast<ui::ColorId>(ui::kColorAshFocusRing));
+  views::FocusRing::Get(this)->SetColorId(ui::kColorAshFocusRing);
+
   views::InstallCircleHighlightPathGenerator(this);
 }
 

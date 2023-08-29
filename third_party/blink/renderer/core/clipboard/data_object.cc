@@ -43,7 +43,6 @@
 #include "third_party/blink/renderer/core/clipboard/dragged_isolated_file_system.h"
 #include "third_party/blink/renderer/core/clipboard/paste_mode.h"
 #include "third_party/blink/renderer/core/clipboard/system_clipboard.h"
-#include "third_party/blink/renderer/core/execution_context/execution_context.h"
 #include "third_party/blink/renderer/platform/blob/blob_data.h"
 #include "third_party/blink/renderer/platform/file_metadata.h"
 #include "third_party/blink/renderer/platform/wtf/hash_set.h"
@@ -51,8 +50,7 @@
 namespace blink {
 
 // static
-DataObject* DataObject::CreateFromClipboard(ExecutionContext* context,
-                                            SystemClipboard* system_clipboard,
+DataObject* DataObject::CreateFromClipboard(SystemClipboard* system_clipboard,
                                             PasteMode paste_mode) {
   DataObject* data_object = Create();
 #if DCHECK_IS_ON()
@@ -72,8 +70,8 @@ DataObject* DataObject::CreateFromClipboard(ExecutionContext* context,
       }
       for (const mojom::blink::DataTransferFilePtr& file : files->files) {
         data_object->AddFilename(
-            context, FilePathToString(file->path),
-            FilePathToString(file->display_name), files->file_system_id,
+            FilePathToString(file->path), FilePathToString(file->display_name),
+            files->file_system_id,
             base::MakeRefCounted<FileSystemAccessDropData>(
                 std::move(file->file_system_access_token)));
       }
@@ -89,11 +87,6 @@ DataObject* DataObject::CreateFromClipboard(ExecutionContext* context,
 #endif
   }
   return data_object;
-}
-
-DataObject* DataObject::CreateFromClipboard(SystemClipboard* system_clipboard,
-                                            PasteMode paste_mode) {
-  return CreateFromClipboard(/*context=*/nullptr, system_clipboard, paste_mode);
 }
 
 // static
@@ -260,14 +253,13 @@ Vector<String> DataObject::Filenames() const {
 }
 
 void DataObject::AddFilename(
-    ExecutionContext* context,
     const String& filename,
     const String& display_name,
     const String& file_system_id,
     scoped_refptr<FileSystemAccessDropData> file_system_access_entry) {
   InternalAddFileItem(DataObjectItem::CreateFromFileWithFileSystemId(
-      File::CreateForUserProvidedFile(context, filename, display_name),
-      file_system_id, std::move(file_system_access_entry)));
+      File::CreateForUserProvidedFile(filename, display_name), file_system_id,
+      std::move(file_system_access_entry)));
 }
 
 void DataObject::AddFileSharedBuffer(scoped_refptr<SharedBuffer> buffer,
@@ -326,8 +318,7 @@ void DataObject::Trace(Visitor* visitor) const {
 }
 
 // static
-DataObject* DataObject::Create(ExecutionContext* context,
-                               const WebDragData& data) {
+DataObject* DataObject::Create(const WebDragData& data) {
   DataObject* data_object = Create();
   bool has_file_system = false;
 
@@ -345,8 +336,8 @@ DataObject* DataObject::Create(ExecutionContext* context,
             },
             [&](const WebDragData::FilenameItem& item) {
               has_file_system = true;
-              data_object->AddFilename(context, item.filename,
-                                       item.display_name, data.FilesystemId(),
+              data_object->AddFilename(item.filename, item.display_name,
+                                       data.FilesystemId(),
                                        item.file_system_access_entry);
             },
             [&](const WebDragData::BinaryDataItem& item) {
@@ -393,10 +384,6 @@ DataObject* DataObject::Create(ExecutionContext* context,
     DraggedIsolatedFileSystem::PrepareForDataObject(data_object);
 
   return data_object;
-}
-
-DataObject* DataObject::Create(const WebDragData& data) {
-  return Create(/*context=*/nullptr, data);
 }
 
 WebDragData DataObject::ToWebDragData() {

@@ -36,9 +36,6 @@ enum class FileAction {
 bool IsFilesTransferBlocked(const std::vector<std::string>& sources,
                             data_controls::Component component);
 
-// Opens the policy Learn more page.
-void OpenLearnMore();
-
 }  // namespace dlp
 }  // namespace policy
 

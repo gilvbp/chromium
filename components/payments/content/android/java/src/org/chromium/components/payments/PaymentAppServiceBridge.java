@@ -4,7 +4,8 @@
 
 package org.chromium.components.payments;
 
-import org.chromium.base.ResettersForTesting;
+import androidx.annotation.VisibleForTesting;
+
 import org.chromium.base.ThreadUtils;
 import org.chromium.base.annotations.CalledByNative;
 import org.chromium.base.annotations.NativeMethods;
@@ -25,9 +26,9 @@ public class PaymentAppServiceBridge implements PaymentAppFactoryInterface {
      *
      * @param canMakePayment Indicates whether a SW payment app can make payment.
      */
+    @VisibleForTesting
     public static void setCanMakePaymentForTesting(boolean canMakePayment) {
         sCanMakePaymentForTesting = canMakePayment;
-        ResettersForTesting.register(() -> sCanMakePaymentForTesting = false);
     }
 
     // PaymentAppFactoryInterface implementation.

@@ -4,9 +4,7 @@
 
 #include "components/enterprise/browser/reporting/real_time_report_controller.h"
 
-#include "base/containers/flat_map.h"
 #include "components/enterprise/browser/reporting/real_time_report_generator.h"
-#include "components/enterprise/browser/reporting/real_time_report_type.h"
 #include "components/enterprise/browser/reporting/real_time_uploader.h"
 #include "components/enterprise/browser/reporting/reporting_delegate_factory.h"
 #include "components/policy/core/common/cloud/dm_token.h"
@@ -14,13 +12,13 @@
 namespace enterprise_reporting {
 
 namespace {
-
-void OnReportEnqueued(RealTimeReportType type, bool success) {
+void OnExtensionRequestEnqueued(bool success) {
   // So far, there is nothing handle the enqueue failure as the CBCM status
   // report will cover all failed requests. However, we may need a retry logic
-  // in the future.
-  LOG_IF(ERROR, !success)
-      << "Real time request failed to be added to the pipeline: " << type;
+  // here if Extension workflow is decoupled from the status report.
+  if (!success) {
+    LOG(ERROR) << "Extension request failed to be added to the pipeline.";
+  }
 }
 
 }  // namespace
@@ -58,60 +56,48 @@ void RealTimeReportController::OnDMTokenUpdated(policy::DMToken&& dm_token) {
     delegate_->StartWatchingExtensionRequestIfNeeded();
   } else {
     delegate_->StopWatchingExtensionRequest();
-    report_uploaders_.clear();
+    extension_request_uploader_.reset();
   }
 }
 
 void RealTimeReportController::GenerateAndUploadReport(
-    RealTimeReportType type,
+    ReportTrigger trigger,
     const RealTimeReportGenerator::Data& data) {
   if (!dm_token_.is_valid()) {
     return;
   }
 
-  static const base::flat_map<RealTimeReportType, ReportConfig> kConfigs = {
-      {RealTimeReportType::kExtensionRequest,
-       {RealTimeReportType::kExtensionRequest,
-        reporting::Destination::EXTENSIONS_WORKFLOW,
-        reporting::Priority::FAST_BATCH}},
-      {RealTimeReportType::kLegacyTech,
-       {RealTimeReportType::kLegacyTech, reporting::Destination::LEGACY_TECH,
-        reporting::Priority::BACKGROUND_BATCH}},
-  };
-
-  UploadReport(data, kConfigs.at(type));
+  if (trigger == RealTimeReportController::ReportTrigger::kExtensionRequest) {
+    UploadExtensionRequests(data);
+  }
 }
 
-void RealTimeReportController::UploadReport(
-    const RealTimeReportGenerator::Data& data,
-    const ReportConfig& config) {
+void RealTimeReportController::UploadExtensionRequests(
+    const RealTimeReportGenerator::Data& data) {
   DCHECK(real_time_report_generator_);
-
-  VLOG(1) << "Create real time event and add it to the pipeline: "
-          << config.type;
+  VLOG(1) << "Create extension request and add it to the pipeline.";
 
   if (!dm_token_.is_valid()) {
     return;
   }
 
-  if (!report_uploaders_.contains(config.type)) {
-    report_uploaders_[config.type] = RealTimeUploader::Create(
-        dm_token_.value(), config.destination, config.priority);
+  if (!extension_request_uploader_) {
+    extension_request_uploader_ = RealTimeUploader::Create(
+        dm_token_.value(), reporting::Destination::EXTENSIONS_WORKFLOW,
+        reporting::Priority::FAST_BATCH);
   }
-  auto* uploader = report_uploaders_[config.type].get();
-
-  auto reports = real_time_report_generator_->Generate(config.type, data);
+  auto reports = real_time_report_generator_->Generate(
+      RealTimeReportGenerator::ReportType::kExtensionRequest, data);
 
   for (auto& report : reports) {
-    uploader->Upload(std::move(report),
-                     base::BindOnce(&OnReportEnqueued, config.type));
+    extension_request_uploader_->Upload(
+        std::move(report), base::BindOnce(&OnExtensionRequestEnqueued));
   }
 }
 
-void RealTimeReportController::SetUploaderForTesting(
-    RealTimeReportType type,
+void RealTimeReportController::SetExtensionRequestUploaderForTesting(
     std::unique_ptr<RealTimeUploader> uploader) {
-  report_uploaders_[type] = std::move(uploader);
+  extension_request_uploader_ = std::move(uploader);
 }
 
 void RealTimeReportController::SetReportGeneratorForTesting(

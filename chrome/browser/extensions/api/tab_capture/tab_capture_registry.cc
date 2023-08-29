@@ -20,7 +20,6 @@
 #include "content/public/browser/web_contents_observer.h"
 #include "extensions/browser/event_router.h"
 #include "extensions/common/extension.h"
-#include "extensions/common/extension_id.h"
 #include "url/origin.h"
 
 using content::BrowserThread;
@@ -36,7 +35,7 @@ namespace tab_capture = api::tab_capture;
 class TabCaptureRegistry::LiveRequest : public content::WebContentsObserver {
  public:
   LiveRequest(content::WebContents* target_contents,
-              const ExtensionId& extension_id,
+              const std::string& extension_id,
               bool is_anonymous,
               TabCaptureRegistry* registry)
       : content::WebContentsObserver(target_contents),
@@ -57,7 +56,7 @@ class TabCaptureRegistry::LiveRequest : public content::WebContentsObserver {
   ~LiveRequest() override {}
 
   // Accessors.
-  const ExtensionId& extension_id() const { return extension_id_; }
+  const std::string& extension_id() const { return extension_id_; }
   bool is_anonymous() const { return is_anonymous_; }
   TabCaptureState capture_state() const { return capture_state_; }
   bool is_verified() const { return is_verified_; }
@@ -103,7 +102,7 @@ class TabCaptureRegistry::LiveRequest : public content::WebContentsObserver {
   }
 
  private:
-  const ExtensionId extension_id_;
+  const std::string extension_id_;
   const bool is_anonymous_;
   const raw_ptr<TabCaptureRegistry> registry_;
   TabCaptureState capture_state_ = tab_capture::TAB_CAPTURE_STATE_NONE;

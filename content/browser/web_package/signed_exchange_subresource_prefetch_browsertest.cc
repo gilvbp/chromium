@@ -32,7 +32,6 @@
 #include "content/public/browser/browser_thread.h"
 #include "content/public/browser/browsing_data_remover.h"
 #include "content/public/browser/navigation_handle.h"
-#include "content/public/browser/network_service_util.h"
 #include "content/public/browser/render_view_host.h"
 #include "content/public/browser/web_contents.h"
 #include "content/public/common/content_features.h"
@@ -213,10 +212,13 @@ class SignedExchangePrefetchBrowserTest : public PrefetchBrowserTestBase {
   ~SignedExchangePrefetchBrowserTest() override = default;
 
   void SetUp() override {
-    feature_list_.InitAndEnableFeature(features::kSignedHTTPExchange);
+    std::vector<base::test::FeatureRef> enable_features;
+    std::vector<base::test::FeatureRef> disabled_features;
+    enable_features.push_back(features::kSignedHTTPExchange);
     // Need to run the network service in process for testing cache expirity
     // (PrefetchMainResourceSXG_ExceedPrefetchReuseMins) using MockClock.
-    ForceInProcessNetworkService();
+    enable_features.push_back(features::kNetworkServiceInProcess);
+    feature_list_.InitWithFeatures(enable_features, disabled_features);
     PrefetchBrowserTestBase::SetUp();
   }
 
@@ -750,6 +752,10 @@ class SignedExchangeSubresourcePrefetchBrowserTest
     std::vector<base::test::FeatureRef> enable_features;
     std::vector<base::test::FeatureRef> disabled_features;
     enable_features.push_back(features::kSignedHTTPExchange);
+    // Need to run the network service in process for testing cache expirity
+    // (PrefetchMainResourceSXG_ExceedPrefetchReuseMins) using MockClock.
+    enable_features.push_back(features::kNetworkServiceInProcess);
+
     // Needed for reporting test. Doesn't significantly impact other tests.
     enable_features.push_back(
         net::features::kPartitionNelAndReportingByNetworkIsolationKey);
@@ -759,11 +765,6 @@ class SignedExchangeSubresourcePrefetchBrowserTest
         net::features::kPartitionSSLSessionsByNetworkIsolationKey);
 
     feature_list_.InitWithFeatures(enable_features, disabled_features);
-
-    // Need to run the network service in process for testing cache expirity
-    // (PrefetchMainResourceSXG_ExceedPrefetchReuseMins) using MockClock.
-    ForceInProcessNetworkService();
-
     PrefetchBrowserTestBase::SetUp();
   }
 
@@ -1813,9 +1814,7 @@ IN_PROC_BROWSER_TEST_F(SignedExchangeSubresourcePrefetchBrowserTest,
   EXPECT_EQ(1, script2_request_counter->GetRequestCount());
 }
 
-// TODO(crbug.com/1350046): Flaky.
-IN_PROC_BROWSER_TEST_F(SignedExchangeSubresourcePrefetchBrowserTest,
-                       DISABLED_CORS) {
+IN_PROC_BROWSER_TEST_F(SignedExchangeSubresourcePrefetchBrowserTest, CORS) {
   std::unique_ptr<net::EmbeddedTestServer> data_server =
       std::make_unique<net::EmbeddedTestServer>(
           net::EmbeddedTestServer::TYPE_HTTPS);

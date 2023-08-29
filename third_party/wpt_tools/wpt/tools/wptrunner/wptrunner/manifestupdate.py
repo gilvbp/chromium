@@ -667,14 +667,7 @@ class PropertyUpdate:
                 else:
                     errors.append(error)
 
-            try:
-                # Attempt to stably order the next group of conditions by their
-                # values, which are typically string/numeric types that have an
-                # order defined.
-                children = sorted(node.children, key=lambda child: child.value)
-            except TypeError:
-                children = node.children
-            for child in children:
+            for child in node.children:
                 queue.append((child, parents_and_self))
 
         conditions = conditions[::-1]
@@ -951,8 +944,6 @@ def make_node(value):
         node = ListNode()
         for item in value:
             node.append(make_node(item))
-    else:
-        raise ValueError(f"Unrecoginsed data type {type(value)}")
     return node
 
 

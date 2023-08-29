@@ -35,11 +35,10 @@ UrlLanguageHistogramFactory::UrlLanguageHistogramFactory()
 
 UrlLanguageHistogramFactory::~UrlLanguageHistogramFactory() = default;
 
-std::unique_ptr<KeyedService>
-UrlLanguageHistogramFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* UrlLanguageHistogramFactory::BuildServiceInstanceFor(
     content::BrowserContext* const browser_context) const {
   Profile* const profile = Profile::FromBrowserContext(browser_context);
-  return std::make_unique<language::UrlLanguageHistogram>(profile->GetPrefs());
+  return new language::UrlLanguageHistogram(profile->GetPrefs());
 }
 
 void UrlLanguageHistogramFactory::RegisterProfilePrefs(

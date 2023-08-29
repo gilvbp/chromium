@@ -118,6 +118,7 @@ TEST_F(NotificationServiceImplTest, Basic) {
 
 TEST_F(NotificationServiceImplTest, MultipleRegistration) {
   TestSource test_source;
+
   TestObserver idle_test_source;
 
   NotificationService* service = NotificationService::current();
@@ -137,8 +138,6 @@ TEST_F(NotificationServiceImplTest, MultipleRegistration) {
   service->Notify(kNotification1, Source<TestSource>(&test_source),
                   NotificationService::NoDetails());
   EXPECT_EQ(1, idle_test_source.notification_count());
-
-  registrar_.RemoveAll();
 }
 
 }  // namespace content

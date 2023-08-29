@@ -197,9 +197,8 @@ class SearchPrefetchService : public KeyedService,
   // |web_contents| represents the active WebContents this prefetch is started
   // which can be nullptr in case no active WebContents is present.
   // |navigation_predictor| indicates the omnibox event type that
-  // indicated a likely navigation. Returns whether or not a prefetch was
-  // started.
-  bool OnNavigationLikely(
+  // indicated a likely navigation.
+  void OnNavigationLikely(
       size_t index,
       const AutocompleteMatch& match,
       omnibox::mojom::NavigationPredictor navigation_predictor,
@@ -212,12 +211,6 @@ class SearchPrefetchService : public KeyedService,
 
   // Fires all timers.
   void FireAllExpiryTimerForTesting();
-
-  // For a given `canonical_search_url`, tells its corresponding
-  // StreamingSearchPrefetchURLLoader to run the callback upon destruction.
-  void SetLoaderDestructionCallbackForTesting(
-      const GURL& canonical_search_url,
-      base::OnceClosure streaming_url_loader_destruction_callback);
 
  private:
   // Returns whether the prefetch started or not.

@@ -345,7 +345,7 @@ class BorealisDiskManagerImpl::ResizeDisk
         break;
       default:
         GetUpdatedDiskInfo(
-            "received failed or unrecognised status when resizing: " +
+            "recieved failed or unrecognised status when resizing: " +
             base::NumberToString(signal.status()) + " " +
             signal.failure_reason());
     }

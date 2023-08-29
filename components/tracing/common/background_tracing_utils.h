@@ -39,32 +39,22 @@ enum class BackgroundTracingSetupMode {
   // into a local file (for local testing).
   kFromFieldTrialLocalOutput,
 
-  // Background tracing config comes from a json config file passed on
-  // the command-line (for local testing).
-  kFromJsonConfigFile,
-
-  // Background tracing config comes from a proto config file passed on
-  // the command-line (for local testing).
-  kFromProtoConfigFile,
+  // Background tracing config comes from a config file passed on the
+  // command-line (for local testing).
+  kFromConfigFile,
 
   // Background tracing is disabled due to invalid command-line flags.
   kDisabledInvalidCommandLine,
 };
 
 COMPONENT_EXPORT(BACKGROUND_TRACING_UTILS)
-bool SetupBackgroundTracingWithOutputFile(
+void SetupBackgroundTracingWithOutputFile(
     std::unique_ptr<content::BackgroundTracingConfig> config,
     const base::FilePath& output_file);
 
 COMPONENT_EXPORT(BACKGROUND_TRACING_UTILS)
-bool SetupBackgroundTracingFromJsonConfigFile(
-    const base::FilePath& config_file,
-    const base::FilePath& output_file);
-
-COMPONENT_EXPORT(BACKGROUND_TRACING_UTILS)
-bool SetupBackgroundTracingFromProtoConfigFile(
-    const base::FilePath& config_file,
-    const base::FilePath& output_file);
+void SetupBackgroundTracingFromConfigFile(const base::FilePath& config_file,
+                                          const base::FilePath& output_file);
 
 COMPONENT_EXPORT(BACKGROUND_TRACING_UTILS)
 bool SetupBackgroundTracingFromCommandLine(const std::string& field_trial_name);

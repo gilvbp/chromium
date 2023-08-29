@@ -209,7 +209,7 @@ void InvalidateTidCache() {
 #endif  // BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS)
 
 // static
-PlatformThreadId PlatformThreadBase::CurrentId() {
+PlatformThreadId PlatformThread::CurrentId() {
   // Pthreads doesn't have the concept of a thread ID, so we have to reach down
   // into the kernel.
 #if BUILDFLAG(IS_APPLE)
@@ -269,24 +269,24 @@ PlatformThreadId PlatformThreadBase::CurrentId() {
 }
 
 // static
-PlatformThreadRef PlatformThreadBase::CurrentRef() {
+PlatformThreadRef PlatformThread::CurrentRef() {
   return PlatformThreadRef(pthread_self());
 }
 
 // static
-PlatformThreadHandle PlatformThreadBase::CurrentHandle() {
+PlatformThreadHandle PlatformThread::CurrentHandle() {
   return PlatformThreadHandle(pthread_self());
 }
 
 #if !BUILDFLAG(IS_APPLE)
 // static
-void PlatformThreadBase::YieldCurrentThread() {
+void PlatformThread::YieldCurrentThread() {
   sched_yield();
 }
 #endif  // !BUILDFLAG(IS_APPLE)
 
 // static
-void PlatformThreadBase::Sleep(TimeDelta duration) {
+void PlatformThread::Sleep(TimeDelta duration) {
   struct timespec sleep_time, remaining;
 
   // Break the duration into seconds and nanoseconds.
@@ -301,12 +301,12 @@ void PlatformThreadBase::Sleep(TimeDelta duration) {
 }
 
 // static
-const char* PlatformThreadBase::GetName() {
+const char* PlatformThread::GetName() {
   return ThreadIdNameManager::GetInstance()->GetName(CurrentId());
 }
 
 // static
-bool PlatformThreadBase::CreateWithType(size_t stack_size,
+bool PlatformThread::CreateWithType(size_t stack_size,
                                     Delegate* delegate,
                                     PlatformThreadHandle* thread_handle,
                                     ThreadType thread_type,
@@ -316,12 +316,12 @@ bool PlatformThreadBase::CreateWithType(size_t stack_size,
 }
 
 // static
-bool PlatformThreadBase::CreateNonJoinable(size_t stack_size, Delegate* delegate) {
+bool PlatformThread::CreateNonJoinable(size_t stack_size, Delegate* delegate) {
   return CreateNonJoinableWithType(stack_size, delegate, ThreadType::kDefault);
 }
 
 // static
-bool PlatformThreadBase::CreateNonJoinableWithType(size_t stack_size,
+bool PlatformThread::CreateNonJoinableWithType(size_t stack_size,
                                                Delegate* delegate,
                                                ThreadType thread_type,
                                                MessagePumpType pump_type_hint) {
@@ -333,7 +333,7 @@ bool PlatformThreadBase::CreateNonJoinableWithType(size_t stack_size,
 }
 
 // static
-void PlatformThreadBase::Join(PlatformThreadHandle thread_handle) {
+void PlatformThread::Join(PlatformThreadHandle thread_handle) {
   // Joining another thread may block the current thread for a long time, since
   // the thread referred to by |thread_handle| may still be running long-lived /
   // blocking tasks.
@@ -343,7 +343,7 @@ void PlatformThreadBase::Join(PlatformThreadHandle thread_handle) {
 }
 
 // static
-void PlatformThreadBase::Detach(PlatformThreadHandle thread_handle) {
+void PlatformThread::Detach(PlatformThreadHandle thread_handle) {
   CHECK_EQ(0, pthread_detach(thread_handle.platform_handle()));
 }
 
@@ -352,7 +352,7 @@ void PlatformThreadBase::Detach(PlatformThreadHandle thread_handle) {
 #if !BUILDFLAG(IS_APPLE) && !BUILDFLAG(IS_FUCHSIA)
 
 // static
-bool PlatformThreadBase::CanChangeThreadType(ThreadType from, ThreadType to) {
+bool PlatformThread::CanChangeThreadType(ThreadType from, ThreadType to) {
 #if BUILDFLAG(IS_NACL)
   return false;
 #else
@@ -395,7 +395,7 @@ void SetCurrentThreadTypeImpl(ThreadType thread_type,
 }  // namespace internal
 
 // static
-ThreadPriorityForTest PlatformThreadBase::GetCurrentThreadPriorityForTest() {
+ThreadPriorityForTest PlatformThread::GetCurrentThreadPriorityForTest() {
 #if BUILDFLAG(IS_NACL)
   NOTIMPLEMENTED();
   return ThreadPriorityForTest::kNormal;
@@ -415,7 +415,7 @@ ThreadPriorityForTest PlatformThreadBase::GetCurrentThreadPriorityForTest() {
 #endif  // !BUILDFLAG(IS_APPLE) && !BUILDFLAG(IS_FUCHSIA)
 
 // static
-size_t PlatformThreadBase::GetDefaultThreadStackSize() {
+size_t PlatformThread::GetDefaultThreadStackSize() {
   pthread_attr_t attributes;
   pthread_attr_init(&attributes);
   return base::GetDefaultThreadStackSize(attributes);

@@ -120,7 +120,8 @@ class WidgetTest : public ViewsTestBase {
 
   // Return true if |above| is higher than |below| in the native window Z-order.
   // Both windows must be visible.
-  // WARNING: This does not work for Aura desktop widgets (crbug.com/1333445).
+  // WARNING: this does not work for Aura desktop widgets (crbug.com/1333445)
+  // and is not reliable on MacOS 10.13 and earlier.
   static bool IsWindowStackedAbove(Widget* above, Widget* below);
 
   // Query the native window system for the minimum size configured for user
@@ -231,7 +232,7 @@ class TestDesktopWidgetDelegate : public WidgetDelegate {
 
  private:
   raw_ptr<Widget> widget_;
-  raw_ptr<View, AcrossTasksDanglingUntriaged> contents_view_ = nullptr;
+  raw_ptr<View, DanglingUntriaged> contents_view_ = nullptr;
   int window_closing_count_ = 0;
   gfx::Rect initial_bounds_ = gfx::Rect(100, 100, 200, 200);
   bool can_close_ = true;
@@ -327,7 +328,7 @@ class WidgetVisibleWaiter : public WidgetObserver {
   void OnWidgetVisibilityChanged(Widget* widget, bool visible) override;
   void OnWidgetDestroying(Widget* widget) override;
 
-  const raw_ptr<Widget, AcrossTasksDanglingUntriaged> widget_;
+  const raw_ptr<Widget, DanglingUntriaged> widget_;
   base::RunLoop run_loop_;
   base::ScopedObservation<Widget, WidgetObserver> widget_observation_{this};
 };

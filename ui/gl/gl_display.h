@@ -19,9 +19,7 @@
 #endif  // defined(USE_EGL)
 
 #if BUILDFLAG(IS_APPLE)
-#if __OBJC__
-@protocol MTLSharedEvent;
-#endif  // __OBJC__
+#include "components/metal_util/types.h"
 #endif
 
 namespace gl {
@@ -141,12 +139,10 @@ class GL_EXPORT GLDisplayEGL : public GLDisplay {
 
 #if BUILDFLAG(IS_APPLE)
   bool IsANGLEMetalSharedEventSyncSupported();
-#if __OBJC__
-  bool CreateMetalSharedEvent(id<MTLSharedEvent>* shared_event_out,
+  bool CreateMetalSharedEvent(metal::MTLSharedEventPtr* shared_event_out,
                               uint64_t* signal_value_out);
-  void WaitForMetalSharedEvent(id<MTLSharedEvent> shared_event,
+  void WaitForMetalSharedEvent(metal::MTLSharedEventPtr shared_event,
                                uint64_t signal_value);
-#endif  // __OBJC__
 
   // Call periodically to clean up resources.
   void CleanupTempEGLSyncObjects();
@@ -188,8 +184,8 @@ class GL_EXPORT GLDisplayEGL : public GLDisplay {
   std::unique_ptr<EGLGpuSwitchingObserver> gpu_switching_observer_;
 
 #if BUILDFLAG(IS_APPLE)
-  struct ObjCStorage;
-  std::unique_ptr<ObjCStorage> objc_storage_;
+  metal::MTLSharedEventPtr metal_shared_event_ = nullptr;
+  uint64_t metal_signaled_value_ = 0;
 #endif
 };
 #endif  // defined(USE_EGL)

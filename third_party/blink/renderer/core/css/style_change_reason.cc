@@ -21,7 +21,6 @@ const char kDeclarativeContent[] = "Extension declarativeContent.css";
 const char kDesignMode[] = "DesignMode";
 const char kDialog[] = "Dialog";
 const char kDisplayLock[] = "DisplayLock";
-const char kEditContext[] = "EditContext";
 const char kViewTransition[] = "ViewTransition";
 const char kFlatTreeChange[] = "FlatTreeChange";
 const char kFonts[] = "Fonts";

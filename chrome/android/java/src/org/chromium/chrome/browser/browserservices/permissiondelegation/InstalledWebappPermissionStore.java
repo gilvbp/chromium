@@ -9,6 +9,7 @@ import android.content.SharedPreferences;
 import android.util.Base64;
 
 import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 import androidx.annotation.WorkerThread;
 import androidx.browser.trusted.Token;
 
@@ -243,6 +244,7 @@ public class InstalledWebappPermissionStore {
     }
 
     /** Clears the store, for testing. */
+    @VisibleForTesting
     public void clearForTesting() {
         mPreferences.edit().clear().apply();
     }

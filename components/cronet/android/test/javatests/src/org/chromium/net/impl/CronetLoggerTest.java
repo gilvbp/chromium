@@ -151,36 +151,11 @@ public final class CronetLoggerTest {
     @Test
     @SmallTest
     @OnlyRunNativeCronet
-    public void testTelemetryDefaultEnabled() throws JSONException {
+    public void testTelemetryDefaultDisabled() throws JSONException {
         final String url = NativeTestServer.getEchoBodyURL();
 
         TestUrlRequestCallback callback = new TestUrlRequestCallback();
         CronetEngine engine = mTestRule.getTestFramework().startEngine();
-        UrlRequest.Builder requestBuilder =
-                engine.newUrlRequestBuilder(url, callback, callback.getExecutor());
-        UrlRequest request = requestBuilder.build();
-        request.start();
-        callback.blockForDone();
-        assertThat(callback.mOnCanceledCalled).isFalse();
-        assertThat(callback.mOnErrorCalled).isFalse();
-        mTestLogger.waitForLogCronetTrafficInfo();
-
-        // Test-logger should be bypassed.
-        assertThat(mTestLogger.callsToLogCronetEngineCreation()).isEqualTo(1);
-        assertThat(mTestLogger.callsToLogCronetTrafficInfo()).isEqualTo(1);
-    }
-
-    @Test
-    @SmallTest
-    @OnlyRunNativeCronet
-    public void testTelemetryDisabled() throws JSONException {
-        final String url = NativeTestServer.getEchoBodyURL();
-        JSONObject jsonExperimentalOptions = new JSONObject().put("enable_telemetry", false);
-        final String experimentalOptions = jsonExperimentalOptions.toString();
-        mTestRule.getTestFramework().applyEngineBuilderPatch(
-                (builder) -> builder.setExperimentalOptions(experimentalOptions));
-        CronetEngine engine = mTestRule.getTestFramework().startEngine();
-        TestUrlRequestCallback callback = new TestUrlRequestCallback();
         UrlRequest.Builder requestBuilder =
                 engine.newUrlRequestBuilder(url, callback, callback.getExecutor());
         UrlRequest request = requestBuilder.build();
@@ -202,7 +177,8 @@ public final class CronetLoggerTest {
                                       .put("allow_other_network", true)
                                       .put("persist_to_disk", true)
                                       .put("persist_delay_ms", 0);
-        final JSONObject jsonExperimentalOptions = new JSONObject().put("StaleDNS", staleDns);
+        final JSONObject jsonExperimentalOptions =
+                new JSONObject().put("StaleDNS", staleDns).put("enable_telemetry", true);
         final String experimentalOptions = jsonExperimentalOptions.toString();
         final boolean isPublicKeyPinningBypassForLocalTrustAnchorsEnabled = false;
         final String userAgent = "myUserAgent";
@@ -260,7 +236,11 @@ public final class CronetLoggerTest {
     @SmallTest
     @OnlyRunNativeCronet
     public void testEngineCreationAndTrafficInfoEngineId() throws Exception {
+        JSONObject jsonExperimentalOptions = new JSONObject().put("enable_telemetry", true);
+        final String experimentalOptions = jsonExperimentalOptions.toString();
         final String url = "www.example.com";
+        mTestRule.getTestFramework().applyEngineBuilderPatch(
+                (builder) -> builder.setExperimentalOptions(experimentalOptions));
         CronetEngine engine = mTestRule.getTestFramework().startEngine();
         final int engineId = mTestLogger.getLastCronetEngineId();
 
@@ -294,10 +274,13 @@ public final class CronetLoggerTest {
     @SmallTest
     @OnlyRunNativeCronet
     public void testMultipleEngineCreationAndTrafficInfoEngineId() throws Exception {
+        JSONObject jsonExperimentalOptions = new JSONObject().put("enable_telemetry", true);
+        final String experimentalOptions = jsonExperimentalOptions.toString();
         final String url = "www.example.com";
         ExperimentalCronetEngine.Builder engineBuilder =
                 (ExperimentalCronetEngine.Builder) mTestRule.getTestFramework()
                         .createNewSecondaryBuilder(mTestRule.getTestFramework().getContext());
+        engineBuilder.setExperimentalOptions(experimentalOptions);
 
         CronetEngine engine1 = engineBuilder.build();
         final int engine1Id = mTestLogger.getLastCronetEngineId();
@@ -339,7 +322,11 @@ public final class CronetLoggerTest {
     @SmallTest
     @OnlyRunNativeCronet
     public void testSuccessfulRequestNative() throws Exception {
+        JSONObject jsonExperimentalOptions = new JSONObject().put("enable_telemetry", true);
+        final String experimentalOptions = jsonExperimentalOptions.toString();
         final String url = NativeTestServer.getEchoBodyURL();
+        mTestRule.getTestFramework().applyEngineBuilderPatch(
+                (builder) -> builder.setExperimentalOptions(experimentalOptions));
         CronetEngine engine = mTestRule.getTestFramework().startEngine();
 
         TestUrlRequestCallback callback = new TestUrlRequestCallback();
@@ -372,7 +359,11 @@ public final class CronetLoggerTest {
     @SmallTest
     @OnlyRunNativeCronet
     public void testFailedRequestNative() throws Exception {
+        JSONObject jsonExperimentalOptions = new JSONObject().put("enable_telemetry", true);
         final String url = "www.unreachable-url.com";
+        final String experimentalOptions = jsonExperimentalOptions.toString();
+        mTestRule.getTestFramework().applyEngineBuilderPatch(
+                (builder) -> builder.setExperimentalOptions(experimentalOptions));
         CronetEngine engine = mTestRule.getTestFramework().startEngine();
 
         TestUrlRequestCallback callback = new TestUrlRequestCallback();
@@ -406,7 +397,11 @@ public final class CronetLoggerTest {
     @SmallTest
     @OnlyRunNativeCronet
     public void testCanceledRequestNative() throws Exception {
+        JSONObject jsonExperimentalOptions = new JSONObject().put("enable_telemetry", true);
+        final String experimentalOptions = jsonExperimentalOptions.toString();
         final String url = NativeTestServer.getEchoBodyURL();
+        mTestRule.getTestFramework().applyEngineBuilderPatch(
+                (builder) -> builder.setExperimentalOptions(experimentalOptions));
         CronetEngine engine = mTestRule.getTestFramework().startEngine();
 
         TestUrlRequestCallback callback = new TestUrlRequestCallback();

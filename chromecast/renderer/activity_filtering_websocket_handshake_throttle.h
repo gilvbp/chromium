@@ -34,7 +34,6 @@ class ActivityFilteringWebSocketHandshakeThrottle
 
   // blink::WebSocketHandshakeThrottle implementation:
   void ThrottleHandshake(const blink::WebURL& url,
-                         const blink::WebSecurityOrigin& creator_origin,
                          blink::WebSocketHandshakeThrottle::OnCompletion
                              completion_callback) override;
 

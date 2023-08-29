@@ -4,7 +4,6 @@
 """Generates C++ source files from a mojom.Module."""
 import os
 import sys
-from functools import partial
 from generators.mojom_cpp_generator import _NameFormatter as CppNameFormatter
 from generators.mojom_cpp_generator import Generator as CppGenerator
 from generators.mojom_cpp_generator import IsNativeOnlyKind, NamespaceToArray
@@ -270,7 +269,7 @@ class Generator(CppGenerator):
         "is_typemapped_kind": self._IsTypemappedKind,
         "is_union_kind": mojom.IsUnionKind,
         "to_unnullable_kind": self._ToUnnullableKind,
-        "under_to_camel": partial(self._UnderToCamel, digits_split=True)
+        "under_to_camel": self._UnderToCamel,
     }
     return cpp_filters
 

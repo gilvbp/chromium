@@ -18,17 +18,17 @@ class AutofillScanner;
 class LogManager;
 
 // A form field that accepts International Bank Account Number (IBAN).
-class IbanField : public FormField {
+class IBANField : public FormField {
  public:
   static std::unique_ptr<FormField> Parse(AutofillScanner* scanner,
                                           const LanguageCode& page_language,
                                           PatternSource pattern_source,
                                           LogManager* log_manager);
 
-  explicit IbanField(const AutofillField* field);
+  explicit IBANField(const AutofillField* field);
 
-  IbanField(const IbanField&) = delete;
-  IbanField& operator=(const IbanField&) = delete;
+  IBANField(const IBANField&) = delete;
+  IBANField& operator=(const IBANField&) = delete;
 
  protected:
   void AddClassifications(FieldCandidatesMap& field_candidates) const override;

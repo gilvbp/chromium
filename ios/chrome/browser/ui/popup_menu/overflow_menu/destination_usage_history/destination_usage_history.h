@@ -74,9 +74,6 @@ class PrefService;
                    availableDestinations:
                        (DestinationRanking)availableDestinations;
 
-// Tells the object to clear any stored click data for all destinations.
-- (void)clearStoredClickData;
-
 // Stops the Destination Usage History.
 - (void)stop;
 

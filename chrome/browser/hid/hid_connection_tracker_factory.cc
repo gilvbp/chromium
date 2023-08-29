@@ -38,11 +38,9 @@ HidConnectionTrackerFactory::HidConnectionTrackerFactory()
 
 HidConnectionTrackerFactory::~HidConnectionTrackerFactory() = default;
 
-std::unique_ptr<KeyedService>
-HidConnectionTrackerFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* HidConnectionTrackerFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
-  return std::make_unique<HidConnectionTracker>(
-      Profile::FromBrowserContext(context));
+  return new HidConnectionTracker(Profile::FromBrowserContext(context));
 }
 
 void HidConnectionTrackerFactory::BrowserContextShutdown(

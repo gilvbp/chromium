@@ -5,6 +5,7 @@
 #ifndef UI_VIEWS_CONTROLS_SCROLLBAR_COCOA_SCROLL_BAR_H_
 #define UI_VIEWS_CONTROLS_SCROLLBAR_COCOA_SCROLL_BAR_H_
 
+#import "base/mac/scoped_nsobject.h"
 #include "base/timer/timer.h"
 #import "components/remote_cocoa/app_shim/views_scrollbar_bridge.h"
 #include "ui/compositor/layer_animation_observer.h"
@@ -128,7 +129,7 @@ class VIEWS_EXPORT CocoaScrollBar : public ScrollBar,
   bool did_start_dragging_ = false;
 
   // The bridge for NSScroller.
-  ViewsScrollbarBridge* __strong bridge_;
+  base::scoped_nsobject<ViewsScrollbarBridge> bridge_;
 };
 
 }  // namespace views

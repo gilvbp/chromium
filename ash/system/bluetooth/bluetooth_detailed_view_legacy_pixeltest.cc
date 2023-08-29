@@ -17,7 +17,6 @@
 #include "chromeos/ash/services/bluetooth_config/fake_device_cache.h"
 #include "chromeos/ash/services/bluetooth_config/public/mojom/cros_bluetooth_config.mojom.h"
 #include "chromeos/ash/services/bluetooth_config/scoped_bluetooth_config_test_helper.h"
-#include "chromeos/constants/chromeos_features.h"
 
 namespace ash {
 namespace {
@@ -46,9 +45,7 @@ PairedBluetoothDevicePropertiesPtr CreatePairedDevice(
 class BluetoothDetailedViewLegacyPixelTest : public AshTestBase {
  public:
   BluetoothDetailedViewLegacyPixelTest() {
-    feature_list_.InitWithFeatures(
-        /*enabled_features=*/{}, /*disabled_features=*/{
-            features::kQsRevamp, chromeos::features::kJelly});
+    feature_list_.InitAndDisableFeature(features::kQsRevamp);
   }
 
   // AshTestBase:
@@ -95,7 +92,7 @@ TEST_F(BluetoothDetailedViewLegacyPixelTest, Basics) {
   // Compare pixels.
   EXPECT_TRUE(GetPixelDiffer()->CompareUiComponentsOnPrimaryScreen(
       "bluetooth_detailed_view_legacy",
-      /*revision_number=*/3, detailed_view_container));
+      /*revision_number=*/1, detailed_view_container));
 }
 
 }  // namespace ash

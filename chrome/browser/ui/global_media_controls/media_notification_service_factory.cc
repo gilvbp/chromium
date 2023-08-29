@@ -37,13 +37,12 @@ MediaNotificationService* MediaNotificationServiceFactory::GetForProfile(
       GetInstance()->GetServiceForBrowserContext(profile, true));
 }
 
-std::unique_ptr<KeyedService>
-MediaNotificationServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* MediaNotificationServiceFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   bool show_from_all_profiles = false;
 #if BUILDFLAG(IS_CHROMEOS_ASH)
   show_from_all_profiles = true;
 #endif
-  return std::make_unique<MediaNotificationService>(
-      Profile::FromBrowserContext(context), show_from_all_profiles);
+  return new MediaNotificationService(Profile::FromBrowserContext(context),
+                                      show_from_all_profiles);
 }

@@ -24,7 +24,7 @@ TouchToFillPasswordGenerationBridgeImpl::
 
 bool TouchToFillPasswordGenerationBridgeImpl::Show(
     content::WebContents* web_contents,
-    TouchToFillPasswordGenerationDelegate* delegate,
+    base::WeakPtr<TouchToFillPasswordGenerationDelegate> delegate,
     std::u16string password,
     std::string account) {
   if (!web_contents->GetNativeView() ||
@@ -61,18 +61,4 @@ void TouchToFillPasswordGenerationBridgeImpl::Hide() {
 void TouchToFillPasswordGenerationBridgeImpl::OnDismissed(JNIEnv* env) {
   CHECK(delegate_);
   delegate_->OnDismissed();
-}
-
-void TouchToFillPasswordGenerationBridgeImpl::OnGeneratedPasswordAccepted(
-    JNIEnv* env,
-    const base::android::JavaParamRef<jstring>& password) {
-  CHECK(delegate_);
-  delegate_->OnGeneratedPasswordAccepted(
-      base::android::ConvertJavaStringToUTF16(env, password));
-}
-
-void TouchToFillPasswordGenerationBridgeImpl::OnGeneratedPasswordRejected(
-    JNIEnv* env) {
-  CHECK(delegate_);
-  delegate_->OnGeneratedPasswordRejected();
 }

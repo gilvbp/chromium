@@ -4,16 +4,11 @@
 
 #include "components/android_autofill/browser/android_autofill_manager.h"
 
-#include <memory>
-#include <string>
-#include <vector>
-
-#include "base/check_op.h"
 #include "base/containers/contains.h"
 #include "base/memory/ptr_util.h"
 #include "components/android_autofill/browser/autofill_provider.h"
-#include "components/android_autofill/browser/form_event_logger_weblayer_android.h"
 #include "components/autofill/content/browser/content_autofill_driver.h"
+#include "components/autofill/core/browser/metrics/form_events/form_event_logger_weblayer_android.h"
 #include "content/public/browser/render_frame_host.h"
 #include "content/public/browser/web_contents.h"
 
@@ -35,7 +30,6 @@ AndroidAutofillManager::AndroidAutofillManager(AutofillDriver* driver,
                                                AutofillClient* client)
     : AutofillManager(driver, client) {
   StartNewLoggingSession();
-  autofill_manager_observation.Observe(this);
 }
 
 AndroidAutofillManager::~AndroidAutofillManager() = default;
@@ -57,7 +51,7 @@ void AndroidAutofillManager::FillCreditCardFormImpl(
     const FormFieldData& field,
     const CreditCard& credit_card,
     const std::u16string& cvc,
-    const AutofillTriggerDetails& trigger_details) {
+    AutofillTriggerSource trigger_source) {
   NOTREACHED();
 }
 
@@ -65,7 +59,7 @@ void AndroidAutofillManager::FillProfileFormImpl(
     const FormData& form,
     const FormFieldData& field,
     const autofill::AutofillProfile& profile,
-    const AutofillTriggerDetails& trigger_details) {
+    AutofillTriggerSource trigger_source) {
   NOTREACHED();
 }
 
@@ -169,6 +163,13 @@ void AndroidAutofillManager::OnHidePopupImpl() {
     provider->OnHidePopup(this);
 }
 
+void AndroidAutofillManager::PropagateAutofillPredictions(
+    const std::vector<FormStructure*>& forms) {
+  has_server_prediction_ = true;
+  if (auto* provider = GetAutofillProvider())
+    provider->OnServerPredictionsAvailable(this);
+}
+
 void AndroidAutofillManager::OnFormProcessed(
     const FormData& form,
     const FormStructure& form_structure) {
@@ -190,10 +191,9 @@ void AndroidAutofillManager::OnServerRequestError(
 
 void AndroidAutofillManager::Reset() {
   AutofillManager::Reset();
-  forms_with_server_predictions_.clear();
-  if (auto* provider = GetAutofillProvider()) {
+  has_server_prediction_ = false;
+  if (auto* provider = GetAutofillProvider())
     provider->Reset(this);
-  }
   StartNewLoggingSession();
 }
 
@@ -204,23 +204,11 @@ void AndroidAutofillManager::OnContextMenuShownInField(
   NOTREACHED();
 }
 
-void AndroidAutofillManager::OnFieldTypesDetermined(AutofillManager& manager,
-                                                    FormGlobalId form,
-                                                    FieldTypeSource source) {
-  CHECK_EQ(&manager, this);
-  if (source != FieldTypeSource::kAutofillServer) {
-    return;
-  }
-
-  forms_with_server_predictions_.insert(form);
-  if (auto* provider = GetAutofillProvider()) {
-    provider->OnServerPredictionsAvailable(form);
-  }
-}
-
 AutofillProvider* AndroidAutofillManager::GetAutofillProvider() {
+  if (autofill_provider_for_testing_)
+    return autofill_provider_for_testing_;
   if (auto* rfh =
-          static_cast<ContentAutofillDriver&>(driver()).render_frame_host()) {
+          static_cast<ContentAutofillDriver*>(driver())->render_frame_host()) {
     if (rfh->IsActive()) {
       if (auto* web_contents = content::WebContents::FromRenderFrameHost(rfh)) {
         return AutofillProvider::FromWebContents(web_contents);
@@ -241,14 +229,13 @@ FieldTypeGroup AndroidAutofillManager::ComputeFieldTypeGroupForField(
 }
 
 void AndroidAutofillManager::FillOrPreviewForm(
-    mojom::AutofillActionPersistence action_persistence,
+    mojom::RendererFormDataAction action,
     const FormData& form,
     FieldTypeGroup field_type_group,
     const url::Origin& triggered_origin) {
-  DCHECK_EQ(action_persistence, mojom::AutofillActionPersistence::kFill);
-  driver().FillOrPreviewForm(action_persistence, form, triggered_origin, {});
-  // We do not call OnAutofillProfileOrCreditCardFormFilled() because WebView
-  // doesn't have AutofillProfile or CreditCard.
+  DCHECK_EQ(action, mojom::RendererFormDataAction::kFill);
+  driver()->FillOrPreviewForm(action, form, triggered_origin, {});
+
   if (auto* logger = GetEventFormLogger(field_type_group)) {
     logger->OnDidFillSuggestion();
   }

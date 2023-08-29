@@ -239,11 +239,6 @@ class VIZ_SERVICE_EXPORT CompositorFrameSinkSupport
 
   bool IsEvicted(const LocalSurfaceId& local_surface_id) const;
 
-  // Clears `copy_output_requests_`. Should be called when the client or service
-  // is shutting down. The requests demanding an exact `LocalSurfaceid` match
-  // will be transferred to the corresponding `Surface`s
-  void ClearAllPendingCopyOutputRequests();
-
   SurfaceAnimationManager* GetSurfaceAnimationManagerForTesting();
 
   const RegionCaptureBounds& current_capture_bounds() const {
@@ -302,8 +297,7 @@ class VIZ_SERVICE_EXPORT CompositorFrameSinkSupport
 
   void MaybeEvictSurfaces();
   void EvictLastActiveSurface();
-  bool ShouldSendBeginFrame(base::TimeTicks timestamp,
-                            base::TimeDelta vsync_interval);
+  bool ShouldSendBeginFrame(base::TimeTicks timestamp);
 
   // Checks if any of the pending surfaces should activate now because their
   // deadline has passed. This is called every BeginFrame.
@@ -323,8 +317,7 @@ class VIZ_SERVICE_EXPORT CompositorFrameSinkSupport
   // until the time elapsed has passed the requested throttle interval since the
   // last sent BeginFrame. This function returns true if such interval has
   // passed and a BeginFrame should be sent.
-  bool ShouldThrottleBeginFrameAsRequested(base::TimeTicks frame_time,
-                                           base::TimeDelta vsync_interval);
+  bool ShouldThrottleBeginFrameAsRequested(base::TimeTicks frame_time);
 
   // Instructs the FrameSinkManager to destroy our CompositorFrameSinkImpl.
   // To avoid reentrancy issues, this should be called from its own task.

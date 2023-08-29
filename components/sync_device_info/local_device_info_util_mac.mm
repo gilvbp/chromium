@@ -8,9 +8,13 @@
 
 #include <string>
 
-#include "base/apple/scoped_cftyperef.h"
+#include "base/mac/scoped_cftyperef.h"
 #include "base/strings/string_util.h"
 #include "base/strings/sys_string_conversions.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace syncer {
 
@@ -21,17 +25,17 @@ namespace syncer {
 std::string GetPersonalizableDeviceNameInternal() {
   // Do not use NSHost currentHost, as it's very slow. http://crbug.com/138570
   SCDynamicStoreContext context = {0};
-  base::apple::ScopedCFTypeRef<SCDynamicStoreRef> store(
+  base::ScopedCFTypeRef<SCDynamicStoreRef> store(
       SCDynamicStoreCreate(kCFAllocatorDefault, CFSTR("chrome_sync"),
                            /*callout=*/nullptr, &context));
-  base::apple::ScopedCFTypeRef<CFStringRef> machine_name(
+  base::ScopedCFTypeRef<CFStringRef> machine_name(
       SCDynamicStoreCopyLocalHostName(store));
   if (machine_name) {
     return base::SysCFStringRefToUTF8(machine_name);
   }
 
   // Fall back to get computer name.
-  base::apple::ScopedCFTypeRef<CFStringRef> computer_name(
+  base::ScopedCFTypeRef<CFStringRef> computer_name(
       SCDynamicStoreCopyComputerName(store, /*nameEncoding=*/nullptr));
   if (computer_name) {
     return base::SysCFStringRefToUTF8(computer_name);

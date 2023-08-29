@@ -347,13 +347,12 @@ TEST_F(ProcessTest, WaitForExitOrEventWithEventSet) {
 // Ensure that the priority of a process is restored correctly after
 // backgrounding and restoring.
 // Note: a platform may not be willing or able to lower the priority of
-// a process. The calls to SetProcessPriority should be noops then.
-TEST_F(ProcessTest, SetProcessPriority) {
-  if (!Process::CanSetPriority()) {
+// a process. The calls to SetProcessBackground should be noops then.
+TEST_F(ProcessTest, SetProcessBackgrounded) {
+  if (!Process::CanBackgroundProcesses())
     return;
-  }
   Process process(SpawnChild("SimpleChildProcess"));
-  int old_os_priority = process.GetOSPriority();
+  int old_priority = process.GetPriority();
 #if BUILDFLAG(IS_APPLE)
   // On the Mac, backgrounding a process requires a port to that process.
   // In the browser it's available through the MachBroker class, which is not
@@ -362,19 +361,19 @@ TEST_F(ProcessTest, SetProcessPriority) {
   // the ability to background/foreground a process, we can use the current
   // process's port instead.
   FakePortProvider provider;
-  EXPECT_TRUE(process.SetPriority(&provider, Process::Priority::kBestEffort));
-  EXPECT_EQ(process.GetPriority(&provider), Process::Priority::kBestEffort);
-  EXPECT_TRUE(process.SetPriority(&provider, Process::Priority::kUserBlocking));
-  EXPECT_EQ(process.GetPriority(&provider), Process::Priority::kUserBlocking);
+  EXPECT_TRUE(process.SetProcessBackgrounded(&provider, true));
+  EXPECT_TRUE(process.IsProcessBackgrounded(&provider));
+  EXPECT_TRUE(process.SetProcessBackgrounded(&provider, false));
+  EXPECT_FALSE(process.IsProcessBackgrounded(&provider));
 
 #else
-  EXPECT_TRUE(process.SetPriority(base::Process::Priority::kBestEffort));
-  EXPECT_EQ(process.GetPriority(), Process::Priority::kBestEffort);
-  EXPECT_TRUE(process.SetPriority(base::Process::Priority::kUserBlocking));
-  EXPECT_EQ(process.GetPriority(), Process::Priority::kUserBlocking);
+  EXPECT_TRUE(process.SetProcessBackgrounded(true));
+  EXPECT_TRUE(process.IsProcessBackgrounded());
+  EXPECT_TRUE(process.SetProcessBackgrounded(false));
+  EXPECT_FALSE(process.IsProcessBackgrounded());
 #endif
-  int new_os_priority = process.GetOSPriority();
-  EXPECT_EQ(old_os_priority, new_os_priority);
+  int new_priority = process.GetPriority();
+  EXPECT_EQ(old_priority, new_priority);
 }
 
 // Consumers can use WaitForExitWithTimeout(base::TimeDelta(), nullptr) to check
@@ -435,18 +434,16 @@ TEST_F(ProcessTest, ChildProcessIsRunning) {
 
 #if BUILDFLAG(IS_CHROMEOS)
 
-// Tests that the function GetProcessPriorityCGroup() can parse the contents
+// Tests that the function IsProcessBackgroundedCGroup() can parse the contents
 // of the /proc/<pid>/cgroup file successfully.
-TEST_F(ProcessTest, TestGetProcessPriorityCGroup) {
-  const char kNotBackgroundedCGroup[] = "5:cpuacct,cpu,cpuset:/daemons\n";
-  const char kBackgroundedCGroup[] =
+TEST_F(ProcessTest, TestIsProcessBackgroundedCGroup) {
+  const char kNotBackgrounded[] = "5:cpuacct,cpu,cpuset:/daemons\n";
+  const char kBackgrounded[] =
       "2:freezer:/chrome_renderers/to_be_frozen\n"
       "1:cpu:/chrome_renderers/background\n";
 
-  EXPECT_EQ(GetProcessPriorityCGroup(kNotBackgroundedCGroup),
-            Process::Priority::kUserBlocking);
-  EXPECT_EQ(GetProcessPriorityCGroup(kBackgroundedCGroup),
-            Process::Priority::kBestEffort);
+  EXPECT_FALSE(IsProcessBackgroundedCGroup(kNotBackgrounded));
+  EXPECT_TRUE(IsProcessBackgroundedCGroup(kBackgrounded));
 }
 
 TEST_F(ProcessTest, InitializePriorityEmptyProcess) {
@@ -473,14 +470,14 @@ TEST_F(ProcessTest, SetProcessBackgroundedOneCgroupPerRender) {
   const std::string unique_token = process.unique_token();
   ASSERT_FALSE(unique_token.empty());
 
-  EXPECT_TRUE(process.SetPriority(Process::Priority::kUserBlocking));
-  EXPECT_EQ(process.GetPriority(), Process::Priority::kUserBlocking);
+  EXPECT_TRUE(process.SetProcessBackgrounded(false));
+  EXPECT_FALSE(process.IsProcessBackgrounded());
   std::string cgroup = GetProcessCpuCgroup(process);
   EXPECT_FALSE(cgroup.empty());
   EXPECT_NE(cgroup.find(unique_token), std::string::npos);
 
-  EXPECT_TRUE(process.SetPriority(Process::Priority::kBestEffort));
-  EXPECT_EQ(process.GetPriority(), Process::Priority::kBestEffort);
+  EXPECT_TRUE(process.SetProcessBackgrounded(true));
+  EXPECT_TRUE(process.IsProcessBackgrounded());
 
   EXPECT_TRUE(process.Terminate(0, false));
   // Terminate should post a task, wait for it to run
@@ -501,8 +498,8 @@ TEST_F(ProcessTest, CleanUpBusyProcess) {
   const std::string unique_token = process.unique_token();
   ASSERT_FALSE(unique_token.empty());
 
-  EXPECT_TRUE(process.SetPriority(Process::Priority::kUserBlocking));
-  EXPECT_EQ(process.GetPriority(), Process::Priority::kUserBlocking);
+  EXPECT_TRUE(process.SetProcessBackgrounded(false));
+  EXPECT_FALSE(process.IsProcessBackgrounded());
   std::string cgroup = GetProcessCpuCgroup(process);
   EXPECT_FALSE(cgroup.empty());
   EXPECT_NE(cgroup.find(unique_token), std::string::npos);
@@ -541,9 +538,9 @@ TEST_F(ProcessTest, SetProcessBackgroundedEmptyToken) {
   const std::string unique_token = process.unique_token();
   ASSERT_TRUE(unique_token.empty());
 
-  // Moving to the foreground should use the default foreground path.
-  EXPECT_TRUE(process.SetPriority(Process::Priority::kUserBlocking));
-  EXPECT_EQ(process.GetPriority(), Process::Priority::kUserBlocking);
+  // Moving to the foreground should use the default foregorund path
+  EXPECT_TRUE(process.SetProcessBackgrounded(false));
+  EXPECT_FALSE(process.IsProcessBackgrounded());
   std::string cgroup = GetProcessCpuCgroup(process);
   EXPECT_FALSE(cgroup.empty());
   EXPECT_EQ(cgroup, kForeground);
@@ -561,8 +558,8 @@ TEST_F(ProcessTest, CleansUpStaleGroups) {
   const std::string unique_token = process.unique_token();
   ASSERT_FALSE(unique_token.empty());
 
-  EXPECT_TRUE(process.SetPriority(Process::Priority::kBestEffort));
-  EXPECT_EQ(process.GetPriority(), Process::Priority::kBestEffort);
+  EXPECT_TRUE(process.SetProcessBackgrounded(true));
+  EXPECT_TRUE(process.IsProcessBackgrounded());
 
   // Create a stale cgroup
   std::string root = kFullRendererCgroupRoot;
@@ -605,8 +602,8 @@ TEST_F(ProcessTest, OneCgroupDoesNotCleanUpGroupsWithWrongPrefix) {
   const std::string unique_token = process.unique_token();
   ASSERT_FALSE(unique_token.empty());
 
-  EXPECT_TRUE(process.SetPriority(Process::Priority::kUserBlocking));
-  EXPECT_EQ(process.GetPriority(), Process::Priority::kUserBlocking);
+  EXPECT_TRUE(process.SetProcessBackgrounded(false));
+  EXPECT_FALSE(process.IsProcessBackgrounded());
   std::string cgroup = GetProcessCpuCgroup(process);
   EXPECT_FALSE(cgroup.empty());
   EXPECT_NE(cgroup.find(unique_token), std::string::npos);
@@ -624,8 +621,8 @@ TEST_F(ProcessTest, OneCgroupDoesNotCleanUpGroupsWithWrongPrefix) {
   EXPECT_TRUE(base::DirectoryExists(cgroup_path));
 
   // clean up the process
-  EXPECT_TRUE(process.SetPriority(Process::Priority::kBestEffort));
-  EXPECT_EQ(process.GetPriority(), Process::Priority::kBestEffort);
+  EXPECT_TRUE(process.SetProcessBackgrounded(true));
+  EXPECT_TRUE(process.IsProcessBackgrounded());
   EXPECT_TRUE(process.Terminate(0, false));
   task_env.RunUntilIdle();
   EXPECT_FALSE(base::DirectoryExists(cgroup_path));

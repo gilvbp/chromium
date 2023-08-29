@@ -47,7 +47,6 @@
 #include "third_party/blink/public/mojom/websockets/websocket_connector.mojom-blink.h"
 #include "third_party/blink/public/platform/platform.h"
 #include "third_party/blink/public/platform/task_type.h"
-#include "third_party/blink/public/platform/web_security_origin.h"
 #include "third_party/blink/public/platform/web_url.h"
 #include "third_party/blink/public/platform/websocket_handshake_throttle.h"
 #include "third_party/blink/renderer/bindings/core/v8/capture_source_location.h"
@@ -368,9 +367,8 @@ bool WebSocketChannelImpl::Connect(const KURL& url, const String& protocol) {
     // the WebSocket is no longer referenced, there's no point in keeping it
     // alive just to receive the throttling result.
     handshake_throttle_->ThrottleHandshake(
-        url, WebSecurityOrigin(execution_context_->GetSecurityOrigin()),
-        WTF::BindOnce(&WebSocketChannelImpl::OnCompletion,
-                      WrapWeakPersistent(this)));
+        url, WTF::BindOnce(&WebSocketChannelImpl::OnCompletion,
+                           WrapWeakPersistent(this)));
   } else {
     // Treat no throttle as success.
     throttle_passed_ = true;

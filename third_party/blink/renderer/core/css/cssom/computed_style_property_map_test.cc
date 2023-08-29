@@ -15,9 +15,8 @@ class ComputedStylePropertyMapTest : public PageTestBase {
   ComputedStylePropertyMapTest() = default;
 
  protected:
-  ComputedStylePropertyMap* SetBodyStyle(const char* style) {
-    GetDocument().body()->setAttribute(html_names::kStyleAttr,
-                                       AtomicString(style));
+  ComputedStylePropertyMap* SetBodyStyle(const AtomicString& style) {
+    GetDocument().body()->setAttribute(html_names::kStyleAttr, style);
     UpdateAllLifecyclePhasesForTest();
     return MakeGarbageCollected<ComputedStylePropertyMap>(GetDocument().body());
   }

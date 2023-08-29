@@ -10,8 +10,6 @@
 #include "ash/constants/ash_switches.h"
 #include "ash/public/cpp/tablet_mode.h"
 #include "base/check.h"
-#include "base/functional/bind.h"
-#include "base/functional/callback_helpers.h"
 #include "base/logging.h"
 #include "base/metrics/histogram_functions.h"
 #include "chrome/browser/ash/login/quick_unlock/auth_token.h"
@@ -28,7 +26,6 @@
 #include "chromeos/ash/components/login/auth/auth_performer.h"
 #include "chromeos/ash/components/login/auth/public/cryptohome_key_constants.h"
 #include "chromeos/ash/components/login/auth/public/user_context.h"
-#include "chromeos/ash/components/osauth/public/auth_session_storage.h"
 #include "components/prefs/pref_service.h"
 #include "components/user_manager/user_manager.h"
 
@@ -102,26 +99,12 @@ PinSetupScreen::~PinSetupScreen() = default;
 
 bool PinSetupScreen::ShouldBeSkipped(const WizardContext& context) const {
   // Just a precaution:
-  AccountId account_id;
-  if (ash::features::ShouldUseAuthSessionStorage()) {
-    if (!context.extra_factors_token.has_value()) {
-      return true;
-    }
-    if (!ash::AuthSessionStorage::Get()->IsValid(
-            context.extra_factors_token.value())) {
-      return true;
-    }
-    account_id = ash::AuthSessionStorage::Get()
-                     ->Peek(context.extra_factors_token.value())
-                     ->GetAccountId();
-  } else {
-    if (!context.extra_factors_auth_session) {
-      return true;
-    }
-    account_id = context.extra_factors_auth_session->GetAccountId();
-  }
+  if (!context.extra_factors_auth_session)
+    return true;
+
   if (context.skip_post_login_screens_for_tests ||
-      cryptohome_pin_engine_.ShouldSkipSetupBecauseOfPolicy(account_id)) {
+      cryptohome_pin_engine_.ShouldSkipSetupBecauseOfPolicy(
+          context.extra_factors_auth_session->GetAccountId())) {
     return true;
   }
 
@@ -162,22 +145,16 @@ void PinSetupScreen::ShowImpl() {
       quick_unlock::QuickUnlockFactory::GetForProfile(
           ProfileManager::GetActiveUserProfile());
   quick_unlock_storage->MarkStrongAuth();
-  std::string token;
-  if (ash::features::ShouldUseAuthSessionStorage()) {
-    CHECK(context()->extra_factors_token);
-    token = *context()->extra_factors_token;
-  } else {
-    std::unique_ptr<UserContext> user_context =
-        std::move(context()->extra_factors_auth_session);
+  std::unique_ptr<UserContext> user_context =
+      std::move(context()->extra_factors_auth_session);
 
-    // Due to crbug.com/1203420 we need to mark the key as a wildcard (no
-    // label).
-    if (user_context->GetKey()->GetLabel() == kCryptohomeGaiaKeyLabel) {
-      user_context->GetKey()->SetLabel(kCryptohomeWildcardLabel);
-    }
-
-    token = quick_unlock_storage->CreateAuthToken(*user_context);
+  // Due to crbug.com/1203420 we need to mark the key as a wildcard (no label).
+  if (user_context->GetKey()->GetLabel() == kCryptohomeGaiaKeyLabel) {
+    user_context->GetKey()->SetLabel(kCryptohomeWildcardLabel);
   }
+
+  const std::string token =
+      quick_unlock_storage->CreateAuthToken(*user_context);
   bool is_child_account =
       user_manager::UserManager::Get()->IsLoggedInAsChildUser();
 
@@ -212,15 +189,7 @@ void PinSetupScreen::OnUserAction(const base::Value::List& args) {
 }
 
 void PinSetupScreen::ClearAuthData(WizardContext& context) {
-  if (ash::features::ShouldUseAuthSessionStorage()) {
-    if (context.extra_factors_token.has_value()) {
-      ash::AuthSessionStorage::Get()->Invalidate(
-          context.extra_factors_token.value(), base::DoNothing());
-      context.extra_factors_token = absl::nullopt;
-    }
-  } else {
-    context.extra_factors_auth_session.reset();
-  }
+  context.extra_factors_auth_session.reset();
 }
 
 void PinSetupScreen::OnHasLoginSupport(bool login_available) {

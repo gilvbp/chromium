@@ -71,7 +71,10 @@ std::u16string OfferNotificationBubbleControllerImpl::GetWindowTitle() const {
           IDS_AUTOFILL_CARD_LINKED_OFFER_REMINDER_TITLE);
     case AutofillOfferData::OfferType::GPAY_PROMO_CODE_OFFER:
       return l10n_util::GetStringUTF16(
-          IDS_AUTOFILL_GPAY_PROMO_CODE_OFFERS_REMINDER_TITLE);
+          base::FeatureList::IsEnabled(
+              features::kAutofillFillMerchantPromoCodeFields)
+              ? IDS_AUTOFILL_GPAY_PROMO_CODE_OFFERS_REMINDER_TITLE
+              : IDS_AUTOFILL_PROMO_CODE_OFFERS_REMINDER_TITLE);
     case AutofillOfferData::OfferType::FREE_LISTING_COUPON_OFFER:
       return l10n_util::GetStringUTF16(
           IDS_AUTOFILL_PROMO_CODE_OFFERS_REMINDER_TITLE);
@@ -117,10 +120,6 @@ bool OfferNotificationBubbleControllerImpl::IsIconVisible() const {
   return bubble_state_ != BubbleState::kHidden;
 }
 
-bool OfferNotificationBubbleControllerImpl::ShouldIconExpand() const {
-  return icon_should_expand_;
-}
-
 void OfferNotificationBubbleControllerImpl::OnBubbleClosed(
     PaymentsBubbleClosedReason closed_reason) {
   set_bubble_view(nullptr);
@@ -164,11 +163,8 @@ void OfferNotificationBubbleControllerImpl::OnPromoCodeButtonClicked() {
 void OfferNotificationBubbleControllerImpl::ShowOfferNotificationIfApplicable(
     const AutofillOfferData* offer,
     const CreditCard* card,
-    bool should_show_icon_only,
-    bool expand_notification_icon) {
+    bool should_show_icon_only) {
   DCHECK(offer);
-
-  icon_should_expand_ = expand_notification_icon;
 
   // If this is not the bubble's first show, and offer to be shown has not
   // changed, and it has not been shown for more than

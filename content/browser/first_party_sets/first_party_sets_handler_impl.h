@@ -110,6 +110,7 @@ class CONTENT_EXPORT FirstPartySetsHandlerImpl : public FirstPartySetsHandler {
   void ComputeFirstPartySetMetadata(
       const net::SchemefulSite& site,
       const net::SchemefulSite* top_frame_site,
+      const std::set<net::SchemefulSite>& party_context,
       const net::FirstPartySetsContextConfig& config,
       base::OnceCallback<void(net::FirstPartySetMetadata)> callback) override;
 
@@ -174,6 +175,7 @@ class CONTENT_EXPORT FirstPartySetsHandlerImpl : public FirstPartySetsHandler {
   void ComputeFirstPartySetMetadataInternal(
       const net::SchemefulSite& site,
       const absl::optional<net::SchemefulSite>& top_frame_site,
+      const std::set<net::SchemefulSite>& party_context,
       const net::FirstPartySetsContextConfig& config,
       const base::ElapsedTimer& timer,
       base::OnceCallback<void(net::FirstPartySetMetadata)> callback) const;

@@ -13,8 +13,9 @@
 namespace ash {
 
 AshPixelDiffer::AshPixelDiffer(const std::string& screenshot_prefix,
-                               const absl::optional<std::string>& corpus)
-    : pixel_diff_(screenshot_prefix, corpus) {}
+                               const std::string& corpus) {
+  pixel_diff_.Init(screenshot_prefix, corpus);
+}
 
 AshPixelDiffer::~AshPixelDiffer() = default;
 

@@ -134,10 +134,14 @@ void VTTCueBox::ApplyCSSProperties(
     SetInlineStyleProperty(CSSPropertyID::kTransform,
                            String::Format("translate(-%.2f%%, -%.2f%%)",
                                           position.x(), position.y()));
-    // Longhands of `white-space: pre`.
-    SetInlineStyleProperty(CSSPropertyID::kWhiteSpaceCollapse,
-                           CSSValueID::kPreserve);
-    SetInlineStyleProperty(CSSPropertyID::kTextWrap, CSSValueID::kNowrap);
+    if (!RuntimeEnabledFeatures::CSSWhiteSpaceShorthandEnabled()) {
+      SetInlineStyleProperty(CSSPropertyID::kWhiteSpace, CSSValueID::kPre);
+    } else {
+      // Longhands of `white-space: pre`.
+      SetInlineStyleProperty(CSSPropertyID::kWhiteSpaceCollapse,
+                             CSSValueID::kPreserve);
+      SetInlineStyleProperty(CSSPropertyID::kTextWrap, CSSValueID::kNowrap);
+    }
   }
 
   // The snap-to-lines position is propagated to VttCueLayoutAlgorithm.

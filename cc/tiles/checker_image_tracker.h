@@ -9,7 +9,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include "base/containers/contains.h"
 #include "base/memory/raw_ptr.h"
 #include "cc/cc_export.h"
 #include "cc/paint/image_id.h"
@@ -118,7 +117,7 @@ class CC_EXPORT CheckerImageTracker {
   }
   PaintImage::DecodingMode get_decoding_mode_hint_for_testing(
       PaintImage::Id id) {
-    DCHECK(base::Contains(decoding_mode_map_, id));
+    CHECK(decoding_mode_map_.find(id) != decoding_mode_map_.end());
     return decoding_mode_map_[id];
   }
 

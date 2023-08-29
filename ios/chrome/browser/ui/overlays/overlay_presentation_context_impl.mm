@@ -6,7 +6,6 @@
 
 #import <UIKit/UIKit.h>
 
-#import "base/containers/contains.h"
 #import "base/functional/bind.h"
 #import "base/functional/callback.h"
 #import "base/memory/ptr_util.h"
@@ -15,6 +14,10 @@
 #import "ios/chrome/browser/ui/overlays/overlay_coordinator_factory.h"
 #import "ios/chrome/browser/ui/overlays/overlay_presentation_context_coordinator.h"
 #import "ios/chrome/browser/ui/overlays/overlay_presentation_context_impl_delegate.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 // static
 OverlayPresentationContextImpl* OverlayPresentationContextImpl::FromBrowser(
@@ -290,9 +293,8 @@ UIViewController* OverlayPresentationContextImpl::GetBaseViewController(
 
 OverlayRequestUIState* OverlayPresentationContextImpl::GetRequestUIState(
     OverlayRequest* request) const {
-  if (!request || !base::Contains(states_, request)) {
+  if (!request || states_.find(request) == states_.end())
     return nullptr;
-  }
   return states_.at(request).get();
 }
 

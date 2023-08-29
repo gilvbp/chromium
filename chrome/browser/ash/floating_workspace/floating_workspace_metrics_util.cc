@@ -49,11 +49,4 @@ void RecordFloatingWorkspaceV2TemplateUploadStatusHistogram(
                                 status);
 }
 
-void RecordFloatingWorkspaceV2InitializedHistogram() {
-  base::UmaHistogramBoolean(kFloatingWorkspaceV2Initialized, true);
-}
-void RecordFloatingWorkspaceV2TemplateNotFound() {
-  base::UmaHistogramBoolean(kFloatingWorkspaceV2TemplateNotFound, true);
-}
-
 }  // namespace ash::floating_workspace_metrics_util

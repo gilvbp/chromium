@@ -55,9 +55,7 @@ class ASH_EXPORT PageIndicatorView : public views::View,
 
   PageIndicatorButton* GetButtonByIndex(int index);
 
-  const raw_ptr<UnifiedSystemTrayController,
-                DanglingUntriaged | ExperimentalAsh>
-      controller_;
+  const raw_ptr<UnifiedSystemTrayController, ExperimentalAsh> controller_;
 
   // Owned by UnifiedSystemTrayModel.
   const raw_ptr<PaginationModel, ExperimentalAsh> model_;

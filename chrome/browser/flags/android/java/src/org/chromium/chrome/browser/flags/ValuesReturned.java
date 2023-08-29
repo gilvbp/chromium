@@ -5,6 +5,7 @@
 package org.chromium.chrome.browser.flags;
 
 import androidx.annotation.GuardedBy;
+import androidx.annotation.VisibleForTesting;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -22,6 +23,7 @@ abstract class ValuesReturned {
     @GuardedBy("sDoubleValues")
     static final Map<String, Double> sDoubleValues = new HashMap<>();
 
+    @VisibleForTesting
     static void clearForTesting() {
         synchronized (sBoolValues) {
             sBoolValues.clear();

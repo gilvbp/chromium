@@ -132,7 +132,7 @@ void NativeWidgetNSWindowFullscreenController::OnWindowedFrameRestored() {
   HandlePendingState();
   if (!IsInFullscreenTransition()) {
     client_->FullscreenControllerTransitionComplete(
-        /*is_fullscreen=*/false);
+        /*target_fullscreen_state=*/false);
   }
 }
 
@@ -221,7 +221,7 @@ void NativeWidgetNSWindowFullscreenController::OnWindowDidExitFullscreen() {
   HandlePendingState();
   if (!IsInFullscreenTransition()) {
     client_->FullscreenControllerTransitionComplete(
-        /*is_fullscreen=*/false);
+        /*actual_fullscreen_state=*/false);
   }
 }
 

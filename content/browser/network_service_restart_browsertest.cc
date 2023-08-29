@@ -40,6 +40,7 @@
 #include "content/public/test/commit_message_delayer.h"
 #include "content/public/test/content_browser_test.h"
 #include "content/public/test/content_browser_test_utils.h"
+#include "content/public/test/frame_test_utils.h"
 #include "content/public/test/simple_url_loader_test_helper.h"
 #include "content/public/test/test_utils.h"
 #include "content/shell/browser/shell.h"
@@ -68,7 +69,7 @@ namespace content {
 namespace {
 
 const char kHostA[] = "a.test";
-const char kCookieName[] = "Cookie";
+const char kSamePartyCookieName[] = "SamePartyCookie";
 
 using SharedURLLoaderFactoryGetterCallback =
     base::OnceCallback<scoped_refptr<network::SharedURLLoaderFactory>()>;
@@ -1103,7 +1104,7 @@ class NetworkServiceRestartWithFirstPartySetBrowserTest
       : https_server_(net::EmbeddedTestServer::TYPE_HTTPS) {
     if (IsFirstPartySetsEnabled()) {
       scoped_feature_list_.InitWithFeatures(
-          {features::kFirstPartySets,
+          {features::kFirstPartySets, net::features::kSamePartyAttributeEnabled,
            net::features::kWaitForFirstPartySetsInit},
           {});
     } else {
@@ -1133,10 +1134,30 @@ class NetworkServiceRestartWithFirstPartySetBrowserTest
     return https_server_.GetURL(host, "/echoheader?Cookie");
   }
 
-  void SetCookie(const std::string& host) {
-    ASSERT_TRUE(content::SetCookie(web_contents()->GetBrowserContext(),
-                                   https_server()->GetURL(host, "/"),
-                                   base::StrCat({kCookieName, "=1; secure"})));
+  GURL HostURL(const std::string& host) {
+    return https_server()->GetURL(host, "/");
+  }
+
+  std::vector<std::string> ExpectedSamePartyCookieNames() const {
+    // This function assumes that it is used with a cross-site context which may
+    // or may not be same-party, depending on whether First-Party Sets is
+    // enabled or not.
+    if (IsFirstPartySetsEnabled())
+      return {kSamePartyCookieName};
+    return {};
+  }
+
+  void SetSamePartyCookie(const std::string& host) {
+    ASSERT_TRUE(content::SetCookie(
+        web_contents()->GetBrowserContext(), HostURL(host),
+        base::StrCat(
+            {kSamePartyCookieName, "=1; samesite=lax; secure; sameparty"})));
+  }
+
+  std::string EmbedFrameAndGetCookieString() {
+    return ArrangeFramesAndGetContentFromLeaf(web_contents(), https_server(),
+                                              "b.test(%s)", {0},
+                                              EchoCookiesUrl(kHostA));
   }
 
   net::EmbeddedTestServer* https_server() { return &https_server_; }
@@ -1153,30 +1174,25 @@ class NetworkServiceRestartWithFirstPartySetBrowserTest
 IN_PROC_BROWSER_TEST_P(NetworkServiceRestartWithFirstPartySetBrowserTest,
                        GetsUseFirstPartySetSwitch) {
   // Network service is not running out of process, so cannot be crashed.
-  if (!content::IsOutOfProcessNetworkService()) {
+  if (!content::IsOutOfProcessNetworkService())
     return;
-  }
 
-  SetCookie(kHostA);
+  SetSamePartyCookie(kHostA);
 
-  ASSERT_TRUE(content::NavigateToURL(web_contents(), EchoCookiesUrl(kHostA)));
-  EXPECT_THAT(content::EvalJs(web_contents(), "document.body.textContent")
-                  .ExtractString(),
-              net::CookieStringIs(
-                  testing::UnorderedElementsAre(testing::Key(kCookieName))));
+  EXPECT_THAT(EmbedFrameAndGetCookieString(),
+              net::CookieStringIs(testing::UnorderedPointwise(
+                  net::NameIs(), ExpectedSamePartyCookieNames())));
 
   SimulateNetworkServiceCrash();
 
   // content_shell uses an in-memory cookie store, so cookies are not persisted,
-  // but that's ok. What matters is that the FPS data is re-plumbed to the
-  // network service upon restart, so network requests don't deadlock.
-  SetCookie(kHostA);
+  // but that's ok. What matters is that the command-line set is re-plumbed to
+  // the network service upon restart.
+  SetSamePartyCookie(kHostA);
 
-  ASSERT_TRUE(content::NavigateToURL(web_contents(), EchoCookiesUrl(kHostA)));
-  EXPECT_THAT(content::EvalJs(web_contents(), "document.body.textContent")
-                  .ExtractString(),
-              net::CookieStringIs(
-                  testing::UnorderedElementsAre(testing::Key(kCookieName))));
+  EXPECT_THAT(EmbedFrameAndGetCookieString(),
+              net::CookieStringIs(testing::UnorderedPointwise(
+                  net::NameIs(), ExpectedSamePartyCookieNames())));
 }
 
 INSTANTIATE_TEST_SUITE_P(/* no prefix */,

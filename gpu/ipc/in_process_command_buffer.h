@@ -24,6 +24,7 @@
 #include "base/synchronization/waitable_event.h"
 #include "base/task/single_thread_task_runner.h"
 #include "base/time/time.h"
+#include "components/viz/common/resources/resource_format.h"
 #include "gpu/command_buffer/client/gpu_control.h"
 #include "gpu/command_buffer/common/command_buffer.h"
 #include "gpu/command_buffer/common/context_result.h"
@@ -65,7 +66,7 @@ class GpuTaskSchedulerHelper;
 
 namespace gpu {
 class SharedContextState;
-class GpuProcessShmCount;
+class GpuProcessActivityFlags;
 class SharedImageInterface;
 class SyncPointClientState;
 struct ContextCreationAttribs;
@@ -102,7 +103,7 @@ class GL_IN_PROCESS_CONTEXT_EXPORT InProcessCommandBuffer
       const ContextCreationAttribs& attribs,
       scoped_refptr<base::SingleThreadTaskRunner> task_runner,
       gpu::raster::GrShaderCache* gr_shader_cache,
-      GpuProcessShmCount* use_shader_cache_shm_count);
+      GpuProcessActivityFlags* activity_flags);
 
   // CommandBuffer implementation (called on client thread):
   State GetLastState() override;
@@ -127,7 +128,6 @@ class GL_IN_PROCESS_CONTEXT_EXPORT InProcessCommandBuffer
   // GetCapabilities() can be called on any thread.
   const Capabilities& GetCapabilities() const override;
   void SignalQuery(uint32_t query_id, base::OnceClosure callback) override;
-  void CancelAllQueries() override;
   void CreateGpuFence(uint32_t gpu_fence_id, ClientGpuFence source) override;
   void GetGpuFence(uint32_t gpu_fence_id,
                    base::OnceCallback<void(std::unique_ptr<gfx::GpuFence>)>
@@ -181,16 +181,16 @@ class GL_IN_PROCESS_CONTEXT_EXPORT InProcessCommandBuffer
     const raw_ref<const ContextCreationAttribs> attribs;
     raw_ptr<Capabilities> capabilities;  // Ouptut.
     raw_ptr<gpu::raster::GrShaderCache> gr_shader_cache;
-    raw_ptr<GpuProcessShmCount> use_shader_cache_shm_count;
+    raw_ptr<GpuProcessActivityFlags> activity_flags;
 
     InitializeOnGpuThreadParams(const ContextCreationAttribs& attribs,
                                 Capabilities* capabilities,
                                 gpu::raster::GrShaderCache* gr_shader_cache,
-                                GpuProcessShmCount* use_shader_cache_shm_count)
+                                GpuProcessActivityFlags* activity_flags)
         : attribs(attribs),
           capabilities(capabilities),
           gr_shader_cache(gr_shader_cache),
-          use_shader_cache_shm_count(use_shader_cache_shm_count) {}
+          activity_flags(activity_flags) {}
   };
 
   // Initialize() and Destroy() are called on the client thread, but post tasks
@@ -232,7 +232,6 @@ class GL_IN_PROCESS_CONTEXT_EXPORT InProcessCommandBuffer
   void SignalSyncTokenOnGpuThread(const SyncToken& sync_token,
                                   base::OnceClosure callback);
   void SignalQueryOnGpuThread(unsigned query_id, base::OnceClosure callback);
-  void CancelAllQueriesOnGpuThread();
 
   void RegisterTransferBufferOnGpuThread(int32_t id,
                                          scoped_refptr<Buffer> buffer);

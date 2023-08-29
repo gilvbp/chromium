@@ -5,10 +5,10 @@
 #import "ui/base/cocoa/menu_controller.h"
 
 #include "base/apple/bridging.h"
-#include "base/apple/foundation_util.h"
 #include "base/apple/owned_objc.h"
 #include "base/check_op.h"
 #include "base/functional/bind.h"
+#include "base/mac/foundation_util.h"
 #include "base/numerics/safe_conversions.h"
 #include "base/strings/sys_string_conversions.h"
 #include "ui/base/accelerators/accelerator.h"
@@ -21,6 +21,10 @@
 #include "ui/gfx/font_list.h"
 #include "ui/gfx/image/image.h"
 #include "ui/strings/grit/ui_strings.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace {
 
@@ -66,7 +70,7 @@ bool MenuHasVisibleItems(const ui::MenuModel* model) {
 }
 
 + (ui::MenuModel*)getFrom:(id)instance {
-  return [base::apple::ObjCCastStrict<WeakPtrToMenuModelAsNSObject>(instance)
+  return [base::mac::ObjCCastStrict<WeakPtrToMenuModelAsNSObject>(instance)
       menuModel];
 }
 
@@ -276,7 +280,7 @@ bool MenuHasVisibleItems(const ui::MenuModel* model) {
 }
 
 - (BOOL)validateUserInterfaceItem:(id<NSValidatedUserInterfaceItem>)item {
-  NSMenuItem* menuItem = base::apple::ObjCCastStrict<NSMenuItem>(item);
+  NSMenuItem* menuItem = base::mac::ObjCCastStrict<NSMenuItem>(item);
 
   SEL action = menuItem.action;
   if (action != @selector(itemSelected:))
@@ -314,7 +318,7 @@ bool MenuHasVisibleItems(const ui::MenuModel* model) {
 }
 
 - (void)itemSelected:(id)sender {
-  NSMenuItem* menuItem = base::apple::ObjCCastStrict<NSMenuItem>(sender);
+  NSMenuItem* menuItem = base::mac::ObjCCastStrict<NSMenuItem>(sender);
 
   ui::MenuModel* model =
       [WeakPtrToMenuModelAsNSObject getFrom:menuItem.representedObject];

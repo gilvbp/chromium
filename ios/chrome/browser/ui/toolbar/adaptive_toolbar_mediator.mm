@@ -4,7 +4,6 @@
 
 #import "ios/chrome/browser/ui/toolbar/adaptive_toolbar_mediator.h"
 
-#import "base/containers/contains.h"
 #import "base/memory/ptr_util.h"
 #import "base/metrics/user_metrics.h"
 #import "base/metrics/user_metrics_action.h"
@@ -44,6 +43,10 @@
 #import "ui/base/l10n/l10n_util.h"
 #import "ui/gfx/image/image.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 @interface AdaptiveToolbarMediator () <CRWWebStateObserver,
                                        OverlayPresenterObserving,
                                        WebStateListObserving>
@@ -61,6 +64,7 @@
   std::unique_ptr<web::WebStateObserverBridge> _webStateObserver;
   std::unique_ptr<WebStateListObserverBridge> _webStateListObserver;
   std::unique_ptr<OverlayPresenterObserverBridge> _overlayObserver;
+  BOOL _inBatchOperation;
 }
 
 - (instancetype)init {
@@ -164,20 +168,18 @@
 
 - (void)didChangeWebStateList:(WebStateList*)webStateList
                        change:(const WebStateListChange&)change
-                       status:(const WebStateListStatus&)status {
-  DCHECK_EQ(_webStateList, webStateList);
+                    selection:(const WebStateSelection&)selection {
   switch (change.type()) {
-    case WebStateListChange::Type::kStatusOnly:
-      // The activation is handled after this switch statement.
+    case WebStateListChange::Type::kSelectionOnly:
+      // TODO(crbug.com/1442546): Move the implementation from
+      // webStateList:didChangeActiveWebState:oldWebState:atIndex:reason to
+      // here. Note that here is reachable only when `reason` ==
+      // ActiveWebStateChangeReason::Activated.
       break;
-    case WebStateListChange::Type::kDetach: {
-      if (webStateList->IsBatchInProgress()) {
-        return;
-      }
-
-      [self.consumer setTabCount:_webStateList->count() addedInBackground:NO];
+    case WebStateListChange::Type::kDetach:
+      // TODO(crbug.com/1442546): Move the implementation from
+      // webStateList:didDetachWebState:atIndex: to here.
       break;
-    }
     case WebStateListChange::Type::kMove:
       // Do nothing when a WebState is moved.
       break;
@@ -185,23 +187,47 @@
       // Do nothing when a WebState is replaced.
       break;
     case WebStateListChange::Type::kInsert: {
-      if (webStateList->IsBatchInProgress()) {
+      DCHECK_EQ(_webStateList, webStateList);
+      if (_inBatchOperation) {
         return;
       }
 
       [self.consumer setTabCount:_webStateList->count()
-               addedInBackground:!status.active_web_state_change()];
-      break;
+               addedInBackground:!selection.activating];
     }
   }
+}
 
-  if (status.active_web_state_change()) {
-    self.webState = status.new_active_web_state;
+- (void)webStateList:(WebStateList*)webStateList
+    didDetachWebState:(web::WebState*)webState
+              atIndex:(int)index {
+  DCHECK_EQ(_webStateList, webStateList);
+  if (_inBatchOperation) {
+    return;
   }
+
+  [self.consumer setTabCount:_webStateList->count() addedInBackground:NO];
+}
+
+- (void)webStateList:(WebStateList*)webStateList
+    didChangeActiveWebState:(web::WebState*)newWebState
+                oldWebState:(web::WebState*)oldWebState
+                    atIndex:(int)atIndex
+                     reason:(ActiveWebStateChangeReason)reason {
+  DCHECK_EQ(_webStateList, webStateList);
+  self.webState = newWebState;
+}
+
+- (void)webStateListWillBeginBatchOperation:(WebStateList*)webStateList {
+  DCHECK_EQ(_webStateList, webStateList);
+  DCHECK(!_inBatchOperation);
+  _inBatchOperation = YES;
 }
 
 - (void)webStateListBatchOperationEnded:(WebStateList*)webStateList {
   DCHECK_EQ(_webStateList, webStateList);
+  DCHECK(_inBatchOperation);
+  _inBatchOperation = NO;
   [self.consumer setTabCount:_webStateList->count() addedInBackground:NO];
 }
 
@@ -476,14 +502,14 @@
         clipboardContentType.value();
 
     if (search_engines::SupportsSearchByImage(self.templateURLService) &&
-        base::Contains(clipboardContentTypeValues,
-                       ClipboardContentType::Image)) {
+        clipboardContentTypeValues.find(ClipboardContentType::Image) !=
+            clipboardContentTypeValues.end()) {
       return [self.actionFactory actionToSearchCopiedImage];
-    } else if (base::Contains(clipboardContentTypeValues,
-                              ClipboardContentType::URL)) {
+    } else if (clipboardContentTypeValues.find(ClipboardContentType::URL) !=
+               clipboardContentTypeValues.end()) {
       return [self.actionFactory actionToSearchCopiedURL];
-    } else if (base::Contains(clipboardContentTypeValues,
-                              ClipboardContentType::Text)) {
+    } else if (clipboardContentTypeValues.find(ClipboardContentType::Text) !=
+               clipboardContentTypeValues.end()) {
       return [self.actionFactory actionToSearchCopiedText];
     }
   }

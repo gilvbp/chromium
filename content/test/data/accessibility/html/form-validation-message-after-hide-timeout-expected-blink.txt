@@ -6,7 +6,7 @@ rootWebArea
 ++++++++labelText
 ++++++++++staticText name='Pet name:'
 ++++++++++++inlineTextBox name='Pet name:'
-++++++++textField required name='Pet name:' invalidState=true errorMessageIds=alert
+++++++++textField required name='Pet name:' errormessageId=alert invalidState=true
 ++++++++++genericContainer
 ++++++++genericContainer
 ++++++++++staticText name='ready'

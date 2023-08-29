@@ -177,7 +177,7 @@ public class SyncPromoPreference extends Preference
 
     // AccountsChangeObserver implementation.
     @Override
-    public void onCoreAccountInfosChanged() {
+    public void onAccountsChanged() {
         update();
     }
 }

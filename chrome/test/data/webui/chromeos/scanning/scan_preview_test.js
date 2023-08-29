@@ -48,9 +48,6 @@ class FakeAccessibilityFeatures {
 }
 
 suite('scanPreviewTest', function() {
-  const testSvgPath =
-      'chrome://webui-test/chromeos/scanning/fake_scanned_image.svg';
-
   /** @type {?ScanPreviewElement} */
   let scanPreview = null;
 
@@ -108,7 +105,7 @@ suite('scanPreviewTest', function() {
     scanPreview = /** @type {!ScanPreviewElement} */ (
         document.createElement('scan-preview'));
     assertTrue(!!scanPreview);
-    ScanningBrowserProxyImpl.setInstance(new TestScanningBrowserProxy());
+    ScanningBrowserProxyImpl.instance_ = new TestScanningBrowserProxy();
 
     // Setup mock for matchMedia.
     mockController = new MockController();
@@ -262,7 +259,7 @@ suite('scanPreviewTest', function() {
           assertEquals(
               '', scanPreview.style.getPropertyValue('--action-toolbar-left'));
 
-          scanPreview.objectUrls = [testSvgPath];
+          scanPreview.objectUrls = ['svg/ready_to_scan.svg'];
           scanPreview.appState = AppState.MULTI_PAGE_NEXT_ACTION;
           return waitAfterNextRender(scannedImagesDiv);
         })
@@ -277,17 +274,16 @@ suite('scanPreviewTest', function() {
           // new scan.
           scanPreview.style.setProperty('--action-toolbar-top', '');
           scanPreview.style.setProperty('--action-toolbar-left', '');
-          scanPreview.objectUrls = [];
-          scanPreview.appState = AppState.MULTI_PAGE_SCANNING;
-          return waitAfterNextRender(scannedImagesDiv);
-        })
-        .then(() => {
           assertEquals(
               '', scanPreview.style.getPropertyValue('--action-toolbar-top'));
           assertEquals(
               '', scanPreview.style.getPropertyValue('--action-toolbar-left'));
-
-          scanPreview.objectUrls = [testSvgPath];
+          scanPreview.objectUrls = [];
+          scanPreview.appState = AppState.MULTI_PAGE_SCANNING;
+          return flushTasks();
+        })
+        .then(() => {
+          scanPreview.objectUrls = ['svg/ready_to_scan.svg'];
           scanPreview.appState = AppState.MULTI_PAGE_NEXT_ACTION;
           return waitAfterNextRender(scannedImagesDiv);
         })
@@ -308,7 +304,7 @@ suite('scanPreviewTest', function() {
     scanPreview.addEventListener('remove-page', (e) => {
       pageIndexFromEvent = e.detail;
     });
-    scanPreview.objectUrls = [testSvgPath];
+    scanPreview.objectUrls = ['svg/ready_to_scan.svg'];
     return flushTasks()
         .then(() => {
           assertFalse(scanPreview.$$('#scanPreviewDialog').open);
@@ -386,7 +382,7 @@ suite('scanPreviewTest', function() {
     scanPreview.appState = AppState.MULTI_PAGE_SCANNING;
     return flushTasks()
         .then(() => {
-          scanPreview.objectUrls = [testSvgPath];
+          scanPreview.objectUrls = ['svg/ready_to_scan.svg'];
           scanPreview.appState = AppState.MULTI_PAGE_NEXT_ACTION;
           return waitAfterNextRender(scannedImagesDiv);
         })
@@ -418,7 +414,7 @@ suite('scanPreviewTest', function() {
           return flushTasks();
         })
         .then(() => {
-          scanPreview.objectUrls = [testSvgPath];
+          scanPreview.objectUrls = ['svg/ready_to_scan.svg'];
           scanPreview.appState = AppState.DONE;
 
           // Reset the CSS variables and simulate starting the window being
@@ -483,22 +479,22 @@ suite('scanPreviewTest', function() {
     assertEquals(darkModeSvg, getReadyToScanSvg().src);
   });
 
-  // Verify "ready to scan" dynamic SVG use when dynamic colors enabled.
-  test('jellyColors_ReadyToScanSvg', async () => {
+  // Verify "loading scanners" dynamic SVG use when dynamic colors enabled.
+  test('jellyColors_LoadingScannersSvg', async () => {
     await setJellyEnabled(true);
     const dynamicSvg = `svg/illo_ready_to_scan.svg#illo_ready_to_scan`;
 
-    const getSvgValue = () =>
+    const getLoadingScannersSvgValue = () =>
         (/** @type {!SVGUseElement} */ (
              scanPreview.shadowRoot.querySelector('#readyToScanSvg > use'))
              .href.baseVal);
 
-    // Mock media query state for light mode.
+    // Setup UI to display no scanners div.
     await setFakePrefersColorSchemeDark(false);
-    assertEquals(dynamicSvg, getSvgValue());
+    assertEquals(dynamicSvg, getLoadingScannersSvgValue());
 
     // Mock media query state for dark mode.
     await setFakePrefersColorSchemeDark(true);
-    assertEquals(dynamicSvg, getSvgValue());
+    assertEquals(dynamicSvg, getLoadingScannersSvgValue());
   });
 });

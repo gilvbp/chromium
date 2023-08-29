@@ -22,7 +22,7 @@ using testing::ElementsAre;
 namespace autofill {
 namespace {
 
-ServerFieldTypeSet GetNamePhoneAndEmailFieldTypes() {
+std::vector<ServerFieldType> GetNamePhoneAndEmailFieldTypes() {
   return {NAME_FIRST, NAME_LAST, PHONE_HOME_WHOLE_NUMBER, EMAIL_ADDRESS};
 }
 

@@ -386,7 +386,7 @@ void TextTrack::Trace(Visitor* visitor) const {
   visitor->Trace(style_sheets_);
   visitor->Trace(source_element_);
   TrackBase::Trace(visitor);
-  EventTarget::Trace(visitor);
+  EventTargetWithInlineData::Trace(visitor);
 }
 
 }  // namespace blink

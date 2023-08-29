@@ -17,7 +17,6 @@
 #include "third_party/blink/renderer/core/frame/local_frame.h"
 #include "third_party/blink/renderer/core/html/html_element.h"
 #include "third_party/blink/renderer/core/html_names.h"
-#include "third_party/blink/renderer/core/keywords.h"
 #include "third_party/blink/renderer/core/svg/animation/svg_smil_element.h"
 #include "third_party/blink/renderer/core/svg/properties/svg_property_info.h"
 #include "third_party/blink/renderer/core/svg/svg_a_element.h"
@@ -70,7 +69,7 @@ void PasteAndVerifySanitization(const char* html_to_paste,
   HTMLElement* body = page_holder->GetDocument().body();
 
   // Make the body editable, and put the caret in it.
-  body->setAttribute(html_names::kContenteditableAttr, keywords::kTrue);
+  body->setAttribute(html_names::kContenteditableAttr, "true");
   body->Focus();
   frame.GetDocument()->UpdateStyleAndLayout(DocumentUpdateReason::kTest);
   frame.Selection().SetSelectionAndEndTyping(
@@ -239,13 +238,10 @@ TEST(UnsafeSVGAttributeSanitizationTest, stringsShouldNotSupportAddition) {
 TEST(UnsafeSVGAttributeSanitizationTest,
      stripScriptingAttributes_animateElement) {
   Vector<Attribute, kAttributePrealloc> attributes;
-  attributes.push_back(
-      Attribute(xlink_names::kHrefAttr, AtomicString("javascript:alert()")));
-  attributes.push_back(
-      Attribute(svg_names::kHrefAttr, AtomicString("javascript:alert()")));
-  attributes.push_back(Attribute(svg_names::kFromAttr, AtomicString("/home")));
-  attributes.push_back(
-      Attribute(svg_names::kToAttr, AtomicString("javascript:own3d()")));
+  attributes.push_back(Attribute(xlink_names::kHrefAttr, "javascript:alert()"));
+  attributes.push_back(Attribute(svg_names::kHrefAttr, "javascript:alert()"));
+  attributes.push_back(Attribute(svg_names::kFromAttr, "/home"));
+  attributes.push_back(Attribute(svg_names::kToAttr, "javascript:own3d()"));
 
   ScopedNullExecutionContext execution_context;
   auto* document =
@@ -268,7 +264,7 @@ TEST(UnsafeSVGAttributeSanitizationTest,
 
 TEST(UnsafeSVGAttributeSanitizationTest,
      isJavaScriptURLAttribute_hrefContainingJavascriptURL) {
-  Attribute attribute(svg_names::kHrefAttr, AtomicString("javascript:alert()"));
+  Attribute attribute(svg_names::kHrefAttr, "javascript:alert()");
   ScopedNullExecutionContext execution_context;
   auto* document =
       Document::CreateForTest(execution_context.GetExecutionContext());
@@ -280,8 +276,7 @@ TEST(UnsafeSVGAttributeSanitizationTest,
 
 TEST(UnsafeSVGAttributeSanitizationTest,
      isJavaScriptURLAttribute_xlinkHrefContainingJavascriptURL) {
-  Attribute attribute(xlink_names::kHrefAttr,
-                      AtomicString("javascript:alert()"));
+  Attribute attribute(xlink_names::kHrefAttr, "javascript:alert()");
   ScopedNullExecutionContext execution_context;
   auto* document =
       Document::CreateForTest(execution_context.GetExecutionContext());
@@ -294,10 +289,9 @@ TEST(UnsafeSVGAttributeSanitizationTest,
 TEST(
     UnsafeSVGAttributeSanitizationTest,
     isJavaScriptURLAttribute_xlinkHrefContainingJavascriptURL_alternatePrefix) {
-  QualifiedName href_alternate_prefix(AtomicString("foo"), AtomicString("href"),
+  QualifiedName href_alternate_prefix("foo", "href",
                                       xlink_names::kNamespaceURI);
-  Attribute evil_attribute(href_alternate_prefix,
-                           AtomicString("javascript:alert()"));
+  Attribute evil_attribute(href_alternate_prefix, "javascript:alert()");
   ScopedNullExecutionContext execution_context;
   auto* document =
       Document::CreateForTest(execution_context.GetExecutionContext());
@@ -310,8 +304,7 @@ TEST(
 
 TEST(UnsafeSVGAttributeSanitizationTest,
      isSVGAnimationAttributeSettingJavaScriptURL_fromContainingJavaScriptURL) {
-  Attribute evil_attribute(svg_names::kFromAttr,
-                           AtomicString("javascript:alert()"));
+  Attribute evil_attribute(svg_names::kFromAttr, "javascript:alert()");
   ScopedNullExecutionContext execution_context;
   auto* document =
       Document::CreateForTest(execution_context.GetExecutionContext());
@@ -324,8 +317,7 @@ TEST(UnsafeSVGAttributeSanitizationTest,
 
 TEST(UnsafeSVGAttributeSanitizationTest,
      isSVGAnimationAttributeSettingJavaScriptURL_toContainingJavaScripURL) {
-  Attribute evil_attribute(svg_names::kToAttr,
-                           AtomicString("javascript:window.close()"));
+  Attribute evil_attribute(svg_names::kToAttr, "javascript:window.close()");
   ScopedNullExecutionContext execution_context;
   auto* document =
       Document::CreateForTest(execution_context.GetExecutionContext());
@@ -339,8 +331,7 @@ TEST(UnsafeSVGAttributeSanitizationTest,
 TEST(
     UnsafeSVGAttributeSanitizationTest,
     isSVGAnimationAttributeSettingJavaScriptURL_valuesContainingJavaScriptURL) {
-  Attribute evil_attribute(svg_names::kValuesAttr,
-                           AtomicString("hi!; javascript:confirm()"));
+  Attribute evil_attribute(svg_names::kValuesAttr, "hi!; javascript:confirm()");
   ScopedNullExecutionContext execution_context;
   auto* document =
       Document::CreateForTest(execution_context.GetExecutionContext());
@@ -353,7 +344,7 @@ TEST(
 
 TEST(UnsafeSVGAttributeSanitizationTest,
      isSVGAnimationAttributeSettingJavaScriptURL_innocuousAnimationAttribute) {
-  Attribute fine_attribute(svg_names::kFromAttr, AtomicString("hello, world!"));
+  Attribute fine_attribute(svg_names::kFromAttr, "hello, world!");
   ScopedNullExecutionContext execution_context;
   auto* document =
       Document::CreateForTest(execution_context.GetExecutionContext());

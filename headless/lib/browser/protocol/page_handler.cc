@@ -18,7 +18,7 @@ namespace protocol {
 #if BUILDFLAG(ENABLE_PRINTING)
 template <typename T>
 absl::optional<T> OptionalFromMaybe(const Maybe<T>& maybe) {
-  return maybe.has_value() ? absl::optional<T>(maybe.value()) : absl::nullopt;
+  return maybe.isJust() ? absl::optional<T>(maybe.fromJust()) : absl::nullopt;
 }
 #endif
 
@@ -53,7 +53,6 @@ void PageHandler::PrintToPDF(Maybe<bool> landscape,
                              Maybe<String> footer_template,
                              Maybe<bool> prefer_css_page_size,
                              Maybe<String> transfer_mode,
-                             Maybe<bool> generate_tagged_pdf,
                              std::unique_ptr<PrintToPDFCallback> callback) {
   DCHECK(callback);
 
@@ -78,8 +77,7 @@ void PageHandler::PrintToPDF(Maybe<bool> landscape,
           OptionalFromMaybe<double>(margin_right),
           OptionalFromMaybe<std::string>(header_template),
           OptionalFromMaybe<std::string>(footer_template),
-          OptionalFromMaybe<bool>(prefer_css_page_size),
-          OptionalFromMaybe<bool>(generate_tagged_pdf));
+          OptionalFromMaybe<bool>(prefer_css_page_size));
   if (absl::holds_alternative<std::string>(print_pages_params)) {
     callback->sendFailure(
         Response::InvalidParams(absl::get<std::string>(print_pages_params)));
@@ -89,11 +87,11 @@ void PageHandler::PrintToPDF(Maybe<bool> landscape,
   DCHECK(absl::holds_alternative<printing::mojom::PrintPagesParamsPtr>(
       print_pages_params));
 
-  bool return_as_stream = transfer_mode.value_or("") ==
+  bool return_as_stream = transfer_mode.fromMaybe("") ==
                           Page::PrintToPDF::TransferModeEnum::ReturnAsStream;
   HeadlessPrintManager::FromWebContents(web_contents_.get())
       ->PrintToPdf(
-          web_contents_->GetPrimaryMainFrame(), page_ranges.value_or(""),
+          web_contents_->GetPrimaryMainFrame(), page_ranges.fromMaybe(""),
           std::move(absl::get<printing::mojom::PrintPagesParamsPtr>(
               print_pages_params)),
           base::BindOnce(&PageHandler::PDFCreated, weak_factory_.GetWeakPtr(),

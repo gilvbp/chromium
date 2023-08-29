@@ -37,9 +37,9 @@ import androidx.recyclerview.widget.RecyclerView.OnScrollListener;
 
 import org.chromium.base.Callback;
 import org.chromium.base.Log;
-import org.chromium.base.ResettersForTesting;
 import org.chromium.base.metrics.RecordHistogram;
 import org.chromium.base.metrics.RecordUserAction;
+import org.chromium.chrome.browser.compositor.layouts.content.TabContentManager;
 import org.chromium.chrome.browser.preferences.ChromePreferenceKeys;
 import org.chromium.chrome.browser.preferences.SharedPreferencesManager;
 import org.chromium.chrome.browser.price_tracking.PriceTrackingFeatures;
@@ -111,6 +111,17 @@ class TabListMediator {
     private boolean mVisible;
     private boolean mShownIPH;
     private Tab mTabToAddDelayed;
+
+    /**
+     * An interface to get the thumbnails to be shown inside the tab grid cards.
+     */
+    public interface ThumbnailProvider {
+        /**
+         * @see TabContentManager#getTabThumbnailWithCallback
+         */
+        void getTabThumbnailWithCallback(int tabId, Size thumbnailSize, Callback<Bitmap> callback,
+                boolean forceUpdate, boolean writeToCache, boolean isSelected);
+    }
 
     /**
      * An interface to handle requests about updating TabGridDialog.
@@ -477,15 +488,6 @@ class TabListMediator {
         }
     };
 
-    /**
-     * Interface for toggling whether item animations will run on the recycler view.
-     */
-    interface RecyclerViewItemAnimationToggle {
-        void setDisableItemAnimations(boolean state);
-    }
-
-    private RecyclerViewItemAnimationToggle mRecyclerViewItemAnimationToggle;
-
     private final TabModelObserver mTabModelObserver;
 
     private ListObserver<Void> mListObserver;
@@ -730,22 +732,9 @@ class TabListMediator {
             }
         };
 
-        TabActionListener swipeSafeTabActionListener = (id) -> {
-            // The DefaultItemAnimator is prone to crashing in combination with the swipe animation.
-            // Avoid this issue by disabling the default item animation for the duration of the tab
-            // removal. This is a framework issue. For more details see crbug/1319859.
-            mRecyclerViewItemAnimationToggle.setDisableItemAnimations(true);
-            mTabClosedListener.run(id);
-            // It is necessary to post the restoration as otherwise any animation triggered by
-            // removing the tab will still use the animator as they are also posted to the UI
-            // thread.
-            new Handler().post(
-                    () -> { mRecyclerViewItemAnimationToggle.setDisableItemAnimations(false); });
-        };
-
         mTabGridItemTouchHelperCallback = new TabGridItemTouchHelperCallback(context, mModel,
-                mTabModelSelector, swipeSafeTabActionListener, mTabGridDialogHandler,
-                mComponentName, mActionsOnAllRelatedTabs, mMode);
+                mTabModelSelector, mTabClosedListener, mTabGridDialogHandler, mComponentName,
+                mActionsOnAllRelatedTabs, mMode);
 
         // Right now we need to update layout only if there is a price welcome message card in tab
         // switcher.
@@ -785,11 +774,6 @@ class TabListMediator {
                     .OnLongPressTabItemEventListener onLongPressTabItemEventListener) {
         mTabGridItemTouchHelperCallback.setOnLongPressTabItemEventListener(
                 onLongPressTabItemEventListener);
-    }
-
-    void setRecyclerViewItemAnimationToggle(
-            RecyclerViewItemAnimationToggle recyclerViewItemAnimationToggle) {
-        mRecyclerViewItemAnimationToggle = recyclerViewItemAnimationToggle;
     }
 
     /**
@@ -884,7 +868,7 @@ class TabListMediator {
                     if (mActionsOnAllRelatedTabs) {
                         if (isUngroupingLastTabInGroup) return;
 
-                        final int currentSelectedTabId = mTabModelSelector.getCurrentTabId();
+                        Tab currentSelectedTab = mTabModelSelector.getCurrentTab();
                         if (isShowingTabsInMRUOrder()) {
                             int groupTabIndex = mModel.indexFromId(groupTab.getId());
                             if (groupTabIndex == TabModel.INVALID_TAB_INDEX) {
@@ -893,7 +877,7 @@ class TabListMediator {
                                 groupTabIndex = mModel.indexFromId(movedTab.getId());
                             }
                             if (!isValidMovePosition(groupTabIndex)) return;
-                            boolean isSelected = currentSelectedTabId == groupTab.getId();
+                            boolean isSelected = currentSelectedTab.getId() == groupTab.getId();
                             // We may need to adjust the group's index after removing the movedTab
                             // from the group.
                             int newGroupTabIndexMRU =
@@ -913,7 +897,7 @@ class TabListMediator {
 
                             int modelIndex = mModel.getNewPositionInMruOrderList(movedTab.getId());
                             addTabInfoToModel(PseudoTab.fromTab(movedTab), modelIndex,
-                                    currentSelectedTabId == movedTab.getId());
+                                    currentSelectedTab.getId() == movedTab.getId());
                         } else {
                             // Only add a tab to the model if it represents a new card (new group or
                             // new singular tab). However, always update the previous group to clean
@@ -923,9 +907,10 @@ class TabListMediator {
                                 int filterIndex = filter.indexOf(movedTab);
                                 addTabInfoToModel(PseudoTab.fromTab(movedTab),
                                         mModel.indexOfNthTabCard(filterIndex),
-                                        currentSelectedTabId == movedTab.getId());
+                                        currentSelectedTab.getId() == movedTab.getId());
                             }
-                            boolean isSelected = currentSelectedTabId == groupTab.getId();
+                            boolean isSelected =
+                                    mTabModelSelector.getCurrentTabId() == groupTab.getId();
                             updateTab(mModel.indexOfNthTabCard(prevFilterIndex),
                                     PseudoTab.fromTab(groupTab), isSelected, true, false);
                         }
@@ -1061,7 +1046,7 @@ class TabListMediator {
 
                 @Override
                 public void didCreateGroup(List<Tab> tabs, List<Integer> tabOriginalIndex,
-                        List<Integer> tabOriginalRootId, String destinationGroupTitle) {}
+                        List<Integer> tabOriginalRootId) {}
             };
 
             ((TabGroupModelFilter) mTabModelSelector.getTabModelFilterProvider().getTabModelFilter(
@@ -1126,10 +1111,9 @@ class TabListMediator {
         sTabClosedFromMapTabClosedFromMap.put(tabId, TabClosedFrom.GRID_TAB_SWITCHER_GROUP);
     }
 
+    @VisibleForTesting
     void setActionOnAllRelatedTabsForTesting(boolean actionOnAllRelatedTabs) {
-        var oldValue = mActionsOnAllRelatedTabs;
         mActionsOnAllRelatedTabs = actionOnAllRelatedTabs;
-        ResettersForTesting.register(() -> mActionsOnAllRelatedTabs = oldValue);
     }
 
     private List<Tab> getRelatedTabsForId(int id) {
@@ -1390,6 +1374,7 @@ class TabListMediator {
         return getRelatedTabsForId(tabId).size() == 1;
     }
 
+    @VisibleForTesting
     public Set<Integer> getViewedTabIdsForTesting() {
         return sViewedTabIds;
     }
@@ -1485,7 +1470,8 @@ class TabListMediator {
      * reasonable.
      */
     private int getSpanCount(int screenWidthDp) {
-        if (DeviceFormFactor.isNonMultiDisplayContextOnTablet(mContext)) {
+        if (DeviceFormFactor.isNonMultiDisplayContextOnTablet(mContext)
+                && TabUiFeatureUtilities.isGridTabSwitcherEnabled(mContext)) {
             return screenWidthDp < TabListCoordinator.MAX_SCREEN_WIDTH_COMPACT_DP
                     ? TabListCoordinator.GRID_LAYOUT_SPAN_COUNT_COMPACT
                     : screenWidthDp < TabListCoordinator.MAX_SCREEN_WIDTH_MEDIUM_DP
@@ -1578,6 +1564,19 @@ class TabListMediator {
 
     private void addTabInfoToModel(final PseudoTab pseudoTab, int index, boolean isSelected) {
         assert index != TabModel.INVALID_TAB_INDEX;
+        // If the new tab is already in the target position of TabListModel, skip redundant
+        // addition. The only exception is when we undo a group-tabs operation. In that case, it is
+        // possible that the tab being added back has the same id as the PropertyModel of the
+        // group.
+        if (index < mModel.size()) {
+            int type = mModel.get(index).type;
+            PropertyModel model = mModel.get(index).model;
+            if ((type == UiType.CLOSABLE || type == UiType.SELECTABLE || type == UiType.STRIP)
+                    && model.get(TabProperties.TAB_ID) == pseudoTab.getId()
+                    && !TabUiFeatureUtilities.isTabGroupsAndroidEnabled(mContext)) {
+                return;
+            }
+        }
         boolean showIPH = false;
         boolean isRealTab = pseudoTab.hasRealTab();
         if (mActionsOnAllRelatedTabs && !mShownIPH && isRealTab) {
@@ -1684,11 +1683,8 @@ class TabListMediator {
         updateFaviconForTab(pseudoTab, null, null);
 
         if (mThumbnailProvider != null && mDefaultGridCardSize != null) {
-            if (!mDefaultGridCardSize.equals(tabInfo.get(TabProperties.GRID_CARD_SIZE))) {
-                tabInfo.set(TabProperties.GRID_CARD_SIZE,
-                        new Size(
-                                mDefaultGridCardSize.getWidth(), mDefaultGridCardSize.getHeight()));
-            }
+            tabInfo.set(TabProperties.GRID_CARD_SIZE,
+                    new Size(mDefaultGridCardSize.getWidth(), mDefaultGridCardSize.getHeight()));
         }
         if (mThumbnailProvider != null && mVisible) {
             boolean isSelectable = mUiType == UiType.SELECTABLE;
@@ -1770,14 +1766,10 @@ class TabListMediator {
         if (!tab.isInitialized()) {
             return "";
         }
-
-        String spec = tab.getUrl().getSpec();
-        if (spec == null) return "";
-
         // TODO(crbug/783819): convert UrlUtilities to GURL
-        String domain = UrlUtilities.getDomainAndRegistry(spec, false);
+        String domain = UrlUtilities.getDomainAndRegistry(tab.getUrl().getSpec(), false);
 
-        if (domain == null || domain.isEmpty()) return spec;
+        if (domain.isEmpty()) return tab.getUrl().getSpec();
         return domain;
     }
 
@@ -2011,6 +2003,7 @@ class TabListMediator {
         }
     }
 
+    @VisibleForTesting
     View.AccessibilityDelegate getAccessibilityDelegateForTesting() {
         return mAccessibilityDelegate;
     }
@@ -2057,13 +2050,13 @@ class TabListMediator {
         return TabModel.INVALID_TAB_INDEX;
     }
 
+    @VisibleForTesting
     Tab getTabToAddDelayedForTesting() {
         return mTabToAddDelayed;
     }
 
+    @VisibleForTesting
     void setComponentNameForTesting(String name) {
-        var oldValue = mComponentName;
         mComponentName = name;
-        ResettersForTesting.register(() -> mComponentName = oldValue);
     }
 }

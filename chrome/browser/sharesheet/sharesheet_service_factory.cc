@@ -43,8 +43,7 @@ SharesheetServiceFactory::SharesheetServiceFactory()
 
 SharesheetServiceFactory::~SharesheetServiceFactory() = default;
 
-std::unique_ptr<KeyedService>
-SharesheetServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* SharesheetServiceFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   Profile* profile = Profile::FromBrowserContext(context);
 
@@ -58,7 +57,7 @@ SharesheetServiceFactory::BuildServiceInstanceForBrowserContext(
     return nullptr;
   }
 
-  return std::make_unique<SharesheetService>(profile);
+  return new SharesheetService(profile);
 }
 
 bool SharesheetServiceFactory::ServiceIsCreatedWithBrowserContext() const {

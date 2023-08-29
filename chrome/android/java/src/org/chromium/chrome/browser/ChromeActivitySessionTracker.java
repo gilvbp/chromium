@@ -10,6 +10,7 @@ import android.provider.Settings;
 import android.text.TextUtils;
 
 import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 
 import org.chromium.base.ApplicationState;
 import org.chromium.base.ApplicationStatus;
@@ -271,6 +272,7 @@ public class ChromeActivitySessionTracker {
     /**
      * @return The {@link OmahaServiceStartDelayer} for the browser process.
      */
+    @VisibleForTesting
     public OmahaServiceStartDelayer getOmahaServiceStartDelayerForTesting() {
         return mOmahaServiceStartDelayer;
     }

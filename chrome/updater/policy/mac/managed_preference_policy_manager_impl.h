@@ -44,7 +44,7 @@ using CRUUpdatePolicyDictionary =
 @interface CRUManagedPreferencePolicyManager : NSObject
 
 @property(nonatomic, readonly, nullable) NSString* source;
-@property(nonatomic, readonly) BOOL hasActivePolicy;
+@property(nonatomic, readonly) BOOL managed;
 
 // Global-level policies.
 @property(nonatomic, readonly) int lastCheckPeriodMinutes;

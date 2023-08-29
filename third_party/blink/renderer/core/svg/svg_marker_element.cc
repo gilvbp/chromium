@@ -116,16 +116,13 @@ void SVGMarkerElement::SvgAttributeChanged(
     auto* resource_container =
         To<LayoutSVGResourceContainer>(GetLayoutObject());
     if (resource_container) {
-      resource_container->InvalidateCache();
-
       // The marker transform depends on both viewbox attributes, and the marker
       // size attributes (width, height).
-      if (viewbox_attribute_changed || length_attribute_changed) {
+      if (viewbox_attribute_changed || length_attribute_changed)
         resource_container->SetNeedsTransformUpdate();
-        resource_container->SetNeedsLayoutAndFullPaintInvalidation(
-            layout_invalidation_reason::kSvgResourceInvalidated);
-      }
+      resource_container->InvalidateCacheAndMarkForLayout();
     }
+
     return;
   }
 
@@ -138,9 +135,9 @@ void SVGMarkerElement::ChildrenChanged(const ChildrenChange& change) {
   if (change.ByParser())
     return;
 
-  auto* resource_container = To<LayoutSVGResourceContainer>(GetLayoutObject());
-  if (resource_container) {
-    resource_container->InvalidateCache();
+  if (LayoutObject* object = GetLayoutObject()) {
+    object->SetNeedsLayoutAndFullPaintInvalidation(
+        layout_invalidation_reason::kChildChanged);
   }
 }
 

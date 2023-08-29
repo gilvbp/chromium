@@ -561,7 +561,6 @@ protocol::Response InspectorPageAgent::addScriptToEvaluateOnNewDocument(
     const String& source,
     Maybe<String> world_name,
     Maybe<bool> include_command_line_api,
-    Maybe<bool> runImmediately,
     String* identifier) {
   Vector<WTF::String> keys = scripts_to_evaluate_on_load_.Keys();
   auto* result = std::max_element(
@@ -575,15 +574,14 @@ protocol::Response InspectorPageAgent::addScriptToEvaluateOnNewDocument(
   }
 
   scripts_to_evaluate_on_load_.Set(*identifier, source);
-  worlds_to_evaluate_on_load_.Set(*identifier, world_name.value_or(""));
+  worlds_to_evaluate_on_load_.Set(*identifier, world_name.fromMaybe(""));
   include_command_line_api_for_scripts_to_evaluate_on_load_.Set(
-      *identifier, include_command_line_api.value_or(false));
+      *identifier, include_command_line_api.fromMaybe(false));
 
-  if (client_->IsPausedForNewWindow() || runImmediately.value_or(false)) {
-    // client_->IsPausedForNewWindow(): When opening a new popup,
-    // Page.addScriptToEvaluateOnNewDocument could be called after
-    // Runtime.enable that forces main context creation. In this case, we would
-    // not normally evaluate the script, but we should.
+  if (client_->IsPausedForNewWindow()) {
+    // When opening a new popup, Page.addScriptToEvaluateOnNewDocument could be
+    // called after Runtime.enable that forces main context creation. In this
+    // case, we would not normally evaluate the script, but we should.
     for (LocalFrame* frame : *inspected_frames_) {
       EvaluateScriptOnNewDocument(*frame, *identifier);
     }
@@ -606,7 +604,6 @@ protocol::Response InspectorPageAgent::addScriptToEvaluateOnLoad(
     const String& source,
     String* identifier) {
   return addScriptToEvaluateOnNewDocument(source, Maybe<String>(""),
-                                          Maybe<bool>(false),
                                           Maybe<bool>(false), identifier);
 }
 
@@ -672,7 +669,7 @@ protocol::Response InspectorPageAgent::reload(
     Maybe<bool> optional_bypass_cache,
     Maybe<String> optional_script_to_evaluate_on_load) {
   pending_script_to_evaluate_on_load_once_ =
-      optional_script_to_evaluate_on_load.value_or("");
+      optional_script_to_evaluate_on_load.fromMaybe("");
   v8_session_->setSkipAllPauses(true);
   return protocol::Response::Success();
 }
@@ -827,8 +824,8 @@ void InspectorPageAgent::searchInResource(
       WTF::BindOnce(
           &InspectorPageAgent::SearchContentAfterResourcesContentLoaded,
           WrapPersistent(this), frame_id, url, query,
-          optional_case_sensitive.value_or(false),
-          optional_is_regex.value_or(false), std::move(callback)));
+          optional_case_sensitive.fromMaybe(false),
+          optional_is_regex.fromMaybe(false), std::move(callback)));
 }
 
 protocol::Response InspectorPageAgent::setBypassCSP(bool enabled) {
@@ -1110,9 +1107,13 @@ bool InspectorPageAgent::ScreencastEnabled() {
   return enabled_.Get() && screencast_enabled_.Get();
 }
 
+void InspectorPageAgent::FrameStartedLoading(LocalFrame* frame) {
+  GetFrontend()->frameStartedLoading(IdentifiersFactory::FrameId(frame));
+  GetFrontend()->flush();
+}
+
 void InspectorPageAgent::FrameStoppedLoading(LocalFrame* frame) {
-  // The actual event is reported by the browser, but let's make sure
-  // earlier events from the commit make their way to client first.
+  GetFrontend()->frameStoppedLoading(IdentifiersFactory::FrameId(frame));
   GetFrontend()->flush();
 }
 
@@ -1667,12 +1668,12 @@ void InspectorPageAgent::createIsolatedWorld(
     }
     pending_isolated_worlds_.insert(frame, Vector<IsolatedWorldRequest>())
         .stored_value->value.push_back(IsolatedWorldRequest(
-            world_name.value_or(""), grant_universal_access.value_or(false),
+            world_name.fromMaybe(""), grant_universal_access.fromMaybe(false),
             std::move(callback)));
     return;
   }
-  CreateIsolatedWorldImpl(*frame, world_name.value_or(""),
-                          grant_universal_access.value_or(false),
+  CreateIsolatedWorldImpl(*frame, world_name.fromMaybe(""),
+                          grant_universal_access.fromMaybe(false),
                           std::move(callback));
 }
 
@@ -1755,11 +1756,11 @@ protocol::Response InspectorPageAgent::setFontFamilies(
         "Font families can only be set once");
   }
 
-  if (!for_scripts.has_value()) {
+  if (!for_scripts.isJust()) {
     for_scripts =
         std::make_unique<protocol::Array<protocol::Page::ScriptFontFamilies>>();
   }
-  auto& script_fonts = for_scripts.value();
+  auto& script_fonts = *for_scripts.fromJust();
   script_fonts.push_back(protocol::Page::ScriptFontFamilies::create()
                              .setScript(blink::web_pref::kCommonScript)
                              .setFontFamilies(std::move(font_families))

@@ -33,9 +33,18 @@ class AwPermissionManager : public content::PermissionControllerDelegate {
   ~AwPermissionManager() override;
 
   // PermissionControllerDelegate implementation.
-  void RequestPermissions(
+  void RequestPermission(
+      blink::PermissionType permission,
       content::RenderFrameHost* render_frame_host,
-      const content::PermissionRequestDescription& request_description,
+      const GURL& requesting_origin,
+      bool user_gesture,
+      base::OnceCallback<void(blink::mojom::PermissionStatus)> callback)
+      override;
+  void RequestPermissions(
+      const std::vector<blink::PermissionType>& permissions,
+      content::RenderFrameHost* render_frame_host,
+      const GURL& requesting_origin,
+      bool user_gesture,
       base::OnceCallback<
           void(const std::vector<blink::mojom::PermissionStatus>&)> callback)
       override;
@@ -43,8 +52,9 @@ class AwPermissionManager : public content::PermissionControllerDelegate {
                        const GURL& requesting_origin,
                        const GURL& embedding_origin) override;
   void RequestPermissionsFromCurrentDocument(
+      const std::vector<blink::PermissionType>& permissions,
       content::RenderFrameHost* render_frame_host,
-      const content::PermissionRequestDescription& request_description,
+      bool user_gesture,
       base::OnceCallback<
           void(const std::vector<blink::mojom::PermissionStatus>&)> callback)
       override;
@@ -54,8 +64,7 @@ class AwPermissionManager : public content::PermissionControllerDelegate {
       const GURL& embedding_origin) override;
   content::PermissionResult GetPermissionResultForOriginWithoutContext(
       blink::PermissionType permission,
-      const url::Origin& requesting_origin,
-      const url::Origin& embedding_origin) override;
+      const url::Origin& origin) override;
   blink::mojom::PermissionStatus GetPermissionStatusForCurrentDocument(
       blink::PermissionType permission,
       content::RenderFrameHost* render_frame_host) override;

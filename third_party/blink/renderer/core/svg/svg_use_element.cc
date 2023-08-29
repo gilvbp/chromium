@@ -31,7 +31,6 @@
 #include "third_party/blink/renderer/core/dom/element_traversal.h"
 #include "third_party/blink/renderer/core/dom/events/event.h"
 #include "third_party/blink/renderer/core/dom/id_target_observer.h"
-#include "third_party/blink/renderer/core/dom/node_cloning_data.h"
 #include "third_party/blink/renderer/core/dom/shadow_root.h"
 #include "third_party/blink/renderer/core/dom/xml_document.h"
 #include "third_party/blink/renderer/core/frame/deprecation/deprecation.h"
@@ -437,9 +436,8 @@ static void MoveChildrenToReplacementElement(ContainerNode& source_root,
 }
 
 SVGElement* SVGUseElement::CreateInstanceTree(SVGElement& target_root) const {
-  NodeCloningData data{CloneOption::kIncludeDescendants};
-  SVGElement* instance_root = &To<SVGElement>(target_root.CloneWithChildren(
-      data, /*document*/ nullptr, /*append_to*/ nullptr));
+  SVGElement* instance_root =
+      &To<SVGElement>(target_root.CloneWithChildren(CloneChildrenFlag::kClone));
   if (IsA<SVGSymbolElement>(target_root)) {
     // Spec: The referenced 'symbol' and its contents are deep-cloned into
     // the generated tree, with the exception that the 'symbol' is replaced

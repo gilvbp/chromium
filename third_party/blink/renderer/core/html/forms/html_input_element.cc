@@ -167,7 +167,7 @@ bool HTMLInputElement::HasPendingActivity() const {
 HTMLImageLoader& HTMLInputElement::EnsureImageLoader() {
   if (!image_loader_) {
     image_loader_ = MakeGarbageCollected<HTMLImageLoader>(this);
-    RegisterActiveScriptWrappable(GetExecutionContext()->GetIsolate());
+    RegisterActiveScriptWrappable();
   }
   return *image_loader_;
 }
@@ -1116,7 +1116,7 @@ bool HTMLInputElement::SizeShouldIncludeDecoration(int& preferred_size) const {
 }
 
 void HTMLInputElement::CloneNonAttributePropertiesFrom(const Element& source,
-                                                       NodeCloningData& data) {
+                                                       CloneChildrenFlag flag) {
   const auto& source_element = To<HTMLInputElement>(source);
 
   non_attribute_value_ = source_element.non_attribute_value_;
@@ -1126,7 +1126,7 @@ void HTMLInputElement::CloneNonAttributePropertiesFrom(const Element& source,
   is_indeterminate_ = source_element.is_indeterminate_;
   input_type_->CopyNonAttributeProperties(source_element);
 
-  TextControlElement::CloneNonAttributePropertiesFrom(source, data);
+  TextControlElement::CloneNonAttributePropertiesFrom(source, flag);
 
   needs_to_update_view_value_ = true;
   input_type_view_->UpdateView();

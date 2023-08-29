@@ -97,6 +97,7 @@ public class BookmarkPersonalizedSigninPromoTest {
     public void tearDown() {
         SharedPreferencesManager.getInstance().removeKey(
                 ChromePreferenceKeys.SYNC_PROMO_TOTAL_SHOW_COUNT);
+        SyncConsentActivityLauncherImpl.setLauncherForTest(null);
         BookmarkPromoHeader.forcePromoStateForTesting(null);
     }
 

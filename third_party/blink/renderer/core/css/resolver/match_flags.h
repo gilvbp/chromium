@@ -5,8 +5,6 @@
 #ifndef THIRD_PARTY_BLINK_RENDERER_CORE_CSS_RESOLVER_MATCH_FLAGS_H_
 #define THIRD_PARTY_BLINK_RENDERER_CORE_CSS_RESOLVER_MATCH_FLAGS_H_
 
-#include <cstdint>
-
 namespace blink {
 
 // During rule-matching, we collect some information about what the match

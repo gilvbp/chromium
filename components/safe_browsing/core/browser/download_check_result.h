@@ -26,8 +26,7 @@ enum class DownloadCheckResult {
   PROMPT_FOR_SCANNING = 13,
   BLOCKED_UNSUPPORTED_FILE_TYPE = 14,
   DANGEROUS_ACCOUNT_COMPROMISE = 15,
-  DEEP_SCANNED_FAILED = 16,
-  kMaxValue = DEEP_SCANNED_FAILED,
+  kMaxValue = DANGEROUS_ACCOUNT_COMPROMISE,
 };
 
 }  // namespace safe_browsing

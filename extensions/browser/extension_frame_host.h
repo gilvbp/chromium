@@ -29,7 +29,7 @@ class ExtensionFrameHost : public mojom::LocalFrameHost {
 
   void BindLocalFrameHost(
       mojo::PendingAssociatedReceiver<mojom::LocalFrameHost> receiver,
-      content::RenderFrameHost* render_frame_host);
+      content::RenderFrameHost* rfh);
 
   content::RenderFrameHostReceiverSet<mojom::LocalFrameHost>&
   receivers_for_testing() {
@@ -46,7 +46,6 @@ class ExtensionFrameHost : public mojom::LocalFrameHost {
                           GetAppInstallStateCallback callback) override;
   void Request(mojom::RequestParamsPtr params,
                RequestCallback callback) override;
-  void ResponseAck(const base::Uuid& request_uuid) override;
   void WatchedPageChange(
       const std::vector<std::string>& css_selectors) override;
   void DetailedConsoleMessageAdded(

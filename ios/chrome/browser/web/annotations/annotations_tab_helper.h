@@ -16,7 +16,6 @@
 #import "third_party/abseil-cpp/absl/types/optional.h"
 
 @protocol CRWWebViewHandlerDelegate;
-@protocol MiniMapCommands;
 @class UIViewController;
 
 namespace web {
@@ -33,16 +32,12 @@ class AnnotationsTabHelper : public web::AnnotationsTextObserver,
   ~AnnotationsTabHelper() override;
 
   // Sets the BaseViewController from which to present UI.
-  void SetBaseViewController(UIViewController* base_view_controller);
-
-  // Sets the MiniMapCommands that can display mini maps.
-  void SetMiniMapCommands(id<MiniMapCommands> mini_map_handler);
+  void SetBaseViewController(UIViewController* baseViewController);
 
   // AnnotationsTextObserver methods:
   void OnTextExtracted(web::WebState* web_state,
                        const std::string& text,
-                       int seq_id,
-                       const base::Value::Dict& metadata) override;
+                       int seq_id) override;
   void OnDecorated(web::WebState* web_state,
                    int successes,
                    int annotations) override;
@@ -69,8 +64,6 @@ class AnnotationsTabHelper : public web::AnnotationsTextObserver,
                                absl::optional<base::Value> deferred);
 
   UIViewController* base_view_controller_ = nil;
-
-  id<MiniMapCommands> mini_map_handler_ = nil;
 
   web::WebState* web_state_ = nullptr;
 

@@ -16,10 +16,10 @@ import androidx.annotation.CallSuper;
 import androidx.annotation.DrawableRes;
 import androidx.annotation.LayoutRes;
 import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 import androidx.appcompat.content.res.AppCompatResources;
 import androidx.recyclerview.widget.RecyclerView;
 
-import org.chromium.base.ResettersForTesting;
 import org.chromium.chrome.browser.keyboard_accessory.AccessoryTabType;
 import org.chromium.chrome.browser.keyboard_accessory.data.KeyboardAccessoryData;
 import org.chromium.chrome.browser.keyboard_accessory.data.KeyboardAccessoryData.AccessorySheetData;
@@ -40,8 +40,9 @@ public abstract class AccessorySheetTabCoordinator implements KeyboardAccessoryD
     /**
      * Provides the icon used for a sheet. Simplifies mocking in controller tests.
      */
+    @VisibleForTesting
     public static class IconProvider {
-        private static Drawable sIconForTesting;
+        private static Drawable sTestIcon;
 
         /**
          * Loads the icon used for this class. Used to mock icons in unit tests.
@@ -50,13 +51,13 @@ public abstract class AccessorySheetTabCoordinator implements KeyboardAccessoryD
          * @return The icon as {@link Drawable}.
          */
         static Drawable getIcon(Context context, @DrawableRes int resource) {
-            if (sIconForTesting != null) return sIconForTesting;
+            if (sTestIcon != null) return sTestIcon;
             return AppCompatResources.getDrawable(context, resource);
         }
 
+        @VisibleForTesting
         public static void setIconForTesting(Drawable icon) {
-            sIconForTesting = icon;
-            ResettersForTesting.register(() -> sIconForTesting = null);
+            sTestIcon = icon;
         }
     }
 
@@ -122,6 +123,7 @@ public abstract class AccessorySheetTabCoordinator implements KeyboardAccessoryD
         sheetDataProvider.addObserver(getMediator());
     }
 
+    @VisibleForTesting
     AccessorySheetTabItemsModel getSheetDataPiecesForTesting() {
         return mModel.get(ITEMS);
     }

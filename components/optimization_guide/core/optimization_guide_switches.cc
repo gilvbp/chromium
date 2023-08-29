@@ -98,8 +98,6 @@ const char kPageContentAnnotationsValidationPageEntities[] =
     "page-content-annotations-validation-page-entities";
 const char kPageContentAnnotationsValidationContentVisibility[] =
     "page-content-annotations-validation-content-visibility";
-const char kPageContentAnnotationsValidationTextEmbedding[] =
-    "page-content-annotations-validation-text-embedding";
 
 // Writes the output of page content annotation validations to the given file.
 const char kPageContentAnnotationsValidationWriteToFile[] =
@@ -256,9 +254,7 @@ bool LogPageContentAnnotationsValidationToConsole() {
   return command_line->HasSwitch(
              kPageContentAnnotationsValidationPageEntities) ||
          command_line->HasSwitch(
-             kPageContentAnnotationsValidationContentVisibility) ||
-         command_line->HasSwitch(
-             kPageContentAnnotationsValidationTextEmbedding);
+             kPageContentAnnotationsValidationContentVisibility);
 }
 
 absl::optional<std::vector<std::string>>
@@ -274,10 +270,6 @@ PageContentAnnotationsValidationInputForType(AnnotationType type) {
     case AnnotationType::kContentVisibility:
       value = command_line->GetSwitchValueASCII(
           kPageContentAnnotationsValidationContentVisibility);
-      break;
-    case AnnotationType::kTextEmbedding:
-      value = command_line->GetSwitchValueASCII(
-          kPageContentAnnotationsValidationTextEmbedding);
       break;
     default:
       break;

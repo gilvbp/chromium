@@ -32,6 +32,7 @@
 #include "third_party/blink/public/common/input/web_keyboard_event.h"
 #include "third_party/blink/public/web/web_local_frame_client.h"
 #include "third_party/blink/renderer/core/accessibility/ax_object_cache.h"
+#include "third_party/blink/renderer/core/dom/context_features.h"
 #include "third_party/blink/renderer/core/dom/element.h"
 #include "third_party/blink/renderer/core/dom/events/event_dispatch_forbidden_scope.h"
 #include "third_party/blink/renderer/core/dom/events/event_dispatch_result.h"
@@ -232,7 +233,8 @@ DispatchEventResult EventDispatcher::Dispatch() {
        event_->type() == event_type_names::kDOMNodeInsertedIntoDocument ||
        event_->type() == event_type_names::kDOMNodeRemoved ||
        event_->type() == event_type_names::kDOMNodeRemovedFromDocument)) {
-    DCHECK(document.SupportsLegacyDOMMutations());
+    DCHECK(RuntimeEnabledFeatures::MutationEventsEnabled());
+    DCHECK(ContextFeatures::MutationEventsEnabled(&document));
   }
 #endif
 

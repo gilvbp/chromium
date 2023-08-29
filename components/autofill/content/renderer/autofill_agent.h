@@ -17,7 +17,6 @@
 #include "components/autofill/content/common/mojom/autofill_agent.mojom.h"
 #include "components/autofill/content/common/mojom/autofill_driver.mojom.h"
 #include "components/autofill/content/renderer/form_tracker.h"
-#include "components/autofill/core/common/mojom/autofill_types.mojom-shared.h"
 #include "content/public/renderer/render_frame_observer.h"
 #include "mojo/public/cpp/bindings/associated_receiver.h"
 #include "mojo/public/cpp/bindings/associated_remote.h"
@@ -69,7 +68,7 @@ class FieldDataManager;
 //
 // Note that Autofill encompasses:
 // - single text field suggestions, that we usually refer to as Autocomplete,
-// - password form fill, referred to as Password Autofill, and
+// - password form fill, refered to as Password Autofill, and
 // - entire form fill based on one field entry, referred to as Form Autofill.
 class AutofillAgent : public content::RenderFrameObserver,
                       public FormTracker::Observer,
@@ -102,12 +101,8 @@ class AutofillAgent : public content::RenderFrameObserver,
   void TriggerFormExtraction() override;
   void TriggerFormExtractionWithResponse(
       base::OnceCallback<void(bool)> callback) override;
-  void FillOrPreviewForm(
-      const FormData& form,
-      mojom::AutofillActionPersistence action_persistence) override;
-  void UndoAutofill(
-      const FormData& form,
-      mojom::AutofillActionPersistence action_persistence) override;
+  void FillOrPreviewForm(const FormData& form,
+                         mojom::RendererFormDataAction action) override;
   void FieldTypePredictionsAvailable(
       const std::vector<FormDataPredictions>& forms) override;
   void ClearSection() override;
@@ -258,7 +253,7 @@ class AutofillAgent : public content::RenderFrameObserver,
   void DidCompleteFocusChangeInFrame() override;
   void DidReceiveLeftMouseDownOrGestureTapInNode(
       const blink::WebNode& node) override;
-  void SelectOrSelectListFieldOptionsChanged(
+  void SelectFieldOptionsChanged(
       const blink::WebFormControlElement& element) override;
   void SelectControlDidChange(
       const blink::WebFormControlElement& element) override;
@@ -347,11 +342,10 @@ class AutofillAgent : public content::RenderFrameObserver,
   // to execute a refill.
   void TriggerRefillIfNeeded(const FormData& form);
 
-  // Helpers for SelectOrSelectListFieldOptionsChanged() and
-  // DataListOptionsChanged(), which get called after a timer that is restarted
-  // when another event of the same type started.
-  void BatchSelectOrSelectListOptionChange(
-      const blink::WebFormControlElement& element);
+  // Helpers for SelectFieldOptionsChanged() and DataListOptionsChanged(), which
+  // get called after a timer that is restarted when another event of the same
+  // type started.
+  void BatchSelectOptionChange(const blink::WebFormControlElement& element);
   void BatchDataListOptionChange(const blink::WebFormControlElement& element);
 
   // Return the next web node of `current_node` in the DOM. `next` determines
@@ -370,12 +364,6 @@ class AutofillAgent : public content::RenderFrameObserver,
 
   // The elements that currently are being previewed.
   std::vector<blink::WebFormControlElement> previewed_elements_;
-
-  // Records the last autofill action (Fill or Undo) done by the agent. Used in
-  // ClearPreviewedForm to get the default state of previewed fields
-  // post-clearing.
-  mojom::AutofillActionType last_autofill_action_ =
-      mojom::AutofillActionType::kFill;
 
   // Last form which was interacted with by the user.
   blink::WebFormElement last_interacted_form_;
@@ -407,6 +395,12 @@ class AutofillAgent : public content::RenderFrameObserver,
   // messages to close the Autofill popup when it can't possibly be showing.
   bool is_popup_possibly_visible_;
 
+  // If the generation popup is possibly visible. This is tracked to prevent
+  // generation UI from displaying at the same time as password manager UI.
+  // This is needed because generation is shown on field focus vs. field click
+  // for the password manager. TODO(gcasto): Have both UIs show on focus.
+  bool is_generation_popup_possibly_visible_;
+
   // Whether or not a user gesture is required before notification of a text
   // field change. Default to true.
   bool is_user_gesture_required_;
@@ -416,7 +410,7 @@ class AutofillAgent : public content::RenderFrameObserver,
   bool is_secure_context_required_;
 
   // This flag denotes whether or not password suggestions need to be
-  // programmatically queried. This is needed on Android WebView because it
+  // programatically queried. This is needed on Android WebView because it
   // doesn't use PasswordAutofillAgent to handle password form.
   bool query_password_suggestion_ = false;
 
@@ -438,7 +432,7 @@ class AutofillAgent : public content::RenderFrameObserver,
   bool was_last_action_fill_ = false;
 
   // Timers for throttling handling of frequent events.
-  base::OneShotTimer select_or_selectlist_option_change_batch_timer_;
+  base::OneShotTimer select_option_change_batch_timer_;
   base::OneShotTimer datalist_option_change_batch_timer_;
   // TODO(crbug.com/1444566): Merge some or all of these timers?
   base::OneShotTimer process_forms_after_dynamic_change_timer_;

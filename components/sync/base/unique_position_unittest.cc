@@ -575,7 +575,7 @@ class IndexedLessThan {
   }
 
  private:
-  const raw_ptr<const T> values_;
+  raw_ptr<const T> values_;
   LessThan less_than_;
 };
 

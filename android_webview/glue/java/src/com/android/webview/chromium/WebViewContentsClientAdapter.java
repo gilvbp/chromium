@@ -216,8 +216,6 @@ class WebViewContentsClientAdapter extends SharedWebViewContentsClientAdapter {
     public WebResourceResponseInfo shouldInterceptRequest(AwWebResourceRequest request) {
         try (TraceEvent event = TraceEvent.scoped(
                      "WebView.APICallback.WebViewClient.shouldInterceptRequest")) {
-            AwHistogramRecorder.recordCallbackInvocation(
-                    AwHistogramRecorder.WebViewCallbackType.SHOULD_INTERCEPT_REQUEST);
             if (TRACE) Log.i(TAG, "shouldInterceptRequest=" + request.url);
             WebResourceResponse response = mWebViewClient.shouldInterceptRequest(
                     mWebView, new WebResourceRequestAdapter(request));
@@ -833,7 +831,7 @@ class WebViewContentsClientAdapter extends SharedWebViewContentsClientAdapter {
                                 "showFileChooser result was already called");
                     }
                     mCompleted = true;
-                    String[] s = null;
+                    String s[] = null;
                     if (uriList != null) {
                         s = new String[uriList.length];
                         for (int i = 0; i < uriList.length; i++) {

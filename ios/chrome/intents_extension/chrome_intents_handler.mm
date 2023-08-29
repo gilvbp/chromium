@@ -6,17 +6,17 @@
 
 #import <Foundation/Foundation.h>
 
-#import "ios/chrome/common/intents/OpenBookmarksIntent.h"
 #import "ios/chrome/common/intents/OpenInChromeIncognitoIntent.h"
 #import "ios/chrome/common/intents/OpenInChromeIntent.h"
-#import "ios/chrome/common/intents/OpenReadingListIntent.h"
 #import "ios/chrome/common/intents/SearchInChromeIntent.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 @interface ChromeIntentsHandler () <OpenInChromeIncognitoIntentHandling,
                                     OpenInChromeIntentHandling,
-                                    SearchInChromeIntentHandling,
-                                    OpenReadingListIntentHandling,
-                                    OpenBookmarksIntentHandling>
+                                    SearchInChromeIntentHandling>
 @end
 
 @implementation ChromeIntentsHandler
@@ -106,36 +106,6 @@
 
   SearchInChromeIntentResponse* response = [[SearchInChromeIntentResponse alloc]
       initWithCode:SearchInChromeIntentResponseCodeContinueInApp
-      userActivity:activity];
-
-  completion(response);
-}
-
-#pragma mark - OpenReadingListIntentHandling
-
-- (void)handleOpenReadingList:(OpenReadingListIntent*)intent
-                   completion:
-                       (void (^)(OpenReadingListIntentResponse*))completion {
-  NSUserActivity* activity = [[NSUserActivity alloc]
-      initWithActivityType:NSStringFromClass([OpenReadingListIntent class])];
-
-  OpenReadingListIntentResponse* response =
-      [[OpenReadingListIntentResponse alloc]
-          initWithCode:OpenReadingListIntentResponseCodeContinueInApp
-          userActivity:activity];
-
-  completion(response);
-}
-
-#pragma mark - OpenBookmarksIntentHandling
-
-- (void)handleOpenBookmarks:(OpenBookmarksIntent*)intent
-                 completion:(void (^)(OpenBookmarksIntentResponse*))completion {
-  NSUserActivity* activity = [[NSUserActivity alloc]
-      initWithActivityType:NSStringFromClass([OpenBookmarksIntent class])];
-
-  OpenBookmarksIntentResponse* response = [[OpenBookmarksIntentResponse alloc]
-      initWithCode:OpenBookmarksIntentResponseCodeContinueInApp
       userActivity:activity];
 
   completion(response);

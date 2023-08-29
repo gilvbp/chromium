@@ -9,20 +9,21 @@ import unittest
 
 import six
 
-import dataclasses  # Built-in, but pylint gives an ordering false positive.
-
 from gpu_tests import common_typing as ct
 from gpu_tests import gpu_integration_test
 
 from telemetry.internal.platform import gpu_info as gi
 
 
-@dataclasses.dataclass
 class InfoCollectionTestArgs():
   """Struct-like class for passing args to an InfoCollection test."""
-  expected_vendor_id_str: Optional[str] = None
-  expected_device_id_strs: Optional[List[str]] = None
-  gpu: Optional[gi.GPUInfo] = None
+
+  def __init__(self,
+               expected_vendor_id_str: Optional[str] = None,
+               expected_device_id_strs: Optional[str] = None):
+    self.gpu: Optional[gi.GPUInfo] = None
+    self.expected_vendor_id_str = expected_vendor_id_str
+    self.expected_device_id_strs = expected_device_id_strs
 
 
 class InfoCollectionTest(gpu_integration_test.GpuIntegrationTest):

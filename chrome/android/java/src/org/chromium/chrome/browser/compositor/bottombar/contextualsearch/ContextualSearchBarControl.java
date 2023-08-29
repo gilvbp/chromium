@@ -8,10 +8,8 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.content.Context;
 import android.view.ViewGroup;
-import android.widget.TextView;
 
 import androidx.annotation.Nullable;
-import androidx.annotation.Px;
 import androidx.annotation.VisibleForTesting;
 
 import org.chromium.chrome.R;
@@ -128,30 +126,6 @@ public class ContextualSearchBarControl {
 
     /** A way to notify tests when the in-bar animation changes. */
     private Runnable mInBarAnimationTestNotifier;
-
-    /** the minimum height that the search bar needs to display the contents. */
-    float getMinHeightDps() {
-        // The bar in the peek state is like following
-        //
-        // bar margin
-        // -----------------------------------------
-        // |'context(selection)' or 'search term'  |
-        // -----------------------------------------
-        // spacing
-        // -----------------------------------------
-        // |caption                                |
-        // -----------------------------------------
-        // bar border
-        @Px
-        int topTextViewMinHeight = mIsShowingContext ? mContextControl.getTextViewHeight()
-                                                     : mSearchTermControl.getTextViewHeight();
-        @Px
-        int bottomTextViewMinHeight = mCaptionControl.getTextViewHeight();
-        float TextViewheightDps =
-                (float) Math.ceil((topTextViewMinHeight + bottomTextViewMinHeight) / mDpToPx);
-        return mContextualSearchPanel.getBarMarginTop() + getSearchTermCaptionSpacing()
-                + mContextualSearchPanel.getBarBorderHeight() + TextViewheightDps;
-    }
 
     /**
      * Constructs a new bottom bar control container by inflating views from XML.
@@ -365,12 +339,6 @@ public class ContextualSearchBarControl {
     @VisibleForTesting
     public CharSequence getCaptionText() {
         return mCaptionControl.getCaptionText();
-    }
-
-    /** @return the caption text View. */
-    @VisibleForTesting
-    public TextView getCaptionTextView() {
-        return mCaptionControl.getTextView();
     }
 
     /**

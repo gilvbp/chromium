@@ -12,17 +12,22 @@ BASE_DECLARE_FEATURE(kCredentialProviderExtensionPromo);
 
 extern const char kCredentialProviderExtensionPromoOnPasswordSavedParam[];
 extern const char kCredentialProviderExtensionPromoOnPasswordCopiedParam[];
+extern const char kCredentialProviderExtensionPromoOnLoginWithAutofillParam[];
 
-// Returns true if Credential Provider Extension Promo feature is enabled.
-// By default it's enabled on successful login with autofill.
+// Returns true if Credential Provider Extension Promo feature is enabled on
+// some event.
 bool IsCredentialProviderExtensionPromoEnabled();
 
 // Returns true if Credential Provider Extension Promo feature is enabled on
-// password saved event. Currently not rolled out.
+// password saved event.
 bool IsCredentialProviderExtensionPromoEnabledOnPasswordSaved();
 
 // Returns true if Credential Provider Extension Promo feature is enabled on
-// password copied event. Currently not rolled out.
+// password copied event.
 bool IsCredentialProviderExtensionPromoEnabledOnPasswordCopied();
+
+// Returns true if Credential Provider Extension Promo feature is enabled on
+// login with autofill event.
+bool IsCredentialProviderExtensionPromoEnabledOnLoginWithAutofill();
 
 #endif  // IOS_CHROME_BROWSER_CREDENTIAL_PROVIDER_PROMO_FEATURES_H_

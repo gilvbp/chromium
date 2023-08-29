@@ -636,7 +636,7 @@ void DOMWebSocket::Trace(Visitor* visitor) const {
   visitor->Trace(channel_);
   visitor->Trace(event_queue_);
   WebSocketChannelClient::Trace(visitor);
-  EventTarget::Trace(visitor);
+  EventTargetWithInlineData::Trace(visitor);
   ExecutionContextLifecycleStateObserver::Trace(visitor);
 }
 

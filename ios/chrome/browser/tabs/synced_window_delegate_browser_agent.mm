@@ -11,6 +11,10 @@
 #import "ios/chrome/browser/sync/ios_chrome_synced_tab_delegate.h"
 #import "ios/web/public/navigation/navigation_manager.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 BROWSER_USER_DATA_KEY_IMPL(SyncedWindowDelegateBrowserAgent)
 
 SyncedWindowDelegateBrowserAgent::SyncedWindowDelegateBrowserAgent(
@@ -57,6 +61,11 @@ int SyncedWindowDelegateBrowserAgent::GetTabCount() const {
   return web_state_list_->count();
 }
 
+int SyncedWindowDelegateBrowserAgent::GetActiveIndex() const {
+  DCHECK_NE(web_state_list_->active_index(), WebStateList::kInvalidIndex);
+  return web_state_list_->active_index();
+}
+
 bool SyncedWindowDelegateBrowserAgent::IsTypeNormal() const {
   return true;
 }
@@ -78,13 +87,13 @@ sync_sessions::SyncedTabDelegate* SyncedWindowDelegateBrowserAgent::GetTabAt(
 
 #pragma mark - WebStateListObserver
 
-void SyncedWindowDelegateBrowserAgent::WebStateListDidChange(
+void SyncedWindowDelegateBrowserAgent::WebStateListChanged(
     WebStateList* web_state_list,
     const WebStateListChange& change,
-    const WebStateListStatus& status) {
+    const WebStateSelection& selection) {
   DCHECK_EQ(web_state_list_, web_state_list);
   switch (change.type()) {
-    case WebStateListChange::Type::kStatusOnly:
+    case WebStateListChange::Type::kSelectionOnly:
       // Do nothing when a WebState is selected and its status is updated.
       break;
     case WebStateListChange::Type::kDetach:

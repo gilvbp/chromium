@@ -12,7 +12,6 @@
 #include <set>
 
 #include "base/check_op.h"
-#include "base/containers/contains.h"
 #include "base/containers/flat_map.h"
 #include "base/numerics/safe_conversions.h"
 #include "base/trace_event/trace_event.h"
@@ -83,7 +82,7 @@ Tile* PictureLayerTiling::CreateTile(const Tile::CreateInfo& info) {
   const int i = info.tiling_i_index;
   const int j = info.tiling_j_index;
   TileMapKey key(i, j);
-  DCHECK(!base::Contains(tiles_, key));
+  DCHECK(tiles_.find(key) == tiles_.end());
 
   if (!raster_source_->IntersectsRect(info.enclosing_layer_rect, *client_))
     return nullptr;
@@ -177,7 +176,7 @@ void PictureLayerTiling::TakeTilesAndPropertiesFrom(
                        pending_twin->current_occlusion_in_layer_space_);
 }
 
-bool PictureLayerTiling::SetRasterSourceAndResize(
+void PictureLayerTiling::SetRasterSourceAndResize(
     scoped_refptr<RasterSource> raster_source) {
   DCHECK(!raster_source->IsSolidColor());
   gfx::Size old_layer_bounds = raster_source_->GetSize();
@@ -195,16 +194,11 @@ bool PictureLayerTiling::SetRasterSourceAndResize(
     // as valid keys to the TileMap, so just drop all tiles and clear the live
     // tiles rect.
     Reset();
-    // When the tile size changes, all tiles and all tile priority rects
-    // including the live tiles rect should be updated, therefore return true to
-    // notify the caller to call |ComputeTilePriorityRects| to do this.
-    return true;
+    return;
   }
 
-  // When the layer bounds are the same, we need not notify the caller as it
-  // will update tiling as needed, so return false.
   if (old_layer_bounds == new_layer_bounds)
-    return false;
+    return;
 
   // The SetLiveTilesRect() method would drop tiles outside the new bounds,
   // but may do so incorrectly if resizing the tiling causes the number of
@@ -261,9 +255,6 @@ bool PictureLayerTiling::SetRasterSourceAndResize(
         CreateTile(info);
     }
   }
-  // We need not notify the caller as it will update tiling as needed, so return
-  // false to ensure the existing logic remains unchanged.
-  return false;
 }
 
 void PictureLayerTiling::Invalidate(const Region& layer_invalidation) {

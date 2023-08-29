@@ -24,29 +24,24 @@ bool ShouldOfferSignin(syncer::SyncService* sync_service,
 #if BUILDFLAG(IS_CHROMEOS_LACROS)
   return false;
 #else
-  return pref_service->GetBoolean(prefs::kSigninAllowed) &&
+  return pref_service->GetBoolean(prefs::kSigninAllowed) && sync_service &&
          sync_service->GetAccountInfo().IsEmpty() &&
-         !sync_service->HasDisableReason(
-             syncer::SyncService::DISABLE_REASON_ENTERPRISE_POLICY) &&
          !sync_service->IsLocalSyncEnabled();
 #endif  // BUILDFLAG(IS_CHROMEOS_LACROS)
 }
 
 }  // namespace
 
-namespace internal {
-
 absl::optional<EntryPointDisplayReason> GetEntryPointDisplayReason(
     const GURL& url_to_share,
     syncer::SyncService* sync_service,
-    SendTabToSelfModel* send_tab_to_self_model,
+    SendTabToSelfSyncService* send_tab_to_self_sync_service,
     PrefService* pref_service) {
-  if (!url_to_share.SchemeIsHTTPOrHTTPS()) {
+  if (!url_to_share.SchemeIsHTTPOrHTTPS())
     return absl::nullopt;
-  }
 
-  if (!send_tab_to_self_model || !sync_service) {
-    // Send-tab-to-self can't work properly, don't show the entry point.
+  if (!send_tab_to_self_sync_service || !sync_service) {
+    // Can happen in incognito, guest profile, or tests.
     return absl::nullopt;
   }
 
@@ -55,7 +50,9 @@ absl::optional<EntryPointDisplayReason> GetEntryPointDisplayReason(
     return EntryPointDisplayReason::kOfferSignIn;
   }
 
-  if (!send_tab_to_self_model->IsReady()) {
+  SendTabToSelfModel* model =
+      send_tab_to_self_sync_service->GetSendTabToSelfModel();
+  if (!model->IsReady()) {
     syncer::SyncUserSettings* settings = sync_service->GetUserSettings();
     if (sync_service->IsEngineInitialized() &&
         (settings->IsPassphraseRequiredForPreferredDataTypes() ||
@@ -68,7 +65,7 @@ absl::optional<EntryPointDisplayReason> GetEntryPointDisplayReason(
     return absl::nullopt;
   }
 
-  if (!send_tab_to_self_model->HasValidTargetDevice()) {
+  if (!model->HasValidTargetDevice()) {
     return base::FeatureList::IsEnabled(kSendTabToSelfSigninPromo)
                ? absl::make_optional(
                      EntryPointDisplayReason::kInformNoTargetDevice)
@@ -77,7 +74,5 @@ absl::optional<EntryPointDisplayReason> GetEntryPointDisplayReason(
 
   return EntryPointDisplayReason::kOfferFeature;
 }
-
-}  // namespace internal
 
 }  // namespace send_tab_to_self

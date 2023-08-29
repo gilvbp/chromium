@@ -43,9 +43,8 @@ PlatformNotificationServiceFactory::PlatformNotificationServiceFactory()
   DependsOn(ukm::UkmBackgroundRecorderFactory::GetInstance());
 }
 
-std::unique_ptr<KeyedService>
-PlatformNotificationServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* PlatformNotificationServiceFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
-  return std::make_unique<PlatformNotificationServiceImpl>(
+  return new PlatformNotificationServiceImpl(
       Profile::FromBrowserContext(context));
 }

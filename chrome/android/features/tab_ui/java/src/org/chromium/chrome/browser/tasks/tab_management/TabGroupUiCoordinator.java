@@ -19,7 +19,6 @@ import org.chromium.base.supplier.ObservableSupplier;
 import org.chromium.base.supplier.OneshotSupplier;
 import org.chromium.base.supplier.OneshotSupplierImpl;
 import org.chromium.base.supplier.Supplier;
-import org.chromium.chrome.browser.browser_controls.BrowserControlsStateProvider;
 import org.chromium.chrome.browser.compositor.layouts.content.TabContentManager;
 import org.chromium.chrome.browser.layouts.LayoutStateProvider;
 import org.chromium.chrome.browser.layouts.LayoutType;
@@ -59,7 +58,6 @@ public class TabGroupUiCoordinator implements TabGroupUiMediator.ResetHandler, T
     static final String COMPONENT_NAME = "TabStrip";
     private final Activity mActivity;
     private final Context mContext;
-    private final BrowserControlsStateProvider mBrowserControlsStateProvider;
     private final PropertyModel mModel;
     private final IncognitoStateProvider mIncognitoStateProvider;
     private final TabGroupUiToolbarView mToolbarView;
@@ -87,7 +85,6 @@ public class TabGroupUiCoordinator implements TabGroupUiMediator.ResetHandler, T
      * Creates a new {@link TabGroupUiCoordinator}
      */
     public TabGroupUiCoordinator(@NonNull Activity activity, @NonNull ViewGroup parentView,
-            @NonNull BrowserControlsStateProvider browserControlsStateProvider,
             @NonNull IncognitoStateProvider incognitoStateProvider,
             @NonNull ScrimCoordinator scrimCoordinator,
             @NonNull ObservableSupplier<Boolean> omniboxFocusStateSupplier,
@@ -103,7 +100,6 @@ public class TabGroupUiCoordinator implements TabGroupUiMediator.ResetHandler, T
         try (TraceEvent e = TraceEvent.scoped("TabGroupUiCoordinator.constructor")) {
             mActivity = activity;
             mContext = parentView.getContext();
-            mBrowserControlsStateProvider = browserControlsStateProvider;
             mIncognitoStateProvider = incognitoStateProvider;
             mScrimCoordinator = scrimCoordinator;
             mOmniboxFocusStateSupplier = omniboxFocusStateSupplier;
@@ -130,10 +126,10 @@ public class TabGroupUiCoordinator implements TabGroupUiMediator.ResetHandler, T
         assert mTabGridDialogControllerSupplier != null;
         if (mTabGridDialogCoordinator != null) return;
 
-        mTabGridDialogCoordinator = new TabGridDialogCoordinator(mActivity,
-                mBrowserControlsStateProvider, mTabModelSelector, mTabContentManager,
-                mTabCreatorManager, mActivity.findViewById(R.id.coordinator), null, null, null,
-                mScrimCoordinator, mTabStripCoordinator.getTabGroupTitleEditor(), mRootView);
+        mTabGridDialogCoordinator = new TabGridDialogCoordinator(mActivity, mTabModelSelector,
+                mTabContentManager, mTabCreatorManager, mActivity.findViewById(R.id.coordinator),
+                null, null, null, mScrimCoordinator, mTabStripCoordinator.getTabGroupTitleEditor(),
+                mRootView);
         mTabGridDialogControllerSupplier.set(mTabGridDialogCoordinator);
     }
 
@@ -146,8 +142,8 @@ public class TabGroupUiCoordinator implements TabGroupUiMediator.ResetHandler, T
             Callback<Object> onModelTokenChange) {
         try (TraceEvent e = TraceEvent.scoped("TabGroupUiCoordinator.initializeWithNative")) {
             mTabStripCoordinator = new TabListCoordinator(TabListCoordinator.TabListMode.STRIP,
-                    mContext, mBrowserControlsStateProvider, mTabModelSelector, null, null, false,
-                    null, null, TabProperties.UiType.STRIP, null, null, mTabListContainerView, true,
+                    mContext, mTabModelSelector, null, null, false, null, null,
+                    TabProperties.UiType.STRIP, null, null, mTabListContainerView, true,
                     COMPONENT_NAME, mRootView, onModelTokenChange);
             mTabStripCoordinator.initWithNative(mDynamicResourceLoaderSupplier.get());
 
@@ -158,7 +154,8 @@ public class TabGroupUiCoordinator implements TabGroupUiMediator.ResetHandler, T
 
             // TODO(crbug.com/972217): find a way to enable interactions between grid tab switcher
             //  and the dialog here.
-            if (mScrimCoordinator != null) {
+            if (TabUiFeatureUtilities.isTabGroupsAndroidEnabled(activity)
+                    && mScrimCoordinator != null) {
                 mTabGridDialogControllerSupplier =
                         new OneshotSupplierImpl<>() {
                             @Override

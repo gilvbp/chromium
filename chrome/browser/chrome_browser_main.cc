@@ -48,7 +48,6 @@
 #include "base/time/time.h"
 #include "base/trace_event/trace_event.h"
 #include "base/values.h"
-#include "build/branding_buildflags.h"
 #include "build/build_config.h"
 #include "build/chromeos_buildflags.h"
 #include "cc/base/switches.h"
@@ -64,7 +63,6 @@
 #include "chrome/browser/chrome_browser_main_extra_parts.h"
 #include "chrome/browser/defaults.h"
 #include "chrome/browser/enterprise/browser_management/management_service_factory.h"
-#include "chrome/browser/extensions/component_loader.h"
 #include "chrome/browser/first_run/first_run.h"
 #include "chrome/browser/language/url_language_histogram_factory.h"
 #include "chrome/browser/lifetime/application_lifetime.h"
@@ -97,7 +95,7 @@
 #include "chrome/browser/translate/translate_service.h"
 #include "chrome/browser/ui/color/chrome_color_mixers.h"
 #include "chrome/browser/ui/javascript_dialogs/chrome_javascript_app_modal_dialog_view_factory.h"
-#include "chrome/browser/ui/profiles/profile_error_dialog.h"
+#include "chrome/browser/ui/profile_error_dialog.h"
 #include "chrome/browser/ui/startup/bad_flags_prompt.h"
 #include "chrome/browser/ui/startup/startup_browser_creator.h"
 #include "chrome/browser/ui/webui/chrome_untrusted_web_ui_configs.h"
@@ -136,11 +134,11 @@
 #include "components/language/core/common/language_util.h"
 #include "components/metrics/call_stack_profile_metrics_provider.h"
 #include "components/metrics/call_stack_profile_params.h"
+#include "components/metrics/clean_exit_beacon.h"
 #include "components/metrics/content/subprocess_metrics_provider.h"
 #include "components/metrics/expired_histogram_util.h"
 #include "components/metrics/metrics_reporting_default_state.h"
 #include "components/metrics/metrics_service.h"
-#include "components/metrics/metrics_shutdown.h"
 #include "components/metrics/persistent_histograms.h"
 #include "components/metrics_services_manager/metrics_services_manager.h"
 #include "components/nacl/browser/nacl_browser.h"
@@ -628,11 +626,8 @@ ChromeBrowserMainParts::ChromeBrowserMainParts(bool is_integration_test,
                                                StartupData* startup_data)
     : is_integration_test_(is_integration_test), startup_data_(startup_data) {
   DCHECK(startup_data_);
-#if BUILDFLAG(IS_CHROMEOS_ASH) && BUILDFLAG(GOOGLE_CHROME_BRANDING)
-  if (is_integration_test_) {
-    extensions::ComponentLoader::DisableHelpAppForTesting();
-  }
-#endif
+  if (is_integration_test_)
+    browser_defaults::enable_help_app = false;
 }
 
 ChromeBrowserMainParts::~ChromeBrowserMainParts() {
@@ -693,9 +688,8 @@ void ChromeBrowserMainParts::StartMetricsRecording() {
 void ChromeBrowserMainParts::RecordBrowserStartupTime() {
   // Don't record any metrics if UI was displayed before this point e.g.
   // warning dialogs or browser was started in background mode.
-  if (startup_metric_utils::GetBrowser().WasMainWindowStartupInterrupted()) {
+  if (startup_metric_utils::WasMainWindowStartupInterrupted())
     return;
-  }
 
   bool is_first_run = false;
 #if !BUILDFLAG(IS_ANDROID)
@@ -706,7 +700,7 @@ void ChromeBrowserMainParts::RecordBrowserStartupTime() {
 #endif  // BUILDFLAG(IS_ANDROID)
 
   // Record collected startup metrics.
-  startup_metric_utils::GetBrowser().RecordBrowserMainMessageLoopStart(
+  startup_metric_utils::RecordBrowserMainMessageLoopStart(
       base::TimeTicks::Now(), is_first_run);
 }
 
@@ -992,9 +986,9 @@ int ChromeBrowserMainParts::PreCreateThreadsImpl() {
 
 #if BUILDFLAG(IS_CHROMEOS_ASH)
   ash::CrosSettings::Initialize(local_state);
+  ash::HWDataUsageController::Initialize(local_state);
   ash::StatsReportingController::Initialize(local_state);
   arc::StabilityMetricsManager::Initialize(local_state);
-  ash::HWDataUsageController::Initialize(local_state);
 #endif  // BUILDFLAG(IS_CHROMEOS_ASH)
 
   {
@@ -1409,6 +1403,9 @@ int ChromeBrowserMainParts::PreMainMessageLoopRunImpl() {
   // running.
   browser_process_->PreMainMessageLoopRun();
 
+  // Record last shutdown time into a histogram.
+  browser_shutdown::ReadLastShutdownInfo();
+
 #if BUILDFLAG(IS_WIN)
   // If the command line specifies 'uninstall' then we need to work here
   // unless we detect another chrome browser running.
@@ -1652,6 +1649,7 @@ int ChromeBrowserMainParts::PreMainMessageLoopRunImpl() {
 
   TranslateService::Initialize();
   if (base::FeatureList::IsEnabled(features::kGeoLanguage) ||
+      base::FeatureList::IsEnabled(language::kExplicitLanguageAsk) ||
       language::GetOverrideLanguageModel() ==
           language::OverrideLanguageModel::GEO) {
     language::GeoLanguageProvider::GetInstance()->StartUp(
@@ -1901,8 +1899,7 @@ void ChromeBrowserMainParts::WillRunMainMessageLoop(
 }
 
 void ChromeBrowserMainParts::OnFirstIdle() {
-  startup_metric_utils::GetBrowser().RecordBrowserMainLoopFirstIdle(
-      base::TimeTicks::Now());
+  startup_metric_utils::RecordBrowserMainLoopFirstIdle(base::TimeTicks::Now());
 #if BUILDFLAG(IS_ANDROID)
   sharing::ShareHistory::CreateForProfile(
       ProfileManager::GetPrimaryUserProfile());
@@ -1996,27 +1993,18 @@ void ChromeBrowserMainParts::PostDestroyThreads() {
 
   browser_process_->PostDestroyThreads();
 
-  // We need to do this call as late as possible, but due to modularity, this
+  // We need to do this check as late as possible, but due to modularity, this
   // may be the last point in Chrome. This would be more effective if done at a
   // higher level on the stack, so that it is impossible for an early return to
   // bypass this code. Perhaps we need a *final* hook that is called on all
   // paths from content/browser/browser_main.
   //
-  // Since we use |browser_process_|'s local state for this call, it must be
+  // Since we use |browser_process_|'s local state for this CHECK, it must be
   // done before |browser_process_| is released.
-  metrics::Shutdown(browser_process_->local_state());
+  metrics::CleanExitBeacon::EnsureCleanShutdown(
+      browser_process_->local_state());
 
   profile_init_manager_.reset();
-
-#if BUILDFLAG(IS_CHROMEOS_ASH)
-  // These controllers make use of `browser_process_->local_state()`, so they
-  // must be destroyed before `browser_process_`.
-  // Shutting down in the reverse order of Initialize().
-  ash::HWDataUsageController::Shutdown();
-  arc::StabilityMetricsManager::Shutdown();
-  ash::StatsReportingController::Shutdown();
-  ash::CrosSettings::Shutdown();
-#endif  // BUILDFLAG(IS_CHROMEOS_ASH)
 
   // The below call to browser_shutdown::ShutdownPostThreadsStop() deletes
   // |browser_process_|. We release it so that we don't keep holding onto an
@@ -2047,6 +2035,13 @@ void ChromeBrowserMainParts::PostDestroyThreads() {
 #endif  // BUILDFLAG(ENABLE_PROCESS_SINGLETON)
 
   device_event_log::Shutdown();
+
+#if BUILDFLAG(IS_CHROMEOS_ASH)
+  ash::HWDataUsageController::Shutdown();
+  arc::StabilityMetricsManager::Shutdown();
+  ash::StatsReportingController::Shutdown();
+  ash::CrosSettings::Shutdown();
+#endif  // BUILDFLAG(IS_CHROMEOS_ASH)
 #endif  // BUILDFLAG(IS_ANDROID)
 }
 

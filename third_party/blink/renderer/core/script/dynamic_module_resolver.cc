@@ -301,8 +301,7 @@ void DynamicModuleResolver::ResolveDynamically(
   modulator_->FetchTree(url, module_type, execution_context->Fetcher(),
                         mojom::blink::RequestContextType::SCRIPT,
                         network::mojom::RequestDestination::kScript, options,
-                        ModuleScriptCustomFetchType::kNone, tree_client,
-                        referrer_info.BaseURL().GetString());
+                        ModuleScriptCustomFetchType::kNone, tree_client);
 
   // Steps 6-9 are implemented at
   // DynamicImportTreeClient::NotifyModuleLoadFinished.

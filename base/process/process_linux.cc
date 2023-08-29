@@ -181,7 +181,7 @@ Time Process::CreationTime() const {
 }
 
 // static
-bool Process::CanSetPriority() {
+bool Process::CanBackgroundProcesses() {
 #if BUILDFLAG(IS_CHROMEOS)
   if (CGroups::Get().enabled)
     return true;
@@ -192,7 +192,7 @@ bool Process::CanSetPriority() {
   return can_reraise_priority;
 }
 
-Process::Priority Process::GetPriority() const {
+bool Process::IsProcessBackgrounded() const {
   DCHECK(IsValid());
 
 #if BUILDFLAG(IS_CHROMEOS)
@@ -201,44 +201,39 @@ Process::Priority Process::GetPriority() const {
     ScopedAllowBlocking scoped_allow_blocking;
     std::string proc;
     if (ReadFileToString(FilePath(StringPrintf(kProcPath, process_)), &proc)) {
-      return GetProcessPriorityCGroup(proc);
+      return IsProcessBackgroundedCGroup(proc);
     }
-    return Priority::kUserBlocking;
+    return false;
   }
 #endif  // BUILDFLAG(IS_CHROMEOS)
 
-  return GetOSPriority() == kBackgroundPriority ? Priority::kBestEffort
-                                                : Priority::kUserBlocking;
+  return GetPriority() == kBackgroundPriority;
 }
 
-bool Process::SetPriority(Priority priority) {
+bool Process::SetProcessBackgrounded(bool background) {
   DCHECK(IsValid());
 
 #if BUILDFLAG(IS_CHROMEOS)
   if (CGroups::Get().enabled) {
     std::string pid = NumberToString(process_);
     const FilePath file =
-        priority == Priority::kBestEffort
-            ? CGroups::Get().background_file
-            : CGroups::Get().GetForegroundCgroupFile(unique_token_);
+        background ? CGroups::Get().background_file
+                   : CGroups::Get().GetForegroundCgroupFile(unique_token_);
     return WriteFile(file, pid);
   }
 #endif  // BUILDFLAG(IS_CHROMEOS)
 
-  if (!CanSetPriority()) {
+  if (!CanBackgroundProcesses())
     return false;
-  }
 
-  int priority_value = priority == Priority::kBestEffort ? kBackgroundPriority
-                                                         : kForegroundPriority;
-  int result =
-      setpriority(PRIO_PROCESS, static_cast<id_t>(process_), priority_value);
+  int priority = background ? kBackgroundPriority : kForegroundPriority;
+  int result = setpriority(PRIO_PROCESS, static_cast<id_t>(process_), priority);
   DPCHECK(result == 0);
   return result == 0;
 }
 
 #if BUILDFLAG(IS_CHROMEOS)
-Process::Priority GetProcessPriorityCGroup(const StringPiece& cgroup_contents) {
+bool IsProcessBackgroundedCGroup(const StringPiece& cgroup_contents) {
   // The process can be part of multiple control groups, and for each cgroup
   // hierarchy there's an entry in the file. We look for a control group
   // named "/chrome_renderers/background" to determine if the process is
@@ -253,10 +248,10 @@ Process::Priority GetProcessPriorityCGroup(const StringPiece& cgroup_contents) {
       continue;
     }
     if (fields[2] == kBackground)
-      return Process::Priority::kBestEffort;
+      return true;
   }
 
-  return Process::Priority::kUserBlocking;
+  return false;
 }
 #endif  // BUILDFLAG(IS_CHROMEOS)
 
@@ -265,10 +260,19 @@ Process::Priority GetProcessPriorityCGroup(const StringPiece& cgroup_contents) {
 // If the process is not in a PID namespace or /proc/<pid>/status does not
 // report NSpid, kNullProcessId is returned.
 ProcessId Process::GetPidInNamespace() const {
-  StringPairs pairs;
-  if (!internal::ReadProcFileToTrimmedStringPairs(process_, "status", &pairs)) {
-    return kNullProcessId;
+  std::string status;
+  {
+    // Synchronously reading files in /proc does not hit the disk.
+    ScopedAllowBlocking scoped_allow_blocking;
+    FilePath status_file =
+        FilePath("/proc").Append(NumberToString(process_)).Append("status");
+    if (!ReadFileToString(status_file, &status)) {
+      return kNullProcessId;
+    }
   }
+
+  StringPairs pairs;
+  SplitStringIntoKeyValuePairs(status, ':', '\n', &pairs);
   for (const auto& pair : pairs) {
     const std::string& key = pair.first;
     const std::string& value_str = pair.second;
@@ -290,17 +294,6 @@ ProcessId Process::GetPidInNamespace() const {
   return kNullProcessId;
 }
 #endif  // BUILDFLAG(IS_CHROMEOS_ASH)
-
-#if BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS)
-bool Process::IsSeccompSandboxed() {
-  uint64_t seccomp_value = 0;
-  if (!internal::ReadProcStatusAndGetFieldAsUint64(process_, "Seccomp",
-                                                   &seccomp_value)) {
-    return false;
-  }
-  return seccomp_value > 0;
-}
-#endif  // BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS)
 
 #if BUILDFLAG(IS_CHROMEOS)
 // static

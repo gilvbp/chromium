@@ -7,30 +7,26 @@
 
 #include "ash/ash_export.h"
 #include "ash/system/power/power_status.h"
+#include "base/callback_list.h"
 #include "base/memory/raw_ptr.h"
 #include "base/memory/weak_ptr.h"
 #include "base/scoped_observation.h"
-#include "base/time/time.h"
 #include "components/prefs/pref_change_registrar.h"
 #include "components/prefs/pref_registry_simple.h"
 #include "components/prefs/pref_service.h"
-#include "third_party/abseil-cpp/absl/types/optional.h"
+#include "ui/message_center/public/cpp/notifier_id.h"
 
 namespace ash {
 
 // BatterySaverController is a singleton that controls battery saver state via
 // PowerManagerClient by watching for updates to ash::prefs::kPowerBatterySaver
-// from settings and power status for charging state, and logs metrics.
+// from settings and power status for charging state.
+// TODO(mwoj): And sends notifications allowing users to opt in or out.
+// TODO(cwd): And logs metrics.
 class ASH_EXPORT BatterySaverController : public PowerStatus::Observer {
  public:
-  enum class UpdateReason {
-    kCharging,
-    kLowPower,
-    kPowerManager,
-    kSettings,
-    kThreshold,
-    kAlwaysOn,
-  };
+  // The battery charge percent at which battery saver is activated.
+  static const double kActivationChargePercent;
 
   explicit BatterySaverController(PrefService* local_state);
   BatterySaverController(const BatterySaverController&) = delete;
@@ -40,43 +36,23 @@ class ASH_EXPORT BatterySaverController : public PowerStatus::Observer {
   // Registers local state prefs used in the settings UI.
   static void RegisterLocalStatePrefs(PrefRegistrySimple* registry);
 
-  void SetState(bool active, UpdateReason reason);
-
  private:
-  // Types used for metrics tracking.
-  struct EnableRecord {
-    base::Time time;
-    UpdateReason reason;
-  };
-
   // PowerStatus::Observer:
   void OnPowerStatusChanged() override;
 
   void OnSettingsPrefChanged();
 
-  void DisplayBatterySaverModeDisabledToast();
+  void SetBatterySaverState(bool active);
 
-  absl::optional<int> GetRemainingMinutes(const PowerStatus* status);
-
-  raw_ptr<PrefService, ExperimentalAsh> local_state_;  // Non-owned and must
-                                                       // out-live this.
+  raw_ptr<PrefService, ExperimentalAsh>
+      local_state_;  // Non-owned and must out-live this.
 
   base::ScopedObservation<PowerStatus, PowerStatus::Observer>
       power_status_observation_{this};
 
   PrefChangeRegistrar pref_change_registrar_;
 
-  const double activation_charge_percent_;
-
-  bool always_on_ = false;
-
-  bool previously_plugged_in_ = false;
-
-  bool threshold_crossed_ = false;
-
-  bool low_power_crossed_ = false;
-
-  absl::optional<EnableRecord> enable_record_{absl::nullopt};
+  bool always_on_;
 
   base::WeakPtrFactory<BatterySaverController> weak_ptr_factory_{this};
 };

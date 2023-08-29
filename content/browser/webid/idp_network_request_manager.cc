@@ -84,7 +84,6 @@ constexpr char kAccountGivenNameKey[] = "given_name";
 constexpr char kAccountPictureKey[] = "picture";
 constexpr char kAccountApprovedClientsKey[] = "approved_clients";
 constexpr char kHintsKey[] = "login_hints";
-constexpr char kHostedDomainsKey[] = "hosted_domains";
 
 // Keys in 'branding' 'icons' dictionary in accounts endpoint.
 constexpr char kIdpBrandingIconUrl[] = "url";
@@ -155,21 +154,12 @@ absl::optional<content::IdentityRequestAccount> ParseAccount(
   auto* picture = account.FindString(kAccountPictureKey);
   auto* approved_clients = account.FindList(kAccountApprovedClientsKey);
   std::vector<std::string> account_hints;
-  auto* hints = account.FindList(kHintsKey);
-  if (hints) {
-    for (const base::Value& entry : *hints) {
-      if (entry.is_string()) {
-        account_hints.emplace_back(entry.GetString());
-      }
-    }
-  }
-  std::vector<std::string> hosted_domains;
-  if (IsFedCmHostedDomainEnabled()) {
-    auto* hosted_domains_list = account.FindList(kHostedDomainsKey);
-    if (hosted_domains_list) {
-      for (const base::Value& entry : *hosted_domains_list) {
+  if (IsFedCmLoginHintEnabled()) {
+    auto* hints = account.FindList(kHintsKey);
+    if (hints) {
+      for (const base::Value& entry : *hints) {
         if (entry.is_string()) {
-          hosted_domains.emplace_back(entry.GetString());
+          account_hints.emplace_back(entry.GetString());
         }
       }
     }
@@ -201,7 +191,7 @@ absl::optional<content::IdentityRequestAccount> ParseAccount(
   return content::IdentityRequestAccount(
       *id, *email, *name, given_name ? *given_name : "",
       picture ? GURL(*picture) : GURL(), std::move(account_hints),
-      std::move(hosted_domains), approved_value);
+      approved_value);
 }
 
 // Parses accounts from given Value. Returns true if parse is successful and
@@ -890,7 +880,7 @@ IdpNetworkRequestManager::CreateUncredentialedResourceRequest(
   } else {
     resource_request->redirect_mode = network::mojom::RedirectMode::kError;
   }
-  resource_request->request_initiator = url::Origin();
+  resource_request->request_initiator = relying_party_origin_;
   resource_request->trusted_params = network::ResourceRequest::TrustedParams();
   resource_request->trusted_params->isolation_info =
       net::IsolationInfo::CreateTransient();

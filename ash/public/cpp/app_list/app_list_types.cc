@@ -15,9 +15,6 @@ const char kOemFolderId[] = "ddb1da55-d478-4243-8642-56d3041f0263";
 // Generated using crx_file::id_util::GenerateId("LinuxAppsFolder")
 const char kCrostiniFolderId[] = "ddolnhmblagmcagkedkbfejapapdimlk";
 
-// Generated using crx_file::id_util::GenerateId("BruschettaAppsFolder")
-const char kBruschettaFolderId[] = "olojmkekngdacpmgcffeipkflkgohcja";
-
 bool IsAppListSearchResultAnApp(AppListSearchResultType result_type) {
   switch (result_type) {
     case AppListSearchResultType::kInstalledApp:
@@ -235,64 +232,18 @@ SystemInfoAnswerCardData::SystemInfoAnswerCardData(double bar_chart_percentage)
     : display_type(SystemInfoAnswerCardDisplayType::kBarChart),
       bar_chart_percentage(bar_chart_percentage) {}
 
+SystemInfoAnswerCardData::SystemInfoAnswerCardData(
+    std::map<SearchResultSystemInfoStorageType, int64_t>
+        storage_type_to_size_map)
+    : display_type(SystemInfoAnswerCardDisplayType::kMultiElementBarChart),
+      storage_type_to_size(std::move(storage_type_to_size_map)) {
+  DCHECK(!storage_type_to_size.empty());
+}
+
 SystemInfoAnswerCardData::~SystemInfoAnswerCardData() = default;
 
 SystemInfoAnswerCardData::SystemInfoAnswerCardData(
     const SystemInfoAnswerCardData& other) = default;
-
-void SystemInfoAnswerCardData::SetExtraDetails(
-    const std::u16string& description_on_right) {
-  extra_details = description_on_right;
-}
-
-void SystemInfoAnswerCardData::SetUpperLimitForBarChart(double upper_limit) {
-  DCHECK(upper_limit <= 100 && upper_limit >= 0);
-  upper_warning_limit_bar_chart = upper_limit;
-}
-void SystemInfoAnswerCardData::SetLowerLimitForBarChart(double lower_limit) {
-  DCHECK(lower_limit <= 100 && lower_limit >= 0);
-  lower_warning_limit_bar_chart = lower_limit;
-}
-
-void SystemInfoAnswerCardData::UpdateBarChartPercentage(
-    double new_bar_chart_percentage) {
-  DCHECK(new_bar_chart_percentage <= 100 && new_bar_chart_percentage >= 0);
-  bar_chart_percentage = new_bar_chart_percentage;
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// FileMetadata:
-
-FileMetadata::FileMetadata() = default;
-FileMetadata::FileMetadata(const FileMetadata&) = default;
-FileMetadata& FileMetadata::operator=(const FileMetadata&) = default;
-FileMetadata::~FileMetadata() = default;
-
-////////////////////////////////////////////////////////////////////////////////
-// FileMetadataLoader:
-
-FileMetadataLoader::FileMetadataLoader() = default;
-FileMetadataLoader::FileMetadataLoader(const FileMetadataLoader&) = default;
-FileMetadataLoader& FileMetadataLoader::operator=(const FileMetadataLoader&) =
-    default;
-FileMetadataLoader::~FileMetadataLoader() = default;
-
-void FileMetadataLoader::RequestFileInfo(
-    OnMetadataLoadedCallback on_loaded_callback) {
-  // Return an empty FileMetadata if the loader callback is not set.
-  if (loader_callback_.is_null()) {
-    on_loaded_callback.Run(FileMetadata());
-    return;
-  }
-
-  base::ThreadPool::PostTaskAndReplyWithResult(
-      FROM_HERE, {base::MayBlock(), base::TaskPriority::USER_BLOCKING},
-      loader_callback_, on_loaded_callback);
-}
-
-void FileMetadataLoader::SetLoaderCallback(MetadataLoaderCallback callback) {
-  loader_callback_ = std::move(callback);
-}
 
 ////////////////////////////////////////////////////////////////////////////////
 // SearchResultTag:
@@ -371,52 +322,26 @@ const gfx::VectorIcon* SearchResultTextItem::GetIconFromCode() const {
   DCHECK_EQ(item_type_, SearchResultTextItemType::kIconCode);
   DCHECK(icon_code_.has_value());
   switch (icon_code_.value()) {
-    // Browser.
     case kKeyboardShortcutBrowserBack:
       return &kKsvBrowserBackIcon;
     case kKeyboardShortcutBrowserForward:
       return &kKsvBrowserForwardIcon;
     case kKeyboardShortcutBrowserRefresh:
       return &kKsvReloadIcon;
-    case kKeyboardShortcutBrowserSearch:
-      return &kKsBrowserSearchIcon;
-    // Emoji picker.
-    case kKeyboardShortcutEmojiPicker:
-      return &kKsEmojiPickerIcon;
-    // Dictation.
-    case kKeyboardShortcutDictationToggle:
-      return &kKsDictationIcon;
-    // Zoom.
     case kKeyboardShortcutZoom:
       return &kKsvFullscreenIcon;
-    // Media.
     case kKeyboardShortcutMediaLaunchApp1:
       return &kKsvOverviewIcon;
-    case kKeyboardShortcutMediaFastForward:
-      return &kKsMediaFastForwardIcon;
-    case kKeyboardShortcutMediaPause:
-      return &kKsMediaPauseIcon;
-    case kKeyboardShortcutMediaPlay:
-      return &kKsMediaPlayIcon;
-    case kKeyboardShortcutMediaPlayPause:
-      return &kKsMediaPlayPauseIcon;
-    case kKeyboardShortcutMediaTrackNext:
-      return &kKsMediaTrackNextIcon;
-    case kKeyboardShortcutMediaTrackPrevious:
-      return &kKsMediaTrackPreviousIcon;
-    // Brightness.
     case kKeyboardShortcutBrightnessDown:
       return &kKsvBrightnessDownIcon;
     case kKeyboardShortcutBrightnessUp:
       return &kKsvBrightnessUpIcon;
-    // Volume.
     case kKeyboardShortcutVolumeMute:
       return &kKsvMuteIcon;
     case kKeyboardShortcutVolumeDown:
       return &kKsvVolumeDownIcon;
     case kKeyboardShortcutVolumeUp:
       return &kKsvVolumeUpIcon;
-    // Arrows.
     case kKeyboardShortcutUp:
       return &kKsvArrowUpIcon;
     case kKeyboardShortcutDown:
@@ -425,38 +350,10 @@ const gfx::VectorIcon* SearchResultTextItem::GetIconFromCode() const {
       return &kKsvArrowLeftIcon;
     case kKeyboardShortcutRight:
       return &kKsvArrowRightIcon;
-    // Privacy.
     case kKeyboardShortcutPrivacyScreenToggle:
       return &kKsvPrivacyScreenToggleIcon;
-    // Settings.
-    case kKeyboardShortcutSettings:
-      return &kKsSettingsIcon;
-    // Snapshot.
     case kKeyboardShortcutSnapshot:
       return &kKsvSnapshotIcon;
-    // Launcher.
-    case kKeyboardShortcutLauncher:
-      return &kKsLauncherIcon;
-    // Search.
-    case kKeyboardShortcutSearch:
-      return &kKsSearchIcon;
-    // Apps.
-    case kKeyboardShortcutAssistant:
-      return &kKsAssistantIcon;
-    case kKeyboardShortcutAllApps:
-      return &kKsAllAppsIcon;
-    case kKeyboardShortcutCalculator:
-      return &kKsCalculatorIcon;
-    case kKeyboardShortcutInputModeChange:
-      return &kKsInputModeChangeIcon;
-    case kKeyboardShortcutMicrophone:
-      return &kKsMicrophoneIcon;
-      // TODO(http://b/issues/216049298): Add the following icons.
-    case kKeyboardShortcutPower:
-    case kKeyboardShortcutKeyboardBacklightToggle:
-    case kKeyboardShortcutKeyboardBrightnessDown:
-    case kKeyboardShortcutKeyboardBrightnessUp:
-      return nullptr;
     default:
       return nullptr;
   }

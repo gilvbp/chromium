@@ -8,7 +8,6 @@
 #include "third_party/blink/renderer/core/layout/ng/exclusions/ng_exclusion.h"
 #include "third_party/blink/renderer/core/layout/ng/inline/ng_inline_cursor.h"
 #include "third_party/blink/renderer/core/layout/ng/inline/ng_line_info.h"
-#include "third_party/blink/renderer/core/layout/ng/inline/ng_line_utils.h"
 #include "third_party/blink/renderer/core/layout/ng/inline/ng_logical_line_item.h"
 #include "third_party/blink/renderer/core/layout/ng/ng_fragment.h"
 #include "third_party/blink/renderer/core/layout/ng/ng_physical_box_fragment.h"
@@ -93,11 +92,7 @@ LayoutUnit ComputeInitialLetterBoxBlockOffset(
         LayoutUnit(line_height * initial_letter.Size()) - ascent;
     const FontHeight text_metrics = paragraph_style.GetFontHeight();
     FontHeight line_metrics = text_metrics;
-    FontHeight leading_space = CalculateLeadingSpace(
-        paragraph_style.ComputedLineHeightAsFixed(), line_metrics,
-        initial_letter_box_style.TextBoxTrim(),
-        paragraph_style.GetWritingMode());
-    line_metrics.AddLeading(leading_space);
+    line_metrics.AddLeading(paragraph_style.ComputedLineHeightAsFixed());
     const LayoutUnit descent = line_metrics.descent;
     return block_offset - descent;
   }

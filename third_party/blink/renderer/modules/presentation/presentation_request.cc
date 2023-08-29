@@ -176,7 +176,8 @@ ExecutionContext* PresentationRequest::GetExecutionContext() const {
 void PresentationRequest::AddedEventListener(
     const AtomicString& event_type,
     RegisteredEventListener& registered_listener) {
-  EventTarget::AddedEventListener(event_type, registered_listener);
+  EventTargetWithInlineData::AddedEventListener(event_type,
+                                                registered_listener);
   if (event_type == event_type_names::kConnectionavailable) {
     UseCounter::Count(
         GetExecutionContext(),
@@ -292,7 +293,7 @@ const Vector<KURL>& PresentationRequest::Urls() const {
 
 void PresentationRequest::Trace(Visitor* visitor) const {
   visitor->Trace(availability_property_);
-  EventTarget::Trace(visitor);
+  EventTargetWithInlineData::Trace(visitor);
   ExecutionContextClient::Trace(visitor);
 }
 

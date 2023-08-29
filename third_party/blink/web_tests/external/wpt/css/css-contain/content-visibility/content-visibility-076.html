@@ -12,23 +12,20 @@
 <style>
 .auto {
   content-visibility: auto;
-  contain-intrinsic-size: 1px 10000px;
+  contain-intrinsic-size: 1px 1000px;
 }
 .child {
-  height: 40000px;
+  height: 20000px;
   position: relative;
 }
 #target {
   position: absolute;
   bottom: 0;
 }
-.before_target {
-  height: 40000px;
-}
 </style>
 
-<div class="auto before_target"></div>
-<div class="auto before_target"></div>
+<div class=auto><div class=child></div></div>
+<div class=auto><div class=child></div></div>
 <div class=auto><div class=child><div id=target>PASS</div></div></div>
 <div class=auto><div class=child></div></div>
 <div class=auto><div class=child></div></div>

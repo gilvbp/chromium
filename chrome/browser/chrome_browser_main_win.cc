@@ -67,7 +67,6 @@
 #include "chrome/browser/web_applications/os_integration/web_app_handler_registration_utils_win.h"
 #include "chrome/browser/web_applications/os_integration/web_app_shortcut.h"
 #include "chrome/browser/web_applications/web_app_provider.h"
-#include "chrome/browser/web_applications/web_app_registrar.h"
 #include "chrome/browser/win/browser_util.h"
 #include "chrome/browser/win/chrome_elf_init.h"
 #include "chrome/browser/win/conflicts/enumerate_input_method_editors.h"
@@ -111,6 +110,7 @@
 #include "ui/base/ui_base_switches.h"
 #include "ui/base/win/hidden_window.h"
 #include "ui/base/win/message_box_win.h"
+#include "ui/display/win/dpi.h"
 #include "ui/gfx/switches.h"
 #include "ui/gfx/system_fonts_win.h"
 #include "ui/gfx/win/crash_id_helper.h"
@@ -136,6 +136,13 @@ void InitializeWindowProcExceptions() {
 void DumpHungRendererProcessImpl(const base::Process& renderer) {
   // Use a distinguishing process type for these reports.
   crash_reporter::DumpHungProcessWithPtype(renderer, "hung-renderer");
+}
+
+// gfx::Font callbacks
+void AdjustUIFont(gfx::win::FontAdjustment* font_adjustment) {
+  l10n_util::NeedOverrideDefaultUIFont(&font_adjustment->font_family_override,
+                                       &font_adjustment->font_scale);
+  font_adjustment->font_scale *= display::win::GetAccessibilityFontScale();
 }
 
 int GetMinimumFontSize() {
@@ -384,9 +391,10 @@ void MigratePinnedTaskBarShortcutsIfNeeded() {
         local_state->GetString(prefs::kShortcutMigrationVersion));
     if (!last_version_migrated.IsValid() ||
         last_version_migrated < kLastVersionNeedingMigration) {
-      shell_integration::win::MigrateTaskbarPins(base::BindOnce(
-          &PrefService::SetString, base::Unretained(local_state),
-          prefs::kShortcutMigrationVersion, version_info::GetVersionNumber()));
+      shell_integration::win::MigrateTaskbarPins(
+          base::BindOnce(&PrefService::SetString, base::Unretained(local_state),
+                         prefs::kShortcutMigrationVersion,
+                         std::string(version_info::GetVersionNumber())));
     }
   }
 }
@@ -443,7 +451,7 @@ void ChromeBrowserMainPartsWin::ToolkitInitialized() {
   DCHECK_NE(base::PlatformThread::CurrentId(), base::kInvalidThreadId);
   gfx::CrashIdHelper::RegisterMainThread(base::PlatformThread::CurrentId());
   ChromeBrowserMainParts::ToolkitInitialized();
-  gfx::win::SetAdjustFontCallback(&l10n_util::AdjustUiFont);
+  gfx::win::SetAdjustFontCallback(&AdjustUIFont);
   gfx::win::SetGetMinimumFontSizeCallback(&GetMinimumFontSize);
 }
 

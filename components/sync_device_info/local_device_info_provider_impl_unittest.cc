@@ -54,7 +54,7 @@ class MockDeviceInfoSyncClient : public DeviceInfoSyncClient {
               GetLocalSharingInfo,
               (),
               (const override));
-  MOCK_METHOD(DeviceInfo::PhoneAsASecurityKeyInfo::StatusOrInfo,
+  MOCK_METHOD(absl::optional<DeviceInfo::PhoneAsASecurityKeyInfo>,
               GetPhoneAsASecurityKeyInfo,
               (),
               (const override));
@@ -286,29 +286,22 @@ TEST_F(LocalDeviceInfoProviderImplTest, ShouldKeepStoredInvalidationFields) {
                         std::move(device_info_restored_from_store));
 
   EXPECT_CALL(device_info_sync_client_, GetFCMRegistrationToken())
-      .WillRepeatedly(Return(absl::nullopt));
+      .WillOnce(Return(absl::nullopt));
   EXPECT_CALL(device_info_sync_client_, GetInterestedDataTypes())
-      .WillRepeatedly(Return(absl::nullopt));
+      .WillOnce(Return(absl::nullopt));
   EXPECT_CALL(device_info_sync_client_, GetPhoneAsASecurityKeyInfo())
-      .WillOnce(Return(DeviceInfo::PhoneAsASecurityKeyInfo::NotReady()));
+      .WillOnce(Return(absl::nullopt));
 
   const DeviceInfo* local_device_info = provider_->GetLocalDeviceInfo();
   EXPECT_EQ(local_device_info->interested_data_types(), kInterestedDataTypes);
   EXPECT_EQ(local_device_info->fcm_registration_token(), kFCMRegistrationToken);
   EXPECT_TRUE(
       local_device_info->paask_info()->NonRotatingFieldsEqual(paask_info));
-
-  // `GetPhoneAsASecurityKeyInfo` can erase the field too.
-  EXPECT_CALL(device_info_sync_client_, GetPhoneAsASecurityKeyInfo())
-      .WillOnce(Return(DeviceInfo::PhoneAsASecurityKeyInfo::NoSupport()));
-
-  const DeviceInfo* local_device_info2 = provider_->GetLocalDeviceInfo();
-  EXPECT_FALSE(local_device_info2->paask_info().has_value());
 }
 
 TEST_F(LocalDeviceInfoProviderImplTest, PhoneAsASecurityKeyInfo) {
   ON_CALL(device_info_sync_client_, GetPhoneAsASecurityKeyInfo())
-      .WillByDefault(Return(DeviceInfo::PhoneAsASecurityKeyInfo::NoSupport()));
+      .WillByDefault(Return(absl::nullopt));
 
   InitializeProvider();
 

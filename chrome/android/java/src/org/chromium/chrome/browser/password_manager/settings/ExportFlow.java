@@ -5,7 +5,6 @@
 package org.chromium.chrome.browser.password_manager.settings;
 
 import static org.chromium.chrome.browser.flags.ChromeFeatureList.UNIFIED_PASSWORD_MANAGER_LOCAL_PWD_MIGRATION_WARNING;
-import static org.chromium.chrome.browser.password_manager.PasswordMetricsUtil.logPasswordsExportResult;
 
 import android.content.ActivityNotFoundException;
 import android.content.DialogInterface;
@@ -26,10 +25,7 @@ import org.chromium.base.metrics.RecordHistogram;
 import org.chromium.base.task.AsyncTask;
 import org.chromium.chrome.R;
 import org.chromium.chrome.browser.flags.ChromeFeatureList;
-import org.chromium.chrome.browser.password_manager.PasswordMetricsUtil;
-import org.chromium.chrome.browser.password_manager.PasswordMetricsUtil.HistogramExportResult;
 import org.chromium.chrome.browser.pwd_migration.ExportFlowInterface;
-import org.chromium.chrome.browser.pwd_migration.NonCancelableProgressBar;
 import org.chromium.ui.widget.Toast;
 
 import java.io.File;
@@ -94,8 +90,27 @@ public class ExportFlow implements ExportFlowInterface {
     /** The key for saving {@link #mExportFileUri} to instance bundle. */
     private static final String SAVED_STATE_EXPORT_FILE_URI = "saved-state-export-file-uri";
 
-    /** The delay after which the progress bar will be displayed. */
-    private static final int PROGRESS_BAR_DELAY_MS = 500;
+    // Potential values of the histogram recording the result of exporting. This needs to match
+    // ExportPasswordsResult from
+    // //components/password_manager/core/browser/password_manager_metrics_util.h.
+    @IntDef({HistogramExportResult.SUCCESS, HistogramExportResult.USER_ABORTED,
+            HistogramExportResult.WRITE_FAILED, HistogramExportResult.NO_CONSUMER,
+            HistogramExportResult.NUM_ENTRIES})
+    @Retention(RetentionPolicy.SOURCE)
+    @VisibleForTesting
+    public @interface HistogramExportResult {
+        @VisibleForTesting
+        int SUCCESS = 0;
+        @VisibleForTesting
+        int USER_ABORTED = 1;
+        @VisibleForTesting
+        int WRITE_FAILED = 2;
+        @VisibleForTesting
+        int NO_CONSUMER = 3;
+        // If you add new values to HistogramExportResult, also update NUM_ENTRIES to match
+        // its new size.
+        int NUM_ENTRIES = 4;
+    }
 
     // Values of the histogram recording password export related events.
     @IntDef({PasswordExportEvent.EXPORT_OPTION_SELECTED, PasswordExportEvent.EXPORT_DISMISSED,
@@ -184,22 +199,24 @@ public class ExportFlow implements ExportFlowInterface {
     private Delegate mDelegate;
 
     /** Histogram names for metrics logging. */
-    private String mCallerMetricsId;
+    private String mExportEventHistogramName;
+    private String mExportResultHistogramName;
 
     private boolean mPasswordSerializationStarted;
 
     public String getExportEventHistogramName() {
-        return mCallerMetricsId + ".Event";
+        return mExportEventHistogramName;
     }
 
-    public String getExportResultHistogramName2ForTesting() {
-        return mCallerMetricsId + PasswordMetricsUtil.EXPORT_RESULT_HISTOGRAM_SUFFIX;
+    public String getExportResultHistogramNameForTesting() {
+        return mExportResultHistogramName;
     }
 
     @Override
     public void onCreate(Bundle savedInstanceState, Delegate delegate, String callerMetricsId) {
         mDelegate = delegate;
-        mCallerMetricsId = callerMetricsId;
+        mExportEventHistogramName = callerMetricsId + ".Event";
+        mExportResultHistogramName = callerMetricsId + ".Result";
 
         if (savedInstanceState == null) return;
 
@@ -292,10 +309,6 @@ public class ExportFlow implements ExportFlowInterface {
                     .show();
             // Re-enable exporting, the current one was cancelled by Chrome.
             mExportState = ExportState.INACTIVE;
-            if (ChromeFeatureList.isEnabled(UNIFIED_PASSWORD_MANAGER_LOCAL_PWD_MIGRATION_WARNING)) {
-                logPasswordsExportResult(
-                        mCallerMetricsId, HistogramExportResult.NO_SCREEN_LOCK_SET_UP);
-            }
         } else {
             // Always trigger reauthentication at the start of the exporting flow, even if the last
             // one succeeded recently.
@@ -350,7 +363,7 @@ public class ExportFlow implements ExportFlowInterface {
                     public void onClick(DialogInterface dialog, int which) {
                         if (which == AlertDialog.BUTTON_POSITIVE) {
                             mConfirmed = true;
-                            RecordHistogram.recordEnumeratedHistogram(getExportEventHistogramName(),
+                            RecordHistogram.recordEnumeratedHistogram(mExportEventHistogramName,
                                     PasswordExportEvent.EXPORT_CONFIRMED,
                                     PasswordExportEvent.COUNT);
                             mExportState = ExportState.CONFIRMED;
@@ -374,13 +387,15 @@ public class ExportFlow implements ExportFlowInterface {
                         // cancel the export. This happens both when the user taps the negative
                         // button or when they tap outside of the dialog to dismiss it.
                         if (!mConfirmed) {
-                            RecordHistogram.recordEnumeratedHistogram(getExportEventHistogramName(),
+                            RecordHistogram.recordEnumeratedHistogram(mExportEventHistogramName,
                                     PasswordExportEvent.EXPORT_DISMISSED,
                                     PasswordExportEvent.COUNT);
                             if (ChromeFeatureList.isEnabled(
                                         UNIFIED_PASSWORD_MANAGER_LOCAL_PWD_MIGRATION_WARNING)) {
-                                logPasswordsExportResult(
-                                        mCallerMetricsId, HistogramExportResult.USER_ABORTED);
+                                RecordHistogram.recordEnumeratedHistogram(
+                                        mExportResultHistogramName,
+                                        HistogramExportResult.USER_ABORTED,
+                                        HistogramExportResult.NUM_ENTRIES);
                             }
                             mExportState = ExportState.INACTIVE;
                         }
@@ -408,16 +423,15 @@ public class ExportFlow implements ExportFlowInterface {
             // The serialization has not finished. Until this finishes, a progress bar is
             // displayed with an option to cancel the export.
             ProgressBarDialogFragment progressBarDialogFragment = new ProgressBarDialogFragment();
-            progressBarDialogFragment.setCancelProgressHandler((unusedDialogInterface, button) -> {
-                if (button == AlertDialog.BUTTON_NEGATIVE) {
-                    mExportState = ExportState.INACTIVE;
-                    if (ChromeFeatureList.isEnabled(
-                                UNIFIED_PASSWORD_MANAGER_LOCAL_PWD_MIGRATION_WARNING)) {
-                        logPasswordsExportResult(
-                                mCallerMetricsId, HistogramExportResult.USER_ABORTED);
-                    }
-                }
-            });
+            progressBarDialogFragment.setCancelProgressHandler(
+                    new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            if (which == AlertDialog.BUTTON_NEGATIVE) {
+                                mExportState = ExportState.INACTIVE;
+                            }
+                        }
+                    });
             mProgressBarManager.show(progressBarDialogFragment, mDelegate.getFragmentManager());
         } else {
             // Note: if the serialization is quicker than the user interacting with the
@@ -448,7 +462,8 @@ public class ExportFlow implements ExportFlowInterface {
             @Nullable String detailedDescription, int positiveButtonLabelId,
             @HistogramExportResult int histogramExportResult) {
         if (ChromeFeatureList.isEnabled(UNIFIED_PASSWORD_MANAGER_LOCAL_PWD_MIGRATION_WARNING)) {
-            logPasswordsExportResult(mCallerMetricsId, histogramExportResult);
+            RecordHistogram.recordEnumeratedHistogram(mExportResultHistogramName,
+                    histogramExportResult, HistogramExportResult.NUM_ENTRIES);
         }
 
         mErrorDialogParams = new ExportErrorDialogFragment.ErrorDialogParams();
@@ -571,22 +586,18 @@ public class ExportFlow implements ExportFlowInterface {
 
             @Override
             protected void onPostExecute(String exceptionMessage) {
-                mProgressBarManager.hide(() -> {
-                    if (exceptionMessage != null) {
-                        showExportErrorAndAbort(R.string.password_settings_export_tips,
-                                exceptionMessage, R.string.try_again,
-                                HistogramExportResult.WRITE_FAILED);
-                    } else {
-                        mDelegate.onExportFlowSucceeded();
-                        mExportFileUri = null;
-                        logPasswordsExportResult(mCallerMetricsId, HistogramExportResult.SUCCESS);
-                    }
-                });
+                if (exceptionMessage != null) {
+                    showExportErrorAndAbort(R.string.password_settings_export_tips,
+                            exceptionMessage, R.string.try_again,
+                            HistogramExportResult.WRITE_FAILED);
+                } else {
+                    mDelegate.onExportFlowSucceeded();
+                    mExportFileUri = null;
+                    RecordHistogram.recordEnumeratedHistogram(mExportResultHistogramName,
+                            HistogramExportResult.SUCCESS, HistogramExportResult.NUM_ENTRIES);
+                }
             }
         }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
-        mProgressBarManager.showWithDelay(
-                new NonCancelableProgressBar(R.string.passwords_export_in_progress_title),
-                mDelegate.getFragmentManager(), PROGRESS_BAR_DELAY_MS);
     }
 
     private static void writeToInternalStorage(Uri exportedPasswordsUri, Uri savedPasswordsFileUri)

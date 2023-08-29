@@ -18,6 +18,23 @@
 
 namespace browsing_data {
 
+SharedWorkerHelper::SharedWorkerInfo::SharedWorkerInfo(
+    const GURL& worker,
+    const std::string& name,
+    const blink::StorageKey& storage_key)
+    : worker(worker), name(name), storage_key(storage_key) {}
+
+SharedWorkerHelper::SharedWorkerInfo::SharedWorkerInfo(
+    const SharedWorkerInfo& other) = default;
+
+SharedWorkerHelper::SharedWorkerInfo::~SharedWorkerInfo() = default;
+
+bool SharedWorkerHelper::SharedWorkerInfo::operator<(
+    const SharedWorkerInfo& other) const {
+  return std::tie(worker, name, storage_key) <
+         std::tie(other.worker, other.name, other.storage_key);
+}
+
 SharedWorkerHelper::SharedWorkerHelper(
     content::StoragePartition* storage_partition)
     : storage_partition_(storage_partition) {}
@@ -30,7 +47,7 @@ void SharedWorkerHelper::StartFetching(FetchCallback callback) {
 
   // We always return an empty list, as there are no "persistent" shared
   // workers.
-  std::list<browsing_data::SharedWorkerInfo> result;
+  std::list<SharedWorkerInfo> result;
   content::GetUIThreadTaskRunner({})->PostTask(
       FROM_HERE, base::BindOnce(std::move(callback), result));
 }
@@ -57,7 +74,7 @@ void CannedSharedWorkerHelper::AddSharedWorker(
     return;  // Non-websafe state is not considered browsing data.
 
   pending_shared_worker_info_.insert(
-      browsing_data::SharedWorkerInfo(worker, name, storage_key));
+      SharedWorkerInfo(worker, name, storage_key));
 }
 
 void CannedSharedWorkerHelper::Reset() {
@@ -72,7 +89,7 @@ size_t CannedSharedWorkerHelper::GetSharedWorkerCount() const {
   return pending_shared_worker_info_.size();
 }
 
-const std::set<browsing_data::SharedWorkerInfo>&
+const std::set<CannedSharedWorkerHelper::SharedWorkerInfo>&
 CannedSharedWorkerHelper::GetSharedWorkerInfo() const {
   return pending_shared_worker_info_;
 }
@@ -81,7 +98,7 @@ void CannedSharedWorkerHelper::StartFetching(FetchCallback callback) {
   DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
   DCHECK(!callback.is_null());
 
-  std::list<browsing_data::SharedWorkerInfo> result;
+  std::list<SharedWorkerInfo> result;
   for (auto& it : pending_shared_worker_info_)
     result.push_back(it);
   std::move(callback).Run(result);

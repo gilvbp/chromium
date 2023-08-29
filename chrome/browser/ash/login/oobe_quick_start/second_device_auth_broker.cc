@@ -25,7 +25,6 @@
 #include "chromeos/ash/components/attestation/attestation_flow.h"
 #include "chromeos/ash/components/dbus/attestation/keystore.pb.h"
 #include "chromeos/ash/components/dbus/constants/attestation_constants.h"
-#include "chromeos/ash/components/quick_start/types.h"
 #include "components/account_id/account_id.h"
 #include "components/endpoint_fetcher/endpoint_fetcher.h"
 #include "components/version_info/channel.h"
@@ -51,30 +50,30 @@ constexpr char kStartSessionApi[] = "/v1/startsession";
 // JSON keys.
 constexpr char kChallengeDataKey[] = "challengeData";
 constexpr char kChallengeKey[] = "challenge";
-constexpr char kSessionStatusKey[] = "sessionStatus";
-constexpr char kRejectionReasonKey[] = "rejectionReason";
-constexpr char kTargetFallbackUrlKey[] = "targetFallbackUrl";
-constexpr char kSourceDeviceFallbackUrlKey[] = "sourceDeviceFallbackUrl";
+constexpr char kSessionStatusKey[] = "session_status";
+constexpr char kRejectionReasonKey[] = "rejection_reason";
+constexpr char kTargetFallbackUrlKey[] = "target_fallback_url";
+constexpr char kSourceDeviceFallbackUrlKey[] = "source_device_fallback_url";
 constexpr char kEmailKey[] = "email";
-constexpr char kTargetSessionIdentifierKey[] = "targetSessionIdentifier";
-constexpr char kCredentialIdKey[] = "credentialId";
-constexpr char kAuthenticatorDataKey[] = "authenticatorData";
-constexpr char kClientDataKey[] = "clientData";
+constexpr char kTargetSessionIdentifierKey[] = "target_session_identifier";
+constexpr char kCredentialIdKey[] = "credential_id";
+constexpr char kAuthenticatorDataKey[] = "authenticator_data";
+constexpr char kClientDataKey[] = "client_data";
 constexpr char kSignatureKey[] = "signature";
-constexpr char kFulfilledChallengeTypeKey[] = "fulfilledChallengeType";
-constexpr char kAssertionInfoKey[] = "assertionInfo";
-constexpr char kFallbackOptionKey[] = "fallbackOption";
-constexpr char kDeviceTypeKey[] = "deviceType";
+constexpr char kFulfilledChallengeTypeKey[] = "fulfilled_challenge_type";
+constexpr char kAssertionInfoKey[] = "assertion_info";
+constexpr char kFallbackOptionKey[] = "fallback_option";
+constexpr char kDeviceTypeKey[] = "device_type";
 constexpr char kDeviceAttestationCertificateKey[] =
-    "deviceAttestationCertificate";
-constexpr char kClientIdKey[] = "clientId";
-constexpr char kChromeOsDeviceInfoKey[] = "chromeOsDeviceInfo";
-constexpr char kFulfilledChallengeKey[] = "fulfilledChallenge";
-constexpr char kPlatformDataKey[] = "platformData";
-constexpr char kSourceDeviceInfoKey[] = "sourceDeviceInfo";
-constexpr char kTargetDeviceInfoKey[] = "targetDeviceInfo";
-constexpr char kCredentialDataKey[] = "credentialData";
-constexpr char kOauthTokenKey[] = "oauthToken";
+    "device_attestation_certificate";
+constexpr char kClientIdKey[] = "client_id";
+constexpr char kChromeOsDeviceInfoKey[] = "chrome_os_device_info";
+constexpr char kFulfilledChallengeKey[] = "fulfilled_challenge";
+constexpr char kPlatformDataKey[] = "platform_data";
+constexpr char kSourceDeviceInfoKey[] = "source_device_info";
+constexpr char kTargetDeviceInfoKey[] = "target_device_info";
+constexpr char kCredentialDataKey[] = "credential_data";
+constexpr char kOauthTokenKey[] = "oauth_token";
 
 const int64_t kGetChallengeDataTimeoutInSeconds = 60;
 const int64_t kStartSessionTimeoutInSeconds = 60;
@@ -82,7 +81,7 @@ constexpr char kHttpMethod[] = "POST";
 constexpr char kHttpContentType[] = "application/json";
 
 constexpr char kGetChallengeDataRequest[] = R"({
-      "targetDeviceType": "CHROME_OS"
+      "target_device_type": "CHROME_OS"
     })";
 
 constexpr auto kRejectionReasonErrorMap = base::MakeFixedFlatMap<
@@ -168,44 +167,42 @@ constexpr net::NetworkTrafficAnnotationTag kStartSessionAnnotation =
         }
       )");
 
-// Extracts challenge bytes from the parsed JSON `response` from Gaia and
-// returns a Base64Url representation. Produces an empty string in case of a
-// parsing error. This is how the the response JSON is supposed to look like:
+bool AreChallengeBytesValid(const std::string& challenge_bytes) {
+  return base::Base64Decode(challenge_bytes).has_value();
+}
+
+// Extracts challenge bytes from the parsed JSON `response` from Gaia. Produces
+// an empty string in case of a parsing error. This is how the the response JSON
+// is supposed to look like:
 // {
 //   "challengeData": {
 //     "challenge": "<Base64 encoded challenge bytes>"
 //   }
 // }
-Base64UrlString GetChallengeBytesFromParsedResponse(
+std::string GetChallengeBytesFromParsedResponse(
     data_decoder::DataDecoder::ValueOrError response) {
   if (!response.has_value() || !response->is_dict()) {
-    return Base64UrlString();
+    return std::string();
   }
 
   base::Value::Dict* challenge_dict =
       response->GetDict().FindDict(kChallengeDataKey);
   if (!challenge_dict) {
-    return Base64UrlString();
+    return std::string();
   }
 
-  std::string* challenge_base64 = challenge_dict->FindString(kChallengeKey);
-  if (!challenge_base64) {
-    return Base64UrlString();
+  std::string* challenge_bytes = challenge_dict->FindString(kChallengeKey);
+  if (!challenge_bytes || !AreChallengeBytesValid(*challenge_bytes)) {
+    return std::string();
   }
 
-  // We need to convert the Base64 encoded challenge bytes from Gaia to
-  // Base64Url encoded challenge bytes to send to Android. Android doesn't
-  // handle the standard Base64 encoding.
-  absl::optional<Base64UrlString> challenge =
-      Base64UrlTranscode(Base64String(*challenge_base64));
-
-  return challenge ? *challenge : Base64UrlString();
+  return *challenge_bytes;
 }
 
 void RunChallengeBytesCallback(
     SecondDeviceAuthBroker::ChallengeBytesCallback challenge_callback,
-    const Base64UrlString& challenge) {
-  if (challenge->empty()) {
+    const std::string& challenge_bytes) {
+  if (challenge_bytes.empty()) {
     std::move(challenge_callback)
         .Run(base::unexpected(
             GoogleServiceAuthError::FromUnexpectedServiceResponse(
@@ -213,10 +210,10 @@ void RunChallengeBytesCallback(
     return;
   }
 
-  std::move(challenge_callback).Run(challenge);
+  std::move(challenge_callback).Run(base::ok(challenge_bytes));
 }
 
-void HandleFetchChallengeBytesErrorResponse(
+void HandleGetChallengeBytesErrorResponse(
     SecondDeviceAuthBroker::ChallengeBytesCallback challenge_callback,
     std::unique_ptr<EndpointResponse> response) {
   LOG(ERROR) << "Could not fetch challenge bytes. HTTP status code: "
@@ -271,7 +268,7 @@ void RunAttestationCertificateCallback(
             SecondDeviceAuthBroker::AttestationErrorType::kPermanentError));
         return;
       }
-      std::move(callback).Run(PEMCertChain(pem_certificate_chain));
+      std::move(callback).Run(base::ok(pem_certificate_chain));
       return;
     case attestation::ATTESTATION_UNSPECIFIED_FAILURE:
       // TODO(b/259021973): Is it safe to consider
@@ -289,34 +286,34 @@ void RunAttestationCertificateCallback(
 
 std::string CreateStartSessionRequestData(
     const FidoAssertionInfo& fido_assertion_info,
-    const PEMCertChain& certificate) {
+    const std::string& certificate) {
   std::string request_string;
 
   // This is the request format:
   // {
-  //     "fulfilledChallenge": {
-  //         "fulfilledChallengeType": "FIDO",
-  //         "assertionInfo": {
+  //     "fulfilled_challenge": {
+  //         "fulfilled_challenge_type": "FIDO",
+  //         "assertion_info": {
   //             "email": <Email as string>,
-  //             "credentialId": <Base64 encoded credential id as string>,
-  //             "authenticatorData": <Byte array of authenticator data>,
-  //             "clientData": <Byte array of client data>,
+  //             "credential_id": <Base64 encoded credential id as string>,
+  //             "authenticator_data": <Byte array of authenticator data>,
+  //             "client_data": <Byte array of client data>,
   //             "signature": <Byte array of signature generated by the
   //                           authenticator>
   //         }
   //     },
-  //     "platformData": {
-  //         "fallbackOption": "TARGET_ONLY"
+  //     "platform_data": {
+  //         "fallback_option": "TARGET_ONLY"
   //     },
-  //     "sourceDeviceInfo": {
-  //         "deviceType": "ANDROID"
+  //     "source_device_info": {
+  //         "device_type": "ANDROID"
   //     },
-  //     "targetDeviceInfo": {
-  //         "chromeOsDeviceInfo": {
-  //             "deviceAttestationCertificate": <Byte array of cert chain>,
-  //             "clientId": <Chrome's OAuth client id as string>,
+  //     "target_device_info": {
+  //         "chrome_os_device_info": {
+  //             "device_attestation_certificate": <Byte array of cert chain>,
+  //             "client_id": <Chrome's OAuth client id as string>,
   //         },
-  //         "deviceType": "CHROME_OS",
+  //         "device_type": "CHROME_OS",
   //     }
   // }
 
@@ -348,14 +345,7 @@ std::string CreateStartSessionRequestData(
   // taking user's consent. Also change the network annotation after adding
   // this.
   base::Value::Dict chrome_os_device_info;
-  // Gaia expects a byte array of cert chain in their request proto (see request
-  // format above). We need to Base64 encode the cert chain on top of the PEM
-  // encoding. Gaia will then do a double decoding - one at the proto level
-  // (Base64), and one at the PEM level (Base64) - to get the actual certificate
-  // bytes.
-  chrome_os_device_info.Set(
-      kDeviceAttestationCertificateKey,
-      base::Base64Encode(base::as_bytes(base::make_span((*certificate)))));
+  chrome_os_device_info.Set(kDeviceAttestationCertificateKey, certificate);
   chrome_os_device_info.Set(
       kClientIdKey,
       google_apis::GetOAuth2ClientID(google_apis::OAuth2Client::CLIENT_MAIN));
@@ -599,7 +589,7 @@ SecondDeviceAuthBroker::SecondDeviceAuthBroker(
 
 SecondDeviceAuthBroker::~SecondDeviceAuthBroker() = default;
 
-void SecondDeviceAuthBroker::FetchChallengeBytes(
+void SecondDeviceAuthBroker::GetChallengeBytes(
     ChallengeBytesCallback challenge_callback) {
   DCHECK(!endpoint_fetcher_)
       << "This class can handle only one request at a time";
@@ -632,8 +622,8 @@ void SecondDeviceAuthBroker::OnChallengeBytesFetched(
   endpoint_fetcher_.reset();
 
   if (response->http_status_code != google_apis::ApiErrorCode::HTTP_SUCCESS) {
-    HandleFetchChallengeBytesErrorResponse(std::move(challenge_callback),
-                                           std::move(response));
+    HandleGetChallengeBytesErrorResponse(std::move(challenge_callback),
+                                         std::move(response));
     return;
   }
 
@@ -668,7 +658,7 @@ void SecondDeviceAuthBroker::FetchAttestationCertificate(
 
 void SecondDeviceAuthBroker::FetchRefreshToken(
     const FidoAssertionInfo& fido_assertion_info,
-    const PEMCertChain& certificate,
+    const std::string& certificate,
     RefreshTokenCallback refresh_token_callback) {
   DCHECK(!endpoint_fetcher_)
       << "This class can handle only one request at a time";
@@ -733,7 +723,8 @@ void SecondDeviceAuthBroker::OnClientOAuthSuccess(
     const ClientOAuthResult& result) {
   DCHECK(refresh_token_internal_callback_)
       << "Received an unexpected callback for refresh token";
-  std::move(refresh_token_internal_callback_).Run(result.refresh_token);
+  std::move(refresh_token_internal_callback_)
+      .Run(base::ok(result.refresh_token));
 }
 
 void SecondDeviceAuthBroker::OnClientOAuthFailure(

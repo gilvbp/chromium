@@ -6,8 +6,6 @@ import {TestRunner} from 'test_runner';
 import {SourcesTestRunner} from 'sources_test_runner';
 import {ConsoleTestRunner} from 'console_test_runner';
 
-import * as SDK from 'devtools/core/sdk/sdk.js';
-
 (async function() {
   TestRunner.addResult(
       `Tests that inline scripts and document.write scripts get different uiSourceCodes with different URLs.`);
@@ -20,7 +18,7 @@ import * as SDK from 'devtools/core/sdk/sdk.js';
     function testOpenDevToolsAfterLoad(next) {
       var consoleMessagesCount = 2;
 
-      var messages = SDK.ConsoleModel.ConsoleModel.allMessagesUnordered();
+      var messages = SDK.ConsoleModel.allMessagesUnordered();
       for (var i = 0; i < messages.length; ++i)
         processMessage(messages[i]);
       checkWhenScriptsLoaded();

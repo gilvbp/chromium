@@ -200,6 +200,7 @@ void LocalFrameClientImpl::DispatchDidClearWindowObjectInMainWorld(
     // Do not run microtasks while invoking the callback.
     {
       v8::MicrotasksScope microtasks(isolate, microtask_queue,
+
                                      v8::MicrotasksScope::kDoNotRunMicrotasks);
       web_frame_->Client()->DidClearWindowObject();
     }
@@ -745,11 +746,10 @@ void LocalFrameClientImpl::DidObserveInputDelay(base::TimeDelta input_delay) {
 }
 
 void LocalFrameClientImpl::DidObserveUserInteraction(
-    base::TimeTicks max_event_start,
-    base::TimeTicks max_event_end,
+    base::TimeDelta max_event_duration,
     UserInteractionType interaction_type) {
-  web_frame_->Client()->DidObserveUserInteraction(
-      max_event_start, max_event_end, interaction_type);
+  web_frame_->Client()->DidObserveUserInteraction(max_event_duration,
+                                                  interaction_type);
 }
 
 void LocalFrameClientImpl::DidChangeCpuTiming(base::TimeDelta time) {

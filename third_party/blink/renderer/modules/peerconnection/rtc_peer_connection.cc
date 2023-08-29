@@ -2928,7 +2928,7 @@ void RTCPeerConnection::Trace(Visitor* visitor) const {
   visitor->Trace(dtls_transports_by_native_transport_);
   visitor->Trace(ice_transports_by_native_transport_);
   visitor->Trace(sctp_transport_);
-  EventTarget::Trace(visitor);
+  EventTargetWithInlineData::Trace(visitor);
   ExecutionContextLifecycleObserver::Trace(visitor);
   MediaStreamObserver::Trace(visitor);
 }

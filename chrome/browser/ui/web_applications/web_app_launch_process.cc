@@ -126,12 +126,12 @@ content::WebContents* WebAppLaunchProcess::Run() {
           ->GetSystemApp(
               *ash::GetSystemWebAppTypeForAppId(&*profile_, params_->app_id))
           ->IsUrlInSystemAppScope(launch_url);
-  CHECK(registrar_->IsUrlInAppExtendedScope(launch_url, params_->app_id) ||
-        is_url_in_system_web_app_sccope)
+  DCHECK(registrar_->IsUrlInAppScope(launch_url, params_->app_id) ||
+         is_url_in_system_web_app_sccope)
       << "Url " << launch_url.spec() << " not in scope for app "
       << params_->app_id;
 #else
-  CHECK(registrar_->IsUrlInAppExtendedScope(launch_url, params_->app_id));
+  DCHECK(registrar_->IsUrlInAppScope(launch_url, params_->app_id));
 #endif
 
 #if BUILDFLAG(IS_CHROMEOS_ASH)
@@ -214,11 +214,6 @@ std::tuple<GURL, bool /*is_file_handling*/> WebAppLaunchProcess::GetLaunchUrl(
 
 WindowOpenDisposition WebAppLaunchProcess::GetNavigationDisposition(
     bool is_new_browser) const {
-  // For prevent-close, we always want to focus the existing window
-  if (registrar_->IsPreventCloseEnabled(params_->app_id)) {
-    return WindowOpenDisposition::CURRENT_TAB;
-  }
-
   if (registrar_->IsTabbedWindowModeEnabled(params_->app_id)) {
     return WindowOpenDisposition::NEW_FOREGROUND_TAB;
   }
@@ -294,11 +289,8 @@ Browser* WebAppLaunchProcess::MaybeFindBrowserForLaunch() const {
         &profile_.get(), /*match_original_profiles=*/false, display_id);
   }
 
-  // In the case of prevent-close, we do not want to create a new browser, but
-  // instead continue to find the existing browser window.
   if (!registrar_->IsTabbedWindowModeEnabled(params_->app_id) &&
-      GetLaunchClientMode() == LaunchHandler::ClientMode::kNavigateNew &&
-      !registrar_->IsPreventCloseEnabled(params_->app_id)) {
+      GetLaunchClientMode() == LaunchHandler::ClientMode::kNavigateNew) {
     return nullptr;
   }
 
@@ -345,10 +337,7 @@ WebAppLaunchProcess::NavigateResult WebAppLaunchProcess::MaybeNavigateBrowser(
 
   content::WebContents* existing_tab = tab_strip->GetActiveWebContents();
   DCHECK(existing_tab);
-  // In the case of prevent-close, we do not navigate but instead focus the
-  // existing window
-  if (GetLaunchHandler().NeverNavigateExistingClients() ||
-      registrar_->IsPreventCloseEnabled(params_->app_id)) {
+  if (GetLaunchHandler().NeverNavigateExistingClients()) {
     if (base::ValuesEquivalent(WebAppTabHelper::FromWebContents(existing_tab)
                                    ->EnsureLaunchQueue()
                                    .GetPendingLaunchAppId(),
@@ -360,8 +349,8 @@ WebAppLaunchProcess::NavigateResult WebAppLaunchProcess::MaybeNavigateBrowser(
       return {.web_contents = existing_tab, .did_navigate = false};
     }
 
-    if (registrar_->IsUrlInAppExtendedScope(existing_tab->GetLastCommittedURL(),
-                                            params_->app_id)) {
+    if (registrar_->IsUrlInAppScope(existing_tab->GetLastCommittedURL(),
+                                    params_->app_id)) {
       // If the web contents is currently navigating then interrupt it. The
       // current page is now being used for this app launch.
       existing_tab->Stop();

@@ -4,21 +4,18 @@
 
 package org.chromium.chrome.browser.readaloud;
 
-import android.content.Context;
-
-import androidx.annotation.Nullable;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 
 /** Empty implementation of ReadAloudReadabilityHooks. */
 public class ReadAloudReadabilityHooksImpl implements ReadAloudReadabilityHooks {
-    public ReadAloudReadabilityHooksImpl(Context context, @Nullable String apiKeyOverride) {}
-
     @Override
-    public boolean isEnabled() {
+    boolean isEnabled() {
         return false;
     }
 
     @Override
-    public void isPageReadable(String url, ReadabilityCallback callback) {
-        return;
+    ListenableFuture<byte[]> isPageReadable(byte[] checkSupportedRequest) {
+        return Futures.immediateFuture(null);
     }
 }

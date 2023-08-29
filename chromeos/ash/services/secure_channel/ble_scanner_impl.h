@@ -75,8 +75,6 @@ class BleScannerImpl : public BleScanner,
   void HandleScanRequestChange() override;
 
   // device::BluetoothAdapter::Observer:
-  void AdapterPoweredChanged(device::BluetoothAdapter* adapter,
-                             bool powered) override;
   void DeviceAdvertisementReceived(device::BluetoothAdapter* adapter,
                                    device::BluetoothDevice* device,
                                    int16_t rssi,

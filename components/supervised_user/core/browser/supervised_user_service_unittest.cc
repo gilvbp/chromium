@@ -22,9 +22,6 @@
 #include "components/prefs/pref_service.h"
 #include "components/prefs/scoped_user_pref_update.h"
 #include "components/prefs/testing_pref_service.h"
-#include "components/signin/public/base/consent_level.h"
-#include "components/signin/public/identity_manager/account_capabilities_test_mutator.h"
-#include "components/signin/public/identity_manager/account_info.h"
 #include "components/signin/public/identity_manager/identity_test_environment.h"
 #include "components/supervised_user/core/browser/kids_chrome_management_client.h"
 #include "components/supervised_user/core/browser/supervised_user_settings_service.h"
@@ -41,8 +38,8 @@ namespace supervised_user {
 
 namespace {
 
-const char kExampleUrl0[] = "http://www.example0.com";
-const char kExampleUrl1[] = "http://www.example1.com/123";
+constexpr char kExampleUrl0[] = "http://www.example0.com";
+constexpr char kExampleUrl1[] = "http://www.example1.com/123";
 
 }  // namespace
 
@@ -58,9 +55,9 @@ class SupervisedUserServiceTestBase : public ::testing::Test {
             base::MakeRefCounted<network::WeakWrapperSharedURLLoaderFactory>(
                 &test_url_loader_factory_),
             identity_test_env_.identity_manager()) {
-    settings_service_.Init(syncable_pref_service_.user_prefs_store());
-    SupervisedUserService::RegisterProfilePrefs(
-        syncable_pref_service_.registry());
+    // Specify if the user is supervised.
+    syncable_pref_service_.registry()->RegisterStringPref(
+        prefs::kSupervisedUserId, std::string());
     if (is_supervised) {
       syncable_pref_service_.SetString(prefs::kSupervisedUserId,
                                        kChildAccountSUID);
@@ -68,9 +65,13 @@ class SupervisedUserServiceTestBase : public ::testing::Test {
       syncable_pref_service_.ClearPref(prefs::kSupervisedUserId);
     }
 
+    settings_service_.Init(syncable_pref_service_.user_prefs_store());
+    SupervisedUserService::RegisterProfilePrefs(
+        syncable_pref_service_.registry());
+
     service_ = std::make_unique<SupervisedUserService>(
-        identity_test_env_.identity_manager(), &kids_chrome_management_client_,
-        syncable_pref_service_, settings_service_, sync_service_,
+        &kids_chrome_management_client_, syncable_pref_service_,
+        settings_service_, sync_service_,
         /*check_webstore_url_callback=*/
         base::BindRepeating([](const GURL& url) { return false; }),
         std::make_unique<FilterDelegateImpl>(),

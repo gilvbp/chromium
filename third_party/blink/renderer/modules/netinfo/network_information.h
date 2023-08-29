@@ -19,7 +19,7 @@ namespace blink {
 class NavigatorBase;
 
 class NetworkInformation final
-    : public EventTarget,
+    : public EventTargetWithInlineData,
       public ActiveScriptWrappable<NetworkInformation>,
       public Supplement<NavigatorBase>,
       public ExecutionContextLifecycleObserver,

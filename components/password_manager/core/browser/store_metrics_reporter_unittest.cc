@@ -14,7 +14,6 @@
 #include "base/time/time.h"
 #include "build/build_config.h"
 #include "components/os_crypt/sync/os_crypt_mocker.h"
-#include "components/password_manager/core/browser/features/password_features.h"
 #include "components/password_manager/core/browser/mock_password_reuse_manager.h"
 #include "components/password_manager/core/browser/mock_password_store_interface.h"
 #include "components/password_manager/core/browser/password_form.h"
@@ -77,13 +76,6 @@ void AddMetricsTestData(TestPasswordStore* store) {
   password_form.signon_realm = "ftp://third.example.com/";
   password_form.times_used_in_html_form = 4;
   password_form.scheme = PasswordForm::Scheme::kOther;
-  store->AddLogin(password_form);
-
-  password_form.url = GURL("http://second.example.com");
-  password_form.username_value = u"shared@gmail.com";
-  password_form.type = PasswordForm::Type::kReceivedViaSharing;
-  password_form.scheme = PasswordForm::Scheme::kHtml;
-  password_form.times_used_in_html_form = 20;
   store->AddLogin(password_form);
 
   password_form.url = GURL("http://fourth.example.com/");
@@ -358,12 +350,6 @@ TEST_F(StoreMetricsReporterTest, ReportAccountsPerSiteHiResMetricsTest) {
       "WithoutCustomPassphrase",
       1, 2);
 
-  histogram_tester.ExpectUniqueSample(
-      "PasswordManager.ProfileStore.AccountsPerSiteHiRes3."
-      "ReceivedViaSharing."
-      "WithoutCustomPassphrase",
-      1, 1);
-
   histogram_tester.ExpectBucketCount(
       "PasswordManager.ProfileStore.AccountsPerSiteHiRes3."
       "UserCreated."
@@ -379,7 +365,7 @@ TEST_F(StoreMetricsReporterTest, ReportAccountsPerSiteHiResMetricsTest) {
       "PasswordManager.ProfileStore.AccountsPerSiteHiRes3."
       "Overall."
       "WithoutCustomPassphrase",
-      1, 6);
+      1, 5);
   histogram_tester.ExpectBucketCount(
       "PasswordManager.ProfileStore.AccountsPerSiteHiRes3."
       "Overall."
@@ -552,16 +538,9 @@ TEST_F(StoreMetricsReporterTest, ReportTotalAccountsHiResMetricsTest) {
 
   histogram_tester.ExpectUniqueSample(
       "PasswordManager.ProfileStore.TotalAccountsHiRes3."
-      "ByType."
-      "ReceivedViaSharing."
-      "WithoutCustomPassphrase",
-      1, 1);
-
-  histogram_tester.ExpectUniqueSample(
-      "PasswordManager.ProfileStore.TotalAccountsHiRes3."
       "ByType.Overall."
       "WithoutCustomPassphrase",
-      10, 1);
+      9, 1);
 
   histogram_tester.ExpectUniqueSample(
       "PasswordManager.ProfileStore.TotalAccountsHiRes3."
@@ -575,7 +554,7 @@ TEST_F(StoreMetricsReporterTest, ReportTotalAccountsHiResMetricsTest) {
   histogram_tester.ExpectUniqueSample(
       "PasswordManager.ProfileStore.TotalAccountsHiRes3."
       "WithScheme.Http",
-      6, 1);
+      5, 1);
   histogram_tester.ExpectUniqueSample(
       "PasswordManager.ProfileStore.TotalAccountsHiRes3."
       "WithScheme.Https",
@@ -643,12 +622,6 @@ TEST_F(StoreMetricsReporterTest, ReportTimesPasswordUsedMetricsTest) {
       "UserCreated."
       "WithoutCustomPassphrase",
       3, 1);
-
-  histogram_tester.ExpectBucketCount(
-      "PasswordManager.ProfileStore.TimesPasswordUsed3."
-      "ReceivedViaSharing."
-      "WithoutCustomPassphrase",
-      20, 1);
 
   histogram_tester.ExpectBucketCount(
       "PasswordManager.ProfileStore.TimesPasswordUsed3."
@@ -733,15 +706,9 @@ TEST_F(StoreMetricsReporterTest,
 
   histogram_tester.ExpectBucketCount(
       "PasswordManager.AccountStore.AccountsPerSiteHiRes3."
-      "ReceivedViaSharing."
-      "WithoutCustomPassphrase",
-      1, 1);
-
-  histogram_tester.ExpectBucketCount(
-      "PasswordManager.AccountStore.AccountsPerSiteHiRes3."
       "Overall."
       "WithoutCustomPassphrase",
-      1, 6);
+      1, 5);
   histogram_tester.ExpectBucketCount(
       "PasswordManager.AccountStore.AccountsPerSiteHiRes3."
       "Overall."
@@ -800,15 +767,9 @@ TEST_F(StoreMetricsReporterTest,
 
   histogram_tester.ExpectUniqueSample(
       "PasswordManager.AccountStore.TotalAccountsHiRes3."
-      "ByType.ReceivedViaSharing."
-      "WithoutCustomPassphrase",
-      1, 1);
-
-  histogram_tester.ExpectUniqueSample(
-      "PasswordManager.AccountStore.TotalAccountsHiRes3."
       "ByType.Overall."
       "WithoutCustomPassphrase",
-      10, 1);
+      9, 1);
 
   histogram_tester.ExpectUniqueSample(
       "PasswordManager.AccountStore.TotalAccountsHiRes3."
@@ -821,7 +782,7 @@ TEST_F(StoreMetricsReporterTest,
   histogram_tester.ExpectUniqueSample(
       "PasswordManager.AccountStore.TotalAccountsHiRes3."
       "WithScheme.Http",
-      6, 1);
+      5, 1);
   histogram_tester.ExpectUniqueSample(
       "PasswordManager.AccountStore.TotalAccountsHiRes3."
       "WithScheme.Https",
@@ -895,12 +856,6 @@ TEST_F(StoreMetricsReporterTest,
       "UserCreated."
       "WithoutCustomPassphrase",
       3, 1);
-
-  histogram_tester.ExpectBucketCount(
-      "PasswordManager.AccountStore.TimesPasswordUsed3."
-      "ReceivedViaSharing."
-      "WithoutCustomPassphrase",
-      20, 1);
 
   histogram_tester.ExpectBucketCount(
       "PasswordManager.AccountStore.TimesPasswordUsed3."

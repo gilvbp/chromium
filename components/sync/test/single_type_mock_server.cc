@@ -128,7 +128,7 @@ size_t SingleTypeMockServer::GetNumCommitMessages() const {
   return commit_messages_.size();
 }
 
-const sync_pb::ClientToServerMessage& SingleTypeMockServer::GetNthCommitMessage(
+sync_pb::ClientToServerMessage SingleTypeMockServer::GetNthCommitMessage(
     size_t n) const {
   DCHECK_LT(n, GetNumCommitMessages());
   return commit_messages_[n];

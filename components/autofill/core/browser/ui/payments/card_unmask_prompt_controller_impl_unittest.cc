@@ -7,7 +7,6 @@
 #include <stddef.h>
 
 #include <memory>
-#include <string>
 
 #include "base/functional/bind.h"
 #include "base/memory/raw_ptr.h"
@@ -70,13 +69,13 @@ class TestCardUnmaskPromptView : public CardUnmaskPromptView {
     // Notify the controller that the view was dismissed.
     controller_->OnUnmaskDialogClosed();
   }
-  void ControllerGone() override { controller_ = nullptr; }
+  void ControllerGone() override {}
   void DisableAndWaitForVerification() override {}
   void GotVerificationResult(const std::u16string& error_message,
                              bool allow_retry) override {}
 
  private:
-  raw_ptr<CardUnmaskPromptController> controller_ = nullptr;
+  raw_ptr<CardUnmaskPromptController, DanglingUntriaged> controller_;
 };
 
 class TestCardUnmaskPromptController : public CardUnmaskPromptControllerImpl {
@@ -119,6 +118,8 @@ class CardUnmaskPromptControllerImplGenericTest {
     pref_service_ = std::make_unique<TestingPrefServiceSimple>();
     controller_ =
         std::make_unique<TestCardUnmaskPromptController>(pref_service_.get());
+    test_unmask_prompt_view_ =
+        std::make_unique<TestCardUnmaskPromptView>(controller_.get());
     delegate_ = std::make_unique<TestCardUnmaskDelegate>();
   }
 
@@ -127,23 +128,18 @@ class CardUnmaskPromptControllerImplGenericTest {
   void ShowPrompt(const absl::optional<autofill::CardUnmaskChallengeOption>&
                       challenge_option = absl::nullopt) {
     card_.set_record_type(challenge_option.has_value()
-                              ? CreditCard::RecordType::kVirtualCard
-                              : CreditCard::RecordType::kMaskedServerCard);
+                              ? CreditCard::VIRTUAL_CARD
+                              : CreditCard::MASKED_SERVER_CARD);
 
     CardUnmaskPromptOptions card_unmask_prompt_options =
         CardUnmaskPromptOptions(challenge_option,
                                 AutofillClient::UnmaskCardReason::kAutofill);
 
     controller_->ShowPrompt(
-        base::BindOnce(&CardUnmaskPromptControllerImplGenericTest::
-                           CreateCardUnmaskPromptView,
-                       base::Unretained(this)),
+        base::BindOnce(
+            &CardUnmaskPromptControllerImplGenericTest::GetCardUnmaskPromptView,
+            base::Unretained(this)),
         card_, card_unmask_prompt_options, delegate_->GetWeakPtr());
-  }
-
-  void DismissPrompt() {
-    test_unmask_prompt_view_->Dismiss();
-    test_unmask_prompt_view_.reset();
   }
 
   void ShowPromptAndSimulateResponse(bool enable_fido_auth,
@@ -168,9 +164,7 @@ class CardUnmaskPromptControllerImplGenericTest {
   std::unique_ptr<TestCardUnmaskDelegate> delegate_;
 
  private:
-  CardUnmaskPromptView* CreateCardUnmaskPromptView() {
-    test_unmask_prompt_view_ =
-        std::make_unique<TestCardUnmaskPromptView>(controller_.get());
+  CardUnmaskPromptView* GetCardUnmaskPromptView() {
     return test_unmask_prompt_view_.get();
   }
 };
@@ -361,10 +355,8 @@ TEST_P(CardUnmaskPromptContentTest, TitleAndInstructionMessage) {
       controller_->GetInstructionsMessage(),
       u"To help keep your card secure, enter the CVC on the back of your card");
 #endif
-  DismissPrompt();
-}
+  controller_->OnUnmaskDialogClosed();
 
-TEST_P(CardUnmaskPromptContentTest, TitleAndInstructionMessageAmex) {
   // On Amex cards, the CVC is present on the front of the card. Test that the
   // dialog relays this information to the users.
   card_ = test::GetMaskedServerCardAmex();
@@ -388,7 +380,7 @@ TEST_P(CardUnmaskPromptContentTest, TitleAndInstructionMessageAmex) {
             u"To help keep your card secure, enter the CVC on the front of "
             u"your card");
 #endif
-  DismissPrompt();
+  controller_->OnUnmaskDialogClosed();
 }
 
 // Tests the title and instructions message in the credit card unmask dialog for
@@ -415,7 +407,7 @@ TEST_P(CardUnmaskPromptContentTest, ExpiredCardTitleAndInstructionMessage) {
   EXPECT_EQ(controller_->GetInstructionsMessage(),
             u"Enter your new expiration date and CVC on the back of your card");
 #endif
-  DismissPrompt();
+  controller_->OnUnmaskDialogClosed();
 }
 
 // This test ensures that the expected CVC length is correctly set for server
@@ -426,16 +418,14 @@ TEST_P(CardUnmaskPromptContentTest, GetExpectedCvcLength) {
   card_ = test::GetMaskedServerCard();
   ShowPrompt();
   EXPECT_EQ(controller_->GetExpectedCvcLength(), 3);
-  DismissPrompt();
-}
+  controller_->OnUnmaskDialogClosed();
 
-TEST_P(CardUnmaskPromptContentTest, GetExpectedCvcLengthAmex) {
   // Test that if the network is American Express and there is no challenge
   // option, the expected length of the security code is 4.
   card_ = test::GetMaskedServerCardAmex();
   ShowPrompt();
   EXPECT_EQ(controller_->GetExpectedCvcLength(), 4);
-  DismissPrompt();
+  controller_->OnUnmaskDialogClosed();
 }
 
 // Ensures the instruction message and window title is correctly displayed when
@@ -448,7 +438,7 @@ TEST_P(CardUnmaskPromptContentTest,
   // Test that if the network is not American Express and the challenge option
   // denotes that the security code is on the back of the card, its expected
   // length is 3.
-  card_.set_record_type(CreditCard::RecordType::kVirtualCard);
+  card_.set_record_type(CreditCard::VIRTUAL_CARD);
   ShowPrompt(test::GetCardUnmaskChallengeOptions(
       {CardUnmaskChallengeOptionType::kCvc})[0]);
   EXPECT_EQ(controller_->GetInstructionsMessage(),
@@ -462,17 +452,13 @@ TEST_P(CardUnmaskPromptContentTest,
         u"Enter your security code for " + card_.CardNameAndLastFourDigits());
   }
   EXPECT_EQ(controller_->GetExpectedCvcLength(), 3);
-  DismissPrompt();
-}
+  controller_->OnUnmaskDialogClosed();
 
-TEST_P(
-    CardUnmaskPromptContentTest,
-    ChallengeOptionInstructionMessageAndWindowTitleAndExpectedCvcLengthAmex) {
   // Test that if the network is American Express and the challenge option
   // denotes that the security code is on the back of the card, its expected
   // length is still 3.
   card_ = test::GetMaskedServerCardAmex();
-  card_.set_record_type(CreditCard::RecordType::kVirtualCard);
+  card_.set_record_type(CreditCard::VIRTUAL_CARD);
   ShowPrompt(test::GetCardUnmaskChallengeOptions(
       {CardUnmaskChallengeOptionType::kCvc})[0]);
   EXPECT_EQ(controller_->GetInstructionsMessage(),
@@ -486,7 +472,7 @@ TEST_P(
         u"Enter your security code for " + card_.CardNameAndLastFourDigits());
   }
   EXPECT_EQ(controller_->GetExpectedCvcLength(), 3);
-  DismissPrompt();
+  controller_->OnUnmaskDialogClosed();
 }
 #endif
 
@@ -501,9 +487,7 @@ TEST_P(CardUnmaskPromptContentTest, CvcHintImageAnnouncement) {
   EXPECT_EQ(controller_->GetCvcImageAnnouncement(),
             u"Your CVC is on the back of your card. It’s the last 3 digits at "
             u"the top right of the signature box.");
-}
 
-TEST_P(CardUnmaskPromptContentTest, CvcHintImageAnnouncementAmex) {
   // Test that for American Express cards, the CVC hint image announces that the
   // CVC can be found on the front of the card.
   card_ = test::GetMaskedServerCardAmex();
@@ -573,7 +557,7 @@ TEST_P(LoggingValidationTestForNickname, VirtualCard_LogUnmaskPromptShown) {
 TEST_P(LoggingValidationTestForNickname, LogClosedNoAttempts) {
   ShowPrompt();
   base::HistogramTester histogram_tester;
-  DismissPrompt();
+  controller_->OnUnmaskDialogClosed();
 
   histogram_tester.ExpectBucketCount(
       "Autofill.UnmaskPrompt.ServerCard.Events",
@@ -588,7 +572,7 @@ TEST_P(LoggingValidationTestForNickname, LogClosedAbandonUnmasking) {
   ShowPromptAndSimulateResponse(/*enable_fido_auth=*/false);
   base::HistogramTester histogram_tester;
 
-  DismissPrompt();
+  controller_->OnUnmaskDialogClosed();
 
   histogram_tester.ExpectBucketCount(
       "Autofill.UnmaskPrompt.ServerCard.Events",
@@ -607,7 +591,7 @@ TEST_P(LoggingValidationTestForNickname, LogClosedFailedToUnmaskRetriable) {
 
   EXPECT_EQ(AutofillClient::PaymentsRpcResult::kTryAgainFailure,
             controller_->GetVerificationResult());
-  DismissPrompt();
+  controller_->OnUnmaskDialogClosed();
   // State should be cleared when the dialog is closed.
   EXPECT_EQ(AutofillClient::PaymentsRpcResult::kNone,
             controller_->GetVerificationResult());
@@ -630,7 +614,7 @@ TEST_P(LoggingValidationTestForNickname, LogClosedFailedToUnmaskNonRetriable) {
 
   EXPECT_EQ(AutofillClient::PaymentsRpcResult::kPermanentFailure,
             controller_->GetVerificationResult());
-  DismissPrompt();
+  controller_->OnUnmaskDialogClosed();
   // State should be cleared when the dialog is closed.
   EXPECT_EQ(AutofillClient::PaymentsRpcResult::kNone,
             controller_->GetVerificationResult());
@@ -656,7 +640,7 @@ TEST_P(LoggingValidationTestForNickname, LogUnmaskedCardFirstAttempt) {
 
   EXPECT_EQ(AutofillClient::PaymentsRpcResult::kSuccess,
             controller_->GetVerificationResult());
-  DismissPrompt();
+  controller_->OnUnmaskDialogClosed();
   // State should be cleared when the dialog is closed.
   EXPECT_EQ(AutofillClient::PaymentsRpcResult::kNone,
             controller_->GetVerificationResult());
@@ -681,7 +665,7 @@ TEST_P(LoggingValidationTestForNickname, LogUnmaskedCardAfterFailure) {
 
   controller_->OnVerificationResult(
       AutofillClient::PaymentsRpcResult::kSuccess);
-  DismissPrompt();
+  controller_->OnUnmaskDialogClosed();
 
   histogram_tester.ExpectBucketCount(
       "Autofill.UnmaskPrompt.ServerCard.Events",
@@ -696,7 +680,7 @@ TEST_P(LoggingValidationTestForNickname, LogDurationNoAttempts) {
   ShowPrompt();
   base::HistogramTester histogram_tester;
 
-  DismissPrompt();
+  controller_->OnUnmaskDialogClosed();
 
   histogram_tester.ExpectTotalCount("Autofill.UnmaskPrompt.Duration", 1);
   histogram_tester.ExpectTotalCount("Autofill.UnmaskPrompt.Duration.NoAttempts",
@@ -713,7 +697,7 @@ TEST_P(LoggingValidationTestForNickname, LogDurationAbandonUnmasking) {
   ShowPromptAndSimulateResponse(/*enable_fido_auth=*/false);
   base::HistogramTester histogram_tester;
 
-  DismissPrompt();
+  controller_->OnUnmaskDialogClosed();
 
   histogram_tester.ExpectTotalCount("Autofill.UnmaskPrompt.Duration", 1);
   histogram_tester.ExpectTotalCount(
@@ -732,7 +716,7 @@ TEST_P(LoggingValidationTestForNickname, LogDurationFailedToUnmaskRetriable) {
       AutofillClient::PaymentsRpcResult::kTryAgainFailure);
   base::HistogramTester histogram_tester;
 
-  DismissPrompt();
+  controller_->OnUnmaskDialogClosed();
 
   histogram_tester.ExpectTotalCount("Autofill.UnmaskPrompt.Duration", 1);
   histogram_tester.ExpectTotalCount("Autofill.UnmaskPrompt.Duration.Failure",
@@ -752,7 +736,7 @@ TEST_P(LoggingValidationTestForNickname,
       AutofillClient::PaymentsRpcResult::kPermanentFailure);
   base::HistogramTester histogram_tester;
 
-  DismissPrompt();
+  controller_->OnUnmaskDialogClosed();
 
   histogram_tester.ExpectTotalCount("Autofill.UnmaskPrompt.Duration", 1);
   histogram_tester.ExpectTotalCount("Autofill.UnmaskPrompt.Duration.Failure",
@@ -771,7 +755,7 @@ TEST_P(LoggingValidationTestForNickname, LogDurationCardFirstAttempt) {
 
   controller_->OnVerificationResult(
       AutofillClient::PaymentsRpcResult::kSuccess);
-  DismissPrompt();
+  controller_->OnUnmaskDialogClosed();
 
   histogram_tester.ExpectTotalCount("Autofill.UnmaskPrompt.Duration", 1);
   histogram_tester.ExpectTotalCount("Autofill.UnmaskPrompt.Duration.Success",
@@ -794,7 +778,7 @@ TEST_P(LoggingValidationTestForNickname, LogDurationUnmaskedCardAfterFailure) {
 
   controller_->OnVerificationResult(
       AutofillClient::PaymentsRpcResult::kSuccess);
-  DismissPrompt();
+  controller_->OnUnmaskDialogClosed();
 
   histogram_tester.ExpectTotalCount("Autofill.UnmaskPrompt.Duration", 1);
   histogram_tester.ExpectTotalCount("Autofill.UnmaskPrompt.Duration.Success",
@@ -811,7 +795,7 @@ TEST_P(LoggingValidationTestForNickname, LogTimeBeforeAbandonUnmasking) {
   ShowPromptAndSimulateResponse(/*enable_fido_auth=*/false);
   base::HistogramTester histogram_tester;
 
-  DismissPrompt();
+  controller_->OnUnmaskDialogClosed();
 
   histogram_tester.ExpectTotalCount(
       "Autofill.UnmaskPrompt.TimeBeforeAbandonUnmasking", 1);

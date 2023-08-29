@@ -107,8 +107,7 @@ class FakeEligibleHostDevicesProviderFactory
   raw_ptr<device_sync::FakeDeviceSyncClient, ExperimentalAsh>
       expected_device_sync_client_;
 
-  raw_ptr<FakeEligibleHostDevicesProvider, DanglingUntriaged | ExperimentalAsh>
-      instance_ = nullptr;
+  raw_ptr<FakeEligibleHostDevicesProvider, ExperimentalAsh> instance_ = nullptr;
 };
 
 class FakeHostBackendDelegateFactory : public HostBackendDelegateImpl::Factory {
@@ -158,8 +157,7 @@ class FakeHostBackendDelegateFactory : public HostBackendDelegateImpl::Factory {
   raw_ptr<device_sync::FakeDeviceSyncClient, ExperimentalAsh>
       expected_device_sync_client_;
 
-  raw_ptr<FakeHostBackendDelegate, DanglingUntriaged | ExperimentalAsh>
-      instance_ = nullptr;
+  raw_ptr<FakeHostBackendDelegate, ExperimentalAsh> instance_ = nullptr;
 };
 
 class FakeHostVerifierFactory : public HostVerifierImpl::Factory {
@@ -207,8 +205,7 @@ class FakeHostVerifierFactory : public HostVerifierImpl::Factory {
   raw_ptr<sync_preferences::TestingPrefServiceSyncable, ExperimentalAsh>
       expected_testing_pref_service_;
 
-  raw_ptr<FakeHostVerifier, DanglingUntriaged | ExperimentalAsh> instance_ =
-      nullptr;
+  raw_ptr<FakeHostVerifier, ExperimentalAsh> instance_ = nullptr;
 };
 
 class FakeHostStatusProviderFactory : public HostStatusProviderImpl::Factory {
@@ -261,8 +258,7 @@ class FakeHostStatusProviderFactory : public HostStatusProviderImpl::Factory {
   raw_ptr<device_sync::FakeDeviceSyncClient, ExperimentalAsh>
       expected_device_sync_client_;
 
-  raw_ptr<FakeHostStatusProvider, DanglingUntriaged | ExperimentalAsh>
-      instance_ = nullptr;
+  raw_ptr<FakeHostStatusProvider, ExperimentalAsh> instance_ = nullptr;
 };
 
 class FakeGlobalStateFeatureManagerFactory
@@ -449,13 +445,11 @@ class FakeFeatureStateManagerFactory : public FeatureStateManagerImpl::Factory {
       fake_host_status_provider_factory_;
   raw_ptr<device_sync::FakeDeviceSyncClient, ExperimentalAsh>
       expected_device_sync_client_;
-  raw_ptr<FakeAndroidSmsPairingStateTracker,
-          DanglingUntriaged | ExperimentalAsh>
+  raw_ptr<FakeAndroidSmsPairingStateTracker, ExperimentalAsh>
       expected_android_sms_pairing_state_tracker_;
   bool expected_is_secondary_user_;
 
-  raw_ptr<FakeFeatureStateManager, DanglingUntriaged | ExperimentalAsh>
-      instance_ = nullptr;
+  raw_ptr<FakeFeatureStateManager, ExperimentalAsh> instance_ = nullptr;
 };
 
 class FakeHostDeviceTimestampManagerFactory
@@ -498,8 +492,7 @@ class FakeHostDeviceTimestampManagerFactory
   raw_ptr<sync_preferences::TestingPrefServiceSyncable, ExperimentalAsh>
       expected_testing_pref_service_;
 
-  raw_ptr<FakeHostDeviceTimestampManager, DanglingUntriaged | ExperimentalAsh>
-      instance_ = nullptr;
+  raw_ptr<FakeHostDeviceTimestampManager, ExperimentalAsh> instance_ = nullptr;
 };
 
 class FakeAccountStatusChangeDelegateNotifierFactory
@@ -557,9 +550,8 @@ class FakeAccountStatusChangeDelegateNotifierFactory
   raw_ptr<OobeCompletionTracker, ExperimentalAsh>
       expected_oobe_completion_tracker_;
 
-  raw_ptr<FakeAccountStatusChangeDelegateNotifier,
-          DanglingUntriaged | ExperimentalAsh>
-      instance_ = nullptr;
+  raw_ptr<FakeAccountStatusChangeDelegateNotifier, ExperimentalAsh> instance_ =
+      nullptr;
 };
 
 class FakeAndroidSmsAppInstallingStatusObserverFactory
@@ -602,7 +594,7 @@ class FakeAndroidSmsAppInstallingStatusObserverFactory
       fake_host_status_provider_factory_;
   raw_ptr<FakeFeatureStateManagerFactory, ExperimentalAsh>
       fake_feature_state_manager_factory_;
-  raw_ptr<AndroidSmsAppHelperDelegate, DanglingUntriaged | ExperimentalAsh>
+  raw_ptr<AndroidSmsAppHelperDelegate, ExperimentalAsh>
       expected_android_sms_app_helper_delegate_;
 };
 

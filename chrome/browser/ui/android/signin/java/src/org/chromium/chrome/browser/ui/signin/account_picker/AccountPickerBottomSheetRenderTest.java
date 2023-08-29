@@ -4,7 +4,9 @@
 
 package org.chromium.chrome.browser.ui.signin.account_picker;
 
+import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
+import static androidx.test.espresso.matcher.ViewMatchers.isRoot;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
 
@@ -156,8 +158,8 @@ public class AccountPickerBottomSheetRenderTest {
             throws IOException {
         mAccountManagerTestRule.addAccount(TEST_EMAIL1, FULL_NAME1, GIVEN_NAME1, null);
         buildAndShowCollapsedBottomSheet();
-        ViewUtils.waitForVisibleView(allOf(withText(TEST_EMAIL1), isDisplayed()));
-        ViewUtils.waitForVisibleView(allOf(withText(FULL_NAME1), isDisplayed()));
+        onView(isRoot()).check(ViewUtils.waitForView(allOf(withText(TEST_EMAIL1), isDisplayed())));
+        onView(isRoot()).check(ViewUtils.waitForView(allOf(withText(FULL_NAME1), isDisplayed())));
         mRenderTestRule.render(
                 mCoordinator.getBottomSheetViewForTesting(), "collapsed_sheet_with_account");
     }
@@ -171,8 +173,8 @@ public class AccountPickerBottomSheetRenderTest {
         mAccountPickerDelegate.setSendTabToSelfEntryPoint();
         mAccountManagerTestRule.addAccount(TEST_EMAIL1, FULL_NAME1, GIVEN_NAME1, null);
         buildAndShowCollapsedBottomSheet();
-        ViewUtils.waitForVisibleView(allOf(withText(TEST_EMAIL1), isDisplayed()));
-        ViewUtils.waitForVisibleView(allOf(withText(FULL_NAME1), isDisplayed()));
+        onView(isRoot()).check(ViewUtils.waitForView(allOf(withText(TEST_EMAIL1), isDisplayed())));
+        onView(isRoot()).check(ViewUtils.waitForView(allOf(withText(FULL_NAME1), isDisplayed())));
         mRenderTestRule.render(mCoordinator.getBottomSheetViewForTesting(),
                 "collapsed_sheet_with_account_for_send_tab_to_self");
     }

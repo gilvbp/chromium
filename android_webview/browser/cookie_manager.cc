@@ -11,7 +11,6 @@
 #include <vector>
 
 #include "android_webview/browser/aw_browser_context.h"
-#include "android_webview/browser/aw_browser_context_store.h"
 #include "android_webview/browser/aw_client_hints_controller_delegate.h"
 #include "android_webview/browser/aw_cookie_access_policy.h"
 #include "android_webview/browser_jni_headers/AwCookieManager_jni.h"
@@ -180,8 +179,8 @@ const bool kDefaultFileSchemeAllowed = false;
 }  // namespace
 
 // static
-CookieManager* CookieManager::GetDefaultInstance() {
-  static base::NoDestructor<CookieManager> instance(nullptr);
+CookieManager* CookieManager::GetInstance() {
+  static base::NoDestructor<CookieManager> instance;
   return instance.get();
 }
 
@@ -196,9 +195,8 @@ base::FilePath GetPathInAppDirectory(std::string path) {
 }
 }  // namespace
 
-CookieManager::CookieManager(AwBrowserContext* const parent_context)
-    : parent_context_(parent_context),
-      allow_file_scheme_cookies_(kDefaultFileSchemeAllowed),
+CookieManager::CookieManager()
+    : allow_file_scheme_cookies_(kDefaultFileSchemeAllowed),
       cookie_store_created_(false),
       workaround_http_secure_cookies_(
           base::android::BuildInfo::GetInstance()->target_sdk_version() <
@@ -209,11 +207,11 @@ CookieManager::CookieManager(AwBrowserContext* const parent_context)
   cookie_store_client_thread_.Start();
   cookie_store_backend_thread_.Start();
   cookie_store_task_runner_ = cookie_store_client_thread_.task_runner();
-  cookie_store_path_ = GetContextPath().Append(FILE_PATH_LITERAL("Cookies"));
-  if (!parent_context_) {
-    // Default profile
-    MigrateCookieStorePath();
-  }
+
+  // TODO(amalova): initialize cookie_store_path_ for non-default profile
+  // Do not migrate cookies for non-default profile.
+  cookie_store_path_ = GetPathInAppDirectory("Default/Cookies");
+  MigrateCookieStorePath();
 }
 
 CookieManager::~CookieManager() = default;
@@ -316,8 +314,6 @@ base::FilePath CookieManager::GetCookieStorePath() {
 }
 
 net::CookieStore* CookieManager::GetCookieStore() {
-  // This should only be called for the default context.
-  CHECK(!parent_context_);
   DCHECK(cookie_store_task_runner_->RunsTasksInCurrentSequence());
 
   if (!cookie_store_) {
@@ -762,34 +758,17 @@ void CookieManager::ClearClientHintsCachedPerOriginMapIfNeeded() {
   DCHECK_CURRENTLY_ON(BrowserThread::UI);
   // If we had a client hint cache clear pending, we should do it as soon as we
   // next check and see that the browser has been started.
-  if (should_clear_client_hints_cached_per_origin_map_) {
-    GetContext()->GetPrefService()->SetDict(
+  if (should_clear_client_hints_cached_per_origin_map_ &&
+      AwBrowserContext::GetDefault() &&
+      AwBrowserContext::GetDefault()->GetPrefService()) {
+    AwBrowserContext::GetDefault()->GetPrefService()->SetDict(
         prefs::kClientHintsCachedPerOriginMap, base::Value::Dict());
     should_clear_client_hints_cached_per_origin_map_ = false;
   }
 }
 
 static jlong JNI_AwCookieManager_GetDefaultCookieManager(JNIEnv* env) {
-  return reinterpret_cast<intptr_t>(CookieManager::GetDefaultInstance());
-}
-
-AwBrowserContext* CookieManager::GetContext() const {
-  if (parent_context_) {
-    return parent_context_;
-  } else {
-    return AwBrowserContext::GetDefault();
-  }
-}
-
-base::FilePath CookieManager::GetContextPath() const {
-  if (parent_context_) {
-    // Non-default profile
-    return parent_context_->GetPath();
-  } else {
-    // Default profile
-    return AwBrowserContext::BuildStoragePath(
-        base::FilePath(AwBrowserContextStore::kDefaultContextPath));
-  }
+  return reinterpret_cast<intptr_t>(CookieManager::GetInstance());
 }
 
 }  // namespace android_webview

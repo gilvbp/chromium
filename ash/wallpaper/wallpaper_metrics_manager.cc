@@ -22,15 +22,11 @@ namespace {
 std::string ToResultHistogram(WallpaperType type) {
   switch (type) {
     case WallpaperType::kOnline:
-      return "Ash.Wallpaper.Online.Result2";
+      return "Ash.Wallpaper.Online.Result";
     case WallpaperType::kCustomized:
-      return "Ash.Wallpaper.Customized.Result2";
+      return "Ash.Wallpaper.Customized.Result";
     case WallpaperType::kOnceGooglePhotos:
-      return "Ash.Wallpaper.OnceGooglePhotos.Result2";
-    case WallpaperType::kDaily:
-      return "Ash.Wallpaper.Daily.Result2";
-    case WallpaperType::kDailyGooglePhotos:
-      return "Ash.Wallpaper.DailyGooglePhotos.Result2";
+      return "Ash.Wallpaper.OnceGooglePhotos.Result";
     default:
       // TODO(b/285387348): Implement other WallpaperType.
       NOTIMPLEMENTED_LOG_ONCE();
@@ -57,8 +53,6 @@ void WallpaperMetricsManager::OnOnlineWallpaperSet(
     const std::string& collection_id = params.collection_id;
     DCHECK(!collection_id.empty());
     const int collection_id_hash = base::PersistentHash(collection_id);
-    DVLOG(3) << __PRETTY_FUNCTION__ << " collection_id=" << collection_id
-             << " hash=" << collection_id_hash;
     base::UmaHistogramSparse("Ash.Wallpaper.Collection", collection_id_hash);
   }
 }

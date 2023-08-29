@@ -6,6 +6,8 @@ package org.chromium.components.messages;
 
 import android.os.Handler;
 
+import androidx.annotation.VisibleForTesting;
+
 import org.chromium.base.ThreadUtils;
 
 /**
@@ -52,10 +54,12 @@ class MessageAutoDismissTimer {
         mAutoDismissTimer.postDelayed(mRunnableOnTimeUp, mDuration);
     }
 
+    @VisibleForTesting
     void setHandlerForTesting(Handler handler) {
         mAutoDismissTimer = handler;
     }
 
+    @VisibleForTesting
     Runnable getRunnableOnTimeUpForTesting() {
         return mRunnableOnTimeUp;
     }

@@ -176,8 +176,6 @@ class SystemLiveCaptionServiceTest : public InProcessBrowserTest {
     speech::SodaInstaller::GetInstance()->NotifySodaInstalledForTesting(
         speech::LanguageCode::kEnUs);
     speech::SodaInstaller::GetInstance()->NotifySodaInstalledForTesting();
-    // Events must propogate, so we wait after install.
-    base::RunLoop().RunUntilIdle();
     SystemLiveCaptionServiceFactory::GetInstance()
         ->GetForProfile(primary_profile_)
         ->OnNonChromeOutputStarted();
@@ -185,10 +183,9 @@ class SystemLiveCaptionServiceTest : public InProcessBrowserTest {
   }
 
   // Unowned.
-  raw_ptr<Profile, DanglingUntriaged | ExperimentalAsh> primary_profile_;
-  raw_ptr<Profile, DanglingUntriaged | ExperimentalAsh> secondary_profile_;
-  raw_ptr<speech::FakeSpeechRecognitionService,
-          DanglingUntriaged | ExperimentalAsh>
+  raw_ptr<Profile, ExperimentalAsh> primary_profile_;
+  raw_ptr<Profile, ExperimentalAsh> secondary_profile_;
+  raw_ptr<speech::FakeSpeechRecognitionService, ExperimentalAsh>
       fake_speech_recognition_service_;
 
   base::test::ScopedFeatureList scoped_feature_list_;
@@ -258,10 +255,9 @@ IN_PROC_BROWSER_TEST_F(SystemLiveCaptionServiceTest, SodaError) {
 // Tests that our feature listens to the correct SODA language.
 IN_PROC_BROWSER_TEST_F(SystemLiveCaptionServiceTest, SodaIrrelevantError) {
   // Set audio output running
-  auto* live_caption_service =
-      SystemLiveCaptionServiceFactory::GetInstance()->GetForProfile(
-          primary_profile_);
-  live_caption_service->OnNonChromeOutputStarted();
+  SystemLiveCaptionServiceFactory::GetInstance()
+      ->GetForProfile(primary_profile_)
+      ->OnNonChromeOutputStarted();
   // Enable feature so that we start listening for SODA install status.
   SetLiveCaptionsPref(primary_profile_, /*enabled=*/true);
 
@@ -281,10 +277,7 @@ IN_PROC_BROWSER_TEST_F(SystemLiveCaptionServiceTest, SodaIrrelevantError) {
   speech::SodaInstaller::GetInstance()->NotifySodaInstalledForTesting(
       speech::LanguageCode::kEnUs);
   base::RunLoop().RunUntilIdle();
-  // Tell the caption service audio is running again. This is needed since we
-  // don't actually go to a fake cras audio system in this test.
-  live_caption_service->OnNonChromeOutputStarted();
-  base::RunLoop().RunUntilIdle();
+
   // We should have ignored the unrelated error.
   EXPECT_TRUE(fake_speech_recognition_service_->is_capturing_audio());
 }

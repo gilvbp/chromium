@@ -42,8 +42,7 @@ ChromeBrowsingDataLifetimeManagerFactory::
 ChromeBrowsingDataLifetimeManagerFactory::
     ~ChromeBrowsingDataLifetimeManagerFactory() = default;
 
-std::unique_ptr<KeyedService>
-ChromeBrowsingDataLifetimeManagerFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* ChromeBrowsingDataLifetimeManagerFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   if (!base::FeatureList::IsEnabled(
           browsing_data::features::kEnableBrowsingDataLifetimeManager))
@@ -57,7 +56,7 @@ ChromeBrowsingDataLifetimeManagerFactory::BuildServiceInstanceForBrowserContext(
   if (profile->IsGuestSession() && !profile->IsOffTheRecord())
     return nullptr;
 #endif  // BUILDFLAG(IS_CHROMEOS_ASH) || BUILDFLAG(IS_CHROMEOS_LACROS)
-  return std::make_unique<ChromeBrowsingDataLifetimeManager>(context);
+  return new ChromeBrowsingDataLifetimeManager(context);
 }
 
 bool ChromeBrowsingDataLifetimeManagerFactory::

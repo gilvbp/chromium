@@ -24,6 +24,10 @@
 #import "ui/base/test/ios/ui_image_test_utils.h"
 #import "url/gurl.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 using ui::test::uiimage_utils::UIImagesAreEqual;
 using ui::test::uiimage_utils::UIImageWithSizeAndSolidColorAndScale;
 

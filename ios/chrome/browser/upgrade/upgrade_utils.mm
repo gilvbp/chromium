@@ -7,6 +7,10 @@
 #import <Foundation/Foundation.h>
 #import "ios/chrome/browser/upgrade/upgrade_constants.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 bool IsAppUpToDate() {
   return
       [[NSUserDefaults standardUserDefaults] boolForKey:kIOSChromeUpToDateKey];

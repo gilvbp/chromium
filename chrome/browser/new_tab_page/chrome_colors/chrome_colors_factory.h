@@ -33,7 +33,7 @@ class ChromeColorsFactory : public ProfileKeyedServiceFactory {
   ~ChromeColorsFactory() override;
 
   // Overrides from BrowserContextKeyedServiceFactory:
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* profile) const override;
 };
 

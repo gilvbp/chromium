@@ -33,6 +33,7 @@
 #include "components/keep_alive_registry/scoped_keep_alive.h"
 #include "components/permissions/features.h"
 #include "components/permissions/permission_manager.h"
+#include "components/permissions/permission_result.h"
 #include "components/prefs/pref_service.h"
 #include "content/public/browser/notification_service.h"
 #include "content/public/common/content_switches.h"
@@ -244,7 +245,7 @@ class ExtensionContentSettingsApiTest : public ExtensionApiTest {
   }
 
  private:
-  raw_ptr<Profile, AcrossTasksDanglingUntriaged> profile_ = nullptr;
+  raw_ptr<Profile, DanglingUntriaged> profile_ = nullptr;
   std::unique_ptr<ScopedKeepAlive> keep_alive_;
   std::unique_ptr<ScopedProfileKeepAlive> profile_keep_alive_;
 };

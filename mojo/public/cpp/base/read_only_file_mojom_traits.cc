@@ -11,16 +11,30 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#endif  // BUILDFLAG(IS_POSIX) || BUILDFLAG(IS_FUCHSIA)
-
+#endif
 #if BUILDFLAG(IS_WIN)
 #include <windows.h>
-
-#include "base/win/security_util.h"
-#endif  // BUILDFLAG(IS_WIN)
+#include <winternl.h>
+#endif
 
 namespace mojo {
 namespace {
+#if BUILDFLAG(IS_WIN)
+bool GetGrantedAccess(HANDLE handle, DWORD* flags) {
+  static const auto nt_query_object =
+      reinterpret_cast<decltype(&NtQueryObject)>(
+          GetProcAddress(GetModuleHandle(L"ntdll.dll"), "NtQueryObject"));
+  PUBLIC_OBJECT_BASIC_INFORMATION info;
+  ULONG len = sizeof(info);
+  ULONG consumed = 0;
+  auto ret =
+      nt_query_object(handle, ObjectBasicInformation, &info, len, &consumed);
+  if (ret)
+    return false;
+  *flags = info.GrantedAccess;
+  return true;
+}
+#endif  // BUILDFLAG(IS_WIN)
 
 // True if the underlying handle is only readable. Where possible this excludes
 // deletion, writing, truncation, append and other operations that might modify
@@ -29,16 +43,15 @@ namespace {
 bool IsReadOnlyFile(base::File& file) {
   bool is_readonly = true;
 #if BUILDFLAG(IS_WIN)
-  absl::optional<ACCESS_MASK> flags =
-      base::win::GetGrantedAccess(file.GetPlatformFile());
-  if (!flags.has_value()) {
+  DWORD flags = 0;
+  if (!GetGrantedAccess(file.GetPlatformFile(), &flags))
     return false;
-  }
+
   // Cannot use GENERIC_WRITE as that includes SYNCHRONIZE.
   // This is ~(all the writable permissions).
-  is_readonly = !(flags.value() &
-                  (FILE_APPEND_DATA | FILE_WRITE_ATTRIBUTES | FILE_WRITE_DATA |
-                   FILE_WRITE_EA | WRITE_DAC | WRITE_OWNER | DELETE));
+  is_readonly =
+      !(flags & (FILE_APPEND_DATA | FILE_WRITE_ATTRIBUTES | FILE_WRITE_DATA |
+                 FILE_WRITE_EA | WRITE_DAC | WRITE_OWNER | DELETE));
 #elif BUILDFLAG(IS_FUCHSIA) || \
     (BUILDFLAG(IS_POSIX) && !BUILDFLAG(IS_NACL) && !BUILDFLAG(IS_AIX))
   is_readonly =

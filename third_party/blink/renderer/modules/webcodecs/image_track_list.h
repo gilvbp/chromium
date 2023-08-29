@@ -26,7 +26,7 @@ class MODULES_EXPORT ImageTrackList final : public ScriptWrappable {
   uint32_t length() const { return tracks_.size(); }
   ImageTrack* AnonymousIndexedGetter(uint32_t index) const;
   int32_t selectedIndex() const;
-  ImageTrack* selectedTrack() const;
+  absl::optional<ImageTrack*> selectedTrack() const;
   ScriptPromise ready(ScriptState* script_state);
 
   bool IsEmpty() const { return tracks_.empty(); }

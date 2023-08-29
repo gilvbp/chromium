@@ -56,7 +56,7 @@ TEST_F(RootfsLacrosLoaderTest, LoadRootfsLacros) {
          const std::vector<std::string>& upstart_env) {
         EXPECT_EQ(job, kLacrosMounterUpstartJob);
         *callback_called = true;
-        return ash::FakeUpstartClient::StartJobResult(true /* success */);
+        return true;
       },
       &callback_called));
 

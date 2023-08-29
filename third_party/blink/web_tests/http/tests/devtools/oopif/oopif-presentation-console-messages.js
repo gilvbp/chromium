@@ -6,9 +6,6 @@ import {TestRunner} from 'test_runner';
 import {SourcesTestRunner} from 'sources_test_runner';
 import {ConsoleTestRunner} from 'console_test_runner';
 
-import * as SDK from 'devtools/core/sdk/sdk.js';
-import * as Common from 'devtools/core/common/common.js';
-
 (async function() {
   TestRunner.addResult(`Test that links to UISourceCode work correctly when navigating OOPIF`);
 
@@ -56,7 +53,7 @@ import * as Common from 'devtools/core/common/common.js';
   TestRunner.addResult('Revealing iframe source');
   await Common.Revealer.reveal(Workspace.workspace.uiSourceCodeForURL('http://devtools.oopif.test:8000/devtools/oopif/resources/empty.html'));
   TestRunner.addResult('\nClearing console');
-  SDK.ConsoleModel.ConsoleModel.requestClearMessages();
+  SDK.ConsoleModel.requestClearMessages();
   dumpMessages();
   TestRunner.completeTest();
 })();

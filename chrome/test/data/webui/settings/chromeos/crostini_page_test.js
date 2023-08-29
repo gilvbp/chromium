@@ -62,16 +62,10 @@ function setCrostiniPrefs(enabled, optional = {}) {
     forwardedPorts = [],
     micAllowed = false,
     arcEnabled = false,
-    bruschettaInstalled = false,
   } = optional;
   crostiniPage.prefs = {
     arc: {
       enabled: {value: arcEnabled},
-    },
-    bruschetta: {
-      installed: {
-        value: bruschettaInstalled,
-      },
     },
     crostini: {
       enabled: {value: enabled},
@@ -235,64 +229,6 @@ suite('CrostiniPageTests', function() {
           deepLinkElement, getDeepActiveElement(),
           'Enable Crostini button should be focused for settingId=800.');
     });
-
-    test(
-        'Crostini details row is focused when returning from subpage',
-        async () => {
-          setCrostiniPrefs(true);
-          Router.getInstance().navigateTo(routes.CROSTINI);
-
-          const triggerSelector = '#crostini .subpage-arrow';
-          const subpageTrigger =
-              crostiniPage.shadowRoot.querySelector(triggerSelector);
-          assertTrue(!!subpageTrigger);
-
-          // Sub-page trigger navigates to subpage for route
-          subpageTrigger.click();
-          assertEquals(
-              routes.CROSTINI_DETAILS, Router.getInstance().currentRoute);
-
-          // Navigate back
-          const popStateEventPromise = eventToPromise('popstate', window);
-          Router.getInstance().navigateToPreviousRoute();
-          await popStateEventPromise;
-          await waitAfterNextRender(crostiniPage);
-
-          assertEquals(
-              subpageTrigger, crostiniPage.shadowRoot.activeElement,
-              `${triggerSelector} should be focused.`);
-        });
-
-
-    test(
-        'Bruschetta details row is focused when returning from subpage',
-        async () => {
-          setCrostiniPrefs(true, {bruschettaInstalled: true});
-          crostiniPage.set('showBruschetta_', true);
-          flush();
-
-          Router.getInstance().navigateTo(routes.CROSTINI);
-
-          const triggerSelector = '#bruschetta .subpage-arrow';
-          const subpageTrigger =
-              crostiniPage.shadowRoot.querySelector(triggerSelector);
-          assertTrue(!!subpageTrigger);
-
-          // Sub-page trigger navigates to subpage for route
-          subpageTrigger.click();
-          assertEquals(
-              routes.BRUSCHETTA_DETAILS, Router.getInstance().currentRoute);
-
-          // Navigate back
-          const popStateEventPromise = eventToPromise('popstate', window);
-          Router.getInstance().navigateToPreviousRoute();
-          await popStateEventPromise;
-          await waitAfterNextRender(crostiniPage);
-
-          assertEquals(
-              subpageTrigger, crostiniPage.shadowRoot.activeElement,
-              `${triggerSelector} should be focused.`);
-        });
   });
 
   suite('SubPageDetails', function() {
@@ -322,29 +258,28 @@ suite('CrostiniPageTests', function() {
     suite('SubPageDefault', function() {
       test('Basic', function() {
         assertTrue(
-            !!subpage.shadowRoot.querySelector('#crostiniSharedPathsRow'));
+            !!subpage.shadowRoot.querySelector('#crostini-shared-paths'));
         assertTrue(
-            !!subpage.shadowRoot.querySelector('#crostiniSharedUsbDevicesRow'));
+            !!subpage.shadowRoot.querySelector('#crostini-shared-usb-devices'));
         assertTrue(
-            !!subpage.shadowRoot.querySelector('#crostiniExportImportRow'));
+            !!subpage.shadowRoot.querySelector('#crostini-export-import'));
         assertTrue(
-            !!subpage.shadowRoot.querySelector('#crostiniEnableArcAdbRow'));
+            !!subpage.shadowRoot.querySelector('#crostini-enable-arc-adb'));
         assertTrue(!!subpage.shadowRoot.querySelector('#remove'));
         assertTrue(!!subpage.shadowRoot.querySelector('#container-upgrade'));
         assertTrue(
-            !!subpage.shadowRoot.querySelector('#crostiniPortForwardingRow'));
+            !!subpage.shadowRoot.querySelector('#crostini-port-forwarding'));
         assertTrue(!!subpage.shadowRoot.querySelector(
             '#crostini-mic-permission-toggle'));
+        assertTrue(!!subpage.shadowRoot.querySelector('#crostini-disk-resize'));
         assertTrue(
-            !!subpage.shadowRoot.querySelector('#crostiniDiskResizeRow'));
-        assertTrue(
-            !!subpage.shadowRoot.querySelector('#crostiniExtraContainersRow'));
+            !!subpage.shadowRoot.querySelector('#crostini-extra-containers'));
       });
 
       test('SharedPaths', async function() {
         assertTrue(
-            !!subpage.shadowRoot.querySelector('#crostiniSharedPathsRow'));
-        subpage.shadowRoot.querySelector('#crostiniSharedPathsRow').click();
+            !!subpage.shadowRoot.querySelector('#crostini-shared-paths'));
+        subpage.shadowRoot.querySelector('#crostini-shared-paths').click();
 
         await flushTasks();
         subpage = crostiniPage.shadowRoot.querySelector(

@@ -48,7 +48,8 @@ RequestContext::~RequestContext() {
     // fire. Because notifications on a single Watch are mutually exclusive,
     // this is sufficient to guarantee that MOJO_RESULT_CANCELLED is the last
     // notification received; which is the guarantee the API makes.
-    for (const scoped_refptr<Watch>& watch : watch_cancel_finalizers_) {
+    for (const scoped_refptr<Watch>& watch :
+         watch_cancel_finalizers_.container()) {
       static const HandleSignalsState closed_state = {0, 0};
 
       // Establish a new RequestContext to capture and run any new notifications
@@ -63,14 +64,15 @@ RequestContext::~RequestContext() {
       watch->InvokeCallback(MOJO_RESULT_CANCELLED, closed_state, flags);
     }
 
-    for (const WatchNotifyFinalizer& watch : watch_notify_finalizers_) {
+    for (const WatchNotifyFinalizer& watch :
+         watch_notify_finalizers_.container()) {
       RequestContext inner_context(source_);
       watch.watch->InvokeCallback(watch.result, watch.state, flags);
     }
   } else {
     // It should be impossible for nested contexts to have finalizers.
-    DCHECK(watch_notify_finalizers_.empty());
-    DCHECK(watch_cancel_finalizers_.empty());
+    DCHECK(watch_notify_finalizers_.container().empty());
+    DCHECK(watch_cancel_finalizers_.container().empty());
   }
 }
 
@@ -84,13 +86,13 @@ void RequestContext::AddWatchNotifyFinalizer(scoped_refptr<Watch> watch,
                                              MojoResult result,
                                              const HandleSignalsState& state) {
   DCHECK(IsCurrent());
-  watch_notify_finalizers_.push_back(
+  watch_notify_finalizers_->push_back(
       WatchNotifyFinalizer(std::move(watch), result, state));
 }
 
 void RequestContext::AddWatchCancelFinalizer(scoped_refptr<Watch> watch) {
   DCHECK(IsCurrent());
-  watch_cancel_finalizers_.push_back(std::move(watch));
+  watch_cancel_finalizers_->push_back(std::move(watch));
 }
 
 bool RequestContext::IsCurrent() const {

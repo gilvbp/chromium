@@ -14,7 +14,6 @@
 #include "third_party/blink/renderer/platform/fonts/font_height.h"
 #include "third_party/blink/renderer/platform/geometry/layout_unit.h"
 #include "third_party/blink/renderer/platform/wtf/vector.h"
-#include "third_party/blink/renderer/platform/wtf/vector_traits.h"
 
 namespace blink {
 
@@ -42,7 +41,7 @@ struct NGInlineBoxState {
  public:
   unsigned fragment_start = 0;
   const NGInlineItem* item = nullptr;
-  Member<const ComputedStyle> style;
+  const ComputedStyle* style = nullptr;
 
   // Points to style->GetFont(), or |scaled_font| in an SVG <text>.
   const Font* font;
@@ -59,8 +58,8 @@ struct NGInlineBoxState {
   // 'vertical-align'.
   FontHeight metrics = FontHeight::Empty();
 
-  // The metrics of the font for this box. This includes leadings determined by
-  // by the `text-box-trim` and 'line-height' properties.
+  // The metrics of the font for this box. This includes leadings as specified
+  // by the 'line-height' property.
   FontHeight text_metrics = FontHeight::Empty();
 
   // The distance between the text-top and the baseline for this box. The
@@ -95,8 +94,6 @@ struct NGInlineBoxState {
   NGInlineBoxState(const NGInlineBoxState&& state);
   NGInlineBoxState(const NGInlineBoxState&) = delete;
   NGInlineBoxState& operator=(const NGInlineBoxState&) = delete;
-
-  void Trace(Visitor* visitor) const { visitor->Trace(style); }
 
   // Reset |style|, |is_svg_text|, |font|, |scaled_font|, |scaling_factor|, and
   // |alignment_type|.
@@ -314,7 +311,7 @@ class CORE_EXPORT NGInlineLayoutStateStack {
   // Update edges of inline fragmented boxes.
   void UpdateFragmentedBoxDataEdges(Vector<BoxData>* fragmented_boxes);
 
-  HeapVector<NGInlineBoxState, 4> stack_;
+  Vector<NGInlineBoxState, 4> stack_;
   Vector<BoxData, 4> box_data_list_;
 
   bool is_empty_line_ = false;
@@ -323,7 +320,5 @@ class CORE_EXPORT NGInlineLayoutStateStack {
 };
 
 }  // namespace blink
-
-WTF_ALLOW_CLEAR_UNUSED_SLOTS_WITH_MEM_FUNCTIONS(blink::NGInlineBoxState)
 
 #endif  // THIRD_PARTY_BLINK_RENDERER_CORE_LAYOUT_NG_INLINE_NG_INLINE_BOX_STATE_H_

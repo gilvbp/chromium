@@ -88,7 +88,7 @@ class BrowserDataBackMigratorOnSignIn : public ash::LoginManagerTest {
   void SetUpInProcessBrowserTestFixture() override {
     feature_list_.InitWithFeatures(
         {ash::features::kLacrosProfileBackwardMigration},
-        {ash::features::kLacrosOnly});
+        {ash::features::kLacrosSupport});
 
     SessionManagerClient::InitializeFakeInMemory();
   }

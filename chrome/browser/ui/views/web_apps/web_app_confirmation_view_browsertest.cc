@@ -30,14 +30,13 @@ class WebAppConfirmViewBrowserTest
 
   // DialogBrowserTest:
   void ShowUi(const std::string& name) override {
-    auto app_info = std::make_unique<web_app::WebAppInstallInfo>(
+    auto app_info = std::make_unique<WebAppInstallInfo>(
         web_app::GenerateManifestIdFromStartUrlOnly(
             GURL("https://example.com")));
     app_info->title = u"Test app";
     app_info->start_url = GURL("https://example.com");
 
-    auto callback = [](bool result,
-                       std::unique_ptr<web_app::WebAppInstallInfo>) {};
+    auto callback = [](bool result, std::unique_ptr<WebAppInstallInfo>) {};
 
     content::WebContents* web_contents =
         browser()->tab_strip_model()->GetActiveWebContents();
@@ -69,7 +68,7 @@ class WebAppConfirmViewBrowserTest
 };
 
 IN_PROC_BROWSER_TEST_P(WebAppConfirmViewBrowserTest, ShowWebAppInstallDialog) {
-  auto app_info = std::make_unique<web_app::WebAppInstallInfo>(
+  auto app_info = std::make_unique<WebAppInstallInfo>(
       web_app::GenerateManifestIdFromStartUrlOnly(GURL("https://example.com")));
   app_info->title = u"Test app";
   app_info->start_url = GURL("https://example.com");
@@ -78,7 +77,7 @@ IN_PROC_BROWSER_TEST_P(WebAppConfirmViewBrowserTest, ShowWebAppInstallDialog) {
                                               /*auto_open_in_window=*/true);
   bool is_accepted = false;
   auto callback = [&is_accepted](bool result,
-                                 std::unique_ptr<web_app::WebAppInstallInfo>) {
+                                 std::unique_ptr<WebAppInstallInfo>) {
     is_accepted = result;
   };
 
@@ -113,7 +112,7 @@ IN_PROC_BROWSER_TEST_P(WebAppConfirmViewBrowserTest, NormalizeTitles) {
   };
 
   for (const TestCases& test_case : test_cases) {
-    auto app_info = std::make_unique<web_app::WebAppInstallInfo>(
+    auto app_info = std::make_unique<WebAppInstallInfo>(
         web_app::GenerateManifestIdFromStartUrlOnly(
             GURL("https://example.com")));
     app_info->title = test_case.input;
@@ -122,8 +121,7 @@ IN_PROC_BROWSER_TEST_P(WebAppConfirmViewBrowserTest, NormalizeTitles) {
     bool is_accepted = false;
     std::u16string title;
     auto callback = [&is_accepted, &title](
-                        bool result,
-                        std::unique_ptr<web_app::WebAppInstallInfo> info) {
+                        bool result, std::unique_ptr<WebAppInstallInfo> info) {
       is_accepted = result;
       title = info->title;
     };

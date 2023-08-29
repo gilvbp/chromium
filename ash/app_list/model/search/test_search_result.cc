@@ -45,9 +45,4 @@ void TestSearchResult::SetCategory(
   SearchResult::set_category(category);
 }
 
-void TestSearchResult::SetSystemInfoAnswerCardData(
-    const ash::SystemInfoAnswerCardData& system_info_data) {
-  SearchResult::set_system_info_answer_card_data(system_info_data);
-}
-
 }  // namespace ash

@@ -10,7 +10,6 @@
 #include <utility>
 
 #include "base/command_line.h"
-#include "base/feature_list.h"
 #include "base/functional/bind.h"
 #include "base/memory/ptr_util.h"
 #include "base/memory/raw_ptr.h"
@@ -201,20 +200,6 @@ bool SynchronousCompositorHost::IsReadyForSynchronousCall() {
   bool res = bridge_->IsRemoteReadyOnUIThread();
   DCHECK(!res || GetSynchronousCompositor());
   return res;
-}
-
-void SynchronousCompositorHost::OnCompositorVisible() {
-  if (base::FeatureList::IsEnabled(
-          features::kSynchronousCompositorBackgroundSignal)) {
-    CompositorDependenciesAndroid::Get().OnSynchronousCompositorVisible();
-  }
-}
-
-void SynchronousCompositorHost::OnCompositorHidden() {
-  if (base::FeatureList::IsEnabled(
-          features::kSynchronousCompositorBackgroundSignal)) {
-    CompositorDependenciesAndroid::Get().OnSynchronousCompositorHidden();
-  }
 }
 
 scoped_refptr<SynchronousCompositor::FrameFuture>

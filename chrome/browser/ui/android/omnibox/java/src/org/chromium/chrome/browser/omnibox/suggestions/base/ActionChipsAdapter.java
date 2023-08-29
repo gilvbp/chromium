@@ -92,6 +92,7 @@ public class ActionChipsAdapter extends SimpleRecyclerViewAdapter {
         if (currentSelectedView != null) currentSelectedView.setSelected(true);
     }
 
+    @VisibleForTesting
     public int getSelectedItemForTesting() {
         return mSelectedItem;
     }

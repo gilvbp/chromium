@@ -66,7 +66,8 @@ class ShortcutMenuHandlingSubManagerTestBase : public WebAppTest {
     auto protocol_handler_manager =
         std::make_unique<WebAppProtocolHandlerManager>(profile());
     auto shortcut_manager = std::make_unique<WebAppShortcutManager>(
-        profile(), file_handler_manager.get(), protocol_handler_manager.get());
+        profile(), /*icon_manager=*/nullptr, file_handler_manager.get(),
+        protocol_handler_manager.get());
     auto os_integration_manager = std::make_unique<OsIntegrationManager>(
         profile(), std::move(shortcut_manager), std::move(file_handler_manager),
         std::move(protocol_handler_manager), /*url_handler_manager=*/nullptr);
@@ -302,9 +303,8 @@ TEST_P(ShortcutMenuHandlingSubManagerConfigureTest, IconsButNoShortcutInfo) {
 
   // Remove the shortcut menu item infos from the DB and sync OS integration.
   {
-    ScopedRegistryUpdate remove_downloaded =
-        provider().sync_bridge_unsafe().BeginUpdate();
-    remove_downloaded->UpdateApp(app_id)->SetShortcutsMenuInfo({});
+    ScopedRegistryUpdate remove_downloaded(&provider().sync_bridge_unsafe());
+    remove_downloaded->UpdateApp(app_id)->SetShortcutsMenuInfo({}, {});
   }
   if (AreOsIntegrationSubManagersEnabled()) {
     base::test::TestFuture<void> future;
@@ -363,16 +363,17 @@ TEST_P(ShortcutMenuHandlingSubManagerConfigureTest,
     shortcut_info.monochrome.push_back(std::move(icon_data));
   }
 
-  shortcut_info.downloaded_icon_sizes.any = sizes;
-  shortcut_info.downloaded_icon_sizes.maskable = sizes;
-  shortcut_info.downloaded_icon_sizes.monochrome = sizes;
+  IconSizes icon_sizes{};
+  icon_sizes.any = sizes;
+  icon_sizes.maskable = sizes;
+  icon_sizes.monochrome = sizes;
 
   // Update the shortcut menu item infos in the DB to only match a single icon
   // and rerun OS integration.
   {
-    ScopedRegistryUpdate remove_downloaded =
-        provider().sync_bridge_unsafe().BeginUpdate();
-    remove_downloaded->UpdateApp(app_id)->SetShortcutsMenuInfo({shortcut_info});
+    ScopedRegistryUpdate remove_downloaded(&provider().sync_bridge_unsafe());
+    remove_downloaded->UpdateApp(app_id)->SetShortcutsMenuInfo({shortcut_info},
+                                                               {icon_sizes});
   }
 
   if (AreOsIntegrationSubManagersEnabled()) {
@@ -415,9 +416,8 @@ TEST_P(ShortcutMenuHandlingSubManagerConfigureTest, NoDownloadedIcons_1427444) {
                       num_menu_items));
   // Remove the downloaded icons & resync os integration.
   {
-    ScopedRegistryUpdate remove_downloaded =
-        provider().sync_bridge_unsafe().BeginUpdate();
-    remove_downloaded->UpdateApp(app_id)->SetShortcutsMenuInfo({});
+    ScopedRegistryUpdate remove_downloaded(&provider().sync_bridge_unsafe());
+    remove_downloaded->UpdateApp(app_id)->SetShortcutsMenuInfo({}, {});
   }
   if (AreOsIntegrationSubManagersEnabled()) {
     base::test::TestFuture<void> future;

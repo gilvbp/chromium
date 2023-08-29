@@ -15,6 +15,7 @@
 #include "base/threading/thread_restrictions.h"
 #include "build/build_config.h"
 #include "content/browser/network/http_cache_backend_file_operations_factory.h"
+#include "content/browser/network/network_service_util_internal.h"
 #include "content/public/browser/browser_thread.h"
 #include "content/public/browser/network_service_instance.h"
 #include "content/public/browser/network_service_util.h"
@@ -31,12 +32,17 @@
 #include "mojo/public/cpp/bindings/remote.h"
 #include "mojo/public/cpp/bindings/self_owned_receiver.h"
 #include "net/base/features.h"
+#include "sandbox/features.h"
 #include "sandbox/policy/features.h"
 #include "services/network/public/cpp/features.h"
 #include "services/network/public/mojom/network_service_test.mojom.h"
 
 #if BUILDFLAG(IS_ANDROID)
 #include "base/android/build_info.h"
+#endif
+
+#if BUILDFLAG(IS_MAC)
+#include "base/mac/mac_util.h"
 #endif
 
 namespace content {
@@ -64,7 +70,7 @@ class NonSandboxedNetworkServiceBrowserTest : public ContentBrowserTest {
     scoped_feature_list_.InitWithFeatures(
         /*enabled_features=*/{},
         /*disabled_features=*/kDisabledFeatures);
-    ForceOutOfProcessNetworkService();
+    ForceOutOfProcessNetworkServiceImpl();
   }
 
   void SetUpOnMainThread() override {
@@ -110,12 +116,12 @@ class SandboxedHttpCacheBrowserTest : public ContentBrowserTest {
 #endif
     };
     scoped_feature_list_.InitWithFeatures(enabled_features, {});
-    ForceOutOfProcessNetworkService();
+    ForceOutOfProcessNetworkServiceImpl();
   }
 
   void SetUp() override {
 #if BUILDFLAG(IS_WIN)
-    if (!sandbox::policy::features::IsNetworkSandboxSupported()) {
+    if (!sandbox::features::IsAppContainerSandboxSupported()) {
       // On *some* Windows, sandboxing cannot be enabled. We skip all the tests
       // on such platforms.
       GTEST_SKIP();
@@ -133,6 +139,16 @@ class SandboxedHttpCacheBrowserTest : public ContentBrowserTest {
         DVLOG(0) << "Android is too old: " << sdk_version;
         GTEST_SKIP();
       }
+    }
+#endif
+
+#if BUILDFLAG(IS_MAC)
+    // Skip these tests on older Mac because of failures:
+    // https://crbug.com/1315962, https://crbug.com/1084565
+    // This is OK because disk cache sandboxing is targeting Android. Running
+    // these tests in other platforms is just for development productivity.
+    if (base::mac::IsAtMostOS10_14()) {
+      GTEST_SKIP();
     }
 #endif
 
@@ -385,16 +401,8 @@ IN_PROC_BROWSER_TEST_F(SandboxedHttpCacheBrowserTest,
   IgnoreNetworkServiceCrashes();
 }
 
-// TODO(crbug.com/1459570): Flaky on at least Mac11.
-#if BUILDFLAG(IS_MAC)
-#define MAYBE_CreateSimpleCacheWithParentDirectoryTraversal \
-  DISABLED_CreateSimpleCacheWithParentDirectoryTraversal
-#else
-#define MAYBE_CreateSimpleCacheWithParentDirectoryTraversal \
-  CreateSimpleCacheWithParentDirectoryTraversal
-#endif
 IN_PROC_BROWSER_TEST_F(SandboxedHttpCacheBrowserTest,
-                       MAYBE_CreateSimpleCacheWithParentDirectoryTraversal) {
+                       CreateSimpleCacheWithParentDirectoryTraversal) {
   base::RunLoop run_loop;
 
   const base::FilePath root_path = GetTempDirPath();

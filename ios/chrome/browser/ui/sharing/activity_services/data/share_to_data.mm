@@ -8,6 +8,10 @@
 #import "base/strings/sys_string_conversions.h"
 #import "net/base/mac/url_conversions.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 @interface ShareToData () {
   // URL to be shared with share extensions.
   GURL _shareURL;

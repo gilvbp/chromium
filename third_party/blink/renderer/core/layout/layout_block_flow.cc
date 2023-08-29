@@ -85,8 +85,9 @@ LayoutBlockFlow::LayoutBlockFlow(ContainerNode* node) : LayoutBlock(node) {
 
 LayoutBlockFlow::~LayoutBlockFlow() = default;
 
-LayoutBlockFlow* LayoutBlockFlow::CreateAnonymous(Document* document,
-                                                  const ComputedStyle* style) {
+LayoutBlockFlow* LayoutBlockFlow::CreateAnonymous(
+    Document* document,
+    scoped_refptr<const ComputedStyle> style) {
   auto* layout_block_flow = MakeGarbageCollected<LayoutNGBlockFlow>(nullptr);
   layout_block_flow->SetDocumentForAnonymous(document);
   layout_block_flow->SetStyle(style);
@@ -160,15 +161,14 @@ void LayoutBlockFlow::AddVisualOverflowFromFloats(
 
 void LayoutBlockFlow::ComputeVisualOverflow() {
   NOT_DESTROYED();
-  DCHECK(!SelfNeedsFullLayout());
+  DCHECK(!SelfNeedsLayout());
 
-  PhysicalRect previous_visual_overflow_rect =
-      PhysicalVisualOverflowRectAllowingUnset();
+  LayoutRect previous_visual_overflow_rect = VisualOverflowRectAllowingUnset();
   ClearVisualOverflow();
   AddVisualOverflowFromChildren();
   AddVisualEffectOverflow();
 
-  if (PhysicalVisualOverflowRect() != previous_visual_overflow_rect) {
+  if (VisualOverflowRect() != previous_visual_overflow_rect) {
     InvalidateIntersectionObserverCachedRects();
     SetShouldCheckForPaintInvalidation();
     GetFrameView()->SetIntersectionObservationState(LocalFrameView::kDesired);
@@ -371,17 +371,19 @@ void LayoutBlockFlow::ChildBecameFloatingOrOutOfFlow(LayoutBox* child) {
   MakeChildrenInlineIfPossible();
 
   // Reparent the child to an adjacent anonymous block if one is available.
-  auto* prev = DynamicTo<LayoutBlockFlow>(child->PreviousSibling());
-  if (prev && prev->IsAnonymousBlock()) {
-    MoveChildTo(prev, child, nullptr, false);
+  LayoutObject* prev = child->PreviousSibling();
+  auto* new_container = DynamicTo<LayoutBlockFlow>(prev);
+  if (prev && prev->IsAnonymousBlock() && new_container) {
+    MoveChildTo(new_container, child, nullptr, false);
     // The anonymous block we've moved to may now be adjacent to former siblings
     // of ours that it can contain also.
-    prev->ReparentSubsequentFloatingOrOutOfFlowSiblings();
+    new_container->ReparentSubsequentFloatingOrOutOfFlowSiblings();
     return;
   }
-  auto* next = DynamicTo<LayoutBlockFlow>(child->NextSibling());
-  if (next && next->IsAnonymousBlock()) {
-    MoveChildTo(next, child, next->FirstChild(), false);
+  LayoutObject* next = child->NextSibling();
+  new_container = DynamicTo<LayoutBlockFlow>(next);
+  if (next && next->IsAnonymousBlock() && next->IsLayoutBlockFlow()) {
+    MoveChildTo(new_container, child, new_container->FirstChild(), false);
   }
 }
 

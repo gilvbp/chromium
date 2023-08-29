@@ -8,6 +8,10 @@
 #import "ios/chrome/browser/ui/main_content/main_content_ui.h"
 #import "ios/chrome/browser/ui/main_content/main_content_ui_state.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 void StartBroadcastingMainContentUI(id<MainContentUI> main_content,
                                     ChromeBroadcaster* broadcaster) {
   [broadcaster broadcastValue:@"scrollViewSize"

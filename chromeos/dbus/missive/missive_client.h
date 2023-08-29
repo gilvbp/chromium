@@ -74,8 +74,6 @@ class COMPONENT_EXPORT(MISSIVE) MissiveClient {
   virtual void Flush(
       const reporting::Priority priority,
       base::OnceCallback<void(reporting::Status)> completion_callback) = 0;
-  virtual void UpdateConfigInMissive(
-      const reporting::ListOfBlockedDestinations& destinations) = 0;
   virtual void UpdateEncryptionKey(
       const reporting::SignedEncryptionInfo& encryption_info) = 0;
   virtual void ReportSuccess(

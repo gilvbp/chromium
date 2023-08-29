@@ -77,14 +77,9 @@ SystemTextfield::SystemTextfield(Type type) : type_(type) {
   // appears not only on hover but also on focus.
   RemoveHoverEffect();
 
-  // Override the very round highlight path set in `views::Textfield`.
-  views::InstallRoundRectHighlightPathGenerator(this, gfx::Insets(),
-                                                kCornerRadius);
-
   // Configure focus ring.
   auto* focus_ring = views::FocusRing::Get(this);
   DCHECK(focus_ring);
-  focus_ring->SetOutsetFocusRingDisabled(true);
   const float halo_thickness = focus_ring->GetHaloThickness();
   focus_ring->SetHaloInset(-kFocusRingGap - 0.5f * halo_thickness);
   focus_ring->SetColorId(cros_tokens::kCrosSysFocusRing);
@@ -146,7 +141,6 @@ void SystemTextfield::SetShowFocusRing(bool show) {
     return;
   }
   show_focus_ring_ = show;
-  views::FocusRing::Get(this)->SetOutsetFocusRingDisabled(true);
   views::FocusRing::Get(this)->SchedulePaint();
 }
 
@@ -157,10 +151,6 @@ void SystemTextfield::SetShowBackground(bool show) {
 
 void SystemTextfield::RestoreText() {
   SetText(restored_text_content_);
-}
-
-void SystemTextfield::SetBackgroundColorEnabled(bool enabled) {
-  is_background_color_enabled_ = enabled;
 }
 
 gfx::Size SystemTextfield::CalculatePreferredSize() const {
@@ -202,14 +192,22 @@ void SystemTextfield::OnThemeChanged() {
 }
 
 void SystemTextfield::OnFocus() {
-  views::Textfield::OnFocus();
-  SetShowFocusRing(true);
+  if (delegate_) {
+    delegate_->OnTextfieldFocused(this);
+  } else {
+    SetActive(true);
+  }
+
   UpdateBackground();
 }
 
 void SystemTextfield::OnBlur() {
-  views::Textfield::OnBlur();
-  SetShowFocusRing(false);
+  if (delegate_) {
+    delegate_->OnTextfieldBlurred(this);
+  } else {
+    SetActive(false);
+  }
+
   UpdateBackground();
 }
 
@@ -258,9 +256,6 @@ void SystemTextfield::UpdateTextColor() {
 }
 
 void SystemTextfield::UpdateBackground() {
-  if (!is_background_color_enabled_) {
-    return;
-  }
   // Create a themed rounded rect background when the mouse hovers on the
   // textfield or the textfield is focused.
   if (IsMouseHovered() || HasFocus() || show_background_) {

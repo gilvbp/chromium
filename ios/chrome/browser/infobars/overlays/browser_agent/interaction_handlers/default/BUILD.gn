@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 source_set("default") {
+  configs += [ "//build/config/compiler:enable_arc" ]
   sources = [
     "default_infobar_banner_interaction_handler.h",
     "default_infobar_banner_interaction_handler.mm",

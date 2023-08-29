@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "base/functional/callback.h"
+#include "base/mac/scoped_nsobject.h"
 #include "base/memory/weak_ptr.h"
 #include "components/remote_cocoa/app_shim/remote_cocoa_app_shim_export.h"
 #include "components/remote_cocoa/common/select_file_dialog.mojom.h"
@@ -30,7 +31,7 @@ class REMOTE_COCOA_APP_SHIM_EXPORT SelectFileDialogBridge
                               const std::vector<base::FilePath>& files,
                               int index)>;
 
-  explicit SelectFileDialogBridge(NSWindow* owning_window);
+  SelectFileDialogBridge(NSWindow* owning_window);
 
   SelectFileDialogBridge(const SelectFileDialogBridge&) = delete;
   SelectFileDialogBridge& operator=(const SelectFileDialogBridge&) = delete;
@@ -70,16 +71,16 @@ class REMOTE_COCOA_APP_SHIM_EXPORT SelectFileDialogBridge
   mojom::SelectFileDialogType type_;
 
   // The NSSavePanel that |this| tracks.
-  NSSavePanel* __strong panel_;
+  base::scoped_nsobject<NSSavePanel> panel_;
 
   // The parent window for |panel_|.
-  NSWindow* __strong owning_window_;
+  base::scoped_nsobject<NSWindow> owning_window_;
 
   // The delegate for |panel|.
-  SelectFileDialogDelegate* __strong delegate_;
+  base::scoped_nsobject<SelectFileDialogDelegate> delegate_;
 
   // Extension dropdown handler corresponding to this file dialog.
-  ExtensionDropdownHandler* __strong extension_dropdown_handler_;
+  base::scoped_nsobject<ExtensionDropdownHandler> extension_dropdown_handler_;
 
   base::WeakPtrFactory<SelectFileDialogBridge> weak_factory_;
 };

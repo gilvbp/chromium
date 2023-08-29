@@ -46,7 +46,9 @@ class CommonMenuModel : public ui::MenuModel {
   ~CommonMenuModel() override {}
 
  protected:
-  // ui::MenuModel:
+  // ui::MenuModel implementation.
+  bool HasIcons() const override { return false; }
+
   bool IsItemDynamicAt(size_t index) const override { return false; }
 
   bool GetAcceleratorAt(size_t index,
@@ -254,10 +256,10 @@ class MenuModelAdapterTest : public ViewEventTestBase {
                             ui::MENU_SOURCE_NONE);
   }
 
-  raw_ptr<views::MenuButton, AcrossTasksDanglingUntriaged> button_ = nullptr;
+  raw_ptr<views::MenuButton, DanglingUntriaged> button_ = nullptr;
   TopMenuModel top_menu_model_;
   views::MenuModelAdapter menu_model_adapter_{&top_menu_model_};
-  raw_ptr<views::MenuItemView, AcrossTasksDanglingUntriaged> menu_ = nullptr;
+  raw_ptr<views::MenuItemView, DanglingUntriaged> menu_ = nullptr;
   std::unique_ptr<views::MenuRunner> menu_runner_;
 };
 

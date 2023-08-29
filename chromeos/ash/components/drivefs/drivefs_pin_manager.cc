@@ -7,29 +7,30 @@
 #include <iomanip>
 #include <locale>
 #include <sstream>
-#include <string_view>
 #include <type_traits>
 
 #include "base/files/file_path.h"
 #include "base/functional/bind.h"
+#include "base/functional/callback_forward.h"
 #include "base/logging.h"
 #include "base/memory/raw_ref.h"
 #include "base/metrics/histogram_functions.h"
 #include "base/no_destructor.h"
 #include "base/notreached.h"
+#include "base/strings/string_piece.h"
 #include "base/strings/stringprintf.h"
 #include "base/task/sequenced_task_runner.h"
-#include "base/time/time.h"
 #include "chromeos/ash/components/drivefs/mojom/drivefs.mojom.h"
 #include "chromeos/dbus/power/power_manager_client.h"
 #include "components/drive/file_errors.h"
+#include "third_party/cros_system_api/constants/cryptohome.h"
 
 namespace drivefs::pinning {
 namespace {
 
 using ash::SpacedClient;
-using base::Seconds;
 using base::SequencedTaskRunner;
+using base::StringPiece;
 using base::TimeDelta;
 using base::UmaHistogramBoolean;
 using mojom::FileMetadata;
@@ -92,7 +93,7 @@ ostream& operator<<(ostream& out, Quoter<T> q) {
   // Does the string start with 'k'?
   if (!s.empty() && s.front() == 'k') {
     // Skip the 'k' prefix.
-    return out << std::string_view(s).substr(1);
+    return out << StringPiece(s).substr(1);
   }
 
   // No 'k' prefix. Print between parentheses.
@@ -100,49 +101,27 @@ ostream& operator<<(ostream& out, Quoter<T> q) {
 }
 
 ostream& operator<<(ostream& out, Quoter<TimeDelta> q) {
-  if (q.value->is_inf()) {
-    return out << "🤔";
-  }
-
-  const double ms = q.value->InMillisecondsF();
+  const int64_t ms = q.value->InMilliseconds();
   if (ms < 1000) {
-    return out << base::StringPrintf("%.0f ms", ms);
+    return out << ms << " ms";
   }
 
-  const double seconds = ms / 1000;
+  const double seconds = ms / 1000.0;
   if (seconds < 60) {
     return out << base::StringPrintf("%.1f seconds", seconds);
   }
 
-  const double minutes = seconds / 60;
+  const double minutes = seconds / 60.0;
   if (minutes < 60) {
     return out << base::StringPrintf("%.1f minutes", minutes);
   }
 
-  const double hours = minutes / 60;
+  const double hours = minutes / 60.0;
   return out << base::StringPrintf("%.1f hours", hours);
 }
 
 ostream& operator<<(ostream& out, Quoter<Path> q) {
-  const std::string& s = q.value->value();
-  if (VLOG_IS_ON(1)) {
-    return out << "'" << s << "'";
-  }
-
-  for (const std::string_view prefix :
-       {"/root", "/.files-by-id", "/.shortcuts-by-id"}) {
-    if (s.starts_with(prefix)) {
-      if (s.size() == prefix.size()) {
-        return out << "'" << prefix << "'";
-      }
-      DCHECK_GT(s.size(), prefix.size());
-      if (s[prefix.size()] == '/') {
-        return out << "'" << prefix << "/***'";
-      }
-    }
-  }
-
-  return out << "'***'";
+  return out << "'" << (*q.value) << "'";
 }
 
 ostream& operator<<(ostream& out, Quoter<std::string> q) {
@@ -216,8 +195,7 @@ ostream& operator<<(ostream& out, Quoter<mojom::ItemEvent> q) {
 
 ostream& operator<<(ostream& out, Quoter<mojom::ProgressEvent> q) {
   const mojom::ProgressEvent& e = *q.value;
-  return out << "{" << PinManager::Id(e.stable_id) << " "
-             << Quote(e.file_path.value())
+  return out << "{" << PinManager::Id(e.stable_id) << " " << Quote(e.path)
              << ", progress: " << base::StringPrintf("%hhu", e.progress)
              << "%}";
 }
@@ -249,12 +227,14 @@ int64_t GetSize(const FileMetadata& metadata) {
                                                       : metadata.size;
 }
 
-}  // namespace
-
-void RecordBulkPinningEnabledSource(BulkPinningEnabledSource source) {
-  base::UmaHistogramEnumeration(
-      "FileBrowser.GoogleDrive.BulkPinning.Enabled.Source", source);
+Path AppendAbsoluteToMountPath(const Path& mount_path, StringPiece path) {
+  DCHECK(!path.empty());
+  DCHECK_EQ(path.front(), '/');
+  path.remove_prefix(1);
+  return mount_path.Append(path);
 }
+
+}  // namespace
 
 std::ostream& NiceNum(std::ostream& out) {
   out.imbue(NiceNumLocale());
@@ -322,9 +302,9 @@ bool Progress::HasEnoughFreeSpace() const {
 
 bool Progress::IsError() const {
   switch (stage) {
-    case Stage::kNotEnoughSpace:
     case Stage::kCannotGetFreeSpace:
     case Stage::kCannotListFiles:
+    case Stage::kNotEnoughSpace:
     case Stage::kCannotEnableDocsOffline:
       return true;
 
@@ -352,9 +332,9 @@ bool InProgress(const Stage stage) {
     case Stage::kPausedOffline:
     case Stage::kPausedBatterySaver:
     case Stage::kSuccess:
-    case Stage::kNotEnoughSpace:
     case Stage::kCannotGetFreeSpace:
     case Stage::kCannotListFiles:
+    case Stage::kNotEnoughSpace:
     case Stage::kCannotEnableDocsOffline:
       return false;
   }
@@ -373,30 +353,9 @@ bool IsPaused(const Stage stage) {
     case Stage::kSyncing:
     case Stage::kStopped:
     case Stage::kSuccess:
-    case Stage::kNotEnoughSpace:
     case Stage::kCannotGetFreeSpace:
     case Stage::kCannotListFiles:
-    case Stage::kCannotEnableDocsOffline:
-      return false;
-  }
-
-  NOTREACHED_NORETURN() << "Unexpected Stage " << Quote(stage);
-}
-
-bool IsPausedOrInProgress(const Stage stage) {
-  switch (stage) {
-    case Stage::kGettingFreeSpace:
-    case Stage::kListingFiles:
-    case Stage::kSyncing:
-    case Stage::kPausedOffline:
-    case Stage::kPausedBatterySaver:
-      return true;
-
-    case Stage::kStopped:
-    case Stage::kSuccess:
     case Stage::kNotEnoughSpace:
-    case Stage::kCannotGetFreeSpace:
-    case Stage::kCannotListFiles:
     case Stage::kCannotEnableDocsOffline:
       return false;
   }
@@ -473,8 +432,6 @@ bool PinManager::Add(const FileMetadata& md, const Path& path) {
     progress_.bytes_to_pin = 0;
     progress_.pinned_files = 0;
     progress_.pinned_bytes = 0;
-    progress_.remaining_time = TimeDelta();
-    speedometer_.SetTotalBytes(0);
   }
 
   const auto [it, ok] =
@@ -653,12 +610,10 @@ bool PinManager::Update(Files::value_type& entry,
 
 PinManager::PinManager(Path profile_path,
                        Path mount_path,
-                       mojom::DriveFs* const drivefs,
-                       int64_t queue_size)
+                       mojom::DriveFs* const drivefs)
     : profile_path_(std::move(profile_path)),
       mount_path_(std::move(mount_path)),
       drivefs_(drivefs),
-      queue_size_(queue_size),
       space_getter_(base::BindRepeating(&GetFreeSpace)) {
   DCHECK(drivefs_);
   ash::UserDataAuthClient::Get()->AddObserver(this);
@@ -677,6 +632,9 @@ PinManager::~PinManager() {
   DCHECK(!InProgress(progress_.stage))
       << "Pin manager is " << Quote(progress_.stage);
 
+  for (Observer& observer : observers_) {
+    observer.OnDrop();
+  }
   observers_.Clear();
 }
 
@@ -724,17 +682,9 @@ void PinManager::Stop() {
   }
 }
 
-bool PinManager::CalculateRequiredSpace() {
-  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
-  if (IsPausedOrInProgress(progress_.stage) && should_pin_) {
-    LOG(ERROR) << "Cannot calculate required space: "
-               << "Pin manager is in stage " << progress_.stage;
-    return false;
-  }
-
-  should_pin_ = false;
+void PinManager::CalculateRequiredSpace() {
+  ShouldPin(false);
   Start();
-  return true;
 }
 
 void PinManager::OnFreeSpaceRetrieved1(const int64_t free_space) {
@@ -825,13 +775,14 @@ void PinManager::BatterySaverModeStateChanged(
   }
 }
 
-bool PinManager::IsTrackedAndUnpinned(Id id) const {
+bool PinManager::IsUntrackedPath(const Path& path) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
-  const Files::const_iterator it = files_to_track_.find(id);
-  if (it == files_to_track_.end()) {
-    return false;
-  }
-  return !it->second.pinned;
+
+  return base::ranges::any_of(
+      untracked_shortcut_paths_.cbegin(), untracked_shortcut_paths_.cend(),
+      [&path](const Path& untracked_path) {
+        return untracked_path == path || untracked_path.IsParent(path);
+      });
 }
 
 void PinManager::ListItems(const Id dir_id, Path dir_path) {
@@ -916,17 +867,6 @@ void PinManager::OnSearchResult(const Id dir_id,
 
   progress_.time_spent_listing_items = timer_.Elapsed();
 
-  // Output a warning if the time spent listing files is taking longer than 30s
-  // but only log this every 30s after that.
-  if (progress_.time_spent_listing_items > Seconds(30) &&
-      (base::Time::Now() - Seconds(30) >
-       last_long_listing_files_warning_time_)) {
-    LOG(WARNING) << NiceNum << "Listing files is taking a long time, found "
-                 << progress_.listed_items << " items in "
-                 << Quote(progress_.time_spent_listing_items);
-    last_long_listing_files_warning_time_ = base::Time::Now();
-  }
-
   if (items.empty() && error != drive::FILE_ERROR_OK_WITH_MORE_RESULTS) {
     VLOG(1) << "Visited " << dir_id << " " << Quote(dir_path);
 
@@ -937,12 +877,6 @@ void PinManager::OnSearchResult(const Id dir_id,
       return;
     }
 
-    LOG_IF(WARNING, progress_.time_spent_listing_items > Seconds(30))
-        << "Listing files took a long time, found" << progress_.listed_items
-        << " items in " << Quote(progress_.time_spent_listing_items);
-    base::UmaHistogramLongTimes(
-        "FileBrowser.GoogleDrive.BulkPinning.TimeSpentListing",
-        progress_.time_spent_listing_items);
     VLOG(1) << "Finished listing files in "
             << Quote(progress_.time_spent_listing_items);
     VLOG(1) << NiceNum << "Total queries: " << progress_.total_queries;
@@ -1009,6 +943,14 @@ void PinManager::HandleQueryItem(Id dir_id,
       VLOG(1) << "Skipped shortcut " << id << " " << Quote(path) << " to "
               << Quote(md.type) << " "
               << Id(md.shortcut_details->target_stable_id);
+
+      absl::optional<Path> target_path = md.shortcut_details->target_path;
+      if (target_path.has_value() &&
+          !mount_path_.Append("root").IsParent(target_path.value())) {
+        // The shortcut's target directory resides outside of My drive.
+        untracked_shortcut_paths_.emplace(
+            AppendAbsoluteToMountPath(mount_path_, path.value()));
+      }
       return;
     }
 
@@ -1168,14 +1110,9 @@ void PinManager::StartPinning() {
     is_first_sync_ = false;
   }
 
-  base::UmaHistogramSparse("FileBrowser.GoogleDrive.BulkPinning.QueueSize",
-                           queue_size_);
-
   timer_ = base::ElapsedTimer();
   progress_.stage = Stage::kSyncing;
   NotifyProgress();
-
-  EnableDocsOffline();
 
   SequencedTaskRunner::GetCurrentDefault()->PostDelayedTask(
       FROM_HERE, base::BindOnce(&PinManager::CheckStalledFiles, GetWeakPtr()),
@@ -1215,19 +1152,6 @@ void PinManager::StopMonitoringSpace() {
   }
 }
 
-void PinManager::EnableDocsOffline() {
-  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
-  DCHECK(drivefs_);
-  drivefs_->SetDocsOfflineEnabled(
-      true, base::BindOnce([](drive::FileError error) {
-        LOG_IF(ERROR, error != drive::FILE_ERROR_OK)
-            << "Failed to enable Docs offline: " << error;
-        base::UmaHistogramExactLinear(
-            "FileBrowser.GoogleDrive.BulkPinning.EnableDocsOfflineResult",
-            1 - error, 2 - drive::FILE_ERROR_MAX);
-      }));
-}
-
 void PinManager::PinSomeFiles() {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
 
@@ -1235,11 +1159,7 @@ void PinManager::PinSomeFiles() {
     return NotifyProgress();
   }
 
-  if (!should_pin_files_for_testing_) {
-    return NotifyProgress();
-  }
-
-  while (progress_.syncing_files < queue_size_ && !files_to_pin_.empty()) {
+  while (progress_.syncing_files < kMaxQueueSize && !files_to_pin_.empty()) {
     const Id id = files_to_pin_.extract(files_to_pin_.begin()).value();
     const Files::iterator it = files_to_track_.find(id);
     DCHECK(it != files_to_track_.end()) << "Not tracked: " << id;
@@ -1342,12 +1262,10 @@ void PinManager::OnFilePinned(const Id id,
   DCHECK(!files_to_pin_.contains(id));
 }
 
-// TODO(b/297442320): Remove `OnSyncingStatusUpdate` now we entirely rely on
-// `OnItemProgress.
 void PinManager::OnSyncingStatusUpdate(const mojom::SyncingStatus& status) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
 
-  if (use_on_item_progress_) {
+  if (should_use_on_item_progress_) {
     return;
   }
 
@@ -1370,7 +1288,6 @@ void PinManager::OnSyncingStatusUpdate(const mojom::SyncingStatus& status) {
   PinSomeFiles();
 }
 
-// TODO(b/297442320): Remove `OnSyncingEvent`.
 bool PinManager::OnSyncingEvent(mojom::ItemEvent& event) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
 
@@ -1420,9 +1337,6 @@ bool PinManager::OnSyncingEvent(mojom::ItemEvent& event) {
       UmaHistogramBoolean("FileBrowser.GoogleDrive.BulkPinning.PinnedFiles",
                           false);
       return true;
-    case State::kCancelledAndDeleted:
-    case State::kCancelledAndTrashed:
-      return false;
   }
 
   LOG(ERROR) << "Unexpected event type: " << Quote(event);
@@ -1432,7 +1346,7 @@ bool PinManager::OnSyncingEvent(mojom::ItemEvent& event) {
 void PinManager::OnItemProgress(const mojom::ProgressEvent& event) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
 
-  if (!use_on_item_progress_) {
+  if (!should_use_on_item_progress_) {
     return;
   }
 
@@ -1442,15 +1356,8 @@ void PinManager::OnItemProgress(const mojom::ProgressEvent& event) {
   }
   VLOG(3) << "Received " << Quote(event);
 
-  base::FilePath file_path;
-  if (event.file_path.has_value()) {
-    file_path = *event.file_path;
-  } else {
-    file_path = base::FilePath(event.path);
-  }
-
   Path relative_path("/");
-  if (!mount_path_.AppendRelativePath(file_path, &relative_path)) {
+  if (!mount_path_.AppendRelativePath(Path(event.path), &relative_path)) {
     LOG(ERROR) << "Path not relative to drive mount";
     return;
   }
@@ -1599,11 +1506,21 @@ void PinManager::OnError(const mojom::DriveError& error) {
 void PinManager::NotifyProgress() {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
 
-  if (progress_.pinned_bytes > 0) {
-    speedometer_.SetTotalBytes(progress_.bytes_to_pin);
-    if (speedometer_.Update(progress_.pinned_bytes)) {
-      progress_.remaining_time = speedometer_.GetRemainingTime();
+  if (progress_.pinned_bytes < progress_.bytes_to_pin) {
+    if (!speedometer_) {
+      speedometer_ = std::make_unique<file_manager::Speedometer>();
+      speedometer_->SetTotalBytes(progress_.bytes_to_pin);
     }
+    speedometer_->Update(progress_.pinned_bytes);
+
+    // Speedometer can produce infinite result which can't be serialized to JSON
+    // when sending the status via private API.
+    const double remaining_seconds = speedometer_->GetRemainingSeconds();
+    if (std::isfinite(remaining_seconds)) {
+      progress_.remaining_seconds = remaining_seconds;
+    }
+  } else {
+    speedometer_.reset();
   }
 
   for (Observer& observer : observers_) {

@@ -124,9 +124,9 @@ class HelpAppSearchBrowserTest : public HelpAppSearchBrowserTestBase {
                       std::move(drive_continue_section_provider)));
   }
 
-  raw_ptr<TestContinueFilesSearchProvider, DanglingUntriaged | ExperimentalAsh>
+  raw_ptr<TestContinueFilesSearchProvider, ExperimentalAsh>
       local_continue_section_provider_ = nullptr;
-  raw_ptr<TestContinueFilesSearchProvider, DanglingUntriaged | ExperimentalAsh>
+  raw_ptr<TestContinueFilesSearchProvider, ExperimentalAsh>
       drive_continue_section_provider_ = nullptr;
 };
 
@@ -352,7 +352,6 @@ class HelpAppSwaSearchBrowserTest : public HelpAppSearchBrowserTestBase,
       SelectFirstBrowser();
     }
     HelpAppSearchBrowserTestBase::SetUpOnMainThread();
-    VerifyLacrosStatus();
   }
 };
 

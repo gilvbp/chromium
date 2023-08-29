@@ -284,7 +284,7 @@ void RTCIceTransport::Trace(Visitor* visitor) const {
   visitor->Trace(remote_parameters_);
   visitor->Trace(selected_candidate_pair_);
   visitor->Trace(peer_connection_);
-  EventTarget::Trace(visitor);
+  EventTargetWithInlineData::Trace(visitor);
   ExecutionContextLifecycleObserver::Trace(visitor);
 }
 

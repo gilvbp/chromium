@@ -5,7 +5,7 @@
 #include "third_party/blink/renderer/core/inspector/legacy_dom_snapshot_agent.h"
 
 #include "third_party/blink/renderer/bindings/core/v8/v8_binding_for_core.h"
-#include "third_party/blink/renderer/core/css/properties/css_property_ref.h"
+#include "third_party/blink/renderer/core/css/css_computed_style_declaration.h"
 #include "third_party/blink/renderer/core/dom/attribute.h"
 #include "third_party/blink/renderer/core/dom/attribute_collection.h"
 #include "third_party/blink/renderer/core/dom/character_data.h"
@@ -13,7 +13,6 @@
 #include "third_party/blink/renderer/core/dom/document_type.h"
 #include "third_party/blink/renderer/core/dom/dom_node_ids.h"
 #include "third_party/blink/renderer/core/dom/element.h"
-#include "third_party/blink/renderer/core/dom/flat_tree_traversal.h"
 #include "third_party/blink/renderer/core/dom/node.h"
 #include "third_party/blink/renderer/core/dom/pseudo_element.h"
 #include "third_party/blink/renderer/core/dom/qualified_name.h"
@@ -38,7 +37,6 @@
 #include "third_party/blink/renderer/core/layout/layout_view.h"
 #include "third_party/blink/renderer/core/paint/paint_layer.h"
 #include "third_party/blink/renderer/core/paint/paint_layer_scrollable_area.h"
-#include "third_party/blink/renderer/core/style/computed_style.h"
 #include "third_party/blink/renderer/platform/bindings/thread_debugger.h"
 #include "v8/include/v8-inspector.h"
 
@@ -134,13 +132,12 @@ protocol::Response LegacyDOMSnapshotAgent::GetSnapshot(
     css_property_filter_->emplace_back(entry, property_id);
   }
 
-  if (include_paint_order.value_or(false)) {
+  if (include_paint_order.fromMaybe(false))
     paint_order_map_ = InspectorDOMSnapshotAgent::BuildPaintLayerTree(document);
-  }
 
   // Actual traversal.
-  VisitNode(document, include_event_listeners.value_or(false),
-            include_user_agent_shadow_tree.value_or(false));
+  VisitNode(document, include_event_listeners.fromMaybe(false),
+            include_user_agent_shadow_tree.fromMaybe(false));
 
   // Extract results from state and reset.
   *dom_nodes = std::move(dom_nodes_);
@@ -431,38 +428,14 @@ int LegacyDOMSnapshotAgent::VisitLayoutTreeNode(LayoutObject* layout_object,
   return index;
 }
 
-const ComputedStyle* ComputedStyleForNode(Node& node) {
-  if (Element* element = DynamicTo<Element>(node)) {
-    return element->EnsureComputedStyle();
-  }
-  if (!node.IsTextNode()) {
-    return nullptr;
-  }
-  if (LayoutObject* layout_object = node.GetLayoutObject()) {
-    return layout_object->Style();
-  }
-  if (Element* parent_element = FlatTreeTraversal::ParentElement(node)) {
-    return parent_element->EnsureComputedStyle();
-  }
-  return nullptr;
-}
-
 int LegacyDOMSnapshotAgent::GetStyleIndexForNode(Node* node) {
-  CHECK(node);
-  const ComputedStyle* computed_style = ComputedStyleForNode(*node);
-  if (!computed_style) {
-    return -1;
-  }
+  auto* computed_style_info =
+      MakeGarbageCollected<CSSComputedStyleDeclaration>(node, true);
+
   Vector<String> style;
   bool all_properties_empty = true;
   for (const auto& pair : *css_property_filter_) {
-    String value;
-    if (const CSSValue* css_value =
-            CSSProperty::Get(pair.second)
-                .CSSValueFromComputedStyle(*computed_style,
-                                           node->GetLayoutObject(), true)) {
-      value = css_value->CssText();
-    }
+    String value = computed_style_info->GetPropertyValue(pair.second);
     if (!value.empty())
       all_properties_empty = false;
     style.push_back(value);

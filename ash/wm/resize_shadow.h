@@ -8,12 +8,9 @@
 #include <memory>
 
 #include "ash/public/cpp/resize_shadow_type.h"
-#include "ash/style/ash_color_id.h"
 #include "base/memory/raw_ptr.h"
-#include "third_party/abseil-cpp/absl/types/variant.h"
 #include "third_party/skia/include/core/SkColor.h"
 #include "ui/base/hit_test.h"
-#include "ui/color/color_provider_source_observer.h"
 
 namespace aura {
 class Window;
@@ -30,7 +27,7 @@ namespace ash {
 // A class to render the resize edge effect when the user moves their mouse
 // over a sizing edge. This is just a visual effect; the actual resize is
 // handled by the EventFilter.
-class ResizeShadow : public ui::ColorProviderSourceObserver {
+class ResizeShadow {
  public:
   // Resize shadow parameters. Default params values are unresizable window
   // shadow.
@@ -42,9 +39,9 @@ class ResizeShadow : public ui::ColorProviderSourceObserver {
     // The corner radius of the window.
     int window_corner_radius = 2;
     // The opacity of the resize shadow.
-    float opacity = 0.6f;
+    float opacity = 0.5f;
     // The color of the resize shadow.
-    absl::variant<SkColor, ui::ColorId> color = kColorAshResizeShadowColor;
+    SkColor color = SK_ColorBLACK;
     // Controls whether the resize shadow shall respond to hit testing or not.
     bool hit_test_enabled = true;
     int hide_duration_ms = 100;
@@ -55,7 +52,7 @@ class ResizeShadow : public ui::ColorProviderSourceObserver {
                ResizeShadowType type);
   ResizeShadow(const ResizeShadow&) = delete;
   ResizeShadow& operator=(const ResizeShadow&) = delete;
-  ~ResizeShadow() override;
+  ~ResizeShadow();
 
   bool visible() const { return visible_; }
   int GetLastHitTestForTest() const { return last_hit_test_; }
@@ -64,14 +61,6 @@ class ResizeShadow : public ui::ColorProviderSourceObserver {
 
  private:
   friend class ResizeShadowController;
-
-  // ui::ColorProviderSourceObserver:
-  void OnColorProviderChanged() override;
-
-  // Called when the observed window is parented to a root window.
-  void OnWindowParentToRootWindow();
-
-  void UpdateShadowLayer();
 
   // Shows resize effects for one or more edges based on a |hit_test| code, such
   // as HTRIGHT or HTBOTTOMRIGHT.

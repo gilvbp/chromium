@@ -4,8 +4,6 @@
 
 import {TestRunner} from 'test_runner';
 
-import * as SDK from 'devtools/core/sdk/sdk.js';
-
 (async function() {
   TestRunner.addResult(`Tests that workers are correctly detached upon navigation.\n`);
 
@@ -39,7 +37,7 @@ import * as SDK from 'devtools/core/sdk/sdk.js';
       }
     }
   };
-  SDK.TargetManager.TargetManager.instance().observeTargets(observer);
+  SDK.targetManager.observeTargets(observer);
   await TestRunner.navigatePromise('resources/workers-on-navigation-resource.html');
   TestRunner.evaluateInPagePromise('startWorker()');
   await workerAddedPromise;

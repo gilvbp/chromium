@@ -10,14 +10,7 @@ import {
 import {
   getDefaultWindowSize,
 } from './app_window.js';
-import {
-  assert,
-  assertEnumVariant,
-  assertExists,
-  assertInstanceof,
-  checkEnumVariant,
-} from './assert.js';
-import * as customEffect from './custom_effect.js';
+import {assert, assertInstanceof} from './assert.js';
 import {DEPLOYED_VERSION} from './deployed_version.js';
 import {CameraManager} from './device/index.js';
 import {ModeConstraints} from './device/type.js';
@@ -29,6 +22,7 @@ import {GalleryButton} from './gallerybutton.js';
 import {I18nString} from './i18n_string.js';
 import {Intent} from './intent.js';
 import * as Comlink from './lib/comlink.js';
+import {loadSvgImages} from './lit/svg_wrapper.js';
 import * as metrics from './metrics.js';
 import * as filesystem from './models/file_system.js';
 import * as loadTimeData from './models/load_time_data.js';
@@ -43,7 +37,6 @@ import {preloadImagesList} from './preload_images.js';
 import * as state from './state.js';
 import * as toast from './toast.js';
 import * as tooltip from './tooltip.js';
-import {getSanitizedScriptUrl} from './trusted_script_url_policy_util.js';
 import {
   ErrorLevel,
   ErrorType,
@@ -62,6 +55,12 @@ import {View} from './views/view.js';
 import {Warning, WarningType} from './views/warning.js';
 import {WaitableEvent} from './waitable_event.js';
 import {windowController} from './window_controller.js';
+
+/**
+ * The app window instance which is used for communication with Tast tests. For
+ * non-test sessions, it should be null.
+ */
+const appWindow = window.appWindow;
 
 /**
  * Creates the Camera App main object.
@@ -124,13 +123,11 @@ export class App {
     window.addEventListener('resize', () => nav.layoutShownViews());
     windowController.addWindowStateListener(() => nav.layoutShownViews());
 
-    customEffect.setup();
     util.setupI18nElements(document.body);
     this.setupTooltip();
     this.setupToggles();
     localStorage.cleanup();
     this.setupEffect();
-    this.showNewFeatureToast();
     this.setupExperimentalFeatures();
 
     // Set up views navigation by their DOM z-order.
@@ -152,37 +149,33 @@ export class App {
    * Note `i18n-label` attribute should not be removed from elements.
    */
   private setupTooltip() {
-    tooltip.init();
     const tooltipAttribute = 'i18n-label';
-    const tooltipAttributeSelector = `[${tooltipAttribute}]`;
     const elements =
-        Array.from(dom.getAll(tooltipAttributeSelector, HTMLElement));
-    tooltip.setupElements(elements);
+        Array.from(dom.getAll(`[${tooltipAttribute}]`, HTMLElement));
+    tooltip.setup(elements);
     const observer = new MutationObserver((mutations) => {
       const elements: HTMLElement[] = [];
       for (const mutation of mutations) {
-        if (mutation.type === 'attributes') {
-          // Check newly added attributes on existing elements.
-          const {target, oldValue} = mutation;
-          if (target instanceof HTMLElement && oldValue === null) {
-            elements.push(target);
+        if (mutation.type === 'childList') {
+          for (const node of mutation.addedNodes) {
+            if (node instanceof HTMLElement &&
+                node.hasAttribute(tooltipAttribute)) {
+              elements.push(node);
+            }
           }
-        } else if (mutation.type === 'childList') {
-          const {target} = mutation;
-          if (target instanceof HTMLElement) {
-            elements.push(
-                ...dom.getAllFrom(
-                    target, tooltipAttributeSelector, HTMLElement),
-            );
+        } else if (mutation.type === 'attributes') {
+          const {target: node, attributeName, oldValue} = mutation;
+          if (node instanceof HTMLElement &&
+              attributeName === tooltipAttribute && oldValue === null) {
+            elements.push(node);
           }
         }
       }
-      tooltip.setupElements(elements);
+      tooltip.setup(elements);
     });
     observer.observe(document.body, {
       subtree: true,
       childList: true,
-      attributeFilter: [tooltipAttribute],
       attributes: true,
       attributeOldValue: true,
     });
@@ -202,7 +195,7 @@ export class App {
       function getKey(element: HTMLInputElement) {
         return element.dataset['key'] === undefined ?
             null :
-            assertEnumVariant(LocalStorageKey, element.dataset['key']);
+            util.assertEnumVariant(LocalStorageKey, element.dataset['key']);
       }
       const stateKey = element.dataset['state'] === undefined ?
           null :
@@ -277,26 +270,6 @@ export class App {
     });
   }
 
-  private showNewFeatureToast() {
-    // TODO(b/236800499): Remove the toast around 3 milestones after the feature
-    // is launched.
-    const showTimeLapseToast = () => this.cameraManager.registerCameraUI({
-      onUpdateConfig: () => {
-        if (localStorage.getBool(LocalStorageKey.TIME_LAPSE_DIALOG_SHOWN) ||
-            state.get(Mode.VIDEO)) {
-          return;
-        }
-        customEffect.showTimeLapseIntroToast(this.cameraView.root);
-        // Do not show the toast to users who has already seen it.
-        localStorage.set(LocalStorageKey.TIME_LAPSE_DIALOG_SHOWN, true);
-      },
-    });
-
-    if (loadTimeData.getChromeFlag(Flag.TIME_LAPSE)) {
-      showTimeLapseToast();
-    }
-  }
-
   private setupExperimentalFeatures() {
     if (loadTimeData.getChromeFlag(Flag.TIME_LAPSE)) {
       const modeButton = dom.get('#time-lapse-mode', HTMLDivElement);
@@ -313,6 +286,7 @@ export class App {
     try {
       await filesystem.initialize();
       const cameraDir = filesystem.getCameraDirectory();
+      assert(cameraDir !== null);
 
       // There are three possible cases:
       // 1. Regular instance
@@ -355,16 +329,7 @@ export class App {
     })();
 
     preloadImages();
-
-    for (const el of dom.getAll('[data-svg]', HTMLElement)) {
-      const imageName = assertExists(el.dataset['svg']);
-      const svg = document.createElement('svg-wrapper');
-      svg.setAttribute('name', imageName);
-      // Prepend the svg so it's on the bottom-most layer and won't be covering
-      // other possible children (e.g. inkdrop effect).
-      el.prepend(svg);
-    }
-
+    loadSvgImages();
     metrics.sendLaunchEvent({launchType});
     await Promise.all([showWindow, startCamera]);
 
@@ -378,16 +343,19 @@ export class App {
         PerfEvent.LAUNCHING_FROM_WINDOW_CREATION,
         {hasError: !cameraStartSuccessful});
 
-    window.appWindow?.onAppLaunched();
-    metrics.sendOpenCameraEvent(this.cameraManager.getVidPid());
+    if (appWindow !== null) {
+      appWindow.onAppLaunched();
+    }
   }
 
   /**
    * Handles pressed keys.
+   *
+   * @param event Key press event.
    */
-  private onKeyPressed(event: KeyboardEvent) {
+  private onKeyPressed(event: Event) {
     tooltip.hide();  // Hide shown tooltip on any keypress.
-    nav.onKeyPressed(event);
+    nav.onKeyPressed(assertInstanceof(event, KeyboardEvent));
   }
 
   /**
@@ -436,8 +404,9 @@ export class App {
       await this.suspend();
     };
 
-    const multiWindowManagerWorker = new SharedWorker(
-        getSanitizedScriptUrl('/js/multi_window_manager.js'), {type: 'module'});
+    const multiWindowManagerPath = '/js/multi_window_manager.js';
+    const multiWindowManagerWorker =
+        new SharedWorker(multiWindowManagerPath, {type: 'module'});
     const windowInstance =
         Comlink.wrap<WindowInstance>(multiWindowManagerWorker.port);
     addUnloadCallback(() => {
@@ -492,9 +461,9 @@ function parseSearchParams(): {
   const url = new URL(window.location.href);
   const params = url.searchParams;
 
-  const facing = checkEnumVariant(Facing, params.get('facing'));
+  const facing = util.checkEnumVariant(Facing, params.get('facing'));
 
-  const mode = checkEnumVariant(Mode, params.get('mode'));
+  const mode = util.checkEnumVariant(Mode, params.get('mode'));
 
   const intent = (() => {
     if (params.get('intentId') === null) {
@@ -512,6 +481,8 @@ function parseSearchParams(): {
 
 /**
  * Preload images to avoid flickering.
+ * TODO(pihsun): Remove this and stop including .svg file in CCA once all
+ * images are migrated to use data-svg / loadSvgImages.
  */
 function preloadImages() {
   const imagesContainer = document.createElement('div');
@@ -519,7 +490,7 @@ function preloadImages() {
   imagesContainer.hidden = true;
   for (const imageName of preloadImagesList) {
     const img = document.createElement('img');
-    const url = util.expandPath(`/images/${imageName}`);
+    const url = `/images/${imageName}`;
     img.onerror = () => {
       reportError(
           ErrorType.PRELOAD_IMAGE_FAILURE, ErrorLevel.ERROR,
@@ -548,7 +519,7 @@ async function setupDynamicColor(): Promise<void> {
     ColorChangeUpdater.forDocument().start();
     await loadCSS('chrome://theme/colors.css?sets=ref,sys');
   } else {
-    await loadCSS(util.expandPath('/css/colors_default.css'));
+    await loadCSS('/css/colors_default.css');
   }
 }
 
@@ -578,12 +549,14 @@ let instance: App|null = null;
     // guarantee that asynchronous calls in unload listener can be executed
     // properly. Therefore, we moved the logic for canceling unhandled intent to
     // Chrome (CameraAppHelper).
-    window.appWindow?.notifyClosed();
+    if (appWindow !== null) {
+      appWindow.notifyClosed();
+    }
   });
 
   metrics.initMetrics();
-  if (window.appWindow !== null) {
-    metrics.setEnabled(false);
+  if (appWindow !== null) {
+    metrics.setMetricsEnabled(false);
   }
 
   // Setup listener for performance events.
@@ -600,7 +573,9 @@ let instance: App|null = null;
     }
 
     // Setup for Tast tests logger.
-    window.appWindow?.reportPerf({event, duration, perfInfo});
+    if (appWindow !== null) {
+      appWindow.reportPerf({event, duration, perfInfo});
+    }
   });
 
   state.addObserver(state.State.TAKING, (val, extras) => {

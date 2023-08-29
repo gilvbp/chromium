@@ -4,8 +4,6 @@
 
 module device.mojom;
 
-import "ui/gfx/geometry/mojom/geometry.mojom";
-
 // An enum representing the posture of device, or an no type fold state.
 // Defined https://w3c.github.io/device-posture/#posture-types
 enum DevicePostureType {
@@ -17,28 +15,15 @@ enum DevicePostureType {
 // DevicePostureService.
 interface DevicePostureProvider {
   // Associates an interface to the posture provider. The initial posture
-  // will also be returned.
+  // will then be returned.
   AddListenerAndGetCurrentPosture(
-    pending_remote<DevicePostureClient> client)
+    pending_remote<DevicePostureProviderClient> client)
       => (DevicePostureType posture);
-
-  // Associates an interface to this provider to get updates to viewport
-  // segments. The current segments will also be returned.
-  AddListenerAndGetCurrentViewportSegments(
-    pending_remote<DeviceViewportSegmentsClient> client)
-      => (array<gfx.mojom.Rect> segments);
 };
 
 // Interface that client of the DevicePostureProvider interface must implement
 // to observe posture changes.
-interface DevicePostureClient {
+interface DevicePostureProviderClient {
   // Interface used to notify posture changes.
   OnPostureChanged(DevicePostureType posture);
-};
-
-// Interface that client of the DevicePostureProvider interface must implement
-// to observe viewport segments changes.
-interface DeviceViewportSegmentsClient {
-  // Interface used to notify of viewport segments changes.
-  OnViewportSegmentsChanged(array<gfx.mojom.Rect> segments);
 };

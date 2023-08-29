@@ -27,7 +27,7 @@ class WarningServiceFactory : public BrowserContextKeyedServiceFactory {
   ~WarningServiceFactory() override;
 
   // BrowserContextKeyedServiceFactory implementation
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* context) const override;
   content::BrowserContext* GetBrowserContextToUse(
       content::BrowserContext* context) const override;

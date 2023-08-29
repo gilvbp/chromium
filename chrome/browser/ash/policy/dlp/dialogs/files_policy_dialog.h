@@ -41,12 +41,13 @@ class FilesPolicyDialogFactory {
   virtual views::Widget* CreateWarnDialog(
       OnDlpRestrictionCheckedCallback callback,
       const std::vector<DlpConfidentialFile>& files,
+      DlpFileDestination destination,
       dlp::FileAction action,
-      gfx::NativeWindow modal_parent,
-      absl::optional<DlpFileDestination> destination) = 0;
+      gfx::NativeWindow modal_parent) = 0;
 
   virtual views::Widget* CreateErrorDialog(
       const std::map<DlpConfidentialFile, Policy>& files,
+      DlpFileDestination destination,
       dlp::FileAction action,
       gfx::NativeWindow modal_parent) = 0;
 };
@@ -59,6 +60,7 @@ class FilesPolicyDialog : public PolicyDialogBase {
 
   FilesPolicyDialog() = delete;
   FilesPolicyDialog(size_t file_count,
+                    DlpFileDestination destination,
                     dlp::FileAction action,
                     gfx::NativeWindow modal_parent);
   FilesPolicyDialog(const FilesPolicyDialog& other) = delete;
@@ -70,33 +72,34 @@ class FilesPolicyDialog : public PolicyDialogBase {
   static views::Widget* CreateWarnDialog(
       OnDlpRestrictionCheckedCallback callback,
       const std::vector<DlpConfidentialFile>& files,
+      DlpFileDestination destination,
       dlp::FileAction action,
-      gfx::NativeWindow modal_parent,
-      absl::optional<DlpFileDestination> destination = absl::nullopt);
+      gfx::NativeWindow modal_parent);
 
   // Creates and shows an instance of FilesPolicyErrorDialog. Returns owning
   // Widget.
   static views::Widget* CreateErrorDialog(
       const std::map<DlpConfidentialFile, Policy>& files,
+      DlpFileDestination destination,
       dlp::FileAction action,
       gfx::NativeWindow modal_parent);
 
   static void SetFactory(FilesPolicyDialogFactory* factory);
 
  protected:
-  // PolicyDialogBase overrides:
-  void SetupScrollView() override;
-  void AddConfidentialRow(const gfx::ImageSkia& icon,
-                          const std::u16string& title) override;
-
+  DlpFileDestination destination_;
   dlp::FileAction action_;
-  // Number of files listed in the dialog.
-  size_t file_count_;
 
  private:
   // PolicyDialogBase overrides:
-  views::Label* AddTitle(const std::u16string& title) override;
-  views::Label* AddMessage(const std::u16string& message) override;
+  void AddGeneralInformation() override;
+  std::u16string GetOkButton() override;
+  std::u16string GetCancelButton() override;
+  std::u16string GetTitle() override;
+  std::u16string GetMessage() override;
+
+  // Number of files listed in the dialog.
+  size_t file_count_;
 
   base::WeakPtrFactory<FilesPolicyDialog> weak_factory_{this};
 };

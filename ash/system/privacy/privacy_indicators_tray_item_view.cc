@@ -18,6 +18,7 @@
 #include "ash/system/tray/tray_item_view.h"
 #include "base/check.h"
 #include "base/check_op.h"
+#include "base/containers/flat_set.h"
 #include "base/metrics/histogram_functions.h"
 #include "base/time/time.h"
 #include "base/timer/timer.h"
@@ -191,8 +192,6 @@ PrivacyIndicatorsTrayItemView::PrivacyIndicatorsTrayItemView(Shelf* shelf)
   UpdateIcons();
   TooltipTextChanged();
 
-  UpdateVisibility();
-
   Shell::Get()->session_controller()->AddObserver(this);
 }
 
@@ -308,17 +307,7 @@ void PrivacyIndicatorsTrayItemView::UpdateVisibility() {
   SetVisible(visible);
 
   if (!visible) {
-    if (IsInPrimaryDisplay(GetWidget())) {
-      base::UmaHistogramLongTimes(
-          "Ash.PrivacyIndicators.IndicatorShowsDuration",
-          base::Time::Now() - start_showing_time_);
-    }
     return;
-  }
-
-  // Only record this metric on primary screen.
-  if (IsInPrimaryDisplay(GetWidget())) {
-    start_showing_time_ = base::Time::Now();
   }
 
   ++count_visible_per_session_;

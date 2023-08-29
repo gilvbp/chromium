@@ -89,11 +89,13 @@ LinuxUi::WindowFrameAction FakeLinuxUi::GetWindowFrameAction(
   return WindowFrameAction::kNone;
 }
 
+float FakeLinuxUi::GetDeviceScaleFactor() const {
+  return 1.0f;
+}
+
 bool FakeLinuxUi::PreferDarkTheme() const {
   return false;
 }
-
-void FakeLinuxUi::SetDarkTheme(bool dark) {}
 
 bool FakeLinuxUi::AnimationsEnabled() const {
   return true;

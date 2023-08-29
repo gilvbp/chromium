@@ -20,6 +20,10 @@
 #import "ui/base/cocoa/window_size_constants.h"
 #include "ui/base/test/ns_ax_tree_validator.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 // Test harness for Mac-specific behaviors of BrowserWindow.
 class BrowserWindowMacTest : public InProcessBrowserTest {
  public:
@@ -59,7 +63,7 @@ IN_PROC_BROWSER_TEST_F(BrowserWindowMacTest, MenuCommandsAfterDestroy) {
 IN_PROC_BROWSER_TEST_F(BrowserWindowMacTest,
                        DISABLED_MenuCommandsFromChildWindow) {
   NativeWidgetMacNSWindow* window =
-      base::apple::ObjCCastStrict<NativeWidgetMacNSWindow>(
+      base::mac::ObjCCastStrict<NativeWidgetMacNSWindow>(
           browser()->window()->GetNativeWindow().GetNativeNSWindow());
 
   // Create a child window.

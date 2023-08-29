@@ -156,7 +156,7 @@ public class AwActivityTestRule extends BaseActivityTestRule<AwTestRunnerActivit
 
     public AwBrowserContext createAwBrowserContextOnUiThread(InMemorySharedPreferences prefs) {
         // Native pointer is initialized later in startBrowserProcess if needed.
-        return new AwBrowserContext(prefs, 0);
+        return new AwBrowserContext(prefs, 0, true);
     }
 
     public TestDependencyFactory createTestDependencyFactory() {
@@ -329,6 +329,7 @@ public class AwActivityTestRule extends BaseActivityTestRule<AwTestRunnerActivit
 
     public void loadHtmlSync(final AwContents awContents, CallbackHelper onPageFinishedHelper,
             final String html) throws Throwable {
+        int currentCallCount = onPageFinishedHelper.getCallCount();
         final String encodedData = Base64.encodeToString(html.getBytes(), Base64.NO_PADDING);
         loadDataSync(awContents, onPageFinishedHelper, encodedData, "text/html", true);
     }
@@ -466,7 +467,7 @@ public class AwActivityTestRule extends BaseActivityTestRule<AwTestRunnerActivit
     }
 
     public boolean isHardwareAcceleratedTest() {
-        return !testMethodHasAnnotation(DisableHardwareAcceleration.class);
+        return !testMethodHasAnnotation(DisableHardwareAccelerationForTest.class);
     }
 
     public AwTestContainerView createAwTestContainerViewOnMainSync(final AwContentsClient client) {
@@ -751,6 +752,7 @@ public class AwActivityTestRule extends BaseActivityTestRule<AwTestRunnerActivit
     public void loadPopupContents(final AwContents parentAwContents, PopupInfo info,
             OnCreateWindowHandler onCreateWindowHandler) throws Exception {
         TestAwContentsClient popupContentsClient = info.popupContentsClient;
+        AwTestContainerView popupContainerView = info.popupContainerView;
         final AwContents popupContents = info.popupContents;
         OnPageFinishedHelper onPageFinishedHelper = popupContentsClient.getOnPageFinishedHelper();
         int finishCallCount = onPageFinishedHelper.getCallCount();
@@ -771,7 +773,7 @@ public class AwActivityTestRule extends BaseActivityTestRule<AwTestRunnerActivit
     }
 
     private boolean testMethodHasAnnotation(Class<? extends Annotation> clazz) {
-        return mCurrentTestDescription.getAnnotation(clazz) != null;
+        return mCurrentTestDescription.getAnnotation(clazz) != null ? true : false;
     }
 
     /**

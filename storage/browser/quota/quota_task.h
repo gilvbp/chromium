@@ -62,9 +62,7 @@ class QuotaTask {
 
   void Abort();
 
-  raw_ptr<QuotaTaskObserver,
-          FlakyDanglingUntriaged | AcrossTasksDanglingUntriaged>
-      observer_;
+  raw_ptr<QuotaTaskObserver, FlakyDanglingUntriaged> observer_;
   const scoped_refptr<base::SingleThreadTaskRunner> original_task_runner_;
   bool delete_scheduled_;
 };

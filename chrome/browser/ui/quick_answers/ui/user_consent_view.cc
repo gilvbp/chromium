@@ -326,7 +326,7 @@ void UserConsentView::InitButtonBar() {
   // Allow button
   auto allow_button = std::make_unique<CustomizedLabelButton>(
       base::BindRepeating(
-          [](chromeos::editor_menu::PreTargetHandler* handler,
+          [](QuickAnswersPreTargetHandler* handler,
              base::WeakPtr<QuickAnswersUiController> controller) {
             // When user consent is accepted, QuickAnswersView will be
             // displayed instead of dismissing the menu.

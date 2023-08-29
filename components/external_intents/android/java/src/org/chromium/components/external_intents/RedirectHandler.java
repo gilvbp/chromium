@@ -92,7 +92,7 @@ public class RedirectHandler {
         // TODO(https://crbug.com/1286053): Plumb through the user activation time from blink.
         final long mNavigationChainStartTime = currentRealtime();
         boolean mUsedBackOrForward;
-        boolean mPerformedHiddenCrossFrameNavigation;
+        boolean mPerformedCrossFrameNavigation;
         final InitialNavigationState mInitialNavigationState;
 
         NavigationChainState(boolean hasUserStartedNonInitialNavigation,
@@ -395,12 +395,12 @@ public class RedirectHandler {
                 "Android.Intent.BlockedExternalNavLastGestureTime", millisSinceLastGesture);
     }
 
-    public void setPerformedHiddenCrossFrameNavigation() {
-        mNavigationChainState.mPerformedHiddenCrossFrameNavigation = true;
+    public void setPerformedCrossFrameNavigation() {
+        mNavigationChainState.mPerformedCrossFrameNavigation = true;
     }
 
-    public boolean navigationChainPerformedHiddenCrossFrameNavigation() {
-        return mNavigationChainState.mPerformedHiddenCrossFrameNavigation;
+    public boolean navigationChainPerformedCrossFrameNavigation() {
+        return mNavigationChainState.mPerformedCrossFrameNavigation;
     }
 
     // Facilitates simulated waiting in tests.

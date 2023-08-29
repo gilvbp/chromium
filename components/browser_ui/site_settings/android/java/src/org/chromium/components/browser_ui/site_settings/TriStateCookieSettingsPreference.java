@@ -264,11 +264,13 @@ public class TriStateCookieSettingsPreference extends Preference
         return buttons(mAllowButton, mBlockThirdPartyIncognitoButton, mBlockThirdPartyButton);
     }
 
+    @VisibleForTesting
     public boolean isButtonEnabledForTesting(@CookieControlsMode int state) {
         assert getButton(state) != null;
         return getButton(state).isEnabled();
     }
 
+    @VisibleForTesting
     public boolean isButtonCheckedForTesting(@CookieControlsMode int state) {
         assert getButton(state) != null;
         return getButton(state).isChecked();

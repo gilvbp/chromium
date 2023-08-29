@@ -66,7 +66,7 @@ DemoService::DemoService(
     std::ignore = gpu_host_proxy.InitWithNewPipeAndPassReceiver();
 
     gpu_service_->InitializeWithHost(
-        std::move(gpu_host_proxy), gpu::GpuProcessShmCount(),
+        std::move(gpu_host_proxy), gpu::GpuProcessActivityFlags(),
         gl::init::CreateOffscreenGLSurface(gl::GetDefaultDisplay(),
                                            gfx::Size()),
         /*sync_point_manager=*/nullptr, /*shared_image_manager=*/nullptr,

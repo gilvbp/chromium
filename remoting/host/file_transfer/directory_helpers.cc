@@ -4,7 +4,6 @@
 
 #include "remoting/host/file_transfer/directory_helpers.h"
 
-#include "base/check_is_test.h"
 #include "base/files/file_path.h"
 #include "base/logging.h"
 #include "base/path_service.h"
@@ -12,47 +11,42 @@
 #include "remoting/protocol/file_transfer_helpers.h"
 
 #if BUILDFLAG(IS_CHROMEOS)
-// `nogncheck` prevents false positive 'missing dependency' errors on
-// non-chromeos builds.
-#include "chrome/common/chrome_paths.h"  // nogncheck
+#include "chrome/common/chrome_paths.h"
 #endif
 
 namespace remoting {
 
 namespace {
 
-static base::FilePath* g_upload_directory_for_testing = nullptr;
-
-protocol::FileTransferResult<base::FilePath> GetDirectory(int path_key) {
-  base::FilePath directory_path;
-  if (!base::PathService::Get(path_key, &directory_path)) {
-    LOG(ERROR) << "Failed to get path from base::PathService::Get";
+#if BUILDFLAG(IS_CHROMEOS)
+protocol::FileTransferResult<base::FilePath> GetDownloadDirectory() {
+  base::FilePath download_path;
+  if (!base::PathService::Get(chrome::DIR_DEFAULT_DOWNLOADS_SAFE,
+                              &download_path)) {
+    LOG(ERROR)
+        << "Failed to get DIR_DEFAULT_DOWNLOADS from base::PathService::Get";
     return protocol::MakeFileTransferError(
         FROM_HERE, protocol::FileTransfer_Error_Type_UNEXPECTED_ERROR);
   }
 
-  return directory_path;
+  return download_path;
 }
+#endif
 
 }  // namespace
 
 protocol::FileTransferResult<base::FilePath> GetFileUploadDirectory() {
-  if (g_upload_directory_for_testing) {
-    CHECK_IS_TEST();
-    return *g_upload_directory_for_testing;
-  }
 #if BUILDFLAG(IS_CHROMEOS)
-  return GetDirectory(chrome::DIR_DEFAULT_DOWNLOADS_SAFE);
+  return GetDownloadDirectory();
 #else
-  return GetDirectory(base::DIR_USER_DESKTOP);
-#endif
-}
-
-void SetFileUploadDirectoryForTesting(base::FilePath dir) {
-  if (g_upload_directory_for_testing) {
-    delete g_upload_directory_for_testing;
+  base::FilePath target_directory;
+  if (!base::PathService::Get(base::DIR_USER_DESKTOP, &target_directory)) {
+    LOG(ERROR) << "Failed to get DIR_USER_DESKTOP from base::PathService::Get";
+    return protocol::MakeFileTransferError(
+        FROM_HERE, protocol::FileTransfer_Error_Type_UNEXPECTED_ERROR);
   }
-  g_upload_directory_for_testing = new base::FilePath(dir);
+  return target_directory;
+#endif
 }
 
 }  // namespace remoting

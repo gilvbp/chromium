@@ -47,7 +47,6 @@ function makeUnreached() {
     'constructor',
     'contentWindow',
     'data',
-    'defaultView',
     'dirty',
     'element',
     'elementHeight',
@@ -69,7 +68,6 @@ function makeUnreached() {
     'on',
     'onloadstop',
     'onresize',
-    'ownerDocument',
     'parentNode',
     'partition',
     'pendingAction',
@@ -91,7 +89,6 @@ function makeUnreached() {
   // For objects that don't inherit directly from Object, we'll need to taint
   // existing properties on prototypes earlier in the prototype chain.
   var otherConstructors = [
-    Document,
     Element,
     HTMLElement,
     HTMLIFrameElement,

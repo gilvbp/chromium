@@ -13,12 +13,12 @@
 #include "ash/quick_pair/common/device.h"
 #include "ash/quick_pair/common/fake_bluetooth_adapter.h"
 #include "ash/quick_pair/common/fast_pair/fast_pair_metrics.h"
+#include "ash/quick_pair/common/logging.h"
 #include "ash/quick_pair/common/pair_failure.h"
 #include "ash/quick_pair/common/protocol.h"
 #include "ash/quick_pair/fast_pair_handshake/fake_fast_pair_data_encryptor.h"
 #include "ash/quick_pair/fast_pair_handshake/fake_fast_pair_gatt_service_client.h"
 #include "ash/quick_pair/fast_pair_handshake/fake_fast_pair_handshake.h"
-#include "ash/quick_pair/fast_pair_handshake/fake_fast_pair_handshake_lookup.h"
 #include "ash/quick_pair/fast_pair_handshake/fast_pair_data_encryptor.h"
 #include "ash/quick_pair/fast_pair_handshake/fast_pair_data_encryptor_impl.h"
 #include "ash/quick_pair/fast_pair_handshake/fast_pair_gatt_service_client.h"
@@ -217,8 +217,7 @@ class FakeFastPairGattServiceClientImplFactory
     return fake_fast_pair_gatt_service_client;
   }
 
-  raw_ptr<ash::quick_pair::FakeFastPairGattServiceClient,
-          DanglingUntriaged | ExperimentalAsh>
+  raw_ptr<ash::quick_pair::FakeFastPairGattServiceClient, ExperimentalAsh>
       fake_fast_pair_gatt_service_client_ = nullptr;
 };
 
@@ -239,7 +238,6 @@ class FastPairPairerImplTest : public AshTestBase {
     AshTestBase::SetUp();
     FastPairGattServiceClientImpl::Factory::SetFactoryForTesting(
         &fast_pair_gatt_service_factory_);
-    FastPairHandshakeLookup::UseFakeInstance();
 
     adapter_ = base::MakeRefCounted<FakeBluetoothAdapter>();
     fast_pair_repository_ = std::make_unique<FakeFastPairRepository>();
@@ -282,21 +280,44 @@ class FastPairPairerImplTest : public AshTestBase {
     adapter_->AddMockDevice(std::move(fake_bluetooth_device_));
   }
 
-  void AddConnectedHandshake() {
-    FakeFastPairHandshakeLookup::GetFakeInstance()->CreateForTesting(
-        adapter_, device_, base::DoNothing(), std::move(gatt_service_client_),
-        std::move(data_encryptor_unique_));
-  }
-
   void EraseHandshake() {
     FastPairHandshakeLookup::GetInstance()->Erase(device_);
   }
 
+  void AddConnectedHandshake() {
+    FastPairHandshakeLookup::SetCreateFunctionForTesting(
+        base::BindRepeating(&FastPairPairerImplTest::CreateConnectedHandshake,
+                            base::Unretained(this)));
+
+    FastPairHandshakeLookup::GetInstance()->Create(adapter_, device_,
+                                                   base::DoNothing());
+  }
+
   void SetHandshakeBleCallback() {
-    auto* handshake = FastPairHandshakeLookup::GetInstance()->Get(device_);
-    handshake->BleAddressRotated(
+    fake_fast_pair_handshake_->BleAddressRotated(
         base::BindOnce(&FastPairPairerImplTest::on_ble_rotation_test_callback,
                        weak_ptr_factory_.GetWeakPtr()));
+  }
+
+  std::unique_ptr<FastPairHandshake> CreateConnectedHandshake(
+      scoped_refptr<Device> device,
+      FastPairHandshake::OnCompleteCallback callback) {
+    // This is the only place where data_encryptor_unique_ is used. We assume
+    // that CreateHandshake is only called once.
+    auto fake_fast_pair_handshake = std::make_unique<FakeFastPairHandshake>(
+        adapter_, device, std::move(callback),
+        std::move(data_encryptor_unique_), std::move(gatt_service_client_));
+
+    fake_fast_pair_handshake_ = fake_fast_pair_handshake.get();
+
+    return fake_fast_pair_handshake;
+  }
+
+  void SetReuseHandshake() {
+    FastPairHandshakeLookup::GetInstance()->Create(adapter_, device_,
+                                                   base::DoNothing());
+    fake_fast_pair_handshake_->set_completed_successfully(
+        /*completed_successfully=*/true);
   }
 
   base::HistogramTester& histogram_tester() { return histogram_tester_; }
@@ -429,6 +450,7 @@ class FastPairPairerImplTest : public AshTestBase {
     // 'FastPairHandshakeLookup' for the mock device.
     SetGetDeviceNullptr();
     AddConnectedHandshake();
+    fake_fast_pair_handshake_->InvokeCallback();
     CreatePairer();
     if (version == DeviceFastPairVersion::kHigherThanV1) {
       SetPublicKey();
@@ -455,8 +477,8 @@ class FastPairPairerImplTest : public AshTestBase {
   bool on_ble_rotation_callback_called_ = false;
   absl::optional<PairFailure> failure_ = absl::nullopt;
   std::unique_ptr<FakeBluetoothDevice> fake_bluetooth_device_;
-  raw_ptr<FakeBluetoothDevice, DanglingUntriaged | ExperimentalAsh>
-      fake_bluetooth_device_ptr_ = nullptr;
+  raw_ptr<FakeBluetoothDevice, ExperimentalAsh> fake_bluetooth_device_ptr_ =
+      nullptr;
   scoped_refptr<FakeBluetoothAdapter> adapter_;
   scoped_refptr<Device> device_;
   base::MockCallback<base::OnceCallback<void(scoped_refptr<Device>)>>
@@ -473,10 +495,9 @@ class FastPairPairerImplTest : public AshTestBase {
   std::unique_ptr<FastPairGattServiceClient> gatt_service_client_;
   FakeFastPairGattServiceClientImplFactory fast_pair_gatt_service_factory_;
   std::unique_ptr<FakeFastPairDataEncryptor> data_encryptor_unique_;
-  raw_ptr<FakeFastPairDataEncryptor, DanglingUntriaged | ExperimentalAsh>
-      data_encryptor_ = nullptr;
-  raw_ptr<FakeFastPairHandshake, DanglingUntriaged | ExperimentalAsh>
-      fake_fast_pair_handshake_ = nullptr;
+  raw_ptr<FakeFastPairDataEncryptor, ExperimentalAsh> data_encryptor_ = nullptr;
+  raw_ptr<FakeFastPairHandshake, ExperimentalAsh> fake_fast_pair_handshake_ =
+      nullptr;
   std::unique_ptr<FastPairPairer> pairer_;
   base::WeakPtrFactory<FastPairPairerImplTest> weak_ptr_factory_{this};
 };
@@ -487,6 +508,8 @@ TEST_F(FastPairPairerImplTest, NoCallbackIsInvokedOnGattSuccess_Initial) {
   CreateMockDevice(DeviceFastPairVersion::kHigherThanV1,
                    /*protocol=*/Protocol::kFastPairInitial);
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
+
   CreatePairer();
   EXPECT_EQ(GetPairFailure(), absl::nullopt);
 }
@@ -497,6 +520,7 @@ TEST_F(FastPairPairerImplTest, NoCallbackIsInvokedOnGattSuccess_Retroactive) {
   CreateMockDevice(DeviceFastPairVersion::kHigherThanV1,
                    /*protocol=*/Protocol::kFastPairRetroactive);
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
   CreatePairer();
   EXPECT_EQ(GetPairFailure(), absl::nullopt);
 }
@@ -507,6 +531,7 @@ TEST_F(FastPairPairerImplTest, NoCallbackIsInvokedOnGattSuccess_Subsequent) {
   CreateMockDevice(DeviceFastPairVersion::kHigherThanV1,
                    /*protocol=*/Protocol::kFastPairSubsequent);
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
   CreatePairer();
   EXPECT_EQ(GetPairFailure(), absl::nullopt);
 }
@@ -522,6 +547,7 @@ TEST_F(FastPairPairerImplTest, PairByDeviceSuccess_ConnectFailure_Initial) {
                    /*protocol=*/Protocol::kFastPairInitial);
   SetConnectFailureAfterPair();
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
   CreatePairer();
   fake_bluetooth_device_ptr_->TriggerPairCallback();
   EXPECT_EQ(GetPairFailure(), PairFailure::kFailedToConnectAfterPairing);
@@ -540,6 +566,7 @@ TEST_F(FastPairPairerImplTest, PairByDeviceSuccess_ConnectFailure_Subsequent) {
                    /*protocol=*/Protocol::kFastPairSubsequent);
   SetConnectFailureAfterPair();
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
   CreatePairer();
   fake_bluetooth_device_ptr_->TriggerPairCallback();
   EXPECT_EQ(GetPairFailure(), PairFailure::kFailedToConnectAfterPairing);
@@ -558,6 +585,7 @@ TEST_F(FastPairPairerImplTest, PairByDeviceFailure_Initial) {
                    /*protocol=*/Protocol::kFastPairInitial);
   SetPairFailure();
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
   CreatePairer();
   EXPECT_EQ(GetPairFailure(), PairFailure::kPairingConnect);
   histogram_tester().ExpectTotalCount(kPairDeviceResult, 1);
@@ -571,6 +599,7 @@ TEST_F(FastPairPairerImplTest, PairByDeviceFailure_Initial_CancelsPairing) {
                    /*protocol=*/Protocol::kFastPairInitial);
   SetPairFailure();
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
   CreatePairer();
 
   // Mock that the device was paired unsuccessfully.
@@ -589,6 +618,7 @@ TEST_F(FastPairPairerImplTest, PairByDeviceFailure_Subsequent) {
                    /*protocol=*/Protocol::kFastPairSubsequent);
   SetPairFailure();
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
   CreatePairer();
   EXPECT_EQ(GetPairFailure(), PairFailure::kPairingConnect);
   histogram_tester().ExpectTotalCount(kPairDeviceResult, 1);
@@ -604,6 +634,7 @@ TEST_F(FastPairPairerImplTest, PairByDeviceSuccess_Initial) {
   CreateMockDevice(DeviceFastPairVersion::kHigherThanV1,
                    /*protocol=*/Protocol::kFastPairInitial);
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
   CreatePairer();
   fake_bluetooth_device_ptr_->TriggerPairCallback();
   EXPECT_EQ(GetPairFailure(), absl::nullopt);
@@ -627,6 +658,7 @@ TEST_F(FastPairPairerImplTest, PairByDeviceSuccess_Initial_Floss) {
   CreateMockDevice(DeviceFastPairVersion::kHigherThanV1,
                    /*protocol=*/Protocol::kFastPairInitial);
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
   CreatePairer();
   fake_bluetooth_device_ptr_->TriggerPairCallback();
   EXPECT_EQ(GetPairFailure(), absl::nullopt);
@@ -645,6 +677,7 @@ TEST_F(FastPairPairerImplTest,
   CreateMockDevice(DeviceFastPairVersion::kHigherThanV1,
                    /*protocol=*/Protocol::kFastPairInitial);
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
 
   // Mock that the device is already paired.
   EXPECT_CALL(*fake_bluetooth_device_ptr_, IsBonded()).WillOnce(Return(true));
@@ -675,6 +708,7 @@ TEST_F(FastPairPairerImplTest,
                    /*protocol=*/Protocol::kFastPairInitial);
   SetConnectFailureAfterPair();
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
 
   // Mock that the device is already paired.
   EXPECT_CALL(*fake_bluetooth_device_ptr_, IsBonded()).WillOnce(Return(true));
@@ -707,6 +741,7 @@ TEST_F(FastPairPairerImplTest,
   CreateMockDevice(DeviceFastPairVersion::kHigherThanV1,
                    /*protocol=*/Protocol::kFastPairInitial);
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
 
   // Mock that the device is already paired.
   EXPECT_CALL(*fake_bluetooth_device_ptr_, IsBonded()).WillOnce(Return(true));
@@ -735,6 +770,7 @@ TEST_F(FastPairPairerImplTest, PairByDeviceSuccess_Initial_AlreadyFastPaired) {
   CreateMockDevice(DeviceFastPairVersion::kHigherThanV1,
                    /*protocol=*/Protocol::kFastPairInitial);
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
 
   // Mock that the device is already fast paired (and saved to Footprints).
   fast_pair_repository_->SaveMacAddressToAccount(
@@ -767,6 +803,7 @@ TEST_F(FastPairPairerImplTest,
   CreateMockDevice(DeviceFastPairVersion::kHigherThanV1,
                    /*protocol=*/Protocol::kFastPairSubsequent);
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
 
   // Mock that the device is already paired.
   EXPECT_CALL(*fake_bluetooth_device_ptr_, IsBonded()).WillOnce(Return(true));
@@ -789,6 +826,7 @@ TEST_F(FastPairPairerImplTest,
   CreateMockDevice(DeviceFastPairVersion::kHigherThanV1,
                    /*protocol=*/Protocol::kFastPairSubsequent);
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
 
   // Mock that the device is already fast paired (and saved to Footprints).
   fast_pair_repository_->SaveMacAddressToAccount(
@@ -814,6 +852,7 @@ TEST_F(FastPairPairerImplTest, PairByDeviceSuccess_Subsequent) {
   CreateMockDevice(DeviceFastPairVersion::kHigherThanV1,
                    /*protocol=*/Protocol::kFastPairSubsequent);
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
   CreatePairer();
   fake_bluetooth_device_ptr_->TriggerPairCallback();
   EXPECT_EQ(GetPairFailure(), absl::nullopt);
@@ -837,6 +876,7 @@ TEST_F(FastPairPairerImplTest, ConnectFailure_Initial) {
   // to return null when queried for the device to mock this behavior.
   SetGetDeviceNullptr();
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
   CreatePairer();
 
   EXPECT_EQ(GetPairFailure(), PairFailure::kAddressConnect);
@@ -859,6 +899,7 @@ TEST_F(FastPairPairerImplTest, ConnectFailure_Subsequent) {
   // to return null when queried for the device to mock this behavior.
   SetGetDeviceNullptr();
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
   CreatePairer();
   EXPECT_EQ(GetPairFailure(), PairFailure::kAddressConnect);
   histogram_tester().ExpectTotalCount(kConnectDeviceResult, 1);
@@ -882,6 +923,7 @@ TEST_F(FastPairPairerImplTest, ConnectSuccess_Initial) {
   // to return null when queried for the device to mock this behavior.
   SetGetDeviceNullptr();
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
   CreatePairer();
   EXPECT_EQ(GetPairFailure(), absl::nullopt);
   histogram_tester().ExpectTotalCount(kWritePasskeyCharacteristicResultMetric,
@@ -909,6 +951,7 @@ TEST_F(FastPairPairerImplTest, ConnectSuccess_Subsequent) {
   // to return null when queried for the device to mock this behavior.
   SetGetDeviceNullptr();
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
   CreatePairer();
   EXPECT_EQ(GetPairFailure(), absl::nullopt);
   histogram_tester().ExpectTotalCount(kWritePasskeyCharacteristicResultMetric,
@@ -936,6 +979,7 @@ TEST_F(FastPairPairerImplTest, ParseDecryptedPasskeyFailure_Initial) {
   // to return null when queried for the device to mock this behavior.
   SetGetDeviceNullptr();
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
   CreatePairer();
   EXPECT_EQ(GetPairFailure(), absl::nullopt);
   NotifyConfirmPasskey();
@@ -969,6 +1013,7 @@ TEST_F(FastPairPairerImplTest, ParseDecryptedPasskeyFailure_Subsequent) {
   // to return null when queried for the device to mock this behavior.
   SetGetDeviceNullptr();
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
   CreatePairer();
   EXPECT_EQ(GetPairFailure(), absl::nullopt);
   NotifyConfirmPasskey();
@@ -998,6 +1043,7 @@ TEST_F(FastPairPairerImplTest,
   // to return null when queried for the device to mock this behavior.
   SetGetDeviceNullptr();
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
   CreatePairer();
   EXPECT_EQ(GetPairFailure(), absl::nullopt);
   SetDecryptPasskeyForIncorrectMessageType(
@@ -1027,6 +1073,7 @@ TEST_F(
   // to return null when queried for the device to mock this behavior.
   SetGetDeviceNullptr();
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
   CreatePairer();
   EXPECT_EQ(GetPairFailure(), absl::nullopt);
   SetDecryptPasskeyForIncorrectMessageType(
@@ -1056,6 +1103,7 @@ TEST_F(
   // to return null when queried for the device to mock this behavior.
   SetGetDeviceNullptr();
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
   CreatePairer();
   EXPECT_EQ(GetPairFailure(), absl::nullopt);
   SetDecryptPasskeyForIncorrectMessageType(
@@ -1083,6 +1131,7 @@ TEST_F(FastPairPairerImplTest, ParseDecryptedPasskeyNoPasskey) {
   // to return null when queried for the device to mock this behavior.
   SetGetDeviceNullptr();
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
   CreatePairer();
   EXPECT_EQ(GetPairFailure(), absl::nullopt);
   SetDecryptPasskeyForNoPasskey();
@@ -1110,6 +1159,7 @@ TEST_F(FastPairPairerImplTest,
   // to return null when queried for the device to mock this behavior.
   SetGetDeviceNullptr();
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
   CreatePairer();
   EXPECT_EQ(GetPairFailure(), absl::nullopt);
   SetDecryptPasskeyForIncorrectMessageType(
@@ -1137,6 +1187,7 @@ TEST_F(FastPairPairerImplTest, ParseDecryptedPasskeyMismatch_Initial) {
   // to return null when queried for the device to mock this behavior.
   SetGetDeviceNullptr();
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
   CreatePairer();
   EXPECT_EQ(GetPairFailure(), absl::nullopt);
   SetDecryptPasskeyForPasskeyMismatch();
@@ -1164,6 +1215,7 @@ TEST_F(FastPairPairerImplTest, ParseDecryptedPasskeyMismatch_Subsequent) {
   // to return null when queried for the device to mock this behavior.
   SetGetDeviceNullptr();
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
   CreatePairer();
   EXPECT_EQ(GetPairFailure(), absl::nullopt);
   SetDecryptPasskeyForPasskeyMismatch();
@@ -1191,6 +1243,7 @@ TEST_F(FastPairPairerImplTest, PairedDeviceLost_Initial) {
   // to return null when queried for the device to mock this behavior.
   SetGetDeviceNullptr();
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
   CreatePairer();
   EXPECT_EQ(GetPairFailure(), absl::nullopt);
   SetDecryptPasskeyForSuccess();
@@ -1222,6 +1275,7 @@ TEST_F(FastPairPairerImplTest, PairedDeviceLost_Subsequent) {
   // to return null when queried for the device to mock this behavior.
   SetGetDeviceNullptr();
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
   CreatePairer();
   EXPECT_EQ(GetPairFailure(), absl::nullopt);
   SetDecryptPasskeyForSuccess();
@@ -1253,6 +1307,7 @@ TEST_F(FastPairPairerImplTest, PairSuccess_Initial) {
   // to return null when queried for the device to mock this behavior.
   SetGetDeviceNullptr();
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
   CreatePairer();
   EXPECT_EQ(GetPairFailure(), absl::nullopt);
   EXPECT_CALL(paired_callback_, Run);
@@ -1291,6 +1346,7 @@ TEST_F(FastPairPairerImplTest, PairSuccess_Initial_Floss) {
   // to return null when queried for the device to mock this behavior.
   SetGetDeviceNullptr();
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
   CreatePairer();
   EXPECT_EQ(GetPairFailure(), absl::nullopt);
   EXPECT_CALL(paired_callback_, Run);
@@ -1325,6 +1381,7 @@ TEST_F(FastPairPairerImplTest, BleDeviceLostMidPair) {
   // to return null when queried for the device to mock this behavior.
   SetGetDeviceNullptr();
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
   CreatePairer();
   EXPECT_EQ(GetPairFailure(), absl::nullopt);
   SetDecryptPasskeyForSuccess();
@@ -1349,6 +1406,7 @@ TEST_F(FastPairPairerImplTest, PairSuccess_Initial_FactoryCreate) {
   // to return null when queried for the device to mock this behavior.
   SetGetDeviceNullptr();
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
   CreatePairerAsFactory();
   EXPECT_EQ(GetPairFailure(), absl::nullopt);
   EXPECT_CALL(paired_callback_, Run);
@@ -1379,6 +1437,7 @@ TEST_F(FastPairPairerImplTest, PairSuccess_Subsequent_FlagEnabled) {
   // to return null when queried for the device to mock this behavior.
   SetGetDeviceNullptr();
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
   CreatePairer();
   EXPECT_EQ(GetPairFailure(), absl::nullopt);
   EXPECT_CALL(paired_callback_, Run);
@@ -1419,6 +1478,7 @@ TEST_F(FastPairPairerImplTest, PairSuccess_Subsequent_FlagDisabled) {
   // to return null when queried for the device to mock this behavior.
   SetGetDeviceNullptr();
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
   CreatePairer();
   EXPECT_EQ(GetPairFailure(), absl::nullopt);
   EXPECT_CALL(paired_callback_, Run);
@@ -1449,6 +1509,7 @@ TEST_F(FastPairPairerImplTest, PairSuccess_Subsequent_StrictFlagDisabled) {
   // to return null when queried for the device to mock this behavior.
   SetGetDeviceNullptr();
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
   CreatePairer();
   EXPECT_EQ(GetPairFailure(), absl::nullopt);
   EXPECT_CALL(paired_callback_, Run);
@@ -1483,6 +1544,7 @@ TEST_F(FastPairPairerImplTest, WriteAccountKey_Initial_FlagEnabled) {
   // to return null when queried for the device to mock this behavior.
   SetGetDeviceNullptr();
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
   CreatePairer();
   EXPECT_EQ(GetPairFailure(), absl::nullopt);
   EXPECT_CALL(paired_callback_, Run);
@@ -1526,6 +1588,7 @@ TEST_F(FastPairPairerImplTest, WriteAccountKey_Initial_FlagDisabled) {
   // to return null when queried for the device to mock this behavior.
   SetGetDeviceNullptr();
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
   CreatePairer();
   EXPECT_EQ(GetPairFailure(), absl::nullopt);
   EXPECT_CALL(paired_callback_, Run);
@@ -1568,6 +1631,7 @@ TEST_F(FastPairPairerImplTest, WriteAccountKey_Initial_StrictFlagDisabled) {
   // to return null when queried for the device to mock this behavior.
   SetGetDeviceNullptr();
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
   CreatePairer();
   EXPECT_EQ(GetPairFailure(), absl::nullopt);
   EXPECT_CALL(paired_callback_, Run);
@@ -1604,6 +1668,7 @@ TEST_F(FastPairPairerImplTest, WriteAccountKey_Initial_GuestLoggedIn) {
   // to return null when queried for the device to mock this behavior.
   SetGetDeviceNullptr();
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
   CreatePairer();
   EXPECT_EQ(GetPairFailure(), absl::nullopt);
   EXPECT_CALL(paired_callback_, Run);
@@ -1637,6 +1702,7 @@ TEST_F(FastPairPairerImplTest, WriteAccountKey_Initial_KioskAppLoggedIn) {
   // to return null when queried for the device to mock this behavior.
   SetGetDeviceNullptr();
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
   CreatePairer();
   EXPECT_EQ(GetPairFailure(), absl::nullopt);
   EXPECT_CALL(paired_callback_, Run);
@@ -1664,6 +1730,7 @@ TEST_F(FastPairPairerImplTest, WriteAccountKey_Initial_NotLoggedIn) {
   // to return null when queried for the device to mock this behavior.
   SetGetDeviceNullptr();
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
   CreatePairer();
   EXPECT_EQ(GetPairFailure(), absl::nullopt);
   EXPECT_CALL(paired_callback_, Run);
@@ -1691,6 +1758,7 @@ TEST_F(FastPairPairerImplTest, WriteAccountKey_Initial_Locked) {
   // to return null when queried for the device to mock this behavior.
   SetGetDeviceNullptr();
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
   CreatePairer();
   EXPECT_EQ(GetPairFailure(), absl::nullopt);
   EXPECT_CALL(paired_callback_, Run);
@@ -1723,6 +1791,7 @@ TEST_F(FastPairPairerImplTest, WriteAccountKey_Subsequent_FlagEnabled) {
   // to return null when queried for the device to mock this behavior.
   SetGetDeviceNullptr();
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
   CreatePairer();
   EXPECT_EQ(GetPairFailure(), absl::nullopt);
   EXPECT_CALL(paired_callback_, Run);
@@ -1767,6 +1836,7 @@ TEST_F(FastPairPairerImplTest, WriteAccountKey_Subsequent_FlagDisabled) {
   // to return null when queried for the device to mock this behavior.
   SetGetDeviceNullptr();
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
   CreatePairer();
   EXPECT_EQ(GetPairFailure(), absl::nullopt);
   EXPECT_CALL(paired_callback_, Run);
@@ -1810,6 +1880,7 @@ TEST_F(FastPairPairerImplTest, WriteAccountKey_Subsequent_StrictFlagDisabled) {
   // to return null when queried for the device to mock this behavior.
   SetGetDeviceNullptr();
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
   CreatePairer();
   EXPECT_EQ(GetPairFailure(), absl::nullopt);
   EXPECT_CALL(paired_callback_, Run);
@@ -1856,6 +1927,7 @@ TEST_F(FastPairPairerImplTest, WriteAccountKey_Retroactive_FlagEnabled) {
   // to return null when queried for the device to mock this behavior.
   SetGetDeviceNullptr();
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
   CreatePairer();
   EXPECT_CALL(pairing_procedure_complete_, Run);
   RunWriteAccountKeyCallback();
@@ -1884,6 +1956,7 @@ TEST_F(FastPairPairerImplTest, WriteAccountKey_Retroactive_FlagDisabled) {
   // to return null when queried for the device to mock this behavior.
   SetGetDeviceNullptr();
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
   CreatePairer();
   EXPECT_CALL(pairing_procedure_complete_, Run);
   RunWriteAccountKeyCallback();
@@ -1910,6 +1983,7 @@ TEST_F(FastPairPairerImplTest, WriteAccountKey_Retroactive_StrictFlagDisabled) {
   // to return null when queried for the device to mock this behavior.
   SetGetDeviceNullptr();
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
   CreatePairer();
   EXPECT_CALL(pairing_procedure_complete_, Run);
   RunWriteAccountKeyCallback();
@@ -2391,6 +2465,7 @@ TEST_F(FastPairPairerImplTest, WriteAccount_StatusUnknown_StrictFlagDisabled) {
   // to return null when queried for the device to mock this behavior.
   SetGetDeviceNullptr();
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
   CreatePairer();
   EXPECT_EQ(GetPairFailure(), absl::nullopt);
   EXPECT_CALL(paired_callback_, Run);
@@ -2442,6 +2517,7 @@ TEST_F(FastPairPairerImplTest, UpdateOptInStatus_InitialPairing) {
   // to return null when queried for the device to mock this behavior.
   SetGetDeviceNullptr();
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
   CreatePairer();
   EXPECT_EQ(GetPairFailure(), absl::nullopt);
   EXPECT_CALL(paired_callback_, Run);
@@ -2495,6 +2571,7 @@ TEST_F(FastPairPairerImplTest, UpdateOptInStatus_RetroactivePairing) {
   // to return null when queried for the device to mock this behavior.
   SetGetDeviceNullptr();
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
   CreatePairer();
   EXPECT_CALL(pairing_procedure_complete_, Run);
   RunWriteAccountKeyCallback();
@@ -2537,6 +2614,7 @@ TEST_F(FastPairPairerImplTest, UpdateOptInStatus_SubsequentPairing) {
   // to return null when queried for the device to mock this behavior.
   SetGetDeviceNullptr();
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
   CreatePairer();
   EXPECT_EQ(GetPairFailure(), absl::nullopt);
   EXPECT_CALL(paired_callback_, Run);
@@ -2569,6 +2647,7 @@ TEST_F(FastPairPairerImplTest, CreateBondTimeout_AdapterHasDeviceAddress) {
   CreateMockDevice(DeviceFastPairVersion::kHigherThanV1,
                    /*protocol=*/Protocol::kFastPairInitial);
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
   SetPairTimeout();
   CreatePairer();
   task_environment()->FastForwardBy(kCreateBondTimeout);
@@ -2586,6 +2665,7 @@ TEST_F(FastPairPairerImplTest,
   // address.
   SetGetDeviceNullptr();
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
   SetConnectDeviceTimeout();
   CreatePairer();
   task_environment()->FastForwardBy(kCreateBondTimeout);
@@ -2601,6 +2681,7 @@ TEST_F(FastPairPairerImplTest, PairByDeviceSuccess_ConnectTimeout_Initial) {
                    /*protocol=*/Protocol::kFastPairInitial);
 
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
   SetConnectTimeoutAfterPair();
   CreatePairer();
   fake_bluetooth_device_ptr_->TriggerPairCallback();
@@ -2617,6 +2698,7 @@ TEST_F(FastPairPairerImplTest, PairByDeviceSuccess_ConnectTimeout_Subsequent) {
                    /*protocol=*/Protocol::kFastPairInitial);
 
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
   SetConnectTimeoutAfterPair();
   CreatePairer();
   fake_bluetooth_device_ptr_->TriggerPairCallback();
@@ -2640,6 +2722,7 @@ TEST_F(FastPairPairerImplTest, RetroactiveNotLoggedToInitial) {
   // to return null when queried for the device to mock this behavior.
   SetGetDeviceNullptr();
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
   CreatePairer();
   EXPECT_CALL(pairing_procedure_complete_, Run);
   RunWriteAccountKeyCallback();
@@ -2667,6 +2750,7 @@ TEST_F(FastPairPairerImplTest, BleAddressRotatedCallsCallback) {
   // to return null when queried for the device to mock this behavior.
   SetGetDeviceNullptr();
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
   SetHandshakeBleCallback();
   CreatePairer();
   EXPECT_TRUE(on_ble_rotation_callback_called_);
@@ -2683,6 +2767,7 @@ TEST_F(FastPairPairerImplTest,
   CreateMockDevice(DeviceFastPairVersion::kHigherThanV1,
                    /*protocol=*/Protocol::kFastPairInitial);
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
   CreatePairer();
   task_environment()->FastForwardBy(kCreateBondTimeout);
   EXPECT_EQ(GetPairFailure(), PairFailure::kCreateBondTimeout);
@@ -2700,6 +2785,7 @@ TEST_F(FastPairPairerImplTest,
   // to return null when queried for the device to mock this behavior.
   SetGetDeviceNullptr();
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
   CreatePairer();
   task_environment()->FastForwardBy(kCreateBondTimeout);
   EXPECT_EQ(GetPairFailure(), PairFailure::kCreateBondTimeout);
@@ -2728,6 +2814,7 @@ TEST_F(FastPairPairerImplTest, WriteAccountKeyFailure_Retroactive) {
   // to return null when queried for the device to mock this behavior.
   SetGetDeviceNullptr();
   AddConnectedHandshake();
+  fake_fast_pair_handshake_->InvokeCallback();
   CreatePairer();
   SetPublicKey();
 

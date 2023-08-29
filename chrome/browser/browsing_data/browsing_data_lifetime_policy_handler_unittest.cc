@@ -25,11 +25,6 @@
 // SyncDisabled is set to false. There will be an error, but no other messages
 // in the entry.
 TEST(BrowsingDataLifetimePolicyHandler, SyncDisabledNotSet) {
-  base::test::ScopedFeatureList scoped_feature_list_;
-  scoped_feature_list_.InitWithFeatureState(
-      browsing_data::features::kDataRetentionPoliciesDisableSyncTypesNeeded,
-      false);
-
   policy::PolicyMap policy_map;
   policy::PolicyErrorMap errors;
 
@@ -54,11 +49,6 @@ TEST(BrowsingDataLifetimePolicyHandler, SyncDisabledNotSet) {
 }
 
 TEST(BrowsingDataLifetimePolicyHandler, SyncDisabledFalse) {
-  base::test::ScopedFeatureList scoped_feature_list_;
-  scoped_feature_list_.InitWithFeatureState(
-      browsing_data::features::kDataRetentionPoliciesDisableSyncTypesNeeded,
-      false);
-
   policy::PolicyMap policy_map;
   policy::PolicyErrorMap errors;
 
@@ -86,11 +76,6 @@ TEST(BrowsingDataLifetimePolicyHandler, SyncDisabledFalse) {
 }
 
 TEST(BrowsingDataLifetimePolicyHandler, SyncDisabledTrue) {
-  base::test::ScopedFeatureList scoped_feature_list_;
-  scoped_feature_list_.InitWithFeatureState(
-      browsing_data::features::kDataRetentionPoliciesDisableSyncTypesNeeded,
-      false);
-
   policy::PolicyMap policy_map;
   policy::PolicyErrorMap errors;
 

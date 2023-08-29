@@ -36,10 +36,8 @@ class DeviceInfoSyncClient {
   // not initialized yet.
   virtual absl::optional<ModelTypeSet> GetInterestedDataTypes() const = 0;
 
-  // Returns registration information for using a phone-as-a-security-key, or
-  // else one of the special `Status` values to indicate that the information
-  // isn't ready yet.
-  virtual DeviceInfo::PhoneAsASecurityKeyInfo::StatusOrInfo
+  // Returns registration information for using a phone-as-a-security-key.
+  virtual absl::optional<DeviceInfo::PhoneAsASecurityKeyInfo>
   GetPhoneAsASecurityKeyInfo() const = 0;
 
   // Returns whether a CrOS device has User Metric Analysis (UMA) enabled.

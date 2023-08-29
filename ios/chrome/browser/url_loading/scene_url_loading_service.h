@@ -58,7 +58,7 @@ struct UrlLoadParams;
 
 @end
 
-// Service used to manage url loading at scene level.
+// Service used to manage url loading at application level.
 class SceneUrlLoadingService {
  public:
   SceneUrlLoadingService();

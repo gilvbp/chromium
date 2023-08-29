@@ -85,7 +85,7 @@ void FileSystemAccessIconView::OnExecuting(ExecuteSource execute_source) {
   }
 
   ChromeFileSystemAccessPermissionContext::Grants grants =
-      context->ConvertObjectsToGrants(context->GetGrantedObjects(origin));
+      context->GetPermissionGrants(origin);
 
   FileSystemAccessUsageBubbleView::Usage usage;
   usage.readable_files = std::move(grants.file_read_grants);

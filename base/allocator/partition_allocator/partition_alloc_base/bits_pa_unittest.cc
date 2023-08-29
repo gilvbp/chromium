@@ -14,7 +14,7 @@
 
 namespace partition_alloc::internal::base::bits {
 
-TEST(BitsTestPA, Log2Floor) {
+TEST(BitsTest, Log2Floor) {
   EXPECT_EQ(-1, Log2Floor(0));
   EXPECT_EQ(0, Log2Floor(1));
   EXPECT_EQ(1, Log2Floor(2));
@@ -31,7 +31,7 @@ TEST(BitsTestPA, Log2Floor) {
   EXPECT_EQ(31, Log2Floor(0xffffffffU));
 }
 
-TEST(BitsTestPA, Log2Ceiling) {
+TEST(BitsTest, Log2Ceiling) {
   EXPECT_EQ(-1, Log2Ceiling(0));
   EXPECT_EQ(0, Log2Ceiling(1));
   EXPECT_EQ(1, Log2Ceiling(2));
@@ -48,7 +48,7 @@ TEST(BitsTestPA, Log2Ceiling) {
   EXPECT_EQ(32, Log2Ceiling(0xffffffffU));
 }
 
-TEST(BitsTestPA, AlignUp) {
+TEST(BitsTest, AlignUp) {
   static constexpr size_t kSizeTMax = std::numeric_limits<size_t>::max();
   EXPECT_EQ(0ul, AlignUp(0, 4));
   EXPECT_EQ(4ul, AlignUp(1, 4));
@@ -60,7 +60,7 @@ TEST(BitsTestPA, AlignUp) {
   EXPECT_EQ(kSizeTMax / 2 + 1, AlignUp(1, kSizeTMax / 2 + 1));
 }
 
-TEST(BitsTestPA, AlignUpPointer) {
+TEST(BitsTest, AlignUpPointer) {
   static constexpr uintptr_t kUintPtrTMax =
       std::numeric_limits<uintptr_t>::max();
   EXPECT_EQ(reinterpret_cast<uint8_t*>(0),
@@ -81,7 +81,7 @@ TEST(BitsTestPA, AlignUpPointer) {
             AlignUp(reinterpret_cast<uint8_t*>(1), kUintPtrTMax / 2 + 1));
 }
 
-TEST(BitsTestPA, AlignDown) {
+TEST(BitsTest, AlignDown) {
   static constexpr size_t kSizeTMax = std::numeric_limits<size_t>::max();
   EXPECT_EQ(0ul, AlignDown(0, 4));
   EXPECT_EQ(0ul, AlignDown(1, 4));
@@ -94,7 +94,7 @@ TEST(BitsTestPA, AlignDown) {
   EXPECT_EQ(0ul, AlignDown(1, kSizeTMax / 2 + 1));
 }
 
-TEST(BitsTestPA, AlignDownPointer) {
+TEST(BitsTest, AlignDownPointer) {
   static constexpr uintptr_t kUintPtrTMax =
       std::numeric_limits<uintptr_t>::max();
   EXPECT_EQ(reinterpret_cast<uint8_t*>(0),
@@ -117,7 +117,7 @@ TEST(BitsTestPA, AlignDownPointer) {
             AlignDown(reinterpret_cast<uint8_t*>(1), kUintPtrTMax / 2 + 1));
 }
 
-TEST(BitsTestPA, CountLeadingZeroBits8) {
+TEST(BitsTest, CountLeadingZeroBits8) {
   EXPECT_EQ(8, CountLeadingZeroBits(uint8_t{0}));
   EXPECT_EQ(7, CountLeadingZeroBits(uint8_t{1}));
   for (int shift = 0; shift <= 7; ++shift) {
@@ -127,7 +127,7 @@ TEST(BitsTestPA, CountLeadingZeroBits8) {
   EXPECT_EQ(4, CountLeadingZeroBits(uint8_t{0x0f}));
 }
 
-TEST(BitsTestPA, CountLeadingZeroBits16) {
+TEST(BitsTest, CountLeadingZeroBits16) {
   EXPECT_EQ(16, CountLeadingZeroBits(uint16_t{0}));
   EXPECT_EQ(15, CountLeadingZeroBits(uint16_t{1}));
   for (int shift = 0; shift <= 15; ++shift) {
@@ -137,7 +137,7 @@ TEST(BitsTestPA, CountLeadingZeroBits16) {
   EXPECT_EQ(4, CountLeadingZeroBits(uint16_t{0x0f0f}));
 }
 
-TEST(BitsTestPA, CountLeadingZeroBits32) {
+TEST(BitsTest, CountLeadingZeroBits32) {
   EXPECT_EQ(32, CountLeadingZeroBits(uint32_t{0}));
   EXPECT_EQ(31, CountLeadingZeroBits(uint32_t{1}));
   for (int shift = 0; shift <= 31; ++shift) {
@@ -146,7 +146,7 @@ TEST(BitsTestPA, CountLeadingZeroBits32) {
   EXPECT_EQ(4, CountLeadingZeroBits(uint32_t{0x0f0f0f0f}));
 }
 
-TEST(BitsTestPA, CountTrailingZeroBits8) {
+TEST(BitsTest, CountTrailingZeroBits8) {
   EXPECT_EQ(8, CountTrailingZeroBits(uint8_t{0}));
   EXPECT_EQ(7, CountTrailingZeroBits(uint8_t{128}));
   for (int shift = 0; shift <= 7; ++shift) {
@@ -155,7 +155,7 @@ TEST(BitsTestPA, CountTrailingZeroBits8) {
   EXPECT_EQ(4, CountTrailingZeroBits(uint8_t{0xf0}));
 }
 
-TEST(BitsTestPA, CountTrailingZeroBits16) {
+TEST(BitsTest, CountTrailingZeroBits16) {
   EXPECT_EQ(16, CountTrailingZeroBits(uint16_t{0}));
   EXPECT_EQ(15, CountTrailingZeroBits(uint16_t{32768}));
   for (int shift = 0; shift <= 15; ++shift) {
@@ -164,7 +164,7 @@ TEST(BitsTestPA, CountTrailingZeroBits16) {
   EXPECT_EQ(4, CountTrailingZeroBits(uint16_t{0xf0f0}));
 }
 
-TEST(BitsTestPA, CountTrailingZeroBits32) {
+TEST(BitsTest, CountTrailingZeroBits32) {
   EXPECT_EQ(32, CountTrailingZeroBits(uint32_t{0}));
   EXPECT_EQ(31, CountTrailingZeroBits(uint32_t{1} << 31));
   for (int shift = 0; shift <= 31; ++shift) {
@@ -173,7 +173,7 @@ TEST(BitsTestPA, CountTrailingZeroBits32) {
   EXPECT_EQ(4, CountTrailingZeroBits(uint32_t{0xf0f0f0f0}));
 }
 
-TEST(BitsTestPA, CountLeadingZeroBits64) {
+TEST(BitsTest, CountLeadingZeroBits64) {
   EXPECT_EQ(64, CountLeadingZeroBits(uint64_t{0}));
   EXPECT_EQ(63, CountLeadingZeroBits(uint64_t{1}));
   for (int shift = 0; shift <= 63; ++shift) {
@@ -182,7 +182,7 @@ TEST(BitsTestPA, CountLeadingZeroBits64) {
   EXPECT_EQ(4, CountLeadingZeroBits(uint64_t{0x0f0f0f0f0f0f0f0f}));
 }
 
-TEST(BitsTestPA, CountTrailingZeroBits64) {
+TEST(BitsTest, CountTrailingZeroBits64) {
   EXPECT_EQ(64, CountTrailingZeroBits(uint64_t{0}));
   EXPECT_EQ(63, CountTrailingZeroBits(uint64_t{1} << 63));
   for (int shift = 0; shift <= 31; ++shift) {
@@ -191,7 +191,7 @@ TEST(BitsTestPA, CountTrailingZeroBits64) {
   EXPECT_EQ(4, CountTrailingZeroBits(uint64_t{0xf0f0f0f0f0f0f0f0}));
 }
 
-TEST(BitsTestPA, CountLeadingZeroBitsSizeT) {
+TEST(BitsTest, CountLeadingZeroBitsSizeT) {
 #if defined(ARCH_CPU_64_BITS)
   EXPECT_EQ(64, CountLeadingZeroBits(size_t{0}));
   EXPECT_EQ(63, CountLeadingZeroBits(size_t{1}));
@@ -206,7 +206,7 @@ TEST(BitsTestPA, CountLeadingZeroBitsSizeT) {
 #endif  // ARCH_CPU_64_BITS
 }
 
-TEST(BitsTestPA, CountTrailingZeroBitsSizeT) {
+TEST(BitsTest, CountTrailingZeroBitsSizeT) {
 #if defined(ARCH_CPU_64_BITS)
   EXPECT_EQ(64, CountTrailingZeroBits(size_t{0}));
   EXPECT_EQ(63, CountTrailingZeroBits(size_t{1} << 63));
@@ -221,7 +221,7 @@ TEST(BitsTestPA, CountTrailingZeroBitsSizeT) {
 #endif  // ARCH_CPU_64_BITS
 }
 
-TEST(BitsTestPA, PowerOfTwo) {
+TEST(BitsTest, PowerOfTwo) {
   EXPECT_FALSE(IsPowerOfTwo(-1));
   EXPECT_FALSE(IsPowerOfTwo(0));
   EXPECT_TRUE(IsPowerOfTwo(1));
@@ -244,7 +244,7 @@ TEST(BitsTestPA, PowerOfTwo) {
   EXPECT_FALSE(IsPowerOfTwo(int64_t{1} << 63));
 }
 
-TEST(BitsTestPA, LeftMostBit) {
+TEST(BitsTest, LeftMostBit) {
   // Construction of a signed type from an unsigned one of the same width
   // preserves all bits. Explicitly confirming this behavior here to illustrate
   // correctness of reusing unsigned literals to test behavior of signed types.

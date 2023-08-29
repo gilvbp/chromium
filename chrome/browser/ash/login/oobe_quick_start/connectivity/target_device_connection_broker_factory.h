@@ -7,20 +7,23 @@
 
 #include <memory>
 
-#include "chrome/browser/ash/login/oobe_quick_start/connectivity/session_context.h"
 #include "chrome/browser/ash/login/oobe_quick_start/connectivity/target_device_connection_broker.h"
+#include "chromeos/ash/services/nearby/public/mojom/quick_start_decoder.mojom.h"
+#include "mojo/public/cpp/bindings/shared_remote.h"
+#include "third_party/abseil-cpp/absl/types/optional.h"
+
+class NearbyConnectionsManager;
 
 namespace ash::quick_start {
-
-class QuickStartConnectivityService;
 
 // A factory class for creating instances of TargetDeviceConnectionBroker.
 // Calling code should use the static Create() method.
 class TargetDeviceConnectionBrokerFactory {
  public:
   static std::unique_ptr<TargetDeviceConnectionBroker> Create(
-      SessionContext session_context,
-      QuickStartConnectivityService* quick_start_connectivity_service);
+      base::WeakPtr<NearbyConnectionsManager> nearby_connections_manager,
+      mojo::SharedRemote<mojom::QuickStartDecoder> quick_start_decoder,
+      bool is_resume_after_update = false);
 
   static void SetFactoryForTesting(
       TargetDeviceConnectionBrokerFactory* test_factory);
@@ -34,7 +37,9 @@ class TargetDeviceConnectionBrokerFactory {
 
  protected:
   virtual std::unique_ptr<TargetDeviceConnectionBroker> CreateInstance(
-      QuickStartConnectivityService* quick_start_connectivity_service) = 0;
+      base::WeakPtr<NearbyConnectionsManager> nearby_connections_manager,
+      mojo::SharedRemote<mojom::QuickStartDecoder> quick_start_decoder,
+      bool is_resume_after_update) = 0;
 
  private:
   static TargetDeviceConnectionBrokerFactory* test_factory_;

@@ -40,11 +40,10 @@ class LayoutSVGResourcePaintServer : public LayoutSVGResourceContainer {
 };
 
 template <>
-struct DowncastTraits<LayoutSVGResourcePaintServer> {
-  static bool AllowFrom(const LayoutSVGResourceContainer& container) {
-    return container.IsSVGPaintServer();
-  }
-};
+inline bool IsResourceOfType<LayoutSVGResourcePaintServer>(
+    const LayoutSVGResourceContainer* container) {
+  return container->IsSVGPaintServer();
+}
 
 }  // namespace blink
 

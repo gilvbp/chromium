@@ -271,8 +271,8 @@ class LocalPrinterHandlerDefaultTestBase : public testing::Test {
 #if BUILDFLAG(ENABLE_OOP_PRINTING)
 
   void TearDown() override {
-    if (UseService()) {
 #if BUILDFLAG(IS_WIN)
+    if (UseService()) {
       service_task_runner_->DeleteSoon(
           FROM_HERE, std::move(sandboxed_print_backend_service_));
       if (SupportFallback()) {
@@ -283,10 +283,8 @@ class LocalPrinterHandlerDefaultTestBase : public testing::Test {
         data_decoder_task_runner_->DeleteSoon(FROM_HERE,
                                               std::move(data_decoder_));
       }
-#endif  // BUILDFLAG(IS_WIN)
-    } else {
-      PrintBackend::SetPrintBackendForTesting(nullptr);
     }
+#endif  // BUILDFLAG(IS_WIN)
 
     PrintBackendServiceManager::ResetForTesting();
   }

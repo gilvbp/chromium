@@ -154,7 +154,7 @@ class StrongAlias {
 template <typename TagType,
           typename UnderlyingType,
           typename = std::enable_if_t<
-              internal::SupportsOstreamOperator<UnderlyingType>>>
+              internal::SupportsOstreamOperator<UnderlyingType>::value>>
 std::ostream& operator<<(std::ostream& stream,
                          const StrongAlias<TagType, UnderlyingType>& alias) {
   return stream << alias.value();

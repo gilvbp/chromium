@@ -52,30 +52,16 @@ void Session::RootWindowsObserver::OnRootWindowAdded(
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-//  ScopedAudioOutputMuter
+//  ScopedAudioMuter
 ////////////////////////////////////////////////////////////////////////////////
-class Session::ScopedAudioOutputMuter {
+class Session::ScopedAudioMuter {
  public:
-  ScopedAudioOutputMuter() {
+  ScopedAudioMuter() {
     CrasAudioHandler::Get()->SetOutputMuteLockedBySecurityCurtain(true);
   }
 
-  ~ScopedAudioOutputMuter() {
+  ~ScopedAudioMuter() {
     CrasAudioHandler::Get()->SetOutputMuteLockedBySecurityCurtain(false);
-  }
-};
-
-////////////////////////////////////////////////////////////////////////////////
-//  ScopedAudioInputMuter
-////////////////////////////////////////////////////////////////////////////////
-class Session::ScopedAudioInputMuter {
- public:
-  ScopedAudioInputMuter() {
-    CrasAudioHandler::Get()->SetInputMuteLockedBySecurityCurtain(true);
-  }
-
-  ~ScopedAudioInputMuter() {
-    CrasAudioHandler::Get()->SetInputMuteLockedBySecurityCurtain(false);
   }
 };
 
@@ -88,13 +74,8 @@ Session::Session(Shell* shell,
     : shell_(*shell),
       init_params_(init_params),
       root_windows_observer_(
-          std::make_unique<RootWindowsObserver>(this, shell)) {
-  if (init_params.mute_audio_output) {
-    scoped_audio_output_muter_ = std::make_unique<ScopedAudioOutputMuter>();
-  }
-  if (init_params.mute_audio_input) {
-    scoped_audio_input_muter_ = std::make_unique<ScopedAudioInputMuter>();
-  }
+          std::make_unique<RootWindowsObserver>(this, shell)),
+      scoped_audio_muter_(std::make_unique<ScopedAudioMuter>()) {
   CurtainOffAllRootWindows();
   shell_->power_button_controller()->OnSecurityCurtainEnabled();
 }

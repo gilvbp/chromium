@@ -4,15 +4,19 @@
 
 #include "device/bluetooth/bluetooth_remote_gatt_descriptor_mac.h"
 
-#import "base/apple/foundation_util.h"
 #include "base/functional/bind.h"
+#import "base/mac/foundation_util.h"
 #include "base/strings/sys_string_conversions.h"
 #import "base/task/single_thread_task_runner.h"
 #include "base/task/single_thread_task_runner.h"
 #include "device/bluetooth/bluetooth_low_energy_adapter_apple.h"
 #import "device/bluetooth/bluetooth_remote_gatt_characteristic_mac.h"
 
-using base::apple::ObjCCast;
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
+using base::mac::ObjCCast;
 
 namespace device {
 

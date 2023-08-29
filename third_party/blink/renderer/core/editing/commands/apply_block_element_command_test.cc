@@ -40,11 +40,9 @@ TEST_F(ApplyBlockElementCommandTest, selectionCrossingOverBody) {
   GetDocument().UpdateStyleAndLayout(DocumentUpdateReason::kTest);
   Selection().SetSelection(
       SelectionInDOMTree::Builder()
-          .SetBaseAndExtent(Position(GetDocument().documentElement(), 1),
-                            Position(GetDocument()
-                                         .getElementById(AtomicString("va"))
-                                         ->firstChild(),
-                                     2))
+          .SetBaseAndExtent(
+              Position(GetDocument().documentElement(), 1),
+              Position(GetDocument().getElementById("va")->firstChild(), 2))
           .Build(),
       SetSelectionOptions());
 
@@ -72,8 +70,7 @@ TEST_F(ApplyBlockElementCommandTest, visibilityChangeDuringCommand) {
   UpdateAllLifecyclePhasesForTest();
   Selection().SetSelection(
       SelectionInDOMTree::Builder()
-          .Collapse(
-              Position(GetDocument().QuerySelector(AtomicString("li")), 0))
+          .Collapse(Position(GetDocument().QuerySelector("li"), 0))
           .Build(),
       SetSelectionOptions());
 
@@ -94,8 +91,8 @@ TEST_F(ApplyBlockElementCommandTest, IndentHeadingIntoBlockquote) {
       "<h6><button><table></table></button></h6>"
       "<object></object>"
       "</div>");
-  Element* button = GetDocument().QuerySelector(AtomicString("button"));
-  Element* object = GetDocument().QuerySelector(AtomicString("object"));
+  Element* button = GetDocument().QuerySelector("button");
+  Element* object = GetDocument().QuerySelector("object");
   Selection().SetSelection(SelectionInDOMTree::Builder()
                                .Collapse(Position(button, 0))
                                .Extend(Position(object, 0))

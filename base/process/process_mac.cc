@@ -14,8 +14,8 @@
 #include <iterator>
 #include <memory>
 
-#include "base/apple/mach_logging.h"
 #include "base/feature_list.h"
+#include "base/mac/mach_logging.h"
 #include "base/memory/free_deleter.h"
 #include "third_party/abseil-cpp/absl/types/optional.h"
 
@@ -71,11 +71,11 @@ Time Process::CreationTime() const {
   return Time::FromTimeVal(proc->kp_proc.p_un.__p_starttime);
 }
 
-bool Process::CanSetPriority() {
+bool Process::CanBackgroundProcesses() {
   return true;
 }
 
-Process::Priority Process::GetPriority(PortProvider* port_provider) const {
+bool Process::IsProcessBackgrounded(PortProvider* port_provider) const {
   DCHECK(IsValid());
   DCHECK(port_provider);
 
@@ -84,17 +84,15 @@ Process::Priority Process::GetPriority(PortProvider* port_provider) const {
   // TASK_FOREGROUND_APPLICATION).
   absl::optional<task_role_t> task_role =
       GetTaskCategoryPolicyRole(port_provider, Pid());
-  if (task_role && *task_role == TASK_BACKGROUND_APPLICATION) {
-    return Priority::kBestEffort;
-  }
-  return Priority::kUserBlocking;
+  return task_role && *task_role == TASK_BACKGROUND_APPLICATION;
 }
 
-bool Process::SetPriority(PortProvider* port_provider, Priority priority) {
+bool Process::SetProcessBackgrounded(PortProvider* port_provider,
+                                     bool background) {
   DCHECK(IsValid());
   DCHECK(port_provider);
 
-  if (!CanSetPriority()) {
+  if (!CanBackgroundProcesses()) {
     return false;
   }
 
@@ -108,7 +106,6 @@ bool Process::SetPriority(PortProvider* port_provider, Priority priority) {
     return false;
   }
 
-  const bool background = priority == base::Process::Priority::kBestEffort;
   if ((background && *current_role == TASK_BACKGROUND_APPLICATION) ||
       (!background && *current_role == TASK_FOREGROUND_APPLICATION)) {
     return true;

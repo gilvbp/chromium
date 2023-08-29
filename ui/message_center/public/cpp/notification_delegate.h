@@ -36,12 +36,6 @@ class MESSAGE_CENTER_PUBLIC_EXPORT NotificationObserver {
 
   // Called when the user attempts to disable the notification.
   virtual void DisableNotification() {}
-
-  // Called when the notification expand state changed.
-  virtual void ExpandStateChanged(bool expanded) {}
-
-  // Called when the notification snooze button is clicked.
-  virtual void SnoozeButtonClicked() {}
 };
 
 // Ref counted version of NotificationObserver, required to satisfy
@@ -75,8 +69,6 @@ class MESSAGE_CENTER_PUBLIC_EXPORT ThunkNotificationDelegate
              const absl::optional<std::u16string>& reply) override;
   void SettingsClick() override;
   void DisableNotification() override;
-  void ExpandStateChanged(bool expanded) override;
-  void SnoozeButtonClicked() override;
 
  protected:
   ~ThunkNotificationDelegate() override;

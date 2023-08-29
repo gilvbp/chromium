@@ -49,9 +49,9 @@ SkRRect BrowserFrameViewLinux::GetRestoredClipRegion() const {
 }
 
 // static
-gfx::ShadowValues BrowserFrameViewLinux::GetShadowValues(bool active) {
+gfx::ShadowValues BrowserFrameViewLinux::GetShadowValues() {
   int elevation = ChromeLayoutProvider::Get()->GetShadowElevationMetric(
-      active ? views::Emphasis::kMaximum : views::Emphasis::kMedium);
+      views::Emphasis::kMaximum);
   return gfx::ShadowValue::MakeMdShadowValues(elevation);
 }
 
@@ -78,7 +78,7 @@ void BrowserFrameViewLinux::PaintRestoredFrameBorder(
   PaintRestoredFrameBorderLinux(
       *canvas, *this, frame_background(), GetRestoredClipRegion(),
       ShouldDrawRestoredFrameShadow(), layout_->MirroredFrameBorderInsets(),
-      GetShadowValues(ShouldPaintAsActive()));
+      GetShadowValues());
 }
 
 void BrowserFrameViewLinux::GetWindowMask(const gfx::Size& size,

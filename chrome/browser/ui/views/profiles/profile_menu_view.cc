@@ -42,9 +42,9 @@
 #include "chrome/browser/ui/browser_navigator_params.h"
 #include "chrome/browser/ui/color/chrome_color_id.h"
 #include "chrome/browser/ui/passwords/ui_utils.h"
-#include "chrome/browser/ui/profiles/profile_colors_util.h"
-#include "chrome/browser/ui/profiles/profile_picker.h"
-#include "chrome/browser/ui/profiles/profile_view_utils.h"
+#include "chrome/browser/ui/profile_picker.h"
+#include "chrome/browser/ui/profile_view_utils.h"
+#include "chrome/browser/ui/signin/profile_colors_util.h"
 #include "chrome/browser/ui/sync/sync_promo_ui.h"
 #include "chrome/browser/ui/ui_features.h"
 #include "chrome/browser/ui/views/accessibility/non_accessible_image_view.h"
@@ -536,7 +536,7 @@ void ProfileMenuView::BuildGuestIdentity() {
 
 void ProfileMenuView::BuildAutofillButtons() {
   AddShortcutFeatureButton(
-      features::IsChromeRefresh2023() ? kKeyOpenChromeRefreshIcon : kKeyIcon,
+      features::IsChromeRefresh2023() ? kKeyChromeRefreshIcon : kKeyIcon,
       l10n_util::GetStringUTF16(
           IDS_PASSWORD_BUBBLES_PASSWORD_MANAGER_LINK_TEXT_SAVING_ON_DEVICE),
       base::BindRepeating(&ProfileMenuView::OnPasswordsButtonClicked,
@@ -657,16 +657,16 @@ void ProfileMenuView::BuildFeatureButtons() {
                                          window_count),
         base::BindRepeating(&ProfileMenuView::OnExitProfileButtonClicked,
                             base::Unretained(this)),
-        features::IsChromeRefresh2023() ? vector_icons::kCloseChromeRefreshIcon
-                                        : vector_icons::kCloseIcon);
-  } else if (window_count > 1) {
-    AddFeatureButton(
-        l10n_util::GetPluralStringFUTF16(IDS_PROFILES_CLOSE_X_WINDOWS_BUTTON,
-                                         window_count),
-        base::BindRepeating(&ProfileMenuView::OnExitProfileButtonClicked,
-                            base::Unretained(this)),
-        features::IsChromeRefresh2023() ? vector_icons::kCloseChromeRefreshIcon
-                                        : vector_icons::kCloseIcon);
+        vector_icons::kCloseIcon);
+  } else {
+    if (window_count > 1) {
+      AddFeatureButton(
+          l10n_util::GetPluralStringFUTF16(IDS_PROFILES_CLOSE_X_WINDOWS_BUTTON,
+                                           window_count),
+          base::BindRepeating(&ProfileMenuView::OnExitProfileButtonClicked,
+                              base::Unretained(this)),
+          vector_icons::kCloseIcon);
+    }
   }
 
 #if BUILDFLAG(ENABLE_DICE_SUPPORT) || BUILDFLAG(IS_CHROMEOS_LACROS)
@@ -706,7 +706,7 @@ void ProfileMenuView::BuildAvailableProfiles() {
 
   auto profile_entries = g_browser_process->profile_manager()
                              ->GetProfileAttributesStorage()
-                             .GetAllProfilesAttributesSortedByNameWithCheck();
+                             .GetAllProfilesAttributesSortedByName();
   for (ProfileAttributesEntry* profile_entry : profile_entries) {
     // The current profile is excluded.
     if (profile_entry->GetPath() == browser()->profile()->GetPath())
@@ -761,9 +761,7 @@ void ProfileMenuView::BuildProfileManagementFeatureButtons() {
   }
   if (profiles::IsProfileCreationAllowed()) {
     AddProfileManagementFeatureButton(
-        features::IsChromeRefresh2023() ? vector_icons::kAddChromeRefreshIcon
-                                        : kAddIcon,
-        l10n_util::GetStringUTF16(IDS_ADD),
+        kAddIcon, l10n_util::GetStringUTF16(IDS_ADD),
         base::BindRepeating(&ProfileMenuView::OnAddNewProfileButtonClicked,
                             base::Unretained(this)));
   }

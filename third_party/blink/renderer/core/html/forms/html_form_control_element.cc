@@ -56,8 +56,7 @@ HTMLFormControlElement::HTMLFormControlElement(const QualifiedName& tag_name,
                                                Document& document)
     : HTMLElement(tag_name, document),
       autofill_state_(WebAutofillState::kNotFilled),
-      blocks_form_submission_(false),
-      interacted_since_last_form_submit_(false) {
+      blocks_form_submission_(false) {
   SetHasCustomStyleCallbacks();
   static uint64_t next_free_unique_id = 1;
   unique_renderer_form_control_id_ = next_free_unique_id++;
@@ -114,7 +113,6 @@ bool HTMLFormControlElement::FormNoValidate() const {
 void HTMLFormControlElement::Reset() {
   SetAutofillState(WebAutofillState::kNotFilled);
   ResetImpl();
-  SetInteractedSinceLastFormSubmit(false);
 }
 
 void HTMLFormControlElement::AttributeChanged(
@@ -338,7 +336,9 @@ HTMLFormControlElement::PopoverTargetElement
 HTMLFormControlElement::popoverTargetElement() {
   const PopoverTargetElement no_element{.popover = nullptr,
                                         .action = PopoverTriggerAction::kNone};
-  if (!IsInTreeScope() ||
+  if (!RuntimeEnabledFeatures::HTMLPopoverAttributeEnabled(
+          GetDocument().GetExecutionContext()) ||
+      !IsInTreeScope() ||
       SupportsPopoverTriggering() == PopoverTriggerSupport::kNone ||
       IsDisabledFormControl() || (Form() && IsSuccessfulSubmitButton())) {
     return no_element;
@@ -394,6 +394,8 @@ void HTMLFormControlElement::DefaultEventHandler(Event& event) {
     auto popover = popoverTargetElement();
     if (popover.popover) {
       auto& document = GetDocument();
+      CHECK(RuntimeEnabledFeatures::HTMLPopoverAttributeEnabled(
+          document.GetExecutionContext()));
       auto trigger_support = SupportsPopoverTriggering();
       CHECK_NE(popover.action, PopoverTriggerAction::kNone);
       CHECK_NE(trigger_support, PopoverTriggerSupport::kNone);
@@ -534,8 +536,8 @@ String HTMLFormControlElement::NameForAutofill() const {
 
 void HTMLFormControlElement::CloneNonAttributePropertiesFrom(
     const Element& source,
-    NodeCloningData& data) {
-  HTMLElement::CloneNonAttributePropertiesFrom(source, data);
+    CloneChildrenFlag flag) {
+  HTMLElement::CloneNonAttributePropertiesFrom(source, flag);
   SetNeedsValidityCheck();
 }
 
@@ -547,8 +549,6 @@ int32_t HTMLFormControlElement::GetAxId() const {
   Document& document = GetDocument();
   if (!document.IsActive() || !document.View())
     return 0;
-  // TODO(accessibility) Simplify this once AXIDs use DOMNodeIds. At that
-  // point it will be safe to get the AXID at any time.
   if (AXObjectCache* cache = document.ExistingAXObjectCache()) {
     LocalFrameView* local_frame_view = document.View();
     if (local_frame_view->IsUpdatingLifecycle()) {
@@ -559,30 +559,15 @@ int32_t HTMLFormControlElement::GetAxId() const {
       return cache->GetExistingAXID(const_cast<HTMLFormControlElement*>(this));
     }
 
+    if (document.NeedsLayoutTreeUpdate() || document.View()->NeedsLayout() ||
+        document.Lifecycle().GetState() < DocumentLifecycle::kPrePaintClean) {
+      document.View()->UpdateAllLifecyclePhasesExceptPaint(
+          DocumentUpdateReason::kAccessibility);
+    }
     return cache->GetAXID(const_cast<HTMLFormControlElement*>(this));
   }
 
   return 0;
-}
-
-void HTMLFormControlElement::SetInteractedSinceLastFormSubmit(
-    bool interacted_since_last_form_submit) {
-  if (interacted_since_last_form_submit_ == interacted_since_last_form_submit) {
-    return;
-  }
-  interacted_since_last_form_submit_ = interacted_since_last_form_submit;
-  PseudoStateChanged(CSSSelector::kPseudoUserInvalid);
-  PseudoStateChanged(CSSSelector::kPseudoUserValid);
-}
-
-bool HTMLFormControlElement::MatchesUserInvalidPseudo() {
-  return interacted_since_last_form_submit_ && MatchesValidityPseudoClasses() &&
-         !ListedElement::IsValidElement();
-}
-
-bool HTMLFormControlElement::MatchesUserValidPseudo() {
-  return interacted_since_last_form_submit_ && MatchesValidityPseudoClasses() &&
-         ListedElement::IsValidElement();
 }
 
 }  // namespace blink

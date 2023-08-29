@@ -179,9 +179,6 @@ class BinaryUploadService : public KeyedService,
     void set_printer_type(
         enterprise_connectors::ContentMetaData::PrintMetadata::PrinterType
             printer_type);
-    void set_password(const std::string& password);
-    void set_reason(
-        enterprise_connectors::ContentAnalysisRequest::Reason reason);
 
     std::string SetRandomRequestToken();
 
@@ -198,8 +195,6 @@ class BinaryUploadService : public KeyedService,
     const std::string& printer_name() const;
     uint64_t user_action_requests_count() const;
     GURL tab_url() const;
-    const std::string& password() const;
-    enterprise_connectors::ContentAnalysisRequest::Reason reason() const;
 
     // Called when beginning to try upload.
     void StartRequest();

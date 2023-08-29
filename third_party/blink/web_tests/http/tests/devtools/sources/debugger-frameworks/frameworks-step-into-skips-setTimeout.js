@@ -5,8 +5,6 @@
 import {TestRunner} from 'test_runner';
 import {SourcesTestRunner} from 'sources_test_runner';
 
-import * as Common from 'devtools/core/common/common.js';
-
 (async function() {
   TestRunner.addResult(
       `Tests that stepping into blackboxed framework will not pause on setTimeout() inside the framework.\n`);
@@ -39,7 +37,7 @@ import * as Common from 'devtools/core/common/common.js';
   `);
 
   var frameworkRegexString = '/framework\\.js$';
-  Common.Settings.settingForTest('skipStackFramesPattern').set(frameworkRegexString);
+  Common.settingForTest('skipStackFramesPattern').set(frameworkRegexString);
 
   SourcesTestRunner.startDebuggerTest(step1, true);
 

@@ -13,6 +13,8 @@ This is meant as an alternative to many entries in test_suite_exceptions.pyl if
 the differentiation can be done programmatically.
 """
 
+import util
+
 MAGIC_SUBSTITUTION_PREFIX = '$$MAGIC_SUBSTITUTION_'
 
 
@@ -71,8 +73,9 @@ def _GetChromeOSBoardName(test_config):
       'chrome.tests',
       'chromium.tests',
   ]
-  dimensions = test_config.get('swarming', {}).get('dimensions')
-  assert dimensions is not None
+  dimension_sets = util.get_dimension_sets(test_config)
+  assert dimension_sets
+  dimensions = dimension_sets[0]
   pool = dimensions.get('pool')
   if not pool:
     raise RuntimeError(
@@ -103,14 +106,14 @@ def GPUExpectedDeviceId(test_config, _, tester_config):
     tester_config: A dict containing the configuration for the builder
         that |test_config| is for.
   """
-  dimensions = test_config.get('swarming', {}).get('dimensions')
-  assert dimensions is not None or _IsSkylabBot(tester_config)
-  dimensions = dimensions or {}
+  dimension_sets = util.get_dimension_sets(test_config)
+  assert dimension_sets or _IsSkylabBot(tester_config)
   gpus = []
-  # Split up multiple GPU/driver combinations if the swarming OR operator is
-  # being used.
-  if 'gpu' in dimensions:
-    gpus.extend(dimensions['gpu'].split('|'))
+  for dimensions in dimension_sets:
+    # Split up multiple GPU/driver combinations if the swarming OR operator is
+    # being used.
+    if 'gpu' in dimensions:
+      gpus.extend(dimensions['gpu'].split('|'))
 
   # We don't specify GPU on things like Android/CrOS devices, so default to 0.
   if not gpus:
@@ -135,17 +138,18 @@ def _GetGpusFromTestConfig(test_config):
     test_config: A dict containing a configuration for a specific test on a
         specific builder.
   """
-  dimensions = test_config.get('swarming', {}).get('dimensions')
-  assert dimensions is not None
-  # Split up multiple GPU/driver combinations if the swarming OR operator is
-  # being used.
-  if 'gpu' in dimensions:
-    gpus = dimensions['gpu'].split('|')
-    for gpu in gpus:
-      yield gpu
+  dimension_sets = util.get_dimension_sets(test_config)
+  assert dimension_sets
+  for dimensions in dimension_sets:
+    # Split up multiple GPU/driver combinations if the swarming OR operator is
+    # being used.
+    if 'gpu' in dimensions:
+      gpus = dimensions['gpu'].split('|')
+      for gpu in gpus:
+        yield gpu
 
 
-def GPUParallelJobs(test_config, tester_name, tester_config):
+def GPUParallelJobs(test_config, _, tester_config):
   """Substitutes the correct number of jobs for GPU tests.
 
   Linux/Mac/Windows can run tests in parallel since multiple windows can be open
@@ -154,8 +158,6 @@ def GPUParallelJobs(test_config, tester_name, tester_config):
   Args:
     test_config: A dict containing a configuration for a specific test on a
         specific builder.
-    tester_name: A string containing the name of the builder that |test_config|
-        is for.
     tester_config: A dict containing the configuration for the builder
         that |test_config| is for.
   """
@@ -172,11 +174,11 @@ def GPUParallelJobs(test_config, tester_name, tester_config):
   # we swap which machines we're using.
   is_webgpu_cts = test_name.startswith('webgpu_cts') or test_config.get(
       'telemetry_test_name') == 'webgpu_cts'
-  is_webgl_cts = (any(n in test_name
+  is_webgl_cts = (any(test_name in n
                       for n in ('webgl_conformance', 'webgl1_conformance',
                                 'webgl2_conformance'))
-                  or test_config.get('telemetry_test_name')
-                  in ('webgl1_conformance', 'webgl2_conformance'))
+                  or test_config.get('telemetry_test_name') in (
+                      'webgl1_conformance', 'webgl2_conformance'))
   if os_type == 'win' and (is_webgl_cts or is_webgpu_cts):
     for gpu in _GetGpusFromTestConfig(test_config):
       if gpu.startswith('8086'):
@@ -190,17 +192,6 @@ def GPUParallelJobs(test_config, tester_name, tester_config):
     for gpu in _GetGpusFromTestConfig(test_config):
       if gpu.startswith('10de'):
         return ['--jobs=3']
-
-  # Slow Mac configs have issues with flakiness when running tests in parallel.
-  is_pixel_test = (test_name == 'pixel_skia_gold_test'
-                   or test_config.get('telemetry_test_name') == 'pixel')
-  is_debug = any(s in tester_name.lower() for s in ('debug', 'dbg'))
-  if os_type == 'mac' and is_pixel_test:
-    if is_debug:
-      return ['--jobs=1']
-    for gpu in _GetGpusFromTestConfig(test_config):
-      if gpu.startswith('10de'):
-        return ['--jobs=1']
 
   if os_type in ['lacros', 'linux', 'mac', 'win']:
     return ['--jobs=4']
@@ -222,12 +213,19 @@ def GPUTelemetryNoRootForUnrootedDevices(test_config, _, tester_config):
     return []
 
   unrooted_devices = {'a13', 'a23'}
-  dimensions = test_config.get('swarming', {}).get('dimensions')
-  assert dimensions is not None
-  device_type = dimensions.get('device_type')
-  if device_type in unrooted_devices:
+  dimension_sets = util.get_dimension_sets(test_config)
+  assert dimension_sets
+  num_unrooted_devices = 0
+  for dimensions in dimension_sets:
+    device_type = dimensions.get('device_type')
+    if device_type in unrooted_devices:
+      num_unrooted_devices += 1
+  # All devices should be either rooted or unrooted.
+  if num_unrooted_devices == 0:
+    return []
+  if num_unrooted_devices == len(dimension_sets):
     return ['--compatibility-mode=dont-require-rooted-device']
-  return []
+  raise RuntimeError('All devices must be either rooted or unrooted')
 
 
 def GPUWebGLRuntimeFile(test_config, _, tester_config):

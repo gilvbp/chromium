@@ -41,7 +41,7 @@ namespace blink {
 
 template <typename Traits>
 class MODULES_EXPORT DecoderTemplate
-    : public EventTarget,
+    : public EventTargetWithInlineData,
       public ActiveScriptWrappable<DecoderTemplate<Traits>>,
       public ReclaimableCodec {
  public:

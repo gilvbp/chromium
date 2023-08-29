@@ -35,7 +35,7 @@ class TemplateURLFetcherFactory : public ProfileKeyedServiceFactory {
   ~TemplateURLFetcherFactory() override;
 
   // BrowserContextKeyedServiceFactory:
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* profile) const override;
 };
 

@@ -7,8 +7,6 @@
 
 #include <string>
 
-#include "base/location.h"
-
 class GURL;
 
 namespace content {
@@ -22,25 +20,17 @@ std::string GetFrameContent(content::RenderFrameHost* frame);
 
 // Helpers to set and check various types of storage on a given frame. Typically
 // used on page like //chrome/test/data/browsing_data/site_data.html
-void SetStorageForFrame(content::RenderFrameHost* frame,
-                        bool include_cookies,
-                        const base::Location& location = FROM_HERE);
-void SetStorageForWorker(content::RenderFrameHost* frame,
-                         const base::Location& location = FROM_HERE);
+void SetStorageForFrame(content::RenderFrameHost* frame, bool include_cookies);
+void SetStorageForWorker(content::RenderFrameHost* frame);
 void ExpectStorageForFrame(content::RenderFrameHost* frame,
-                           bool expected,
-                           const base::Location& location = FROM_HERE);
-void ExpectStorageForWorker(content::RenderFrameHost* frame,
-                            bool expected,
-                            const base::Location& location = FROM_HERE);
+                           bool include_cookies,
+                           bool expected);
+void ExpectStorageForWorker(content::RenderFrameHost* frame, bool expected);
 
 // Helpers to set and check various types of cross tab info for a given frame.
 // Typically used on page like //chrome/test/data/browsing_data/site_data.html
-void SetCrossTabInfoForFrame(content::RenderFrameHost* frame,
-                             const base::Location& location = FROM_HERE);
-void ExpectCrossTabInfoForFrame(content::RenderFrameHost* frame,
-                                bool expected,
-                                const base::Location& location = FROM_HERE);
+void SetCrossTabInfoForFrame(content::RenderFrameHost* frame);
+void ExpectCrossTabInfoForFrame(content::RenderFrameHost* frame, bool expected);
 
 // Helper to request storage access for a frame using
 // document.requestStorageAccess() and then get the value of

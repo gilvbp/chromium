@@ -8,8 +8,8 @@
 
 #include "ash/shell.h"
 #include "ash/style/ash_color_id.h"
-#include "ash/style/color_palette_controller.h"
-#include "base/check_is_test.h"
+#include "ash/style/color_util.h"
+#include "ash/style/dark_light_mode_controller_impl.h"
 #include "base/check_op.h"
 #include "ui/chromeos/styles/cros_styles.h"
 #include "ui/color/color_id.h"
@@ -27,6 +27,13 @@ constexpr float kLightInkDropOpacity = 0.08f;
 constexpr float kDarkInkDropOpacity = 0.06f;
 
 AshColorProvider* g_instance = nullptr;
+
+bool IsDarkModeEnabled() {
+  // May be null in unit tests.
+  if (!Shell::HasInstance())
+    return true;
+  return Shell::Get()->dark_light_mode_controller()->IsDarkModeEnabled();
+}
 
 }  // namespace
 
@@ -201,15 +208,9 @@ std::pair<SkColor, float> AshColorProvider::GetInkDropBaseColorAndOpacity(
 }
 
 SkColor AshColorProvider::GetBackgroundColor() const {
-  const auto default_color =
-      GetColorProvider()->GetColor(kColorAshShieldAndBaseOpaque);
-  if (!Shell::HasInstance()) {
-    CHECK_IS_TEST();
-    return default_color;
-  }
-  return Shell::Get()
-      ->color_palette_controller()
-      ->GetUserWallpaperColorOrDefault(default_color);
+  return ColorUtil::GetBackgroundThemedColor(
+      GetColorProvider()->GetColor(kColorAshShieldAndBaseOpaque),
+      IsDarkModeEnabled());
 }
 
 ui::ColorProvider* AshColorProvider::GetColorProvider() const {

@@ -94,18 +94,9 @@ bool Socket::CheckContextAndPermissions(ScriptState* script_state,
     return false;
   }
 
-  ExecutionContext* execution_context = ExecutionContext::From(script_state);
-  if (!execution_context->IsIsolatedContext() ||
-      !execution_context->IsFeatureEnabled(
-          mojom::blink::PermissionsPolicyFeature::kCrossOriginIsolated)) {
-    exception_state.ThrowDOMException(
-        DOMExceptionCode::kNotAllowedError,
-        "Frame is not sufficiently isolated to use Direct Sockets.");
-    return false;
-  }
-
-  if (!execution_context->IsFeatureEnabled(
-          mojom::blink::PermissionsPolicyFeature::kDirectSockets)) {
+  if (!ExecutionContext::From(script_state)
+           ->IsFeatureEnabled(
+               mojom::blink::PermissionsPolicyFeature::kDirectSockets)) {
     exception_state.ThrowDOMException(
         DOMExceptionCode::kNotAllowedError,
         "Permissions-Policy: direct-sockets are disabled.");

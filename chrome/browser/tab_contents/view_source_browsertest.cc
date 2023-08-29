@@ -21,7 +21,6 @@
 #include "chrome/test/base/ui_test_utils.h"
 #include "content/public/browser/back_forward_cache.h"
 #include "content/public/browser/navigation_entry.h"
-#include "content/public/browser/notification_service.h"
 #include "content/public/browser/render_frame_host.h"
 #include "content/public/browser/render_process_host.h"
 #include "content/public/browser/web_contents.h"
@@ -781,8 +780,7 @@ class ViewSourcePrerenderTest : public ViewSourceTest {
   void set_target(content::WebContents* target) { target_ = target; }
 
   void SetUp() override {
-    prerender_test_helper().RegisterServerRequestMonitor(
-        embedded_test_server());
+    prerender_test_helper().SetUp(embedded_test_server());
     ViewSourceTest::SetUp();
   }
 
@@ -792,7 +790,7 @@ class ViewSourcePrerenderTest : public ViewSourceTest {
                           base::Unretained(this))};
 
   // The WebContents which is expected to request prerendering.
-  raw_ptr<content::WebContents, AcrossTasksDanglingUntriaged> target_ = nullptr;
+  raw_ptr<content::WebContents, DanglingUntriaged> target_ = nullptr;
 };
 
 // A frame in a prerendered page should be able to have its source viewed, like

@@ -15,13 +15,12 @@ namespace syncer {
 
 UploadState GetUploadToGoogleState(const SyncService* sync_service,
                                    ModelType type) {
-  // Without a SyncService, or in local-sync mode, there's no upload to Google.
-  if (!sync_service || sync_service->IsLocalSyncEnabled()) {
-    return UploadState::NOT_ACTIVE;
-  }
-
-  // Make sure that the current user settings include `type`.
-  if (!sync_service->GetPreferredDataTypes().Has(type)) {
+  // Note: Before configuration is done, GetPreferredDataTypes returns
+  // "everything" (i.e. the default setting). If a data type is missing there,
+  // it must be because the user explicitly disabled it.
+  if (!sync_service || sync_service->IsLocalSyncEnabled() ||
+      !sync_service->IsSyncFeatureEnabled() ||
+      !sync_service->GetPreferredDataTypes().Has(type)) {
     return UploadState::NOT_ACTIVE;
   }
 
@@ -104,8 +103,7 @@ bool ShouldOfferTrustedVaultOptIn(const SyncService* service) {
     return false;
   }
 
-  switch (service->GetUserSettings()->GetPassphraseType().value_or(
-      PassphraseType::kImplicitPassphrase)) {
+  switch (service->GetUserSettings()->GetPassphraseType()) {
     case PassphraseType::kImplicitPassphrase:
     case PassphraseType::kFrozenImplicitPassphrase:
     case PassphraseType::kCustomPassphrase:

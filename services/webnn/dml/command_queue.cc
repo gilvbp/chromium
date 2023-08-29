@@ -24,7 +24,7 @@ CommandQueue::CommandQueue(ComPtr<ID3D12CommandQueue> command_queue,
 CommandQueue::~CommandQueue() = default;
 
 // static
-scoped_refptr<CommandQueue> CommandQueue::Create(ID3D12Device* d3d12_device) {
+std::unique_ptr<CommandQueue> CommandQueue::Create(ID3D12Device* d3d12_device) {
   ComPtr<ID3D12CommandQueue> command_queue;
   D3D12_COMMAND_QUEUE_DESC command_queue_desc = {};
   command_queue_desc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
@@ -46,7 +46,7 @@ scoped_refptr<CommandQueue> CommandQueue::Create(ID3D12Device* d3d12_device) {
     return nullptr;
   }
 
-  return base::WrapRefCounted(
+  return base::WrapUnique(
       new CommandQueue(std::move(command_queue), std::move(fence)));
 }
 
@@ -88,7 +88,7 @@ void CommandQueue::OnObjectSignaled(HANDLE object) {
   }
 }
 
-void CommandQueue::WaitAsync(OnWaitAyncCallback callback) {
+HRESULT CommandQueue::WaitAsync(base::OnceClosure callback) {
   if (!object_watcher_.IsWatching()) {
     CHECK(object_watcher_.StartWatchingMultipleTimes(fence_event_.get(), this));
   }
@@ -98,11 +98,10 @@ void CommandQueue::WaitAsync(OnWaitAyncCallback callback) {
   if (FAILED(hr)) {
     DLOG(ERROR) << "Failed to set event on completion : "
                 << logging::SystemErrorCodeToString(hr);
-    std::move(callback).Run(hr);
-    return;
+    return hr;
   };
-  queued_callbacks_.push_back(
-      {last_fence_value_, base::BindOnce(std::move(callback), S_OK)});
+  queued_callbacks_.push_back({last_fence_value_, std::move(callback)});
+  return S_OK;
 }
 
 void CommandQueue::ReferenceUntilCompleted(ComPtr<IUnknown> object) {

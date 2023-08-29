@@ -75,13 +75,8 @@ void Touch::OnTouchEvent(ui::TouchEvent* event) {
 
   bool send_details = false;
 
-  auto event_type = event->type();
-  if ((event->flags() & ui::EF_RESERVED_FOR_GESTURE) != 0) {
-    event_type = ui::ET_TOUCH_CANCELLED;
-  }
-
   const int touch_pointer_id = event->pointer_details().id;
-  switch (event_type) {
+  switch (event->type()) {
     case ui::ET_TOUCH_PRESSED: {
       // Early out if event doesn't contain a valid target for touch device.
       // TODO(b/147848270): Verify GetEffectiveTargetForEvent gets the correct
@@ -160,6 +155,7 @@ void Touch::OnTouchEvent(ui::TouchEvent* event) {
     } break;
     case ui::ET_TOUCH_CANCELLED: {
       TRACE_EXO_INPUT_EVENT(event);
+
       // Cancel the full set of touch sequences as soon as one is canceled.
       CancelAllTouches();
       delegate_->OnTouchCancel();

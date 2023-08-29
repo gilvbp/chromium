@@ -9,7 +9,6 @@
 
 #include <unordered_map>
 
-#include "base/containers/contains.h"
 #include "base/functional/callback.h"
 #include "base/logging.h"
 #include "chromecast/cast_core/grpc/grpc_handler.h"
@@ -77,7 +76,8 @@ class GrpcServer : public grpc::CallbackGenericService {
   void SetHandler(typename THandler::OnRequestCallback on_request_callback) {
     // The full rpc name is /<fully-qualified-service-type>/method, ie
     // /cast.core.CastCoreService/RegisterRuntime.
-    DCHECK(!base::Contains(registered_handlers_, THandler::rpc_name()))
+    DCHECK(registered_handlers_.find(THandler::rpc_name()) ==
+           registered_handlers_.end())
         << "Duplicate handler: " << THandler::rpc_name();
     registered_handlers_.emplace(
         THandler::rpc_name(),

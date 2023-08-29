@@ -52,7 +52,7 @@ NSString* MenuTitleForNode(const BookmarkNode* node) {
 BookmarkMenuBridge::BookmarkMenuBridge(Profile* profile, NSMenu* menu_root)
     : profile_(profile),
       controller_([[BookmarkMenuCocoaController alloc] initWithBridge:this]),
-      menu_root_(menu_root) {
+      menu_root_([menu_root retain]) {
   DCHECK(profile_);
   profile_dir_ = profile->GetPath();
   DCHECK(menu_root_);
@@ -77,7 +77,7 @@ void BookmarkMenuBridge::UpdateMenu(NSMenu* menu,
                                     bool recurse) {
   DCHECK(menu);
   DCHECK(controller_);
-  DCHECK_EQ([menu delegate], controller_);
+  DCHECK_EQ([menu delegate], controller_.get());
 
   if (menu == menu_root_) {
     if (!IsMenuValid())
@@ -98,7 +98,8 @@ void BookmarkMenuBridge::BuildRootMenu(bool recurse) {
 
   if (!folder_image_) {
     ui::ResourceBundle& rb = ui::ResourceBundle::GetSharedInstance();
-    folder_image_ = rb.GetNativeImageNamed(IDR_FOLDER_CLOSED).ToNSImage();
+    folder_image_.reset(
+        [rb.GetNativeImageNamed(IDR_FOLDER_CLOSED).ToNSImage() retain]);
     [folder_image_ setTemplate:YES];
   }
 
@@ -258,11 +259,10 @@ void BookmarkMenuBridge::AddNodeAsSubmenu(NSMenu* menu,
                                           NSImage* image,
                                           bool recurse) {
   NSString* title = MenuTitleForNode(node);
-  NSMenuItem* items = [[NSMenuItem alloc] initWithTitle:title
-                                                 action:nil
-                                          keyEquivalent:@""];
+  base::scoped_nsobject<NSMenuItem> items(
+      [[NSMenuItem alloc] initWithTitle:title action:nil keyEquivalent:@""]);
   [items setImage:image];
-  NSMenu* submenu = [[NSMenu alloc] initWithTitle:title];
+  base::scoped_nsobject<NSMenu> submenu([[NSMenu alloc] initWithTitle:title]);
   [menu setSubmenu:submenu forItem:items];
 
   // Set a delegate and a tag on the item so that the submenu can be populated
@@ -284,9 +284,10 @@ void BookmarkMenuBridge::AddNodeToMenu(const BookmarkNode* node,
                                        bool recurse) {
   if (node->children().empty()) {
     NSString* empty_string = l10n_util::GetNSString(IDS_MENU_EMPTY_SUBMENU);
-    NSMenuItem* item = [[NSMenuItem alloc] initWithTitle:empty_string
-                                                  action:nil
-                                           keyEquivalent:@""];
+    base::scoped_nsobject<NSMenuItem> item([[NSMenuItem alloc]
+        initWithTitle:empty_string
+               action:nil
+        keyEquivalent:@""]);
     [menu addItem:item];
     return;
   }
@@ -295,10 +296,10 @@ void BookmarkMenuBridge::AddNodeToMenu(const BookmarkNode* node,
     if (child->is_folder()) {
       AddNodeAsSubmenu(menu, child.get(), folder_image_, recurse);
     } else {
-      NSMenuItem* item =
-          [[NSMenuItem alloc] initWithTitle:MenuTitleForNode(child.get())
-                                     action:nil
-                              keyEquivalent:@""];
+      base::scoped_nsobject<NSMenuItem> item([[NSMenuItem alloc]
+          initWithTitle:MenuTitleForNode(child.get())
+                 action:nil
+          keyEquivalent:@""]);
       bookmark_nodes_[child.get()] = item;
       tag_to_guid_[child->id()] = child->uuid();
       ConfigureMenuItem(child.get(), item, false);

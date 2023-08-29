@@ -17,15 +17,6 @@
 class GURL;
 class Profile;
 
-namespace base {
-class Pickle;
-}  // namespace base
-
-namespace ui {
-class DataTransferEndpoint;
-struct FileInfo;
-}  // namespace ui
-
 namespace file_manager {
 namespace util {
 
@@ -245,12 +236,6 @@ absl::optional<base::FilePath> GetDisplayablePath(Profile* profile,
 absl::optional<base::FilePath> GetDisplayablePath(
     Profile* profile,
     storage::FileSystemURL file_url);
-
-// Reads pickle for FilesApp fs/sources with newline-separated filesystem
-// URLs. Validates that |source| is FilesApp.
-std::vector<ui::FileInfo> ParseFileSystemSources(
-    const ui::DataTransferEndpoint* source,
-    const base::Pickle& pickle);
 
 }  // namespace util
 }  // namespace file_manager

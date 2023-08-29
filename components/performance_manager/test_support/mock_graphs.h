@@ -5,12 +5,8 @@
 #ifndef COMPONENTS_PERFORMANCE_MANAGER_TEST_SUPPORT_MOCK_GRAPHS_H_
 #define COMPONENTS_PERFORMANCE_MANAGER_TEST_SUPPORT_MOCK_GRAPHS_H_
 
-#include "base/process/process.h"
-#include "base/process/process_handle.h"
-#include "base/time/time.h"
 #include "components/performance_manager/graph/process_node_impl.h"
 #include "components/performance_manager/test_support/graph_test_harness.h"
-#include "content/public/common/process_type.h"
 
 namespace performance_manager {
 
@@ -22,40 +18,28 @@ class SystemNodeImpl;
 // process' PID.
 class TestProcessNodeImpl : public ProcessNodeImpl {
  public:
-  // Default to creating a renderer process node.
   TestProcessNodeImpl();
 
-  // Create a non-renderer child process node with the given `process_type`.
-  explicit TestProcessNodeImpl(content::ProcessType process_type);
-
-  // Inherit the default constructors so that tests can create browser process
-  // nodes or assign explicit RenderProcessHostProxy or
-  // BrowserChildProcessHostProxy objects.
-  using ProcessNodeImpl::ProcessNodeImpl;
-
-  // Assigns the given `pid`, `process` and `launch_time` to the process node.
   void SetProcessWithPid(base::ProcessId pid,
-                         base::Process process = base::Process::Current(),
-                         base::TimeTicks launch_time = base::TimeTicks::Now());
+                         base::Process process,
+                         base::TimeTicks launch_time);
 };
 
 // The following graph topology is created to emulate a scenario when a single
 // page executes in a single process:
 //
-// Pr  Pg  BPr
+// Pr  Pg
 //  \ /
 //   F
 //
 // Where:
 // F: frame(frame_tree_id:0)
-// BPr: browser_process(pid:1)
-// Pr: process(pid:2)
+// Pr: process(pid:1)
 // Pg: page
 struct MockSinglePageInSingleProcessGraph {
   explicit MockSinglePageInSingleProcessGraph(TestGraphImpl* graph);
   ~MockSinglePageInSingleProcessGraph();
   TestNodeWrapper<SystemNodeImpl> system;
-  TestNodeWrapper<TestProcessNodeImpl> browser_process;
   TestNodeWrapper<TestProcessNodeImpl> process;
   TestNodeWrapper<PageNodeImpl> page;
   TestNodeWrapper<FrameNodeImpl> frame;
@@ -64,7 +48,7 @@ struct MockSinglePageInSingleProcessGraph {
 // The following graph topology is created to emulate a scenario where multiple
 // pages are executing in a single process:
 //
-// Pg  Pr OPg  BPr
+// Pg  Pr OPg
 //  \ / \ /
 //   F  OF
 //
@@ -73,8 +57,7 @@ struct MockSinglePageInSingleProcessGraph {
 // OF: other_frame(frame_tree_id:1)
 // Pg: page
 // OPg: other_page
-// BPr: browser_process(pid:1)
-// Pr: process(pid:2)
+// Pr: process(pid:1)
 struct MockMultiplePagesInSingleProcessGraph
     : public MockSinglePageInSingleProcessGraph {
   explicit MockMultiplePagesInSingleProcessGraph(TestGraphImpl* graph);
@@ -91,15 +74,14 @@ struct MockMultiplePagesInSingleProcessGraph
 // |\ /
 // | F  OPr
 // |  \ /
-// |__CF  BPr
+// |__CF
 //
 // Where:
 // F: frame(frame_tree_id:0)
 // CF: child_frame(frame_tree_id:2)
 // Pg: page
-// BPr: browser_proces(pid:1)
-// Pr: process(pid:2)
-// OPr: other_process(pid:3)
+// Pr: process(pid:1)
+// OPr: other_process(pid:2)
 struct MockSinglePageWithMultipleProcessesGraph
     : public MockSinglePageInSingleProcessGraph {
   explicit MockSinglePageWithMultipleProcessesGraph(TestGraphImpl* graph);
@@ -116,7 +98,7 @@ struct MockSinglePageWithMultipleProcessesGraph
 //  \ / \ /     |
 //   F   OF OPr |
 //        \ /   |
-//   BPr   CF___|
+//         CF___|
 //
 // Where:
 // F: frame(frame_tree_id:0)
@@ -124,9 +106,8 @@ struct MockSinglePageWithMultipleProcessesGraph
 // CF: child_frame(frame_tree_id:3)
 // Pg: page
 // OPg: other_page
-// BPr: browser_process(pid:1)
-// Pr: process(pid:2)
-// OPr: other_process(pid:3)
+// Pr: process(pid:1)
+// OPr: other_process(pid:2)
 struct MockMultiplePagesWithMultipleProcessesGraph
     : public MockMultiplePagesInSingleProcessGraph {
   explicit MockMultiplePagesWithMultipleProcessesGraph(TestGraphImpl* graph);
@@ -138,7 +119,7 @@ struct MockMultiplePagesWithMultipleProcessesGraph
 // The following graph topology is created to emulate a scenario where a page
 // contains a single frame that creates a single dedicated worker.
 //
-// Pg  Pr_   BPr
+// Pg  Pr_
 //  \ /   |
 //   F    |
 //    \   |
@@ -148,8 +129,7 @@ struct MockMultiplePagesWithMultipleProcessesGraph
 // Pg: page
 // F: frame(frame_tree_id:0)
 // W: worker
-// BPr: browser_process(pid:1)
-// Pr: process(pid:2)
+// Pr: process(pid:1)
 struct MockSinglePageWithFrameAndWorkerInSingleProcessGraph
     : public MockSinglePageInSingleProcessGraph {
   explicit MockSinglePageWithFrameAndWorkerInSingleProcessGraph(
@@ -172,7 +152,7 @@ struct MockSinglePageWithFrameAndWorkerInSingleProcessGraph
 //   \ | /    | \
 //     Pr     | OW
 //            | /
-//     BPr    OPr
+//            OPr
 //
 // Where:
 // Pg: page
@@ -182,9 +162,8 @@ struct MockSinglePageWithFrameAndWorkerInSingleProcessGraph
 // CF: child_frame(frame_tree_id:3)
 // W: worker
 // OW: other_worker
-// BPr: browser_process(pid:1)
-// Pr: process(pid:2)
-// OPr: other_process(pid:3)
+// Pr: process(pid:1)
+// OPr: other_process(pid:2)
 struct MockMultiplePagesAndWorkersWithMultipleProcessesGraph
     : public MockMultiplePagesWithMultipleProcessesGraph {
   explicit MockMultiplePagesAndWorkersWithMultipleProcessesGraph(
@@ -192,40 +171,6 @@ struct MockMultiplePagesAndWorkersWithMultipleProcessesGraph
   ~MockMultiplePagesAndWorkersWithMultipleProcessesGraph();
   TestNodeWrapper<WorkerNodeImpl> worker;
   TestNodeWrapper<WorkerNodeImpl> other_worker;
-};
-
-// The following graph topology is created to emulate a scenario where a utility
-// process is running, plus multiple pages making use of workers are hosted in
-// multiple renderer processes (e.g. out-of-process iFrames and multiple pages
-// in a process):
-//
-//    Pg    OPg
-//    |     |
-//    F     OF
-//   /\    /  \
-//  W  \  /   CF
-//   \ | /    | \
-//     Pr     | OW
-//            | /
-//     BPr    OPr    UPr
-//
-// Where:
-// Pg: page
-// OPg: other_page
-// F: frame(frame_tree_id:0)
-// OF: other_frame(frame_tree_id:1)
-// CF: child_frame(frame_tree_id:3)
-// W: worker
-// OW: other_worker
-// BPr: browser_process(pid:1)
-// Pr: process(pid:2)
-// OPr: other_process(pid:3)
-// UPr: utility_process(pid:4)
-struct MockUtilityAndMultipleRenderProcessesGraph
-    : public MockMultiplePagesAndWorkersWithMultipleProcessesGraph {
-  explicit MockUtilityAndMultipleRenderProcessesGraph(TestGraphImpl* graph);
-  ~MockUtilityAndMultipleRenderProcessesGraph();
-  TestNodeWrapper<TestProcessNodeImpl> utility_process;
 };
 
 }  // namespace performance_manager

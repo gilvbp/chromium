@@ -156,15 +156,15 @@ class DiffHelper {
   MatchFunc SectionAndFullNameAndPathAndSize() {
     return [](const caspian::Symbol& sym) {
       return SymbolMatchIndex(sym.section_id_, sym.ContainerName(),
-                              sym.full_name_, GetIdPath(sym),
-                              sym.SizeWithoutPadding());
+                              sym.full_name_, GetIdPath(sym), sym.Pss());
     };
   }
 
   MatchFunc SectionAndFullNameAndPath() {
     return [this](const caspian::Symbol& sym) {
       return SymbolMatchIndex(sym.section_id_, sym.ContainerName(),
-                              StripNumbers(sym.full_name_), GetIdPath(sym), 0);
+                              StripNumbers(sym.full_name_), GetIdPath(sym),
+                              0.0f);
     };
   }
 
@@ -176,24 +176,18 @@ class DiffHelper {
         name = NormalizeStarSymbols(name);
       }
       return SymbolMatchIndex(sym.section_id_, sym.ContainerName(), name,
-                              GetIdPath(sym), 0);
+                              GetIdPath(sym), 0.0f);
     };
   }
 
   // Match on full name, but without path (to account for file moves)
   MatchFunc SectionAndFullName() {
     return [](const caspian::Symbol& sym) {
-      // For string literals that contain a prefix of the string in the name,
-      // allow matching up via name + size.
-      if (!sym.full_name_.empty() && sym.full_name_[0] == '"') {
-        return SymbolMatchIndex(sym.section_id_, sym.ContainerName(),
-                                sym.full_name_, "", sym.SizeWithoutPadding());
-      }
       if (!sym.IsNameUnique()) {
         return SymbolMatchIndex();
       }
       return SymbolMatchIndex(sym.section_id_, sym.ContainerName(),
-                              sym.full_name_, "", 0);
+                              sym.full_name_, "", 0.0f);
     };
   }
 

@@ -40,10 +40,10 @@ std::unique_ptr<v8_inspector::protocol::Runtime::API::RemoteObject> ResolveNode(
   v8::Isolate* isolate = V8PerIsolateData::MainThreadIsolate();
   v8::HandleScope handle_scope(isolate);
   v8::Local<v8::Context> context;
-  if (v8_execution_context_id.has_value()) {
+  if (v8_execution_context_id.isJust()) {
     if (!MainThreadDebugger::Instance()
              ->GetV8Inspector()
-             ->contextById(v8_execution_context_id.value())
+             ->contextById(v8_execution_context_id.fromJust())
              .ToLocal(&context)) {
       return nullptr;
     }

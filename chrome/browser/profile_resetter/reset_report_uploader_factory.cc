@@ -34,10 +34,8 @@ ResetReportUploaderFactory::ResetReportUploaderFactory()
 
 ResetReportUploaderFactory::~ResetReportUploaderFactory() = default;
 
-std::unique_ptr<KeyedService>
-ResetReportUploaderFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* ResetReportUploaderFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
-  return std::make_unique<ResetReportUploader>(
-      context->GetDefaultStoragePartition()
-          ->GetURLLoaderFactoryForBrowserProcess());
+  return new ResetReportUploader(context->GetDefaultStoragePartition()
+                                     ->GetURLLoaderFactoryForBrowserProcess());
 }

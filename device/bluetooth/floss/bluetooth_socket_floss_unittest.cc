@@ -56,7 +56,8 @@ class BluetoothSocketFlossTest : public testing::Test {
   void InitializeAndEnableAdapter() {
     adapter_ = BluetoothAdapterFloss::CreateAdapter();
 
-    fake_floss_manager_client_->SetDefaultEnabled(true);
+    fake_floss_manager_client_->SetAdapterPowered(/*adapter*/ 0,
+                                                  /*powered*/ true);
 
     base::RunLoop run_loop;
     adapter_->Initialize(run_loop.QuitClosure());

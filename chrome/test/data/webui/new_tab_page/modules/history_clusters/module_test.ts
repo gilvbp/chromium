@@ -2,10 +2,11 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+import 'chrome://webui-test/mojo_webui_test_support.js';
+
 import {Cart} from 'chrome://new-tab-page/cart.mojom-webui.js';
 import {Cluster, URLVisit} from 'chrome://new-tab-page/history_cluster_types.mojom-webui.js';
-import {PageHandlerRemote} from 'chrome://new-tab-page/history_clusters.mojom-webui.js';
-import {LayoutType} from 'chrome://new-tab-page/history_clusters_layout_type.mojom-webui.js';
+import {LayoutType, PageHandlerRemote} from 'chrome://new-tab-page/history_clusters.mojom-webui.js';
 import {DismissModuleEvent, HistoryClusterElementType, HistoryClusterImageDisplayState, historyClustersDescriptor, HistoryClustersModuleElement, HistoryClustersProxyImpl, LAYOUT_1_MIN_IMAGE_VISITS, LAYOUT_1_MIN_VISITS, LAYOUT_2_MIN_IMAGE_VISITS, LAYOUT_2_MIN_VISITS, LAYOUT_3_MIN_IMAGE_VISITS, LAYOUT_3_MIN_VISITS, PageImageServiceBrowserProxy} from 'chrome://new-tab-page/lazy_load.js';
 import {$$, NewTabPageProxy} from 'chrome://new-tab-page/new_tab_page.js';
 import {PageRemote} from 'chrome://new-tab-page/new_tab_page.mojom-webui.js';
@@ -102,7 +103,7 @@ suite('NewTabPageModulesHistoryClustersModuleTest', () => {
     return moduleElement;
   }
 
-  suite('Core', () => {
+  suite('core', () => {
     test('No module created if no history cluster data', async () => {
       // Arrange.
       const moduleElement = await initializeModule([]);
@@ -281,7 +282,7 @@ suite('NewTabPageModulesHistoryClustersModuleTest', () => {
     });
   });
 
-  suite('Layouts', () => {
+  suite('layouts', () => {
     function removeHrefAndClick(element: HTMLElement) {
       element.removeAttribute('href');
       element.click();
@@ -441,7 +442,7 @@ suite('NewTabPageModulesHistoryClustersModuleTest', () => {
         });
   });
 
-  suite('UnloadMetricNoImages', () => {
+  suite('unload metric no images', () => {
     test('Module records no images state metric on unload', async () => {
       imageServiceHandler.setResultFor(
           'getPageImageUrl', Promise.resolve(null));
@@ -467,7 +468,7 @@ suite('NewTabPageModulesHistoryClustersModuleTest', () => {
     });
   });
 
-  suite('UnloadMetricAllImages', () => {
+  suite('unload metric all images', () => {
     test('Module records all images state metric on unload', async () => {
       imageServiceHandler.setResultFor('getPageImageUrl', Promise.resolve({
         result: {imageUrl: {url: 'https://example.com/image.png'}},
@@ -494,7 +495,7 @@ suite('NewTabPageModulesHistoryClustersModuleTest', () => {
     });
   });
 
-  suite('CartTileRendering', () => {
+  suite('cart tile rendering', () => {
     test('Cart tile is not rendererd when feature is disabled', async () => {
       loadTimeData.overrideValues({
         modulesChromeCartInHistoryClustersModuleEnabled: false,

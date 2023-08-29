@@ -15,7 +15,6 @@
 #include "base/functional/callback_forward.h"
 #include "base/gtest_prod_util.h"
 #include "base/memory/raw_ptr.h"
-#include "base/notreached.h"
 #include "base/process/process.h"
 #include "chrome/browser/web_applications/os_integration/web_app_shortcut.h"
 
@@ -104,27 +103,9 @@
 namespace web_app {
 
 enum class LaunchShimUpdateBehavior {
-  kDoNotRecreate,
-  kRecreateIfInstalled,
-  kRecreateUnconditionally,
-};
-
-inline bool RecreateShimsRequested(LaunchShimUpdateBehavior update_behavior) {
-  switch (update_behavior) {
-    case LaunchShimUpdateBehavior::kDoNotRecreate:
-      return false;
-    case LaunchShimUpdateBehavior::kRecreateIfInstalled:
-    case LaunchShimUpdateBehavior::kRecreateUnconditionally:
-      return true;
-  }
-  NOTREACHED();
-}
-
-enum class ShimLaunchMode {
-  // Launch the app shim as a normal application.
-  kNormal,
-  // Launch the app shim in background mode, invisible to the user.
-  kBackground,
+  DO_NOT_RECREATE,
+  RECREATE_IF_INSTALLED,
+  RECREATE_UNCONDITIONALLY,
 };
 
 // Callback type for LaunchShim. If |shim_process| is valid then the
@@ -140,7 +121,6 @@ using ShimTerminatedCallback = base::OnceClosure;
 // invalid pid if none was launched). If |launched_callback| returns a valid
 // pid, then |terminated_callback| will be called when that process terminates.
 void LaunchShim(LaunchShimUpdateBehavior update_behavior,
-                ShimLaunchMode launch_mode,
                 ShimLaunchedCallback launched_callback,
                 ShimTerminatedCallback terminated_callback,
                 std::unique_ptr<ShortcutInfo> shortcut_info);

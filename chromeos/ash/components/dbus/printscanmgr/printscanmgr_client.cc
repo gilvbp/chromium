@@ -6,19 +6,17 @@
 
 #include <stdint.h>
 
-#include <dbus/dbus-protocol.h>
-
-#include <map>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "base/check.h"
 #include "base/check_op.h"
 #include "base/logging.h"
 #include "base/memory/raw_ptr.h"
 #include "base/memory/weak_ptr.h"
-#include "base/no_destructor.h"
 #include "chromeos/ash/components/dbus/printscanmgr/fake_printscanmgr_client.h"
+#include "chromeos/dbus/common/dbus_library_error.h"
 #include "dbus/message.h"
 #include "dbus/object_path.h"
 #include "dbus/object_proxy.h"
@@ -29,23 +27,6 @@ namespace ash {
 namespace {
 
 PrintscanmgrClient* g_instance = nullptr;
-
-printscanmgr::AddPrinterResult DBusErrorFromString(
-    const std::string& dbus_error_string) {
-  static const base::NoDestructor<
-      std::map<std::string, printscanmgr::AddPrinterResult>>
-      error_string_map({
-          {DBUS_ERROR_NO_REPLY,
-           printscanmgr::AddPrinterResult::ADD_PRINTER_RESULT_DBUS_NO_REPLY},
-          {DBUS_ERROR_TIMEOUT,
-           printscanmgr::AddPrinterResult::ADD_PRINTER_RESULT_DBUS_TIMEOUT},
-      });
-
-  auto it = error_string_map->find(dbus_error_string);
-  return it != error_string_map->end()
-             ? it->second
-             : printscanmgr::AddPrinterResult::ADD_PRINTER_RESULT_DBUS_GENERIC;
-}
 
 // The PrintscanmgrClient implementation used in production.
 class PrintscanmgrClientImpl : public PrintscanmgrClient {
@@ -64,70 +45,49 @@ class PrintscanmgrClientImpl : public PrintscanmgrClient {
 
   // PrintscanmgrClient overrides:
   void CupsAddManuallyConfiguredPrinter(
-      const printscanmgr::CupsAddManuallyConfiguredPrinterRequest& request,
-      chromeos::DBusMethodCallback<
-          printscanmgr::CupsAddManuallyConfiguredPrinterResponse> callback)
-      override {
+      const std::string& name,
+      const std::string& uri,
+      const std::string& ppd_contents,
+      PrintscanmgrClient::CupsAddPrinterCallback callback) override {
     dbus::MethodCall method_call(
         printscanmgr::kPrintscanmgrInterface,
         printscanmgr::kCupsAddManuallyConfiguredPrinter);
     dbus::MessageWriter writer(&method_call);
-    if (!writer.AppendProtoAsArrayOfBytes(request)) {
-      LOG(ERROR) << "Failed to encode CupsAddManuallyConfiguredPrinterRequest "
-                    "protobuf.";
-      printscanmgr::CupsAddManuallyConfiguredPrinterResponse response;
-      response.set_result(printscanmgr::AddPrinterResult::
-                              ADD_PRINTER_RESULT_DBUS_ENCODING_FAILURE);
-      std::move(callback).Run(std::move(response));
-      return;
-    }
+    writer.AppendString(name);
+    writer.AppendString(uri);
+    writer.AppendArrayOfBytes(
+        reinterpret_cast<const uint8_t*>(ppd_contents.data()),
+        ppd_contents.size());
 
     printscanmgr_proxy_->CallMethodWithErrorResponse(
         &method_call, dbus::ObjectProxy::TIMEOUT_USE_DEFAULT,
-        base::BindOnce(
-            &PrintscanmgrClientImpl::OnPrinterAdded<
-                printscanmgr::CupsAddManuallyConfiguredPrinterResponse>,
-            weak_ptr_factory_.GetWeakPtr(), std::move(callback)));
-  }
-
-  void CupsAddAutoConfiguredPrinter(
-      const printscanmgr::CupsAddAutoConfiguredPrinterRequest& request,
-      chromeos::DBusMethodCallback<
-          printscanmgr::CupsAddAutoConfiguredPrinterResponse> callback)
-      override {
-    dbus::MethodCall method_call(printscanmgr::kPrintscanmgrInterface,
-                                 printscanmgr::kCupsAddAutoConfiguredPrinter);
-    dbus::MessageWriter writer(&method_call);
-    if (!writer.AppendProtoAsArrayOfBytes(request)) {
-      LOG(ERROR) << "Failed to encode CupsAddAutoConfiguredPrinterRequest "
-                    "protobuf.";
-      printscanmgr::CupsAddAutoConfiguredPrinterResponse response;
-      response.set_result(printscanmgr::AddPrinterResult::
-                              ADD_PRINTER_RESULT_DBUS_ENCODING_FAILURE);
-      std::move(callback).Run(std::move(response));
-      return;
-    }
-
-    printscanmgr_proxy_->CallMethodWithErrorResponse(
-        &method_call, dbus::ObjectProxy::TIMEOUT_USE_DEFAULT,
-        base::BindOnce(&PrintscanmgrClientImpl::OnPrinterAdded<
-                           printscanmgr::CupsAddAutoConfiguredPrinterResponse>,
+        base::BindOnce(&PrintscanmgrClientImpl::OnPrinterAdded,
                        weak_ptr_factory_.GetWeakPtr(), std::move(callback)));
   }
 
-  void CupsRemovePrinter(
-      const printscanmgr::CupsRemovePrinterRequest& request,
-      chromeos::DBusMethodCallback<printscanmgr::CupsRemovePrinterResponse>
-          callback,
-      base::OnceClosure error_callback) override {
+  void CupsAddAutoConfiguredPrinter(
+      const std::string& name,
+      const std::string& uri,
+      PrintscanmgrClient::CupsAddPrinterCallback callback) override {
+    dbus::MethodCall method_call(printscanmgr::kPrintscanmgrInterface,
+                                 printscanmgr::kCupsAddAutoConfiguredPrinter);
+    dbus::MessageWriter writer(&method_call);
+    writer.AppendString(name);
+    writer.AppendString(uri);
+
+    printscanmgr_proxy_->CallMethodWithErrorResponse(
+        &method_call, dbus::ObjectProxy::TIMEOUT_USE_DEFAULT,
+        base::BindOnce(&PrintscanmgrClientImpl::OnPrinterAdded,
+                       weak_ptr_factory_.GetWeakPtr(), std::move(callback)));
+  }
+
+  void CupsRemovePrinter(const std::string& name,
+                         PrintscanmgrClient::CupsRemovePrinterCallback callback,
+                         base::OnceClosure error_callback) override {
     dbus::MethodCall method_call(printscanmgr::kPrintscanmgrInterface,
                                  printscanmgr::kCupsRemovePrinter);
     dbus::MessageWriter writer(&method_call);
-    if (!writer.AppendProtoAsArrayOfBytes(request)) {
-      LOG(ERROR) << "Failed to encode CupsRemovePrinterRequest protobuf.";
-      std::move(error_callback).Run();
-      return;
-    }
+    writer.AppendString(name);
 
     printscanmgr_proxy_->CallMethod(
         &method_call, dbus::ObjectProxy::TIMEOUT_USE_DEFAULT,
@@ -137,18 +97,13 @@ class PrintscanmgrClientImpl : public PrintscanmgrClient {
   }
 
   void CupsRetrievePrinterPpd(
-      const printscanmgr::CupsRetrievePpdRequest& request,
-      chromeos::DBusMethodCallback<printscanmgr::CupsRetrievePpdResponse>
-          callback,
+      const std::string& name,
+      PrintscanmgrClient::CupsRetrievePrinterPpdCallback callback,
       base::OnceClosure error_callback) override {
     dbus::MethodCall method_call(printscanmgr::kPrintscanmgrInterface,
                                  printscanmgr::kCupsRetrievePpd);
     dbus::MessageWriter writer(&method_call);
-    if (!writer.AppendProtoAsArrayOfBytes(request)) {
-      LOG(ERROR) << "Failed to encode CupsRetrievePpdRequest protobuf.";
-      std::move(error_callback).Run();
-      return;
-    }
+    writer.AppendString(name);
 
     printscanmgr_proxy_->CallMethod(
         &method_call, dbus::ObjectProxy::TIMEOUT_USE_DEFAULT,
@@ -158,8 +113,7 @@ class PrintscanmgrClientImpl : public PrintscanmgrClient {
   }
 
  private:
-  template <typename T>
-  void OnPrinterAdded(chromeos::DBusMethodCallback<T> callback,
+  void OnPrinterAdded(CupsAddPrinterCallback callback,
                       dbus::Response* response,
                       dbus::ErrorResponse* err_response) {
     if (!response) {
@@ -167,18 +121,17 @@ class PrintscanmgrClientImpl : public PrintscanmgrClient {
       return;
     }
 
-    T result;
-    if (!dbus::MessageReader(response).PopArrayOfBytesAsProto(&result)) {
+    int32_t result;
+    if (!dbus::MessageReader(response).PopInt32(&result)) {
       SendErrorResponse(std::move(callback), err_response);
       return;
     }
 
-    DCHECK_GE(result.result(), 0);
+    DCHECK_GE(result, 0);
     std::move(callback).Run(result);
   }
 
-  void OnPrinterRemoved(chromeos::DBusMethodCallback<
-                            printscanmgr::CupsRemovePrinterResponse> callback,
+  void OnPrinterRemoved(CupsRemovePrinterCallback callback,
                         base::OnceClosure error_callback,
                         dbus::Response* response) {
     if (!response) {
@@ -186,8 +139,8 @@ class PrintscanmgrClientImpl : public PrintscanmgrClient {
       return;
     }
 
-    printscanmgr::CupsRemovePrinterResponse result;
-    if (!dbus::MessageReader(response).PopArrayOfBytesAsProto(&result)) {
+    bool result;
+    if (!dbus::MessageReader(response).PopBool(&result)) {
       std::move(error_callback).Run();
       return;
     }
@@ -195,36 +148,35 @@ class PrintscanmgrClientImpl : public PrintscanmgrClient {
     std::move(callback).Run(result);
   }
 
-  void OnRetrievedPrinterPpd(
-      chromeos::DBusMethodCallback<printscanmgr::CupsRetrievePpdResponse>
-          callback,
-      base::OnceClosure error_callback,
-      dbus::Response* response) {
-    printscanmgr::CupsRetrievePpdResponse result;
+  void OnRetrievedPrinterPpd(CupsRetrievePrinterPpdCallback callback,
+                             base::OnceClosure error_callback,
+                             dbus::Response* response) {
+    size_t length = 0;
+    const uint8_t* bytes = nullptr;
+
     if (!(response &&
-          dbus::MessageReader(response).PopArrayOfBytesAsProto(&result))) {
+          dbus::MessageReader(response).PopArrayOfBytes(&bytes, &length)) ||
+        length == 0 || bytes == nullptr) {
       LOG(ERROR) << "Failed to retrieve printer PPD";
       std::move(error_callback).Run();
       return;
     }
 
-    std::move(callback).Run(result);
+    std::vector<uint8_t> data(bytes, bytes + length);
+    std::move(callback).Run(data);
   }
 
-  template <typename T>
-  void SendErrorResponse(chromeos::DBusMethodCallback<T> callback,
+  void SendErrorResponse(CupsAddPrinterCallback callback,
                          dbus::ErrorResponse* err_response) {
-    printscanmgr::AddPrinterResult dbus_error =
-        printscanmgr::AddPrinterResult::ADD_PRINTER_RESULT_DBUS_GENERIC;
+    chromeos::DBusLibraryError dbus_error =
+        chromeos::DBusLibraryError::kGenericError;
     if (err_response) {
       dbus::MessageReader err_reader(err_response);
       std::string err_str = err_response->GetErrorName();
-      dbus_error = DBusErrorFromString(err_str);
+      dbus_error = chromeos::DBusLibraryErrorFromString(err_str);
     }
 
-    T response;
-    response.set_result(dbus_error);
-    std::move(callback).Run(response);
+    std::move(callback).Run(dbus_error);
   }
 
   raw_ptr<dbus::ObjectProxy, ExperimentalAsh> printscanmgr_proxy_ = nullptr;

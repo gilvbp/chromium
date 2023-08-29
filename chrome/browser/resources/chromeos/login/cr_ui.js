@@ -242,7 +242,6 @@ export class Oobe extends DisplayManager {
       lang: 'language',
       dir: 'textdirection',
       highlight: 'highlightStrength',
-      tablet: 'isInTabletMode',
     };
     for (const [attribute, stringName] of Object.entries(attrToStrMap)) {
       const localizedString = loadTimeData.getValue(stringName);

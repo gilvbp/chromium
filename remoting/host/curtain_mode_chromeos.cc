@@ -62,10 +62,7 @@ void CurtainModeChromeOs::Core::Activate() {
   ash::curtain::SecurityCurtainController::InitParams params{
       /*event_filter=*/base::BindRepeating(OnlyEventsFromSource,
                                            ui::ED_REMOTE_INPUT_DEVICE),
-      /*curtain_factory=*/base::BindRepeating(CreateCurtainOverlay),
-  };
-  params.mute_audio_input = true;
-  params.mute_audio_output = true;
+      /*curtain_factory=*/base::BindRepeating(CreateCurtainOverlay)};
 
   security_curtain_controller().Enable(params);
 }

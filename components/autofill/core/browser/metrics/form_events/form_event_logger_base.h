@@ -14,6 +14,7 @@
 #include "components/autofill/core/browser/form_structure.h"
 #include "components/autofill/core/browser/metrics/autofill_metrics.h"
 #include "components/autofill/core/browser/metrics/form_events/form_events.h"
+#include "components/autofill/core/browser/sync_utils.h"
 #include "components/autofill/core/common/form_field_data.h"
 #include "components/autofill/core/common/form_interactions_flow.h"
 
@@ -37,13 +38,11 @@ class FormEventLoggerBase {
     local_record_type_count_ = local_record_type_count;
   }
 
-  void OnDidInteractWithAutofillableForm(
-      const FormStructure& form,
-      AutofillMetrics::PaymentsSigninState signin_state_for_metrics);
+  void OnDidInteractWithAutofillableForm(const FormStructure& form,
+                                         AutofillSyncSigninState sync_state);
 
-  void OnDidPollSuggestions(
-      const FormFieldData& field,
-      AutofillMetrics::PaymentsSigninState signin_state_for_metrics);
+  void OnDidPollSuggestions(const FormFieldData& field,
+                            AutofillSyncSigninState sync_state);
 
   void OnDidParseForm(const FormStructure& form);
 
@@ -56,16 +55,14 @@ class FormEventLoggerBase {
       const FormStructure& form,
       const AutofillField& field,
       const base::TimeTicks& form_parsed_timestamp,
-      AutofillMetrics::PaymentsSigninState signin_state_for_metrics,
+      AutofillSyncSigninState sync_state,
       bool off_the_record);
 
-  void OnWillSubmitForm(
-      AutofillMetrics::PaymentsSigninState signin_state_for_metrics,
-      const FormStructure& form);
+  void OnWillSubmitForm(AutofillSyncSigninState sync_state,
+                        const FormStructure& form);
 
-  void OnFormSubmitted(
-      AutofillMetrics::PaymentsSigninState signin_state_for_metrics,
-      const FormStructure& form);
+  void OnFormSubmitted(AutofillSyncSigninState sync_state,
+                       const FormStructure& form);
 
   void OnTypedIntoNonFilledField();
   void OnEditedAutofilledField();
@@ -141,20 +138,13 @@ class FormEventLoggerBase {
                      FormEvent event,
                      const FormStructure& form) const {}
 
-  // Records UMA metrics on the funnel and writes logs to autofill-internals.
+  // Records UMA metrics on the funnel and key metrics, and writes logs to
+  // autofill-internals.
   void RecordFunnelMetrics() const;
-
-  // For each funnel metric, a separate function is defined below.
-  // `RecordFunnelMetrics()` checks the necessary pre-conditions for metrics to
-  // be emitted and calls the relevant functions.
-  void RecordInteractionAfterParsedAsType(LogBuffer& logs) const;
-  void RecordSuggestionAfterInteraction(LogBuffer& logs) const;
-  void RecordFillAfterSuggestion(LogBuffer& logs) const;
-  void RecordSubmissionAfterFill(LogBuffer& logs) const;
-
-  // Records UMA metrics on keym etrics and writes logs to autofill-internals.
-  // Similar to the funnel metrics, a separate function for each key metric is
-  // defined below.
+  // For each key metric, a separate function is defined below. By making them
+  // virtual, derived classes can change the behavior for specific metrics.
+  // `RecordKeyMetrics()` checks the necessary pre-conditions for metrics to be
+  // emitted and calls the relevant functions.
   void RecordKeyMetrics() const;
 
   // Whether for a submitted form, Chrome had data stored that could be
@@ -235,8 +225,7 @@ class FormEventLoggerBase {
   // Weak reference.
   const raw_ref<AutofillClient> client_;
 
-  AutofillMetrics::PaymentsSigninState signin_state_for_metrics_ =
-      AutofillMetrics::PaymentsSigninState::kUnknown;
+  AutofillSyncSigninState sync_state_ = AutofillSyncSigninState::kNumSyncStates;
 };
 }  // namespace autofill::autofill_metrics
 

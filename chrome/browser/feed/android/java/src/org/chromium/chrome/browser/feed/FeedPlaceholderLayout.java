@@ -22,6 +22,7 @@ import android.view.animation.PathInterpolator;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 
+import androidx.annotation.VisibleForTesting;
 import androidx.appcompat.widget.AppCompatImageView;
 
 import org.chromium.base.CommandLine;
@@ -385,6 +386,7 @@ public class FeedPlaceholderLayout extends LinearLayout {
         return !mInstantStart;
     }
 
+    @VisibleForTesting
     void setAnimatorSetForTesting(AnimatorSet animatorSet) {
         mAllAnimations = animatorSet;
     }

@@ -106,8 +106,6 @@ bool StructTraits<network::mojom::TrustedUrlRequestParamsDataView,
   }
   out->accept_ch_frame_observer = data.TakeAcceptChFrameObserver<
       mojo::PendingRemote<network::mojom::AcceptCHFrameObserver>>();
-  out->shared_dictionary_observer = data.TakeSharedDictionaryObserver<
-      mojo::PendingRemote<network::mojom::SharedDictionaryAccessObserver>>();
   return true;
 }
 
@@ -176,9 +174,7 @@ bool StructTraits<
       !data.ReadNetLogReferenceInfo(&out->net_log_reference_info) ||
       !data.ReadNavigationRedirectChain(&out->navigation_redirect_chain) ||
       !data.ReadAttributionReportingRuntimeFeatures(
-          &out->attribution_reporting_runtime_features) ||
-      !data.ReadAttributionReportingSrcToken(
-          &out->attribution_reporting_src_token)) {
+          &out->attribution_reporting_runtime_features)) {
     // Note that data.ReadTrustTokenParams is temporarily handled below.
     return false;
   }
@@ -214,7 +210,6 @@ bool StructTraits<
   out->upgrade_if_insecure = data.upgrade_if_insecure();
   out->is_revalidating = data.is_revalidating();
   out->is_fetch_like_api = data.is_fetch_like_api();
-  out->is_fetch_later_api = data.is_fetch_later_api();
   out->is_favicon = data.is_favicon();
   out->original_destination = data.original_destination();
   out->target_ip_address_space = data.target_ip_address_space();
@@ -224,11 +219,6 @@ bool StructTraits<
       data.attribution_reporting_eligibility();
   out->shared_dictionary_writer_enabled =
       data.shared_dictionary_writer_enabled();
-#if BUILDFLAG(IS_ANDROID)
-  if (!data.ReadCreatedLocation(&out->created_location)) {
-    return false;
-  }
-#endif
   return true;
 }
 

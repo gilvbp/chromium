@@ -40,8 +40,7 @@ struct StructTraits<PermissionDataView, apps::PermissionPtr> {
     return r->permission_type;
   }
 
-  static const apps::Permission::PermissionValue& value(
-      const apps::PermissionPtr& r) {
+  static const apps::PermissionValuePtr& value(const apps::PermissionPtr& r) {
     return r->value;
   }
 
@@ -67,33 +66,31 @@ struct EnumTraits<TriState, apps::TriState> {
 };
 
 template <>
-struct UnionTraits<PermissionValueDataView, apps::Permission::PermissionValue> {
-  static PermissionValueDataView::Tag GetTag(
-      const apps::Permission::PermissionValue& r);
+struct UnionTraits<PermissionValueDataView, apps::PermissionValuePtr> {
+  static PermissionValueDataView::Tag GetTag(const apps::PermissionValuePtr& r);
 
-  static bool IsNull(const apps::Permission::PermissionValue& r) {
-    return false;
+  static bool IsNull(const apps::PermissionValuePtr& r) {
+    return !absl::holds_alternative<bool>(r->value) &&
+           !absl::holds_alternative<apps::TriState>(r->value);
   }
 
-  static void SetToNull(apps::Permission::PermissionValue* out) {}
+  static void SetToNull(apps::PermissionValuePtr* out) { out->reset(); }
 
-  static bool bool_value(const apps::Permission::PermissionValue& r) {
-    if (absl::holds_alternative<bool>(r)) {
-      return absl::get<bool>(r);
+  static bool bool_value(const apps::PermissionValuePtr& r) {
+    if (absl::holds_alternative<bool>(r->value)) {
+      return absl::get<bool>(r->value);
     }
     return false;
   }
 
-  static apps::TriState tristate_value(
-      const apps::Permission::PermissionValue& r) {
-    if (absl::holds_alternative<apps::TriState>(r)) {
-      return absl::get<apps::TriState>(r);
+  static apps::TriState tristate_value(const apps::PermissionValuePtr& r) {
+    if (absl::holds_alternative<apps::TriState>(r->value)) {
+      return absl::get<apps::TriState>(r->value);
     }
     return apps::TriState::kBlock;
   }
 
-  static bool Read(PermissionValueDataView data,
-                   apps::Permission::PermissionValue* out);
+  static bool Read(PermissionValueDataView data, apps::PermissionValuePtr* out);
 };
 
 template <>

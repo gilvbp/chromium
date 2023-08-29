@@ -2,10 +2,10 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import {CurrentAttribution, CurrentWallpaper, WallpaperObserverInterface, WallpaperObserverReceiver, WallpaperProviderInterface, WallpaperType} from '../../personalization_app.mojom-webui.js';
+import {CurrentWallpaper, WallpaperObserverInterface, WallpaperObserverReceiver, WallpaperProviderInterface, WallpaperType} from '../../personalization_app.mojom-webui.js';
 import {PersonalizationStore} from '../personalization_store.js';
 
-import {setAttributionAction, setFullscreenEnabledAction, setSelectedImageAction, setUpdatedDailyRefreshImageAction} from './wallpaper_actions.js';
+import {setFullscreenEnabledAction, setSelectedImageAction, setUpdatedDailyRefreshImageAction} from './wallpaper_actions.js';
 import {getDailyRefreshState} from './wallpaper_controller.js';
 import {getWallpaperProvider} from './wallpaper_interface_provider.js';
 
@@ -52,11 +52,6 @@ export class WallpaperObserver implements WallpaperObserverInterface {
   onWallpaperPreviewEnded() {
     const store = PersonalizationStore.getInstance();
     store.dispatch(setFullscreenEnabledAction(false));
-  }
-
-  onAttributionChanged(attribution: CurrentAttribution|null) {
-    const store = PersonalizationStore.getInstance();
-    store.dispatch(setAttributionAction(attribution));
   }
 
   onWallpaperChanged(currentWallpaper: CurrentWallpaper|null) {

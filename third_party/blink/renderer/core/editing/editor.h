@@ -56,7 +56,6 @@ enum class SyncCondition;
 class CSSPropertyValueSet;
 class TextEvent;
 class UndoStack;
-class SelectionForUndoStep;
 
 enum class DeleteDirection;
 enum class DeleteMode { kSimple, kSmart };
@@ -94,9 +93,6 @@ class CORE_EXPORT Editor final : public GarbageCollected<Editor> {
                  const scoped_refptr<Image>& image);
 
   void RespondToChangedContents(const Position&);
-  void NotifyAccessibilityOfDeletionOrInsertionInTextField(
-      const SelectionForUndoStep&,
-      bool is_deletion);
 
   void RegisterCommandGroup(CompositeEditCommand* command_group_wrapper);
 

@@ -4,7 +4,7 @@
 
 #import "ios/chrome/browser/ui/bookmarks/cells/bookmark_home_node_item.h"
 
-#import "base/apple/foundation_util.h"
+#import "base/mac/foundation_util.h"
 #import "base/strings/sys_string_conversions.h"
 #import "components/bookmarks/browser/bookmark_node.h"
 #import "components/url_formatter/elide_url.h"
@@ -13,6 +13,10 @@
 #import "ios/chrome/browser/ui/bookmarks/bookmark_utils_ios.h"
 #import "ios/chrome/browser/ui/bookmarks/cells/table_view_bookmarks_folder_item.h"
 #import "ios/chrome/common/ui/colors/semantic_color_names.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 @implementation BookmarksHomeNodeItem
 @synthesize bookmarkNode = _bookmarkNode;
@@ -35,7 +39,7 @@
   [super configureCell:cell withStyler:styler];
   if (_bookmarkNode->is_folder()) {
     TableViewBookmarksFolderCell* bookmarkCell =
-        base::apple::ObjCCastStrict<TableViewBookmarksFolderCell>(cell);
+        base::mac::ObjCCastStrict<TableViewBookmarksFolderCell>(cell);
     bookmarkCell.folderTitleTextField.text =
         bookmark_utils_ios::TitleForBookmarkNode(_bookmarkNode);
     bookmarkCell.folderImageView.image =
@@ -48,7 +52,7 @@
     bookmarkCell.cloudSlashedView.hidden = !self.shouldDisplayCloudSlashIcon;
   } else {
     TableViewURLCell* urlCell =
-        base::apple::ObjCCastStrict<TableViewURLCell>(cell);
+        base::mac::ObjCCastStrict<TableViewURLCell>(cell);
     urlCell.titleLabel.text =
         bookmark_utils_ios::TitleForBookmarkNode(_bookmarkNode);
     urlCell.URLLabel.text = base::SysUTF16ToNSString(

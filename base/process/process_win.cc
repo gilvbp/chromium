@@ -82,7 +82,7 @@ Process Process::OpenWithAccess(ProcessId pid, DWORD desired_access) {
 }
 
 // static
-bool Process::CanSetPriority() {
+bool Process::CanBackgroundProcesses() {
   return true;
 }
 
@@ -247,28 +247,23 @@ bool Process::WaitForExitWithTimeout(TimeDelta timeout, int* exit_code) const {
 
 void Process::Exited(int exit_code) const {}
 
-Process::Priority Process::GetPriority() const {
+bool Process::IsProcessBackgrounded() const {
   DCHECK(IsValid());
-  int priority = GetOSPriority();
+  int priority = GetPriority();
   if (priority == 0)
-    return Priority::kUserBlocking;  // Failure case. Use default value.
-  if ((priority == BELOW_NORMAL_PRIORITY_CLASS) ||
-      (priority == IDLE_PRIORITY_CLASS)) {
-    return Priority::kBestEffort;
-  }
-  return Priority::kUserBlocking;
+    return false;  // Failure case.
+  return ((priority == BELOW_NORMAL_PRIORITY_CLASS) ||
+          (priority == IDLE_PRIORITY_CLASS));
 }
 
-bool Process::SetPriority(Priority priority) {
+bool Process::SetProcessBackgrounded(bool value) {
   DCHECK(IsValid());
   // Having a process remove itself from background mode is a potential
   // priority inversion, and having a process put itself in background mode is
   // broken in Windows 11 22H2. So, it is no longer supported. See
   // https://crbug.com/1396155 for details.
   DCHECK(!is_current());
-  const DWORD priority_class = priority == Priority::kBestEffort
-                                   ? IDLE_PRIORITY_CLASS
-                                   : NORMAL_PRIORITY_CLASS;
+  const DWORD priority = value ? IDLE_PRIORITY_CLASS : NORMAL_PRIORITY_CLASS;
 
   if (base::win::OSInfo::GetInstance()->version() >=
           base::win::Version::WIN11 &&
@@ -277,7 +272,7 @@ bool Process::SetPriority(Priority priority) {
     RtlZeroMemory(&power_throttling, sizeof(power_throttling));
     power_throttling.Version = PROCESS_POWER_THROTTLING_CURRENT_VERSION;
 
-    if (priority == Priority::kBestEffort) {
+    if (value) {
       // Sets Eco QoS level.
       power_throttling.ControlMask = PROCESS_POWER_THROTTLING_EXECUTION_SPEED;
       power_throttling.StateMask = PROCESS_POWER_THROTTLING_EXECUTION_SPEED;
@@ -294,10 +289,10 @@ bool Process::SetPriority(Priority priority) {
     }
   }
 
-  return (::SetPriorityClass(Handle(), priority_class) != 0);
+  return (::SetPriorityClass(Handle(), priority) != 0);
 }
 
-int Process::GetOSPriority() const {
+int Process::GetPriority() const {
   DCHECK(IsValid());
   return static_cast<int>(::GetPriorityClass(Handle()));
 }

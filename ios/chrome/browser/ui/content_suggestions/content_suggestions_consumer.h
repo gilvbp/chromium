@@ -12,11 +12,9 @@ enum class ContentSuggestionsModuleType;
 @class ContentSuggestionsMostVisitedItem;
 @class ContentSuggestionsReturnToRecentTabItem;
 @class ContentSuggestionsWhatsNewItem;
-@class QuerySuggestionConfig;
-@class SafetyCheckState;
 enum class SetUpListItemType;
 @class SetUpListItemViewData;
-@class TabResumptionItem;
+@class QuerySuggestionConfig;
 
 // Supports adding/removing/updating UI elements to the ContentSuggestions
 // UIViewController.
@@ -79,14 +77,6 @@ enum class SetUpListItemType;
 // complete. Calls `animations` to allow other things to be simultaneously
 // animated.
 - (void)showSetUpListDoneWithAnimations:(ProceduralBlock)animations;
-
-// Shows the Safety Check (Magic Stack) module with `state`.
-- (void)showSafetyCheck:(SafetyCheckState*)state;
-
-// Indicates to the consumer to display the tab resumption tile with the given
-// `item` configuration.
-- (void)showTabResumptionWithItem:(TabResumptionItem*)item;
-
 @end
 
 #endif  // IOS_CHROME_BROWSER_UI_CONTENT_SUGGESTIONS_CONTENT_SUGGESTIONS_CONSUMER_H_

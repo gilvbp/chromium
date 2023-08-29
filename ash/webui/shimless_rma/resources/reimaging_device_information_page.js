@@ -9,14 +9,12 @@ import './icons.js';
 import 'chrome://resources/cr_elements/icons.html.js';
 import 'chrome://resources/polymer/v3_0/iron-icon/iron-icon.js';
 
-import {assert} from 'chrome://resources/ash/common/assert.js';
 import {I18nBehavior, I18nBehaviorInterface} from 'chrome://resources/ash/common/i18n_behavior.js';
-import {CrContainerShadowMixin} from 'chrome://resources/cr_elements/cr_container_shadow_mixin.js';
 import {afterNextRender, html, mixinBehaviors, PolymerElement} from 'chrome://resources/polymer/v3_0/polymer/polymer_bundled.min.js';
 
 import {getShimlessRmaService} from './mojo_interface_provider.js';
-import {FeatureLevel, ShimlessRmaServiceInterface, StateResult} from './shimless_rma_types.js';
-import {disableNextButton, enableNextButton, focusPageTitle, isComplianceCheckEnabled} from './shimless_rma_util.js';
+import {ShimlessRmaServiceInterface, StateResult} from './shimless_rma_types.js';
+import {disableNextButton, enableNextButton, focusPageTitle} from './shimless_rma_util.js';
 
 /**
  * @fileoverview
@@ -30,17 +28,7 @@ import {disableNextButton, enableNextButton, focusPageTitle, isComplianceCheckEn
  * @implements {I18nBehaviorInterface}
  */
 const ReimagingDeviceInformationPageBase =
-    mixinBehaviors([I18nBehavior], CrContainerShadowMixin(PolymerElement));
-
-/**
- * Supported options for IsChassisBranded and HwComplianceVersion questions.
- * @enum {string}
- */
-export const BooleanOrDefaultOptions = {
-  DEFAULT: 'default',
-  YES: 'yes',
-  NO: 'no',
-};
+    mixinBehaviors([I18nBehavior], PolymerElement);
 
 /** @polymer */
 export class ReimagingDeviceInformationPage extends
@@ -55,9 +43,7 @@ export class ReimagingDeviceInformationPage extends
 
   static get observers() {
     return [
-      'updateNextButtonDisabledState_(serialNumber_, skuIndex_, regionIndex_,' +
-          ' whiteLabelIndex_, isChassisBranded_, hwComplianceVersion_,' +
-          ' featureLevel_)',
+      'updateNextButtonDisabledState_(serialNumber_, skuIndex_, regionIndex_)',
     ];
   }
 
@@ -182,34 +168,6 @@ export class ReimagingDeviceInformationPage extends
         type: String,
         value: '',
       },
-
-      /** @protected */
-      featureLevel_: {
-        type: Number,
-        value: FeatureLevel.kRmadFeatureLevelUnsupported,
-      },
-
-      /**
-       * Used to refer to the enum values in the HTML file.
-       * @protected {?BooleanOrDefaultOptions}
-       */
-      booleanOrDefaultOptions_: {
-        type: Object,
-        value: BooleanOrDefaultOptions,
-        readOnly: true,
-      },
-
-      /** @protected */
-      isChassisBranded_: {
-        type: String,
-        value: BooleanOrDefaultOptions.DEFAULT,
-      },
-
-      /** @protected */
-      hwComplianceVersion_: {
-        type: String,
-        value: BooleanOrDefaultOptions.DEFAULT,
-      },
     };
   }
 
@@ -228,24 +186,13 @@ export class ReimagingDeviceInformationPage extends
     this.getOriginalWhiteLabelAndWhiteLabelList_();
     this.getOriginalDramPartNumber_();
 
-    if (isComplianceCheckEnabled()) {
-      this.getOriginalFeatureLevel_();
-    }
-
     focusPageTitle(this);
   }
 
   /** @private */
   allInformationIsValid_() {
-    const complianceQuestionsHaveDefaultValues =
-        this.isChassisBranded_ === BooleanOrDefaultOptions.DEFAULT ||
-        this.hwComplianceVersion_ === BooleanOrDefaultOptions.DEFAULT;
-    if (this.areComplianceQuestionsShown_() &&
-        complianceQuestionsHaveDefaultValues) {
-      return false;
-    }
     return (this.serialNumber_ !== '') && (this.skuIndex_ >= 0) &&
-        (this.regionIndex_ >= 0) && (this.whiteLabelIndex_ >= 0);
+        (this.regionIndex_ >= 0);
   }
 
   /** @private */
@@ -342,13 +289,6 @@ export class ReimagingDeviceInformationPage extends
     });
   }
 
-  /** @private */
-  getOriginalFeatureLevel_() {
-    this.shimlessRmaService_.getOriginalFeatureLevel().then((result) => {
-      this.featureLevel_ = result.originalFeatureLevel;
-    });
-  }
-
   /** @protected */
   getDisableResetSerialNumber_() {
     return this.originalSerialNumber_ === this.serialNumber_ ||
@@ -425,71 +365,15 @@ export class ReimagingDeviceInformationPage extends
     this.dramPartNumber_ = this.originalDramPartNumber_;
   }
 
-  /** @protected */
-  onIsChassisBrandedChange_(event) {
-    this.isChassisBranded_ =
-        this.shadowRoot.querySelector('#isChassisBranded').value;
-  }
-
-  /** @protected */
-  onDoesMeetRequirementsChange_(event) {
-    this.hwComplianceVersion_ =
-        this.shadowRoot.querySelector('#doesMeetRequirements').value;
-  }
-
   /** @return {!Promise<!{stateResult: !StateResult}>} */
   onNextButtonClick() {
     if (!this.allInformationIsValid_()) {
       return Promise.reject(new Error('Some required information is not set'));
     } else {
-      let isChassisBranded = false;
-      let hwComplianceVersion = 0;
-
-      if (this.areComplianceQuestionsShown_()) {
-        // Convert isChassisBranded_ to boolean value for mojo.
-        isChassisBranded =
-            this.isChassisBranded_ === BooleanOrDefaultOptions.YES;
-
-        // Convert hwComplianceVersion_ to correct value for mojo.
-        const HARDWARE_COMPLIANT = 1;
-        const HARDWARE_NOT_COMPLIANT = 0;
-        hwComplianceVersion =
-            this.hwComplianceVersion_ === BooleanOrDefaultOptions.YES ?
-            HARDWARE_COMPLIANT :
-            HARDWARE_NOT_COMPLIANT;
-      }
-
       return this.shimlessRmaService_.setDeviceInformation(
           this.serialNumber_, this.regionIndex_, this.skuIndex_,
-          this.whiteLabelIndex_, this.dramPartNumber_, isChassisBranded,
-          hwComplianceVersion);
+          this.whiteLabelIndex_, this.dramPartNumber_);
     }
-  }
-
-  /** @private */
-  shouldShowComplianceSection_() {
-    return isComplianceCheckEnabled() &&
-        this.featureLevel_ !== FeatureLevel.kRmadFeatureLevelUnsupported;
-  }
-
-  /** @private */
-  isComplianceStatusKnown_() {
-    return this.featureLevel_ !== FeatureLevel.kRmadFeatureLevelUnsupported &&
-        this.featureLevel_ !== FeatureLevel.kRmadFeatureLevelUnknown;
-  }
-
-  /** @private */
-  areComplianceQuestionsShown_() {
-    return this.shouldShowComplianceSection_() &&
-        !this.isComplianceStatusKnown_();
-  }
-
-  /** @private */
-  getComplianceStatusString_() {
-    const deviceIsCompliant =
-        this.featureLevel_ >= FeatureLevel.kRmadFeatureLevel1;
-    return deviceIsCompliant ? this.i18n('confirmDeviceInfoDeviceCompliant') :
-                               this.i18n('confirmDeviceInfoDeviceNotCompliant');
   }
 }
 

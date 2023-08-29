@@ -8,7 +8,10 @@ import os
 import sys
 import unittest
 
-from unittest import mock
+# The following non-std imports are fetched via vpython. See the list at
+# //.vpython3
+import mock  # pylint: disable=import-error
+import six
 
 _BUILD_UTIL_PATH = os.path.abspath(
     os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -36,7 +39,11 @@ class InitClientTest(unittest.TestCase):
     luci_context_json = {
         'result_sink': _FAKE_CONTEXT,
     }
-    with mock.patch('builtins.open',
+    if six.PY2:
+      open_builtin_path = '__builtin__.open'
+    else:
+      open_builtin_path = 'builtins.open'
+    with mock.patch(open_builtin_path,
                     mock.mock_open(read_data=json.dumps(luci_context_json))):
       client = result_sink.TryInitClient()
     self.assertEqual(
@@ -166,24 +173,6 @@ class ClientTest(unittest.TestCase):
                          'key1': 'value1',
                          'key2': 'value2'
                      }})
-
-  @mock.patch('requests.Session.post')
-  def testPostWithTags(self, mock_post):
-    self.client.Post('some-test',
-                     result_types.PASS,
-                     0,
-                     'some-test-log',
-                     None,
-                     tags=[('key1', 'value1'), ('key2', 'value2')])
-    data = json.loads(mock_post.call_args[1]['data'])
-    self.assertIn({
-        'key': 'key1',
-        'value': 'value1'
-    }, data['testResults'][0]['tags'])
-    self.assertIn({
-        'key': 'key2',
-        'value': 'value2'
-    }, data['testResults'][0]['tags'])
 
 
 if __name__ == '__main__':

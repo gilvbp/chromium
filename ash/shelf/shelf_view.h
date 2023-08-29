@@ -149,8 +149,7 @@ class ASH_EXPORT ShelfView : public views::AccessiblePaneView,
 
   // ShelfTooltipDelegate:
   bool ShouldShowTooltipForView(const views::View* view) const override;
-  bool ShouldHideTooltip(const gfx::Point& cursor_location,
-                         views::View* delegate_view) const override;
+  bool ShouldHideTooltip(const gfx::Point& cursor_location) const override;
   const std::vector<aura::Window*> GetOpenWindowsForView(
       views::View* view) override;
   std::u16string GetTitleForView(const views::View* view) const override;
@@ -314,10 +313,6 @@ class ASH_EXPORT ShelfView : public views::AccessiblePaneView,
 
   void set_default_last_focusable_child(bool default_last_focusable_child) {
     default_last_focusable_child_ = default_last_focusable_child;
-  }
-
-  ui::LayerTreeOwner* drag_image_layer_for_test() {
-    return drag_image_layer_.get();
   }
 
   ShelfAppButton* drag_view() { return drag_view_; }

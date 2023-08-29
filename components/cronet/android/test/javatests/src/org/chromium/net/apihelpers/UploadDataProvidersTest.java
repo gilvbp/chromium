@@ -6,8 +6,6 @@ package org.chromium.net.apihelpers;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import static org.chromium.net.truth.UrlResponseInfoSubject.assertThat;
-
 import android.os.ConditionVariable;
 import android.os.ParcelFileDescriptor;
 
@@ -77,7 +75,7 @@ public class UploadDataProvidersTest {
         builder.addHeader("Content-Type", "useless/string");
         builder.build().start();
         callback.blockForDone();
-        assertThat(callback.getResponseInfoWithChecks()).hasHttpStatusCodeThat().isEqualTo(200);
+        assertThat(callback.mResponseInfo.getHttpStatusCode()).isEqualTo(200);
         assertThat(callback.mResponseAsString).isEqualTo(LOREM);
     }
 
@@ -95,7 +93,7 @@ public class UploadDataProvidersTest {
         builder.addHeader("Content-Type", "useless/string");
         builder.build().start();
         callback.blockForDone();
-        assertThat(callback.getResponseInfoWithChecks()).hasHttpStatusCodeThat().isEqualTo(200);
+        assertThat(callback.mResponseInfo.getHttpStatusCode()).isEqualTo(200);
         assertThat(callback.mResponseAsString).isEqualTo(LOREM);
     }
 
@@ -131,7 +129,7 @@ public class UploadDataProvidersTest {
         builder.build().start();
         callback.blockForDone();
 
-        assertThat(callback.getResponseInfoWithChecks()).hasHttpStatusCodeThat().isEqualTo(200);
+        assertThat(callback.mResponseInfo.getHttpStatusCode()).isEqualTo(200);
         assertThat(callback.mResponseAsString).isEqualTo(LOREM);
     }
 
@@ -270,7 +268,7 @@ public class UploadDataProvidersTest {
         UrlRequest urlRequest = builder.build();
         urlRequest.start();
         callback.blockForDone();
-        assertThat(callback.getResponseInfoWithChecks()).hasHttpStatusCodeThat().isEqualTo(200);
+        assertThat(callback.mResponseInfo.getHttpStatusCode()).isEqualTo(200);
         assertThat(callback.mResponseAsString).isEqualTo(LOREM);
     }
 }

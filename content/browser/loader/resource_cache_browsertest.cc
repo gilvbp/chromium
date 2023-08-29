@@ -193,8 +193,7 @@ IN_PROC_BROWSER_TEST_F(ResourceCacheTest,
 }
 
 // Tests that same-origin-same-process navigation doesn't change resource cache
-// hosting RenderFrameHost, unless the navigation causes a RenderFrameHost
-// change.
+// hosting renderer.
 // TODO(https://crbug.com/1446495): Flaky on Android. Enable this if we run
 // an experiment on Android. No plan to run an experiment on Android for now.
 #if BUILDFLAG(IS_ANDROID)
@@ -209,8 +208,7 @@ IN_PROC_BROWSER_TEST_F(ResourceCacheTest,
   const GURL kUrl = embedded_test_server()->GetURL("/simple_page.html");
   const GURL kScriptUrl = embedded_test_server()->GetURL("/cacheable.js");
 
-  // Disable BFCache so that RenderFrameHost swap won't happen if possible (note
-  // that if RenderDocument is enabled, the swap will still happen).
+  // Disable BFCache so that RenderFrameHost swap won't happen.
   DisableBackForwardCacheForTesting(shell()->web_contents(),
                                     BackForwardCache::DisableForTestingReason::
                                         TEST_ASSUMES_NO_RENDER_FRAME_CHANGE);
@@ -219,10 +217,10 @@ IN_PROC_BROWSER_TEST_F(ResourceCacheTest,
 
   // Navigate to a test page and fetch a script.
   ASSERT_TRUE(NavigateToURL(shell(), kUrl));
-  RenderFrameHostImplWrapper frame(static_cast<RenderFrameHostImpl*>(
-      shell()->web_contents()->GetPrimaryMainFrame()));
-  ASSERT_TRUE(frame.get());
-  ASSERT_TRUE(FetchScript(frame.get(), kScriptUrl));
+  RenderFrameHostImpl* frame = static_cast<RenderFrameHostImpl*>(
+      shell()->web_contents()->GetPrimaryMainFrame());
+  ASSERT_TRUE(frame);
+  ASSERT_TRUE(FetchScript(frame, kScriptUrl));
 
   // Create a new tab, navigate to the test page in the tab. This triggers
   // ResourceCache creation in the first tab.
@@ -232,17 +230,15 @@ IN_PROC_BROWSER_TEST_F(ResourceCacheTest,
       second_shell->web_contents()->GetPrimaryMainFrame());
   ASSERT_TRUE(second_frame);
 
-  ASSERT_TRUE(IsRenderFrameHostingRemoteCache(frame.get()));
+  ASSERT_TRUE(IsRenderFrameHostingRemoteCache(frame));
   ASSERT_FALSE(IsRenderFrameHostingRemoteCache(second_frame));
 
-  // Trigger same-origin-same-process navigation. The resource cache now lives
-  // in the newly committed document's RenderFrameHost (which might be a
-  // different RenderFrameHost than the previous document's).
+  // Trigger same-origin-same-process navigation. This shouldn't change the
+  // resource cache host.
   const GURL kUrl2 = embedded_test_server()->GetURL("/hello.html");
   ASSERT_TRUE(NavigateToURL(shell(), kUrl2));
 
-  ASSERT_TRUE(IsRenderFrameHostingRemoteCache(static_cast<RenderFrameHostImpl*>(
-      shell()->web_contents()->GetPrimaryMainFrame())));
+  ASSERT_TRUE(IsRenderFrameHostingRemoteCache(frame));
   ASSERT_FALSE(IsRenderFrameHostingRemoteCache(second_frame));
 
   ASSERT_TRUE(FetchScript(second_frame, kScriptUrl));

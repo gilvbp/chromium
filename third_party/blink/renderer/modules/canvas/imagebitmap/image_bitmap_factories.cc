@@ -248,14 +248,13 @@ ImageBitmapFactories& ImageBitmapFactories::From(ExecutionContext& context) {
   ImageBitmapFactories* supplement =
       Supplement<ExecutionContext>::From<ImageBitmapFactories>(context);
   if (!supplement) {
-    supplement = MakeGarbageCollected<ImageBitmapFactories>(context);
+    supplement = MakeGarbageCollected<ImageBitmapFactories>();
     Supplement<ExecutionContext>::ProvideTo(context, supplement);
   }
   return *supplement;
 }
 
-ImageBitmapFactories::ImageBitmapFactories(ExecutionContext& context)
-    : Supplement(context) {}
+ImageBitmapFactories::ImageBitmapFactories() : Supplement(nullptr) {}
 
 void ImageBitmapFactories::AddLoader(ImageBitmapLoader* loader) {
   pending_loaders_.insert(loader);
@@ -372,7 +371,7 @@ void DecodeImageOnDecoderThread(
   sk_sp<SkImage> frame;
   ImageOrientationEnum orientation = ImageOrientationEnum::kDefault;
   if (decoder) {
-    orientation = decoder->Orientation();
+    orientation = decoder->Orientation().Orientation();
     frame = ImageBitmap::GetSkImageFromDecoder(std::move(decoder));
   }
   PostCrossThreadTask(*task_runner, FROM_HERE,
@@ -391,8 +390,8 @@ void ImageBitmapFactories::ImageBitmapLoader::ScheduleAsyncImageBitmapDecoding(
           ? ImageDecoder::AlphaOption::kAlphaPremultiplied
           : ImageDecoder::AlphaOption::kAlphaNotPremultiplied;
   ColorBehavior color_behavior = options_->colorSpaceConversion() == "none"
-                                     ? ColorBehavior::kIgnore
-                                     : ColorBehavior::kTag;
+                                     ? ColorBehavior::Ignore()
+                                     : ColorBehavior::Tag();
   worker_pool::PostTask(
       FROM_HERE,
       CrossThreadBindOnce(

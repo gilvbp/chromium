@@ -26,7 +26,7 @@ class FindBarStateFactory : public ProfileKeyedServiceFactory {
   ~FindBarStateFactory() override;
 
   // BrowserContextKeyedServiceFactory:
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* context) const override;
 };
 

@@ -150,7 +150,8 @@ public class KeyboardAccessoryCoordinator {
                 ? KeyboardAccessoryModernViewBinder::bind
                 : KeyboardAccessoryViewBinder::bind;
         LazyConstructionPropertyMcp.create(mModel, VISIBLE, viewProvider, mViewBinder);
-        KeyboardAccessoryMetricsRecorder.registerKeyboardAccessoryModelMetricsObserver(mModel);
+        KeyboardAccessoryMetricsRecorder.registerKeyboardAccessoryModelMetricsObserver(
+                mModel, mTabLayout.getTabSwitchingDelegate());
     }
 
     /**
@@ -274,6 +275,7 @@ public class KeyboardAccessoryCoordinator {
         return mTabLayout.getStablePageChangeListener();
     }
 
+    @VisibleForTesting
     public KeyboardAccessoryMediator getMediatorForTesting() {
         return mMediator;
     }

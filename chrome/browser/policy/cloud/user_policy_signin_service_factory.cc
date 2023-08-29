@@ -66,8 +66,7 @@ void UserPolicySigninServiceFactory::SetDeviceManagementServiceForTesting(
   g_device_management_service = device_management_service;
 }
 
-std::unique_ptr<KeyedService>
-UserPolicySigninServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* UserPolicySigninServiceFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   Profile* profile = static_cast<Profile*>(context);
   BrowserPolicyConnector* connector =
@@ -76,11 +75,12 @@ UserPolicySigninServiceFactory::BuildServiceInstanceForBrowserContext(
       g_device_management_service ? g_device_management_service
                                   : connector->device_management_service();
 
-  return std::make_unique<UserPolicySigninService>(
+  UserPolicySigninService* service = new UserPolicySigninService(
       profile, g_browser_process->local_state(), device_management_service,
       profile->GetUserCloudPolicyManager(),
       IdentityManagerFactory::GetForProfile(profile),
       g_browser_process->shared_url_loader_factory());
+  return service;
 }
 
 bool

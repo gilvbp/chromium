@@ -7,13 +7,11 @@ package org.chromium.chrome.browser.tabmodel;
 import androidx.annotation.Nullable;
 
 import org.chromium.base.ObserverList;
-import org.chromium.base.ResettersForTesting;
 import org.chromium.chrome.browser.compositor.layouts.content.TabContentManager;
 import org.chromium.chrome.browser.tab.Tab;
 import org.chromium.chrome.browser.tab.TabCreationState;
 import org.chromium.chrome.browser.tab.TabLaunchType;
 import org.chromium.chrome.browser.tab.TabSelectionType;
-import org.chromium.chrome.browser.tab.TabUtils;
 import org.chromium.content_public.browser.LoadUrlParams;
 
 import java.util.ArrayList;
@@ -26,14 +24,14 @@ public abstract class TabModelSelectorBase
         implements TabModelSelector, IncognitoTabModelObserver, TabModelDelegate {
     private static final int MODEL_NOT_FOUND = -1;
 
-    private static TabModelSelectorObserver sObserverForTesting;
+    private static TabModelSelectorObserver sObserver;
 
     private List<TabModel> mTabModels = new ArrayList<>();
     private IncognitoTabModel mIncognitoTabModel;
 
     /**
-     * This is a placeholder implementation intended to stub out TabModelFilterProvider before
-     * native is ready.
+     * This is a dummy implementation intended to stub out TabModelFilterProvider before native is
+     * ready.
      */
     private TabModelFilterProvider mTabModelFilterProvider = new TabModelFilterProvider();
 
@@ -93,8 +91,8 @@ public abstract class TabModelSelectorBase
 
         mTabModelFilterProvider.addTabModelFilterObserver(tabModelObserver);
 
-        if (sObserverForTesting != null) {
-            addObserver(sObserverForTesting);
+        if (sObserver != null) {
+            addObserver(sObserver);
         }
 
         mIncognitoTabModel.addIncognitoObserver(this);
@@ -106,8 +104,7 @@ public abstract class TabModelSelectorBase
     }
 
     public static void setObserverForTests(TabModelSelectorObserver observer) {
-        sObserverForTesting = observer;
-        ResettersForTesting.register(() -> sObserverForTesting = null);
+        sObserver = observer;
     }
 
     /**
@@ -225,13 +222,7 @@ public abstract class TabModelSelectorBase
                 return model.closeTab(tab);
             }
         }
-        assert false : "Tried to close a tab that is not in any model!"
-                       + " Is closing "
-                       + tab.isClosing()
-                       + " Is destroyed "
-                       + tab.isDestroyed()
-                       + " Is detached "
-                       + TabUtils.isDetached(tab);
+        assert false : "Tried to close a tab that is not in any model!";
         return false;
     }
 

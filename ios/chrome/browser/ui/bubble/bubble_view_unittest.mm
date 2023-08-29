@@ -4,12 +4,16 @@
 
 #import "ios/chrome/browser/ui/bubble/bubble_view.h"
 
-#import "base/apple/foundation_util.h"
 #import "base/ios/ios_util.h"
+#import "base/mac/foundation_util.h"
 #import "ios/chrome/browser/ui/bubble/bubble_unittest_util.h"
 #import "testing/gtest/include/gtest/gtest.h"
 #import "testing/gtest_mac.h"
 #import "testing/platform_test.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 @interface BubbleViewDelegateTest : NSObject <BubbleViewDelegate>
 
@@ -247,12 +251,11 @@ TEST_F(BubbleViewTest, SnoozeButtonActionAndPresent) {
   EXPECT_EQ(delegate.tapCounter, 1);
 }
 
-// Tests the arrow view is aligned properly with BubbleAlignmentTopOrLeading.
+// Tests the arrow view is aligned properly with BubbleAlignmentLeading.
 TEST_F(BubbleViewTest, ArrowViewLeadingAligned) {
-  BubbleView* bubble =
-      [[BubbleView alloc] initWithText:longText_
-                        arrowDirection:arrowDirection_
-                             alignment:BubbleAlignmentTopOrLeading];
+  BubbleView* bubble = [[BubbleView alloc] initWithText:longText_
+                                         arrowDirection:arrowDirection_
+                                              alignment:BubbleAlignmentLeading];
   bubble.alignmentOffset = alignmentOffset_;
   UIView* superview = [[UIView alloc] initWithFrame:CGRectZero];
   [superview addSubview:bubble];
@@ -279,13 +282,12 @@ TEST_F(BubbleViewTest, ArrowViewCenterAligned) {
   EXPECT_EQ(CGRectGetMidX(arrowView.frame), CGRectGetMidX(bubble.frame));
 }
 
-// Tests the arrow view is aligned properly with
-// BubbleAlignmentBottomOrTrailing.
+// Tests the arrow view is aligned properly with BubbleAlignmentTrailing.
 TEST_F(BubbleViewTest, ArrowViewTrailingAligned) {
   BubbleView* bubble =
       [[BubbleView alloc] initWithText:longText_
                         arrowDirection:arrowDirection_
-                             alignment:BubbleAlignmentBottomOrTrailing];
+                             alignment:BubbleAlignmentTrailing];
   bubble.alignmentOffset = alignmentOffset_;
   UIView* superview = [[UIView alloc] initWithFrame:CGRectZero];
   [superview addSubview:bubble];

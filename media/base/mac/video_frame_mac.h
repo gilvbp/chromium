@@ -7,7 +7,7 @@
 
 #include <CoreVideo/CVPixelBuffer.h>
 
-#include "base/apple/scoped_cftyperef.h"
+#include "base/mac/scoped_cftyperef.h"
 #include "base/memory/scoped_refptr.h"
 #include "media/base/media_export.h"
 
@@ -23,7 +23,7 @@ class VideoFrame;
 // The only supported formats are I420 and NV12. Frames with extended pixels
 // (the visible rect's size does not match the coded size) are not supported.
 // If an unsupported frame is specified, null is returned.
-MEDIA_EXPORT base::apple::ScopedCFTypeRef<CVPixelBufferRef>
+MEDIA_EXPORT base::ScopedCFTypeRef<CVPixelBufferRef>
 WrapVideoFrameInCVPixelBuffer(scoped_refptr<VideoFrame> frame);
 
 }  // namespace media

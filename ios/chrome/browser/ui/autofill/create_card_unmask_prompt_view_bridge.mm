@@ -7,6 +7,10 @@
 #import "components/autofill/core/browser/ui/payments/card_unmask_prompt_controller.h"
 #import "ios/chrome/browser/ui/autofill/card_unmask_prompt_view_bridge.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace autofill {
 
 CardUnmaskPromptView* CreateCardUnmaskPromptViewBridge(

@@ -52,7 +52,7 @@ constexpr std::array<MetadataWriter::UMAFeature, 8> kChromeStartUMAFeatures = {
                                                   kProfileSigninStatusEnums,
                                                   2)};
 
-std::unique_ptr<DefaultModelProvider> GetChromeStartAndroidModel() {
+std::unique_ptr<ModelProvider> GetChromeStartAndroidModel() {
   if (!base::GetFieldTrialParamByFeatureAsBool(
           chrome::android::kStartSurfaceAndroid, kDefaultModelEnabledParam,
           false)) {
@@ -75,7 +75,6 @@ std::unique_ptr<Config> ChromeStartModel::GetConfig() {
   config->AddSegmentId(
       SegmentId::OPTIMIZATION_TARGET_SEGMENTATION_CHROME_START_ANDROID,
       GetChromeStartAndroidModel());
-  config->auto_execute_and_cache = true;
 
   int segment_selection_ttl_days = base::GetFieldTrialParamByFeatureAsInt(
       chrome::android::kStartSurfaceAndroid,
@@ -91,11 +90,10 @@ std::unique_ptr<Config> ChromeStartModel::GetConfig() {
   return config;
 }
 
-ChromeStartModel::ChromeStartModel()
-    : DefaultModelProvider(kChromeStartSegmentId) {}
+ChromeStartModel::ChromeStartModel() : ModelProvider(kChromeStartSegmentId) {}
 
-std::unique_ptr<DefaultModelProvider::ModelConfig>
-ChromeStartModel::GetModelConfig() {
+void ChromeStartModel::InitAndFetchModel(
+    const ModelUpdatedCallback& model_updated_callback) {
   proto::SegmentationModelMetadata chrome_start_metadata;
   MetadataWriter writer(&chrome_start_metadata);
   writer.SetDefaultSegmentationMetadataConfig(
@@ -109,8 +107,10 @@ ChromeStartModel::GetModelConfig() {
                         kChromeStartUMAFeatures.size());
 
   constexpr int kModelVersion = 1;
-  return std::make_unique<ModelConfig>(std::move(chrome_start_metadata),
-                                       kModelVersion);
+  base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
+      FROM_HERE,
+      base::BindRepeating(model_updated_callback, kChromeStartSegmentId,
+                          std::move(chrome_start_metadata), kModelVersion));
 }
 
 void ChromeStartModel::ExecuteModelWithInput(
@@ -138,6 +138,10 @@ void ChromeStartModel::ExecuteModelWithInput(
   base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
       FROM_HERE,
       base::BindOnce(std::move(callback), ModelProvider::Response(1, result)));
+}
+
+bool ChromeStartModel::ModelAvailable() {
+  return true;
 }
 
 }  // namespace segmentation_platform

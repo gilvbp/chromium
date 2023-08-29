@@ -317,6 +317,11 @@ BrowserContext::RetrieveInProgressDownloadManager() {
   return nullptr;
 }
 
+// static
+std::string BrowserContext::CreateRandomMediaDeviceIDSalt() {
+  return base::UnguessableToken::Create().ToString();
+}
+
 void BrowserContext::WriteIntoTrace(
     perfetto::TracedProto<ChromeBrowserContext> proto) const {
   perfetto::WriteIntoTracedProto(std::move(proto), impl());
@@ -330,6 +335,10 @@ void BrowserContext::WriteIntoTrace(
 // TODO(https://crbug.com/1179776): Migrate method definitions from this
 // section into a separate BrowserContextDelegate class and a separate
 // browser_context_delegate.cc source file.
+
+std::string BrowserContext::GetMediaDeviceIDSalt() {
+  return UniqueId();
+}
 
 FileSystemAccessPermissionContext*
 BrowserContext::GetFileSystemAccessPermissionContext() {

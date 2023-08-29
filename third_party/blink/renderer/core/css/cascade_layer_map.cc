@@ -21,7 +21,9 @@ void ComputeLayerOrder(CascadeLayer& layer, unsigned& next) {
 
 }  // namespace
 
-CascadeLayerMap::CascadeLayerMap(const ActiveStyleSheetVector& sheets) {
+CascadeLayerMap::CascadeLayerMap(const ActiveStyleSheetVector& sheets,
+                                 const LayerMap& super_rule_set_mapping)
+    : super_rule_set_mapping_(super_rule_set_mapping) {
   CascadeLayer* canonical_root_layer = MakeGarbageCollected<CascadeLayer>();
 
   CanonicalLayerMap canonical_layer_map;
@@ -68,6 +70,7 @@ const CascadeLayer* CascadeLayerMap::GetRootLayer() const {
 void CascadeLayerMap::Trace(blink::Visitor* visitor) const {
   visitor->Trace(layer_order_map_);
   visitor->Trace(canonical_root_layer_);
+  visitor->Trace(super_rule_set_mapping_);
 }
 
 }  // namespace blink

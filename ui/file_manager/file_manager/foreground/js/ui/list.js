@@ -1018,14 +1018,8 @@ List.prototype = {
 
     function insert() {
       const dataItem = dataModel.item(currentIndex);
-      const cachedCurrentItem = self.cachedItems_[currentIndex];
-      if (cachedCurrentItem) {
-        // Emit synthetic event with cached item that is about to be restored.
-        self.dispatchEvent(new CustomEvent('cachedItemRestored', {
-          detail: cachedCurrentItem,
-        }));
-      }
-      const newItem = cachedCurrentItem || self.createItem(dataItem);
+      const newItem =
+          self.cachedItems_[currentIndex] || self.createItem(dataItem);
       newItem.listIndex = currentIndex;
       self.cachedItems_[currentIndex] = newItem;
       self.insertBefore(newItem, item);

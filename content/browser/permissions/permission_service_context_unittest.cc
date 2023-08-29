@@ -113,11 +113,9 @@ class PermissionServiceContextTest : public RenderViewHostTestHarness {
 
  private:
   url::Origin origin_;
-  raw_ptr<PermissionControllerImpl, AcrossTasksDanglingUntriaged>
-      permission_controller_;
-  raw_ptr<RenderFrameHostImpl, AcrossTasksDanglingUntriaged>
-      render_frame_host_impl_;
-  raw_ptr<PermissionServiceContext, AcrossTasksDanglingUntriaged>
+  raw_ptr<PermissionControllerImpl, DanglingUntriaged> permission_controller_;
+  raw_ptr<RenderFrameHostImpl, DanglingUntriaged> render_frame_host_impl_;
+  raw_ptr<PermissionServiceContext, DanglingUntriaged>
       permission_service_context_;
 };
 

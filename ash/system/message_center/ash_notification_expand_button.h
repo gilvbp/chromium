@@ -22,7 +22,8 @@ namespace ash {
 class AshNotificationExpandButton : public views::Button {
  public:
   METADATA_HEADER(AshNotificationExpandButton);
-  AshNotificationExpandButton();
+  explicit AshNotificationExpandButton(
+      PressedCallback callback = PressedCallback());
   AshNotificationExpandButton(const AshNotificationExpandButton&) = delete;
   AshNotificationExpandButton& operator=(const AshNotificationExpandButton&) =
       delete;
@@ -51,8 +52,6 @@ class AshNotificationExpandButton : public views::Button {
   void OnThemeChanged() override;
   gfx::Size CalculatePreferredSize() const override;
 
-  void SetExpandCollapseEnabled(bool enabled);
-
   void set_label_fading_out(bool label_fading_out) {
     label_fading_out_ = label_fading_out;
   }
@@ -69,10 +68,6 @@ class AshNotificationExpandButton : public views::Button {
   void AnimateBoundsChange(int duration_in_ms,
                            gfx::Tween::Type tween_type,
                            const std::string& animation_histogram_name);
-
-  void UpdateBackgroundColor();
-
-  void UpdateTooltip();
 
   // Owned by views hierarchy.
   raw_ptr<views::Label, ExperimentalAsh> label_;
@@ -93,8 +88,6 @@ class AshNotificationExpandButton : public views::Button {
 
   // True if `label_` is in its fade out animation.
   bool label_fading_out_ = false;
-
-  bool disable_expand_collapse_ = false;
 
   base::WeakPtrFactory<AshNotificationExpandButton> weak_factory_{this};
 };

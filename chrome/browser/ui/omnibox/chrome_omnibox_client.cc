@@ -153,10 +153,6 @@ SessionID ChromeOmniboxClient::GetSessionID() const {
       ->session_id();
 }
 
-PrefService* ChromeOmniboxClient::GetPrefs() {
-  return profile_->GetPrefs();
-}
-
 bookmarks::BookmarkModel* ChromeOmniboxClient::GetBookmarkModel() {
   return BookmarkModelFactory::GetForBrowserContext(profile_);
 }

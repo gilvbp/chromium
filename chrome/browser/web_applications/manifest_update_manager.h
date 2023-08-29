@@ -38,7 +38,8 @@ class WebContents;
 
 namespace web_app {
 
-class WebAppProvider;
+class WebAppUiManager;
+class WebAppCommandScheduler;
 
 // Documentation: docs/webapps/manifest_update_process.md
 //
@@ -79,12 +80,15 @@ class ManifestUpdateManager final : public WebAppInstallManagerObserver {
   ManifestUpdateManager();
   ~ManifestUpdateManager() override;
 
+  void SetSubsystems(WebAppInstallManager* install_manager,
+                     WebAppRegistrar* registrar,
+                     WebAppUiManager* ui_manager,
+                     WebAppCommandScheduler* command_scheduler);
 #if BUILDFLAG(IS_CHROMEOS_ASH)
   void SetSystemWebAppDelegateMap(
       const ash::SystemWebAppDelegateMap* system_web_apps_delegate_map);
 #endif
 
-  void SetProvider(base::PassKey<WebAppProvider>, WebAppProvider& provider);
   void Start();
   void Shutdown();
 
@@ -186,11 +190,15 @@ class ManifestUpdateManager final : public WebAppInstallManagerObserver {
 
   static bool& BypassWindowCloseWaitingForTesting();
 
+  raw_ptr<WebAppRegistrar, DanglingUntriaged> registrar_ = nullptr;
+  raw_ptr<WebAppUiManager, DanglingUntriaged> ui_manager_ = nullptr;
 #if BUILDFLAG(IS_CHROMEOS_ASH)
   raw_ptr<const ash::SystemWebAppDelegateMap, DanglingUntriaged>
       system_web_apps_delegate_map_ = nullptr;
 #endif
-  raw_ptr<WebAppProvider> provider_ = nullptr;
+  raw_ptr<WebAppInstallManager, DanglingUntriaged> install_manager_ = nullptr;
+  raw_ptr<WebAppCommandScheduler, DanglingUntriaged> command_scheduler_ =
+      nullptr;
 
   base::ScopedObservation<WebAppInstallManager, WebAppInstallManagerObserver>
       install_manager_observation_{this};

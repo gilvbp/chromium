@@ -8,9 +8,8 @@
 #import <UIKit/UIKit.h>
 
 @class BookmarksSpotlightManager;
+
 @class ReadingListSpotlightManager;
-@class OpenTabsSpotlightManager;
-@class TopSitesSpotlightManager;
 
 @protocol SpotlightDebuggerViewControllerDelegate
 
@@ -33,8 +32,6 @@
 @property(nonatomic, strong) BookmarksSpotlightManager* bookmarksManager;
 @property(nonatomic, strong)
     ReadingListSpotlightManager* readingListSpotlightManager;
-@property(nonatomic, strong) OpenTabsSpotlightManager* openTabsSpotlightManager;
-@property(nonatomic, strong) TopSitesSpotlightManager* topSitesSpotlightManager;
 
 @end
 

@@ -348,7 +348,8 @@ TEST_F(PrefServiceSyncableTest, ModelAssociationCloudHasData) {
   syncer::SyncDataList in;
   syncer::SyncChangeList out;
   AddToRemoteDataList(kStringPrefName, base::Value(kExampleUrl1), &in);
-  auto urls_to_restore = base::Value::List().Append(kExampleUrl1);
+  base::Value::List urls_to_restore;
+  urls_to_restore.Append(kExampleUrl1);
   AddToRemoteDataList(kListPrefName, urls_to_restore, &in);
   AddToRemoteDataList(kDefaultCharsetPrefName,
                       base::Value(kNonDefaultCharsetValue), &in);
@@ -361,7 +362,8 @@ TEST_F(PrefServiceSyncableTest, ModelAssociationCloudHasData) {
 
   // No associator client is registered, so lists and dictionaries should not
   // get merged (remote write wins).
-  auto expected_urls = base::Value::List().Append(kExampleUrl1);
+  base::Value::List expected_urls;
+  expected_urls.Append(kExampleUrl1);
   EXPECT_FALSE(FindValue(kListPrefName, out));
   EXPECT_EQ(GetPreferenceValue(kListPrefName), expected_urls);
   EXPECT_EQ(kNonDefaultCharsetValue, prefs_.GetString(kDefaultCharsetPrefName));
@@ -530,18 +532,19 @@ TEST_F(PrefServiceSyncableMergeTest, ShouldMergeSelectedListValues) {
     update->Append(kExampleUrl1);
   }
 
-  auto urls_to_restore =
-      base::Value::List().Append(kExampleUrl1).Append(kExampleUrl2);
+  base::Value::List urls_to_restore;
+  urls_to_restore.Append(kExampleUrl1);
+  urls_to_restore.Append(kExampleUrl2);
   syncer::SyncDataList in;
   AddToRemoteDataList(kListPrefName, urls_to_restore, &in);
 
   syncer::SyncChangeList out;
   InitWithSyncDataTakeOutput(in, &out);
 
-  auto expected_urls = base::Value::List()
-                           .Append(kExampleUrl1)
-                           .Append(kExampleUrl2)
-                           .Append(kExampleUrl0);
+  base::Value::List expected_urls;
+  expected_urls.Append(kExampleUrl1);
+  expected_urls.Append(kExampleUrl2);
+  expected_urls.Append(kExampleUrl0);
   absl::optional<base::Value> value(FindValue(kListPrefName, out));
   ASSERT_TRUE(value);
   EXPECT_EQ(*value, expected_urls) << *value;
@@ -553,15 +556,17 @@ TEST_F(PrefServiceSyncableMergeTest, ShouldMergeSelectedListValues) {
 // managed preferences.
 TEST_F(PrefServiceSyncableMergeTest, ManagedListPreferences) {
   // Make the list of urls to restore on startup managed.
-  auto managed_value =
-      base::Value::List().Append(kExampleUrl0).Append(kExampleUrl1);
+  base::Value::List managed_value;
+  managed_value.Append(kExampleUrl0);
+  managed_value.Append(kExampleUrl1);
   managed_prefs_->SetValue(kListPrefName, base::Value(managed_value.Clone()),
                            WriteablePrefStore::DEFAULT_PREF_WRITE_FLAGS);
 
   // Set a cloud version.
   syncer::SyncDataList in;
-  auto urls_to_restore =
-      base::Value::List().Append(kExampleUrl1).Append(kExampleUrl2);
+  base::Value::List urls_to_restore;
+  urls_to_restore.Append(kExampleUrl1);
+  urls_to_restore.Append(kExampleUrl2);
   AddToRemoteDataList(kListPrefName, urls_to_restore, &in);
 
   syncer::SyncChangeList out;
@@ -571,7 +576,8 @@ TEST_F(PrefServiceSyncableMergeTest, ManagedListPreferences) {
   EXPECT_FALSE(FindValue(kListPrefName, out));
 
   // Changing the user-controlled value should sync as usual.
-  auto user_value = base::Value::List().Append("http://chromium.org");
+  base::Value::List user_value;
+  user_value.Append("http://chromium.org");
   prefs_.SetList(kListPrefName, user_value.Clone());
   absl::optional<base::Value> actual = FindValue(kListPrefName, out);
   ASSERT_TRUE(actual);
@@ -580,7 +586,8 @@ TEST_F(PrefServiceSyncableMergeTest, ManagedListPreferences) {
 
   // An incoming sync transaction should change the user value, not the managed
   // value.
-  auto sync_value = base::Value::List().Append("http://crbug.com");
+  base::Value::List sync_value;
+  sync_value.Append("http://crbug.com");
   syncer::SyncChangeList list;
   list.push_back(
       MakeRemoteChange(kListPrefName, sync_value, SyncChange::ACTION_UPDATE));
@@ -602,18 +609,18 @@ TEST_F(PrefServiceSyncableMergeTest, ShouldMergeSelectedDictionaryValues) {
     update->Set("my_key3", "my_value3");
   }
 
-  auto remote_update =
-      base::Value::Dict().Set("my_key2", base::Value("my_value2"));
+  base::Value::Dict remote_update;
+  remote_update.Set("my_key2", base::Value("my_value2"));
   syncer::SyncDataList in;
   AddToRemoteDataList(kDictPrefName, remote_update, &in);
 
   syncer::SyncChangeList out;
   InitWithSyncDataTakeOutput(in, &out);
 
-  auto expected_dict = base::Value::Dict()
-                           .Set("my_key1", base::Value("my_value1"))
-                           .Set("my_key2", base::Value("my_value2"))
-                           .Set("my_key3", base::Value("my_value3"));
+  base::Value::Dict expected_dict;
+  expected_dict.Set("my_key1", base::Value("my_value1"));
+  expected_dict.Set("my_key2", base::Value("my_value2"));
+  expected_dict.Set("my_key3", base::Value("my_value3"));
   absl::optional<base::Value> value(FindValue(kDictPrefName, out));
   ASSERT_TRUE(value);
   EXPECT_EQ(*value, expected_dict);
@@ -1031,7 +1038,7 @@ class PrefServiceSyncableChromeOsTest : public testing::Test {
 
  protected:
   scoped_refptr<PrefRegistrySyncable> pref_registry_;
-  raw_ptr<PrefNotifierImpl, DanglingUntriaged | ExperimentalAsh>
+  raw_ptr<PrefNotifierImpl, ExperimentalAsh>
       pref_notifier_;  // Owned by |prefs_|.
   scoped_refptr<TestingPrefStore> user_prefs_;
   scoped_refptr<TestingPrefStore> standalone_browser_prefs_;

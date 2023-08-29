@@ -34,7 +34,7 @@ enum class DOMExceptionCode;
 
 template <typename Traits>
 class MODULES_EXPORT EncoderBase
-    : public EventTarget,
+    : public EventTargetWithInlineData,
       public ActiveScriptWrappable<EncoderBase<Traits>>,
       public ReclaimableCodec {
  public:

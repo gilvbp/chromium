@@ -25,7 +25,8 @@ TEST(ActionsParserTestDriverTest, ParseMousePointerActionSequence) {
   ActionsParser actions_parser(std::move(value.value()));
   EXPECT_TRUE(actions_parser.Parse());
   SyntheticPointerActionListParams action_list_params =
-      actions_parser.pointer_action_params();
+      static_cast<const SyntheticPointerActionListParams&>(
+          actions_parser.gesture_params());
   EXPECT_EQ(content::mojom::GestureSourceType::kMouseInput,
             action_list_params.gesture_source_type);
   EXPECT_EQ(2U, action_list_params.params.size());
@@ -57,7 +58,8 @@ TEST(ActionsParserTestDriverTest, ParseTouchPointerActionSequence) {
   ActionsParser actions_parser(std::move(value.value()));
   EXPECT_TRUE(actions_parser.Parse());
   SyntheticPointerActionListParams action_list_params =
-      actions_parser.pointer_action_params();
+      static_cast<const SyntheticPointerActionListParams&>(
+          actions_parser.gesture_params());
   EXPECT_EQ(content::mojom::GestureSourceType::kTouchInput,
             action_list_params.gesture_source_type);
   EXPECT_EQ(3U, action_list_params.params.size());
@@ -89,7 +91,8 @@ TEST(ActionsParserTestDriverTest, ParseTouchPointerActionSequenceWithPause) {
   ActionsParser actions_parser(std::move(value.value()));
   EXPECT_TRUE(actions_parser.Parse());
   SyntheticPointerActionListParams action_list_params =
-      actions_parser.pointer_action_params();
+      static_cast<const SyntheticPointerActionListParams&>(
+          actions_parser.gesture_params());
   EXPECT_EQ(content::mojom::GestureSourceType::kTouchInput,
             action_list_params.gesture_source_type);
   EXPECT_EQ(5U, action_list_params.params.size());
@@ -174,7 +177,8 @@ TEST(ActionsParserTestDriverTest, ParseMousePointerActionSequenceNoParameters) {
   ActionsParser actions_parser(std::move(value.value()));
   EXPECT_TRUE(actions_parser.Parse());
   SyntheticPointerActionListParams action_list_params =
-      actions_parser.pointer_action_params();
+      static_cast<const SyntheticPointerActionListParams&>(
+          actions_parser.gesture_params());
   EXPECT_EQ(content::mojom::GestureSourceType::kMouseInput,
             action_list_params.gesture_source_type);
   EXPECT_EQ(2U, action_list_params.params.size());
@@ -301,7 +305,8 @@ TEST(ActionsParserTestDriverTest, ParseWheelScrollAction) {
   ActionsParser actions_parser(std::move(value.value()));
   EXPECT_TRUE(actions_parser.Parse());
   SyntheticSmoothScrollGestureParams scroll_gesture_params =
-      actions_parser.smooth_scroll_params();
+      static_cast<const SyntheticSmoothScrollGestureParams&>(
+          actions_parser.gesture_params());
   EXPECT_EQ(content::mojom::GestureSourceType::kMouseInput,
             scroll_gesture_params.gesture_source_type);
   EXPECT_EQ(gfx::PointF(10, 10), scroll_gesture_params.anchor);
@@ -447,7 +452,8 @@ TEST(ActionsParserTestDriverTest, ParseActionSequencePenProperties) {
   ActionsParser actions_parser(std::move(value.value()));
   EXPECT_TRUE(actions_parser.Parse());
   SyntheticPointerActionListParams action_list_params =
-      actions_parser.pointer_action_params();
+      static_cast<const SyntheticPointerActionListParams&>(
+          actions_parser.gesture_params());
   EXPECT_EQ(mojom::GestureSourceType::kPenInput,
             action_list_params.gesture_source_type);
   EXPECT_EQ(4U, action_list_params.params.size());

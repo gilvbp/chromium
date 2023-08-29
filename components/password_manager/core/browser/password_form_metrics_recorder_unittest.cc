@@ -213,20 +213,21 @@ TEST(PasswordFormMetricsRecorder, SubmittedFormType) {
 
   static constexpr struct {
     // Stimuli:
-    absl::optional<metrics_util::SubmittedFormType> form_type;
-    bool was_form_submitted;
+    bool is_main_frame_secure;
+    PasswordFormMetricsRecorder::SubmittedFormType form_type;
     // Expectations:
-    bool should_record_metrics;
+    // Expectation for PasswordManager.SubmittedFormType:
+    int expected_submitted_form_type;
   } kTests[] = {
-      {metrics_util::SubmittedFormType::kLogin, true, true},
-      {metrics_util::SubmittedFormType::kSignup, true, true},
-      {metrics_util::SubmittedFormType::kLogin, false, false},
-      {absl::nullopt, true, false},
+      {false, PasswordFormMetricsRecorder::SubmittedFormType::kUnspecified, 0},
+      {true, PasswordFormMetricsRecorder::SubmittedFormType::kUnspecified, 0},
+      {false, PasswordFormMetricsRecorder::SubmittedFormType::kLogin, 1},
+      {true, PasswordFormMetricsRecorder::SubmittedFormType::kLogin, 1},
   };
   for (const auto& test : kTests) {
     SCOPED_TRACE(testing::Message()
-                 << "Was form_type set = " << test.form_type.has_value()
-                 << ", was_form_submitted =" << test.was_form_submitted);
+                 << "is_main_frame_secure=" << test.is_main_frame_secure
+                 << ", form_type=" << static_cast<int64_t>(test.form_type));
 
     ukm::TestAutoSetUkmRecorder test_ukm_recorder;
     base::HistogramTester histogram_tester;
@@ -235,24 +236,23 @@ TEST(PasswordFormMetricsRecorder, SubmittedFormType) {
     // on destruction.
     {
       auto recorder = CreatePasswordFormMetricsRecorder(
-          /*is_main_frame_secure=*/true, &pref_service);
-      if (test.form_type) {
-        recorder->SetSubmittedFormType(test.form_type.value());
-      }
-      if (test.was_form_submitted) {
-        recorder->LogSubmitPassed();
-      }
+          test.is_main_frame_secure, &pref_service);
+      recorder->SetSubmittedFormType(test.form_type);
     }
 
-    if (test.should_record_metrics) {
-      histogram_tester.ExpectUniqueSample("PasswordManager.SubmittedFormType2",
-                                          test.form_type.value(), 1);
+    if (test.form_type !=
+        PasswordFormMetricsRecorder::SubmittedFormType::kUnspecified) {
       ExpectUkmValueCount(&test_ukm_recorder,
-                          UkmEntry::kSubmission_SubmittedFormType2Name,
-                          static_cast<int64_t>(test.form_type.value()), 1);
+                          UkmEntry::kSubmission_SubmittedFormTypeName,
+                          static_cast<int64_t>(test.form_type), 1);
+    }
+
+    if (test.expected_submitted_form_type) {
+      histogram_tester.ExpectBucketCount("PasswordManager.SubmittedFormType",
+                                         test.form_type,
+                                         test.expected_submitted_form_type);
     } else {
-      histogram_tester.ExpectTotalCount("PasswordManager.SubmittedFormType2",
-                                        0);
+      histogram_tester.ExpectTotalCount("PasswordManager.SubmittedFormType", 0);
     }
   }
 }

@@ -23,7 +23,6 @@
 #include "content/public/browser/anchor_element_preconnect_delegate.h"
 #include "content/public/browser/authenticator_request_client_delegate.h"
 #include "content/public/browser/browser_accessibility_state.h"
-#include "content/public/browser/browser_context.h"
 #include "content/public/browser/browser_main_parts.h"
 #include "content/public/browser/client_certificate_delegate.h"
 #include "content/public/browser/devtools_manager_delegate.h"
@@ -35,8 +34,6 @@
 #include "content/public/browser/overlay_window.h"
 #include "content/public/browser/page_navigator.h"
 #include "content/public/browser/prefetch_service_delegate.h"
-#include "content/public/browser/prerender_web_contents_delegate.h"
-#include "content/public/browser/private_network_device_delegate.h"
 #include "content/public/browser/render_frame_host.h"
 #include "content/public/browser/responsiveness_calculator_delegate.h"
 #include "content/public/browser/sms_fetcher.h"
@@ -51,7 +48,6 @@
 #include "media/audio/audio_manager.h"
 #include "media/capture/content/screen_enumerator.h"
 #include "media/mojo/mojom/media_service.mojom.h"
-#include "mojo/public/cpp/bindings/message.h"
 #include "net/cookies/site_for_cookies.h"
 #include "net/ssl/client_cert_identity.h"
 #include "net/ssl/client_cert_store.h"
@@ -73,8 +69,6 @@
 #include "third_party/blink/public/common/renderer_preferences/renderer_preferences.h"
 #include "third_party/blink/public/common/user_agent/user_agent_metadata.h"
 #include "third_party/blink/public/mojom/browsing_topics/browsing_topics.mojom.h"
-#include "third_party/blink/public/mojom/file_system_access/file_system_access_cloud_identifier.mojom.h"
-#include "third_party/blink/public/mojom/file_system_access/file_system_access_error.mojom.h"
 #include "third_party/blink/public/mojom/origin_trials/origin_trials_settings.mojom.h"
 #include "ui/gfx/image/image_skia.h"
 #include "ui/shell_dialogs/select_file_policy.h"
@@ -424,12 +418,6 @@ bool ContentBrowserClient::MayDeleteServiceWorkerRegistration(
   return true;
 }
 
-bool ContentBrowserClient::ShouldTryToUpdateServiceWorkerRegistration(
-    const GURL& scope,
-    BrowserContext* browser_context) {
-  return true;
-}
-
 void ContentBrowserClient::UpdateEnabledBlinkRuntimeFeaturesInIsolatedWorker(
     BrowserContext* context,
     const GURL& script_url,
@@ -454,11 +442,6 @@ bool ContentBrowserClient::DoesSchemeAllowCrossOriginSharedWorker(
 }
 
 bool ContentBrowserClient::AllowSignedExchange(BrowserContext* context) {
-  return true;
-}
-
-bool ContentBrowserClient::AllowCompressionDictionaryTransport(
-    BrowserContext* context) {
   return true;
 }
 
@@ -619,7 +602,6 @@ bool ContentBrowserClient::ShouldDenyRequestOnCertificateError(
 }
 
 base::OnceClosure ContentBrowserClient::SelectClientCertificate(
-    BrowserContext* browser_context,
     WebContents* web_contents,
     net::SSLCertRequestInfo* cert_request_info,
     net::ClientCertIdentityList client_certs,
@@ -737,10 +719,6 @@ base::FilePath ContentBrowserClient::GetNetLogDefaultDirectory() {
 
 base::FilePath ContentBrowserClient::GetFirstPartySetsDirectory() {
   return base::FilePath();
-}
-
-absl::optional<base::FilePath> ContentBrowserClient::GetLocalTracesDirectory() {
-  return absl::nullopt;
 }
 
 BrowserPpapiHost* ContentBrowserClient::GetExternalBrowserPpapiHost(
@@ -1112,11 +1090,6 @@ UsbDelegate* ContentBrowserClient::GetUsbDelegate() {
   return nullptr;
 }
 
-PrivateNetworkDeviceDelegate*
-ContentBrowserClient::GetPrivateNetworkDeviceDelegate() {
-  return nullptr;
-}
-
 FontAccessDelegate* ContentBrowserClient::GetFontAccessDelegate() {
   return nullptr;
 }
@@ -1320,12 +1293,12 @@ void ContentBrowserClient::BlockBluetoothScanning(
     const url::Origin& requesting_origin,
     const url::Origin& embedding_origin) {}
 
-void ContentBrowserClient::GetMediaDeviceIDSalt(
-    content::RenderFrameHost* rfh,
+bool ContentBrowserClient::ArePersistentMediaDeviceIDsAllowed(
+    content::BrowserContext* browser_context,
+    const GURL& scope,
     const net::SiteForCookies& site_for_cookies,
-    const blink::StorageKey& storage_key,
-    base::OnceCallback<void(bool, const std::string&)> callback) {
-  std::move(callback).Run(false, rfh->GetBrowserContext()->UniqueId());
+    const absl::optional<url::Origin>& top_frame_origin) {
+  return false;
 }
 
 base::OnceClosure ContentBrowserClient::FetchRemoteSms(
@@ -1391,11 +1364,10 @@ bool ContentBrowserClient::ShouldServiceWorkerInheritPolicyContainerFromCreator(
   return url.SchemeIsLocal();
 }
 
-ContentBrowserClient::PrivateNetworkRequestPolicyOverride
-ContentBrowserClient::ShouldOverridePrivateNetworkRequestPolicy(
+bool ContentBrowserClient::ShouldAllowInsecureLocalNetworkRequests(
     BrowserContext* browser_context,
     const url::Origin& origin) {
-  return PrivateNetworkRequestPolicyOverride::kDefault;
+  return false;
 }
 
 bool ContentBrowserClient::IsJitDisabledForSite(BrowserContext* browser_context,
@@ -1432,8 +1404,7 @@ bool ContentBrowserClient::HasErrorPage(int http_status_code) {
 }
 
 std::unique_ptr<IdentityRequestDialogController>
-ContentBrowserClient::CreateIdentityRequestDialogController(
-    WebContents* web_contents) {
+ContentBrowserClient::CreateIdentityRequestDialogController() {
   return std::make_unique<IdentityRequestDialogController>();
 }
 
@@ -1462,11 +1433,6 @@ ContentBrowserClient::CreateSpeculationHostDelegate(
 std::unique_ptr<PrefetchServiceDelegate>
 ContentBrowserClient::CreatePrefetchServiceDelegate(
     BrowserContext* browser_context) {
-  return nullptr;
-}
-
-std::unique_ptr<PrerenderWebContentsDelegate>
-ContentBrowserClient::CreatePrerenderWebContentsDelegate() {
   return nullptr;
 }
 
@@ -1502,6 +1468,11 @@ ContentBrowserClient::GetAlternativeErrorPageOverrideInfo(
     content::BrowserContext* browser_context,
     int32_t error_code) {
   return nullptr;
+}
+
+bool ContentBrowserClient::OpenExternally(const GURL& url,
+                                          WindowOpenDisposition disposition) {
+  return false;
 }
 
 bool ContentBrowserClient::ShouldSendOutermostOriginToRenderer(
@@ -1557,26 +1528,6 @@ bool ContentBrowserClient::CanBackForwardCachedPageReceiveCookieChanges(
     const net::SiteForCookies& site_for_cookies,
     const absl::optional<url::Origin>& top_frame_origin,
     const net::CookieSettingOverrides overrides) {
-  return true;
-}
-
-void ContentBrowserClient::GetCloudIdentifiers(
-    const storage::FileSystemURL& url,
-    FileSystemAccessPermissionContext::HandleType handle_type,
-    GetCloudIdentifiersCallback callback) {
-  mojo::ReportBadMessage("Cloud identifiers not supported on this platform");
-  std::move(callback).Run(
-      blink::mojom::FileSystemAccessError::New(
-          blink::mojom::FileSystemAccessStatus::kNotSupportedError,
-          base::File::Error::FILE_ERROR_FAILED,
-          "Cloud identifiers are not supported on this platform"),
-      {});
-  return;
-}
-
-bool ContentBrowserClient::
-    ShouldAllowBackForwardCacheForCacheControlNoStorePage(
-        content::BrowserContext* browser_context) {
   return true;
 }
 

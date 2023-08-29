@@ -17,6 +17,10 @@
 #import "ios/chrome/browser/ui/recent_tabs/recent_tabs_menu_provider.h"
 #import "ios/chrome/browser/ui/recent_tabs/recent_tabs_presentation_delegate.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 @interface RecentTabsContextMenuHelper () <RecentTabsMenuProvider>
 
 @property(nonatomic, assign) Browser* browser;
@@ -74,6 +78,14 @@
     if (item.URL) {
       gurl = item.URL.gurl;
     }
+    [menuElements
+        addObject:
+            [actionFactory
+                actionToOpenInNewTabWithURL:gurl
+                                 completion:^{
+                                   [weakSelf.recentTabsPresentationDelegate
+                                           showActiveRegularTabFromRecentTabs];
+                                 }]];
 
     if (base::ios::IsMultipleScenesSupported()) {
       [menuElements

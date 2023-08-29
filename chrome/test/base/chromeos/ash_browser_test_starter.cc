@@ -2,9 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "chrome/test/base/chromeos/ash_browser_test_starter.h"
-
-#include <memory>
+#include "ash_browser_test_starter.h"
 
 #include "ash/constants/ash_features.h"
 #include "ash/constants/ash_switches.h"
@@ -20,12 +18,10 @@
 #include "chrome/browser/ash/crosapi/browser_manager.h"
 #include "chrome/browser/ash/crosapi/browser_manager_observer.h"
 #include "chrome/browser/ash/crosapi/browser_util.h"
-#include "chrome/browser/ash/crosapi/fake_device_ownership_waiter.h"
 #include "chrome/browser/profiles/profile_manager.h"
 #include "chrome/browser/ui/browser_commands.h"
 #include "chrome/common/chrome_switches.h"
 #include "chrome/test/base/in_process_browser_test.h"
-#include "chromeos/ash/components/standalone_browser/feature_refs.h"
 #include "components/network_session_configurator/common/network_switches.h"
 #include "google_apis/gaia/gaia_switches.h"
 #include "net/test/embedded_test_server/http_response.h"
@@ -47,17 +43,7 @@ std::unique_ptr<net::test_server::HttpResponse> HandleGaiaURL(
 
 }  // namespace
 
-AshBrowserTestStarter::~AshBrowserTestStarter() {
-  // Clean up the directories that tests were passed. This is
-  // to save bot collect results time and faster CQ runtime.
-  if (!ash_user_data_dir_for_cleanup_.empty() &&
-      !::testing::Test::HasFailure() &&
-      base::CommandLine::ForCurrentProcess()->HasSwitch(
-          switches::kTestLauncherBotMode)) {
-    // Intentionally not check return value.
-    base::DeletePathRecursively(ash_user_data_dir_for_cleanup_);
-  }
-}
+AshBrowserTestStarter::~AshBrowserTestStarter() = default;
 
 AshBrowserTestStarter::AshBrowserTestStarter()
     : https_server_(net::EmbeddedTestServer::TYPE_HTTPS) {
@@ -116,7 +102,6 @@ bool AshBrowserTestStarter::PrepareEnvironmentForLacros() {
     if (!base::PathExists(test_output_folder)) {
       command_line->AppendSwitchPath(switches::kUserDataDir,
                                      test_output_folder);
-      ash_user_data_dir_for_cleanup_ = test_output_folder;
     }
   } else {
     LOG(WARNING)
@@ -128,7 +113,9 @@ bool AshBrowserTestStarter::PrepareEnvironmentForLacros() {
   }
 
   scoped_feature_list_.InitWithFeatures(
-      ash::standalone_browser::GetFeatureRefs(), {});
+      {ash::features::kLacrosSupport, ash::features::kLacrosPrimary,
+       ash::features::kLacrosOnly},
+      {});
   command_line->AppendSwitch(ash::switches::kAshEnableWaylandServer);
   command_line->AppendSwitch(
       views::switches::kDisableInputEventActivationProtectionForTesting);
@@ -147,7 +134,6 @@ bool AshBrowserTestStarter::PrepareEnvironmentForLacros() {
   // workaround for fixing crbug/1371655.
   lacros_args.emplace_back(base::StringPrintf("--%s=%s", switches::kGaiaUrl,
                                               base_url().spec().c_str()));
-  lacros_args.emplace_back("--enable-features=ApiAccessibilityServicePrivate");
   command_line->AppendSwitchASCII(ash::switches::kLacrosChromeAdditionalArgs,
                                   base::JoinString(lacros_args, "####"));
 
@@ -198,9 +184,6 @@ void WaitForExoStarted(const base::FilePath& xdg_path) {
 
 void AshBrowserTestStarter::StartLacros(InProcessBrowserTest* test_class_obj) {
   DCHECK(HasLacrosArgument());
-
-  crosapi::BrowserManager::Get()->set_device_ownership_waiter_for_testing(
-      std::make_unique<crosapi::FakeDeviceOwnershipWaiter>());
 
   WaitForExoStarted(scoped_temp_dir_xdg_.GetPath());
 

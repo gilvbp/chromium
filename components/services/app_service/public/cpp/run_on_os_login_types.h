@@ -14,7 +14,7 @@
 
 namespace apps {
 
-ENUM_FOR_COMPONENT(APP_TYPES,
+ENUM_FOR_COMPONENT(LOGIN_MODE,
                    RunOnOsLoginMode,
                    // kUnknown to be used for app_update.cc.
                    kUnknown,
@@ -23,7 +23,7 @@ ENUM_FOR_COMPONENT(APP_TYPES,
                    // App runs in windowed mode on OS Login.
                    kWindowed)
 
-struct COMPONENT_EXPORT(APP_TYPES) RunOnOsLogin {
+struct COMPONENT_EXPORT(LOGIN_MODE) RunOnOsLogin {
   RunOnOsLogin();
   RunOnOsLogin(RunOnOsLoginMode login_mode, bool is_managed);
 

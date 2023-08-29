@@ -4,8 +4,12 @@
 
 #import "ios/chrome/browser/ui/autofill/manual_fill/fallback_view_controller.h"
 
-#import "base/apple/foundation_util.h"
+#import "base/mac/foundation_util.h"
 #import "ios/chrome/browser/shared/ui/table_view/chrome_table_view_controller_test.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace {
 
@@ -27,10 +31,7 @@ class FallbackViewControllerTest : public ChromeTableViewControllerTest {
   }
 
   ChromeTableViewController* InstantiateController() override {
-    FallbackViewController* viewController =
-        [[FallbackViewController alloc] init];
-    [viewController loadModel];
-    return viewController;
+    return [[FallbackViewController alloc] init];
   }
 };
 
@@ -44,7 +45,7 @@ TEST_F(FallbackViewControllerTest, CheckDataAndActionAndHeaderItems) {
 
   NSArray<TableViewItem*>* dataItems = @[ itemOne, itemTwo ];
   FallbackViewController* fallbackViewController =
-      base::apple::ObjCCastStrict<FallbackViewController>(controller());
+      base::mac::ObjCCastStrict<FallbackViewController>(controller());
 
   TableViewItem* itemThree =
       [[TableViewItem alloc] initWithType:ItemTypeSampleThree];
@@ -64,15 +65,15 @@ TEST_F(FallbackViewControllerTest, CheckDataAndActionAndHeaderItems) {
   EXPECT_EQ(NumberOfItemsInSection(2), 1);
 
   EXPECT_EQ(
-      base::apple::ObjCCastStrict<TableViewItem>(GetTableViewItem(0, 0)).type,
+      base::mac::ObjCCastStrict<TableViewItem>(GetTableViewItem(0, 0)).type,
       ItemTypeSampleFour);
   EXPECT_EQ(
-      base::apple::ObjCCastStrict<TableViewItem>(GetTableViewItem(1, 0)).type,
+      base::mac::ObjCCastStrict<TableViewItem>(GetTableViewItem(1, 0)).type,
       ItemTypeSampleOne);
   EXPECT_EQ(
-      base::apple::ObjCCastStrict<TableViewItem>(GetTableViewItem(1, 1)).type,
+      base::mac::ObjCCastStrict<TableViewItem>(GetTableViewItem(1, 1)).type,
       ItemTypeSampleTwo);
   EXPECT_EQ(
-      base::apple::ObjCCastStrict<TableViewItem>(GetTableViewItem(2, 0)).type,
+      base::mac::ObjCCastStrict<TableViewItem>(GetTableViewItem(2, 0)).type,
       ItemTypeSampleThree);
 }

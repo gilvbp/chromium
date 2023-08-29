@@ -22,7 +22,7 @@ suite('PrivacySandboxSettings', function() {
   let testHatsBrowserProxy: TestHatsBrowserProxy;
   let testPrivacySandboxBrowserProxy: TestPrivacySandboxBrowserProxy;
 
-  setup(async function() {
+  setup(function() {
     testHatsBrowserProxy = new TestHatsBrowserProxy();
     HatsBrowserProxyImpl.setInstance(testHatsBrowserProxy);
     metricsBrowserProxy = new TestMetricsBrowserProxy();
@@ -35,16 +35,12 @@ suite('PrivacySandboxSettings', function() {
         (document.createElement('privacy-sandbox-app'));
     document.body.appendChild(page);
     page.prefs = {privacy_sandbox: {apis_enabled_v2: {value: true}}};
-
-    page.shadowRoot!.querySelector('settings-prefs')!.initialize();
-    await CrSettingsPrefs.initialized;
-
     return flushTasks();
   });
 
   function assertMainViewVisible() {
     assertEquals(
-        PrivacySandboxSettingsView.MAIN, page.privacySandboxSettingsView);
+        page.privacySandboxSettingsView, PrivacySandboxSettingsView.MAIN);
     const dialogWrapper =
         page.shadowRoot!.querySelector<CrDialogElement>('#dialogWrapper');
     assertFalse(!!dialogWrapper);
@@ -66,8 +62,8 @@ suite('PrivacySandboxSettings', function() {
 
   function assertAdPersonalizationDialogVisible() {
     assertEquals(
-        PrivacySandboxSettingsView.AD_PERSONALIZATION_DIALOG,
-        page.privacySandboxSettingsView);
+        page.privacySandboxSettingsView,
+        PrivacySandboxSettingsView.AD_PERSONALIZATION_DIALOG);
     const dialogWrapper =
         page.shadowRoot!.querySelector<CrDialogElement>('#dialogWrapper');
     assertTrue(!!dialogWrapper);
@@ -87,8 +83,8 @@ suite('PrivacySandboxSettings', function() {
 
   function assertAdPersonalizationRemovedDialogVisible() {
     assertEquals(
-        PrivacySandboxSettingsView.AD_PERSONALIZATION_REMOVED_DIALOG,
-        page.privacySandboxSettingsView);
+        page.privacySandboxSettingsView,
+        PrivacySandboxSettingsView.AD_PERSONALIZATION_REMOVED_DIALOG);
     const dialogWrapper =
         page.shadowRoot!.querySelector<CrDialogElement>('#dialogWrapper');
     assertTrue(!!dialogWrapper);
@@ -108,8 +104,8 @@ suite('PrivacySandboxSettings', function() {
 
   function assertAdMeasurementDialogVisible() {
     assertEquals(
-        PrivacySandboxSettingsView.AD_MEASUREMENT_DIALOG,
-        page.privacySandboxSettingsView);
+        page.privacySandboxSettingsView,
+        PrivacySandboxSettingsView.AD_MEASUREMENT_DIALOG);
     const dialogWrapper =
         page.shadowRoot!.querySelector<CrDialogElement>('#dialogWrapper');
     assertTrue(!!dialogWrapper);
@@ -122,8 +118,8 @@ suite('PrivacySandboxSettings', function() {
 
   function assertSpamAndFraudDialogVisible() {
     assertEquals(
-        PrivacySandboxSettingsView.SPAM_AND_FRAUD_DIALOG,
-        page.privacySandboxSettingsView);
+        page.privacySandboxSettingsView,
+        PrivacySandboxSettingsView.SPAM_AND_FRAUD_DIALOG);
     const dialogWrapper =
         page.shadowRoot!.querySelector<CrDialogElement>('#dialogWrapper');
     assertTrue(!!dialogWrapper);
@@ -135,7 +131,9 @@ suite('PrivacySandboxSettings', function() {
   }
 
 
-  test('viewedPref', function() {
+  test('viewedPref', async function() {
+    page.shadowRoot!.querySelector('settings-prefs')!.initialize();
+    await CrSettingsPrefs.initialized;
     assertTrue(!!page.getPref('privacy_sandbox.page_viewed').value);
   });
 

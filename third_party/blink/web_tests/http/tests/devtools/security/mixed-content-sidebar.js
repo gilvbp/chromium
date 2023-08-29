@@ -5,8 +5,6 @@
 import {TestRunner} from 'test_runner';
 import {SecurityTestRunner} from 'security_test_runner';
 
-import * as SDK from 'devtools/core/sdk/sdk.js';
-
 (async function() {
   TestRunner.addResult(
       `Tests that the sidebar uses the correct styling for mixed content subresources.\n`);
@@ -20,12 +18,12 @@ import * as SDK from 'devtools/core/sdk/sdk.js';
         Security.SecurityModel.Events.VisibleSecurityStateChanged,
         pageVisibleSecurityState);
 
-  var passive = SDK.NetworkRequest.NetworkRequest.create(
+  var passive = SDK.NetworkRequest.create(
       0, 'http://foo.test', 'https://foo.test', 0, 0, null);
   passive.mixedContentType = 'optionally-blockable';
   SecurityTestRunner.dispatchRequestFinished(passive);
 
-  var active = SDK.NetworkRequest.NetworkRequest.create(
+  var active = SDK.NetworkRequest.create(
       0, 'http://bar.test', 'https://bar.test', 0, 0, null);
   active.mixedContentType = 'blockable';
   SecurityTestRunner.dispatchRequestFinished(active);

@@ -66,7 +66,6 @@
 #include "net/cookies/cookie_setting_override.h"
 #include "net/dns/host_cache.h"
 #include "net/dns/mapped_host_resolver.h"
-#include "net/extras/shared_dictionary/shared_dictionary_isolation_key.h"
 #include "net/extras/sqlite/sqlite_persistent_cookie_store.h"
 #include "net/first_party_sets/first_party_set_metadata.h"
 #include "net/http/http_auth.h"
@@ -96,7 +95,6 @@
 #include "services/network/http_auth_cache_copier.h"
 #include "services/network/http_server_properties_pref_delegate.h"
 #include "services/network/ignore_errors_cert_verifier.h"
-#include "services/network/ip_protection_auth_token_cache_impl.h"
 #include "services/network/is_browser_initiated.h"
 #include "services/network/net_log_exporter.h"
 #include "services/network/network_service.h"
@@ -126,8 +124,6 @@
 #include "services/network/session_cleanup_cookie_store.h"
 #include "services/network/shared_dictionary/shared_dictionary_constants.h"
 #include "services/network/shared_dictionary/shared_dictionary_manager.h"
-#include "services/network/shared_dictionary/shared_dictionary_network_transaction_factory.h"
-#include "services/network/shared_dictionary/shared_dictionary_storage.h"
 #include "services/network/ssl_config_service_mojo.h"
 #include "services/network/throttling/network_conditions.h"
 #include "services/network/throttling/throttling_controller.h"
@@ -162,9 +158,9 @@
 #include "services/network/cert_verifier_with_trust_anchors.h"
 #endif  // BUILDFLAG(IS_CHROMEOS)
 
-#if BUILDFLAG(ENABLE_WEBSOCKETS)
+#if !BUILDFLAG(IS_IOS)
 #include "services/network/websocket_factory.h"
-#endif  // BUILDFLAG(ENABLE_WEBSOCKETS)
+#endif  // !BUILDFLAG(IS_IOS)
 
 #if BUILDFLAG(ENABLE_REPORTING)
 #include "net/base/http_user_agent_settings.h"
@@ -491,20 +487,19 @@ NetworkContext::NetworkContext(
 
 #if BUILDFLAG(IS_DIRECTORY_TRANSFER_REQUIRED)
   if (params_->file_paths) {
-    if (params_->file_paths->http_cache_directory) {
-      EnsureMounted(&*params_->file_paths->http_cache_directory);
-    }
-    if (params_->file_paths->shared_dictionary_directory) {
-      EnsureMounted(&*params_->file_paths->shared_dictionary_directory);
-    }
     EnsureMounted(&params_->file_paths->data_directory);
+  }
+  if (params_->http_cache_directory) {
+    EnsureMounted(&*params_->http_cache_directory);
+  }
+  if (params_->shared_dictionary_directory) {
+    EnsureMounted(&*params_->shared_dictionary_directory);
   }
 #endif  // BUILDFLAG(IS_DIRECTORY_TRANSFER_REQUIRED)
 
   if (params_->shared_dictionary_enabled) {
-    if (params_->file_paths &&
-        params_->file_paths->shared_dictionary_directory &&
-        !params_->file_paths->shared_dictionary_directory->path().empty()) {
+    if (params_->shared_dictionary_directory &&
+        !params_->shared_dictionary_directory->path().empty()) {
 #if BUILDFLAG(IS_ANDROID)
       app_status_listeners_.push_back(
           std::make_unique<NetworkContextApplicationStatusListener>());
@@ -512,9 +507,9 @@ NetworkContext::NetworkContext(
       // TODO(crbug.com/1413922): Set `file_operations_factory` to support
       // sandboxed network service on Android.
       shared_dictionary_manager_ = SharedDictionaryManager::CreateOnDisk(
-          params_->file_paths->shared_dictionary_directory->path().Append(
+          params_->shared_dictionary_directory->path().Append(
               FILE_PATH_LITERAL("db")),
-          params_->file_paths->shared_dictionary_directory->path().Append(
+          params_->shared_dictionary_directory->path().Append(
               FILE_PATH_LITERAL("cache")),
           params_->shared_dictionary_cache_max_size,
           shared_dictionary::kDictionaryMaxCountPerNetworkContext,
@@ -549,10 +544,6 @@ NetworkContext::NetworkContext(
       url_request_context_, &first_party_sets_access_delegate_,
       std::move(session_cleanup_cookie_store),
       std::move(params_->cookie_manager_params));
-
-  cookie_manager_->AddSettingsWillChangeCallback(
-      base::BindRepeating(&NetworkContext::OnCookieManagerSettingsChanged,
-                          weak_factory_.GetWeakPtr()));
 
   network_service_->RegisterNetworkContext(this);
 
@@ -718,14 +709,6 @@ NetworkContext::~NetworkContext() {
       url_loader_factories = std::move(url_loader_factories_);
 }
 
-void NetworkContext::OnCookieManagerSettingsChanged() {
-  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
-  for (const std::unique_ptr<network::RestrictedCookieManager>& rcm :
-       restricted_cookie_managers_) {
-    rcm->OnCookieSettingsChanged();
-  }
-}
-
 // static
 std::unique_ptr<NetworkContext> NetworkContext::CreateForTesting(
     NetworkService* network_service,
@@ -784,12 +767,15 @@ void NetworkContext::SetClient(
 void NetworkContext::CreateURLLoaderFactory(
     mojo::PendingReceiver<mojom::URLLoaderFactory> receiver,
     mojom::URLLoaderFactoryParamsPtr params) {
-  scoped_refptr<ResourceSchedulerClient> resource_scheduler_client =
-      base::MakeRefCounted<ResourceSchedulerClient>(
-          ResourceScheduler::ClientId::Create(params->top_frame_id),
-          IsBrowserInitiated(params->process_id == mojom::kBrowserProcessId),
-          resource_scheduler_.get(),
-          url_request_context_->network_quality_estimator());
+  scoped_refptr<ResourceSchedulerClient> resource_scheduler_client;
+  if (!base::FeatureList::IsEnabled(features::kDisableResourceScheduler)) {
+    resource_scheduler_client = base::MakeRefCounted<ResourceSchedulerClient>(
+        current_resource_scheduler_client_id_,
+        IsBrowserInitiated(params->process_id == mojom::kBrowserProcessId),
+        resource_scheduler_.get(),
+        url_request_context_->network_quality_estimator());
+    current_resource_scheduler_client_id_.Increment();
+  }
   CreateURLLoaderFactory(std::move(receiver), std::move(params),
                          std::move(resource_scheduler_client));
 }
@@ -1694,7 +1680,7 @@ void NetworkContext::CreateWebSocket(
     mojo::PendingRemote<mojom::WebSocketAuthenticationHandler> auth_handler,
     mojo::PendingRemote<mojom::TrustedHeaderClient> header_client,
     const absl::optional<base::UnguessableToken>& throttling_profile_id) {
-#if BUILDFLAG(ENABLE_WEBSOCKETS)
+#if !BUILDFLAG(IS_IOS)
   if (!websocket_factory_)
     websocket_factory_ = std::make_unique<WebSocketFactory>(this);
 
@@ -1706,7 +1692,7 @@ void NetworkContext::CreateWebSocket(
       static_cast<net::NetworkTrafficAnnotationTag>(traffic_annotation),
       std::move(handshake_client), std::move(url_loader_network_observer),
       std::move(auth_handler), std::move(header_client), throttling_profile_id);
-#endif  // BUILDFLAG(ENABLE_WEBSOCKETS)
+#endif  // !BUILDFLAG(IS_IOS)
 }
 
 void NetworkContext::CreateWebTransport(
@@ -1981,32 +1967,6 @@ void NetworkContext::VerifyCertificateForTesting(
       base::BindOnce(TestVerifyCertCallback, std::move(state),
                      std::move(callback)),
       request, net::NetLogWithSource());
-}
-
-void NetworkContext::VerifyIpProtectionAuthTokenGetterForTesting(
-    VerifyIpProtectionAuthTokenGetterForTestingCallback callback) {
-  // This method assumes that the proxy delegate and auth token cache have been
-  // initialized.
-  CHECK(proxy_delegate_);
-
-  auto* auth_token_cache_impl = static_cast<IpProtectionAuthTokenCacheImpl*>(
-      proxy_delegate_->GetAuthTokenCacheForTesting());  // IN-TEST
-  CHECK(auth_token_cache_impl);
-
-  auth_token_cache_impl->FillCacheForTesting(base::BindOnce(  // IN-TEST
-      &NetworkContext::OnIpProtectionAuthTokenAvailableForTesting,
-      weak_factory_.GetWeakPtr(), std::move(callback)));
-}
-
-void NetworkContext::OnIpProtectionAuthTokenAvailableForTesting(
-    VerifyIpProtectionAuthTokenGetterForTestingCallback callback) {
-  auto* auth_token_cache =
-      proxy_delegate_->GetAuthTokenCacheForTesting();  // IN-TEST
-
-  absl::optional<network::mojom::BlindSignedAuthTokenPtr> result =
-      auth_token_cache->GetAuthToken();
-  CHECK(result.has_value());
-  std::move(callback).Run(std::move(result).value());
 }
 
 void NetworkContext::PreconnectSockets(
@@ -2381,8 +2341,7 @@ URLRequestContextOwner NetworkContext::MakeURLRequestContext(
         std::make_unique<NetworkServiceProxyDelegate>(
             std::move(params_->initial_custom_proxy_config),
             std::move(params_->custom_proxy_config_client_receiver),
-            std::move(params_->custom_proxy_connection_observer_remote),
-            network_service_->network_service_proxy_allow_list());
+            std::move(params_->custom_proxy_connection_observer_remote));
     proxy_delegate_ = proxy_delegate.get();
     builder.set_proxy_delegate(std::move(proxy_delegate));
   }
@@ -2443,7 +2402,6 @@ URLRequestContextOwner NetworkContext::MakeURLRequestContext(
   builder.set_http_user_agent_settings(std::move(user_agent_settings));
 
   builder.set_enable_brotli(params_->enable_brotli);
-  builder.set_enable_zstd(params_->enable_zstd);
 
   if (params_->proxy_resolver_factory) {
     builder.SetMojoProxyResolverFactory(
@@ -2468,15 +2426,11 @@ URLRequestContextOwner NetworkContext::MakeURLRequestContext(
   } else {
     net::URLRequestContextBuilder::HttpCacheParams cache_params;
     cache_params.max_size = params_->http_cache_max_size;
-    // Checking both to see if there are any file paths at all, and if there is
-    // specifically an http_cache_directory filepath in order to avoid a
-    // potential nullptr dereference if we just checked that
-    // `params_->file_paths->http_cache_directory' existed.
-    if (!params_->file_paths || !params_->file_paths->http_cache_directory) {
+    if (!params_->http_cache_directory) {
       cache_params.type =
           net::URLRequestContextBuilder::HttpCacheParams::IN_MEMORY;
     } else {
-      cache_params.path = params_->file_paths->http_cache_directory->path();
+      cache_params.path = params_->http_cache_directory->path();
       cache_params.type = network_session_configurator::ChooseCacheType();
       if (params_->http_cache_file_operations_factory) {
         cache_params.file_operations_factory =
@@ -2602,7 +2556,7 @@ URLRequestContextOwner NetworkContext::MakeURLRequestContext(
   auto quic_context = std::make_unique<net::QuicContext>();
   network_session_configurator::ParseCommandLineAndFieldTrials(
       *base::CommandLine::ForCurrentProcess(), is_quic_force_disabled,
-      &session_params, quic_context->params());
+      params_->quic_user_agent_id, &session_params, quic_context->params());
 
   session_params.disable_idle_sockets_close_on_memory_pressure =
       params_->disable_idle_sockets_close_on_memory_pressure;
@@ -2619,25 +2573,11 @@ URLRequestContextOwner NetworkContext::MakeURLRequestContext(
   builder.set_http_network_session_params(session_params);
   builder.set_quic_context(std::move(quic_context));
 
-  if (params_->shared_dictionary_enabled) {
-    CHECK(GetSharedDictionaryManager());
-    builder.SetCreateHttpTransactionFactoryCallback(base::BindOnce(
-        [](base::WeakPtr<NetworkContext> context,
-           net::HttpNetworkSession* session)
-            -> std::unique_ptr<net::HttpTransactionFactory> {
-          CHECK(context);
-          return std::make_unique<SharedDictionaryNetworkTransactionFactory>(
-              *context->GetSharedDictionaryManager(),
-              std::make_unique<ThrottlingNetworkTransactionFactory>(session));
-        },
-        weak_factory_.GetWeakPtr()));
-  } else {
-    builder.SetCreateHttpTransactionFactoryCallback(
-        base::BindOnce([](net::HttpNetworkSession* session)
-                           -> std::unique_ptr<net::HttpTransactionFactory> {
-          return std::make_unique<ThrottlingNetworkTransactionFactory>(session);
-        }));
-  }
+  builder.SetCreateHttpTransactionFactoryCallback(
+      base::BindOnce([](net::HttpNetworkSession* session)
+                         -> std::unique_ptr<net::HttpTransactionFactory> {
+        return std::make_unique<ThrottlingNetworkTransactionFactory>(session);
+      }));
 
   builder.set_host_mapping_rules(
       command_line->GetSwitchValueASCII(switches::kHostResolverRules));
@@ -2749,12 +2689,6 @@ URLRequestContextOwner NetworkContext::MakeURLRequestContext(
   if (proxy_delegate_) {
     proxy_delegate_->SetProxyResolutionService(
         result.url_request_context->proxy_resolution_service());
-
-    if (params_->ip_protection_auth_token_getter) {
-      proxy_delegate_->SetIpProtectionAuthTokenCache(
-          std::make_unique<IpProtectionAuthTokenCacheImpl>(
-              std::move(params_->ip_protection_auth_token_getter)));
-    }
   }
 
   return result;
@@ -2999,67 +2933,6 @@ void NetworkContext::ClearSharedDictionaryCache(
                                                       filter->domains.end()))
           : base::RepeatingCallback<bool(const GURL&)>(),
       std::move(callback));
-}
-
-void NetworkContext::ClearSharedDictionaryCacheForIsolationKey(
-    const net::SharedDictionaryIsolationKey& isolation_key,
-    ClearSharedDictionaryCacheForIsolationKeyCallback callback) {
-  if (!shared_dictionary_manager_) {
-    std::move(callback).Run();
-    return;
-  }
-  shared_dictionary_manager_->ClearDataForIsolationKey(isolation_key,
-                                                       std::move(callback));
-}
-
-void NetworkContext::GetSharedDictionaryUsageInfo(
-    GetSharedDictionaryUsageInfoCallback callback) {
-  if (!shared_dictionary_manager_) {
-    std::move(callback).Run({});
-    return;
-  }
-  shared_dictionary_manager_->GetUsageInfo(std::move(callback));
-}
-
-void NetworkContext::GetSharedDictionaryInfo(
-    const net::SharedDictionaryIsolationKey& isolation_key,
-    GetSharedDictionaryInfoCallback callback) {
-  if (!shared_dictionary_manager_) {
-    std::move(callback).Run({});
-    return;
-  }
-  shared_dictionary_manager_->GetSharedDictionaryInfo(isolation_key,
-                                                      std::move(callback));
-}
-
-void NetworkContext::GetSharedDictionaryOriginsBetween(
-    base::Time start_time,
-    base::Time end_time,
-    GetSharedDictionaryOriginsBetweenCallback callback) {
-  if (!shared_dictionary_manager_) {
-    std::move(callback).Run({});
-    return;
-  }
-  shared_dictionary_manager_->GetOriginsBetween(start_time, end_time,
-                                                std::move(callback));
-}
-
-void NetworkContext::ResourceSchedulerClientVisibilityChanged(
-    const base::UnguessableToken& client_token,
-    bool visible) {
-  resource_scheduler_->OnClientVisibilityChanged(client_token, visible);
-}
-
-void NetworkContext::FlushCachedClientCertIfNeeded(
-    const net::HostPortPair& host,
-    const scoped_refptr<net::X509Certificate>& certificate) {
-  net::HttpNetworkSession* http_session =
-      url_request_context_->http_transaction_factory()->GetSession();
-  DCHECK(http_session);
-  if (http_session->ssl_client_context()) {
-    http_session->ssl_client_context()->ClearClientCertificateIfNeeded(
-        host, certificate);
-  }
 }
 
 }  // namespace network

@@ -144,8 +144,7 @@ class CellularNetworkMetricsLoggerTest : public testing::Test {
  private:
   base::test::TaskEnvironment task_environment_;
   std::unique_ptr<NetworkHandlerTestHelper> network_handler_test_helper_;
-  raw_ptr<ShillServiceClient::TestInterface,
-          DanglingUntriaged | ExperimentalAsh>
+  raw_ptr<ShillServiceClient::TestInterface, ExperimentalAsh>
       shill_service_client_;
   TestingPrefServiceSimple profile_prefs_;
   TestingPrefServiceSimple local_state_;
@@ -171,11 +170,11 @@ TEST_F(CellularNetworkMetricsLoggerTest, AutoStatusTransitionsRevampEnabled) {
       /*sample=*/0, /*expected_count=*/1);
 
   // Add an APN to the network.
-  auto custom_apn_list = base::Value::List().Append(
-      base::Value::Dict()
-          .Set(::onc::cellular_apn::kAccessPointName, "apn1")
-          .Set(::onc::cellular_apn::kState,
-               ::onc::cellular_apn::kStateEnabled));
+  base::Value::Dict apn1;
+  apn1.Set(::onc::cellular_apn::kAccessPointName, "apn1");
+  apn1.Set(::onc::cellular_apn::kState, ::onc::cellular_apn::kStateEnabled);
+  base::Value::List custom_apn_list;
+  custom_apn_list.Append(std::move(apn1));
   NetworkHandler::Get()->network_metadata_store()->SetCustomApnList(
       kCellularGuid, custom_apn_list.Clone());
 
@@ -199,11 +198,10 @@ TEST_F(CellularNetworkMetricsLoggerTest, AutoStatusTransitionsRevampEnabled) {
       /*sample=*/0,
       /*expected_count=*/1);
 
-  custom_apn_list.Append(base::Value::Dict()
-                             .Set(::onc::cellular_apn::kAccessPointName, "apn2")
-                             .Set(::onc::cellular_apn::kState,
-                                  ::onc::cellular_apn::kStateDisabled));
-
+  base::Value::Dict apn2;
+  apn2.Set(::onc::cellular_apn::kAccessPointName, "apn2");
+  apn2.Set(::onc::cellular_apn::kState, ::onc::cellular_apn::kStateDisabled);
+  custom_apn_list.Append(std::move(apn2));
   NetworkHandler::Get()->network_metadata_store()->SetCustomApnList(
       kCellularGuid, std::move(custom_apn_list));
 
@@ -261,11 +259,11 @@ TEST_F(CellularNetworkMetricsLoggerTest, AutoStatusTransitionsRevampDisabled) {
       CellularNetworkMetricsLogger::kCustomApnsCountHistogram, 0, 1);
 
   // Add an APN to the network.
-  auto custom_apn_list = base::Value::List().Append(
-      base::Value::Dict()
-          .Set(::onc::cellular_apn::kAccessPointName, "apn1")
-          .Set(::onc::cellular_apn::kState,
-               ::onc::cellular_apn::kStateEnabled));
+  base::Value::Dict apn;
+  apn.Set(::onc::cellular_apn::kAccessPointName, "apn1");
+  apn.Set(::onc::cellular_apn::kState, ::onc::cellular_apn::kStateEnabled);
+  base::Value::List custom_apn_list;
+  custom_apn_list.Append(std::move(apn));
 
   NetworkHandler::Get()->network_metadata_store()->SetCustomApnList(
       kCellularGuid, std::move(custom_apn_list));

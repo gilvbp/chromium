@@ -5,8 +5,6 @@
 import {TestRunner} from 'test_runner';
 import {ConsoleTestRunner} from 'console_test_runner';
 
-import * as SDK from 'devtools/core/sdk/sdk.js';
-
 (async function() {
   TestRunner.addResult(
       `Tests a handling of a click on the link in a message, which had been shown before its originating script was added.\n`);
@@ -25,12 +23,12 @@ import * as SDK from 'devtools/core/sdk/sdk.js';
   `);
 
 
-  var message = new SDK.ConsoleModel.ConsoleMessage(
+  var message = new SDK.ConsoleMessage(
       TestRunner.runtimeModel, Protocol.Log.LogEntrySource.JS,
       Protocol.Log.LogEntryLevel.Info, 'hello?',
       {url: 'http://127.0.0.1:8000/devtools/resources/source2.js'});
 
-  const consoleModel = SDK.TargetManager.TargetManager.instance().primaryPageTarget().model(SDK.ConsoleModel.ConsoleModel);
+  const consoleModel = SDK.targetManager.primaryPageTarget().model(SDK.ConsoleModel);
   consoleModel.addMessage(message);
   TestRunner.debuggerModel.addEventListener(SDK.DebuggerModel.Events.ParsedScriptSource, onScriptAdded);
   await ConsoleTestRunner.dumpConsoleMessages();

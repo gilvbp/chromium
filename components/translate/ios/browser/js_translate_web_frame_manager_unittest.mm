@@ -13,6 +13,10 @@
 #import "testing/gtest_mac.h"
 #include "ui/base/resource/resource_bundle.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace translate {
 namespace {
 

@@ -61,8 +61,7 @@ static bool IsInvalidSeparator(UChar c) {
   return c == ';';
 }
 
-// Though absl::ascii_isspace() considers \t and \v to be whitespace, Win IE
-// doesn't.
+// Though isspace() considers \t and \v to be whitespace, Win IE doesn't.
 static bool IsSeparator(UChar c) {
   return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '=' ||
          c == ',' || c == '\0';

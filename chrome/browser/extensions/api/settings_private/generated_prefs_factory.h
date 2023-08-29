@@ -32,7 +32,7 @@ class GeneratedPrefsFactory : public ProfileKeyedServiceFactory {
 
   // BrowserContextKeyedServiceFactory implementation.
   bool ServiceIsNULLWhileTesting() const override;
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* profile) const override;
 };
 

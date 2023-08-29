@@ -14,7 +14,7 @@ struct Config;
 
 // Segmentation device tier segment model provider. Provides a default
 // model and metadata for the device tier segment target.
-class DeviceTierSegment : public DefaultModelProvider {
+class DeviceTierSegment : public ModelProvider {
  public:
   DeviceTierSegment();
   ~DeviceTierSegment() override = default;
@@ -26,10 +26,11 @@ class DeviceTierSegment : public DefaultModelProvider {
   static std::unique_ptr<Config> GetConfig();
 
   // ModelProvider implementation.
-  std::unique_ptr<ModelConfig> GetModelConfig() override;
-
+  void InitAndFetchModel(
+      const ModelUpdatedCallback& model_updated_callback) override;
   void ExecuteModelWithInput(const ModelProvider::Request& inputs,
                              ExecutionCallback callback) override;
+  bool ModelAvailable() override;
 };
 
 }  // namespace segmentation_platform

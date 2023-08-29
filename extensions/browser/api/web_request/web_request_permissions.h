@@ -5,22 +5,20 @@
 #ifndef EXTENSIONS_BROWSER_API_WEB_REQUEST_WEB_REQUEST_PERMISSIONS_H_
 #define EXTENSIONS_BROWSER_API_WEB_REQUEST_WEB_REQUEST_PERMISSIONS_H_
 
+#include <map>
 #include <string>
 
 #include "extensions/browser/api/web_request/web_request_resource_type.h"
 #include "extensions/common/permissions/permissions_data.h"
 #include "third_party/abseil-cpp/absl/types/optional.h"
 #include "third_party/blink/public/mojom/loader/resource_load_info.mojom-shared.h"
+#include "url/origin.h"
 
 class GURL;
 
 namespace extensions {
 class PermissionHelper;
 struct WebRequestInfo;
-}
-
-namespace url {
-class Origin;
 }
 
 // This class is used to test whether extensions may modify web requests. It

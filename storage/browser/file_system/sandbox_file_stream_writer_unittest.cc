@@ -16,7 +16,6 @@
 #include "base/functional/bind.h"
 #include "base/functional/callback_helpers.h"
 #include "base/task/single_thread_task_runner.h"
-#include "base/test/gmock_expected_support.h"
 #include "base/time/time.h"
 #include "components/services/storage/public/cpp/buckets/bucket_info.h"
 #include "components/services/storage/public/cpp/buckets/constants.h"
@@ -198,15 +197,14 @@ class SandboxFileStreamWriterTest : public FileStreamWriterTest {
     QuotaManagerProxySync quota_manager_proxy_sync(quota_manager_proxy_.get());
 
     // Check default bucket exist.
-    ASSERT_OK_AND_ASSIGN(
-        BucketInfo result,
-        quota_manager_proxy_sync.GetBucket(
-            blink::StorageKey::CreateFromStringForTesting(kURLOrigin),
-            kDefaultBucketName, blink::mojom::StorageType::kTemporary));
-    EXPECT_EQ(result.name, kDefaultBucketName);
-    EXPECT_EQ(result.storage_key,
+    QuotaErrorOr<BucketInfo> result = quota_manager_proxy_sync.GetBucket(
+        blink::StorageKey::CreateFromStringForTesting(kURLOrigin),
+        kDefaultBucketName, blink::mojom::StorageType::kTemporary);
+    ASSERT_TRUE(result.has_value());
+    EXPECT_EQ(result->name, kDefaultBucketName);
+    EXPECT_EQ(result->storage_key,
               blink::StorageKey::CreateFromStringForTesting(kURLOrigin));
-    EXPECT_GT(result.id.value(), 0);
+    EXPECT_GT(result->id.value(), 0);
   }
 
   void Test_Quota_OK() {

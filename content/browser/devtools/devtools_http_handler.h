@@ -71,8 +71,7 @@ class DevToolsHttpHandler {
                      const net::HttpServerRequestInfo& info);
   void RespondToJsonList(int connection_id,
                          const std::string& host,
-                         DevToolsAgentHost::List agent_hosts,
-                         bool for_tab);
+                         DevToolsAgentHost::List agent_hosts);
   void OnDiscoveryPageRequest(int connection_id);
   void OnFrontendResourceRequest(int connection_id, const std::string& path);
   void OnWebSocketRequest(int connection_id,

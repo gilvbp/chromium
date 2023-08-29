@@ -6,9 +6,6 @@ import {TestRunner} from 'test_runner';
 import {ApplicationTestRunner} from 'application_test_runner';
 import {ConsoleTestRunner} from 'console_test_runner';
 
-import * as SDK from 'devtools/core/sdk/sdk.js';
-import * as Common from 'devtools/core/common/common.js';
-
 (async function() {
   TestRunner.addResult(`Tests Application Panel preview for resources of different types.\n`);
   await TestRunner.loadLegacyModule('console');
@@ -57,8 +54,8 @@ import * as Common from 'devtools/core/common/common.js';
   }
 
   async function revealResourceWithDisplayName(name) {
-    var target = SDK.TargetManager.TargetManager.instance().primaryPageTarget();
-    var model = target.model(SDK.ResourceTreeModel.ResourceTreeModel);
+    var target = SDK.targetManager.primaryPageTarget();
+    var model = target.model(SDK.ResourceTreeModel);
     var resource = null;
     for (var r of model.mainFrame.resources()) {
       if (r.displayName !== name)

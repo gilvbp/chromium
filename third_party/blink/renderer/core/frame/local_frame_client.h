@@ -33,7 +33,6 @@
 
 #include <memory>
 
-#include "base/time/time.h"
 #include "mojo/public/cpp/bindings/pending_associated_receiver.h"
 #include "mojo/public/cpp/bindings/pending_associated_remote.h"
 #include "mojo/public/cpp/bindings/pending_remote.h"
@@ -213,8 +212,7 @@ class CORE_EXPORT LocalFrameClient : public FrameClient {
   virtual void DidObserveInputDelay(base::TimeDelta input_delay) {}
 
   // Will be called when a user interaction is observed.
-  virtual void DidObserveUserInteraction(base::TimeTicks max_event_start,
-                                         base::TimeTicks max_event_end,
+  virtual void DidObserveUserInteraction(base::TimeDelta max_event_duration,
                                          UserInteractionType interaction_type) {
   }
 

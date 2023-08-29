@@ -99,8 +99,7 @@ int main(int argc, char** argv) {
 
   // Services from this component will be provided to each web instance.
   WebInstanceHostWithServicesFromThisComponent web_instance_host(
-      *outgoing_directory,
-      /*is_web_instance_component_in_same_package=*/false);
+      *outgoing_directory);
 
   // Publish the fuchsia.component.runner.ComponentRunner for Cast apps.
   CastRunner runner(

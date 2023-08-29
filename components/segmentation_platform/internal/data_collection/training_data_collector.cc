@@ -13,7 +13,6 @@ namespace segmentation_platform {
 
 // static
 std::unique_ptr<TrainingDataCollector> TrainingDataCollector::Create(
-    const PlatformOptions& platform_options,
     processing::FeatureListQueryProcessor* processor,
     HistogramSignalHandler* histogram_signal_handler,
     UserActionSignalHandler* user_action_signal_handler,
@@ -22,9 +21,8 @@ std::unique_ptr<TrainingDataCollector> TrainingDataCollector::Create(
     base::Clock* clock,
     CachedResultProvider* cached_result_provider) {
   return std::make_unique<TrainingDataCollectorImpl>(
-      platform_options, processor, histogram_signal_handler,
-      user_action_signal_handler, storage_service, profile_prefs, clock,
-      cached_result_provider);
+      processor, histogram_signal_handler, user_action_signal_handler,
+      storage_service, profile_prefs, clock, cached_result_provider);
 }
 
 TrainingDataCollector::TrainingDataCollector() = default;

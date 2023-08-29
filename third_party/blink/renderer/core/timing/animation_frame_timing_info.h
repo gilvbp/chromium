@@ -10,7 +10,6 @@
 #include "third_party/blink/renderer/platform/bindings/source_location.h"
 #include "third_party/blink/renderer/platform/heap/collection_support/heap_vector.h"
 #include "third_party/blink/renderer/platform/heap/garbage_collected.h"
-#include "third_party/blink/renderer/platform/weborigin/security_origin.h"
 
 namespace blink {
 
@@ -35,7 +34,8 @@ class ScriptTimingInfo : public GarbageCollected<ScriptTimingInfo> {
   struct ScriptSourceLocation {
     WTF::String url;
     WTF::String function_name;
-    int start_position = 0;
+    unsigned int line_number = 0;
+    unsigned int column_number = 0;
   };
 
   ScriptTimingInfo(ExecutionContext* context,
@@ -68,11 +68,7 @@ class ScriptTimingInfo : public GarbageCollected<ScriptTimingInfo> {
   }
   void SetSourceLocation(const ScriptSourceLocation& location) {
     source_location_ = location;
-    if (KURL(location.url).ProtocolIsData()) {
-      source_location_.url = "data:";
-    }
   }
-
   const AtomicString& ClassLikeName() const { return class_like_name_; }
   void SetClassLikeName(const AtomicString& name) { class_like_name_ = name; }
   const AtomicString& PropertyLikeName() const { return property_like_name_; }
@@ -80,9 +76,6 @@ class ScriptTimingInfo : public GarbageCollected<ScriptTimingInfo> {
     property_like_name_ = name;
   }
   LocalDOMWindow* Window() const { return window_; }
-  const SecurityOrigin* GetSecurityOrigin() const {
-    return security_origin_.get();
-  }
 
  private:
   Type type_;
@@ -97,7 +90,6 @@ class ScriptTimingInfo : public GarbageCollected<ScriptTimingInfo> {
   base::TimeDelta pause_duration_;
   ScriptSourceLocation source_location_;
   WeakMember<LocalDOMWindow> window_;
-  scoped_refptr<const SecurityOrigin> security_origin_;
 };
 
 class AnimationFrameTimingInfo

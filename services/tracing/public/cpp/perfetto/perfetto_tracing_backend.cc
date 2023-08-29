@@ -32,8 +32,6 @@
 #include "third_party/perfetto/include/perfetto/ext/tracing/core/tracing_service.h"
 #include "third_party/perfetto/include/perfetto/tracing/core/trace_config.h"
 
-using ShmemMode = perfetto::SharedMemoryArbiter::ShmemMode;
-
 namespace tracing {
 namespace {
 
@@ -242,7 +240,7 @@ class ProducerEndpoint : public perfetto::ProducerEndpoint,
              const std::vector<uint64_t>& data_source_ids) override {
     DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
     producer_->Flush(flush_request_id, data_source_ids.data(),
-                     data_source_ids.size(), perfetto::FlushFlags(0));
+                     data_source_ids.size());
   }
 
   void ClearIncrementalState() override {
@@ -259,9 +257,15 @@ class ProducerEndpoint : public perfetto::ProducerEndpoint,
     DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
 
     DCHECK(!shared_memory_ == !shared_memory_arbiter_);
-    if (!shared_memory_) {
+    if (shared_memory_arbiter_) {
+      shared_memory_arbiter_->BindToProducerEndpoint(this,
+                                                     producer_task_runner);
+    } else {
       shared_memory_ =
           std::make_unique<ChromeBaseSharedMemory>(shmem_size_bytes_);
+      shared_memory_arbiter_ = perfetto::SharedMemoryArbiter::CreateInstance(
+          shared_memory_.get(), shmem_page_size_bytes_, this,
+          producer_task_runner);
     }
 
     mojo::PendingRemote<mojom::ProducerClient> client_remote;
@@ -279,17 +283,6 @@ class ProducerEndpoint : public perfetto::ProducerEndpoint,
     receiver_->set_disconnect_handler(base::BindOnce(
         [](ProducerEndpoint* endpoint) { endpoint->receiver_->reset(); },
         base::Unretained(this)));
-
-    if (shared_memory_arbiter_) {
-      shared_memory_arbiter_->BindToProducerEndpoint(this,
-                                                     producer_task_runner);
-    } else {
-      shared_memory_arbiter_ = perfetto::SharedMemoryArbiter::CreateInstance(
-          shared_memory_.get(), shmem_page_size_bytes_, ShmemMode::kDefault,
-          this, producer_task_runner);
-    }
-    shared_memory_arbiter_->SetDirectSMBPatchingSupportedByService();
-    shared_memory_arbiter_->EnableDirectSMBPatching();
 
     producer_->OnConnect();
   }
@@ -636,10 +629,11 @@ PerfettoTracingBackend::ConnectConsumer(const ConnectConsumerArgs& args) {
   }
   auto consumer_endpoint =
       std::make_unique<ConsumerEndpoint>(args.consumer, args.task_runner);
+  consumer_endpoint_ = consumer_endpoint->GetWeakPtr();
   consumer_connection_task_runner_->PostTask(
       FROM_HERE,
       base::BindOnce(&PerfettoTracingBackend::CreateConsumerConnection,
-                     base::Unretained(this), consumer_endpoint->GetWeakPtr()));
+                     base::Unretained(this)));
   return consumer_endpoint;
 }
 
@@ -659,7 +653,7 @@ PerfettoTracingBackend::ConnectProducer(const ConnectProducerArgs& args) {
   if (args.use_producer_provided_smb) {
     shm = std::make_unique<ChromeBaseSharedMemory>(shmem_size_hint);
     arbiter = perfetto::SharedMemoryArbiter::CreateUnboundInstance(
-        shm.get(), shmem_page_size_hint, ShmemMode::kDefault);
+        shm.get(), shmem_page_size_hint);
   }
 #endif  // BUILDFLAG(USE_PERFETTO_CLIENT_LIBRARY)
 
@@ -719,23 +713,17 @@ void PerfettoTracingBackend::BindProducerConnectionIfNecessary() {
   }
 }
 
-void PerfettoTracingBackend::CreateConsumerConnection(
-    base::WeakPtr<ConsumerEndpoint> consumer_endpoint) {
+void PerfettoTracingBackend::CreateConsumerConnection() {
   DCHECK(consumer_connection_task_runner_->RunsTasksInCurrentSequence());
-  auto consumer_host_remote =
-      std::make_unique<mojo::PendingRemote<mojom::ConsumerHost>>();
+  consumer_host_remote_.reset();
   auto& tracing_service = consumer_connection_factory_();
   tracing_service.BindConsumerHost(
-      consumer_host_remote->InitWithNewPipeAndPassReceiver());
-  muxer_task_runner_->PostTask(
-      [consumer_endpoint, raw_ptr = consumer_host_remote.release()] {
-        std::unique_ptr<mojo::PendingRemote<mojom::ConsumerHost>>
-            consumer_host_remote(raw_ptr);
-        if (!consumer_endpoint) {
-          return;
-        }
-        consumer_endpoint->BindConnection(std::move(*consumer_host_remote));
-      });
+      consumer_host_remote_.InitWithNewPipeAndPassReceiver());
+  muxer_task_runner_->PostTask([this] {
+    if (!consumer_endpoint_)
+      return;
+    consumer_endpoint_->BindConnection(std::move(consumer_host_remote_));
+  });
 }
 
 }  // namespace tracing

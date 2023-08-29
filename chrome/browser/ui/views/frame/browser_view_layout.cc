@@ -37,7 +37,6 @@
 #include "chrome/browser/ui/web_applications/app_browser_controller.h"
 #include "components/web_modal/web_contents_modal_dialog_host.h"
 #include "ui/base/hit_test.h"
-#include "ui/base/ui_base_features.h"
 #include "ui/gfx/geometry/insets.h"
 #include "ui/gfx/geometry/point.h"
 #include "ui/gfx/geometry/rect.h"
@@ -98,10 +97,10 @@ class BrowserViewLayout::WebContentsModalDialogHostViews
   }
 
   gfx::Point GetDialogPosition(const gfx::Size& size) override {
-    views::View* view = browser_view_layout_->top_container_;
-    gfx::Rect rect = view->ConvertRectToWidget(view->GetLocalBounds());
-    const int middle_x = rect.x() + rect.width() / 2;
-    const int top = browser_view_layout_->dialog_top_y_;
+    views::View* view = browser_view_layout_->contents_container_;
+    gfx::Rect content_area = view->ConvertRectToWidget(view->GetLocalBounds());
+    const int middle_x = content_area.x() + content_area.width() / 2;
+    const int top = browser_view_layout_->web_contents_modal_dialog_top_y_;
     return gfx::Point(middle_x - size.width() / 2, top);
   }
 
@@ -116,18 +115,14 @@ class BrowserViewLayout::WebContentsModalDialogHostViews
   gfx::Size GetMaximumDialogSize() override {
     views::View* view = browser_view_layout_->contents_container_;
     gfx::Rect content_area = view->ConvertRectToWidget(view->GetLocalBounds());
-    const int top = browser_view_layout_->dialog_top_y_;
+    const int top = browser_view_layout_->web_contents_modal_dialog_top_y_;
     return gfx::Size(content_area.width(), content_area.bottom() - top);
-  }
-
-  views::Widget* GetHostWidget() const {
-    return views::Widget::GetWidgetForNativeView(
-        browser_view_layout_->delegate_->GetHostViewForAnchoring());
   }
 
  private:
   gfx::NativeView GetHostView() const override {
-    return GetHostWidget()->GetNativeView();
+    return browser_view_layout_->browser_view_->GetWidgetForAnchoring()
+        ->GetNativeView();
   }
 
   // Add/remove observer.
@@ -160,7 +155,6 @@ BrowserViewLayout::BrowserViewLayout(
     views::View* left_aligned_side_panel_separator,
     views::View* unified_side_panel,
     views::View* right_aligned_side_panel_separator,
-    views::View* side_panel_rounded_corner,
     ImmersiveModeController* immersive_mode_controller,
     views::View* contents_separator)
     : delegate_(std::move(delegate)),
@@ -175,7 +169,6 @@ BrowserViewLayout::BrowserViewLayout(
       left_aligned_side_panel_separator_(left_aligned_side_panel_separator),
       unified_side_panel_(unified_side_panel),
       right_aligned_side_panel_separator_(right_aligned_side_panel_separator),
-      side_panel_rounded_corner_(side_panel_rounded_corner),
       immersive_mode_controller_(immersive_mode_controller),
       contents_separator_(contents_separator),
       tab_strip_(tab_strip),
@@ -329,8 +322,11 @@ int BrowserViewLayout::NonClientHitTest(const gfx::Point& point) {
   // if we're in an app defined draggable region so we can return htcaption.
   web_app::AppBrowserController* controller =
       browser_view_->browser()->app_controller();
+  bool is_wco_or_borderless_mode =
+      browser_view_->IsWindowControlsOverlayEnabled() ||
+      browser_view_->IsBorderlessModeEnabled();
 
-  if (browser_view_->AreDraggableRegionsEnabled() && controller &&
+  if (is_wco_or_borderless_mode && controller &&
       controller->draggable_region().has_value()) {
     // Draggable regions are defined relative to the web contents.
     gfx::Point point_in_contents_web_view_coords(point_in_browser_view_coords);
@@ -341,9 +337,9 @@ int BrowserViewLayout::NonClientHitTest(const gfx::Point& point) {
     if (controller->draggable_region()->contains(
             point_in_contents_web_view_coords.x(),
             point_in_contents_web_view_coords.y())) {
-      // Draggable regions should be ignored for clicks into any browser view's
-      // owned widgets, for example alerts, permission prompts or find bar.
-      return browser_view_->WidgetOwnedByAnchorContainsPoint(
+      // Draggable regions should be ignored for clicks into any child widgets,
+      // for example alerts or find bar.
+      return browser_view_->ChildOfAnchorWidgetContainsPoint(
                  point_in_browser_view_coords)
                  ? HTCLIENT
                  : HTCAPTION;
@@ -394,7 +390,8 @@ void BrowserViewLayout::Layout(views::View* browser_view) {
     top = LayoutTabStripRegion(top);
     if (delegate_->IsTabStripVisible()) {
       tab_strip_->SetBackgroundOffset(tab_strip_region_view_->GetMirroredX() +
-                                      browser_view_->GetMirroredX());
+                                      browser_view_->GetMirroredX() +
+                                      delegate_->GetThemeBackgroundXInset());
     }
     top = LayoutWebUITabStrip(top);
   }
@@ -443,14 +440,8 @@ void BrowserViewLayout::Layout(views::View* browser_view) {
   // Adjust any hosted dialogs if the browser's dialog hosting bounds changed.
   const gfx::Rect dialog_bounds(dialog_host_->GetDialogPosition(gfx::Size()),
                                 dialog_host_->GetMaximumDialogSize());
-  const gfx::Rect host_widget_bounds =
-      dialog_host_->GetHostWidget()
-          ? dialog_host_->GetHostWidget()->GetClientAreaBoundsInScreen()
-          : gfx::Rect();
-  const gfx::Rect dialog_bounds_in_screen =
-      dialog_bounds + host_widget_bounds.OffsetFromOrigin();
-  if (latest_dialog_bounds_in_screen_ != dialog_bounds_in_screen) {
-    latest_dialog_bounds_in_screen_ = dialog_bounds_in_screen;
+  if (latest_dialog_bounds_ != dialog_bounds) {
+    latest_dialog_bounds_ = dialog_bounds;
     dialog_host_->NotifyPositionRequiresUpdate();
   }
 }
@@ -589,7 +580,8 @@ int BrowserViewLayout::LayoutToolbar(int top) {
 
 int BrowserViewLayout::LayoutBookmarkAndInfoBars(int top, int browser_view_y) {
   TRACE_EVENT0("ui", "BrowserViewLayout::LayoutBookmarkAndInfoBars");
-  dialog_top_y_ = top + browser_view_y - kConstrainedWindowOverlap;
+  web_contents_modal_dialog_top_y_ =
+      top + browser_view_y - kConstrainedWindowOverlap;
 
   if (bookmark_bar_) {
     top = std::max(toolbar_->bounds().bottom(), LayoutBookmarkBar(top));
@@ -648,8 +640,7 @@ int BrowserViewLayout::LayoutInfoBar(int top) {
       (delegate_->IsTopControlsSlideBehaviorEnabled() &&
        delegate_->GetTopControlsSlideBehaviorShownRatio() == 0.f)) {
     // Can be null in tests.
-    top = (browser_view_ ? browser_view_->y() : 0) +
-          immersive_mode_controller_->GetMinimumContentOffset();
+    top = browser_view_ ? browser_view_->y() : 0;
   }
 
   SetViewVisibility(infobar_container_, IsInfobarVisible());
@@ -675,22 +666,16 @@ void BrowserViewLayout::LayoutContentsContainerView(int top, int bottom) {
 
   LayoutSidePanelView(unified_side_panel_, contents_container_bounds);
 
-  contents_container_->SetBoundsRect(contents_container_bounds);
-}
+  const bool side_panel_visible =
+      unified_side_panel_ && unified_side_panel_->GetVisible();
 
-void BrowserViewLayout::LayoutSidePanelView(
-    views::View* side_panel,
-    gfx::Rect& contents_container_bounds) {
-  const bool side_panel_visible = side_panel && side_panel->GetVisible();
-  // Update side panel rounded corner visibility to match side panel visibility.
-  if (side_panel_rounded_corner_) {
-    SetViewVisibility(side_panel_rounded_corner_, side_panel_visible);
-  }
-
+  // TODO(pbos): If right-aligned side panels get merged into one View, move
+  // separator visibility back into LayoutSidePanelView().
   if (left_aligned_side_panel_separator_) {
     const bool side_panel_visible_on_left =
         side_panel_visible &&
         !views::AsViewClass<SidePanel>(unified_side_panel_)->IsRightAligned();
+
     SetViewVisibility(left_aligned_side_panel_separator_,
                       side_panel_visible_on_left);
   }
@@ -699,10 +684,17 @@ void BrowserViewLayout::LayoutSidePanelView(
     const bool side_panel_visible_on_right =
         side_panel_visible &&
         views::AsViewClass<SidePanel>(unified_side_panel_)->IsRightAligned();
+
     SetViewVisibility(right_aligned_side_panel_separator_,
                       side_panel_visible_on_right);
   }
 
+  contents_container_->SetBoundsRect(contents_container_bounds);
+}
+
+void BrowserViewLayout::LayoutSidePanelView(
+    views::View* side_panel,
+    gfx::Rect& contents_container_bounds) {
   if (!side_panel || !side_panel->GetVisible())
     return;
 
@@ -770,27 +762,6 @@ void BrowserViewLayout::LayoutSidePanelView(
                                         : contents_container_bounds.right());
 
   side_panel_separator->SetBoundsRect(side_panel_separator_bounds);
-
-  // Adjust the side panel rounded corner bounds based on the side panel bounds
-  // calculated above.
-  if (side_panel_rounded_corner_) {
-    const float corner_radius =
-        side_panel_rounded_corner_->GetLayoutProvider()->GetCornerRadiusMetric(
-            views::ShapeContextTokens::kSidePanelPageContentRadius);
-    if (is_container_after_side_panel) {
-      side_panel_rounded_corner_->SetBounds(
-          side_panel_bounds.right(),
-          side_panel_bounds.y() - views::Separator::kThickness,
-          corner_radius + views::Separator::kThickness,
-          corner_radius + views::Separator::kThickness);
-    } else {
-      side_panel_rounded_corner_->SetBounds(
-          side_panel_bounds.x() - corner_radius - views::Separator::kThickness,
-          side_panel_bounds.y() - views::Separator::kThickness,
-          corner_radius + views::Separator::kThickness,
-          corner_radius + views::Separator::kThickness);
-    }
-  }
 }
 
 void BrowserViewLayout::UpdateTopContainerBounds() {

@@ -127,7 +127,6 @@ class TestInputController : public ui::InputController {
   void GetGesturePropertiesService(
       mojo::PendingReceiver<ui::ozone::mojom::GesturePropertiesService>
           receiver) override {}
-  bool AreAnyKeysPressed() override { return false; }
 
   bool GetAccelerationSuspended() { return acceleration_suspended_; }
 

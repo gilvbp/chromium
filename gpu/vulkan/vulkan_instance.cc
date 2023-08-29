@@ -6,7 +6,6 @@
 
 #include <vector>
 
-#include "base/containers/contains.h"
 #include "base/containers/flat_set.h"
 #include "base/logging.h"
 #include "base/numerics/safe_conversions.h"
@@ -40,9 +39,8 @@ VulkanErrorCallback(VkDebugReportFlagsEXT flags,
   static base::flat_set<const char*> hitted_errors;
   for (const char* error : kSkippedErrors) {
     if (strstr(message, error) != nullptr) {
-      if (base::Contains(hitted_errors, error)) {
+      if (hitted_errors.find(error) != hitted_errors.end())
         return VK_FALSE;
-      }
       hitted_errors.insert(error);
     }
   }

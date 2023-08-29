@@ -16,7 +16,6 @@ import androidx.core.util.AtomicFile;
 import org.chromium.base.Callback;
 import org.chromium.base.ContextUtils;
 import org.chromium.base.Log;
-import org.chromium.base.ResettersForTesting;
 import org.chromium.base.StreamUtil;
 import org.chromium.base.StrictModeContext;
 import org.chromium.base.metrics.RecordHistogram;
@@ -155,6 +154,7 @@ public class FilePersistedTabDataStorage implements PersistedTabDataStorage {
         delete(tabId, dataId, NO_OP_CALLBACK);
     }
 
+    @VisibleForTesting
     public List<StorageRequest> getStorageRequestQueueForTesting() {
         return mQueue;
     }
@@ -171,10 +171,9 @@ public class FilePersistedTabDataStorage implements PersistedTabDataStorage {
         processNextItemOnQueue();
     }
 
+    @VisibleForTesting
     protected void setExecutingSaveRequestForTesting(FileSaveRequest fileSaveRequest) {
-        var oldValue = mExecutingSaveRequest;
         mExecutingSaveRequest = fileSaveRequest;
-        ResettersForTesting.register(() -> mExecutingSaveRequest = oldValue);
     }
 
     /**
@@ -672,6 +671,7 @@ public class FilePersistedTabDataStorage implements PersistedTabDataStorage {
     /**
      * Used for cleaning up files between batched tests.
      */
+    @VisibleForTesting
     protected static void deleteFilesForTesting() {
         for (File file : getOrCreateBaseStorageDirectory().listFiles()) {
             file.delete();
@@ -696,6 +696,7 @@ public class FilePersistedTabDataStorage implements PersistedTabDataStorage {
         mDelayedSaveRequests.clear();
     }
 
+    @VisibleForTesting
     public LinkedList<FileSaveRequest> getDelayedSaveRequestsForTesting() {
         return mDelayedSaveRequests;
     }

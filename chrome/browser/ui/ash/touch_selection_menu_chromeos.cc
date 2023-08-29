@@ -17,7 +17,6 @@
 #include "ui/display/screen.h"
 #include "ui/gfx/image/image_skia.h"
 #include "ui/gfx/image/image_skia_operations.h"
-#include "ui/touch_selection/touch_selection_metrics.h"
 #include "ui/views/controls/button/button.h"
 #include "ui/views/controls/button/label_button.h"
 
@@ -81,7 +80,6 @@ void TouchSelectionMenuChromeOS::OnBeforeBubbleWidgetInit(
 TouchSelectionMenuChromeOS::~TouchSelectionMenuChromeOS() = default;
 
 void TouchSelectionMenuChromeOS::ActionButtonPressed() {
-  ui::RecordTouchSelectionMenuSmartAction();
   auto* arc_service_manager = arc::ArcServiceManager::Get();
   if (!arc_service_manager)
     return;

@@ -141,10 +141,6 @@ Polymer({
     globalPolicy: Object,
 
     /**
-     * WARNING: This string may contain malicious HTML and should not be used
-     * for Polymer bindings in CSS code. For additional information see
-     * b/286254915.
-     *
      * Title containing the item's name and subtitle.
      * @private {string}
      */
@@ -376,15 +372,10 @@ Polymer({
       this.itemTitle_ = itemName;
       return;
     }
-    this.itemTitle_ =
-        loadTimeData.getStringF('networkListItemTitle', itemName, subtitle);
+    this.itemTitle_ = this.i18n('networkListItemTitle', itemName, subtitle);
   },
 
   /**
-   * WARNING: The string returned by this method may contain malicious HTML and
-   * should not be used for Polymer bindings in CSS code. For additional
-   * information see b/286254915.
-   *
    * This gets called for network items and custom items.
    * @return {string}
    * @private
@@ -396,7 +387,7 @@ Polymer({
           this.i18n(item.customItemName) :
           item.customItemName;
     }
-    return OncMojo.getNetworkStateDisplayNameUnsafe(
+    return OncMojo.getNetworkStateDisplayName(
         /** @type {!OncMojo.NetworkStateProperties} */ (this.item));
   },
 
@@ -406,8 +397,7 @@ Polymer({
    * @private
    */
   getButtonLabel_() {
-    return loadTimeData.getStringF(
-        'networkListItemSubpageButtonLabel', this.getItemName_());
+    return this.i18n('networkListItemSubpageButtonLabel', this.getItemName_());
   },
 
   /**
@@ -462,134 +452,134 @@ Polymer({
           if (sublabel) {
             if (this.subtitle_) {
               if (this.isPsimPendingActivationWhileLoggedOut_()) {
-                return loadTimeData.getStringF(
+                return this.i18n(
                     'networkListItemLabelManagedActivateAfterSetupWithProviderName',
                     index, total, this.getItemName_(), this.subtitle_);
               }
-              return loadTimeData.getStringF(
+              return this.i18n(
                   'networkListItemLabelCellularManagedWithConnectionStatusAndProviderName',
                   index, total, this.getItemName_(), this.subtitle_, sublabel,
                   this.item.typeState.cellular.signalStrength);
             }
             if (this.isPsimPendingActivationWhileLoggedOut_()) {
-              return loadTimeData.getStringF(
+              return this.i18n(
                   'networkListItemLabelManagedActivateAfterSetup', index, total,
                   this.getItemName_());
             }
-            return loadTimeData.getStringF(
+            return this.i18n(
                 'networkListItemLabelCellularManagedWithConnectionStatus',
                 index, total, this.getItemName_(), sublabel,
                 this.item.typeState.cellular.signalStrength);
           }
           if (this.subtitle_) {
-            return loadTimeData.getStringF(
+            return this.i18n(
                 'networkListItemLabelCellularManagedWithProviderName', index,
                 total, this.getItemName_(), this.subtitle_,
                 this.item.typeState.cellular.signalStrength);
           }
-          return loadTimeData.getStringF(
+          return this.i18n(
               'networkListItemLabelCellularManaged', index, total,
               this.getItemName_(), this.item.typeState.cellular.signalStrength);
         }
         if (sublabel) {
           if (this.subtitle_) {
             if (this.isPsimPendingActivationWhileLoggedOut_()) {
-              return loadTimeData.getStringF(
+              return this.i18n(
                   'networkListItemLabelActivateAfterSetupWithProviderName',
                   index, total, this.getItemName_(), this.subtitle_);
             }
-            return loadTimeData.getStringF(
+            return this.i18n(
                 'networkListItemLabelCellularWithConnectionStatusAndProviderName',
                 index, total, this.getItemName_(), this.subtitle_, sublabel,
                 this.item.typeState.cellular.signalStrength);
           }
           if (this.isPsimPendingActivationWhileLoggedOut_()) {
-            return loadTimeData.getStringF(
+            return this.i18n(
                 'networkListItemLabelActivateAfterSetup', index, total,
                 this.getItemName_());
           }
           if (this.isPSimPendingActivationNetwork_) {
-            return loadTimeData.getStringF(
+            return this.i18n(
                 'networkListItemLabelCellularUnactivatedWithConnectionStatus',
                 index, total, this.getItemName_(), sublabel,
                 this.item.typeState.cellular.signalStrength);
           }
           if (this.isBlockedNetwork_) {
-            return loadTimeData.getStringF(
+            return this.i18n(
                 'networkListItemCellularBlockedWithConnectionStatusA11yLabel',
                 index, total, this.getItemName_(), sublabel,
                 this.item.typeState.cellular.signalStrength);
           }
 
-          return loadTimeData.getStringF(
+          return this.i18n(
               'networkListItemLabelCellularWithConnectionStatus', index, total,
               this.getItemName_(), sublabel,
               this.item.typeState.cellular.signalStrength);
         }
 
         if (this.isPSimPendingActivationNetwork_) {
-          return loadTimeData.getStringF(
+          return this.i18n(
               'networkListItemLabelCellularUnactivated', index, total,
               this.getItemName_(), this.item.typeState.cellular.signalStrength);
         }
 
         if (this.isBlockedNetwork_) {
-          return loadTimeData.getStringF(
+          return this.i18n(
               'networkListItemCellularBlockedA11yLabel', index, total,
               this.getItemName_(), this.item.typeState.cellular.signalStrength);
         }
 
         if (this.subtitle_) {
-          return loadTimeData.getStringF(
+          return this.i18n(
               'networkListItemLabelCellularWithProviderName', index, total,
               this.getItemName_(), this.subtitle_,
               this.item.typeState.cellular.signalStrength);
         }
-        return loadTimeData.getStringF(
+        return this.i18n(
             'networkListItemLabelCellular', index, total, this.getItemName_(),
             this.item.typeState.cellular.signalStrength);
       case NetworkType.kEthernet:
         if (isManaged) {
           if (sublabel) {
-            return loadTimeData.getStringF(
+            return this.i18n(
                 'networkListItemLabelCellularManagedWithConnectionStatus',
                 index, total, this.getItemName_(), sublabel);
           }
-          return loadTimeData.getStringF(
+          return this.i18n(
               'networkListItemLabelEthernetManaged', index, total,
               this.getItemName_());
         }
         if (sublabel) {
-          return loadTimeData.getStringF(
+          return this.i18n(
               'networkListItemLabelEthernetWithConnectionStatus', index, total,
               this.getItemName_(), sublabel);
         }
-        return loadTimeData.getStringF(
+        return this.i18n(
             'networkListItemLabel', index, total, this.getItemName_());
       case NetworkType.kTether:
         // Tether networks will never be controlled by policy (only disabled).
         if (sublabel) {
           if (this.subtitle_) {
-            return loadTimeData.getStringF(
+            return this.i18n(
                 'networkListItemLabelTetherWithConnectionStatusAndProviderName',
                 index, total, this.getItemName_(), this.subtitle_, sublabel,
                 this.item.typeState.tether.signalStrength,
                 this.item.typeState.tether.batteryPercentage);
           }
-          return loadTimeData.getStringF(
+          return this.i18n(
               'networkListItemLabelTetherWithConnectionStatus', index, total,
               this.getItemName_(), sublabel,
               this.item.typeState.tether.signalStrength,
               this.item.typeState.tether.batteryPercentage);
         }
         if (this.subtitle_) {
-          return loadTimeData.getStringF(
+          return this.i18n(
               'networkListItemLabelTetherWithProviderName', index, total,
               this.getItemName_(), this.subtitle_,
               this.item.typeState.tether.signalStrength,
               this.item.typeState.tether.batteryPercentage);
         }
-        return loadTimeData.getStringF(
+        return this.i18n(
             'networkListItemLabelTether', index, total, this.getItemName_(),
             this.item.typeState.tether.signalStrength,
             this.item.typeState.tether.batteryPercentage);
@@ -600,61 +590,61 @@ Polymer({
             this.i18n('wifiNetworkStatusSecured');
         if (isManaged) {
           if (sublabel) {
-            return loadTimeData.getStringF(
+            return this.i18n(
                 'networkListItemLabelWifiManagedWithConnectionStatus', index,
                 total, this.getItemName_(), secured, sublabel,
                 this.item.typeState.wifi.signalStrength);
           }
-          return loadTimeData.getStringF(
+          return this.i18n(
               'networkListItemLabelWifiManaged', index, total,
               this.getItemName_(), secured,
               this.item.typeState.wifi.signalStrength);
         }
         if (sublabel) {
           if (this.isBlockedNetwork_) {
-            return loadTimeData.getStringF(
+            return this.i18n(
                 'networkListItemWiFiBlockedWithConnectionStatusA11yLabel',
                 index, total, this.getItemName_(), secured, sublabel,
                 this.item.typeState.wifi.signalStrength);
           }
 
-          return loadTimeData.getStringF(
+          return this.i18n(
               'networkListItemLabelWifiWithConnectionStatus', index, total,
               this.getItemName_(), secured, sublabel,
               this.item.typeState.wifi.signalStrength);
         }
 
         if (this.isBlockedNetwork_) {
-          return loadTimeData.getStringF(
+          return this.i18n(
               'networkListItemWiFiBlockedA11yLabel', index, total,
               this.getItemName_(), secured,
               this.item.typeState.wifi.signalStrength);
         }
 
-        return loadTimeData.getStringF(
+        return this.i18n(
             'networkListItemLabelWifi', index, total, this.getItemName_(),
             secured, this.item.typeState.wifi.signalStrength);
       default:
         if (this.isESimPendingProfile_) {
           if (this.subtitle_) {
-            return loadTimeData.getStringF(
+            return this.i18n(
                 'networkListItemLabelESimPendingProfileWithProviderName', index,
                 total, this.getItemName_(), this.subtitle_);
           }
-          return loadTimeData.getStringF(
+          return this.i18n(
               'networkListItemLabelESimPendingProfile', index, total,
               this.getItemName_());
         } else if (this.isESimInstallingProfile_) {
           if (this.subtitle_) {
-            return loadTimeData.getStringF(
+            return this.i18n(
                 'networkListItemLabelESimPendingProfileWithProviderNameInstalling',
                 index, total, this.getItemName_(), this.subtitle_);
           }
-          return loadTimeData.getStringF(
+          return this.i18n(
               'networkListItemLabelESimPendingProfileInstalling', index, total,
               this.getItemName_());
         }
-        return loadTimeData.getStringF(
+        return this.i18n(
             'networkListItemLabel', index, total, this.getItemName_());
     }
   },
@@ -1014,8 +1004,7 @@ Polymer({
    * @private
    */
   getActivateBtnA11yLabel_() {
-    return loadTimeData.getStringF(
-        'networkListItemActivateA11yLabel', this.getItemName_());
+    return this.i18n('networkListItemActivateA11yLabel', this.getItemName_());
   },
 
   /**
@@ -1158,8 +1147,7 @@ Polymer({
    * @private
    */
   getUnlockBtnA11yLabel_() {
-    return loadTimeData.getStringF(
-        'networkListItemUnlockA11YLabel', this.getItemName_());
+    return this.i18n('networkListItemUnlockA11YLabel', this.getItemName_());
   },
 
   /**
@@ -1178,8 +1166,7 @@ Polymer({
    * @private
    */
   getInstallBtnA11yLabel_() {
-    return loadTimeData.getStringF(
-        'networkListItemDownloadA11yLabel', this.getItemName_());
+    return this.i18n('networkListItemDownloadA11yLabel', this.getItemName_());
   },
 
   /**

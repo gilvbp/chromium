@@ -37,10 +37,6 @@
 
 namespace blink {
 
-DraggedIsolatedFileSystemImpl::DraggedIsolatedFileSystemImpl(
-    DataObject& data_object)
-    : Supplement(data_object) {}
-
 DOMFileSystem* DraggedIsolatedFileSystemImpl::GetDOMFileSystem(
     DataObject* host,
     ExecutionContext* execution_context,
@@ -80,7 +76,7 @@ void DraggedIsolatedFileSystemImpl::PrepareForDataObject(
     DataObject* data_object) {
   DCHECK(IsMainThread());
   DraggedIsolatedFileSystemImpl* file_system =
-      MakeGarbageCollected<DraggedIsolatedFileSystemImpl>(*data_object);
+      MakeGarbageCollected<DraggedIsolatedFileSystemImpl>();
   ProvideTo(*data_object, file_system);
 }
 

@@ -90,9 +90,7 @@ void DlpContentTabHelper::DidFinishNavigation(
 }
 
 void DlpContentTabHelper::WebContentsDestroyed() {
-  if (DlpContentObserver::HasInstance()) {
-    DlpContentObserver::Get()->OnWebContentsDestroyed(web_contents());
-  }
+  DlpContentObserver::Get()->OnWebContentsDestroyed(web_contents());
 }
 
 void DlpContentTabHelper::OnVisibilityChanged(content::Visibility visibility) {

@@ -139,6 +139,7 @@ TEST_F(InstallAttributesTest, IsEnterpriseManagedCloud) {
                                  kTestDeviceId));
   EXPECT_TRUE(install_attributes_->IsEnterpriseManaged());
   EXPECT_TRUE(install_attributes_->IsCloudManaged());
+  EXPECT_FALSE(install_attributes_->IsActiveDirectoryManaged());
 }
 
 TEST_F(InstallAttributesTest, IsEnterpriseManagedDemoMode) {
@@ -150,6 +151,7 @@ TEST_F(InstallAttributesTest, IsEnterpriseManagedDemoMode) {
                                        kTestDeviceId));
   EXPECT_TRUE(install_attributes_->IsEnterpriseManaged());
   EXPECT_TRUE(install_attributes_->IsCloudManaged());
+  EXPECT_FALSE(install_attributes_->IsActiveDirectoryManaged());
 }
 
 TEST_F(InstallAttributesTest, GettersCloud) {

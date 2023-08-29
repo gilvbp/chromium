@@ -27,7 +27,9 @@
 #include "third_party/blink/renderer/core/xml/xpath_evaluator.h"
 
 #include "third_party/blink/renderer/bindings/core/v8/script_value.h"
+#include "third_party/blink/renderer/bindings/core/v8/v8_union_nativexpathnsresolver_node.h"
 #include "third_party/blink/renderer/core/dom/node.h"
+#include "third_party/blink/renderer/core/xml/native_xpath_ns_resolver.h"
 #include "third_party/blink/renderer/core/xml/xpath_expression.h"
 #include "third_party/blink/renderer/core/xml/xpath_result.h"
 #include "third_party/blink/renderer/core/xml/xpath_util.h"
@@ -36,22 +38,27 @@
 namespace blink {
 
 XPathExpression* XPathEvaluator::createExpression(
-    ExecutionContext* execution_context,
     const String& expression,
     V8XPathNSResolver* resolver,
     ExceptionState& exception_state) {
   return XPathExpression::CreateExpression(expression, resolver,
-                                           execution_context, exception_state);
+                                           exception_state);
 }
 
-Node* XPathEvaluator::createNSResolver(Node* node_resolver) {
-  // https://dom.spec.whatwg.org/#dom-xpathevaluatorbase-creatensresolver
-  // The createNSResolver(nodeResolver) method steps are to return nodeResolver.
-  return node_resolver;
+V8UnionNativeXPathNSResolverOrNode* XPathEvaluator::createNSResolver(
+    Node* node_resolver) {
+  if (!RuntimeEnabledFeatures::NodeAsNSResolverEnabled()) {
+    // https://dom.spec.whatwg.org/#dom-xpathevaluatorbase-creatensresolver
+    // The createNSResolver(nodeResolver) method steps are to return
+    // nodeResolver.
+    return MakeGarbageCollected<V8UnionNativeXPathNSResolverOrNode>(
+        MakeGarbageCollected<NativeXPathNSResolver>(node_resolver));
+  }
+  return MakeGarbageCollected<V8UnionNativeXPathNSResolverOrNode>(
+      node_resolver);
 }
 
-XPathResult* XPathEvaluator::evaluate(ExecutionContext* execution_context,
-                                      const String& expression,
+XPathResult* XPathEvaluator::evaluate(const String& expression,
                                       Node* context_node,
                                       V8XPathNSResolver* resolver,
                                       uint16_t type,
@@ -65,13 +72,12 @@ XPathResult* XPathEvaluator::evaluate(ExecutionContext* execution_context,
     return nullptr;
   }
 
-  XPathExpression* expr = createExpression(execution_context, expression,
-                                           resolver, exception_state);
+  XPathExpression* expr =
+      createExpression(expression, resolver, exception_state);
   if (exception_state.HadException())
     return nullptr;
 
-  return expr->evaluate(execution_context, context_node, type, ScriptValue(),
-                        exception_state);
+  return expr->evaluate(context_node, type, ScriptValue(), exception_state);
 }
 
 }  // namespace blink

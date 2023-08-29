@@ -38,7 +38,6 @@ luci.bucket(
                 "service-account-cq",
             ],
             users = [
-                "dawn-automated-expectations@chops-service-accounts.iam.gserviceaccount.com",
                 "findit-for-me@appspot.gserviceaccount.com",
                 "tricium-prod@appspot.gserviceaccount.com",
             ],

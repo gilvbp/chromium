@@ -11,11 +11,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "absl_hardening_tests",
@@ -26,11 +29,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "accessibility_unittests",
@@ -41,11 +47,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "aura_unittests",
@@ -56,11 +65,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "base_unittests",
@@ -71,11 +83,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "blink_common_unittests",
@@ -86,11 +101,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "blink_fuzzer_unittests",
@@ -101,11 +119,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "blink_heap_unittests",
@@ -116,11 +137,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "blink_platform_unittests",
@@ -131,11 +155,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "blink_unittests",
@@ -146,11 +173,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "boringssl_crypto_tests",
@@ -161,11 +191,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "boringssl_ssl_tests",
@@ -176,11 +209,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "capture_unittests",
@@ -191,11 +227,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "cast_runner_browsertests",
@@ -206,11 +245,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "cast_runner_integration_tests",
@@ -221,11 +263,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "cast_runner_unittests",
@@ -236,11 +281,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "color_unittests",
@@ -256,11 +304,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "components_browsertests",
@@ -271,11 +322,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com",
           "shards": 2
         },
@@ -287,11 +341,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "compositor_unittests",
@@ -309,11 +366,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com",
           "shards": 14
         },
@@ -325,11 +385,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "content_unittests",
@@ -340,11 +403,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "crypto_unittests",
@@ -355,11 +421,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "events_unittests",
@@ -370,11 +439,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "filesystem_service_unittests",
@@ -385,11 +457,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "gcm_unit_tests",
@@ -400,11 +475,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "gin_unittests",
@@ -415,11 +493,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "google_apis_unittests",
@@ -430,11 +511,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "gpu_unittests",
@@ -445,11 +529,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "gwp_asan_unittests",
@@ -460,11 +547,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "headless_browsertests",
@@ -475,11 +565,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "ipc_tests",
@@ -490,11 +583,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "latency_unittests",
@@ -505,11 +601,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "media_unittests",
@@ -520,11 +619,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "midi_unittests",
@@ -535,11 +637,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "mojo_unittests",
@@ -550,11 +655,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "native_theme_unittests",
@@ -568,11 +676,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com",
           "shards": 4
         },
@@ -587,11 +698,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "ozone_gl_unittests",
@@ -602,11 +716,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "ozone_unittests",
@@ -617,11 +734,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "perfetto_unittests",
@@ -632,11 +752,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "service_manager_unittests",
@@ -650,11 +773,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "services_unittests",
@@ -665,11 +791,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "shell_dialogs_unittests",
@@ -680,11 +809,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "skia_unittests",
@@ -695,11 +827,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "snapshot_unittests",
@@ -710,11 +845,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "sql_unittests",
@@ -725,11 +863,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "storage_unittests",
@@ -743,11 +884,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "ui_base_unittests",
@@ -758,11 +902,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "ui_touch_selection_unittests",
@@ -773,11 +920,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "url_unittests",
@@ -788,11 +938,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "web_engine_browsertests",
@@ -806,11 +959,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "web_engine_integration_tests",
@@ -821,11 +977,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "web_engine_unittests",
@@ -836,11 +995,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "wm_unittests",
@@ -851,11 +1013,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "wtf_unittests",
@@ -866,11 +1031,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "zlib_unittests",
@@ -889,11 +1057,14 @@
         },
         "name": "angle_unittests",
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test_id_prefix": "ninja://third_party/angle/src/tests:angle_unittests/"
@@ -909,11 +1080,14 @@
         },
         "name": "fuchsia_sizes",
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test_id_prefix": "ninja://tools/fuchsia/size_tests:fuchsia_sizes/"
@@ -930,11 +1104,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "absl_hardening_tests",
@@ -945,11 +1122,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "accessibility_unittests",
@@ -960,11 +1140,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "aura_unittests",
@@ -975,11 +1158,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "base_unittests",
@@ -990,11 +1176,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "blink_common_unittests",
@@ -1005,11 +1194,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "blink_fuzzer_unittests",
@@ -1020,11 +1212,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "blink_heap_unittests",
@@ -1035,11 +1230,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "blink_platform_unittests",
@@ -1050,11 +1248,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "blink_unittests",
@@ -1065,11 +1266,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "boringssl_crypto_tests",
@@ -1080,11 +1284,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "boringssl_ssl_tests",
@@ -1095,11 +1302,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "capture_unittests",
@@ -1110,11 +1320,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "cast_runner_browsertests",
@@ -1125,11 +1338,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "cast_runner_integration_tests",
@@ -1140,11 +1356,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "cast_runner_unittests",
@@ -1155,11 +1374,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "color_unittests",
@@ -1175,11 +1397,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "components_browsertests",
@@ -1190,11 +1415,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com",
           "shards": 2
         },
@@ -1206,11 +1434,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "compositor_unittests",
@@ -1228,11 +1459,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com",
           "shards": 14
         },
@@ -1244,11 +1478,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "content_unittests",
@@ -1259,11 +1496,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "crypto_unittests",
@@ -1274,11 +1514,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "events_unittests",
@@ -1289,11 +1532,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "filesystem_service_unittests",
@@ -1304,11 +1550,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "gcm_unit_tests",
@@ -1319,11 +1568,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "gin_unittests",
@@ -1334,11 +1586,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "google_apis_unittests",
@@ -1349,11 +1604,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "gpu_unittests",
@@ -1364,11 +1622,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "gwp_asan_unittests",
@@ -1379,11 +1640,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "headless_browsertests",
@@ -1394,11 +1658,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "ipc_tests",
@@ -1409,11 +1676,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "latency_unittests",
@@ -1424,11 +1694,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "media_unittests",
@@ -1439,11 +1712,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "midi_unittests",
@@ -1454,11 +1730,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "mojo_unittests",
@@ -1469,11 +1748,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "native_theme_unittests",
@@ -1487,11 +1769,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com",
           "shards": 4
         },
@@ -1506,11 +1791,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "ozone_gl_unittests",
@@ -1521,11 +1809,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "ozone_unittests",
@@ -1536,11 +1827,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "perfetto_unittests",
@@ -1551,11 +1845,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "service_manager_unittests",
@@ -1569,11 +1866,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "services_unittests",
@@ -1584,11 +1884,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "shell_dialogs_unittests",
@@ -1599,11 +1902,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "skia_unittests",
@@ -1614,11 +1920,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "snapshot_unittests",
@@ -1629,11 +1938,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "sql_unittests",
@@ -1644,11 +1956,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "storage_unittests",
@@ -1662,11 +1977,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "ui_base_unittests",
@@ -1677,11 +1995,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "ui_touch_selection_unittests",
@@ -1692,11 +2013,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "url_unittests",
@@ -1707,11 +2031,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "web_engine_browsertests",
@@ -1725,11 +2052,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "web_engine_integration_tests",
@@ -1740,11 +2070,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "web_engine_unittests",
@@ -1755,11 +2088,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "wm_unittests",
@@ -1770,11 +2106,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "wtf_unittests",
@@ -1785,11 +2124,14 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "zlib_unittests",
@@ -1808,11 +2150,14 @@
         },
         "name": "angle_unittests",
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test_id_prefix": "ninja://third_party/angle/src/tests:angle_unittests/"
@@ -1828,11 +2173,14 @@
         },
         "name": "fuchsia_sizes",
         "swarming": {
-          "dimensions": {
-            "cpu": "arm64",
-            "inside_docker": "1",
-            "os": "Ubuntu-22.04|Ubuntu-20.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "cpu": "arm64",
+              "inside_docker": "1",
+              "os": "Ubuntu-20.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test_id_prefix": "ninja://tools/fuchsia/size_tests:fuchsia_sizes/"
@@ -1850,10 +2198,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "absl_hardening_tests",
@@ -1865,10 +2216,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "accessibility_unittests",
@@ -1880,10 +2234,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "aura_unittests",
@@ -1895,10 +2252,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "base_unittests",
@@ -1910,10 +2270,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "blink_common_unittests",
@@ -1925,10 +2288,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "blink_fuzzer_unittests",
@@ -1940,10 +2306,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "blink_heap_unittests",
@@ -1955,10 +2324,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "blink_platform_unittests",
@@ -1970,10 +2342,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "blink_unittests",
@@ -1985,10 +2360,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "boringssl_crypto_tests",
@@ -2000,10 +2378,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "boringssl_ssl_tests",
@@ -2015,10 +2396,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "capture_unittests",
@@ -2030,10 +2414,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "cast_runner_browsertests",
@@ -2045,10 +2432,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "cast_runner_integration_tests",
@@ -2060,10 +2450,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "cast_runner_unittests",
@@ -2075,10 +2468,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com",
           "shards": 2
         },
@@ -2091,10 +2487,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "color_unittests",
@@ -2111,10 +2510,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "components_browsertests",
@@ -2126,10 +2528,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com",
           "shards": 2
         },
@@ -2142,10 +2547,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "compositor_unittests",
@@ -2165,10 +2573,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com",
           "shards": 41
         },
@@ -2181,10 +2592,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com",
           "shards": 2
         },
@@ -2197,10 +2611,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "courgette_unittests",
@@ -2212,10 +2629,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "crypto_unittests",
@@ -2227,10 +2647,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "display_unittests",
@@ -2242,10 +2665,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "events_unittests",
@@ -2257,10 +2683,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "extensions_unittests",
@@ -2272,10 +2701,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "filesystem_service_unittests",
@@ -2287,10 +2719,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "gcm_unit_tests",
@@ -2302,10 +2737,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "gfx_unittests",
@@ -2317,10 +2755,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "gin_unittests",
@@ -2332,10 +2773,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "google_apis_unittests",
@@ -2347,10 +2791,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "gpu_unittests",
@@ -2362,10 +2809,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "gwp_asan_unittests",
@@ -2377,10 +2827,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "headless_browsertests",
@@ -2392,10 +2845,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "headless_unittests",
@@ -2407,10 +2863,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "ipc_tests",
@@ -2422,10 +2881,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "latency_unittests",
@@ -2437,10 +2899,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "media_unittests",
@@ -2452,10 +2917,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "message_center_unittests",
@@ -2467,10 +2935,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "midi_unittests",
@@ -2482,10 +2953,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "mojo_unittests",
@@ -2497,10 +2971,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "native_theme_unittests",
@@ -2515,10 +2992,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com",
           "shards": 4
         },
@@ -2534,10 +3014,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "ozone_gl_unittests",
@@ -2549,10 +3032,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "ozone_unittests",
@@ -2564,10 +3050,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "perfetto_unittests",
@@ -2579,10 +3068,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "service_manager_unittests",
@@ -2597,10 +3089,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "services_unittests",
@@ -2612,10 +3107,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "shell_dialogs_unittests",
@@ -2627,10 +3125,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "skia_unittests",
@@ -2642,10 +3143,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "snapshot_unittests",
@@ -2657,10 +3161,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "sql_unittests",
@@ -2672,10 +3179,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "storage_unittests",
@@ -2690,10 +3200,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "ui_base_unittests",
@@ -2705,10 +3218,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "ui_touch_selection_unittests",
@@ -2720,10 +3236,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "url_unittests",
@@ -2738,10 +3257,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "views_examples_unittests",
@@ -2756,10 +3278,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "views_unittests",
@@ -2774,10 +3299,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "viz_unittests",
@@ -2789,10 +3317,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "web_engine_browsertests",
@@ -2807,10 +3338,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "web_engine_integration_tests",
@@ -2822,10 +3356,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "web_engine_unittests",
@@ -2837,10 +3374,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "wm_unittests",
@@ -2852,10 +3392,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "wtf_unittests",
@@ -2867,10 +3410,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "zlib_unittests",
@@ -2890,10 +3436,13 @@
         },
         "name": "angle_unittests",
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test_id_prefix": "ninja://third_party/angle/src/tests:angle_unittests/"
@@ -2905,6 +3454,7 @@
           "--platform=fuchsia",
           "--jobs=1"
         ],
+        "check_flakiness_for_new_tests": false,
         "isolate_name": "blink_web_tests",
         "isolate_profile_data": true,
         "merge": {
@@ -2915,15 +3465,17 @@
         },
         "name": "blink_web_tests",
         "resultdb": {
-          "enable": true,
-          "has_native_resultdb_integration": true
+          "enable": true
         },
         "results_handler": "layout tests",
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test_id_prefix": "ninja://:blink_web_tests/"
@@ -2935,6 +3487,7 @@
           "--platform=fuchsia",
           "--jobs=1"
         ],
+        "check_flakiness_for_new_tests": false,
         "isolate_name": "blink_wpt_tests",
         "isolate_profile_data": true,
         "merge": {
@@ -2945,15 +3498,17 @@
         },
         "name": "blink_wpt_tests",
         "resultdb": {
-          "enable": true,
-          "has_native_resultdb_integration": true
+          "enable": true
         },
         "results_handler": "layout tests",
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test_id_prefix": "ninja://:blink_wpt_tests/"
@@ -2966,8 +3521,7 @@
           "--passthrough",
           "-v",
           "--stable-jobs",
-          "--extra-browser-args=--enable-logging=stderr --js-flags=--expose-gc --use-cmd-decoder=validating",
-          "--jobs=1"
+          "--extra-browser-args=--enable-logging=stderr --js-flags=--expose-gc --use-cmd-decoder=validating"
         ],
         "isolate_name": "telemetry_gpu_integration_test_fuchsia",
         "isolate_profile_data": true,
@@ -2981,50 +3535,13 @@
         },
         "should_retry_with_patch": false,
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
-          "idempotent": false,
-          "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
-        },
-        "test_id_prefix": "ninja://chrome/test:telemetry_gpu_integration_test_fuchsia/"
-      },
-      {
-        "args": [
-          "expected_color",
-          "--show-stdout",
-          "--browser=web-engine-shell",
-          "--passthrough",
-          "-v",
-          "--stable-jobs",
-          "--extra-browser-args=--enable-logging=stderr --js-flags=--expose-gc --use-cmd-decoder=validating",
-          "--dont-restore-color-profile-after-test",
-          "--test-machine-name",
-          "${buildername}",
-          "--git-revision=${got_revision}"
-        ],
-        "isolate_name": "telemetry_gpu_integration_test_fuchsia",
-        "isolate_profile_data": true,
-        "merge": {
-          "script": "//testing/merge_scripts/standard_isolated_script_merge.py"
-        },
-        "name": "expected_color_pixel_validating_test",
-        "precommit_args": [
-          "--gerrit-issue=${patch_issue}",
-          "--gerrit-patchset=${patch_set}",
-          "--buildbucket-id=${buildbucket_build_id}"
-        ],
-        "resultdb": {
-          "enable": true,
-          "has_native_resultdb_integration": true
-        },
-        "should_retry_with_patch": false,
-        "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "idempotent": false,
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
@@ -3052,10 +3569,13 @@
         },
         "should_retry_with_patch": false,
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "idempotent": false,
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
@@ -3083,10 +3603,56 @@
         },
         "should_retry_with_patch": false,
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
+          "idempotent": false,
+          "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
+        },
+        "test_id_prefix": "ninja://chrome/test:telemetry_gpu_integration_test_fuchsia/"
+      },
+      {
+        "args": [
+          "maps",
+          "--show-stdout",
+          "--browser=web-engine-shell",
+          "--passthrough",
+          "-v",
+          "--stable-jobs",
+          "--extra-browser-args=--enable-logging=stderr --js-flags=--expose-gc --use-cmd-decoder=validating",
+          "--dont-restore-color-profile-after-test",
+          "--test-machine-name",
+          "${buildername}",
+          "--git-revision=${got_revision}"
+        ],
+        "isolate_name": "telemetry_gpu_integration_test_fuchsia",
+        "isolate_profile_data": true,
+        "merge": {
+          "script": "//testing/merge_scripts/standard_isolated_script_merge.py"
+        },
+        "name": "maps_pixel_validating_test",
+        "precommit_args": [
+          "--gerrit-issue=${patch_issue}",
+          "--gerrit-patchset=${patch_set}",
+          "--buildbucket-id=${buildbucket_build_id}"
+        ],
+        "resultdb": {
+          "enable": true,
+          "has_native_resultdb_integration": true
+        },
+        "should_retry_with_patch": false,
+        "swarming": {
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "idempotent": false,
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
@@ -3109,10 +3675,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "absl_hardening_tests",
@@ -3123,10 +3692,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "accessibility_unittests",
@@ -3137,10 +3709,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "aura_unittests",
@@ -3151,10 +3726,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "base_unittests",
@@ -3165,10 +3743,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "blink_common_unittests",
@@ -3179,10 +3760,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "blink_fuzzer_unittests",
@@ -3193,10 +3777,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "blink_heap_unittests",
@@ -3207,10 +3794,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "blink_platform_unittests",
@@ -3221,10 +3811,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "blink_unittests",
@@ -3235,10 +3828,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "boringssl_crypto_tests",
@@ -3249,10 +3845,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "boringssl_ssl_tests",
@@ -3263,10 +3862,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "capture_unittests",
@@ -3277,10 +3879,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "cast_runner_browsertests",
@@ -3291,10 +3896,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "cast_runner_integration_tests",
@@ -3305,10 +3913,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "cast_runner_unittests",
@@ -3319,10 +3930,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com",
           "shards": 2
         },
@@ -3334,10 +3948,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "color_unittests",
@@ -3353,10 +3970,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "components_browsertests",
@@ -3367,10 +3987,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com",
           "shards": 2
         },
@@ -3382,10 +4005,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "compositor_unittests",
@@ -3403,10 +4029,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com",
           "shards": 41
         },
@@ -3418,10 +4047,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "content_unittests",
@@ -3432,10 +4064,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "courgette_unittests",
@@ -3446,10 +4081,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "crypto_unittests",
@@ -3460,10 +4098,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "display_unittests",
@@ -3474,10 +4115,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "events_unittests",
@@ -3488,10 +4132,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "extensions_unittests",
@@ -3502,10 +4149,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "filesystem_service_unittests",
@@ -3516,10 +4166,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "gcm_unit_tests",
@@ -3530,10 +4183,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "gfx_unittests",
@@ -3544,10 +4200,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "gin_unittests",
@@ -3558,10 +4217,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "google_apis_unittests",
@@ -3572,10 +4234,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "gpu_unittests",
@@ -3586,10 +4251,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "gwp_asan_unittests",
@@ -3600,10 +4268,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "headless_browsertests",
@@ -3614,10 +4285,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "headless_unittests",
@@ -3628,10 +4302,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "ipc_tests",
@@ -3642,10 +4319,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "latency_unittests",
@@ -3656,10 +4336,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "media_unittests",
@@ -3670,10 +4353,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "message_center_unittests",
@@ -3684,10 +4370,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "midi_unittests",
@@ -3698,10 +4387,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "mojo_unittests",
@@ -3712,10 +4404,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "native_theme_unittests",
@@ -3729,10 +4424,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com",
           "shards": 4
         },
@@ -3747,10 +4445,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "ozone_gl_unittests",
@@ -3761,10 +4462,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "ozone_unittests",
@@ -3775,10 +4479,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "perfetto_unittests",
@@ -3789,10 +4496,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "service_manager_unittests",
@@ -3806,10 +4516,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "services_unittests",
@@ -3820,10 +4533,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "shell_dialogs_unittests",
@@ -3834,10 +4550,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "skia_unittests",
@@ -3848,10 +4567,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "snapshot_unittests",
@@ -3862,10 +4584,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "sql_unittests",
@@ -3876,10 +4601,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "storage_unittests",
@@ -3893,10 +4621,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "ui_base_unittests",
@@ -3907,10 +4638,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "ui_touch_selection_unittests",
@@ -3921,10 +4655,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "url_unittests",
@@ -3938,10 +4675,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "views_examples_unittests",
@@ -3955,10 +4695,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "views_unittests",
@@ -3972,10 +4715,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "viz_unittests",
@@ -3986,10 +4732,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "web_engine_browsertests",
@@ -4003,10 +4752,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "web_engine_integration_tests",
@@ -4017,10 +4769,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "web_engine_unittests",
@@ -4031,10 +4786,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "wm_unittests",
@@ -4045,10 +4803,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "wtf_unittests",
@@ -4059,10 +4820,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test": "zlib_unittests",
@@ -4081,10 +4845,13 @@
         },
         "name": "angle_unittests",
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test_id_prefix": "ninja://third_party/angle/src/tests:angle_unittests/"
@@ -4096,6 +4863,7 @@
           "--platform=fuchsia",
           "--jobs=1"
         ],
+        "check_flakiness_for_new_tests": false,
         "isolate_name": "blink_web_tests",
         "merge": {
           "args": [
@@ -4105,15 +4873,17 @@
         },
         "name": "blink_web_tests",
         "resultdb": {
-          "enable": true,
-          "has_native_resultdb_integration": true
+          "enable": true
         },
         "results_handler": "layout tests",
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test_id_prefix": "ninja://:blink_web_tests/"
@@ -4125,6 +4895,7 @@
           "--platform=fuchsia",
           "--jobs=1"
         ],
+        "check_flakiness_for_new_tests": false,
         "isolate_name": "blink_wpt_tests",
         "merge": {
           "args": [
@@ -4134,15 +4905,17 @@
         },
         "name": "blink_wpt_tests",
         "resultdb": {
-          "enable": true,
-          "has_native_resultdb_integration": true
+          "enable": true
         },
         "results_handler": "layout tests",
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
         "test_id_prefix": "ninja://:blink_wpt_tests/"
@@ -4155,8 +4928,7 @@
           "--passthrough",
           "-v",
           "--stable-jobs",
-          "--extra-browser-args=--enable-logging=stderr --js-flags=--expose-gc --use-cmd-decoder=validating",
-          "--jobs=1"
+          "--extra-browser-args=--enable-logging=stderr --js-flags=--expose-gc --use-cmd-decoder=validating"
         ],
         "isolate_name": "telemetry_gpu_integration_test_fuchsia",
         "merge": {
@@ -4169,49 +4941,13 @@
         },
         "should_retry_with_patch": false,
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
-          "idempotent": false,
-          "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
-        },
-        "test_id_prefix": "ninja://chrome/test:telemetry_gpu_integration_test_fuchsia/"
-      },
-      {
-        "args": [
-          "expected_color",
-          "--show-stdout",
-          "--browser=web-engine-shell",
-          "--passthrough",
-          "-v",
-          "--stable-jobs",
-          "--extra-browser-args=--enable-logging=stderr --js-flags=--expose-gc --use-cmd-decoder=validating",
-          "--dont-restore-color-profile-after-test",
-          "--test-machine-name",
-          "${buildername}",
-          "--git-revision=${got_revision}"
-        ],
-        "isolate_name": "telemetry_gpu_integration_test_fuchsia",
-        "merge": {
-          "script": "//testing/merge_scripts/standard_isolated_script_merge.py"
-        },
-        "name": "expected_color_pixel_validating_test",
-        "precommit_args": [
-          "--gerrit-issue=${patch_issue}",
-          "--gerrit-patchset=${patch_set}",
-          "--buildbucket-id=${buildbucket_build_id}"
-        ],
-        "resultdb": {
-          "enable": true,
-          "has_native_resultdb_integration": true
-        },
-        "should_retry_with_patch": false,
-        "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "idempotent": false,
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
@@ -4238,10 +4974,13 @@
         },
         "should_retry_with_patch": false,
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "idempotent": false,
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },
@@ -4268,10 +5007,55 @@
         },
         "should_retry_with_patch": false,
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Ubuntu-22.04"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
+          "idempotent": false,
+          "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
+        },
+        "test_id_prefix": "ninja://chrome/test:telemetry_gpu_integration_test_fuchsia/"
+      },
+      {
+        "args": [
+          "maps",
+          "--show-stdout",
+          "--browser=web-engine-shell",
+          "--passthrough",
+          "-v",
+          "--stable-jobs",
+          "--extra-browser-args=--enable-logging=stderr --js-flags=--expose-gc --use-cmd-decoder=validating",
+          "--dont-restore-color-profile-after-test",
+          "--test-machine-name",
+          "${buildername}",
+          "--git-revision=${got_revision}"
+        ],
+        "isolate_name": "telemetry_gpu_integration_test_fuchsia",
+        "merge": {
+          "script": "//testing/merge_scripts/standard_isolated_script_merge.py"
+        },
+        "name": "maps_pixel_validating_test",
+        "precommit_args": [
+          "--gerrit-issue=${patch_issue}",
+          "--gerrit-patchset=${patch_set}",
+          "--buildbucket-id=${buildbucket_build_id}"
+        ],
+        "resultdb": {
+          "enable": true,
+          "has_native_resultdb_integration": true
+        },
+        "should_retry_with_patch": false,
+        "swarming": {
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Ubuntu-22.04"
+            }
+          ],
           "idempotent": false,
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
         },

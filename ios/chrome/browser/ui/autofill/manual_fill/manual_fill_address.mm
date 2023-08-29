@@ -4,6 +4,10 @@
 
 #import "ios/chrome/browser/ui/autofill/manual_fill/manual_fill_address.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 @implementation ManualFillAddress
 
 - (instancetype)initWithFirstName:(NSString*)firstName

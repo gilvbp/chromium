@@ -97,10 +97,8 @@ class BLINK_PLATFORM_EXPORT WebCryptoResult {
   void Reset();
   void Assign(const WebCryptoResult&);
 
-  WebPrivatePtrForGC<CryptoResult, WebPrivatePtrDestruction::kCrossThread>
-      impl_;
-  WebPrivatePtrForRefCounted<CryptoResultCancel,
-                             WebPrivatePtrDestruction::kCrossThread>
+  WebPrivatePtr<CryptoResult, kWebPrivatePtrDestructionCrossThread> impl_;
+  WebPrivatePtr<CryptoResultCancel, kWebPrivatePtrDestructionCrossThread>
       cancel_;
 };
 

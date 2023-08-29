@@ -15,6 +15,10 @@
 
 namespace updater {
 
+UpdatesSuppressedTimes::UpdatesSuppressedTimes() = default;
+
+UpdatesSuppressedTimes::~UpdatesSuppressedTimes() = default;
+
 bool UpdatesSuppressedTimes::operator==(
     const UpdatesSuppressedTimes& other) const {
   return start_hour_ == other.start_hour_ &&

@@ -16,6 +16,10 @@
 #include "device/fido/mac/icloud_keychain_sys.h"
 #include "third_party/abseil-cpp/absl/types/optional.h"
 
+#if !defined(__OBJC__) || !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 @class NSWindow;
 
 namespace device::fido::icloud_keychain {
@@ -34,9 +38,6 @@ class API_AVAILABLE(macos(13.3)) FakeSystemInterface : public SystemInterface {
   // a call to `AuthorizeAndContinue`. This must be called before
   // `AuthorizeAndContinue`.
   void set_next_auth_state(AuthState next_auth_state);
-
-  // cancel_count returns the number of times that `Cancel` has been called.
-  unsigned cancel_count() const { return cancel_count_; }
 
   // SetMakeCredentialResult sets the values that will be returned from the next
   // call to `MakeCredential`. If not set, `MakeCredential` will return an
@@ -75,14 +76,14 @@ class API_AVAILABLE(macos(13.3)) FakeSystemInterface : public SystemInterface {
   void MakeCredential(
       NSWindow* window,
       CtapMakeCredentialRequest request,
-      base::OnceCallback<void(ASAuthorization*, NSError*)> callback) override;
+      base::OnceCallback<void(ASAuthorization* __strong, NSError* __strong)>
+          callback) override;
 
   void GetAssertion(
       NSWindow* window,
       CtapGetAssertionRequest request,
-      base::OnceCallback<void(ASAuthorization*, NSError*)> callback) override;
-
-  void Cancel() override;
+      base::OnceCallback<void(ASAuthorization* __strong, NSError* __strong)>
+          callback) override;
 
  protected:
   friend class base::RefCounted<SystemInterface>;
@@ -101,8 +102,6 @@ class API_AVAILABLE(macos(13.3)) FakeSystemInterface : public SystemInterface {
   absl::optional<std::vector<uint8_t>> get_assertion_signature_;
   absl::optional<std::vector<uint8_t>> get_assertion_user_id_;
   absl::optional<std::vector<uint8_t>> get_assertion_credential_id_;
-
-  unsigned cancel_count_ = 0;
 
   std::vector<DiscoverableCredentialMetadata> creds_;
 };

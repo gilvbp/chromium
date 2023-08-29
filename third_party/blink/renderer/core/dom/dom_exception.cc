@@ -157,7 +157,7 @@ const struct DOMExceptionEntry {
      "The WebTransport operation failed."},
 
     // Smart Card API
-    // https://wicg.github.io/web-smart-card/#smartcarderror-interface
+    // https://github.com/WICG/web-smart-card/blob/main/README.md#web-idl
     {DOMExceptionCode::kSmartCardError, "SmartCardError",
      "A Smart Card operation failed."},
 

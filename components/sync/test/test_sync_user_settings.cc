@@ -6,9 +6,9 @@
 
 #include "build/chromeos_buildflags.h"
 #include "components/sync/base/passphrase_enums.h"
+#include "components/sync/base/sync_prefs.h"
 #include "components/sync/base/user_selectable_type.h"
 #include "components/sync/engine/nigori/nigori.h"
-#include "components/sync/service/sync_prefs.h"
 #include "components/sync/service/sync_service.h"
 #include "components/sync/service/sync_user_settings_impl.h"
 #include "components/sync/test/test_sync_service.h"
@@ -69,8 +69,6 @@ void TestSyncUserSettings::SetSelectedTypes(bool sync_everything,
   } else {
     selected_types_ = types;
   }
-
-  service_->FirePaymentsIntegrationEnabledChanged();
 }
 
 void TestSyncUserSettings::SetSelectedType(UserSelectableType type,
@@ -80,12 +78,7 @@ void TestSyncUserSettings::SetSelectedType(UserSelectableType type,
   } else {
     selected_types_.Remove(type);
   }
-
-  service_->FirePaymentsIntegrationEnabledChanged();
 }
-
-void TestSyncUserSettings::KeepAccountSettingsPrefsOnlyForUsers(
-    const std::vector<signin::GaiaIdHash>& available_gaia_ids) {}
 
 #if BUILDFLAG(IS_IOS)
 void TestSyncUserSettings::SetBookmarksAndReadingListAccountStorageOptIn(
@@ -99,11 +92,6 @@ UserSelectableTypeSet TestSyncUserSettings::GetSelectedTypes() const {
 bool TestSyncUserSettings::IsTypeManagedByPolicy(
     UserSelectableType type) const {
   return managed_types_.Has(type);
-}
-
-bool TestSyncUserSettings::IsTypeManagedByCustodian(
-    UserSelectableType type) const {
-  return false;
 }
 
 ModelTypeSet TestSyncUserSettings::GetPreferredDataTypes() const {
@@ -232,7 +220,7 @@ base::Time TestSyncUserSettings::GetExplicitPassphraseTime() const {
   return base::Time();
 }
 
-absl::optional<PassphraseType> TestSyncUserSettings::GetPassphraseType() const {
+PassphraseType TestSyncUserSettings::GetPassphraseType() const {
   return IsUsingExplicitPassphrase() ? PassphraseType::kCustomPassphrase
                                      : PassphraseType::kImplicitPassphrase;
 }

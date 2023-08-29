@@ -61,7 +61,6 @@ class UrlBarMediator implements UrlBar.UrlBarTextContextMenuDelegate, UrlBar.Url
         mModel.set(UrlBarProperties.SHOW_CURSOR, false);
         mModel.set(UrlBarProperties.TEXT_CONTEXT_MENU_DELEGATE, this);
         mModel.set(UrlBarProperties.URL_TEXT_CHANGE_LISTENER, this);
-        mModel.set(UrlBarProperties.HAS_URL_SUGGESTIONS, false);
         setBrandedColorScheme(BrandedColorScheme.APP_DEFAULT);
     }
 
@@ -318,11 +317,6 @@ class UrlBarMediator implements UrlBar.UrlBarTextContextMenuDelegate, UrlBar.Url
         return stringToPaste;
     }
 
-    /** @param hasSuggestions Whether suggestions are showing in the URL bar. */
-    public void onUrlBarSuggestionsChanged(boolean hasSuggestions) {
-        mModel.set(UrlBarProperties.HAS_URL_SUGGESTIONS, hasSuggestions);
-    }
-
     @VisibleForTesting
     protected String sanitizeTextForPaste(String text) {
         return OmniboxViewUtil.sanitizeTextForPaste(text);
@@ -348,9 +342,10 @@ class UrlBarMediator implements UrlBar.UrlBarTextContextMenuDelegate, UrlBar.Url
 
     /** @see UrlTextChangeListener */
     @Override
-    public void onTextChanged(String textWithoutAutocomplete) {
+    public void onTextChanged(String textWithoutAutocomplete, String textWithAutocomplete) {
         for (int i = 0; i < mUrlTextChangeListeners.size(); i++) {
-            mUrlTextChangeListeners.get(i).onTextChanged(textWithoutAutocomplete);
+            mUrlTextChangeListeners.get(i).onTextChanged(
+                    textWithoutAutocomplete, textWithAutocomplete);
         }
     }
 }

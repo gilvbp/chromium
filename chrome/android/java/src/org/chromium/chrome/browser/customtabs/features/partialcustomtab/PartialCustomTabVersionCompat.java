@@ -55,9 +55,6 @@ abstract class PartialCustomTabVersionCompat {
     /** Returns display width in dp */
     abstract int getDisplayWidthDp();
 
-    /** Returns screen width including system UI area. */
-    abstract @Px int getScreenWidth();
-
     /** Returns the status bar height */
     abstract @Px int getStatusbarHeight();
 
@@ -105,12 +102,6 @@ abstract class PartialCustomTabVersionCompat {
                                                   | WindowInsets.Type.displayCutout());
             int navbarWidth = navbarInsets.left + navbarInsets.right;
             return windowBounds().width() - navbarWidth;
-        }
-
-        @Override
-        @Px
-        int getScreenWidth() {
-            return windowBounds().width();
         }
 
         private Rect windowBounds() {
@@ -236,12 +227,6 @@ abstract class PartialCustomTabVersionCompat {
         }
 
         @Override
-        @Px
-        int getScreenWidth() {
-            return getDisplayMetrics().widthPixels;
-        }
-
-        @Override
         int getDisplayWidthDp() {
             DisplayMetrics displayMetrics = getDisplayMetrics();
             return (int) (getDisplayWidth() / displayMetrics.density);
@@ -304,7 +289,8 @@ abstract class PartialCustomTabVersionCompat {
                 // side of the screen. The origin of x should be offset as much.
                 // |getDisplayWidth()| already takes into account the display cutout insets on
                 // both sides. Subtract the right inset since it doesn't affect the offset.
-                return getScreenWidth() - getDisplayWidth() - getDisplayCutoutRightInset(display);
+                int wholeWidth = getDisplayMetrics().widthPixels;
+                return wholeWidth - getDisplayWidth() - getDisplayCutoutRightInset(display);
             }
             return 0;
         }

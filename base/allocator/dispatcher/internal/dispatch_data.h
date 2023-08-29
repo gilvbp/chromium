@@ -5,12 +5,13 @@
 #ifndef BASE_ALLOCATOR_DISPATCHER_INTERNAL_DISPATCH_DATA_H_
 #define BASE_ALLOCATOR_DISPATCHER_INTERNAL_DISPATCH_DATA_H_
 
+#include "base/allocator/buildflags.h"
 #include "base/allocator/partition_allocator/partition_alloc_buildflags.h"
 #include "base/base_export.h"
 #include "build/build_config.h"
 
 #if BUILDFLAG(USE_PARTITION_ALLOC)
-#include "base/allocator/partition_allocator/partition_alloc_hooks.h"
+#include "base/allocator/partition_allocator/partition_alloc.h"
 #endif
 
 #if BUILDFLAG(USE_ALLOCATOR_SHIM)

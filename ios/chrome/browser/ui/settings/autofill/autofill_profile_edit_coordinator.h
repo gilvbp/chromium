@@ -31,7 +31,6 @@ class AutofillProfile;
         (UINavigationController*)navigationController
                              browser:(Browser*)browser
                              profile:(const autofill::AutofillProfile&)profile
-              migrateToAccountButton:(BOOL)showMigrateToAccountButton
     NS_DESIGNATED_INITIALIZER;
 
 - (instancetype)initWithBaseViewController:(UIViewController*)viewController

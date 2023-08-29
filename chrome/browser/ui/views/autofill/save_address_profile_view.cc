@@ -277,7 +277,6 @@ SaveAddressProfileView::SaveAddressProfileView(
             .SetMultiLine(true)
             .Build());
   }
-  AlignIcons();
 
   Profile* browser_profile =
       Profile::FromBrowserContext(web_contents->GetBrowserContext());
@@ -331,9 +330,14 @@ void SaveAddressProfileView::AddedToWidget() {
   }
 }
 
+void SaveAddressProfileView::OnThemeChanged() {
+  LocationBarBubbleDelegateView::OnThemeChanged();
+  AlignIcons();
+}
+
 void SaveAddressProfileView::AlignIcons() {
-  CHECK(edit_button_);
-  CHECK(address_components_view_);
+  DCHECK(edit_button_);
+  DCHECK(address_components_view_);
   // Adjust margins to make sure the edit button is vertically centered with the
   // first line in the address components view.
   int label_line_height = views::style::GetLineHeight(

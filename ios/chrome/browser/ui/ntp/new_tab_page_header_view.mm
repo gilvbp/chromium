@@ -14,6 +14,8 @@
 #import "ios/chrome/browser/shared/public/features/features.h"
 #import "ios/chrome/browser/shared/ui/elements/extended_touch_target_button.h"
 #import "ios/chrome/browser/shared/ui/util/dynamic_type_util.h"
+#import "ios/chrome/browser/shared/ui/util/named_guide.h"
+#import "ios/chrome/browser/shared/ui/util/named_guide_util.h"
 #import "ios/chrome/browser/shared/ui/util/uikit_ui_util.h"
 #import "ios/chrome/browser/ui/content_suggestions/content_suggestions_collection_utils.h"
 #import "ios/chrome/browser/ui/content_suggestions/content_suggestions_feature.h"
@@ -37,6 +39,10 @@
 #import "ui/base/l10n/l10n_util.h"
 #import "ui/gfx/ios/NSString+CrStringDrawing.h"
 #import "ui/gfx/ios/uikit_util.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace {
 
@@ -64,6 +70,16 @@ const CGFloat kHintLabelOmniboxLeadingSpace = 13.0;
 // The constants for the constraints affecting the separation between the Lens
 // and Voice Search buttons.
 const CGFloat kEndButtonSeparation = 19.0;
+
+// Returns the height of the toolbar based on the preferred content size of the
+// application.
+CGFloat ToolbarHeight() {
+  // Use UIApplication preferredContentSizeCategory as this VC has a weird trait
+  // collection from times to times.
+  return ToolbarExpandedHeight(
+      [UIApplication sharedApplication].preferredContentSizeCategory);
+}
+
 }  // namespace
 
 @interface NewTabPageHeaderView ()
@@ -128,8 +144,7 @@ const CGFloat kEndButtonSeparation = 19.0;
                                             constant:self.safeAreaInsets.top];
   [NSLayoutConstraint activateConstraints:@[
     [toolbarView.leadingAnchor constraintEqualToAnchor:self.leadingAnchor],
-    [toolbarView.heightAnchor
-        constraintEqualToConstant:content_suggestions::FakeOmniboxHeight()],
+    [toolbarView.heightAnchor constraintEqualToConstant:ToolbarHeight()],
     [toolbarView.trailingAnchor constraintEqualToAnchor:self.trailingAnchor],
     self.invisibleOmniboxConstraint,
   ]];
@@ -156,7 +171,13 @@ const CGFloat kEndButtonSeparation = 19.0;
 
 - (void)addViewsToSearchField:(UIView*)searchField {
   // Fake Toolbar.
+  ToolbarButtonFactory* buttonFactory =
+      [[ToolbarButtonFactory alloc] initWithStyle:ToolbarStyle::kNormal];
   self.fakeToolbar = [[UIView alloc] init];
+  self.fakeToolbar.backgroundColor =
+      IsMagicStackEnabled()
+          ? [UIColor clearColor]
+          : buttonFactory.toolbarConfiguration.backgroundColor;
   [searchField insertSubview:self.fakeToolbar atIndex:0];
   self.fakeToolbar.translatesAutoresizingMaskIntoConstraints = NO;
 
@@ -278,7 +299,7 @@ const CGFloat kEndButtonSeparation = 19.0;
   self.fakeLocationBarTrailingConstraint = [self.fakeLocationBar.trailingAnchor
       constraintEqualToAnchor:searchField.trailingAnchor];
   self.fakeLocationBarHeightConstraint = [self.fakeLocationBar.heightAnchor
-      constraintEqualToConstant:content_suggestions::FakeOmniboxHeight()];
+      constraintEqualToConstant:ToolbarHeight()];
   [NSLayoutConstraint activateConstraints:@[
     self.fakeLocationBarTopConstraint,
     self.fakeLocationBarLeadingConstraint,
@@ -334,13 +355,19 @@ const CGFloat kEndButtonSeparation = 19.0;
     [self.separator.trailingAnchor constraintEqualToAnchor:self.trailingAnchor],
     [self.separator.topAnchor constraintEqualToAnchor:searchField.bottomAnchor],
     [self.separator.heightAnchor
-        constraintEqualToConstant:content_suggestions::HeaderSeparatorHeight()],
+        constraintEqualToConstant:ui::AlignValueToUpperPixel(
+                                      kToolbarSeparatorHeight)],
   ]];
 }
 
-- (CGFloat)searchFieldProgressForOffset:(CGFloat)offset {
+- (CGFloat)searchFieldProgressForOffset:(CGFloat)offset
+                         safeAreaInsets:(UIEdgeInsets)safeAreaInsets {
   // The scroll offset at which point searchField's frame should stop growing.
-  CGFloat maxScaleOffset = [self offsetToBeginFakeOmniboxExpansion];
+  CGFloat maxScaleOffset = [self offsetToBeginFakeOmniboxExpansionForSplitMode];
+  // If it is not in SplitMode the search field should scroll under the toolbar.
+  if (!IsSplitToolbarMode(self)) {
+    maxScaleOffset += ToolbarHeight();
+  }
 
   // The scroll offset at which point searchField's frame should start
   // growing.
@@ -352,6 +379,11 @@ const CGFloat kEndButtonSeparation = 19.0;
         animatingOffset / ntp_header::kAnimationDistance, 0, 1);
   }
   return percent;
+}
+
+- (CGFloat)offsetToBeginFakeOmniboxExpansionForSplitMode {
+  return self.frame.size.height - ToolbarHeight() -
+         ntp_header::kFakeOmniboxScrolledToTopMargin;
 }
 
 - (void)updateSearchFieldWidth:(NSLayoutConstraint*)widthConstraint
@@ -369,15 +401,16 @@ const CGFloat kEndButtonSeparation = 19.0;
   CGFloat searchFieldNormalWidth =
       content_suggestions::SearchFieldWidth(contentWidth, self.traitCollection);
 
-  CGFloat percent = [self searchFieldProgressForOffset:offset];
-  // Update the opacity of the header background color as the user scrolls so
-  // that content does not appear beneath it. Since the NTP background might be
-  // a gradient, the opacity must be 0 by default.
-  self.backgroundColor =
-      IsMagicStackEnabled()
-          ? [[UIColor colorNamed:@"ntp_background_color"]
-                colorWithAlphaComponent:percent]
-          : [ntp_home::NTPBackgroundColor() colorWithAlphaComponent:percent];
+  CGFloat percent = [self searchFieldProgressForOffset:offset
+                                        safeAreaInsets:safeAreaInsets];
+  if (IsMagicStackEnabled()) {
+    // Update background color of fake toolbar if stuck to top of NTP so that it
+    // has a non-clear background that matches the NTP background. Otherwise,
+    // return to clear background.
+    self.fakeToolbar.backgroundColor =
+        percent == 1.0f ? [UIColor colorNamed:@"ntp_background_color"]
+                        : [UIColor clearColor];
+  }
 
   // Offset the hint label constraints with half of the change in width
   // from the original scale, since constraints are calculated before
@@ -388,7 +421,7 @@ const CGFloat kEndButtonSeparation = 19.0;
       self.searchHintLabel.bounds.size.width * 0.5;
   self.hintLabelTrailingConstraint.constant = -hintLabelScalingExtraOffset;
 
-  CGFloat toolbarExpandedHeight = content_suggestions::FakeOmniboxHeight();
+  CGFloat toolbarExpandedHeight = ToolbarHeight();
 
   if (!IsSplitToolbarMode(self)) {
     // When Voiceover is running, if the header's alpha is set to 0, voiceover
@@ -404,6 +437,7 @@ const CGFloat kEndButtonSeparation = 19.0;
     self.fakeLocationBar.layer.cornerRadius =
         self.fakeLocationBarHeightConstraint.constant / 2;
     [self scaleHintLabelForPercent:percent];
+    self.fakeToolbarTopConstraint.constant = 0;
 
     self.fakeLocationBarLeadingConstraint.constant = 0;
     self.fakeLocationBarTrailingConstraint.constant = 0;
@@ -427,7 +461,8 @@ const CGFloat kEndButtonSeparation = 19.0;
     self.separator.alpha = percent;
   }
 
-  self.fakeToolbarTopConstraint.constant = 0;
+  // Grow the background to cover the safeArea top.
+  self.fakeToolbarTopConstraint.constant = -safeAreaInsets.top * percent;
 
   // Calculate the amount to grow the width and height of searchField so that
   // its frame covers the entire toolbar area.
@@ -557,27 +592,6 @@ const CGFloat kEndButtonSeparation = 19.0;
       1 + (content_suggestions::kHintTextScale * (1 - percent));
   self.searchHintLabel.transform =
       CGAffineTransformMakeScale(scaleValue, scaleValue);
-}
-
-// The positive offset value to begin the fake omniobx expansion animation.
-- (CGFloat)offsetToBeginFakeOmniboxExpansion {
-  CGFloat offset =
-      self.frame.size.height - content_suggestions::FakeOmniboxHeight();
-
-  // For non-split toolbar, the fake omnibox goes beneath the toolbar.
-  if (!IsSplitToolbarMode(self)) {
-    // The animation should start when the primary toolbar is met, with an
-    // additional 1/4 height so the fake omnibox text appears to fade into the
-    // primary toolbar.
-    offset += content_suggestions::FakeOmniboxHeight() +
-              (content_suggestions::FakeOmniboxHeight() / 4);
-
-    // iPads pin slightly earlier than landscape iPhones.
-    if (IsRegularXRegularSizeClass(self)) {
-      offset -= content_suggestions::SearchFieldTopMargin();
-    }
-  }
-  return offset;
 }
 
 @end

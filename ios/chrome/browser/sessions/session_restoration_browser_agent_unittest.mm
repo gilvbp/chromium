@@ -44,10 +44,9 @@
 #import "third_party/ocmock/OCMock/OCMock.h"
 #import "third_party/ocmock/gtest_support.h"
 
-// To get access to web::features::kEnableSessionSerializationOptimizations.
-// TODO(crbug.com/1383087): remove once the feature is fully launched.
-#import "base/test/scoped_feature_list.h"
-#import "ios/web/common/features.h"
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace {
 
@@ -140,11 +139,10 @@ class TestRestorationObserver : public SessionRestorationObserver {
 
 class SessionRestorationBrowserAgentTest : public PlatformTest {
  public:
-  SessionRestorationBrowserAgentTest() {
-    scoped_feature_list_.InitAndDisableFeature(
-        web::features::kEnableSessionSerializationOptimizations);
+  SessionRestorationBrowserAgentTest()
+      : test_session_service_([[TestSessionService alloc] init]) {
+    DCHECK_CURRENTLY_ON(web::WebThread::UI);
 
-    test_session_service_ = [[TestSessionService alloc] init];
     TestChromeBrowserState::Builder test_cbs_builder;
     test_cbs_builder.AddTestingFactory(
         AuthenticationServiceFactory::GetInstance(),
@@ -225,7 +223,6 @@ class SessionRestorationBrowserAgentTest : public PlatformTest {
   }
 
   web::WebTaskEnvironment task_environment_;
-  base::test::ScopedFeatureList scoped_feature_list_;
   IOSChromeScopedTestingLocalState scoped_testing_local_state_;
   std::unique_ptr<TestChromeBrowserState> chrome_browser_state_;
   std::unique_ptr<Browser> browser_;

@@ -414,7 +414,7 @@ void AmbientBackendControllerImpl::GetSettings(GetSettingsCallback callback) {
 }
 
 void AmbientBackendControllerImpl::UpdateSettings(
-    const AmbientSettings settings,
+    const AmbientSettings& settings,
     UpdateSettingsCallback callback) {
   auto* ambient_controller = Shell::Get()->ambient_controller();
 
@@ -613,7 +613,7 @@ void AmbientBackendControllerImpl::StartToUpdateSettings(
     const std::string& gaia_id,
     const std::string& access_token) {
   if (gaia_id.empty() || access_token.empty()) {
-    std::move(callback).Run(/*success=*/false, settings);
+    std::move(callback).Run(/*success=*/false);
     return;
   }
 
@@ -651,7 +651,7 @@ void AmbientBackendControllerImpl::OnUpdateSettings(
         static_cast<int>(ambient::AmbientSettingsToPhotoSource(settings)));
   }
 
-  std::move(callback).Run(success, settings);
+  std::move(callback).Run(success);
 }
 
 void AmbientBackendControllerImpl::FetchPersonalAlbumsInternal(

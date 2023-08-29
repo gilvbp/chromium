@@ -48,8 +48,6 @@ const char kHdcpContentType[] = "HDCP Content Type";
 
 const char kColorSpace[] = "Colorspace";
 const char kColorSpaceBT2020RGBEnumName[] = "BT2020_RGB";
-const char kColorSpaceDefaultEnumName[] = "Default";
-
 const char kHdrOutputMetadata[] = "HDR_OUTPUT_METADATA";
 
 constexpr char kPrivacyScreenPropertyNameLegacy[] = "privacy-screen";
@@ -63,7 +61,7 @@ constexpr char kVrrEnabledPropertyName[] = "VRR_ENABLED";
 template <typename InternalType>
 struct DrmPropertyEnumToInternalTypeMapping {
   const char* drm_enum;
-  const InternalType internal_state;
+  const InternalType& internal_state;
 };
 
 constexpr std::array<
@@ -175,7 +173,6 @@ display::VariableRefreshRateState GetVariableRefreshRateState(
     const DrmWrapper& drm,
     HardwareDisplayControllerInfo* info);
 
-const char* GetNameForColorspace(const gfx::ColorSpace color_space);
 uint64_t GetEnumValueForName(const DrmWrapper& drm,
                              int property_id,
                              const char* str);

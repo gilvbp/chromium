@@ -5,10 +5,8 @@
 #ifndef COMPONENTS_AUTOFILL_CORE_BROWSER_PAYMENTS_PAYMENTS_CLIENT_H_
 #define COMPONENTS_AUTOFILL_CORE_BROWSER_PAYMENTS_PAYMENTS_CLIENT_H_
 
-#include <memory>
 #include <set>
 #include <string>
-#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -17,7 +15,6 @@
 #include "base/memory/scoped_refptr.h"
 #include "base/memory/weak_ptr.h"
 #include "base/values.h"
-#include "build/build_config.h"
 #include "components/autofill/core/browser/autofill_client.h"
 #include "components/autofill/core/browser/data_model/autofill_profile.h"
 #include "components/autofill/core/browser/data_model/credit_card.h"
@@ -44,13 +41,10 @@ class SharedURLLoaderFactory;
 namespace autofill {
 
 class AccountInfoGetter;
-#if !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_IOS)
 class MigratableCreditCard;
-#endif  // !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_IOS)
 
 namespace payments {
 
-#if !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_IOS)
 // Callback type for MigrateCards callback. |result| is the Payments Rpc result.
 // |save_result| is an unordered_map parsed from the response whose key is the
 // unique id (guid) for each card and value is the server save result string.
@@ -60,13 +54,12 @@ typedef base::OnceCallback<void(
     std::unique_ptr<std::unordered_map<std::string, std::string>> save_result,
     const std::string& display_text)>
     MigrateCardsCallback;
-#endif  // !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_IOS)
 
 // Billable service number is defined in Payments server to distinguish
 // different requests.
-inline constexpr int kUnmaskCardBillableServiceNumber = 70154;
-inline constexpr int kUploadCardBillableServiceNumber = 70073;
-inline constexpr int kMigrateCardsBillableServiceNumber = 70264;
+const int kUnmaskCardBillableServiceNumber = 70154;
+const int kUploadCardBillableServiceNumber = 70073;
+const int kMigrateCardsBillableServiceNumber = 70264;
 
 class PaymentsRequest;
 
@@ -80,18 +73,15 @@ class PaymentsClient {
   // The names of the fields used to send non-location elements as part of an
   // address. Used in the implementation and in tests which verify that these
   // values are set or not at appropriate times.
-  static constexpr char kRecipientName[] = "recipient_name";
-  static constexpr char kPhoneNumber[] = "phone_number";
+  static const char kRecipientName[];
+  static const char kPhoneNumber[];
 
   // Details for card unmasking, such as the suggested method of authentication,
   // along with any information required to facilitate the authentication.
   struct UnmaskDetails {
     UnmaskDetails();
-    UnmaskDetails(const UnmaskDetails&);
-    UnmaskDetails(UnmaskDetails&&);
-    UnmaskDetails& operator=(const UnmaskDetails&);
-    UnmaskDetails& operator=(UnmaskDetails&&);
     ~UnmaskDetails();
+    UnmaskDetails& operator=(const UnmaskDetails& other);
 
     // The type of authentication method suggested for card unmask.
     AutofillClient::UnmaskAuthMethod unmask_auth_method =
@@ -136,10 +126,8 @@ class PaymentsClient {
   struct UnmaskResponseDetails {
     UnmaskResponseDetails();
     UnmaskResponseDetails(const UnmaskResponseDetails& other);
-    UnmaskResponseDetails(UnmaskResponseDetails&&);
-    UnmaskResponseDetails& operator=(const UnmaskResponseDetails& other);
-    UnmaskResponseDetails& operator=(UnmaskResponseDetails&&);
     ~UnmaskResponseDetails();
+    UnmaskResponseDetails& operator=(const UnmaskResponseDetails& other);
 
     UnmaskResponseDetails& with_real_pan(std::string r) {
       real_pan = r;
@@ -396,10 +384,10 @@ class PaymentsClient {
     // |virtual_card_enrollment_state| is used to determine whether we want to
     // pursue further action with the credit card that was uploaded regarding
     // virtual card enrollment. For example, if the state is
-    // kUnenrolledAndEligible we might offer the user the option to enroll the
+    // UNENROLLED_AND_ELIGIBLE we might offer the user the option to enroll the
     // card that was uploaded into virtual card.
     CreditCard::VirtualCardEnrollmentState virtual_card_enrollment_state =
-        CreditCard::VirtualCardEnrollmentState::kUnspecified;
+        CreditCard::VirtualCardEnrollmentState::UNSPECIFIED;
     // |card_art_url| is the mapping that would be used by PersonalDataManager
     // to try to get the card art for the credit card that was uploaded. It is
     // used in flows where after uploading a card we want to display its card
@@ -494,7 +482,6 @@ class PaymentsClient {
                               const PaymentsClient::UploadCardResponseDetails&)>
           callback);
 
-#if !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_IOS)
   // The user has indicated that they would like to migrate their local credit
   // cards. This request will fail server-side if a successful call to
   // GetUploadDetails has not already been made.
@@ -502,7 +489,6 @@ class PaymentsClient {
       const MigrationRequestDetails& details,
       const std::vector<MigratableCreditCard>& migratable_credit_cards,
       MigrateCardsCallback callback);
-#endif  // !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_IOS)
 
   // The user has chosen one of the available challenge options. Send the
   // selected challenge option to server to continue the unmask flow.
@@ -535,7 +521,6 @@ class PaymentsClient {
   // Exposed for testing.
   void set_url_loader_factory_for_testing(
       scoped_refptr<network::SharedURLLoaderFactory> url_loader_factory);
-  void set_access_token_for_testing(std::string access_token);
 
   // TODO(crbug.com/1409158): Remove this function, as it should not be the
   // PaymentsClient's responsibility to check if the user is off the record. The
@@ -583,7 +568,7 @@ class PaymentsClient {
   const raw_ptr<signin::IdentityManager> identity_manager_;
 
   // Provided in constructor; not owned by PaymentsClient.
-  const raw_ptr<AccountInfoGetter> account_info_getter_;
+  const raw_ptr<AccountInfoGetter, DanglingUntriaged> account_info_getter_;
 
   // The current request.
   std::unique_ptr<PaymentsRequest> request_;

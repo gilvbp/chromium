@@ -23,11 +23,8 @@
 #include "extensions/browser/extension_prefs_factory.h"
 #include "extensions/browser/extension_prefs_helper.h"
 #include "extensions/browser/extension_prefs_helper_factory.h"
-#include "extensions/common/api/types.h"
 #include "extensions/common/error_utils.h"
 #include "extensions/common/manifest_constants.h"
-
-using extensions::api::types::ChromeSettingScope;
 
 namespace extensions {
 
@@ -150,7 +147,7 @@ void SettingsOverridesAPI::SetPref(const std::string& extension_id,
     return;
 
   prefs_helper->SetExtensionControlledPref(
-      extension_id, pref_key, ChromeSettingScope::kRegular, std::move(value));
+      extension_id, pref_key, kExtensionPrefsScopeRegular, std::move(value));
 }
 
 void SettingsOverridesAPI::UnsetPref(const std::string& extension_id,
@@ -160,7 +157,7 @@ void SettingsOverridesAPI::UnsetPref(const std::string& extension_id,
   if (!prefs_helper)
     return;
   prefs_helper->RemoveExtensionControlledPref(extension_id, pref_key,
-                                              ChromeSettingScope::kRegular);
+                                              kExtensionPrefsScopeRegular);
 }
 
 void SettingsOverridesAPI::OnExtensionLoaded(

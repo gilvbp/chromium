@@ -51,6 +51,7 @@
 namespace blink {
 
 class CharacterData;
+class Color;
 class DOMEditor;
 class Document;
 class DocumentLoader;
@@ -98,6 +99,7 @@ class CORE_EXPORT InspectorDOMAgent final
   static protocol::DOM::CompatibilityMode GetDocumentCompatibilityMode(
       Document*);
   static ShadowRoot* UserAgentShadowRoot(Node*);
+  static Color ParseColor(protocol::DOM::RGBA*);
 
   InspectorDOMAgent(v8::Isolate*,
                     InspectedFrames*,

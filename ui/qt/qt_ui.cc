@@ -41,7 +41,6 @@
 #include "ui/gfx/image/image_skia_source.h"
 #include "ui/linux/device_scale_factor_observer.h"
 #include "ui/linux/linux_ui.h"
-#include "ui/linux/linux_ui_delegate.h"
 #include "ui/linux/nav_button_provider.h"
 #include "ui/native_theme/native_theme_aura.h"
 #include "ui/native_theme/native_theme_base.h"
@@ -249,32 +248,14 @@ bool QtUi::Initialize() {
   // [2] https://bugreports.qt.io/browse/QTBUG-38599
   base::ScopedEnvironmentVariableOverride env_override("SESSION_MANAGER");
 
-  auto cmd_line = *base::CommandLine::ForCurrentProcess();
-  if (auto* delegate = ui::LinuxUiDelegate::GetInstance()) {
-    // Ensure QT is initialized with the same display server protocol as Chrome.
-    // In particular, when running under XWayland, make sure to use the xcb QT
-    // backend instead of the wayland backend.
-    switch (delegate->GetBackend()) {
-      case ui::LinuxUiBackend::kStub:
-        break;
-      case ui::LinuxUiBackend::kX11:
-        cmd_line.AppendArg("-platform");
-        cmd_line.AppendArg("xcb");
-        break;
-      case ui::LinuxUiBackend::kWayland:
-        cmd_line.AppendArg("-platform");
-        cmd_line.AppendArg("wayland");
-        break;
-    }
-  }
-  cmd_line_ = CopyCmdLine(cmd_line);
+  cmd_line_ = CopyCmdLine(*base::CommandLine::ForCurrentProcess());
   shim_.reset((reinterpret_cast<decltype(&CreateQtInterface)>(
       create_qt_interface)(this, &cmd_line_.argc, cmd_line_.argv.data())));
   native_theme_ = std::make_unique<QtNativeTheme>(shim_.get());
   ui::ColorProviderManager::Get().AppendColorProviderInitializer(
       base::BindRepeating(&QtUi::AddNativeColorMixer, base::Unretained(this)));
   FontChanged();
-  ScaleFactorMaybeChangedImpl();
+  scale_factor_ = shim_->GetScaleFactor();
 
   return true;
 }
@@ -369,14 +350,14 @@ QtUi::WindowFrameAction QtUi::GetWindowFrameAction(
 }
 
 DISABLE_CFI_VCALL
-bool QtUi::PreferDarkTheme() const {
-  return color_utils::IsDark(
-      shim_->GetColor(ColorType::kWindowBg, ColorState::kNormal));
+float QtUi::GetDeviceScaleFactor() const {
+  return shim_->GetScaleFactor();
 }
 
 DISABLE_CFI_VCALL
-void QtUi::SetDarkTheme(bool dark) {
-  // Qt::ColorScheme is only available in QT 6.5 and later.
+bool QtUi::PreferDarkTheme() const {
+  return color_utils::IsDark(
+      shim_->GetColor(ColorType::kWindowBg, ColorState::kNormal));
 }
 
 DISABLE_CFI_VCALL
@@ -500,7 +481,7 @@ void QtUi::ScaleFactorMaybeChanged() {
 
 DISABLE_CFI_VCALL
 void QtUi::AddNativeColorMixer(ui::ColorProvider* provider,
-                               const ui::ColorProviderKey& key) {
+                               const ui::ColorProviderManager::Key& key) {
   if (key.system_theme != ui::SystemTheme::kQt) {
     return;
   }
@@ -557,7 +538,7 @@ void QtUi::AddNativeColorMixer(ui::ColorProvider* provider,
   }
 
   const bool use_custom_frame =
-      key.frame_type == ui::ColorProviderKey::FrameType::kChromium;
+      key.frame_type == ui::ColorProviderManager::FrameType::kChromium;
   mixer[ui::kColorFrameActive] = {
       shim_->GetFrameColor(ColorState::kNormal, use_custom_frame)};
   mixer[ui::kColorFrameInactive] = {
@@ -640,24 +621,14 @@ absl::optional<SkColor> QtUi::GetColor(int id, bool use_custom_frame) const {
 DISABLE_CFI_VCALL
 void QtUi::ScaleFactorMaybeChangedImpl() {
   scale_factor_task_active_ = false;
-  qt::MonitorScale* qt_monitors;
-  ui::DisplayConfig new_config;
-  size_t n_monitors =
-      shim_->GetMonitorConfig(&qt_monitors, &new_config.primary_scale);
-  std::vector<ui::DisplayGeometry> ui_monitors;
-  ui_monitors.reserve(n_monitors);
-  for (size_t i = 0; i < n_monitors; i++) {
-    const qt::MonitorScale& monitor = qt_monitors[i];
-    ui_monitors.push_back(ui::DisplayGeometry{
-        {monitor.x_px, monitor.y_px, monitor.width_px, monitor.height_px},
-        monitor.scale});
+  double scale = shim_->GetScaleFactor();
+  if (scale == scale_factor_) {
+    return;
   }
-  if (display_config() != new_config) {
-    display_config() = std::move(new_config);
-    for (ui::DeviceScaleFactorObserver& observer :
-         device_scale_factor_observer_list()) {
-      observer.OnDeviceScaleFactorChanged();
-    }
+  scale_factor_ = scale;
+  for (ui::DeviceScaleFactorObserver& observer :
+       device_scale_factor_observer_list()) {
+    observer.OnDeviceScaleFactorChanged();
   }
 }
 

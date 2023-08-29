@@ -10,11 +10,14 @@
 
 #include "ash/ash_export.h"
 #include "ash/wm/window_cycle/window_cycle_controller.h"
+#include "ash/wm/window_cycle/window_cycle_view.h"
 #include "base/memory/raw_ptr.h"
 #include "base/timer/timer.h"
 #include "ui/aura/window_observer.h"
 #include "ui/display/display_observer.h"
-#include "ui/events/event.h"
+#include "ui/display/screen.h"
+#include "ui/views/controls/label.h"
+#include "ui/views/view.h"
 
 namespace aura {
 class ScopedWindowTargeter;
@@ -23,13 +26,9 @@ class Window;
 
 namespace views {
 class Widget;
-}  // namespace views
+}
 
 namespace ash {
-
-class WindowCycleView;
-
-using WindowCyclingDirection = WindowCycleController::WindowCyclingDirection;
 
 // Tracks a set of Windows that can be stepped through. This class is used by
 // the WindowCycleController.
@@ -64,7 +63,7 @@ class ASH_EXPORT WindowCycleList : public aura::WindowObserver,
   // If |starting_alt_tab_or_switching_mode| is true and |direction| is
   // forward, the highlight moves to the first non-active window in MRU list:
   // the second window by default or the first window if it is not active.
-  void Step(WindowCyclingDirection direction,
+  void Step(WindowCycleController::WindowCyclingDirection direction,
             bool starting_alt_tab_or_switching_mode);
 
   // Should be called when a user drags their finger on the touch screen.
@@ -104,8 +103,6 @@ class ASH_EXPORT WindowCycleList : public aura::WindowObserver,
   void OnModePrefsChanged();
 
   static void SetDisableInitialDelayForTesting(bool disabled);
-
-  const WindowList& windows_for_testing() const { return windows_; }
 
  private:
   friend class ModeSelectionWindowCycleControllerTest;
@@ -203,7 +200,7 @@ class ASH_EXPORT WindowCycleList : public aura::WindowObserver,
       nullptr;
 
   // The most recent direction `Step()` was called with.
-  WindowCyclingDirection last_cycling_direction_;
+  WindowCycleController::WindowCyclingDirection last_cycling_direction_;
 };
 
 }  // namespace ash

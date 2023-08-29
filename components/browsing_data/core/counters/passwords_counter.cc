@@ -9,7 +9,6 @@
 #include <utility>
 
 #include "base/functional/bind.h"
-#include "base/scoped_observation.h"
 #include "base/time/time.h"
 #include "components/browsing_data/core/pref_names.h"
 #include "components/password_manager/core/browser/password_manager_util.h"
@@ -83,10 +82,6 @@ class PasswordStoreFetcher
   int num_passwords_ = 0;
   std::vector<std::string> domain_examples_;
 
-  base::ScopedObservation<password_manager::PasswordStoreInterface,
-                          password_manager::PasswordStoreInterface::Observer>
-      password_store_interface_observation_{this};
-
   base::WeakPtrFactory<PasswordStoreFetcher> weak_ptr_factory_{this};
 };
 
@@ -95,10 +90,13 @@ PasswordStoreFetcher::PasswordStoreFetcher(
     base::RepeatingClosure logins_changed_closure)
     : store_(store), logins_changed_closure_(logins_changed_closure) {
   if (store_)
-    password_store_interface_observation_.Observe(store_.get());
+    store_->AddObserver(this);
 }
 
-PasswordStoreFetcher::~PasswordStoreFetcher() = default;
+PasswordStoreFetcher::~PasswordStoreFetcher() {
+  if (store_)
+    store_->RemoveObserver(this);
+}
 
 void PasswordStoreFetcher::OnLoginsChanged(
     password_manager::PasswordStoreInterface* /*store*/,
@@ -232,14 +230,13 @@ const char* PasswordsCounter::GetPrefName() const {
 }
 
 void PasswordsCounter::Count() {
-  weak_ptr_factory_.InvalidateWeakPtrs();
   remaining_tasks_ = 2;
-  profile_store_fetcher_->Fetch(GetPeriodStart(), GetPeriodEnd(),
-                                base::BindOnce(&PasswordsCounter::OnFetchDone,
-                                               weak_ptr_factory_.GetWeakPtr()));
-  account_store_fetcher_->Fetch(GetPeriodStart(), GetPeriodEnd(),
-                                base::BindOnce(&PasswordsCounter::OnFetchDone,
-                                               weak_ptr_factory_.GetWeakPtr()));
+  profile_store_fetcher_->Fetch(
+      GetPeriodStart(), GetPeriodEnd(),
+      base::BindOnce(&PasswordsCounter::OnFetchDone, base::Unretained(this)));
+  account_store_fetcher_->Fetch(
+      GetPeriodStart(), GetPeriodEnd(),
+      base::BindOnce(&PasswordsCounter::OnFetchDone, base::Unretained(this)));
 }
 
 void PasswordsCounter::OnPasswordsFetchDone() {
@@ -255,9 +252,8 @@ PasswordsCounter::MakeResult() {
 }
 
 void PasswordsCounter::OnFetchDone() {
-  if (--remaining_tasks_ == 0) {
+  if (--remaining_tasks_ == 0)
     OnPasswordsFetchDone();
-  }
 }
 
 }  // namespace browsing_data

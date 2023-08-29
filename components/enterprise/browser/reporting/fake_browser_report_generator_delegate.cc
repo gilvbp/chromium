@@ -89,33 +89,33 @@ FakeReportingDelegateFactory::FakeReportingDelegateFactory(
 FakeReportingDelegateFactory::~FakeReportingDelegateFactory() = default;
 
 std::unique_ptr<BrowserReportGenerator::Delegate>
-FakeReportingDelegateFactory::GetBrowserReportGeneratorDelegate() const {
+FakeReportingDelegateFactory::GetBrowserReportGeneratorDelegate() {
   return std::make_unique<test::FakeBrowserReportGeneratorDelegate>(
       executable_path_);
 }
 
 std::unique_ptr<ProfileReportGenerator::Delegate>
-FakeReportingDelegateFactory::GetProfileReportGeneratorDelegate() const {
+FakeReportingDelegateFactory::GetProfileReportGeneratorDelegate() {
   return std::make_unique<FakeProfileReportGeneratorDelegate>();
 }
 
 std::unique_ptr<ReportGenerator::Delegate>
-FakeReportingDelegateFactory::GetReportGeneratorDelegate() const {
+FakeReportingDelegateFactory::GetReportGeneratorDelegate() {
   return nullptr;
 }
 
 std::unique_ptr<ReportScheduler::Delegate>
-FakeReportingDelegateFactory::GetReportSchedulerDelegate() const {
+FakeReportingDelegateFactory::GetReportSchedulerDelegate() {
   return nullptr;
 }
 
 std::unique_ptr<RealTimeReportGenerator::Delegate>
-FakeReportingDelegateFactory::GetRealTimeReportGeneratorDelegate() const {
+FakeReportingDelegateFactory::GetRealTimeReportGeneratorDelegate() {
   return nullptr;
 }
 
 std::unique_ptr<RealTimeReportController::Delegate>
-FakeReportingDelegateFactory::GetRealTimeReportControllerDelegate() const {
+FakeReportingDelegateFactory::GetRealTimeReportControllerDelegate() {
   return nullptr;
 }
 

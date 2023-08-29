@@ -16,6 +16,7 @@
 #include "base/time/time.h"
 #include "chrome/browser/ash/bruschetta/bruschetta_pref_names.h"
 #include "chrome/browser/ash/bruschetta/bruschetta_service.h"
+#include "chrome/browser/ash/bruschetta/bruschetta_service_factory.h"
 #include "chrome/browser/ash/bruschetta/bruschetta_util.h"
 #include "chrome/browser/ash/guest_os/dbus_test_helper.h"
 #include "chrome/browser/ash/guest_os/guest_os_session_tracker.h"
@@ -49,6 +50,7 @@ class BruschettaLauncherTest : public testing::Test,
 
  protected:
   void SetUp() override {
+    BruschettaServiceFactory::EnableForTesting(&profile_);
     launcher_ = std::make_unique<BruschettaLauncher>(kTestVmName, &profile_);
 
     // We set up all our mocks to succeed, then failing tests explicitly break

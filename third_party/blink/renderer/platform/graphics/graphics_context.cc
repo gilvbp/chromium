@@ -300,7 +300,6 @@ void GraphicsContext::BeginRecording() {
 }
 
 PaintRecord GraphicsContext::EndRecording() {
-  canvas_->SetPrintingMetafile(nullptr);
   canvas_ = nullptr;
   return paint_recorder_.finishRecordingAsPicture();
 }

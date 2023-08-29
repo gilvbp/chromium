@@ -152,7 +152,7 @@ class ModuleMapTestModulator final : public DummyModulator {
       client_->NotifyFetchFinishedSuccess(ModuleScriptCreationParams(
           url_, url_, ScriptSourceLocationType::kExternalFile,
           ModuleType::kJavaScript, ParkableString(String("").ReleaseImpl()),
-          nullptr, network::mojom::ReferrerPolicy::kDefault));
+          nullptr));
     }
     void Trace(Visitor* visitor) const { visitor->Trace(client_); }
 

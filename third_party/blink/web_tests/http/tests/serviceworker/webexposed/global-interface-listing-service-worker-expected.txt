@@ -668,6 +668,7 @@ interface IDBIndex
     getter name
     getter objectStore
     getter unique
+    method batchGetAll
     method constructor
     method count
     method get
@@ -697,6 +698,7 @@ interface IDBObjectStore
     getter name
     getter transaction
     method add
+    method batchGetAll
     method clear
     method constructor
     method count
@@ -1481,15 +1483,13 @@ interface TextMetrics
     getter actualBoundingBoxLeft
     getter actualBoundingBoxRight
     getter advances
-    getter alphabeticBaseline
     getter emHeightAscent
     getter emHeightDescent
     getter fontBoundingBoxAscent
     getter fontBoundingBoxDescent
-    getter hangingBaseline
-    getter ideographicBaseline
     getter width
     method constructor
+    method getBaselines
 interface TimestampTrigger
     attribute @@toStringTag
     getter timestamp
@@ -2931,7 +2931,7 @@ interface WebSocket : EventTarget
 interface WebSocketStream
     attribute @@toStringTag
     getter closed
-    getter opened
+    getter connection
     getter url
     method close
     method constructor

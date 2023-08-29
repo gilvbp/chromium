@@ -15,11 +15,10 @@
 #import "components/omnibox/browser/omnibox_edit_model.h"
 #import "components/omnibox/browser/omnibox_view.h"
 #import "components/open_from_clipboard/clipboard_recent_content.h"
-#import "components/prefs/pref_service.h"
 #import "components/profile_metrics/browser_profile_type.h"
 #import "components/search_engines/util.h"
 #import "components/strings/grit/components_strings.h"
-#import "ios/chrome/browser/autocomplete/model/autocomplete_scheme_classifier_impl.h"
+#import "ios/chrome/browser/autocomplete/autocomplete_scheme_classifier_impl.h"
 #import "ios/chrome/browser/browser_state_metrics/browser_state_metrics.h"
 #import "ios/chrome/browser/default_browser/utils.h"
 #import "ios/chrome/browser/drag_and_drop/drag_item_util.h"
@@ -30,7 +29,7 @@
 #import "ios/chrome/browser/ntp/new_tab_page_util.h"
 #import "ios/chrome/browser/overlays/public/overlay_presenter.h"
 #import "ios/chrome/browser/search_engines/template_url_service_factory.h"
-#import "ios/chrome/browser/shared/coordinator/default_browser_promo/default_browser_promo_scene_agent_utils.h"
+#import "ios/chrome/browser/shared/coordinator/default_browser_promo/non_modal_default_browser_promo_scheduler_scene_agent.h"
 #import "ios/chrome/browser/shared/coordinator/layout_guide/layout_guide_util.h"
 #import "ios/chrome/browser/shared/coordinator/scene/scene_state_browser_agent.h"
 #import "ios/chrome/browser/shared/model/browser/browser.h"
@@ -76,6 +75,10 @@
 #import "services/network/public/cpp/resource_request.h"
 #import "ui/base/device_form_factor.h"
 #import "url/gurl.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 BASE_FEATURE(kEnableFocusOmniboxWorkaround,
              "EnableFocusOmniboxWorkaround",
@@ -164,9 +167,6 @@ const size_t kMaxURLDisplayChars = 32 * 1024;
 
   BOOL isIncognito = self.browserState->IsOffTheRecord();
 
-  PrefService* prefs =
-      ChromeBrowserState::FromBrowserState(self.browser->GetBrowserState())
-          ->GetPrefs();
   self.viewController = [[LocationBarViewController alloc] init];
   self.viewController.incognito = isIncognito;
   self.viewController.delegate = self;
@@ -180,7 +180,6 @@ const size_t kMaxURLDisplayChars = 32 * 1024;
       ios::provider::IsVoiceSearchEnabled();
   self.viewController.layoutGuideCenter =
       LayoutGuideCenterForBrowser(self.browser);
-  self.viewController.prefService = prefs;
 
   _locationBar = std::make_unique<WebLocationBarImpl>(self, self.delegate);
   _locationBar->SetURLLoader(self);
@@ -268,13 +267,8 @@ const size_t kMaxURLDisplayChars = 32 * 1024;
 
   self.viewController = nil;
   [self.mediator disconnect];
-  self.mediator.templateURLService = nil;
-  self.mediator.consumer = nil;
   self.mediator = nil;
   [self.steadyViewMediator disconnect];
-  self.steadyViewMediator.webStateList = nullptr;
-  self.steadyViewMediator.webContentAreaOverlayPresenter = nil;
-  self.steadyViewMediator.consumer = nil;
   self.steadyViewMediator = nil;
 
   _locationBarModel = nullptr;
@@ -307,11 +301,6 @@ const size_t kMaxURLDisplayChars = 32 * 1024;
 
 - (UIResponder<UITextInput>*)omniboxScribbleForwardingTarget {
   return self.omniboxCoordinator.scribbleInput;
-}
-
-// Returns the toolbar omnibox consumer.
-- (id<ToolbarOmniboxConsumer>)toolbarOmniboxConsumer {
-  return self.omniboxCoordinator.toolbarOmniboxConsumer;
 }
 
 #pragma mark - LoadQueryCommands
@@ -443,7 +432,8 @@ const size_t kMaxURLDisplayChars = 32 * 1024;
 
   SceneState* sceneState =
       SceneStateBrowserAgent::FromBrowser(self.browser)->GetSceneState();
-  NotifyDefaultBrowserPromoUserPastedInOmnibox(sceneState);
+  [[NonModalDefaultBrowserPromoSchedulerSceneAgent agentFromScene:sceneState]
+      logUserPastedInOmnibox];
   LogToFETUserPastedURLIntoOmnibox(
       feature_engagement::TrackerFactory::GetForBrowserState(
           self.browser->GetBrowserState()));

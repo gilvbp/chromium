@@ -54,9 +54,16 @@ void FakeTextTrackStream::SatisfyPendingRead(
       reinterpret_cast<const uint8_t*>(content.data());
   const int data_len = static_cast<int>(content.size());
 
-  // TODO(crbug.com/1471504): This is now broken without side data; remove.
+  std::vector<uint8_t> side_data;
+  MakeSideData(id.begin(), id.end(),
+                settings.begin(), settings.end(),
+                &side_data);
+
+  const uint8_t* const sd_buf = &side_data[0];
+  const int sd_len = static_cast<int>(side_data.size());
+
   scoped_refptr<DecoderBuffer> buffer =
-      DecoderBuffer::CopyFrom(data_buf, data_len);
+      DecoderBuffer::CopyFrom(data_buf, data_len, sd_buf, sd_len);
 
   buffer->set_timestamp(start);
   buffer->set_duration(duration);

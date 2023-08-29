@@ -59,18 +59,11 @@ export class TileModuleElement extends I18nMixin
         value: false,
         reflectToAttribute: true,
       },
-
-      hasDiscount: {
-        type: Boolean,
-        value: false,
-        reflectToAttribute: true,
-      },
     };
   }
 
   visit: URLVisit;
   smallFormat: boolean;
-  hasDiscount: boolean;
   private imageUrl_: Url|null;
 
   hasImageUrl(): boolean {

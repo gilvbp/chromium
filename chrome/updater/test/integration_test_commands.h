@@ -12,7 +12,6 @@
 #include "build/build_config.h"
 #include "chrome/updater/test/integration_tests_impl.h"
 #include "chrome/updater/update_service.h"
-#include "third_party/abseil-cpp/absl/types/optional.h"
 
 class GURL;
 
@@ -35,7 +34,6 @@ class IntegrationTestCommands
                              const base::TimeDelta& idle_timeout) const = 0;
   virtual void ExitTestMode() const = 0;
   virtual void SetGroupPolicies(const base::Value::Dict& values) const = 0;
-  virtual void SetMachineManaged(bool is_managed_device) const = 0;
   virtual void Clean() const = 0;
   virtual void ExpectClean() const = 0;
   virtual void ExpectInstalled() const = 0;
@@ -47,7 +45,6 @@ class IntegrationTestCommands
   virtual void ExpectNotActive(const std::string& app_id) const = 0;
   virtual void ExpectSelfUpdateSequence(ScopedServer* test_server) const = 0;
   virtual void ExpectUninstallPing(ScopedServer* test_server) const = 0;
-  virtual void ExpectUpdateCheckRequest(ScopedServer* test_server) const = 0;
   virtual void ExpectUpdateCheckSequence(
       ScopedServer* test_server,
       const std::string& app_id,
@@ -60,13 +57,6 @@ class IntegrationTestCommands
                                     UpdateService::Priority priority,
                                     const base::Version& from_version,
                                     const base::Version& to_version) const = 0;
-  virtual void ExpectUpdateSequenceBadHash(
-      ScopedServer* test_server,
-      const std::string& app_id,
-      const std::string& install_data_index,
-      UpdateService::Priority priority,
-      const base::Version& from_version,
-      const base::Version& to_version) const = 0;
   virtual void ExpectInstallSequence(ScopedServer* test_server,
                                      const std::string& app_id,
                                      const std::string& install_data_index,
@@ -76,8 +66,7 @@ class IntegrationTestCommands
   virtual void ExpectVersionActive(const std::string& version) const = 0;
   virtual void ExpectVersionNotActive(const std::string& version) const = 0;
   virtual void Uninstall() const = 0;
-  virtual void InstallApp(const std::string& app_id,
-                          const base::Version& version) const = 0;
+  virtual void InstallApp(const std::string& app_id) const = 0;
   virtual void ExpectNoCrashes() const = 0;
   virtual void CopyLog() const = 0;
   virtual void SetupFakeUpdaterHigherVersion() const = 0;
@@ -105,7 +94,6 @@ class IntegrationTestCommands
   virtual void GetAppStates(
       const base::Value::Dict& expected_app_states) const = 0;
   virtual void DeleteUpdaterDirectory() const = 0;
-  virtual void DeleteActiveUpdaterExecutable() const = 0;
   virtual void DeleteFile(const base::FilePath& path) const = 0;
   virtual void PrintLog() const = 0;
   virtual base::FilePath GetDifferentUserPath() const = 0;
@@ -127,7 +115,6 @@ class IntegrationTestCommands
   virtual void ExpectLegacyPolicyStatusSucceeds() const = 0;
   virtual void RunUninstallCmdLine() const = 0;
   virtual void RunHandoff(const std::string& app_id) const = 0;
-  virtual void InstallAppViaService(const std::string& app_id) const = 0;
 #endif  // BUILDFLAG(IS_WIN)
   virtual void StressUpdateService() const = 0;
   virtual void CallServiceUpdate(const std::string& app_id,

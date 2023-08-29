@@ -85,13 +85,6 @@ export class ListenerMock {
 export class MockItemDelegate extends ClickMock implements ItemDelegate {
   itemStateChangedTarget: FakeChromeEvent = new FakeChromeEvent();
   deleteItem(_id: string) {}
-  deleteItems(_ids: string[]) {
-    return Promise.resolve();
-  }
-  uninstallItem(_id: string) {
-    return Promise.resolve();
-  }
-  setItemSafetyCheckWarningAcknowledged(_id: string) {}
   setItemEnabled(_id: string, _isEnabled: boolean) {}
   setItemAllowedIncognito(_id: string, _isAllowedIncognito: boolean) {}
   setItemAllowedOnFileUrls(_id: string, _isAllowedOnFileUrls: boolean) {}
@@ -218,7 +211,7 @@ export function createExtensionInfo(
         offlineEnabled: false,
         runtimeErrors: [],
         runtimeWarnings: [],
-        permissions: {simplePermissions: [], canAccessSiteData: false},
+        permissions: {simplePermissions: []},
         state: 'ENABLED',
         type: 'EXTENSION',
         updateUrl: '',
@@ -228,7 +221,6 @@ export function createExtensionInfo(
         webStoreUrl: '',
         showSafeBrowsingAllowlistWarning: false,
         showAccessRequestsInToolbar: false,
-        acknowledgeSafetyCheckWarning: false,
       },
       properties || {});
 }

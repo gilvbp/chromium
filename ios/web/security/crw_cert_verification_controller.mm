@@ -6,10 +6,10 @@
 
 #import <memory>
 
-#import "base/apple/foundation_util.h"
 #import "base/check_op.h"
 #import "base/functional/bind.h"
 #import "base/ios/block_types.h"
+#import "base/mac/foundation_util.h"
 #import "base/memory/ref_counted.h"
 #import "base/strings/sys_string_conversions.h"
 #import "base/task/thread_pool.h"
@@ -22,6 +22,10 @@
 #import "net/cert/x509_util.h"
 #import "net/cert/x509_util_apple.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 using base::TaskShutdownBehavior;
 using base::TaskTraits;
 using web::WebThread;
@@ -33,31 +37,28 @@ using web::WebThread;
 
 // Returns cert status for the given `trust`.
 - (net::CertStatus)certStatusFromTrustResult:(SecTrustResultType)trustResult
-                                  trustError:
-                                      (base::apple::ScopedCFTypeRef<CFErrorRef>)
-                                          trustError;
+                                  trustError:(base::ScopedCFTypeRef<CFErrorRef>)
+                                                 trustError;
 
 // Decides the policy for the given `trust` which was rejected by iOS and the
 // given `host` and calls `handler` on completion. Must be called on UI thread.
 // `handler` can not be null and will be called on UI thread.
 - (void)
     decideLoadPolicyForRejectedTrustResult:(SecTrustResultType)trustResult
-                                trustError:
-                                    (base::apple::ScopedCFTypeRef<CFErrorRef>)
-                                        trustError
+                                trustError:(base::ScopedCFTypeRef<CFErrorRef>)
+                                               trustError
                                serverTrust:
-                                   (base::apple::ScopedCFTypeRef<SecTrustRef>)
-                                       trust
+                                   (base::ScopedCFTypeRef<SecTrustRef>)trust
                                       host:(NSString*)host
                          completionHandler:(web::PolicyDecisionHandler)handler;
 
 // Verifies the given `trust` using SecTrustRef API. `completionHandler` cannot
 // be null and will be called on UI thread or never be called if the worker task
 // can't start or complete. Must be called on UI thread.
-- (void)verifyTrust:(base::apple::ScopedCFTypeRef<SecTrustRef>)trust
+- (void)verifyTrust:(base::ScopedCFTypeRef<SecTrustRef>)trust
     completionHandler:
         (void (^)(SecTrustResultType,
-                  base::apple::ScopedCFTypeRef<CFErrorRef>))completionHandler;
+                  base::ScopedCFTypeRef<CFErrorRef>))completionHandler;
 
 // Returns cert accept policy for the given SecTrust result. `trustResult` must
 // not be for a valid cert. Must be called on IO thread.
@@ -84,8 +85,7 @@ using web::WebThread;
   return self;
 }
 
-- (void)decideLoadPolicyForTrust:
-            (base::apple::ScopedCFTypeRef<SecTrustRef>)trust
+- (void)decideLoadPolicyForTrust:(base::ScopedCFTypeRef<SecTrustRef>)trust
                             host:(NSString*)host
                completionHandler:(web::PolicyDecisionHandler)completionHandler {
   DCHECK_CURRENTLY_ON(WebThread::UI);
@@ -93,7 +93,7 @@ using web::WebThread;
 
   [self verifyTrust:trust
       completionHandler:^(SecTrustResultType trustResult,
-                          base::apple::ScopedCFTypeRef<CFErrorRef> trustError) {
+                          base::ScopedCFTypeRef<CFErrorRef> trustError) {
         DCHECK_CURRENTLY_ON(WebThread::UI);
         if (trustResult == kSecTrustResultProceed ||
             trustResult == kSecTrustResultUnspecified) {
@@ -108,7 +108,7 @@ using web::WebThread;
       }];
 }
 
-- (void)querySSLStatusForTrust:(base::apple::ScopedCFTypeRef<SecTrustRef>)trust
+- (void)querySSLStatusForTrust:(base::ScopedCFTypeRef<SecTrustRef>)trust
                           host:(NSString*)host
              completionHandler:(web::StatusQueryHandler)completionHandler {
   DCHECK_CURRENTLY_ON(WebThread::UI);
@@ -116,7 +116,7 @@ using web::WebThread;
 
   [self verifyTrust:trust
       completionHandler:^(SecTrustResultType trustResult,
-                          base::apple::ScopedCFTypeRef<CFErrorRef> trustError) {
+                          base::ScopedCFTypeRef<CFErrorRef> trustError) {
         web::SecurityStyle securityStyle =
             web::GetSecurityStyleFromTrustResult(trustResult);
 
@@ -129,9 +129,8 @@ using web::WebThread;
 #pragma mark - Private
 
 - (net::CertStatus)certStatusFromTrustResult:(SecTrustResultType)trustResult
-                                  trustError:
-                                      (base::apple::ScopedCFTypeRef<CFErrorRef>)
-                                          trustError {
+                                  trustError:(base::ScopedCFTypeRef<CFErrorRef>)
+                                                 trustError {
   net::CertStatus certStatus = net::CertStatus();
   switch (trustResult) {
     case kSecTrustResultProceed:
@@ -152,12 +151,10 @@ using web::WebThread;
 
 - (void)
     decideLoadPolicyForRejectedTrustResult:(SecTrustResultType)trustResult
-                                trustError:
-                                    (base::apple::ScopedCFTypeRef<CFErrorRef>)
-                                        trustError
+                                trustError:(base::ScopedCFTypeRef<CFErrorRef>)
+                                               trustError
                                serverTrust:
-                                   (base::apple::ScopedCFTypeRef<SecTrustRef>)
-                                       trust
+                                   (base::ScopedCFTypeRef<SecTrustRef>)trust
                                       host:(NSString*)host
                          completionHandler:(web::PolicyDecisionHandler)handler {
   DCHECK_CURRENTLY_ON(WebThread::UI);
@@ -188,10 +185,10 @@ using web::WebThread;
                  }));
 }
 
-- (void)verifyTrust:(base::apple::ScopedCFTypeRef<SecTrustRef>)trust
+- (void)verifyTrust:(base::ScopedCFTypeRef<SecTrustRef>)trust
     completionHandler:
         (void (^)(SecTrustResultType,
-                  base::apple::ScopedCFTypeRef<CFErrorRef>))completionHandler {
+                  base::ScopedCFTypeRef<CFErrorRef>))completionHandler {
   DCHECK_CURRENTLY_ON(WebThread::UI);
   DCHECK(completionHandler);
   // SecTrustEvaluate performs trust evaluation synchronously, possibly making
@@ -199,7 +196,7 @@ using web::WebThread;
   base::ThreadPool::PostTask(
       FROM_HERE, {TaskShutdownBehavior::BLOCK_SHUTDOWN}, base::BindOnce(^{
         SecTrustResultType trustResult = kSecTrustResultInvalid;
-        base::apple::ScopedCFTypeRef<CFErrorRef> trustError;
+        base::ScopedCFTypeRef<CFErrorRef> trustError;
         bool isTrusted =
             SecTrustEvaluateWithError(trust.get(), trustError.InitializeInto());
         if (SecTrustGetTrustResult(trust.get(), &trustResult) != errSecSuccess)
@@ -236,20 +233,20 @@ using web::WebThread;
   // iOS 15.
   scoped_refptr<net::X509Certificate> leafCert = nil;
   if (@available(iOS 15.0, *)) {
-    base::apple::ScopedCFTypeRef<CFArrayRef> certificateChain(
+    base::ScopedCFTypeRef<CFArrayRef> certificateChain(
         SecTrustCopyCertificateChain(trust));
     SecCertificateRef secCertificate =
-        base::apple::CFCastStrict<SecCertificateRef>(
+        base::mac::CFCastStrict<SecCertificateRef>(
             CFArrayGetValueAtIndex(certificateChain, 0));
     leafCert = net::x509_util::CreateX509CertificateFromSecCertificate(
-        base::apple::ScopedCFTypeRef<SecCertificateRef>(
-            secCertificate, base::scoped_policy::RETAIN),
+        base::ScopedCFTypeRef<SecCertificateRef>(secCertificate,
+                                                 base::scoped_policy::RETAIN),
         {});
   }
 #if __IPHONE_OS_VERSION_MIN_REQUIRED < __IPHONE_15_0
   else {
     leafCert = net::x509_util::CreateX509CertificateFromSecCertificate(
-        base::apple::ScopedCFTypeRef<SecCertificateRef>(
+        base::ScopedCFTypeRef<SecCertificateRef>(
             SecTrustGetCertificateAtIndex(trust, 0),
             base::scoped_policy::RETAIN),
         {});

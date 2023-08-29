@@ -12,7 +12,6 @@
 #include "components/autofill/core/common/autofill_features.h"
 #include "components/autofill/core/common/autofill_internals/log_message.h"
 #include "components/autofill/core/common/autofill_internals/logging_scope.h"
-#include "components/autofill/core/common/autofill_payments_features.h"
 #include "components/autofill/core/common/logging/log_buffer.h"
 #include "components/autofill/core/common/logging/log_macros.h"
 
@@ -177,7 +176,6 @@ void FormStructureRationalizer::RationalizeCreditCardFieldPredictions(
   bool cc_year_found = false;
   bool cc_type_found = false;
   bool cc_cvc_found = false;
-  bool email_address_found = false;
   size_t num_months_found = 0;
   size_t num_other_fields_found = 0;
   for (const auto& field : *fields_) {
@@ -221,9 +219,6 @@ void FormStructureRationalizer::RationalizeCreditCardFieldPredictions(
         // Zip/Postal code often appears as part of a Credit Card form. Do
         // not count it as a non-cc-related field.
         break;
-      case EMAIL_ADDRESS:
-        email_address_found = true;
-        [[fallthrough]];
       default:
         ++num_other_fields_found;
     }
@@ -282,6 +277,7 @@ void FormStructureRationalizer::RationalizeCreditCardFieldPredictions(
         break;
       case CREDIT_CARD_NUMBER:
       case CREDIT_CARD_TYPE:
+      case CREDIT_CARD_VERIFICATION_CODE:
       case CREDIT_CARD_EXP_DATE_2_DIGIT_YEAR:
       case CREDIT_CARD_EXP_DATE_4_DIGIT_YEAR:
         if (!keep_cc_fields)
@@ -344,27 +340,6 @@ void FormStructureRationalizer::RationalizeCreditCardFieldPredictions(
           }
         }
         break;
-      case CREDIT_CARD_VERIFICATION_CODE: {
-        bool is_standalone_cvc_field = !cc_name_found && !cc_num_found &&
-                                       !cc_date_found && !email_address_found;
-        if (base::FeatureList::IsEnabled(
-                features::kAutofillParseVcnCardOnFileStandaloneCvcFields) &&
-            is_standalone_cvc_field) {
-          // If there aren't any other credit card fields and no email address
-          // field, than we presume this is a credit card saved on file of a
-          // merchant webpage.
-          field->SetTypeTo(
-              AutofillType(CREDIT_CARD_STANDALONE_VERIFICATION_CODE));
-          LOG_AF(log_manager)
-              << LoggingScope::kRationalization << LogMessage::kRationalization
-              << "Credit card rationalization: Found CVC field but no other "
-                 "credit card fields or email address field. Changed to "
-                 "standalone CVC field.";
-        } else if (!keep_cc_fields) {
-          field->SetTypeTo(AutofillType(UNKNOWN_TYPE));
-        }
-        break;
-      }
       default:
         break;
     }
@@ -474,7 +449,8 @@ void FormStructureRationalizer::RationalizeCreditCardNumberOffsets(
                CREDIT_CARD_NUMBER &&
            group[last]->renderer_form_id() == group[0]->renderer_form_id() &&
            group[last]->IsFocusable() == group[0]->IsFocusable() &&
-           (last == 0 || group[last - 1]->max_length == group[0]->max_length);
+           (group[last]->max_length == group[0]->max_length ||
+            (last >= 1 && group[last - 1]->max_length == group[0]->max_length));
   };
 
   // `has_reasonable_length({f, f + N + 1})` is true iff
@@ -496,7 +472,7 @@ void FormStructureRationalizer::RationalizeCreditCardNumberOffsets(
     size_t length_without_overflow =
         length - last_is_overflow * group[last]->max_length;
     return length >= kMinValidCardNumberSize &&
-           length_without_overflow <= kMaxValidCardNumberSize &&
+           length_without_overflow < kMaxValidCardNumberSize &&
            size >= 2 + last_is_overflow;
   };
 
@@ -696,7 +672,7 @@ void FormStructureRationalizer::ApplyRationalizationsToHiddenSelects(
   for (auto current_index = field_index + 1; current_index < fields_->size();
        current_index++) {
     if ((*fields_)[current_index]->IsFocusable() ||
-        !(*fields_)[current_index]->IsSelectElement() ||
+        !(*fields_)[current_index]->IsSelectOrSelectMenuElement() ||
         (*fields_)[current_index]->Type().GetStorableType() != old_type) {
       break;
     }
@@ -710,7 +686,7 @@ void FormStructureRationalizer::ApplyRationalizationsToHiddenSelects(
     return;
   for (auto current_index = field_index - 1;; current_index--) {
     if ((*fields_)[current_index]->IsFocusable() ||
-        !(*fields_)[current_index]->IsSelectElement() ||
+        !(*fields_)[current_index]->IsSelectOrSelectMenuElement() ||
         (*fields_)[current_index]->Type().GetStorableType() != old_type) {
       break;
     }
@@ -926,7 +902,10 @@ void FormStructureRationalizer::RationalizeFieldTypePredictions(
     LogManager* log_manager) {
   RationalizeCreditCardFieldPredictions(log_manager);
   RationalizeMultiOriginCreditCardFields(main_origin, log_manager);
-  RationalizeCreditCardNumberOffsets(log_manager);
+  if (base::FeatureList::IsEnabled(
+          features::kAutofillSplitCreditCardNumbersCautiously)) {
+    RationalizeCreditCardNumberOffsets(log_manager);
+  }
   RationalizeStreetAddressAndAddressLine(log_manager);
   RationalizePhoneNumberTrunkTypes(log_manager);
   for (const auto& field : *fields_)

@@ -38,7 +38,6 @@ import org.chromium.components.browser_ui.site_settings.ContentSettingException;
 import org.chromium.components.browser_ui.site_settings.CookiesInfo;
 import org.chromium.components.browser_ui.site_settings.LocalStorageInfo;
 import org.chromium.components.browser_ui.site_settings.PermissionInfo;
-import org.chromium.components.browser_ui.site_settings.SharedDictionaryInfo;
 import org.chromium.components.browser_ui.site_settings.SiteSettingsCategory;
 import org.chromium.components.browser_ui.site_settings.SiteSettingsDelegate;
 import org.chromium.components.browser_ui.site_settings.StorageInfo;
@@ -382,7 +381,6 @@ public class WebsitePermissionsFetcherTest {
         public HashMap<String, LocalStorageInfo> mLocalStorageInfoMap;
         public HashMap<String, LocalStorageInfo> mImportantLocalStorageInfoMap;
         public ArrayList<StorageInfo> mStorageInfos;
-        public ArrayList<SharedDictionaryInfo> mSharedDictionaryInfos;
 
         FakeWebsitePreferenceBridge() {
             mPermissionInfos = new ArrayList<>();
@@ -391,7 +389,6 @@ public class WebsitePermissionsFetcherTest {
             mLocalStorageInfoMap = new HashMap<>();
             mImportantLocalStorageInfoMap = new HashMap<>();
             mStorageInfos = new ArrayList<>();
-            mSharedDictionaryInfos = new ArrayList<>();
         }
 
         @Override
@@ -442,12 +439,6 @@ public class WebsitePermissionsFetcherTest {
         }
 
         @Override
-        public void fetchSharedDictionaryInfo(
-                BrowserContextHandle browserContextHandle, Callback<ArrayList> callback) {
-            callback.onResult(mSharedDictionaryInfos);
-        }
-
-        @Override
         public List<ChosenObjectInfo> getChosenObjectInfo(
                 BrowserContextHandle browserContextHandle, int contentSettingsType) {
             List<ChosenObjectInfo> result = new ArrayList<>();
@@ -481,10 +472,6 @@ public class WebsitePermissionsFetcherTest {
 
         public void addStorageInfo(StorageInfo info) {
             mStorageInfos.add(info);
-        }
-
-        public void addSharedDictionaryInfo(SharedDictionaryInfo info) {
-            mSharedDictionaryInfos.add(info);
         }
 
         public void addChosenObjectInfo(ChosenObjectInfo info) {
@@ -533,7 +520,7 @@ public class WebsitePermissionsFetcherTest {
         // If the ContentSettingsType.NUM_TYPES value changes *and* a new value has been exposed on
         // Android, then please update this code block to include a test for your new type.
         // Otherwise, just update count in the assert.
-        Assert.assertEquals(92, ContentSettingsType.NUM_TYPES);
+        Assert.assertEquals(88, ContentSettingsType.NUM_TYPES);
         websitePreferenceBridge.addContentSettingException(
                 new ContentSettingException(ContentSettingsType.COOKIES, googleOrigin,
                         ContentSettingValues.DEFAULT, preferenceSource, /*isEmbargoed=*/false));
@@ -556,7 +543,7 @@ public class WebsitePermissionsFetcherTest {
                 new ContentSettingException(ContentSettingsType.AUTOMATIC_DOWNLOADS, googleOrigin,
                         ContentSettingValues.DEFAULT, preferenceSource, /*isEmbargoed=*/false));
         websitePreferenceBridge.addContentSettingException(new ContentSettingException(
-                ContentSettingsType.INSECURE_PRIVATE_NETWORK, googleOrigin,
+                ContentSettingsType.INSECURE_LOCAL_NETWORK, googleOrigin,
                 ContentSettingValues.DEFAULT, preferenceSource, /*isEmbargoed=*/false));
         websitePreferenceBridge.addContentSettingException(
                 new ContentSettingException(ContentSettingsType.JAVASCRIPT_JIT, googleOrigin,
@@ -584,11 +571,6 @@ public class WebsitePermissionsFetcherTest {
         // Add local storage info.
         websitePreferenceBridge.addLocalStorageInfoMapEntry(
                 new LocalStorageInfo(googleOrigin, storageSize, false));
-
-        // Add shared dictionary info.
-        int sharedDictionarySize = 12345;
-        websitePreferenceBridge.addSharedDictionaryInfo(
-                new SharedDictionaryInfo(googleOrigin, googleOrigin, sharedDictionarySize));
 
         // Add chooser info types.
         websitePreferenceBridge.addChosenObjectInfo(new ChosenObjectInfo(
@@ -667,15 +649,6 @@ public class WebsitePermissionsFetcherTest {
             Assert.assertEquals(googleOrigin, localStorageInfo.getOrigin());
             Assert.assertEquals(storageSize, localStorageInfo.getSize());
             Assert.assertFalse(localStorageInfo.isDomainImportant());
-
-            // Check shared dictionary info.
-            ArrayList<SharedDictionaryInfo> sharedDictionaryInfos =
-                    new ArrayList<>(site.getSharedDictionaryInfo());
-            Assert.assertEquals(1, sharedDictionaryInfos.size());
-
-            SharedDictionaryInfo sharedDictionaryInfo = sharedDictionaryInfos.get(0);
-            Assert.assertEquals(googleOrigin, sharedDictionaryInfo.getOrigin());
-            Assert.assertEquals(sharedDictionarySize, sharedDictionaryInfo.getSize());
 
             // Check chooser info types.
             ArrayList<ChosenObjectInfo> chosenObjectInfos =
@@ -770,8 +743,6 @@ public class WebsitePermissionsFetcherTest {
         Assert.assertEquals(expected.getPrimaryPattern(), actual.getPrimaryPattern());
         Assert.assertEquals(expected.getSecondaryPattern(), actual.getSecondaryPattern());
         Assert.assertEquals(expected.getContentSetting(), actual.getContentSetting());
-        Assert.assertEquals(expected.getExpirationInDays(), actual.getExpirationInDays());
-        Assert.assertEquals(expected.hasExpiration(), actual.hasExpiration());
     }
 
     @Test
@@ -877,7 +848,6 @@ public class WebsitePermissionsFetcherTest {
         String mainSite = "https://a.com";
         String thirdPartySite = "https://b.com";
         String preferenceSource = "preference";
-        Integer expirationInDays = 30;
         boolean isEmbargoed = false;
         @ContentSettingsType
         int contentSettingsType = ContentSettingsType.COOKIES;
@@ -893,9 +863,9 @@ public class WebsitePermissionsFetcherTest {
         for (Pair<String, String> pair : exceptions) {
             websitePreferenceBridge.resetContentSettingExceptions();
             {
-                ContentSettingException fakeContentSettingException = new ContentSettingException(
-                        contentSettingsType, pair.first, pair.second, ContentSettingValues.DEFAULT,
-                        preferenceSource, expirationInDays, isEmbargoed);
+                ContentSettingException fakeContentSettingException =
+                        new ContentSettingException(contentSettingsType, pair.first, pair.second,
+                                ContentSettingValues.DEFAULT, preferenceSource, isEmbargoed);
                 websitePreferenceBridge.addContentSettingException(fakeContentSettingException);
 
                 fetcher.fetchPreferencesForCategory(
@@ -912,9 +882,9 @@ public class WebsitePermissionsFetcherTest {
 
             // Make sure that the content setting value is updated.
             {
-                ContentSettingException fakeContentSettingException = new ContentSettingException(
-                        contentSettingsType, pair.first, pair.second, ContentSettingValues.BLOCK,
-                        preferenceSource, expirationInDays, isEmbargoed);
+                ContentSettingException fakeContentSettingException =
+                        new ContentSettingException(contentSettingsType, pair.first, pair.second,
+                                ContentSettingValues.BLOCK, preferenceSource, isEmbargoed);
                 websitePreferenceBridge.addContentSettingException(fakeContentSettingException);
 
                 fetcher.fetchPreferencesForCategory(
@@ -942,19 +912,15 @@ public class WebsitePermissionsFetcherTest {
         String googleOrigin = "https://google.com";
         String chromiumOrigin = "https://chromium.org";
         int storageSize = 256;
-        int sharedDictionarySize = 512;
         StorageInfo fakeStorageInfo = new StorageInfo(googleOrigin, 0, storageSize);
         LocalStorageInfo fakeLocalStorageInfo =
                 new LocalStorageInfo(googleOrigin, storageSize, false);
         LocalStorageInfo fakeImportantLocalStorageInfo =
                 new LocalStorageInfo(chromiumOrigin, storageSize, true);
-        SharedDictionaryInfo fakeSharedDictionaryInfo =
-                new SharedDictionaryInfo(googleOrigin, googleOrigin, sharedDictionarySize);
 
         websitePreferenceBridge.addStorageInfo(fakeStorageInfo);
         websitePreferenceBridge.addLocalStorageInfoMapEntry(fakeLocalStorageInfo);
         websitePreferenceBridge.addLocalStorageInfoMapEntry(fakeImportantLocalStorageInfo);
-        websitePreferenceBridge.addSharedDictionaryInfo(fakeSharedDictionaryInfo);
 
         fetcher.fetchPreferencesForCategory(
                 SiteSettingsCategory.createFromType(
@@ -975,16 +941,6 @@ public class WebsitePermissionsFetcherTest {
                     Assert.assertEquals(fakeLocalStorageInfo.getSize(), localStorageInfo.getSize());
                     Assert.assertEquals(
                             fakeLocalStorageInfo.getOrigin(), localStorageInfo.getOrigin());
-
-                    List<SharedDictionaryInfo> sharedDictionaryInfos =
-                            site.getSharedDictionaryInfo();
-                    Assert.assertEquals(1, sharedDictionaryInfos.size());
-
-                    SharedDictionaryInfo sharedDictionaryInfo = sharedDictionaryInfos.get(0);
-                    Assert.assertEquals(
-                            fakeSharedDictionaryInfo.getOrigin(), sharedDictionaryInfo.getOrigin());
-                    Assert.assertEquals(
-                            fakeSharedDictionaryInfo.getSize(), sharedDictionaryInfo.getSize());
                 });
 
         // Test that the fetcher gets local storage info for important domains.
@@ -1006,17 +962,6 @@ public class WebsitePermissionsFetcherTest {
                             Assert.assertEquals(fakeStorageInfo.getHost(), storageInfo.getHost());
 
                             Assert.assertNull(site.getLocalStorageInfo());
-
-                            List<SharedDictionaryInfo> sharedDictionaryInfos =
-                                    site.getSharedDictionaryInfo();
-                            Assert.assertEquals(1, sharedDictionaryInfos.size());
-
-                            SharedDictionaryInfo sharedDictionaryInfo =
-                                    sharedDictionaryInfos.get(0);
-                            Assert.assertEquals(fakeSharedDictionaryInfo.getOrigin(),
-                                    sharedDictionaryInfo.getOrigin());
-                            Assert.assertEquals(fakeSharedDictionaryInfo.getSize(),
-                                    sharedDictionaryInfo.getSize());
                         } else if (site.getAddress().matches(chromiumOrigin)) {
                             List<StorageInfo> storageInfos = site.getStorageInfo();
                             Assert.assertEquals(0, storageInfos.size());
@@ -1027,10 +972,6 @@ public class WebsitePermissionsFetcherTest {
                                     localStorageInfo.getSize());
                             Assert.assertEquals(fakeImportantLocalStorageInfo.getOrigin(),
                                     localStorageInfo.getOrigin());
-
-                            List<SharedDictionaryInfo> sharedDictionaryInfos =
-                                    site.getSharedDictionaryInfo();
-                            Assert.assertEquals(0, sharedDictionaryInfos.size());
                         } else {
                             Assert.fail("The WebsitePermissionsFetcher should only return "
                                     + "Website objects for the granted origins.");

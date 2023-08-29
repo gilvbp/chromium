@@ -38,7 +38,7 @@ class CSSContainerValuesTest : public PageTestBase {
 
  private:
   Element& ContainerElement() {
-    return *GetDocument().getElementById(AtomicString("container"));
+    return *GetDocument().getElementById("container");
   }
 };
 

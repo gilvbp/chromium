@@ -21,7 +21,6 @@
 #include "net/cert/pki/verify_name_match.h"
 #include "net/der/parser.h"
 #include "net/der/tag.h"
-#include "third_party/boringssl/src/include/openssl/base.h"
 #include "third_party/boringssl/src/include/openssl/sha.h"
 
 namespace net {
@@ -325,7 +324,7 @@ void CertIssuersIter::AddIssuers(ParsedCertificateList new_issuers) {
 }
 
 void CertIssuersIter::DoAsyncIssuerQuery() {
-  BSSL_CHECK(!did_async_issuer_query_);
+  DCHECK(!did_async_issuer_query_);
   did_async_issuer_query_ = true;
   cur_async_request_ = 0;
   for (auto* cert_issuer_source : *cert_issuer_sources_) {
@@ -385,14 +384,14 @@ class CertIssuerIterPath {
   void Append(std::unique_ptr<CertIssuersIter> cert_issuers_iter) {
     bool added =
         present_certs_.insert(GetKey(cert_issuers_iter->cert())).second;
-    BSSL_CHECK(added);
+    DCHECK(added);
     cur_path_.push_back(std::move(cert_issuers_iter));
   }
 
   // Pops the last CertIssuersIter off the path.
   void Pop() {
     size_t num_erased = present_certs_.erase(GetKey(cur_path_.back()->cert()));
-    BSSL_CHECK(num_erased == 1U);
+    DCHECK_EQ(num_erased, 1U);
     cur_path_.pop_back();
   }
 
@@ -730,8 +729,8 @@ const CertPathBuilderResultPath* CertPathBuilder::Result::GetBestValidPath()
 
 const CertPathBuilderResultPath*
 CertPathBuilder::Result::GetBestPathPossiblyInvalid() const {
-  BSSL_CHECK((paths.empty() && best_result_index == 0) ||
-             best_result_index < paths.size());
+  DCHECK((paths.empty() && best_result_index == 0) ||
+         best_result_index < paths.size());
 
   if (best_result_index >= paths.size())
     return nullptr;
@@ -760,7 +759,7 @@ CertPathBuilder::CertPathBuilder(
       user_initial_policy_set_(user_initial_policy_set),
       initial_policy_mapping_inhibit_(initial_policy_mapping_inhibit),
       initial_any_policy_inhibit_(initial_any_policy_inhibit) {
-  BSSL_CHECK(delegate);
+  DCHECK(delegate);
   // The TrustStore also implements the CertIssuerSource interface.
   AddCertIssuerSource(trust_store);
 }

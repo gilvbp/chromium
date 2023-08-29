@@ -57,8 +57,6 @@
 
 - (void)configureNTPViewController;
 
-- (void)restoreNTPState;
-
 @end
 
 #endif  // IOS_CHROME_BROWSER_UI_NTP_NEW_TAB_PAGE_COORDINATOR_PRIVATE_H_

@@ -198,8 +198,7 @@ class ExtensionInstallPrompt {
     bool is_requesting_host_permissions_;
 
     // The extension being installed.
-    raw_ptr<const extensions::Extension, AcrossTasksDanglingUntriaged>
-        extension_;
+    raw_ptr<const extensions::Extension, DanglingUntriaged> extension_;
 
     std::string delegated_username_;
 

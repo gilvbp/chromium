@@ -17,7 +17,6 @@ import org.robolectric.annotation.Config;
 import org.chromium.base.test.BaseRobolectricTestRunner;
 import org.chromium.chrome.browser.flags.ChromeFeatureList;
 import org.chromium.chrome.test.util.browser.Features;
-import org.chromium.chrome.test.util.browser.Features.EnableFeatures;
 
 import java.util.Random;
 
@@ -26,7 +25,7 @@ import java.util.Random;
  */
 @RunWith(BaseRobolectricTestRunner.class)
 @Config(manifest = Config.NONE)
-@EnableFeatures(ChromeFeatureList.PROBABILISTIC_CRYPTID_RENDERER)
+@Features.EnableFeatures(ChromeFeatureList.PROBABILISTIC_CRYPTID_RENDERER)
 public class ProbabilisticCryptidRendererUnitTest {
     @Rule
     public TestRule mProcessor = new Features.JUnitProcessor();

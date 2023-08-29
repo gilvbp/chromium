@@ -109,22 +109,18 @@ class BasePinButton : public views::View {
     layer()->SetFillsBoundsOpaquely(false);
 
     views::InkDrop::Install(this, std::make_unique<views::InkDropHost>(this));
-    views::InkDropHost* const ink_drop_host = views::InkDrop::Get(this);
-    ink_drop_host->SetMode(
+    views::InkDrop::Get(this)->SetMode(
         views::InkDropHost::InkDropMode::ON_NO_GESTURE_HANDLER);
-    ink_drop_host->SetBaseColorId(kColorAshInkDrop);
-
-    ink_drop_host->SetCreateHighlightCallback(base::BindRepeating(
+    views::InkDrop::Get(this)->SetCreateHighlightCallback(base::BindRepeating(
         [](BasePinButton* host) {
           auto highlight = std::make_unique<views::InkDropHighlight>(
               gfx::SizeF(host->size()),
-              views::InkDrop::Get(host)->GetBaseColor());
+              host->GetColorProvider()->GetColor(kColorAshInkDrop));
           highlight->set_visible_opacity(1.0f);
           return highlight;
         },
         this));
-
-    ink_drop_host->SetCreateRippleCallback(base::BindRepeating(
+    views::InkDrop::Get(this)->SetCreateRippleCallback(base::BindRepeating(
         [](BasePinButton* host) -> std::unique_ptr<views::InkDropRipple> {
           const gfx::Point center = host->GetLocalBounds().CenterPoint();
           const gfx::Rect bounds(center.x() - kInkDropCornerRadiusDp,
@@ -136,7 +132,7 @@ class BasePinButton : public views::View {
               views::InkDrop::Get(host), host->size(),
               host->GetLocalBounds().InsetsFrom(bounds),
               views::InkDrop::Get(host)->GetInkDropCenterBasedOnLastEvent(),
-              views::InkDrop::Get(host)->GetBaseColor(),
+              host->GetColorProvider()->GetColor(kColorAshInkDrop),
               /*visible_opacity=*/1.f);
         },
         this));

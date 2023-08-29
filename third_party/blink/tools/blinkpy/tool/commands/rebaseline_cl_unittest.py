@@ -475,33 +475,6 @@ class RebaselineCLTest(BaseTestCase, LoggingTestCase):
             'INFO: Rebaselining two/image-fail.html\n'
         ])
 
-    def test_execute_with_only_unrelated_failing_suites(self):
-        """A build without web test failures should not be treated as missing.
-
-        The build may still fail because of other non-web test suites.
-
-        See Also:
-            crbug.com/1475247#c1
-        """
-        builds = {
-            Build('MOCK Try Win', 5000, 'Build-1'):
-            TryJobStatus('COMPLETED', 'FAILURE'),
-            Build('MOCK Try Mac', 4000, 'Build-2'):
-            TryJobStatus('COMPLETED', 'FAILURE'),
-            Build('MOCK Try Linux', 6000, 'Build-3'):
-            TryJobStatus('COMPLETED', 'FAILURE'),
-        }
-        for build in builds:
-            self.tool.results_fetcher.set_results(
-                build,
-                WebTestResults([], step_name='blink_web_tests (with patch)'))
-        self.command.git_cl = MockGitCL(self.tool, builds)
-        exit_code = self.command.execute(self.command_options(), [], self.tool)
-        self.assertEqual(exit_code, 0)
-        self.assertLog([
-            'INFO: All builds finished.\n',
-        ])
-
     def test_execute_with_no_trigger_jobs_option(self):
         builds = {
             Build('MOCK Try Win', 5000, 'Build-1'):
@@ -645,8 +618,9 @@ class RebaselineCLTest(BaseTestCase, LoggingTestCase):
         ])
 
     def test_execute_missing_results_with_no_fill_missing_prompts(self):
-        build = Build('MOCK Try Win', 5000, 'Build-1')
-        self.builds[build] = TryJobStatus.from_bb_status('CANCELED')
+        self.tool.results_fetcher.set_results(
+            Build('MOCK Try Win', 5000, 'Build-1'), WebTestResults([]),
+            'blink_web_tests (with patch)')
         exit_code = self.command.execute(self.command_options(), [], self.tool)
         self.assertEqual(exit_code, 1)
         self.assertLog([
@@ -699,8 +673,10 @@ class RebaselineCLTest(BaseTestCase, LoggingTestCase):
             'TestExpectations instead of being rebaselined.\n',
             'WARNING: Consider adding the following lines to '
             '/mock-checkout/third_party/blink/web_tests/TestExpectations:\n'
-            '[ Trusty ] two/image-fail.html [ Failure ]  # Reftest image failure\n',
+            '[ Trusty ] two/image-fail.html [ Failure ]  # Reftest failure\n',
         ])
+        self._mock_copier.find_baselines_to_copy.assert_not_called()
+        self.tool.main.assert_not_called()
         self.assertFalse(
             self.tool.filesystem.exists(
                 self._expand('platform/test-linux-trusty/'
@@ -836,8 +812,9 @@ class RebaselineCLTest(BaseTestCase, LoggingTestCase):
         return b'diff', stats, None
 
     def test_execute_missing_results_with_fill_missing_continues(self):
-        build = Build('MOCK Try Win', 5000, 'Build-1')
-        self.builds[build] = TryJobStatus.from_bb_status('CANCELED')
+        self.tool.results_fetcher.set_results(
+            Build('MOCK Try Win', 5000, 'Build-1'), WebTestResults([]),
+            'blink_web_tests (with patch)')
         exit_code = self.command.execute(
             self.command_options(fill_missing=True), ['one/flaky-fail.html'],
             self.tool)
@@ -876,40 +853,26 @@ class RebaselineCLTest(BaseTestCase, LoggingTestCase):
                 'port_name': 'foo-foo12',
                 'specifiers': ['Foo12', 'Release'],
                 'is_try_builder': True,
-                'steps': {
-                    'blink_web_tests (with patch)': {},
-                },
             },
             'MOCK Foo45': {
                 'port_name': 'foo-foo45',
                 'specifiers': ['Foo45', 'Release'],
                 'is_try_builder': True,
-                'steps': {
-                    'blink_web_tests (with patch)': {},
-                },
             },
             'MOCK Bar3': {
                 'port_name': 'bar-bar3',
                 'specifiers': ['Bar3', 'Release'],
                 'is_try_builder': True,
-                'steps': {
-                    'blink_web_tests (with patch)': {},
-                },
             },
             'MOCK Bar4': {
                 'port_name': 'bar-bar4',
                 'specifiers': ['Bar4', 'Release'],
                 'is_try_builder': True,
-                'steps': {
-                    'blink_web_tests (with patch)': {},
-                },
             },
         })
         test_baseline_set = TestBaselineSet(self.tool.builders)
-        test_baseline_set.add('one/flaky-fail.html', Build('MOCK Foo12', 100),
-                              'blink_web_tests (with patch)')
-        test_baseline_set.add('one/flaky-fail.html', Build('MOCK Bar4', 200),
-                              'blink_web_tests (with patch)')
+        test_baseline_set.add('one/flaky-fail.html', Build('MOCK Foo12', 100))
+        test_baseline_set.add('one/flaky-fail.html', Build('MOCK Bar4', 200))
         self.command.fill_in_missing_results(test_baseline_set)
         self.assertEqual(
             sorted(test_baseline_set.build_port_pairs('one/flaky-fail.html')),
@@ -923,58 +886,6 @@ class RebaselineCLTest(BaseTestCase, LoggingTestCase):
             'INFO: For one/flaky-fail.html:\n',
             'INFO: Using "MOCK Bar4" build 200 for bar-bar3.\n',
             'INFO: Using "MOCK Foo12" build 100 for foo-foo45.\n',
-        ])
-
-    def test_fill_in_missing_results_partition_by_steps(self):
-        self.tool.builders = BuilderList({
-            'MOCK Foo12': {
-                'port_name': 'foo-foo12',
-                'specifiers': ['Foo12', 'Release'],
-                'is_try_builder': True,
-                'steps': {
-                    'blink_web_tests (with patch)': {},
-                    'blink_wpt_tests (with patch)': {},
-                },
-            },
-            'MOCK Foo45': {
-                'port_name': 'foo-foo45',
-                'specifiers': ['Foo45', 'Release'],
-                'is_try_builder': True,
-                'steps': {
-                    'blink_web_tests (with patch)': {},
-                    'blink_wpt_tests (with patch)': {},
-                },
-            },
-        })
-        test_baseline_set = TestBaselineSet(self.tool.builders)
-        test_baseline_set.add('one/flaky-fail.html', Build('MOCK Foo12', 100),
-                              'blink_web_tests (with patch)')
-        test_baseline_set.add('two/image-fail.html', Build('MOCK Foo45', 200),
-                              'blink_wpt_tests (with patch)')
-        self.command.fill_in_missing_results(test_baseline_set)
-        self.assertEqual(
-            sorted(test_baseline_set.runs_for_test('one/flaky-fail.html')),
-            [
-                # Do not add this test to `blink_wpt_tests`.
-                (Build('MOCK Foo12',
-                       100), 'blink_web_tests (with patch)', 'foo-foo12'),
-                (Build('MOCK Foo12',
-                       100), 'blink_web_tests (with patch)', 'foo-foo45'),
-            ])
-        self.assertEqual(
-            sorted(test_baseline_set.runs_for_test('two/image-fail.html')),
-            [
-                # Do not add this test to `blink_web_tests`.
-                (Build('MOCK Foo45',
-                       200), 'blink_wpt_tests (with patch)', 'foo-foo12'),
-                (Build('MOCK Foo45',
-                       200), 'blink_wpt_tests (with patch)', 'foo-foo45'),
-            ])
-        self.assertLog([
-            'INFO: For one/flaky-fail.html:\n',
-            'INFO: Using "MOCK Foo12" build 100 for foo-foo45.\n',
-            'INFO: For two/image-fail.html:\n',
-            'INFO: Using "MOCK Foo45" build 200 for foo-foo12.\n',
         ])
 
     def test_explicit_builder_list(self):

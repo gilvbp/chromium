@@ -30,7 +30,6 @@
 #include "third_party/blink/renderer/core/frame/performance_monitor.h"
 #include "third_party/blink/renderer/core/loader/document_load_timing.h"
 #include "third_party/blink/renderer/core/loader/document_loader.h"
-#include "third_party/blink/renderer/core/performance_entry_names.h"
 #include "third_party/blink/renderer/core/testing/dummy_page_holder.h"
 #include "third_party/blink/renderer/core/testing/mock_policy_container_host.h"
 #include "third_party/blink/renderer/core/timing/dom_window_performance.h"
@@ -63,11 +62,8 @@ class WindowPerformanceTest : public testing::Test,
  protected:
   void SetUp() override {
     if (GetParam()) {
-      features_.InitWithFeatures(
-          {blink::features::kEventTimingMatchPresentationIndex,
-           blink::features::
-               kEventTimingReportAllEarlyEntriesOnPaintedPresentation},
-          {});
+      features_.InitAndEnableFeature(
+          blink::features::kEventTimingMatchPresentationIndex);
     }
     test_task_runner_ = base::MakeRefCounted<base::TestMockTimeTaskRunner>();
     ResetPerformance();
@@ -311,8 +307,7 @@ TEST_P(WindowPerformanceTest, EnsureEntryListOrder) {
     performance_->mark(GetScriptState(), AtomicString::Number(i), nullptr,
                        exception_state);
   }
-  PerformanceEntryVector entries =
-      performance_->getEntriesByType(performance_entry_names::kMark);
+  PerformanceEntryVector entries = performance_->getEntriesByType("mark");
   EXPECT_EQ(17U, entries.size());
   for (int i = 0; i < 8; i++) {
     EXPECT_EQ(AtomicString::Number(i), entries[i]->name());
@@ -330,88 +325,75 @@ TEST_P(WindowPerformanceTest, EventTimingEntryBuffering) {
   base::TimeTicks start_time = GetTimeOrigin() + base::Seconds(1.1);
   base::TimeTicks processing_start = GetTimeOrigin() + base::Seconds(3.3);
   base::TimeTicks processing_end = GetTimeOrigin() + base::Seconds(3.8);
-  RegisterPointerEvent(event_type_names::kClick, start_time, processing_start,
-                       processing_end, 4);
+  RegisterPointerEvent("click", start_time, processing_start, processing_end,
+                       4);
   base::TimeTicks swap_time = GetTimeOrigin() + base::Seconds(6.0);
   SimulatePaintAndResolvePresentationPromise(swap_time);
-  EXPECT_EQ(1u, performance_
-                    ->getBufferedEntriesByType(performance_entry_names::kEvent)
-                    .size());
+  EXPECT_EQ(1u, performance_->getBufferedEntriesByType("event").size());
 
   page_holder_->GetFrame()
       .Loader()
       .GetDocumentLoader()
       ->GetTiming()
       .MarkLoadEventStart();
-  RegisterPointerEvent(event_type_names::kClick, start_time, processing_start,
-                       processing_end, 4);
+  RegisterPointerEvent("click", start_time, processing_start, processing_end,
+                       4);
   SimulatePaintAndResolvePresentationPromise(swap_time);
-  EXPECT_EQ(2u, performance_
-                    ->getBufferedEntriesByType(performance_entry_names::kEvent)
-                    .size());
+  EXPECT_EQ(2u, performance_->getBufferedEntriesByType("event").size());
 
   EXPECT_TRUE(page_holder_->GetFrame().Loader().GetDocumentLoader());
   GetFrame()->DetachDocument();
   EXPECT_FALSE(page_holder_->GetFrame().Loader().GetDocumentLoader());
-  RegisterPointerEvent(event_type_names::kClick, start_time, processing_start,
-                       processing_end, 4);
+  RegisterPointerEvent("click", start_time, processing_start, processing_end,
+                       4);
   SimulatePaintAndResolvePresentationPromise(swap_time);
-  EXPECT_EQ(3u, performance_
-                    ->getBufferedEntriesByType(performance_entry_names::kEvent)
-                    .size());
+  EXPECT_EQ(3u, performance_->getBufferedEntriesByType("event").size());
 }
 
 TEST_P(WindowPerformanceTest, Expose100MsEvents) {
   base::TimeTicks start_time = GetTimeOrigin() + base::Seconds(1);
   base::TimeTicks processing_start = start_time + base::Milliseconds(10);
   base::TimeTicks processing_end = processing_start + base::Milliseconds(10);
-  RegisterPointerEvent(event_type_names::kMousedown, start_time,
-                       processing_start, processing_end, 4);
+  RegisterPointerEvent("mousedown", start_time, processing_start,
+                       processing_end, 4);
 
   base::TimeTicks start_time2 = start_time + base::Microseconds(200);
-  RegisterPointerEvent(event_type_names::kClick, start_time2, processing_start,
-                       processing_end, 4);
+  RegisterPointerEvent("click", start_time2, processing_start, processing_end,
+                       4);
 
   // The swap time is 100.1 ms after |start_time| but only 99.9 ms after
   // |start_time2|.
   base::TimeTicks swap_time = start_time + base::Microseconds(100100);
   SimulatePaintAndResolvePresentationPromise(swap_time);
   // Only the longer event should have been reported.
-  const auto& entries =
-      performance_->getBufferedEntriesByType(performance_entry_names::kEvent);
+  const auto& entries = performance_->getBufferedEntriesByType("event");
   EXPECT_EQ(1u, entries.size());
-  EXPECT_EQ(event_type_names::kMousedown, entries.at(0)->name());
+  EXPECT_EQ("mousedown", entries.at(0)->name());
 }
 
 TEST_P(WindowPerformanceTest, EventTimingDuration) {
   base::TimeTicks start_time = GetTimeOrigin() + base::Milliseconds(1000);
   base::TimeTicks processing_start = GetTimeOrigin() + base::Milliseconds(1001);
   base::TimeTicks processing_end = GetTimeOrigin() + base::Milliseconds(1002);
-  RegisterPointerEvent(event_type_names::kClick, start_time, processing_start,
-                       processing_end, 4);
+  RegisterPointerEvent("click", start_time, processing_start, processing_end,
+                       4);
   base::TimeTicks short_swap_time = GetTimeOrigin() + base::Milliseconds(1003);
   SimulatePaintAndResolvePresentationPromise(short_swap_time);
-  EXPECT_EQ(0u, performance_
-                    ->getBufferedEntriesByType(performance_entry_names::kEvent)
-                    .size());
+  EXPECT_EQ(0u, performance_->getBufferedEntriesByType("event").size());
 
-  RegisterPointerEvent(event_type_names::kClick, start_time, processing_start,
-                       processing_end, 4);
+  RegisterPointerEvent("click", start_time, processing_start, processing_end,
+                       4);
   base::TimeTicks long_swap_time = GetTimeOrigin() + base::Milliseconds(2000);
   SimulatePaintAndResolvePresentationPromise(long_swap_time);
-  EXPECT_EQ(1u, performance_
-                    ->getBufferedEntriesByType(performance_entry_names::kEvent)
-                    .size());
+  EXPECT_EQ(1u, performance_->getBufferedEntriesByType("event").size());
 
-  RegisterPointerEvent(event_type_names::kClick, start_time, processing_start,
-                       processing_end, 4);
+  RegisterPointerEvent("click", start_time, processing_start, processing_end,
+                       4);
   SimulatePaintAndResolvePresentationPromise(short_swap_time);
-  RegisterPointerEvent(event_type_names::kClick, start_time, processing_start,
-                       processing_end, 4);
+  RegisterPointerEvent("click", start_time, processing_start, processing_end,
+                       4);
   SimulatePaintAndResolvePresentationPromise(long_swap_time);
-  EXPECT_EQ(2u, performance_
-                    ->getBufferedEntriesByType(performance_entry_names::kEvent)
-                    .size());
+  EXPECT_EQ(2u, performance_->getBufferedEntriesByType("event").size());
 }
 
 // Test the case where multiple events are registered and then their swap
@@ -422,19 +404,13 @@ TEST_P(WindowPerformanceTest, MultipleEventsThenSwap) {
     base::TimeTicks start_time = GetTimeOrigin() + base::Seconds(i);
     base::TimeTicks processing_start = start_time + base::Milliseconds(100);
     base::TimeTicks processing_end = start_time + base::Milliseconds(200);
-    RegisterPointerEvent(event_type_names::kClick, start_time, processing_start,
-                         processing_end, 4);
-    EXPECT_EQ(
-        0u,
-        performance_->getBufferedEntriesByType(performance_entry_names::kEvent)
-            .size());
+    RegisterPointerEvent("click", start_time, processing_start, processing_end,
+                         4);
+    EXPECT_EQ(0u, performance_->getBufferedEntriesByType("event").size());
   }
   base::TimeTicks swap_time = GetTimeOrigin() + base::Seconds(num_events);
   SimulatePaintAndResolvePresentationPromise(swap_time);
-  EXPECT_EQ(
-      num_events,
-      performance_->getBufferedEntriesByType(performance_entry_names::kEvent)
-          .size());
+  EXPECT_EQ(num_events, performance_->getBufferedEntriesByType("event").size());
 }
 
 // Test for existence of 'first-input' given different types of first events.
@@ -442,16 +418,12 @@ TEST_P(WindowPerformanceTest, FirstInput) {
   struct {
     AtomicString event_type;
     bool should_report;
-  } inputs[] = {{event_type_names::kClick, true},
-                {event_type_names::kKeydown, true},
-                {event_type_names::kKeypress, false},
-                {event_type_names::kPointerdown, false},
-                {event_type_names::kMousedown, true},
-                {event_type_names::kMouseover, false}};
+  } inputs[] = {{"click", true},     {"keydown", true},
+                {"keypress", false}, {"pointerdown", false},
+                {"mousedown", true}, {"mouseover", false}};
   for (const auto& input : inputs) {
     // first-input does not have a |duration| threshold so use close values.
-    if (input.event_type == event_type_names::kKeydown ||
-        input.event_type == event_type_names::kKeypress) {
+    if (input.event_type == "keydown" || input.event_type == "keypress") {
       RegisterKeyboardEvent(input.event_type, GetTimeOrigin(),
                             GetTimeOrigin() + base::Milliseconds(1),
                             GetTimeOrigin() + base::Milliseconds(2), 4);
@@ -463,7 +435,7 @@ TEST_P(WindowPerformanceTest, FirstInput) {
     SimulatePaintAndResolvePresentationPromise(GetTimeOrigin() +
                                                base::Milliseconds(3));
     PerformanceEntryVector firstInputs =
-        performance_->getEntriesByType(performance_entry_names::kFirstInput);
+        performance_->getEntriesByType("first-input");
     EXPECT_GE(1u, firstInputs.size());
     EXPECT_EQ(input.should_report, firstInputs.size() == 1u);
     ResetPerformance();
@@ -473,9 +445,7 @@ TEST_P(WindowPerformanceTest, FirstInput) {
 // Test that the 'first-input' is populated after some irrelevant events are
 // ignored.
 TEST_P(WindowPerformanceTest, FirstInputAfterIgnored) {
-  AtomicString several_events[] = {event_type_names::kMouseover,
-                                   event_type_names::kMousedown,
-                                   event_type_names::kPointerup};
+  AtomicString several_events[] = {"mouseover", "mousedown", "pointerup"};
   for (const auto& event : several_events) {
     RegisterPointerEvent(event, GetTimeOrigin(),
                          GetTimeOrigin() + base::Milliseconds(1),
@@ -483,13 +453,9 @@ TEST_P(WindowPerformanceTest, FirstInputAfterIgnored) {
     SimulatePaintAndResolvePresentationPromise(GetTimeOrigin() +
                                                base::Milliseconds(3));
   }
-  ASSERT_EQ(1u,
-            performance_->getEntriesByType(performance_entry_names::kFirstInput)
-                .size());
-  EXPECT_EQ(
-      event_type_names::kMousedown,
-      performance_->getEntriesByType(performance_entry_names::kFirstInput)[0]
-          ->name());
+  ASSERT_EQ(1u, performance_->getEntriesByType("first-input").size());
+  EXPECT_EQ("mousedown",
+            performance_->getEntriesByType("first-input")[0]->name());
 }
 
 // Test that pointerdown followed by pointerup works as a 'firstInput'.
@@ -498,23 +464,17 @@ TEST_P(WindowPerformanceTest, FirstPointerUp) {
   base::TimeTicks processing_start = GetTimeStamp(1);
   base::TimeTicks processing_end = GetTimeStamp(2);
   base::TimeTicks swap_time = GetTimeStamp(3);
-  RegisterPointerEvent(event_type_names::kPointerdown, start_time,
-                       processing_start, processing_end, 4);
+  RegisterPointerEvent("pointerdown", start_time, processing_start,
+                       processing_end, 4);
   SimulatePaintAndResolvePresentationPromise(swap_time);
-  EXPECT_EQ(0u,
-            performance_->getEntriesByType(performance_entry_names::kFirstInput)
-                .size());
-  RegisterPointerEvent(event_type_names::kPointerup, start_time,
-                       processing_start, processing_end, 4);
+  EXPECT_EQ(0u, performance_->getEntriesByType("first-input").size());
+  RegisterPointerEvent("pointerup", start_time, processing_start,
+                       processing_end, 4);
   SimulatePaintAndResolvePresentationPromise(swap_time);
-  EXPECT_EQ(1u,
-            performance_->getEntriesByType(performance_entry_names::kFirstInput)
-                .size());
-  // The name of the entry should be event_type_names::kPointerdown.
-  EXPECT_EQ(1u, performance_
-                    ->getEntriesByName(event_type_names::kPointerdown,
-                                       performance_entry_names::kFirstInput)
-                    .size());
+  EXPECT_EQ(1u, performance_->getEntriesByType("first-input").size());
+  // The name of the entry should be "pointerdown".
+  EXPECT_EQ(
+      1u, performance_->getEntriesByName("pointerdown", "first-input").size());
 }
 
 // When the pointerdown is optimized out, the mousedown works as a
@@ -524,17 +484,13 @@ TEST_P(WindowPerformanceTest, PointerdownOptimizedOut) {
   base::TimeTicks processing_start = GetTimeStamp(1);
   base::TimeTicks processing_end = GetTimeStamp(2);
   base::TimeTicks swap_time = GetTimeStamp(3);
-  RegisterPointerEvent(event_type_names::kMousedown, start_time,
-                       processing_start, processing_end, 4);
+  RegisterPointerEvent("mousedown", start_time, processing_start,
+                       processing_end, 4);
   SimulatePaintAndResolvePresentationPromise(swap_time);
+  EXPECT_EQ(1u, performance_->getEntriesByType("first-input").size());
+  // The name of the entry should be "pointerdown".
   EXPECT_EQ(1u,
-            performance_->getEntriesByType(performance_entry_names::kFirstInput)
-                .size());
-  // The name of the entry should be event_type_names::kMousedown.
-  EXPECT_EQ(1u, performance_
-                    ->getEntriesByName(event_type_names::kMousedown,
-                                       performance_entry_names::kFirstInput)
-                    .size());
+            performance_->getEntriesByName("mousedown", "first-input").size());
 }
 
 // Test that pointerdown followed by mousedown, pointerup works as a
@@ -544,29 +500,21 @@ TEST_P(WindowPerformanceTest, PointerdownOnDesktop) {
   base::TimeTicks processing_start = GetTimeStamp(1);
   base::TimeTicks processing_end = GetTimeStamp(2);
   base::TimeTicks swap_time = GetTimeStamp(3);
-  RegisterPointerEvent(event_type_names::kPointerdown, start_time,
-                       processing_start, processing_end, 4);
+  RegisterPointerEvent("pointerdown", start_time, processing_start,
+                       processing_end, 4);
   SimulatePaintAndResolvePresentationPromise(swap_time);
-  EXPECT_EQ(0u,
-            performance_->getEntriesByType(performance_entry_names::kFirstInput)
-                .size());
-  RegisterPointerEvent(event_type_names::kMousedown, start_time,
-                       processing_start, processing_end, 4);
+  EXPECT_EQ(0u, performance_->getEntriesByType("first-input").size());
+  RegisterPointerEvent("mousedown", start_time, processing_start,
+                       processing_end, 4);
   SimulatePaintAndResolvePresentationPromise(swap_time);
-  EXPECT_EQ(0u,
-            performance_->getEntriesByType(performance_entry_names::kFirstInput)
-                .size());
-  RegisterPointerEvent(event_type_names::kPointerup, start_time,
-                       processing_start, processing_end, 4);
+  EXPECT_EQ(0u, performance_->getEntriesByType("first-input").size());
+  RegisterPointerEvent("pointerup", start_time, processing_start,
+                       processing_end, 4);
   SimulatePaintAndResolvePresentationPromise(swap_time);
-  EXPECT_EQ(1u,
-            performance_->getEntriesByType(performance_entry_names::kFirstInput)
-                .size());
-  // The name of the entry should be event_type_names::kPointerdown.
-  EXPECT_EQ(1u, performance_
-                    ->getEntriesByName(event_type_names::kPointerdown,
-                                       performance_entry_names::kFirstInput)
-                    .size());
+  EXPECT_EQ(1u, performance_->getEntriesByType("first-input").size());
+  // The name of the entry should be "pointerdown".
+  EXPECT_EQ(
+      1u, performance_->getEntriesByName("pointerdown", "first-input").size());
 }
 
 TEST_P(WindowPerformanceTest, OneKeyboardInteraction) {
@@ -576,17 +524,16 @@ TEST_P(WindowPerformanceTest, OneKeyboardInteraction) {
   base::TimeTicks processing_end_keydown = GetTimeStamp(2);
   base::TimeTicks swap_time_keydown = GetTimeStamp(5);
   int key_code = 2;
-  RegisterKeyboardEvent(event_type_names::kKeydown, keydown_timestamp,
-                        processing_start_keydown, processing_end_keydown,
-                        key_code);
+  RegisterKeyboardEvent("keydown", keydown_timestamp, processing_start_keydown,
+                        processing_end_keydown, key_code);
   SimulatePaintAndResolvePresentationPromise(swap_time_keydown);
   // Keyup
   base::TimeTicks keyup_timestamp = GetTimeStamp(3);
   base::TimeTicks processing_start_keyup = GetTimeStamp(5);
   base::TimeTicks processing_end_keyup = GetTimeStamp(6);
   base::TimeTicks swap_time_keyup = GetTimeStamp(10);
-  RegisterKeyboardEvent(event_type_names::kKeyup, keyup_timestamp,
-                        processing_start_keyup, processing_end_keyup, key_code);
+  RegisterKeyboardEvent("keyup", keyup_timestamp, processing_start_keyup,
+                        processing_end_keyup, key_code);
   SimulatePaintAndResolvePresentationPromise(swap_time_keyup);
 
   // Flush UKM logging mojo request.
@@ -628,9 +575,8 @@ TEST_P(WindowPerformanceTest, HoldingDownAKey) {
   base::TimeTicks processing_end_keydown = GetTimeStamp(2);
   base::TimeTicks swap_time_keydown = GetTimeStamp(5);
   int key_code = 2;
-  RegisterKeyboardEvent(event_type_names::kKeydown, keydown_timestamp,
-                        processing_start_keydown, processing_end_keydown,
-                        key_code);
+  RegisterKeyboardEvent("keydown", keydown_timestamp, processing_start_keydown,
+                        processing_end_keydown, key_code);
   SimulatePaintAndResolvePresentationPromise(swap_time_keydown);
 
   // Second Keydown
@@ -638,9 +584,8 @@ TEST_P(WindowPerformanceTest, HoldingDownAKey) {
   processing_start_keydown = GetTimeStamp(2);
   processing_end_keydown = GetTimeStamp(3);
   swap_time_keydown = GetTimeStamp(7);
-  RegisterKeyboardEvent(event_type_names::kKeydown, keydown_timestamp,
-                        processing_start_keydown, processing_end_keydown,
-                        key_code);
+  RegisterKeyboardEvent("keydown", keydown_timestamp, processing_start_keydown,
+                        processing_end_keydown, key_code);
   SimulatePaintAndResolvePresentationPromise(swap_time_keydown);
 
   // Third Keydown
@@ -648,9 +593,8 @@ TEST_P(WindowPerformanceTest, HoldingDownAKey) {
   processing_start_keydown = GetTimeStamp(3);
   processing_end_keydown = GetTimeStamp(5);
   swap_time_keydown = GetTimeStamp(9);
-  RegisterKeyboardEvent(event_type_names::kKeydown, keydown_timestamp,
-                        processing_start_keydown, processing_end_keydown,
-                        key_code);
+  RegisterKeyboardEvent("keydown", keydown_timestamp, processing_start_keydown,
+                        processing_end_keydown, key_code);
   SimulatePaintAndResolvePresentationPromise(swap_time_keydown);
 
   // Keyup
@@ -658,8 +602,8 @@ TEST_P(WindowPerformanceTest, HoldingDownAKey) {
   base::TimeTicks processing_start_keyup = GetTimeStamp(5);
   base::TimeTicks processing_end_keyup = GetTimeStamp(6);
   base::TimeTicks swap_time_keyup = GetTimeStamp(13);
-  RegisterKeyboardEvent(event_type_names::kKeyup, keyup_timestamp,
-                        processing_start_keyup, processing_end_keyup, key_code);
+  RegisterKeyboardEvent("keyup", keyup_timestamp, processing_start_keyup,
+                        processing_end_keyup, key_code);
   SimulatePaintAndResolvePresentationPromise(swap_time_keyup);
 
   // Flush UKM logging mojo request.
@@ -709,9 +653,8 @@ TEST_P(WindowPerformanceTest, PressMultipleKeys) {
   base::TimeTicks processing_end_keydown = GetTimeStamp(2);
   base::TimeTicks swap_time_keydown = GetTimeStamp(5);
   int first_key_code = 2;
-  RegisterKeyboardEvent(event_type_names::kKeydown, keydown_timestamp,
-                        processing_start_keydown, processing_end_keydown,
-                        first_key_code);
+  RegisterKeyboardEvent("keydown", keydown_timestamp, processing_start_keydown,
+                        processing_end_keydown, first_key_code);
   SimulatePaintAndResolvePresentationPromise(swap_time_keydown);
 
   // Press the second key.
@@ -719,9 +662,8 @@ TEST_P(WindowPerformanceTest, PressMultipleKeys) {
   processing_end_keydown = GetTimeStamp(3);
   swap_time_keydown = GetTimeStamp(7);
   int second_key_code = 4;
-  RegisterKeyboardEvent(event_type_names::kKeydown, keydown_timestamp,
-                        processing_start_keydown, processing_end_keydown,
-                        second_key_code);
+  RegisterKeyboardEvent("keydown", keydown_timestamp, processing_start_keydown,
+                        processing_end_keydown, second_key_code);
   SimulatePaintAndResolvePresentationPromise(swap_time_keydown);
 
   // Release the first key.
@@ -729,9 +671,8 @@ TEST_P(WindowPerformanceTest, PressMultipleKeys) {
   base::TimeTicks processing_start_keyup = GetTimeStamp(5);
   base::TimeTicks processing_end_keyup = GetTimeStamp(6);
   base::TimeTicks swap_time_keyup = GetTimeStamp(13);
-  RegisterKeyboardEvent(event_type_names::kKeyup, keyup_timestamp,
-                        processing_start_keyup, processing_end_keyup,
-                        first_key_code);
+  RegisterKeyboardEvent("keyup", keyup_timestamp, processing_start_keyup,
+                        processing_end_keyup, first_key_code);
   SimulatePaintAndResolvePresentationPromise(swap_time_keyup);
 
   // Release the second key.
@@ -739,9 +680,8 @@ TEST_P(WindowPerformanceTest, PressMultipleKeys) {
   processing_start_keyup = GetTimeStamp(5);
   processing_end_keyup = GetTimeStamp(6);
   swap_time_keyup = GetTimeStamp(20);
-  RegisterKeyboardEvent(event_type_names::kKeyup, keyup_timestamp,
-                        processing_start_keyup, processing_end_keyup,
-                        second_key_code);
+  RegisterKeyboardEvent("keyup", keyup_timestamp, processing_start_keyup,
+                        processing_end_keyup, second_key_code);
   SimulatePaintAndResolvePresentationPromise(swap_time_keyup);
 
   // Flush UKM logging mojo request.
@@ -774,12 +714,12 @@ TEST_P(WindowPerformanceTest, PressMultipleKeys) {
 // callback got invoked later than keyup's due to multi processes & threading
 // overhead.
 TEST_P(WindowPerformanceTest, KeyupFinishLastButCallbackInvokedFirst) {
-  // This test only pass with the experiment features.
-  if (!GetParam()) {
-    return;
-  }
+  // This test only pass with the experiment feature
+  base::test::ScopedFeatureList features_;
+  features_.InitAndEnableFeature(
+      blink::features::kEventTimingMatchPresentationIndex);
 
-  // Arbitrary keycode picked for testing from
+  // Random keycode picked for testing from
   // https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/keyCode#value_of_keycode
   int digit_1_key_code = 0x31;
 
@@ -789,7 +729,7 @@ TEST_P(WindowPerformanceTest, KeyupFinishLastButCallbackInvokedFirst) {
   base::TimeTicks processing_end_keydown = GetTimeStamp(5);
   base::TimeTicks presentation_time_keydown = GetTimeStamp(7);
   const uint64_t presentation_index_keydown = RegisterKeyboardEvent(
-      event_type_names::kKeydown, keydown_timestamp, processing_start_keydown,
+      "keydown", keydown_timestamp, processing_start_keydown,
       processing_end_keydown, digit_1_key_code);
 
   SimulatePaint();
@@ -799,11 +739,10 @@ TEST_P(WindowPerformanceTest, KeyupFinishLastButCallbackInvokedFirst) {
   base::TimeTicks processing_start_keyup = GetTimeStamp(6);
   base::TimeTicks processing_end_keyup = GetTimeStamp(7);
   base::TimeTicks presentation_promise_break_time_keyup = GetTimeStamp(8);
-  const uint64_t presentation_index_keyup = RegisterKeyboardEvent(
-      event_type_names::kKeyup, keyup_timestamp, processing_start_keyup,
-      processing_end_keyup, digit_1_key_code);
+  const uint64_t presentation_index_keyup =
+      RegisterKeyboardEvent("keyup", keyup_timestamp, processing_start_keyup,
+                            processing_end_keyup, digit_1_key_code);
 
-  // keyup resolved without a paint, due to no damage.
   SimulateResolvePresentationPromise(presentation_index_keyup,
                                      presentation_promise_break_time_keyup);
   SimulateResolvePresentationPromise(presentation_index_keydown,
@@ -839,72 +778,6 @@ TEST_P(WindowPerformanceTest, KeyupFinishLastButCallbackInvokedFirst) {
       "Blink.Responsiveness.UserInteraction.MaxEventDuration.Drag", 0);
 }
 
-TEST_P(WindowPerformanceTest, ReportEventTimingOnRealPaintFeedback) {
-  // This test only pass with the experiment features.
-  if (!GetParam()) {
-    return;
-  }
-
-  // Arbitrary keycode picked for testing from
-  // https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/keyCode#value_of_keycode
-  int digit_1_key_code = 0x31;
-
-  // Keydown
-  base::TimeTicks keydown_timestamp = GetTimeOrigin();
-  base::TimeTicks processing_start_keydown = GetTimeStamp(1);
-  base::TimeTicks processing_end_keydown = GetTimeStamp(4);
-  RegisterKeyboardEvent(event_type_names::kKeydown, keydown_timestamp,
-                        processing_start_keydown, processing_end_keydown,
-                        digit_1_key_code);
-
-  SimulatePaint();
-
-  // Keyup
-  base::TimeTicks keyup_timestamp = GetTimeStamp(5);
-  base::TimeTicks processing_start_keyup = GetTimeStamp(6);
-  base::TimeTicks processing_end_keyup = GetTimeStamp(7);
-  base::TimeTicks presentation_promise_break_time_keyup = GetTimeStamp(8);
-  RegisterKeyboardEvent(event_type_names::kKeyup, keyup_timestamp,
-                        processing_start_keyup, processing_end_keyup,
-                        digit_1_key_code);
-
-  // The keydown & keyup result in two real paints, while we're only getting
-  // presentation feedback of keyup.
-  SimulatePaintAndResolvePresentationPromise(
-      presentation_promise_break_time_keyup);
-
-  // Flush UKM logging mojo request.
-  RunPendingTasks();
-
-  // Check UKM recording.
-  auto entries = GetUkmRecorder()->GetEntriesByName(
-      ukm::builders::Responsiveness_UserInteraction::kEntryName);
-  EXPECT_EQ(1u, entries.size());
-  const ukm::mojom::UkmEntry* ukm_entry = entries[0];
-  // Events that are missing presentation feedbacks (keydown here) should
-  // fallback ending time to their processingEnd.
-  GetUkmRecorder()->ExpectEntryMetric(
-      ukm_entry,
-      ukm::builders::Responsiveness_UserInteraction::kMaxEventDurationName, 4);
-  GetUkmRecorder()->ExpectEntryMetric(
-      ukm_entry,
-      ukm::builders::Responsiveness_UserInteraction::kTotalEventDurationName,
-      7);
-  GetUkmRecorder()->ExpectEntryMetric(
-      ukm_entry,
-      ukm::builders::Responsiveness_UserInteraction::kInteractionTypeName, 0);
-
-  // Check UMA recording.
-  GetHistogramTester().ExpectTotalCount(
-      "Blink.Responsiveness.UserInteraction.MaxEventDuration.AllTypes", 1);
-  GetHistogramTester().ExpectTotalCount(
-      "Blink.Responsiveness.UserInteraction.MaxEventDuration.Keyboard", 1);
-  GetHistogramTester().ExpectTotalCount(
-      "Blink.Responsiveness.UserInteraction.MaxEventDuration.TapOrClick", 0);
-  GetHistogramTester().ExpectTotalCount(
-      "Blink.Responsiveness.UserInteraction.MaxEventDuration.Drag", 0);
-}
-
 TEST_P(WindowPerformanceTest, TapOrClick) {
   // Pointerdown
   base::TimeTicks pointerdown_timestamp = GetTimeOrigin();
@@ -912,7 +785,7 @@ TEST_P(WindowPerformanceTest, TapOrClick) {
   base::TimeTicks processing_end_pointerdown = GetTimeStamp(2);
   base::TimeTicks swap_time_pointerdown = GetTimeStamp(5);
   PointerId pointer_id = 4;
-  RegisterPointerEvent(event_type_names::kPointerdown, pointerdown_timestamp,
+  RegisterPointerEvent("pointerdown", pointerdown_timestamp,
                        processing_start_pointerdown, processing_end_pointerdown,
                        pointer_id);
   SimulatePaintAndResolvePresentationPromise(swap_time_pointerdown);
@@ -921,7 +794,7 @@ TEST_P(WindowPerformanceTest, TapOrClick) {
   base::TimeTicks processing_start_pointerup = GetTimeStamp(5);
   base::TimeTicks processing_end_pointerup = GetTimeStamp(6);
   base::TimeTicks swap_time_pointerup = GetTimeStamp(10);
-  RegisterPointerEvent(event_type_names::kPointerup, pointerup_timestamp,
+  RegisterPointerEvent("pointerup", pointerup_timestamp,
                        processing_start_pointerup, processing_end_pointerup,
                        pointer_id);
   SimulatePaintAndResolvePresentationPromise(swap_time_pointerup);
@@ -930,9 +803,8 @@ TEST_P(WindowPerformanceTest, TapOrClick) {
   base::TimeTicks processing_start_click = GetTimeStamp(15);
   base::TimeTicks processing_end_click = GetTimeStamp(16);
   base::TimeTicks swap_time_click = GetTimeStamp(20);
-  RegisterPointerEvent(event_type_names::kClick, click_timestamp,
-                       processing_start_click, processing_end_click,
-                       pointer_id);
+  RegisterPointerEvent("click", click_timestamp, processing_start_click,
+                       processing_end_click, pointer_id);
   SimulatePaintAndResolvePresentationPromise(swap_time_click);
 
   // Flush UKM logging mojo request.
@@ -975,7 +847,7 @@ TEST_P(WindowPerformanceTest, PageVisibilityChanged) {
   base::TimeTicks processing_end_pointerdown = GetTimeStamp(2);
   base::TimeTicks swap_time_pointerdown = GetTimeStamp(5);
   PointerId pointer_id = 4;
-  RegisterPointerEvent(event_type_names::kPointerdown, pointerdown_timestamp,
+  RegisterPointerEvent("pointerdown", pointerdown_timestamp,
                        processing_start_pointerdown, processing_end_pointerdown,
                        pointer_id);
   SimulatePaintAndResolvePresentationPromise(swap_time_pointerdown);
@@ -985,7 +857,7 @@ TEST_P(WindowPerformanceTest, PageVisibilityChanged) {
   base::TimeTicks processing_start_pointerup = GetTimeStamp(5);
   base::TimeTicks processing_end_pointerup = GetTimeStamp(6);
   base::TimeTicks swap_time_pointerup = GetTimeStamp(20);
-  RegisterPointerEvent(event_type_names::kPointerup, pointerup_timestamp,
+  RegisterPointerEvent("pointerup", pointerup_timestamp,
                        processing_start_pointerup, processing_end_pointerup,
                        pointer_id);
   SimulatePaintAndResolvePresentationPromise(swap_time_pointerup);
@@ -995,9 +867,8 @@ TEST_P(WindowPerformanceTest, PageVisibilityChanged) {
   base::TimeTicks processing_start_click = GetTimeStamp(15);
   base::TimeTicks processing_end_click = GetTimeStamp(16);
   base::TimeTicks swap_time_click = GetTimeStamp(20);
-  RegisterPointerEvent(event_type_names::kClick, click_timestamp,
-                       processing_start_click, processing_end_click,
-                       pointer_id);
+  RegisterPointerEvent("click", click_timestamp, processing_start_click,
+                       processing_end_click, pointer_id);
   SimulatePaintAndResolvePresentationPromise(swap_time_click);
 
   // Flush UKM logging mojo request.
@@ -1034,7 +905,7 @@ TEST_P(WindowPerformanceTest, Drag) {
   base::TimeTicks processing_end_pointerdown = GetTimeStamp(2);
   base::TimeTicks swap_time_pointerdown = GetTimeStamp(5);
   PointerId pointer_id = 4;
-  RegisterPointerEvent(event_type_names::kPointerdown, pointerdwon_timestamp,
+  RegisterPointerEvent("pointerdown", pointerdwon_timestamp,
                        processing_start_pointerdown, processing_end_pointerdown,
                        pointer_id);
   SimulatePaintAndResolvePresentationPromise(swap_time_pointerdown);
@@ -1045,7 +916,7 @@ TEST_P(WindowPerformanceTest, Drag) {
   base::TimeTicks processing_start_pointerup = GetTimeStamp(5);
   base::TimeTicks processing_end_pointerup = GetTimeStamp(6);
   base::TimeTicks swap_time_pointerup = GetTimeStamp(10);
-  RegisterPointerEvent(event_type_names::kPointerup, pointerup_timestamp,
+  RegisterPointerEvent("pointerup", pointerup_timestamp,
                        processing_start_pointerup, processing_end_pointerup,
                        pointer_id);
   SimulatePaintAndResolvePresentationPromise(swap_time_pointerup);
@@ -1054,9 +925,8 @@ TEST_P(WindowPerformanceTest, Drag) {
   base::TimeTicks processing_start_click = GetTimeStamp(15);
   base::TimeTicks processing_end_click = GetTimeStamp(16);
   base::TimeTicks swap_time_click = GetTimeStamp(20);
-  RegisterPointerEvent(event_type_names::kClick, click_timestamp,
-                       processing_start_click, processing_end_click,
-                       pointer_id);
+  RegisterPointerEvent("click", click_timestamp, processing_start_click,
+                       processing_end_click, pointer_id);
   SimulatePaintAndResolvePresentationPromise(swap_time_click);
 
   // Flush UKM logging mojo request.
@@ -1096,7 +966,7 @@ TEST_P(WindowPerformanceTest, Scroll) {
   base::TimeTicks processing_end_keydown = GetTimeStamp(2);
   base::TimeTicks swap_time_keydown = GetTimeStamp(5);
   PointerId pointer_id = 5;
-  RegisterPointerEvent(event_type_names::kPointerdown, pointerdown_timestamp,
+  RegisterPointerEvent("pointerdown", pointerdown_timestamp,
                        processing_start_keydown, processing_end_keydown,
                        pointer_id);
   SimulatePaintAndResolvePresentationPromise(swap_time_keydown);
@@ -1105,7 +975,7 @@ TEST_P(WindowPerformanceTest, Scroll) {
   base::TimeTicks processing_start_keyup = GetTimeStamp(5);
   base::TimeTicks processing_end_keyup = GetTimeStamp(6);
   base::TimeTicks swap_time_keyup = GetTimeStamp(10);
-  RegisterPointerEvent(event_type_names::kPointercancel, pointerup_timestamp,
+  RegisterPointerEvent("pointercancel", pointerup_timestamp,
                        processing_start_keyup, processing_end_keyup,
                        pointer_id);
   SimulatePaintAndResolvePresentationPromise(swap_time_keyup);
@@ -1136,7 +1006,7 @@ TEST_P(WindowPerformanceTest, TouchesWithoutClick) {
   base::TimeTicks processing_end_pointerdown = GetTimeStamp(2);
   base::TimeTicks swap_time_pointerdown = GetTimeStamp(5);
   PointerId pointer_id = 4;
-  RegisterPointerEvent(event_type_names::kPointerdown, pointerdown_timestamp,
+  RegisterPointerEvent("pointerdown", pointerdown_timestamp,
                        processing_start_pointerdown, processing_end_pointerdown,
                        pointer_id);
   SimulatePaintAndResolvePresentationPromise(swap_time_pointerdown);
@@ -1146,7 +1016,7 @@ TEST_P(WindowPerformanceTest, TouchesWithoutClick) {
   processing_start_pointerdown = GetTimeStamp(7);
   processing_end_pointerdown = GetTimeStamp(8);
   swap_time_pointerdown = GetTimeStamp(15);
-  RegisterPointerEvent(event_type_names::kPointerdown, pointerdown_timestamp,
+  RegisterPointerEvent("pointerdown", pointerdown_timestamp,
                        processing_start_pointerdown, processing_end_pointerdown,
                        pointer_id);
   SimulatePaintAndResolvePresentationPromise(swap_time_pointerdown);
@@ -1165,7 +1035,7 @@ TEST_P(WindowPerformanceTest, TouchesWithoutClick) {
 //  as event duration ending time.
 //  See crbug.com/1321819
 TEST_P(WindowPerformanceTest, ArtificialPointerupOrClick) {
-  // Arbitrary keycode picked for testing
+  // Random keycode picked for testing
   PointerId pointer_id = 4;
 
   // Pointerdown
@@ -1173,7 +1043,7 @@ TEST_P(WindowPerformanceTest, ArtificialPointerupOrClick) {
   base::TimeTicks processing_start_pointerdown = GetTimeStamp(1);
   base::TimeTicks processing_end_pointerdown = GetTimeStamp(2);
   base::TimeTicks presentation_time_pointerdown = GetTimeStamp(3);
-  RegisterPointerEvent(event_type_names::kPointerdown, pointerdown_timestamp,
+  RegisterPointerEvent("pointerdown", pointerdown_timestamp,
                        processing_start_pointerdown, processing_end_pointerdown,
                        pointer_id);
   SimulatePaintAndResolvePresentationPromise(presentation_time_pointerdown);
@@ -1182,7 +1052,7 @@ TEST_P(WindowPerformanceTest, ArtificialPointerupOrClick) {
   base::TimeTicks processing_start_pointerup = GetTimeStamp(5);
   base::TimeTicks processing_end_pointerup = GetTimeStamp(6);
   base::TimeTicks presentation_time_pointerup = GetTimeStamp(10);
-  RegisterPointerEvent(event_type_names::kPointerup, pointerup_timestamp,
+  RegisterPointerEvent("pointerup", pointerup_timestamp,
                        processing_start_pointerup, processing_end_pointerup,
                        pointer_id);
   SimulatePaintAndResolvePresentationPromise(presentation_time_pointerup);
@@ -1191,9 +1061,8 @@ TEST_P(WindowPerformanceTest, ArtificialPointerupOrClick) {
   base::TimeTicks processing_start_click = GetTimeStamp(11);
   base::TimeTicks processing_end_click = GetTimeStamp(12);
   base::TimeTicks presentation_time_click = GetTimeStamp(20);
-  RegisterPointerEvent(event_type_names::kClick, click_timestamp,
-                       processing_start_click, processing_end_click,
-                       pointer_id);
+  RegisterPointerEvent("click", click_timestamp, processing_start_click,
+                       processing_end_click, pointer_id);
   SimulatePaintAndResolvePresentationPromise(presentation_time_click);
 
   // Flush UKM logging mojo request.
@@ -1227,53 +1096,13 @@ TEST_P(WindowPerformanceTest, ArtificialPointerupOrClick) {
 }
 #endif  // BUILDFLAG(IS_MAC)
 
-#if BUILDFLAG(USE_PERFETTO_CLIENT_LIBRARY)
-// The trace_analyzer does not work on platforms on which the migration of
-// tracing into Perfetto has not completed.
-TEST_P(WindowPerformanceTest, PerformanceMarkTraceEvent) {
-  v8::HandleScope handle_scope(GetScriptState()->GetIsolate());
-  v8::Local<v8::Context> context = GetScriptState()->GetContext();
-  v8::Context::Scope context_scope(context);
-  DummyExceptionStateForTesting exception_state;
-
-  using trace_analyzer::Query;
-  trace_analyzer::Start("*");
-
-  performance_->mark(GetScriptState(), AtomicString("test_trace"), nullptr,
-                     exception_state);
-
-  auto analyzer = trace_analyzer::Stop();
-
-  trace_analyzer::TraceEventVector events;
-
-  Query q = Query::EventNameIs("test_trace");
-  analyzer->FindEvents(q, &events);
-  EXPECT_EQ(1u, events.size());
-
-  EXPECT_EQ("blink.user_timing", events[0]->category);
-
-  ASSERT_TRUE(events[0]->HasDictArg("data"));
-
-  base::Value::Dict arg_dict = events[0]->GetKnownArgAsDict("data");
-
-  absl::optional<double> start_time = arg_dict.FindDouble("startTime");
-  ASSERT_TRUE(start_time.has_value());
-
-  // The navigationId should be recorded if performance.mark is executed by a
-  // document.
-  std::string* navigation_id = arg_dict.FindString("navigationId");
-  ASSERT_TRUE(navigation_id);
-}
-#endif  // BUILDFLAG(USE_PERFETTO_CLIENT_LIBRARY)
-
 TEST_P(WindowPerformanceTest, ElementTimingTraceEvent) {
   using trace_analyzer::Query;
   trace_analyzer::Start("*");
   // |element| needs to be non-null to prevent a crash.
   performance_->AddElementTiming(
-      AtomicString("image-paint"), "url", gfx::RectF(10, 20, 30, 40),
-      GetTimeStamp(2000), GetTimeStamp(1000), AtomicString("identifier"),
-      gfx::Size(200, 300), AtomicString("id"),
+      "image-paint", "url", gfx::RectF(10, 20, 30, 40), GetTimeStamp(2000),
+      GetTimeStamp(1000), "identifier", gfx::Size(200, 300), "id",
       /*element*/ page_holder_->GetDocument().documentElement());
   auto analyzer = trace_analyzer::Stop();
   trace_analyzer::TraceEventVector events;
@@ -1313,9 +1142,8 @@ TEST_P(WindowPerformanceTest, EventTimingTraceEvents) {
   base::TimeTicks start_time = GetTimeOrigin() + base::Seconds(1);
   base::TimeTicks processing_start = start_time + base::Milliseconds(5);
   base::TimeTicks processing_end = processing_start + base::Milliseconds(10);
-  RegisterPointerEvent(event_type_names::kPointerdown, start_time,
-                       processing_start, processing_end, 4,
-                       GetWindow()->document());
+  RegisterPointerEvent("pointerdown", start_time, processing_start,
+                       processing_end, 4, GetWindow()->document());
 
   base::TimeTicks swap_time = processing_end + base::Milliseconds(10);
   SimulatePaintAndResolvePresentationPromise(swap_time);
@@ -1323,15 +1151,14 @@ TEST_P(WindowPerformanceTest, EventTimingTraceEvents) {
   base::TimeTicks start_time2 = start_time + base::Milliseconds(100);
   base::TimeTicks processing_start2 = start_time2 + base::Milliseconds(5);
   base::TimeTicks processing_end2 = processing_start2 + base::Milliseconds(10);
-  RegisterPointerEvent(event_type_names::kPointerup, start_time2,
-                       processing_start2, processing_end2, 4,
-                       GetWindow()->document());
+  RegisterPointerEvent("pointerup", start_time2, processing_start2,
+                       processing_end2, 4, GetWindow()->document());
 
   base::TimeTicks start_time3 = start_time2;
   base::TimeTicks processing_start3 = processing_end2;
   base::TimeTicks processing_end3 = processing_start3 + base::Milliseconds(10);
-  RegisterPointerEvent(event_type_names::kClick, start_time3, processing_start3,
-                       processing_end3, 4, GetWindow()->document());
+  RegisterPointerEvent("click", start_time3, processing_start3, processing_end3,
+                       4, GetWindow()->document());
 
   base::TimeTicks swap_time2 = processing_end3 + base::Milliseconds(5);
   SimulatePaintAndResolvePresentationPromise(swap_time2);

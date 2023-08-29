@@ -13,4 +13,5 @@ source_set("incognito_reauth") {
     "//ios/showcase/common",
   ]
   frameworks = [ "UIKit.framework" ]
+  configs += [ "//build/config/compiler:enable_arc" ]
 }

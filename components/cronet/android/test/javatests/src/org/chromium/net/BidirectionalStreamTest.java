@@ -8,8 +8,6 @@ import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.assertThrows;
 
-import static org.chromium.net.truth.UrlResponseInfoSubject.assertThat;
-
 import android.os.Build;
 import android.os.ConditionVariable;
 import android.os.Process;
@@ -74,11 +72,11 @@ public class BidirectionalStreamTest {
 
     private static void checkResponseInfo(UrlResponseInfo responseInfo, String expectedUrl,
             int expectedHttpStatusCode, String expectedHttpStatusText) {
-        assertThat(responseInfo).hasUrlThat().isEqualTo(expectedUrl);
-        assertThat(responseInfo).hasUrlChainThat().containsExactly(expectedUrl);
-        assertThat(responseInfo).hasHttpStatusCodeThat().isEqualTo(expectedHttpStatusCode);
-        assertThat(responseInfo).hasHttpStatusTextThat().isEqualTo(expectedHttpStatusText);
-        assertThat(responseInfo).wasNotCached();
+        assertThat(responseInfo.getUrl()).isEqualTo(expectedUrl);
+        assertThat(responseInfo.getUrlChain()).containsExactly(expectedUrl);
+        assertThat(responseInfo.getHttpStatusCode()).isEqualTo(expectedHttpStatusCode);
+        assertThat(responseInfo.getHttpStatusText()).isEqualTo(expectedHttpStatusText);
+        assertThat(responseInfo.wasCached()).isFalse();
         assertThat(responseInfo.toString()).isNotEmpty();
     }
 
@@ -118,13 +116,13 @@ public class BidirectionalStreamTest {
         callback.blockForDone();
         assertThat(stream.isDone()).isTrue();
         requestFinishedListener.blockUntilDone();
-        assertThat(callback.getResponseInfoWithChecks()).hasHttpStatusCodeThat().isEqualTo(200);
+        assertThat(callback.mResponseInfo.getHttpStatusCode()).isEqualTo(200);
         // Default method is 'GET'.
         assertThat(callback.mResponseAsString).isEqualTo("GET");
         UrlResponseInfo urlResponseInfo = createUrlResponseInfo(
                 new String[] {url}, "", 200, expectedReceivedBytes, ":status", "200");
-        mTestRule.assertResponseEquals(urlResponseInfo, callback.getResponseInfoWithChecks());
-        checkResponseInfo(callback.getResponseInfoWithChecks(), Http2TestServer.getEchoMethodUrl(), 200, "");
+        mTestRule.assertResponseEquals(urlResponseInfo, callback.mResponseInfo);
+        checkResponseInfo(callback.mResponseInfo, Http2TestServer.getEchoMethodUrl(), 200, "");
         RequestFinishedInfo finishedInfo = requestFinishedListener.getRequestInfo();
         assertThat(finishedInfo.getAnnotations()).isEmpty();
     }
@@ -224,12 +222,12 @@ public class BidirectionalStreamTest {
         stream.start();
         callback.blockForDone();
         assertThat(stream.isDone()).isTrue();
-        assertThat(callback.getResponseInfoWithChecks()).hasHttpStatusCodeThat().isEqualTo(200);
+        assertThat(callback.mResponseInfo.getHttpStatusCode()).isEqualTo(200);
         assertThat(callback.mResponseAsString).isEqualTo("HEAD");
         UrlResponseInfo urlResponseInfo =
                 createUrlResponseInfo(new String[] {url}, "", 200, 32, ":status", "200");
-        mTestRule.assertResponseEquals(urlResponseInfo, callback.getResponseInfoWithChecks());
-        checkResponseInfo(callback.getResponseInfoWithChecks(), Http2TestServer.getEchoMethodUrl(), 200, "");
+        mTestRule.assertResponseEquals(urlResponseInfo, callback.mResponseInfo);
+        checkResponseInfo(callback.mResponseInfo, Http2TestServer.getEchoMethodUrl(), 200, "");
     }
 
     @Test
@@ -263,16 +261,13 @@ public class BidirectionalStreamTest {
         assertThat(finishedInfo.getFinishedReason()).isEqualTo(RequestFinishedInfo.SUCCEEDED);
         MetricsTestUtil.checkHasConnectTiming(finishedInfo.getMetrics(), startTime, endTime, true);
         assertThat(finishedInfo.getAnnotations()).containsExactly("request annotation", this);
-        assertThat(callback.getResponseInfoWithChecks()).hasHttpStatusCodeThat().isEqualTo(200);
+        assertThat(callback.mResponseInfo.getHttpStatusCode()).isEqualTo(200);
         assertThat(callback.mResponseAsString).isEqualTo("Test String1234567890woot!");
-        assertThat(callback.getResponseInfoWithChecks())
-                .hasHeadersThat()
+        assertThat(callback.mResponseInfo.getAllHeaders())
                 .containsEntry("echo-foo", Arrays.asList("bar"));
-        assertThat(callback.getResponseInfoWithChecks())
-                .hasHeadersThat()
+        assertThat(callback.mResponseInfo.getAllHeaders())
                 .containsEntry("echo-empty", Arrays.asList(""));
-        assertThat(callback.getResponseInfoWithChecks())
-                .hasHeadersThat()
+        assertThat(callback.mResponseInfo.getAllHeaders())
                 .containsEntry("echo-content-type", Arrays.asList("zebra"));
     }
 
@@ -329,11 +324,10 @@ public class BidirectionalStreamTest {
         callback.blockForDone();
         assertThat(stream.isDone()).isTrue();
         requestFinishedListener.blockUntilDone();
-        assertThat(callback.getResponseInfoWithChecks()).hasHttpStatusCodeThat().isEqualTo(200);
+        assertThat(callback.mResponseInfo.getHttpStatusCode()).isEqualTo(200);
         // Default method is 'GET'.
         assertThat(callback.mResponseAsString).isEqualTo("GET");
-        assertThat(callback.getResponseInfoWithChecks())
-                .hasHeadersThat()
+        assertThat(callback.mResponseInfo.getAllHeaders())
                 .containsEntry("foo", Arrays.asList("bar", "bar2"));
         RequestFinishedInfo finishedInfo = requestFinishedListener.getRequestInfo();
         assertThat(finishedInfo.getAnnotations()).isEmpty();
@@ -364,16 +358,13 @@ public class BidirectionalStreamTest {
         // Flush after stream is completed is no-op. It shouldn't call into the destroyed adapter.
         stream.flush();
 
-        assertThat(callback.getResponseInfoWithChecks()).hasHttpStatusCodeThat().isEqualTo(200);
+        assertThat(callback.mResponseInfo.getHttpStatusCode()).isEqualTo(200);
         assertThat(callback.mResponseAsString).isEqualTo("Test String1234567890woot!");
-        assertThat(callback.getResponseInfoWithChecks())
-                .hasHeadersThat()
+        assertThat(callback.mResponseInfo.getAllHeaders())
                 .containsEntry("echo-foo", Arrays.asList("bar"));
-        assertThat(callback.getResponseInfoWithChecks())
-                .hasHeadersThat()
+        assertThat(callback.mResponseInfo.getAllHeaders())
                 .containsEntry("echo-empty", Arrays.asList(""));
-        assertThat(callback.getResponseInfoWithChecks())
-                .hasHeadersThat()
+        assertThat(callback.mResponseInfo.getAllHeaders())
                 .containsEntry("echo-content-type", Arrays.asList("zebra"));
     }
 
@@ -459,16 +450,13 @@ public class BidirectionalStreamTest {
         callback.startNextWrite(stream);
 
         callback.blockForDone();
-        assertThat(callback.getResponseInfoWithChecks()).hasHttpStatusCodeThat().isEqualTo(200);
+        assertThat(callback.mResponseInfo.getHttpStatusCode()).isEqualTo(200);
         assertThat(callback.mResponseAsString).isEqualTo("123456");
-        assertThat(callback.getResponseInfoWithChecks())
-                .hasHeadersThat()
+        assertThat(callback.mResponseInfo.getAllHeaders())
                 .containsEntry("echo-foo", Arrays.asList("bar"));
-        assertThat(callback.getResponseInfoWithChecks())
-                .hasHeadersThat()
+        assertThat(callback.mResponseInfo.getAllHeaders())
                 .containsEntry("echo-empty", Arrays.asList(""));
-        assertThat(callback.getResponseInfoWithChecks())
-                .hasHeadersThat()
+        assertThat(callback.mResponseInfo.getAllHeaders())
                 .containsEntry("echo-content-type", Arrays.asList("zebra"));
     }
 
@@ -570,13 +558,11 @@ public class BidirectionalStreamTest {
             // adapter.
             stream.flush();
 
-            assertThat(callback.getResponseInfoWithChecks()).hasHttpStatusCodeThat().isEqualTo(200);
+            assertThat(callback.mResponseInfo.getHttpStatusCode()).isEqualTo(200);
             assertThat(callback.mResponseAsString).isEmpty();
-            assertThat(callback.getResponseInfoWithChecks())
-                    .hasHeadersThat()
+            assertThat(callback.mResponseInfo.getAllHeaders())
                     .containsEntry("echo-foo", Arrays.asList("bar"));
-            assertThat(callback.getResponseInfoWithChecks())
-                    .hasHeadersThat()
+            assertThat(callback.mResponseInfo.getAllHeaders())
                     .containsEntry("echo-empty", Arrays.asList(""));
         }
     }
@@ -602,16 +588,13 @@ public class BidirectionalStreamTest {
             callback.blockForDone();
             assertThat(stream.isDone()).isTrue();
 
-            assertThat(callback.getResponseInfoWithChecks()).hasHttpStatusCodeThat().isEqualTo(200);
+            assertThat(callback.mResponseInfo.getHttpStatusCode()).isEqualTo(200);
             assertThat(callback.mResponseAsString).isEqualTo("Test String");
-            assertThat(callback.getResponseInfoWithChecks())
-                    .hasHeadersThat()
+            assertThat(callback.mResponseInfo.getAllHeaders())
                     .containsEntry("echo-foo", Arrays.asList("bar"));
-            assertThat(callback.getResponseInfoWithChecks())
-                    .hasHeadersThat()
+            assertThat(callback.mResponseInfo.getAllHeaders())
                     .containsEntry("echo-empty", Arrays.asList(""));
-            assertThat(callback.getResponseInfoWithChecks())
-                    .hasHeadersThat()
+            assertThat(callback.mResponseInfo.getAllHeaders())
                     .containsEntry("echo-content-type", Arrays.asList("zebra"));
         }
     }
@@ -641,17 +624,14 @@ public class BidirectionalStreamTest {
             stream.start();
             callback.blockForDone();
             assertThat(stream.isDone()).isTrue();
-            assertThat(callback.getResponseInfoWithChecks()).hasHttpStatusCodeThat().isEqualTo(200);
+            assertThat(callback.mResponseInfo.getHttpStatusCode()).isEqualTo(200);
             assertThat(callback.mResponseAsString)
                     .isEqualTo("Test String1234567890woot!Test String1234567890woot!");
-            assertThat(callback.getResponseInfoWithChecks())
-                    .hasHeadersThat()
+            assertThat(callback.mResponseInfo.getAllHeaders())
                     .containsEntry("echo-foo", Arrays.asList("bar"));
-            assertThat(callback.getResponseInfoWithChecks())
-                    .hasHeadersThat()
+            assertThat(callback.mResponseInfo.getAllHeaders())
                     .containsEntry("echo-empty", Arrays.asList(""));
-            assertThat(callback.getResponseInfoWithChecks())
-                    .hasHeadersThat()
+            assertThat(callback.mResponseInfo.getAllHeaders())
                     .containsEntry("echo-content-type", Arrays.asList("zebra"));
         }
     }
@@ -687,16 +667,13 @@ public class BidirectionalStreamTest {
         stream.start();
         callback.blockForDone();
         assertThat(stream.isDone()).isTrue();
-        assertThat(callback.getResponseInfoWithChecks()).hasHttpStatusCodeThat().isEqualTo(200);
+        assertThat(callback.mResponseInfo.getHttpStatusCode()).isEqualTo(200);
         assertThat(callback.mResponseAsString).isEqualTo("Test String1234567890woot!");
-        assertThat(callback.getResponseInfoWithChecks())
-                .hasHeadersThat()
+        assertThat(callback.mResponseInfo.getAllHeaders())
                 .containsEntry("echo-foo", Arrays.asList("bar"));
-        assertThat(callback.getResponseInfoWithChecks())
-                .hasHeadersThat()
+        assertThat(callback.mResponseInfo.getAllHeaders())
                 .containsEntry("echo-empty", Arrays.asList(""));
-        assertThat(callback.getResponseInfoWithChecks())
-                .hasHeadersThat()
+        assertThat(callback.mResponseInfo.getAllHeaders())
                 .containsEntry("echo-content-type", Arrays.asList("zebra"));
     }
 
@@ -731,17 +708,14 @@ public class BidirectionalStreamTest {
         stream.start();
         callback.blockForDone();
         assertThat(stream.isDone()).isTrue();
-        assertThat(callback.getResponseInfoWithChecks()).hasHttpStatusCodeThat().isEqualTo(200);
+        assertThat(callback.mResponseInfo.getHttpStatusCode()).isEqualTo(200);
         assertThat(callback.mResponseAsString)
                 .isEqualTo("Test String1234567890woot!Test String1234567890woot!");
-        assertThat(callback.getResponseInfoWithChecks())
-                .hasHeadersThat()
+        assertThat(callback.mResponseInfo.getAllHeaders())
                 .containsEntry("echo-foo", Arrays.asList("bar"));
-        assertThat(callback.getResponseInfoWithChecks())
-                .hasHeadersThat()
+        assertThat(callback.mResponseInfo.getAllHeaders())
                 .containsEntry("echo-empty", Arrays.asList(""));
-        assertThat(callback.getResponseInfoWithChecks())
-                .hasHeadersThat()
+        assertThat(callback.mResponseInfo.getAllHeaders())
                 .containsEntry("echo-content-type", Arrays.asList("zebra"));
     }
 
@@ -757,10 +731,9 @@ public class BidirectionalStreamTest {
         builder.setHttpMethod(methodName);
         builder.build().start();
         callback.blockForDone();
-        assertThat(callback.getResponseInfoWithChecks()).hasHttpStatusCodeThat().isEqualTo(200);
+        assertThat(callback.mResponseInfo.getHttpStatusCode()).isEqualTo(200);
         assertThat(callback.mResponseAsString).isEqualTo("Put This Data!");
-        assertThat(callback.getResponseInfoWithChecks())
-                .hasHeadersThat()
+        assertThat(callback.mResponseInfo.getAllHeaders())
                 .containsEntry("echo-method", Arrays.asList(methodName));
     }
 
@@ -818,7 +791,7 @@ public class BidirectionalStreamTest {
         builder.setHttpMethod("GET");
         builder.build().start();
         callback.blockForDone();
-        assertThat(callback.getResponseInfoWithChecks()).hasHttpStatusCodeThat().isEqualTo(200);
+        assertThat(callback.mResponseInfo.getHttpStatusCode()).isEqualTo(200);
         assertThat(callback.mResponseAsString).isEqualTo(headerValue);
     }
 
@@ -837,7 +810,7 @@ public class BidirectionalStreamTest {
         builder.setHttpMethod("GET");
         builder.build().start();
         callback.blockForDone();
-        assertThat(callback.getResponseInfoWithChecks()).hasHttpStatusCodeThat().isEqualTo(200);
+        assertThat(callback.mResponseInfo.getHttpStatusCode()).isEqualTo(200);
         String headers = callback.mResponseAsString;
         Pattern pattern = Pattern.compile(headerName + ":\\s(.*)\\r\\n");
         Matcher matcher = pattern.matcher(headers);
@@ -862,7 +835,7 @@ public class BidirectionalStreamTest {
         builder.setHttpMethod("GET");
         builder.build().start();
         callback.blockForDone();
-        assertThat(callback.getResponseInfoWithChecks()).hasHttpStatusCodeThat().isEqualTo(200);
+        assertThat(callback.mResponseInfo.getHttpStatusCode()).isEqualTo(200);
         assertThat(callback.mTrailers).isNotNull();
         // Verify that header value is properly echoed in trailers.
         assertThat(callback.mTrailers.getAsMap())
@@ -882,7 +855,7 @@ public class BidirectionalStreamTest {
         builder.addHeader(userAgentName, userAgentValue);
         builder.build().start();
         callback.blockForDone();
-        assertThat(callback.getResponseInfoWithChecks()).hasHttpStatusCodeThat().isEqualTo(200);
+        assertThat(callback.mResponseInfo.getHttpStatusCode()).isEqualTo(200);
         assertThat(callback.mResponseAsString).isEqualTo(userAgentValue);
     }
 
@@ -904,7 +877,7 @@ public class BidirectionalStreamTest {
         builder.setHttpMethod("GET");
         builder.build().start();
         callback.blockForDone();
-        assertThat(callback.getResponseInfoWithChecks()).hasHttpStatusCodeThat().isEqualTo(200);
+        assertThat(callback.mResponseInfo.getHttpStatusCode()).isEqualTo(200);
         assertThat(callback.mResponseAsString).isEqualTo(userAgentValue);
     }
 
@@ -919,7 +892,7 @@ public class BidirectionalStreamTest {
         builder.setHttpMethod("GET");
         builder.build().start();
         callback.blockForDone();
-        assertThat(callback.getResponseInfoWithChecks()).hasHttpStatusCodeThat().isEqualTo(200);
+        assertThat(callback.mResponseInfo.getHttpStatusCode()).isEqualTo(200);
         assertThat(callback.mResponseAsString)
                 .isEqualTo(new CronetEngine.Builder(mTestRule.getTestFramework().getContext())
                                    .getDefaultUserAgent());
@@ -946,13 +919,11 @@ public class BidirectionalStreamTest {
         stream.start();
         callback.blockForDone();
         assertThat(stream.isDone()).isTrue();
-        assertThat(callback.getResponseInfoWithChecks()).hasHttpStatusCodeThat().isEqualTo(200);
+        assertThat(callback.mResponseInfo.getHttpStatusCode()).isEqualTo(200);
         assertThat(callback.mResponseAsString).isEqualTo(stringData.toString());
-        assertThat(callback.getResponseInfoWithChecks())
-                .hasHeadersThat()
+        assertThat(callback.mResponseInfo.getAllHeaders())
                 .containsEntry("echo-foo", Arrays.asList("Value with Spaces"));
-        assertThat(callback.getResponseInfoWithChecks())
-                .hasHeadersThat()
+        assertThat(callback.mResponseInfo.getAllHeaders())
                 .containsEntry("echo-content-type", Arrays.asList("zebra"));
     }
 
@@ -970,7 +941,7 @@ public class BidirectionalStreamTest {
         stream.start();
         callback.blockForDone();
         assertThat(stream.isDone()).isTrue();
-        assertThat(callback.getResponseInfoWithChecks()).hasHttpStatusCodeThat().isEqualTo(200);
+        assertThat(callback.mResponseInfo.getHttpStatusCode()).isEqualTo(200);
         assertThat(callback.mResponseAsString).isEmpty();
     }
 
@@ -999,7 +970,7 @@ public class BidirectionalStreamTest {
         stream.start();
         callback.blockForDone();
         assertThat(stream.isDone()).isTrue();
-        assertThat(callback.getResponseInfoWithChecks()).hasHttpStatusCodeThat().isEqualTo(200);
+        assertThat(callback.mResponseInfo.getHttpStatusCode()).isEqualTo(200);
         assertThat(callback.mResponseAsString).isEqualTo("12");
     }
 
@@ -1030,7 +1001,7 @@ public class BidirectionalStreamTest {
         stream.start();
         callback.blockForDone();
         assertThat(stream.isDone()).isTrue();
-        assertThat(callback.getResponseInfoWithChecks()).hasHttpStatusCodeThat().isEqualTo(200);
+        assertThat(callback.mResponseInfo.getHttpStatusCode()).isEqualTo(200);
         assertThat(callback.mResponseAsString).isEqualTo("12");
     }
 
@@ -1044,7 +1015,6 @@ public class BidirectionalStreamTest {
             public void onResponseHeadersReceived(
                     BidirectionalStream stream, UrlResponseInfo info) {
                 // Start the write, that will not complete until callback completion.
-                setAutoAdvance(true);
                 startNextWrite(stream);
                 // Start the read. It is allowed with write in flight.
                 super.onResponseHeadersReceived(stream, info);
@@ -1059,9 +1029,12 @@ public class BidirectionalStreamTest {
                         .build();
         stream.start();
         callback.waitForNextWriteStep();
+        callback.waitForNextReadStep();
+        callback.setAutoAdvance(true);
+        callback.startNextRead(stream);
         callback.blockForDone();
         assertThat(stream.isDone()).isTrue();
-        assertThat(callback.getResponseInfoWithChecks()).hasHttpStatusCodeThat().isEqualTo(200);
+        assertThat(callback.mResponseInfo.getHttpStatusCode()).isEqualTo(200);
         assertThat(callback.mResponseAsString).isEqualTo("12");
     }
 
@@ -1099,12 +1072,13 @@ public class BidirectionalStreamTest {
         callback.waitForNextReadStep(); // onReadCompleted
         // Verify that some part of proper response is read.
         assertThat(callback.mResponseAsString).startsWith(testData[0]);
+        assertThat(callback.mResponseAsString).startsWith(stringData.toString());
         // Read the rest of the response.
         callback.setAutoAdvance(true);
         callback.startNextRead(stream);
         callback.blockForDone();
         assertThat(stream.isDone()).isTrue();
-        assertThat(callback.getResponseInfoWithChecks()).hasHttpStatusCodeThat().isEqualTo(200);
+        assertThat(callback.mResponseInfo.getHttpStatusCode()).isEqualTo(200);
         assertThat(callback.mResponseAsString).isEqualTo(stringData.toString());
     }
 
@@ -1146,7 +1120,7 @@ public class BidirectionalStreamTest {
         callback.startNextRead(stream);
         callback.blockForDone();
         assertThat(stream.isDone()).isTrue();
-        assertThat(callback.getResponseInfoWithChecks()).hasHttpStatusCodeThat().isEqualTo(200);
+        assertThat(callback.mResponseInfo.getHttpStatusCode()).isEqualTo(200);
         assertThat(callback.mResponseAsString).isEqualTo(stringData.toString());
     }
 
@@ -1226,9 +1200,9 @@ public class BidirectionalStreamTest {
         callback.startNextRead(stream, readBuffer);
         callback.blockForDone();
 
-        assertThat(callback.getResponseInfoWithChecks()).hasHttpStatusCodeThat().isEqualTo(200);
+        assertThat(callback.mResponseInfo.getHttpStatusCode()).isEqualTo(200);
         assertThat(callback.mResponseAsString).isEqualTo("GET");
-        checkResponseInfo(callback.getResponseInfoWithChecks(), Http2TestServer.getEchoMethodUrl(), 200, "");
+        checkResponseInfo(callback.mResponseInfo, Http2TestServer.getEchoMethodUrl(), 200, "");
 
         // Check that buffer contents were not modified.
         assertThat(bufferContentsToString(readBuffer, 0, 5)).isEqualTo("FORTE");
@@ -1288,7 +1262,7 @@ public class BidirectionalStreamTest {
         ByteBuffer readBuffer2 = ByteBuffer.allocateDirect(5);
         stream.read(readBuffer2);
         callback.blockForDone();
-        assertThat(callback.getResponseInfoWithChecks()).hasHttpStatusCodeThat().isEqualTo(200);
+        assertThat(callback.mResponseInfo.getHttpStatusCode()).isEqualTo(200);
         assertThat(callback.mResponseAsString).isEqualTo("GET");
     }
 
@@ -1321,7 +1295,7 @@ public class BidirectionalStreamTest {
         // onResponseHeadersReceived already queued in the executor.
         // See crbug.com/594432.
         if (failureStep != ResponseStep.ON_STREAM_READY) {
-            assertThat(callback.getResponseInfo()).isNotNull();
+            assertThat(callback.mResponseInfo).isNotNull();
         }
         // Check metrics information.
         if (failureStep == ResponseStep.ON_RESPONSE_STARTED
@@ -1391,7 +1365,7 @@ public class BidirectionalStreamTest {
         callback.blockForDone();
         assertThat(ResponseStep.ON_SUCCEEDED).isEqualTo(callback.mResponseStep);
         assertThat(stream.isDone()).isTrue();
-        assertThat(callback.getResponseInfoWithChecks()).isNotNull();
+        assertThat(callback.mResponseInfo).isNotNull();
         // Check that error thrown from 'onSucceeded' callback is not reported.
         assertThat(callback.mError).isNull();
         assertThat(callback.mOnErrorCalled).isFalse();

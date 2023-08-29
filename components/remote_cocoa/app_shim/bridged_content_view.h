@@ -39,7 +39,7 @@ REMOTE_COCOA_APP_SHIM_EXPORT
   ui::ScopedCrTrackingArea _cursorTrackingArea;
 
   // The keyDown event currently being handled, nil otherwise.
-  NSEvent* __strong _keyDownEvent;
+  NSEvent* _keyDownEvent;
 
   // Whether there's an active key down event which is not handled yet.
   BOOL _hasUnhandledKeyDownEvent;
@@ -55,7 +55,7 @@ REMOTE_COCOA_APP_SHIM_EXPORT
 
 @property(readonly, nonatomic) remote_cocoa::NativeWidgetNSWindowBridge* bridge;
 @property(assign, nonatomic) BOOL drawMenuBackgroundForBlur;
-@property(strong, nonatomic) NSEvent* keyDownEventForTesting;
+@property(assign, nonatomic) NSEvent* keyDownEventForTesting;
 
 // Initialize the NSView -> views::View bridge. |viewToHost| must be non-NULL.
 - (instancetype)initWithBridge:(remote_cocoa::NativeWidgetNSWindowBridge*)bridge

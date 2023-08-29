@@ -4,9 +4,13 @@
 
 #include "base/apple/bundle_locations.h"
 
-#include "base/apple/foundation_util.h"
 #include "base/check.h"
+#include "base/mac/foundation_util.h"
 #include "base/strings/sys_string_conversions.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace base::apple {
 
@@ -26,7 +30,7 @@ NSURL* MainBundleURL() {
 }
 
 FilePath MainBundlePath() {
-  return apple::NSStringToFilePath(MainBundle().bundlePath);
+  return mac::NSStringToFilePath(MainBundle().bundlePath);
 }
 
 NSBundle* OuterBundle() {
@@ -41,7 +45,7 @@ NSURL* OuterBundleURL() {
 }
 
 FilePath OuterBundlePath() {
-  return apple::NSStringToFilePath(OuterBundle().bundlePath);
+  return mac::NSStringToFilePath(OuterBundle().bundlePath);
 }
 
 NSBundle* FrameworkBundle() {
@@ -52,7 +56,7 @@ NSBundle* FrameworkBundle() {
 }
 
 FilePath FrameworkBundlePath() {
-  return apple::NSStringToFilePath(FrameworkBundle().bundlePath);
+  return mac::NSStringToFilePath(FrameworkBundle().bundlePath);
 }
 
 namespace {
@@ -62,7 +66,7 @@ NSBundle* BundleFromPath(const FilePath& file_path) {
     return nil;
   }
 
-  NSBundle* bundle = [NSBundle bundleWithURL:apple::FilePathToNSURL(file_path)];
+  NSBundle* bundle = [NSBundle bundleWithURL:mac::FilePathToNSURL(file_path)];
   CHECK(bundle) << "Failed to load the bundle at " << file_path.value();
 
   return bundle;

@@ -98,8 +98,19 @@ bool ShippingAddressEditorViewController::ValidateModelAndSave() {
     std::move(on_added_).Run(profile);
     on_edited_.Reset();
   } else {
-    // Fields are only updated in the autofill profile to avoid clearing the
-    // parsed substructure.
+    autofill::ServerFieldTypeSet all_fields;
+    profile_to_edit_->GetSupportedTypes(&all_fields);
+    // Clear all the address data in |profile_to_edit_| except the email field,
+    // in anticipation of adding only the fields present in the editor. Prefer
+    // this method to copying |profile| into |profile_to_edit_|, because the
+    // latter object needs to retain other properties (use count, use date,
+    // guid, etc.).
+    for (autofill::ServerFieldType type : all_fields) {
+      if (type != autofill::ServerFieldType::EMAIL_ADDRESS) {
+        profile_to_edit_->SetRawInfo(type, std::u16string());
+      }
+    }
+
     bool success = SaveFieldsToProfile(profile_to_edit_,
                                        /*ignore_errors=*/false);
     DCHECK(success);
@@ -422,7 +433,7 @@ void ShippingAddressEditorViewController::UpdateEditorFields() {
   if (chosen_country_index_ < countries_.size())
     chosen_country_code = countries_[chosen_country_index_].first;
 
-  std::vector<std::vector<autofill::AutofillAddressUIComponent>> components;
+  std::vector<std::vector<autofill::ExtendedAddressUiComponent>> components;
   autofill::GetAddressComponents(
       chosen_country_code, state()->GetApplicationLocale(),
       /*include_literals=*/false, &components, &language_code_);
@@ -434,27 +445,30 @@ void ShippingAddressEditorViewController::UpdateEditorFields() {
       EditorField::LengthHint::HINT_SHORT, /*required=*/true,
       EditorField::ControlType::COMBOBOX);
 
-  for (const std::vector<autofill::AutofillAddressUIComponent>& line :
+  for (const std::vector<autofill::ExtendedAddressUiComponent>& line :
        components) {
-    for (const autofill::AutofillAddressUIComponent& component : line) {
+    for (const autofill::ExtendedAddressUiComponent& component : line) {
       EditorField::LengthHint length_hint =
           component.length_hint ==
-                  autofill::AutofillAddressUIComponent::HINT_LONG
+                  i18n::addressinput::AddressUiComponent::HINT_LONG
               ? EditorField::LengthHint::HINT_LONG
               : EditorField::LengthHint::HINT_SHORT;
 
+      autofill::ServerFieldType server_field_type =
+          autofill::i18n::TypeForField(component.field);
+
       EditorField::ControlType control_type =
           EditorField::ControlType::TEXTFIELD;
-      if (component.field == autofill::ADDRESS_HOME_COUNTRY ||
-          (component.field == autofill::ADDRESS_HOME_STATE &&
+      if (server_field_type == autofill::ADDRESS_HOME_COUNTRY ||
+          (server_field_type == autofill::ADDRESS_HOME_STATE &&
            !failed_to_load_region_data_)) {
         control_type = EditorField::ControlType::COMBOBOX;
       }
       editor_fields_.emplace_back(
-          component.field, base::UTF8ToUTF16(component.name), length_hint,
-          autofill::i18n::IsFieldRequired(component.field,
+          server_field_type, base::UTF8ToUTF16(component.name), length_hint,
+          autofill::i18n::IsFieldRequired(server_field_type,
                                           chosen_country_code) ||
-              component.field == autofill::NAME_FULL,
+              server_field_type == autofill::NAME_FULL,
           control_type);
     }
   }

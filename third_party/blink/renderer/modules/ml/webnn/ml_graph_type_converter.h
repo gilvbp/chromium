@@ -5,7 +5,6 @@
 #ifndef THIRD_PARTY_BLINK_RENDERER_MODULES_ML_WEBNN_ML_GRAPH_TYPE_CONVERTER_H_
 #define THIRD_PARTY_BLINK_RENDERER_MODULES_ML_WEBNN_ML_GRAPH_TYPE_CONVERTER_H_
 
-#include "base/types/expected.h"
 #include "mojo/public/cpp/bindings/type_converter.h"
 #include "services/webnn/public/mojom/webnn_graph.mojom-blink.h"
 #include "third_party/blink/renderer/platform/heap/collection_support/heap_hash_map.h"
@@ -14,7 +13,7 @@ namespace blink {
 
 class MLOperand;
 class MLOperator;
-base::expected<webnn::mojom::blink::OperatorPtr, String> ConvertToMojoOperator(
+webnn::mojom::blink::OperatorPtr ConvertToMojoOperator(
     const HeapHashMap<Member<const MLOperand>, uint64_t>& operand_to_id_map,
     const MLOperator* op);
 

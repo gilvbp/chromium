@@ -34,8 +34,8 @@ class LoginUIServiceFactory : public ProfileKeyedServiceFactory {
   ~LoginUIServiceFactory() override;
 
   // BrowserContextKeyedServiceFactory:
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
-      content::BrowserContext* browser_context) const override;
+  KeyedService* BuildServiceInstanceFor(
+      content::BrowserContext* profile) const override;
   bool ServiceIsCreatedWithBrowserContext() const override;
 };
 

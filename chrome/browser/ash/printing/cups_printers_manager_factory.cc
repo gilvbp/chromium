@@ -47,8 +47,7 @@ CupsPrintersManagerProxy* CupsPrintersManagerFactory::GetProxy() {
   return proxy_.get();
 }
 
-std::unique_ptr<KeyedService>
-CupsPrintersManagerFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* CupsPrintersManagerFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   auto* profile = Profile::FromBrowserContext(context);
   // This condition still needs to be explicitly stated here despite having
@@ -62,12 +61,11 @@ CupsPrintersManagerFactory::BuildServiceInstanceForBrowserContext(
     return nullptr;
   }
 
-  std::unique_ptr<CupsPrintersManager> manager =
-      CupsPrintersManager::Create(profile);
+  auto manager = CupsPrintersManager::Create(profile);
   if (ProfileHelper::IsPrimaryProfile(profile)) {
     proxy_->SetManager(manager.get());
   }
-  return manager;
+  return manager.release();
 }
 
 void CupsPrintersManagerFactory::BrowserContextShutdown(

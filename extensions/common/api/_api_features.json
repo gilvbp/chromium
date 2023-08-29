@@ -88,6 +88,12 @@
     "contexts": ["blessed_extension"],
     "disallow_for_service_workers": true
   },
+  "automation.languageAnnotationForStringAttribute": {
+    "command_line_switch": "enable-experimental-accessibility-chromevox-sub-node-language-switching",
+    "channel": "dev",
+    "contexts": ["blessed_extension"],
+    "disallow_for_service_workers": true
+  },
   "bluetooth": [{
     "dependencies": ["manifest:bluetooth"],
     "contexts": ["blessed_extension"]
@@ -311,6 +317,17 @@
     "channel": "stable",
     "extension_types": ["extension", "legacy_packaged_app", "platform_app"]
   },
+  "management.canInstallReplacementAndroidApp": {
+    "dependencies": ["manifest:replacement_android_app"],
+    // TODO(jshikaram): add test coverage before trunk promotion.
+    "channel": "trunk",
+    "extension_types": ["platform_app"]
+  },
+  "management.installReplacementAndroidApp": {
+    "dependencies": ["manifest:replacement_android_app"],
+    "channel": "trunk",
+    "extension_types": ["platform_app"]
+  },
   "management.installReplacementWebApp": {
     "dependencies": ["manifest:replacement_web_app"],
     "channel": "stable",
@@ -364,8 +381,7 @@
     "matches": [
       "chrome-untrusted://help-app/*",
       "chrome-untrusted://media-app/*",
-      "chrome-untrusted://projector/*",
-      "chrome-untrusted://read-anything-side-panel.top-chrome/*"
+      "chrome-untrusted://projector/*"
     ]
   }],
   "metricsPrivateIndividualApis": {
@@ -758,12 +774,6 @@
   "usb": {
     "dependencies": ["permission:usb"],
     "contexts": ["blessed_extension"]
-  },
-  "userScripts": {
-    "dependencies": [ "permission:userScripts" ],
-    "contexts": [ "blessed_extension" ],
-    "channel": "trunk",
-    "feature_flag": "ApiUserScripts"
   },
   "virtualKeyboard": {
     "dependencies": ["permission:virtualKeyboard"],

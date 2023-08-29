@@ -4,7 +4,7 @@ Use of this source code is governed by a BSD-style license that can be
 found in the LICENSE file.
 -->
 
-<style include="oobe-dialog-host-styles cros-color-overrides">
+<style include="oobe-dialog-host-styles">
   host {
     padding: 0;
   }
@@ -34,12 +34,6 @@ found in the LICENSE file.
   #enterpriseIconText {
     line-height: 24px;
     vertical-align: middle;
-  }
-
-  :host-context(.jelly-enabled)
-    cr-input#assetId,
-    cr-input#location {
-      --cr-input-background-color: var(--cros-sys-input_field_on_shaded);
   }
 </style>
 <!-- OAUTH GAIA DIALOG -->
@@ -198,9 +192,8 @@ found in the LICENSE file.
     </div>
   </div>
   <div slot="content" class="flex layout vertical center center-justified">
-    <iron-icon icon="oobe-illos:enrollment-complete-illo"
-        class="illustration-jelly" hidden="[[isMeet_]]">
-    </iron-icon>
+    <img src="images/enrollment_complete.svg" alt=""
+        class="oobe-illustration" hidden="[[isMeet_]]">
     <img src="images/cfm/enrollment.svg" alt=""
         class="oobe-illustration" hidden="[[!isMeet_]]">
   </div>
@@ -227,14 +220,16 @@ found in the LICENSE file.
       [[i18nDynamic(locale, 'oauthEnrollExplainAttributeLink')]]
     </a>
   </p>
-  <div slot="content" class="landscape-header-aligned">
-    <cr-input id="assetId" type="text" value="{{assetId_}}"
-        class="focus-on-show"
-        label="[[i18nDynamic(locale, 'enrollmentAssetIdLabel')]]">
-    </cr-input>
-    <cr-input id="location" type="text" value="{{deviceLocation_}}"
-        label="[[i18nDynamic(locale, 'enrollmentLocationLabel')]]">
-    </cr-input>
+  <div slot="content" class="flex layout vertical">
+    <div class="oobe-form">
+      <cr-input id="assetId" type="text" value="{{assetId_}}"
+          class="focus-on-show"
+          label="[[i18nDynamic(locale, 'enrollmentAssetIdLabel')]]">
+      </cr-input>
+      <cr-input id="location" type="text" value="{{deviceLocation_}}"
+          label="[[i18nDynamic(locale, 'enrollmentLocationLabel')]]">
+      </cr-input>
+    </div>
   </div>
   <div slot="bottom-buttons">
     <oobe-text-button id="attributesSkip"

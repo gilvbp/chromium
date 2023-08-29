@@ -7,11 +7,6 @@
 
 namespace content {
 
-// If you add a new type of prerender trigger, please refer to the internal
-// document go/update-prerender-new-trigger-metrics to make sure that metrics
-// include the newly added trigger type. The string for the trigger type is
-// generated in PrerenderPageLoadMetricsObserver::AppendSuffix.
-// LINT.IfChange
 enum class PrerenderTriggerType {
   // https://wicg.github.io/nav-speculation/prerendering.html#speculation-rules
   kSpeculationRule,
@@ -20,7 +15,6 @@ enum class PrerenderTriggerType {
   // Trigger used by content embedders.
   kEmbedder,
 };
-// LINT.ThenChange(//components/page_load_metrics/browser/observers/prerender_page_load_metrics_observer.cc)
 
 }  // namespace content
 

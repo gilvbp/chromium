@@ -709,11 +709,7 @@ xmlTextWriterEndDocument(xmlTextWriterPtr writer)
         sum += count;
     }
 
-    count = xmlTextWriterFlush(writer);
-    if (count < 0)
-        return -1;
-    sum += count;
-
+    sum += xmlTextWriterFlush(writer);
 
     return sum;
 }

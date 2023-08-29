@@ -25,14 +25,13 @@ DocumentSuggestionsServiceFactory::GetInstance() {
   return instance.get();
 }
 
-std::unique_ptr<KeyedService>
-DocumentSuggestionsServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* DocumentSuggestionsServiceFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   Profile* profile = Profile::FromBrowserContext(context);
 
   signin::IdentityManager* identity_manager =
       IdentityManagerFactory::GetForProfile(profile);
-  return std::make_unique<DocumentSuggestionsService>(
+  return new DocumentSuggestionsService(
       identity_manager, profile->GetDefaultStoragePartition()
                             ->GetURLLoaderFactoryForBrowserProcess());
 }

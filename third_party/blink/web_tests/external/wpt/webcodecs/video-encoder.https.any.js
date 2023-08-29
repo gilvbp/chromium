@@ -26,14 +26,15 @@ promise_test(t => {
 promise_test(t => {
   let encoder = new VideoEncoder(getDefaultCodecInit(t));
 
-  let unsupportedCodecsList = [
-    'bogus',                    // Non existent codec
+  let badCodecsList = [
+    '',                         // Empty codec
+    'bogus',                    // Non exsitent codec
     'vorbis',                   // Audio codec
     'vp9',                      // Ambiguous codec
     'video/webm; codecs="vp9"'  // Codec with mime type
   ]
 
-  testConfigurations(encoder, defaultConfig, unsupportedCodecsList);
+  testConfigurations(encoder, defaultConfig, badCodecsList);
 
   return endAfterEventLoopTurn();
 }, 'Test VideoEncoder.configure()');
@@ -260,9 +261,6 @@ promise_test(async t => {
   // Verify that a failed call to configure does not change the encoder's state.
   let badConfig = { ...defaultConfig };
   badConfig.codec = 'bogus';
-  assert_throws_dom('NotSupportedError', () => encoder.configure(badConfig));
-
-  delete badConfig['codec'];
   assert_throws_js(TypeError, () => encoder.configure(badConfig));
 
   encoder.encode(frame4);

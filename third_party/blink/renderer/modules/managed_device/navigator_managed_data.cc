@@ -60,7 +60,7 @@ bool NavigatorManagedData::HasPendingActivity() const {
 }
 
 void NavigatorManagedData::Trace(Visitor* visitor) const {
-  EventTarget::Trace(visitor);
+  EventTargetWithInlineData::Trace(visitor);
   ActiveScriptWrappable::Trace(visitor);
   Supplement<Navigator>::Trace(visitor);
 
@@ -261,7 +261,8 @@ void NavigatorManagedData::AddedEventListener(
     return;
   }
 
-  EventTarget::AddedEventListener(event_type, registered_listener);
+  EventTargetWithInlineData::AddedEventListener(event_type,
+                                                registered_listener);
   if (event_type == event_type_names::kManagedconfigurationchange) {
     if (!configuration_observer_.is_bound()) {
       GetManagedConfigurationService()->SubscribeToManagedConfiguration(
@@ -275,7 +276,8 @@ void NavigatorManagedData::AddedEventListener(
 void NavigatorManagedData::RemovedEventListener(
     const AtomicString& event_type,
     const RegisteredEventListener& registered_listener) {
-  EventTarget::RemovedEventListener(event_type, registered_listener);
+  EventTargetWithInlineData::RemovedEventListener(event_type,
+                                                  registered_listener);
   if (!HasEventListeners())
     StopObserving();
 }

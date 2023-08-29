@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 #include "base/allocator/dispatcher/internal/dispatcher_internal.h"
+#include "base/allocator/buildflags.h"
 #include "base/allocator/dispatcher/testing/dispatcher_test.h"
 #include "base/allocator/dispatcher/testing/observer_mock.h"
 #include "base/allocator/dispatcher/testing/tools.h"
@@ -165,9 +166,7 @@ TEST_F(AllocationEventDispatcherInternalTest,
   const auto dispatch_data =
       GetNotificationHooks(CreateTupleOfPointers(observers));
 
-  dispatch_data.GetAllocationObserverHook()(
-      partition_alloc::AllocationNotificationData(this, sizeof(*this),
-                                                  nullptr));
+  dispatch_data.GetAllocationObserverHook()(this, sizeof(*this), nullptr);
 }
 
 TEST_F(AllocationEventDispatcherInternalTest,
@@ -183,8 +182,7 @@ TEST_F(AllocationEventDispatcherInternalTest,
   const auto dispatch_data =
       GetNotificationHooks(CreateTupleOfPointers(observers));
 
-  dispatch_data.GetFreeObserverHook()(
-      partition_alloc::FreeNotificationData(this));
+  dispatch_data.GetFreeObserverHook()(this);
 }
 #endif
 

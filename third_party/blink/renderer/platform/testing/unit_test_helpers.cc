@@ -135,9 +135,7 @@ base::FilePath HyphenationDictionaryDir() {
 scoped_refptr<SharedBuffer> ReadFromFile(const String& path) {
   base::FilePath file_path = blink::WebStringToFilePath(path);
   std::string buffer;
-  if (!base::ReadFileToString(file_path, &buffer)) {
-    return nullptr;
-  }
+  base::ReadFileToString(file_path, &buffer);
   return SharedBuffer::Create(buffer.data(), buffer.size());
 }
 
@@ -146,12 +144,6 @@ String BlinkWebTestsFontsTestDataPath(const String& relative_path) {
       WebTestsFilePath()
           .Append(FILE_PATH_LITERAL("external/wpt/fonts"))
           .Append(WebStringToFilePath(relative_path)));
-}
-
-String BlinkWebTestsImagesTestDataPath(const String& relative_path) {
-  return FilePathToWebString(WebTestsFilePath()
-                                 .Append(FILE_PATH_LITERAL("images/resources"))
-                                 .Append(WebStringToFilePath(relative_path)));
 }
 
 String StylePerfTestDataPath(const String& relative_path) {

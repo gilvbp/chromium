@@ -108,6 +108,7 @@ _BLOCK_LIST_TEST_MODULES = {
 # The list of benchmark names to be excluded from our smoke tests.
 _BLOCK_LIST_TEST_NAMES = [
     'memory.long_running_idle_gmail_background_tbmv2',
+    'tab_switching.typical_25',
     'UNSCHEDULED_oortonline_tbmv2',
     'webrtc',  # crbug.com/932036
     'v8.runtime_stats.top_25',  # Fails in Windows, crbug.com/1043048
@@ -148,7 +149,10 @@ def load_tests(loader, standard_tests, pattern):
     if benchmark.Name() in _BLOCK_LIST_TEST_NAMES:
       continue
 
-    if 'desktop_ui' in benchmark.Name():
+    # tab_switching needs more than one page to test correctly.
+    if 'tab_switching' in benchmark.Name():
+      method = SmokeTestGenerator(benchmark, num_pages=2)
+    elif 'desktop_ui' in benchmark.Name():
       # Run tests with a specific smoke_test tag.
       method = SmokeTestGenerator(benchmark,
                                   num_pages=None,

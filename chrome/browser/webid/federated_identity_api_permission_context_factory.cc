@@ -41,8 +41,8 @@ FederatedIdentityApiPermissionContextFactory::
 FederatedIdentityApiPermissionContextFactory::
     ~FederatedIdentityApiPermissionContextFactory() = default;
 
-std::unique_ptr<KeyedService> FederatedIdentityApiPermissionContextFactory::
-    BuildServiceInstanceForBrowserContext(
-        content::BrowserContext* profile) const {
-  return std::make_unique<FederatedIdentityApiPermissionContext>(profile);
+KeyedService*
+FederatedIdentityApiPermissionContextFactory::BuildServiceInstanceFor(
+    content::BrowserContext* profile) const {
+  return new FederatedIdentityApiPermissionContext(profile);
 }

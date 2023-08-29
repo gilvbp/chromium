@@ -78,7 +78,10 @@ class PinSetup extends PinSetupBase {
       /** QuickUnlockPrivate API token. */
       authToken_: {
         type: String,
+        observer: 'onAuthTokenChanged_',
       },
+
+      setModes: Object,
 
       /**
        * Interface for chrome.quickUnlockPrivate calls. May be overridden by
@@ -87,6 +90,20 @@ class PinSetup extends PinSetupBase {
        * @private
        */
       quickUnlockPrivate_: {type: Object, value: chrome.quickUnlockPrivate},
+
+      /**
+       * writeUma is a function that handles writing uma stats. It may be
+       * overridden for tests.
+       *
+       * @type {Function}
+       * @private
+       */
+      writeUma_: {
+        type: Object,
+        value() {
+          return recordLockScreenProgress;
+        },
+      },
 
       /**
        * Should be true when device has support for PIN login.
@@ -145,6 +162,26 @@ class PinSetup extends PinSetupBase {
    */
   setHasLoginSupport(hasLoginSupport) {
     this.hasLoginSupport_ = hasLoginSupport;
+  }
+
+  /**
+   * Called when the authToken_ changes. If the authToken_ is NOT valid,
+   * skips module.
+   * @private
+   */
+  onAuthTokenChanged_() {
+    this.setModes = (modes, credentials, onComplete) => {
+      this.quickUnlockPrivate_.setModes(
+          this.authToken_, modes, credentials, () => {
+            let result = true;
+            if (chrome.runtime.lastError) {
+              console.error(
+                  'setModes failed: ' + chrome.runtime.lastError.message);
+              result = false;
+            }
+            onComplete(result);
+          });
+    };
   }
 
   /** @private */

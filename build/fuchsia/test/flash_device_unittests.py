@@ -9,7 +9,7 @@ import subprocess
 import unittest
 import unittest.mock as mock
 
-import boot_device
+import common
 import flash_device
 
 _TEST_IMAGE_DIR = 'test/image/dir'
@@ -123,7 +123,7 @@ class FlashDeviceTest(unittest.TestCase):
                 mock.patch('flash_device.boot_device') as mock_boot, \
                 mock.patch('flash_device.get_system_info') as mock_sys_info, \
                 mock.patch('flash_device.subprocess.run'):
-            mock_boot.side_effect = boot_device.StateTransitionError(
+            mock_boot.side_effect = common.StateTransitionError(
                 'Incorrect state')
             self._ffx_mock.return_value.stdout = \
                 '[{"title": "Build", "child": [{"value": "wrong.version"}, ' \
@@ -134,8 +134,7 @@ class FlashDeviceTest(unittest.TestCase):
                                 should_pave=False)
             # Regular boot is to check the versions.
             mock_boot.assert_called_once_with(mock.ANY,
-                                              boot_device.BootMode.REGULAR,
-                                              None)
+                                              common.BootMode.REGULAR, None)
             self.assertEqual(self._ffx_mock.call_count, 1)
 
             # get_system_info should not even be called due to early exit.
@@ -158,8 +157,7 @@ class FlashDeviceTest(unittest.TestCase):
                                 should_pave=False)
             # Regular boot is to check the versions.
             mock_boot.assert_called_once_with(mock.ANY,
-                                              boot_device.BootMode.REGULAR,
-                                              None)
+                                              common.BootMode.REGULAR, None)
             self.assertEqual(self._ffx_mock.call_count, 3)
 
     def test_incorrect_target_info(self) -> None:
@@ -185,7 +183,7 @@ class FlashDeviceTest(unittest.TestCase):
                                 'test_serial',
                                 should_pave=False)
             mock_boot.assert_called_once_with(mock.ANY,
-                                              boot_device.BootMode.BOOTLOADER,
+                                              common.BootMode.BOOTLOADER,
                                               'test_serial')
         self.assertEqual(self._ffx_mock.call_count, 2)
 
@@ -216,8 +214,7 @@ class FlashDeviceTest(unittest.TestCase):
                                 should_pave=True)
 
             mock_boot.assert_called_once_with('some-target-id',
-                                              boot_device.BootMode.RECOVERY,
-                                              None)
+                                              common.BootMode.RECOVERY, None)
             mock_pave.assert_called_once_with(_TEST_IMAGE_DIR,
                                               'some-target-id')
 
@@ -251,7 +248,7 @@ class FlashDeviceTest(unittest.TestCase):
                                 'test_serial',
                                 should_pave=False)
             mock_boot.assert_called_once_with(mock.ANY,
-                                              boot_device.BootMode.BOOTLOADER,
+                                              common.BootMode.BOOTLOADER,
                                               'test_serial')
         self.assertEqual(self._ffx_mock.call_count, 2)
 

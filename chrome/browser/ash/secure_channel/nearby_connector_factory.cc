@@ -41,8 +41,7 @@ NearbyConnectorFactory::NearbyConnectorFactory()
 
 NearbyConnectorFactory::~NearbyConnectorFactory() = default;
 
-std::unique_ptr<KeyedService>
-NearbyConnectorFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* NearbyConnectorFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   nearby::NearbyProcessManager* nearby_process_manager =
       nearby::NearbyProcessManagerFactory::GetForProfile(
@@ -57,7 +56,7 @@ NearbyConnectorFactory::BuildServiceInstanceForBrowserContext(
       std::make_unique<NearbyConnectorImpl>(nearby_process_manager);
   SecureChannelClientProvider::GetInstance()->GetClient()->SetNearbyConnector(
       nearby_connector.get());
-  return nearby_connector;
+  return nearby_connector.release();
 }
 
 bool NearbyConnectorFactory::ServiceIsCreatedWithBrowserContext() const {

@@ -10,7 +10,6 @@
 #import "base/ios/block_types.h"
 #import "components/signin/public/base/signin_metrics.h"
 #import "ios/chrome/browser/ui/authentication/authentication_flow_performer_delegate.h"
-#import "ios/chrome/browser/ui/authentication/signin/signin_constants.h"
 
 class Browser;
 @protocol BrowsingDataCommands;
@@ -30,8 +29,7 @@ class PrefService;
 
 // Cancels any outstanding work and dismisses an alert view (if shown) using
 // animation if `animated` is true.
-- (void)interruptWithAction:(SigninCoordinatorInterrupt)action
-                 completion:(ProceduralBlock)completion;
+- (void)cancelAndDismissAnimated:(BOOL)animated;
 
 // Fetches the managed status for `identity`.
 - (void)fetchManagedStatus:(ChromeBrowserState*)browserState
@@ -70,12 +68,10 @@ class PrefService;
                        browserStatePrefs:(PrefService*)prefs;
 
 // Shows a confirmation dialog for signing in to an account managed by
-// `hostedDomain`. The confirmation dialog's content will be different depending
-// on the status of User Policy and the `syncConsent`.
+// `hostedDomain`.
 - (void)showManagedConfirmationForHostedDomain:(NSString*)hostedDomain
                                 viewController:(UIViewController*)viewController
-                                       browser:(Browser*)browser
-                                   syncConsent:(BOOL)syncConsent;
+                                       browser:(Browser*)browser;
 
 // Shows a snackbar confirming sign-in with `identity` and an undo button to
 // sign out the user.

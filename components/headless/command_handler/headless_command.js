@@ -230,11 +230,9 @@ async function dumpDOM(dp) {
 
 async function printToPDF(dp, params) {
   const displayHeaderFooter = !params.noHeaderFooter;
-  const generateTaggedPDF = !params.disablePDFTagging;
 
   const printToPDFParams = {
     displayHeaderFooter,
-    generateTaggedPDF,
     printBackground: true,
     preferCSSPageSize: true,
   };
@@ -272,6 +270,11 @@ async function handleCommands(dp, commands) {
 //
 // Target.exposeDevToolsProtocol() communication functions.
 //
+window.cdp.onmessage = json => {
+  // console.log('[recv] ' + json);
+  cdpClient.dispatchMessage(json);
+};
+
 function sendDevToolsMessage(json) {
   // console.log('[send] ' + json);
   window.cdp.send(json);
@@ -281,19 +284,9 @@ function sendDevToolsMessage(json) {
 // This is called from the host.
 //
 async function executeCommands(commands) {
-  window.cdp.onmessage = json => {
-    // console.log('[recv] ' + json);
-    cdpClient.dispatchMessage(json);
-  };
-
   const browserSession = new CDPSession();
   const targetPage = await TargetPage.create(browserSession);
   const dp = targetPage.session().protocol();
-
-  let domContentEventFired = false;
-  dp.Page.onceDomContentEventFired(() => {
-    domContentEventFired = true;
-  });
 
   const promises = [];
   let pageLoadTimedOut;
@@ -333,8 +326,7 @@ async function executeCommands(commands) {
 
   const result = await handleCommands(dp, commands);
 
-  // Report timeouts only if we received no content at all.
-  if (pageLoadTimedOut && !domContentEventFired) {
+  if (pageLoadTimedOut) {
     result.pageLoadTimedOut = true;
   }
 

@@ -13,7 +13,7 @@ import android.view.View;
 import android.widget.FrameLayout;
 
 import androidx.annotation.CallSuper;
-import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 
 import org.chromium.chrome.browser.SynchronousInitializationActivity;
 import org.chromium.chrome.browser.ui.device_lock.DeviceLockCoordinator;
@@ -30,6 +30,8 @@ import org.chromium.ui.modaldialog.ModalDialogManager;
 public class DeviceLockActivity
         extends SynchronousInitializationActivity implements DeviceLockCoordinator.Delegate {
     private static final String ARGUMENT_FRAGMENT_ARGS = "DeviceLockActivity.FragmentArgs";
+    private static final String ARGUMENT_IN_SIGN_IN_FLOW =
+            "DeviceLockActivity.FragmentArgs.InSignInFlow";
     private static final String ARGUMENT_SELECTED_ACCOUNT =
             "DeviceLockActivity.FragmentArgs.SelectedAccount";
 
@@ -46,6 +48,7 @@ public class DeviceLockActivity
         super.onActivityResult(requestCode, resultCode, data);
     }
 
+    @VisibleForTesting
     void setIntentRequestTrackerForTesting(IntentRequestTracker intentRequestTracker) {
         mIntentRequestTracker = intentRequestTracker;
     }
@@ -60,14 +63,11 @@ public class DeviceLockActivity
         mIntentRequestTracker = mWindowAndroid.getIntentRequestTracker();
 
         Bundle fragmentArgs = getIntent().getBundleExtra(ARGUMENT_FRAGMENT_ARGS);
-        @Nullable
-        String selectedAccountName = fragmentArgs.getString(ARGUMENT_SELECTED_ACCOUNT, null);
-        @Nullable
-        Account selectedAccount = selectedAccountName != null
-                ? AccountUtils.createAccountFromName(selectedAccountName)
-                : null;
+        Account selectedAccount = AccountUtils.createAccountFromName(
+                fragmentArgs.getString(ARGUMENT_SELECTED_ACCOUNT));
         mDeviceLockCoordinator =
-                new DeviceLockCoordinator(this, mWindowAndroid, this, selectedAccount);
+                new DeviceLockCoordinator(fragmentArgs.getBoolean(ARGUMENT_IN_SIGN_IN_FLOW), this,
+                        mWindowAndroid, this, selectedAccount);
     }
 
     @CallSuper
@@ -83,8 +83,9 @@ public class DeviceLockActivity
         return null;
     }
 
-    protected static Bundle createArguments(@Nullable String selectedAccount) {
+    protected static Bundle createArguments(boolean inSignInFlow, String selectedAccount) {
         Bundle result = new Bundle();
+        result.putBoolean(ARGUMENT_IN_SIGN_IN_FLOW, inSignInFlow);
         result.putString(ARGUMENT_SELECTED_ACCOUNT, selectedAccount);
         return result;
     }
@@ -92,10 +93,11 @@ public class DeviceLockActivity
     /**
      * Creates a new intent to start the {@link DeviceLockActivity}.
      */
-    protected static Intent createIntent(Context context, @Nullable String selectedAccount) {
+    protected static Intent createIntent(
+            Context context, boolean inSignInFlow, String selectedAccount) {
         Intent intent = new Intent(context, DeviceLockActivity.class);
-        intent.putExtra(
-                ARGUMENT_FRAGMENT_ARGS, DeviceLockActivity.createArguments(selectedAccount));
+        intent.putExtra(ARGUMENT_FRAGMENT_ARGS,
+                DeviceLockActivity.createArguments(inSignInFlow, selectedAccount));
         return intent;
     }
 

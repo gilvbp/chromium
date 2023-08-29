@@ -24,7 +24,7 @@ class ToolbarActionsModelFactory : public ProfileKeyedServiceFactory {
   ToolbarActionsModelFactory();
   ~ToolbarActionsModelFactory() override;
 
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* profile) const override;
   bool ServiceIsCreatedWithBrowserContext() const override;
   bool ServiceIsNULLWhileTesting() const override;

@@ -849,7 +849,7 @@
       {
         "positive_pattern": "codigo|codpos|\\bcep\\b",
         "positive_score": 1.1,
-        "negative_pattern": "codigo.*segur",
+        "negative_pattern": null,
         "match_field_attributes": ["LABEL", "NAME"],
         "match_field_input_types": ["TEXT", "TELEPHONE", "NUMBER"]
       }
@@ -1233,17 +1233,6 @@
       }
     ]
   },
-  "OVERFLOW": {
-    "pt": [
-      {
-        "positive_pattern": "complemento",
-        "positive_score": 1.1,
-        "negative_pattern": null,
-        "match_field_attributes": ["LABEL", "NAME"],
-        "match_field_input_types": ["TEXT", "TEXT_AREA", "SEARCH"]
-      }
-    ]
-  },
   "LANDMARK": {
     "en": [
       {
@@ -1440,7 +1429,7 @@
   "NAME_ON_CARD": {
     "en": [
       {
-        "positive_pattern": "card.?(?:holder|owner)|name.*on.*card|(?:card|cc).?name|cc.?full.?name",
+        "positive_pattern": "card.?(?:holder|owner)|name.*(\\b)?on(\\b)?.*card|(?:card|cc).?name|cc.?full.?name",
         "positive_score": 1.0,
         "negative_pattern": null,
         "match_field_attributes": ["LABEL", "NAME"],
@@ -1458,7 +1447,7 @@
     ],
     "es": [
       {
-        "positive_pattern": "nombre.*tarjeta|nombre.*titular|titular.*tarjeta",
+        "positive_pattern": "nombre.*tarjeta",
         "positive_score": 1.0,
         "negative_pattern": null,
         "match_field_attributes": ["LABEL", "NAME"],
@@ -1488,16 +1477,6 @@
         "positive_pattern": "名前",
         "positive_score": 1.0,
         "negative_pattern": null,
-        "match_field_attributes": ["LABEL", "NAME"],
-        "match_field_input_types": ["TEXT"]
-      }
-    ],
-    "pt": [
-      {
-        "__comment__": "'do titular do cartão' is a negative pattern because we observed eg. 'CPF do Titular do Cartão'.",
-        "positive_pattern": "nome do titular|nome impresso no cartão|titular do cartão",
-        "positive_score": 1.0,
-        "negative_pattern": "do titular do cartão",
         "match_field_attributes": ["LABEL", "NAME"],
         "match_field_input_types": ["TEXT"]
       }
@@ -1544,7 +1523,7 @@
   "CREDIT_CARD_NUMBER": {
     "en": [
       {
-        "positive_pattern": "(?:card|cc|acct).?(?:number|#|no|num|field|pan)|0000 ?0000 ?0000 ?0000|1234 ?1234 ?1234 ?1234",
+        "positive_pattern": "(add)?(?:card|cc|acct).?(?:number|#|no|num|field|pan)",
         "positive_score": 1.0,
         "negative_pattern": null,
         "match_field_attributes": ["LABEL", "NAME"],
@@ -1645,25 +1624,7 @@
   "CREDIT_CARD_VERIFICATION_CODE": {
     "en": [
       {
-        "positive_pattern": "verification|card.?identification|security.?code|card.?code|security.?value|security.?number|card.?pin|c-v-v|(cvn|cvv|cvc|csc|cvd|ccv)|\\bcid\\b|cccid",
-        "positive_score": 1.0,
-        "negative_pattern": null,
-        "match_field_attributes": ["LABEL", "NAME"],
-        "match_field_input_types": ["TEXT", "TELEPHONE", "PASSWORD", "NUMBER"]
-      }
-    ],
-    "br": [
-      {
-        "positive_pattern": "código de segurança",
-        "positive_score": 1.0,
-        "negative_pattern": null,
-        "match_field_attributes": ["LABEL", "NAME"],
-        "match_field_input_types": ["TEXT", "TELEPHONE", "PASSWORD", "NUMBER"]
-      }
-    ],
-    "es": [
-      {
-        "positive_pattern": "código de seguridad",
+        "positive_pattern": "verification|card.?identification|security.?code|card.?code|security.?value|security.?number|card.?pin|c-v-v|(cvn|cvv|cvc|csc|cvd|cid|ccv)(field)?|\\bcid\\b",
         "positive_score": 1.0,
         "negative_pattern": null,
         "match_field_attributes": ["LABEL", "NAME"],
@@ -1674,7 +1635,7 @@
   "CREDIT_CARD_EXP_MONTH": {
     "en": [
       {
-        "positive_pattern": "expir|exp.*mo|exp.*date|cc.?month|cardmonth|addmonth",
+        "positive_pattern": "expir|exp.*mo|exp.*date|ccmonth|cardmonth|addmonth",
         "positive_score": 1.0,
         "negative_pattern": null,
         "match_field_attributes": ["LABEL", "NAME"],
@@ -1728,7 +1689,7 @@
     ],
     "pt": [
       {
-        "positive_pattern": "validade|\\bmês\\b",
+        "positive_pattern": "validade",
         "positive_score": 1.0,
         "negative_pattern": null,
         "match_field_attributes": ["LABEL", "NAME"],
@@ -1766,7 +1727,7 @@
   "CREDIT_CARD_EXP_YEAR": {
     "en": [
       {
-        "positive_pattern": "exp|^/|year",
+        "positive_pattern": "exp|^/|(add)?year",
         "positive_score": 1.0,
         "negative_pattern": null,
         "match_field_attributes": ["LABEL", "NAME"],
@@ -1784,7 +1745,7 @@
     ],
     "es": [
       {
-        "positive_pattern": "fecha|año",
+        "positive_pattern": "fecha",
         "positive_score": 1.0,
         "negative_pattern": null,
         "match_field_attributes": ["LABEL", "NAME"],
@@ -1811,7 +1772,7 @@
     ],
     "pt": [
       {
-        "positive_pattern": "validade|\\bano\\b",
+        "positive_pattern": "validade",
         "positive_score": 1.0,
         "negative_pattern": null,
         "match_field_attributes": ["LABEL", "NAME"],
@@ -3125,14 +3086,14 @@
       }
     ]
   },
-  "IBAN_VALUE": {
+    "IBAN_VALUE": {
     "en": [
       {
         "positive_pattern": "(\\biban(\\b|_)|international bank account number)",
         "positive_score": 0.975,
         "negative_pattern": null,
         "match_field_attributes": ["LABEL", "NAME"],
-        "match_field_input_types": ["TEXT", "TEXT_AREA", "NUMBER"]
+        "match_field_input_types": ["TEXT"]
       }
     ]
   }

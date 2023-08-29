@@ -18,7 +18,6 @@
 #include "base/run_loop.h"
 #include "base/strings/utf_string_conversions.h"
 #include "base/test/scoped_feature_list.h"
-#include "chromeos/constants/chromeos_features.h"
 #include "ui/accessibility/accessibility_features.h"
 #include "ui/accessibility/ax_node_data.h"
 #include "ui/base/ime/ash/ime_bridge.h"
@@ -72,25 +71,16 @@ class SelectToSpeakTrayTest : public AshTestBase {
   views::ImageView* GetImageView() { return GetTray()->icon_; }
 
   // Gets the corresponding image given the |select_to_speak_state|.
-  gfx::ImageSkia GetIconImage(SelectToSpeakState select_to_speak_state) {
-    const auto color_id =
-        chromeos::features::IsJellyEnabled()
-            ? (select_to_speak_state ==
-                       SelectToSpeakState::kSelectToSpeakStateInactive
-                   ? static_cast<ui::ColorId>(cros_tokens::kCrosSysOnSurface)
-                   : static_cast<ui::ColorId>(
-                         cros_tokens::kCrosSysSystemOnPrimaryContainer))
-            : kColorAshIconColorPrimary;
-    const auto icon_color = GetTray()->GetColorProvider()->GetColor(color_id);
+  gfx::ImageSkia GetIconImage(SelectToSpeakState select_to_speak_state,
+                              SkColor color) {
     switch (select_to_speak_state) {
       case SelectToSpeakState::kSelectToSpeakStateInactive:
-        return gfx::CreateVectorIcon(kSystemTraySelectToSpeakNewuiIcon,
-                                     icon_color);
+        return gfx::CreateVectorIcon(kSystemTraySelectToSpeakNewuiIcon, color);
       case SelectToSpeakState::kSelectToSpeakStateSelecting:
         return gfx::CreateVectorIcon(kSystemTraySelectToSpeakActiveNewuiIcon,
-                                     icon_color);
+                                     color);
       case SelectToSpeakState::kSelectToSpeakStateSpeaking:
-        return gfx::CreateVectorIcon(kSystemTrayStopNewuiIcon, icon_color);
+        return gfx::CreateVectorIcon(kSystemTrayStopNewuiIcon, color);
     }
   }
 };
@@ -131,9 +121,10 @@ TEST_F(SelectToSpeakTrayTest, SelectToSpeakStateImpactsImageAndActivation) {
   controller->SetSelectToSpeakState(
       SelectToSpeakState::kSelectToSpeakStateSelecting);
   EXPECT_TRUE(IsTrayBackgroundActive());
-
-  gfx::ImageSkia expected_icon_image =
-      GetIconImage(SelectToSpeakState::kSelectToSpeakStateSelecting);
+  const auto icon_color =
+      GetTray()->GetColorProvider()->GetColor(kColorAshIconColorPrimary);
+  gfx::ImageSkia expected_icon_image = GetIconImage(
+      SelectToSpeakState::kSelectToSpeakStateSelecting, icon_color);
   gfx::ImageSkia actual_icon_image = GetImageView()->GetImage();
   EXPECT_TRUE(gfx::test::AreBitmapsEqual(*expected_icon_image.bitmap(),
                                          *actual_icon_image.bitmap()));
@@ -142,7 +133,7 @@ TEST_F(SelectToSpeakTrayTest, SelectToSpeakStateImpactsImageAndActivation) {
   EXPECT_TRUE(IsTrayBackgroundActive());
 
   expected_icon_image =
-      GetIconImage(SelectToSpeakState::kSelectToSpeakStateSpeaking);
+      GetIconImage(SelectToSpeakState::kSelectToSpeakStateSpeaking, icon_color);
   actual_icon_image = GetImageView()->GetImage();
   EXPECT_TRUE(gfx::test::AreBitmapsEqual(*expected_icon_image.bitmap(),
                                          *actual_icon_image.bitmap()));
@@ -151,7 +142,7 @@ TEST_F(SelectToSpeakTrayTest, SelectToSpeakStateImpactsImageAndActivation) {
       SelectToSpeakState::kSelectToSpeakStateInactive);
   EXPECT_FALSE(IsTrayBackgroundActive());
   expected_icon_image =
-      GetIconImage(SelectToSpeakState::kSelectToSpeakStateInactive);
+      GetIconImage(SelectToSpeakState::kSelectToSpeakStateInactive, icon_color);
   actual_icon_image = GetImageView()->GetImage();
   EXPECT_TRUE(gfx::test::AreBitmapsEqual(*expected_icon_image.bitmap(),
                                          *actual_icon_image.bitmap()));

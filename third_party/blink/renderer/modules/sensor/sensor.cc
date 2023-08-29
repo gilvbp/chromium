@@ -144,7 +144,7 @@ void Sensor::Trace(Visitor* visitor) const {
   visitor->Trace(sensor_proxy_);
   ActiveScriptWrappable::Trace(visitor);
   ExecutionContextLifecycleObserver::Trace(visitor);
-  EventTarget::Trace(visitor);
+  EventTargetWithInlineData::Trace(visitor);
 }
 
 bool Sensor::HasPendingActivity() const {

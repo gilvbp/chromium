@@ -90,7 +90,6 @@ class CustomTabBarView : public views::AccessiblePaneView,
   }
   void GoBackToAppForTesting();
   bool IsShowingOriginForTesting() const;
-  bool IsShowingCloseButtonForTesting() const;
 
  private:
   // Takes the web contents for the custom tab bar back to the app scope.

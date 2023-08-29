@@ -7,7 +7,6 @@
 #include <memory>
 
 #include "chrome/app/vector_icons/vector_icons.h"
-#include "chrome/browser/ui/browser_element_identifiers.h"
 #include "chrome/browser/ui/color/chrome_color_id.h"
 #include "chrome/browser/ui/layout_constants.h"
 #include "chrome/browser/ui/views/bookmarks/saved_tab_groups/saved_tab_group_bar.h"
@@ -17,12 +16,10 @@
 #include "ui/accessibility/ax_enums.mojom.h"
 #include "ui/accessibility/ax_node_data.h"
 #include "ui/base/l10n/l10n_util.h"
-#include "ui/base/ui_base_features.h"
 #include "ui/color/color_provider.h"
 #include "ui/views/controls/button/label_button_border.h"
 #include "ui/views/controls/button/menu_button.h"
 #include "ui/views/controls/highlight_path_generator.h"
-#include "ui/views/view_class_properties.h"
 
 SavedTabGroupOverflowButton::SavedTabGroupOverflowButton(
     PressedCallback callback)
@@ -32,12 +29,9 @@ SavedTabGroupOverflowButton::SavedTabGroupOverflowButton(
       l10n_util::GetStringUTF16(IDS_ACCNAME_SAVED_TAB_GROUPS_CHEVRON));
   SetTooltipText(
       l10n_util::GetStringUTF16(IDS_SAVED_TAB_GROUPS_OVERFLOW_BUTTON_TOOLTIP));
-  SetFlipCanvasOnPaintForRTLUI(true);
   ConfigureInkDropForToolbar(this);
   SetImageLabelSpacing(ChromeLayoutProvider::Get()->GetDistanceMetric(
       DISTANCE_RELATED_LABEL_HORIZONTAL_LIST));
-  SetProperty(views::kElementIdentifierKey,
-              kSavedTabGroupOverflowButtonElementId);
 }
 
 SavedTabGroupOverflowButton::~SavedTabGroupOverflowButton() = default;
@@ -64,10 +58,8 @@ void SavedTabGroupOverflowButton::OnThemeChanged() {
   ui::ColorProvider* color_provider = GetColorProvider();
   const SkColor overflow_color =
       color_provider->GetColor(kColorBookmarkButtonIcon);
-  const gfx::VectorIcon& icon = features::IsChromeRefresh2023()
-                                    ? kBookmarkbarOverflowRefreshIcon
-                                    : kOverflowChevronIcon;
-  SetImageModel(views::Button::STATE_NORMAL,
-                ui::ImageModel::FromVectorIcon(icon, overflow_color));
+  SetImageModel(
+      views::Button::STATE_NORMAL,
+      ui::ImageModel::FromVectorIcon(kOverflowChevronIcon, overflow_color));
   return;
 }

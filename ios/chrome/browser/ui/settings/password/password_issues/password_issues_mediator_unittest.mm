@@ -39,6 +39,10 @@
 #import "testing/gtest_mac.h"
 #import "ui/base/l10n/l10n_util_mac.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 using password_manager::InsecureCredential;
 using password_manager::InsecureType;
 using password_manager::PasswordForm;
@@ -122,6 +126,8 @@ GURL GetLocalizedURL(const GURL& original) {
 class PasswordIssuesMediatorTest : public BlockCleanupTest {
  protected:
   void SetUp() override {
+    feature_list_.InitAndEnableFeature(
+        password_manager::features::kPasswordsGrouping);
     BlockCleanupTest::SetUp();
     // Create BrowserState.
     TestChromeBrowserState::Builder test_cbs_builder;

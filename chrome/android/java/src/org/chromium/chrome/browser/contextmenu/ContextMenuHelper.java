@@ -8,8 +8,9 @@ import android.os.SystemClock;
 import android.util.Pair;
 import android.view.View;
 
+import androidx.annotation.VisibleForTesting;
+
 import org.chromium.base.Callback;
-import org.chromium.base.ResettersForTesting;
 import org.chromium.base.annotations.CalledByNative;
 import org.chromium.base.annotations.NativeMethods;
 import org.chromium.base.metrics.RecordHistogram;
@@ -27,7 +28,7 @@ import java.util.List;
  * A helper class that handles generating and dismissing context menus for {@link WebContents}.
  */
 public class ContextMenuHelper {
-    private static Callback<ContextMenuCoordinator> sMenuShownCallbackForTesting;
+    private static Callback<ContextMenuCoordinator> sMenuShownCallbackForTests;
 
     private final WebContents mWebContents;
     private long mNativeContextMenuHelper;
@@ -113,8 +114,8 @@ public class ContextMenuHelper {
             mMenuShownTimeMs = SystemClock.uptimeMillis();
             RecordHistogram.recordBooleanHistogram("ContextMenu.Shown", mWebContents != null);
             recordContextMenuShownType(params);
-            if (sMenuShownCallbackForTesting != null) {
-                sMenuShownCallbackForTesting.onResult((ContextMenuCoordinator) mCurrentContextMenu);
+            if (sMenuShownCallbackForTests != null) {
+                sMenuShownCallbackForTests.onResult((ContextMenuCoordinator) mCurrentContextMenu);
             }
         };
         mOnMenuClosed = () -> {
@@ -164,8 +165,8 @@ public class ContextMenuHelper {
         if (items.isEmpty()) {
             PostTask.postTask(TaskTraits.UI_DEFAULT, mOnMenuClosed);
             // Only call if no items are populated. Otherwise call in mOnMenuShown callback.
-            if (sMenuShownCallbackForTesting != null) {
-                sMenuShownCallbackForTesting.onResult(null);
+            if (sMenuShownCallbackForTests != null) {
+                sMenuShownCallbackForTests.onResult(null);
             }
             return;
         }
@@ -191,16 +192,18 @@ public class ContextMenuHelper {
         RecordHistogram.recordTimesHistogram(histogramName, timeToTakeActionMs);
     }
 
+    @VisibleForTesting
     public static void setMenuShownCallbackForTests(Callback<ContextMenuCoordinator> callback) {
-        sMenuShownCallbackForTesting = callback;
-        ResettersForTesting.register(() -> sMenuShownCallbackForTesting = null);
+        sMenuShownCallbackForTests = callback;
     }
 
+    @VisibleForTesting
     public static ContextMenuHelper createForTesting(
             long nativeContextMenuHelper, WebContents webContents) {
         return create(nativeContextMenuHelper, webContents);
     }
 
+    @VisibleForTesting
     void showContextMenuForTesting(ContextMenuPopulatorFactory populatorFactory,
             final ContextMenuParams params, RenderFrameHost renderFrameHost, View view,
             float topContentOffsetPx) {

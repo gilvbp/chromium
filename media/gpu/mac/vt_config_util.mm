@@ -11,6 +11,10 @@
 #include "media/base/mac/color_space_util_mac.h"
 #include "ui/gfx/hdr_metadata_mac.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace {
 
 // https://developer.apple.com/documentation/avfoundation/avassettrack/1386694-formatdescriptions?language=objc
@@ -70,7 +74,11 @@ CFStringRef GetTransferFunction(
     media::VideoColorSpace::TransferID transfer_id) {
   switch (transfer_id) {
     case media::VideoColorSpace::TransferID::LINEAR:
-      return kCMFormatDescriptionTransferFunction_Linear;
+      if (@available(macos 10.14, *))
+        return kCMFormatDescriptionTransferFunction_Linear;
+      DLOG(WARNING) << "kCMFormatDescriptionTransferFunction_Linear "
+                       "unsupported prior to 10.14";
+      return nil;
 
     case media::VideoColorSpace::TransferID::GAMMA22:
     case media::VideoColorSpace::TransferID::GAMMA28:
@@ -198,7 +206,7 @@ void SetVp9CodecConfigurationBox(NSMutableDictionary<NSString*, id>* extensions,
 
 namespace media {
 
-base::apple::ScopedCFTypeRef<CFDictionaryRef> CreateFormatExtensions(
+base::ScopedCFTypeRef<CFDictionaryRef> CreateFormatExtensions(
     CMVideoCodecType codec_type,
     VideoCodecProfile profile,
     const VideoColorSpace& color_space,
@@ -244,7 +252,7 @@ base::apple::ScopedCFTypeRef<CFDictionaryRef> CreateFormatExtensions(
   if (profile >= VP9PROFILE_MIN && profile <= VP9PROFILE_MAX)
     SetVp9CodecConfigurationBox(extensions, profile, color_space);
 
-  return base::apple::ScopedCFTypeRef<CFDictionaryRef>(
+  return base::ScopedCFTypeRef<CFDictionaryRef>(
       base::apple::NSToCFOwnershipCast(extensions));
 }
 

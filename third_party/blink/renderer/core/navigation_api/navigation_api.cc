@@ -21,7 +21,7 @@
 #include "third_party/blink/renderer/bindings/core/v8/v8_navigation_result.h"
 #include "third_party/blink/renderer/bindings/core/v8/v8_navigation_transition.h"
 #include "third_party/blink/renderer/bindings/core/v8/v8_navigation_update_current_entry_options.h"
-#include "third_party/blink/renderer/core/dom/abort_controller.h"
+#include "third_party/blink/renderer/core/dom/abort_signal.h"
 #include "third_party/blink/renderer/core/dom/dom_exception.h"
 #include "third_party/blink/renderer/core/event_target_names.h"
 #include "third_party/blink/renderer/core/events/error_event.h"
@@ -32,7 +32,7 @@
 #include "third_party/blink/renderer/core/loader/document_loader.h"
 #include "third_party/blink/renderer/core/loader/frame_load_request.h"
 #include "third_party/blink/renderer/core/navigation_api/navigate_event.h"
-#include "third_party/blink/renderer/core/navigation_api/navigation_api_method_tracker.h"
+#include "third_party/blink/renderer/core/navigation_api/navigation_api_navigation.h"
 #include "third_party/blink/renderer/core/navigation_api/navigation_current_entry_change_event.h"
 #include "third_party/blink/renderer/core/navigation_api/navigation_destination.h"
 #include "third_party/blink/renderer/core/navigation_api/navigation_history_entry.h"
@@ -42,6 +42,7 @@
 #include "third_party/blink/renderer/platform/bindings/exception_state.h"
 #include "third_party/blink/renderer/platform/bindings/to_v8.h"
 #include "third_party/blink/renderer/platform/scheduler/public/thread_scheduler.h"
+#include "third_party/blink/renderer/platform/wtf/uuid.h"
 
 namespace blink {
 
@@ -211,8 +212,8 @@ void NavigationApi::UpdateForNavigation(HistoryItem& item,
   // NotifyAboutTheCommittedToEntry() leads to the committed promise rejecting,
   // even though we have already committed and the promise should definitely
   // fulfill.
-  if (ongoing_api_method_tracker_) {
-    ongoing_api_method_tracker_->NotifyAboutTheCommittedToEntry(
+  if (ongoing_navigation_) {
+    ongoing_navigation_->NotifyAboutTheCommittedToEntry(
         entries_[current_entry_index_], type);
   }
 
@@ -495,31 +496,30 @@ NavigationResult* NavigationApi::PerformNonTraverseNavigation(
           PerformSharedNavigationChecks(method_name_for_error_message))
     return EarlyErrorResult(script_state, maybe_ex);
 
-  NavigationApiMethodTracker* api_method_tracker =
-      MakeGarbageCollected<NavigationApiMethodTracker>(
+  NavigationApiNavigation* navigation =
+      MakeGarbageCollected<NavigationApiNavigation>(
           script_state, options, String(), std::move(serialized_state));
   if (HasEntriesAndEventsDisabled()) {
     // If `HasEntriesAndEventsDisabled()` is true, we still allow the
     // navigation, but the navigate event won't fire and we won't do anything
     // with the promises, so we need to detach the promise resolvers.
-    api_method_tracker->CleanupForWillNeverSettle();
+    navigation->CleanupForWillNeverSettle();
   } else {
-    upcoming_non_traverse_api_method_tracker_ = api_method_tracker;
+    upcoming_non_traversal_navigation_ = navigation;
   }
 
   window_->GetFrame()->MaybeLogAdClickNavigation();
   window_->GetFrame()->Navigate(request, frame_load_type);
 
-  // DispatchNavigateEvent() will clear
-  // upcoming_non_traverse_api_method_tracker_ if we get that far. If the
-  // navigation is blocked before DispatchNavigateEvent() is called, reject the
-  // promise and cleanup here.
-  if (upcoming_non_traverse_api_method_tracker_ == api_method_tracker) {
-    upcoming_non_traverse_api_method_tracker_ = nullptr;
+  // DispatchNavigateEvent() will clear upcoming_non_traversal_navigation_ if we
+  // get that far. If the navigation is blocked before DispatchNavigateEvent()
+  // is called, reject the promise and cleanup here.
+  if (upcoming_non_traversal_navigation_ == navigation) {
+    upcoming_non_traversal_navigation_ = nullptr;
     return EarlyErrorResult(script_state, DOMExceptionCode::kAbortError,
                             "Navigation was aborted");
   }
-  return api_method_tracker->GetNavigationResult();
+  return navigation->GetNavigationResult();
 }
 
 NavigationResult* NavigationApi::traverseTo(ScriptState* script_state,
@@ -538,17 +538,13 @@ NavigationResult* NavigationApi::traverseTo(ScriptState* script_state,
     return EarlySuccessResult(script_state, currentEntry());
   }
 
-  auto previous_api_method_tracker =
-      upcoming_traverse_api_method_trackers_.find(key);
-  if (previous_api_method_tracker !=
-      upcoming_traverse_api_method_trackers_.end()) {
-    return previous_api_method_tracker->value->GetNavigationResult();
-  }
+  auto previous_navigation = upcoming_traversals_.find(key);
+  if (previous_navigation != upcoming_traversals_.end())
+    return previous_navigation->value->GetNavigationResult();
 
-  NavigationApiMethodTracker* api_method_tracker =
-      MakeGarbageCollected<NavigationApiMethodTracker>(script_state, options,
-                                                       key);
-  upcoming_traverse_api_method_trackers_.insert(key, api_method_tracker);
+  NavigationApiNavigation* ongoing_navigation =
+      MakeGarbageCollected<NavigationApiNavigation>(script_state, options, key);
+  upcoming_traversals_.insert(key, ongoing_navigation);
   if (window_->GetFrame()->IsMainFrame()) {
     SoftNavigationHeuristics* heuristics =
         SoftNavigationHeuristics::From(*window_);
@@ -562,7 +558,7 @@ NavigationResult* NavigationApi::traverseTo(ScriptState* script_state,
   window_->GetFrame()->GetLocalFrameHostRemote().NavigateToNavigationApiKey(
       key, LocalFrame::HasTransientUserActivation(window_->GetFrame()),
       task_id);
-  return api_method_tracker->GetNavigationResult();
+  return ongoing_navigation->GetNavigationResult();
 }
 
 bool NavigationApi::canGoBack() const {
@@ -622,17 +618,16 @@ scoped_refptr<SerializedScriptValue> NavigationApi::SerializeState(
 }
 
 void NavigationApi::PromoteUpcomingNavigationToOngoing(const String& key) {
-  CHECK(!ongoing_api_method_tracker_);
+  CHECK(!ongoing_navigation_);
   if (!key.IsNull()) {
-    CHECK(!upcoming_non_traverse_api_method_tracker_);
-    auto iter = upcoming_traverse_api_method_trackers_.find(key);
-    if (iter != upcoming_traverse_api_method_trackers_.end()) {
-      ongoing_api_method_tracker_ = iter->value;
-      upcoming_traverse_api_method_trackers_.erase(iter);
+    CHECK(!upcoming_non_traversal_navigation_);
+    auto iter = upcoming_traversals_.find(key);
+    if (iter != upcoming_traversals_.end()) {
+      ongoing_navigation_ = iter->value;
+      upcoming_traversals_.erase(iter);
     }
   } else {
-    ongoing_api_method_tracker_ =
-        upcoming_non_traverse_api_method_tracker_.Release();
+    ongoing_navigation_ = upcoming_non_traversal_navigation_.Release();
   }
 }
 
@@ -666,14 +661,13 @@ NavigationApi::DispatchResult NavigationApi::DispatchNavigateEvent(
     // * back()/forward()/traverseTo() immediately fail when
     //   `HasEntriesAndEventsDisabled()` is false, because current_entry_index_
     //   will be permanently -1.
-    // * navigate()/reload() will not set
-    //   `upcoming_non_traverse_api_method_tracker_` when
-    //   `HasEntriesAndEventsDisabled()` is false, so there's nothing to promote
-    //   to `ongoing_navigation_`.
+    // * navigate()/reload() will not set `upcoming_non_traversal_navigation_`
+    //   when `HasEntriesAndEventsDisabled()` is false, so there's nothing to
+    //   promote to `ongoing_navigation_`.
     // * non-NavigationApi navigations never create an upcoming navigation.
-    CHECK(!ongoing_api_method_tracker_);
-    CHECK(!upcoming_non_traverse_api_method_tracker_);
-    CHECK(upcoming_traverse_api_method_trackers_.empty());
+    CHECK(!ongoing_navigation_);
+    CHECK(!upcoming_non_traversal_navigation_);
+    CHECK(upcoming_traversals_.empty());
     return DispatchResult::kContinue;
   }
 
@@ -705,8 +699,8 @@ NavigationApi::DispatchResult NavigationApi::DispatchNavigateEvent(
   SerializedScriptValue* destination_state = nullptr;
   if (params->destination_item) {
     destination_state = params->destination_item->GetNavigationApiState();
-  } else if (ongoing_api_method_tracker_) {
-    destination_state = ongoing_api_method_tracker_->GetSerializedState();
+  } else if (ongoing_navigation_) {
+    destination_state = ongoing_navigation_->GetSerializedState();
   } else if (navigation_type == "reload") {
     HistoryItem* current_item = window_->document()->Loader()->GetHistoryItem();
     destination_state = current_item->GetNavigationApiState();
@@ -747,11 +741,9 @@ NavigationApi::DispatchResult NavigationApi::DispatchNavigateEvent(
   if (params->form && params->form->Method() == FormSubmission::kPostMethod) {
     init->setFormData(FormData::Create(params->form, ASSERT_NO_EXCEPTION));
   }
-  if (ongoing_api_method_tracker_) {
-    init->setInfo(ongoing_api_method_tracker_->GetInfo());
-  }
-  auto* controller = AbortController::Create(script_state);
-  init->setSignal(controller->signal());
+  if (ongoing_navigation_)
+    init->setInfo(ongoing_navigation_->GetInfo());
+  init->setSignal(MakeGarbageCollected<AbortSignal>(window_));
   init->setDownloadRequest(params->download_filename);
   // This unique_ptr needs to be in the function's scope, to maintain the
   // SoftNavigationEventScope until the event handler runs.
@@ -767,8 +759,8 @@ NavigationApi::DispatchResult NavigationApi::DispatchNavigateEvent(
 
     soft_navigation_heuristics->SameDocumentNavigationStarted(script_state);
   }
-  auto* navigate_event = NavigateEvent::Create(
-      window_, event_type_names::kNavigate, init, controller);
+  auto* navigate_event =
+      NavigateEvent::Create(window_, event_type_names::kNavigate, init);
   navigate_event->SetDispatchParams(params);
 
   CHECK(!ongoing_navigate_event_);
@@ -822,27 +814,26 @@ void NavigationApi::InformAboutCanceledNavigation(
   }
 
   // If this function is being called as part of frame detach, also cleanup any
-  // upcoming_traverse_api_method_trackers_.
-  if (!upcoming_traverse_api_method_trackers_.empty() && window_->GetFrame() &&
+  // upcoming_traversals_.
+  if (!upcoming_traversals_.empty() && window_->GetFrame() &&
       !window_->GetFrame()->IsAttached()) {
-    HeapVector<Member<NavigationApiMethodTracker>> traversals;
-    CopyValuesToVector(upcoming_traverse_api_method_trackers_, traversals);
+    HeapVector<Member<NavigationApiNavigation>> traversals;
+    CopyValuesToVector(upcoming_traversals_, traversals);
     for (auto& traversal : traversals) {
       TraverseCancelled(
           traversal->GetKey(),
           mojom::blink::TraverseCancelledReason::kAbortedBeforeCommit);
     }
-    CHECK(upcoming_traverse_api_method_trackers_.empty());
+    CHECK(upcoming_traversals_.empty());
   }
 }
 
 void NavigationApi::TraverseCancelled(
     const String& key,
     mojom::blink::TraverseCancelledReason reason) {
-  auto traversal = upcoming_traverse_api_method_trackers_.find(key);
-  if (traversal == upcoming_traverse_api_method_trackers_.end()) {
+  auto traversal = upcoming_traversals_.find(key);
+  if (traversal == upcoming_traversals_.end())
     return;
-  }
 
   auto* script_state = ToScriptStateForMainWorld(window_->GetFrame());
   ScriptState::Scope scope(script_state);
@@ -865,7 +856,7 @@ void NavigationApi::TraverseCancelled(
   CHECK(exception);
   traversal->value->RejectFinishedPromise(
       ScriptValue::From(script_state, exception));
-  upcoming_traverse_api_method_trackers_.erase(traversal);
+  upcoming_traversals_.erase(traversal);
 }
 
 bool NavigationApi::HasNonDroppedOngoingNavigation() const {
@@ -886,9 +877,9 @@ void NavigationApi::DidFailOngoingNavigation(ScriptValue value) {
   event->SetType(event_type_names::kNavigateerror);
   DispatchEvent(*event);
 
-  if (ongoing_api_method_tracker_) {
-    ongoing_api_method_tracker_->RejectFinishedPromise(value);
-    ongoing_api_method_tracker_ = nullptr;
+  if (ongoing_navigation_) {
+    ongoing_navigation_->RejectFinishedPromise(value);
+    ongoing_navigation_ = nullptr;
   }
 
   if (transition_) {
@@ -900,9 +891,9 @@ void NavigationApi::DidFailOngoingNavigation(ScriptValue value) {
 void NavigationApi::DidFinishOngoingNavigation() {
   DispatchEvent(*Event::Create(event_type_names::kNavigatesuccess));
 
-  if (ongoing_api_method_tracker_) {
-    ongoing_api_method_tracker_->ResolveFinishedPromise();
-    ongoing_api_method_tracker_ = nullptr;
+  if (ongoing_navigation_) {
+    ongoing_navigation_->ResolveFinishedPromise();
+    ongoing_navigation_ = nullptr;
   }
 
   if (transition_) {
@@ -936,7 +927,8 @@ const AtomicString& NavigationApi::InterfaceName() const {
 void NavigationApi::AddedEventListener(
     const AtomicString& event_type,
     RegisteredEventListener& registered_listener) {
-  EventTarget::AddedEventListener(event_type, registered_listener);
+  EventTargetWithInlineData::AddedEventListener(event_type,
+                                                registered_listener);
   LocalFrame* frame = window_->GetFrame();
   if (event_type != event_type_names::kNavigate || !frame) {
     return;
@@ -950,7 +942,8 @@ void NavigationApi::AddedEventListener(
 void NavigationApi::RemovedEventListener(
     const AtomicString& event_type,
     const RegisteredEventListener& registered_listener) {
-  EventTarget::RemovedEventListener(event_type, registered_listener);
+  EventTargetWithInlineData::RemovedEventListener(event_type,
+                                                  registered_listener);
   LocalFrame* frame = window_->GetFrame();
   if (event_type != event_type_names::kNavigate || !frame) {
     return;
@@ -962,13 +955,13 @@ void NavigationApi::RemovedEventListener(
 }
 
 void NavigationApi::Trace(Visitor* visitor) const {
-  EventTarget::Trace(visitor);
+  EventTargetWithInlineData::Trace(visitor);
   visitor->Trace(window_);
   visitor->Trace(entries_);
   visitor->Trace(transition_);
-  visitor->Trace(ongoing_api_method_tracker_);
-  visitor->Trace(upcoming_traverse_api_method_trackers_);
-  visitor->Trace(upcoming_non_traverse_api_method_tracker_);
+  visitor->Trace(ongoing_navigation_);
+  visitor->Trace(upcoming_traversals_);
+  visitor->Trace(upcoming_non_traversal_navigation_);
   visitor->Trace(ongoing_navigate_event_);
 }
 

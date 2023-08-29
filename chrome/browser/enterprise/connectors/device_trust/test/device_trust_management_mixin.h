@@ -5,7 +5,6 @@
 #ifndef CHROME_BROWSER_ENTERPRISE_CONNECTORS_DEVICE_TRUST_TEST_DEVICE_TRUST_MANAGEMENT_MIXIN_H_
 #define CHROME_BROWSER_ENTERPRISE_CONNECTORS_DEVICE_TRUST_TEST_DEVICE_TRUST_MANAGEMENT_MIXIN_H_
 
-#include "chrome/browser/enterprise/connectors/device_trust/test/test_constants.h"
 #include "chrome/browser/enterprise/connectors/test/management_context_mixin.h"
 #include "chrome/test/base/in_process_browser_test.h"
 #include "chrome/test/base/mixin_based_in_process_browser_test.h"
@@ -44,9 +43,9 @@ class DeviceTrustManagementMixin : public InProcessBrowserTestMixin {
   void ManageCloudUser();
 
   // Will enable the cloud-machine inline flow policy by setting the policy
-  // to the `url` which by default is [kAllowedHost].
+  // value to [kAllowedHost].
   // On ChromeOS, this effectively only enables the login-screen policy.
-  void EnableMachineInlinePolicy(const std::string& url = kAllowedHost);
+  void EnableMachineInlinePolicy();
 
   // Will disable the cloud-machine inline flow policy by setting the policy
   // value to an empty list.
@@ -54,8 +53,8 @@ class DeviceTrustManagementMixin : public InProcessBrowserTestMixin {
   void DisableMachineInlinePolicy();
 
   // Will enable the cloud-user inline flow policy by setting the policy value
-  // to the `url` which by default is [kAllowedHost].
-  void EnableUserInlinePolicy(const std::string& url = kAllowedHost);
+  // to [kAllowedHost].
+  void EnableUserInlinePolicy();
 
   // Will disable the cloud-user inline flow policy by setting the policy value
   // to an empty list.

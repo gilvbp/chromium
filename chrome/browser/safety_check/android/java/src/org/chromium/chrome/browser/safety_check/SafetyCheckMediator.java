@@ -627,7 +627,6 @@ class SafetyCheckMediator
             return;
         }
 
-        mPasswordStoreBridge.addObserver(this, true);
         WeakReference<SafetyCheckMediator> weakRef = new WeakReference(this);
         PasswordManagerHelper.runPasswordCheckupInBackground(PasswordCheckReferrer.SAFETY_CHECK,
                 getSyncingAccount(),

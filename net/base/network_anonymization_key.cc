@@ -2,7 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 #include "net/base/network_anonymization_key.h"
-
 #include "base/feature_list.h"
 #include "base/unguessable_token.h"
 #include "base/values.h"
@@ -53,13 +52,18 @@ NetworkAnonymizationKey NetworkAnonymizationKey::CreateFromNetworkIsolationKey(
     return NetworkAnonymizationKey();
   }
 
-  return CreateFromFrameSite(
-      network_isolation_key.GetTopFrameSite().value(),
-      network_isolation_key
-          .GetFrameSiteForNetworkAnonymizationKey(
-              NetworkIsolationKey::NetworkAnonymizationKeyPassKey())
-          .value(),
-      network_isolation_key.GetNonce());
+  switch (NetworkIsolationKey::GetMode()) {
+    case NetworkIsolationKey::Mode::kFrameSiteEnabled:
+      return CreateFromFrameSite(
+          network_isolation_key.GetTopFrameSite().value(),
+          network_isolation_key.GetFrameSite().value(),
+          network_isolation_key.GetNonce());
+    case NetworkIsolationKey::Mode::kCrossSiteFlagEnabled:
+      return NetworkAnonymizationKey(
+          network_isolation_key.GetTopFrameSite().value(),
+          network_isolation_key.GetIsCrossSite().value(),
+          network_isolation_key.GetNonce());
+  }
 }
 
 NetworkAnonymizationKey::NetworkAnonymizationKey()
@@ -161,8 +165,7 @@ bool NetworkAnonymizationKey::FromValue(
 
   // Check top_level_site is valid for any key scheme
   absl::optional<SchemefulSite> top_frame_site =
-      SchemefulSite::DeserializeWithNonce(
-          base::PassKey<NetworkAnonymizationKey>(), list[0].GetString());
+      SchemefulSite::DeserializeWithNonce(list[0].GetString());
   if (!top_frame_site) {
     return false;
   }
@@ -181,8 +184,7 @@ std::string NetworkAnonymizationKey::GetSiteDebugString(
 
 absl::optional<std::string> NetworkAnonymizationKey::SerializeSiteWithNonce(
     const SchemefulSite& site) {
-  return *(const_cast<SchemefulSite&>(site).SerializeWithNonce(
-      base::PassKey<NetworkAnonymizationKey>()));
+  return *(const_cast<SchemefulSite&>(site).SerializeWithNonce());
 }
 
 // static

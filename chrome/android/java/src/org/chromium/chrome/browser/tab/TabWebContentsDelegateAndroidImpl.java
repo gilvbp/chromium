@@ -9,6 +9,8 @@ import android.graphics.RectF;
 import android.os.Handler;
 import android.view.KeyEvent;
 
+import androidx.annotation.VisibleForTesting;
+
 import org.chromium.base.BuildInfo;
 import org.chromium.base.ContextUtils;
 import org.chromium.base.ObserverList.RewindableIterator;
@@ -393,6 +395,7 @@ final class TabWebContentsDelegateAndroidImpl extends TabWebContentsDelegateAndr
         return mDelegate.getVirtualKeyboardHeight();
     }
 
+    @VisibleForTesting
     void showFramebustBlockInfobarForTesting(String url) {
         TabWebContentsDelegateAndroidImplJni.get().showFramebustBlockInfoBar(
                 mTab.getWebContents(), url);

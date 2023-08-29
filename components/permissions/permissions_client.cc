@@ -159,6 +159,7 @@ infobars::InfoBar* PermissionsClient::MaybeCreateInfoBar(
   return nullptr;
 }
 
+#if BUILDFLAG(IS_ANDROID)
 std::unique_ptr<PermissionsClient::PermissionMessageDelegate>
 PermissionsClient::MaybeCreateMessageUI(
     content::WebContents* web_contents,
@@ -166,6 +167,7 @@ PermissionsClient::MaybeCreateMessageUI(
     base::WeakPtr<PermissionPromptAndroid> prompt) {
   return nullptr;
 }
+#endif
 
 void PermissionsClient::RepromptForAndroidPermissions(
     content::WebContents* web_contents,

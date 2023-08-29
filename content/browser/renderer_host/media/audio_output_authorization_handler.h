@@ -13,7 +13,6 @@
 #include "base/memory/raw_ptr.h"
 #include "base/memory/weak_ptr.h"
 #include "base/time/time.h"
-#include "content/browser/media/media_devices_util.h"
 #include "content/browser/renderer_host/media/media_stream_manager.h"
 #include "content/common/content_export.h"
 #include "media/audio/audio_device_description.h"
@@ -92,13 +91,15 @@ class CONTENT_EXPORT AudioOutputAuthorizationHandler {
   void AccessChecked(std::unique_ptr<TraceScope> trace_scope,
                      AuthorizationCompletedCallback cb,
                      const std::string& device_id,
-                     MediaDeviceSaltAndOrigin salt_and_origin,
+                     std::string salt,
+                     url::Origin security_origin,
                      bool has_access) const;
 
   void TranslateDeviceID(std::unique_ptr<TraceScope> trace_scope,
                          AuthorizationCompletedCallback cb,
                          const std::string& device_id,
-                         const MediaDeviceSaltAndOrigin& salt_and_origin,
+                         const std::string& salt,
+                         const url::Origin& security_origin,
                          const MediaDeviceEnumeration& enumeration) const;
 
   void GetDeviceParameters(std::unique_ptr<TraceScope> trace_scope,

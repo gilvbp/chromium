@@ -8,6 +8,10 @@
 #include "components/autofill/core/browser/ui/autofill_popup_delegate.h"
 #include "components/autofill/core/browser/ui/popup_item_ids.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 using base::WeakPtr;
 
 namespace autofill {
@@ -55,14 +59,15 @@ AutofillPopupControllerImplMac::~AutofillPopupControllerImplMac() = default;
 
 void AutofillPopupControllerImplMac::Show(
     std::vector<autofill::Suggestion> suggestions,
-    AutofillSuggestionTriggerSource trigger_source) {
+    AutoselectFirstSuggestion autoselect_first_suggestion) {
   if (!suggestions.empty() && is_credit_card_popup_) {
     touch_bar_controller_ = [WebTextfieldTouchBarController
         controllerForWindow:[container_view().GetNativeNSView() window]];
     [touch_bar_controller_ showCreditCardAutofillWithController:this];
   }
 
-  AutofillPopupControllerImpl::Show(std::move(suggestions), trigger_source);
+  AutofillPopupControllerImpl::Show(std::move(suggestions),
+                                    autoselect_first_suggestion);
   // No code below this line!
   // |Show| may hide the popup and destroy |this|, so |Show| should be the last
   // line.

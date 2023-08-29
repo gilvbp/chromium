@@ -8,7 +8,6 @@
 #include <vector>
 
 #include "ash/ash_export.h"
-#include "base/observer_list_types.h"
 #include "third_party/abseil-cpp/absl/types/optional.h"
 
 namespace ash {
@@ -22,13 +21,13 @@ enum class SensorLocation {
 };
 
 // Sensor types.
-enum class SensorType {
-  kLidAngle = 0,
-  kAccelerometerBase = 1,
-  kAccelerometerLid = 2,
-  kGyroscopeBase = 3,
-  kGyroscopeLid = 4,
-  kSensorTypeCount = 5,
+enum SensorType {
+  LID_ANGLE,
+  ACCELEROMETER_BASE,
+  ACCELEROMETER_LID,
+  GYROSCOPE_BASE,
+  GYROSCOPE_LID,
+  SENSOR_SOURCE_COUNT,
 };
 
 // Stores one sensor's reading info.
@@ -55,12 +54,10 @@ class ASH_EXPORT SensorUpdate {
   ~SensorUpdate();
 
   // Returns true if `source` has a valid value in this update.
-  bool has(SensorType source) const {
-    return data_[static_cast<int>(source)].has_value();
-  }
+  bool has(SensorType source) const { return data_[source].has_value(); }
   // Returns the last known value for |source|.
   const absl::optional<SensorReading>& get(SensorType source) const {
-    return data_[static_cast<int>(source)];
+    return data_[source];
   }
 
   // Returns the last known value for `source` as a vector.
@@ -73,16 +70,18 @@ class ASH_EXPORT SensorUpdate {
   void Reset();
 
  protected:
-  absl::optional<SensorReading>
-      data_[static_cast<int>(SensorType::kSensorTypeCount)];
+  absl::optional<SensorReading> data_[SensorType::SENSOR_SOURCE_COUNT];
 };
 
 // Class for all potential observer.
-class ASH_EXPORT Observer : public base::CheckedObserver {
+class ASH_EXPORT Observer {
  public:
   // SensorProvider will gather updates from AccelGyroSamplesObserver. Then
   // SensorProvider will call OnSensorUpdated to notify Observer.
   virtual void OnSensorUpdated(const SensorUpdate& update) = 0;
+
+ protected:
+  virtual ~Observer() = default;
 };
 
 }  // namespace ash

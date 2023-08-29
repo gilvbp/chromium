@@ -13,7 +13,7 @@
 namespace arc {
 
 void BrowserUrlOpenerImpl::OpenUrl(GURL url) {
-  if (crosapi::browser_util::IsLacrosEnabled() &&
+  if (crosapi::browser_util::IsLacrosPrimaryBrowser() &&
       ChromeWebUIControllerFactory::GetInstance()->CanHandleUrl(url)) {
     crosapi::UrlHandlerAsh().OpenUrl(url);
   } else {

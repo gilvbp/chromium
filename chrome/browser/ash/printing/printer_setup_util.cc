@@ -195,6 +195,7 @@ void OnPrinterInstalled(
     std::move(cb).Run(absl::nullopt);
     return;
   }
+  printers_manager->PrinterInstalled(printer, /*is_automatic=*/true);
   // Fetch settings off of the UI thread and invoke callback.
   FetchCapabilities(printer.id(), std::move(cb));
 }
@@ -219,9 +220,8 @@ void SetUpPrinter(CupsPrintersManager* printers_manager,
   }
 
   printers_manager->SetUpPrinter(
-      printer, /*is_automatic_installation=*/true,
-      base::BindOnce(OnPrinterInstalled, printers_manager, printer,
-                     std::move(cb)));
+      printer, base::BindOnce(OnPrinterInstalled, printers_manager, printer,
+                              std::move(cb)));
 }
 
 }  // namespace printing

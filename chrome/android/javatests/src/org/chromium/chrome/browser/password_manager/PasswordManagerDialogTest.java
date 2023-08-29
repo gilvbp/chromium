@@ -21,7 +21,6 @@ import static org.chromium.ui.test.util.ViewUtils.onViewWaiting;
 import androidx.test.filters.SmallTest;
 
 import org.junit.Before;
-import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -31,7 +30,6 @@ import org.mockito.junit.MockitoRule;
 import org.mockito.quality.Strictness;
 
 import org.chromium.base.Callback;
-import org.chromium.base.test.util.Batch;
 import org.chromium.base.test.util.CommandLineFlags;
 import org.chromium.base.test.util.CriteriaHelper;
 import org.chromium.chrome.browser.app.ChromeActivity;
@@ -39,7 +37,6 @@ import org.chromium.chrome.browser.flags.ChromeSwitches;
 import org.chromium.chrome.test.ChromeJUnit4ClassRunner;
 import org.chromium.chrome.test.ChromeTabbedActivityTestRule;
 import org.chromium.chrome.test.R;
-import org.chromium.chrome.test.batch.BlankCTATabInitialStateRule;
 import org.chromium.content_public.browser.test.util.TestThreadUtils;
 import org.chromium.ui.modaldialog.DialogDismissalCause;
 import org.chromium.ui.modaldialog.ModalDialogManager;
@@ -47,7 +44,6 @@ import org.chromium.ui.modelutil.PropertyModel;
 
 /** Test for the password manager illustration modal dialog. */
 @RunWith(ChromeJUnit4ClassRunner.class)
-@Batch(Batch.PER_CLASS)
 @CommandLineFlags.Add({ChromeSwitches.DISABLE_FIRST_RUN_EXPERIENCE})
 public class PasswordManagerDialogTest {
     private PasswordManagerDialogCoordinator mCoordinator;
@@ -61,21 +57,17 @@ public class PasswordManagerDialogTest {
     @Mock
     private Callback<Integer> mOnClick;
 
-    @ClassRule
-    public static ChromeTabbedActivityTestRule sActivityTestRule =
-            new ChromeTabbedActivityTestRule();
-
     @Rule
-    public BlankCTATabInitialStateRule mBlankCTATabInitialStateRule =
-            new BlankCTATabInitialStateRule(sActivityTestRule, false);
+    public ChromeTabbedActivityTestRule mActivityTestRule = new ChromeTabbedActivityTestRule();
 
     @Rule
     public MockitoRule mMockitoRule = MockitoJUnit.rule().strictness(Strictness.STRICT_STUBS);
 
     @Before
     public void setUp() throws InterruptedException {
+        mActivityTestRule.startMainActivityOnBlankPage();
         TestThreadUtils.runOnUiThreadBlocking(() -> {
-            ChromeActivity activity = (ChromeActivity) sActivityTestRule.getActivity();
+            ChromeActivity activity = (ChromeActivity) mActivityTestRule.getActivity();
             ModalDialogManager dialogManager = activity.getModalDialogManager();
             mCoordinator = new PasswordManagerDialogCoordinator(dialogManager,
                     activity.findViewById(android.R.id.content),
@@ -137,7 +129,7 @@ public class PasswordManagerDialogTest {
     @SmallTest
     public void testWatchingLayoutChanges() {
         float dipScale =
-                sActivityTestRule.getActivity().getWindowAndroid().getDisplay().getDipScale();
+                mActivityTestRule.getActivity().getWindowAndroid().getDisplay().getDipScale();
 
         // Dimensions resembling landscape orientation.
         final int testHeightDipLandscape = 300; // Height of the android content view.

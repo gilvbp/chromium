@@ -8,8 +8,8 @@
 #import "components/bookmarks/browser/bookmark_model.h"
 #import "components/bookmarks/common/bookmark_pref_names.h"
 #import "components/prefs/pref_service.h"
-#import "ios/chrome/browser/bookmarks/model/account_bookmark_model_factory.h"
-#import "ios/chrome/browser/bookmarks/model/local_or_syncable_bookmark_model_factory.h"
+#import "ios/chrome/browser/bookmarks/account_bookmark_model_factory.h"
+#import "ios/chrome/browser/bookmarks/local_or_syncable_bookmark_model_factory.h"
 #import "ios/chrome/browser/ntp/new_tab_page_util.h"
 #import "ios/chrome/browser/shared/model/browser/browser.h"
 #import "ios/chrome/browser/shared/model/browser/browser_list.h"
@@ -24,6 +24,10 @@
 #import "ios/chrome/browser/ui/tab_switcher/tab_grid/tab_context_menu/tab_item.h"
 #import "ios/chrome/browser/ui/tab_switcher/tab_utils.h"
 #import "ios/web/public/web_state.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 using PinnedState = WebStateSearchCriteria::PinnedState;
 
@@ -154,12 +158,13 @@ using PinnedState = WebStateSearchCriteria::PinnedState;
     }
   }
 
-  // Pinned tabs, inactive tabs and search results menus don't
+  // Thumb strip, pinned tabs, inactive tabs and search results menus don't
   // support tab selection.
   BOOL scenarioDisablesSelection =
       scenario == MenuScenarioHistogram::kTabGridSearchResult ||
       scenario == MenuScenarioHistogram::kPinnedTabsEntry ||
-      scenario == MenuScenarioHistogram::kInactiveTabsEntry;
+      scenario == MenuScenarioHistogram::kInactiveTabsEntry ||
+      scenario == MenuScenarioHistogram::kThumbStrip;
   if (!scenarioDisablesSelection) {
     [menuElements addObject:[actionFactory actionToSelectTabsWithBlock:^{
                     [self.contextMenuDelegate selectTabs];

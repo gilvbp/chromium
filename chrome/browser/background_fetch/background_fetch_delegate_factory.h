@@ -27,7 +27,7 @@ class BackgroundFetchDelegateFactory : public ProfileKeyedServiceFactory {
   BackgroundFetchDelegateFactory();
   ~BackgroundFetchDelegateFactory() override;
 
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* context) const override;
 };
 

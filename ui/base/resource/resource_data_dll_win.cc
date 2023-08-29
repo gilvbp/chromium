@@ -29,17 +29,19 @@ bool ResourceDataDLL::HasResource(uint16_t resource_id) const {
                                               &data_size);
 }
 
-absl::optional<base::StringPiece> ResourceDataDLL::GetStringPiece(
-    uint16_t resource_id) const {
+bool ResourceDataDLL::GetStringPiece(uint16_t resource_id,
+                                     base::StringPiece* data) const {
+  DCHECK(data);
   void* data_ptr;
   size_t data_size;
   if (base::win::GetDataResourceFromModule(module_,
                                            resource_id,
                                            &data_ptr,
                                            &data_size)) {
-    return base::StringPiece(static_cast<const char*>(data_ptr), data_size);
+    *data = base::StringPiece(static_cast<const char*>(data_ptr), data_size);
+    return true;
   }
-  return absl::nullopt;
+  return false;
 }
 
 base::RefCountedStaticMemory* ResourceDataDLL::GetStaticMemory(

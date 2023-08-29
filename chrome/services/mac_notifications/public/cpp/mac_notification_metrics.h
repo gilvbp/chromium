@@ -7,19 +7,19 @@
 
 #include <string>
 
-#include "chrome/services/mac_notifications/public/cpp/notification_style.h"
-
 namespace mac_notifications {
+
+// Returns if the current app bundle has the alert style set to "alert".
+bool IsAppBundleAlertStyle();
 
 // Returns a suffix to be used in UMA histogram names. Needs to be kept in sync
 // with variants of MacOSNotificationStyle in .../notifications/histograms.xml.
-std::string MacNotificationStyleSuffix(NotificationStyle notification_style);
+std::string MacNotificationStyleSuffix(bool is_alert);
 
 // Called when a user performed an action on a notification on macOS.
-// |notification_style| determines if the notification was an alert or a banner.
+// |is_alert| determines if the notification was an alert or a banner.
 // |is_valid| determines if the action data was valid and we passed it along.
-void LogMacNotificationActionReceived(NotificationStyle notification_style,
-                                      bool is_valid);
+void LogMacNotificationActionReceived(bool is_alert, bool is_valid);
 
 }  // namespace mac_notifications
 

@@ -7,6 +7,10 @@
 #import "components/prefs/pref_service.h"
 #import "ios/chrome/browser/shared/model/prefs/pref_names.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 UserApprovedAccountListManager::UserApprovedAccountListManager(
     PrefService* pref_service)
     : pref_service_(pref_service) {

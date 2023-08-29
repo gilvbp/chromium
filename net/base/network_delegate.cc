@@ -118,11 +118,10 @@ bool NetworkDelegate::AnnotateAndMoveUserBlockedCookies(
 
 bool NetworkDelegate::CanSetCookie(const URLRequest& request,
                                    const CanonicalCookie& cookie,
-                                   CookieOptions* options,
-                                   CookieInclusionStatus* inclusion_status) {
+                                   CookieOptions* options) {
   DCHECK_CALLED_ON_VALID_THREAD(thread_checker_);
   DCHECK(!(request.load_flags() & LOAD_DO_NOT_SAVE_COOKIES));
-  return OnCanSetCookie(request, cookie, options, inclusion_status);
+  return OnCanSetCookie(request, cookie, options);
 }
 
 NetworkDelegate::PrivacySetting NetworkDelegate::ForcePrivacyMode(

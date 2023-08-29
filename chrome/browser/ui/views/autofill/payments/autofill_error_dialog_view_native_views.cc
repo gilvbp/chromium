@@ -17,7 +17,6 @@
 #include "ui/views/controls/image_view.h"
 #include "ui/views/layout/box_layout.h"
 #include "ui/views/style/typography.h"
-#include "ui/views/view_class_properties.h"
 
 namespace autofill {
 
@@ -67,11 +66,10 @@ views::View* AutofillErrorDialogViewNativeViews::GetContentsView() {
       views::BoxLayout::Orientation::kHorizontal, gfx::Insets(),
       ChromeLayoutProvider::Get()->GetDistanceMetric(
           DISTANCE_RELATED_CONTROL_HORIZONTAL_SMALL)));
-  layout->set_main_axis_alignment(views::BoxLayout::MainAxisAlignment::kCenter);
   layout->set_cross_axis_alignment(
-      views::BoxLayout::CrossAxisAlignment::kStart);
+      views::BoxLayout::CrossAxisAlignment::kCenter);
 
-  auto* icon = AddChildView(
+  AddChildView(
       std::make_unique<views::ImageView>(ui::ImageModel::FromVectorIcon(
           vector_icons::kErrorIcon, ui::kColorAlertHighSeverity,
           gfx::GetDefaultSizeOfVectorIcon(vector_icons::kErrorIcon))));
@@ -82,17 +80,13 @@ views::View* AutofillErrorDialogViewNativeViews::GetContentsView() {
       views::style::STYLE_SECONDARY));
   label->SetHorizontalAlignment(gfx::ALIGN_LEFT);
   label->SetMultiLine(true);
-
-  // Center-align the error icon vertically with the first line of the label.
-  icon->SetBorder(views::CreateEmptyBorder(gfx::Insets().set_top(
-      (label->GetLineHeight() - icon->GetPreferredSize().height()) / 2)));
-
   return this;
 }
 
 void AutofillErrorDialogViewNativeViews::AddedToWidget() {
-  GetBubbleFrameView()->SetTitleView(CreateTitleView(
-      GetWindowTitle(), TitleWithIconAndSeparatorView::Icon::GOOGLE_PAY));
+  GetBubbleFrameView()->SetTitleView(
+      std::make_unique<TitleWithIconAndSeparatorView>(
+          GetWindowTitle(), TitleWithIconAndSeparatorView::Icon::GOOGLE_PAY));
 }
 
 std::u16string AutofillErrorDialogViewNativeViews::GetWindowTitle() const {

@@ -61,7 +61,6 @@ enum class AttributionReportingIssueType {
   kInvalidRegisterOsTriggerHeader,
   kWebAndOsHeaders,
   kNoWebOrOsSupport,
-  kNavigationRegistrationWithoutTransientUserActivation,
 };
 
 enum class SharedArrayBufferIssueType {
@@ -126,6 +125,10 @@ class CORE_EXPORT AuditsIssue {
                                      Element* element,
                                      const String& request_id,
                                      const String& invalid_parameter);
+
+  static void ReportNavigatorUserAgentAccess(
+      ExecutionContext* execution_context,
+      WTF::String url);
 
   static void ReportSharedArrayBufferIssue(
       ExecutionContext* execution_context,

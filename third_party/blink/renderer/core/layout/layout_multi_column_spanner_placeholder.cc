@@ -110,7 +110,21 @@ void LayoutMultiColumnSpannerPlaceholder::RecalcVisualOverflow() {
       layout_object_in_flow_thread_->VisualOverflowRect());
 }
 
+MinMaxSizes LayoutMultiColumnSpannerPlaceholder::PreferredLogicalWidths()
+    const {
+  NOT_DESTROYED();
+  NOTREACHED_NORETURN();
+}
+
 void LayoutMultiColumnSpannerPlaceholder::UpdateLayout() {
+  NOT_DESTROYED();
+  NOTREACHED_NORETURN();
+}
+
+void LayoutMultiColumnSpannerPlaceholder::ComputeLogicalHeight(
+    LayoutUnit,
+    LayoutUnit logical_top,
+    LogicalExtentComputedValues& computed_values) const {
   NOT_DESTROYED();
   NOTREACHED_NORETURN();
 }
@@ -133,15 +147,15 @@ bool LayoutMultiColumnSpannerPlaceholder::NodeAtPoint(
                                                     accumulated_offset, phase);
 }
 
-LayoutPoint LayoutMultiColumnSpannerPlaceholder::LocationInternal() const {
+LayoutPoint LayoutMultiColumnSpannerPlaceholder::Location() const {
   NOT_DESTROYED();
   if (RuntimeEnabledFeatures::LayoutNGNoCopyBackEnabled()) {
-    return layout_object_in_flow_thread_->LocationInternal();
+    return layout_object_in_flow_thread_->Location();
   }
-  return LayoutBox::LocationInternal();
+  return LayoutBox::Location();
 }
 
-PhysicalSize LayoutMultiColumnSpannerPlaceholder::Size() const {
+LayoutSize LayoutMultiColumnSpannerPlaceholder::Size() const {
   NOT_DESTROYED();
   if (RuntimeEnabledFeatures::LayoutNGNoCopyBackEnabled()) {
     return layout_object_in_flow_thread_->Size();

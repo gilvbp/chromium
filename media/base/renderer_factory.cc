@@ -11,7 +11,7 @@ RendererFactory::RendererFactory() = default;
 RendererFactory::~RendererFactory() = default;
 
 MediaResource::Type RendererFactory::GetRequiredMediaResourceType() {
-  return MediaResource::Type::kStream;
+  return MediaResource::Type::STREAM;
 }
 
 }  // namespace media

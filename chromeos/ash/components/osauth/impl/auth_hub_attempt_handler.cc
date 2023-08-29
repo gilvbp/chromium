@@ -31,17 +31,12 @@ AuthHubConnector* AuthHubAttemptHandler::GetConnector() {
 }
 
 void AuthHubAttemptHandler::SetConsumer(
-    raw_ptr<AuthFactorStatusConsumer> consumer) {
+    base::raw_ptr<AuthFactorStatusConsumer> consumer) {
   status_consumer_ = std::move(consumer);
   status_consumer_->InitializeUi(initial_factors_, this);
 }
 
 bool AuthHubAttemptHandler::HasOngoingAttempt() const {
-  // It is safe to proceed with shutdown if we have
-  // successfully authenticated.
-  if (authenticated_) {
-    return false;
-  }
   return ongoing_attempt_factor_.has_value();
 }
 
@@ -51,7 +46,7 @@ void AuthHubAttemptHandler::PrepareForShutdown(base::OnceClosure callback) {
     shutdown_callbacks_.AddUnsafe(std::move(callback));
     return;
   }
-  if (!ongoing_attempt_factor_.has_value() || authenticated_) {
+  if (!ongoing_attempt_factor_.has_value()) {
     shutting_down_ = true;
     UpdateAllFactorStates();
     std::move(callback).Run();
@@ -173,7 +168,6 @@ void AuthHubAttemptHandler::OnFactorAttemptResult(AshAuthFactor factor,
 
   if (success) {
     status_consumer_->OnFactorAuthSuccess(factor);
-    authenticated_ = true;
     // Keep an `ongoing_attempt_factor_` to prevent
     // factors from being re-enabled.
     owner_->OnAuthenticationSuccess(attempt_, factor);

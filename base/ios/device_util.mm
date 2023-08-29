@@ -15,12 +15,16 @@
 
 #include <memory>
 
-#include "base/apple/scoped_cftyperef.h"
 #include "base/check.h"
+#include "base/mac/scoped_cftyperef.h"
 #include "base/numerics/safe_conversions.h"
 #include "base/strings/string_util.h"
 #include "base/strings/stringprintf.h"
 #include "base/strings/sys_string_conversions.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace {
 
@@ -129,9 +133,9 @@ std::string GetMacAddress(const std::string& interface_name) {
 }
 
 std::string GetRandomId() {
-  base::apple::ScopedCFTypeRef<CFUUIDRef> uuid_object(
+  base::ScopedCFTypeRef<CFUUIDRef> uuid_object(
       CFUUIDCreate(kCFAllocatorDefault));
-  base::apple::ScopedCFTypeRef<CFStringRef> uuid_string(
+  base::ScopedCFTypeRef<CFStringRef> uuid_string(
       CFUUIDCreateString(kCFAllocatorDefault, uuid_object));
   return base::SysCFStringRefToUTF8(uuid_string);
 }
@@ -177,9 +181,9 @@ std::string GetSaltedString(const std::string& in_string,
             hash);
   CFUUIDBytes* uuid_bytes = reinterpret_cast<CFUUIDBytes*>(hash);
 
-  base::apple::ScopedCFTypeRef<CFUUIDRef> uuid_object(
+  base::ScopedCFTypeRef<CFUUIDRef> uuid_object(
       CFUUIDCreateFromUUIDBytes(kCFAllocatorDefault, *uuid_bytes));
-  base::apple::ScopedCFTypeRef<CFStringRef> device_id(
+  base::ScopedCFTypeRef<CFStringRef> device_id(
       CFUUIDCreateString(kCFAllocatorDefault, uuid_object));
   return base::SysCFStringRefToUTF8(device_id);
 }

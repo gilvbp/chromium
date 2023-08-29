@@ -1124,7 +1124,7 @@ void MediaKeySession::Trace(Visitor* visitor) const {
   visitor->Trace(key_statuses_map_);
   visitor->Trace(closed_promise_);
   visitor->Trace(action_timer_);
-  EventTarget::Trace(visitor);
+  EventTargetWithInlineData::Trace(visitor);
   ExecutionContextLifecycleObserver::Trace(visitor);
 }
 

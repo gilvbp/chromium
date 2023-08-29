@@ -5,8 +5,6 @@
 import {TestRunner} from 'test_runner';
 import {SourcesTestRunner} from 'sources_test_runner';
 
-import * as SDK from 'devtools/core/sdk/sdk.js';
-
 (async function() {
   TestRunner.addResult(`Tests event listener breakpoints.\n`);
   await TestRunner.loadLegacyModule('sources'); await TestRunner.loadLegacyModule('panels/browser_debugger');
@@ -43,13 +41,13 @@ import * as SDK from 'devtools/core/sdk/sdk.js';
 
   function suspendAll() {
     TestRunner.addResult('Suspend all targets');
-    SDK.TargetManager.TargetManager.instance().suspendAllTargets();
+    SDK.targetManager.suspendAllTargets();
     TestRunner.deprecatedRunAfterPendingDispatches(resumeAll);
   }
 
   function resumeAll() {
     TestRunner.addResult('Resume all targets');
-    SDK.TargetManager.TargetManager.instance().resumeAllTargets();
+    SDK.targetManager.resumeAllTargets();
     SourcesTestRunner.waitUntilPaused(finish);
     TestRunner.evaluateInPageWithTimeout('addListenerAndClick()');
   }

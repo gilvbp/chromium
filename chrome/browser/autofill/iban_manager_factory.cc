@@ -12,20 +12,20 @@
 namespace autofill {
 
 // static
-IbanManager* IbanManagerFactory::GetForProfile(Profile* profile) {
-  return static_cast<IbanManager*>(
+IBANManager* IBANManagerFactory::GetForProfile(Profile* profile) {
+  return static_cast<IBANManager*>(
       GetInstance()->GetServiceForBrowserContext(profile, true));
 }
 
 // static
-IbanManagerFactory* IbanManagerFactory::GetInstance() {
-  static base::NoDestructor<IbanManagerFactory> instance;
+IBANManagerFactory* IBANManagerFactory::GetInstance() {
+  static base::NoDestructor<IBANManagerFactory> instance;
   return instance.get();
 }
 
-IbanManagerFactory::IbanManagerFactory()
+IBANManagerFactory::IBANManagerFactory()
     : ProfileKeyedServiceFactory(
-          "IbanManager",
+          "IBANManager",
           ProfileSelections::Builder()
               .WithRegular(ProfileSelection::kOwnInstance)
               // TODO(crbug.com/1418376): Check if this service is needed in
@@ -35,11 +35,11 @@ IbanManagerFactory::IbanManagerFactory()
   DependsOn(PersonalDataManagerFactory::GetInstance());
 }
 
-IbanManagerFactory::~IbanManagerFactory() = default;
+IBANManagerFactory::~IBANManagerFactory() = default;
 
-KeyedService* IbanManagerFactory::BuildServiceInstanceFor(
+KeyedService* IBANManagerFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
-  IbanManager* service = new IbanManager(
+  IBANManager* service = new IBANManager(
       PersonalDataManagerFactory::GetForBrowserContext(context));
   return service;
 }

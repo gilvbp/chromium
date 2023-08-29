@@ -4,14 +4,18 @@
 
 #import "ios/chrome/browser/ui/whats_new/whats_new_util.h"
 
-#import "base/apple/foundation_util.h"
 #import "base/ios/ios_util.h"
+#import "base/mac/foundation_util.h"
 #import "ios/chrome/browser/promos_manager/constants.h"
 #import "ios/chrome/browser/promos_manager/features.h"
 #import "ios/chrome/browser/promos_manager/promos_manager.h"
 #import "ios/chrome/browser/shared/model/application_context/application_context.h"
 #import "ios/chrome/browser/shared/public/features/features.h"
 #import "ios/chrome/browser/ui/whats_new/constants.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace {
 
@@ -164,7 +168,7 @@ const char* WhatsNewTypeToString(WhatsNewType type) {
       return "ChromeActions";
     case WhatsNewType::kMiniMaps:
       return "MiniMaps";
-    case WhatsNewType::kError:
+    default:
       return nil;
   };
 }

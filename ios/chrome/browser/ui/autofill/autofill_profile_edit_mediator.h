@@ -8,7 +8,6 @@
 #import <Foundation/Foundation.h>
 
 #import "ios/chrome/browser/ui/autofill/autofill_profile_edit_table_view_controller_delegate.h"
-#import "ios/chrome/browser/ui/settings/autofill/autofill_settings_profile_edit_table_view_controller_delegate.h"
 
 namespace autofill {
 class AutofillProfile;
@@ -21,8 +20,7 @@ class PersonalDataManager;
 
 // The Mediator for viewing and editing the profile.
 @interface AutofillProfileEditMediator
-    : NSObject <AutofillProfileEditTableViewControllerDelegate,
-                AutofillSettingsProfileEditTableViewControllerDelegate>
+    : NSObject <AutofillProfileEditTableViewControllerDelegate>
 
 // Designated initializer. `AutofillProfileEditMediatorDelegate` and
 // `dataManager` should not be nil.

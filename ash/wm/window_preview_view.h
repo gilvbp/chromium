@@ -13,7 +13,6 @@
 #include "ui/aura/client/transient_window_client_observer.h"
 #include "ui/aura/window.h"
 #include "ui/aura/window_observer.h"
-#include "ui/base/metadata/metadata_header_macros.h"
 #include "ui/views/view.h"
 
 namespace ash {
@@ -25,8 +24,6 @@ class ASH_EXPORT WindowPreviewView
       public aura::client::TransientWindowClientObserver,
       public aura::WindowObserver {
  public:
-  METADATA_HEADER(WindowPreviewView);
-
   explicit WindowPreviewView(aura::Window* window);
 
   WindowPreviewView(const WindowPreviewView&) = delete;

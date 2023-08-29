@@ -150,11 +150,11 @@ bool OSExchangeData::GetVirtualFilenames(
   return provider_->GetVirtualFilenames(filenames);
 }
 
-void OSExchangeData::GetVirtualFilesAsTempFiles(
+bool OSExchangeData::GetVirtualFilesAsTempFiles(
     base::OnceCallback<
         void(const std::vector<std::pair<base::FilePath, base::FilePath>>&)>
         callback) const {
-  provider_->GetVirtualFilesAsTempFiles(std::move(callback));
+  return provider_->GetVirtualFilesAsTempFiles(std::move(callback));
 }
 #endif
 

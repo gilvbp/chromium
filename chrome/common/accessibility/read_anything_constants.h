@@ -13,7 +13,7 @@
 // Various constants used throughout the Read Anything feature.
 namespace string_constants {
 
-extern const char kReadAnythingPlaceholderFontName[];
+extern const char kReadAnythingDefaultFontName[];
 extern const char kLetterSpacingHistogramName[];
 extern const char kLineSpacingHistogramName[];
 extern const char kColorHistogramName[];
@@ -58,7 +58,6 @@ const double kReadAnythingFontScaleIncrement = 0.25;
 // Enum for logging when a text style setting is changed.
 // These values are persisted to logs. Entries should not be renumbered and
 // numeric values should never be reused.
-// TODO(crbug.com/1465029): Remove this enum once the views toolbar is removed.
 enum class ReadAnythingSettingsChange {
   kFontChange = 0,
   kFontSizeChange = 1,

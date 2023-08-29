@@ -142,7 +142,7 @@ std::string FeedUserSubsegmentToString(FeedUserSubsegment feed_group) {
   }
 }
 
-std::unique_ptr<DefaultModelProvider> GetFeedUserSegmentDefautlModel() {
+std::unique_ptr<ModelProvider> GetFeedUserSegmentDefautlModel() {
   if (!base::GetFieldTrialParamByFeatureAsBool(
           features::kSegmentationPlatformFeedSegmentFeature,
           kDefaultModelEnabledParam, true)) {
@@ -165,7 +165,6 @@ std::unique_ptr<Config> FeedUserSegment::GetConfig() {
   config->segmentation_uma_name = kFeedUserSegmentUmaName;
   config->AddSegmentId(SegmentId::OPTIMIZATION_TARGET_SEGMENTATION_FEED_USER,
                        GetFeedUserSegmentDefautlModel());
-  config->auto_execute_and_cache = true;
   config->segment_selection_ttl =
       base::Days(base::GetFieldTrialParamByFeatureAsInt(
           features::kSegmentationPlatformFeedSegmentFeature,
@@ -180,7 +179,7 @@ std::unique_ptr<Config> FeedUserSegment::GetConfig() {
   return config;
 }
 
-FeedUserSegment::FeedUserSegment() : DefaultModelProvider(kFeedUserSegmentId) {}
+FeedUserSegment::FeedUserSegment() : ModelProvider(kFeedUserSegmentId) {}
 
 absl::optional<std::string> FeedUserSegment::GetSubsegmentName(
     int subsegment_rank) {
@@ -191,8 +190,8 @@ absl::optional<std::string> FeedUserSegment::GetSubsegmentName(
   return FeedUserSubsegmentToString(subgroup);
 }
 
-std::unique_ptr<DefaultModelProvider::ModelConfig>
-FeedUserSegment::GetModelConfig() {
+void FeedUserSegment::InitAndFetchModel(
+    const ModelUpdatedCallback& model_updated_callback) {
   proto::SegmentationModelMetadata chrome_start_metadata;
   MetadataWriter writer(&chrome_start_metadata);
   writer.SetDefaultSegmentationMetadataConfig(
@@ -208,8 +207,10 @@ FeedUserSegment::GetModelConfig() {
                         kFeedUserUMAFeatures.size());
 
   constexpr int kModelVersion = 1;
-  return std::make_unique<ModelConfig>(std::move(chrome_start_metadata),
-                                       kModelVersion);
+  base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
+      FROM_HERE,
+      base::BindRepeating(model_updated_callback, kFeedUserSegmentId,
+                          std::move(chrome_start_metadata), kModelVersion));
 }
 
 void FeedUserSegment::ExecuteModelWithInput(
@@ -264,6 +265,10 @@ void FeedUserSegment::ExecuteModelWithInput(
   base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
       FROM_HERE,
       base::BindOnce(std::move(callback), ModelProvider::Response(1, result)));
+}
+
+bool FeedUserSegment::ModelAvailable() {
+  return true;
 }
 
 }  // namespace segmentation_platform

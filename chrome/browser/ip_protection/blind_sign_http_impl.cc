@@ -4,16 +4,13 @@
 
 #include "chrome/browser/ip_protection/blind_sign_http_impl.h"
 
+#include <stdio.h>
+#include <functional>
 #include <string>
 
 #include "base/strings/strcat.h"
-#include "base/strings/string_split.h"
-#include "base/strings/string_util.h"
-#include "net/base/features.h"
-#include "services/network/public/cpp/resource_request.h"
 #include "services/network/public/cpp/shared_url_loader_factory.h"
-#include "services/network/public/cpp/simple_url_loader.h"
-#include "services/network/public/mojom/url_response_head.mojom.h"
+#include "url/gurl.h"
 
 namespace {
 constexpr net::NetworkTrafficAnnotationTag kIpProtectionTrafficAnnotation =
@@ -50,51 +47,27 @@ constexpr net::NetworkTrafficAnnotationTag kIpProtectionTrafficAnnotation =
 
 }  // namespace
 
-// The maximum size of the IpProtectionRequests - 256 KB (in practice these
-// should be much smaller than this).
-const int kIpProtectionRequestMaxBodySize = 256 * 1024;
-const char kIpProtectionContentType[] = "application/x-protobuf";
+int kIpProtectionRequestMaxBodySize = 1024;
+char kIpProtectionContentType[] = "application/x-protobuf";
 
 BlindSignHttpImpl::BlindSignHttpImpl(
     scoped_refptr<network::SharedURLLoaderFactory> url_loader_factory)
-    : url_loader_factory_(std::move(url_loader_factory)),
-      ip_protection_server_url_(net::features::kIpPrivacyTokenServer.Get()),
-      ip_protection_server_get_initial_data_path_(
-          net::features::kIpPrivacyTokenServerGetInitialDataPath.Get()),
-      ip_protection_server_get_tokens_path_(
-          net::features::kIpPrivacyTokenServerGetTokensPath.Get()) {
+    : url_loader_factory_(std::move(url_loader_factory)) {
   CHECK(url_loader_factory_);
 }
 
 BlindSignHttpImpl::~BlindSignHttpImpl() = default;
 
-void BlindSignHttpImpl::DoRequest(quiche::BlindSignHttpRequestType request_type,
-                                  const std::string& authorization_header,
-                                  const std::string& body,
-                                  quiche::BlindSignHttpCallback callback) {
+void BlindSignHttpImpl::DoRequest(
+    const std::string& path_and_query,
+    const std::string& authorization_header,
+    const std::string& body,
+    std::function<void(absl::StatusOr<quiche::BlindSignHttpResponse>)>
+        callback) {
   callback_ = std::move(callback);
 
-  GURL::Replacements replacements;
-  switch (request_type) {
-    case quiche::BlindSignHttpRequestType::kGetInitialData:
-      replacements.SetPathStr(ip_protection_server_get_initial_data_path_);
-      break;
-    case quiche::BlindSignHttpRequestType::kAuthAndSign:
-      replacements.SetPathStr(ip_protection_server_get_tokens_path_);
-      break;
-    case quiche::BlindSignHttpRequestType::kUnknown:
-      NOTREACHED_NORETURN();
-  }
-
-  GURL request_url = ip_protection_server_url_.ReplaceComponents(replacements);
-  if (!request_url.is_valid()) {
-    std::move(callback_)(
-        absl::InternalError("Invalid IP Protection Token URL"));
-    return;
-  }
-
   auto resource_request = std::make_unique<network::ResourceRequest>();
-  resource_request->url = std::move(request_url);
+  resource_request->url = GURL(path_and_query);
   resource_request->method = net::HttpRequestHeaders::kPostMethod;
   resource_request->credentials_mode = network::mojom::CredentialsMode::kOmit;
   resource_request->headers.SetHeader(
@@ -123,21 +96,15 @@ void BlindSignHttpImpl::OnRequestCompleted(
   }
 
   url_loader_.reset();
-
-  // Short-circuit non-200 HTTP responses to an OK response with that code.
-  if (response_code != 200 && response_code != 0) {
-    std::move(callback_)(quiche::BlindSignHttpResponse(response_code, ""));
-    return;
-  }
-
   if (!response) {
-    std::move(callback_)(
-        absl::InternalError("Failed Request to Authentication Server"));
+    // TODO (crbug.com/1446863): Indicate why the request to Phosphor failed so
+    // we can consider not requesting more tokens.
+    callback_(absl::InternalError("Failed Request to Authentication Server"));
     return;
   }
 
   quiche::BlindSignHttpResponse bsa_response(response_code,
                                              std::move(*response));
 
-  std::move(callback_)(std::move(bsa_response));
+  callback_(std::move(bsa_response));
 }

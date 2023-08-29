@@ -289,10 +289,10 @@ public class ConfirmImportantSitesDialogFragment extends DialogFragment {
                     }
                     data.putExtra(DESELECTED_DOMAINS_TAG, deselectedDomains.toArray(new String[0]));
                     data.putExtra(DESELECTED_DOMAIN_REASONS_TAG,
-                            CollectionUtil.integerCollectionToIntArray(deselectedDomainReasons));
+                            CollectionUtil.integerListToIntArray(deselectedDomainReasons));
                     data.putExtra(IGNORED_DOMAINS_TAG, ignoredDomains.toArray(new String[0]));
                     data.putExtra(IGNORED_DOMAIN_REASONS_TAG,
-                            CollectionUtil.integerCollectionToIntArray(ignoredDomainReasons));
+                            CollectionUtil.integerListToIntArray(ignoredDomainReasons));
                     getTargetFragment().onActivityResult(
                             getTargetRequestCode(), Activity.RESULT_OK, data);
                 } else {

@@ -11,6 +11,7 @@
 #include "third_party/blink/renderer/bindings/core/v8/v8_scroll_axis.h"
 #include "third_party/blink/renderer/bindings/core/v8/v8_typedefs.h"
 #include "third_party/blink/renderer/core/animation/scroll_snapshot_timeline.h"
+#include "third_party/blink/renderer/core/animation/scroll_timeline_attachment.h"
 #include "third_party/blink/renderer/core/animation/timing.h"
 #include "third_party/blink/renderer/core/core_export.h"
 #include "third_party/blink/renderer/core/scroll/scroll_types.h"
@@ -21,6 +22,7 @@ namespace blink {
 class Element;
 class PaintLayerScrollableArea;
 class ScrollTimelineOptions;
+class ScrollTimelineAttachment;
 
 // Implements the ScrollTimeline concept from the Scroll-linked Animations spec.
 //
@@ -35,16 +37,7 @@ class CORE_EXPORT ScrollTimeline : public ScrollSnapshotTimeline {
   DEFINE_WRAPPERTYPEINFO();
 
  public:
-  // Indicates the relation between the reference element and source of the
-  // scroll timeline.
-  enum class ReferenceType {
-    kSource,          // The reference element matches the source.
-    kNearestAncestor  // The source is the nearest scrollable ancestor to the
-                      // reference element.
-  };
-
-  static constexpr double kScrollTimelineMicrosecondsPerPixel =
-      cc::ScrollTimeline::kScrollTimelineMicrosecondsPerPixel;
+  using ReferenceType = ScrollTimelineAttachment::ReferenceType;
 
   static ScrollTimeline* Create(Document&,
                                 ScrollTimelineOptions*,
@@ -72,14 +65,29 @@ class CORE_EXPORT ScrollTimeline : public ScrollSnapshotTimeline {
 
   ScrollAxis GetAxis() const override;
 
-  absl::optional<double> GetMaximumScrollPosition() const;
-
   void AnimationAttached(Animation*) override;
   void AnimationDetached(Animation*) override;
 
   void Trace(Visitor*) const override;
 
+  // Duration is the maximum value a timeline may generate for current time.
+  // Used to convert time values to proportional values.
+  absl::optional<AnimationTimeDelta> GetDuration() const override {
+    // Any arbitrary value should be able to be used here.
+    return absl::make_optional(ANIMATION_TIME_DELTA_FROM_SECONDS(100));
+  }
+
+  ScrollTimelineAttachment* CurrentAttachment() {
+    return (attachments_.size() == 1u) ? attachments_.back().Get() : nullptr;
+  }
+
+  const ScrollTimelineAttachment* CurrentAttachment() const {
+    return const_cast<ScrollTimeline*>(this)->CurrentAttachment();
+  }
+
  protected:
+  ScrollTimeline(Document*, ScrollTimelineAttachment*);
+
   Node* ComputeResolvedSource() const;
 
   // Scroll offsets corresponding to 0% and 100% progress. By default, these
@@ -87,15 +95,6 @@ class CORE_EXPORT ScrollTimeline : public ScrollSnapshotTimeline {
   virtual void CalculateOffsets(PaintLayerScrollableArea* scrollable_area,
                                 ScrollOrientation physical_orientation,
                                 TimelineState* state) const;
-
-  // Determines the source for the scroll timeline. It may be the reference
-  // element or its nearest scrollable ancestor, depending on |reference_type_|.
-  Element* ComputeSource() const;
-  // This version does not force a style update and is therefore safe to call
-  // during lifecycle update.
-  Element* ComputeSourceNoLayout() const;
-
-  Element* GetReferenceElement() const { return reference_element_.Get(); }
 
  private:
   FRIEND_TEST_ALL_PREFIXES(ScrollTimelineTest, MultipleScrollOffsetsClamping);
@@ -109,9 +108,7 @@ class CORE_EXPORT ScrollTimeline : public ScrollSnapshotTimeline {
 
   TimelineState ComputeTimelineState() const override;
 
-  ReferenceType reference_type_;
-  Member<Element> reference_element_;
-  ScrollAxis axis_;
+  HeapVector<Member<ScrollTimelineAttachment>, 1> attachments_;
 };
 
 template <>

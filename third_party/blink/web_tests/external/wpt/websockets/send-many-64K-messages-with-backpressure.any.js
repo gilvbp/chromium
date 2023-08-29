@@ -1,7 +1,7 @@
 // META: global=window,worker
 // META: script=constants.sub.js
 // META: timeout=long
-// META: variant=?default
+// META: variant=
 // META: variant=?wss
 // META: variant=?wpt_flags=h2
 

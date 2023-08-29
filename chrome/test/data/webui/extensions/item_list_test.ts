@@ -12,7 +12,21 @@ import {assertEquals} from 'chrome://webui-test/chai_assert.js';
 
 import {createExtensionInfo, testVisible} from './test_util.js';
 
-suite('ExtensionItemListTest', function() {
+const extension_item_list_tests = {
+  suiteName: 'ExtensionItemListTest',
+  TestNames: {
+    Filtering: 'item list filtering',
+    NoItemsMsg: 'empty item list',
+    NoSearchResultsMsg: 'empty item list filtering results',
+    LoadTimeData: 'loadTimeData contains isManaged and managedByOrg',
+    SafetyCheckPanel:
+        'feature flag controls the visibility of safety check review panel',
+  },
+};
+
+Object.assign(window, {extension_item_list_tests: extension_item_list_tests});
+
+suite(extension_item_list_tests.suiteName, function() {
   let itemList: ExtensionsItemListElement;
   let boundTestVisible: (selector: string, visible: boolean, text?: string) =>
       void;
@@ -43,7 +57,7 @@ suite('ExtensionItemListTest', function() {
     document.body.appendChild(itemList);
   }
 
-  test('Filtering', function() {
+  test(extension_item_list_tests.TestNames.Filtering, function() {
     function itemLengthEquals(num: number) {
       flush();
       assertEquals(
@@ -95,7 +109,7 @@ suite('ExtensionItemListTest', function() {
         itemList.shadowRoot!.querySelector('extensions-item')!.data.name);
   });
 
-  test('NoItems', function() {
+  test(extension_item_list_tests.TestNames.NoItemsMsg, function() {
     flush();
     boundTestVisible('#no-items', false);
     boundTestVisible('#no-search-results', false);
@@ -107,7 +121,7 @@ suite('ExtensionItemListTest', function() {
     boundTestVisible('#no-search-results', false);
   });
 
-  test('NoSearchResults', function() {
+  test(extension_item_list_tests.TestNames.NoSearchResultsMsg, function() {
     flush();
     boundTestVisible('#no-items', false);
     boundTestVisible('#no-search-results', false);
@@ -118,13 +132,13 @@ suite('ExtensionItemListTest', function() {
     boundTestVisible('#no-search-results', true);
   });
 
-  test('LoadTimeData', function() {
+  test(extension_item_list_tests.TestNames.LoadTimeData, function() {
     // Check that loadTimeData contains these values.
     loadTimeData.getBoolean('isManaged');
     loadTimeData.getString('browserManagedByOrg');
   });
 
-  test('SafetyCheckPanel', function() {
+  test(extension_item_list_tests.TestNames.SafetyCheckPanel, function() {
     // The extension review panel should not be visible if
     // safetyCheckShowReviewPanel is set to false.
     loadTimeData.overrideValues({'safetyCheckShowReviewPanel': false});

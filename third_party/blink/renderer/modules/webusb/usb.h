@@ -31,7 +31,7 @@ class ScriptState;
 class USBDevice;
 class USBDeviceRequestOptions;
 
-class USB final : public EventTarget,
+class USB final : public EventTargetWithInlineData,
                   public Supplement<NavigatorBase>,
                   public ExecutionContextLifecycleObserver,
                   public device::mojom::blink::UsbDeviceManagerClient {

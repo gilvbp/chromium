@@ -9,7 +9,6 @@ import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
 import org.chromium.base.ObserverList;
-import org.chromium.base.ResettersForTesting;
 import org.chromium.base.UserDataHost;
 import org.chromium.base.task.PostTask;
 import org.chromium.base.task.TaskTraits;
@@ -219,17 +218,11 @@ public class TabStateAttributes extends TabWebContentsUserData {
         if (dirtiness == mDirtinessState) return;
         if (mTab.isBeingRestored()) return;
 
-        // Do not lower dirtiness to UNTIDY from DIRTY as we should wait for the state to be CLEAN.
-        if (dirtiness == DirtinessState.UNTIDY && mDirtinessState == DirtinessState.DIRTY) {
-            return;
-        }
         mDirtinessState = dirtiness;
-        if (mDirtinessState == DirtinessState.DIRTY) {
+        if (dirtiness == DirtinessState.DIRTY) {
             CriticalPersistedTabData.from(mTab).setShouldSave();
         }
-        for (Observer observer : mObservers) {
-            observer.onTabStateDirtinessChanged(mTab, mDirtinessState);
-        }
+        for (Observer observer : mObservers) observer.onTabStateDirtinessChanged(mTab, dirtiness);
     }
 
     /**
@@ -252,8 +245,6 @@ public class TabStateAttributes extends TabWebContentsUserData {
 
     /** Allows overriding the current value for tests. */
     public void setStateForTesting(@DirtinessState int dirtiness) {
-        var oldValue = mDirtinessState;
         mDirtinessState = dirtiness;
-        ResettersForTesting.register(() -> mDirtinessState = oldValue);
     }
 }

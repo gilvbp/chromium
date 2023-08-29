@@ -83,10 +83,9 @@ AppListSyncableServiceFactory::AppListSyncableServiceFactory()
 
 AppListSyncableServiceFactory::~AppListSyncableServiceFactory() = default;
 
-std::unique_ptr<KeyedService>
-AppListSyncableServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* AppListSyncableServiceFactory::BuildServiceInstanceFor(
     content::BrowserContext* browser_context) const {
-  return BuildInstanceFor(static_cast<Profile*>(browser_context));
+  return BuildInstanceFor(static_cast<Profile*>(browser_context)).release();
 }
 
 void AppListSyncableServiceFactory::RegisterProfilePrefs(

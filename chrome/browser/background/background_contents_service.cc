@@ -44,7 +44,6 @@
 #include "extensions/common/constants.h"
 #include "extensions/common/extension.h"
 #include "extensions/common/extension_icon_set.h"
-#include "extensions/common/extension_id.h"
 #include "extensions/common/extension_set.h"
 #include "extensions/common/manifest_handlers/background_info.h"
 #include "extensions/common/manifest_handlers/icons_handler.h"
@@ -144,7 +143,7 @@ class CrashNotificationDelegate : public message_center::NotificationDelegate {
   raw_ptr<Profile, FlakyDanglingUntriaged> profile_;
   bool is_hosted_app_;
   bool is_platform_app_;
-  extensions::ExtensionId extension_id_;
+  std::string extension_id_;
 };
 
 void ReloadExtension(const std::string& extension_id, Profile* profile) {

@@ -243,7 +243,7 @@ void NotificationViewBase::Layout() {
   // We need to call IsExpandable() at the end of Layout() call, since whether
   // we should show expand button or not depends on the current view layout.
   // (e.g. Show expand button when |message_label_| exceeds one line.)
-  SetExpandButtonVisibility(IsExpandable());
+  SetExpandButtonEnabled(IsExpandable());
   header_row_->Layout();
 
   // The notification background is rounded in MessageView::Layout(),
@@ -769,7 +769,7 @@ bool NotificationViewBase::HasInlineReply(
   return index < buttons.size() && buttons[index].placeholder.has_value();
 }
 
-void NotificationViewBase::SetExpandButtonVisibility(bool enabled) {
+void NotificationViewBase::SetExpandButtonEnabled(bool enabled) {
   if (!for_ash_notification_)
     header_row_->SetExpandButtonEnabled(enabled);
 }
@@ -835,7 +835,6 @@ bool NotificationViewBase::IsExpanded() const {
 }
 
 void NotificationViewBase::SetExpanded(bool expanded) {
-  MessageView::SetExpanded(expanded);
   if (expanded_ == expanded)
     return;
   expanded_ = expanded;

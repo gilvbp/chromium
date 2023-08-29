@@ -52,9 +52,8 @@ const char* const kBlocklistedConfigOptions[] = {
 // non-allowlisted keywords. Returns true if no blocklisted items are contained.
 bool ValidateConfigLine(const std::string& line) {
   for (const char* option : kBlocklistedConfigOptions) {
-    if (base::Contains(line, option)) {
+    if (line.find(option) != std::string::npos)
       return false;
-    }
   }
   return true;
 }

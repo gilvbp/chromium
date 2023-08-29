@@ -7,23 +7,23 @@
 #include "chromeos/lacros/lacros_service.h"
 #include "third_party/abseil-cpp/absl/types/optional.h"
 #include "third_party/skia/include/core/SkColor.h"
-#include "ui/color/color_provider_key.h"
+#include "ui/color/color_provider_manager.h"
 #include "ui/native_theme/native_theme_aura.h"
 
 namespace chromeos {
 namespace {
 
-ui::ColorProviderKey::SchemeVariant ConvertSchemeVariant(
+ui::ColorProviderManager::SchemeVariant ConvertSchemeVariant(
     color::mojom::SchemeVariant scheme) {
   switch (scheme) {
     case color::mojom::SchemeVariant::kTonalSpot:
-      return ui::ColorProviderKey::SchemeVariant::kTonalSpot;
+      return ui::ColorProviderManager::SchemeVariant::kTonalSpot;
     case color::mojom::SchemeVariant::kNeutral:
-      return ui::ColorProviderKey::SchemeVariant::kNeutral;
+      return ui::ColorProviderManager::SchemeVariant::kNeutral;
     case color::mojom::SchemeVariant::kVibrant:
-      return ui::ColorProviderKey::SchemeVariant::kVibrant;
+      return ui::ColorProviderManager::SchemeVariant::kVibrant;
     case color::mojom::SchemeVariant::kExpressive:
-      return ui::ColorProviderKey::SchemeVariant::kExpressive;
+      return ui::ColorProviderManager::SchemeVariant::kExpressive;
   }
   // not reached
 }

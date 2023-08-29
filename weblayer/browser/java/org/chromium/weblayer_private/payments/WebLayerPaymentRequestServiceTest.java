@@ -65,7 +65,6 @@ public class WebLayerPaymentRequestServiceTest {
     private PaymentAppFactoryInterface mFactory;
     private PaymentApp mPaymentApp;
     private boolean mWaitForUpdatedDetails;
-    private boolean mIsUserGestureShow;
 
     @Before
     public void setUp() {
@@ -119,7 +118,7 @@ public class WebLayerPaymentRequestServiceTest {
     }
 
     private void show(PaymentRequest request) {
-        request.show(mWaitForUpdatedDetails, mIsUserGestureShow);
+        request.show(mWaitForUpdatedDetails);
     }
 
     private void assertNoError() {

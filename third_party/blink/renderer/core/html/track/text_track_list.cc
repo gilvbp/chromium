@@ -302,7 +302,7 @@ void TextTrackList::Trace(Visitor* visitor) const {
   visitor->Trace(add_track_tracks_);
   visitor->Trace(element_tracks_);
   visitor->Trace(inband_tracks_);
-  EventTarget::Trace(visitor);
+  EventTargetWithInlineData::Trace(visitor);
 }
 
 }  // namespace blink

@@ -242,7 +242,8 @@ bool PpapiPluginProcessHost::Init(const ContentPluginInfo& info) {
   static const char* const kCommonForwardSwitches[] = {
     switches::kVModule
   };
-  cmd_line->CopySwitchesFrom(browser_command_line, kCommonForwardSwitches);
+  cmd_line->CopySwitchesFrom(browser_command_line, kCommonForwardSwitches,
+                             std::size(kCommonForwardSwitches));
 
   static const char* const kPluginForwardSwitches[] = {
     sandbox::policy::switches::kDisableSeccompFilterSandbox,
@@ -253,7 +254,8 @@ bool PpapiPluginProcessHost::Init(const ContentPluginInfo& info) {
     switches::kPpapiStartupDialog,
     switches::kTimeZoneForTesting,
   };
-  cmd_line->CopySwitchesFrom(browser_command_line, kPluginForwardSwitches);
+  cmd_line->CopySwitchesFrom(browser_command_line, kPluginForwardSwitches,
+                             std::size(kPluginForwardSwitches));
 
   std::string locale = GetContentClient()->browser()->GetApplicationLocale();
   if (!locale.empty()) {

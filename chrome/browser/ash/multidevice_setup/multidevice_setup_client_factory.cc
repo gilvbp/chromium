@@ -122,13 +122,12 @@ MultiDeviceSetupClientFactory* MultiDeviceSetupClientFactory::GetInstance() {
   return instance.get();
 }
 
-std::unique_ptr<KeyedService>
-MultiDeviceSetupClientFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* MultiDeviceSetupClientFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   if (IsAllowedByPolicy(context)) {
     PA_LOG(INFO)
         << "Allowed by policy. Returning new MultiDeviceSetupClientHolder";
-    return std::make_unique<MultiDeviceSetupClientHolder>(context);
+    return new MultiDeviceSetupClientHolder(context);
   }
 
   PA_LOG(INFO) << "NOT allowed by policy. Unable to return "

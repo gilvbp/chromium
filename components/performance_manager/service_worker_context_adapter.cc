@@ -29,11 +29,9 @@ class ServiceWorkerContextAdapter::RunningServiceWorker
   void Subscribe(content::RenderProcessHost* worker_process_host);
   void Unsubscribe();
 
-  // content::RenderProcessHostObserver:
   void RenderProcessExited(
       content::RenderProcessHost* host,
       const content::ChildProcessTerminationInfo& info) override;
-  void InProcessRendererExiting(content::RenderProcessHost* host) override;
   void RenderProcessHostDestroyed(content::RenderProcessHost* host) override;
 
  private:
@@ -79,16 +77,8 @@ void ServiceWorkerContextAdapter::RunningServiceWorker::RenderProcessExited(
 }
 
 void ServiceWorkerContextAdapter::RunningServiceWorker::
-    InProcessRendererExiting(content::RenderProcessHost* host) {
-  CHECK(content::RenderProcessHost::run_renderer_in_process());
-  adapter_->OnRenderProcessExited(version_id_);
-
-  /* This object is deleted inside the above, don't touch "this". */
-}
-
-void ServiceWorkerContextAdapter::RunningServiceWorker::
     RenderProcessHostDestroyed(content::RenderProcessHost* host) {
-  NOTREACHED_NORETURN();
+  NOTREACHED();
 }
 
 // ServiceWorkerContextAdapter::RunningServiceWorker ---------------------------

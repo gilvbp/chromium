@@ -171,8 +171,7 @@
 #endif
 
 #if BUILDFLAG(ENABLE_PDF)
-#include "chrome/browser/ui/pdf/chrome_pdf_document_helper_client.h"
-#include "components/pdf/browser/pdf_document_helper.h"
+#include "components/pdf/browser/pdf_web_contents_helper.h"
 #endif
 
 using content::BrowserContext;
@@ -623,7 +622,7 @@ class PrerenderDownloadTest : public MPArchDownloadTest {
   ~PrerenderDownloadTest() override = default;
 
   void SetUp() override {
-    prerender_helper_.RegisterServerRequestMonitor(embedded_test_server());
+    prerender_helper_.SetUp(embedded_test_server());
     MPArchDownloadTest::SetUp();
   }
 
@@ -870,7 +869,8 @@ IN_PROC_BROWSER_TEST_F(DownloadTest, CheckLocalFileZone_DependsOnLocalConfig) {
 // downloads preferences settings.
 IN_PROC_BROWSER_TEST_F(DownloadTest, DownloadMimeTypeSelect) {
   // Re-enable prompting.
-  SetPromptForDownload(browser(), true);
+  browser()->profile()->GetPrefs()->SetBoolean(
+      prefs::kPromptForDownload, true);
 
   embedded_test_server()->ServeFilesFromDirectory(GetTestDataDirectory());
   ASSERT_TRUE(embedded_test_server()->Start());
@@ -2197,18 +2197,18 @@ class DownloadTestSplitCacheEnabled : public DownloadTest {
 #if BUILDFLAG(ENABLE_PDF)
 IN_PROC_BROWSER_TEST_F(DownloadTestSplitCacheEnabled,
                        SaveMainFramePdfFromContextMenu_IsolationInfo) {
-  https_test_server()->ServeFilesFromDirectory(GetTestDataDirectory());
-  ASSERT_TRUE(https_test_server()->Start());
+  embedded_test_server()->ServeFilesFromDirectory(GetTestDataDirectory());
+  ASSERT_TRUE(embedded_test_server()->Start());
   EnableFileChooser(true);
 
   net::SiteForCookies expected_site_for_cookies =
       net::SiteForCookies::FromOrigin(
-          url::Origin::Create(https_test_server()->GetURL("a.test", "/")));
+          url::Origin::Create(embedded_test_server()->GetURL("foo.com", "/")));
 
   net::IsolationInfo expected_isolation_info = net::IsolationInfo::Create(
       net::IsolationInfo::RequestType::kMainFrame,
-      url::Origin::Create(https_test_server()->GetURL("a.test", "/")),
-      url::Origin::Create(https_test_server()->GetURL("a.test", "/")),
+      url::Origin::Create(embedded_test_server()->GetURL("foo.com", "/")),
+      url::Origin::Create(embedded_test_server()->GetURL("foo.com", "/")),
       expected_site_for_cookies, std::set<net::SchemefulSite>());
 
   content::WebContents* web_contents =
@@ -2216,7 +2216,7 @@ IN_PROC_BROWSER_TEST_F(DownloadTestSplitCacheEnabled,
 
   // Set up a PDF page.
   InnerWebContentsAttachedWaiter waiter(web_contents);
-  GURL url = https_test_server()->GetURL("a.test", "/pdf/test.pdf");
+  GURL url = embedded_test_server()->GetURL("foo.com", "/pdf/test.pdf");
   ASSERT_TRUE(ui_test_utils::NavigateToURL(browser(), url));
   waiter.Wait();
 
@@ -2234,7 +2234,7 @@ IN_PROC_BROWSER_TEST_F(DownloadTestSplitCacheEnabled,
 
   // Stop the server. This makes sure we really are pulling from the cache for
   // the download request.
-  ASSERT_TRUE(https_test_server()->ShutdownAndWaitUntilComplete());
+  ASSERT_TRUE(embedded_test_server()->ShutdownAndWaitUntilComplete());
 
   absl::optional<network::ResourceRequest::TrustedParams> trusted_params;
   net::SiteForCookies site_for_cookies;
@@ -2280,28 +2280,28 @@ IN_PROC_BROWSER_TEST_F(DownloadTestSplitCacheEnabled,
 
 IN_PROC_BROWSER_TEST_F(DownloadTestSplitCacheEnabled,
                        SaveSubframePdfFromPdfUI_IsolationInfo) {
-  https_test_server()->ServeFilesFromDirectory(GetTestDataDirectory());
-  ASSERT_TRUE(https_test_server()->Start());
+  embedded_test_server()->ServeFilesFromDirectory(GetTestDataDirectory());
+  ASSERT_TRUE(embedded_test_server()->Start());
   EnableFileChooser(true);
 
   net::SiteForCookies expected_site_for_cookies =
       net::SiteForCookies::FromOrigin(
-          url::Origin::Create(https_test_server()->GetURL("a.test", "/")));
+          url::Origin::Create(embedded_test_server()->GetURL("foo.com", "/")));
 
   net::IsolationInfo expected_isolation_info = net::IsolationInfo::Create(
       net::IsolationInfo::RequestType::kSubFrame,
-      url::Origin::Create(https_test_server()->GetURL("a.test", "/")),
-      url::Origin::Create(https_test_server()->GetURL("b.test", "/")),
+      url::Origin::Create(embedded_test_server()->GetURL("foo.com", "/")),
+      url::Origin::Create(embedded_test_server()->GetURL("bar.com", "/")),
       expected_site_for_cookies, std::set<net::SchemefulSite>());
 
   content::WebContents* web_contents =
       browser()->tab_strip_model()->GetActiveWebContents();
 
   // Set up a page with a cross-origin iframe hosting a PDF.
-  GURL url = https_test_server()->GetURL("a.test", "/iframe.html");
+  GURL url = embedded_test_server()->GetURL("foo.com", "/iframe.html");
   ASSERT_TRUE(ui_test_utils::NavigateToURL(browser(), url));
 
-  GURL subframe_url(https_test_server()->GetURL("b.test", "/pdf/test.pdf"));
+  GURL subframe_url(embedded_test_server()->GetURL("bar.com", "/pdf/test.pdf"));
 
   InnerWebContentsAttachedWaiter waiter(web_contents);
   content::BeginNavigateIframeToURL(web_contents,
@@ -2322,7 +2322,7 @@ IN_PROC_BROWSER_TEST_F(DownloadTestSplitCacheEnabled,
 
   // Stop the server. This makes sure we really are pulling from the cache for
   // the download request.
-  ASSERT_TRUE(https_test_server()->ShutdownAndWaitUntilComplete());
+  ASSERT_TRUE(embedded_test_server()->ShutdownAndWaitUntilComplete());
 
   absl::optional<network::ResourceRequest::TrustedParams> trusted_params;
   net::SiteForCookies site_for_cookies;
@@ -2342,15 +2342,11 @@ IN_PROC_BROWSER_TEST_F(DownloadTestSplitCacheEnabled,
       CreateWaiter(browser(), 1));
 
   // Simulate saving the PDF from the UI.
-  content::RenderFrameHost* extension_frame =
-      inner_web_contents->GetPrimaryMainFrame();
-  pdf::PDFDocumentHelper::CreateForCurrentDocument(
-      extension_frame, std::make_unique<ChromePDFDocumentHelperClient>());
-  pdf::PDFDocumentHelper* pdf_helper =
-      pdf::PDFDocumentHelper::GetForCurrentDocument(extension_frame);
-  pdf_helper->SaveUrlAs(
-      subframe_url,
-      network::mojom::ReferrerPolicy::kStrictOriginWhenCrossOrigin);
+  pdf::PDFWebContentsHelper* pdf_helper =
+      pdf::PDFWebContentsHelper::FromWebContents(inner_web_contents);
+  static_cast<pdf::mojom::PdfService*>(pdf_helper)
+      ->SaveUrlAs(subframe_url,
+                  network::mojom::ReferrerPolicy::kStrictOriginWhenCrossOrigin);
 
   request_waiter.Run();
 
@@ -2368,35 +2364,35 @@ IN_PROC_BROWSER_TEST_F(DownloadTestSplitCacheEnabled,
 
 IN_PROC_BROWSER_TEST_F(DownloadTestSplitCacheEnabled,
                        SaveSubframeImageFromContextMenu_IsolationInfo) {
-  https_test_server()->ServeFilesFromDirectory(GetTestDataDirectory());
-  ASSERT_TRUE(https_test_server()->Start());
+  embedded_test_server()->ServeFilesFromDirectory(GetTestDataDirectory());
+  ASSERT_TRUE(embedded_test_server()->Start());
   EnableFileChooser(true);
 
   net::SiteForCookies expected_site_for_cookies =
       net::SiteForCookies::FromOrigin(
-          url::Origin::Create(https_test_server()->GetURL("a.test", "/")));
+          url::Origin::Create(embedded_test_server()->GetURL("foo.com", "/")));
 
   net::IsolationInfo expected_isolation_info = net::IsolationInfo::Create(
       net::IsolationInfo::RequestType::kSubFrame,
-      url::Origin::Create(https_test_server()->GetURL("a.test", "/")),
-      url::Origin::Create(https_test_server()->GetURL("b.test", "/")),
+      url::Origin::Create(embedded_test_server()->GetURL("foo.com", "/")),
+      url::Origin::Create(embedded_test_server()->GetURL("bar.com", "/")),
       expected_site_for_cookies, std::set<net::SchemefulSite>());
 
   content::WebContents* web_contents =
       browser()->tab_strip_model()->GetActiveWebContents();
 
   // Set up a page with a cross-origin iframe hosting a PDF.
-  GURL url = https_test_server()->GetURL("a.test", "/iframe.html");
+  GURL url = embedded_test_server()->GetURL("foo.com", "/iframe.html");
   ASSERT_TRUE(ui_test_utils::NavigateToURL(browser(), url));
 
   GURL subframe_url(
-      https_test_server()->GetURL("b.test", "/downloads/image.jpg"));
+      embedded_test_server()->GetURL("bar.com", "/downloads/image.jpg"));
   content::NavigateIframeToURL(web_contents,
                                /*iframe_id=*/"test", subframe_url);
 
   // Stop the server. This makes sure we really are pulling from the cache for
   // the download request.
-  ASSERT_TRUE(https_test_server()->ShutdownAndWaitUntilComplete());
+  ASSERT_TRUE(embedded_test_server()->ShutdownAndWaitUntilComplete());
 
   absl::optional<network::ResourceRequest::TrustedParams> trusted_params;
   net::SiteForCookies site_for_cookies;
@@ -2445,28 +2441,28 @@ IN_PROC_BROWSER_TEST_F(DownloadTestSplitCacheEnabled,
 
 IN_PROC_BROWSER_TEST_F(DownloadTestSplitCacheEnabled,
                        SaveSubframePdfFromContextMenu_IsolationInfo) {
-  https_test_server()->ServeFilesFromDirectory(GetTestDataDirectory());
-  ASSERT_TRUE(https_test_server()->Start());
+  embedded_test_server()->ServeFilesFromDirectory(GetTestDataDirectory());
+  ASSERT_TRUE(embedded_test_server()->Start());
   EnableFileChooser(true);
 
   net::SiteForCookies expected_site_for_cookies =
       net::SiteForCookies::FromOrigin(
-          url::Origin::Create(https_test_server()->GetURL("a.test", "/")));
+          url::Origin::Create(embedded_test_server()->GetURL("foo.com", "/")));
 
   net::IsolationInfo expected_isolation_info = net::IsolationInfo::Create(
       net::IsolationInfo::RequestType::kSubFrame,
-      url::Origin::Create(https_test_server()->GetURL("a.test", "/")),
-      url::Origin::Create(https_test_server()->GetURL("b.test", "/")),
+      url::Origin::Create(embedded_test_server()->GetURL("foo.com", "/")),
+      url::Origin::Create(embedded_test_server()->GetURL("bar.com", "/")),
       expected_site_for_cookies, std::set<net::SchemefulSite>());
 
   content::WebContents* web_contents =
       browser()->tab_strip_model()->GetActiveWebContents();
 
   // Set up a page with a cross-origin iframe hosting a PDF.
-  GURL url = https_test_server()->GetURL("a.test", "/iframe.html");
+  GURL url = embedded_test_server()->GetURL("foo.com", "/iframe.html");
   ASSERT_TRUE(ui_test_utils::NavigateToURL(browser(), url));
 
-  GURL subframe_url(https_test_server()->GetURL("b.test", "/pdf/test.pdf"));
+  GURL subframe_url(embedded_test_server()->GetURL("bar.com", "/pdf/test.pdf"));
 
   InnerWebContentsAttachedWaiter waiter(web_contents);
   content::BeginNavigateIframeToURL(web_contents,
@@ -2487,7 +2483,7 @@ IN_PROC_BROWSER_TEST_F(DownloadTestSplitCacheEnabled,
 
   // Stop the server. This makes sure we really are pulling from the cache for
   // the download request.
-  ASSERT_TRUE(https_test_server()->ShutdownAndWaitUntilComplete());
+  ASSERT_TRUE(embedded_test_server()->ShutdownAndWaitUntilComplete());
 
   absl::optional<network::ResourceRequest::TrustedParams> trusted_params;
   net::SiteForCookies site_for_cookies;
@@ -2515,7 +2511,7 @@ IN_PROC_BROWSER_TEST_F(DownloadTestSplitCacheEnabled,
   TestRenderViewContextMenu menu(*inner_web_contents->GetPrimaryMainFrame(),
                                  context_menu_params);
   menu.Init();
-  menu.ExecuteCommand(IDC_CONTENT_CONTEXT_SAVEPLUGINAS, 0);
+  menu.ExecuteCommand(IDC_CONTENT_CONTEXT_SAVEAVAS, 0);
 
   request_waiter.Run();
 
@@ -3233,7 +3229,7 @@ IN_PROC_BROWSER_TEST_F(DownloadTest,
 
   // Navigate to the test page.
   GURL url = embedded_test_server()->GetURL(
-      "a.test", "/downloads/cross-origin-resource-policy-test.html");
+      "foo.com", "/downloads/cross-origin-resource-policy-test.html");
   ASSERT_TRUE(ui_test_utils::NavigateToURL(browser(), url));
 
   // Right-click on the link and choose Save Link As. This will download the
@@ -3271,8 +3267,8 @@ IN_PROC_BROWSER_TEST_F(DownloadTest,
   GetDownloads(browser(), &download_items);
   ASSERT_EQ(1u, download_items.size());
   GURL expected_original_url = embedded_test_server()->GetURL(
-      "a.test",
-      "/cross-site/b.test/downloads/"
+      "foo.com",
+      "/cross-site/bar.com/downloads/"
       "cross-origin-resource-policy-resource.txt");
   EXPECT_EQ(expected_original_url, download_items[0]->GetOriginalUrl());
   EXPECT_TRUE(VerifyFile(download_items[0]->GetTargetFilePath(),
@@ -3365,12 +3361,12 @@ IN_PROC_BROWSER_TEST_P(DownloadReferrerPolicyTest,
 // according to the referrer policy.
 IN_PROC_BROWSER_TEST_P(DownloadReferrerPolicyTest,
                        DownloadCrossDomainReferrerPolicy) {
-  https_test_server()->RegisterRequestHandler(
+  embedded_test_server()->RegisterRequestHandler(
       base::BindRepeating(&ServerRedirectRequestHandler));
-  https_test_server()->RegisterRequestHandler(
+  embedded_test_server()->RegisterRequestHandler(
       base::BindRepeating(&EchoReferrerRequestHandler));
-  https_test_server()->ServeFilesFromDirectory(GetTestDataDirectory());
-  ASSERT_TRUE(https_test_server()->Start());
+  embedded_test_server()->ServeFilesFromDirectory(GetTestDataDirectory());
+  ASSERT_TRUE(embedded_test_server()->Start());
   EnableFileChooser(true);
   std::vector<DownloadItem*> download_items;
   GetDownloads(browser(), &download_items);
@@ -3378,11 +3374,9 @@ IN_PROC_BROWSER_TEST_P(DownloadReferrerPolicyTest,
 
   // Navigate to a page with a referrer policy and a link on it. The link points
   // to /echoreferrer.
-  GURL url = https_test_server()->GetURL(
-      "www.b.test",
-      base::StringPrintf(
-          "/downloads/download_cross_referrer_policy.html?policy=%s",
-          content::ReferrerPolicyToString(referrer_policy()).c_str()));
+  GURL url = embedded_test_server()->GetURL(base::StringPrintf(
+      "/downloads/download_cross_referrer_policy.html?policy=%s",
+      content::ReferrerPolicyToString(referrer_policy()).c_str()));
   ASSERT_TRUE(url.is_valid());
   ASSERT_TRUE(ui_test_utils::NavigateToURL(browser(), url));
 
@@ -3417,7 +3411,7 @@ IN_PROC_BROWSER_TEST_P(DownloadReferrerPolicyTest,
   // Validate that the correct file was downloaded.
   GetDownloads(browser(), &download_items);
   ASSERT_EQ(1u, download_items.size());
-  ASSERT_EQ(https_test_server()->GetURL("www.a.test", "/echoreferrer"),
+  ASSERT_EQ(embedded_test_server()->GetURL("www.a.com", "/echoreferrer"),
             download_items[0]->GetURL());
 
   // Check that the file contains the expected referrer. The referrer is
@@ -3524,15 +3518,14 @@ IN_PROC_BROWSER_TEST_F(DownloadTest,
           &OnCanDownloadDecidedObserver::OnCanDownloadDecided,
           base::Unretained(&can_download_observer)));
 
-  https_test_server()->ServeFilesFromDirectory(GetTestDataDirectory());
-  ASSERT_TRUE(https_test_server()->Start());
-  GURL url = https_test_server()->GetURL(
-      "www.b.test",
+  embedded_test_server()->ServeFilesFromDirectory(GetTestDataDirectory());
+  ASSERT_TRUE(embedded_test_server()->Start());
+  GURL url = embedded_test_server()->GetURL(
       "/downloads/multiple_a_download_x_origin_redirect_to_download.html");
 
   base::StringPairs port_replacement;
-  port_replacement.emplace_back(
-      "{{PORT}}", base::NumberToString(https_test_server()->port()));
+  port_replacement.push_back(std::make_pair(
+      "{{PORT}}", base::NumberToString(embedded_test_server()->port())));
   std::string download_url = net::test_server::GetFilePathWithReplacements(
       "redirect_x_origin_download.html", port_replacement);
 
@@ -3567,15 +3560,14 @@ IN_PROC_BROWSER_TEST_F(DownloadTest,
           &OnCanDownloadDecidedObserver::OnCanDownloadDecided,
           base::Unretained(&can_download_observer)));
 
-  https_test_server()->ServeFilesFromDirectory(GetTestDataDirectory());
-  ASSERT_TRUE(https_test_server()->Start());
-  GURL url = https_test_server()->GetURL(
-      "www.b.test",
+  embedded_test_server()->ServeFilesFromDirectory(GetTestDataDirectory());
+  ASSERT_TRUE(embedded_test_server()->Start());
+  GURL url = embedded_test_server()->GetURL(
       "/downloads/multiple_a_download_x_origin_redirect_to_download.html");
 
   base::StringPairs port_replacement;
-  port_replacement.emplace_back(
-      "{{PORT}}", base::NumberToString(https_test_server()->port()));
+  port_replacement.push_back(std::make_pair(
+      "{{PORT}}", base::NumberToString(embedded_test_server()->port())));
   std::string download_url = net::test_server::GetFilePathWithReplacements(
       "redirect_x_origin_download.html", port_replacement);
 
@@ -4335,13 +4327,7 @@ IN_PROC_BROWSER_TEST_F(InProgressDownloadTest,
 }
 
 // Tests that download a canvas image will show the file chooser.
-// TODO(crbug.com/1462760): Enable the test.
-#if BUILDFLAG(IS_MAC)
-#define MAYBE_SaveCanvasImage DISABLED_SaveCanvasImage
-#else
-#define MAYBE_SaveCanvasImage SaveCanvasImage
-#endif
-IN_PROC_BROWSER_TEST_F(DownloadTest, MAYBE_SaveCanvasImage) {
+IN_PROC_BROWSER_TEST_F(DownloadTest, SaveCanvasImage) {
   EnableFileChooser(true);
   embedded_test_server()->ServeFilesFromDirectory(GetTestDataDirectory());
   ASSERT_TRUE(embedded_test_server()->Start());
@@ -4788,7 +4774,6 @@ IN_PROC_BROWSER_TEST_F(DownloadTestWithFakeSafeBrowsing,
       DangerousDownloadWaiter(
           incognito_browser, 1,
           content::DownloadTestObserver::ON_DANGEROUS_DOWNLOAD_QUIT));
-  SetPromptForDownload(incognito_browser, false);
   ASSERT_TRUE(ui_test_utils::NavigateToURL(incognito_browser, download_url));
   dangerous_observer->WaitForFinished();
 

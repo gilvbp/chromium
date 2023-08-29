@@ -194,6 +194,11 @@ void PreconnectManager::PreconnectUrl(
 
   auto* network_context = GetNetworkContext();
 
+#if defined(UNIT_TEST)
+  if (!network_context)
+    return;
+#endif
+
   network_context->PreconnectSockets(num_sockets, url, allow_credentials,
                                      network_anonymization_key);
 }
@@ -207,6 +212,18 @@ std::unique_ptr<ResolveHostClientImpl> PreconnectManager::PreresolveUrl(
 
   auto* network_context = GetNetworkContext();
 
+#if defined(UNIT_TEST)
+  if (!network_context) {
+    // Cannot invoke the callback right away because it would cause a
+    // use-after-free after returning from this method:
+    // The return value of this method is assigned to a member variable of a
+    // PreresolveJob that is destroyed when the callback executes.
+    content::GetUIThreadTaskRunner()->PostTask(
+        FROM_HERE, base::BindOnce(std::move(callback), false));
+    return nullptr;
+  }
+#endif
+
   return std::make_unique<ResolveHostClientImpl>(
       url, network_anonymization_key, std::move(callback), network_context);
 }
@@ -219,6 +236,13 @@ std::unique_ptr<ProxyLookupClientImpl> PreconnectManager::LookupProxyForUrl(
   DCHECK(url.SchemeIsHTTPOrHTTPS());
 
   auto* network_context = GetNetworkContext();
+
+#if defined(UNIT_TEST)
+  if (!network_context) {
+    std::move(callback).Run(false);
+    return nullptr;
+  }
+#endif
 
   return std::make_unique<ProxyLookupClientImpl>(
       url, network_anonymization_key, std::move(callback), network_context);
@@ -352,6 +376,12 @@ void PreconnectManager::AllPreresolvesForUrlFinished(PreresolveInfo* info) {
 network::mojom::NetworkContext* PreconnectManager::GetNetworkContext() const {
   if (network_context_)
     return network_context_;
+
+#if defined(UNIT_TEST)
+  // We're testing and |network_context_| wasn't set. Return nullptr to avoid
+  // hitting the network.
+  return nullptr;
+#endif
 
   auto* network_context =
       browser_context_->GetDefaultStoragePartition()->GetNetworkContext();

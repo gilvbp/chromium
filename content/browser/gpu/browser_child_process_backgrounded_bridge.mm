@@ -24,8 +24,8 @@ bool g_notifications_enabled = true;
 struct BrowserChildProcessBackgroundedBridge::ObjCStorage {
   // Registration IDs for NSApplicationDidBecomeActiveNotification and
   // NSApplicationDidResignActiveNotification.
-  id __strong did_become_active_observer = nil;
-  id __strong did_resign_active_observer = nil;
+  id did_become_active_observer = nil;
+  id did_resign_active_observer = nil;
 };
 
 BrowserChildProcessBackgroundedBridge::BrowserChildProcessBackgroundedBridge(
@@ -72,12 +72,11 @@ void BrowserChildProcessBackgroundedBridge::SetOSNotificationsEnabledForTesting(
 }
 
 void BrowserChildProcessBackgroundedBridge::Initialize() {
-  // Do the initial adjustment based on the initial value of the
+  // Do the initial ajustment based on the initial value of the
   // TASK_CATEGORY_POLICY role of the browser process.
   base::SelfPortProvider self_port_provider;
-  const base::Process::Priority browser_process_priority =
-      base::Process::Current().GetPriority(&self_port_provider);
-  process_->SetProcessPriority(browser_process_priority);
+  process_->SetProcessBackgrounded(
+      base::Process::Current().IsProcessBackgrounded(&self_port_provider));
 
   if (!g_notifications_enabled) {
     return;
@@ -86,8 +85,8 @@ void BrowserChildProcessBackgroundedBridge::Initialize() {
   // Now subscribe to both NSApplicationDidBecomeActiveNotification and
   // NSApplicationDidResignActiveNotification, which are sent when the browser
   // process becomes foreground and background, respectively. The blocks
-  // implicitly captures `this`. It is safe to do so since the subscriptions are
-  // removed in the destructor.
+  // implicity captures `this`. It is safe to do so since the subscriptions are
+  // removed in the destructor
   objc_storage_->did_become_active_observer =
       [NSNotificationCenter.defaultCenter
           addObserverForName:NSApplicationDidBecomeActiveNotification
@@ -119,11 +118,11 @@ void BrowserChildProcessBackgroundedBridge::OnReceivedTaskPort(
 }
 
 void BrowserChildProcessBackgroundedBridge::OnBrowserProcessForegrounded() {
-  process_->SetProcessPriority(base::Process::Priority::kUserBlocking);
+  process_->SetProcessBackgrounded(false);
 }
 
 void BrowserChildProcessBackgroundedBridge::OnBrowserProcessBackgrounded() {
-  process_->SetProcessPriority(base::Process::Priority::kUserVisible);
+  process_->SetProcessBackgrounded(true);
 }
 
 }  // namespace content

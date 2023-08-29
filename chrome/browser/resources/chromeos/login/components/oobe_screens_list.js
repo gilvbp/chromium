@@ -109,10 +109,9 @@ export class OobeScreensList extends OobeScreensListBase {
   getSubtitle_(locale, screen_subtitle, screen_id) {
     if (screen_subtitle) {
       // display size screen is special case as the subtitle include directly
-      // the percentage  and will be placed in the message placeholder.
+      // the percentage  and will be displayed directly without i18n.
       if (screen_id === 'display-size') {
-        return this.i18nDynamic(
-            locale, 'choobeDisplaySizeSubtitle', screen_subtitle);
+        return screen_subtitle;
       }
       return this.i18nDynamic(locale, screen_subtitle);
     }

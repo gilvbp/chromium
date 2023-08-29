@@ -62,6 +62,7 @@ class SaveIbanBubbleView : public AutofillBubbleBase,
   void AssignIdsToDialogButtonsForTesting();
 
   void OnDialogAccepted();
+  void OnDialogCancelled();
 
   // LocationBarBubbleDelegateView:
   void Init() override;

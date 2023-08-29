@@ -7,7 +7,6 @@
 #include <GLES2/gl2extchromium.h>
 #include <GLES3/gl3.h>
 
-#include "base/containers/contains.h"
 #include "base/strings/string_split.h"
 #include "base/strings/string_util.h"
 #include "gpu/command_buffer/tests/gl_manager.h"
@@ -52,7 +51,7 @@ TEST_P(RequestExtensionCHROMIUMTest, Basic) {
                           base::TRIM_WHITESPACE, base::SPLIT_WANT_NONEMPTY)
             .size();
 
-    if (base::Contains(extension_string, to_request + " ")) {
+    if (extension_string.find(to_request + " ") != std::string::npos) {
       // Somewhat counterintuitively, requestable extensions contain every
       // extension available.
       continue;
@@ -93,7 +92,6 @@ TEST_P(RequestExtensionCHROMIUMTest, Basic) {
     EXPECT_GE(extensions.size(), extensions_size_before_request);
   }
 }
-
 INSTANTIATE_TEST_SUITE_P(WithContextTypes,
                          RequestExtensionCHROMIUMTest,
                          ::testing::Values(CONTEXT_TYPE_WEBGL1,

@@ -193,22 +193,6 @@ TEST_F(FileSystemProviderOperationsGetMetadataTest, ValidateIDLEntryMetadata) {
         false /* root_path */));
   }
 
-  // Missing `is_directory`.
-  {
-    EntryMetadata metadata;
-    EXPECT_FALSE(ValidateIDLEntryMetadata(
-        metadata, ProvidedFileSystemInterface::METADATA_FIELD_IS_DIRECTORY,
-        false /* root_path */));
-  }
-
-  // Missing `size`.
-  {
-    EntryMetadata metadata;
-    EXPECT_FALSE(ValidateIDLEntryMetadata(
-        metadata, ProvidedFileSystemInterface::METADATA_FIELD_SIZE,
-        false /* root_path */));
-  }
-
   // Missing last modification time.
   {
     EntryMetadata metadata;
@@ -232,36 +216,6 @@ TEST_F(FileSystemProviderOperationsGetMetadataTest, ValidateIDLEntryMetadata) {
     metadata.thumbnail.emplace();
     EXPECT_FALSE(ValidateIDLEntryMetadata(
         metadata, ProvidedFileSystemInterface::METADATA_FIELD_THUMBNAIL,
-        false /* root_path */));
-  }
-
-  // Missing cloud identifier
-  {
-    EntryMetadata metadata;
-    EXPECT_FALSE(ValidateIDLEntryMetadata(
-        metadata, ProvidedFileSystemInterface::METADATA_FIELD_CLOUD_IDENTIFIER,
-        false /* root_path */));
-  }
-
-  // Empty string for cloud identifier's ID.
-  {
-    EntryMetadata metadata;
-    metadata.cloud_identifier.emplace();
-    metadata.cloud_identifier->provider_name = "provider-name";
-    metadata.cloud_identifier->id = "";
-    EXPECT_FALSE(ValidateIDLEntryMetadata(
-        metadata, ProvidedFileSystemInterface::METADATA_FIELD_CLOUD_IDENTIFIER,
-        false /* root_path */));
-  }
-
-  // Empty string for cloud identifier's provider name.
-  {
-    EntryMetadata metadata;
-    metadata.cloud_identifier.emplace();
-    metadata.cloud_identifier->provider_name = "";
-    metadata.cloud_identifier->id = "id";
-    EXPECT_FALSE(ValidateIDLEntryMetadata(
-        metadata, ProvidedFileSystemInterface::METADATA_FIELD_CLOUD_IDENTIFIER,
         false /* root_path */));
   }
 }
@@ -324,8 +278,7 @@ TEST_F(FileSystemProviderOperationsGetMetadataTest, OnSuccess) {
           ProvidedFileSystemInterface::METADATA_FIELD_SIZE |
           ProvidedFileSystemInterface::METADATA_FIELD_MODIFICATION_TIME |
           ProvidedFileSystemInterface::METADATA_FIELD_MIME_TYPE |
-          ProvidedFileSystemInterface::METADATA_FIELD_THUMBNAIL |
-          ProvidedFileSystemInterface::METADATA_FIELD_CLOUD_IDENTIFIER,
+          ProvidedFileSystemInterface::METADATA_FIELD_THUMBNAIL,
       base::BindOnce(&CallbackLogger::OnGetMetadata,
                      base::Unretained(&callback_logger)));
 
@@ -345,12 +298,8 @@ TEST_F(FileSystemProviderOperationsGetMetadataTest, OnSuccess) {
       "    \"modificationTime\": {\n"
       "      \"value\": \"Thu Apr 24 00:46:52 UTC 2014\"\n"
       "    },\n"
-      "    \"mimeType\": \"text/plain\",\n"               // kMimeType
-      "    \"thumbnail\": \"DaTa:ImAgE/pNg;base64,\",\n"  // kThumbnail
-      "    \"cloudIdentifier\": {\n"
-      "      \"providerName\": \"provider-name\",\n"
-      "      \"id\": \"abc123\"\n"
-      "    }\n"
+      "    \"mimeType\": \"text/plain\",\n"              // kMimeType
+      "    \"thumbnail\": \"DaTa:ImAgE/pNg;base64,\"\n"  // kThumbnail
       "  },\n"
       "  0\n"  // execution_time
       "]\n";
@@ -373,8 +322,6 @@ TEST_F(FileSystemProviderOperationsGetMetadataTest, OnSuccess) {
   EXPECT_EQ(expected_time, *metadata->modification_time);
   EXPECT_EQ(kMimeType, *metadata->mime_type);
   EXPECT_EQ(kThumbnail, *metadata->thumbnail);
-  EXPECT_EQ(CloudIdentifier("provider-name", "abc123"),
-            *metadata->cloud_identifier);
 }
 
 TEST_F(FileSystemProviderOperationsGetMetadataTest, OnSuccess_InvalidMetadata) {
@@ -388,8 +335,7 @@ TEST_F(FileSystemProviderOperationsGetMetadataTest, OnSuccess_InvalidMetadata) {
           ProvidedFileSystemInterface::METADATA_FIELD_SIZE |
           ProvidedFileSystemInterface::METADATA_FIELD_MODIFICATION_TIME |
           ProvidedFileSystemInterface::METADATA_FIELD_MIME_TYPE |
-          ProvidedFileSystemInterface::METADATA_FIELD_THUMBNAIL |
-          ProvidedFileSystemInterface::METADATA_FIELD_CLOUD_IDENTIFIER,
+          ProvidedFileSystemInterface::METADATA_FIELD_THUMBNAIL,
       base::BindOnce(&CallbackLogger::OnGetMetadata,
                      base::Unretained(&callback_logger)));
 
@@ -409,12 +355,8 @@ TEST_F(FileSystemProviderOperationsGetMetadataTest, OnSuccess_InvalidMetadata) {
       "    \"modificationTime\": {\n"
       "      \"value\": \"Thu Apr 24 00:46:52 UTC 2014\"\n"
       "    },\n"
-      "    \"mimeType\": \"text/plain\",\n"                   // kMimeType
-      "    \"thumbnail\": \"http://www.foobar.com/evil\",\n"  // kThumbnail
-      "    \"cloudIdentifier\": {\n"
-      "      \"providerName\": \"provider-name\",\n"
-      "      \"id\": \"abc123\"\n"
-      "    }\n"
+      "    \"mimeType\": \"text/plain\",\n"                  // kMimeType
+      "    \"thumbnail\": \"http://www.foobar.com/evil\"\n"  // kThumbnail
       "  },\n"
       "  0\n"  // execution_time
       "]\n";

@@ -176,11 +176,9 @@ PrefWatcherFactory::PrefWatcherFactory()
 
 PrefWatcherFactory::~PrefWatcherFactory() = default;
 
-std::unique_ptr<KeyedService>
-PrefWatcherFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* PrefWatcherFactory::BuildServiceInstanceFor(
     content::BrowserContext* browser_context) const {
-  return std::make_unique<PrefWatcher>(
-      Profile::FromBrowserContext(browser_context));
+  return new PrefWatcher(Profile::FromBrowserContext(browser_context));
 }
 
 // static

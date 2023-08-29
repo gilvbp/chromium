@@ -13,7 +13,6 @@
 #include "base/containers/span.h"
 #include "base/functional/bind.h"
 #include "base/memory/raw_ptr.h"
-#include "base/memory/raw_ref.h"
 #include "base/memory/weak_ptr.h"
 #include "base/observer_list.h"
 #include "base/scoped_observation.h"
@@ -25,7 +24,7 @@
 #include "build/build_config.h"
 #include "components/autofill/core/browser/autofill_download_manager.h"
 #include "components/autofill/core/browser/autofill_driver.h"
-#include "components/autofill/core/browser/autofill_trigger_details.h"
+#include "components/autofill/core/browser/autofill_trigger_source.h"
 #include "components/autofill/core/browser/metrics/autofill_metrics.h"
 #include "components/autofill/core/common/dense_set.h"
 #include "components/autofill/core/common/form_data.h"
@@ -42,8 +41,6 @@ class RectF;
 namespace autofill {
 
 class AutofillField;
-class AutofillProfile;
-class CreditCard;
 class CreditCardAccessManager;
 struct FormData;
 struct FormFieldData;
@@ -65,14 +62,15 @@ class AutofillManager
  public:
   // Observer of AutofillManager events.
   //
-  // For the On{Before,After}Foo() events, the following invariant holds:
-  // Every OnBeforeFoo() is followed by an OnAfterFoo(); on OnAfterFoo() may be
-  // called asynchronously (but on the UI thread). The only exceptions where
-  // OnBeforeFoo() may be called without a corresponding OnAfterFoo() call are:
+  // OnAfterFoo() is called, perhaps asynchronously (but on the UI thread),
+  // after OnBeforeFoo(). The only exceptions where OnBeforeFoo() may be called
+  // without a corresponding OnAfterFoo() call are:
   // - if the number of cached forms exceeds `kAutofillManagerMaxFormCacheSize`;
   // - if this AutofillManager has been destroyed or reset in the meantime.
   // - if the request in AutofillDownloadManager was not successful (i.e. no 2XX
   //   response code or a null response body).
+  //
+  // New pairs of events may be added as needed.
   class Observer : public base::CheckedObserver {
    public:
     virtual void OnAutofillManagerDestroyed(AutofillManager& manager) {}
@@ -93,19 +91,10 @@ class AutofillManager
                                            FormGlobalId form,
                                            FieldGlobalId field) {}
 
-    virtual void OnBeforeTextFieldDidScroll(AutofillManager& manager,
-                                            FormGlobalId form,
-                                            FieldGlobalId field) {}
-    virtual void OnAfterTextFieldDidScroll(AutofillManager& manager,
-                                           FormGlobalId form,
-                                           FieldGlobalId field) {}
-
-    virtual void OnBeforeSelectControlDidChange(AutofillManager& manager,
-                                                FormGlobalId form,
-                                                FieldGlobalId field) {}
-    virtual void OnAfterSelectControlDidChange(AutofillManager& manager,
-                                               FormGlobalId form,
-                                               FieldGlobalId field) {}
+    virtual void OnBeforeDidFillAutofillFormData(AutofillManager& manager,
+                                                 FormGlobalId form) {}
+    virtual void OnAfterDidFillAutofillFormData(AutofillManager& manager,
+                                                FormGlobalId form) {}
 
     virtual void OnBeforeAskForValuesToFill(AutofillManager& manager,
                                             FormGlobalId form,
@@ -113,11 +102,6 @@ class AutofillManager
     virtual void OnAfterAskForValuesToFill(AutofillManager& manager,
                                            FormGlobalId form,
                                            FieldGlobalId field) {}
-
-    virtual void OnBeforeDidFillAutofillFormData(AutofillManager& manager,
-                                                 FormGlobalId form) {}
-    virtual void OnAfterDidFillAutofillFormData(AutofillManager& manager,
-                                                FormGlobalId form) {}
 
     virtual void OnBeforeJavaScriptChangedAutofilledValue(
         AutofillManager& manager,
@@ -128,32 +112,21 @@ class AutofillManager
         FormGlobalId form,
         FieldGlobalId field) {}
 
+    virtual void OnBeforeFormSubmitted(AutofillManager& manager,
+                                       FormGlobalId form) {}
+    virtual void OnAfterFormSubmitted(AutofillManager& manager,
+                                      FormGlobalId form) {}
+
     virtual void OnBeforeLoadedServerPredictions(AutofillManager& manager) {}
     virtual void OnAfterLoadedServerPredictions(AutofillManager& manager) {}
 
-    // Fired when the field types predictions of a form *may* have changed.
-    // At the moment, we cannot distinguish whether autocomplete attributes or
-    // local heuristics changed.
-    enum class FieldTypeSource { kHeuristicsOrAutocomplete, kAutofillServer };
-    virtual void OnFieldTypesDetermined(AutofillManager& manager,
-                                        FormGlobalId form,
-                                        FieldTypeSource source) {}
-
-    // Fired when form is filled.
-    // 'filled_fields' represents the fields that were actually sent to the
-    // renderer to be filled. `profile_or_credit_card` gives the information for
-    // which values were used to fill the form, being those either from credit
-    // card or an autofill profile.
-    // TODO(crbug.com/1331312): Get rid of FormFieldData.
-    virtual void OnAutofillProfileOrCreditCardFormFilled(
-        AutofillManager& manager,
-        autofill::FormGlobalId form,
-        base::span<const std::pair<const FormFieldData*, const AutofillField*>>
-            filled_fields,
-        absl::variant<const AutofillProfile*, const CreditCard*>
-            profile_or_credit_card) {}
-
-    virtual void OnFormSubmitted(AutofillManager& manager, FormGlobalId form) {}
+    // TODO(crbug.com/1330105): Clean up API: delete the events that don't
+    // follow the OnBeforeFoo() / OnAfterFoo() pattern.
+    virtual void OnFormParsed(AutofillManager& manager) {}
+    virtual void OnTextFieldDidChange(AutofillManager& manager) {}
+    virtual void OnTextFieldDidScroll(AutofillManager& manager) {}
+    virtual void OnSelectControlDidChange(AutofillManager& manager) {}
+    virtual void OnFormSubmitted(AutofillManager& manager) {}
   };
 
   // TODO(crbug.com/1151542): Move to anonymous namespace once
@@ -169,17 +142,17 @@ class AutofillManager
   ~AutofillManager() override;
 
   // The following will fail a DCHECK if called for a prerendered main frame.
-  AutofillClient& client() {
-    DCHECK(!driver().IsPrerendering());
-    return *client_;
+  AutofillClient* client() {
+    DCHECK(!driver()->IsPrerendering());
+    return client_;
   }
 
-  const AutofillClient& client() const {
-    DCHECK(!driver().IsPrerendering());
-    return *client_;
+  const AutofillClient* client() const {
+    DCHECK(!driver()->IsPrerendering());
+    return client_;
   }
 
-  AutofillClient& unsafe_client(
+  AutofillClient* unsafe_client(
       base::PassKey<TouchToFillDelegateAndroidImpl> pass_key) {
     return AutofillManager::unsafe_client();
   }
@@ -243,12 +216,12 @@ class AutofillManager
                           const FormFieldData& field,
                           const CreditCard& credit_card,
                           const std::u16string& cvc,
-                          const AutofillTriggerDetails& trigger_details);
+                          const AutofillTriggerSource trigger_source);
 
   void FillProfileForm(const AutofillProfile& profile,
                        const FormData& form,
                        const FormFieldData& field,
-                       const AutofillTriggerDetails& trigger_details);
+                       const AutofillTriggerSource trigger_source);
 
   // Invoked when |form| has been filled with the value given by
   // FillOrPreviewForm.
@@ -278,7 +251,7 @@ class AutofillManager
   void OnHidePopup();
 
   // Invoked when the options of a select element in the |form| changed.
-  void OnSelectOrSelectListFieldOptionsDidChange(const FormData& form);
+  void OnSelectFieldOptionsDidChange(const FormData& form);
 
   // Invoked after JavaScript set the value of |field| in |form|. Only called
   // if |field| was in autofilled state. Note that from a renderer's
@@ -292,6 +265,11 @@ class AutofillManager
 
   // Other events.
 
+  // Invoked when the field type predictions are downloaded from the autofill
+  // server.
+  virtual void PropagateAutofillPredictions(
+      const std::vector<FormStructure*>& forms) = 0;
+
   virtual void ReportAutofillWebOTPMetrics(bool used_web_otp) = 0;
 
   // Resets cache.
@@ -301,15 +279,6 @@ class AutofillManager
   virtual void OnContextMenuShownInField(
       const FormGlobalId& form_global_id,
       const FieldGlobalId& field_global_id) = 0;
-
-  // Notifies observers about a form being filled with an autofill address
-  // profile or credit card.
-  void OnAutofillProfileOrCreditCardFormFilled(
-      autofill::FormGlobalId form,
-      base::span<const std::pair<const FormFieldData*, const AutofillField*>>
-          filled_fields,
-      absl::variant<const AutofillProfile*, const CreditCard*>
-          profile_or_credit_card);
 
   // translate::TranslateDriver::LanguageDetectionObserver:
   void OnTranslateDriverDestroyed(
@@ -338,6 +307,9 @@ class AutofillManager
   size_t NumFormsDetected() const { return form_structures_.size(); }
 
   // Forwards call to the same-named `AutofillDriver` function.
+  virtual void SetShouldSuppressKeyboard(bool suppress);
+
+  // Forwards call to the same-named `AutofillDriver` function.
   virtual bool CanShowAutofillUi() const;
 
   // Forwards call to the same-named `AutofillDriver` function.
@@ -363,16 +335,34 @@ class AutofillManager
     return form_structures_;
   }
 
-  AutofillDriver& driver() { return *driver_; }
-  const AutofillDriver& driver() const { return *driver_; }
+  AutofillDriver* driver() { return driver_; }
+  const AutofillDriver* driver() const { return driver_; }
 
   AutofillDownloadManager* download_manager() {
-    return client().GetDownloadManager();
+    return client()->GetDownloadManager();
   }
 
   // The return value shouldn't be cached, retrieve it as needed.
   AutofillMetrics::FormInteractionsUkmLogger* form_interactions_ukm_logger() {
     return form_interactions_ukm_logger_.get();
+  }
+
+  // A public wrapper that calls |OnLoadedServerPredictions| for testing
+  // purposes only, it is used by WebView integration test and unit test, so it
+  // can't be in #ifdef UNIT_TEST.
+  void OnLoadedServerPredictionsForTest(
+      std::string response,
+      const std::vector<FormSignature>& queried_form_signatures) {
+    OnLoadedServerPredictions(response, queried_form_signatures);
+  }
+
+  std::map<FormGlobalId, std::unique_ptr<FormStructure>>*
+  mutable_form_structures_for_test() {
+    return mutable_form_structures();
+  }
+
+  FormStructure* ParseFormForTest(const FormData& form) {
+    return ParseForm(form, nullptr);
   }
 
  protected:
@@ -389,8 +379,8 @@ class AutofillManager
   // while prerendering, these will be unnecessary (they're used during Reset
   // which can be called during prerendering, but we could skip Reset for
   // prerendering if we never have state to clear).
-  AutofillClient& unsafe_client() { return *client_; }
-  const AutofillClient& unsafe_client() const { return *client_; }
+  AutofillClient* unsafe_client() { return client_; }
+  const AutofillClient* unsafe_client() const { return client_; }
 
   virtual void OnFormSubmittedImpl(const FormData& form,
                                    bool known_success,
@@ -423,17 +413,15 @@ class AutofillManager
       const FormData& form,
       const base::TimeTicks timestamp) = 0;
 
-  virtual void FillCreditCardFormImpl(
-      const FormData& form,
-      const FormFieldData& field,
-      const CreditCard& credit_card,
-      const std::u16string& cvc,
-      const AutofillTriggerDetails& trigger_details) = 0;
-  virtual void FillProfileFormImpl(
-      const FormData& form,
-      const FormFieldData& field,
-      const AutofillProfile& profile,
-      const AutofillTriggerDetails& trigger_details) = 0;
+  virtual void FillCreditCardFormImpl(const FormData& form,
+                                      const FormFieldData& field,
+                                      const CreditCard& credit_card,
+                                      const std::u16string& cvc,
+                                      AutofillTriggerSource trigger_source) = 0;
+  virtual void FillProfileFormImpl(const FormData& form,
+                                   const FormFieldData& field,
+                                   const AutofillProfile& profile,
+                                   AutofillTriggerSource trigger_source) = 0;
 
   virtual void OnFocusNoLongerOnFormImpl(bool had_interacted_form) = 0;
 
@@ -443,8 +431,7 @@ class AutofillManager
 
   virtual void OnHidePopupImpl() = 0;
 
-  virtual void OnSelectOrSelectListFieldOptionsDidChangeImpl(
-      const FormData& form) = 0;
+  virtual void OnSelectFieldOptionsDidChangeImpl(const FormData& form) = 0;
 
   virtual void OnJavaScriptChangedAutofilledValueImpl(
       const FormData& form,
@@ -523,8 +510,6 @@ class AutofillManager
   }
 
  private:
-  friend class AutofillManagerTestApi;
-
   // AutofillDownloadManager::Observer:
   void OnLoadedServerPredictions(
       std::string response,
@@ -537,14 +522,14 @@ class AutofillManager
   std::unique_ptr<AutofillMetrics::FormInteractionsUkmLogger>
   CreateFormInteractionsUkmLogger();
 
-  // Provides driver-level context to the shared code of the component.
-  // `*driver_` owns this object.
-  const raw_ref<AutofillDriver> driver_;
+  // Provides driver-level context to the shared code of the component. Must
+  // outlive this object.
+  const raw_ptr<AutofillDriver, DanglingUntriaged> driver_;
 
   // Do not access this directly. Instead, please use client() or
   // unsafe_client(). These functions check (or explicitly don't check) that the
   // client isn't accessed incorrectly.
-  const raw_ref<AutofillClient> client_;
+  const raw_ptr<AutofillClient> client_;
 
   const raw_ptr<LogManager> log_manager_;
 

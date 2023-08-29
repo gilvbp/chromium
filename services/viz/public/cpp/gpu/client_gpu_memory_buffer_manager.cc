@@ -150,11 +150,7 @@ ClientGpuMemoryBufferManager::CreateGpuMemoryBuffer(
     base::WaitableEvent* shutdown_event) {
   // Note: this can be called from multiple threads at the same time. Some of
   // those threads may not have a TaskRunner set.
-  // One of such threads is a WebRTC encoder thread.
-  // That thread is not owned by chromium and therefore doesn't have any
-  // blocking scope machinery. But the workload there is supposed to happen
-  // synchronously, because this is how the WebRTC architecture is designed.
-  base::ScopedAllowBaseSyncPrimitivesOutsideBlockingScope allow;
+  base::ScopedAllowBaseSyncPrimitives allow;
   DCHECK_EQ(gpu::kNullSurfaceHandle, surface_handle);
   CHECK(!thread_.task_runner()->BelongsToCurrentThread());
   gfx::GpuMemoryBufferHandle gmb_handle;
@@ -213,13 +209,7 @@ bool ClientGpuMemoryBufferManager::CopyGpuMemoryBufferSync(
     base::UnsafeSharedMemoryRegion memory_region) {
   base::WaitableEvent event;
   bool mapping_result = false;
-  // Note: this can be called from multiple threads at the same time. Some of
-  // those threads may not have a TaskRunner set.
-  // One of such threads is a WebRTC encoder thread.
-  // That thread is not owned by chromium and therefore doesn't have any
-  // blocking scope machinery. But the workload there is supposed to happen
-  // synchronously, because this is how the WebRTC architecture is designed.
-  base::ScopedAllowBaseSyncPrimitivesOutsideBlockingScope allow;
+  base::ScopedAllowBaseSyncPrimitives allow;
   CopyGpuMemoryBufferAsync(
       std::move(buffer_handle), std::move(memory_region),
       base::BindOnce(

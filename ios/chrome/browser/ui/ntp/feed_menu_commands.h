@@ -9,7 +9,7 @@
 @protocol FeedMenuCommands
 
 // Opens feed control menu.
-- (void)openFeedMenuFromButton:(UIButton*)button;
+- (void)openFeedMenu;
 
 @end
 

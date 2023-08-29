@@ -4,7 +4,7 @@
 
 #import "ios/chrome/browser/ui/qr_scanner/qr_scanner_app_interface.h"
 
-#import "base/apple/foundation_util.h"
+#import "base/mac/foundation_util.h"
 #import "base/strings/sys_string_conversions.h"
 #import "base/strings/utf_string_conversions.h"
 #import "components/search_engines/template_url_service.h"
@@ -29,6 +29,10 @@
 #import "third_party/ocmock/OCMock/OCMock.h"
 #import "ui/base/l10n/l10n_util.h"
 #import "ui/base/l10n/l10n_util_mac.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 using scanner::CameraState;
 
@@ -209,7 +213,7 @@ using scanner::CameraState;
             (UIViewController*)qrScanner
                                                     isOn:(BOOL)isOn {
   QRScannerViewController* qrScannerViewController =
-      base::apple::ObjCCast<QRScannerViewController>(qrScanner);
+      base::mac::ObjCCast<QRScannerViewController>(qrScanner);
   [qrScannerViewController overrideVoiceOverCheck:isOn];
 }
 

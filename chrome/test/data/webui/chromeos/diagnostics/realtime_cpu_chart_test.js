@@ -16,7 +16,7 @@ suite('realtimeCpuChartTestSuite', function() {
   let realtimeCpuChartElement = null;
 
   setup(() => {
-    document.body.innerHTML = window.trustedTypes.emptyHTML;
+    document.body.innerHTML = '';
   });
 
   teardown(() => {

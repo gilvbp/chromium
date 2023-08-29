@@ -9,8 +9,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
-import androidx.annotation.Px;
-
 import org.chromium.chrome.R;
 import org.chromium.chrome.browser.compositor.bottombar.OverlayPanel;
 import org.chromium.chrome.browser.compositor.bottombar.OverlayPanelTextViewInflater;
@@ -58,12 +56,6 @@ public class ContextualSearchTermControl extends OverlayPanelTextViewInflater {
         mSearchTerm.setText(sanitizeText(searchTerm));
 
         invalidate();
-    }
-
-    /** Returns the search term's TextView height. */
-    @Px
-    int getTextViewHeight() {
-        return mSearchTerm == null ? 0 : mSearchTerm.getHeight();
     }
 
     //========================================================================================

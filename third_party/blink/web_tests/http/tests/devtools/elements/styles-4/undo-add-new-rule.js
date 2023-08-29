@@ -5,8 +5,6 @@
 import {TestRunner} from 'test_runner';
 import {ElementsTestRunner} from 'elements_test_runner';
 
-import * as SDK from 'devtools/core/sdk/sdk.js';
-
 (async function() {
   TestRunner.addResult(`Tests that adding a new rule can be undone.\n`);
   await TestRunner.loadLegacyModule('elements');
@@ -35,7 +33,7 @@ import * as SDK from 'devtools/core/sdk/sdk.js';
   }
 
   function step4() {
-    SDK.DOMModel.DOMModelUndoStack.instance().undo();
+    SDK.domModelUndoStack.undo();
     ElementsTestRunner.selectNodeAndWaitForStyles('other', step5);
   }
 
@@ -46,7 +44,7 @@ import * as SDK from 'devtools/core/sdk/sdk.js';
   }
 
   function step6() {
-    SDK.DOMModel.DOMModelUndoStack.instance().redo();
+    SDK.domModelUndoStack.redo();
     ElementsTestRunner.selectNodeAndWaitForStyles('inspected', step7);
   }
 

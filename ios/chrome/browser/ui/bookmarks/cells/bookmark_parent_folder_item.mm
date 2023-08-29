@@ -4,8 +4,8 @@
 
 #import "ios/chrome/browser/ui/bookmarks/cells/bookmark_parent_folder_item.h"
 
-#import "base/apple/foundation_util.h"
 #import "base/i18n/rtl.h"
+#import "base/mac/foundation_util.h"
 #import "base/strings/sys_string_conversions.h"
 #import "ios/chrome/browser/shared/ui/symbols/chrome_icon.h"
 #import "ios/chrome/browser/shared/ui/symbols/symbols.h"
@@ -15,6 +15,10 @@
 #import "ios/chrome/common/ui/util/constraints_ui_util.h"
 #import "ios/chrome/grit/ios_strings.h"
 #import "ui/base/l10n/l10n_util_mac.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 #pragma mark - BookmarkParentFolderItem
 
@@ -38,7 +42,7 @@
            withStyler:(ChromeTableViewStyler*)styler {
   [super configureCell:tableCell withStyler:styler];
   BookmarkParentFolderCell* cell =
-      base::apple::ObjCCastStrict<BookmarkParentFolderCell>(tableCell);
+      base::mac::ObjCCastStrict<BookmarkParentFolderCell>(tableCell);
   cell.parentFolderNameLabel.text = self.title;
   cell.cloudSlashedView.hidden = !self.shouldDisplayCloudSlashIcon;
 }

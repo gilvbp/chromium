@@ -72,6 +72,9 @@ GetSwitchDependentFeatureOverrides(const base::CommandLine& command_line) {
      std::cref(features::kBlockInsecurePrivateNetworkRequestsFromUnknown),
      base::FeatureList::OVERRIDE_ENABLE_FEATURE},
     {switches::kEnableExperimentalWebPlatformFeatures,
+     std::cref(features::kBlockInsecurePrivateNetworkRequestsForNavigations),
+     base::FeatureList::OVERRIDE_ENABLE_FEATURE},
+    {switches::kEnableExperimentalWebPlatformFeatures,
      std::cref(features::kPrivateNetworkAccessRespectPreflightResults),
      base::FeatureList::OVERRIDE_ENABLE_FEATURE},
     {switches::kEnableExperimentalWebPlatformFeatures,
@@ -100,12 +103,6 @@ GetSwitchDependentFeatureOverrides(const base::CommandLine& command_line) {
      base::FeatureList::OVERRIDE_ENABLE_FEATURE},
     {switches::kEnableExperimentalWebPlatformFeatures,
      std::cref(blink::features::kStorageAccessAPIForOriginExtension),
-     base::FeatureList::OVERRIDE_ENABLE_FEATURE},
-    {switches::kEnableExperimentalWebPlatformFeatures,
-     std::cref(blink::features::kClientHintsFormFactor),
-     base::FeatureList::OVERRIDE_ENABLE_FEATURE},
-    {switches::kEnableExperimentalWebPlatformFeatures,
-     std::cref(blink::features::kClientHintsPrefersReducedTransparency),
      base::FeatureList::OVERRIDE_ENABLE_FEATURE},
 
     // Overrides for --enable-experimental-cookie-features.

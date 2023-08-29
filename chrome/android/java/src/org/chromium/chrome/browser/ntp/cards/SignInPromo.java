@@ -10,7 +10,6 @@ import android.text.format.DateUtils;
 import androidx.annotation.VisibleForTesting;
 
 import org.chromium.base.ContextUtils;
-import org.chromium.base.ResettersForTesting;
 import org.chromium.chrome.browser.preferences.ChromePreferenceKeys;
 import org.chromium.chrome.browser.preferences.SharedPreferencesManager;
 import org.chromium.chrome.browser.signin.SyncConsentActivityLauncherImpl;
@@ -144,11 +143,12 @@ public abstract class SignInPromo {
         setVisibilityInternal(false);
     }
 
-    public static void setDisablePromoForTesting(boolean disable) {
+    @VisibleForTesting
+    public static void setDisablePromoForTests(boolean disable) {
         sDisablePromoForTests = disable;
-        ResettersForTesting.register(() -> sDisablePromoForTests = false);
     }
 
+    @VisibleForTesting
     public SigninObserver getSigninObserverForTesting() {
         return mSigninObserver;
     }
@@ -209,7 +209,7 @@ public abstract class SignInPromo {
 
         // AccountsChangeObserver implementation.
         @Override
-        public void onCoreAccountInfosChanged() {
+        public void onAccountsChanged() {
             // We don't change the visibility here to avoid the promo popping up in the feed
             // unexpectedly. If accounts are ready, the promo will be shown up on the next reload.
             notifyDataChanged();

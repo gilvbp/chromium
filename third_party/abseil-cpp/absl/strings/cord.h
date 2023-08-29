@@ -110,28 +110,7 @@ enum class CordMemoryAccounting {
   // Counts the *approximate* number of bytes held in full or in part by this
   // Cord (which may not remain the same between invocations). Cords that share
   // memory could each be "charged" independently for the same shared memory.
-  // See also comment on `kTotalMorePrecise` on internally shared memory.
   kTotal,
-
-  // Counts the *approximate* number of bytes held in full or in part by this
-  // Cord for the distinct memory held by this cord. This option is similar
-  // to `kTotal`, except that if the cord has multiple references to the same
-  // memory, that memory is only counted once.
-  //
-  // For example:
-  //   absl::Cord cord;
-  //   cord.append(some_other_cord);
-  //   cord.append(some_other_cord);
-  //   // Counts `some_other_cord` twice:
-  //   cord.EstimatedMemoryUsage(kTotal);
-  //   // Counts `some_other_cord` once:
-  //   cord.EstimatedMemoryUsage(kTotalMorePrecise);
-  //
-  // The `kTotalMorePrecise` number is more expensive to compute as it requires
-  // deduplicating all memory references. Applications should prefer to use
-  // `kFairShare` or `kTotal` unless they really need a more precise estimate
-  // on "how much memory is potentially held / kept alive by this cord?"
-  kTotalMorePrecise,
 
   // Counts the *approximate* number of bytes held in full or in part by this
   // Cord weighted by the sharing ratio of that data. For example, if some data
@@ -396,12 +375,6 @@ class Cord {
   bool EndsWith(absl::string_view rhs) const;
   bool EndsWith(const Cord& rhs) const;
 
-  // Cord::Contains()
-  //
-  // Determines whether the Cord contains the passed string data `rhs`.
-  bool Contains(absl::string_view rhs) const;
-  bool Contains(const Cord& rhs) const;
-
   // Cord::operator std::string()
   //
   // Converts a Cord into a `std::string()`. This operator is marked explicit to
@@ -521,7 +494,7 @@ class Cord {
   //                                         absl::string_view s) {
   //     return std::find(c.chunk_begin(), c.chunk_end(), s);
   //   }
-  ChunkIterator chunk_begin() const ABSL_ATTRIBUTE_LIFETIME_BOUND;
+  ChunkIterator chunk_begin() const;
 
   // Cord::chunk_end()
   //
@@ -530,7 +503,7 @@ class Cord {
   // Generally, prefer using `Cord::Chunks()` within a range-based for loop for
   // iterating over the chunks of a Cord. This method may be useful for getting
   // a `ChunkIterator` where range-based for-loops may not be available.
-  ChunkIterator chunk_end() const ABSL_ATTRIBUTE_LIFETIME_BOUND;
+  ChunkIterator chunk_end() const;
 
   //----------------------------------------------------------------------------
   // Cord::ChunkRange
@@ -584,7 +557,7 @@ class Cord {
   //       // The temporary Cord returned by CordFactory has been destroyed!
   //     }
   //   }
-  ChunkRange Chunks() const ABSL_ATTRIBUTE_LIFETIME_BOUND;
+  ChunkRange Chunks() const;
 
   //----------------------------------------------------------------------------
   // Cord::CharIterator
@@ -664,7 +637,7 @@ class Cord {
   // Generally, prefer using `Cord::Chars()` within a range-based for loop for
   // iterating over the chunks of a Cord. This method may be useful for getting
   // a `CharIterator` where range-based for-loops may not be available.
-  CharIterator char_begin() const ABSL_ATTRIBUTE_LIFETIME_BOUND;
+  CharIterator char_begin() const;
 
   // Cord::char_end()
   //
@@ -673,7 +646,7 @@ class Cord {
   // Generally, prefer using `Cord::Chars()` within a range-based for loop for
   // iterating over the chunks of a Cord. This method may be useful for getting
   // a `CharIterator` where range-based for-loops are not useful.
-  CharIterator char_end() const ABSL_ATTRIBUTE_LIFETIME_BOUND;
+  CharIterator char_end() const;
 
   // Cord::CharRange
   //
@@ -725,7 +698,7 @@ class Cord {
   //       // The temporary Cord returned by CordFactory has been destroyed!
   //     }
   //   }
-  CharRange Chars() const ABSL_ATTRIBUTE_LIFETIME_BOUND;
+  CharRange Chars() const;
 
   // Cord::operator[]
   //
@@ -743,23 +716,14 @@ class Cord {
   //
   // If this cord's representation is a single flat array, returns a
   // string_view referencing that array.  Otherwise returns nullopt.
-  absl::optional<absl::string_view> TryFlat() const
-      ABSL_ATTRIBUTE_LIFETIME_BOUND;
+  absl::optional<absl::string_view> TryFlat() const;
 
   // Cord::Flatten()
   //
   // Flattens the cord into a single array and returns a view of the data.
   //
   // If the cord was already flat, the contents are not modified.
-  absl::string_view Flatten() ABSL_ATTRIBUTE_LIFETIME_BOUND;
-
-  // Cord::Find()
-  //
-  // Returns an iterator to the first occurrance of the substring `needle`.
-  //
-  // If the substring `needle` does not occur, `Cord::char_end()` is returned.
-  CharIterator Find(absl::string_view needle) const;
-  CharIterator Find(const absl::Cord& needle) const;
+  absl::string_view Flatten();
 
   // Supports absl::Cord as a sink object for absl::Format().
   friend void AbslFormatFlush(absl::Cord* cord, absl::string_view part) {
@@ -1042,8 +1006,6 @@ class Cord {
   friend class CrcCord;
   void SetCrcCordState(crc_internal::CrcCordState state);
   const crc_internal::CrcCordState* MaybeGetCrcCordState() const;
-
-  CharIterator FindImpl(CharIterator it, absl::string_view needle) const;
 };
 
 ABSL_NAMESPACE_END
@@ -1311,16 +1273,10 @@ inline size_t Cord::EstimatedMemoryUsage(
     CordMemoryAccounting accounting_method) const {
   size_t result = sizeof(Cord);
   if (const absl::cord_internal::CordRep* rep = contents_.tree()) {
-    switch (accounting_method) {
-      case CordMemoryAccounting::kFairShare:
-        result += cord_internal::GetEstimatedFairShareMemoryUsage(rep);
-        break;
-      case CordMemoryAccounting::kTotalMorePrecise:
-        result += cord_internal::GetMorePreciseMemoryUsage(rep);
-        break;
-      case CordMemoryAccounting::kTotal:
-        result += cord_internal::GetEstimatedMemoryUsage(rep);
-        break;
+    if (accounting_method == CordMemoryAccounting::kFairShare) {
+      result += cord_internal::GetEstimatedFairShareMemoryUsage(rep);
+    } else {
+      result += cord_internal::GetEstimatedMemoryUsage(rep);
     }
   }
   return result;
@@ -1635,7 +1591,7 @@ inline bool operator>=(const Cord& x, const Cord& y) {
 // Nonmember Cord-to-absl::string_view relational operators.
 //
 // Due to implicit conversions, these also enable comparisons of Cord with
-// std::string and const char*.
+// with std::string, ::string, and const char*.
 inline bool operator==(const Cord& lhs, absl::string_view rhs) {
   size_t lhs_size = lhs.size();
   size_t rhs_size = rhs.size();

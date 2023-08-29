@@ -1028,6 +1028,8 @@ void DesktopWindowTreeHostWin::HandleClientSizeChanged(
 }
 
 void DesktopWindowTreeHostWin::HandleFrameChanged() {
+  CheckForMonitorChange();
+  desktop_native_widget_aura_->UpdateWindowTransparency();
   // Replace the frame and layout the contents.
   if (GetWidget()->non_client_view())
     GetWidget()->non_client_view()->UpdateFrame();

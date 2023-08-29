@@ -55,7 +55,6 @@ import org.chromium.chrome.browser.tab.TabHidingType;
 import org.chromium.chrome.browser.tab.TabObserver;
 import org.chromium.chrome.browser.tabmodel.TabModelSelector;
 import org.chromium.chrome.browser.tabmodel.TabModelSelectorObserver;
-import org.chromium.chrome.browser.ui.hats.SurveyController;
 import org.chromium.components.messages.DismissReason;
 import org.chromium.components.messages.MessageBannerProperties;
 import org.chromium.components.messages.MessageDispatcher;
@@ -124,7 +123,7 @@ public class ChromeSurveyControllerFlowTest {
         mFieldTrialParams.put(ChromeSurveyController.MAX_NUMBER, "1");
         enableChromeSurveyNextFeatureWithParams(mFieldTrialParams, true);
 
-        ChromeSurveyController.setSurveyControllerForTesting(mTestSurveyController);
+        SurveyController.setInstanceForTesting(mTestSurveyController);
 
         ChromeSurveyController.forceIsUMAEnabledForTesting(true);
         mPrefKeyPromptShown =
@@ -140,6 +139,7 @@ public class ChromeSurveyControllerFlowTest {
 
     @After
     public void tearDown() {
+        ChromeSurveyController.forceIsUMAEnabledForTesting(false);
         ChromeSurveyController.resetMessageShownForTesting();
         FeatureList.setTestValues(null);
         UmaRecorderHolder.resetForTesting();
@@ -635,7 +635,7 @@ public class ChromeSurveyControllerFlowTest {
         FeatureList.setTestValues(testValues);
     }
 
-    private static class TestSurveyController implements SurveyController {
+    private static class TestSurveyController extends SurveyController {
         public final CallbackHelper downloadIfApplicableCallback = new CallbackHelper();
         public final CallbackHelper showSurveyIfAvailableCallback = new CallbackHelper();
         public boolean isSurveyExpired;
@@ -655,9 +655,9 @@ public class ChromeSurveyControllerFlowTest {
         }
 
         @Override
-        public void showSurveyIfAvailable(Activity activity, String triggerId, int displayLogoResId,
-                @Nullable ActivityLifecycleDispatcher lifecycleDispatcher,
-                @Nullable Map<String, String> psd) {
+        public void showSurveyIfAvailable(Activity activity, String siteId,
+                boolean showAsBottomSheet, int displayLogoResId,
+                @Nullable ActivityLifecycleDispatcher lifecycleDispatcher) {
             showSurveyIfAvailableCallback.notifyCalled();
         }
 

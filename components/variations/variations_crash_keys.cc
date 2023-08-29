@@ -54,9 +54,6 @@ crash_reporter::CrashKeyString<8> g_num_variations_crash_key(
 crash_reporter::CrashKeyString<kVariationsKeySize> g_variations_crash_key(
     kExperimentListKey);
 
-crash_reporter::CrashKeyString<64> g_variations_seed_version_crash_key(
-    kVariationsSeedVersionKey);
-
 std::string ActiveGroupToString(const ActiveGroupId& active_group) {
   return base::StringPrintf("%x-%x,", active_group.name, active_group.group);
 }
@@ -159,7 +156,6 @@ VariationsCrashKeys::~VariationsCrashKeys() {
   base::FieldTrialListIncludingLowAnonymity::RemoveObserver(this);
   g_num_variations_crash_key.Clear();
   g_variations_crash_key.Clear();
-  g_variations_seed_version_crash_key.Clear();
 }
 
 void VariationsCrashKeys::OnFieldTrialGroupFinalized(
@@ -230,7 +226,6 @@ void VariationsCrashKeys::UpdateCrashKeys() {
   }
 
   g_variations_crash_key.Set(info.experiment_list);
-  g_variations_seed_version_crash_key.Set(GetSeedVersion());
 
 #if BUILDFLAG(IS_CHROMEOS_ASH) || BUILDFLAG(IS_CHROMEOS_LACROS)
   ReportVariationsToChromeOs(background_thread_task_runner_, info);
@@ -260,7 +255,6 @@ VariationsCrashKeys* g_variations_crash_keys = nullptr;
 
 const char kNumExperimentsKey[] = "num-experiments";
 const char kExperimentListKey[] = "variations";
-const char kVariationsSeedVersionKey[] = "variations-seed-version";
 
 void InitCrashKeys() {
   DCHECK(!g_variations_crash_keys);

@@ -4,9 +4,11 @@
 
 #include "headless/lib/headless_content_main_delegate.h"
 
-#import <Cocoa/Cocoa.h>
-
 #include "headless/lib/browser/headless_shell_application_mac.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace headless {
 
@@ -19,9 +21,6 @@ void HeadlessContentMainDelegate::PlatformPreBrowserMain() {
   // NSApplication. This is undesirable and we must enforce that this doesn't
   // happen.
   CHECK([NSApp isKindOfClass:[HeadlessShellCrApplication class]]);
-
-  // Force hide dock and menu bar.
-  NSApp.activationPolicy = NSApplicationActivationPolicyAccessory;
 }
 
 }  // namespace headless

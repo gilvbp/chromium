@@ -21,14 +21,12 @@
 #include "base/functional/callback.h"
 #include "base/functional/function_ref.h"
 #include "base/functional/overloaded.h"
-#include "base/memory/raw_ref.h"
 #include "base/metrics/histogram_functions.h"
 #include "base/time/time.h"
 #include "base/types/expected.h"
-#include "base/types/expected_macros.h"
 #include "base/values.h"
 #include "components/attribution_reporting/os_registration.h"
-#include "components/attribution_reporting/registration_eligibility.mojom.h"
+#include "components/attribution_reporting/registration_type.mojom.h"
 #include "components/attribution_reporting/source_registration.h"
 #include "components/attribution_reporting/source_registration_error.mojom.h"
 #include "components/attribution_reporting/source_type.mojom.h"
@@ -60,7 +58,6 @@
 #include "third_party/abseil-cpp/absl/types/variant.h"
 #include "third_party/blink/public/common/tokens/tokens.h"
 #include "third_party/blink/public/mojom/conversions/attribution_data_host.mojom.h"
-#include "third_party/blink/public/mojom/devtools/inspector_issue.mojom.h"
 #include "third_party/blink/public/mojom/use_counter/metrics/web_feature.mojom.h"
 #include "url/gurl.h"
 #include "url/origin.h"
@@ -70,7 +67,7 @@ namespace content {
 namespace {
 
 using ::attribution_reporting::SuitableOrigin;
-using ::attribution_reporting::mojom::RegistrationEligibility;
+using ::attribution_reporting::mojom::RegistrationType;
 using ::attribution_reporting::mojom::SourceRegistrationError;
 using ::attribution_reporting::mojom::SourceType;
 
@@ -104,9 +101,23 @@ void RecordRegisterDataHostHostOutcome(RegisterDataHostOutcome status) {
   base::UmaHistogramEnumeration("Conversions.RegisterDataHostOutcome", status);
 }
 
+enum class Registrar {
+  kWeb,
+  kOs,
+};
+
 const base::TimeDelta kDeferredReceiversTimeout = base::Seconds(10);
 
 constexpr size_t kMaxDeferredReceiversPerNavigation = 30;
+
+struct PendingWebDecode {
+  std::string header;
+  SuitableOrigin reporting_origin;
+
+  PendingWebDecode(std::string header, SuitableOrigin reporting_origin)
+      : header(std::move(header)),
+        reporting_origin(std::move(reporting_origin)) {}
+};
 
 class RegistrationNavigationContext {
  public:
@@ -140,55 +151,22 @@ class RegistrationNavigationContext {
   AttributionInputEvent input_event_;
 };
 
-void LogAuditIssue(GlobalRenderFrameHostId render_frame_id,
-                   blink::mojom::AttributionReportingIssueType violation_type,
-                   const GURL& request_url,
-                   const std::string& request_devtools_id,
-                   absl::optional<std::string> invalid_parameter) {
-  auto* render_frame_host = RenderFrameHost::FromID(render_frame_id);
-  if (!render_frame_host) {
-    return;
-  }
-
-  auto issue = blink::mojom::InspectorIssueInfo::New();
-
-  issue->code = blink::mojom::InspectorIssueCode::kAttributionReportingIssue;
-
-  auto details = blink::mojom::AttributionReportingIssueDetails::New();
-  details->violation_type = violation_type;
-  if (invalid_parameter.has_value()) {
-    details->invalid_parameter = std::move(invalid_parameter.value());
-  }
-
-  auto affected_request = blink::mojom::AffectedRequest::New();
-  affected_request->request_id = request_devtools_id;
-  affected_request->url = request_url.spec();
-  details->request = std::move(affected_request);
-
-  issue->details = blink::mojom::InspectorIssueDetails::New();
-  issue->details->attribution_reporting_issue_details = std::move(details);
-
-  render_frame_host->ReportInspectorIssue(std::move(issue));
-}
-
 }  // namespace
 
 class AttributionDataHostManagerImpl::RegistrationContext {
  public:
   RegistrationContext(SuitableOrigin context_origin,
-                      RegistrationEligibility registration_eligibility,
+                      RegistrationType registration_type,
                       bool is_within_fenced_frame,
                       GlobalRenderFrameHostId render_frame_id,
-                      absl::optional<std::string> devtools_request_id,
                       absl::optional<RegistrationNavigationContext> navigation)
       : context_origin_(std::move(context_origin)),
-        registration_eligibility_(registration_eligibility),
+        registration_type_(registration_type),
         is_within_fenced_frame_(is_within_fenced_frame),
         render_frame_id_(render_frame_id),
-        devtools_request_id_(std::move(devtools_request_id)),
         navigation_(std::move(navigation)) {
     CHECK(!navigation_.has_value() ||
-          registration_eligibility_ == RegistrationEligibility::kSource);
+          registration_type_ == RegistrationType::kSource);
   }
 
   ~RegistrationContext() = default;
@@ -201,15 +179,9 @@ class AttributionDataHostManagerImpl::RegistrationContext {
 
   const SuitableOrigin& context_origin() const { return context_origin_; }
 
-  RegistrationEligibility registration_eligibility() const {
-    return registration_eligibility_;
-  }
+  RegistrationType registration_type() const { return registration_type_; }
 
   bool is_within_fenced_frame() const { return is_within_fenced_frame_; }
-
-  const absl::optional<std::string>& devtools_request_id() const {
-    return devtools_request_id_;
-  }
 
   GlobalRenderFrameHostId render_frame_id() const { return render_frame_id_; }
 
@@ -223,7 +195,7 @@ class AttributionDataHostManagerImpl::RegistrationContext {
   SuitableOrigin context_origin_;
 
   // Logically const.
-  RegistrationEligibility registration_eligibility_;
+  RegistrationType registration_type_;
 
   // Whether the attribution is registered within a fenced frame tree.
   // Logically const.
@@ -232,11 +204,6 @@ class AttributionDataHostManagerImpl::RegistrationContext {
   // The ID of the topmost render frame host.
   // Logically const.
   GlobalRenderFrameHostId render_frame_id_;
-
-  // For sources & triggers received through the data host, issues are
-  // identified and reported in blink. As such, we don't need to plumb the
-  // devtools request ID.
-  absl::optional<std::string> devtools_request_id_;
 
   // When the registration is tied to a navigation, we store additional context
   // on the navigation.
@@ -258,20 +225,9 @@ struct AttributionDataHostManagerImpl::DeferredReceiver {
   base::TimeTicks initial_registration_time = base::TimeTicks::Now();
 };
 
-struct AttributionDataHostManagerImpl::HeaderPendingDecode {
-  std::string header;
-  SuitableOrigin reporting_origin;
-  GURL reporting_url;
-
-  HeaderPendingDecode(std::string header,
-                      SuitableOrigin reporting_origin,
-                      GURL reporting_url)
-      : header(std::move(header)),
-        reporting_origin(std::move(reporting_origin)),
-        reporting_url(std::move(reporting_url)) {
-    DCHECK_EQ(url::Origin::Create(this->reporting_origin->GetURL()),
-              url::Origin::Create(this->reporting_url));
-  }
+struct AttributionDataHostManagerImpl::NavigationDataHost {
+  mojo::PendingReceiver<blink::mojom::AttributionDataHost> data_host;
+  AttributionInputEvent input_event;
 };
 
 class AttributionDataHostManagerImpl::SourceRegistrations {
@@ -319,23 +275,19 @@ class AttributionDataHostManagerImpl::SourceRegistrations {
     return context_.render_frame_id();
   }
 
-  const absl::optional<std::string>& devtools_request_id() const {
-    return context_.devtools_request_id();
-  }
-
-  const base::circular_deque<HeaderPendingDecode>& pending_web_decodes() const {
+  const base::circular_deque<PendingWebDecode>& pending_web_decodes() const {
     return pending_web_decodes_;
   }
 
-  base::circular_deque<HeaderPendingDecode>& pending_web_decodes() {
+  base::circular_deque<PendingWebDecode>& pending_web_decodes() {
     return pending_web_decodes_;
   }
 
-  const base::circular_deque<HeaderPendingDecode>& pending_os_decodes() const {
+  const base::circular_deque<std::string>& pending_os_decodes() const {
     return pending_os_decodes_;
   }
 
-  base::circular_deque<HeaderPendingDecode>& pending_os_decodes() {
+  base::circular_deque<std::string>& pending_os_decodes() {
     return pending_os_decodes_;
   }
 
@@ -366,26 +318,19 @@ class AttributionDataHostManagerImpl::SourceRegistrations {
 
   SourceRegistrationsId id_;
 
-  base::circular_deque<HeaderPendingDecode> pending_web_decodes_;
+  base::circular_deque<PendingWebDecode> pending_web_decodes_;
 
-  base::circular_deque<HeaderPendingDecode> pending_os_decodes_;
+  base::circular_deque<std::string> pending_os_decodes_;
 
   RegistrationContext context_;
-};
-
-enum class AttributionDataHostManagerImpl::Registrar {
-  kWeb,
-  kOs,
 };
 
 struct AttributionDataHostManagerImpl::RegistrarAndHeader {
   Registrar registrar;
   std::string header;
 
-  [[nodiscard]] static absl::optional<
-      base::expected<RegistrarAndHeader,
-                     blink::mojom::AttributionReportingIssueType>>
-  Get(const net::HttpResponseHeaders* headers,
+  [[nodiscard]] static absl::optional<RegistrarAndHeader> Get(
+      const net::HttpResponseHeaders* headers,
       bool cross_app_web_runtime_enabled) {
     if (!headers) {
       return absl::nullopt;
@@ -406,28 +351,28 @@ struct AttributionDataHostManagerImpl::RegistrarAndHeader {
             network::features::kAttributionReportingCrossAppWeb) &&
         headers->GetNormalizedHeader(
             kAttributionReportingRegisterOsSourceHeader, &os_source);
-    if (has_web && has_os) {
-      return base::unexpected(
-          blink::mojom::AttributionReportingIssueType::kWebAndOsHeaders);
+
+    if (has_web == has_os) {
+      // TODO: Report a DevTools issue if both headers are present.
+      return absl::nullopt;
     }
 
     if (has_web) {
       return RegistrarAndHeader{.registrar = Registrar::kWeb,
                                 .header = std::move(web_source)};
     }
-    if (has_os) {
-      return RegistrarAndHeader{.registrar = Registrar::kOs,
-                                .header = std::move(os_source)};
-    }
 
-    return absl::nullopt;
+    DCHECK(has_os);
+    return RegistrarAndHeader{.registrar = Registrar::kOs,
+                              .header = std::move(os_source)};
   }
 };
 
 AttributionDataHostManagerImpl::AttributionDataHostManagerImpl(
     AttributionManager* attribution_manager)
-    : attribution_manager_(
-          raw_ref<AttributionManager>::from_ptr(attribution_manager)) {
+    : attribution_manager_(attribution_manager) {
+  DCHECK(attribution_manager_);
+
   receivers_.set_disconnect_handler(base::BindRepeating(
       &AttributionDataHostManagerImpl::OnReceiverDisconnected,
       base::Unretained(this)));
@@ -441,17 +386,16 @@ void AttributionDataHostManagerImpl::RegisterDataHost(
     mojo::PendingReceiver<blink::mojom::AttributionDataHost> data_host,
     SuitableOrigin context_origin,
     bool is_within_fenced_frame,
-    RegistrationEligibility registration_eligibility,
+    RegistrationType registration_type,
     GlobalRenderFrameHostId render_frame_id,
     int64_t last_navigation_id) {
   RegistrationContext receiver_context(
-      std::move(context_origin), registration_eligibility,
-      is_within_fenced_frame, render_frame_id,
-      /*devtools_request_id=*/absl::nullopt, /*navigation=*/absl::nullopt);
+      std::move(context_origin), registration_type, is_within_fenced_frame,
+      render_frame_id, /*navigation=*/absl::nullopt);
 
-  switch (registration_eligibility) {
-    case RegistrationEligibility::kTrigger:
-    case RegistrationEligibility::kSourceOrTrigger:
+  switch (registration_type) {
+    case RegistrationType::kTrigger:
+    case RegistrationType::kSourceOrTrigger:
       // We only defer trigger registrations as handling them before a source
       // can lead to a non-match that could otherwise be one.
       if (auto receivers_it = deferred_receivers_.find(last_navigation_id);
@@ -470,7 +414,7 @@ void AttributionDataHostManagerImpl::RegisterDataHost(
         return;
       }
       break;
-    case RegistrationEligibility::kSource:
+    case RegistrationType::kSource:
       break;
   }
 
@@ -481,9 +425,12 @@ void AttributionDataHostManagerImpl::RegisterDataHost(
 
 bool AttributionDataHostManagerImpl::RegisterNavigationDataHost(
     mojo::PendingReceiver<blink::mojom::AttributionDataHost> data_host,
-    const blink::AttributionSrcToken& attribution_src_token) {
+    const blink::AttributionSrcToken& attribution_src_token,
+    AttributionInputEvent input_event) {
   auto [it, inserted] = navigation_data_host_map_.try_emplace(
-      attribution_src_token, std::move(data_host));
+      attribution_src_token,
+      NavigationDataHost{.data_host = std::move(data_host),
+                         .input_event = std::move(input_event)});
   // Should only be possible with a misbehaving renderer.
   if (!inserted) {
     return false;
@@ -495,26 +442,20 @@ bool AttributionDataHostManagerImpl::RegisterNavigationDataHost(
 
 void AttributionDataHostManagerImpl::ParseSource(
     base::flat_set<SourceRegistrations>::iterator it,
-    HeaderPendingDecode pending_decode,
-    Registrar registrar) {
+    SuitableOrigin reporting_origin,
+    RegistrarAndHeader header) {
   DCHECK(it != registrations_.end());
 
-  switch (registrar) {
+  switch (header.registrar) {
     case Registrar::kWeb:
       if (!network::HasAttributionWebSupport(
               AttributionManager::GetSupport())) {
-        CHECK(it->devtools_request_id());
-        LogAuditIssue(
-            it->render_frame_id(),
-            /*violation_type=*/
-            blink::mojom::AttributionReportingIssueType::kNoWebOrOsSupport,
-            /*request_url=*/pending_decode.reporting_url,
-            *it->devtools_request_id(),
-            /*invalid_parameter=*/absl::nullopt);
+        // TODO(crbug.com/1426450): Report a DevTools issue.
         MaybeOnRegistrationsFinished(it);
         break;
       }
-      it->pending_web_decodes().emplace_back(std::move(pending_decode));
+      it->pending_web_decodes().emplace_back(std::move(header.header),
+                                             std::move(reporting_origin));
       // Only perform the decode if it is the only one in the queue. Otherwise,
       // there's already an async decode in progress.
       if (it->pending_web_decodes().size() == 1) {
@@ -523,14 +464,7 @@ void AttributionDataHostManagerImpl::ParseSource(
       break;
     case Registrar::kOs:
       if (!network::HasAttributionOsSupport(AttributionManager::GetSupport())) {
-        CHECK(it->devtools_request_id());
-        LogAuditIssue(
-            it->render_frame_id(),
-            /*violation_type=*/
-            blink::mojom::AttributionReportingIssueType::kNoWebOrOsSupport,
-            /*request_url=*/pending_decode.reporting_url,
-            *it->devtools_request_id(),
-            /*invalid_parameter=*/absl::nullopt);
+        // TODO(crbug.com/1426450): Report a DevTools issue.
         MaybeOnRegistrationsFinished(it);
         break;
       }
@@ -539,7 +473,7 @@ void AttributionDataHostManagerImpl::ParseSource(
             rfh, blink::mojom::WebFeature::kAttributionReportingCrossAppWeb);
       }
 
-      it->pending_os_decodes().emplace_back(std::move(pending_decode));
+      it->pending_os_decodes().emplace_back(std::move(header.header));
       // Only perform the decode if it is the only one in the queue. Otherwise,
       // there's already an async decode in progress.
       if (it->pending_os_decodes().size() == 1) {
@@ -565,32 +499,19 @@ void AttributionDataHostManagerImpl::HandleNextOsDecode(
     const SourceRegistrations& registrations) {
   DCHECK(!registrations.pending_os_decodes().empty());
 
-  const auto& pending_decode = registrations.pending_os_decodes().front();
+  const auto& header = registrations.pending_os_decodes().front();
 
   data_decoder_.ParseStructuredHeaderList(
-      pending_decode.header,
-      base::BindOnce(&AttributionDataHostManagerImpl::OnOsSourceParsed,
-                     weak_factory_.GetWeakPtr(), registrations.Id()));
+      header, base::BindOnce(&AttributionDataHostManagerImpl::OnOsSourceParsed,
+                             weak_factory_.GetWeakPtr(), registrations.Id()));
 }
 
 void AttributionDataHostManagerImpl::NotifyNavigationRegistrationStarted(
     const blink::AttributionSrcToken& attribution_src_token,
-    AttributionInputEvent input_event,
     const SuitableOrigin& source_origin,
     bool is_within_fenced_frame,
     GlobalRenderFrameHostId render_frame_id,
-    int64_t navigation_id,
-    std::string devtools_request_id) {
-  auto [_, registration_inserted] = registrations_.emplace(
-      SourceRegistrationsId(attribution_src_token),
-      RegistrationContext(
-          /*context_origin=*/source_origin, RegistrationEligibility::kSource,
-          is_within_fenced_frame, render_frame_id,
-          std::move(devtools_request_id),
-          RegistrationNavigationContext(navigation_id, input_event)));
-  DCHECK(registration_inserted);
-  MaybeSetupDeferredReceivers(navigation_id);
-
+    int64_t navigation_id) {
   // A navigation-associated interface is used for
   // `blink::mojom::ConversionHost` and an `AssociatedReceiver` is used on the
   // browser side, therefore it's guaranteed that
@@ -600,17 +521,18 @@ void AttributionDataHostManagerImpl::NotifyNavigationRegistrationStarted(
       it != navigation_data_host_map_.end()) {
     // We defer trigger registrations until background registrations complete;
     // when the navigation data host disconnects.
-    auto [__, inserted] =
+    auto [_, inserted] =
         ongoing_background_registrations_.emplace(navigation_id);
     DCHECK(inserted);
+    MaybeSetupDeferredReceivers(navigation_id);
 
-    receivers_.Add(this, std::move(it->second),
-                   RegistrationContext(
-                       /*context_origin=*/source_origin,
-                       RegistrationEligibility::kSource, is_within_fenced_frame,
-                       render_frame_id, /*devtools_request_id=*/absl::nullopt,
-                       RegistrationNavigationContext(navigation_id,
-                                                     std::move(input_event))));
+    receivers_.Add(
+        this, std::move(it->second.data_host),
+        RegistrationContext(
+            /*context_origin=*/source_origin, RegistrationType::kSource,
+            is_within_fenced_frame, render_frame_id,
+            RegistrationNavigationContext(navigation_id,
+                                          std::move(it->second.input_event))));
 
     navigation_data_host_map_.erase(it);
     RecordNavigationDataHostStatus(NavigationDataHostStatus::kProcessed);
@@ -622,68 +544,61 @@ void AttributionDataHostManagerImpl::NotifyNavigationRegistrationStarted(
 bool AttributionDataHostManagerImpl::NotifyNavigationRegistrationData(
     const blink::AttributionSrcToken& attribution_src_token,
     const net::HttpResponseHeaders* headers,
-    GURL reporting_url,
-    network::AttributionReportingRuntimeFeatures runtime_features) {
-  auto reporting_origin =
-      SuitableOrigin::Create(url::Origin::Create(reporting_url));
-  CHECK(reporting_origin);
-
+    SuitableOrigin reporting_origin,
+    const SuitableOrigin& source_origin,
+    AttributionInputEvent input_event,
+    bool is_within_fenced_frame,
+    GlobalRenderFrameHostId render_frame_id,
+    int64_t navigation_id,
+    network::AttributionReportingRuntimeFeatures runtime_features,
+    bool is_final_response) {
   auto header = RegistrarAndHeader::Get(
       headers, runtime_features.Has(
                    network::AttributionReportingRuntimeFeature::kCrossAppWeb));
-  if (!header.has_value()) {
-    return false;
+  if (header.has_value()) {
+    auto [it, inserted] = registrations_.emplace(
+        SourceRegistrationsId(attribution_src_token),
+        RegistrationContext(/*context_origin=*/source_origin,
+                            RegistrationType::kSource, is_within_fenced_frame,
+                            render_frame_id,
+                            RegistrationNavigationContext(
+                                navigation_id, std::move(input_event))));
+    DCHECK(!it->registrations_complete());
+
+    // We defer trigger registrations until source parsing completes.
+    MaybeSetupDeferredReceivers(navigation_id);
+    ParseSource(it, std::move(reporting_origin), std::move(*header));
   }
 
-  auto it = registrations_.find(attribution_src_token);
-  CHECK(it != registrations_.end());
-  CHECK(!it->registrations_complete());
+  if (is_final_response) {
+    // The eligible data host should have been bound in
+    // `NotifyNavigationStartedForDataHost()`.
+    // For non-top level navigation and same document navigation,
+    // `AttributionHost::RegisterNavigationDataHost()` will be called but not
+    // `NotifyNavigationStartedForDataHost()`, therefore these navigations would
+    // still be tracked.
+    if (auto it = navigation_data_host_map_.find(attribution_src_token);
+        it != navigation_data_host_map_.end()) {
+      navigation_data_host_map_.erase(it);
+      RecordNavigationDataHostStatus(NavigationDataHostStatus::kIneligible);
+    }
 
-  if (!header.value().has_value()) {
-    CHECK(it->devtools_request_id());
-    LogAuditIssue(it->render_frame_id(), /*violation_type=*/header->error(),
-                  /*request_url=*/reporting_url, *it->devtools_request_id(),
-                  /*invalid_parameter=*/absl::nullopt);
-    return false;
+    // We are not guaranteed to be processing registrations for a given
+    // navigation.
+    if (auto it = registrations_.find(attribution_src_token);
+        it != registrations_.end()) {
+      it->CompleteRegistrations();
+      MaybeOnRegistrationsFinished(it);
+    }
   }
-
-  ParseSource(it,
-              HeaderPendingDecode(std::move(header->value().header),
-                                  std::move(reporting_origin.value()),
-                                  std::move(reporting_url)),
-              header->value().registrar);
-  return true;
-}
-
-void AttributionDataHostManagerImpl::NotifyNavigationRegistrationCompleted(
-    const blink::AttributionSrcToken& attribution_src_token) {
-  // The eligible data host should have been bound in
-  // `NotifyNavigationRegistrationStarted()`. For non-top level navigation and
-  // same document navigation, `AttributionHost::RegisterNavigationDataHost()`
-  // will be called but not `NotifyNavigationRegistrationStarted()`, therefore
-  // these navigations would still be tracked.
-  if (auto it = navigation_data_host_map_.find(attribution_src_token);
-      it != navigation_data_host_map_.end()) {
-    navigation_data_host_map_.erase(it);
-    RecordNavigationDataHostStatus(NavigationDataHostStatus::kIneligible);
-  }
-
-  // It is possible to have no registration stored if
-  // `NotifyNavigationRegistrationStarted` wasn't previously called for this
-  // token. `NotifyNavigationRegistrationCompleted` is still called for these
-  // requests to the support cleanup above of `navigation_data_host_map_`.
-  if (auto it = registrations_.find(attribution_src_token);
-      it != registrations_.end()) {
-    it->CompleteRegistrations();
-    MaybeOnRegistrationsFinished(it);
-  }
+  return header.has_value();
 }
 
 const AttributionDataHostManagerImpl::RegistrationContext*
 AttributionDataHostManagerImpl::GetReceiverRegistrationContextForSource() {
   const RegistrationContext& context = receivers_.current_context();
 
-  if (context.registration_eligibility() == RegistrationEligibility::kTrigger) {
+  if (context.registration_type() == RegistrationType::kTrigger) {
     mojo::ReportBadMessage("AttributionDataHost: Not eligible for source.");
     return nullptr;
   }
@@ -695,7 +610,7 @@ const AttributionDataHostManagerImpl::RegistrationContext*
 AttributionDataHostManagerImpl::GetReceiverRegistrationContextForTrigger() {
   const RegistrationContext& context = receivers_.current_context();
 
-  if (context.registration_eligibility() == RegistrationEligibility::kSource) {
+  if (context.registration_type() == RegistrationType::kSource) {
     mojo::ReportBadMessage("AttributionDataHost: Not eligible for trigger.");
     return nullptr;
   }
@@ -807,8 +722,7 @@ void AttributionDataHostManagerImpl::NotifyFencedFrameReportingBeaconStarted(
     SuitableOrigin source_origin,
     bool is_within_fenced_frame,
     AttributionInputEvent input_event,
-    GlobalRenderFrameHostId render_frame_id,
-    std::string devtools_request_id) {
+    GlobalRenderFrameHostId render_frame_id) {
   absl::optional<RegistrationNavigationContext> navigation;
   if (navigation_id.has_value()) {
     MaybeSetupDeferredReceivers(navigation_id.value());
@@ -819,17 +733,15 @@ void AttributionDataHostManagerImpl::NotifyFencedFrameReportingBeaconStarted(
   auto [it, inserted] = registrations_.emplace(
       SourceRegistrationsId(beacon_id),
       RegistrationContext(/*context_origin=*/std::move(source_origin),
-                          RegistrationEligibility::kSource,
-                          is_within_fenced_frame, render_frame_id,
-                          std::move(devtools_request_id),
-                          std::move(navigation)));
+                          RegistrationType::kSource, is_within_fenced_frame,
+                          render_frame_id, std::move(navigation)));
   CHECK(inserted);
 }
 
 void AttributionDataHostManagerImpl::NotifyFencedFrameReportingBeaconData(
     BeaconId beacon_id,
     network::AttributionReportingRuntimeFeatures runtime_features,
-    GURL reporting_url,
+    url::Origin reporting_origin,
     const net::HttpResponseHeaders* headers,
     bool is_final_response) {
   auto it = registrations_.find(beacon_id);
@@ -846,7 +758,7 @@ void AttributionDataHostManagerImpl::NotifyFencedFrameReportingBeaconData(
   }
 
   absl::optional<SuitableOrigin> suitable_reporting_origin =
-      SuitableOrigin::Create(reporting_url);
+      SuitableOrigin::Create(std::move(reporting_origin));
   if (!suitable_reporting_origin) {
     MaybeOnRegistrationsFinished(it);
     return;
@@ -855,17 +767,8 @@ void AttributionDataHostManagerImpl::NotifyFencedFrameReportingBeaconData(
   auto attribution_header = RegistrarAndHeader::Get(
       headers, runtime_features.Has(
                    network::AttributionReportingRuntimeFeature::kCrossAppWeb));
-  if (!attribution_header.has_value()) {
+  if (!attribution_header) {
     MaybeOnRegistrationsFinished(it);
-    return;
-  }
-
-  if (!attribution_header->has_value()) {
-    CHECK(it->devtools_request_id());
-    LogAuditIssue(it->render_frame_id(),
-                  /*violation_type=*/attribution_header->error(),
-                  /*request_url=*/reporting_url, *it->devtools_request_id(),
-                  /*invalid_parameter=*/absl::nullopt);
     return;
   }
 
@@ -874,11 +777,8 @@ void AttributionDataHostManagerImpl::NotifyFencedFrameReportingBeaconData(
         rfh, blink::mojom::WebFeature::kAttributionFencedFrameReportingBeacon);
   }
 
-  ParseSource(it,
-              HeaderPendingDecode(std::move(attribution_header.value()->header),
-                                  std::move(suitable_reporting_origin.value()),
-                                  std::move(reporting_url)),
-              attribution_header.value()->registrar);
+  ParseSource(it, std::move(*suitable_reporting_origin),
+              std::move(*attribution_header));
 }
 
 void AttributionDataHostManagerImpl::OnWebSourceParsed(
@@ -903,11 +803,13 @@ void AttributionDataHostManagerImpl::OnWebSourceParsed(
       if (!result->is_dict()) {
         return base::unexpected(SourceRegistrationError::kRootWrongType);
       }
-      ASSIGN_OR_RETURN(auto registration,
-                       attribution_reporting::SourceRegistration::Parse(
-                           std::move(*result).TakeDict()));
+      auto registration = attribution_reporting::SourceRegistration::Parse(
+          std::move(*result).TakeDict());
+      if (!registration.has_value()) {
+        return base::unexpected(registration.error());
+      }
       return StorableSource(pending_decode.reporting_origin,
-                            std::move(registration),
+                            std::move(*registration),
                             registrations->source_origin(), source_type,
                             registrations->is_within_fenced_frame());
     }();
@@ -916,14 +818,9 @@ void AttributionDataHostManagerImpl::OnWebSourceParsed(
       attribution_manager_->HandleSource(std::move(*source),
                                          registrations->render_frame_id());
     } else {
-      CHECK(registrations->devtools_request_id());
-      LogAuditIssue(registrations->render_frame_id(),
-                    /*violation_type=*/
-                    blink::mojom::AttributionReportingIssueType::
-                        kInvalidRegisterSourceHeader,
-                    /*request_url=*/pending_decode.reporting_url,
-                    *registrations->devtools_request_id(),
-                    /*invalid_parameter=*/pending_decode.header);
+      attribution_manager_->NotifyFailedSourceRegistration(
+          pending_decode.header, registrations->source_origin(),
+          pending_decode.reporting_origin, source_type, source.error());
       attribution_reporting::RecordSourceRegistrationError(source.error());
     }
   }
@@ -944,6 +841,7 @@ void AttributionDataHostManagerImpl::OnOsSourceParsed(SourceRegistrationsId id,
 
   DCHECK(!registrations->pending_os_decodes().empty());
   {
+    // TODO: Report parsing errors to DevTools.
     if (result.has_value()) {
       std::vector<attribution_reporting::OsRegistrationItem>
           registration_items =
@@ -959,15 +857,6 @@ void AttributionDataHostManagerImpl::OnOsSourceParsed(SourceRegistrationsId id,
                            registrations->is_within_fenced_frame()),
             registrations->render_frame_id());
       }
-    } else {
-      const auto& pending_decode = registrations->pending_os_decodes().front();
-      LogAuditIssue(registrations->render_frame_id(),
-                    /*violation_type=*/
-                    blink::mojom::AttributionReportingIssueType::
-                        kInvalidRegisterOsSourceHeader,
-                    /*request_url=*/pending_decode.reporting_url,
-                    *registrations->devtools_request_id(),
-                    /*invalid_parameter=*/pending_decode.header);
     }
   }
 

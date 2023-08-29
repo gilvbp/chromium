@@ -6,7 +6,6 @@
 #include "base/files/file_path.h"
 #include "base/functional/bind.h"
 #include "base/path_service.h"
-#include "base/test/test_future.h"
 #include "chrome/test/base/in_process_browser_test.h"
 #include "chromeos/crosapi/mojom/wallpaper.mojom-test-utils.h"
 #include "chromeos/crosapi/mojom/wallpaper.mojom.h"
@@ -71,11 +70,12 @@ IN_PROC_BROWSER_TEST_F(WallpaperLacrosBrowserTest, SetWallpaper) {
   settings->layout = crosapi::mojom::WallpaperLayout::kCenter;
   settings->filename = kTestWallpaperFilename;
 
-  base::test::TestFuture<crosapi::mojom::SetWallpaperResultPtr> future;
-  lacros_service->GetRemote<crosapi::mojom::Wallpaper>()->SetWallpaper(
-      std::move(settings), kFakeExtensionId, kFakeExtensionName,
-      future.GetCallback());
-  auto result = future.Take();
+  crosapi::mojom::WallpaperAsyncWaiter async_waiter(
+      lacros_service->GetRemote<crosapi::mojom::Wallpaper>().get());
+
+  crosapi::mojom::SetWallpaperResultPtr result;
+  async_waiter.SetWallpaper(std::move(settings), kFakeExtensionId,
+                            kFakeExtensionName, &result);
 
   // If a valid thumbnail is returned it means Ash set the wallpaper.
   ASSERT_FALSE(result->is_error_message());

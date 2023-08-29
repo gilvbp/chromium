@@ -11,8 +11,7 @@
 
 namespace segmentation_platform::test_utils {
 
-proto::OutputConfig GetTestOutputConfigForBinaryClassifier(
-    bool ignore_previous_model_ttl = false);
+proto::OutputConfig GetTestOutputConfigForBinaryClassifier();
 proto::OutputConfig GetTestOutputConfigForBinnedClassifier();
 proto::OutputConfig GetTestOutputConfigForMultiClassClassifier(
     int top_k_outputs,

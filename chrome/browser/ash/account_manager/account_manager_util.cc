@@ -44,10 +44,9 @@ bool IsAccountManagerAvailable(Profile* profile) {
     return false;
   }
 
-  // Account Manager is unavailable on Managed Guest Sessions.
-  if (profiles::IsManagedGuestSession()) {
+  // Account Manager is unavailable on Managed Guest Sessions / Public Sessions.
+  if (profiles::IsPublicSession())
     return false;
-  }
 
   // Available in all other cases.
   return true;

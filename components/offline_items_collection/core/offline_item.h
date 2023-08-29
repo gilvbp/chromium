@@ -39,8 +39,6 @@ struct ContentId {
 
   bool operator==(const ContentId& content_id) const;
 
-  bool operator!=(const ContentId& content_id) const;
-
   bool operator<(const ContentId& content_id) const;
 };
 

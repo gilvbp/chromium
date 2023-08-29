@@ -9,7 +9,6 @@
 #include <string>
 #include <vector>
 
-#include "base/functional/callback_forward.h"
 #include "base/memory/ref_counted.h"
 #include "base/memory/weak_ptr.h"
 #include "base/values.h"
@@ -35,7 +34,6 @@ class FtlSignalingConnector;
 class HostEventLogger;
 class HostEventReporter;
 class HostStatusLogger;
-class HostStatusMonitor;
 class LogToServer;
 class OAuthTokenGetter;
 class RegisterSupportHostRequest;
@@ -71,10 +69,6 @@ class It2MeHost : public base::RefCountedThreadSafe<It2MeHost>,
       base::OnceCallback<std::unique_ptr<DeferredConnectContext>(
           ChromotingHostContext*)>;
 
-  using HostEventReporterFactory =
-      base::RepeatingCallback<std::unique_ptr<HostEventReporter>(
-          scoped_refptr<HostStatusMonitor>)>;
-
   class Observer {
    public:
     virtual void OnClientAuthenticated(const std::string& client_username) = 0;
@@ -93,7 +87,7 @@ class It2MeHost : public base::RefCountedThreadSafe<It2MeHost>,
 
   // Session parameters provided by the remote command infrastructure when the
   // session is started from the admin console for a managed Chrome OS device.
-  virtual void set_chrome_os_enterprise_params(ChromeOsEnterpriseParams params);
+  void set_chrome_os_enterprise_params(ChromeOsEnterpriseParams params);
 
   // Indicates whether this support session was initiated by the admin console
   // for a managed Chrome OS device.
@@ -132,10 +126,6 @@ class It2MeHost : public base::RefCountedThreadSafe<It2MeHost>,
   // returned callback after this object has been destroyed.
   protocol::ValidatingAuthenticator::ValidationCallback
   GetValidationCallbackForTesting();
-
-#if BUILDFLAG(IS_CHROMEOS_ASH)
-  void SetHostEventReporterFactoryForTesting(HostEventReporterFactory factory);
-#endif
 
   // Called when initial policies are read and when they change.
   void OnPolicyUpdate(base::Value::Dict policies);
@@ -211,7 +201,6 @@ class It2MeHost : public base::RefCountedThreadSafe<It2MeHost>,
   std::unique_ptr<HostEventLogger> host_event_logger_;
 #if BUILDFLAG(IS_CHROMEOS_ASH)
   std::unique_ptr<HostEventReporter> host_event_reporter_;
-  HostEventReporterFactory host_event_reporter_factory_;
 #endif  // BUILDFLAG(IS_CHROMEOS_ASH)
 
   std::unique_ptr<ChromotingHost> host_;
@@ -248,9 +237,6 @@ class It2MeHost : public base::RefCountedThreadSafe<It2MeHost>,
   // Stores the remote support connections allowed policy value.
   bool remote_support_connections_allowed_ = true;
 
-  // Stores whether enterprise file transfer is allowed by policy.
-  bool enterprise_file_transfer_allowed_ = false;
-
   // Tracks the JID of the remote user when in a connecting state.
   std::string connecting_jid_;
 };
@@ -266,7 +252,6 @@ class It2MeHostFactory {
 
   virtual ~It2MeHostFactory();
 
-  virtual std::unique_ptr<It2MeHostFactory> Clone() const;
   virtual scoped_refptr<It2MeHost> CreateIt2MeHost();
 };
 

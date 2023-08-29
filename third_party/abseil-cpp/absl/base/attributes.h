@@ -274,7 +274,7 @@
 //
 // Tells the ControlFlowIntegrity sanitizer to not instrument a given function.
 // See https://clang.llvm.org/docs/ControlFlowIntegrity.html for details.
-#if ABSL_HAVE_ATTRIBUTE(no_sanitize) && defined(__llvm__)
+#if ABSL_HAVE_ATTRIBUTE(no_sanitize)
 #define ABSL_ATTRIBUTE_NO_SANITIZE_CFI __attribute__((no_sanitize("cfi")))
 #else
 #define ABSL_ATTRIBUTE_NO_SANITIZE_CFI

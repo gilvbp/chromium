@@ -4,10 +4,14 @@
 
 #import "ios/showcase/test/showcase_eg_utils.h"
 
-#import "base/apple/foundation_util.h"
+#import "base/mac/foundation_util.h"
 #import "ios/showcase/test/showcase_test_case.h"
 #import "ios/testing/earl_grey/earl_grey_test.h"
 #import "ios/web/common/uikit_ui_util.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace {
 
@@ -31,7 +35,7 @@ id<GREYMatcher> SearchBar() {
 // Returns the Showcase navigation controller.
 UINavigationController* ShowcaseNavigationController() {
   UINavigationController* showcaseNavigationController =
-      base::apple::ObjCCastStrict<UINavigationController>(
+      base::mac::ObjCCastStrict<UINavigationController>(
           [GetAnyKeyWindow() rootViewController]);
   return showcaseNavigationController;
 }

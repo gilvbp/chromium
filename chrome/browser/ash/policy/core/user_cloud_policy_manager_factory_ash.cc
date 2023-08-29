@@ -43,7 +43,6 @@
 #include "components/user_manager/known_user.h"
 #include "components/user_manager/user.h"
 #include "components/user_manager/user_manager.h"
-#include "components/user_manager/user_names.h"
 #include "services/network/public/cpp/shared_url_loader_factory.h"
 
 namespace policy {
@@ -139,7 +138,8 @@ std::unique_ptr<UserCloudPolicyManagerAsh> CreateUserCloudPolicyManagerAsh(
       known_user.GetProfileRequiresPolicy(account_id);
   const base::CommandLine* command_line =
       base::CommandLine::ForCurrentProcess();
-  const bool is_stub_user = account_id == user_manager::StubAccountId();
+  const bool is_stub_user =
+      user_manager::UserManager::Get()->IsStubAccountId(account_id);
 
   // If true, we don't know if we've ever checked for policy for this user, so
   // we need to do a policy check during initialization. This differs from

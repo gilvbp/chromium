@@ -4,7 +4,6 @@
 
 #include "chrome/browser/ui/webui/settings/ash/os_settings_sections.h"
 
-#include "ash/constants/ash_features.h"
 #include "base/containers/contains.h"
 #include "build/branding_buildflags.h"
 #include "chrome/browser/profiles/profile.h"
@@ -27,7 +26,6 @@
 #include "chrome/browser/ui/webui/settings/ash/privacy_section.h"
 #include "chrome/browser/ui/webui/settings/ash/reset_section.h"
 #include "chrome/browser/ui/webui/settings/ash/search_section.h"
-#include "chrome/browser/ui/webui/settings/ash/system_preferences_section.h"
 #include "chromeos/ash/components/phonehub/phone_hub_manager.h"
 
 namespace ash::settings {
@@ -78,6 +76,9 @@ OsSettingsSections::OsSettingsSections(
              std::make_unique<PersonalizationSection>(
                  profile, search_tag_registry, prefs));
 
+  AddSection(mojom::Section::kSearchAndAssistant,
+             std::make_unique<SearchSection>(profile, search_tag_registry));
+
   AddSection(mojom::Section::kApps, std::make_unique<AppsSection>(
                                         profile, search_tag_registry, prefs,
                                         arc_app_list_prefs, app_service_proxy));
@@ -85,6 +86,9 @@ OsSettingsSections::OsSettingsSections(
   AddSection(
       mojom::Section::kCrostini,
       std::make_unique<CrostiniSection>(profile, search_tag_registry, prefs));
+
+  AddSection(mojom::Section::kDateAndTime,
+             std::make_unique<DateTimeSection>(profile, search_tag_registry));
 
   AddSection(
       mojom::Section::kPrivacyAndSecurity,
@@ -105,6 +109,9 @@ OsSettingsSections::OsSettingsSections(
              std::make_unique<AccessibilitySection>(
                  profile, search_tag_registry, prefs));
 
+  AddSection(mojom::Section::kReset,
+             std::make_unique<ResetSection>(profile, search_tag_registry));
+
   AddSection(mojom::Section::kAboutChromeOs,
 #if BUILDFLAG(GOOGLE_CHROME_BRANDING)
              std::make_unique<AboutSection>(profile, search_tag_registry, prefs)
@@ -116,21 +123,6 @@ OsSettingsSections::OsSettingsSections(
   AddSection(mojom::Section::kKerberos,
              std::make_unique<KerberosSection>(profile, search_tag_registry,
                                                kerberos_credentials_manager));
-
-  if (ash::features::IsOsSettingsRevampWayfindingEnabled()) {
-    AddSection(mojom::Section::kSystemPreferences,
-               std::make_unique<SystemPreferencesSection>(profile,
-                                                          search_tag_registry));
-  } else {
-    AddSection(mojom::Section::kDateAndTime,
-               std::make_unique<DateTimeSection>(profile, search_tag_registry));
-
-    AddSection(mojom::Section::kReset,
-               std::make_unique<ResetSection>(profile, search_tag_registry));
-
-    AddSection(mojom::Section::kSearchAndAssistant,
-               std::make_unique<SearchSection>(profile, search_tag_registry));
-  }
 }
 
 OsSettingsSections::OsSettingsSections() = default;

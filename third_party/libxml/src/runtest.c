@@ -63,6 +63,11 @@
 #ifdef LIBXML_HTML_ENABLED
 #include <libxml/HTMLparser.h>
 #include <libxml/HTMLtree.h>
+
+/*
+ * pseudo flag for the unification of HTML and XML tests
+ */
+#define XML_PARSE_HTML 1 << 24
 #endif
 
 #if defined(LIBXML_THREAD_ENABLED) && defined(LIBXML_CATALOG_ENABLED)
@@ -72,11 +77,6 @@
 #include <libxml/catalog.h>
 #include <string.h>
 #endif
-
-/*
- * pseudo flag for the unification of HTML and XML tests
- */
-#define XML_PARSE_HTML 1 << 24
 
 /*
  * O_BINARY is just for Windows compatibility - if it isn't defined
@@ -419,11 +419,7 @@ testStructuredErrorHandler(void *ctx  ATTRIBUTE_UNUSED, xmlErrorPtr err) {
         else if ((line != 0) && (domain == XML_FROM_PARSER))
             channel(data, "Entity: line %d: ", line);
     }
-    /*
-     * Skip element name when testing schemas to make memory and streaming
-     * output match.
-     */
-    if ((domain != XML_FROM_SCHEMASV) && (name != NULL)) {
+    if (name != NULL) {
         channel(data, "element %s: ", name);
     }
     if (code == XML_ERR_OK)
@@ -3400,81 +3396,59 @@ static int
 schemasOneTest(const char *sch,
                const char *filename,
                const char *result,
-               const char *err,
 	       int options,
 	       xmlSchemaPtr schemas) {
+    xmlDocPtr doc;
+    xmlSchemaValidCtxtPtr ctxt;
     int ret = 0;
-    int i;
+    int validResult = 0;
     char *temp;
-    int parseErrorsSize = testErrorsSize;
+    FILE *schemasOutput;
+
+    doc = xmlReadFile(filename, NULL, options);
+    if (doc == NULL) {
+        fprintf(stderr, "failed to parse instance %s for %s\n", filename, sch);
+	return(-1);
+    }
 
     temp = resultFilename(result, temp_directory, ".res");
     if (temp == NULL) {
         fprintf(stderr, "Out of memory\n");
         fatalError();
-        return(-1);
+    }
+    schemasOutput = fopen(temp, "wb");
+    if (schemasOutput == NULL) {
+	fprintf(stderr, "failed to open output file %s\n", temp);
+	xmlFreeDoc(doc);
+        free(temp);
+	return(-1);
     }
 
-    /*
-     * Test both memory and streaming validation.
-     */
-    for (i = 0; i < 2; i++) {
-        xmlSchemaValidCtxtPtr ctxt;
-        int validResult = 0;
-        FILE *schemasOutput;
-
-        testErrorsSize = parseErrorsSize;
-        testErrors[parseErrorsSize] = 0;
-
-        ctxt = xmlSchemaNewValidCtxt(schemas);
-        xmlSchemaSetValidErrors(ctxt, testErrorHandler, testErrorHandler, ctxt);
-
-        schemasOutput = fopen(temp, "wb");
-        if (schemasOutput == NULL) {
-            fprintf(stderr, "failed to open output file %s\n", temp);
-            free(temp);
-            return(-1);
-        }
-
-        if (i == 0) {
-            xmlDocPtr doc;
-
-            doc = xmlReadFile(filename, NULL, options);
-            if (doc == NULL) {
-                fprintf(stderr, "failed to parse instance %s for %s\n", filename, sch);
-                return(-1);
-            }
-            validResult = xmlSchemaValidateDoc(ctxt, doc);
-            xmlFreeDoc(doc);
-        } else {
-            validResult = xmlSchemaValidateFile(ctxt, filename, options);
-        }
-
-        if (validResult == 0) {
-            fprintf(schemasOutput, "%s validates\n", filename);
-        } else if (validResult > 0) {
-            fprintf(schemasOutput, "%s fails to validate\n", filename);
-        } else {
-            fprintf(schemasOutput, "%s validation generated an internal error\n",
-                   filename);
-        }
-        fclose(schemasOutput);
-        if (result) {
-            if (compareFiles(temp, result)) {
-                fprintf(stderr, "Result for %s on %s failed\n", filename, sch);
-                ret = 1;
-            }
-        }
-        if (compareFileMem(err, testErrors, testErrorsSize)) {
-            fprintf(stderr, "Error for %s on %s failed\n", filename, sch);
-            ret = 1;
-        }
-
+    ctxt = xmlSchemaNewValidCtxt(schemas);
+    xmlSchemaSetValidErrors(ctxt, testErrorHandler, testErrorHandler, ctxt);
+    validResult = xmlSchemaValidateDoc(ctxt, doc);
+    if (validResult == 0) {
+	fprintf(schemasOutput, "%s validates\n", filename);
+    } else if (validResult > 0) {
+	fprintf(schemasOutput, "%s fails to validate\n", filename);
+    } else {
+	fprintf(schemasOutput, "%s validation generated an internal error\n",
+	       filename);
+    }
+    fclose(schemasOutput);
+    if (result) {
+	if (compareFiles(temp, result)) {
+	    fprintf(stderr, "Result for %s on %s failed\n", filename, sch);
+	    ret = 1;
+	}
+    }
+    if (temp != NULL) {
         unlink(temp);
-        xmlSchemaFreeValidCtxt(ctxt);
+        free(temp);
     }
 
-    free(temp);
+    xmlSchemaFreeValidCtxt(ctxt);
+    xmlFreeDoc(doc);
     return(ret);
 }
 /**
@@ -3566,11 +3540,15 @@ schemasTest(const char *filename,
 	}
 	if (schemas != NULL) {
 	    nb_tests++;
-	    ret = schemasOneTest(filename, instance, result, err,
-                                 options, schemas);
+	    ret = schemasOneTest(filename, instance, result, options, schemas);
 	    if (ret != 0)
 		res = ret;
 	}
+        if (compareFileMem(err, testErrors, testErrorsSize)) {
+            fprintf(stderr, "Error for %s on %s failed\n", instance,
+                    filename);
+            res = 1;
+        }
     }
     globfree(&globbuf);
     xmlSchemaFree(schemas);
@@ -5330,6 +5308,7 @@ main(int argc ATTRIBUTE_UNUSED, char **argv ATTRIBUTE_UNUSED) {
 	       nb_tests, nb_errors, nb_leaks);
     }
     xmlCleanupParser();
+    xmlMemoryDump();
 
     return(ret);
 }

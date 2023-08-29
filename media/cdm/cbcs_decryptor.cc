@@ -138,7 +138,7 @@ scoped_refptr<DecoderBuffer> DecryptCbcsBuffer(
   buffer->set_timestamp(input.timestamp());
   buffer->set_duration(input.duration());
   buffer->set_is_key_frame(input.is_key_frame());
-  buffer->set_side_data(input.side_data());
+  buffer->CopySideDataFrom(input.side_data(), input.side_data_size());
 
   const std::vector<SubsampleEntry>& subsamples = decrypt_config->subsamples();
   if (subsamples.empty()) {

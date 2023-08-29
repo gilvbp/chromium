@@ -170,7 +170,8 @@ leveldb::Status LevelDBScopes::Initialize() {
   return s;
 }
 
-void LevelDBScopes::StartRecoveryAndCleanupTasks() {
+leveldb::Status LevelDBScopes::StartRecoveryAndCleanupTasks(
+    TaskRunnerMode mode) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   DCHECK(!revert_runner_) << "StartRecoveryAndCleanupTasks() already called.";
   DCHECK(!cleanup_runner_);
@@ -195,20 +196,34 @@ void LevelDBScopes::StartRecoveryAndCleanupTasks() {
   // destructed on shutdown as it will be joined with the IO thread on shutdown.
   // To compensate here, all tasks cooperatively exit by checking
   // `LevelDBState::is_destruction_requested()`
-  revert_runner_ = base::ThreadPool::CreateSequencedTaskRunner(
-      {base::MayBlock(), base::WithBaseSyncPrimitives(),
-       base::TaskShutdownBehavior::BLOCK_SHUTDOWN,
-       base::TaskPriority::USER_BLOCKING});
-  cleanup_runner_ = base::ThreadPool::CreateSequencedTaskRunner(
-      {base::MayBlock(), base::WithBaseSyncPrimitives(),
-       base::TaskShutdownBehavior::BLOCK_SHUTDOWN,
-       base::TaskPriority::USER_VISIBLE});
+  switch (mode) {
+    case TaskRunnerMode::kNewCleanupAndRevertSequences:
+      revert_runner_ = base::ThreadPool::CreateSequencedTaskRunner(
+          {base::MayBlock(), base::WithBaseSyncPrimitives(),
+           base::TaskShutdownBehavior::BLOCK_SHUTDOWN,
+           base::TaskPriority::USER_BLOCKING});
+      cleanup_runner_ = base::ThreadPool::CreateSequencedTaskRunner(
+          {base::MayBlock(), base::WithBaseSyncPrimitives(),
+           base::TaskShutdownBehavior::BLOCK_SHUTDOWN,
+           base::TaskPriority::USER_VISIBLE});
+      break;
+    case TaskRunnerMode::kUseCurrentSequence:
+      revert_runner_ = nullptr;
+      cleanup_runner_ = base::SequencedTaskRunner::GetCurrentDefault();
+      break;
+  }
 
   // Schedule all pending revert tasks ASAP.
+  leveldb::Status last_error;
   for (StartupScopeToRevert& revert_scope_data : startup_scopes_to_revert_) {
-    Rollback(revert_scope_data.first, std::move(revert_scope_data.second));
+    leveldb::Status status =
+        Rollback(revert_scope_data.first, std::move(revert_scope_data.second));
+    if (!status.ok())
+      last_error = status;
   }
   startup_scopes_to_revert_.clear();
+  if (!last_error.ok())
+    return last_error;
 
   // Schedule all committed scopes to be cleaned up.
   for (auto& cleanup_scope_data : startup_scopes_to_clean_) {
@@ -225,6 +240,7 @@ void LevelDBScopes::StartRecoveryAndCleanupTasks() {
                        weak_factory_.GetWeakPtr(), base::OnceClosure()));
   }
   startup_scopes_to_clean_.clear();
+  return last_error;
 }
 
 std::unique_ptr<LevelDBScope> LevelDBScopes::CreateScope(
@@ -237,9 +253,9 @@ std::unique_ptr<LevelDBScope> LevelDBScopes::CreateScope(
   auto rollback_callback = base::BindOnce(
       [](base::WeakPtr<LevelDBScopes> scopes, int64_t scope_id,
          std::vector<PartitionedLock> locks) {
-        if (scopes) {
-          scopes->Rollback(scope_id, std::move(locks));
-        }
+        if (!scopes)
+          return leveldb::Status::OK();
+        return scopes->Rollback(scope_id, std::move(locks));
       },
       weak_factory_.GetWeakPtr());
   return base::WrapUnique(new LevelDBScope(
@@ -273,16 +289,23 @@ leveldb::Status LevelDBScopes::Commit(std::unique_ptr<LevelDBScope> scope,
   return status;
 }
 
-void LevelDBScopes::Rollback(int64_t scope_id,
-                             std::vector<PartitionedLock> locks) {
+leveldb::Status LevelDBScopes::Rollback(int64_t scope_id,
+                                        std::vector<PartitionedLock> locks) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   auto task = std::make_unique<RevertScopeTask>(
       level_db_, metadata_key_prefix_, scope_id, max_write_batch_size_bytes_);
 
-  revert_runner_->PostTaskAndReplyWithResult(
-      FROM_HERE, base::BindOnce(&RevertScopeTask::Run, std::move(task)),
-      base::BindOnce(&LevelDBScopes::OnRevertTaskResult,
-                     weak_factory_.GetWeakPtr(), scope_id, std::move(locks)));
+  if (revert_runner_) {
+    revert_runner_->PostTaskAndReplyWithResult(
+        FROM_HERE, base::BindOnce(&RevertScopeTask::Run, std::move(task)),
+        base::BindOnce(&LevelDBScopes::OnRevertTaskResult,
+                       weak_factory_.GetWeakPtr(), scope_id, std::move(locks)));
+    return leveldb::Status::OK();
+  }
+  leveldb::Status result = task->Run();
+  if (LIKELY(result.ok()))
+    OnRevertTaskResult(scope_id, std::move(locks), result);
+  return result;
 }
 
 void LevelDBScopes::OnCleanupTaskResult(base::OnceClosure on_complete,

@@ -15,6 +15,10 @@
 #import "ios/web/public/test/element_selector.h"
 #import "net/test/embedded_test_server/embedded_test_server.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace {
 
 // Returns the test content for different test cases.
@@ -189,7 +193,7 @@ id<GREYMatcher> PasteButton() {
     // Test the result string is empty or "0".
     [self.delegate assertResultStringIsEmptyOrZero];
 
-    [self.delegate replaceFindInPageText:@(kFindInPageTestRepeatingText)];
+    [self.delegate typeFindInPageText:@(kFindInPageTestRepeatingText)];
     // Test the input field contains the text that was just typed.
     [[EarlGrey selectElementWithMatcher:[self.delegate findInPageInputField]]
         assertWithMatcher:[self
@@ -197,17 +201,10 @@ id<GREYMatcher> PasteButton() {
     // Test the result UI is updated accordingly.
     [self.delegate assertResultStringIsResult:1 outOfTotal:2];
 
-    [self.delegate
-        replaceFindInPageText:
-            [NSString stringWithFormat:@"%s%s", kFindInPageTestRepeatingText,
-                                       kFindInPageTestRepeatingText]];
+    [self.delegate typeFindInPageText:@(kFindInPageTestRepeatingText)];
     [self.delegate assertResultStringIsResult:1 outOfTotal:1];
 
-    [self.delegate
-        replaceFindInPageText:
-            [NSString stringWithFormat:@"%s%s%s", kFindInPageTestRepeatingText,
-                                       kFindInPageTestRepeatingText,
-                                       kFindInPageTestRepeatingText]];
+    [self.delegate typeFindInPageText:@(kFindInPageTestRepeatingText)];
     [self.delegate assertResultStringIsEmptyOrZero];
 
     [self.delegate clearFindInPageText];
@@ -230,7 +227,7 @@ id<GREYMatcher> PasteButton() {
     [self.delegate openFindInPageWithOverflowMenu];
     [self.delegate assertResultStringIsEmptyOrZero];
 
-    [self.delegate replaceFindInPageText:@(kFindInPageTestShortText)];
+    [self.delegate typeFindInPageText:@(kFindInPageTestShortText)];
     // Tests there are two matches: one is in the main frame, the other in the
     // cross-origin iframe.
     [self.delegate assertResultStringIsResult:1 outOfTotal:2];
@@ -258,20 +255,22 @@ id<GREYMatcher> PasteButton() {
     [self.delegate assertResultStringIsEmptyOrZero];
 
     // Tests special characters.
-    [self.delegate
-        replaceFindInPageText:@(kFindInPageTestSpecialCharactersText)];
+    [self.delegate typeFindInPageText:@(kFindInPageTestSpecialCharactersText)];
     [self.delegate assertResultStringIsResult:1 outOfTotal:2];
 
     // Tests numbers.
-    [self.delegate replaceFindInPageText:@(kFindInPageTestNumbersText)];
+    [self.delegate clearFindInPageText];
+    [self.delegate typeFindInPageText:@(kFindInPageTestNumbersText)];
     [self.delegate assertResultStringIsResult:1 outOfTotal:2];
 
     // Tests alphanumeric values.
-    [self.delegate replaceFindInPageText:@(kFindInPageTestAlphanumericText)];
+    [self.delegate clearFindInPageText];
+    [self.delegate typeFindInPageText:@(kFindInPageTestAlphanumericText)];
     [self.delegate assertResultStringIsResult:1 outOfTotal:2];
 
     // Tests non-ASCII characters.
-    [self.delegate replaceFindInPageText:@(kFindInPageTestNonASCIIText)];
+    [self.delegate clearFindInPageText];
+    [self.delegate pasteTextToFindInPage:@(kFindInPageTestNonASCIIText)];
     [self.delegate assertResultStringIsResult:1 outOfTotal:2];
   }
 }
@@ -288,11 +287,8 @@ id<GREYMatcher> PasteButton() {
 
     // Select and copy text on the web page.
     LongPressElement(kFindInPageTestShortTextID);
-
-    [[EarlGrey
-        selectElementWithMatcher:
-            grey_allOf(chrome_test_util::SystemSelectionCalloutCopyButton(),
-                       grey_sufficientlyVisible(), nil)]
+    [[EarlGrey selectElementWithMatcher:chrome_test_util::
+                                            SystemSelectionCalloutCopyButton()]
         performAction:grey_tap()];
 
     // Open FIP.
@@ -323,7 +319,7 @@ id<GREYMatcher> PasteButton() {
     [self.delegate openFindInPageWithOverflowMenu];
 
     // Assert that searching text from the page yields results.
-    [self.delegate replaceFindInPageText:@(kFindInPageTestShortText)];
+    [self.delegate typeFindInPageText:@(kFindInPageTestShortText)];
     [self.delegate assertResultStringIsNonZero];
 
     // Test that the number of results is zero after clearing the FIP text
@@ -349,7 +345,7 @@ id<GREYMatcher> PasteButton() {
         "example query which should not match with the content of the page";
     [ChromeEarlGrey waitForWebStateNotContainingText:queryWithNoMatches];
     [self.delegate openFindInPageWithOverflowMenu];
-    [self.delegate replaceFindInPageText:@(queryWithNoMatches)];
+    [self.delegate typeFindInPageText:@(queryWithNoMatches)];
     // Test the result label shows no results.
     [self.delegate assertResultStringIsEmptyOrZero];
   }
@@ -378,13 +374,14 @@ id<GREYMatcher> PasteButton() {
     // Open FIP and assert that text with no accents yields matches.
     [self.delegate openFindInPageWithOverflowMenu];
     [self.delegate
-        replaceFindInPageText:@(kFindInPageTestWithoutSpanishAccentText)];
+        typeFindInPageText:@(kFindInPageTestWithoutSpanishAccentText)];
     [self.delegate assertResultStringIsNonZero];
 
     // Replace the text without spanish accent with the same text with spanish
     // accents and test that there are no more matches.
+    [self.delegate clearFindInPageText];
     [self.delegate
-        replaceFindInPageText:@(kFindInPageTestWithSpanishAccentText)];
+        pasteTextToFindInPage:@(kFindInPageTestWithSpanishAccentText)];
     [self.delegate assertResultStringIsEmptyOrZero];
   }
 }
@@ -406,7 +403,7 @@ id<GREYMatcher> PasteButton() {
 
     // Type a query and assert it is contained in the input field before closing
     // FIP.
-    [self.delegate replaceFindInPageText:@(kFindInPageTestShortText)];
+    [self.delegate typeFindInPageText:@(kFindInPageTestShortText)];
     [[EarlGrey selectElementWithMatcher:[self.delegate findInPageInputField]]
         assertWithMatcher:[self matcherForText:@(kFindInPageTestShortText)]];
     [self.delegate closeFindInPageWithDoneButton];
@@ -444,7 +441,7 @@ id<GREYMatcher> PasteButton() {
 
     // Open FIP and type short query.
     [self.delegate openFindInPageWithOverflowMenu];
-    [self.delegate replaceFindInPageText:@(kFindInPageTestShortText)];
+    [self.delegate typeFindInPageText:@(kFindInPageTestShortText)];
 
     // Load same URL in a new Incognito tab.
     [ChromeEarlGrey openNewIncognitoTab];
@@ -471,7 +468,7 @@ id<GREYMatcher> PasteButton() {
     // Open FIP, type short query, move to second match and wait for expected
     // results.
     [self.delegate openFindInPageWithOverflowMenu];
-    [self.delegate replaceFindInPageText:@(kFindInPageTestShortText)];
+    [self.delegate typeFindInPageText:@(kFindInPageTestShortText)];
     [self.delegate advanceToNextResult];
     [self.delegate assertResultStringIsResult:2 outOfTotal:2];
 
@@ -510,7 +507,7 @@ id<GREYMatcher> PasteButton() {
 
     // Open FIP and type query with four expected matches.
     [self.delegate openFindInPageWithOverflowMenu];
-    [self.delegate replaceFindInPageText:@(kFindInPageTestRepeatingText)];
+    [self.delegate typeFindInPageText:@(kFindInPageTestRepeatingText)];
     [self.delegate assertResultStringIsResult:1 outOfTotal:4];
 
     // Test that tapping "Next" button works and wraps.
@@ -543,7 +540,7 @@ id<GREYMatcher> PasteButton() {
 
     // Open FIP and type short query.
     [self.delegate openFindInPageWithOverflowMenu];
-    [self.delegate replaceFindInPageText:@(kFindInPageTestShortText)];
+    [self.delegate typeFindInPageText:@(kFindInPageTestShortText)];
 
     // Tap Done button and test the keyboard is dismissed as a result.
     [self.delegate closeFindInPageWithDoneButton];
@@ -552,7 +549,7 @@ id<GREYMatcher> PasteButton() {
 
     // Open FIP and type short query again.
     [self.delegate openFindInPageWithOverflowMenu];
-    [self.delegate replaceFindInPageText:@(kFindInPageTestShortText)];
+    [self.delegate typeFindInPageText:@(kFindInPageTestShortText)];
 
     // Tap an element on the page and test the keyboard is dismissed as a
     // result.
@@ -576,7 +573,7 @@ id<GREYMatcher> PasteButton() {
 
     // Open FIP and type short query.
     [self.delegate openFindInPageWithOverflowMenu];
-    [self.delegate replaceFindInPageText:@(kFindInPageTestLongText)];
+    [self.delegate typeFindInPageText:@(kFindInPageTestLongText)];
 
     // Test the number of results is as expected.
     [self.delegate assertResultStringIsResult:1 outOfTotal:2];
@@ -600,15 +597,16 @@ id<GREYMatcher> PasteButton() {
     // Open FIP and type lowercase version of contained text.
     [self.delegate openFindInPageWithOverflowMenu];
     [self.delegate
-        replaceFindInPageText:[@(kFindInPageTestLowercaseAndUppercaseText)
-                                  lowercaseString]];
+        typeFindInPageText:[@(kFindInPageTestLowercaseAndUppercaseText)
+                               lowercaseString]];
     // Test the number of results is as expected.
     [self.delegate assertResultStringIsResult:1 outOfTotal:2];
 
     // Clear input field and type uppercase version of contained text.
+    [self.delegate clearFindInPageText];
     [self.delegate
-        replaceFindInPageText:[@(kFindInPageTestLowercaseAndUppercaseText)
-                                  uppercaseString]];
+        typeFindInPageText:[@(kFindInPageTestLowercaseAndUppercaseText)
+                               uppercaseString]];
     // Test the number of results is as expected.
     [self.delegate assertResultStringIsResult:1 outOfTotal:2];
   }
@@ -628,7 +626,7 @@ id<GREYMatcher> PasteButton() {
 
     // Open FIP and type short query.
     [self.delegate openFindInPageWithOverflowMenu];
-    [self.delegate replaceFindInPageText:@(kFindInPageTestShortText)];
+    [self.delegate typeFindInPageText:@(kFindInPageTestShortText)];
 
     // Open a new normal tab and load the same URL.
     [ChromeEarlGrey openNewTab];
@@ -656,7 +654,7 @@ id<GREYMatcher> PasteButton() {
 
     // Open FIP and type short query.
     [self.delegate openFindInPageWithOverflowMenu];
-    [self.delegate replaceFindInPageText:@(kFindInPageTestShortText)];
+    [self.delegate typeFindInPageText:@(kFindInPageTestShortText)];
 
     // Switching to first tab and then back to second tab.
     [ChromeEarlGrey selectTabAtIndex:0];
@@ -701,7 +699,7 @@ id<GREYMatcher> PasteButton() {
     // Open FIP, type text contained in test page and test that the results are
     // as expected.
     [self.delegate openFindInPageWithOverflowMenu];
-    [self.delegate replaceFindInPageText:@(kFindInPageTestShortText)];
+    [self.delegate typeFindInPageText:@(kFindInPageTestShortText)];
     [self.delegate assertResultStringIsResult:1 outOfTotal:2];
   }
 }
@@ -718,7 +716,7 @@ id<GREYMatcher> PasteButton() {
 
     // Open FIP, type query and check the expected number of results.
     [self.delegate openFindInPageWithOverflowMenu];
-    [self.delegate replaceFindInPageText:@(kFindInPageTestShortText)];
+    [self.delegate typeFindInPageText:@(kFindInPageTestShortText)];
     [self.delegate assertResultStringIsResult:1 outOfTotal:2];
 
     // Test accessibility.
@@ -741,19 +739,19 @@ id<GREYMatcher> PasteButton() {
         assertWithMatcher:[self matcherForText:@""]];
     [self.delegate assertResultStringIsEmptyOrZero];
 
-    // Type text with 18 expected matches and test that results are as
+    // Type text with 157 expected matches and test that results are as
     // expected.
-    [self.delegate replaceFindInPageText:@"the F"];
-    [self.delegate assertResultStringIsResult:1 outOfTotal:18];
+    [self.delegate typeFindInPageText:@"the"];
+    [self.delegate assertResultStringIsResult:1 outOfTotal:157];
 
     // Test that the Next button works.
     [self.delegate advanceToNextResult];
-    [self.delegate assertResultStringIsResult:2 outOfTotal:18];
+    [self.delegate assertResultStringIsResult:2 outOfTotal:157];
     [self.delegate advanceToNextResult];
-    [self.delegate assertResultStringIsResult:3 outOfTotal:18];
+    [self.delegate assertResultStringIsResult:3 outOfTotal:157];
 
     // Type more specific query and test that results are as expected.
-    [self.delegate replaceFindInPageText:@"the Form"];
+    [self.delegate typeFindInPageText:@" Form"];
     [self.delegate assertResultStringIsResult:1 outOfTotal:6];
 
     // Test that the Previous button works and wraps.
@@ -763,7 +761,7 @@ id<GREYMatcher> PasteButton() {
     [self.delegate assertResultStringIsResult:5 outOfTotal:6];
 
     // Type even more specific query and test that results are as expected.
-    [self.delegate replaceFindInPageText:@"the Form 1050"];
+    [self.delegate typeFindInPageText:@" 1050"];
     [self.delegate assertResultStringIsEmptyOrZero];
 
     // Test that the Done button does close Find in Page.

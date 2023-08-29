@@ -23,7 +23,7 @@
 #include "base/ranges/algorithm.h"
 #include "base/strings/utf_string_conversions.h"
 #include "base/task/sequenced_task_runner.h"
-#include "components/password_manager/core/browser/form_parsing/form_data_parser.h"
+#include "components/password_manager/core/browser/form_parsing/form_parser.h"
 #include "components/password_manager/core/browser/import/csv_password.h"
 #include "components/password_manager/core/browser/passkey_credential.h"
 #include "components/password_manager/core/browser/password_form.h"
@@ -341,7 +341,10 @@ void SavedPasswordsPresenter::MoveCredentialsToAccount(
 
 std::vector<CredentialUIEntry> SavedPasswordsPresenter::GetSavedCredentials()
     const {
-#if BUILDFLAG(IS_ANDROID)
+  if (base::FeatureList::IsEnabled(features::kPasswordsGrouping)) {
+    return passwords_grouper_->GetAllCredentials();
+  }
+
   std::vector<CredentialUIEntry> credentials;
   auto it = sort_key_to_password_forms_.begin();
   while (it != sort_key_to_password_forms_.end()) {
@@ -356,9 +359,6 @@ std::vector<CredentialUIEntry> SavedPasswordsPresenter::GetSavedCredentials()
     credentials.emplace_back(current_passwords_group);
   }
   return credentials;
-#else
-  return passwords_grouper_->GetAllCredentials();
-#endif
 }
 
 std::vector<AffiliatedGroup> SavedPasswordsPresenter::GetAffiliatedGroups() {
@@ -376,6 +376,7 @@ std::vector<CredentialUIEntry> SavedPasswordsPresenter::GetSavedPasswords()
 }
 
 std::vector<CredentialUIEntry> SavedPasswordsPresenter::GetBlockedSites() {
+  DCHECK(base::FeatureList::IsEnabled(features::kPasswordsGrouping));
   return passwords_grouper_->GetBlockedSites();
 }
 
@@ -383,14 +384,16 @@ std::vector<PasswordForm>
 SavedPasswordsPresenter::GetCorrespondingPasswordForms(
     const CredentialUIEntry& credential) const {
   std::vector<PasswordForm> forms;
-#if BUILDFLAG(IS_ANDROID)
-  const auto range =
-      sort_key_to_password_forms_.equal_range(CreateSortKey(credential));
-  base::ranges::transform(range.first, range.second, std::back_inserter(forms),
-                          [](const auto& pair) { return pair.second; });
-#else
-  forms = passwords_grouper_->GetPasswordFormsFor(credential);
-#endif
+  if (base::FeatureList::IsEnabled(
+          password_manager::features::kPasswordsGrouping)) {
+    forms = passwords_grouper_->GetPasswordFormsFor(credential);
+  } else {
+    const auto range =
+        sort_key_to_password_forms_.equal_range(CreateSortKey(credential));
+    base::ranges::transform(range.first, range.second,
+                            std::back_inserter(forms),
+                            [](const auto& pair) { return pair.second; });
+  }
   return forms;
 }
 
@@ -526,12 +529,12 @@ void SavedPasswordsPresenter::AddForms(const std::vector<PasswordForm>& forms,
         std::make_pair(CreateSortKey(form, IgnoreStore(true)), form));
   }
 
-#if BUILDFLAG(IS_ANDROID)
-  // Passwords grouping is disabled on Android.
-  std::move(completion).Run();
-#else
+  if (!base::FeatureList::IsEnabled(
+          password_manager::features::kPasswordsGrouping)) {
+    std::move(completion).Run();
+    return;
+  }
   MaybeGroupCredentials(std::move(completion));
-#endif
 }
 
 void SavedPasswordsPresenter::MaybeGroupCredentials(
@@ -549,12 +552,10 @@ void SavedPasswordsPresenter::MaybeGroupCredentials(
 
   // Passkeys are collected synchronously.
   std::vector<PasskeyCredential> passkeys;
-#if !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_IOS)
   if (passkey_store_) {
     passkeys = PasskeyCredential::FromCredentialSpecifics(
         passkey_store_->GetAllPasskeys());
   }
-#endif  // !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_IOS)
 
   // Notify observers after grouping is complete.
   passwords_grouper_->GroupCredentials(

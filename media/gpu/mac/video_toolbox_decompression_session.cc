@@ -5,6 +5,7 @@
 #include "media/gpu/mac/video_toolbox_decompression_session.h"
 
 #include "base/logging.h"
+#include "base/mac/mac_logging.h"
 #include "media/base/media_log.h"
 
 namespace media {
@@ -22,7 +23,7 @@ void OnOutputThunk(void* decompression_output_refcon,
       static_cast<VideoToolboxDecompressionSessionImpl*>(
           decompression_output_refcon);
   vtdsi->OnOutputOnAnyThread(source_frame_refcon, status, info_flags,
-                             base::apple::ScopedCFTypeRef<CVImageBufferRef>(
+                             base::ScopedCFTypeRef<CVImageBufferRef>(
                                  image_buffer, base::scoped_policy::RETAIN));
 }
 
@@ -63,6 +64,7 @@ bool VideoToolboxDecompressionSessionImpl::Create(
       &callback,       // output_callback
       session_.InitializeInto());
   if (status != noErr) {
+    OSSTATUS_DLOG(ERROR, status) << "VTDecompressionSessionCreate()";
     OSSTATUS_MEDIA_LOG(ERROR, status, media_log_.get())
         << "VTDecompressionSessionCreate()";
     DCHECK(!session_);
@@ -117,6 +119,7 @@ bool VideoToolboxDecompressionSessionImpl::DecodeFrame(CMSampleBufferRef sample,
   OSStatus status = VTDecompressionSessionDecodeFrame(
       session_, sample, decode_flags, context, nullptr);
   if (status != noErr) {
+    OSSTATUS_DLOG(ERROR, status) << "VTDecompressionSessionDecodeFrame()";
     OSSTATUS_MEDIA_LOG(ERROR, status, media_log_.get())
         << "VTDecompressionSessionDecodeFrame()";
     return false;
@@ -129,7 +132,7 @@ void VideoToolboxDecompressionSessionImpl::OnOutputOnAnyThread(
     void* context,
     OSStatus status,
     VTDecodeInfoFlags flags,
-    base::apple::ScopedCFTypeRef<CVImageBufferRef> image) {
+    base::ScopedCFTypeRef<CVImageBufferRef> image) {
   DVLOG(4) << __func__;
   task_runner_->PostTask(
       FROM_HERE,
@@ -141,7 +144,7 @@ void VideoToolboxDecompressionSessionImpl::OnOutput(
     void* context,
     OSStatus status,
     VTDecodeInfoFlags flags,
-    base::apple::ScopedCFTypeRef<CVImageBufferRef> image) {
+    base::ScopedCFTypeRef<CVImageBufferRef> image) {
   DVLOG(3) << __func__;
   DCHECK(task_runner_->RunsTasksInCurrentSequence());
   CHECK(session_);

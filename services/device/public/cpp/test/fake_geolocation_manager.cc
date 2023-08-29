@@ -37,7 +37,6 @@ class FakeGeolocationSource : public SystemGeolocationSource {
   void FakePositionUpdated(mojom::GeopositionResultPtr result) {
     position_callback_.Run(std::move(result));
   }
-  void RequestPermission() override {}
 #endif  // BUILDFLAG(IS_APPLE)
 
  private:

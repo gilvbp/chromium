@@ -4,7 +4,6 @@
 
 package org.chromium.chrome.browser.autofill;
 
-import org.chromium.base.ResettersForTesting;
 import org.chromium.base.annotations.CalledByNative;
 import org.chromium.base.annotations.JNINamespace;
 
@@ -51,7 +50,6 @@ public class AutofillLogger {
 
     public static void setLoggerForTesting(Logger logger) {
         sLoggerForTest = logger;
-        ResettersForTesting.register(() -> sLoggerForTest = null);
     }
 
     @CalledByNative

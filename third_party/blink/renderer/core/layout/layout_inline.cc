@@ -147,9 +147,8 @@ void LayoutInline::UpdateFromStyle() {
   NOT_DESTROYED();
   LayoutBoxModelObject::UpdateFromStyle();
 
-  // This is needed (at a minimum) for LayoutSVGInline, which (including
-  // subclasses) is constructed for svg:a, svg:textPath, and svg:tspan,
-  // regardless of CSS 'display'.
+  // FIXME: Is this still needed. Was needed for run-ins, since run-in is
+  // considered a block display type.
   SetInline(true);
 
   // FIXME: Support transforms and reflections on inline flows someday.
@@ -404,12 +403,12 @@ template <typename PhysicalRectCollector>
 void LayoutInline::CollectLineBoxRects(
     const PhysicalRectCollector& yield) const {
   NOT_DESTROYED();
+#if DCHECK_IS_ON()
   if (!IsInLayoutNGInlineFormattingContext()) {
-    // NGInlineCursor::MoveToIncludingCulledInline() below would fail DCHECKs in
-    // this situation, so just bail. This is most likely not a good situation to
-    // be in, though. See crbug.com/1448357
-    return;
+    ShowLayoutTreeForThis();
+    DCHECK(IsInLayoutNGInlineFormattingContext());
   }
+#endif
   NGInlineCursor cursor;
   cursor.MoveToIncludingCulledInline(*this);
   for (; cursor; cursor.MoveToNextForSameLayoutObject()) {
@@ -768,6 +767,22 @@ PhysicalRect LayoutInline::PhysicalVisualOverflowRect() const {
   return overflow_rect;
 }
 
+PhysicalRect LayoutInline::ReferenceBoxForClipPath() const {
+  NOT_DESTROYED();
+  // The spec just says to use the border box as clip-path reference box. It
+  // doesn't say what to do if there are multiple lines. Gecko uses the first
+  // fragment in that case. We'll do the same here (but correctly with respect
+  // to writing-mode - Gecko has some issues there).
+  // See crbug.com/641907
+  if (IsInLayoutNGInlineFormattingContext()) {
+    NGInlineCursor cursor;
+    cursor.MoveTo(*this);
+    if (cursor)
+      return cursor.Current().RectInContainerFragment();
+  }
+  return PhysicalRect();
+}
+
 bool LayoutInline::MapToVisualRectInAncestorSpaceInternal(
     const LayoutBoxModelObject* ancestor,
     TransformState& transform_state,
@@ -852,7 +867,9 @@ void LayoutInline::UpdateHitTestResult(HitTestResult& result,
   }
 }
 
-void LayoutInline::DirtyLinesFromChangedChild(LayoutObject* child) {
+void LayoutInline::DirtyLinesFromChangedChild(
+    LayoutObject* child,
+    MarkingBehavior marking_behavior) {
   NOT_DESTROYED();
   if (IsInLayoutNGInlineFormattingContext()) {
     if (const LayoutBlockFlow* container = FragmentItemsContainer())

@@ -13,10 +13,7 @@ static_library("backend") {
     "print_management_handler.h",
   ]
 
-  deps = [
-    "//base",
-    "//chromeos/components/print_management/mojom",
-  ]
+  deps = [ "//base" ]
 }
 
 source_set("unit_tests") {

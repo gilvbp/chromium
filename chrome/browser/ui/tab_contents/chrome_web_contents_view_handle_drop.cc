@@ -149,8 +149,6 @@ void HandleOnPerformDrop(
     return;
   }
 
-  data.reason = enterprise_connectors::ContentAnalysisRequest::DRAG_AND_DROP;
-
   // Collect the data that needs to be scanned.
   if (!drop_data.url_title.empty())
     data.text.push_back(base::UTF16ToUTF8(drop_data.url_title));

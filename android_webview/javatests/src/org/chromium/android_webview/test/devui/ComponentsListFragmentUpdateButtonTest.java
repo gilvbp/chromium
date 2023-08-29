@@ -17,6 +17,7 @@ import static org.hamcrest.Matchers.anything;
 import android.content.Context;
 import android.content.Intent;
 
+import androidx.test.InstrumentationRegistry;
 import androidx.test.filters.MediumTest;
 
 import org.junit.After;
@@ -37,7 +38,6 @@ import org.chromium.base.ContextUtils;
 import org.chromium.base.FileUtils;
 import org.chromium.base.test.BaseActivityTestRule;
 import org.chromium.base.test.util.CallbackHelper;
-import org.chromium.base.test.util.DoNotBatch;
 import org.chromium.base.test.util.Feature;
 import org.chromium.content_public.browser.test.util.TestThreadUtils;
 
@@ -48,18 +48,16 @@ import java.util.concurrent.ExecutionException;
  * UI tests for the Components UI's Update Button.
  */
 @RunWith(AwJUnit4ClassRunner.class)
-@DoNotBatch(reason = "Batching causes test failures.")
 public class ComponentsListFragmentUpdateButtonTest {
     @Rule
-    public BaseActivityTestRule<MainActivity> mRule =
-            new BaseActivityTestRule<>(MainActivity.class);
+    public BaseActivityTestRule mRule = new BaseActivityTestRule<MainActivity>(MainActivity.class);
 
     private static File sComponentsDownloadDir =
             new File(ComponentsProviderPathUtil.getComponentUpdateServiceDirectoryPath());
 
     @Before
     public void setUp() {
-        Context context = ContextUtils.getApplicationContext();
+        Context context = InstrumentationRegistry.getTargetContext();
         WebViewPackageHelper.setCurrentWebViewPackageForTesting(
                 WebViewPackageHelper.getContextPackageInfo(context));
     }

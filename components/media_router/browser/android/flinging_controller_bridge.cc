@@ -105,19 +105,19 @@ void FlingingControllerBridge::OnMediaStatusUpdated(
 
   switch (player_state) {
     case PLAYER_STATE_UNKOWN:
-      status.state = media::MediaStatus::State::kUnknown;
+      status.state = media::MediaStatus::State::UNKNOWN;
       break;
     case PLAYER_STATE_PLAYING:
-      status.state = media::MediaStatus::State::kPlaying;
+      status.state = media::MediaStatus::State::PLAYING;
       break;
     case PLAYER_STATE_PAUSED:
-      status.state = media::MediaStatus::State::kPaused;
+      status.state = media::MediaStatus::State::PAUSED;
       break;
     case PLAYER_STATE_BUFFERING:
-      status.state = media::MediaStatus::State::kBuffering;
+      status.state = media::MediaStatus::State::BUFFERING;
       break;
     case PLAYER_STATE_IDLE:
-      status.state = media::MediaStatus::State::kStopped;
+      status.state = media::MediaStatus::State::STOPPED;
       int idle_reason = Java_MediaStatusBridge_idleReason(env, j_status);
       status.reached_end_of_stream = (idle_reason == IDLE_REASON_FINISHED);
       break;

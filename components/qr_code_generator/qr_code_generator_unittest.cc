@@ -10,8 +10,6 @@
 #include "components/qr_code_generator/features.h"
 #include "testing/gtest/include/gtest/gtest.h"
 
-namespace qr_code_generator {
-
 enum class RustFeatureState { kRustEnabled, kRustDisabled };
 
 class QRCodeGeneratorTest : public testing::TestWithParam<RustFeatureState> {
@@ -286,7 +284,7 @@ TEST_P(QRCodeGeneratorTest, HugeInput) {
   ASSERT_FALSE(qr.Generate(huge_input));
 }
 
-#if BUILDFLAG(ENABLE_RUST_QR)
+#if BUILDFLAG(BUILD_RUST_QR)
 INSTANTIATE_TEST_SUITE_P(RustEnabled,
                          QRCodeGeneratorTest,
                          ::testing::Values(RustFeatureState::kRustEnabled));
@@ -295,5 +293,3 @@ INSTANTIATE_TEST_SUITE_P(RustEnabled,
 INSTANTIATE_TEST_SUITE_P(RustDisabled,
                          QRCodeGeneratorTest,
                          ::testing::Values(RustFeatureState::kRustDisabled));
-
-}  // namespace qr_code_generator

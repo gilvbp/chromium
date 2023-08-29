@@ -13,7 +13,7 @@ struct Config;
 
 // Segmentation Chrome Feed user model provider. Provides a default model and
 // metadata for the Feed user optimization target.
-class FeedUserSegment : public DefaultModelProvider {
+class FeedUserSegment : public ModelProvider {
  public:
   FeedUserSegment();
   ~FeedUserSegment() override = default;
@@ -29,10 +29,11 @@ class FeedUserSegment : public DefaultModelProvider {
   static absl::optional<std::string> GetSubsegmentName(int subsegment_rank);
 
   // ModelProvider implementation.
-  std::unique_ptr<ModelConfig> GetModelConfig() override;
-
+  void InitAndFetchModel(
+      const ModelUpdatedCallback& model_updated_callback) override;
   void ExecuteModelWithInput(const ModelProvider::Request& inputs,
                              ExecutionCallback callback) override;
+  bool ModelAvailable() override;
 };
 
 }  // namespace segmentation_platform

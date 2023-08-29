@@ -18,7 +18,7 @@ import {TestMetricsBrowserProxy} from './test_metrics_browser_proxy.js';
 
 // clang-format on
 
-suite('DisableFirstPartySets', function() {
+suite('AllSites_DisableFirstPartySets', function() {
   /**
    * An example eTLD+1 Object with multiple origins grouped under it.
    */
@@ -224,21 +224,21 @@ suite('DisableFirstPartySets', function() {
 
     const clearAllButton = testElement.$.clearAllButton;
     assertEquals(
-        loadTimeData.getString('siteSettingsDeleteAllStorageLabel'),
+        loadTimeData.getString('siteSettingsClearAllStorageLabel'),
         clearAllButton.innerText.trim());
 
     // Setting a filter, text should change.
     testElement.filter = 'foo';
     await flushTasks();
     assertEquals(
-        loadTimeData.getString('siteSettingsDeleteDisplayedStorageLabel'),
+        loadTimeData.getString('siteSettingsClearDisplayedStorageLabel'),
         clearAllButton.innerText.trim());
 
     // Removing the filter.
     testElement.filter = '';
     await flushTasks();
     assertEquals(
-        loadTimeData.getString('siteSettingsDeleteAllStorageLabel'),
+        loadTimeData.getString('siteSettingsClearAllStorageLabel'),
         clearAllButton.innerText.trim());
   });
 
@@ -295,48 +295,48 @@ suite('DisableFirstPartySets', function() {
         filter: false,
         appInstalled: false,
         storage: true,
-        title: 'siteSettingsDeleteAllStorageDialogTitle',
-        description: 'siteSettingsDeleteAllStorageConfirmation',
+        title: 'siteSettingsClearAllStorageDialogTitle',
+        description: 'siteSettingsClearAllStorageConfirmation',
         signout: 'siteSettingsClearAllStorageSignOut',
       },
       {
         filter: false,
         appInstalled: true,
         storage: true,
-        title: 'siteSettingsDeleteAllStorageDialogTitle',
-        description: 'siteSettingsDeleteAllStorageConfirmationInstalled',
+        title: 'siteSettingsClearAllStorageDialogTitle',
+        description: 'siteSettingsClearAllStorageConfirmationInstalled',
         signout: 'siteSettingsClearAllStorageSignOut',
       },
       {
         filter: true,
         appInstalled: false,
         storage: true,
-        title: 'siteSettingsDeleteDisplayedStorageDialogTitle',
-        description: 'siteSettingsDeleteDisplayedStorageConfirmation',
+        title: 'siteSettingsClearDisplayedStorageDialogTitle',
+        description: 'siteSettingsClearDisplayedStorageConfirmation',
         signout: 'siteSettingsClearDisplayedStorageSignOut',
       },
       {
         filter: true,
         appInstalled: false,
         storage: false,
-        title: 'siteSettingsDeleteDisplayedStorageDialogTitle',
-        description: 'siteSettingsDeleteDisplayedStorageConfirmation',
+        title: 'siteSettingsClearDisplayedStorageDialogTitle',
+        description: 'siteSettingsClearDisplayedStorageConfirmation',
         signout: 'siteSettingsClearDisplayedStorageSignOut',
       },
       {
         filter: true,
         appInstalled: true,
         storage: false,
-        title: 'siteSettingsDeleteDisplayedStorageDialogTitle',
-        description: 'siteSettingsDeleteDisplayedStorageConfirmationInstalled',
+        title: 'siteSettingsClearDisplayedStorageDialogTitle',
+        description: 'siteSettingsClearDisplayedStorageConfirmationInstalled',
         signout: 'siteSettingsClearDisplayedStorageSignOut',
       },
       {
         filter: true,
         appInstalled: true,
         storage: true,
-        title: 'siteSettingsDeleteDisplayedStorageDialogTitle',
-        description: 'siteSettingsDeleteDisplayedStorageConfirmationInstalled',
+        title: 'siteSettingsClearDisplayedStorageDialogTitle',
+        description: 'siteSettingsClearDisplayedStorageConfirmationInstalled',
         signout: 'siteSettingsClearDisplayedStorageSignOut',
       },
     ];
@@ -994,7 +994,7 @@ suite('DisableFirstPartySets', function() {
   });
 });
 
-suite('EnableFirstPartySets', function() {
+suite('AllSites_EnableFirstPartySets', function() {
   /**
    * An example eTLD+1 Object with multiple origins grouped under it.
    */

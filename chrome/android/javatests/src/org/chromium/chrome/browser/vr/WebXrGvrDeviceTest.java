@@ -66,7 +66,7 @@ public class WebXrGvrDeviceTest {
     public void testWebXrCapabilities() {
         mWebXrVrTestFramework.loadFileAndAwaitInitialization(
                 "test_webxr_capabilities", PAGE_LOAD_TIMEOUT_S);
-        mWebXrVrTestFramework.executeStepAndWait("stepCheckCapabilities()");
+        mWebXrVrTestFramework.executeStepAndWait("stepCheckCapabilities('Daydream')");
         mWebXrVrTestFramework.endTest();
     }
 }

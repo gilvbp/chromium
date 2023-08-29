@@ -18,9 +18,9 @@ class CounterStyleMapTest : public PageTestBase {
   }
 
   const CounterStyle& GetCounterStyle(const TreeScope& scope,
-                                      const char* name) {
+                                      const AtomicString& name) {
     return *CounterStyleMap::GetAuthorCounterStyleMap(scope)
-                ->counter_styles_.at(AtomicString(name));
+                ->counter_styles_.at(name);
   }
 };
 
@@ -183,7 +183,7 @@ TEST_F(CounterStyleMapTest, UpdateReferencesInChildScope) {
   const CounterStyle& bar = GetCounterStyle(shadow, "bar");
   EXPECT_EQ(&foo, &bar.GetExtendedStyle());
 
-  GetDocument().QuerySelector(AtomicString("style"))->remove();
+  GetDocument().QuerySelector("style")->remove();
   UpdateAllLifecyclePhasesForTest();
 
   // After counter style rule changes in the parent scope, the original

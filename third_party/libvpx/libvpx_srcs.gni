@@ -273,7 +273,6 @@ libvpx_srcs_x86_headers = [
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_ext_ratectrl.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_extend.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_firstpass.h",
-  "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_firstpass_stats.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_job_queue.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_lookahead.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_mbgraph.h",
@@ -469,8 +468,10 @@ libvpx_srcs_x86_sse4_1 = [
   "//third_party/libvpx/source/libvpx/vpx_dsp/x86/highbd_idct4x4_add_sse4.c",
   "//third_party/libvpx/source/libvpx/vpx_dsp/x86/highbd_idct8x8_add_sse4.c",
 ]
-libvpx_srcs_x86_avx =
-    [ "//third_party/libvpx/source/libvpx/vpx_dsp/x86/quantize_avx.c" ]
+libvpx_srcs_x86_avx = [
+  "//third_party/libvpx/source/libvpx/vp9/encoder/x86/vp9_diamond_search_sad_avx.c",
+  "//third_party/libvpx/source/libvpx/vpx_dsp/x86/quantize_avx.c",
+]
 libvpx_srcs_x86_avx2 = [
   "//third_party/libvpx/source/libvpx/vp9/encoder/x86/vp9_error_avx2.c",
   "//third_party/libvpx/source/libvpx/vp9/encoder/x86/vp9_quantize_avx2.c",
@@ -763,7 +764,6 @@ libvpx_srcs_x86_64_headers = [
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_ext_ratectrl.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_extend.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_firstpass.h",
-  "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_firstpass_stats.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_job_queue.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_lookahead.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_mbgraph.h",
@@ -963,8 +963,10 @@ libvpx_srcs_x86_64_sse4_1 = [
   "//third_party/libvpx/source/libvpx/vpx_dsp/x86/highbd_idct4x4_add_sse4.c",
   "//third_party/libvpx/source/libvpx/vpx_dsp/x86/highbd_idct8x8_add_sse4.c",
 ]
-libvpx_srcs_x86_64_avx =
-    [ "//third_party/libvpx/source/libvpx/vpx_dsp/x86/quantize_avx.c" ]
+libvpx_srcs_x86_64_avx = [
+  "//third_party/libvpx/source/libvpx/vp9/encoder/x86/vp9_diamond_search_sad_avx.c",
+  "//third_party/libvpx/source/libvpx/vpx_dsp/x86/quantize_avx.c",
+]
 libvpx_srcs_x86_64_avx2 = [
   "//third_party/libvpx/source/libvpx/vp9/encoder/x86/vp9_error_avx2.c",
   "//third_party/libvpx/source/libvpx/vp9/encoder/x86/vp9_quantize_avx2.c",
@@ -1256,7 +1258,6 @@ libvpx_srcs_arm_headers = [
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_ext_ratectrl.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_extend.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_firstpass.h",
-  "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_firstpass_stats.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_job_queue.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_lookahead.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_mbgraph.h",
@@ -1667,7 +1668,6 @@ libvpx_srcs_arm_neon_headers = [
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_ext_ratectrl.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_extend.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_firstpass.h",
-  "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_firstpass_stats.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_job_queue.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_lookahead.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_mbgraph.h",
@@ -2049,7 +2049,6 @@ libvpx_srcs_arm_neon_cpu_detect_headers = [
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_ext_ratectrl.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_extend.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_firstpass.h",
-  "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_firstpass_stats.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_job_queue.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_lookahead.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_mbgraph.h",
@@ -2545,7 +2544,6 @@ libvpx_srcs_arm64_headers = [
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_ext_ratectrl.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_extend.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_firstpass.h",
-  "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_firstpass_stats.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_job_queue.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_lookahead.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_mbgraph.h",
@@ -2986,7 +2984,6 @@ libvpx_srcs_arm_neon_highbd_headers = [
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_ext_ratectrl.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_extend.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_firstpass.h",
-  "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_firstpass_stats.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_job_queue.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_lookahead.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_mbgraph.h",
@@ -3453,7 +3450,6 @@ libvpx_srcs_arm64_highbd_headers = [
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_ext_ratectrl.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_extend.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_firstpass.h",
-  "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_firstpass_stats.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_job_queue.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_lookahead.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_mbgraph.h",
@@ -3813,7 +3809,6 @@ libvpx_srcs_mips_headers = [
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_ext_ratectrl.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_extend.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_firstpass.h",
-  "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_firstpass_stats.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_job_queue.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_lookahead.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_mbgraph.h",
@@ -4168,7 +4163,6 @@ libvpx_srcs_loongarch_headers = [
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_ext_ratectrl.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_extend.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_firstpass.h",
-  "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_firstpass_stats.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_job_queue.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_lookahead.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_mbgraph.h",
@@ -4557,7 +4551,6 @@ libvpx_srcs_ppc64_headers = [
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_ext_ratectrl.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_extend.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_firstpass.h",
-  "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_firstpass_stats.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_job_queue.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_lookahead.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_mbgraph.h",
@@ -4911,7 +4904,6 @@ libvpx_srcs_nacl_headers = [
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_ext_ratectrl.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_extend.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_firstpass.h",
-  "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_firstpass_stats.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_job_queue.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_lookahead.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_mbgraph.h",
@@ -5264,7 +5256,6 @@ libvpx_srcs_generic_headers = [
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_ext_ratectrl.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_extend.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_firstpass.h",
-  "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_firstpass_stats.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_job_queue.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_lookahead.h",
   "//third_party/libvpx/source/libvpx/vp9/encoder/vp9_mbgraph.h",

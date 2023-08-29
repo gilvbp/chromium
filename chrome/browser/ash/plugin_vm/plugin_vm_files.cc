@@ -147,7 +147,7 @@ void EnsureDefaultSharedDirExists(
 
 void LaunchPluginVmApp(Profile* profile,
                        std::string app_id,
-                       const std::vector<guest_os::LaunchArg>& args,
+                       const std::vector<LaunchArg>& args,
                        LaunchPluginVmAppCallback callback) {
   if (!plugin_vm::PluginVmFeatures::Get()->IsEnabled(profile)) {
     return std::move(callback).Run(LaunchPluginVmAppResult::FAILED,

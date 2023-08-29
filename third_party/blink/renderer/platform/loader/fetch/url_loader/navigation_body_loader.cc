@@ -541,7 +541,8 @@ void NavigationBodyLoader::NotifyCompletionIfAppropriate() {
   client_ = nullptr;
   client->BodyLoadingFinished(
       status_.completion_time, status_.encoded_data_length,
-      status_.encoded_body_length, status_.decoded_body_length, error);
+      status_.encoded_body_length, status_.decoded_body_length,
+      status_.should_report_corb_blocking, error);
 }
 
 void NavigationBodyLoader::

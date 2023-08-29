@@ -10,7 +10,6 @@
 
 #include <string>
 
-#include "base/containers/contains.h"
 #include "base/fuchsia/fuchsia_logging.h"
 #include "base/fuchsia/mem_buffer_util.h"
 #include "base/fuchsia/process_context.h"
@@ -99,8 +98,8 @@ class WebEngineIntegrationUserAgentTest : public WebEngineIntegrationTest {
                            version_info::GetMajorVersionNumberAsInt());
 
     // Ensure the field was actually populated.
-    EXPECT_TRUE(
-        base::Contains(expected_ua, version_info::GetMajorVersionNumber()));
+    EXPECT_NE(expected_ua.find(version_info::GetMajorVersionNumber()),
+              std::string::npos);
 
     return expected_ua;
   }
@@ -147,12 +146,12 @@ TEST_F(WebEngineIntegrationUserAgentTest, ValidProductOnly) {
   // the product tag.
   std::string result =
       ExecuteJavaScriptWithStringResult("document.body.innerText;");
-  EXPECT_TRUE(base::Contains(result, kValidUserAgentProduct));
+  EXPECT_TRUE(result.find(kValidUserAgentProduct) != std::string::npos);
   EXPECT_EQ(result, expected);
 
   // Query & verify that the navigator.userAgent contains the product tag.
   result = ExecuteJavaScriptWithStringResult("navigator.userAgent;");
-  EXPECT_TRUE(base::Contains(result, kValidUserAgentProduct));
+  EXPECT_TRUE(result.find(kValidUserAgentProduct) != std::string::npos);
   EXPECT_EQ(result, expected);
 }
 
@@ -172,12 +171,14 @@ TEST_F(WebEngineIntegrationUserAgentTest, ValidProductAndVersion) {
   // both product & version.
   std::string result =
       ExecuteJavaScriptWithStringResult("document.body.innerText;");
-  EXPECT_TRUE(base::Contains(result, kValidUserAgentProductAndVersion));
+  EXPECT_TRUE(result.find(kValidUserAgentProductAndVersion) !=
+              std::string::npos);
   EXPECT_EQ(result, expected);
 
   // Query & verify that the navigator.userAgent contains product & version.
   result = ExecuteJavaScriptWithStringResult("navigator.userAgent;");
-  EXPECT_TRUE(base::Contains(result, kValidUserAgentProductAndVersion));
+  EXPECT_TRUE(result.find(kValidUserAgentProductAndVersion) !=
+              std::string::npos);
   EXPECT_EQ(result, expected);
 
   // Verify navigator.platform is empty, see crbug.com/1348646.

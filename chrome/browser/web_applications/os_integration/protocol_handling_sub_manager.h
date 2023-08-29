@@ -15,12 +15,12 @@
 
 namespace web_app {
 
-class WebAppProvider;
+class WebAppRegistrar;
 
 class ProtocolHandlingSubManager : public OsIntegrationSubManager {
  public:
   ProtocolHandlingSubManager(const base::FilePath& profile_path,
-                             WebAppProvider& provider);
+                             WebAppRegistrar& registrar);
   ~ProtocolHandlingSubManager() override;
   void Configure(const AppId& app_id,
                  proto::WebAppOsIntegrationState& desired_state,
@@ -35,7 +35,7 @@ class ProtocolHandlingSubManager : public OsIntegrationSubManager {
 
  private:
   const base::FilePath profile_path_;
-  const raw_ref<WebAppProvider> provider_;
+  const raw_ref<WebAppRegistrar, DanglingUntriaged> registrar_;
 
   base::WeakPtrFactory<ProtocolHandlingSubManager> weak_ptr_factory_{this};
 };

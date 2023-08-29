@@ -31,6 +31,7 @@
 #include "ash/components/arc/pay/arc_payment_app_bridge.h"
 #include "ash/components/arc/power/arc_power_bridge.h"
 #include "ash/components/arc/property/arc_property_bridge.h"
+#include "ash/components/arc/rotation_lock/arc_rotation_lock_bridge.h"
 #include "ash/components/arc/sensor/arc_iio_sensor_bridge.h"
 #include "ash/components/arc/session/arc_service_manager.h"
 #include "ash/components/arc/session/arc_session.h"
@@ -70,9 +71,8 @@
 #include "chrome/browser/ash/arc/input_overlay/arc_input_overlay_manager.h"
 #include "chrome/browser/ash/arc/instance_throttle/arc_instance_throttle.h"
 #include "chrome/browser/ash/arc/intent_helper/arc_settings_service.h"
-#include "chrome/browser/ash/arc/intent_helper/chrome_arc_intent_helper_delegate.h"
+#include "chrome/browser/ash/arc/intent_helper/factory_reset_delegate.h"
 #include "chrome/browser/ash/arc/keymaster/arc_keymaster_bridge.h"
-#include "chrome/browser/ash/arc/keymint/arc_keymint_bridge.h"
 #include "chrome/browser/ash/arc/kiosk/arc_kiosk_bridge.h"
 #include "chrome/browser/ash/arc/metrics/arc_metrics_service_proxy.h"
 #include "chrome/browser/ash/arc/nearby_share/arc_nearby_share_bridge.h"
@@ -107,7 +107,6 @@
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/ui/ash/multi_user/multi_user_util.h"
 #include "chrome/common/channel_info.h"
-#include "chromeos/ash/components/memory/swap_configuration.h"
 #include "components/arc/common/intent_helper/arc_icon_cache_delegate.h"
 #include "components/arc/intent_helper/arc_intent_helper_bridge.h"
 #include "components/prefs/pref_member.h"
@@ -215,15 +214,6 @@ void ArcServiceLauncher::OnPrimaryUserProfilePrepared(Profile* profile) {
   DCHECK(arc_service_manager_);
   DCHECK(arc_session_manager_);
 
-  // We want to configure swap exactly once for the session. We wait for after
-  // the user profile is prepared to make sure policy has been loaded. The
-  // function IsArcPlayStoreEnabledForProfile has many conditionals, but the
-  // main one we're checking for is if ARC is disabled by policy (which is the
-  // default). Note that there's a known edge case where during a session policy
-  // changes from disabled to enabled. This is expected to be rare, and logging
-  // out will update the swap configuration.
-  ash::ConfigureSwap(IsArcPlayStoreEnabledForProfile(profile));
-
   if (arc_session_manager_->profile() != profile) {
     // Profile is not matched, so the given |profile| is not allowed to use
     // ARC.
@@ -264,17 +254,14 @@ void ArcServiceLauncher::OnPrimaryUserProfilePrepared(Profile* profile) {
   ArcInstanceThrottle::GetForBrowserContext(profile);
   {
     auto* intent_helper = ArcIntentHelperBridge::GetForBrowserContext(profile);
-    intent_helper->SetDelegate(
-        std::make_unique<ChromeArcIntentHelperDelegate>(profile));
+    intent_helper->SetDelegate(std::make_unique<FactoryResetDelegate>());
     arc_icon_cache_delegate_provider_ =
         std::make_unique<ArcIconCacheDelegateProvider>(intent_helper);
   }
+  ArcIntentHelperBridge::GetForBrowserContext(profile)->SetDelegate(
+      std::make_unique<FactoryResetDelegate>());
   ArcKeyboardShortcutBridge::GetForBrowserContext(profile);
-  if (ShouldUseArcKeyMint()) {
-    ArcKeyMintBridge::GetForBrowserContext(profile);
-  } else {
-    ArcKeymasterBridge::GetForBrowserContext(profile);
-  }
+  ArcKeymasterBridge::GetForBrowserContext(profile);
   ArcKioskBridge::GetForBrowserContext(profile);
   ArcLockScreenBridge::GetForBrowserContext(profile);
   ArcMediaSessionBridge::GetForBrowserContext(profile);
@@ -309,6 +296,7 @@ void ArcServiceLauncher::OnPrimaryUserProfilePrepared(Profile* profile) {
   ArcPropertyBridge::GetForBrowserContext(profile);
   ArcProvisionNotificationService::GetForBrowserContext(profile);
   ArcResizeLockManager::GetForBrowserContext(profile);
+  ArcRotationLockBridge::GetForBrowserContext(profile);
   ArcScreenCaptureBridge::GetForBrowserContext(profile);
   ArcSettingsService::GetForBrowserContext(profile);
   ArcSharesheetBridge::GetForBrowserContext(profile);
@@ -455,11 +443,7 @@ void ArcServiceLauncher::EnsureFactoriesBuilt() {
   ArcInitialOptInNotifier::EnsureFactoryBuilt();
   ArcInstanceThrottle::EnsureFactoryBuilt();
   ArcKeyboardShortcutBridge::EnsureFactoryBuilt();
-  if (ShouldUseArcKeyMint()) {
-    ArcKeyMintBridge::EnsureFactoryBuilt();
-  } else {
-    ArcKeymasterBridge::EnsureFactoryBuilt();
-  }
+  ArcKeymasterBridge::EnsureFactoryBuilt();
   ArcKioskBridge::EnsureFactoryBuilt();
   ArcLockScreenBridge::EnsureFactoryBuilt();
   ArcMediaSessionBridge::EnsureFactoryBuilt();
@@ -483,6 +467,7 @@ void ArcServiceLauncher::EnsureFactoriesBuilt() {
   ArcPropertyBridge::EnsureFactoryBuilt();
   ArcProvisionNotificationService::EnsureFactoryBuilt();
   ArcResizeLockManager::EnsureFactoryBuilt();
+  ArcRotationLockBridge::EnsureFactoryBuilt();
   ArcScreenCaptureBridge::EnsureFactoryBuilt();
   ArcSettingsService::EnsureFactoryBuilt();
   ArcStorageManager::EnsureFactoryBuilt();

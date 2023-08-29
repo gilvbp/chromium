@@ -27,7 +27,6 @@
 #include "third_party/blink/renderer/core/svg/gradient_attributes.h"
 #include "third_party/blink/renderer/core/svg/svg_length.h"
 #include "third_party/blink/renderer/core/svg/svg_length_context.h"
-#include "third_party/blink/renderer/core/svg/svg_length_functions.h"
 #include "third_party/blink/renderer/platform/graphics/gradient.h"
 #include "third_party/blink/renderer/platform/graphics/graphics_context.h"
 #include "third_party/blink/renderer/platform/graphics/skia/skia_utils.h"
@@ -37,7 +36,7 @@ namespace blink {
 
 namespace {
 
-gfx::SizeF MakeViewport(const SVGViewportResolver& viewport_resolver,
+gfx::SizeF MakeViewport(const SVGLengthContext& context,
                         const LengthPoint& point,
                         SVGUnitTypes::SVGUnitType type) {
   if (!point.X().IsPercentOrCalc() && !point.Y().IsPercentOrCalc()) {
@@ -46,10 +45,10 @@ gfx::SizeF MakeViewport(const SVGViewportResolver& viewport_resolver,
   if (type == SVGUnitTypes::kSvgUnitTypeObjectboundingbox) {
     return gfx::SizeF(1, 1);
   }
-  return viewport_resolver.ResolveViewport();
+  return context.ResolveViewport();
 }
 
-float MakeViewportDimension(const SVGViewportResolver& viewport_resolver,
+float MakeViewportDimension(const SVGLengthContext& context,
                             const Length& radius,
                             SVGUnitTypes::SVGUnitType type) {
   if (!radius.IsPercentOrCalc()) {
@@ -58,7 +57,7 @@ float MakeViewportDimension(const SVGViewportResolver& viewport_resolver,
   if (type == SVGUnitTypes::kSvgUnitTypeObjectboundingbox) {
     return 1;
   }
-  return viewport_resolver.ViewportDimension(SVGLengthMode::kOther);
+  return context.ViewportDimension(SVGLengthMode::kOther);
 }
 
 }  // unnamed namespace
@@ -177,22 +176,21 @@ gfx::PointF LayoutSVGResourceGradient::ResolvePoint(
     const SVGLength& x,
     const SVGLength& y) const {
   NOT_DESTROYED();
-  const SVGViewportResolver viewport_resolver(*this);
+  const SVGLengthContext context(GetElement());
   const SVGLengthConversionData conversion_data(*this);
   const LengthPoint point(x.ConvertToLength(conversion_data),
                           y.ConvertToLength(conversion_data));
-  return PointForLengthPoint(point,
-                             MakeViewport(viewport_resolver, point, type));
+  return PointForLengthPoint(point, MakeViewport(context, point, type));
 }
 
 float LayoutSVGResourceGradient::ResolveRadius(SVGUnitTypes::SVGUnitType type,
                                                const SVGLength& r) const {
   NOT_DESTROYED();
-  const SVGViewportResolver viewport_resolver(*this);
+  const SVGLengthContext context(GetElement());
   const SVGLengthConversionData conversion_data(*this);
   const Length& radius = r.ConvertToLength(conversion_data);
-  return FloatValueForLength(
-      radius, MakeViewportDimension(viewport_resolver, radius, type));
+  return FloatValueForLength(radius,
+                             MakeViewportDimension(context, radius, type));
 }
 
 GradientSpreadMethod LayoutSVGResourceGradient::PlatformSpreadMethodFromSVGType(

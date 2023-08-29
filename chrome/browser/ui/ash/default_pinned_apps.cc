@@ -4,7 +4,6 @@
 
 #include "chrome/browser/ui/ash/default_pinned_apps.h"
 
-#include "ash/constants/ash_features.h"
 #include "ash/constants/ash_switches.h"
 #include "chrome/browser/ash/app_list/arc/arc_app_utils.h"
 #include "chrome/browser/ash/file_manager/app_id.h"
@@ -43,10 +42,6 @@ std::vector<StaticAppId> GetDefaultPinnedApps() {
     app_ids.push_back(web_app::kNvidiaGeForceNowAppId);
   }
 
-  if (ash::features::AreHelpAppWelcomeTipsEnabled()) {
-    app_ids.push_back(web_app::kHelpAppId);
-  }
-
   return app_ids;
 }
 
@@ -62,11 +57,6 @@ std::vector<StaticAppId> GetTabletFormFactorDefaultPinnedApps() {
 
       arc::kGooglePhotosAppId,
   };
-
-  if (ash::features::AreHelpAppWelcomeTipsEnabled()) {
-    app_ids.push_back(web_app::kHelpAppId);
-  }
-
   return app_ids;
 }
 

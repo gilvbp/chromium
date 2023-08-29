@@ -9,9 +9,8 @@
 
 #include "base/no_destructor.h"
 #include "base/sequence_checker.h"
-#include "remoting/host/chromeos/file_session_storage.h"
+#include "mojo/public/cpp/bindings/self_owned_receiver.h"
 #include "remoting/host/chromeos/remote_support_host_ash.h"
-#include "third_party/abseil-cpp/absl/types/optional.h"
 
 namespace remoting {
 
@@ -26,9 +25,6 @@ class RemotingServiceImpl : public RemotingService {
 
   // RemotingService implementation.
   RemoteSupportHostAsh& GetSupportHost() override;
-  void GetReconnectableEnterpriseSessionId(SessionIdCallback callback) override;
-
-  FileSessionStorage& GetSessionStorage() { return session_storage_; }
 
  private:
   void ReleaseSupportHost();
@@ -37,8 +33,6 @@ class RemotingServiceImpl : public RemotingService {
 
   std::unique_ptr<RemoteSupportHostAsh> remote_support_host_
       GUARDED_BY_CONTEXT(sequence_checker_);
-
-  FileSessionStorage session_storage_ GUARDED_BY_CONTEXT(sequence_checker_);
 };
 
 RemotingServiceImpl::RemotingServiceImpl() = default;
@@ -46,25 +40,12 @@ RemotingServiceImpl::~RemotingServiceImpl() = default;
 
 RemoteSupportHostAsh& RemotingServiceImpl::GetSupportHost() {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
-
   if (!remote_support_host_) {
-    remote_support_host_ = std::make_unique<RemoteSupportHostAsh>(
-        base::BindOnce(&RemotingServiceImpl::ReleaseSupportHost,
-                       base::Unretained(this)),
-        session_storage_);
+    remote_support_host_ =
+        std::make_unique<RemoteSupportHostAsh>(base::BindOnce(
+            &RemotingServiceImpl::ReleaseSupportHost, base::Unretained(this)));
   }
   return *remote_support_host_;
-}
-
-void RemotingServiceImpl::GetReconnectableEnterpriseSessionId(
-    SessionIdCallback callback) {
-  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
-
-  session_storage_.HasSession(  //
-      base::BindOnce([](bool has_session) {
-        return has_session ? absl::make_optional(kEnterpriseSessionId)
-                           : absl::nullopt;
-      }).Then(std::move(callback)));
 }
 
 void RemotingServiceImpl::ReleaseSupportHost() {
@@ -72,23 +53,11 @@ void RemotingServiceImpl::ReleaseSupportHost() {
   remote_support_host_.reset();
 }
 
-RemotingServiceImpl& GetInstance() {
-  static base::NoDestructor<RemotingServiceImpl> instance;
-  return *instance;
-}
-
 }  // namespace
 
 RemotingService& RemotingService::Get() {
-  return GetInstance();
-}
-
-// static
-void RemotingService::SetSessionStorageDirectoryForTesting(
-    const base::FilePath& dir) {
-  GetInstance()
-      .GetSessionStorage()                  //
-      .SetStorageDirectoryForTesting(dir);  // IN-TEST
+  static base::NoDestructor<RemotingServiceImpl> instance;
+  return *instance;
 }
 
 }  // namespace remoting

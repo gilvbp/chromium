@@ -15,7 +15,9 @@ namespace {
 
 TEST(LabelFormatterTest, CreateWithMissingFieldTypes) {
   const std::vector<AutofillProfile*> profiles{};
-  EXPECT_EQ(LabelFormatter::Create(profiles, "en-US", NAME_FIRST, {}), nullptr);
+  EXPECT_EQ(LabelFormatter::Create(profiles, "en-US", NAME_FIRST,
+                                   std::vector<ServerFieldType>()),
+            nullptr);
 }
 
 TEST(LabelFormatterTest, CreateWithUnsupportedFieldTypes) {

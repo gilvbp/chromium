@@ -221,6 +221,7 @@ class ScrimMediator implements ScrimCoordinator.TouchEventDelegate {
         if (mOverlayAnimator != null) mOverlayAnimator.end();
     }
 
+    @VisibleForTesting
     void disableAnimationForTesting(boolean disable) {
         mDisableAnimationForTesting = disable;
     }

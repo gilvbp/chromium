@@ -90,10 +90,7 @@ void WebApkManager::StartOrStopObserving() {
 
   if (arc_enabled && policy_enabled) {
     auto* cache = &proxy_->AppRegistryCache();
-    if (!app_registry_cache_observer_.IsObservingSource(cache)) {
-      app_registry_cache_observer_.Reset();
-      app_registry_cache_observer_.Observe(cache);
-    }
+    Observe(cache);
 
     if (cache->IsAppTypeInitialized(AppType::kWeb)) {
       Synchronize();
@@ -101,7 +98,7 @@ void WebApkManager::StartOrStopObserving() {
     return;
   }
 
-  app_registry_cache_observer_.Reset();
+  Observe(nullptr);
   initialized_ = false;
 
   if (!policy_enabled) {
@@ -188,7 +185,7 @@ void WebApkManager::OnAppTypeInitialized(AppType type) {
 }
 
 void WebApkManager::OnAppRegistryCacheWillBeDestroyed(AppRegistryCache* cache) {
-  app_registry_cache_observer_.Reset();
+  Observe(nullptr);
 }
 
 void WebApkManager::OnPackageListInitialRefreshed() {

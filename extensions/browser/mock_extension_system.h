@@ -88,9 +88,9 @@ class MockExtensionSystemFactory : public ExtensionSystemProvider {
   ~MockExtensionSystemFactory() override = default;
 
   // BrowserContextKeyedServiceFactory overrides:
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* context) const override {
-    return std::make_unique<T>(context);
+    return new T(context);
   }
   content::BrowserContext* GetBrowserContextToUse(
       content::BrowserContext* context) const override {

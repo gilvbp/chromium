@@ -19,10 +19,4 @@ BrowserCompositorMac* GetBrowserCompositorMacForTesting(
   return static_cast<const RenderWidgetHostViewMac*>(rwhv)->BrowserCompositor();
 }
 
-void SetScreenInfosForTesting(RenderWidgetHostView* rwhv,
-                              const display::ScreenInfos& screen_infos) {
-  return static_cast<RenderWidgetHostViewMac*>(rwhv)->OnScreenInfosChanged(
-      screen_infos);
-}
-
 }  // namespace content

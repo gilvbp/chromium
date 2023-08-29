@@ -116,16 +116,6 @@ Outcome SmsStatusToOutcome(SmsStatus status) {
   }
 }
 
-ukm::SourceId GetPageUkmSourceId(RenderFrameHost& render_frame_host) {
-  // Ensure the lifecycle state as GetPageUkmSourceId doesn't support the
-  // prerendering page. As WebOTPService runs behind the
-  // BrowserInterfaceBinders, the service doesn't receive any request while
-  // prerendering, and the CHECK should always meet the condition.
-  CHECK(!render_frame_host.IsInLifecycleState(
-      RenderFrameHost::LifecycleState::kPrerendering));
-  return render_frame_host.GetPageUkmSourceId();
-}
-
 }  // namespace
 
 WebOTPService::WebOTPService(
@@ -140,11 +130,11 @@ WebOTPService::WebOTPService(
                      blink::kWebOTPRequestTimeout,
                      this,
                      &WebOTPService::OnTimeout) {
-  CHECK(fetcher_);
+  DCHECK(fetcher_);
 }
 
 WebOTPService::~WebOTPService() {
-  CHECK(!callback_);
+  DCHECK(!callback_);
 }
 
 // static
@@ -182,7 +172,7 @@ void WebOTPService::WillBeDestroyed(DocumentServiceDestructionReason) {
   // service from fetcher.
   //
   // TODO(https://crbug.com/1317531): Previously, running the callbacks in the
-  // destructor was required to avoid triggering CHECKs since the
+  // destructor was required to avoid triggering DCHECKs since the
   // mojo::Receiver was (incorrectly) not yet reset in the destructor.
   //
   // The destruction order is fixed so running the reply callbacks should no
@@ -195,7 +185,7 @@ void WebOTPService::WillBeDestroyed(DocumentServiceDestructionReason) {
 
 void WebOTPService::Receive(ReceiveCallback callback) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
-  CHECK(!origin_list_.empty());
+  DCHECK(!origin_list_.empty());
   // Cancels the last request if there is we have not yet handled it.
   if (callback_)
     CompleteRequest(SmsStatus::kCancelled);
@@ -222,24 +212,24 @@ void WebOTPService::OnReceive(const OriginList& origin_list,
                               const std::string& one_time_code,
                               UserConsent consent_requirement) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
-  CHECK(!one_time_code_);
-  CHECK(!start_time_.is_null());
-  CHECK(!origin_list.empty());
+  DCHECK(!one_time_code_);
+  DCHECK(!start_time_.is_null());
+  DCHECK(!origin_list.empty());
 
   receive_time_ = base::TimeTicks::Now();
   RecordSmsReceiveTime(receive_time_ - start_time_,
-                       GetPageUkmSourceId(render_frame_host()));
+                       render_frame_host().GetPageUkmSourceId());
   RecordSmsParsingStatus(SmsParsingStatus::kParsed,
-                         GetPageUkmSourceId(render_frame_host()));
+                         render_frame_host().GetPageUkmSourceId());
 
   one_time_code_ = one_time_code;
   // This function cannot get called during prerendering because WebOTPService
-  // is deferred during prerendering by MojoBinderPolicyApplier. This CHECK
+  // is deferred during prerendering by MojoBinderPolicyApplier. This DCHECK
   // proves we don't have to worry about prerendering when using
   // WebContents::FromRenderFrameHost() below (see function comments for
   // WebContents::FromRenderFrameHost() for more details).
-  CHECK_NE(render_frame_host().GetLifecycleState(),
-           RenderFrameHost::LifecycleState::kPrerendering);
+  DCHECK_NE(render_frame_host().GetLifecycleState(),
+            RenderFrameHost::LifecycleState::kPrerendering);
   WebContents* web_contents =
       content::WebContents::FromRenderFrameHost(&render_frame_host());
   // With UserConsent API, users can see and interact with the permission prompt
@@ -300,16 +290,12 @@ void WebOTPService::OnFailure(FailureType failure_type) {
   }
 
   // Records Sms parsing failures.
-  CHECK(status != SmsParsingStatus::kParsed);
-  RecordSmsParsingStatus(status, GetPageUkmSourceId(render_frame_host()));
+  DCHECK(status != SmsParsingStatus::kParsed);
+  RecordSmsParsingStatus(status, render_frame_host().GetPageUkmSourceId());
 }
 
 void WebOTPService::Abort() {
-  if (!callback_) {
-    mojo::ReportBadMessage(
-        "The abort controller must be used after initiating an SMS request.");
-    return;
-  }
+  DCHECK(callback_);
   CompleteRequest(SmsStatus::kAborted);
 }
 
@@ -318,7 +304,7 @@ void WebOTPService::CompleteRequest(blink::mojom::SmsStatus status) {
 
   absl::optional<std::string> code = absl::nullopt;
   if (status == SmsStatus::kSuccess) {
-    CHECK(one_time_code_);
+    DCHECK(one_time_code_);
     code = one_time_code_;
   }
 
@@ -386,16 +372,16 @@ void WebOTPService::RecordMetrics(blink::mojom::SmsStatus status) {
   auto* consent_handler = GetConsentHandler();
   if (consent_handler && consent_handler->is_async()) {
     if (status == SmsStatus::kSuccess) {
-      CHECK(!receive_time_.is_null());
+      DCHECK(!receive_time_.is_null());
       RecordContinueOnSuccessTime(base::TimeTicks::Now() - receive_time_);
     } else if (delayed_rejection_reason_ && delayed_rejection_reason_.value() ==
                                                 FailureType::kPromptCancelled) {
-      CHECK(!receive_time_.is_null());
+      DCHECK(!receive_time_.is_null());
       RecordCancelOnSuccessTime(base::TimeTicks::Now() - receive_time_);
     }
   }
 
-  ukm::SourceId source_id = GetPageUkmSourceId(render_frame_host());
+  ukm::SourceId source_id = render_frame_host().GetPageUkmSourceId();
   ukm::UkmRecorder* recorder = ukm::UkmRecorder::Get();
 
   // For privacy, metrics from inner frames are recorded with the top frame's
@@ -415,7 +401,7 @@ void WebOTPService::RecordMetrics(blink::mojom::SmsStatus status) {
   // In 2, 3 and 4, there is a different SmsStatus when trying to record metrics
   // so we need to do it based on delayed_rejection_reason_.
   if (delayed_rejection_reason_) {
-    CHECK_NE(status, SmsStatus::kSuccess);
+    DCHECK_NE(status, SmsStatus::kSuccess);
     // Records Outcome for requests which we reject with delay.
     RecordSmsOutcome(FailureTypeToOutcome(delayed_rejection_reason_.value()),
                      source_id, recorder, is_cross_origin_frame);

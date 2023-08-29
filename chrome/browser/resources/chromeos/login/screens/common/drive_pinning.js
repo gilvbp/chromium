@@ -5,7 +5,6 @@
  * @fileoverview Polymer element for drive pinning screen.
  */
 
-import '//resources/cr_elements/chromeos/cros_color_overrides.css.js';
 import '//resources/polymer/v3_0/iron-iconset-svg/iron-iconset-svg.js';
 import '../../components/buttons/oobe_next_button.js';
 import '../../components/oobe_icons.html.js';
@@ -47,8 +46,8 @@ const DrivePinningStep = {
  * @enum {string}
  */
 const UserAction = {
-  ACCEPT: 'driveNext',
-  RETURN: 'return',
+  ACCEPT: 'driveAccept',
+  DECLINE: 'driveDecline',
 };
 
 /**
@@ -80,20 +79,6 @@ class DrivePinningScreen extends DrivePinningScreenElementBase {
       requiredSpace_: {
         type: String,
       },
-
-      enableDrivePinning_: {
-        type: Boolean,
-        value: true,
-      },
-
-      /**
-       * Whether the button to return to CHOOBE screen should be shown.
-       * @private
-       */
-      shouldShowReturn_: {
-        type: Boolean,
-        value: false,
-      },
     };
   }
 
@@ -119,15 +104,11 @@ class DrivePinningScreen extends DrivePinningScreenElementBase {
     return OOBE_UI_STATE.ONBOARDING;
   }
 
-  onBeforeShow(data) {
-    this.shouldShowReturn_ = data['shouldShowReturn'];
-  }
-
 
   getSpaceDescription_(locale, requiredSpace, freeSpace) {
     if (requiredSpace && freeSpace) {
       return this.i18nDynamic(
-          locale, 'DevicePinningScreenToggleSubtitle', requiredSpace,
+          locale, 'DevicePinningScreenSpaceDescription', requiredSpace,
           freeSpace);
     }
     return '';
@@ -141,12 +122,12 @@ class DrivePinningScreen extends DrivePinningScreenElementBase {
     this.freeSpace_ = freeSpace;
   }
 
-  onNextButtonClicked_() {
-    this.userActed([UserAction.ACCEPT, this.enableDrivePinning_]);
+  onAcceptButtonClicked_() {
+    this.userActed(UserAction.ACCEPT);
   }
 
-  onReturnClicked_() {
-    this.userActed([UserAction.RETURN, this.enableDrivePinning_]);
+  onDeclineButtonClicked_() {
+    this.userActed(UserAction.DECLINE);
   }
 }
 

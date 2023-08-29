@@ -57,11 +57,6 @@
 #include "ui/views/widget/widget.h"
 
 namespace ash {
-namespace {
-
-constexpr base::TimeDelta kWaitForWidgetsTimeout = base::Seconds(10);
-
-}  // namespace
 
 class TestAmbientPhotoCacheImpl : public AmbientPhotoCache {
  public:
@@ -234,13 +229,6 @@ void AmbientAshTestBase::SetAmbientUiSettings(
   DisableBackupCacheDownloads();
 }
 
-AmbientUiSettings AmbientAshTestBase::GetCurrentUiSettings() {
-  PrefService* pref_service =
-      Shell::Get()->session_controller()->GetActivePrefService();
-  CHECK(pref_service);
-  return AmbientUiSettings::ReadFromPrefService(*pref_service);
-}
-
 void AmbientAshTestBase::DisableBackupCacheDownloads() {
   // Some |AmbientUiSettings| legitimately don't use a photo controller, in
   // which case backup photos are not downloaded anyways.
@@ -274,17 +262,10 @@ void AmbientAshTestBase::DisableJitter() {
 
 void AmbientAshTestBase::SetAmbientShownAndWaitForWidgets() {
   // The widget will be destroyed in |AshTestBase::TearDown()|.
-  ambient_controller()->SetUiVisibilityShouldShow();
-  WaitForWidgets(kWaitForWidgetsTimeout);
-}
+  ambient_controller()->SetUiVisibilityShown();
 
-void AmbientAshTestBase::SetAmbientPreviewAndWaitForWidgets() {
-  ambient_controller()->SetUiVisibilityPreview();
-  WaitForWidgets(kWaitForWidgetsTimeout);
-}
-
-void AmbientAshTestBase::WaitForWidgets(base::TimeDelta timeout) {
-  base::test::ScopedRunLoopTimeout loop_timeout(FROM_HERE, timeout);
+  static constexpr base::TimeDelta kTimeout = base::Seconds(10);
+  base::test::ScopedRunLoopTimeout loop_timeout(FROM_HERE, kTimeout);
   base::RunLoop run_loop;
   task_environment()->GetMainThreadTaskRunner()->PostTask(
       FROM_HERE,
@@ -511,10 +492,6 @@ void AmbientAshTestBase::FastForwardByBackgroundLockScreenTimeout(
                                     ambient_controller()
                                         ->ambient_ui_model()
                                         ->background_lock_screen_timeout());
-}
-
-void AmbientAshTestBase::FastForwardByDurationInMinutes(int minutes) {
-  task_environment()->FastForwardBy(base::Minutes(minutes));
 }
 
 void AmbientAshTestBase::SetPowerStateCharging() {

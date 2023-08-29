@@ -6,7 +6,6 @@
 #include <vector>
 
 #include "base/memory/raw_ptr_exclusion.h"
-#include "base/test/test_future.h"
 #include "base/token.h"
 #include "chrome/test/base/in_process_browser_test.h"
 #include "chrome/test/base/ui_test_utils.h"
@@ -84,11 +83,11 @@ IN_PROC_BROWSER_TEST_F(MessageCenterLacrosBrowserTest, Basics) {
                               delegate2.receiver_.BindNewPipeAndPassRemote());
 
   // Read back the displayed notifications.
-  base::test::TestFuture<const std::vector<std::string>&> ids_future;
-  remote->GetDisplayedNotifications(ids_future.GetCallback());
-  EXPECT_THAT(ids_future.Get(), Contains(id1));
-  EXPECT_THAT(ids_future.Get(), Contains(id2));
-  ids_future.Clear();
+  std::vector<std::string> ids;
+  mojom::MessageCenterAsyncWaiter waiter(remote.get());
+  waiter.GetDisplayedNotifications(&ids);
+  EXPECT_THAT(ids, Contains(id1));
+  EXPECT_THAT(ids, Contains(id2));
 
   // Close notification 1. The delegate should be notified.
   base::RunLoop run_loop1;
@@ -97,10 +96,9 @@ IN_PROC_BROWSER_TEST_F(MessageCenterLacrosBrowserTest, Basics) {
   run_loop1.Run();
 
   // Notification 1 is gone but notification 2 remains.
-  remote->GetDisplayedNotifications(ids_future.GetCallback());
-  EXPECT_THAT(ids_future.Get(), Not(Contains(id1)));
-  EXPECT_THAT(ids_future.Get(), Contains(id2));
-  ids_future.Clear();
+  waiter.GetDisplayedNotifications(&ids);
+  EXPECT_THAT(ids, Not(Contains(id1)));
+  EXPECT_THAT(ids, Contains(id2));
 
   // Close notification 2. The delegate should be notified.
   base::RunLoop run_loop2;
@@ -109,10 +107,9 @@ IN_PROC_BROWSER_TEST_F(MessageCenterLacrosBrowserTest, Basics) {
   run_loop2.Run();
 
   // Both notifications are gone.
-  remote->GetDisplayedNotifications(ids_future.GetCallback());
-  EXPECT_THAT(ids_future.Get(), Not(Contains(id1)));
-  EXPECT_THAT(ids_future.Get(), Not(Contains(id2)));
-  ids_future.Clear();
+  waiter.GetDisplayedNotifications(&ids);
+  EXPECT_THAT(ids, Not(Contains(id1)));
+  EXPECT_THAT(ids, Not(Contains(id2)));
 }
 
 }  // namespace

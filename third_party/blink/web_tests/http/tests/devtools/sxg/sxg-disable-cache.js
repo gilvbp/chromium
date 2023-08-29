@@ -4,8 +4,6 @@
 
 import {TestRunner} from 'test_runner';
 import {NetworkTestRunner} from 'network_test_runner';
-
-import * as SDK from 'devtools/core/sdk/sdk.js';
 (async function() {
   TestRunner.addResult('The \'disable cache\' flag must affect on the certificate fetch request.\n');
 
@@ -41,14 +39,14 @@ import * as SDK from 'devtools/core/sdk/sdk.js';
 
   async function addPrefetchAndWait(prefetchUrl, waitUrl) {
     const promise = new Promise(resolve => {
-        TestRunner.addSniffer(SDK.NetworkManager.NetworkDispatcher.prototype, 'loadingFinished', loadingFinished);
+        TestRunner.addSniffer(SDK.NetworkDispatcher.prototype, 'loadingFinished', loadingFinished);
         function loadingFinished(event) {
           var request = NetworkTestRunner.networkLog().requestByManagerAndId(
               TestRunner.networkManager, event.requestId);
           if (request.url() == waitUrl) {
             resolve();
           } else {
-            TestRunner.addSniffer(SDK.NetworkManager.NetworkDispatcher.prototype, 'loadingFinished', loadingFinished);
+            TestRunner.addSniffer(SDK.NetworkDispatcher.prototype, 'loadingFinished', loadingFinished);
           }
         }
       });

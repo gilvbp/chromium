@@ -30,6 +30,7 @@ namespace minidump_uploader {
 
 namespace {
 
+#if BUILDFLAG(IS_ANDROID)
 // These values are persisted to logs. Entries should not be renumbered and
 // numeric values should never be reused.
 enum class ProcessedMinidumpCounts {
@@ -40,6 +41,7 @@ enum class ProcessedMinidumpCounts {
   kUtility = 4,
   kMaxValue = kUtility
 };
+#endif  // BUILDFLAG(IS_ANDROID)
 
 bool MimeifyReportWithKeyValuePairs(
     const crashpad::CrashReportDatabase::UploadReport& report,
@@ -80,6 +82,7 @@ bool MimeifyReportWithKeyValuePairs(
         crashes_key_value_arr->push_back(kv.first);
         crashes_key_value_arr->push_back(kv.second);
       }
+#if BUILDFLAG(IS_ANDROID)
       if (kv.first == kPtypeKey) {
         const crashpad::ExceptionSnapshot* exception =
             minidump_process_snapshot.Exception();
@@ -104,6 +107,7 @@ bool MimeifyReportWithKeyValuePairs(
           }
         }
       }
+#endif  // BUILDFLAG(IS_ANDROID)
     }
   }
 
@@ -225,14 +229,8 @@ void WriteAnrAsMime(crashpad::FileReader* anr_reader,
   crashpad::HTTPMultipartBuilder builder;
   builder.SetFormData("version", version_number);
   builder.SetFormData("product", "Chrome_Android");
-  std::string channel = std::string(
-      version_info::GetChannelString(version_info::android::GetChannel()));
-  if (channel == "stable") {
-    // Android reports require an empty string instead of "stable".
-    channel = "";
-  }
-  builder.SetFormData("channel", channel);
-
+  builder.SetFormData("channel", std::string(version_info::GetChannelString(
+                                     version_info::android::GetChannel())));
   if (build_id.empty()) {
     if (version_number == version_info::GetVersionNumber()) {
       // We have an ANR where we didn't pre-set the build ID in the process
@@ -260,10 +258,11 @@ void WriteAnrAsMime(crashpad::FileReader* anr_reader,
   builder.SetFormData("resources_version", info->resources_version());
   builder.SetFormData("gms_core_version", info->gms_version_code());
 
-  // The package name and version are used for deobfuscation, but will
+  // The firebase package name and version are used for deobfuscation, but will
   // only be accurate for the same version of chrome.
-  if (version_number == version_info::GetVersionNumber()) {
-    builder.SetFormData("package", std::string(info->package_name()) + " v" +
+  if (version_number == version_info::GetVersionNumber() &&
+      info->firebase_app_id()[0] != '\0') {
+    builder.SetFormData("package", std::string(info->firebase_app_id()) + " v" +
                                        info->package_version_code() + " (" +
                                        info->package_version_name() + ")");
   }

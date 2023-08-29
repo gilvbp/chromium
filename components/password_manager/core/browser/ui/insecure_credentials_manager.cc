@@ -57,7 +57,8 @@ bool IsCheckForReusedPasswordsEnabled() {
   // Weak and reused checks are controlled by the Password Checkup feature.
   return password_manager::features::IsPasswordCheckupEnabled();
 #else
-  return true;
+  return base::FeatureList::IsEnabled(
+      password_manager::features::kPasswordManagerRedesign);
 #endif
 }
 

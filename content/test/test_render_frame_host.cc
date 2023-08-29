@@ -490,19 +490,38 @@ void TestRenderFrameHost::DidEnforceInsecureRequestPolicy(
 }
 
 void TestRenderFrameHost::PrepareForCommit() {
-  PrepareForCommitInternal(network::mojom::URLResponseHead::New(),
-                           mojo::ScopedDataPipeConsumerHandle());
+  PrepareForCommitInternal(
+      net::IPEndPoint(),
+      /* was_fetched_via_cache=*/false,
+      /* is_signed_exchange_inner_response=*/false,
+      net::HttpResponseInfo::CONNECTION_INFO_UNKNOWN, absl::nullopt, nullptr,
+      mojo::ScopedDataPipeConsumerHandle(), {} /* dns_aliases */);
 }
 
 void TestRenderFrameHost::PrepareForCommitDeprecatedForNavigationSimulator(
-    network::mojom::URLResponseHeadPtr response,
-    mojo::ScopedDataPipeConsumerHandle response_body) {
-  PrepareForCommitInternal(std::move(response), std::move(response_body));
+    const net::IPEndPoint& remote_endpoint,
+    bool was_fetched_via_cache,
+    bool is_signed_exchange_inner_response,
+    net::HttpResponseInfo::ConnectionInfo connection_info,
+    absl::optional<net::SSLInfo> ssl_info,
+    scoped_refptr<net::HttpResponseHeaders> response_headers,
+    mojo::ScopedDataPipeConsumerHandle response_body,
+    const std::vector<std::string>& dns_aliases) {
+  PrepareForCommitInternal(remote_endpoint, was_fetched_via_cache,
+                           is_signed_exchange_inner_response, connection_info,
+                           ssl_info, response_headers, std::move(response_body),
+                           dns_aliases);
 }
 
 void TestRenderFrameHost::PrepareForCommitInternal(
-    network::mojom::URLResponseHeadPtr response,
-    mojo::ScopedDataPipeConsumerHandle response_body) {
+    const net::IPEndPoint& remote_endpoint,
+    bool was_fetched_via_cache,
+    bool is_signed_exchange_inner_response,
+    net::HttpResponseInfo::ConnectionInfo connection_info,
+    absl::optional<net::SSLInfo> ssl_info,
+    scoped_refptr<net::HttpResponseHeaders> response_headers,
+    mojo::ScopedDataPipeConsumerHandle response_body,
+    const std::vector<std::string>& dns_aliases) {
   NavigationRequest* request = frame_tree_node_->navigation_request();
   CHECK(request);
   bool have_to_make_network_request =
@@ -535,16 +554,19 @@ void TestRenderFrameHost::PrepareForCommitInternal(
   CHECK(url_loader);
 
   // Simulate the network stack commit.
-  if (response->load_timing.send_start.is_null()) {
-    response->load_timing.send_start = base::TimeTicks::Now();
-  }
-  if (response->load_timing.receive_headers_start.is_null()) {
-    response->load_timing.receive_headers_start = base::TimeTicks::Now();
-  }
-  if (!response->parsed_headers) {
-    response->parsed_headers = network::PopulateParsedHeaders(
-        response->headers.get(), request->GetURL());
-  }
+  auto response = network::mojom::URLResponseHead::New();
+  response->remote_endpoint = remote_endpoint;
+  response->was_fetched_via_cache = was_fetched_via_cache;
+  response->is_signed_exchange_inner_response =
+      is_signed_exchange_inner_response;
+  response->connection_info = connection_info;
+  response->ssl_info = ssl_info;
+  response->load_timing.send_start = base::TimeTicks::Now();
+  response->load_timing.receive_headers_start = base::TimeTicks::Now();
+  response->headers = response_headers;
+  response->parsed_headers = network::PopulateParsedHeaders(
+      response->headers.get(), request->GetURL());
+  response->dns_aliases = dns_aliases;
   // TODO(carlosk): Ideally, it should be possible someday to
   // fully commit the navigation at this call to CallOnResponseStarted.
   url_loader->CallOnResponseStarted(std::move(response),

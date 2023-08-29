@@ -4,26 +4,18 @@
 
 #include "ash/system/phonehub/camera_roll_thumbnail.h"
 
-#include "ash/constants/ash_features.h"
 #include "ash/resources/vector_icons/vector_icons.h"
-#include "ash/strings/grit/ash_strings.h"
 #include "ash/style/ash_color_provider.h"
 #include "base/logging.h"
-#include "base/strings/string_number_conversions.h"
-#include "base/test/task_environment.h"
-#include "base/time/time.h"
 #include "chromeos/ash/components/phonehub/camera_roll_item.h"
 #include "chromeos/ash/components/phonehub/fake_camera_roll_manager.h"
 #include "chromeos/ash/components/phonehub/fake_user_action_recorder.h"
 #include "third_party/skia/include/core/SkBitmap.h"
-#include "ui/base/class_property.h"
-#include "ui/base/l10n/l10n_util.h"
 #include "ui/compositor/property_change_reason.h"
 #include "ui/events/test/event_generator.h"
 #include "ui/gfx/image/image.h"
 #include "ui/gfx/image/image_unittest_util.h"
 #include "ui/gfx/paint_vector_icon.h"
-#include "ui/views/accessibility/accessibility_paint_checks.h"
 #include "ui/views/controls/button/menu_button.h"
 #include "ui/views/style/platform_style.h"
 #include "ui/views/test/views_test_base.h"
@@ -31,7 +23,6 @@
 #include "ui/views/widget/widget_utils.h"
 
 namespace ash {
-
 constexpr int kRectWidthInDip = 120;
 constexpr int kRectHeightInDip = 70;
 constexpr gfx::Size kExpectedCameraRollThumbnailBorderSize(74, 74);
@@ -45,7 +36,7 @@ class CameraRollThumbnailForTest : public CameraRollThumbnail {
   CameraRollThumbnailForTest(const phonehub::CameraRollItem& test_item,
                              phonehub::CameraRollManager* camera_roll_manager,
                              phonehub::UserActionRecorder* user_action_recorder)
-      : CameraRollThumbnail(/* index= */ 1,
+      : CameraRollThumbnail(1,
                             test_item,
                             camera_roll_manager,
                             user_action_recorder) {}
@@ -54,9 +45,7 @@ class CameraRollThumbnailForTest : public CameraRollThumbnail {
 
 class CameraRollThumbnailTest : public views::ViewsTestBase {
  public:
-  CameraRollThumbnailTest()
-      : views::ViewsTestBase(
-            base::test::TaskEnvironment::TimeSource::MOCK_TIME) {}
+  CameraRollThumbnailTest() = default;
   ~CameraRollThumbnailTest() override = default;
 
   // ViewTestBase:
@@ -108,19 +97,12 @@ class CameraRollThumbnailTest : public views::ViewsTestBase {
         widget_->SetContentsView(std::move(thumbnail_button)));
     camera_roll_thumbnail_->SetBoundsRect(
         gfx::Rect(0, 0, kRectWidthInDip, kRectHeightInDip));
-    // Accessible name needed to pass accessibility paint checks. Size and
-    // manager index don't matter but still need to be set.
-    const std::u16string accessible_name = l10n_util::GetStringFUTF16(
-        IDS_ASH_PHONE_HUB_CAMERA_ROLL_THUMBNAIL_ACCESSIBLE_NAME,
-        base::NumberToString16(/* index= */ 1),
-        base::NumberToString16(/* camera_roll_manager_size= */ 1));
-    camera_roll_thumbnail_->SetAccessibleName(accessible_name);
     widget_->Show();
   }
 
   SkBitmap CreateExpectedThumbnail(bool is_video) {
     gfx::Canvas expected(gfx::Size(kRectWidthInDip, kRectHeightInDip),
-                         /* image_scale= */ 1.0f, /* is_opaque= */ true);
+                         /*image_scale=*/1.0f, /*is_opaque=*/true);
     auto* provider = AshColorProvider::Get();
     expected.DrawColor(provider->GetControlsLayerColor(
         AshColorProvider::ControlsLayerType::kControlBackgroundColorInactive));
@@ -186,7 +168,7 @@ class CameraRollThumbnailTest : public views::ViewsTestBase {
 };
 
 TEST_F(CameraRollThumbnailTest, ViewLayout) {
-  SetUpCameraRollThumbnailForTest(/* is_video= */ false);
+  SetUpCameraRollThumbnailForTest(/*is_video=*/false);
 
   EXPECT_EQ(camera_roll_thumbnail()->GetFocusBehavior(),
             CameraRollThumbnail::FocusBehavior::ALWAYS);
@@ -194,39 +176,39 @@ TEST_F(CameraRollThumbnailTest, ViewLayout) {
 }
 
 TEST_F(CameraRollThumbnailTest, ImageThumbnail) {
-  SetUpCameraRollThumbnailForTest(/* is_video= */ false);
+  SetUpCameraRollThumbnailForTest(/*is_video=*/false);
   EXPECT_EQ(camera_roll_thumbnail()->GetFocusBehavior(),
             CameraRollThumbnail::FocusBehavior::ALWAYS);
 
   gfx::Canvas placeholder(gfx::Size(kRectWidthInDip, kRectHeightInDip),
-                          /* image_scale= */ 1.0f, /* is_opaque= */ true);
+                          /*image_scale=*/1.0f, /*is_opaque=*/true);
   gfx::Canvas* ptr_placeholder;
   ptr_placeholder = &placeholder;
   camera_roll_thumbnail()->PaintButtonContents(ptr_placeholder);
 
   EXPECT_TRUE(
-      gfx::test::AreBitmapsEqual(CreateExpectedThumbnail(/* is_video= */ false),
+      gfx::test::AreBitmapsEqual(CreateExpectedThumbnail(/*is_video=*/false),
                                  ptr_placeholder->GetBitmap()));
 }
 
 TEST_F(CameraRollThumbnailTest, VideoThumbnail) {
-  SetUpCameraRollThumbnailForTest(/* is_video= */ true);
+  SetUpCameraRollThumbnailForTest(/*is_video=*/true);
   EXPECT_EQ(camera_roll_thumbnail()->GetFocusBehavior(),
             CameraRollThumbnail::FocusBehavior::ALWAYS);
 
   gfx::Canvas placeholder(gfx::Size(kRectWidthInDip, kRectHeightInDip),
-                          /* image_scale= */ 1.0f, /* is_opaque= */ true);
+                          /*image_scale=*/1.0f, /*is_opaque=*/true);
   gfx::Canvas* ptr_placeholder;
   ptr_placeholder = &placeholder;
   camera_roll_thumbnail()->PaintButtonContents(ptr_placeholder);
 
   EXPECT_TRUE(
-      gfx::test::AreBitmapsEqual(CreateExpectedThumbnail(/* is_video= */ true),
+      gfx::test::AreBitmapsEqual(CreateExpectedThumbnail(/*is_video=*/true),
                                  ptr_placeholder->GetBitmap()));
 }
 
 TEST_F(CameraRollThumbnailTest, LeftClickDownload) {
-  SetUpCameraRollThumbnailForTest(/* is_video= */ false);
+  SetUpCameraRollThumbnailForTest(/*is_video=*/false);
   EXPECT_TRUE(!camera_roll_thumbnail()->menu_model_);
 
   // Left click button
@@ -242,58 +224,8 @@ TEST_F(CameraRollThumbnailTest, LeftClickDownload) {
   EXPECT_EQ(fake_camera_roll_manager()->GetDownloadRequestCount(), 1);
 }
 
-TEST_F(CameraRollThumbnailTest, LeftClickDownloadCantFollowupDownload) {
-  SetUpCameraRollThumbnailForTest(/* is_video= */ false);
-
-  // Left click button
-  generator()->MoveMouseTo(
-      camera_roll_thumbnail()->GetBoundsInScreen().CenterPoint());
-  generator()->ClickLeftButton();
-
-  // Menu model of type CameraRollMenuModel is not created
-  EXPECT_FALSE(dynamic_cast<CameraRollMenuModel*>(
-                   camera_roll_thumbnail()->menu_model_.get()) != nullptr);
-
-  // Download was triggered
-  EXPECT_EQ(fake_camera_roll_manager()->GetDownloadRequestCount(), 1);
-
-  // Immediately try to download again
-  generator()->ClickLeftButton();
-
-  // Still only 1 download occurred due to timer running
-  EXPECT_EQ(fake_camera_roll_manager()->GetDownloadRequestCount(), 1);
-}
-
-TEST_F(CameraRollThumbnailTest, LeftClickDownloadWithBackoff) {
-  SetUpCameraRollThumbnailForTest(/* is_video= */ false);
-
-  // Left click button
-  generator()->MoveMouseTo(
-      camera_roll_thumbnail()->GetBoundsInScreen().CenterPoint());
-  generator()->ClickLeftButton();
-
-  // Menu model of type CameraRollMenuModel is not created
-  EXPECT_FALSE(dynamic_cast<CameraRollMenuModel*>(
-                   camera_roll_thumbnail()->menu_model_.get()) != nullptr);
-
-  // Download was triggered
-  EXPECT_EQ(fake_camera_roll_manager()->GetDownloadRequestCount(), 1);
-
-  // Wait for enough time to pass to be able to download again
-  task_environment()->FastForwardBy(
-      features::kPhoneHubCameraRollThrottleInterval.Get());
-  generator()->ClickLeftButton();
-
-  // Menu model of type CameraRollMenuModel is not created
-  EXPECT_FALSE(dynamic_cast<CameraRollMenuModel*>(
-                   camera_roll_thumbnail()->menu_model_.get()) != nullptr);
-
-  // Second download occurs
-  EXPECT_EQ(fake_camera_roll_manager()->GetDownloadRequestCount(), 2);
-}
-
 TEST_F(CameraRollThumbnailTest, RightClickOpenMenu) {
-  SetUpCameraRollThumbnailForTest(/* is_video= */ false);
+  SetUpCameraRollThumbnailForTest(/*is_video=*/false);
   EXPECT_TRUE(!camera_roll_thumbnail()->menu_model_);
 
   // Right click button
@@ -315,36 +247,4 @@ TEST_F(CameraRollThumbnailTest, RightClickOpenMenu) {
   // Download was triggered
   EXPECT_EQ(fake_camera_roll_manager()->GetDownloadRequestCount(), 1);
 }
-
-TEST_F(CameraRollThumbnailTest, ThrottleTimerDoesntBlockRightClickMenu) {
-  SetUpCameraRollThumbnailForTest(/* is_video= */ false);
-
-  // Left click button
-  generator()->MoveMouseTo(
-      camera_roll_thumbnail()->GetBoundsInScreen().CenterPoint());
-  generator()->ClickLeftButton();
-
-  // Menu model of type CameraRollMenuModel is not created
-  EXPECT_FALSE(dynamic_cast<CameraRollMenuModel*>(
-                   camera_roll_thumbnail()->menu_model_.get()) != nullptr);
-
-  // Download was triggered
-  EXPECT_EQ(fake_camera_roll_manager()->GetDownloadRequestCount(), 1);
-
-  // Immediately try to download again
-  generator()->ClickLeftButton();
-
-  // Still only 1 download occurred due to timer running
-  EXPECT_EQ(fake_camera_roll_manager()->GetDownloadRequestCount(), 1);
-
-  // Right click button
-  generator()->MoveMouseTo(
-      camera_roll_thumbnail()->GetBoundsInScreen().CenterPoint());
-  generator()->ClickRightButton();
-
-  // Menu model of type CameraRollMenuModel is created
-  EXPECT_TRUE(dynamic_cast<CameraRollMenuModel*>(
-                  camera_roll_thumbnail()->menu_model_.get()) != nullptr);
-}
-
 }  // namespace ash

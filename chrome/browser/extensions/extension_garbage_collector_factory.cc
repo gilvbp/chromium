@@ -61,10 +61,9 @@ ExtensionGarbageCollectorFactory::BuildInstanceFor(
 #endif
 }
 
-std::unique_ptr<KeyedService>
-ExtensionGarbageCollectorFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* ExtensionGarbageCollectorFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
-  return BuildInstanceFor(context);
+  return BuildInstanceFor(context).release();
 }
 
 bool ExtensionGarbageCollectorFactory::ServiceIsCreatedWithBrowserContext()

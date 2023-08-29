@@ -10,6 +10,7 @@ import android.view.Gravity;
 import android.view.View;
 import android.widget.LinearLayout;
 
+import androidx.annotation.VisibleForTesting;
 import androidx.collection.ArraySet;
 
 import org.chromium.base.MathUtils;
@@ -72,6 +73,7 @@ public class TabSelectionEditorActionViewLayout extends LinearLayout {
         mMenuButton.tryToFitLargestItem(true);
     }
 
+    @VisibleForTesting
     ListMenuButton getListMenuButtonForTesting() {
         return mMenuButton;
     }

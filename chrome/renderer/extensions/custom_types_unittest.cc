@@ -6,7 +6,6 @@
 #include "base/test/values_test_util.h"
 #include "components/crx_file/id_util.h"
 #include "extensions/common/extension_builder.h"
-#include "extensions/common/extension_id.h"
 #include "extensions/common/features/simple_feature.h"
 #include "extensions/common/mojom/frame.mojom.h"
 #include "extensions/common/switches.h"
@@ -74,7 +73,7 @@ class CustomTypesTest : public NativeExtensionBindingsSystemUnittest {
   }
 
  private:
-  extensions::ExtensionId extension_id_;
+  std::string extension_id_;
   SimpleFeature::ScopedThreadUnsafeAllowlistForTest allowlisted_extension_id_;
 };
 

@@ -8,7 +8,6 @@ import android.content.Context;
 import android.os.Build;
 import android.text.TextUtils;
 
-import org.chromium.base.ResettersForTesting;
 import org.chromium.chrome.R;
 import org.chromium.chrome.browser.IntentHandler;
 import org.chromium.chrome.browser.flags.ChromeFeatureList;
@@ -46,7 +45,6 @@ public class LensUtils {
      */
     public static void setFakePassableLensEnvironmentForTesting(final boolean shouldFake) {
         sFakePassableLensEnvironmentForTesting = shouldFake;
-        ResettersForTesting.register(() -> sFakePassableLensEnvironmentForTesting = false);
     }
 
     /**

@@ -39,7 +39,7 @@ class ModelExecutorImpl : public ModelExecutor {
   ModelExecutorImpl(const ModelExecutorImpl&) = delete;
   ModelExecutorImpl& operator=(const ModelExecutorImpl&) = delete;
 
-  // ModelExecutor override.
+  // ModelExecutionManager impl:.
   void ExecuteModel(std::unique_ptr<ExecutionRequest> request) override;
 
  private:

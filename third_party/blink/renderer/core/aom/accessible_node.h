@@ -73,13 +73,13 @@ enum class AOMUIntProperty {
 
 enum class AOMRelationProperty {
   kActiveDescendant,
+  kErrorMessage,
 };
 
 enum class AOMRelationListProperty {
   kDescribedBy,
   kDetails,
   kControls,
-  kErrorMessage,
   kFlowTo,
   kLabeledBy,
   kOwns,
@@ -108,7 +108,7 @@ class CORE_EXPORT AOMPropertyClient {
 // Accessibility Object Model node
 // Explainer: https://github.com/WICG/aom/blob/gh-pages/explainer.md
 // Spec: https://wicg.github.io/aom/spec/
-class CORE_EXPORT AccessibleNode : public EventTarget,
+class CORE_EXPORT AccessibleNode : public EventTargetWithInlineData,
                                    public ElementRareDataField {
   DEFINE_WRAPPERTYPEINFO();
 
@@ -167,10 +167,6 @@ class CORE_EXPORT AccessibleNode : public EventTarget,
   // ARIA attribute.
   static const AtomicString& GetPropertyOrARIAAttribute(Element*,
                                                         AOMStringProperty);
-
-  static const AtomicString& GetPropertyOrARIAAttributeValue(
-      Element* element,
-      AOMRelationProperty property);
 
   // Returns the given relation property if the Element has an AccessibleNode,
   // otherwise returns the equivalent ARIA attribute.
@@ -252,8 +248,8 @@ class CORE_EXPORT AccessibleNode : public EventTarget,
   absl::optional<bool> disabled() const;
   void setDisabled(absl::optional<bool>);
 
-  AccessibleNodeList* errorMessage() const;
-  void setErrorMessage(AccessibleNodeList*);
+  AccessibleNode* errorMessage() const;
+  void setErrorMessage(AccessibleNode*);
 
   absl::optional<bool> expanded() const;
   void setExpanded(absl::optional<bool>);

@@ -3,7 +3,6 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import datetime
 import os
 import unittest
 import six
@@ -44,7 +43,7 @@ class ConvertJsonResultToResultObjectUnittest(unittest.TestCase):
         querier = wt_uu.CreateGenericWebTestQuerier()
         result = querier._ConvertJsonResultToResultObject(json_result)
         self.assertTrue(result.is_slow_result)
-        self.assertEqual(result._duration, datetime.timedelta(seconds=10))
+        self.assertEqual(result._duration, 10)
 
 
 class GetRelevantExpectationFilesForQueryResultUnittest(unittest.TestCase):

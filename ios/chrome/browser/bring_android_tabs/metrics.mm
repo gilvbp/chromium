@@ -4,6 +4,10 @@
 
 #import "ios/chrome/browser/bring_android_tabs/metrics.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace bring_android_tabs {
 
 extern const char kTabCountHistogramName[] = "IOS.BringAndroidTabs.TabCount";

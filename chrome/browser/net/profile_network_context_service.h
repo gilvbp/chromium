@@ -90,12 +90,6 @@ class ProfileNetworkContextService
       Profile* profile,
       const content_settings::CookieSettings& cookie_settings);
 
-  // Flushes a cached client certificate preference for |host| if |certificate|
-  // doesn't match the cached certificate.
-  void FlushCachedClientCertIfNeeded(
-      const net::HostPortPair& host,
-      const scoped_refptr<net::X509Certificate>& certificate);
-
   // Flushes all pending proxy configuration changes.
   void FlushProxyConfigMonitorForTesting();
 
@@ -150,8 +144,6 @@ class ProfileNetworkContextService
   void UpdateSplitAuthCacheByNetworkIsolationKey();
 
   void UpdateCorsNonWildcardRequestHeadersSupport();
-
-  void OnTruncatedCookieBlockingChanged();
 
   // Creates parameters for the NetworkContext. Use |in_memory| instead of
   // |profile_->IsOffTheRecord()| because sometimes normal profiles want off the

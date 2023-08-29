@@ -4,6 +4,8 @@
 
 package org.chromium.chrome.browser.password_manager.settings;
 
+import androidx.annotation.VisibleForTesting;
+
 import org.chromium.base.ObserverList;
 import org.chromium.base.ThreadUtils;
 
@@ -49,6 +51,7 @@ public class PasswordManagerHandlerProvider implements PasswordListObserver {
      * observers in |mObservers|, because of special handling of the production implementation of
      * PasswordManagerHandler on removing the last observer.
      */
+    @VisibleForTesting
     public void setPasswordManagerHandlerForTest(PasswordManagerHandler passwordManagerHandler) {
         ThreadUtils.assertOnUiThread();
         assert mObservers.isEmpty();
@@ -59,6 +62,7 @@ public class PasswordManagerHandlerProvider implements PasswordListObserver {
      * Resets the testing implementation of PasswordManagerHandler, clears all observers and ensures
      * that the view is cleaned up properly.
      */
+    @VisibleForTesting
     public void resetPasswordManagerHandlerForTest() {
         ThreadUtils.assertOnUiThread();
         mObservers.clear();

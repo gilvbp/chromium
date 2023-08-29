@@ -17,6 +17,10 @@
 #include "ios/web_view/internal/web_view_browser_state.h"
 #include "ios/web_view/internal/webdata_services/web_view_web_data_service_wrapper_factory.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace ios_web_view {
 
 // static
@@ -66,7 +70,7 @@ WebViewPersonalDataManagerFactory::BuildServiceInstanceFor(
       ApplicationContext::GetInstance()->GetLocalState(),
       WebViewIdentityManagerFactory::GetForBrowserState(browser_state),
       /*history_service=*/nullptr, sync_service, /*strike_database=*/nullptr,
-      /*image_fetcher=*/nullptr);
+      /*image_fetcher=*/nullptr, browser_state->IsOffTheRecord());
   return service;
 }
 

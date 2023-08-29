@@ -91,8 +91,7 @@ SharingServiceFactory::SharingServiceFactory()
 
 SharingServiceFactory::~SharingServiceFactory() = default;
 
-std::unique_ptr<KeyedService>
-SharingServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* SharingServiceFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   Profile* profile = Profile::FromBrowserContext(context);
   syncer::SyncService* sync_service =
@@ -154,7 +153,7 @@ SharingServiceFactory::BuildServiceInstanceForBrowserContext(
   auto fcm_handler = std::make_unique<SharingFCMHandler>(
       gcm_driver, device_info_tracker, fcm_sender_ptr, handler_registry.get());
 
-  return std::make_unique<SharingService>(
+  return new SharingService(
       std::move(sync_prefs), std::move(vapid_key_manager),
       std::move(sharing_device_registration), std::move(sharing_message_sender),
       std::move(device_source), std::move(handler_registry),

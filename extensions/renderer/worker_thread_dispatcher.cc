@@ -52,9 +52,8 @@ void AddEventListenerOnIO(const std::string& extension_id,
                           int worker_thread_id) {
   auto* dispatcher = WorkerThreadDispatcher::Get();
   dispatcher->GetEventRouterOnIO()->AddListenerForServiceWorker(
-      extension_id, event_name,
-      mojom::ServiceWorkerContext::New(scope, service_worker_version_id,
-                                       worker_thread_id));
+      extension_id, scope, event_name, service_worker_version_id,
+      worker_thread_id);
 }
 
 // Calls mojom::EventRouter::RemoveListenerForServiceWorker(). It should be
@@ -66,9 +65,8 @@ void RemoveEventListenerOnIO(const std::string& extension_id,
                              int worker_thread_id) {
   auto* dispatcher = WorkerThreadDispatcher::Get();
   dispatcher->GetEventRouterOnIO()->RemoveListenerForServiceWorker(
-      extension_id, event_name,
-      mojom::ServiceWorkerContext::New(scope, service_worker_version_id,
-                                       worker_thread_id));
+      extension_id, scope, event_name, service_worker_version_id,
+      worker_thread_id);
 }
 
 // Calls mojom::EventRouter::AddLazyListenerForServiceWorker(). It should be
@@ -102,10 +100,8 @@ void AddEventFilteredListenerOnIO(const std::string& extension_id,
                                   bool add_lazy_listener) {
   auto* dispatcher = WorkerThreadDispatcher::Get();
   dispatcher->GetEventRouterOnIO()->AddFilteredListenerForServiceWorker(
-      extension_id, event_name,
-      mojom::ServiceWorkerContext::New(scope, service_worker_version_id,
-                                       worker_thread_id),
-      std::move(filter), add_lazy_listener);
+      extension_id, scope, event_name, service_worker_version_id,
+      worker_thread_id, std::move(filter), add_lazy_listener);
 }
 
 // Calls mojom::EventRouter::RemoveFilteredListenerForServiceWorker(). It should
@@ -119,10 +115,8 @@ void RemoveEventFilteredListenerOnIO(const std::string& extension_id,
                                      bool remove_lazy_listener) {
   auto* dispatcher = WorkerThreadDispatcher::Get();
   dispatcher->GetEventRouterOnIO()->RemoveFilteredListenerForServiceWorker(
-      extension_id, event_name,
-      mojom::ServiceWorkerContext::New(scope, service_worker_version_id,
-                                       worker_thread_id),
-      std::move(filter), remove_lazy_listener);
+      extension_id, scope, event_name, service_worker_version_id,
+      worker_thread_id, std::move(filter), remove_lazy_listener);
 }
 
 }  // namespace
@@ -580,14 +574,16 @@ void WorkerThreadDispatcher::RequestWorker(mojom::RequestParamsPtr params) {
       std::move(params)));
 }
 
-void WorkerThreadDispatcher::SendResponseAck(const base::Uuid& request_uuid) {
+void WorkerThreadDispatcher::WorkerResponseAck(
+    int request_id,
+    int64_t service_worker_version_id) {
   PostTaskToIOThread(base::BindOnce(
-      [](const base::Uuid& request_uuid) {
+      [](int request_id, int64_t service_worker_version_id) {
         WorkerThreadDispatcher::Get()
             ->GetServiceWorkerHostOnIO()
-            ->WorkerResponseAck(request_uuid);
+            ->WorkerResponseAck(request_id, service_worker_version_id);
       },
-      request_uuid));
+      request_id, service_worker_version_id));
 }
 
 void WorkerThreadDispatcher::RemoveWorkerData(

@@ -8,15 +8,19 @@
 #import <CoreServices/CoreServices.h>                      // pre-macOS 11
 #import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>  // macOS 11
 
-#include "base/apple/foundation_util.h"
-#include "base/apple/scoped_cftyperef.h"
 #include "base/files/file_path.h"
 #include "base/functional/bind.h"
+#include "base/mac/foundation_util.h"
+#include "base/mac/scoped_cftyperef.h"
 #include "base/strings/sys_string_conversions.h"
 #include "base/task/thread_pool.h"
 #include "base/threading/thread.h"
 #include "ui/gfx/image/image_skia.h"
 #include "ui/gfx/image/image_skia_util_mac.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 // static
 IconLoader::IconGroup IconLoader::GroupForFilepath(
@@ -28,7 +32,7 @@ IconLoader::IconGroup IconLoader::GroupForFilepath(
 
   if (@available(macOS 11, *)) {
     UTType* type;
-    NSURL* file_url = base::apple::FilePathToNSURL(file_path);
+    NSURL* file_url = base::mac::FilePathToNSURL(file_path);
     if (file_url && [file_url getResourceValue:&type
                                         forKey:NSURLContentTypeKey
                                          error:nil]) {
@@ -50,7 +54,7 @@ IconLoader::IconGroup IconLoader::GroupForFilepath(
     return base::SysNSStringToUTF8(UTTypeContent.identifier);
   } else {
     NSString* type;
-    NSURL* file_url = base::apple::FilePathToNSURL(file_path);
+    NSURL* file_url = base::mac::FilePathToNSURL(file_path);
     if (file_url && [file_url getResourceValue:&type
                                         forKey:NSURLTypeIdentifierKey
                                          error:nil]) {
@@ -62,9 +66,9 @@ IconLoader::IconGroup IconLoader::GroupForFilepath(
       // Remove the leading dot.
       extension_string.erase(extension_string.begin());
 
-      base::apple::ScopedCFTypeRef<CFStringRef> extension_cf =
+      base::ScopedCFTypeRef<CFStringRef> extension_cf =
           base::SysUTF8ToCFStringRef(extension_string);
-      base::apple::ScopedCFTypeRef<CFStringRef> cftype(
+      base::ScopedCFTypeRef<CFStringRef> cftype(
           UTTypeCreatePreferredIdentifierForTag(kUTTagClassFilenameExtension,
                                                 extension_cf,
                                                 /*inConformingToUTI=*/nullptr));

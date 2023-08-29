@@ -273,10 +273,6 @@ public class PropertyModel extends PropertyObservable<PropertyKey> {
         mData = startingValues;
     }
 
-    public boolean containsKey(PropertyKey key) {
-        return mData.containsKey(key);
-    }
-
     private void validateKey(PropertyKey key) {
         if (BuildConfig.ENABLE_ASSERTS && !mData.containsKey(key)) {
             throw new IllegalArgumentException(

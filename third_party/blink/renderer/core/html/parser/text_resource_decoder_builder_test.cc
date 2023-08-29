@@ -18,7 +18,7 @@ static const WTF::TextEncoding DefaultEncodingForUrlAndContentType(
   Document& document = page_holder->GetDocument();
   document.SetURL(KURL(NullURL(), url));
   return BuildTextResourceDecoder(document.GetFrame(), document.Url(),
-                                  AtomicString(content_type), g_null_atom)
+                                  content_type, g_null_atom)
       ->Encoding();
 }
 

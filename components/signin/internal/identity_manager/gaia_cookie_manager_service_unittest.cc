@@ -20,13 +20,11 @@
 #include "base/test/mock_callback.h"
 #include "base/test/task_environment.h"
 #include "base/test/test_mock_time_task_runner.h"
-#include "build/buildflag.h"
 #include "components/prefs/testing_pref_service.h"
 #include "components/signin/internal/identity_manager/account_tracker_service.h"
 #include "components/signin/internal/identity_manager/fake_profile_oauth2_token_service.h"
 #include "components/signin/public/base/signin_pref_names.h"
 #include "components/signin/public/base/test_signin_client.h"
-#include "components/signin/public/identity_manager/identity_test_utils.h"
 #include "google_apis/gaia/gaia_constants.h"
 #include "google_apis/gaia/gaia_urls.h"
 #include "net/cookies/canonical_cookie.h"
@@ -155,8 +153,7 @@ class GaiaCookieManagerServiceTest : public testing::Test {
         account_id4_(CoreAccountId::FromGaiaId(kAccountId4)),
         no_error_(GoogleServiceAuthError::NONE),
         error_(GoogleServiceAuthError::SERVICE_ERROR),
-        canceled_(GoogleServiceAuthError::REQUEST_CANCELED),
-        account_tracker_service_(CreateAccountTrackerService()) {
+        canceled_(GoogleServiceAuthError::REQUEST_CANCELED) {
     AccountTrackerService::RegisterPrefs(pref_service_.registry());
     GaiaCookieManagerService::RegisterPrefs(pref_service_.registry());
     signin_client_ = std::make_unique<TestSigninClient>(&pref_service_);
@@ -270,13 +267,6 @@ class GaiaCookieManagerServiceTest : public testing::Test {
   const CoreAccountId account_id4_;
 
  private:
-  std::unique_ptr<AccountTrackerService> CreateAccountTrackerService() {
-#if BUILDFLAG(IS_ANDROID)
-    signin::SetUpMockAccountManagerFacade();
-#endif
-    return std::make_unique<AccountTrackerService>();
-  }
-
   base::test::TaskEnvironment task_environment_;
   GoogleServiceAuthError no_error_;
   GoogleServiceAuthError error_;

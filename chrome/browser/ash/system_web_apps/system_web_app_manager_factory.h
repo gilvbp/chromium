@@ -43,7 +43,7 @@ class SystemWebAppManagerFactory : public BrowserContextKeyedServiceFactory {
   static SystemWebAppManager* GetForProfile(Profile* profile);
 
   // BrowserContextKeyedServiceFactory:
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* context) const override;
   bool ServiceIsCreatedWithBrowserContext() const override;
   content::BrowserContext* GetBrowserContextToUse(

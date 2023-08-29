@@ -4,13 +4,10 @@
 
 #include "chromeos/ash/components/dbus/session_manager/fake_session_manager_client.h"
 
-#include <map>
-#include <string>
 #include <utility>
 
 #include "base/base64.h"
 #include "base/check.h"
-#include "base/containers/flat_set.h"
 #include "base/files/file_path.h"
 #include "base/files/file_util.h"
 #include "base/files/scoped_file.h"
@@ -26,11 +23,9 @@
 #include "base/task/sequenced_task_runner.h"
 #include "base/task/single_thread_task_runner.h"
 #include "base/task/thread_pool.h"
-#include "base/threading/thread_restrictions.h"
 #include "base/values.h"
 #include "chromeos/ash/components/dbus/cryptohome/account_identifier_operators.h"
 #include "chromeos/ash/components/dbus/login_manager/policy_descriptor.pb.h"
-#include "chromeos/ash/components/dbus/session_manager/session_manager_client.h"
 #include "chromeos/ash/components/dbus/userdataauth/userdataauth_client.h"
 #include "chromeos/dbus/constants/dbus_paths.h"
 #include "components/policy/proto/device_management_backend.pb.h"
@@ -78,16 +73,6 @@ void StoreFiles(std::map<base::FilePath, std::string> paths_and_data) {
     const std::string& data = kv.second;
     if (!base::WriteFile(path, data)) {
       LOG(WARNING) << "Failed to write to " << path.value();
-    }
-  }
-}
-
-void EnsureFilesDeleted(
-    const base::flat_set<base::FilePath>& files_to_clean_up) {
-  base::ScopedAllowBlockingForTesting allow_blocking;
-  for (const base::FilePath& path : files_to_clean_up) {
-    if (!base::DeleteFile(path)) {
-      LOG(ERROR) << "Failed to delete " << path;
     }
   }
 }
@@ -256,13 +241,6 @@ FakeSessionManagerClient::FakeSessionManagerClient(
 
 FakeSessionManagerClient::~FakeSessionManagerClient() {
   g_is_fake = false;
-
-  // Run this on the current thread since the task runner will CHECK if it's
-  // posted Remove created files if necessary. The kInMemory is not expected to
-  // leave persistent changes and the following tests might fail because of
-  // them. Posting a non-skippable task during the shutdown phase is not
-  // allowed, so just do it on the current thread.
-  EnsureFilesDeleted(files_to_clean_up_);
 }
 
 // static
@@ -335,41 +313,27 @@ void FakeSessionManagerClient::LoginScreenStorageStore(
     const login_manager::LoginScreenStorageMetadata& metadata,
     const std::string& data,
     LoginScreenStorageStoreCallback callback) {
-  // `metadata` is ignored. To implement it (`clear_on_session_exit` flag) we'd
-  // need to store data into the file. Currently all the data is cleared on
-  // session exit.
-  login_screen_storage_[key] = data;
   PostReply(FROM_HERE, std::move(callback), absl::nullopt /* error */);
 }
 
 void FakeSessionManagerClient::LoginScreenStorageRetrieve(
     const std::string& key,
     LoginScreenStorageRetrieveCallback callback) {
-  // Default value which is checked in tests.
-  std::string data = "Test";
-  if (base::Contains(login_screen_storage_, key)) {
-    data = login_screen_storage_[key];
-  }
   base::SingleThreadTaskRunner::GetCurrentDefault()->PostTask(
-      FROM_HERE,
-      base::BindOnce(std::move(callback), data, absl::nullopt /* error */));
+      FROM_HERE, base::BindOnce(std::move(callback), "Test" /* data */,
+                                absl::nullopt /* error */));
 }
 
 void FakeSessionManagerClient::LoginScreenStorageListKeys(
     LoginScreenStorageListKeysCallback callback) {
-  std::vector<std::string> keys;
-  for (const auto& [key, value] : login_screen_storage_) {
-    keys.push_back(key);
-  }
   base::SingleThreadTaskRunner::GetCurrentDefault()->PostTask(
       FROM_HERE,
-      base::BindOnce(std::move(callback), keys, absl::nullopt /* error */));
+      base::BindOnce(std::move(callback), std::vector<std::string>() /* keys */,
+                     absl::nullopt /* error */));
 }
 
 void FakeSessionManagerClient::LoginScreenStorageDelete(
-    const std::string& key) {
-  login_screen_storage_.erase(key);
-}
+    const std::string& key) {}
 
 void FakeSessionManagerClient::StartSession(
     const cryptohome::AccountIdentifier& cryptohome_id) {
@@ -658,7 +622,6 @@ void FakeSessionManagerClient::StorePolicy(
         base::FilePath key_path;
         GetStubPolicyFilePath(descriptor, &key_path);
         DCHECK(!key_path.empty());
-        files_to_clean_up_.insert(key_path);
 
         base::ThreadPool::PostTaskAndReply(
             FROM_HERE,
@@ -936,33 +899,21 @@ void FakeSessionManagerClient::set_on_start_device_wipe_callback(
 FakeSessionManagerClient::FlagsState::FlagsState() = default;
 FakeSessionManagerClient::FlagsState::~FlagsState() = default;
 
-ScopedFakeSessionManagerClient::ScopedFakeSessionManagerClient()
-    : ScopedFakeSessionManagerClient(
-          FakeSessionManagerClient::PolicyStorageType::kOnDisk) {}
-
-ScopedFakeSessionManagerClient::ScopedFakeSessionManagerClient(
-    FakeSessionManagerClient::PolicyStorageType policy_storage) {
-  // No previous FakeSessionManagerClient instance.
-  DCHECK(!FakeSessionManagerClient::Get());
-
-  // Release the existing instance if any.
-  if (SessionManagerClient::Get()) {
-    SessionManagerClient::Shutdown();
-  }
-
-  switch (policy_storage) {
-    case FakeSessionManagerClient::PolicyStorageType::kOnDisk:
-      SessionManagerClient::InitializeFake();
-      break;
-    case FakeSessionManagerClient::PolicyStorageType::kInMemory:
-      SessionManagerClient::InitializeFakeInMemory();
-      break;
-  }
+ScopedFakeSessionManagerClient::ScopedFakeSessionManagerClient() {
+  SessionManagerClient::InitializeFake();
 }
 
 ScopedFakeSessionManagerClient::~ScopedFakeSessionManagerClient() {
-  // The current instance should be a FakeSessionManagerClient.
-  DCHECK_EQ(SessionManagerClient::Get(), FakeSessionManagerClient::Get());
+  SessionManagerClient::Shutdown();
+}
+
+ScopedFakeInMemorySessionManagerClient::
+    ScopedFakeInMemorySessionManagerClient() {
+  SessionManagerClient::InitializeFakeInMemory();
+}
+
+ScopedFakeInMemorySessionManagerClient::
+    ~ScopedFakeInMemorySessionManagerClient() {
   SessionManagerClient::Shutdown();
 }
 

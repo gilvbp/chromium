@@ -7,7 +7,6 @@ import("//mojo/public/tools/bindings/mojom.gni")
 mojom("mojom") {
   generate_java = true
   sources = [
-    "themes.mojom",
     "ui_base_types.mojom",
     "window_open_disposition.mojom",
   ]
@@ -34,10 +33,6 @@ mojom("mojom") {
         {
           mojom = "ui.mojom.ModalType"
           cpp = "::ui::ModalType"
-        },
-        {
-          mojom = "ui.mojom.WindowShowState"
-          cpp = "::ui::WindowShowState"
         },
       ]
       traits_headers = [ "ui_base_types_mojom_traits.h" ]

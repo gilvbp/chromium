@@ -61,8 +61,7 @@ DeviceTrustConnectorServiceFactory::DeviceTrustConnectorServiceFactory()
 DeviceTrustConnectorServiceFactory::~DeviceTrustConnectorServiceFactory() =
     default;
 
-std::unique_ptr<KeyedService>
-DeviceTrustConnectorServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* DeviceTrustConnectorServiceFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   auto* profile = Profile::FromBrowserContext(context);
   // Disallow service for Incognito except for the sign-in profile of ChromeOS
@@ -77,8 +76,7 @@ DeviceTrustConnectorServiceFactory::BuildServiceInstanceForBrowserContext(
 #endif  // BUILDFLAG(IS_CHROMEOS_ASH)
   }
 
-  std::unique_ptr<DeviceTrustConnectorService> service =
-      std::make_unique<DeviceTrustConnectorService>(profile->GetPrefs());
+  auto* service = new DeviceTrustConnectorService(profile->GetPrefs());
 
 #if BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC)
   if (IsDeviceTrustConnectorFeatureEnabled()) {

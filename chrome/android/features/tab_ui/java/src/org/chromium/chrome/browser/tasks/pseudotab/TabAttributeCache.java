@@ -12,7 +12,6 @@ import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
 import org.chromium.base.ContextUtils;
-import org.chromium.base.ResettersForTesting;
 import org.chromium.chrome.browser.profiles.Profile;
 import org.chromium.chrome.browser.search_engines.TemplateUrlServiceFactory;
 import org.chromium.chrome.browser.tab.Tab;
@@ -43,13 +42,12 @@ public class TabAttributeCache {
         String getLastSearchTerm(Tab tab);
     }
 
-    private static LastSearchTermProvider sLastSearchTermProviderForTesting;
+    private static LastSearchTermProvider sLastSearchTermProviderForTests;
 
     private static SharedPreferences getSharedPreferences() {
         if (sPref == null) {
             sPref = ContextUtils.getApplicationContext().getSharedPreferences(
                     PREFERENCES_NAME, Context.MODE_PRIVATE);
-            ResettersForTesting.register(() -> sPref = null);
         }
         return sPref;
     }
@@ -168,6 +166,7 @@ public class TabAttributeCache {
      * @param id The ID of the {@link PseudoTab}.
      * @param title The title
      */
+    @VisibleForTesting
     public static void setTitleForTesting(int id, String title) {
         cacheTitle(id, title);
     }
@@ -229,6 +228,7 @@ public class TabAttributeCache {
      * @param id The ID of the {@link PseudoTab}.
      * @param rootId The root ID
      */
+    @VisibleForTesting
     public static void setRootIdForTesting(int id, int rootId) {
         cacheRootId(id, rootId);
     }
@@ -256,6 +256,7 @@ public class TabAttributeCache {
      * @param id The ID of the {@link PseudoTab}.
      * @param timestampMillis The timestamp
      */
+    @VisibleForTesting
     public static void setTimestampMillisForTesting(int id, long timestampMillis) {
         cacheTimestampMillis(id, timestampMillis);
     }
@@ -291,8 +292,8 @@ public class TabAttributeCache {
      */
     @VisibleForTesting
     static @Nullable String findLastSearchTerm(Tab tab) {
-        if (sLastSearchTermProviderForTesting != null) {
-            return sLastSearchTermProviderForTesting.getLastSearchTerm(tab);
+        if (sLastSearchTermProviderForTests != null) {
+            return sLastSearchTermProviderForTests.getLastSearchTerm(tab);
         }
         assert tab.getWebContents() != null;
         NavigationController controller = tab.getWebContents().getNavigationController();
@@ -347,9 +348,9 @@ public class TabAttributeCache {
      * Set the LastSearchTermProvider for testing.
      * @param lastSearchTermProvider The mocking object.
      */
+    @VisibleForTesting
     static void setLastSearchTermMockForTesting(LastSearchTermProvider lastSearchTermProvider) {
-        sLastSearchTermProviderForTesting = lastSearchTermProvider;
-        ResettersForTesting.register(() -> sLastSearchTermProviderForTesting = null);
+        sLastSearchTermProviderForTests = lastSearchTermProvider;
     }
 
     /**
@@ -357,8 +358,17 @@ public class TabAttributeCache {
      * @param id The ID of the {@link PseudoTab}.
      * @param searchTerm The last search term
      */
+    @VisibleForTesting
     public static void setLastSearchTermForTesting(int id, String searchTerm) {
         cacheLastSearchTerm(id, searchTerm);
+    }
+
+    /**
+     * Clear everything in the storage.
+     */
+    @VisibleForTesting
+    public static void clearAllForTesting() {
+        getSharedPreferences().edit().clear().apply();
     }
 
     /**

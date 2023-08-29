@@ -130,9 +130,8 @@ void ActiveTabPermissionGranter::GrantIfRequested(const Extension* extension) {
 
   const PermissionsData* permissions_data = extension->permissions_data();
 
-  // Do not use `RFH::GetLastCommittedOrigin()` because it returns an empty
-  // origin in case of a frame with CSP sandbox.
-  const GURL& url = web_contents()->GetLastCommittedURL();
+  const GURL& url =
+      web_contents()->GetPrimaryMainFrame()->GetLastCommittedOrigin().GetURL();
 
   // If the extension requested the host permission to |url| but had it
   // withheld, we grant it active tab-style permissions, even if it doesn't have

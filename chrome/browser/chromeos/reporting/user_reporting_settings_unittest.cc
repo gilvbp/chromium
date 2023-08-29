@@ -151,8 +151,9 @@ TEST_F(UserReportingSettingsTest, GetList) {
 
   // Update setting value and ensure the next fetch returns the updated value.
   static constexpr char kListSettingItem[] = "item";
-  profile_->GetPrefs()->SetList(kSettingPath,
-                                base::Value::List().Append(kListSettingItem));
+  base::Value::List new_value;
+  new_value.Append(kListSettingItem);
+  profile_->GetPrefs()->SetList(kSettingPath, std::move(new_value));
   ASSERT_TRUE(user_reporting_settings_->GetList(kSettingPath, &out_value));
   ASSERT_THAT(out_value, NotNull());
   ASSERT_THAT(out_value->size(), Eq(1uL));
@@ -169,8 +170,9 @@ TEST_F(UserReportingSettingsTest, GetReportingEnabled_List) {
 
   // Update setting value and ensure the next fetch returns the updated value.
   static constexpr char kListSettingItem[] = "item";
-  profile_->GetPrefs()->SetList(kSettingPath,
-                                base::Value::List().Append(kListSettingItem));
+  base::Value::List new_value;
+  new_value.Append(kListSettingItem);
+  profile_->GetPrefs()->SetList(kSettingPath, std::move(new_value));
   ASSERT_TRUE(
       user_reporting_settings_->GetReportingEnabled(kSettingPath, &out_value));
   EXPECT_TRUE(out_value);
@@ -214,8 +216,9 @@ TEST_F(UserReportingSettingsTest, ObserveListSetting) {
                             [&callback_called]() { callback_called = true; }));
 
   // Update setting value and ensure callback was triggered.
-  profile_->GetPrefs()->SetList(kSettingPath,
-                                base::Value::List().Append("item"));
+  base::Value::List new_value;
+  new_value.Append("item");
+  profile_->GetPrefs()->SetList(kSettingPath, std::move(new_value));
   ASSERT_TRUE(callback_called);
 }
 

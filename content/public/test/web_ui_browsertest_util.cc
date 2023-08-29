@@ -61,7 +61,6 @@ struct WebUIControllerConfig {
   bool disable_trusted_types = false;
   std::vector<std::string> requestable_schemes;
   absl::optional<std::vector<std::string>> frame_ancestors;
-  absl::optional<std::string> supported_scheme;
 };
 
 class TestWebUIController : public WebUIController {
@@ -78,6 +77,9 @@ std::unique_ptr<WebUIController> CreateTestWebUIControllerForURL(
     WebUI* web_ui,
     const GURL& url,
     bool disable_xfo) {
+  if (!url.SchemeIs(kChromeUIScheme))
+    return nullptr;
+
   WebUIControllerConfig config;
   config.disable_xfo = disable_xfo;
 
@@ -117,10 +119,6 @@ std::unique_ptr<WebUIController> CreateTestWebUIControllerForURL(
       config.frame_ancestors.emplace(frame_ancestors.begin(),
                                      frame_ancestors.end());
     }
-    has_value = net::GetValueForKeyInQuery(url, "supported_scheme", &value);
-    if (has_value) {
-      config.supported_scheme = value;
-    }
   }
 
   return std::make_unique<TestWebUIController>(web_ui, url, config);
@@ -159,9 +157,6 @@ TestWebUIController::TestWebUIController(WebUI* web_ui,
     data_source->DisableDenyXFrameOptions();
   if (config.disable_trusted_types)
     data_source->DisableTrustedTypesCSP();
-  if (config.supported_scheme) {
-    data_source->SetSupportedScheme(config.supported_scheme.value());
-  }
 }
 
 TestUntrustedDataSourceHeaders::TestUntrustedDataSourceHeaders() = default;
@@ -239,32 +234,22 @@ TestWebUIConfig::TestWebUIConfig(base::StringPiece host)
 std::unique_ptr<WebUIController> TestWebUIConfig::CreateWebUIController(
     content::WebUI* web_ui,
     const GURL& url) {
-  if (!url.SchemeIs(scheme())) {
-    return nullptr;
-  }
-
   return CreateTestWebUIControllerForURL(web_ui, GURL(host()), true);
 }
 
-TestWebUIControllerFactory::TestWebUIControllerFactory()
-    : supported_scheme_(kChromeUIScheme) {}
+TestWebUIControllerFactory::TestWebUIControllerFactory() = default;
 
 std::unique_ptr<WebUIController>
 TestWebUIControllerFactory::CreateWebUIControllerForURL(WebUI* web_ui,
                                                         const GURL& url) {
-  if (!url.SchemeIs(supported_scheme_)) {
-    return nullptr;
-  }
-
   return CreateTestWebUIControllerForURL(web_ui, url, disable_xfo_);
 }
 
 WebUI::TypeID TestWebUIControllerFactory::GetWebUIType(
     BrowserContext* browser_context,
     const GURL& url) {
-  if (!url.SchemeIs(supported_scheme_)) {
+  if (!url.SchemeIs(kChromeUIScheme))
     return WebUI::kNoWebUI;
-  }
 
   return reinterpret_cast<WebUI::TypeID>(base::FastHash(url.host()));
 }
@@ -272,10 +257,6 @@ WebUI::TypeID TestWebUIControllerFactory::GetWebUIType(
 bool TestWebUIControllerFactory::UseWebUIForURL(BrowserContext* browser_context,
                                                 const GURL& url) {
   return GetWebUIType(browser_context, url) != WebUI::kNoWebUI;
-}
-
-void TestWebUIControllerFactory::SetSupportedScheme(const std::string& scheme) {
-  supported_scheme_ = scheme;
 }
 
 }  // namespace content

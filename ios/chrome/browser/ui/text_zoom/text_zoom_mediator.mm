@@ -14,6 +14,10 @@
 #import "ios/web/public/web_state.h"
 #import "ios/web/public/web_state_observer_bridge.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 @interface TextZoomMediator () <WebStateListObserving, CRWWebStateObserver>
 
 @end
@@ -55,8 +59,7 @@
 }
 
 - (void)dealloc {
-  DCHECK(!_activeWebState);
-  DCHECK(!_webStateList);
+  [self disconnect];
 }
 
 - (void)disconnect {
@@ -84,12 +87,44 @@
 
 - (void)didChangeWebStateList:(WebStateList*)webStateList
                        change:(const WebStateListChange&)change
-                       status:(const WebStateListStatus&)status {
+                    selection:(const WebStateSelection&)selection {
   DCHECK_EQ(_webStateList, webStateList);
-  if (status.active_web_state_change()) {
-    [self setActiveWebState:status.new_active_web_state];
-    [_commandHandler closeTextZoom];
+  switch (change.type()) {
+    case WebStateListChange::Type::kSelectionOnly:
+      // TODO(crbug.com/1442546): Move the implementation from
+      // webStateList:didChangeActiveWebState:oldWebState:atIndex:reason to
+      // here. Note that here is reachable only when `reason` ==
+      // ActiveWebStateChangeReason::Activated.
+      break;
+    case WebStateListChange::Type::kDetach:
+      // Do nothing when a WebState is detached.
+      break;
+    case WebStateListChange::Type::kMove:
+      // Do nothing when a WebState is moved.
+      break;
+    case WebStateListChange::Type::kReplace: {
+      const WebStateListChangeReplace& replaceChange =
+          change.As<WebStateListChangeReplace>();
+      if (selection.index == webStateList->active_index()) {
+        [self setActiveWebState:replaceChange.inserted_web_state()];
+        [_commandHandler closeTextZoom];
+      }
+      break;
+    }
+    case WebStateListChange::Type::kInsert:
+      // Do nothing when a new WebState is inserted.
+      break;
   }
+}
+
+- (void)webStateList:(WebStateList*)webStateList
+    didChangeActiveWebState:(web::WebState*)newWebState
+                oldWebState:(web::WebState*)oldWebState
+                    atIndex:(int)atIndex
+                     reason:(ActiveWebStateChangeReason)reason {
+  DCHECK_EQ(_webStateList, webStateList);
+  [self setActiveWebState:newWebState];
+  [_commandHandler closeTextZoom];
 }
 
 #pragma mark - TextZoomHandler

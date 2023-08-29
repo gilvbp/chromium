@@ -5,7 +5,6 @@
 #include "chrome/browser/ui/webui/settings/ash/os_settings_manager.h"
 
 #include "ash/constants/ash_features.h"
-#include "ash/webui/settings/public/constants/routes.mojom.h"
 #include "base/containers/contains.h"
 #include "base/metrics/histogram_base.h"
 #include "base/test/metrics/histogram_enum_reader.h"
@@ -22,6 +21,7 @@
 #include "chrome/browser/ui/webui/settings/ash/hierarchy.h"
 #include "chrome/browser/ui/webui/settings/ash/os_settings_manager_factory.h"
 #include "chrome/browser/ui/webui/settings/ash/os_settings_sections.h"
+#include "chrome/browser/ui/webui/settings/chromeos/constants/routes.mojom.h"
 #include "chrome/test/base/testing_browser_process.h"
 #include "chrome/test/base/testing_profile.h"
 #include "chrome/test/base/testing_profile_manager.h"
@@ -53,6 +53,7 @@ class OsSettingsManagerTest : public testing::Test {
   void SetUp() override {
     scoped_feature_list_.InitWithFeatures(
         {::features::kAccessibilityChromeVoxPageMigration,
+         ::features::kAccessibilitySelectToSpeakPageMigration,
          ash::features::kInputDeviceSettingsSplit,
          ash::features::kPeripheralCustomization},
         {});

@@ -10,7 +10,7 @@
 #include "ash/strings/grit/ash_strings.h"
 #include "ash/style/rounded_container.h"
 #include "ash/style/switch.h"
-#include "ash/system/tray/fake_detailed_view_delegate.h"
+#include "ash/system/tray/detailed_view_delegate.h"
 #include "ash/system/tray/hover_highlight_view.h"
 #include "ash/test/ash_test_base.h"
 #include "base/memory/raw_ptr.h"
@@ -48,6 +48,21 @@ class FakeHotspotDetailedViewDelegate : public HotspotDetailedView::Delegate {
   }
 
   bool last_toggle_state_ = false;
+};
+
+// This class exists to stub out the CloseBubble() call. This allows tests to
+// directly construct the detailed view, without depending on the entire quick
+// settings bubble and view hierarchy.
+class FakeDetailedViewDelegate : public DetailedViewDelegate {
+ public:
+  FakeDetailedViewDelegate()
+      : DetailedViewDelegate(/*tray_controller=*/nullptr) {}
+  ~FakeDetailedViewDelegate() override = default;
+
+  // DetailedViewDelegate:
+  void CloseBubble() override { ++close_bubble_count_; }
+
+  int close_bubble_count_ = 0;
 };
 
 class HotspotDetailedViewTest : public AshTestBase {
@@ -167,8 +182,8 @@ class HotspotDetailedViewTest : public AshTestBase {
   std::unique_ptr<views::Widget> widget_;
   FakeHotspotDetailedViewDelegate hotspot_detailed_view_delegate_;
   FakeDetailedViewDelegate detailed_view_delegate_;
-  raw_ptr<HotspotDetailedView, DanglingUntriaged | ExperimentalAsh>
-      hotspot_detailed_view_ = nullptr;
+  raw_ptr<HotspotDetailedView, ExperimentalAsh> hotspot_detailed_view_ =
+      nullptr;
 };
 
 TEST_F(HotspotDetailedViewTest, PressingSettingsButtonOpensSettings) {
@@ -181,14 +196,14 @@ TEST_F(HotspotDetailedViewTest, PressingSettingsButtonOpensSettings) {
       session_manager::SessionState::LOCKED);
   LeftClickOn(settings_button);
   EXPECT_EQ(0, GetSystemTrayClient()->show_hotspot_subpage_count());
-  EXPECT_EQ(0u, detailed_view_delegate_.close_bubble_call_count());
+  EXPECT_EQ(0, detailed_view_delegate_.close_bubble_count_);
 
   // Clicking the button in an active user session opens OS settings.
   GetSessionControllerClient()->SetSessionState(
       session_manager::SessionState::ACTIVE);
   LeftClickOn(settings_button);
   EXPECT_EQ(1, GetSystemTrayClient()->show_hotspot_subpage_count());
-  EXPECT_EQ(1u, detailed_view_delegate_.close_bubble_call_count());
+  EXPECT_EQ(1, detailed_view_delegate_.close_bubble_count_);
 }
 
 TEST_F(HotspotDetailedViewTest, HotspotEnabledUI) {
@@ -219,8 +234,8 @@ TEST_F(HotspotDetailedViewTest, HotspotEnablingUI) {
 
   ASSERT_TRUE(hotspot_detailed_view_);
   AssertTextLabel(kHotspotTitle);
-  AssertSubtextLabel(u"Turning on…");
-  AssertEntryRowEnabled(/*expected_enabled=*/true);
+  AssertSubtextLabel(u"Enabling…");
+  AssertEntryRowEnabled(/*expected_enabled=*/false);
   AssertToggleOn(/*expected_toggle_on=*/true);
   views::ImageView* extra_icon = GetExtraIcon();
   EXPECT_FALSE(extra_icon->GetVisible());
@@ -245,7 +260,7 @@ TEST_F(HotspotDetailedViewTest, HotspotDisablingUI) {
 
   ASSERT_TRUE(hotspot_detailed_view_);
   AssertTextLabel(kHotspotTitle);
-  AssertSubtextLabel(u"Turning off…");
+  AssertSubtextLabel(u"Disabling…");
   AssertEntryRowEnabled(/*expected_enabled=*/false);
   AssertToggleOn(/*expected_toggle_on=*/false);
   views::ImageView* extra_icon = GetExtraIcon();
@@ -280,7 +295,7 @@ TEST_F(HotspotDetailedViewTest, HotspotDisabledAndNoMobileNetworkUI) {
 
   ASSERT_TRUE(hotspot_detailed_view_);
   AssertTextLabel(kHotspotTitle);
-  AssertSubtextLabel(u"Connect to mobile data");
+  AssertSubtextLabel(u"Connect to mobile data to use hotspot");
   AssertEntryRowEnabled(/*expected_enabled=*/false);
   AssertToggleOn(/*expected_toggle_on=*/false);
   views::ImageView* extra_icon = GetExtraIcon();

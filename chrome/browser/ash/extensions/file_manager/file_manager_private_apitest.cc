@@ -32,12 +32,11 @@
 #include "chrome/browser/ash/file_manager/volume_manager.h"
 #include "chrome/browser/ash/file_system_provider/icon_set.h"
 #include "chrome/browser/ash/file_system_provider/provided_file_system_info.h"
-#include "chrome/browser/ash/fileapi/file_system_backend.h"
 #include "chrome/browser/ash/policy/dlp/dlp_files_controller_ash.h"
 #include "chrome/browser/browser_process.h"
 #include "chrome/browser/chromeos/policy/dlp/dlp_rules_manager.h"
 #include "chrome/browser/chromeos/policy/dlp/dlp_rules_manager_factory.h"
-#include "chrome/browser/chromeos/policy/dlp/test/mock_dlp_rules_manager.h"
+#include "chrome/browser/chromeos/policy/dlp/mock_dlp_rules_manager.h"
 #include "chrome/browser/extensions/extension_apitest.h"
 #include "chrome/browser/signin/identity_manager_factory.h"
 #include "chrome/browser/ui/browser_list.h"
@@ -59,6 +58,7 @@
 #include "extensions/common/install_warning.h"
 #include "google_apis/common/test_util.h"
 #include "storage/browser/file_system/external_mount_points.h"
+#include "storage/browser/file_system/file_system_backend.h"
 
 using ::testing::_;
 using ::testing::ReturnRef;
@@ -773,29 +773,13 @@ class FileManagerPrivateApiDlpTest : public FileManagerPrivateApiTest {
 
  protected:
   base::ScopedTempDir drive_path_;
-  raw_ptr<policy::MockDlpRulesManager, DanglingUntriaged | ExperimentalAsh>
-      mock_rules_manager_ = nullptr;
+  raw_ptr<policy::MockDlpRulesManager, ExperimentalAsh> mock_rules_manager_ =
+      nullptr;
   std::unique_ptr<policy::DlpFilesControllerAsh> files_controller_;
   base::test::ScopedFeatureList scoped_feature_list_;
 };
 
-class FileManagerPrivateApiDlpOldUXTest : public FileManagerPrivateApiDlpTest {
- protected:
-  FileManagerPrivateApiDlpOldUXTest() {
-    scoped_feature_list_.Reset();
-    scoped_feature_list_.InitWithFeatures(
-        /*enabled_features=*/{features::kDataLeakPreventionFilesRestriction},
-        /*disabled_features=*/{features::kNewFilesPolicyUX});
-  }
-
-  FileManagerPrivateApiDlpOldUXTest(const FileManagerPrivateApiDlpOldUXTest&) =
-      delete;
-  void operator=(const FileManagerPrivateApiDlpOldUXTest&) = delete;
-
-  ~FileManagerPrivateApiDlpOldUXTest() override = default;
-};
-
-IN_PROC_BROWSER_TEST_F(FileManagerPrivateApiDlpOldUXTest, DlpBlockCopy) {
+IN_PROC_BROWSER_TEST_F(FileManagerPrivateApiDlpTest, DlpBlockCopy) {
   policy::DlpRulesManagerFactory::GetInstance()->SetTestingFactory(
       browser()->profile(),
       base::BindRepeating(&FileManagerPrivateApiDlpTest::SetDlpRulesManager,
@@ -825,14 +809,12 @@ IN_PROC_BROWSER_TEST_F(FileManagerPrivateApiDlpOldUXTest, DlpBlockCopy) {
 
   auto* file_system_context =
       file_manager::util::GetFileManagerFileSystemContext(browser()->profile());
-  ash::FileSystemBackend::Get(*file_system_context)
-      ->GrantFileAccessToOrigin(
-          url::Origin::Create(
-              GURL("chrome-extension://"
-                   "pkplfbidichfdicaijlchgnapepdginl/")),  // Testing
-                                                           // extension
-          base::FilePath(
-              base::StrCat({kLocalMountPointName, "/", kTestFileName})));
+  file_system_context->external_backend()->GrantFileAccessToOrigin(
+      url::Origin::Create(
+          GURL("chrome-extension://"
+               "pkplfbidichfdicaijlchgnapepdginl/")),  // Testing
+                                                       // extension
+      base::FilePath(base::StrCat({kLocalMountPointName, "/", kTestFileName})));
 
   storage::ExternalMountPoints::GetSystemInstance()->RegisterFileSystem(
       "drivefs-delayed_mount_2", storage::kFileSystemTypeDriveFs,

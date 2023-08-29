@@ -33,7 +33,7 @@ class ClientAppMetadataProviderServiceFactory
   ~ClientAppMetadataProviderServiceFactory() override;
 
   // BrowserContextKeyedServiceFactory:
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* browser_context) const override;
 };
 

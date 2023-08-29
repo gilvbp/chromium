@@ -9,6 +9,7 @@ import android.os.Looper;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 import androidx.collection.LruCache;
 
 import org.chromium.base.CollectionUtil;
@@ -166,10 +167,12 @@ public class BitmapCache {
         CollectionUtil.strengthen(sDeduplicationCache.values());
     }
 
+    @VisibleForTesting
     static void clearDedupCacheForTesting() {
         sDeduplicationCache.clear();
     }
 
+    @VisibleForTesting
     static int dedupCacheSizeForTesting() {
         return sDeduplicationCache.size();
     }

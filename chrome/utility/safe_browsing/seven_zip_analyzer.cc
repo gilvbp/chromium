@@ -66,8 +66,7 @@ bool SevenZipAnalyzer::OnEntry(const seven_zip::EntryInfo& entry,
 bool SevenZipAnalyzer::OnDirectory(const seven_zip::EntryInfo& entry) {
   return UpdateResultsForEntry(
       temp_file_.Duplicate(), GetRootPath().Append(entry.file_path),
-      entry.file_size, entry.is_encrypted, /*is_directory=*/true,
-      /*contents_valid=*/!entry.is_encrypted);
+      entry.file_size, entry.is_encrypted, /*is_directory=*/true);
 }
 
 bool SevenZipAnalyzer::EntryDone(seven_zip::Result result,
@@ -83,8 +82,7 @@ bool SevenZipAnalyzer::EntryDone(seven_zip::Result result,
     mapped_file_.reset();
     if (!UpdateResultsForEntry(
             temp_file_.Duplicate(), GetRootPath().Append(entry.file_path),
-            entry.file_size, entry.is_encrypted, /*is_directory=*/false,
-            /*contents_valid=*/!entry.is_encrypted)) {
+            entry.file_size, entry.is_encrypted, /*is_directory=*/false)) {
       awaiting_nested_ = true;
       return false;
     }

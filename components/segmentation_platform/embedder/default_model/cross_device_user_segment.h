@@ -13,7 +13,7 @@ struct Config;
 
 // Segmentation Chrome cross device user model provider. Provides a default
 // model and metadata for the cross device user optimization target.
-class CrossDeviceUserSegment : public DefaultModelProvider {
+class CrossDeviceUserSegment : public ModelProvider {
  public:
   CrossDeviceUserSegment();
   ~CrossDeviceUserSegment() override = default;
@@ -29,9 +29,11 @@ class CrossDeviceUserSegment : public DefaultModelProvider {
   static absl::optional<std::string> GetSubsegmentName(int subsegment_rank);
 
   // ModelProvider implementation.
-  std::unique_ptr<ModelConfig> GetModelConfig() override;
+  void InitAndFetchModel(
+      const ModelUpdatedCallback& model_updated_callback) override;
   void ExecuteModelWithInput(const ModelProvider::Request& inputs,
                              ExecutionCallback callback) override;
+  bool ModelAvailable() override;
 };
 
 }  // namespace segmentation_platform

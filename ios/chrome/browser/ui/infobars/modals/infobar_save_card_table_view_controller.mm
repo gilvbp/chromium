@@ -4,8 +4,8 @@
 
 #import "ios/chrome/browser/ui/infobars/modals/infobar_save_card_table_view_controller.h"
 
-#import "base/apple/foundation_util.h"
 #import "base/feature_list.h"
+#import "base/mac/foundation_util.h"
 #import "base/metrics/user_metrics.h"
 #import "base/metrics/user_metrics_action.h"
 #import "components/autofill/core/common/autofill_features.h"
@@ -26,6 +26,10 @@
 #import "ios/chrome/grit/ios_strings.h"
 #import "ui/base/l10n/l10n_util.h"
 #import "url/gurl.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace {
 // Number of Months in a year.
@@ -275,7 +279,7 @@ typedef NS_ENUM(NSInteger, ItemType) {
     }
     case ItemTypeCardHolderName: {
       TableViewTextEditCell* editCell =
-          base::apple::ObjCCast<TableViewTextEditCell>(cell);
+          base::mac::ObjCCast<TableViewTextEditCell>(cell);
       [editCell.textField addTarget:self
                              action:@selector(nameEditDidBegin)
                    forControlEvents:UIControlEventEditingDidBegin];
@@ -289,7 +293,7 @@ typedef NS_ENUM(NSInteger, ItemType) {
     }
     case ItemTypeCardExpireMonth: {
       TableViewTextEditCell* editCell =
-          base::apple::ObjCCast<TableViewTextEditCell>(cell);
+          base::mac::ObjCCast<TableViewTextEditCell>(cell);
       [editCell.textField addTarget:self
                              action:@selector(monthEditDidBegin)
                    forControlEvents:UIControlEventEditingDidBegin];
@@ -303,7 +307,7 @@ typedef NS_ENUM(NSInteger, ItemType) {
     }
     case ItemTypeCardExpireYear: {
       TableViewTextEditCell* editCell =
-          base::apple::ObjCCast<TableViewTextEditCell>(cell);
+          base::mac::ObjCCast<TableViewTextEditCell>(cell);
       [editCell.textField addTarget:self
                              action:@selector(yearEditDidBegin)
                    forControlEvents:UIControlEventEditingDidBegin];
@@ -317,7 +321,7 @@ typedef NS_ENUM(NSInteger, ItemType) {
     }
     case ItemTypeCardLegalMessage: {
       TableViewTextLinkCell* linkCell =
-          base::apple::ObjCCast<TableViewTextLinkCell>(cell);
+          base::mac::ObjCCast<TableViewTextLinkCell>(cell);
       linkCell.delegate = self;
       linkCell.separatorInset =
           UIEdgeInsetsMake(0, self.tableView.bounds.size.width, 0, 0);
@@ -325,7 +329,7 @@ typedef NS_ENUM(NSInteger, ItemType) {
     }
     case ItemTypeCardSave: {
       TableViewTextButtonCell* tableViewTextButtonCell =
-          base::apple::ObjCCastStrict<TableViewTextButtonCell>(cell);
+          base::mac::ObjCCastStrict<TableViewTextButtonCell>(cell);
       [tableViewTextButtonCell.button
                  addTarget:self
                     action:@selector(saveCardButtonWasPressed:)

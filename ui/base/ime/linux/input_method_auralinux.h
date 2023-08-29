@@ -52,7 +52,6 @@ class COMPONENT_EXPORT(UI_BASE_IME_LINUX) InputMethodAuraLinux
   void OnSetAutocorrectRange(const gfx::Range& range) override;
   void OnSetVirtualKeyboardOccludedBounds(
       const gfx::Rect& screen_bounds) override;
-  void OnInsertImage(const GURL& src) override;
 
  protected:
   // Overridden from InputMethodBase.
@@ -73,8 +72,7 @@ class COMPONENT_EXPORT(UI_BASE_IME_LINUX) InputMethodAuraLinux
     kTargetDestroyed,  // Target was destroyed during the commit.
   };
   CommitResult MaybeCommitResult(bool filtered, const KeyEvent& event);
-  bool UpdateCompositionIfTextSelected();
-  bool UpdateCompositionIfChanged(bool text_committed);
+  bool MaybeUpdateComposition(bool text_committed);
 
   // Shared implementation of OnPreeditChanged and OnPreeditEnd.
   // |force_update_client| is designed to dispatch key event/update

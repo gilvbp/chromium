@@ -10,9 +10,6 @@
 // Stop presenting the view.
 - (void)stopPresenting;
 
-// Stop presenting the view and show the learn more page afterward.
-- (void)stopPresentingAndShowLearnMoreAfterward;
-
 // Show the actvity overlay on the view.
 - (void)showActivityOverlay;
 

@@ -25,10 +25,10 @@ class ExtensionOptionsGuest
   ExtensionOptionsGuest& operator=(const ExtensionOptionsGuest&) = delete;
 
   static std::unique_ptr<GuestViewBase> Create(
-      content::RenderFrameHost* owner_rfh);
+      content::WebContents* owner_web_contents);
 
  private:
-  explicit ExtensionOptionsGuest(content::RenderFrameHost* owner_rfh);
+  explicit ExtensionOptionsGuest(content::WebContents* owner_web_contents);
 
   // GuestViewBase implementation.
   void CreateWebContents(std::unique_ptr<GuestViewBase> owned_this,
@@ -36,7 +36,7 @@ class ExtensionOptionsGuest
                          WebContentsCreatedCallback callback) final;
   void DidInitialize(const base::Value::Dict& create_params) final;
   void MaybeRecreateGuestContents(
-      content::RenderFrameHost* outer_contents_frame) final;
+      content::WebContents* embedder_web_contents) final;
   void GuestViewDidStopLoading() final;
   const char* GetAPINamespace() const final;
   int GetTaskPrefix() const final;

@@ -134,7 +134,7 @@ GLDisplay* InitializeGLOneOffPlatform(gl::GpuPreference gpu_preference) {
         LOG(ERROR) << "GLDisplayEGL::Initialize failed.";
         return nullptr;
       }
-      InitializeDirectCompositionANGLE(display);
+      InitializeDirectComposition(display);
       break;
     case kGLImplementationMockGL:
     case kGLImplementationStubGL:

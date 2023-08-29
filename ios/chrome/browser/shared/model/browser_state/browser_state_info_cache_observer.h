@@ -5,14 +5,12 @@
 #ifndef IOS_CHROME_BROWSER_SHARED_MODEL_BROWSER_STATE_BROWSER_STATE_INFO_CACHE_OBSERVER_H_
 #define IOS_CHROME_BROWSER_SHARED_MODEL_BROWSER_STATE_BROWSER_STATE_INFO_CACHE_OBSERVER_H_
 
-#include "base/observer_list_types.h"
-
 namespace base {
 class FilePath;
-}  // namespace base
+}
 
 // Observes changes in BrowserStateInfoCache.
-class BrowserStateInfoCacheObserver : public base::CheckedObserver {
+class BrowserStateInfoCacheObserver {
  public:
   BrowserStateInfoCacheObserver() {}
 
@@ -20,7 +18,7 @@ class BrowserStateInfoCacheObserver : public base::CheckedObserver {
   BrowserStateInfoCacheObserver& operator=(
       const BrowserStateInfoCacheObserver&) = delete;
 
-  ~BrowserStateInfoCacheObserver() override;
+  virtual ~BrowserStateInfoCacheObserver() {}
 
   // Called when a BrowserState has been added.
   virtual void OnBrowserStateAdded(const base::FilePath& path) = 0;

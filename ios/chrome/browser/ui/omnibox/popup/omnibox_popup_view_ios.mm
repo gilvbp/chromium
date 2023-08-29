@@ -15,7 +15,6 @@
 #import "base/metrics/user_metrics.h"
 #import "base/metrics/user_metrics_action.h"
 #import "components/omnibox/browser/autocomplete_match.h"
-#import "components/omnibox/browser/omnibox_controller.h"
 #import "components/omnibox/browser/omnibox_edit_model.h"
 #import "components/omnibox/browser/omnibox_popup_selection.h"
 #import "components/open_from_clipboard/clipboard_recent_content.h"
@@ -33,26 +32,32 @@
 #import "ios/web/public/thread/web_thread.h"
 #import "net/url_request/url_request_context_getter.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 using base::UserMetricsAction;
 
 OmniboxPopupViewIOS::OmniboxPopupViewIOS(
-    OmniboxController* controller,
+    OmniboxEditModel* edit_model,
     WebLocationBar* location_bar,
     OmniboxPopupViewSuggestionsDelegate* delegate)
-    : OmniboxPopupView(controller),
+    : edit_model_(edit_model),
       location_bar_(location_bar),
       delegate_(delegate) {
   DCHECK(delegate);
-  DCHECK(controller);
-  model()->set_popup_view(this);
+  DCHECK(edit_model);
+  edit_model->set_popup_view(this);
 }
 
 OmniboxPopupViewIOS::~OmniboxPopupViewIOS() {
-  model()->set_popup_view(nullptr);
+  edit_model_->set_popup_view(nullptr);
 }
 
 void OmniboxPopupViewIOS::UpdatePopupAppearance() {
-  [mediator_ updateWithResults:controller()->result()];
+  const AutocompleteResult& result = model()->result();
+
+  [mediator_ updateWithResults:result];
 }
 
 bool OmniboxPopupViewIOS::IsOpen() const {
@@ -62,6 +67,10 @@ bool OmniboxPopupViewIOS::IsOpen() const {
 std::u16string OmniboxPopupViewIOS::GetAccessibleButtonTextForResult(
     size_t line) {
   return u"";
+}
+
+OmniboxEditModel* OmniboxPopupViewIOS::model() const {
+  return edit_model_;
 }
 
 #pragma mark - OmniboxPopupProvider
@@ -82,7 +91,7 @@ void OmniboxPopupViewIOS::SetSemanticContentAttribute(
 #pragma mark - OmniboxPopupViewControllerDelegate
 
 bool OmniboxPopupViewIOS::IsStarredMatch(const AutocompleteMatch& match) const {
-  return model()->IsStarredMatch(match);
+  return edit_model_->IsStarredMatch(match);
 }
 
 void OmniboxPopupViewIOS::OnMatchSelected(
@@ -106,7 +115,7 @@ void OmniboxPopupViewIOS::OnMatchSelected(
       match.type == AutocompleteMatchType::CLIPBOARD_TEXT) {
     // A search using clipboard link or text is activity that should indicate a
     // user that would be interested in setting Chrome as the default browser.
-    LogCopyPasteInOmniboxForDefaultBrowserPromo();
+    LogLikelyInterestedDefaultBrowserUserActivity(DefaultPromoTypeGeneral);
   }
 
   if (match.type == AutocompleteMatchType::CLIPBOARD_URL) {
@@ -135,7 +144,7 @@ void OmniboxPopupViewIOS::OnMatchSelectedForAppending(
 
 void OmniboxPopupViewIOS::OnMatchSelectedForDeletion(
     const AutocompleteMatch& match) {
-  controller()->autocomplete_controller()->DeleteMatch(match);
+  model()->autocomplete_controller()->DeleteMatch(match);
 }
 
 void OmniboxPopupViewIOS::OnScroll() {

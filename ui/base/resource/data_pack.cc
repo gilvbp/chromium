@@ -48,15 +48,15 @@ static const size_t kHeaderLengthV5 =
 // more optimal resource renumbering to improve startup speed. See
 // tools/gritsettings/README.md for more info.
 void MaybePrintResourceId(uint16_t resource_id) {
-  static const bool print_resource_ids = [] {
-    // This code is run in other binaries than Chrome which do not initialize
-    // the CommandLine object. Note: This switch isn't in
-    // ui/base/ui_base_switches.h because ui/base depends on ui/base/resource
-    // and thus it would cause a circular dependency.
-    return base::CommandLine::InitializedForCurrentProcess() &&
-           base::CommandLine::ForCurrentProcess()->HasSwitch(
-               "print-resource-ids");
-  }();
+  // This code is run in other binaries than Chrome which do not initialize the
+  // CommandLine object. Early return in those cases.
+  if (!base::CommandLine::InitializedForCurrentProcess())
+    return;
+
+  // Note: This switch isn't in ui/base/ui_base_switches.h because ui/base
+  // depends on ui/base/resource and thus it would cause a circular dependency.
+  static bool print_resource_ids =
+      base::CommandLine::ForCurrentProcess()->HasSwitch("print-resource-ids");
   if (!print_resource_ids)
     return;
 
@@ -99,11 +99,11 @@ int DataPack::Alias::CompareById(const void* void_key, const void* void_entry) {
 }
 
 void DataPack::Iterator::UpdateResourceData() {
-  const Entry* const next_entry = entry_ + 1;
-  resource_data_ = new ResourceData(
-      entry_->resource_id,
-      GetStringPieceFromOffset(entry_->file_offset, next_entry->file_offset,
-                               data_source_));
+  const Entry* next_entry = entry_ + 1;
+  base::StringPiece data;
+  GetStringPieceFromOffset(entry_->file_offset, next_entry->file_offset,
+                           data_source_, &data);
+  resource_data_ = new ResourceData(entry_->resource_id, data);
 }
 
 DataPack::Iterator DataPack::begin() const {
@@ -358,16 +358,17 @@ bool DataPack::HasResource(uint16_t resource_id) const {
 }
 
 // static
-base::StringPiece DataPack::GetStringPieceFromOffset(
-    uint32_t target_offset,
-    uint32_t next_offset,
-    const uint8_t* data_source) {
+void DataPack::GetStringPieceFromOffset(uint32_t target_offset,
+                                        uint32_t next_offset,
+                                        const uint8_t* data_source,
+                                        base::StringPiece* data) {
   size_t length = next_offset - target_offset;
-  return {reinterpret_cast<const char*>(data_source + target_offset), length};
+  *data = base::StringPiece(
+      reinterpret_cast<const char*>(data_source + target_offset), length);
 }
 
-absl::optional<base::StringPiece> DataPack::GetStringPiece(
-    uint16_t resource_id) const {
+bool DataPack::GetStringPiece(uint16_t resource_id,
+                              base::StringPiece* data) const {
   // It won't be hard to make this endian-agnostic, but it's not worth
   // bothering to do right now.
 #if !defined(ARCH_CPU_LITTLE_ENDIAN)
@@ -376,7 +377,7 @@ absl::optional<base::StringPiece> DataPack::GetStringPiece(
 
   const Entry* target = LookupEntryById(resource_id);
   if (!target)
-    return absl::nullopt;
+    return false;
 
   const Entry* next_entry = target + 1;
   // If the next entry points beyond the end of the file this data pack's entry
@@ -390,20 +391,22 @@ absl::optional<base::StringPiece> DataPack::GetStringPiece(
     LOG(ERROR) << "Entry #" << entry_index << " in data pack points off end "
                << "of file. This should have been caught when loading. Was the "
                << "file modified?";
-    return absl::nullopt;
+    return false;
   }
 
   MaybePrintResourceId(resource_id);
-  return GetStringPieceFromOffset(target->file_offset, next_entry->file_offset,
-                                  data_source_->GetData());
+  GetStringPieceFromOffset(target->file_offset, next_entry->file_offset,
+                           data_source_->GetData(), data);
+  return true;
 }
 
 base::RefCountedStaticMemory* DataPack::GetStaticMemory(
     uint16_t resource_id) const {
-  if (auto piece = GetStringPiece(resource_id); piece.has_value()) {
-    return new base::RefCountedStaticMemory(piece->data(), piece->length());
-  }
-  return nullptr;
+  base::StringPiece piece;
+  if (!GetStringPiece(resource_id, &piece))
+    return NULL;
+
+  return new base::RefCountedStaticMemory(piece.data(), piece.length());
 }
 
 ResourceHandle::TextEncodingType DataPack::GetTextEncodingType() const {

@@ -30,7 +30,6 @@ namespace net {
 
 class SchemefulSite;
 class CookieOptions;
-class CookieInclusionStatus;
 class HttpRequestHeaders;
 class HttpResponseHeaders;
 class URLRequest;
@@ -78,8 +77,7 @@ class NET_EXPORT NetworkDelegateImpl : public NetworkDelegate {
 
   bool OnCanSetCookie(const URLRequest& request,
                       const net::CanonicalCookie& cookie,
-                      CookieOptions* options,
-                      CookieInclusionStatus* inclusion_status) override;
+                      CookieOptions* options) override;
 
   NetworkDelegate::PrivacySetting OnForcePrivacyMode(
       const URLRequest& request) const override;

@@ -9,7 +9,6 @@
 #import "base/functional/bind.h"
 #import "base/ios/ios_util.h"
 #import "base/strings/strcat.h"
-#import "base/strings/string_util.h"
 #import "base/strings/stringprintf.h"
 #import "base/strings/sys_string_conversions.h"
 #import "base/strings/utf_string_conversions.h"
@@ -23,27 +22,18 @@
 #import "components/policy/test_support/policy_storage.h"
 #import "components/policy/test_support/signature_provider.h"
 #import "components/strings/grit/components_strings.h"
-#import "components/sync/base/features.h"
 #import "google_apis/gaia/gaia_switches.h"
 #import "ios/chrome/browser/policy/cloud/user_policy_constants.h"
 #import "ios/chrome/browser/policy/policy_app_interface.h"
-#import "ios/chrome/browser/shared/model/url/chrome_url_constants.h"
 #import "ios/chrome/browser/signin/fake_system_identity.h"
-#import "ios/chrome/browser/ui/authentication/signin/signin_constants.h"
-#import "ios/chrome/browser/ui/authentication/signin_earl_grey.h"
 #import "ios/chrome/browser/ui/authentication/signin_earl_grey_ui_test_util.h"
-#import "ios/chrome/browser/ui/authentication/signin_matchers.h"
-#import "ios/chrome/browser/ui/authentication/views/views_constants.h"
 #import "ios/chrome/common/ui/confirmation_alert/constants.h"
 #import "ios/chrome/grit/ios_chromium_strings.h"
 #import "ios/chrome/grit/ios_strings.h"
 #import "ios/chrome/test/earl_grey/chrome_earl_grey.h"
 #import "ios/chrome/test/earl_grey/chrome_earl_grey_app_interface.h"
-#import "ios/chrome/test/earl_grey/chrome_earl_grey_ui.h"
-#import "ios/chrome/test/earl_grey/chrome_matchers_app_interface.h"
 #import "ios/chrome/test/earl_grey/chrome_test_case.h"
 #import "ios/chrome/test/earl_grey/test_switches.h"
-#import "ios/chrome/test/scoped_eg_synchronization_disabler.h"
 #import "ios/testing/earl_grey/app_launch_configuration.h"
 #import "ios/testing/earl_grey/app_launch_manager.h"
 #import "net/test/embedded_test_server/embedded_test_server.h"
@@ -52,6 +42,10 @@
 #import "net/test/embedded_test_server/request_handler_util.h"
 #import "ui/base/l10n/l10n_util.h"
 #import "url/gurl.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace {
 
@@ -151,9 +145,9 @@ void VerifyTheNotificationUI() {
       performAction:grey_swipeFastInDirection(kGREYDirectionUp)];
 
   NSString* title =
-      l10n_util::GetNSString(IDS_IOS_USER_POLICY_NOTIFICATION_NO_SIGNOUT_TITLE);
+      l10n_util::GetNSString(IDS_IOS_USER_POLICY_NOTIFICATION_TITLE);
   NSString* subtitle = l10n_util::GetNSStringF(
-      IDS_IOS_USER_POLICY_NOTIFICATION_NO_SIGNOUT_SUBTITLE,
+      IDS_IOS_USER_POLICY_NOTIFICATION_SUBTITLE,
       base::UTF8ToUTF16(std::string(policy::SignatureProvider::kTestDomain1)));
 
   // Verify the notification UI.
@@ -161,29 +155,6 @@ void VerifyTheNotificationUI() {
       assertWithMatcher:grey_sufficientlyVisible()];
   [[EarlGrey selectElementWithMatcher:grey_text(subtitle)]
       assertWithMatcher:grey_sufficientlyVisible()];
-}
-
-// Wait for the chrome management url to become visible in the web state
-// without validating the content. The goal being to verify that the page was
-// opened.
-void WaitForVisibleChromeManagementURL() {
-  // const GURL expectedURL(base::StrCat({kChromeUIManagementURL, "/"}));
-
-  NSString* errorString = [NSString
-      stringWithFormat:@"Failed waiting for web state"
-                       @" with visible url %@ ",
-                       base::SysUTF8ToNSString(kChromeUIManagementURL)];
-
-  GREYCondition* waitForUrl = [GREYCondition
-      conditionWithName:errorString
-                  block:^{
-                    return base::StartsWith(
-                        [ChromeEarlGrey webStateVisibleURL].spec(),
-                        kChromeUIManagementURL);
-                  }];
-  base::TimeDelta timeout = base::Seconds(5);
-  bool visibleUrl = [waitForUrl waitWithTimeout:timeout.InSecondsF()];
-  GREYAssert(visibleUrl, errorString);
 }
 
 }  // namespace
@@ -228,19 +199,6 @@ void WaitForVisibleChromeManagementURL() {
 }
 
 - (AppLaunchConfiguration)appConfigurationForTestCase {
-  AppLaunchConfiguration config = [self minimalAppConfigurationForTestCase];
-  // Enable User Policy for both consent levels.
-  config.features_enabled.push_back(
-      policy::kUserPolicyForSigninAndNoSyncConsentLevel);
-  config.features_enabled.push_back(
-      policy::kUserPolicyForSigninOrSyncConsentLevel);
-  // Disable UNO to not interfere with the tests that need Sync.
-  config.features_disabled.push_back(
-      syncer::kReplaceSyncPromosWithSignInPromos);
-  return config;
-}
-
-- (AppLaunchConfiguration)minimalAppConfigurationForTestCase {
   AppLaunchConfiguration config;
   // Set the url of the DMServer to reach the local test server.
   config.additional_args.push_back(
@@ -250,14 +208,13 @@ void WaitForVisibleChromeManagementURL() {
   config.additional_args.push_back(
       base::StrCat({"--", switches::kGoogleApisUrl, "=",
                     embedded_test_server_->base_url().spec()}));
+  config.features_enabled.push_back(policy::kUserPolicy);
   return config;
 }
 
-#pragma mark - Tests
-
 // Tests that the user policies are fetched and activated when turning on Sync
 // for a managed account.
-- (void)testThatPoliciesAreFetchedOnSigninAndSync {
+- (void)testThatPoliciesAreFetchedWhenTurnOnSync {
   // Turn on Sync for managed account to fetch user policies.
   FakeSystemIdentity* fakeManagedIdentity = [FakeSystemIdentity
       identityWithEmail:base::SysUTF8ToNSString(GetTestEmail().c_str())
@@ -266,68 +223,6 @@ void WaitForVisibleChromeManagementURL() {
   [SigninEarlGreyUI signinWithFakeIdentity:fakeManagedIdentity];
 
   VerifyThatPoliciesAreSet();
-}
-
-// Tests that the user policies are fetched and activated when signed in without
-// sync with a managed account.
-- (void)testThatPoliciesAreFetchedOnSignInWithoutSync {
-  // Turn on Sync for managed account to fetch user policies.
-  FakeSystemIdentity* fakeManagedIdentity = [FakeSystemIdentity
-      identityWithEmail:base::SysUTF8ToNSString(GetTestEmail().c_str())
-                 gaiaID:@"exampleManagedID"
-                   name:@"Fake Managed"];
-  [SigninEarlGreyUI signinWithFakeIdentity:fakeManagedIdentity enableSync:NO];
-
-  VerifyThatPoliciesAreSet();
-}
-
-// Tests that the user policies are fetched and activated when signed in without
-// sync with a managed account and feature enabled for signed-in without sync.
-- (void)testThatPoliciesAreFetchedOnSignInAndSigninNoSyncFeature {
-  AppLaunchConfiguration config = [self minimalAppConfigurationForTestCase];
-  // Enable User Policy for sign-in consent level exclusively.
-  config.features_enabled.push_back(
-      policy::kUserPolicyForSigninAndNoSyncConsentLevel);
-  // Disable UNO as fetching user policies don't depend on UNO.
-  config.features_disabled.push_back(
-      syncer::kReplaceSyncPromosWithSignInPromos);
-  [[AppLaunchManager sharedManager] ensureAppLaunchedWithConfiguration:config];
-
-  // Turn on Sync for managed account to fetch user policies.
-  FakeSystemIdentity* fakeManagedIdentity = [FakeSystemIdentity
-      identityWithEmail:base::SysUTF8ToNSString(GetTestEmail().c_str())
-                 gaiaID:@"exampleManagedID"
-                   name:@"Fake Managed"];
-  [SigninEarlGreyUI signinWithFakeIdentity:fakeManagedIdentity enableSync:NO];
-
-  VerifyThatPoliciesAreSet();
-}
-
-// Tests that the user policies are not fetched when signed-in+sync and
-// kReplaceSyncPromosWithSignInPromos is disabled. The feature is only
-// enabled for sign-in without sync.
-- (void)testThatPoliciesAreNotFetchedOnSigninWithSyncButSigninNoSyncFeature {
-  AppLaunchConfiguration config = [self minimalAppConfigurationForTestCase];
-  // Enable User Policy for sign-in consent level exclusively.
-  config.features_enabled.push_back(
-      policy::kUserPolicyForSigninAndNoSyncConsentLevel);
-  // Disable UNO as fetching user policies don't depend on UNO.
-  config.features_disabled.push_back(
-      syncer::kReplaceSyncPromosWithSignInPromos);
-  [[AppLaunchManager sharedManager] ensureAppLaunchedWithConfiguration:config];
-
-  // Turn on Sync for managed account to attempt to fetch user policies.
-  FakeSystemIdentity* fakeManagedIdentity = [FakeSystemIdentity
-      identityWithEmail:base::SysUTF8ToNSString(GetTestEmail().c_str())
-                 gaiaID:@"exampleManagedID"
-                   name:@"Fake Managed"];
-  [SigninEarlGreyUI signinWithFakeIdentity:fakeManagedIdentity enableSync:YES];
-
-  // Wait enough time to verifiy that the fetch wasn't unexpectedly triggered.
-  base::test::ios::SpinRunLoopWithMinDelay(
-      kWaitOnScheduledUserPolicyFetchInterval);
-
-  VerifyThatPoliciesAreNotSet();
 }
 
 // Tests that the user policies are cleared after sign out.
@@ -345,27 +240,28 @@ void WaitForVisibleChromeManagementURL() {
   VerifyThatPoliciesAreNotSet();
 }
 
-// Tests that the user policies previously fetched are loaded from the store
-// when signed in at startup.
-- (void)testThatPoliciesAreLoadedFromStoreWhenSignedInAtStartup {
+// TODO(crbug.com/1404093): Re-enable once we figure out a way to deal with the
+// Sync birthday.
+// Tests that the user policies are loaded from the store when Sync is still ON
+// at startup when the user policies were fetched in the previous session.
+- (void)DISABLED_testThatPoliciesAreLoadedFromStoreAtStartupIfSyncOn {
   // Turn on Sync for managed account to fetch user policies.
   FakeSystemIdentity* fakeManagedIdentity = [FakeSystemIdentity
       identityWithEmail:base::SysUTF8ToNSString(GetTestEmail().c_str())
                  gaiaID:@"exampleManagedID"
                    name:@"Fake Managed"];
-  [SigninEarlGreyUI signinWithFakeIdentity:fakeManagedIdentity enableSync:NO];
+  [SigninEarlGreyUI signinWithFakeIdentity:fakeManagedIdentity];
 
   VerifyThatPoliciesAreSet();
 
-  // Restart the browser while keeping sign-in by preserving the identity of the
+  // Commit pending user prefs write to make sure that all Sync prefs are
+  // written before shutting down the browser. This is to make sure that Sync
+  // can be turned on when the browser is restarted.
+  [ChromeEarlGreyAppInterface commitPendingUserPrefsWrite];
+
+  // Restart the browser while keeping Sync ON by preserving the identity of the
   // managed account.
-  AppLaunchConfiguration config = [self minimalAppConfigurationForTestCase];
-  // Enable User Policy for sign-in consent level exclusively.
-  config.features_enabled.push_back(
-      policy::kUserPolicyForSigninAndNoSyncConsentLevel);
-  // Disable UNO as fetching user policies don't depend on UNO.
-  config.features_disabled.push_back(
-      syncer::kReplaceSyncPromosWithSignInPromos);
+  AppLaunchConfiguration config = [self appConfigurationForTestCase];
   config.relaunch_policy = ForceRelaunchByCleanShutdown;
   config.additional_args.push_back(
       base::StrCat({"--", test_switches::kSignInAtStartup}));
@@ -421,7 +317,7 @@ void WaitForVisibleChromeManagementURL() {
   // Tap on the "Continue" button to dismiss the alert dialog and start the user
   // policy fetch.
   NSString* continueLabel =
-      l10n_util::GetNSString(IDS_IOS_ENTERPRISE_SIGNED_OUT_CONTINUE);
+      l10n_util::GetNSString(IDS_IOS_USER_POLICY_CONTINUE);
   [[EarlGrey
       selectElementWithMatcher:grey_allOf(
                                    grey_accessibilityLabel(continueLabel),
@@ -438,9 +334,9 @@ void WaitForVisibleChromeManagementURL() {
   VerifyThatPoliciesAreSet();
 }
 
-// Tests that the learn more page is displayed when choosing that option in the
-// notice dialog.
-- (void)testUserPolicyNotificationWithLearnMoreChoice {
+// Tests that the user policies aren't fetched when the user decides to sign out
+// in the notification dialog.
+- (void)testUserPolicyNotificationWithSignoutChoice {
   // Clear the prefs related to user policy to make sure that the notification
   // isn't skipped and that the fetch is started within the minimal schedule
   // interval.
@@ -456,9 +352,9 @@ void WaitForVisibleChromeManagementURL() {
       identityWithEmail:base::SysUTF8ToNSString(GetTestEmail().c_str())
                  gaiaID:@"exampleManagedID"
                    name:@"Fake Managed"];
-  [SigninEarlGreyUI signinWithFakeIdentity:fakeManagedIdentity enableSync:NO];
+  [SigninEarlGreyUI signinWithFakeIdentity:fakeManagedIdentity];
 
-  // Restart the browser while keeping sign-in by preserving the identity of the
+  // Restart the browser while keeping Sync ON by preserving the identity of the
   // managed account.
   config = [self appConfigurationForTestCase];
   config.relaunch_policy = ForceRelaunchByCleanShutdown;
@@ -474,205 +370,21 @@ void WaitForVisibleChromeManagementURL() {
 
   // Tap on the "Sign Out and Clear Data" button to dismiss the alert dialog
   // without triggering the user policy fetch.
-  NSString* label =
-      l10n_util::GetNSString(IDS_IOS_ENTERPRISE_SIGNED_OUT_LEARN_MORE);
+  NSString* signoutLabel =
+      l10n_util::GetNSString(IDS_IOS_USER_POLICY_SIGNOUT_AND_CLEAR_DATA);
   [[EarlGrey
-      selectElementWithMatcher:grey_allOf(grey_accessibilityLabel(label),
+      selectElementWithMatcher:grey_allOf(grey_accessibilityLabel(signoutLabel),
                                           grey_accessibilityTrait(
                                               UIAccessibilityTraitButton),
                                           nil)] performAction:grey_tap()];
 
-  WaitForVisibleChromeManagementURL();
-}
+  // Wait enough time to verifiy that the fetch wasn't unexpectedly triggered
+  // after dismissing the notification.
+  base::test::ios::SpinRunLoopWithMinDelay(
+      kWaitOnScheduledUserPolicyFetchInterval);
 
-// Tests that the managed accout confirmation dialog is shown in the
-// sign-in+sync flow with its contextual and specific content when user policies
-// are enabled.
-- (void)testSigninFlowConfirmationDialogWhenUserPolicyAndSync {
-  FakeSystemIdentity* fakeManagedIdentity = [FakeSystemIdentity
-      identityWithEmail:base::SysUTF8ToNSString(GetTestEmail().c_str())
-                 gaiaID:@"exampleManagedID"
-                   name:@"Fake Managed"];
-  [SigninEarlGrey addFakeIdentity:fakeManagedIdentity];
-
-  [self startSigninFlowUpToConfirmationDialogWithIdentity:fakeManagedIdentity
-                                              withoutSync:NO];
-
-  ScopedSynchronizationDisabler disabler;
-
-  NSString* title = l10n_util::GetNSString(IDS_IOS_MANAGED_SYNC_TITLE);
-  NSString* subtitle = l10n_util::GetNSStringF(
-      IDS_IOS_MANAGED_SYNC_WITH_USER_POLICY_SUBTITLE,
-      base::UTF8ToUTF16(std::string(policy::SignatureProvider::kTestDomain1)));
-
-  // Verify the notification UI.
-  [[EarlGrey selectElementWithMatcher:grey_text(title)]
-      assertWithMatcher:grey_sufficientlyVisible()];
-  [[EarlGrey selectElementWithMatcher:grey_text(subtitle)]
-      assertWithMatcher:grey_sufficientlyVisible()];
-  [[EarlGrey selectElementWithMatcher:
-                 grey_allOf(grey_accessibilityID(@"CancelAlertAction"),
-                            [ChromeMatchersAppInterface
-                                buttonWithAccessibilityLabelID:IDS_CANCEL],
-                            nil)] assertWithMatcher:grey_sufficientlyVisible()];
-
-  // Complete the sign-in+sync flow by completing the dialog.
-  id<GREYMatcher> acceptButton = [ChromeMatchersAppInterface
-      buttonWithAccessibilityLabelID:IDS_IOS_MANAGED_SIGNIN_ACCEPT_BUTTON];
-  [ChromeEarlGrey waitForMatcher:acceptButton];
-  [[EarlGrey selectElementWithMatcher:acceptButton] performAction:grey_tap()];
-
-  // Verify that the confirmation dialog was dismissed.
-  [[EarlGrey selectElementWithMatcher:grey_text(title)]
-      assertWithMatcher:grey_notVisible()];
-
-  // Verify that the flow worked and the browser is signed in.
-  [SigninEarlGrey verifySignedInWithFakeIdentity:fakeManagedIdentity];
-}
-
-// Tests that the managed accout confirmation dialog is shown in the
-// sign-in without sync flow with its contextual and specific content when user
-// policies are enabled.
-- (void)testSigninFlowConfirmationDialogWhenUserPolicyAndSigninWithoutSync {
-  AppLaunchConfiguration config = [self minimalAppConfigurationForTestCase];
-  // Enable User Policy for sign-in consent level exclusively.
-  config.features_enabled.push_back(
-      policy::kUserPolicyForSigninAndNoSyncConsentLevel);
-  // Enable UNO to enable confirmation dialog for sign-in consent level.
-  config.features_enabled.push_back(syncer::kReplaceSyncPromosWithSignInPromos);
-  [[AppLaunchManager sharedManager] ensureAppLaunchedWithConfiguration:config];
-
-  FakeSystemIdentity* fakeManagedIdentity = [FakeSystemIdentity
-      identityWithEmail:base::SysUTF8ToNSString(GetTestEmail().c_str())
-                 gaiaID:@"exampleManagedID"
-                   name:@"Fake Managed"];
-
-  [SigninEarlGrey addFakeIdentity:fakeManagedIdentity];
-
-  [self startSigninFlowUpToConfirmationDialogWithIdentity:fakeManagedIdentity
-                                              withoutSync:YES];
-
-  // Disable egtest synchronization to avoid infinite spinner loop.
-  ScopedSynchronizationDisabler disabler;
-
-  NSString* title = l10n_util::GetNSString(IDS_IOS_MANAGED_SIGNIN_TITLE);
-  NSString* subtitle = l10n_util::GetNSStringF(
-      IDS_IOS_MANAGED_SIGNIN_WITH_USER_POLICY_SUBTITLE,
-      base::UTF8ToUTF16(std::string(policy::SignatureProvider::kTestDomain1)));
-
-  // Verify the notification UI.
-  [[EarlGrey selectElementWithMatcher:grey_text(title)]
-      assertWithMatcher:grey_sufficientlyVisible()];
-  [[EarlGrey selectElementWithMatcher:grey_text(subtitle)]
-      assertWithMatcher:grey_sufficientlyVisible()];
-  [[EarlGrey selectElementWithMatcher:
-                 grey_allOf(grey_accessibilityID(@"CancelAlertAction"),
-                            [ChromeMatchersAppInterface
-                                buttonWithAccessibilityLabelID:IDS_CANCEL],
-                            nil)] assertWithMatcher:grey_sufficientlyVisible()];
-
-  // Complete the sign-in flow by completing the confirmation dialog.
-  id<GREYMatcher> acceptButton = [ChromeMatchersAppInterface
-      buttonWithAccessibilityLabelID:
-          IDS_IOS_MANAGED_SIGNIN_WITH_USER_POLICY_CONTINUE_BUTTON_LABEL];
-  [ChromeEarlGrey waitForMatcher:acceptButton];
-  [[EarlGrey selectElementWithMatcher:acceptButton] performAction:grey_tap()];
-
-  // Verify that the confirmation dialog was dismissed.
-  [[EarlGrey selectElementWithMatcher:grey_text(title)]
-      assertWithMatcher:grey_notVisible()];
-
-  // Verify that the flow was successful by validating that the account is
-  // signed in after accepting from the confirmation dialog.
-  [SigninEarlGrey verifySignedInWithFakeIdentity:fakeManagedIdentity];
-}
-
-// Tests that the managed accout confirmation dialog is shown in the
-// legacy sign-in+sync flow with its contextual and specific content when user
-// policies are disabled.
-- (void)testSigninFlowConfirmationDialogWhenNoUserPolicyAndLegacySyncPromo {
-  AppLaunchConfiguration config = [self minimalAppConfigurationForTestCase];
-  // Disable User Policy and UNO to get the legacy confirmation dialog.
-  config.features_disabled.push_back(
-      policy::kUserPolicyForSigninAndNoSyncConsentLevel);
-  config.features_disabled.push_back(
-      policy::kUserPolicyForSigninOrSyncConsentLevel);
-  config.features_disabled.push_back(
-      syncer::kReplaceSyncPromosWithSignInPromos);
-  [[AppLaunchManager sharedManager] ensureAppLaunchedWithConfiguration:config];
-
-  FakeSystemIdentity* fakeManagedIdentity = [FakeSystemIdentity
-      identityWithEmail:base::SysUTF8ToNSString(GetTestEmail().c_str())
-                 gaiaID:@"exampleManagedID"
-                   name:@"Fake Managed"];
-
-  [SigninEarlGrey addFakeIdentity:fakeManagedIdentity];
-
-  [self startSigninFlowUpToConfirmationDialogWithIdentity:fakeManagedIdentity
-                                              withoutSync:NO];
-
-  // Disable egtest synchronization to avoid infinite spinner loop.
-  ScopedSynchronizationDisabler disabler;
-
-  NSString* title = l10n_util::GetNSString(IDS_IOS_MANAGED_SIGNIN_TITLE);
-  NSString* subtitle = l10n_util::GetNSStringF(
-      IDS_IOS_MANAGED_SIGNIN_SUBTITLE,
-      base::UTF8ToUTF16(std::string(policy::SignatureProvider::kTestDomain1)));
-
-  // Verify the notification UI.
-  [[EarlGrey selectElementWithMatcher:grey_text(title)]
-      assertWithMatcher:grey_sufficientlyVisible()];
-  [[EarlGrey selectElementWithMatcher:grey_text(subtitle)]
-      assertWithMatcher:grey_sufficientlyVisible()];
-  [[EarlGrey selectElementWithMatcher:
-                 grey_allOf(grey_accessibilityID(@"CancelAlertAction"),
-                            [ChromeMatchersAppInterface
-                                buttonWithAccessibilityLabelID:IDS_CANCEL],
-                            nil)] assertWithMatcher:grey_sufficientlyVisible()];
-
-  // Complete the sign-in+sync flow by completing the confirmation dialog.
-  id<GREYMatcher> acceptButton = [ChromeMatchersAppInterface
-      buttonWithAccessibilityLabelID:IDS_IOS_MANAGED_SIGNIN_ACCEPT_BUTTON];
-  [ChromeEarlGrey waitForMatcher:acceptButton];
-  [[EarlGrey selectElementWithMatcher:acceptButton] performAction:grey_tap()];
-
-  // Verify that the confirmation dialog was dismissed.
-  [[EarlGrey selectElementWithMatcher:grey_text(title)]
-      assertWithMatcher:grey_notVisible()];
-
-  // Verify that the account is signed in after accepting from the confirmation
-  // dialog.
-  [SigninEarlGrey verifySignedInWithFakeIdentity:fakeManagedIdentity];
-}
-
-#pragma mark - Private
-
-// Starts the sign-in flow up to the point where it may ask for the confirmation
-// dialog.
-- (void)startSigninFlowUpToConfirmationDialogWithIdentity:
-            (FakeSystemIdentity*)identity
-                                              withoutSync:(BOOL)withoutSync {
-  // Open sign-in flow.
-  [ChromeEarlGreyUI openSettingsMenu];
-  [ChromeEarlGreyUI
-      tapSettingsMenuButton:chrome_test_util::SettingsSignInRowMatcher()];
-
-  // Proceed with sign-in.
-  if (withoutSync) {
-    [[EarlGrey selectElementWithMatcher:chrome_test_util::
-                                            WebSigninPrimaryButtonMatcher()]
-        performAction:grey_tap()];
-
-  } else {
-    [[EarlGrey selectElementWithMatcher:grey_accessibilityID(
-                                            kIdentityButtonControlIdentifier)]
-        performAction:grey_tap()];
-    [[EarlGrey
-        selectElementWithMatcher:chrome_test_util::IdentityCellMatcherForEmail(
-                                     identity.userEmail)]
-        performAction:grey_tap()];
-    [SigninEarlGreyUI tapSigninConfirmationDialog];
-  }
+  // Verify that the fetch wasn't done.
+  VerifyThatPoliciesAreNotSet();
 }
 
 @end

@@ -4,10 +4,13 @@
 
 #import "ios/chrome/browser/infobars/infobar_badge_tab_helper.h"
 
-#import "base/containers/contains.h"
 #import "base/ranges/algorithm.h"
 #import "ios/chrome/browser/infobars/infobar_badge_tab_helper_delegate.h"
 #import "ios/chrome/browser/infobars/infobar_manager_impl.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace {
 // Returns `infobar`'s InfobarType.
@@ -53,26 +56,23 @@ void InfobarBadgeTabHelper::UpdateBadgeForInfobarReverted(
 
 void InfobarBadgeTabHelper::UpdateBadgeForInfobarRead(
     InfobarType infobar_type) {
-  if (!base::Contains(infobar_badge_states_, infobar_type)) {
+  if (infobar_badge_states_.find(infobar_type) == infobar_badge_states_.end())
     return;
-  }
   infobar_badge_states_[infobar_type] |= BadgeStateRead;
 }
 
 void InfobarBadgeTabHelper::UpdateBadgeForInfobarBannerPresented(
     InfobarType infobar_type) {
-  if (!base::Contains(infobar_badge_states_, infobar_type)) {
+  if (infobar_badge_states_.find(infobar_type) == infobar_badge_states_.end())
     return;
-  }
   infobar_badge_states_[infobar_type] |= BadgeStatePresented;
   UpdateBadgesShown();
 }
 
 void InfobarBadgeTabHelper::UpdateBadgeForInfobarBannerDismissed(
     InfobarType infobar_type) {
-  if (!base::Contains(infobar_badge_states_, infobar_type)) {
+  if (infobar_badge_states_.find(infobar_type) == infobar_badge_states_.end())
     return;
-  }
   infobar_badge_states_[infobar_type] &= ~BadgeStatePresented;
   UpdateBadgesShown();
 }
@@ -119,9 +119,8 @@ void InfobarBadgeTabHelper::UnregisterInfobar(infobars::InfoBar* infobar) {
 void InfobarBadgeTabHelper::OnInfobarAcceptanceStateChanged(
     InfobarType infobar_type,
     bool accepted) {
-  if (!base::Contains(infobar_badge_states_, infobar_type)) {
+  if (infobar_badge_states_.find(infobar_type) == infobar_badge_states_.end())
     return;
-  }
   if (accepted) {
     infobar_badge_states_[infobar_type] |= BadgeStateAccepted | BadgeStateRead;
   } else {

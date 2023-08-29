@@ -38,12 +38,11 @@ SessionDataServiceFactory::SessionDataServiceFactory()
 
 SessionDataServiceFactory::~SessionDataServiceFactory() = default;
 
-std::unique_ptr<KeyedService>
-SessionDataServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* SessionDataServiceFactory::BuildServiceInstanceFor(
     content::BrowserContext* browser_context) const {
   Profile* profile = Profile::FromBrowserContext(browser_context);
   auto deleter = std::make_unique<SessionDataDeleter>(profile);
-  return std::make_unique<SessionDataService>(profile, std::move(deleter));
+  return new SessionDataService(profile, std::move(deleter));
 }
 
 bool SessionDataServiceFactory::ServiceIsCreatedWithBrowserContext() const {

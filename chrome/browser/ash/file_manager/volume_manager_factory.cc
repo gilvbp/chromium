@@ -35,11 +35,10 @@ bool VolumeManagerFactory::ServiceIsNULLWhileTesting() const {
   return true;
 }
 
-std::unique_ptr<KeyedService>
-VolumeManagerFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* VolumeManagerFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   Profile* const profile = Profile::FromBrowserContext(context);
-  std::unique_ptr<VolumeManager> instance = std::make_unique<VolumeManager>(
+  VolumeManager* instance = new VolumeManager(
       profile, drive::DriveIntegrationServiceFactory::GetForProfile(profile),
       chromeos::PowerManagerClient::Get(),
       ash::disks::DiskMountManager::GetInstance(),
@@ -52,8 +51,11 @@ VolumeManagerFactory::BuildServiceInstanceForBrowserContext(
 VolumeManagerFactory::VolumeManagerFactory()
     : ProfileKeyedServiceFactory(
           "VolumeManagerFactory",
+          // Explicitly allow this manager in guest login mode.
           ProfileSelections::Builder()
-              .WithRegular(ProfileSelection::kRedirectedToOriginal)
+              .WithRegular(ProfileSelection::kOwnInstance)
+              // TODO(crbug.com/1418376): Check if this service is needed in
+              // Guest mode.
               .WithGuest(ProfileSelection::kOwnInstance)
               .Build()) {
   DependsOn(drive::DriveIntegrationServiceFactory::GetInstance());

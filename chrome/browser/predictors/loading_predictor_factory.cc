@@ -38,15 +38,14 @@ LoadingPredictorFactory::LoadingPredictorFactory()
 
 LoadingPredictorFactory::~LoadingPredictorFactory() = default;
 
-std::unique_ptr<KeyedService>
-LoadingPredictorFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* LoadingPredictorFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   Profile* profile = Profile::FromBrowserContext(context);
 
   if (!IsLoadingPredictorEnabled(profile))
     return nullptr;
 
-  return std::make_unique<LoadingPredictor>(LoadingPredictorConfig(), profile);
+  return new LoadingPredictor(LoadingPredictorConfig(), profile);
 }
 
 }  // namespace predictors

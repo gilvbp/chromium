@@ -23,6 +23,7 @@
 #include "base/functional/unretained_traits.h"
 #include "base/memory/raw_ptr.h"
 #include "base/memory/raw_ptr_asan_bound_arg_tracker.h"
+#include "base/memory/raw_ptr_asan_service.h"
 #include "base/memory/raw_ref.h"
 #include "base/memory/raw_scoped_refptr_mismatch_checker.h"
 #include "base/memory/weak_ptr.h"
@@ -30,6 +31,10 @@
 #include "base/types/always_false.h"
 #include "build/build_config.h"
 #include "third_party/abseil-cpp/absl/functional/function_ref.h"
+
+#if BUILDFLAG(IS_APPLE) && !HAS_FEATURE(objc_arc)
+#include "base/mac/scoped_block.h"
+#endif
 
 // See base/functional/callback.h for user documentation.
 //
@@ -666,10 +671,18 @@ struct FunctorTraits<R(__fastcall*)(Args...)> {
 
 #endif  // BUILDFLAG(IS_WIN) && !defined(ARCH_CPU_64_BITS)
 
-#if __OBJC__
+#if BUILDFLAG(IS_APPLE)
 
-// Support for Objective-C blocks. Blocks can be bound as the compiler will
-// ensure their lifetimes will be correctly managed.
+// Support for Objective-C blocks. There are two implementation depending
+// on whether Automated Reference Counting (ARC) is enabled. When ARC is
+// enabled, then the block itself can be bound as the compiler will ensure
+// its lifetime will be correctly managed. Otherwise, require the block to
+// be wrapped in a base::mac::ScopedBlock (via base::RetainBlock) that will
+// correctly manage the block lifetime.
+//
+// The two implementation ensure that the One Definition Rule (ODR) is not
+// broken (it is not possible to write a template base::RetainBlock that would
+// work correctly both with ARC enabled and disabled).
 
 #if HAS_FEATURE(objc_arc)
 
@@ -694,8 +707,28 @@ struct FunctorTraits<R (^)(Args...)> {
   }
 };
 
+#else  // HAS_FEATURE(objc_arc)
+
+template <typename R, typename... Args>
+struct FunctorTraits<base::mac::ScopedBlock<R (^)(Args...)>> {
+  using RunType = R(Args...);
+  static constexpr bool is_method = false;
+  static constexpr bool is_nullable = true;
+  static constexpr bool is_callback = false;
+  static constexpr bool is_stateless = true;
+
+  template <typename BlockType, typename... RunArgs>
+  static R Invoke(BlockType&& block, RunArgs&&... args) {
+    // Copy the block to ensure that the Objective-C block is not deallocated
+    // until it has finished executing even if the Callback<> is destroyed
+    // during the block execution.
+    base::mac::ScopedBlock<R (^)(Args...)> scoped_block(block);
+    return scoped_block.get()(std::forward<RunArgs>(args)...);
+  }
+};
+
 #endif  // HAS_FEATURE(objc_arc)
-#endif  // __OBJC__
+#endif  // BUILDFLAG(IS_APPLE)
 
 // For methods.
 template <typename R, typename Receiver, typename... Args>

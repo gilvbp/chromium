@@ -493,14 +493,6 @@ void RecordResolveTimeDiff(const char* histogram_variant,
   }
 }
 
-int GetPortForGloballyReachableCheck() {
-  if (!base::FeatureList::IsEnabled(
-          features::kUseAlternativePortForGloballyReachableCheck)) {
-    return 443;
-  }
-  return features::kAlternativePortForGloballyReachableCheck.Get();
-}
-
 }  // namespace
 
 //-----------------------------------------------------------------------------
@@ -3951,7 +3943,7 @@ int HostResolverManager::StartGloballyReachableCheck(
       base::RefCountedData<std::unique_ptr<DatagramClientSocket>>>(
       std::move(probing_socket));
   int rv = probing_socket_ptr->ConnectAsync(
-      IPEndPoint(dest, GetPortForGloballyReachableCheck()),
+      IPEndPoint(dest, 53),
       base::BindOnce(&HostResolverManager::RunFinishGloballyReachableCheck,
                      weak_ptr_factory_.GetWeakPtr(), refcounted_socket,
                      std::move(callback)));

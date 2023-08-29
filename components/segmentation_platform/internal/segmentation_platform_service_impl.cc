@@ -18,6 +18,7 @@
 #include "components/prefs/pref_registry_simple.h"
 #include "components/segmentation_platform/internal/config_parser.h"
 #include "components/segmentation_platform/internal/constants.h"
+#include "components/segmentation_platform/internal/database/client_result_prefs.h"
 #include "components/segmentation_platform/internal/database/storage_service.h"
 #include "components/segmentation_platform/internal/execution/processing/sync_device_info_observer.h"
 #include "components/segmentation_platform/internal/platform_options.h"
@@ -32,6 +33,7 @@
 #include "components/segmentation_platform/public/field_trial_register.h"
 #include "components/segmentation_platform/public/input_context.h"
 #include "components/segmentation_platform/public/input_delegate.h"
+#include "components/segmentation_platform/public/model_provider.h"
 
 namespace segmentation_platform {
 
@@ -67,10 +69,6 @@ SegmentationPlatformServiceImpl::SegmentationPlatformServiceImpl(
   if (init_params->storage_service) {
     // Test only:
     storage_service_ = std::move(init_params->storage_service);
-    storage_service_->model_manager()
-        ->SetSegmentationModelUpdatedCallbackForTesting(base::BindRepeating(
-            &SegmentationPlatformServiceImpl::OnSegmentationModelUpdated,
-            weak_ptr_factory_.GetWeakPtr()));
   } else {
     DCHECK(model_provider_factory_ && init_params->db_provider);
     DCHECK(!init_params->storage_dir.empty() && init_params->ukm_data_manager);
@@ -78,10 +76,7 @@ SegmentationPlatformServiceImpl::SegmentationPlatformServiceImpl(
         init_params->storage_dir, init_params->db_provider,
         init_params->task_runner, init_params->clock,
         init_params->ukm_data_manager, std::move(init_params->configs),
-        model_provider_factory_.get(), profile_prefs_,
-        base::BindRepeating(
-            &SegmentationPlatformServiceImpl::OnSegmentationModelUpdated,
-            weak_ptr_factory_.GetWeakPtr()));
+        model_provider_factory_.get(), profile_prefs_);
   }
 
   const auto* config_holder = storage_service_->config_holder();
@@ -102,8 +97,8 @@ SegmentationPlatformServiceImpl::SegmentationPlatformServiceImpl(
   field_trial_recorder_->RecordFieldTrialAtStartup(
       config_holder->configs(), storage_service_->cached_result_provider());
 
-  request_dispatcher_ =
-      std::make_unique<RequestDispatcher>(storage_service_.get());
+  request_dispatcher_ = std::make_unique<RequestDispatcher>(
+      config_holder, storage_service_->cached_result_provider());
 
   for (const auto& config : config_holder->configs()) {
     if (!metadata_utils::ConfigUsesLegacyOutput(config.get())) {
@@ -114,11 +109,13 @@ SegmentationPlatformServiceImpl::SegmentationPlatformServiceImpl(
             storage_service_->segment_info_database(),
             storage_service_->signal_storage_config(),
             init_params->profile_prefs, config.get(),
-            field_trial_register_.get(), init_params->clock, platform_options_);
+            field_trial_register_.get(), init_params->clock, platform_options_,
+            storage_service_->default_model_manager());
   }
 
   proxy_ = std::make_unique<ServiceProxyImpl>(
       storage_service_->segment_info_database(),
+      storage_service_->default_model_manager(),
       storage_service_->signal_storage_config(), &config_holder->configs(),
       platform_options_, &segment_selectors_);
   segment_score_provider_ =
@@ -203,7 +200,19 @@ void SegmentationPlatformServiceImpl::GetSelectedSegmentOnDemand(
 
   CHECK(segment_selectors_.find(segmentation_key) != segment_selectors_.end());
   auto& selector = segment_selectors_.at(segmentation_key);
-  selector->GetSelectedSegmentOnDemand(input_context, std::move(callback));
+
+  // Wrap callback to record metrics.
+  auto wrapped_callback = base::BindOnce(
+      [](const std::string& segmentation_key, base::Time start_time,
+         SegmentSelectionCallback callback,
+         const SegmentSelectionResult& result) -> void {
+        stats::RecordOnDemandSegmentSelectionDuration(
+            segmentation_key, result, base::Time::Now() - start_time);
+        std::move(callback).Run(result);
+      },
+      segmentation_key, base::Time::Now(), std::move(callback));
+  selector->GetSelectedSegmentOnDemand(input_context,
+                                       std::move(wrapped_callback));
 }
 
 void SegmentationPlatformServiceImpl::CollectTrainingData(
@@ -251,9 +260,12 @@ void SegmentationPlatformServiceImpl::OnDatabaseInitialized(bool success) {
     observers.push_back(key_and_selector.second.get());
   observers.push_back(proxy_.get());
   execution_service_.Initialize(
-      storage_service_.get(), &signal_handler_, clock_, task_runner_,
-      config_holder->all_segment_ids(), model_provider_factory_.get(),
-      std::move(observers), platform_options_,
+      storage_service_.get(), &signal_handler_, clock_,
+      base::BindRepeating(
+          &SegmentationPlatformServiceImpl::OnSegmentationModelUpdated,
+          weak_ptr_factory_.GetWeakPtr()),
+      task_runner_, config_holder->all_segment_ids(),
+      model_provider_factory_.get(), std::move(observers), platform_options_,
       std::move(input_delegate_holder_), &config_holder->configs(),
       profile_prefs_, storage_service_->cached_result_provider());
 
@@ -288,7 +300,6 @@ void SegmentationPlatformServiceImpl::OnDatabaseInitialized(bool success) {
 
 void SegmentationPlatformServiceImpl::OnSegmentationModelUpdated(
     proto::SegmentInfo segment_info) {
-  CHECK(IsPlatformInitialized());
   DCHECK(metadata_utils::ValidateSegmentInfoMetadataAndFeatures(segment_info) ==
          metadata_utils::ValidationResult::kValidationSuccess);
 
@@ -342,7 +353,8 @@ std::unique_ptr<SegmentResultProvider>
 SegmentationPlatformServiceImpl::CreateSegmentResultProvider() {
   return SegmentResultProvider::Create(
       storage_service_->segment_info_database(),
-      storage_service_->signal_storage_config(), &execution_service_, clock_,
+      storage_service_->signal_storage_config(),
+      storage_service_->default_model_manager(), &execution_service_, clock_,
       platform_options_.force_refresh_results);
 }
 

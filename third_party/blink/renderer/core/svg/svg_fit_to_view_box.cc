@@ -80,12 +80,9 @@ bool SVGFitToViewBox::IsKnownAttribute(const QualifiedName& attr_name) {
          attr_name == svg_names::kPreserveAspectRatioAttr;
 }
 
-bool SVGFitToViewBox::HasValidViewBox(const SVGRect& value) {
-  return value.IsValid() && value.Width() >= 0 && value.Height() >= 0;
-}
-
 bool SVGFitToViewBox::HasValidViewBox() const {
-  return HasValidViewBox(*view_box_->CurrentValue());
+  const SVGRect* value = view_box_->CurrentValue();
+  return value->IsValid() && value->Width() >= 0 && value->Height() >= 0;
 }
 
 SVGAnimatedPropertyBase* SVGFitToViewBox::PropertyFromAttribute(

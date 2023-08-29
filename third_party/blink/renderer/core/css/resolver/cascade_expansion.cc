@@ -30,8 +30,6 @@ CascadeFilter AddValidPropertiesFilter(
       return filter.Add(CSSProperty::kValidForHighlightLegacy, false);
     case ValidPropertyFilter::kHighlight:
       return filter.Add(CSSProperty::kValidForHighlight, false);
-    case ValidPropertyFilter::kPositionFallback:
-      return filter.Add(CSSProperty::kValidForPositionFallback, false);
   }
 }
 

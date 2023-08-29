@@ -13,7 +13,6 @@
 
 #include "base/strings/string_piece_forward.h"
 #include "base/strings/string_util.h"
-#include "components/autofill/core/browser/geo/address_i18n.h"
 #include "components/autofill/core/browser/geo/country_data.h"
 #include "components/autofill/core/browser/geo/country_names.h"
 #include "components/autofill/core/common/autofill_internals/log_message.h"
@@ -22,6 +21,8 @@
 #include "third_party/libaddressinput/messages.h"
 #include "third_party/libaddressinput/src/cpp/include/libaddressinput/address_metadata.h"
 #include "ui/base/l10n/l10n_util.h"
+
+using ::i18n::addressinput::AddressField;
 
 namespace autofill {
 namespace {
@@ -33,14 +34,15 @@ constexpr size_t kLocaleCapacity =
 // Mapping of fields needed for identifying libaddressinput fields that
 // considered required in Autofill.
 constexpr auto kRequiredFieldMapping =
-    base::MakeFixedFlatMap<ServerFieldType, RequiredFieldsForAddressImport>(
-        {{ServerFieldType::ADDRESS_HOME_STATE,
+    base::MakeFixedFlatMap<::i18n::addressinput::AddressField,
+                           RequiredFieldsForAddressImport>(
+        {{::i18n::addressinput::AddressField::ADMIN_AREA,
           RequiredFieldsForAddressImport::ADDRESS_REQUIRES_STATE},
-         {ServerFieldType::ADDRESS_HOME_CITY,
+         {::i18n::addressinput::AddressField::LOCALITY,
           RequiredFieldsForAddressImport::ADDRESS_REQUIRES_CITY},
-         {ServerFieldType::ADDRESS_HOME_STREET_ADDRESS,
+         {::i18n::addressinput::AddressField::STREET_ADDRESS,
           RequiredFieldsForAddressImport::ADDRESS_REQUIRES_LINE1},
-         {ServerFieldType::ADDRESS_HOME_ZIP,
+         {::i18n::addressinput::AddressField::POSTAL_CODE,
           RequiredFieldsForAddressImport::ADDRESS_REQUIRES_ZIP}});
 
 // Autofill is experimenting with a looser set of requirements based on a newer
@@ -149,15 +151,15 @@ AutofillCountry::address_format_extensions() const {
   // TODO(crbug.com/1300548): Extend more countries. FR and GB already have
   // overwrites, because libaddressinput already provides string literals.
   static constexpr std::array<AddressFormatExtension, 1> fr_extensions{
-      {{.type = ServerFieldType::ADDRESS_HOME_STATE,
+      {{.type = AddressField::ADMIN_AREA,
         .label_id = IDS_LIBADDRESSINPUT_PROVINCE,
-        .placed_after = ServerFieldType::ADDRESS_HOME_CITY,
+        .placed_after = AddressField::LOCALITY,
         .separator_before_label = "\n",
         .large_sized = true}}};
   static constexpr std::array<AddressFormatExtension, 1> gb_extensions{
-      {{.type = ServerFieldType::ADDRESS_HOME_STATE,
+      {{.type = AddressField::ADMIN_AREA,
         .label_id = IDS_LIBADDRESSINPUT_COUNTY,
-        .placed_after = ServerFieldType::ADDRESS_HOME_ZIP,
+        .placed_after = AddressField::POSTAL_CODE,
         .separator_before_label = "\n",
         .large_sized = true}}};
 
@@ -175,23 +177,20 @@ AutofillCountry::address_format_extensions() const {
 }
 
 bool AutofillCountry::IsAddressFieldSettingAccessible(
-    ServerFieldType field_type) const {
-  ::i18n::addressinput::AddressField libaddressinput_field;
-  bool is_valid_field = i18n::FieldForType(field_type, &libaddressinput_field);
-  // Check if `field_type` is part of libaddressinput's native address format
+    AddressField address_field) const {
+  // Check if `address_field` is part of libaddressinput's native address format
   // or part of the Autofill's address extensions.
-  return (is_valid_field && ::i18n::addressinput::IsFieldUsed(
-                                libaddressinput_field, country_code_)) ||
+  return ::i18n::addressinput::IsFieldUsed(address_field, country_code_) ||
          base::Contains(
-             address_format_extensions(), field_type,
+             address_format_extensions(), address_field,
              [](const AddressFormatExtension& rule) { return rule.type; });
 }
 
-bool AutofillCountry::IsAddressFieldRequired(ServerFieldType field_type) const {
-  if (field_type == ServerFieldType::NAME_FULL && requires_full_name()) {
+bool AutofillCountry::IsAddressFieldRequired(AddressField address_field) const {
+  if (address_field == AddressField::RECIPIENT && requires_full_name()) {
     return true;
   }
-  auto* mapping_it = kRequiredFieldMapping.find(field_type);
+  auto* mapping_it = kRequiredFieldMapping.find(address_field);
   return mapping_it != kRequiredFieldMapping.end() &&
          (required_fields_for_address_import_ & mapping_it->second);
 }

@@ -139,7 +139,10 @@ class NET_EXPORT_PRIVATE QuicChromiumClientStream
       return headers_received_start_time_;
     }
 
-    // TODO(rch): Move this test-only method to a peer, or else remove.
+    // TODO(rch): Move these test-only methods to a peer, or else remove.
+    void OnPromiseHeaderList(quic::QuicStreamId promised_id,
+                             size_t frame_len,
+                             const quic::QuicHeaderList& header_list);
     bool can_migrate_to_cellular_network();
 
     const NetLogWithSource& net_log() const;
@@ -245,6 +248,9 @@ class NET_EXPORT_PRIVATE QuicChromiumClientStream
       bool fin,
       size_t frame_len,
       const quic::QuicHeaderList& header_list) override;
+  void OnPromiseHeaderList(quic::QuicStreamId promised_id,
+                           size_t frame_len,
+                           const quic::QuicHeaderList& header_list) override;
   void OnBodyAvailable() override;
   void OnClose() override;
   void OnCanWrite() override;

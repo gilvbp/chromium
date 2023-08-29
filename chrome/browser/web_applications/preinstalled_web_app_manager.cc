@@ -32,7 +32,6 @@
 #include "base/threading/scoped_blocking_call.h"
 #include "build/build_config.h"
 #include "build/chromeos_buildflags.h"
-#include "chrome/browser/web_applications/web_app_provider.h"
 // TODO(crbug.com/1402145): Remove or at least isolate circular dependencies on
 // app service by moving this code to //c/b/web_applications/adjustments, or
 // flip entire dependency so web_applications depends on app_service.
@@ -156,16 +155,6 @@ bool IsTabletFormFactor() {
 }
 #endif  // BUILDFLAG(IS_CHROMEOS)
 
-absl::optional<bool> HasStylusEnabledTouchscreen() {
-#if BUILDFLAG(IS_CHROMEOS_LACROS)
-  return chromeos::BrowserParamsProxy::Get()
-      ->DeviceProperties()
-      ->has_stylus_enabled_touchscreen;
-#else
-  return DeviceHasStylusEnabledTouchscreen();
-#endif
-}
-
 LoadedConfigs LoadConfigsBlocking(
     const std::vector<base::FilePath>& config_dirs) {
   base::ScopedBlockingCall scoped_blocking_call(FROM_HERE,
@@ -258,9 +247,8 @@ absl::optional<std::string> GetDisableReason(
     return app_id.has_value() &&
            registrar->IsInstalledByDefaultManagement(app_id.value());
   }();
-  if (in_user_uninstalled_prefs && ignore_user_uninstalled_prefs) {
+  if (in_user_uninstalled_prefs && ignore_user_uninstalled_prefs)
     ++corrupt_user_uninstall_prefs_count;
-  }
   bool was_previously_uninstalled_by_user =
       in_user_uninstalled_prefs && !ignore_user_uninstalled_prefs;
 
@@ -347,9 +335,8 @@ absl::optional<std::string> GetDisableReason(
     bool was_previously_preinstalled = false;
     if (app_id.has_value()) {
       const WebApp* web_app = registrar->GetAppById(app_id.value());
-      if (web_app && web_app->IsPreinstalledApp()) {
+      if (web_app && web_app->IsPreinstalledApp())
         was_previously_preinstalled = true;
-      }
     }
 
     if (!was_previously_preinstalled) {
@@ -442,9 +429,7 @@ absl::optional<std::string> GetDisableReason(
 
   // Only install if device has a built-in touch screen with stylus support.
   if (options.disable_if_touchscreen_with_stylus_not_supported) {
-    absl::optional<bool> has_stylus = HasStylusEnabledTouchscreen();
-
-    if (!has_stylus.has_value()) {
+    if (!ui::DeviceDataManager::HasInstance()) {
       base::UmaHistogramEnumeration(
           kHistogramMigrationDisabledReason,
           DisabledReason::kStylusRequiredNoDeviceData);
@@ -452,7 +437,17 @@ absl::optional<std::string> GetDisableReason(
              " disabled because touchscreen device information is unavailable";
     }
 
-    if (!has_stylus.value()) {
+    DCHECK(ui::DeviceDataManager::GetInstance()->AreDeviceListsComplete());
+    bool have_touchscreen_with_stylus = false;
+    for (const ui::TouchscreenDevice& device :
+         ui::DeviceDataManager::GetInstance()->GetTouchscreenDevices()) {
+      if (device.has_stylus &&
+          device.type == ui::InputDeviceType::INPUT_DEVICE_INTERNAL) {
+        have_touchscreen_with_stylus = true;
+        break;
+      }
+    }
+    if (!have_touchscreen_with_stylus) {
       base::UmaHistogramEnumeration(kHistogramMigrationDisabledReason,
                                     DisabledReason::kStylusRequired);
       return options.install_url.spec() +
@@ -597,8 +592,8 @@ void PreinstalledWebAppManager::RegisterProfilePrefs(
 }
 
 // static
-base::AutoReset<bool> PreinstalledWebAppManager::SkipStartupForTesting() {
-  return {&g_skip_startup_for_testing_, true};
+void PreinstalledWebAppManager::SkipStartupForTesting() {
+  g_skip_startup_for_testing_ = true;
 }
 
 // static
@@ -608,29 +603,26 @@ PreinstalledWebAppManager::BypassAwaitingDependenciesForTesting() {
 }
 
 // static
-base::AutoReset<bool>
-PreinstalledWebAppManager::BypassOfflineManifestRequirementForTesting() {
-  return {&g_bypass_offline_manifest_requirement_for_testing_, true};
+void PreinstalledWebAppManager::BypassOfflineManifestRequirementForTesting() {
+  g_bypass_offline_manifest_requirement_for_testing_ = true;
 }
 
 // static
-base::AutoReset<bool>
-PreinstalledWebAppManager::OverridePreviousUserUninstallConfigForTesting() {
-  return {&g_override_previous_user_uninstall_for_testing_, true};
+void PreinstalledWebAppManager::
+    OverridePreviousUserUninstallConfigForTesting() {
+  g_override_previous_user_uninstall_for_testing_ = true;
 }
 
 // static
-base::AutoReset<const base::Value::List*>
-PreinstalledWebAppManager::SetConfigsForTesting(
+void PreinstalledWebAppManager::SetConfigsForTesting(
     const base::Value::List* configs) {
-  return {&g_configs_for_testing, configs, nullptr};
+  g_configs_for_testing = configs;
 }
 
 // static
-base::AutoReset<FileUtilsWrapper*>
-PreinstalledWebAppManager::SetFileUtilsForTesting(
+void PreinstalledWebAppManager::SetFileUtilsForTesting(
     FileUtilsWrapper* file_utils) {
-  return {&g_file_utils_for_testing, file_utils, nullptr};
+  g_file_utils_for_testing = file_utils;
 }
 
 PreinstalledWebAppManager::PreinstalledWebAppManager(Profile* profile)
@@ -651,13 +643,16 @@ PreinstalledWebAppManager::~PreinstalledWebAppManager() {
   }
 }
 
-void PreinstalledWebAppManager::SetProvider(base::PassKey<WebAppProvider>,
-                                            WebAppProvider& provider) {
-  provider_ = &provider;
+void PreinstalledWebAppManager::SetSubsystems(
+    WebAppRegistrar* registrar,
+    const WebAppUiManager* ui_manager,
+    ExternallyManagedAppManager* externally_managed_app_manager) {
+  registrar_ = registrar;
+  ui_manager_ = ui_manager;
+  externally_managed_app_manager_ = externally_managed_app_manager;
 }
 
 void PreinstalledWebAppManager::Start(base::OnceClosure on_done) {
-  DCHECK(provider_);
   if (g_skip_startup_for_testing_ || skip_startup_for_testing_) {  // IN-TEST
     std::move(on_done).Run();                                      // IN-TEST
     return;                                                        // IN-TEST
@@ -732,9 +727,8 @@ void PreinstalledWebAppManager::Load(ConsumeInstallOptions callback) {
 
 #if BUILDFLAG(IS_CHROMEOS_ASH)
   // With Lacros, web apps are not installed using the Ash browser.
-  if (IsWebAppsCrosapiEnabled()) {
+  if (IsWebAppsCrosapiEnabled())
     preinstalling_enabled = false;
-  }
 #endif
 
   if (!preinstalling_enabled) {
@@ -804,9 +798,8 @@ void PreinstalledWebAppManager::PostProcessConfigs(
     ConsumeInstallOptions callback,
     ParsedConfigs parsed_configs) {
   // Add hard coded configs.
-  for (ExternalInstallOptions& options : GetPreinstalledWebApps()) {
+  for (ExternalInstallOptions& options : GetPreinstalledWebApps())
     parsed_configs.options_list.push_back(std::move(options));
-  }
 
   // Set common install options.
   for (ExternalInstallOptions& options : parsed_configs.options_list) {
@@ -851,10 +844,9 @@ void PreinstalledWebAppManager::PostProcessConfigs(
   size_t corrupt_user_uninstall_prefs_count = 0;
   base::EraseIf(
       parsed_configs.options_list, [&](const ExternalInstallOptions& options) {
-        absl::optional<std::string> disable_reason =
-            GetDisableReason(options, profile_, &provider_->registrar_unsafe(),
-                             preinstalled_apps_enabled_in_prefs, is_new_user,
-                             user_type, corrupt_user_uninstall_prefs_count);
+        absl::optional<std::string> disable_reason = GetDisableReason(
+            options, profile_, registrar_, preinstalled_apps_enabled_in_prefs,
+            is_new_user, user_type, corrupt_user_uninstall_prefs_count);
         if (disable_reason) {
           VLOG(1) << *disable_reason;
           ++disabled_count;
@@ -873,8 +865,7 @@ void PreinstalledWebAppManager::PostProcessConfigs(
   }
 
   for (ExternalInstallOptions& options : parsed_configs.options_list) {
-    if (ShouldForceReinstall(options, *profile_->GetPrefs(),
-                             provider_->registrar_unsafe())) {
+    if (ShouldForceReinstall(options, *profile_->GetPrefs(), *registrar_)) {
       options.force_reinstall = true;
     }
   }
@@ -893,16 +884,15 @@ void PreinstalledWebAppManager::PostProcessConfigs(
 void PreinstalledWebAppManager::Synchronize(
     ExternallyManagedAppManager::SynchronizeCallback callback,
     std::vector<ExternalInstallOptions> desired_apps_install_options) {
-  DCHECK(provider_);
+  DCHECK(externally_managed_app_manager_);
 
   std::map<InstallUrl, std::vector<AppId>> desired_uninstalls;
   for (const auto& entry : desired_apps_install_options) {
-    if (!entry.uninstall_and_replace.empty()) {
+    if (!entry.uninstall_and_replace.empty())
       desired_uninstalls.emplace(entry.install_url,
                                  entry.uninstall_and_replace);
-    }
   }
-  provider_->externally_managed_app_manager().SynchronizeInstalledApps(
+  externally_managed_app_manager_->SynchronizeInstalledApps(
       std::move(desired_apps_install_options),
       ExternalInstallSource::kExternalDefault,
       base::BindOnce(&PreinstalledWebAppManager::OnExternalWebAppsSynchronized,
@@ -939,16 +929,14 @@ void PreinstalledWebAppManager::OnExternalWebAppsSynchronized(
       ++uninstall_and_replace_count;
     }
 
-    if (!IsSuccess(result.code)) {
+    if (!IsSuccess(result.code))
       continue;
-    }
 
     DCHECK(result.app_id.has_value());
 
     auto iter = desired_uninstalls.find(url_and_result.first);
-    if (iter == desired_uninstalls.end()) {
+    if (iter == desired_uninstalls.end())
       continue;
-    }
 
     for (const AppId& replace_id : iter->second) {
       // We mark the app as migrated to a web app as long as the
@@ -968,21 +956,17 @@ void PreinstalledWebAppManager::OnExternalWebAppsSynchronized(
               is_installed = apps_util::IsInstalled(app.Readiness());
             });
 
-        if (!is_installed) {
+        if (!is_installed)
           continue;
-        }
 
         ++app_to_replace_still_installed_count;
 
-        if (extensions::IsExtensionDefaultInstalled(profile_, replace_id)) {
+        if (extensions::IsExtensionDefaultInstalled(profile_, replace_id))
           ++app_to_replace_still_default_installed_count;
-        }
 
-        if (provider_->ui_manager().CanAddAppToQuickLaunchBar()) {
-          if (provider_->ui_manager().IsAppInQuickLaunchBar(
-                  result.app_id.value())) {
+        if (ui_manager_->CanAddAppToQuickLaunchBar()) {
+          if (ui_manager_->IsAppInQuickLaunchBar(result.app_id.value()))
             ++app_to_replace_still_installed_in_shelf_count;
-          }
         }
       }
     }

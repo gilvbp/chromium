@@ -14,11 +14,26 @@
 
 namespace chrome_test_util {
 
-// Replaces the reauthentication module in Password Manager with a fake one to
-// avoid being blocked with a reauth prompt and returns the fake
+// Replace the reauthentication module in
+// PasswordDetailsTableViewController with a fake one to avoid being
+// blocked with a reauth prompt, and return the fake reauthentication module.
+// `is_add_new_password` is true if we are adding a new password (using the
+// AddPasswordViewController). This used to determine the class to cast
+// properly.
+MockReauthenticationModule* SetUpAndReturnMockReauthenticationModule(
+    bool is_add_new_password = false);
+
+// Replaces the reauthentication module in Password Manager's password list with
+// a fake one to avoid being blocked with a reauth prompt and returns the fake
 // reauthentication module.
-std::unique_ptr<ScopedPasswordSettingsReauthModuleOverride>
+MockReauthenticationModule*
 SetUpAndReturnMockReauthenticationModuleForPasswordManager();
+
+// Replace the reauthentication module in Password Settings'
+// PasswordExporter with a fake one to avoid being
+// blocked with a reauth prompt, and return the fake reauthentication module.
+std::unique_ptr<ScopedPasswordSettingsReauthModuleOverride>
+SetUpAndReturnMockReauthenticationModuleForExportFromSettings();
 
 // Replace the reauthentication module in Password Suggestion Bottom Sheet with
 // a fake one to avoid being blocked with a reauth prompt, and return the fake

@@ -9,6 +9,10 @@
 #import "ios/chrome/common/ui/util/ui_util.h"
 #import "ios/components/ui_util/dynamic_type_util.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace {
 
 // Returns the `category` unchanged, unless it is ||, in which case it returns
@@ -47,7 +51,7 @@ CGFloat ToolbarCollapsedHeight(UIContentSizeCategory category) {
 
 CGFloat ToolbarExpandedHeight(UIContentSizeCategory category) {
   category = NormalizedCategory(category);
-  return Interpolate(category, kToolbarOmniboxHeight, kNonDynamicToolbarHeight);
+  return Interpolate(category, kPrimaryToolbarHeight, kNonDynamicToolbarHeight);
 }
 
 CGFloat LocationBarHeight(UIContentSizeCategory category) {

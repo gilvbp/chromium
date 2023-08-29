@@ -98,9 +98,11 @@ class ASH_EXPORT IconButton : public views::ImageButton {
 
   bool toggled() const { return toggled_; }
 
-  void set_delegate(Delegate* delegate) { delegate_ = delegate; }
+  void set_button_behavior(DisabledButtonBehavior button_behavior) {
+    button_behavior_ = button_behavior;
+  }
 
-  void SetButtonBehavior(DisabledButtonBehavior button_behavior);
+  void set_delegate(Delegate* delegate) { delegate_ = delegate; }
 
   // Sets the vector icon of the button, it might change on different `toggled_`
   // states.
@@ -148,9 +150,7 @@ class ASH_EXPORT IconButton : public views::ImageButton {
 
  protected:
   void UpdateBackground();
-  void UpdateVectorIcon(bool color_changes_only = false);
-
-  void OnEnabledStateChanged();
+  void UpdateVectorIcon(bool icon_changed = false);
 
   // Gets the background color of the icon button.
   SkColor GetBackgroundColor() const;

@@ -91,7 +91,7 @@ class ChromeDevToolsManagerDelegate : public content::DevToolsManagerDelegate {
       content::DevToolsAgentHostClientChannel* channel) override;
   scoped_refptr<content::DevToolsAgentHost> CreateNewTarget(
       const GURL& url,
-      TargetType target_type) override;
+      bool for_tab) override;
   bool HasBundledFrontendResources() override;
 
   void DevicesAvailable(

@@ -744,16 +744,15 @@ def missing_packages(packages):
         ["dpkg-query", "-W", "-f", " "] + packages,
         check=True,
         capture_output=True,
-    )
+    ).decode()
     return []
   except subprocess.CalledProcessError as e:
-    return [
-        line.split(" ")[-1] for line in e.stderr.decode().strip().splitlines()
-    ]
+    return [line.split(" ")[-1] for line in e.stderr.strip().splitlines()]
 
 
 def package_is_installable(package):
-  result = subprocess.run(["apt-cache", "show", package], capture_output=True)
+  result = subprocess.run(["apt-cache", "show", package],
+                          capture_output=True).decode()
   return result.returncode == 0
 
 

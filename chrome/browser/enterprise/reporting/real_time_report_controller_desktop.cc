@@ -6,24 +6,16 @@
 
 #include <memory>
 
-#include "base/functional/bind.h"
 #include "chrome/browser/enterprise/reporting/extension_request/extension_request_observer_factory.h"
 #include "chrome/browser/enterprise/reporting/extension_request/extension_request_report_generator.h"
-#include "chrome/browser/enterprise/reporting/legacy_tech/legacy_tech_report_generator.h"
-#include "chrome/browser/enterprise/reporting/legacy_tech/legacy_tech_service.h"
 #include "components/enterprise/browser/reporting/real_time_report_controller.h"
-#include "components/enterprise/browser/reporting/real_time_report_type.h"
 
 namespace enterprise_reporting {
 
 RealTimeReportControllerDesktop::RealTimeReportControllerDesktop(
     Profile* profile)
     : extension_request_observer_factory_(
-          std::make_unique<ExtensionRequestObserverFactory>(profile)) {
-  LegacyTechServiceFactory::GetInstance()->SetReportTrigger(
-      base::BindRepeating(&RealTimeReportControllerDesktop::TriggerLegacyTech,
-                          weak_factory_.GetWeakPtr()));
-}
+          std::make_unique<ExtensionRequestObserverFactory>(profile)) {}
 
 RealTimeReportControllerDesktop::~RealTimeReportControllerDesktop() = default;
 
@@ -41,7 +33,7 @@ void RealTimeReportControllerDesktop::StartWatchingExtensionRequestIfNeeded() {
   // while the owner will be deleted before the controller.
   extension_request_observer_factory_->EnableReport(base::BindRepeating(
       &RealTimeReportControllerDesktop::TriggerExtensionRequest,
-      weak_factory_.GetWeakPtr()));
+      base::Unretained(this)));
 }
 
 void RealTimeReportControllerDesktop::StopWatchingExtensionRequest() {
@@ -52,17 +44,10 @@ void RealTimeReportControllerDesktop::StopWatchingExtensionRequest() {
 
 void RealTimeReportControllerDesktop::TriggerExtensionRequest(
     Profile* profile) {
-  if (trigger_callback_) {
+  if (!trigger_callback_.is_null()) {
     trigger_callback_.Run(
-        RealTimeReportType::kExtensionRequest,
+        RealTimeReportController::ReportTrigger::kExtensionRequest,
         ExtensionRequestReportGenerator::ExtensionRequestData(profile));
-  }
-}
-
-void RealTimeReportControllerDesktop::TriggerLegacyTech(
-    const LegacyTechReportGenerator::LegacyTechData& data) {
-  if (trigger_callback_) {
-    trigger_callback_.Run(RealTimeReportType::kLegacyTech, data);
   }
 }
 

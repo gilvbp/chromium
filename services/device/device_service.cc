@@ -118,20 +118,19 @@ DeviceService::DeviceService(
 #endif
 
 #if defined(IS_SERIAL_ENABLED_PLATFORM)
+  serial_port_manager_ = std::make_unique<SerialPortManagerImpl>(
+      io_task_runner_, base::SingleThreadTaskRunner::GetCurrentDefault());
 #if BUILDFLAG(IS_MAC)
   // On macOS the SerialDeviceEnumerator needs to run on the UI thread so that
   // it has access to a CFRunLoop where it can register a notification source.
-  auto serial_port_manager_task_runner =
+  serial_port_manager_task_runner_ =
       base::SingleThreadTaskRunner::GetCurrentDefault();
 #else
   // On other platforms it must be allowed to do blocking IO.
-  auto serial_port_manager_task_runner =
+  serial_port_manager_task_runner_ =
       base::ThreadPool::CreateSequencedTaskRunner(
           {base::MayBlock(), base::TaskPriority::BEST_EFFORT});
 #endif
-  serial_port_manager_.emplace(
-      std::move(serial_port_manager_task_runner), io_task_runner_,
-      base::SingleThreadTaskRunner::GetCurrentDefault());
 #endif  // defined(IS_SERIAL_ENABLED_PLATFORM)
 
 #if !BUILDFLAG(IS_ANDROID)
@@ -150,6 +149,18 @@ DeviceService::~DeviceService() {
   // it's not really important that this runs anyway.
   device::BatteryStatusService::GetInstance()->Shutdown();
 #endif
+#if defined(IS_SERIAL_ENABLED_PLATFORM)
+  auto* serial_port_manager = serial_port_manager_.release();
+  if (!serial_port_manager_task_runner_->DeleteSoon(FROM_HERE,
+                                                    serial_port_manager)) {
+    // The ThreadPool can be shutdown by the time ~DeviceService is triggered.
+    // Synchronously delete |serial_port_manager| in that event (which is
+    // naturally sequenced after the last task on
+    // |serial_port_manager_task_runner_| per ThreadPool shutdown semantics).
+    // See crbug.com/1263149#c20 for details.
+    delete serial_port_manager;
+  }
+#endif  // defined(IS_SERIAL_ENABLED_PLATFORM)
 }
 
 void DeviceService::AddReceiver(
@@ -281,12 +292,6 @@ void DeviceService::BindGeolocationControl(
       std::move(receiver));
 }
 
-void DeviceService::BindGeolocationInternals(
-    mojo::PendingReceiver<mojom::GeolocationInternals> receiver) {
-  GeolocationProviderImpl::GetInstance()->BindGeolocationInternalsReceiver(
-      std::move(receiver));
-}
-
 void DeviceService::BindPowerMonitor(
     mojo::PendingReceiver<mojom::PowerMonitor> receiver) {
   if (!power_monitor_message_broadcaster_) {
@@ -347,8 +352,14 @@ void DeviceService::BindDevicePostureProvider(
 void DeviceService::BindSerialPortManager(
     mojo::PendingReceiver<mojom::SerialPortManager> receiver) {
 #if defined(IS_SERIAL_ENABLED_PLATFORM)
-  serial_port_manager_.AsyncCall(&SerialPortManagerImpl::Bind, FROM_HERE)
-      .WithArgs(std::move(receiver));
+  // TODO(crbug.com/1109621): SerialPortManagerImpl depends on the
+  // permission_broker service on Chromium OS. We will need to redirect
+  // connections for LaCrOS here.
+  DCHECK(serial_port_manager_task_runner_);
+  serial_port_manager_task_runner_->PostTask(
+      FROM_HERE, base::BindOnce(&SerialPortManagerImpl::Bind,
+                                base::Unretained(serial_port_manager_.get()),
+                                std::move(receiver)));
 #else   // defined(IS_SERIAL_ENABLED_PLATFORM)
   NOTREACHED() << "Serial devices not supported on this platform.";
 #endif  // defined(IS_SERIAL_ENABLED_PLATFORM)

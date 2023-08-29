@@ -8,7 +8,6 @@
 #include "base/memory/raw_ptr.h"
 #include "chrome/browser/ash/crostini/crostini_simple_types.h"
 #include "chrome/browser/ash/crostini/crostini_util.h"
-#include "chrome/browser/ash/guest_os/public/types.h"
 #include "ui/base/metadata/metadata_header_macros.h"
 #include "ui/views/bubble/bubble_dialog_delegate_view.h"
 
@@ -23,7 +22,7 @@ void ShowCrostiniRecoveryView(Profile* profile,
                               CrostiniUISurface ui_surface,
                               const std::string& app_id,
                               int64_t display_id,
-                              const std::vector<guest_os::LaunchArg>& args,
+                              const std::vector<LaunchArg>& args,
                               CrostiniSuccessCallback callback);
 
 }  // namespace crostini
@@ -37,7 +36,7 @@ class CrostiniRecoveryView : public views::BubbleDialogDelegateView {
   static void Show(Profile* profile,
                    const std::string& app_id,
                    int64_t display_id,
-                   const std::vector<guest_os::LaunchArg>& args,
+                   const std::vector<crostini::LaunchArg>& args,
                    crostini::CrostiniSuccessCallback callback);
 
   // views::DialogDelegateView:
@@ -50,7 +49,7 @@ class CrostiniRecoveryView : public views::BubbleDialogDelegateView {
   CrostiniRecoveryView(Profile* profile,
                        const std::string& app_id,
                        int64_t display_id,
-                       const std::vector<guest_os::LaunchArg>& args,
+                       const std::vector<crostini::LaunchArg>& args,
                        crostini::CrostiniSuccessCallback callback);
   ~CrostiniRecoveryView() override;
 
@@ -59,7 +58,7 @@ class CrostiniRecoveryView : public views::BubbleDialogDelegateView {
   raw_ptr<Profile, ExperimentalAsh> profile_;  // Not owned.
   std::string app_id_;
   int64_t display_id_;
-  const std::vector<guest_os::LaunchArg> args_;
+  const std::vector<crostini::LaunchArg> args_;
   crostini::CrostiniSuccessCallback callback_;
 
   base::WeakPtrFactory<CrostiniRecoveryView> weak_ptr_factory_;

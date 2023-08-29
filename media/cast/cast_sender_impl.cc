@@ -10,7 +10,6 @@
 #include "base/functional/callback.h"
 #include "base/functional/callback_helpers.h"
 #include "base/logging.h"
-#include "media/base/video_encoder_metrics_provider.h"
 #include "media/base/video_frame.h"
 #include "media/cast/common/video_frame_factory.h"
 
@@ -127,7 +126,6 @@ void CastSenderImpl::InitializeAudio(
 
 void CastSenderImpl::InitializeVideo(
     const FrameSenderConfig& video_config,
-    std::unique_ptr<VideoEncoderMetricsProvider> metrics_provider,
     const StatusChangeCallback& status_change_cb,
     const CreateVideoEncodeAcceleratorCallback& create_vea_cb) {
   DCHECK(cast_environment_->CurrentlyOn(CastEnvironment::MAIN));
@@ -139,7 +137,7 @@ void CastSenderImpl::InitializeVideo(
       cast_environment_, video_config,
       base::BindRepeating(&CastSenderImpl::OnVideoStatusChange,
                           weak_factory_.GetWeakPtr(), status_change_cb),
-      create_vea_cb, transport_sender_, std::move(metrics_provider),
+      create_vea_cb, transport_sender_,
       base::BindRepeating(&CastSenderImpl::SetTargetPlayoutDelay,
                           weak_factory_.GetWeakPtr()),
       media::VideoCaptureFeedbackCB());

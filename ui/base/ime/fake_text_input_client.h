@@ -28,7 +28,6 @@ class FakeTextInputClient : public TextInputClient {
   void set_source_id(ukm::SourceId source_id);
   void SetTextAndSelection(const std::u16string& text, gfx::Range selection);
   void SetFlags(const int flags);
-  void SetUrl(const GURL& url);
 
   const std::u16string& text() const { return text_; }
   const gfx::Range& selection() const { return selection_; }
@@ -95,9 +94,6 @@ class FakeTextInputClient : public TextInputClient {
       const std::u16string& active_composition_text,
       bool is_composition_committed) override;
 #endif
-#if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_CHROMEOS_ASH)
-  ui::TextInputClient::EditingContext GetTextEditingContext() override;
-#endif
 
  private:
   TextInputType text_input_type_;
@@ -108,7 +104,6 @@ class FakeTextInputClient : public TextInputClient {
   gfx::Range autocorrect_range_;
   ukm::SourceId source_id_ = ukm::kInvalidSourceId;
   int flags_ = TEXT_INPUT_FLAG_NONE;
-  GURL url_;
 };
 
 }  // namespace ui

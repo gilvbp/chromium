@@ -34,9 +34,9 @@
 #include "third_party/skia/include/core/SkImageInfo.h"
 #include "third_party/skia/include/core/SkPixmap.h"
 #include "third_party/skia/include/gpu/GrBackendSemaphore.h"
+#include "third_party/skia/include/gpu/GrBackendSurfaceMutableState.h"
 #include "third_party/skia/include/gpu/GrDirectContext.h"
 #include "third_party/skia/include/gpu/GrTypes.h"
-#include "third_party/skia/include/gpu/MutableTextureState.h"
 #include "third_party/skia/include/gpu/vk/GrVkTypes.h"
 #include "third_party/skia/include/private/chromium/GrPromiseImageTexture.h"
 #include "ui/gfx/buffer_format_util.h"
@@ -46,17 +46,12 @@
 #include "ui/gl/gl_version_info.h"
 #include "ui/gl/scoped_binders.h"
 
-#if BUILDFLAG(IS_LINUX) && BUILDFLAG(USE_DAWN)
+#if (BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS)) && BUILDFLAG(USE_DAWN)
 #include "gpu/command_buffer/service/shared_image/external_vk_image_dawn_representation.h"
 #endif
 
 #if BUILDFLAG(IS_FUCHSIA)
 #include "gpu/vulkan/fuchsia/vulkan_fuchsia_ext.h"
-#endif
-
-#if BUILDFLAG(IS_OZONE)
-#include "ui/ozone/public/ozone_platform.h"
-#include "ui/ozone/public/surface_factory_ozone.h"
 #endif
 
 #define GL_DEDICATED_MEMORY_OBJECT_EXT 0x9581
@@ -119,9 +114,10 @@ bool UseSeparateGLTexture(SharedContextState* context_state,
   return true;
 }
 
-bool UseTexStorage2D() {
-  const auto* version_info = gl::g_current_gl_version;
-  const auto& ext = gl::g_current_gl_driver->ext;
+bool UseTexStorage2D(SharedContextState* context_state) {
+  auto* gl_context = context_state->real_context();
+  const auto* version_info = gl_context->GetVersionInfo();
+  const auto& ext = gl_context->GetCurrentGL()->Driver->ext;
   return ext.b_GL_EXT_texture_storage || ext.b_GL_ARB_texture_storage ||
          version_info->is_es3 || version_info->IsAtLeastGL(4, 2);
 }
@@ -260,8 +256,7 @@ std::unique_ptr<ExternalVkImageBacking> ExternalVkImageBacking::CreateFromGMB(
     const gfx::ColorSpace& color_space,
     GrSurfaceOrigin surface_origin,
     SkAlphaType alpha_type,
-    uint32_t usage,
-    absl::optional<gfx::BufferUsage> buffer_usage) {
+    uint32_t usage) {
   if (!gpu::IsImageSizeValidForGpuMemoryBufferFormat(size,
                                                      ToBufferFormat(format))) {
     DLOG(ERROR) << "Invalid image size for format.";
@@ -276,7 +271,7 @@ std::unique_ptr<ExternalVkImageBacking> ExternalVkImageBacking::CreateFromGMB(
 
   VkFormat vk_format = ToVkFormat(format);
   auto image = vulkan_implementation->CreateImageFromGpuMemoryHandle(
-      device_queue, handle.Clone(), size, vk_format, color_space);
+      device_queue, std::move(handle), size, vk_format, color_space);
   if (!image) {
     DLOG(ERROR) << "Failed to create VkImage from GpuMemoryHandle.";
     return nullptr;
@@ -294,53 +289,9 @@ std::unique_ptr<ExternalVkImageBacking> ExternalVkImageBacking::CreateFromGMB(
       base::PassKey<ExternalVkImageBacking>(), mailbox, format, size,
       color_space, surface_origin, alpha_type, usage, estimated_size,
       std::move(context_state), std::move(textures), command_pool,
-      use_separate_gl_texture, std::move(handle), std::move(buffer_usage));
+      use_separate_gl_texture);
   backing->SetCleared();
   return backing;
-}
-
-std::unique_ptr<ExternalVkImageBacking>
-ExternalVkImageBacking::CreateWithPixmap(
-    scoped_refptr<SharedContextState> context_state,
-    VulkanCommandPool* command_pool,
-    const Mailbox& mailbox,
-    viz::SharedImageFormat format,
-    SurfaceHandle surface_handle,
-    const gfx::Size& size,
-    const gfx::ColorSpace& color_space,
-    GrSurfaceOrigin surface_origin,
-    SkAlphaType alpha_type,
-    uint32_t usage,
-    gfx::BufferUsage buffer_usage) {
-#if BUILDFLAG(IS_OZONE)
-  // Create a pixmap.
-  gfx::BufferFormat buffer_format = ToBufferFormat(format);
-  VulkanDeviceQueue* device_queue = nullptr;
-  if (context_state->vk_context_provider()) {
-    device_queue = context_state->vk_context_provider()->GetDeviceQueue();
-  }
-  scoped_refptr<gfx::NativePixmap> pixmap =
-      ui::OzonePlatform::GetInstance()
-          ->GetSurfaceFactoryOzone()
-          ->CreateNativePixmap(surface_handle, device_queue, size,
-                               buffer_format, buffer_usage);
-  if (!pixmap) {
-    DLOG(ERROR) << "Failed to create native pixmap";
-    return nullptr;
-  }
-
-  // Create a handle from pixmap.
-  gfx::GpuMemoryBufferHandle handle;
-  handle.type = gfx::GpuMemoryBufferType::NATIVE_PIXMAP;
-  handle.native_pixmap_handle = pixmap->ExportHandle();
-
-  // Create backing from the handle.
-  return CreateFromGMB(std::move(context_state), command_pool, mailbox,
-                       std::move(handle), format, size, color_space,
-                       surface_origin, alpha_type, usage);
-#else
-  return nullptr;
-#endif  // BUILDFLAG(IS_OZONE)
 }
 
 ExternalVkImageBacking::ExternalVkImageBacking(
@@ -356,9 +307,7 @@ ExternalVkImageBacking::ExternalVkImageBacking(
     scoped_refptr<SharedContextState> context_state,
     std::vector<TextureHolderVk> vk_textures,
     VulkanCommandPool* command_pool,
-    bool use_separate_gl_texture,
-    gfx::GpuMemoryBufferHandle handle,
-    absl::optional<gfx::BufferUsage> buffer_usage)
+    bool use_separate_gl_texture)
     : ClearTrackingSharedImageBacking(mailbox,
                                       format,
                                       size,
@@ -367,23 +316,11 @@ ExternalVkImageBacking::ExternalVkImageBacking(
                                       alpha_type,
                                       usage,
                                       estimated_size_bytes,
-                                      /*is_thread_safe=*/false,
-                                      std::move(buffer_usage)),
+                                      /*is_thread_safe=*/false),
       context_state_(std::move(context_state)),
       vk_textures_(std::move(vk_textures)),
       command_pool_(command_pool),
-      use_separate_gl_texture_(use_separate_gl_texture) {
-#if BUILDFLAG(IS_OZONE)
-  if (!handle.is_null()) {
-    // Create a pixmap is there is a valid handle.
-    pixmap_ = ui::OzonePlatform::GetInstance()
-                  ->GetSurfaceFactoryOzone()
-                  ->CreateNativePixmapFromHandle(
-                      kNullSurfaceHandle, size, ToBufferFormat(format),
-                      std::move(handle.native_pixmap_handle));
-  }
-#endif  // BUILDFLAG(IS_OZONE)
-}
+      use_separate_gl_texture_(use_separate_gl_texture) {}
 
 ExternalVkImageBacking::~ExternalVkImageBacking() {
   auto semaphores = std::move(read_semaphores_);
@@ -497,8 +434,8 @@ bool ExternalVkImageBacking::BeginAccess(
     for (auto& vk_texture : vk_textures_) {
       gr_context->setBackendTextureState(
           vk_texture.backend_texture,
-          skgpu::MutableTextureState(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                                     VK_QUEUE_FAMILY_EXTERNAL));
+          GrBackendSurfaceMutableState(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                                       VK_QUEUE_FAMILY_EXTERNAL));
     }
 
     ExternalSemaphore external_semaphore =
@@ -639,22 +576,8 @@ void ExternalVkImageBacking::AddSemaphoresToPendingListOrRelease(
 }
 
 scoped_refptr<gfx::NativePixmap> ExternalVkImageBacking::GetNativePixmap() {
-  CHECK_EQ(vk_textures_.size(), 1u);
-  return pixmap_;
-}
-
-gfx::GpuMemoryBufferHandle ExternalVkImageBacking::GetGpuMemoryBufferHandle() {
-#if BUILDFLAG(IS_OZONE)
-  gfx::GpuMemoryBufferHandle handle;
-  handle.type = gfx::GpuMemoryBufferType::NATIVE_PIXMAP;
-  handle.native_pixmap_handle = pixmap_->ExportHandle();
-  return handle;
-#else
-  LOG(ERROR) << "Illegal access to GetGpuMemoryBufferHandle for non OZONE "
-                "platforms from this backing.";
-  NOTREACHED();
-  return gfx::GpuMemoryBufferHandle();
-#endif
+  DCHECK_EQ(vk_textures_.size(), 1u);
+  return vk_textures_[0].vulkan_image->native_pixmap();
 }
 
 void ExternalVkImageBacking::ReturnPendingSemaphoresWithFenceHelper(
@@ -669,13 +592,13 @@ void ExternalVkImageBacking::ReturnPendingSemaphoresWithFenceHelper(
 std::unique_ptr<DawnImageRepresentation> ExternalVkImageBacking::ProduceDawn(
     SharedImageManager* manager,
     MemoryTypeTracker* tracker,
-    const wgpu::Device& wgpuDevice,
-    wgpu::BackendType backend_type,
-    std::vector<wgpu::TextureFormat> view_formats) {
-#if BUILDFLAG(IS_LINUX) && BUILDFLAG(USE_DAWN)
-  auto wgpu_format = ToDawnFormat(format());
+    WGPUDevice wgpuDevice,
+    WGPUBackendType backend_type,
+    std::vector<WGPUTextureFormat> view_formats) {
+#if (BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS)) && BUILDFLAG(USE_DAWN)
+  auto wgpu_format = ToWGPUFormat(format());
 
-  if (wgpu_format == wgpu::TextureFormat::Undefined) {
+  if (wgpu_format == WGPUTextureFormat_Undefined) {
     DLOG(ERROR) << "Format not supported for Dawn";
     return nullptr;
   }
@@ -689,7 +612,8 @@ std::unique_ptr<DawnImageRepresentation> ExternalVkImageBacking::ProduceDawn(
   return std::make_unique<ExternalVkImageDawnImageRepresentation>(
       manager, this, tracker, wgpuDevice, wgpu_format, std::move(view_formats),
       std::move(memory_fd));
-#else  // !BUILDFLAG(IS_LINUX) || !BUILDFLAG(USE_DAWN)
+#else  // (!BUILDFLAG(IS_LINUX) && !BUILDFLAG(IS_CHROMEOS)) ||
+       // !BUILDFLAG(USE_DAWN)
   NOTIMPLEMENTED_LOG_ONCE();
   return nullptr;
 #endif
@@ -780,7 +704,7 @@ bool ExternalVkImageBacking::CreateGLTexture(bool is_passthrough,
 
   if (use_separate_gl_texture()) {
     DCHECK(!memory_object);
-    if (UseTexStorage2D()) {
+    if (UseTexStorage2D(context_state_.get())) {
       api->glTexStorage2DEXTFn(GL_TEXTURE_2D, 1,
                                format_desc.storage_internal_format,
                                plane_size.width(), plane_size.height());
@@ -1216,8 +1140,8 @@ bool ExternalVkImageBacking::UploadToVkImage(
   for (auto& vk_texture : vk_textures_) {
     gr_context->setBackendTextureState(
         vk_texture.backend_texture,
-        skgpu::MutableTextureState(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                                   VK_QUEUE_FAMILY_EXTERNAL));
+        GrBackendSurfaceMutableState(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                                     VK_QUEUE_FAMILY_EXTERNAL));
   }
 
   auto end_access_semaphore = external_semaphore_pool()->GetOrCreateSemaphore();

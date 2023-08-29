@@ -26,9 +26,8 @@ class MockCommitDeferringCondition;
 // condition to a NavigationRequest.
 class MockCommitDeferringConditionWrapper {
  public:
-  explicit MockCommitDeferringConditionWrapper(
-      NavigationHandle& handle,
-      CommitDeferringCondition::Result result);
+  explicit MockCommitDeferringConditionWrapper(NavigationHandle& handle,
+                                               bool is_ready_to_commit);
 
   MockCommitDeferringConditionWrapper(
       const MockCommitDeferringConditionWrapper&) = delete;
@@ -66,7 +65,7 @@ class MockCommitDeferringConditionInstaller {
  public:
   explicit MockCommitDeferringConditionInstaller(
       const GURL& url,
-      CommitDeferringCondition::Result result,
+      bool is_ready_to_commit,
       CommitDeferringConditionRunner::InsertOrder order =
           CommitDeferringConditionRunner::InsertOrder::kAfter);
   ~MockCommitDeferringConditionInstaller();
@@ -89,7 +88,7 @@ class MockCommitDeferringConditionInstaller {
       CommitDeferringCondition::NavigationType type);
 
   GURL url_;
-  CommitDeferringCondition::Result result_;
+  bool is_ready_to_commit_;
   const int generator_id_;
 
   base::OnceClosure was_installed_closure_;

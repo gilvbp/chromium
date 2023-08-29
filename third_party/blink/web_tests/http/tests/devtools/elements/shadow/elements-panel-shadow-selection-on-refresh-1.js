@@ -5,9 +5,6 @@
 import {TestRunner} from 'test_runner';
 import {ElementsTestRunner} from 'elements_test_runner';
 
-import * as SDK from 'devtools/core/sdk/sdk.js';
-import * as Common from 'devtools/core/common/common.js';
-
 (async function() {
   TestRunner.addResult(`Tests that elements panel preserves selected shadow DOM node on page refresh.\n`);
   await TestRunner.loadLegacyModule('elements');
@@ -16,7 +13,7 @@ import * as Common from 'devtools/core/common/common.js';
 
   TestRunner.runTestSuite([
     function setup(next) {
-      Common.Settings.settingForTest('showUAShadowDOM').set(true);
+      Common.settingForTest('showUAShadowDOM').set(true);
       ElementsTestRunner.expandElementsTree(next);
     },
 
@@ -30,10 +27,10 @@ import * as Common from 'devtools/core/common/common.js';
   ]);
 
   function isOpenShadowRoot(node) {
-    return node && node.shadowRootType() === SDK.DOMModel.DOMNode.ShadowRootTypes.Open;
+    return node && node.shadowRootType() === SDK.DOMNode.ShadowRootTypes.Open;
   }
 
   function isClosedShadowRoot(node) {
-    return node && node.shadowRootType() === SDK.DOMModel.DOMNode.ShadowRootTypes.Closed;
+    return node && node.shadowRootType() === SDK.DOMNode.ShadowRootTypes.Closed;
   }
 })();

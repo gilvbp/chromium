@@ -17,7 +17,6 @@
 #include "base/ranges/algorithm.h"
 #include "base/strings/stringprintf.h"
 #include "base/time/default_tick_clock.h"
-#include "base/types/expected_macros.h"
 #include "components/media_router/common/providers/cast/channel/cast_channel_metrics.h"
 #include "components/media_router/common/providers/cast/channel/cast_message_util.h"
 #include "components/media_router/common/providers/cast/channel/cast_socket_service.h"
@@ -402,10 +401,12 @@ void CastMessageHandler::HandleCastInternalMessage(
     const std::string& destination_id,
     const std::string& namespace_,
     data_decoder::DataDecoder::ValueOrError parse_result) {
-  ASSIGN_OR_RETURN(base::Value value, std::move(parse_result),
-                   ReportParseError);
+  if (!parse_result.has_value()) {
+    ReportParseError(parse_result.error());
+    return;
+  }
 
-  base::Value::Dict* payload = value.GetIfDict();
+  base::Value::Dict* payload = parse_result->GetIfDict();
   if (!payload) {
     ReportParseError("Parsed message not a dictionary");
     return;

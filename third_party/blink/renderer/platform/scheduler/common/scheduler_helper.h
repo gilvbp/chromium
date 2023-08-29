@@ -50,6 +50,7 @@ class PLATFORM_EXPORT SchedulerHelper
 
   const base::TickClock* GetClock() const;
   base::TimeTicks NowTicks() const;
+  void SetTimerSlack(base::TimerSlack timer_slack);
 
   // Returns the task runner for the default task queue.
   const scoped_refptr<base::SingleThreadTaskRunner>& DefaultTaskRunner() {

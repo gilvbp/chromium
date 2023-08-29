@@ -46,7 +46,7 @@ constexpr std::array<MetadataWriter::UMAFeature, 2> kQueryTilesUMAFeatures = {
         "Search.QueryTiles.NTP.Tile.Clicked",
         7)};
 
-std::unique_ptr<DefaultModelProvider> GetQueryTilesDefaultModel() {
+std::unique_ptr<ModelProvider> GetQueryTilesDefaultModel() {
   if (!base::GetFieldTrialParamByFeatureAsBool(
           query_tiles::features::kQueryTilesSegmentation,
           kDefaultModelEnabledParam, true)) {
@@ -68,7 +68,6 @@ std::unique_ptr<Config> QueryTilesModel::GetConfig() {
   config->segmentation_uma_name = kQueryTilesUmaName;
   config->AddSegmentId(SegmentId::OPTIMIZATION_TARGET_SEGMENTATION_QUERY_TILES,
                        GetQueryTilesDefaultModel());
-  config->auto_execute_and_cache = true;
 
   int segment_selection_ttl_days = base::GetFieldTrialParamByFeatureAsInt(
       query_tiles::features::kQueryTilesSegmentation,
@@ -82,11 +81,10 @@ std::unique_ptr<Config> QueryTilesModel::GetConfig() {
   return config;
 }
 
-QueryTilesModel::QueryTilesModel()
-    : DefaultModelProvider(kQueryTilesSegmentId) {}
+QueryTilesModel::QueryTilesModel() : ModelProvider(kQueryTilesSegmentId) {}
 
-std::unique_ptr<DefaultModelProvider::ModelConfig>
-QueryTilesModel::GetModelConfig() {
+void QueryTilesModel::InitAndFetchModel(
+    const ModelUpdatedCallback& model_updated_callback) {
   proto::SegmentationModelMetadata query_tiles_metadata;
   MetadataWriter writer(&query_tiles_metadata);
   writer.SetDefaultSegmentationMetadataConfig(
@@ -99,8 +97,10 @@ QueryTilesModel::GetModelConfig() {
   writer.AddUmaFeatures(kQueryTilesUMAFeatures.data(),
                         kQueryTilesUMAFeatures.size());
 
-  return std::make_unique<ModelConfig>(std::move(query_tiles_metadata),
-                                       /*model_version=*/2);
+  base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
+      FROM_HERE,
+      base::BindRepeating(model_updated_callback, kQueryTilesSegmentId,
+                          std::move(query_tiles_metadata), 2));
 }
 
 void QueryTilesModel::ExecuteModelWithInput(
@@ -126,6 +126,10 @@ void QueryTilesModel::ExecuteModelWithInput(
   base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
       FROM_HERE,
       base::BindOnce(std::move(callback), ModelProvider::Response(1, result)));
+}
+
+bool QueryTilesModel::ModelAvailable() {
+  return true;
 }
 
 }  // namespace segmentation_platform

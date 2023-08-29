@@ -9,11 +9,9 @@ import {str, util} from '../../common/js/util.js';
 import {VolumeManagerCommon} from '../../common/js/volume_manager_types.js';
 import {FakeEntry} from '../../externs/files_app_entry_interfaces.js';
 import {PropStatus} from '../../externs/ts/state.js';
-import {VolumeInfo} from '../../externs/volume_info.js';
-import {updateIsInteractiveVolume} from '../../state/ducks/volumes.js';
+import {updateIsInteractiveVolume} from '../../state/actions/volumes.js';
 import {getStore} from '../../state/store.js';
 
-import {constants} from './constants.js';
 import {DirectoryModel} from './directory_model.js';
 import {ProvidersModel} from './providers_model.js';
 
@@ -121,71 +119,17 @@ export class EmptyFolderController {
   }
 
   /**
-   * Return true if reauthentication to OneDrive is required. Request the ODFS
-   * volume metadata through the special root actions request to determine if re
-   * authentication is required.
-   * @private
-   * @param {VolumeInfo} odfsVolumeInfo
-   * @return {Promise<boolean>}
-   */
-  async checkIfReauthenticationRequired_(odfsVolumeInfo) {
-    // Request ODFS root actions to get ODFS metadata.
-    return new Promise((fulfill) => {
-      chrome.fileManagerPrivate.getCustomActions(
-          [util.getODFSMetadataQueryEntry(odfsVolumeInfo)], customActions => {
-            if (chrome.runtime.lastError) {
-              console.error(
-                  'Unexpectedly failed to fetch custom actions for ODFS ' +
-                  'root because of: ' + chrome.runtime.lastError.message);
-              fulfill(false);
-            }
-            // Find the reauthentication required action.
-            customActions.forEach(action => {
-              if (action.id ===
-                      constants
-                          .FSP_ACTION_HIDDEN_ONEDRIVE_REAUTHENTICATION_REQUIRED &&
-                  action.title === 'true') {
-                fulfill(true);
-              }
-            });
-            fulfill(false);
-          });
-    });
-  }
-
-  /**
-   * Handles scan fail. If the scan failed for the ODFS volume due to
-   * reauthenticaton being required, set the state of the volume as not
-   * interactive.
+   * Handles scan fail.
    * @private
    */
   onScanFailed_(event) {
-    this.isScanning_ = false;
+    // Check if ODFS is the volume and reauthentication is required.
+    // NO_MODIFICATION_ALLOWED_ERR is equivalent to the ACCESS_DENIED error
+    // thrown by ODFS.
     const currentVolumeInfo = this.directoryModel_.getCurrentVolumeInfo();
-    if (!currentVolumeInfo) {
-      this.updateUI_();
-      return;
-    }
-    // If scan did not fail for ODFS, return.
-    if (!util.isOneDrive(currentVolumeInfo)) {
-      this.updateUI_();
-      return;
-    }
-    // If the error is not NO_MODIFICATION_ALLOWED_ERR, return. This is
-    // equivalent to the ACCESS_DENIED error thrown by ODFS.
-    if (event.error.name != util.FileError.NO_MODIFICATION_ALLOWED_ERR) {
-      this.updateUI_();
-      return;
-    }
-    // If ODFS is already non-interactive, return.
-    if (!util.isInteractiveVolume(currentVolumeInfo)) {
-      this.updateUI_();
-      return;
-    }
-    // Only set ODFS to non-interactive if the ACCESS_DENIED was due to
-    // reauthentication being required rather than some other access error.
-    this.checkIfReauthenticationRequired_(currentVolumeInfo).then(required => {
-      if (required) {
+    if (util.isOneDrive(currentVolumeInfo) &&
+        event.error.name == util.FileError.NO_MODIFICATION_ALLOWED_ERR) {
+      if (util.isInteractiveVolume(currentVolumeInfo)) {
         // Set |isInteractive| to false for ODFS when reauthentication is
         // required.
         getStore().dispatch(updateIsInteractiveVolume({
@@ -193,8 +137,9 @@ export class EmptyFolderController {
           isInteractive: false,
         }));
       }
-      this.updateUI_();
-    });
+    }
+    this.isScanning_ = false;
+    this.updateUI_();
   }
 
   /**
@@ -240,6 +185,7 @@ export class EmptyFolderController {
   }
 
   /**
+   * TODO(b/254586358): i18n these strings.
    * Shows the ODFS reauthentication required message. Include the "Sign in"
    * and "Settings" links and set the handlers.
    * @private
@@ -247,14 +193,14 @@ export class EmptyFolderController {
   showODFSReauthenticationMessage_() {
     const titleSpan = document.createElement('span');
     titleSpan.id = 'empty-folder-title';
-    titleSpan.innerText = str('ONEDRIVE_LOGGED_OUT_TITLE');
+    titleSpan.innerText = 'You\'ve been logged out';
 
     const text = document.createElement('span');
-    text.innerText = str('ONEDRIVE_SIGN_IN_SUBTITLE');
+    text.innerText = 'Sign in to your Microsoft account';
 
     const signInLink = document.createElement('a');
     signInLink.setAttribute('class', 'sign-in');
-    signInLink.innerText = str('ONEDRIVE_SIGN_IN_LINK');
+    signInLink.innerText = 'Sign in';
     signInLink.addEventListener('click', this.onODFSSignIn_.bind(this));
 
     const descSpan = document.createElement('span');

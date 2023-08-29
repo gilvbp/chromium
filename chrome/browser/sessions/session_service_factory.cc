@@ -69,11 +69,9 @@ SessionServiceFactory::SessionServiceFactory()
 
 SessionServiceFactory::~SessionServiceFactory() = default;
 
-std::unique_ptr<KeyedService>
-SessionServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* SessionServiceFactory::BuildServiceInstanceFor(
     content::BrowserContext* profile) const {
-  std::unique_ptr<SessionService> service =
-      std::make_unique<SessionService>(static_cast<Profile*>(profile));
+  SessionService* service = new SessionService(static_cast<Profile*>(profile));
   service->ResetFromCurrentBrowsers();
   return service;
 }

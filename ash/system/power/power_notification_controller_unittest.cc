@@ -9,7 +9,6 @@
 #include <string>
 
 #include "ash/test/ash_test_base.h"
-#include "base/containers/contains.h"
 #include "base/logging.h"
 #include "base/strings/utf_string_conversions.h"
 #include "chromeos/dbus/power_manager/power_supply_properties.pb.h"
@@ -300,7 +299,7 @@ TEST_F(PowerNotificationControllerTest,
   ASSERT_TRUE(notification);
   EXPECT_TRUE(notification->never_timeout());
   EXPECT_FALSE(notification->pinned());
-  EXPECT_TRUE(base::Contains((notification->message()), u"60W"))
+  EXPECT_NE(std::string::npos, notification->message().find(u"60W"))
       << notification->message();
 }
 

@@ -129,11 +129,10 @@ public class GestureListenerManagerTest {
                             webContents);
             // getRootScrollOffsetUpdateFrequency() should initially return NONE (as there are no
             // listeners).
-            Assert.assertEquals(NONE, manager.getRootScrollOffsetUpdateFrequencyForTesting());
+            Assert.assertEquals(NONE, manager.getRootScrollOffsetUpdateFrequency());
             manager.addListener(listener, ALL_UPDATES);
             // Adding a listener changes this to ALL_UPDATES.
-            Assert.assertEquals(
-                    ALL_UPDATES, manager.getRootScrollOffsetUpdateFrequencyForTesting());
+            Assert.assertEquals(ALL_UPDATES, manager.getRootScrollOffsetUpdateFrequency());
             View webContentsView = webContents.getViewAndroidDelegate().getContainerView();
             mCurrentX = webContentsView.getWidth() / 2;
             mCurrentY = webContentsView.getHeight() / 2;
@@ -151,7 +150,7 @@ public class GestureListenerManagerTest {
                             webContents);
             manager.removeListener(listener);
             // Should go back to NONE after removing the only listener.
-            Assert.assertEquals(NONE, manager.getRootScrollOffsetUpdateFrequencyForTesting());
+            Assert.assertEquals(NONE, manager.getRootScrollOffsetUpdateFrequency());
         });
     }
 }

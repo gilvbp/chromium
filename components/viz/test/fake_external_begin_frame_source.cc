@@ -6,7 +6,6 @@
 
 #include "base/functional/bind.h"
 #include "base/location.h"
-#include "base/logging.h"
 #include "base/task/single_thread_task_runner.h"
 #include "base/time/time.h"
 #include "components/viz/test/begin_frame_args_test.h"
@@ -67,9 +66,7 @@ void FakeExternalBeginFrameSource::RemoveObserver(BeginFrameObserver* obs) {
     client_->OnRemoveObserver(obs);
 }
 
-void FakeExternalBeginFrameSource::DidFinishFrame(BeginFrameObserver* obs) {
-  pending_frames_[obs]--;
-}
+void FakeExternalBeginFrameSource::DidFinishFrame(BeginFrameObserver* obs) {}
 
 void FakeExternalBeginFrameSource::SetDynamicBeginFrameDeadlineOffsetSource(
     DynamicBeginFrameDeadlineOffsetSource*
@@ -104,10 +101,8 @@ void FakeExternalBeginFrameSource::TestOnBeginFrame(
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   current_args_ = args;
   std::set<BeginFrameObserver*> observers(observers_);
-  for (auto* obs : observers) {
-    pending_frames_[obs]++;
+  for (auto* obs : observers)
     obs->OnBeginFrame(current_args_);
-  }
   if (tick_automatically_)
     PostTestOnBeginFrame();
 }
@@ -121,18 +116,6 @@ void FakeExternalBeginFrameSource::PostTestOnBeginFrame() {
       FROM_HERE, begin_frame_task_.callback(),
       base::Milliseconds(milliseconds_per_frame_));
   next_begin_frame_number_++;
-}
-
-bool FakeExternalBeginFrameSource::AllFramesDidFinish() {
-  bool found_pending_frames = false;
-  for (auto const& entry : pending_frames_) {
-    if (entry.second != 0) {
-      LOG(WARNING) << "Observer " << entry.first << " has " << entry.second
-                   << " pending frame(s)";
-      found_pending_frames = true;
-    }
-  }
-  return !found_pending_frames;
 }
 
 }  // namespace viz

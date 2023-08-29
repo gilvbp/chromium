@@ -5,8 +5,6 @@
 #ifndef IOS_CHROME_BROWSER_UI_NTP_METRICS_HOME_METRICS_H_
 #define IOS_CHROME_BROWSER_UI_NTP_METRICS_HOME_METRICS_H_
 
-#import "ios/chrome/browser/ui/content_suggestions/content_suggestions_constants.h"
-
 // These values are persisted to IOS.Start/NTP.Click histograms.
 // Entries should not be renumbered and numeric values should never be reused.
 enum class IOSHomeActionType {
@@ -22,8 +20,5 @@ enum class IOSHomeActionType {
 
 // Logs a Home action and attributes it to the NTP or Start surface.
 void RecordHomeAction(IOSHomeActionType type, bool isStartSurface);
-
-// Logs a Magic Stack freshness event.
-void RecordModuleFreshnessSignal(ContentSuggestionsModuleType module_type);
 
 #endif  // IOS_CHROME_BROWSER_UI_NTP_METRICS_HOME_METRICS_H_

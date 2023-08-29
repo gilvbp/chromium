@@ -105,7 +105,7 @@ IN_PROC_BROWSER_TEST_F(NavigationPolicyContainerBuilderBrowserTest,
 
   const PolicyContainerPolicies& root_policies = GetPolicies(root_frame_host());
   EXPECT_EQ(root_policies.ip_address_space,
-            network::mojom::IPAddressSpace::kLocal);
+            network::mojom::IPAddressSpace::kLoopback);
 
   NavigationPolicyContainerBuilder builder(
       nullptr, nullptr, GetLastCommittedFrameNavigationEntry());
@@ -149,7 +149,7 @@ IN_PROC_BROWSER_TEST_F(NavigationPolicyContainerBuilderBrowserTest,
 
   const PolicyContainerPolicies& root_policies = GetPolicies(root_frame_host());
   EXPECT_EQ(root_policies.ip_address_space,
-            network::mojom::IPAddressSpace::kLocal);
+            network::mojom::IPAddressSpace::kLoopback);
 
   FrameNavigationEntry* entry = GetLastCommittedFrameNavigationEntry();
   NavigationPolicyContainerBuilder builder(nullptr, nullptr, entry);
@@ -203,7 +203,8 @@ IN_PROC_BROWSER_TEST_F(NavigationPolicyContainerBuilderBrowserTest,
   EXPECT_TRUE(NavigateToURLFromRenderer(root, AboutBlankUrl()));
 
   PolicyContainerPolicies initiator_policies;
-  initiator_policies.ip_address_space = network::mojom::IPAddressSpace::kLocal;
+  initiator_policies.ip_address_space =
+      network::mojom::IPAddressSpace::kLoopback;
 
   blink::LocalFrameToken token;
   auto initiator_host =
@@ -339,8 +340,8 @@ IN_PROC_BROWSER_TEST_F(NavigationPolicyContainerBuilderBrowserTest,
 
   // Now reload to original url and ensure that history entry policies stored
   // earlier aren't applied to non-local URL (no DCHECK triggered).
-  TestNavigationObserver observer(tab, /*expected_number_of_navigations=*/1);
-  tab->GetController().LoadOriginalRequestURL();
+  TestNavigationObserver observer(tab, /*number_of_navigations=*/1);
+  tab->GetController().Reload(ReloadType::ORIGINAL_REQUEST_URL, false);
   observer.Wait();  // No DCHECK expected.
   EXPECT_EQ(PublicUrl(), tab->GetLastCommittedURL());
 }

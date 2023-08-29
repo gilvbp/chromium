@@ -4,6 +4,7 @@
 
 #include "components/metrics/metrics_state_manager.h"
 
+#include <ctype.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -30,7 +31,6 @@
 #include "components/variations/pref_names.h"
 #include "testing/gmock/include/gmock/gmock.h"
 #include "testing/gtest/include/gtest/gtest.h"
-#include "third_party/abseil-cpp/absl/strings/ascii.h"
 
 namespace metrics {
 namespace {
@@ -44,7 +44,7 @@ void VerifyClientId(const std::string& client_id) {
     if (i == 8 || i == 13 || i == 18 || i == 23)
       EXPECT_EQ('-', current);
     else
-      EXPECT_TRUE(absl::ascii_isxdigit(static_cast<unsigned char>(current)));
+      EXPECT_TRUE(isxdigit(current));
   }
 }
 

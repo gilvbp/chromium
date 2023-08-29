@@ -21,6 +21,7 @@ export interface SettingsRoutes {
   BASIC: Route;
   CAPTIONS: Route;
   CERTIFICATES: Route;
+  CHECK_PASSWORDS: Route;
   CHROME_CLEANUP: Route;
   CLEAR_BROWSER_DATA: Route;
   COOKIES: Route;
@@ -37,6 +38,9 @@ export interface SettingsRoutes {
   MANAGE_PROFILE: Route;
   ON_STARTUP: Route;
   PASSKEYS: Route;
+  PASSWORDS: Route;
+  PASSWORD_VIEW: Route;
+  DEVICE_PASSWORDS: Route;
   PAYMENTS: Route;
   PEOPLE: Route;
   PERFORMANCE: Route;
@@ -62,7 +66,6 @@ export interface SettingsRoutes {
   SITE_SETTINGS_ALL: Route;
   SITE_SETTINGS_AR: Route;
   SITE_SETTINGS_AUTOMATIC_DOWNLOADS: Route;
-  SITE_SETTINGS_AUTO_PICTURE_IN_PICTURE: Route;
   SITE_SETTINGS_AUTO_VERIFY: Route;
   SITE_SETTINGS_BACKGROUND_SYNC: Route;
   SITE_SETTINGS_BLUETOOTH_DEVICES: Route;

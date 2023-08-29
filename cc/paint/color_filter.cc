@@ -5,14 +5,12 @@
 #include "cc/paint/color_filter.h"
 
 #include <algorithm>
-#include <utility>
 
 #include "base/check_op.h"
 #include "base/memory/values_equivalent.h"
 #include "cc/paint/paint_op_reader.h"
 #include "cc/paint/paint_op_writer.h"
 #include "third_party/skia/include/core/SkColorFilter.h"
-#include "third_party/skia/include/core/SkColorTable.h"
 #include "third_party/skia/include/effects/SkHighContrastFilter.h"
 #include "third_party/skia/include/effects/SkLumaColorFilter.h"
 
@@ -23,38 +21,35 @@ namespace {
 class MatrixColorFilter final : public ColorFilter {
  public:
   explicit MatrixColorFilter(const float matrix[20])
-      : ColorFilter(Type::kMatrix, SkColorFilters::Matrix(matrix)) {}
+      : ColorFilter(Type::kMatrix) {
+    std::copy_n(matrix, 20, matrix_);
+  }
 
  private:
+  sk_sp<SkColorFilter> CreateSkColorFilter() const override {
+    return SkColorFilters::Matrix(matrix_);
+  }
   size_t SerializedDataSize() const override {
-    float matrix[20];
-    return PaintOpWriter::SerializedSizeOfElements(matrix, 20);
+    return PaintOpWriter::SerializedSizeOfElements(matrix_, 20);
   }
   void SerializeData(PaintOpWriter& writer) const override {
-    // The identity matrix will be used if the constructor failed to create
-    // sk_color_filter_ due to invalid matrix values.
-    float matrix[20] = {1, 0, 0, 0, 0,   // row 0
-                        0, 1, 0, 0, 0,   // row 1
-                        0, 0, 1, 0, 0,   // row 2
-                        0, 0, 0, 1, 0};  // row 3
-    if (sk_color_filter_) {
-      sk_color_filter_->asAColorMatrix(matrix);
-    }
-    for (float f : matrix) {
+    for (float f : matrix_) {
       writer.Write(f);
     }
   }
+
+  float matrix_[20];
 };
 
 class BlendColorFilter final : public ColorFilter {
  public:
   BlendColorFilter(const SkColor4f& color, SkBlendMode blend_mode)
-      : ColorFilter(Type::kBlend,
-                    SkColorFilters::Blend(color, nullptr, blend_mode)),
-        color_(color),
-        blend_mode_(blend_mode) {}
+      : ColorFilter(Type::kBlend), color_(color), blend_mode_(blend_mode) {}
 
  private:
+  sk_sp<SkColorFilter> CreateSkColorFilter() const override {
+    return SkColorFilters::Blend(color_, nullptr, blend_mode_);
+  }
   size_t SerializedDataSize() const override {
     return PaintOpWriter::SerializedSize(color_) +
            PaintOpWriter::SerializedSize(blend_mode_);
@@ -70,51 +65,77 @@ class BlendColorFilter final : public ColorFilter {
 
 class SRGBToLinearGammaColorFilter final : public ColorFilter {
  public:
-  SRGBToLinearGammaColorFilter()
-      : ColorFilter(Type::kSRGBToLinearGamma,
-                    SkColorFilters::SRGBToLinearGamma()) {}
+  SRGBToLinearGammaColorFilter() : ColorFilter(Type::kSRGBToLinearGamma) {}
+
+ private:
+  sk_sp<SkColorFilter> CreateSkColorFilter() const override {
+    return SkColorFilters::SRGBToLinearGamma();
+  }
 };
 
 class LinearToSRGBGammaColorFilter final : public ColorFilter {
  public:
-  LinearToSRGBGammaColorFilter()
-      : ColorFilter(Type::kLinearToSRGBGamma,
-                    SkColorFilters::LinearToSRGBGamma()) {}
+  LinearToSRGBGammaColorFilter() : ColorFilter(Type::kLinearToSRGBGamma) {}
+
+ private:
+  sk_sp<SkColorFilter> CreateSkColorFilter() const override {
+    return SkColorFilters::LinearToSRGBGamma();
+  }
 };
 
 class LumaColorFilter final : public ColorFilter {
  public:
-  LumaColorFilter() : ColorFilter(Type::kLuma, SkLumaColorFilter::Make()) {}
-};
-
-class TableColorFilter : public ColorFilter {
- public:
-  explicit TableColorFilter(sk_sp<SkColorTable> table)
-      : ColorFilter(Type::kTableARGB, SkColorFilters::Table(table)),
-        table_(std::move(table)) {}
+  LumaColorFilter() : ColorFilter(Type::kLuma) {}
 
  private:
+  sk_sp<SkColorFilter> CreateSkColorFilter() const override {
+    return SkLumaColorFilter::Make();
+  }
+};
+
+class TableARGBColorFilter : public ColorFilter {
+ public:
+  TableARGBColorFilter(const uint8_t a_table[256],
+                       const uint8_t r_table[256],
+                       const uint8_t g_table[256],
+                       const uint8_t b_table[256])
+      : ColorFilter(Type::kTableARGB) {
+    std::copy_n(a_table, 256, a_table_);
+    std::copy_n(r_table, 256, r_table_);
+    std::copy_n(g_table, 256, g_table_);
+    std::copy_n(b_table, 256, b_table_);
+  }
+
+ private:
+  sk_sp<SkColorFilter> CreateSkColorFilter() const override {
+    return SkColorFilters::TableARGB(a_table_, r_table_, g_table_, b_table_);
+  }
   size_t SerializedDataSize() const override {
     return PaintOpWriter::SerializedSizeOfBytes(256 * 4);
   }
   void SerializeData(PaintOpWriter& writer) const override {
-    writer.WriteData(256, table_->alphaTable());
-    writer.WriteData(256, table_->redTable());
-    writer.WriteData(256, table_->greenTable());
-    writer.WriteData(256, table_->blueTable());
+    writer.WriteData(256, a_table_);
+    writer.WriteData(256, r_table_);
+    writer.WriteData(256, g_table_);
+    writer.WriteData(256, b_table_);
   }
 
  private:
-  sk_sp<SkColorTable> table_;
+  uint8_t a_table_[256];
+  uint8_t r_table_[256];
+  uint8_t g_table_[256];
+  uint8_t b_table_[256];
 };
 
 class HighContrastColorFilter final : public ColorFilter {
  public:
   explicit HighContrastColorFilter(const SkHighContrastConfig& config)
-      : ColorFilter(Type::kHighContrast, SkHighContrastFilter::Make(config)),
-        config_(config) {}
+      : ColorFilter(Type::kHighContrast), config_(config) {}
 
  private:
+  sk_sp<SkColorFilter> CreateSkColorFilter() const override {
+    return SkHighContrastFilter::Make(config_);
+  }
   size_t SerializedDataSize() const override {
     return PaintOpWriter::SerializedSize(config_);
   }
@@ -129,8 +150,7 @@ class HighContrastColorFilter final : public ColorFilter {
 
 ColorFilter::~ColorFilter() = default;
 
-ColorFilter::ColorFilter(Type type, sk_sp<SkColorFilter> sk_color_filter)
-    : type_(type), sk_color_filter_(std::move(sk_color_filter)) {
+ColorFilter::ColorFilter(Type type) : type_(type) {
   DCHECK_NE(type, Type::kNull);
 }
 
@@ -155,11 +175,7 @@ sk_sp<ColorFilter> ColorFilter::MakeTableARGB(const uint8_t a_table[256],
                                               const uint8_t r_table[256],
                                               const uint8_t g_table[256],
                                               const uint8_t b_table[256]) {
-  return MakeTable(SkColorTable::Make(a_table, r_table, g_table, b_table));
-}
-
-sk_sp<ColorFilter> ColorFilter::MakeTable(sk_sp<SkColorTable> table) {
-  return sk_make_sp<TableColorFilter>(std::move(table));
+  return sk_make_sp<TableARGBColorFilter>(a_table, r_table, g_table, b_table);
 }
 
 sk_sp<ColorFilter> ColorFilter::MakeLuma() {
@@ -172,12 +188,18 @@ sk_sp<ColorFilter> ColorFilter::MakeHighContrast(
 }
 
 SkColor4f ColorFilter::FilterColor(const SkColor4f& color) const {
-  return sk_color_filter_
-             ? sk_color_filter_->filterColor4f(color, nullptr, nullptr)
-             : color;
+  sk_sp<SkColorFilter> filter = GetSkColorFilter();
+  return filter ? filter->filterColor4f(color, nullptr, nullptr) : color;
 }
 bool ColorFilter::EqualsForTesting(const ColorFilter& other) const {
   return type_ == other.type_;
+}
+
+sk_sp<SkColorFilter> ColorFilter::GetSkColorFilter() const {
+  if (!sk_color_filter_) {
+    sk_color_filter_ = CreateSkColorFilter();
+  }
+  return sk_color_filter_;
 }
 
 size_t ColorFilter::SerializedDataSize() const {

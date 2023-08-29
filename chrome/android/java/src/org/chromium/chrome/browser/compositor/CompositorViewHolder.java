@@ -48,12 +48,12 @@ import org.chromium.chrome.browser.browser_controls.BrowserControlsUtils;
 import org.chromium.chrome.browser.compositor.layouts.LayoutManagerHost;
 import org.chromium.chrome.browser.compositor.layouts.LayoutManagerImpl;
 import org.chromium.chrome.browser.compositor.layouts.LayoutRenderHost;
+import org.chromium.chrome.browser.compositor.layouts.content.ContentOffsetProvider;
 import org.chromium.chrome.browser.compositor.layouts.content.TabContentManager;
 import org.chromium.chrome.browser.flags.ChromeFeatureList;
 import org.chromium.chrome.browser.flags.MutableFlagWithSafeDefault;
 import org.chromium.chrome.browser.fullscreen.BrowserControlsManager;
 import org.chromium.chrome.browser.fullscreen.FullscreenManager;
-import org.chromium.chrome.browser.layouts.EventFilter.EventType;
 import org.chromium.chrome.browser.layouts.components.VirtualView;
 import org.chromium.chrome.browser.preferences.Pref;
 import org.chromium.chrome.browser.tab.EmptyTabObserver;
@@ -104,7 +104,7 @@ import java.util.Set;
  * drawn by the UI compositor on the native side.
  */
 public class CompositorViewHolder extends FrameLayout
-        implements LayoutManagerHost, LayoutRenderHost, Invalidator.Host,
+        implements ContentOffsetProvider, LayoutManagerHost, LayoutRenderHost, Invalidator.Host,
                    BrowserControlsStateProvider.Observer, ChromeAccessibilityUtil.Observer,
                    TabObscuringHandler.Observer, ViewGroup.OnHierarchyChangeListener {
     private static final long SYSTEM_UI_VIEWPORT_UPDATE_DELAY_MS = 500;
@@ -113,6 +113,8 @@ public class CompositorViewHolder extends FrameLayout
                     ChromeFeatureList.DEFER_KEEP_SCREEN_ON_DURING_GESTURE, false);
     private static final MutableFlagWithSafeDefault sDeferNotifyInMotion =
             new MutableFlagWithSafeDefault(ChromeFeatureList.DEFER_NOTIFY_IN_MOTION, false);
+    private static final MutableFlagWithSafeDefault sResizeOnlyActiveTab =
+            new MutableFlagWithSafeDefault(ChromeFeatureList.RESIZE_ONLY_ACTIVE_TAB, false);
 
     /**
      * Initializer interface used to decouple initialization from the class that owns
@@ -287,6 +289,16 @@ public class CompositorViewHolder extends FrameLayout
 
     private PrefService mPrefService;
 
+    /**
+     * Creates a {@link CompositorView}.
+     * @param c The Context to create this {@link CompositorView} in.
+     */
+    public CompositorViewHolder(Context c) {
+        super(c);
+
+        internalInit();
+    }
+
     @Override
     public PointerIcon onResolvePointerIcon(MotionEvent event, int pointerIndex) {
         View activeView = getContentView();
@@ -301,6 +313,7 @@ public class CompositorViewHolder extends FrameLayout
      */
     public CompositorViewHolder(Context c, AttributeSet attrs) {
         super(c, attrs);
+
         internalInit();
     }
 
@@ -401,16 +414,27 @@ public class CompositorViewHolder extends FrameLayout
         addOnLayoutChangeListener((v, left, top, right, bottom, oldLeft, oldTop, oldRight,
                                           oldBottom) -> {
             Tab tab = getCurrentTab();
-            if (tab != null) {
-                // Set the size of NTP if we're in the attached state as it may have not been
-                // sized properly when initializing tab. See the comment in #initializeTab() for
-                // why.
-                boolean attachedNativePage =
-                        tab.isNativePage() && isAttachedToWindow(tab.getView());
-                boolean sizeChanged = (right - left) != (oldRight - oldLeft)
-                        || (top - bottom) != (oldTop - oldBottom);
-                if (attachedNativePage || sizeChanged) {
-                    tryUpdateControlsAndWebContentsSizing();
+            if (sResizeOnlyActiveTab.isEnabled()) {
+                if (tab != null) {
+                    // Set the size of NTP if we're in the attached state as it may have not been
+                    // sized properly when initializing tab. See the comment in #initializeTab() for
+                    // why.
+                    boolean attachedNativePage =
+                            tab.isNativePage() && isAttachedToWindow(tab.getView());
+                    boolean sizeChanged = (right - left) != (oldRight - oldLeft)
+                            || (top - bottom) != (oldTop - oldBottom);
+                    if (attachedNativePage || sizeChanged) {
+                        tryUpdateControlsAndWebContentsSizing();
+                    }
+                }
+            } else {
+                // TODO(bokan): This old path is behind an on-by-default flag as changing it is
+                // potentially risky. Can be removed after successful landing.
+
+                // Set the size of NTP if we're in the attached state as it may have not been sized
+                // properly when initializing tab. See the comment in #initializeTab() for why.
+                if (tab != null && tab.isNativePage() && isAttachedToWindow(tab.getView())) {
+                    updateWebContentsSize(tab);
                 }
             }
 
@@ -681,7 +705,7 @@ public class CompositorViewHolder extends FrameLayout
         if (mLayoutManager == null) return false;
 
         mEventOffsetHandler.onInterceptTouchEvent(e);
-        return mLayoutManager.onInterceptMotionEvent(e, mIsKeyboardShowing, EventType.TOUCH);
+        return mLayoutManager.onInterceptTouchEvent(e, mIsKeyboardShowing);
     }
 
     @Override
@@ -730,16 +754,7 @@ public class CompositorViewHolder extends FrameLayout
     @Override
     public boolean onInterceptHoverEvent(MotionEvent e) {
         mEventOffsetHandler.onInterceptHoverEvent(e);
-        if (mLayoutManager == null) return super.onInterceptHoverEvent(e);
-        return mLayoutManager.onInterceptMotionEvent(e, mIsKeyboardShowing, EventType.HOVER);
-    }
-
-    @Override
-    public boolean onHoverEvent(MotionEvent e) {
-        super.onHoverEvent(e);
-        boolean consumed = mLayoutManager != null && mLayoutManager.onHoverEvent(e);
-        mEventOffsetHandler.onHoverEvent(e);
-        return consumed;
+        return super.onInterceptHoverEvent(e);
     }
 
     @Override
@@ -837,6 +852,9 @@ public class CompositorViewHolder extends FrameLayout
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
+
+        // TODO(bokan): On-by-default flag guard, remove once landed.
+        if (sResizeOnlyActiveTab.isEnabled()) return;
 
         if (mTabModelSelector == null) return;
 
@@ -1092,7 +1110,7 @@ public class CompositorViewHolder extends FrameLayout
         ViewGroup view = getContentView();
         if (view != null) {
             assert mBrowserControlsManager != null;
-            float topViewsTranslation = mBrowserControlsManager.getTopVisibleContentOffset();
+            float topViewsTranslation = getOverlayTranslateY();
             float bottomMargin =
                     BrowserControlsUtils.getBottomContentOffset(mBrowserControlsManager);
             applyTranslationToTopChildViews(view, topViewsTranslation);
@@ -1385,6 +1403,11 @@ public class CompositorViewHolder extends FrameLayout
      */
     public boolean controlsResizeView() {
         return mControlsResizeView;
+    }
+
+    @Override
+    public float getOverlayTranslateY() {
+        return mBrowserControlsManager.getTopVisibleContentOffset();
     }
 
     /**

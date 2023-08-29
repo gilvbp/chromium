@@ -5,22 +5,13 @@
 
 import json
 import tempfile
-from typing import Dict, Optional, Type, Union
+from typing import Optional, Type, Union
 
 from skia_gold_common import output_managerless_skia_gold_session
 from skia_gold_common import skia_gold_properties
 from skia_gold_common import skia_gold_session
 
 KeysInputType = Union[dict, str]
-# {
-#   instance: {
-#     corpus: {
-#       keys_string: SkiaGoldSession,
-#     },
-#   },
-# }
-SessionMapType = Dict[str, Dict[str, Dict[str,
-                                          skia_gold_session.SkiaGoldSession]]]
 
 
 class SkiaGoldSessionManager():
@@ -42,14 +33,13 @@ class SkiaGoldSessionManager():
     """
     self._working_dir = working_dir
     self._gold_properties = gold_properties
-    self._sessions: SessionMapType = {}
+    self._sessions = {}
 
-  def GetSkiaGoldSession(
-      self,
-      keys_input: KeysInputType,
-      corpus: Optional[str] = None,
-      instance: Optional[str] = None,
-      bucket: Optional[str] = None) -> skia_gold_session.SkiaGoldSession:
+  def GetSkiaGoldSession(self,
+                         keys_input: KeysInputType,
+                         corpus: Optional[str] = None,
+                         instance: Optional[str] = None,
+                         bucket: Optional[str] = None):
     """Gets a SkiaGoldSession for the given arguments.
 
     Lazily creates one if necessary.

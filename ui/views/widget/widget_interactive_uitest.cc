@@ -53,6 +53,10 @@
 #include "ui/views/win/hwnd_util.h"
 #endif
 
+#if BUILDFLAG(IS_MAC)
+#include "base/mac/mac_util.h"
+#endif
+
 namespace views::test {
 
 namespace {
@@ -625,6 +629,12 @@ TEST_F(WidgetTestInteractive, MAYBE_ChildStackedRelativeToParent) {
 }
 
 TEST_F(WidgetTestInteractive, ChildWidgetStackAbove) {
+#if BUILDFLAG(IS_MAC)
+  // MacOS 10.13 and before don't report window z-ordering reliably.
+  if (base::mac::IsAtMostOS10_13())
+    GTEST_SKIP();
+#endif
+
   WidgetAutoclosePtr toplevel(CreateTopLevelPlatformWidget());
   Widget* children[] = {CreateChildPlatformWidget(toplevel->GetNativeView()),
                         CreateChildPlatformWidget(toplevel->GetNativeView()),
@@ -651,6 +661,12 @@ TEST_F(WidgetTestInteractive, ChildWidgetStackAbove) {
 }
 
 TEST_F(WidgetTestInteractive, ChildWidgetStackAtTop) {
+#if BUILDFLAG(IS_MAC)
+  // MacOS 10.13 and before don't report window z-ordering reliably.
+  if (base::mac::IsAtMostOS10_13())
+    GTEST_SKIP();
+#endif
+
   WidgetAutoclosePtr toplevel(CreateTopLevelPlatformWidget());
   Widget* children[] = {CreateChildPlatformWidget(toplevel->GetNativeView()),
                         CreateChildPlatformWidget(toplevel->GetNativeView()),
@@ -1420,7 +1436,7 @@ class CaptureLostTrackingWidget : public Widget {
 
  private:
   // Weak. Stores whether OnMouseCaptureLost has been invoked for this widget.
-  raw_ptr<CaptureLostState, AcrossTasksDanglingUntriaged> capture_lost_state_;
+  raw_ptr<CaptureLostState, DanglingUntriaged> capture_lost_state_;
 };
 
 }  // namespace
@@ -2036,7 +2052,7 @@ class WidgetInputMethodInteractiveTest : public DesktopWidgetTestInteractive {
   }
 
  private:
-  raw_ptr<Widget, AcrossTasksDanglingUntriaged> deactivate_widget_ = nullptr;
+  raw_ptr<Widget, DanglingUntriaged> deactivate_widget_ = nullptr;
 };
 
 #if BUILDFLAG(IS_MAC)

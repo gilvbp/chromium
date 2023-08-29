@@ -87,7 +87,7 @@ CORE_EXPORT void SetupIDLObservableArrayBackingListTemplate(
     v8::Local<v8::ObjectTemplate> instance_template,
     v8::Local<v8::FunctionTemplate> interface_template);
 
-CORE_EXPORT void SetupIDLIteratorTemplate(
+CORE_EXPORT void SetupIDLSyncIteratorTemplate(
     v8::Isolate* isolate,
     const WrapperTypeInfo* wrapper_type_info,
     v8::Local<v8::ObjectTemplate> instance_template,

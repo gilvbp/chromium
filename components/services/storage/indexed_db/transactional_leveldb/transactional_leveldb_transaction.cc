@@ -92,10 +92,10 @@ leveldb::Status TransactionalLevelDBTransaction::Commit(bool sync_on_commit) {
                                std::move(commit_cleanup_complete_callback_));
 }
 
-void TransactionalLevelDBTransaction::Rollback() {
+leveldb::Status TransactionalLevelDBTransaction::Rollback() {
   DCHECK(!finished_);
   finished_ = true;
-  scope_->Rollback();
+  return scope_->Rollback();
 }
 
 std::unique_ptr<TransactionalLevelDBIterator>

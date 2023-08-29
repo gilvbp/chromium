@@ -23,6 +23,7 @@ import androidx.test.filters.LargeTest;
 
 import com.google.common.collect.ImmutableList;
 
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -30,6 +31,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import org.chromium.base.FeatureList;
 import org.chromium.base.test.BaseJUnit4ClassRunner;
 import org.chromium.base.test.util.Batch;
 import org.chromium.components.browser_ui.settings.test.R;
@@ -52,8 +54,6 @@ public class ChromeBasePreferenceTest {
     private static final String TITLE = "Preference Title";
     private static final String SUMMARY = "This is a summary.";
 
-    private static final String CUSTOM_LAYOUT_PREF_NAME = "preference_with_custom_layout";
-
     private Activity mActivity;
     private PreferenceScreen mPreferenceScreen;
 
@@ -62,6 +62,11 @@ public class ChromeBasePreferenceTest {
         mSettingsRule.launchPreference(PlaceholderSettingsForTest.class);
         mActivity = mSettingsRule.getActivity();
         mPreferenceScreen = mSettingsRule.getPreferenceScreen();
+    }
+
+    @After
+    public void tearDown() {
+        FeatureList.setTestValues(null);
     }
 
     @Test
@@ -164,14 +169,15 @@ public class ChromeBasePreferenceTest {
         SettingsUtils.addPreferencesFromResource(
                 fragment, R.xml.test_chrome_base_preference_screen);
         TestThreadUtils.runOnUiThreadBlocking(() -> {
-            ChromeBasePreference preference = fragment.findPreference(CUSTOM_LAYOUT_PREF_NAME);
+            ChromeBasePreference preference =
+                    fragment.findPreference("preference_with_custom_layout");
             preference.setTitle(TITLE);
             preference.setSummary(SUMMARY);
             preference.setManagedPreferenceDelegate(
                     ManagedPreferenceTestDelegates.UNMANAGED_DELEGATE);
         });
 
-        ChromeBasePreference preference = fragment.findPreference(CUSTOM_LAYOUT_PREF_NAME);
+        ChromeBasePreference preference = fragment.findPreference("preference_with_custom_layout");
         Assert.assertEquals(preference.getLayoutResource(),
                 R.layout.chrome_managed_preference_with_custom_layout);
         Assert.assertTrue(preference.isEnabled());
@@ -189,13 +195,14 @@ public class ChromeBasePreferenceTest {
         SettingsUtils.addPreferencesFromResource(
                 fragment, R.xml.test_chrome_base_preference_screen);
         TestThreadUtils.runOnUiThreadBlocking(() -> {
-            ChromeBasePreference preference = fragment.findPreference(CUSTOM_LAYOUT_PREF_NAME);
+            ChromeBasePreference preference =
+                    fragment.findPreference("preference_with_custom_layout");
             preference.setTitle(TITLE);
             preference.setSummary(SUMMARY);
             preference.setManagedPreferenceDelegate(ManagedPreferenceTestDelegates.POLICY_DELEGATE);
         });
 
-        ChromeBasePreference preference = fragment.findPreference(CUSTOM_LAYOUT_PREF_NAME);
+        ChromeBasePreference preference = fragment.findPreference("preference_with_custom_layout");
         Assert.assertEquals(preference.getLayoutResource(),
                 R.layout.chrome_managed_preference_with_custom_layout);
         Assert.assertFalse(preference.isEnabled());
@@ -216,12 +223,13 @@ public class ChromeBasePreferenceTest {
         SettingsUtils.addPreferencesFromResource(
                 fragment, R.xml.test_chrome_base_preference_screen);
         TestThreadUtils.runOnUiThreadBlocking(() -> {
-            ChromeBasePreference preference = fragment.findPreference(CUSTOM_LAYOUT_PREF_NAME);
+            ChromeBasePreference preference =
+                    fragment.findPreference("preference_with_custom_layout");
             preference.setTitle(TITLE);
             preference.setManagedPreferenceDelegate(ManagedPreferenceTestDelegates.POLICY_DELEGATE);
         });
 
-        ChromeBasePreference preference = fragment.findPreference(CUSTOM_LAYOUT_PREF_NAME);
+        ChromeBasePreference preference = fragment.findPreference("preference_with_custom_layout");
         Assert.assertEquals(preference.getLayoutResource(),
                 R.layout.chrome_managed_preference_with_custom_layout);
         Assert.assertFalse(preference.isEnabled());
@@ -240,13 +248,14 @@ public class ChromeBasePreferenceTest {
         SettingsUtils.addPreferencesFromResource(
                 fragment, R.xml.test_chrome_base_preference_screen);
         TestThreadUtils.runOnUiThreadBlocking(() -> {
-            ChromeBasePreference preference = fragment.findPreference(CUSTOM_LAYOUT_PREF_NAME);
+            ChromeBasePreference preference =
+                    fragment.findPreference("preference_with_custom_layout");
             preference.setTitle(TITLE);
             preference.setManagedPreferenceDelegate(
                     ManagedPreferenceTestDelegates.SINGLE_CUSTODIAN_DELEGATE);
         });
 
-        ChromeBasePreference preference = fragment.findPreference(CUSTOM_LAYOUT_PREF_NAME);
+        ChromeBasePreference preference = fragment.findPreference("preference_with_custom_layout");
         Assert.assertEquals(preference.getLayoutResource(),
                 R.layout.chrome_managed_preference_with_custom_layout);
         Assert.assertFalse(preference.isEnabled());

@@ -143,13 +143,12 @@ DeviceSyncClientFactory* DeviceSyncClientFactory::GetInstance() {
   return instance.get();
 }
 
-std::unique_ptr<KeyedService>
-DeviceSyncClientFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* DeviceSyncClientFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   // TODO(crbug.com/848347): Check prohibited by policy in services that depend
   // on this Factory, not here.
   if (IsEnrollmentAllowedByPolicy(context))
-    return std::make_unique<DeviceSyncClientHolder>(context);
+    return new DeviceSyncClientHolder(context);
 
   return nullptr;
 }

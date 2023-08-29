@@ -11,7 +11,7 @@
 #include "base/functional/callback.h"
 #include "base/memory/raw_ptr.h"
 #include "base/memory/scoped_refptr.h"
-#include "base/threading/sequence_bound.h"
+#include "base/task/sequenced_task_runner.h"
 #include "build/build_config.h"
 #include "build/chromeos_buildflags.h"
 #include "mojo/public/cpp/bindings/pending_receiver.h"
@@ -27,7 +27,6 @@
 #include "services/device/public/mojom/geolocation_config.mojom.h"
 #include "services/device/public/mojom/geolocation_context.mojom.h"
 #include "services/device/public/mojom/geolocation_control.mojom.h"
-#include "services/device/public/mojom/geolocation_internals.mojom.h"
 #include "services/device/public/mojom/power_monitor.mojom.h"
 #include "services/device/public/mojom/pressure_manager.mojom.h"
 #include "services/device/public/mojom/screen_orientation.mojom.h"
@@ -159,8 +158,6 @@ class DeviceService : public mojom::DeviceService {
       mojo::PendingReceiver<mojom::GeolocationContext> receiver) override;
   void BindGeolocationControl(
       mojo::PendingReceiver<mojom::GeolocationControl> receiver) override;
-  void BindGeolocationInternals(
-      mojo::PendingReceiver<mojom::GeolocationInternals> receiver) override;
 
 #if (BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS)) && defined(USE_UDEV)
   void BindInputDeviceManager(
@@ -261,7 +258,11 @@ class DeviceService : public mojom::DeviceService {
 #endif
 
 #if defined(IS_SERIAL_ENABLED_PLATFORM)
-  base::SequenceBound<SerialPortManagerImpl> serial_port_manager_;
+  // Requests for the SerialPortManager interface must be bound to
+  // |serial_port_manager_| on |serial_port_manager_task_runner_| and it will
+  // be destroyed on that sequence.
+  std::unique_ptr<SerialPortManagerImpl> serial_port_manager_;
+  scoped_refptr<base::SequencedTaskRunner> serial_port_manager_task_runner_;
 #endif  // defined(IS_SERIAL_ENABLED_PLATFORM)
 
 #if BUILDFLAG(IS_ANDROID) || BUILDFLAG(IS_WIN)

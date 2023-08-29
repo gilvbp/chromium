@@ -8,7 +8,7 @@
 #include <memory>
 #include <vector>
 
-#include "base/sequence_checker.h"
+#include "base/threading/thread_checker.h"
 #include "components/safe_browsing/content/common/safe_browsing.mojom.h"
 #include "extensions/buildflags/buildflags.h"
 #include "mojo/public/cpp/bindings/pending_remote.h"
@@ -22,9 +22,8 @@
 
 class ChromeContentRendererClient;
 
-// Instances must be constructed on the render main thread, and then used and
-// destructed on a single sequence, which can be different from the render main
-// thread.
+// Instances must be constructed on the render thread, and then used and
+// destructed on a single thread, which can be different from the render thread.
 class URLLoaderThrottleProviderImpl : public blink::URLLoaderThrottleProvider {
  public:
   URLLoaderThrottleProviderImpl(
@@ -60,7 +59,7 @@ class URLLoaderThrottleProviderImpl : public blink::URLLoaderThrottleProvider {
       extension_throttle_manager_;
 #endif
 
-  SEQUENCE_CHECKER(sequence_checker_);
+  THREAD_CHECKER(thread_checker_);
 };
 
 #endif  // CHROME_RENDERER_URL_LOADER_THROTTLE_PROVIDER_IMPL_H_

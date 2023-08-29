@@ -10,7 +10,6 @@
 #include "third_party/blink/renderer/core/style/grid_area.h"
 #include "third_party/blink/renderer/core/style/grid_enums.h"
 #include "third_party/blink/renderer/core/style/named_grid_lines_map.h"
-#include "third_party/blink/renderer/platform/heap/persistent.h"
 #include "third_party/blink/renderer/platform/wtf/allocator/allocator.h"
 #include "third_party/blink/renderer/platform/wtf/wtf_size_t.h"
 
@@ -131,9 +130,7 @@ class NGGridLineResolver {
 
   bool IsSubgridded(GridTrackSizingDirection track_direction) const;
 
-  // This doesn't create a cycle as ComputeStyle doesn't have any references to
-  // layout-time objects.
-  Persistent<const ComputedStyle> style_;
+  scoped_refptr<const ComputedStyle> style_;
 
   wtf_size_t column_auto_repetitions_{1};
   wtf_size_t row_auto_repetitions_{1};

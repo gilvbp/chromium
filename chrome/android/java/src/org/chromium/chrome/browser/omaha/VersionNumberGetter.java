@@ -37,6 +37,7 @@ public class VersionNumberGetter {
         return sInstanceForTests == null ? LazyHolder.INSTANCE : sInstanceForTests;
     }
 
+    @VisibleForTesting
     static void setInstanceForTests(VersionNumberGetter getter) {
         sInstanceForTests = getter;
         ResettersForTesting.register(() -> sInstanceForTests = null);

@@ -38,7 +38,7 @@ ScopedPathOverride::ScopedPathOverride(int key,
 }
 
 void ScopedPathOverride::SaveOriginal() {
-  if (PathService::IsOverriddenForTesting(key_)) {
+  if (PathService::IsOverriddenForTests(key_)) {
     original_override_ = PathService::CheckedGet(key_);
   }
 }

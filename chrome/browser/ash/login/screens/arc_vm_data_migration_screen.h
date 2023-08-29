@@ -32,21 +32,21 @@ class ScopedScreenLockBlocker;
 // numeric values should never be reused. Please keep in sync with
 // "ArcVmDataMigrationScreenSetupFailure" in tools/metrics/histograms/enums.xml.
 enum class ArcVmDataMigrationScreenSetupFailure {
-  kGetVmInfoFailure = 0,        // Deprecated.
-  kStopVmFailure = 1,           // Deprecated.
-  kStopUpstartJobsFailure = 2,  // Deprecated.
+  kGetVmInfoFailure = 0,
+  kStopVmFailure = 1,
+  kStopUpstartJobsFailure = 2,
   kGetFreeDiskSpaceFailure = 3,
   kGetAndroidDataInfoFailure = 4,
   kCreateDiskImageDBusFailure = 5,
   kCreateDiskImageGeneralFailure = 6,
   kArcVmDataMigratorStartFailure = 7,
   kStartMigrationFailure = 8,
-  kStopArcVmAndArcVmUpstartJobsFailure = 9,
-  kMaxValue = kStopArcVmAndArcVmUpstartJobsFailure,
+  kMaxValue = kStartMigrationFailure,
 };
 
 class ArcVmDataMigrationScreen : public BaseScreen,
                                  public ArcVmDataMigratorClient::Observer,
+                                 public ConciergeClient::VmObserver,
                                  public chromeos::PowerManagerClient::Observer {
  public:
   explicit ArcVmDataMigrationScreen(
@@ -63,7 +63,17 @@ class ArcVmDataMigrationScreen : public BaseScreen,
   void HideImpl() override;
   void OnUserAction(const base::Value::List& args) override;
 
-  void OnArcVmAndArcVmUpstartJobsStopped(bool result);
+  // Stops ARCVM instance and ARC-related Upstart jobs that have outlived the
+  // previous session.
+  void StopArcVmInstanceAndArcUpstartJobs();
+
+  void OnGetVmInfoResponse(
+      absl::optional<vm_tools::concierge::GetVmInfoResponse> response);
+  void OnStopVmResponse(
+      absl::optional<vm_tools::concierge::StopVmResponse> response);
+
+  void StopArcUpstartJobs();
+  void OnArcUpstartJobsStopped(bool result);
 
   void SetUpInitialView();
 
@@ -97,6 +107,10 @@ class ArcVmDataMigrationScreen : public BaseScreen,
 
   void RemoveArcDataAndShowFailureScreen();
   void OnArcDataRemoved(bool success);
+
+  // ConciergeClient::VmObserver overrides:
+  void OnVmStarted(const vm_tools::concierge::VmStartedSignal& signal) override;
+  void OnVmStopped(const vm_tools::concierge::VmStoppedSignal& signal) override;
 
   void UpdateUIState(ArcVmDataMigrationScreenView::UIState state);
 
@@ -154,6 +168,9 @@ class ArcVmDataMigrationScreen : public BaseScreen,
   base::ScopedObservation<ArcVmDataMigratorClient,
                           ArcVmDataMigratorClient::Observer>
       migration_progress_observation_{this};
+
+  base::ScopedObservation<ConciergeClient, ConciergeClient::VmObserver>
+      concierge_observation_{this};
 
   base::ScopedObservation<chromeos::PowerManagerClient,
                           chromeos::PowerManagerClient::Observer>

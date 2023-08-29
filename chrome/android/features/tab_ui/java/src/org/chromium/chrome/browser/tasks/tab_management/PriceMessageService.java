@@ -269,6 +269,7 @@ public class PriceMessageService extends MessageService {
         }
     }
 
+    @VisibleForTesting
     PriceTabData getPriceTabDataForTesting() {
         return mPriceTabData;
     }

@@ -13,7 +13,6 @@
 #include "base/threading/thread_restrictions.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/ui/browser.h"
-#include "chrome/browser/ui/web_applications/test/isolated_web_app_builder.h"
 #include "chrome/browser/ui/web_applications/test/isolated_web_app_test_utils.h"
 #include "chrome/browser/web_applications/isolated_web_apps/isolated_web_app_location.h"
 #include "chrome/browser/web_applications/isolated_web_apps/isolated_web_app_trust_checker.h"
@@ -103,7 +102,7 @@ class IsolatedWebAppURLLoaderFactoryBrowserTest
 
   std::unique_ptr<KeyedService> CreateWebAppProvider(Profile* profile) {
     auto provider = std::make_unique<FakeWebAppProvider>(profile);
-    provider->CreateFakeSubsystems();
+    provider->SetDefaultFakeSubsystems();
     provider->Start();
 
     return provider;

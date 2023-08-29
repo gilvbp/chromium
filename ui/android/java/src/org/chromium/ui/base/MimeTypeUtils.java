@@ -3,13 +3,14 @@
 // found in the LICENSE file.
 package org.chromium.ui.base;
 
-import android.Manifest;
+import android.Manifest.permission;
 import android.webkit.MimeTypeMap;
 
 import androidx.annotation.IntDef;
 import androidx.annotation.Nullable;
 
 import org.chromium.base.BuildInfo;
+import org.chromium.ui.permissions.PermissionConstants;
 import org.chromium.url.GURL;
 
 import java.lang.annotation.Retention;
@@ -19,25 +20,6 @@ import java.lang.annotation.RetentionPolicy;
  * Utility methods for determining and working with mime types.
  */
 public class MimeTypeUtils {
-    /**
-     * The MIME type for a plain text objects dragged from Chrome.
-     */
-    public static final String CHROME_MIMETYPE_TEXT = "chrome/text";
-
-    /**
-     * The MIME type for a link objects dragged from Chrome.
-     */
-    public static final String CHROME_MIMETYPE_LINK = "chrome/link";
-
-    /**
-     * The MIME type for text.
-     */
-    public static final String TEXT_MIME_TYPE = "text/plain";
-    /**
-     * The MIME type for an image.
-     */
-    public static final String IMAGE_MIME_TYPE = "image/*";
-
     /**
      * A set of known mime types.
      */
@@ -94,16 +76,16 @@ public class MimeTypeUtils {
      */
     public @Nullable static String getPermissionNameForMimeType(@MimeTypeUtils.Type int mimeType) {
         if (useExternalStoragePermission()) {
-            return Manifest.permission.READ_EXTERNAL_STORAGE;
+            return permission.READ_EXTERNAL_STORAGE;
         }
 
         switch (mimeType) {
             case MimeTypeUtils.Type.AUDIO:
-                return Manifest.permission.READ_MEDIA_AUDIO;
+                return PermissionConstants.READ_MEDIA_AUDIO;
             case MimeTypeUtils.Type.IMAGE:
-                return Manifest.permission.READ_MEDIA_IMAGES;
+                return PermissionConstants.READ_MEDIA_IMAGES;
             case MimeTypeUtils.Type.VIDEO:
-                return Manifest.permission.READ_MEDIA_VIDEO;
+                return PermissionConstants.READ_MEDIA_VIDEO;
             default:
                 return null;
         }

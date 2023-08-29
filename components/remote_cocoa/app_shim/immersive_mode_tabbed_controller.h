@@ -16,10 +16,9 @@ namespace remote_cocoa {
 class REMOTE_COCOA_APP_SHIM_EXPORT ImmersiveModeTabbedController
     : public ImmersiveModeController {
  public:
-  explicit ImmersiveModeTabbedController(
-      NativeWidgetMacNSWindow* browser_window,
-      NativeWidgetMacNSWindow* overlay_window,
-      NativeWidgetMacNSWindow* tab_window);
+  explicit ImmersiveModeTabbedController(NSWindow* browser_window,
+                                         NSWindow* overlay_window,
+                                         NSWindow* tab_window);
   ImmersiveModeTabbedController(const ImmersiveModeTabbedController&) = delete;
   ImmersiveModeTabbedController& operator=(
       const ImmersiveModeTabbedController&) = delete;
@@ -51,9 +50,10 @@ class REMOTE_COCOA_APP_SHIM_EXPORT ImmersiveModeTabbedController
   // parented to overlay window regardless of the current parent.
   void OrderTabWindowZOrderOnTop();
 
-  NSWindow* __weak tab_window_;
-  BridgedContentView* __weak tab_content_view_;
-  NSTitlebarAccessoryViewController* __strong tab_titlebar_view_controller_;
+  // TODO(https://crbug.com/1280317): Merge the contents back into the header
+  // file once all files that include this header are compiled with ARC.
+  struct ObjCStorage;
+  std::unique_ptr<ObjCStorage> objc_storage_;
 };
 
 }  // namespace remote_cocoa

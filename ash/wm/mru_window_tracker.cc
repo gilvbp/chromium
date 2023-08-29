@@ -3,9 +3,12 @@
 // found in the LICENSE file.
 
 #include "ash/wm/mru_window_tracker.h"
+#include "base/memory/raw_ptr.h"
 
 #include "ash/constants/app_types.h"
+#include "ash/public/cpp/shell_window_ids.h"
 #include "ash/public/cpp/window_properties.h"
+#include "ash/session/session_controller_impl.h"
 #include "ash/shell.h"
 #include "ash/wm/ash_focus_rules.h"
 #include "ash/wm/desks/desk.h"
@@ -18,8 +21,9 @@
 #include "ash/wm/window_util.h"
 #include "base/containers/adapters.h"
 #include "base/containers/contains.h"
-#include "base/memory/raw_ptr.h"
+#include "base/containers/cxx20_erase.h"
 #include "base/ranges/algorithm.h"
+#include "chromeos/ui/wm/features.h"
 #include "components/app_restore/window_properties.h"
 #include "ui/aura/client/aura_constants.h"
 #include "ui/aura/window.h"
@@ -30,8 +34,6 @@
 namespace ash {
 
 namespace {
-
-using WindowList = MruWindowTracker::WindowList;
 
 // A class that observes a window that should not be destroyed inside a certain
 // scope. This class is added to investigate crbug.com/937381 to see if it's
@@ -231,7 +233,7 @@ MruWindowTracker::~MruWindowTracker() {
     window->RemoveObserver(this);
 }
 
-WindowList MruWindowTracker::BuildAppWindowList(
+MruWindowTracker::WindowList MruWindowTracker::BuildAppWindowList(
     DesksMruType desks_mru_type) const {
   return BuildWindowListInternal(
       &mru_windows_, desks_mru_type, [](aura::Window* w) {
@@ -240,25 +242,25 @@ WindowList MruWindowTracker::BuildAppWindowList(
       });
 }
 
-WindowList MruWindowTracker::BuildMruWindowList(
+MruWindowTracker::WindowList MruWindowTracker::BuildMruWindowList(
     DesksMruType desks_mru_type) const {
   return BuildWindowListInternal(&mru_windows_, desks_mru_type,
                                  CanIncludeWindowInMruList);
 }
 
-WindowList MruWindowTracker::BuildWindowListIgnoreModal(
+MruWindowTracker::WindowList MruWindowTracker::BuildWindowListIgnoreModal(
     DesksMruType desks_mru_type) const {
   return BuildWindowListInternal(&mru_windows_, desks_mru_type,
                                  IsNonSysModalWindowConsideredActivatable);
 }
 
-WindowList MruWindowTracker::BuildWindowForCycleList(
+MruWindowTracker::WindowList MruWindowTracker::BuildWindowForCycleList(
     DesksMruType desks_mru_type) const {
   return BuildWindowListInternal(&mru_windows_, desks_mru_type,
                                  CanIncludeWindowInCycleList);
 }
 
-WindowList MruWindowTracker::BuildWindowForCycleWithPipList(
+MruWindowTracker::WindowList MruWindowTracker::BuildWindowForCycleWithPipList(
     DesksMruType desks_mru_type) const {
   return BuildWindowListInternal(&mru_windows_, desks_mru_type,
                                  CanIncludeWindowInCycleWithPipList);

@@ -286,44 +286,44 @@ TEST_F(FFmpegGlueDestructionTest, WithOpenWithOpenStreams) {
 
 TEST_F(FFmpegGlueContainerTest, OGG) {
   InitializeAndOpen("sfx.ogg");
-  ExpectContainer(container_names::MediaContainerName::kContainerOgg);
+  ExpectContainer(container_names::CONTAINER_OGG);
 }
 
 TEST_F(FFmpegGlueContainerTest, WEBM) {
   InitializeAndOpen("sfx-opus-441.webm");
-  ExpectContainer(container_names::MediaContainerName::kContainerWEBM);
+  ExpectContainer(container_names::CONTAINER_WEBM);
 }
 
 TEST_F(FFmpegGlueContainerTest, FLAC) {
   InitializeAndOpen("sfx.flac");
-  ExpectContainer(container_names::MediaContainerName::kContainerFLAC);
+  ExpectContainer(container_names::CONTAINER_FLAC);
 }
 
 TEST_F(FFmpegGlueContainerTest, WAV) {
   InitializeAndOpen("sfx_s16le.wav");
-  ExpectContainer(container_names::MediaContainerName::kContainerWAV);
+  ExpectContainer(container_names::CONTAINER_WAV);
 }
 
 TEST_F(FFmpegGlueContainerTest, MP3) {
   InitializeAndOpen("sfx.mp3");
-  ExpectContainer(container_names::MediaContainerName::kContainerMP3);
+  ExpectContainer(container_names::CONTAINER_MP3);
 }
 
 #if BUILDFLAG(USE_PROPRIETARY_CODECS)
 TEST_F(FFmpegGlueContainerTest, MOV) {
   InitializeAndOpen("sfx.m4a");
-  ExpectContainer(container_names::MediaContainerName::kContainerMOV);
+  ExpectContainer(container_names::CONTAINER_MOV);
 }
 
 TEST_F(FFmpegGlueContainerTest, AAC) {
   InitializeAndOpen("sfx.adts");
-  ExpectContainer(container_names::MediaContainerName::kContainerAAC);
+  ExpectContainer(container_names::CONTAINER_AAC);
 }
 
 #if BUILDFLAG(IS_CHROMEOS_ASH)
 TEST_F(FFmpegGlueContainerTest, AVI) {
   InitializeAndOpen("bear.avi");
-  ExpectContainer(container_names::MediaContainerName::kContainerAVI);
+  ExpectContainer(container_names::CONTAINER_AVI);
 }
 #endif  // BUILDFLAG(IS_CHROMEOS_ASH)
 #endif  // BUILDFLAG(USE_PROPRIETARY_CODECS)
@@ -332,7 +332,7 @@ TEST_F(FFmpegGlueContainerTest, AVI) {
 TEST_F(FFmpegGlueContainerTest, FLV) {
   Initialize("bear.flv");
   ASSERT_FALSE(glue_->OpenContext());
-  ExpectContainer(container_names::MediaContainerName::kContainerFLV);
+  ExpectContainer(container_names::CONTAINER_FLV);
 }
 
 }  // namespace media

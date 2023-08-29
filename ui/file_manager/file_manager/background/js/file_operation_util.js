@@ -119,7 +119,7 @@ fileOperationUtil.deduplicatePath =
  * Current speed and remaining time are calculated using a linear interpolation
  * of the kept samples.
  */
-class Speedometer {
+fileOperationUtil.Speedometer = class {
   /**
    * @param {number} maxSamples Max number of samples to keep.
    */
@@ -272,6 +272,6 @@ class Speedometer {
     const speed = covarianceTimeBytes / varianceTime;
     return {speed, averageTime, averageBytes};
   }
-}
+};
 
-export {fileOperationUtil, Speedometer};
+export {fileOperationUtil};

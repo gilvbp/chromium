@@ -57,9 +57,23 @@ void AddressProfileSaveManager::ImportProfileFromForm(
   if (!personal_data_manager_)
     return;
 
-  MaybeOfferSavePrompt(std::make_unique<ProfileImportProcess>(
+  // If the explicit save prompts are not enabled, revert back to the legacy
+  // behavior and directly import the observed profile without recording any
+  // additional metrics. However, if only silent updates are allowed, proceed
+  // with the profile import process.
+  if (personal_data_manager_->auto_accept_address_imports_for_testing() &&
+      !allow_only_silent_updates) {
+    personal_data_manager_->SaveImportedProfile(observed_profile);
+    AddMultiStepComplementCandidate(client_->GetFormDataImporter(),
+                                    observed_profile, import_metadata.origin);
+    return;
+  }
+
+  auto process_ptr = std::make_unique<ProfileImportProcess>(
       observed_profile, app_locale, url, personal_data_manager_,
-      allow_only_silent_updates, import_metadata));
+      allow_only_silent_updates, import_metadata);
+
+  MaybeOfferSavePrompt(std::move(process_ptr));
 }
 
 void AddressProfileSaveManager::MaybeOfferSavePrompt(
@@ -87,11 +101,6 @@ void AddressProfileSaveManager::MaybeOfferSavePrompt(
     case AutofillProfileImportType::kConfirmableMergeAndSilentUpdate:
     case AutofillProfileImportType::kProfileMigration:
     case AutofillProfileImportType::kProfileMigrationAndSilentUpdate:
-      if (personal_data_manager_->auto_accept_address_imports_for_testing()) {
-        import_process->AcceptWithoutEdits();
-        FinalizeProfileImport(std::move(import_process));
-        return;
-      }
       OfferSavePrompt(std::move(import_process));
       return;
 

@@ -30,6 +30,10 @@
 #import "third_party/ocmock/OCMock/OCMock.h"
 #import "third_party/ocmock/gtest_support.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 typedef void (^DataTaskWithRequestCompletionHandler)(
     NSData* _Nullable data,
     NSURLResponse* _Nullable response,
@@ -174,7 +178,7 @@ class GaiaAuthFetcherIOSNSURLSessionBridgeTest : public PlatformTest {
   DataTaskWithRequestCompletionHandler completion_handler_;
 
  private:
-  base::OnceClosure quit_closure_;
+  __block base::OnceClosure quit_closure_;
 };
 
 #pragma mark - TestGaiaAuthFetcherIOSNSURLSessionBridge
@@ -372,7 +376,7 @@ GaiaAuthFetcherIOSNSURLSessionBridgeTest::GetHeaderFieldsWithCookies(
 
 bool GaiaAuthFetcherIOSNSURLSessionBridgeTest::FetchURL(const GURL& url) {
   DCHECK(url_session_data_task_);
-  base::RunLoop run_loop;
+  __block base::RunLoop run_loop;
   quit_closure_ = run_loop.QuitClosure();
   ns_url_session_bridge_->Fetch(url, "", "", false);
   run_loop.Run();

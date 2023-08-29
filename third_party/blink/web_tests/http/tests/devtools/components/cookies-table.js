@@ -4,8 +4,6 @@
 
 import {TestRunner} from 'test_runner';
 
-import * as SDK from 'devtools/core/sdk/sdk.js';
-
 (async function() {
   TestRunner.addResult(`Tests inspector cookies table\n`);
 
@@ -81,7 +79,7 @@ import * as SDK from 'devtools/core/sdk/sdk.js';
   }
 
   function createCookie(data) {
-    const cookie = new SDK.Cookie.Cookie(data.name, data.value);
+    const cookie = new SDK.Cookie(data.name, data.value);
     for (let key in data) {
       if (key === 'name' || key === 'value')
         continue;
@@ -92,7 +90,7 @@ import * as SDK from 'devtools/core/sdk/sdk.js';
   }
 
   function createSortAndDumpCookies(cookieData, sortColumn, isAsc) {
-    const table = new CookieTable.CookiesTable(SDK.TargetManager.TargetManager.instance().rootTarget(), true);
+    const table = new CookieTable.CookiesTable(SDK.targetManager.rootTarget(), true);
     const cookies = cookieData.map(createCookie);
     table.dataGrid = mockDataGrid({sortColumn, isAsc});
     table.sortCookies(cookies);
@@ -101,7 +99,7 @@ import * as SDK from 'devtools/core/sdk/sdk.js';
   }
 
   function createBuildAndDumpTable(cookieData, selectedNode, isAsc, lastEditedColumn) {
-    const table = new CookieTable.CookiesTable(SDK.TargetManager.TargetManager.instance().rootTarget(), true);
+    const table = new CookieTable.CookiesTable(SDK.targetManager.rootTarget(), true);
     const cookies = cookieData && cookieData.map(createCookie);
     const rootNode = mockNode({});
     table.lastEditedColumnId = lastEditedColumn || null;

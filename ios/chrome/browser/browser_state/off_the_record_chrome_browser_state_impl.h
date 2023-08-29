@@ -48,6 +48,7 @@ class OffTheRecordChromeBrowserStateImpl final : public ChromeBrowserState {
 
   // BrowserState:
   bool IsOffTheRecord() const override;
+  base::FilePath GetStatePath() const override;
 
  private:
   friend class ChromeBrowserStateImpl;
@@ -59,6 +60,7 @@ class OffTheRecordChromeBrowserStateImpl final : public ChromeBrowserState {
       ChromeBrowserState* original_chrome_browser_state,
       const base::FilePath& otr_path);
 
+  base::FilePath otr_state_path_;
   ChromeBrowserState* original_chrome_browser_state_;  // weak
 
   // Creation time of the off-the-record BrowserState.

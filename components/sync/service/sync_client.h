@@ -13,6 +13,10 @@
 
 class PrefService;
 
+namespace invalidation {
+class InvalidationService;
+}  // namespace invalidation
+
 namespace signin {
 class IdentityManager;
 }
@@ -54,6 +58,7 @@ class SyncClient {
   virtual DataTypeController::TypeVector CreateDataTypeControllers(
       SyncService* sync_service) = 0;
 
+  virtual invalidation::InvalidationService* GetInvalidationService() = 0;
   virtual SyncInvalidationsService* GetSyncInvalidationsService() = 0;
   virtual trusted_vault::TrustedVaultClient* GetTrustedVaultClient() = 0;
   virtual scoped_refptr<ExtensionsActivity> GetExtensionsActivity() = 0;

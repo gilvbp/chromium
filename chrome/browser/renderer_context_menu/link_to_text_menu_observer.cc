@@ -179,13 +179,11 @@ void LinkToTextMenuObserver::OnRequestLinkGenerationCompleted(
   shared_highlighting::LogLinkRequestedBeforeStatus(status, ready_status);
 
   if (status == LinkGenerationStatus::kSuccess) {
-    CHECK_EQ(error, LinkGenerationError::kNone);
-    CHECK(rfh);
-    CHECK(!rfh->IsInLifecycleState(
-        content::RenderFrameHost::LifecycleState::kPrerendering));
+    DCHECK_EQ(error, LinkGenerationError::kNone);
+    DCHECK(rfh);
     shared_highlighting::LogRequestedSuccessMetrics(rfh->GetPageUkmSourceId());
   } else {
-    CHECK_NE(error, LinkGenerationError::kNone);
+    DCHECK_NE(error, LinkGenerationError::kNone);
     CompleteWithError(error);
 
     // If there is no valid selector, leave the menu item disabled.
@@ -288,8 +286,6 @@ void LinkToTextMenuObserver::CompleteWithError(LinkGenerationError error) {
   is_generation_complete_ = true;
   auto* rfh = content::RenderFrameHost::FromID(render_frame_host_id_);
   if (rfh) {
-    CHECK(!rfh->IsInLifecycleState(
-        content::RenderFrameHost::LifecycleState::kPrerendering));
     shared_highlighting::LogRequestedFailureMetrics(rfh->GetPageUkmSourceId(),
                                                     error);
   }

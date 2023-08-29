@@ -11,6 +11,10 @@
 #import "ios/chrome/browser/shared/model/web_state_list/web_state_list.h"
 #import "ios/chrome/browser/upgrade/upgrade_center.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 BROWSER_USER_DATA_KEY_IMPL(UpgradeCenterBrowserAgent)
 
 UpgradeCenterBrowserAgent::UpgradeCenterBrowserAgent(
@@ -27,20 +31,18 @@ UpgradeCenterBrowserAgent::~UpgradeCenterBrowserAgent() {}
 
 #pragma mark - WebStateListObserver
 
-void UpgradeCenterBrowserAgent::WebStateListDidChange(
+void UpgradeCenterBrowserAgent::WebStateListChanged(
     WebStateList* web_state_list,
     const WebStateListChange& change,
-    const WebStateListStatus& status) {
+    const WebStateSelection& selection) {
   switch (change.type()) {
-    case WebStateListChange::Type::kStatusOnly:
+    case WebStateListChange::Type::kSelectionOnly:
       // Do nothing when a WebState is selected and its status is updated.
       break;
-    case WebStateListChange::Type::kDetach: {
-      const WebStateListChangeDetach& detach_change =
-          change.As<WebStateListChangeDetach>();
-      WebStateDetached(detach_change.detached_web_state());
+    case WebStateListChange::Type::kDetach:
+      // TODO(crbug.com/1442546): Move the implementation from
+      // WebStateDetachedAt() to here.
       break;
-    }
     case WebStateListChange::Type::kMove:
       // Do nothing when a WebState is moved.
       break;
@@ -58,6 +60,13 @@ void UpgradeCenterBrowserAgent::WebStateListDidChange(
       break;
     }
   }
+}
+
+void UpgradeCenterBrowserAgent::WillDetachWebStateAt(
+    WebStateList* web_state_list,
+    web::WebState* web_state,
+    int index) {
+  WebStateDetached(web_state);
 }
 
 void UpgradeCenterBrowserAgent::WebStateListDestroyed(

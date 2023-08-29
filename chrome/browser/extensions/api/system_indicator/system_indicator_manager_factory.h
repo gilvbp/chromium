@@ -30,7 +30,7 @@ class SystemIndicatorManagerFactory : public ProfileKeyedServiceFactory {
   ~SystemIndicatorManagerFactory() override;
 
   // BrowserContextKeyedServiceFactory implementation.
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* context) const override;
   bool ServiceIsCreatedWithBrowserContext() const override;
 };

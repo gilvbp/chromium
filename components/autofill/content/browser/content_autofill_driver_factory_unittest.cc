@@ -75,13 +75,7 @@ class MockAutofillAgent : public mojom::AutofillAgent {
               (override));
   MOCK_METHOD(void,
               FillOrPreviewForm,
-              (const FormData& form,
-               mojom::AutofillActionPersistence action_persistence),
-              (override));
-  MOCK_METHOD(void,
-              UndoAutofill,
-              (const FormData& form,
-               mojom::AutofillActionPersistence action_persistence),
+              (const FormData& form, mojom::RendererFormDataAction action),
               (override));
   MOCK_METHOD(void,
               FieldTypePredictionsAvailable,
@@ -183,6 +177,10 @@ class ContentAutofillDriverFactoryTest
         ->Commit();
   }
 
+  ContentAutofillDriverFactoryTestApi factory_test_api() {
+    return ContentAutofillDriverFactoryTestApi(factory_.get());
+  }
+
  protected:
   version_info::Channel channel_;
   std::unique_ptr<MockAutofillAgent> agent_;
@@ -192,14 +190,13 @@ class ContentAutofillDriverFactoryTest
 
 TEST_F(ContentAutofillDriverFactoryTest, MainDriver) {
   NavigateMainFrame("https://a.com/");
-  ContentAutofillDriver* main_driver =
-      test_api(*factory_).GetDriver(main_rfh());
+  ContentAutofillDriver* main_driver = factory_test_api().GetDriver(main_rfh());
   EXPECT_TRUE(main_driver);
-  EXPECT_EQ(test_api(*factory_).num_drivers(), 1u);
+  EXPECT_EQ(factory_test_api().num_drivers(), 1u);
   EXPECT_EQ(factory_->DriverForFrame(main_rfh()), main_driver);
-  EXPECT_EQ(test_api(*factory_).num_drivers(), 1u);
+  EXPECT_EQ(factory_test_api().num_drivers(), 1u);
   EXPECT_EQ(factory_->DriverForFrame(main_rfh()), main_driver);
-  EXPECT_EQ(test_api(*factory_).num_drivers(), 1u);
+  EXPECT_EQ(factory_test_api().num_drivers(), 1u);
 }
 
 // Test case with two frames: the main frame and one child frame.
@@ -208,22 +205,18 @@ class ContentAutofillDriverFactoryTest_WithTwoFrames
  public:
   void NavigateChildFrame(base::StringPiece url) {
     CHECK(main_rfh());
-    if (!child_rfh()) {
-      child_rfh_id_ = content::RenderFrameHostTester::For(main_rfh())
-                          ->AppendChild(std::string("child"))
-                          ->GetGlobalId();
+    if (!child_rfh_) {
+      child_rfh_ = content::RenderFrameHostTester::For(main_rfh())
+                       ->AppendChild(std::string("child"));
     }
-    child_rfh_id_ = content::NavigationSimulator::NavigateAndCommitFromDocument(
-                        GURL(url), child_rfh())
-                        ->GetGlobalId();
+    child_rfh_ = content::NavigationSimulator::NavigateAndCommitFromDocument(
+        GURL(url), child_rfh_);
   }
 
-  content::RenderFrameHost* child_rfh() {
-    return content::RenderFrameHost::FromID(child_rfh_id_);
-  }
+  content::RenderFrameHost* child_rfh() { return child_rfh_; }
 
  private:
-  content::GlobalRenderFrameHostId child_rfh_id_;
+  raw_ptr<content::RenderFrameHost, DanglingUntriaged> child_rfh_ = nullptr;
 };
 
 TEST_F(ContentAutofillDriverFactoryTest_WithTwoFrames, TwoDrivers) {
@@ -237,10 +230,10 @@ TEST_F(ContentAutofillDriverFactoryTest_WithTwoFrames, TwoDrivers) {
   EXPECT_TRUE(child_driver);
   EXPECT_EQ(factory_->DriverForFrame(main_rfh()), main_driver);
   EXPECT_EQ(factory_->DriverForFrame(child_rfh()), child_driver);
-  EXPECT_EQ(test_api(*factory_).num_drivers(), 2u);
+  EXPECT_EQ(factory_test_api().num_drivers(), 2u);
   EXPECT_EQ(factory_->DriverForFrame(main_rfh()), main_driver);
   EXPECT_EQ(factory_->DriverForFrame(child_rfh()), child_driver);
-  EXPECT_EQ(test_api(*factory_).num_drivers(), 2u);
+  EXPECT_EQ(factory_test_api().num_drivers(), 2u);
   // TODO(crbug.com/1200511): Set the router's last source and target, and if
   // the |child_driver| is destroyed, expect a call to
   // AutofillManager::OnHidePopup(). For this to work, we need mock
@@ -272,13 +265,13 @@ TEST_P(ContentAutofillDriverFactoryTest_WithTwoFrames_PickOne,
   ContentAutofillDriver* child_driver = factory_->DriverForFrame(child_rfh());
   EXPECT_TRUE(main_driver);
   EXPECT_TRUE(child_driver);
-  EXPECT_EQ(test_api(*factory_).num_drivers(), 2u);
+  EXPECT_EQ(factory_test_api().num_drivers(), 2u);
   factory_->RenderFrameDeleted(picked_rfh());
-  EXPECT_EQ(test_api(*factory_).num_drivers(), 1u);
+  EXPECT_EQ(factory_test_api().num_drivers(), 1u);
   if (picked_rfh() == main_rfh())
-    EXPECT_EQ(test_api(*factory_).GetDriver(child_rfh()), child_driver);
+    EXPECT_EQ(factory_test_api().GetDriver(child_rfh()), child_driver);
   else
-    EXPECT_EQ(test_api(*factory_).GetDriver(main_rfh()), main_driver);
+    EXPECT_EQ(factory_test_api().GetDriver(main_rfh()), main_driver);
 }
 
 // Tests that OnVisibilityChanged() hides the popup.
@@ -324,8 +317,8 @@ TEST_P(ContentAutofillDriverFactoryTest_WithOrWithoutBfCacheAndIframes,
   ContentAutofillDriver* orig_driver = factory_->DriverForFrame(orig_rfh);
   NavigateMainFrame("https://a.com/#same-site");
   ASSERT_EQ(orig_rfh, main_rfh());
-  EXPECT_EQ(test_api(*factory_).GetDriver(orig_rfh), orig_driver);
-  EXPECT_EQ(test_api(*factory_).num_drivers(), 1u);
+  EXPECT_EQ(factory_test_api().GetDriver(orig_rfh), orig_driver);
+  EXPECT_EQ(factory_test_api().num_drivers(), 1u);
 
   // TODO(crbug.com/1200511): Test that |router_| has been untouched. To this
   // end, call `orig_driver->FormsSeen({FormData{}})` above and then check
@@ -334,8 +327,8 @@ TEST_P(ContentAutofillDriverFactoryTest_WithOrWithoutBfCacheAndIframes,
   // by ContentAutofillDriver's use of the factory callback.
 }
 
-// Tests that that a driver is 1:1 with RenderFrameHost, which might or might
-// not change after a same-origin navigation.
+// Tests that that a driver survives a same-origin navigation but is reset
+// afterwards.
 TEST_P(ContentAutofillDriverFactoryTest_WithOrWithoutBfCacheAndIframes,
        SameOriginNavigation) {
   NavigateMainFrame("https://a.com/");
@@ -347,15 +340,10 @@ TEST_P(ContentAutofillDriverFactoryTest_WithOrWithoutBfCacheAndIframes,
   // of the factory callback.
 
   NavigateMainFrame("https://a.com/after-navigation");
-  // If the RenderFrameHost changed, a new driver for main_rfh() is created, and
-  // if BFCache is disabled the driver for |orig_rfh| has now been removed in
-  // ContentAutofillDriverFactory::RenderFrameDeleted().
-  if (use_bfcache()) {
-    EXPECT_EQ(test_api(*factory_).GetDriver(orig_rfh), orig_driver);
-  } else if (main_rfh() != orig_rfh) {
-    EXPECT_EQ(test_api(*factory_).GetDriver(orig_rfh), nullptr);
-  }
-  EXPECT_EQ(test_api(*factory_).num_drivers(), use_bfcache() ? 2u : 1u);
+  EXPECT_EQ(factory_test_api().GetDriver(orig_rfh), orig_driver);
+  // If BFCache is enabled, there will be 2 drivers as the old document is still
+  // around.
+  EXPECT_EQ(factory_test_api().num_drivers(), use_bfcache() ? 2u : 1u);
 }
 
 // Tests that that a driver is removed and replaced with a fresh one after a
@@ -368,8 +356,8 @@ TEST_P(ContentAutofillDriverFactoryTest_WithOrWithoutBfCacheAndIframes,
   ContentAutofillDriver* orig_driver = factory_->DriverForFrame(orig_rfh);
 
   ASSERT_EQ(orig_rfh, main_rfh());
-  EXPECT_EQ(test_api(*factory_).GetDriver(orig_rfh), orig_driver);
-  EXPECT_EQ(test_api(*factory_).num_drivers(), 1u);
+  EXPECT_EQ(factory_test_api().GetDriver(orig_rfh), orig_driver);
+  EXPECT_EQ(factory_test_api().num_drivers(), 1u);
 
   NavigateMainFrame("https://different-origin-after-navigation.com/");
 
@@ -379,31 +367,43 @@ TEST_P(ContentAutofillDriverFactoryTest_WithOrWithoutBfCacheAndIframes,
   // BFcache is enabled (or main_rfh() happens to have the same address as
   // |orig_rfh|).
   if (use_bfcache())
-    EXPECT_EQ(test_api(*factory_).GetDriver(orig_rfh), orig_driver);
+    EXPECT_EQ(factory_test_api().GetDriver(orig_rfh), orig_driver);
   else if (main_rfh() != orig_rfh)
-    EXPECT_EQ(test_api(*factory_).GetDriver(orig_rfh), nullptr);
-  EXPECT_NE(test_api(*factory_).GetDriver(main_rfh()), nullptr);
-  EXPECT_EQ(test_api(*factory_).num_drivers(), use_bfcache() ? 2u : 1u);
+    EXPECT_EQ(factory_test_api().GetDriver(orig_rfh), nullptr);
+  EXPECT_NE(factory_test_api().GetDriver(main_rfh()), nullptr);
+  EXPECT_EQ(factory_test_api().num_drivers(), use_bfcache() ? 2u : 1u);
 }
 
-// Fixture for testing that Autofill is enabled in fenced frames.
+// Fixture for testing that Autofill is enabled in fenced frames unless
+// AutofillEnableWithinFencedFrame is enabled. The bool parameter
+// enables/disables that feature.
 class ContentAutofillDriverFactoryTest_FencedFrames
-    : public ContentAutofillDriverFactoryTest {
+    : public ContentAutofillDriverFactoryTest,
+      public ::testing::WithParamInterface<bool> {
  public:
   ContentAutofillDriverFactoryTest_FencedFrames() {
-    std::vector<base::test::FeatureRefAndParams> enabled{
-        {blink::features::kFencedFrames, {{"implementation_type", "mparch"}}},
-        {blink::features::kFencedFramesAPIChanges, {}}};
-    scoped_feature_list_.InitWithFeaturesAndParameters(enabled, {});
+    std::vector<base::test::FeatureRefAndParams> enabled;
+    std::vector<base::test::FeatureRef> disabled;
+    enabled.push_back(
+        {blink::features::kFencedFrames, {{"implementation_type", "mparch"}}});
+    if (autofill_enabled_in_fencedframe()) {
+      enabled.push_back({blink::features::kFencedFramesAPIChanges, {}});
+      enabled.push_back({features::kAutofillEnableWithinFencedFrame, {}});
+    } else {
+      disabled.push_back(features::kAutofillEnableWithinFencedFrame);
+    }
+    scoped_feature_list_.InitWithFeaturesAndParameters(enabled, disabled);
   }
 
   ~ContentAutofillDriverFactoryTest_FencedFrames() override = default;
+
+  bool autofill_enabled_in_fencedframe() const { return GetParam(); }
 
  private:
   base::test::ScopedFeatureList scoped_feature_list_;
 };
 
-TEST_F(ContentAutofillDriverFactoryTest_FencedFrames,
+TEST_P(ContentAutofillDriverFactoryTest_FencedFrames,
        DisableAutofillWithinFencedFrame) {
   NavigateMainFrame("http://test.org");
   content::RenderFrameHost* fenced_frame_root =
@@ -412,9 +412,18 @@ TEST_F(ContentAutofillDriverFactoryTest_FencedFrames,
       content::RenderFrameHostTester::For(fenced_frame_root)
           ->AppendChild("iframe");
   EXPECT_NE(nullptr, factory_->DriverForFrame(main_rfh()));
-  EXPECT_NE(nullptr, factory_->DriverForFrame(fenced_frame_root));
-  EXPECT_NE(nullptr, factory_->DriverForFrame(fenced_frame_subframe));
+  if (autofill_enabled_in_fencedframe()) {
+    EXPECT_NE(nullptr, factory_->DriverForFrame(fenced_frame_root));
+    EXPECT_NE(nullptr, factory_->DriverForFrame(fenced_frame_subframe));
+  } else {
+    EXPECT_EQ(nullptr, factory_->DriverForFrame(fenced_frame_root));
+    EXPECT_EQ(nullptr, factory_->DriverForFrame(fenced_frame_subframe));
+  }
 }
+
+INSTANTIATE_TEST_SUITE_P(ContentAutofillDriverFactoryTest,
+                         ContentAutofillDriverFactoryTest_FencedFrames,
+                         testing::Bool());
 
 struct AgentSetupParam {
   version_info::Channel channel;

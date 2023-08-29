@@ -29,7 +29,6 @@
 #include "third_party/blink/renderer/core/dom/first_letter_pseudo_element.h"
 #include "third_party/blink/renderer/core/dom/layout_tree_builder.h"
 #include "third_party/blink/renderer/core/dom/layout_tree_builder_traversal.h"
-#include "third_party/blink/renderer/core/dom/node_cloning_data.h"
 #include "third_party/blink/renderer/core/dom/node_computed_style.h"
 #include "third_party/blink/renderer/core/dom/node_traversal.h"
 #include "third_party/blink/renderer/core/dom/shadow_root.h"
@@ -117,8 +116,7 @@ Text* Text::splitText(unsigned offset, ExceptionState& exception_state) {
 
   EventQueueScope scope;
   String old_str = data();
-  Text* new_text =
-      To<Text>(CloneWithData(GetDocument(), old_str.Substring(offset)));
+  Text* new_text = CloneWithData(GetDocument(), old_str.Substring(offset));
   SetDataWithoutUpdate(old_str.Substring(0, offset));
 
   DidModifyData(old_str, CharacterData::kUpdateFromNonParser);
@@ -243,6 +241,10 @@ Text* Text::ReplaceWholeText(const String& new_text) {
 
 String Text::nodeName() const {
   return "#text";
+}
+
+Node* Text::Clone(Document& factory, CloneChildrenFlag) const {
+  return CloneWithData(factory, data());
 }
 
 static inline bool EndsWithWhitespace(const String& text) {
@@ -389,7 +391,7 @@ bool NeedsWhitespaceLayoutObject(const ComputedStyle& style) {
 }  // namespace
 
 void Text::RecalcTextStyle(const StyleRecalcChange change) {
-  const ComputedStyle* new_style =
+  scoped_refptr<const ComputedStyle> new_style =
       GetDocument().GetStyleResolver().StyleForText(this);
   if (LayoutText* layout_text = GetLayoutObject()) {
     const ComputedStyle* layout_parent_style =
@@ -401,7 +403,7 @@ void Text::RecalcTextStyle(const StyleRecalcChange change) {
       // display:contents text child changed.
       SetNeedsReattachLayoutTree();
     } else {
-      layout_text->SetStyle(new_style);
+      layout_text->SetStyle(std::move(new_style));
       if (NeedsStyleRecalc())
         layout_text->SetTextIfNeeded(data());
     }
@@ -484,8 +486,7 @@ void Text::UpdateTextLayoutObject(unsigned offset_of_replaced_data,
                                         length_of_replaced_data);
 }
 
-CharacterData* Text::CloneWithData(Document& factory,
-                                   const String& data) const {
+Text* Text::CloneWithData(Document& factory, const String& data) const {
   return Create(factory, data);
 }
 

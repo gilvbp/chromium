@@ -236,7 +236,6 @@ TEST_F(FileSystemHelperTest, DeleteData) {
 
   helper_->DeleteFileSystemOrigin(origin1);
   helper_->DeleteFileSystemOrigin(origin2);
-  content::RunAllTasksUntilIdle();
 
   FetchFileSystems();
 

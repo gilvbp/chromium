@@ -8,7 +8,6 @@
 
 #include <memory>
 
-#include "base/containers/contains.h"
 #include "base/files/file_descriptor_watcher_posix.h"
 #include "base/functional/bind.h"
 #include "base/logging.h"
@@ -22,7 +21,6 @@
 #include "base/threading/thread_restrictions.h"
 #include "base/time/time.h"
 #include "base/timer/elapsed_timer.h"
-#include "dbus/error.h"
 #include "dbus/exported_object.h"
 #include "dbus/message.h"
 #include "dbus/object_manager.h"
@@ -148,11 +146,6 @@ class Timeout {
 
   base::WeakPtrFactory<Timeout> weak_ptr_factory_{this};
 };
-
-// Converts DBusError into dbus::Error.
-Error ToError(const internal::ScopedDBusError& error) {
-  return error.is_set() ? Error(error.name(), error.message()) : Error();
-}
 
 }  // namespace
 
@@ -387,25 +380,24 @@ bool Bus::Connect() {
   if (connection_)
     return true;
 
-  internal::ScopedDBusError dbus_error;
+  ScopedDBusError error;
   if (bus_type_ == CUSTOM_ADDRESS) {
     if (connection_type_ == PRIVATE) {
-      connection_ =
-          dbus_connection_open_private(address_.c_str(), dbus_error.get());
+      connection_ = dbus_connection_open_private(address_.c_str(), error.get());
     } else {
-      connection_ = dbus_connection_open(address_.c_str(), dbus_error.get());
+      connection_ = dbus_connection_open(address_.c_str(), error.get());
     }
   } else {
     const DBusBusType dbus_bus_type = static_cast<DBusBusType>(bus_type_);
     if (connection_type_ == PRIVATE) {
-      connection_ = dbus_bus_get_private(dbus_bus_type, dbus_error.get());
+      connection_ = dbus_bus_get_private(dbus_bus_type, error.get());
     } else {
-      connection_ = dbus_bus_get(dbus_bus_type, dbus_error.get());
+      connection_ = dbus_bus_get(dbus_bus_type, error.get());
     }
   }
   if (!connection_) {
     LOG(ERROR) << "Failed to connect to the bus: "
-               << (dbus_error.is_set() ? dbus_error.message() : "");
+               << (error.is_set() ? error.message() : "");
     return false;
   }
 
@@ -415,9 +407,9 @@ bool Bus::Connect() {
     // org.freedesktop.DBus.Hello method at the beging of bus connection to
     // acquire unique name. In the case of dbus_bus_get, dbus_bus_register is
     // called internally.
-    if (!dbus_bus_register(connection_, dbus_error.get())) {
+    if (!dbus_bus_register(connection_, error.get())) {
       LOG(ERROR) << "Failed to register the bus component: "
-                 << (dbus_error.is_set() ? dbus_error.message() : "");
+                 << (error.is_set() ? error.message() : "");
       return false;
     }
   }
@@ -426,8 +418,7 @@ bool Bus::Connect() {
 
   // Watch Disconnected signal.
   AddFilterFunction(Bus::OnConnectionDisconnectedFilter, this);
-  Error error;
-  AddMatch(kDisconnectedMatchRule, &error);
+  AddMatch(kDisconnectedMatchRule, error.get());
 
   return true;
 }
@@ -491,9 +482,9 @@ void Bus::ShutdownAndBlock() {
         FROM_HERE, base::BlockingType::MAY_BLOCK);
 
     // Remove Disconnected watcher.
-    Error error;
+    ScopedDBusError error;
     RemoveFilterFunction(Bus::OnConnectionDisconnectedFilter, this);
-    RemoveMatch(kDisconnectedMatchRule, &error);
+    RemoveMatch(kDisconnectedMatchRule, error.get());
 
     if (connection_type_ == PRIVATE)
       ClosePrivateConnection();
@@ -556,13 +547,13 @@ bool Bus::RequestOwnershipAndBlock(const std::string& service_name,
   AssertOnDBusThread();
 
   // Check if we already own the service name.
-  if (base::Contains(owned_service_names_, service_name)) {
+  if (owned_service_names_.find(service_name) != owned_service_names_.end()) {
     return true;
   }
 
   base::ScopedBlockingCall scoped_blocking_call(FROM_HERE,
                                                 base::BlockingType::MAY_BLOCK);
-  internal::ScopedDBusError error;
+  ScopedDBusError error;
   const int result = dbus_bus_request_name(connection_,
                                            service_name.c_str(),
                                            options,
@@ -591,7 +582,7 @@ bool Bus::ReleaseOwnership(const std::string& service_name) {
 
   base::ScopedBlockingCall scoped_blocking_call(FROM_HERE,
                                                 base::BlockingType::MAY_BLOCK);
-  internal::ScopedDBusError error;
+  ScopedDBusError error;
   const int result = dbus_bus_release_name(connection_, service_name.c_str(),
                                            error.get());
   if (result == DBUS_RELEASE_NAME_REPLY_RELEASED) {
@@ -636,9 +627,9 @@ bool Bus::SetUpAsyncOperations() {
   return true;
 }
 
-base::expected<std::unique_ptr<Response>, Error> Bus::SendWithReplyAndBlock(
-    DBusMessage* request,
-    int timeout_ms) {
+DBusMessage* Bus::SendWithReplyAndBlock(DBusMessage* request,
+                                        int timeout_ms,
+                                        DBusError* error) {
   DCHECK(connection_);
   AssertOnDBusThread();
 
@@ -646,9 +637,9 @@ base::expected<std::unique_ptr<Response>, Error> Bus::SendWithReplyAndBlock(
 
   base::ScopedBlockingCall scoped_blocking_call(FROM_HERE,
                                                 base::BlockingType::MAY_BLOCK);
-  internal::ScopedDBusError dbus_error;
   DBusMessage* reply = dbus_connection_send_with_reply_and_block(
-      connection_, request, timeout_ms, dbus_error.get());
+      connection_, request, timeout_ms, error);
+
   constexpr base::TimeDelta kLongCall = base::Seconds(1);
   LOG_IF(WARNING, elapsed.Elapsed() >= kLongCall)
       << "Bus::SendWithReplyAndBlock took "
@@ -658,11 +649,7 @@ base::expected<std::unique_ptr<Response>, Error> Bus::SendWithReplyAndBlock(
       << ", interface=" << dbus_message_get_interface(request)
       << ", member=" << dbus_message_get_member(request);
 
-  if (!reply) {
-    return base::unexpected(ToError(dbus_error));
-  }
-
-  return base::ok(Response::FromRawMessage(reply));
+  return reply;
 }
 
 void Bus::SendWithReply(DBusMessage* request,
@@ -695,7 +682,8 @@ void Bus::AddFilterFunction(DBusHandleMessageFunction filter_function,
 
   std::pair<DBusHandleMessageFunction, void*> filter_data_pair =
       std::make_pair(filter_function, user_data);
-  if (base::Contains(filter_functions_added_, filter_data_pair)) {
+  if (filter_functions_added_.find(filter_data_pair) !=
+      filter_functions_added_.end()) {
     VLOG(1) << "Filter function already exists: " << filter_function
             << " with associated data: " << user_data;
     return;
@@ -716,7 +704,8 @@ void Bus::RemoveFilterFunction(DBusHandleMessageFunction filter_function,
 
   std::pair<DBusHandleMessageFunction, void*> filter_data_pair =
       std::make_pair(filter_function, user_data);
-  if (!base::Contains(filter_functions_added_, filter_data_pair)) {
+  if (filter_functions_added_.find(filter_data_pair) ==
+      filter_functions_added_.end()) {
     VLOG(1) << "Requested to remove an unknown filter function: "
             << filter_function
             << " with associated data: " << user_data;
@@ -729,9 +718,8 @@ void Bus::RemoveFilterFunction(DBusHandleMessageFunction filter_function,
   filter_functions_added_.erase(filter_data_pair);
 }
 
-void Bus::AddMatch(const std::string& match_rule, Error* error) {
+void Bus::AddMatch(const std::string& match_rule, DBusError* error) {
   DCHECK(connection_);
-  DCHECK(error);
   AssertOnDBusThread();
 
   std::map<std::string, int>::iterator iter =
@@ -746,17 +734,12 @@ void Bus::AddMatch(const std::string& match_rule, Error* error) {
 
   base::ScopedBlockingCall scoped_blocking_call(FROM_HERE,
                                                 base::BlockingType::MAY_BLOCK);
-  internal::ScopedDBusError dbus_error;
-  dbus_bus_add_match(connection_, match_rule.c_str(), dbus_error.get());
-  if (dbus_error.is_set()) {
-    *error = Error(dbus_error.name(), dbus_error.message());
-  }
+  dbus_bus_add_match(connection_, match_rule.c_str(), error);
   match_rules_added_[match_rule] = 1;
 }
 
-bool Bus::RemoveMatch(const std::string& match_rule, Error* error) {
+bool Bus::RemoveMatch(const std::string& match_rule, DBusError* error) {
   DCHECK(connection_);
-  DCHECK(error);
   AssertOnDBusThread();
 
   std::map<std::string, int>::iterator iter =
@@ -771,11 +754,7 @@ bool Bus::RemoveMatch(const std::string& match_rule, Error* error) {
   // The rule's counter is decremented and the rule is deleted when reachs 0.
   iter->second--;
   if (iter->second == 0) {
-    internal::ScopedDBusError dbus_error;
-    dbus_bus_remove_match(connection_, match_rule.c_str(), dbus_error.get());
-    if (dbus_error.is_set()) {
-      *error = Error(dbus_error.name(), dbus_error.message());
-    }
+    dbus_bus_remove_match(connection_, match_rule.c_str(), error);
     match_rules_added_.erase(match_rule);
   }
   return true;
@@ -784,7 +763,7 @@ bool Bus::RemoveMatch(const std::string& match_rule, Error* error) {
 bool Bus::TryRegisterObjectPath(const ObjectPath& object_path,
                                 const DBusObjectPathVTable* vtable,
                                 void* user_data,
-                                Error* error) {
+                                DBusError* error) {
   return TryRegisterObjectPathInternal(
       object_path, vtable, user_data, error,
       dbus_connection_try_register_object_path);
@@ -793,8 +772,7 @@ bool Bus::TryRegisterObjectPath(const ObjectPath& object_path,
 bool Bus::TryRegisterFallback(const ObjectPath& object_path,
                               const DBusObjectPathVTable* vtable,
                               void* user_data,
-                              Error* error) {
-  DCHECK(error);
+                              DBusError* error) {
   return TryRegisterObjectPathInternal(object_path, vtable, user_data, error,
                                        dbus_connection_try_register_fallback);
 }
@@ -803,28 +781,23 @@ bool Bus::TryRegisterObjectPathInternal(
     const ObjectPath& object_path,
     const DBusObjectPathVTable* vtable,
     void* user_data,
-    Error* error,
+    DBusError* error,
     TryRegisterObjectPathFunction* register_function) {
   DCHECK(connection_);
-  DCHECK(error);
   AssertOnDBusThread();
   base::ScopedBlockingCall scoped_blocking_call(FROM_HERE,
                                                 base::BlockingType::MAY_BLOCK);
 
-  if (base::Contains(registered_object_paths_, object_path)) {
+  if (registered_object_paths_.find(object_path) !=
+      registered_object_paths_.end()) {
     LOG(ERROR) << "Object path already registered: " << object_path.value();
     return false;
   }
 
-  internal::ScopedDBusError dbus_error;
-  const bool success =
-      register_function(connection_, object_path.value().c_str(), vtable,
-                        user_data, dbus_error.get());
-  if (success) {
+  const bool success = register_function(
+      connection_, object_path.value().c_str(), vtable, user_data, error);
+  if (success)
     registered_object_paths_.insert(object_path);
-  } else if (dbus_error.is_set()) {
-    *error = Error(dbus_error.name(), dbus_error.message());
-  }
   return success;
 }
 
@@ -832,7 +805,8 @@ void Bus::UnregisterObjectPath(const ObjectPath& object_path) {
   DCHECK(connection_);
   AssertOnDBusThread();
 
-  if (!base::Contains(registered_object_paths_, object_path)) {
+  if (registered_object_paths_.find(object_path) ==
+      registered_object_paths_.end()) {
     LOG(ERROR) << "Requested to unregister an unknown object path: "
                << object_path.value();
     return;
@@ -923,17 +897,23 @@ std::string Bus::GetServiceOwnerAndBlock(const std::string& service_name,
     return "";
   }
 
-  auto result = SendWithReplyAndBlock(get_name_owner_call.raw_message(),
-                                      ObjectProxy::TIMEOUT_USE_DEFAULT);
-  if (!result.has_value()) {
+  ScopedDBusError error;
+  DBusMessage* response_message =
+      SendWithReplyAndBlock(get_name_owner_call.raw_message(),
+                            ObjectProxy::TIMEOUT_USE_DEFAULT,
+                            error.get());
+  if (!response_message) {
     if (options == REPORT_ERRORS) {
-      LOG(ERROR) << "Failed to get name owner. Got " << result.error().name()
-                 << ": " << result.error().message();
+      LOG(ERROR) << "Failed to get name owner. Got " << error.name() << ": "
+                 << error.message();
     }
     return "";
   }
 
-  MessageReader reader(result->get());
+  std::unique_ptr<Response> response(
+      Response::FromRawMessage(response_message));
+  MessageReader reader(response.get());
+
   std::string service_owner;
   if (!reader.PopString(&service_owner))
     service_owner.clear();
@@ -992,9 +972,9 @@ void Bus::ListenForServiceOwnerChangeInternal(
     const std::string name_owner_changed_match_rule =
         base::StringPrintf(kServiceNameOwnerChangeMatchRule,
                            service_name.c_str());
-    dbus::Error error;
-    AddMatch(name_owner_changed_match_rule, &error);
-    if (error.IsValid()) {
+    ScopedDBusError error;
+    AddMatch(name_owner_changed_match_rule, error.get());
+    if (error.is_set()) {
       LOG(ERROR) << "Failed to add match rule for " << service_name
                  << ". Got " << error.name() << ": " << error.message();
       return;
@@ -1051,9 +1031,9 @@ void Bus::UnlistenForServiceOwnerChangeInternal(
   const std::string name_owner_changed_match_rule =
       base::StringPrintf(kServiceNameOwnerChangeMatchRule,
                          service_name.c_str());
-  Error error;
-  RemoveMatch(name_owner_changed_match_rule, &error);
-  // And remove |service_owner_changed_lister_map_| entry.
+  ScopedDBusError error;
+  RemoveMatch(name_owner_changed_match_rule, error.get());
+  // And remove |service_owner_changed_listener_map_| entry.
   service_owner_changed_listener_map_.erase(it);
 
   if (service_owner_changed_listener_map_.empty())

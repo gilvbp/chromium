@@ -7,7 +7,6 @@
 #include "base/logging.h"
 #include "third_party/blink/renderer/bindings/core/v8/v8_binding_for_core.h"
 #include "third_party/blink/renderer/core/frame/local_frame_client.h"
-#include "third_party/blink/renderer/core/frame/local_frame_view.h"
 #include "third_party/blink/renderer/core/inspector/console_message.h"
 #include "third_party/blink/renderer/core/layout/layout_view.h"
 #include "third_party/blink/renderer/core/paint/timing/paint_timing.h"
@@ -241,10 +240,6 @@ void SoftNavigationHeuristics::ReportSoftNavigationToMetrics(
 void SoftNavigationHeuristics::ResetPaintsIfNeeded(LocalFrame* frame,
                                                    LocalDOMWindow* window) {
   if (!did_reset_paints_) {
-    LocalFrameView* local_frame_view = frame->View();
-
-    CHECK(local_frame_view);
-
     if (RuntimeEnabledFeatures::SoftNavigationHeuristicsEnabled(window)) {
       if (Document* document = window->document();
           document &&
@@ -252,11 +247,9 @@ void SoftNavigationHeuristics::ResetPaintsIfNeeded(LocalFrame* frame,
               window)) {
         PaintTiming::From(*document).ResetFirstPaintAndFCP();
       }
-      local_frame_view->GetPaintTimingDetector().RestartRecordingLCP();
+      DCHECK(frame->View());
+      frame->View()->GetPaintTimingDetector().RestartRecordingLCP();
     }
-
-    local_frame_view->GetPaintTimingDetector().RestartRecordingLCPToUkm();
-
     did_reset_paints_ = true;
   }
 }

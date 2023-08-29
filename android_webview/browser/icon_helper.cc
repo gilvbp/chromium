@@ -5,7 +5,6 @@
 #include "android_webview/browser/icon_helper.h"
 
 #include "base/check_op.h"
-#include "base/containers/contains.h"
 #include "base/functional/bind.h"
 #include "base/functional/callback.h"
 #include "base/hash/hash.h"
@@ -129,7 +128,7 @@ void IconHelper::MarkUnableToDownloadFavicon(const GURL& icon_url) {
 
 bool IconHelper::WasUnableToDownloadFavicon(const GURL& icon_url) const {
   MissingFaviconURLHash url_hash = base::FastHash(icon_url.spec());
-  return base::Contains(missing_favicon_urls_, url_hash);
+  return missing_favicon_urls_.find(url_hash) != missing_favicon_urls_.end();
 }
 
 void IconHelper::ClearUnableToDownloadFavicons() {

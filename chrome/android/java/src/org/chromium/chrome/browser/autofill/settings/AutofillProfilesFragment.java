@@ -17,6 +17,7 @@ import android.view.MenuItem;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.PreferenceScreen;
@@ -27,6 +28,8 @@ import org.chromium.chrome.R;
 import org.chromium.chrome.browser.autofill.AutofillAddress;
 import org.chromium.chrome.browser.autofill.AutofillEditorBase;
 import org.chromium.chrome.browser.autofill.PersonalDataManager;
+import org.chromium.chrome.browser.autofill.PersonalDataManager.AutofillProfile;
+import org.chromium.chrome.browser.autofill.Source;
 import org.chromium.chrome.browser.autofill.editors.AddressEditorCoordinator;
 import org.chromium.chrome.browser.autofill.editors.AddressEditorCoordinator.Delegate;
 ;
@@ -42,8 +45,6 @@ import org.chromium.chrome.browser.settings.ChromeManagedPreferenceDelegate;
 import org.chromium.chrome.browser.settings.ProfileDependentSetting;
 import org.chromium.chrome.browser.signin.services.IdentityServicesProvider;
 import org.chromium.chrome.browser.sync.SyncServiceFactory;
-import org.chromium.components.autofill.AutofillProfile;
-import org.chromium.components.autofill.Source;
 import org.chromium.components.browser_ui.settings.ChromeSwitchPreference;
 import org.chromium.components.browser_ui.styles.SemanticColorUtils;
 import org.chromium.components.signin.identitymanager.ConsentLevel;
@@ -227,6 +228,7 @@ public class AutofillProfilesFragment extends PreferenceFragmentCompat
         super.onDestroyView();
     }
 
+    @VisibleForTesting
     public static void setObserverForTest(EditorObserverForTest observerForTest) {
         sObserverForTest = observerForTest;
         EditorDialogView.setEditorObserverForTest(sObserverForTest);
@@ -280,6 +282,8 @@ public class AutofillProfilesFragment extends PreferenceFragmentCompat
         }
         if (!ChromeFeatureList.isEnabled(ChromeFeatureList.AUTOFILL_ACCOUNT_PROFILE_STORAGE)
                 || !ChromeFeatureList.isEnabled(
+                        ChromeFeatureList.SYNC_ENABLE_CONTACT_INFO_DATA_TYPE)
+                || !ChromeFeatureList.isEnabled(
                         ChromeFeatureList.SYNC_ENABLE_CONTACT_INFO_DATA_TYPE_IN_TRANSPORT_MODE)) {
             return false;
         }
@@ -292,6 +296,7 @@ public class AutofillProfilesFragment extends PreferenceFragmentCompat
         return getPreferenceManager().getContext();
     }
 
+    @VisibleForTesting
     EditorDialogView getEditorDialogForTest() {
         return mAddressEditor.getEditorDialogForTesting();
     }

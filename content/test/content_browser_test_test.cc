@@ -8,7 +8,6 @@
 
 #include "base/base_switches.h"
 #include "base/command_line.h"
-#include "base/containers/contains.h"
 #include "base/functional/bind.h"
 #include "base/location.h"
 #include "base/process/launch.h"
@@ -23,7 +22,6 @@
 #include "base/test/test_timeouts.h"
 #include "base/threading/thread_restrictions.h"
 #include "build/build_config.h"
-#include "content/public/browser/network_service_util.h"
 #include "content/public/browser/render_frame_host.h"
 #include "content/public/browser/render_process_host.h"
 #include "content/public/browser/web_contents.h"
@@ -62,11 +60,12 @@ base::CommandLine CreateCommandLine() {
   const base::CommandLine& cmdline = *base::CommandLine::ForCurrentProcess();
   base::CommandLine command_line = base::CommandLine(cmdline.GetProgram());
 #if BUILDFLAG(IS_OZONE)
-  static const char* const kSwitchesToCopy[] = {
+  const char* kSwitchesToCopy[] = {
       // Keep the kOzonePlatform switch that the Ozone must use.
       switches::kOzonePlatform,
   };
-  command_line.CopySwitchesFrom(cmdline, kSwitchesToCopy);
+  command_line.CopySwitchesFrom(cmdline, kSwitchesToCopy,
+                                std::size(kSwitchesToCopy));
 #endif
   return command_line;
 }
@@ -135,7 +134,7 @@ IN_PROC_BROWSER_TEST_F(ContentBrowserTest, MAYBE_RendererCrashCallStack) {
       "#0 ";
 #endif
 
-  if (!base::Contains(output, crash_string)) {
+  if (output.find(crash_string) == std::string::npos) {
     GTEST_FAIL() << "Couldn't find\n" << crash_string << "\n in output\n "
                  << output;
   }
@@ -172,7 +171,8 @@ IN_PROC_BROWSER_TEST_F(ContentBrowserTest, MAYBE_BrowserCrashCallStack) {
   // A browser process immediate crash can race the initialization of the
   // network service process and leave the process hanging, so run the network
   // service in-process.
-  ForceInProcessNetworkService();
+  new_test.AppendSwitchASCII(switches::kEnableFeatures,
+                             features::kNetworkServiceInProcess.name);
 
   std::string output;
   base::GetAppOutputAndError(new_test, &output);
@@ -188,9 +188,9 @@ IN_PROC_BROWSER_TEST_F(ContentBrowserTest, MAYBE_BrowserCrashCallStack) {
       "#0 ";
 #endif
 
-  if (!base::Contains(output, crash_string)) {
-    GTEST_FAIL() << "Couldn't find\n"
-                 << crash_string << "\n in output\n " << output;
+  if (output.find(crash_string) == std::string::npos) {
+    GTEST_FAIL() << "Couldn't find\n" << crash_string << "\n in output\n "
+                 << output;
   }
 }
 

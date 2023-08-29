@@ -7,7 +7,6 @@
 #include <utility>
 
 #include "base/command_line.h"
-#include "base/containers/contains.h"
 #include "base/functional/bind.h"
 #include "base/functional/callback_helpers.h"
 #include "base/strings/escape.h"
@@ -63,7 +62,7 @@ constexpr char TestOAuthTokenGetter::kSwitchNameAuthCode[];
 
 // static
 bool TestOAuthTokenGetter::IsServiceAccount(const std::string& email) {
-  return base::Contains(email, "@chromoting.gserviceaccount.com");
+  return email.find("@chromoting.gserviceaccount.com") != std::string::npos;
 }
 
 TestOAuthTokenGetter::TestOAuthTokenGetter(TestTokenStorage* token_storage) {

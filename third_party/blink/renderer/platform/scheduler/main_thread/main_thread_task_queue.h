@@ -73,7 +73,6 @@ class PLATFORM_EXPORT MainThreadTaskQueue
     kFramePausable = 14,
     kFrameUnpausable = 15,
     kV8 = 16,
-    kV8LowPriority = 27,
     // 17 : kIPC, obsolete
     kInput = 18,
 
@@ -93,7 +92,7 @@ class PLATFORM_EXPORT MainThreadTaskQueue
 
     // Used to group multiple types when calculating Expected Queueing Time.
     kOther = 23,
-    kCount = 28
+    kCount = 27
   };
 
   // The ThrottleHandle controls throttling and unthrottling the queue. When
@@ -171,9 +170,8 @@ class PLATFORM_EXPORT MainThreadTaskQueue
       kPostMessageForwarding = 11,
       kInternalNavigationCancellation = 12,
       kRenderBlocking = 13,
-      kLow = 14,
 
-      kCount = 15
+      kCount = 14
     };
 
     // kPrioritisationTypeWidthBits is the number of bits required
@@ -557,7 +555,7 @@ class PLATFORM_EXPORT MainThreadTaskQueue
   scoped_refptr<BlinkSchedulerSingleThreadTaskRunner> WrapTaskRunner(
       scoped_refptr<base::SingleThreadTaskRunner>);
 
-  TaskQueue::Handle task_queue_;
+  scoped_refptr<TaskQueue> task_queue_;
   scoped_refptr<base::SingleThreadTaskRunner>
       task_runner_with_default_task_type_;
   absl::optional<TaskQueueThrottler> throttler_;

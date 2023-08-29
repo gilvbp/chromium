@@ -27,7 +27,7 @@ class AffiliationServiceFactory : public ProfileKeyedServiceFactory {
   static password_manager::AffiliationService* GetForProfile(Profile* profile);
 
  private:
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* context) const override;
 };
 

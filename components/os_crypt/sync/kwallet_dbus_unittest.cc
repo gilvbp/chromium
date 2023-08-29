@@ -377,7 +377,7 @@ TEST_P(KWalletDBusTest, StartWalletdErrorContact) {
       *mock_klauncher_proxy_.get(),
       CallMethodAndBlock(
           Calls(kKLauncherInterface, "start_service_by_desktop_name"), _))
-      .WillOnce(Return(ByMove(base::unexpected(dbus::Error()))));
+      .WillOnce(Return(ByMove(nullptr)));
 
   EXPECT_FALSE(kwallet_dbus_.StartKWalletd());
 }
@@ -415,7 +415,7 @@ TEST_P(KWalletDBusTest, IsEnabledErrorRead) {
 TEST_P(KWalletDBusTest, IsEnabledErrorContact) {
   EXPECT_CALL(*mock_kwallet_proxy_.get(),
               CallMethodAndBlock(Calls(kKWalletInterface, "isEnabled"), _))
-      .WillOnce(Return(ByMove(base::unexpected(dbus::Error()))));
+      .WillOnce(Return(ByMove(nullptr)));
 
   bool is_enabled = true;
   EXPECT_EQ(KWalletDBus::Error::CANNOT_CONTACT,
@@ -445,9 +445,10 @@ TEST_P(KWalletDBusTest, NetworkWalletErrorRead) {
 }
 
 TEST_P(KWalletDBusTest, NetworkWalletErrorContact) {
-  EXPECT_CALL(*mock_kwallet_proxy_.get(),
-              CallMethodAndBlock(Calls(kKWalletInterface, "networkWallet"), _))
-      .WillOnce(Return(ByMove(base::unexpected(dbus::Error()))));
+  EXPECT_CALL(
+      *mock_kwallet_proxy_.get(),
+      CallMethodAndBlock(Calls(kKWalletInterface, "networkWallet"), _))
+      .WillOnce(Return(ByMove(nullptr)));
 
   std::string wallet;
   EXPECT_EQ(KWalletDBus::Error::CANNOT_CONTACT,
@@ -481,7 +482,7 @@ TEST_P(KWalletDBusTest, OpenErrorRead) {
 TEST_P(KWalletDBusTest, OpenErrorContact) {
   EXPECT_CALL(*mock_kwallet_proxy_.get(),
               CallMethodAndBlock(Calls(kKWalletInterface, "open"), _))
-      .WillOnce(Return(ByMove(base::unexpected(dbus::Error()))));
+      .WillOnce(Return(ByMove(nullptr)));
 
   int ret;
   EXPECT_EQ(KWalletDBus::Error::CANNOT_CONTACT,
@@ -515,7 +516,7 @@ TEST_P(KWalletDBusTest, HasEntryErrorRead) {
 TEST_P(KWalletDBusTest, HasEntryErrorContact) {
   EXPECT_CALL(*mock_kwallet_proxy_.get(),
               CallMethodAndBlock(Calls(kKWalletInterface, "hasEntry"), _))
-      .WillOnce(Return(ByMove(base::unexpected(dbus::Error()))));
+      .WillOnce(Return(ByMove(nullptr)));
 
   bool has_entry = false;
   EXPECT_EQ(KWalletDBus::Error::CANNOT_CONTACT,
@@ -549,7 +550,7 @@ TEST_P(KWalletDBusTest, EntryTypeErrorRead) {
 TEST_P(KWalletDBusTest, EntryTypeErrorContact) {
   EXPECT_CALL(*mock_kwallet_proxy_.get(),
               CallMethodAndBlock(Calls(kKWalletInterface, "entryType"), _))
-      .WillOnce(Return(ByMove(base::unexpected(dbus::Error()))));
+      .WillOnce(Return(ByMove(nullptr)));
 
   KWalletDBus::Type type = KWalletDBus::Type::kUnknown;
   EXPECT_EQ(KWalletDBus::Error::CANNOT_CONTACT,
@@ -585,7 +586,7 @@ TEST_P(KWalletDBusTest, ReadEntryErrorRead) {
 TEST_P(KWalletDBusTest, ReadEntryErrorContact) {
   EXPECT_CALL(*mock_kwallet_proxy_.get(),
               CallMethodAndBlock(Calls(kKWalletInterface, "readEntry"), _))
-      .WillOnce(Return(ByMove(base::unexpected(dbus::Error()))));
+      .WillOnce(Return(ByMove(nullptr)));
 
   std::vector<uint8_t> bytes;
   EXPECT_EQ(KWalletDBus::Error::CANNOT_CONTACT,
@@ -621,7 +622,7 @@ TEST_P(KWalletDBusTest, EntryListErrorContact) {
   std::vector<std::string> strings_expected = {"one", "two"};
   EXPECT_CALL(*mock_kwallet_proxy_.get(),
               CallMethodAndBlock(Calls(kKWalletInterface, "entryList"), _))
-      .WillOnce(Return(ByMove(base::unexpected(dbus::Error()))));
+      .WillOnce(Return(ByMove(nullptr)));
 
   std::vector<std::string> strings;
   EXPECT_EQ(KWalletDBus::Error::CANNOT_CONTACT,
@@ -655,9 +656,10 @@ TEST_P(KWalletDBusTest, RemoveEntryErrorRead) {
 }
 
 TEST_P(KWalletDBusTest, RemoveEntryErrorContact) {
-  EXPECT_CALL(*mock_kwallet_proxy_.get(),
-              CallMethodAndBlock(Calls(kKWalletInterface, "removeEntry"), _))
-      .WillOnce(Return(ByMove(base::unexpected(dbus::Error()))));
+  EXPECT_CALL(
+      *mock_kwallet_proxy_.get(),
+      CallMethodAndBlock(Calls(kKWalletInterface, "removeEntry"), _))
+      .WillOnce(Return(ByMove(nullptr)));
 
   int ret;
   EXPECT_EQ(KWalletDBus::Error::CANNOT_CONTACT,
@@ -697,7 +699,7 @@ TEST_P(KWalletDBusTest, WriteEntryErrorContact) {
   std::vector<uint8_t> bytes = {1, 2, 3, 1};
   EXPECT_CALL(*mock_kwallet_proxy_.get(),
               CallMethodAndBlock(Calls(kKWalletInterface, "writeEntry"), _))
-      .WillOnce(Return(ByMove(base::unexpected(dbus::Error()))));
+      .WillOnce(Return(ByMove(nullptr)));
 
   int ret;
   EXPECT_EQ(KWalletDBus::Error::CANNOT_CONTACT,
@@ -732,7 +734,7 @@ TEST_P(KWalletDBusTest, HasFolderErrorRead) {
 TEST_P(KWalletDBusTest, HasFolderErrorContact) {
   EXPECT_CALL(*mock_kwallet_proxy_.get(),
               CallMethodAndBlock(Calls(kKWalletInterface, "hasFolder"), _))
-      .WillOnce(Return(ByMove(base::unexpected(dbus::Error()))));
+      .WillOnce(Return(ByMove(nullptr)));
 
   bool has_folder = false;
   EXPECT_EQ(KWalletDBus::Error::CANNOT_CONTACT,
@@ -765,9 +767,10 @@ TEST_P(KWalletDBusTest, CreateFolderErrorRead) {
 }
 
 TEST_P(KWalletDBusTest, CreateFolderErrorContact) {
-  EXPECT_CALL(*mock_kwallet_proxy_.get(),
-              CallMethodAndBlock(Calls(kKWalletInterface, "createFolder"), _))
-      .WillOnce(Return(ByMove(base::unexpected(dbus::Error()))));
+  EXPECT_CALL(
+      *mock_kwallet_proxy_.get(),
+      CallMethodAndBlock(Calls(kKWalletInterface, "createFolder"), _))
+      .WillOnce(Return(ByMove(nullptr)));
 
   bool created_folder = false;
   EXPECT_EQ(KWalletDBus::Error::CANNOT_CONTACT,
@@ -819,9 +822,10 @@ TEST_P(KWalletDBusTest, WritePasswordErrorRead) {
 }
 
 TEST_P(KWalletDBusTest, WritePasswordErrorContact) {
-  EXPECT_CALL(*mock_kwallet_proxy_.get(),
-              CallMethodAndBlock(Calls(kKWalletInterface, "writePassword"), _))
-      .WillOnce(Return(ByMove(base::unexpected(dbus::Error()))));
+  EXPECT_CALL(
+      *mock_kwallet_proxy_.get(),
+      CallMethodAndBlock(Calls(kKWalletInterface, "writePassword"), _))
+      .WillOnce(Return(ByMove(nullptr)));
 
   bool write_success = false;
   EXPECT_EQ(KWalletDBus::Error::CANNOT_CONTACT,
@@ -858,9 +862,10 @@ TEST_P(KWalletDBusTest, ReadPasswordErrorRead) {
 }
 
 TEST_P(KWalletDBusTest, ReadPasswordErrorContact) {
-  EXPECT_CALL(*mock_kwallet_proxy_.get(),
-              CallMethodAndBlock(Calls(kKWalletInterface, "readPassword"), _))
-      .WillOnce(Return(ByMove(base::unexpected(dbus::Error()))));
+  EXPECT_CALL(
+      *mock_kwallet_proxy_.get(),
+      CallMethodAndBlock(Calls(kKWalletInterface, "readPassword"), _))
+      .WillOnce(Return(ByMove(nullptr)));
 
   absl::optional<std::string> password;
   EXPECT_EQ(KWalletDBus::Error::CANNOT_CONTACT,
@@ -909,7 +914,7 @@ TEST_P(KWalletDBusTest, CloseErrorRead) {
 TEST_P(KWalletDBusTest, CloseErrorContact) {
   EXPECT_CALL(*mock_kwallet_proxy_.get(),
               CallMethodAndBlock(Calls(kKWalletInterface, "close"), _))
-      .WillOnce(Return(ByMove(base::unexpected(dbus::Error()))));
+      .WillOnce(Return(ByMove(nullptr)));
 
   bool success = true;
   EXPECT_EQ(KWalletDBus::Error::CANNOT_CONTACT,

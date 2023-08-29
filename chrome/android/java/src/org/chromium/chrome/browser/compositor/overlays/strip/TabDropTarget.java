@@ -6,19 +6,15 @@ package org.chromium.chrome.browser.compositor.overlays.strip;
 
 import android.app.Activity;
 import android.content.ClipData;
-import android.graphics.PointF;
 import android.util.Pair;
 import android.view.View;
 
-import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 import androidx.core.view.ContentInfoCompat;
 import androidx.core.view.OnReceiveContentListener;
 
 import org.chromium.base.Log;
-import org.chromium.chrome.browser.flags.ChromeFeatureList;
 import org.chromium.chrome.browser.tab.Tab;
-import org.chromium.ui.base.LocalizationUtils;
 
 /**
  * The class manages receiving and handling the ClipData containing the Chrome Tab information
@@ -29,11 +25,9 @@ class TabDropTarget {
     private static final String TAG = "TabDropTarget";
 
     private final DropContentReceiver mDropContentReceiver;
-    private StripLayoutHelper mDestinationStripLayoutHelper;
 
-    TabDropTarget(StripLayoutHelper stripLayoutHelper) {
+    TabDropTarget() {
         mDropContentReceiver = new DropContentReceiver();
-        mDestinationStripLayoutHelper = stripLayoutHelper;
     }
 
     /**
@@ -47,10 +41,7 @@ class TabDropTarget {
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     class DropContentReceiver implements OnReceiveContentListener {
         @Override
-        public @Nullable ContentInfoCompat onReceiveContent(View view, ContentInfoCompat payload) {
-            if (!ChromeFeatureList.sTabDragDropAndroid.isEnabled()) return payload;
-            if (payload == null) return payload;
-
+        public ContentInfoCompat onReceiveContent(View view, ContentInfoCompat payload) {
             // Accept the drop to handle only if all the following conditions are met:
             // 1. Tab Toolbar view is from a different Chrome window/instance
             // 2. Tab being dragged is present
@@ -69,20 +60,18 @@ class TabDropTarget {
                     for (int i = 0; i < clip.getItemCount(); i++) {
                         int sourceTabId = tabDragSource.getTabIdFromClipData(clip.getItemAt(i));
                         // Ignore the drop if the dropped tab id does not match the id of tab being
-                        // dragged. Return the orginal payload drop for next in line to receive the
+                        // dragged. Return the original payload drop for next in line to receive the
                         // drop to handle.
                         if (sourceTabId != tabBeingDragged.getId()) {
                             Log.w(TAG, "DnD: Received an invalid tab drop.");
                             return payload;
                         }
-                        int tabPositionIndex = getTabPositionIndex();
                         // TODO(b/290648035): Pass the Activity explicitly in place of casting the
                         // context handle.
                         tabDragSource.getMultiInstanceManager().moveTabToWindow(
-                                (Activity) view.getContext(), tabBeingDragged, tabPositionIndex);
+                                (Activity) view.getContext(), tabBeingDragged);
                         tabDragSource.clearTabBeingDragged();
                         tabDragSource.clearAcceptNextDrop();
-                        mDestinationStripLayoutHelper.selectTabAtIndex(tabPositionIndex);
                     }
                 }
 
@@ -98,32 +87,6 @@ class TabDropTarget {
             }
 
             return payload;
-        }
-
-        private int getTabPositionIndex() {
-            // Based on the location of the drop determine the position index where the tab will be
-            // placed.
-            PointF dropPosition = TabDragSource.getInstance().getTabDropPosition();
-            StripLayoutTab droppedOn =
-                    mDestinationStripLayoutHelper.getTabAtPosition(dropPosition.x);
-            int tabPositionIndex = mDestinationStripLayoutHelper.getTabCount();
-            // If not dropped on any existing tabs then simply add it at the end.
-            if (droppedOn != null) {
-                tabPositionIndex = mDestinationStripLayoutHelper.findIndexForTab(droppedOn.getId());
-                // Check if the tab being moved needs to be added before or after the tab it was
-                // dropped on based on the layout direction of tabs.
-                float droppedTabCenterX = droppedOn.getDrawX() + droppedOn.getWidth() / 2.f;
-                if (LocalizationUtils.isLayoutRtl()) {
-                    if (dropPosition.x <= droppedTabCenterX) {
-                        tabPositionIndex++;
-                    }
-                } else {
-                    if (dropPosition.x > droppedTabCenterX) {
-                        tabPositionIndex++;
-                    }
-                }
-            }
-            return tabPositionIndex;
         }
     }
 }

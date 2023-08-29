@@ -484,12 +484,12 @@ suite('scanningAppTest', function() {
     setScanServiceForTesting(fakeScanService_);
     fakeMultiPageScanController_ = new FakeMultiPageScanController();
     testBrowserProxy = new TestScanningBrowserProxy();
-    ScanningBrowserProxyImpl.setInstance(testBrowserProxy);
+    ScanningBrowserProxyImpl.instance_ = testBrowserProxy;
     testBrowserProxy.setMyFilesPath(MY_FILES_PATH);
   });
 
   setup(function() {
-    document.body.innerHTML = trustedTypes.emptyHTML;
+    document.body.innerHTML = '';
     linkEl = /**@type {HTMLLinkElement}*/ (document.createElement('link'));
     linkEl.href = disabledUrl;
     document.head.appendChild(linkEl);

@@ -62,16 +62,14 @@ BrowserContextHelper* BrowserContextHelper::Get() {
 // static
 std::string BrowserContextHelper::GetUserIdHashFromBrowserContext(
     content::BrowserContext* browser_context) {
-  if (!browser_context) {
+  if (!browser_context)
     return std::string();
-  }
 
   const std::string dir = browser_context->GetPath().BaseName().value();
 
   // Don't strip prefix if the dir is not supposed to be prefixed.
-  if (!ShouldAddBrowserContextDirPrefix(dir)) {
+  if (!ShouldAddBrowserContextDirPrefix(dir))
     return dir;
-  }
 
   if (!base::StartsWith(dir, kBrowserContextDirPrefix,
                         base::CompareCase::SENSITIVE)) {
@@ -197,12 +195,6 @@ content::BrowserContext* BrowserContextHelper::GetLockScreenBrowserContext() {
     return nullptr;
   }
   return delegate_->GetOrCreatePrimaryOTRBrowserContext(browser_context);
-}
-
-base::FilePath BrowserContextHelper::GetShimlessRmaAppBrowserContextPath()
-    const {
-  return delegate_->GetUserDataDir()->Append(
-      kShimlessRmaAppBrowserContextBaseName);
 }
 
 }  // namespace ash

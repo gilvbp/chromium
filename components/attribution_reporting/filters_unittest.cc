@@ -12,10 +12,8 @@
 
 #include "base/check_op.h"
 #include "base/strings/string_number_conversions.h"
-#include "base/test/gmock_expected_support.h"
 #include "base/test/metrics/histogram_tester.h"
 #include "base/test/values_test_util.h"
-#include "base/time/time.h"
 #include "base/types/optional_util.h"
 #include "base/values.h"
 #include "components/attribution_reporting/constants.h"
@@ -77,9 +75,6 @@ base::Value MakeFilterValuesWithValueLength(size_t n) {
   return base::Value(std::move(dict));
 }
 
-const base::Time kSourceTime = base::Time::Now();
-const base::Time kTriggerTime = kSourceTime + base::Seconds(5);
-
 const struct {
   const char* description;
   absl::optional<base::Value> json;
@@ -110,11 +105,11 @@ const struct {
             {"c", {"e", "d"}},
             {"f", {}},
         }),
-        FiltersDisjunction({*FilterConfig::Create({
+        FiltersDisjunction({{
             {"a", {"b"}},
             {"c", {"e", "d"}},
             {"f", {}},
-        })}),
+        }}),
     },
     {
         "source_type_key",
@@ -122,31 +117,7 @@ const struct {
           "source_type": ["a"]
         })json"),
         base::unexpected(SourceRegistrationError::kFilterDataHasSourceTypeKey),
-        FiltersDisjunction({*FilterConfig::Create({{{"source_type", {"a"}}}})}),
-    },
-    {
-        "lookback_window_key",
-        base::test::ParseJson(R"json({
-          "_lookback_window": 1
-        })json"),
-        base::unexpected(
-            SourceRegistrationError::kFilterDataHasLookbackWindowKey),
-        FiltersDisjunction(
-            {*FilterConfig::Create({}, /*lookback_window=*/base::Seconds(1))}),
-    },
-    {
-        "lookback_window_list",
-        base::test::ParseJson(R"json({"_lookback_window": ["a"]})json"),
-        base::unexpected(
-            SourceRegistrationError::kFilterDataHasLookbackWindowKey),
-        base::unexpected(TriggerRegistrationError::kFiltersValueWrongType),
-    },
-    {
-        "lookback_window_not_positive",
-        base::test::ParseJson(R"json({"_lookback_window": 0})json"),
-        base::unexpected(
-            SourceRegistrationError::kFilterDataHasLookbackWindowKey),
-        base::unexpected(TriggerRegistrationError::kFiltersValueWrongType),
+        FiltersDisjunction({{{"source_type", {"a"}}}}),
     },
     {
         "wrong_type",
@@ -226,8 +197,8 @@ TEST(FilterDataTest, FromJSON) {
     absl::optional<base::Value> json_copy =
         test_case.json ? absl::make_optional(test_case.json->Clone())
                        : absl::nullopt;
-    EXPECT_THAT(FilterData::FromJSON(base::OptionalToPtr(json_copy)),
-                base::test::ErrorIs(test_case.expected_filter_data_error))
+    EXPECT_EQ(FilterData::FromJSON(base::OptionalToPtr(json_copy)),
+              base::unexpected(test_case.expected_filter_data_error))
         << test_case.description;
   }
 
@@ -333,8 +304,8 @@ TEST(FiltersTest, FromJSON_list) {
         base::test::ParseJson(R"json([{"a":["b"]},{"c":["d"]}])json");
     auto actual = FiltersFromJSONForTesting(&multiple_valid_filter_values);
     EXPECT_EQ(actual, FiltersDisjunction({
-                          *FilterConfig::Create({{"a", {"b"}}}),
-                          *FilterConfig::Create({{"c", {"d"}}}),
+                          {{"a", {"b"}}},
+                          {{"c", {"d"}}},
                       }));
   }
   {
@@ -342,8 +313,8 @@ TEST(FiltersTest, FromJSON_list) {
         base::test::ParseJson(R"json([{"a":["b"]},"invalid"])json");
     auto actual =
         FiltersFromJSONForTesting(&one_valid_and_one_invalid_filter_values);
-    EXPECT_THAT(actual, base::test::ErrorIs(
-                            TriggerRegistrationError::kFiltersWrongType));
+    ASSERT_FALSE(actual.has_value());
+    EXPECT_EQ(actual.error(), TriggerRegistrationError::kFiltersWrongType);
   }
 }
 
@@ -370,7 +341,7 @@ TEST(FilterDataTest, ToJson) {
 
 TEST(FiltersTest, ToJson) {
   const struct {
-    FiltersDisjunction input;
+    std::vector<FilterValues> input;
     const char* expected_json;
   } kTestCases[] = {
       {
@@ -378,21 +349,13 @@ TEST(FiltersTest, ToJson) {
           R"json([])json",
       },
       {
-          {*FilterConfig::Create(FilterValues({{"a", {}}, {"b", {"c"}}}))},
+          {FilterValues({{"a", {}}, {"b", {"c"}}})},
           R"json([{"a":[],"b":["c"]}])json",
       },
       {
-          {*FilterConfig::Create(FilterValues({{"a", {}}})),
-           *FilterConfig::Create(FilterValues({{"b", {"c"}}}))},
+          {FilterValues({{"a", {}}}), FilterValues({{"b", {"c"}}})},
           R"json([{"a":[]},{"b":["c"]}])json",
       },
-      {
-          {*FilterConfig::Create(FilterValues({{"a", {}}}),
-                                 /*lookback_window=*/base::Seconds(2)),
-           *FilterConfig::Create(FilterValues({{"b", {"c"}}}))},
-          R"json([{"a":[], "_lookback_window": 2},{"b":["c"]}])json",
-      },
-
   };
 
   for (const auto& test_case : kTestCases) {
@@ -432,15 +395,14 @@ TEST(FilterDataTest, EmptyOrMissingAttributionFilters) {
         FilterData::Create(test_case.filter_data);
     ASSERT_TRUE(filter_data) << test_case.description;
 
-    FiltersDisjunction filters({*FilterConfig::Create(test_case.filters)});
-    EXPECT_TRUE(filter_data->MatchesForTesting(
-        SourceType::kNavigation, kSourceTime, kTriggerTime, filters,
-        /*negated=*/false))
+    FiltersDisjunction filters({test_case.filters});
+
+    EXPECT_TRUE(filter_data->MatchesForTesting(SourceType::kNavigation, filters,
+                                               /*negated=*/false))
         << test_case.description;
 
-    EXPECT_TRUE(filter_data->MatchesForTesting(
-        SourceType::kNavigation, kSourceTime, kTriggerTime, filters,
-        /*negated=*/true))
+    EXPECT_TRUE(filter_data->MatchesForTesting(SourceType::kNavigation, filters,
+                                               /*negated=*/true))
         << test_case.description << " with negation";
   }
 }
@@ -495,11 +457,10 @@ TEST(FilterDataTest, AttributionFilterDataMatch) {
         FilterData::Create(test_case.filter_data);
     ASSERT_TRUE(filter_data) << test_case.description;
 
-    FiltersDisjunction filters({*FilterConfig::Create(test_case.filters)});
+    FiltersDisjunction filters({test_case.filters});
 
     EXPECT_EQ(test_case.match_expected,
-              filter_data->MatchesForTesting(SourceType::kNavigation,
-                                             kSourceTime, kTriggerTime, filters,
+              filter_data->MatchesForTesting(SourceType::kNavigation, filters,
                                              /*negated=*/false))
         << test_case.description;
   }
@@ -530,8 +491,8 @@ TEST(FilterDataTest, AttributionFilterDataMatch_Disjunction) {
           .description = "non-empty",
           .disjunction =
               {
-                  *FilterConfig::Create({{"a", {"2"}}}),
-                  *FilterConfig::Create({{"a", {"1"}}}),
+                  {{"a", {"2"}}},
+                  {{"a", {"1"}}},
               },
           .negated = false,
           .match_expected = true,
@@ -540,8 +501,8 @@ TEST(FilterDataTest, AttributionFilterDataMatch_Disjunction) {
           .description = "non-empty-negated",
           .disjunction =
               {
-                  *FilterConfig::Create({{"a", {"2"}}}),
-                  *FilterConfig::Create({{"a", {"1"}}}),
+                  {{"a", {"2"}}},
+                  {{"a", {"1"}}},
               },
           .negated = true,
           .match_expected = true,
@@ -550,8 +511,8 @@ TEST(FilterDataTest, AttributionFilterDataMatch_Disjunction) {
           .description = "non-empty-no-match",
           .disjunction =
               {
-                  *FilterConfig::Create({{"a", {"2"}}}),
-                  *FilterConfig::Create({{"a", {"3"}}}),
+                  {{"a", {"2"}}},
+                  {{"a", {"3"}}},
               },
           .negated = false,
           .match_expected = false,
@@ -560,8 +521,8 @@ TEST(FilterDataTest, AttributionFilterDataMatch_Disjunction) {
           .description = "non-empty-no-match-negated",
           .disjunction =
               {
-                  *FilterConfig::Create({{"a", {"2"}}}),
-                  *FilterConfig::Create({{"a", {"3"}}}),
+                  {{"a", {"2"}}},
+                  {{"a", {"3"}}},
               },
           .negated = true,
           .match_expected = true,
@@ -570,9 +531,8 @@ TEST(FilterDataTest, AttributionFilterDataMatch_Disjunction) {
 
   for (const auto& test_case : kTestCases) {
     EXPECT_EQ(test_case.match_expected,
-              filter_data.MatchesForTesting(SourceType::kEvent, kSourceTime,
-                                            kTriggerTime, test_case.disjunction,
-                                            test_case.negated))
+              filter_data.MatchesForTesting(
+                  SourceType::kEvent, test_case.disjunction, test_case.negated))
         << test_case.description;
   }
 }
@@ -639,11 +599,10 @@ TEST(FilterDataTest, NegatedAttributionFilterDataMatch) {
         FilterData::Create(test_case.filter_data);
     ASSERT_TRUE(filter_data) << test_case.description;
 
-    FiltersDisjunction filters({*FilterConfig::Create(test_case.filters)});
+    FiltersDisjunction filters({test_case.filters});
 
     EXPECT_EQ(test_case.match_expected,
-              filter_data->MatchesForTesting(SourceType::kNavigation,
-                                             kSourceTime, kTriggerTime, filters,
+              filter_data->MatchesForTesting(SourceType::kNavigation, filters,
                                              /*negated=*/true))
         << test_case.description << " with negation";
   }
@@ -674,18 +633,18 @@ TEST(FilterDataTest, AttributionFilterDataMatch_SourceType) {
       {
           .description = "empty-filter-values",
           .source_type = SourceType::kNavigation,
-          .filters = FiltersDisjunction({*FilterConfig::Create({
+          .filters = FiltersDisjunction({{
               {FilterData::kSourceTypeFilterKey, {}},
-          })}),
+          }}),
           .negated = false,
           .match_expected = false,
       },
       {
           .description = "empty-filter-values-negated",
           .source_type = SourceType::kNavigation,
-          .filters = FiltersDisjunction({*FilterConfig::Create({
+          .filters = FiltersDisjunction({{
               {FilterData::kSourceTypeFilterKey, {}},
-          })}),
+          }}),
           .negated = true,
           .match_expected = true,
       },
@@ -721,161 +680,8 @@ TEST(FilterDataTest, AttributionFilterDataMatch_SourceType) {
 
   for (const auto& test_case : kTestCases) {
     EXPECT_EQ(test_case.match_expected,
-              FilterData().MatchesForTesting(test_case.source_type, kSourceTime,
-                                             kTriggerTime, test_case.filters,
-                                             test_case.negated))
-        << test_case.description;
-  }
-}
-
-TEST(FilterDataTest, AttributionFilterDataMatch_LookbackWindow) {
-  const auto one_filter = FilterValues({{"filter1", {"value1"}}});
-  const auto one_filter_different = FilterValues({{"filter1", {"value2"}}});
-
-  const struct {
-    const char* description;
-    FilterData filter_data;
-    FiltersDisjunction filters;
-    bool negated;
-    bool match_expected;
-  } kTestCases[] = {
-      {
-          .description = "duration-smaller-than-window",
-          .filter_data = {},
-          .filters = FiltersDisjunction({*FilterConfig::Create(
-              {}, /*lookback_window=*/kTriggerTime - kSourceTime +
-                      base::Microseconds(1))}),
-          .negated = false,
-          .match_expected = true,
-      },
-      {
-          .description = "duration-smaller-than-window",
-          .filter_data = {},
-          .filters = FiltersDisjunction({*FilterConfig::Create(
-              {}, /*lookback_window=*/kTriggerTime - kSourceTime +
-                      base::Microseconds(1))}),
-          .negated = true,
-          .match_expected = false,
-      },
-      {
-          .description = "duration-equal-to-window",
-          .filter_data = {},
-          .filters = FiltersDisjunction({*FilterConfig::Create(
-              {}, /*lookback_window=*/kTriggerTime - kSourceTime)}),
-          .negated = false,
-          .match_expected = true,
-      },
-      {
-          .description = "duration-equal-to-window-negated",
-          .filter_data = {},
-          .filters = FiltersDisjunction({*FilterConfig::Create(
-              {}, /*lookback_window=*/kTriggerTime - kSourceTime)}),
-          .negated = true,
-          .match_expected = false,
-      },
-      {
-          .description = "duration-equal-to-window-with-matching-filter",
-          .filter_data = *FilterData::Create(one_filter),
-          .filters = FiltersDisjunction({*FilterConfig::Create(
-              {one_filter}, /*lookback_window=*/kTriggerTime - kSourceTime)}),
-          .negated = false,
-          .match_expected = true,
-      },
-      {
-          .description =
-              "duration-equal-to-window-with-matching-filter-negated",
-          .filter_data = *FilterData::Create(one_filter),
-          .filters = FiltersDisjunction({*FilterConfig::Create(
-              {one_filter}, /*lookback_window=*/kTriggerTime - kSourceTime)}),
-          .negated = true,
-          .match_expected = false,
-      },
-      {
-          .description = "duration-equal-to-window-with-non-matching-filter",
-          .filter_data = *FilterData::Create(one_filter),
-          .filters = FiltersDisjunction({*FilterConfig::Create(
-              {one_filter_different},
-              /*lookback_window=*/kTriggerTime - kSourceTime)}),
-          .negated = false,
-          .match_expected = false,
-      },
-      {
-          .description =
-              "duration-equal-to-window-with-non-matching-filter-negated",
-          .filter_data = *FilterData::Create(one_filter),
-          .filters = FiltersDisjunction({*FilterConfig::Create(
-              {one_filter_different},
-              /*lookback_window=*/kTriggerTime - kSourceTime)}),
-          .negated = true,
-          .match_expected = false,
-      },
-      {
-          .description = "duration-greater-than-window",
-          .filter_data = {},
-          .filters = FiltersDisjunction({*FilterConfig::Create(
-              {}, /*lookback_window=*/kTriggerTime - kSourceTime -
-                      base::Microseconds(1))}),
-          .negated = false,
-          .match_expected = false,
-      },
-      {
-          .description = "duration-greater-than-window-negated",
-          .filter_data = {},
-          .filters = FiltersDisjunction({*FilterConfig::Create(
-              {}, /*lookback_window=*/kTriggerTime - kSourceTime -
-                      base::Microseconds(1))}),
-          .negated = true,
-          .match_expected = true,
-      },
-      {
-          .description = "duration-greater-than-window-with-matching-filter",
-          .filter_data = *FilterData::Create(one_filter),
-          .filters = FiltersDisjunction({*FilterConfig::Create(
-              {one_filter}, /*lookback_window=*/kTriggerTime - kSourceTime -
-                                base::Microseconds(1))}),
-          .negated = false,
-          .match_expected = false,
-      },
-      {
-          .description =
-              "duration-greater-than-window-with-matching-filter-negated",
-          .filter_data = *FilterData::Create(one_filter),
-          .filters = FiltersDisjunction({*FilterConfig::Create(
-              {one_filter}, /*lookback_window=*/kTriggerTime - kSourceTime -
-                                base::Microseconds(1))}),
-          .negated = true,
-          .match_expected = false,
-      },
-      {
-          .description =
-              "duration-greater-than-window-with-non-matching-filter",
-          .filter_data = *FilterData::Create(one_filter),
-          .filters = FiltersDisjunction(
-              {*FilterConfig::Create({one_filter_different},
-                                     /*lookback_window=*/kTriggerTime -
-                                         kSourceTime - base::Microseconds(1))}),
-          .negated = false,
-          .match_expected = false,
-      },
-      {
-          .description =
-              "duration-greater-than-window-with-non-matching-filter-negated",
-          .filter_data = *FilterData::Create(one_filter),
-          .filters = FiltersDisjunction(
-              {*FilterConfig::Create({one_filter_different},
-                                     /*lookback_window=*/kTriggerTime -
-                                         kSourceTime - base::Microseconds(1))}),
-          .negated = true,
-          .match_expected = true,
-      },
-  };
-
-  for (const auto& test_case : kTestCases) {
-    EXPECT_EQ(
-        test_case.match_expected,
-        FilterData(test_case.filter_data)
-            .MatchesForTesting(SourceType::kEvent, kSourceTime, kTriggerTime,
-                               test_case.filters, test_case.negated))
+              FilterData().MatchesForTesting(
+                  test_case.source_type, test_case.filters, test_case.negated))
         << test_case.description;
   }
 }

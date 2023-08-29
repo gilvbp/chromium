@@ -7,6 +7,7 @@
 #include <memory>
 #include <vector>
 
+#include "components/viz/common/resources/resource_format_utils.h"
 #include "components/viz/service/display/shared_bitmap_manager.h"
 #include "third_party/skia/include/core/SkImage.h"
 

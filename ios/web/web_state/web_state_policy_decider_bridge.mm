@@ -4,6 +4,10 @@
 
 #import "ios/web/public/navigation/web_state_policy_decider_bridge.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace web {
 
 WebStatePolicyDeciderBridge::WebStatePolicyDeciderBridge(

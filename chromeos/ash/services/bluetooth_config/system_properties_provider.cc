@@ -4,8 +4,6 @@
 
 #include "chromeos/ash/services/bluetooth_config/system_properties_provider.h"
 
-#include "base/trace_event/trace_event.h"
-
 namespace ash::bluetooth_config {
 
 SystemPropertiesProvider::SystemPropertiesProvider() = default;
@@ -19,7 +17,6 @@ void SystemPropertiesProvider::Observe(
 }
 
 void SystemPropertiesProvider::NotifyPropertiesChanged() {
-  TRACE_EVENT0("ui", "SystemPropertiesProvider::NotifyPropertiesChanged");
   mojom::BluetoothSystemPropertiesPtr properties = GenerateProperties();
 
   for (auto& observer : observers_)
@@ -32,7 +29,6 @@ SystemPropertiesProvider::GenerateProperties() {
   properties->system_state = ComputeSystemState();
   properties->modification_state = ComputeModificationState();
   properties->paired_devices = GetPairedDevices();
-  properties->fast_pairable_devices = GetFastPairableDevices();
   return properties;
 }
 

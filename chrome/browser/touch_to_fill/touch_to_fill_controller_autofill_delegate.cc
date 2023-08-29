@@ -99,7 +99,7 @@ TouchToFillControllerAutofillDelegate::
 void TouchToFillControllerAutofillDelegate::OnShow(
     base::span<const password_manager::UiCredential> credentials,
     base::span<password_manager::PasskeyCredential> passkey_credentials) {
-  CHECK(filler_);
+  CHECK(filler_->IsReadyToFill());
 
   filler_->UpdateTriggerSubmission(ShouldTriggerSubmission() &&
                                    ContainsNonEmptyUsername(credentials));
@@ -111,12 +111,15 @@ void TouchToFillControllerAutofillDelegate::OnShow(
       .SetSubmissionReadiness(
           static_cast<int64_t>(filler_->GetSubmissionReadinessState()))
       .Record(ukm::UkmRecorder::Get());
+
+  base::UmaHistogramCounts100("PasswordManager.TouchToFill.NumCredentialsShown",
+                              credentials.size() + passkey_credentials.size());
 }
 
 void TouchToFillControllerAutofillDelegate::OnCredentialSelected(
     const UiCredential& credential,
     base::OnceClosure action_complete) {
-  if (!filler_) {
+  if (!filler_->IsReadyToFill()) {
     return;
   }
 
@@ -157,7 +160,7 @@ void TouchToFillControllerAutofillDelegate::OnPasskeyCredentialSelected(
 void TouchToFillControllerAutofillDelegate::OnManagePasswordsSelected(
     bool passkeys_shown,
     base::OnceClosure action_complete) {
-  if (!filler_) {
+  if (!filler_->IsReadyToFill()) {
     return;
   }
 
@@ -197,7 +200,7 @@ void TouchToFillControllerAutofillDelegate::OnHybridSignInSelected(
 
 void TouchToFillControllerAutofillDelegate::OnDismiss(
     base::OnceClosure action_complete) {
-  if (!filler_) {
+  if (!filler_->IsReadyToFill()) {
     return;
   }
 
@@ -210,7 +213,7 @@ void TouchToFillControllerAutofillDelegate::OnDismiss(
 }
 
 const GURL& TouchToFillControllerAutofillDelegate::GetFrameUrl() {
-  CHECK(filler_);
+  CHECK(filler_->IsReadyToFill());
   return filler_->GetFrameUrl();
 }
 
@@ -230,7 +233,7 @@ void TouchToFillControllerAutofillDelegate::OnReauthCompleted(
     UiCredential credential,
     bool auth_successful) {
   CHECK(action_complete_);
-  if (!filler_) {
+  if (!filler_->IsReadyToFill()) {
     return;
   }
 
@@ -247,7 +250,7 @@ void TouchToFillControllerAutofillDelegate::OnReauthCompleted(
 void TouchToFillControllerAutofillDelegate::FillCredential(
     const UiCredential& credential) {
   CHECK(action_complete_);
-  CHECK(filler_);
+  CHECK(filler_->IsReadyToFill());
 
   // Do not trigger autosubmission if the password migration warning is being
   // shown because it interrupts the nomal workflow.
@@ -272,8 +275,7 @@ void TouchToFillControllerAutofillDelegate::FillCredential(
 void TouchToFillControllerAutofillDelegate::CleanUpFillerAndReportOutcome(
     TouchToFillOutcome outcome,
     bool show_virtual_keyboard) {
-  filler_->Dismiss(ToShowVirtualKeyboard(show_virtual_keyboard));
-  filler_.reset();
+  filler_->CleanUp(ToShowVirtualKeyboard(show_virtual_keyboard));
   base::UmaHistogramEnumeration("PasswordManager.TouchToFill.Outcome", outcome);
 }
 

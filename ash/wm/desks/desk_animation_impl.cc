@@ -101,10 +101,8 @@ bool DeskActivationAnimation::Replace(bool moving_left,
 
   // Do not log any EndSwipeAnimation smoothness metrics if the animation has
   // been canceled midway by an Replace call.
-  if (is_continuous_gesture_animation_ && throughput_tracker_.has_value()) {
-    // Reset will call cancellation on tracker.
-    throughput_tracker_.reset();
-  }
+  if (is_continuous_gesture_animation_)
+    throughput_tracker_.Cancel();
 
   // For fast swipes, we skip the implicit animation after ending screenshot in
   // DeskAnimationBase, unless the swipe has ended and is deemed fast. Since
@@ -223,9 +221,7 @@ bool DeskActivationAnimation::EndSwipeAnimation() {
 
   // Start tracking the animation smoothness after the continuous gesture swipe
   // has ended.
-  throughput_tracker_ = desks_util::GetSelectedCompositorForPerformanceMetrics()
-                            ->RequestNewThroughputTracker();
-  throughput_tracker_->Start(
+  throughput_tracker_.Start(
       metrics_util::ForSmoothness(base::BindRepeating([](int smoothness) {
         UMA_HISTOGRAM_PERCENTAGE(kDeskEndGestureSmoothnessHistogramName,
                                  smoothness);
@@ -371,7 +367,7 @@ void DeskRemovalAnimation::OnDeskSwitchAnimationFinishedInternal() {
   // are destroyed.
   controller_->RemoveDeskInternal(
       controller_->desks()[desk_to_remove_index_].get(), request_source_,
-      close_type_, /*desk_switched=*/true);
+      close_type_);
   MaybeRestoreSplitView(/*refresh_snapped_windows=*/true);
 }
 

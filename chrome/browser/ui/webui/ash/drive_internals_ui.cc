@@ -12,19 +12,23 @@
 #include <memory>
 #include <sstream>
 #include <string>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
 #include "ash/constants/ash_features.h"
 #include "base/files/file_enumerator.h"
 #include "base/files/file_util.h"
+#include "base/format_macros.h"
 #include "base/functional/bind.h"
+#include "base/functional/callback_helpers.h"
 #include "base/memory/raw_ptr.h"
 #include "base/memory/weak_ptr.h"
 #include "base/path_service.h"
 #include "base/process/launch.h"
 #include "base/strings/pattern.h"
 #include "base/strings/strcat.h"
+#include "base/strings/string_number_conversions.h"
 #include "base/strings/stringprintf.h"
 #include "base/system/sys_info.h"
 #include "base/task/sequenced_task_runner.h"
@@ -39,6 +43,7 @@
 #include "chrome/browser/file_util_service.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/common/pref_names.h"
+#include "chrome/common/url_constants.h"
 #include "chrome/grit/browser_resources.h"
 #include "chrome/services/file_util/public/cpp/zip_file_creator.h"
 #include "chromeos/ash/components/drivefs/drivefs_pin_manager.h"
@@ -48,6 +53,7 @@
 #include "components/drive/drive_pref_names.h"
 #include "components/drive/event_logger.h"
 #include "components/prefs/pref_service.h"
+#include "content/public/browser/browser_task_traits.h"
 #include "content/public/browser/browser_thread.h"
 #include "content/public/browser/navigation_controller.h"
 #include "content/public/browser/web_contents.h"
@@ -61,12 +67,8 @@
 namespace ash {
 namespace {
 
-using base::FileEnumerator;
-using base::FilePath;
-using base::Value;
 using content::BrowserThread;
 using drive::DriveIntegrationService;
-using drive::prefs::kDriveFsBulkPinningEnabled;
 using drivefs::pinning::PinManager;
 
 constexpr char kKey[] = "key";
@@ -76,10 +78,10 @@ constexpr char kClass[] = "class";
 constexpr const char* const kLogLevelName[] = {"info", "warning", "error"};
 
 size_t SeverityToLogLevelNameIndex(logging::LogSeverity severity) {
-  if (severity <= logging::LOGGING_INFO) {
+  if (severity <= logging::LOG_INFO) {
     return 0;
   }
-  if (severity == logging::LOGGING_WARNING) {
+  if (severity == logging::LOG_WARNING) {
     return 1;
   }
   return 2;
@@ -121,27 +123,28 @@ std::string ToPercent(const T num, const T total) {
 //  },...]
 //
 // The list is sorted by the path.
-std::pair<Value::List, Value::Dict> GetGCacheContents(
-    const FilePath& root_path) {
+std::pair<base::Value::List, base::Value::Dict> GetGCacheContents(
+    const base::FilePath& root_path) {
   DCHECK(!BrowserThread::CurrentlyOn(BrowserThread::UI));
 
   // Use this map to sort the result list by the path.
-  std::map<FilePath, Value::Dict> files;
+  std::map<base::FilePath, base::Value::Dict> files;
 
-  const int options = (FileEnumerator::FILES | FileEnumerator::DIRECTORIES |
-                       FileEnumerator::SHOW_SYM_LINKS);
-  FileEnumerator enumerator(root_path, true /* recursive */, options);
+  const int options =
+      (base::FileEnumerator::FILES | base::FileEnumerator::DIRECTORIES |
+       base::FileEnumerator::SHOW_SYM_LINKS);
+  base::FileEnumerator enumerator(root_path, true /* recursive */, options);
 
   int64_t total_size = 0;
-  for (FilePath current = enumerator.Next(); !current.empty();
+  for (base::FilePath current = enumerator.Next(); !current.empty();
        current = enumerator.Next()) {
-    FileEnumerator::FileInfo info = enumerator.GetInfo();
+    base::FileEnumerator::FileInfo info = enumerator.GetInfo();
     int64_t size = info.GetSize();
     const bool is_directory = info.IsDirectory();
     const bool is_symbolic_link = base::IsLink(info.GetName());
     const base::Time last_modified = info.GetLastModifiedTime();
 
-    Value::Dict entry;
+    base::Value::Dict entry;
     entry.Set("path", current.value());
     // Use double instead of integer for large files.
     entry.Set("size", static_cast<double>(size));
@@ -157,7 +160,7 @@ std::pair<Value::List, Value::Dict> GetGCacheContents(
     total_size += size;
   }
 
-  std::pair<Value::List, Value::Dict> result;
+  std::pair<base::Value::List, base::Value::Dict> result;
   // Convert |files| into response.
   for (auto& it : files) {
     result.first.Append(std::move(it.second));
@@ -168,11 +171,11 @@ std::pair<Value::List, Value::Dict> GetGCacheContents(
 
 // Appends {'key': key, 'value': value, 'class': clazz} dictionary to the
 // |list|.
-void AppendKeyValue(Value::List& list,
+void AppendKeyValue(base::Value::List& list,
                     std::string key,
                     std::string value,
                     std::string clazz = std::string()) {
-  Value::Dict dict;
+  base::Value::Dict dict;
   dict.Set(kKey, std::move(key));
   dict.Set(kValue, std::move(value));
   if (!clazz.empty()) {
@@ -181,7 +184,7 @@ void AppendKeyValue(Value::List& list,
   list.Append(std::move(dict));
 }
 
-ino_t GetInodeValue(const FilePath& path) {
+ino_t GetInodeValue(const base::FilePath& path) {
   struct stat file_stats;
   if (stat(path.value().c_str(), &file_stats) != 0) {
     return 0;
@@ -189,10 +192,11 @@ ino_t GetInodeValue(const FilePath& path) {
   return file_stats.st_ino;
 }
 
-std::pair<ino_t, Value::List> GetServiceLogContents(const FilePath& log_path,
-                                                    ino_t inode,
-                                                    int from_line_number) {
-  Value::List result;
+std::pair<ino_t, base::Value::List> GetServiceLogContents(
+    const base::FilePath& log_path,
+    ino_t inode,
+    int from_line_number) {
+  base::Value::List result;
 
   std::ifstream log(log_path.value());
   if (log.good()) {
@@ -251,11 +255,12 @@ void ZipLogs(Profile* profile,
 
 // Class to handle messages from chrome://drive-internals.
 class DriveInternalsWebUIHandler : public content::WebUIMessageHandler,
-                                   DriveIntegrationService::Observer {
+                                   public PinManager::Observer {
  public:
   ~DriveInternalsWebUIHandler() override {
-    if (DriveIntegrationService* const service = GetIntegrationService()) {
-      service->RemoveObserver(this);
+    if (pin_manager_) {
+      VLOG(1) << "DriveInternalsWebUIHandler dropped before PinManager";
+      pin_manager_->RemoveObserver(this);
     }
   }
 
@@ -264,17 +269,17 @@ class DriveInternalsWebUIHandler : public content::WebUIMessageHandler,
   DriveInternalsWebUIHandler& operator=(const DriveInternalsWebUIHandler&) =
       delete;
 
-  void DownloadLogsZip(const FilePath& path) {
+  void DownloadLogsZip(const base::FilePath& path) {
     web_ui()->GetWebContents()->GetController().LoadURL(
         net::FilePathToFileURL(path), {}, {}, {});
   }
 
-  void OnZipDone() { MaybeCallJavascript("onZipDone", Value()); }
+  void OnZipDone() { MaybeCallJavascript("onZipDone", base::Value()); }
 
  private:
   void MaybeCallJavascript(const std::string& function,
-                           Value data1,
-                           Value data2 = {}) {
+                           base::Value data1,
+                           base::Value data2 = {}) {
     DCHECK_CURRENTLY_ON(BrowserThread::UI);
     if (IsJavascriptAllowed()) {
       CallJavascriptFunction(function, std::move(data1), std::move(data2));
@@ -283,7 +288,8 @@ class DriveInternalsWebUIHandler : public content::WebUIMessageHandler,
 
   // Hide or show a section of the page.
   void SetSectionEnabled(const std::string& section, bool enable) {
-    MaybeCallJavascript("setSectionEnabled", Value(section), Value(enable));
+    MaybeCallJavascript("setSectionEnabled", base::Value(section),
+                        base::Value(enable));
   }
 
   // WebUIMessageHandler override.
@@ -295,10 +301,6 @@ class DriveInternalsWebUIHandler : public content::WebUIMessageHandler,
     web_ui()->RegisterMessageCallback(
         "periodicUpdate",
         base::BindRepeating(&DriveInternalsWebUIHandler::OnPeriodicUpdate,
-                            weak_ptr_factory_.GetWeakPtr()));
-    web_ui()->RegisterMessageCallback(
-        "setBulkPinningVisible",
-        base::BindRepeating(&DriveInternalsWebUIHandler::SetBulkPinningVisible,
                             weak_ptr_factory_.GetWeakPtr()));
     web_ui()->RegisterMessageCallback(
         "setVerboseLoggingEnabled",
@@ -319,6 +321,10 @@ class DriveInternalsWebUIHandler : public content::WebUIMessageHandler,
         base::BindRepeating(&DriveInternalsWebUIHandler::ToggleSyncPath,
                             weak_ptr_factory_.GetWeakPtr(),
                             drivefs::mojom::MirrorPathStatus::kStop));
+    web_ui()->RegisterMessageCallback(
+        "setBulkPinningEnabled",
+        base::BindRepeating(&DriveInternalsWebUIHandler::SetBulkPinningEnabled,
+                            weak_ptr_factory_.GetWeakPtr()));
     web_ui()->RegisterMessageCallback(
         "enableTracing",
         base::BindRepeating(&DriveInternalsWebUIHandler::SetTracingEnabled,
@@ -371,18 +377,15 @@ class DriveInternalsWebUIHandler : public content::WebUIMessageHandler,
         "loadAccountSettings",
         base::BindRepeating(&DriveInternalsWebUIHandler::LoadAccountSettings,
                             weak_ptr_factory_.GetWeakPtr()));
-    web_ui()->RegisterMessageCallback(
-        "setBulkPinningEnabled",
-        base::BindRepeating(&DriveInternalsWebUIHandler::SetBulkPinningEnabled,
-                            weak_ptr_factory_.GetWeakPtr()));
   }
 
   // Called when the page is first loaded.
-  void OnPageLoaded(const Value::List& args) {
+  void OnPageLoaded(const base::Value::List& args) {
     AllowJavascript();
 
     DriveIntegrationService* const service = GetIntegrationService();
     if (!service) {
+      LOG(ERROR) << "No DriveFS integration service";
       return;
     }
 
@@ -396,6 +399,7 @@ class DriveInternalsWebUIHandler : public content::WebUIMessageHandler,
     UpdateInFlightOperationsSection();
     UpdateDriveDebugSection();
     UpdateMirrorSyncSection();
+    UpdateBulkPinningSection();
 
     // When the drive-internals page is reloaded by the reload key, the page
     // content is recreated, but this WebUI object is not (instead, OnPageLoaded
@@ -409,7 +413,7 @@ class DriveInternalsWebUIHandler : public content::WebUIMessageHandler,
   }
 
   // Called when the page requests periodic update.
-  void OnPeriodicUpdate(const Value::List& args) {
+  void OnPeriodicUpdate(const base::Value::List& args) {
     DCHECK_CURRENTLY_ON(BrowserThread::UI);
 
     DriveIntegrationService* const service = GetIntegrationService();
@@ -448,17 +452,19 @@ class DriveInternalsWebUIHandler : public content::WebUIMessageHandler,
         break;
     }
 
-    Value::Dict connection_status;
+    base::Value::Dict connection_status;
     connection_status.Set("status", std::move(status));
-    drive::DriveNotificationManager* const manager =
+    drive::DriveNotificationManager* drive_notification_manager =
         drive::DriveNotificationManagerFactory::FindForBrowserContext(
             profile());
     connection_status.Set(
         "push-notification-enabled",
-        manager ? manager->push_notification_enabled() : false);
+        drive_notification_manager
+            ? drive_notification_manager->push_notification_enabled()
+            : false);
 
     MaybeCallJavascript("updateConnectionStatus",
-                        Value(std::move(connection_status)));
+                        base::Value(std::move(connection_status)));
   }
 
   void UpdateAboutResourceSection() {
@@ -479,7 +485,7 @@ class DriveInternalsWebUIHandler : public content::WebUIMessageHandler,
   void UpdatePathConfigurationsSection() {
     SetSectionEnabled("path-configurations-section", true);
 
-    Value::List paths;
+    base::Value::List paths;
     AppendKeyValue(paths, "Downloads",
                    file_manager::util::GetDownloadsFolderForProfile(profile())
                        .AsUTF8Unsafe());
@@ -493,23 +499,21 @@ class DriveInternalsWebUIHandler : public content::WebUIMessageHandler,
         prefs::kSaveFileDefaultDirectory,
         prefs::kDownloadDefaultDirectory,
     };
-
     for (const char* key : kPathPreferences) {
       AppendKeyValue(paths, key, GetPrefs()->GetFilePath(key).AsUTF8Unsafe());
     }
 
-    MaybeCallJavascript("updatePathConfigurations", Value(std::move(paths)));
+    MaybeCallJavascript("updatePathConfigurations",
+                        base::Value(std::move(paths)));
   }
 
   void UpdateDriveDebugSection() {
     SetSectionEnabled("drive-debug", true);
-    const PrefService* const prefs = GetPrefs();
-    MaybeCallJavascript(
-        "updateBulkPinningVisible",
-        Value(prefs->GetBoolean(drive::prefs::kDriveFsBulkPinningVisible)));
-    MaybeCallJavascript(
-        "updateVerboseLogging",
-        Value(prefs->GetBoolean(drive::prefs::kDriveFsEnableVerboseLogging)));
+
+    bool verbose_logging_enabled =
+        GetPrefs()->GetBoolean(drive::prefs::kDriveFsEnableVerboseLogging);
+    MaybeCallJavascript("updateVerboseLogging",
+                        base::Value(verbose_logging_enabled));
 
     base::ThreadPool::PostTaskAndReplyWithResult(
         FROM_HERE, {base::MayBlock(), base::TaskPriority::USER_VISIBLE},
@@ -518,7 +522,7 @@ class DriveInternalsWebUIHandler : public content::WebUIMessageHandler,
                        weak_ptr_factory_.GetWeakPtr()));
 
     // Propagate the amount of local free space in bytes.
-    FilePath home_path;
+    base::FilePath home_path;
     if (base::PathService::Get(base::DIR_HOME, &home_path)) {
       base::ThreadPool::PostTaskAndReplyWithResult(
           FROM_HERE, {base::MayBlock(), base::TaskPriority::USER_VISIBLE},
@@ -540,7 +544,7 @@ class DriveInternalsWebUIHandler : public content::WebUIMessageHandler,
 
     bool mirroring_enabled =
         GetPrefs()->GetBoolean(drive::prefs::kDriveFsEnableMirrorSync);
-    MaybeCallJavascript("updateMirroring", Value(mirroring_enabled));
+    MaybeCallJavascript("updateMirroring", base::Value(mirroring_enabled));
     SetSectionEnabled("mirror-sync-paths", mirroring_enabled);
     SetSectionEnabled("mirror-path-form", mirroring_enabled);
     if (!mirroring_enabled) {
@@ -558,20 +562,20 @@ class DriveInternalsWebUIHandler : public content::WebUIMessageHandler,
   }
 
   void OnGetSyncingPaths(drive::FileError status,
-                         const std::vector<FilePath>& paths) {
+                         const std::vector<base::FilePath>& paths) {
     if (status != drive::FILE_ERROR_OK) {
       LOG(ERROR) << "Error retrieving syncing paths: " << status;
       return;
     }
-    for (const FilePath& sync_path : paths) {
+    for (const base::FilePath& sync_path : paths) {
       MaybeCallJavascript(
-          "onAddSyncPath", Value(sync_path.value()),
-          Value(drive::FileErrorToString(drive::FILE_ERROR_OK)));
+          "onAddSyncPath", base::Value(sync_path.value()),
+          base::Value(drive::FileErrorToString(drive::FILE_ERROR_OK)));
     }
   }
 
   void ToggleSyncPath(drivefs::mojom::MirrorPathStatus status,
-                      const Value::List& args) {
+                      const base::Value::List& args) {
     if (!features::IsDriveFsMirroringEnabled()) {
       return;
     }
@@ -582,7 +586,7 @@ class DriveInternalsWebUIHandler : public content::WebUIMessageHandler,
     }
 
     if (args.size() == 1 && args[0].is_string()) {
-      const FilePath sync_path(args[0].GetString());
+      const base::FilePath sync_path(args[0].GetString());
       auto callback =
           base::BindOnce((status == drivefs::mojom::MirrorPathStatus::kStart)
                              ? &DriveInternalsWebUIHandler::OnAddSyncPath
@@ -592,45 +596,54 @@ class DriveInternalsWebUIHandler : public content::WebUIMessageHandler,
     }
   }
 
-  void OnAddSyncPath(const FilePath& sync_path, drive::FileError status) {
-    MaybeCallJavascript("onAddSyncPath", Value(sync_path.value()),
-                        Value(drive::FileErrorToString(status)));
+  void OnAddSyncPath(const base::FilePath& sync_path, drive::FileError status) {
+    MaybeCallJavascript("onAddSyncPath", base::Value(sync_path.value()),
+                        base::Value(drive::FileErrorToString(status)));
   }
 
-  void OnRemoveSyncPath(const FilePath& sync_path, drive::FileError status) {
-    MaybeCallJavascript("onRemoveSyncPath", Value(sync_path.value()),
-                        Value(drive::FileErrorToString(status)));
+  void OnRemoveSyncPath(const base::FilePath& sync_path,
+                        drive::FileError status) {
+    MaybeCallJavascript("onRemoveSyncPath", base::Value(sync_path.value()),
+                        base::Value(drive::FileErrorToString(status)));
   }
 
-  void UpdateBulkPinningDeveloperSection() {
+  void UpdateBulkPinningSection() {
     DriveIntegrationService* const service = GetIntegrationService();
     if (!service) {
       return;
     }
 
-    const bool enabled = drive::util::IsDriveFsBulkPinningEnabled(profile());
-    SetSectionEnabled("bulk-pinning-section", enabled);
-    if (!enabled) {
+    if (pin_manager_) {
+      pin_manager_->RemoveObserver(this);
+    }
+
+    pin_manager_ = service->GetPinManager();
+    if (!pin_manager_) {
+      LOG(ERROR) << "No DriveFS pin manager";
+      SetSectionEnabled("bulk-pinning-section", false);
       return;
     }
 
-    service->RemoveObserver(this);
-    service->AddObserver(this);
+    pin_manager_->AddObserver(this);
 
-    MaybeCallJavascript(
-        "updateBulkPinning",
-        Value(GetPrefs()->GetBoolean(kDriveFsBulkPinningEnabled)));
+    SetSectionEnabled("bulk-pinning-section", true);
+    OnProgress(pin_manager_->GetProgress());
+    MaybeCallJavascript("updateBulkPinning",
+                        base::Value(GetPrefs()->GetBoolean(
+                            drive::prefs::kDriveFsBulkPinningEnabled)));
+  }
 
-    if (PinManager* const manager = service->GetPinManager()) {
-      OnBulkPinProgress(manager->GetProgress());
+  void OnDrop() override {
+    if (pin_manager_) {
+      VLOG(1) << "PinManager dropped before DriveInternalsWebUIHandler";
+      pin_manager_ = nullptr;
     }
   }
 
-  void OnBulkPinProgress(const drivefs::pinning::Progress& progress) override {
+  void OnProgress(const drivefs::pinning::Progress& progress) override {
     using drivefs::pinning::HumanReadableSize;
 
-    Value::Dict d;
-    d.Set("enabled", GetPrefs()->GetBoolean(kDriveFsBulkPinningEnabled));
+    base::Value::Dict d;
     d.Set("stage", drivefs::pinning::ToString(progress.stage));
     d.Set("free_space", ToString(HumanReadableSize(progress.free_space)));
     d.Set("required_space",
@@ -657,9 +670,7 @@ class DriveInternalsWebUIHandler : public content::WebUIMessageHandler,
           drivefs::pinning::ToString(progress.time_spent_listing_items));
     d.Set("time_spent_pinning_files",
           drivefs::pinning::ToString(progress.time_spent_pinning_files));
-    d.Set("remaining_time",
-          drivefs::pinning::ToString(progress.remaining_time));
-    MaybeCallJavascript("onBulkPinningProgress", Value(std::move(d)));
+    MaybeCallJavascript("onBulkPinningProgress", base::Value(std::move(d)));
   }
 
   // Called when GetDeveloperMode() is complete.
@@ -683,18 +694,17 @@ class DriveInternalsWebUIHandler : public content::WebUIMessageHandler,
   void OnGetStartupArguments(const std::string& arguments) {
     DCHECK_CURRENTLY_ON(BrowserThread::UI);
     DCHECK(developer_mode_);
-    MaybeCallJavascript("updateStartupArguments", Value(arguments));
+    MaybeCallJavascript("updateStartupArguments", base::Value(arguments));
     SetSectionEnabled("developer-mode-controls", true);
-    UpdateBulkPinningDeveloperSection();
   }
 
   // Called when AmountOfFreeDiskSpace() is complete.
   void OnGetFreeDiskSpace(int64_t free_space) {
     DCHECK_CURRENTLY_ON(BrowserThread::UI);
-    Value::Dict local_storage_summary;
+    base::Value::Dict local_storage_summary;
     local_storage_summary.Set("free_space", static_cast<double>(free_space));
     MaybeCallJavascript("updateLocalStorageUsage",
-                        Value(std::move(local_storage_summary)));
+                        base::Value(std::move(local_storage_summary)));
   }
 
   void UpdateDriveRelatedPreferencesSection() {
@@ -710,7 +720,7 @@ class DriveInternalsWebUIHandler : public content::WebUIMessageHandler,
     };
 
     PrefService* const prefs = GetPrefs();
-    Value::List preferences;
+    base::Value::List preferences;
     for (const char* key : kDriveRelatedPreferences) {
       // As of now, all preferences are boolean.
       AppendKeyValue(preferences, key,
@@ -718,7 +728,7 @@ class DriveInternalsWebUIHandler : public content::WebUIMessageHandler,
     }
 
     MaybeCallJavascript("updateDriveRelatedPreferences",
-                        Value(std::move(preferences)));
+                        base::Value(std::move(preferences)));
   }
 
   void UpdateEventLogSection() {
@@ -732,7 +742,7 @@ class DriveInternalsWebUIHandler : public content::WebUIMessageHandler,
     const std::vector<drive::EventLogger::Event> log =
         service->event_logger()->GetHistory();
 
-    Value::List list;
+    base::Value::List list;
     for (const drive::EventLogger::Event& event : log) {
       // Skip events which were already sent.
       if (event.id <= last_sent_event_id_) {
@@ -748,7 +758,7 @@ class DriveInternalsWebUIHandler : public content::WebUIMessageHandler,
       last_sent_event_id_ = event.id;
     }
     if (!list.empty()) {
-      MaybeCallJavascript("updateEventLog", Value(std::move(list)));
+      MaybeCallJavascript("updateEventLog", base::Value(std::move(list)));
     }
   }
 
@@ -765,14 +775,14 @@ class DriveInternalsWebUIHandler : public content::WebUIMessageHandler,
       return;
     }
 
-    FilePath log_path = service->GetDriveFsLogPath();
+    base::FilePath log_path = service->GetDriveFsLogPath();
     if (log_path.empty()) {
       return;
     }
 
     MaybeCallJavascript(
         "updateOtherServiceLogsUrl",
-        Value(net::FilePathToFileURL(log_path.DirName()).spec()));
+        base::Value(net::FilePathToFileURL(log_path.DirName()).spec()));
 
     base::ThreadPool::PostTaskAndReplyWithResult(
         FROM_HERE, {base::MayBlock(), base::TaskPriority::USER_VISIBLE},
@@ -783,7 +793,7 @@ class DriveInternalsWebUIHandler : public content::WebUIMessageHandler,
   }
 
   // Called when service logs are read.
-  void OnServiceLogRead(std::pair<ino_t, Value::List> response) {
+  void OnServiceLogRead(std::pair<ino_t, base::Value::List> response) {
     if (service_log_file_inode_ != response.first) {
       service_log_file_inode_ = response.first;
       last_sent_line_number_ = 0;
@@ -791,7 +801,7 @@ class DriveInternalsWebUIHandler : public content::WebUIMessageHandler,
     if (!response.second.empty()) {
       last_sent_line_number_ += response.second.size();
       MaybeCallJavascript("updateServiceLog",
-                          Value(std::move(response.second)));
+                          base::Value(std::move(response.second)));
     }
     service_log_file_is_processing_ = false;
   }
@@ -804,7 +814,7 @@ class DriveInternalsWebUIHandler : public content::WebUIMessageHandler,
   void UpdateGCacheContentsSection() {
     SetSectionEnabled("gcache-contents-section", true);
 
-    const FilePath root_path =
+    const base::FilePath root_path =
         drive::util::GetCacheRootPath(profile()).DirName();
     base::ThreadPool::PostTaskAndReplyWithResult(
         FROM_HERE, {base::MayBlock(), base::TaskPriority::USER_VISIBLE},
@@ -814,15 +824,16 @@ class DriveInternalsWebUIHandler : public content::WebUIMessageHandler,
   }
 
   // Called when GetGCacheContents() is complete.
-  void OnGetGCacheContents(std::pair<Value::List, Value::Dict> response) {
+  void OnGetGCacheContents(
+      std::pair<base::Value::List, base::Value::Dict> response) {
     DCHECK_CURRENTLY_ON(BrowserThread::UI);
     MaybeCallJavascript("updateGCacheContents",
-                        Value(std::move(response.first)),
-                        Value(std::move(response.second)));
+                        base::Value(std::move(response.first)),
+                        base::Value(std::move(response.second)));
   }
 
   // Called when the "Verbose Logging" checkbox on the page is changed.
-  void SetVerboseLoggingEnabled(const Value::List& args) {
+  void SetVerboseLoggingEnabled(const base::Value::List& args) {
     AllowJavascript();
     DriveIntegrationService* const service = GetIntegrationService();
     if (!service) {
@@ -833,11 +844,11 @@ class DriveInternalsWebUIHandler : public content::WebUIMessageHandler,
       bool enabled = args[0].GetBool();
       GetPrefs()->SetBoolean(drive::prefs::kDriveFsEnableVerboseLogging,
                              enabled);
-      RestartDrive(Value::List());
+      RestartDrive(base::Value::List());
     }
   }
 
-  void SetMirroringEnabled(const Value::List& args) {
+  void SetMirroringEnabled(const base::Value::List& args) {
     AllowJavascript();
     DriveIntegrationService* const service = GetIntegrationService();
     if (!service) {
@@ -852,37 +863,21 @@ class DriveInternalsWebUIHandler : public content::WebUIMessageHandler,
     }
   }
 
-  // Called when the "bulk-pinning-visible" checkbox on the page is changed.
-  void SetBulkPinningVisible(const Value::List& args) {
+  void SetBulkPinningEnabled(const base::Value::List& args) {
     AllowJavascript();
 
     if (args.size() != 1 || !args[0].is_bool()) {
-      LOG(ERROR) << "Args in not a bool";
+      LOG(ERROR) << "args in not a bool";
       return;
     }
 
-    const bool b = args[0].GetBool();
-    VLOG(1) << "Set pref " << drive::prefs::kDriveFsBulkPinningVisible << " to "
-            << b;
-    GetPrefs()->SetBoolean(drive::prefs::kDriveFsBulkPinningVisible, b);
-  }
-
-  void SetBulkPinningEnabled(const Value::List& args) {
-    AllowJavascript();
-
-    if (args.size() != 1 || !args[0].is_bool()) {
-      LOG(ERROR) << "Args in not a bool";
-      return;
-    }
-
-    GetPrefs()->SetBoolean(kDriveFsBulkPinningEnabled, args[0].GetBool());
-    UpdateBulkPinningDeveloperSection();
-    drivefs::pinning::RecordBulkPinningEnabledSource(
-        drivefs::pinning::BulkPinningEnabledSource::kDriveInternal);
+    const bool enabled = args[0].GetBool();
+    GetPrefs()->SetBoolean(drive::prefs::kDriveFsBulkPinningEnabled, enabled);
+    UpdateBulkPinningSection();
   }
 
   // Called when the "Startup Arguments" field on the page is submitted.
-  void SetStartupArguments(const Value::List& args) {
+  void SetStartupArguments(const base::Value::List& args) {
     AllowJavascript();
 
     CHECK(developer_mode_);
@@ -908,19 +903,19 @@ class DriveInternalsWebUIHandler : public content::WebUIMessageHandler,
     DCHECK_CURRENTLY_ON(BrowserThread::UI);
     DCHECK(developer_mode_);
     if (success) {
-      RestartDrive(Value::List());
+      RestartDrive(base::Value::List());
     }
-    MaybeCallJavascript("updateStartupArgumentsStatus", Value(success));
+    MaybeCallJavascript("updateStartupArgumentsStatus", base::Value(success));
   }
 
-  void SetTracingEnabled(bool enabled, const Value::List& args) {
+  void SetTracingEnabled(bool enabled, const base::Value::List& args) {
     AllowJavascript();
     if (DriveIntegrationService* const service = GetIntegrationService()) {
       service->SetTracingEnabled(enabled);
     }
   }
 
-  void SetNetworkingEnabled(bool enabled, const Value::List& args) {
+  void SetNetworkingEnabled(bool enabled, const base::Value::List& args) {
     AllowJavascript();
     CHECK(developer_mode_);
     if (DriveIntegrationService* const service = GetIntegrationService()) {
@@ -928,7 +923,7 @@ class DriveInternalsWebUIHandler : public content::WebUIMessageHandler,
     }
   }
 
-  void ForcePauseSyncing(bool enabled, const Value::List& args) {
+  void ForcePauseSyncing(bool enabled, const base::Value::List& args) {
     AllowJavascript();
     CHECK(developer_mode_);
     if (DriveIntegrationService* const service = GetIntegrationService()) {
@@ -936,7 +931,7 @@ class DriveInternalsWebUIHandler : public content::WebUIMessageHandler,
     }
   }
 
-  void DumpAccountSettings(const Value::List& args) {
+  void DumpAccountSettings(const base::Value::List& args) {
     AllowJavascript();
     CHECK(developer_mode_);
     if (DriveIntegrationService* const service = GetIntegrationService()) {
@@ -944,7 +939,7 @@ class DriveInternalsWebUIHandler : public content::WebUIMessageHandler,
     }
   }
 
-  void LoadAccountSettings(const Value::List& args) {
+  void LoadAccountSettings(const base::Value::List& args) {
     AllowJavascript();
     CHECK(developer_mode_);
     if (DriveIntegrationService* const service = GetIntegrationService()) {
@@ -953,7 +948,7 @@ class DriveInternalsWebUIHandler : public content::WebUIMessageHandler,
   }
 
   // Called when the "Restart Drive" button on the page is pressed.
-  void RestartDrive(const Value::List& args) {
+  void RestartDrive(const base::Value::List& args) {
     AllowJavascript();
 
     if (DriveIntegrationService* const service = GetIntegrationService()) {
@@ -962,7 +957,7 @@ class DriveInternalsWebUIHandler : public content::WebUIMessageHandler,
   }
 
   // Called when the corresponding button on the page is pressed.
-  void ResetDriveFileSystem(const Value::List& args) {
+  void ResetDriveFileSystem(const base::Value::List& args) {
     AllowJavascript();
 
     if (DriveIntegrationService* const service = GetIntegrationService()) {
@@ -972,7 +967,7 @@ class DriveInternalsWebUIHandler : public content::WebUIMessageHandler,
     }
   }
 
-  void ZipDriveFsLogs(const Value::List& args) {
+  void ZipDriveFsLogs(const base::Value::List& args) {
     AllowJavascript();
 
     DriveIntegrationService* const service = GetIntegrationService();
@@ -986,7 +981,7 @@ class DriveInternalsWebUIHandler : public content::WebUIMessageHandler,
   // Called after file system reset for ResetDriveFileSystem is done.
   void ResetFinished(bool success) {
     DCHECK_CURRENTLY_ON(BrowserThread::UI);
-    MaybeCallJavascript("updateResetStatus", Value(success));
+    MaybeCallJavascript("updateResetStatus", base::Value(success));
   }
 
   Profile* profile() { return Profile::FromWebUI(web_ui()); }
@@ -998,19 +993,11 @@ class DriveInternalsWebUIHandler : public content::WebUIMessageHandler,
     DCHECK_CURRENTLY_ON(BrowserThread::UI);
     DriveIntegrationService* const service =
         drive::DriveIntegrationServiceFactory::FindForProfile(profile());
-
-    if (!service) {
-      LOG(ERROR) << "No DriveFS integration service";
-      return nullptr;
-    }
-
-    if (!service->is_enabled()) {
-      LOG(ERROR) << "DriveFS integration service is disabled";
-      return nullptr;
-    }
-
-    return service;
+    return service && service->is_enabled() ? service : nullptr;
   }
+
+  // DriveFS bulk-pinning manager.
+  raw_ptr<PinManager> pin_manager_ = nullptr;
 
   // The last event sent to the JavaScript side.
   int last_sent_event_id_ = -1;
@@ -1056,7 +1043,7 @@ class LogsZipper : public download::AllDownloadItemNotifier::Observer {
  private:
   static constexpr char kLogsZipName[] = "drivefs_logs.zip";
 
-  void ZipLogFiles(const std::vector<FilePath>& files) {
+  void ZipLogFiles(const std::vector<base::FilePath>& files) {
     const scoped_refptr<ZipFileCreator> creator =
         base::MakeRefCounted<ZipFileCreator>(logs_directory_, files, zip_path_);
     creator->SetCompletionCallback(base::BindOnce(
@@ -1064,17 +1051,18 @@ class LogsZipper : public download::AllDownloadItemNotifier::Observer {
     creator->Start(LaunchFileUtilService());
   }
 
-  static std::vector<FilePath> EnumerateLogFiles(FilePath logs_path,
-                                                 FilePath zip_path) {
+  static std::vector<base::FilePath> EnumerateLogFiles(
+      base::FilePath logs_path,
+      base::FilePath zip_path) {
     // Note: this may be racy if multiple attempts to export logs are run
     // concurrently, but it's a debug page and it requires explicit action to
     // cause problems.
     base::DeleteFile(zip_path);
-    std::vector<FilePath> log_files;
-    FileEnumerator enumerator(logs_path, false /* recursive */,
-                              FileEnumerator::FILES);
+    std::vector<base::FilePath> log_files;
+    base::FileEnumerator enumerator(logs_path, false /* recursive */,
+                                    base::FileEnumerator::FILES);
 
-    for (FilePath current = enumerator.Next(); !current.empty();
+    for (base::FilePath current = enumerator.Next(); !current.empty();
          current = enumerator.Next()) {
       if (!current.MatchesExtension(".zip")) {
         log_files.push_back(current.BaseName());
@@ -1115,8 +1103,8 @@ class LogsZipper : public download::AllDownloadItemNotifier::Observer {
   }
 
   const raw_ptr<Profile, ExperimentalAsh> profile_;
-  const FilePath logs_directory_;
-  const FilePath zip_path_;
+  const base::FilePath logs_directory_;
+  const base::FilePath zip_path_;
 
   const base::WeakPtr<DriveInternalsWebUIHandler> drive_internals_;
 

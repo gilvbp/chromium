@@ -10,6 +10,7 @@
 #include "testing/gtest/include/gtest/gtest.h"
 #include "third_party/boringssl/src/include/openssl/base64.h"
 #include "third_party/boringssl/src/include/openssl/pool.h"
+#include "url/gurl.h"
 
 namespace net {
 
@@ -173,7 +174,8 @@ TEST_P(CheckOCSPTest, FromFile) {
   std::vector<uint8_t> encoded_request;
   ASSERT_TRUE(CreateOCSPRequest(cert.get(), issuer.get(), &encoded_request));
 
-  EXPECT_EQ(der::Input(encoded_request), der::Input(request_data));
+  EXPECT_EQ(der::Input(encoded_request.data(), encoded_request.size()),
+            der::Input(&request_data));
 }
 
 std::string_view kGetURLTestParams[] = {
@@ -212,15 +214,13 @@ TEST_P(CreateOCSPGetURLTest, Basic) {
   std::shared_ptr<const ParsedCertificate> issuer = ParseCertificate(ca_data);
   ASSERT_TRUE(issuer);
 
-  absl::optional<std::string> url =
-      CreateOCSPGetURL(cert.get(), issuer.get(), GetParam());
-  ASSERT_TRUE(url);
+  GURL url = CreateOCSPGetURL(cert.get(), issuer.get(), GetParam());
 
   // Try to extract the encoded data and compare against |request_data|.
   //
   // A known answer output test would be better as this just reverses the logic
   // from the implementation file.
-  std::string b64 = url->substr(GetParam().size() + 1);
+  std::string b64 = url.spec().substr(GetParam().size() + 1);
 
   // Hex un-escape the data.
   b64 = net::string_util::FindAndReplace(b64, "%2B", "+");

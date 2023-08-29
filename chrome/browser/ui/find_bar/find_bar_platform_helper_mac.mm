@@ -24,13 +24,14 @@ class FindBarPlatformHelperMac : public FindBarPlatformHelper {
  public:
   FindBarPlatformHelperMac(FindBarController* find_bar_controller)
       : FindBarPlatformHelper(find_bar_controller) {
-    find_pasteboard_notification_observer_ = [NSNotificationCenter.defaultCenter
-        addObserverForName:kFindPasteboardChangedNotification
-                    object:[FindPasteboard sharedInstance]
-                     queue:nil
-                usingBlock:^(NSNotification*) {
-                  UpdateFindBarControllerFromPasteboard();
-                }];
+    find_pasteboard_notification_observer_ =
+        [[NSNotificationCenter defaultCenter]
+            addObserverForName:kFindPasteboardChangedNotification
+                        object:[FindPasteboard sharedInstance]
+                         queue:nil
+                    usingBlock:^(NSNotification*) {
+                      UpdateFindBarControllerFromPasteboard();
+                    }];
     UpdateFindBarControllerFromPasteboard();
   }
 
@@ -38,7 +39,7 @@ class FindBarPlatformHelperMac : public FindBarPlatformHelper {
   FindBarPlatformHelperMac& operator=(const FindBarPlatformHelperMac&) = delete;
 
   ~FindBarPlatformHelperMac() override {
-    [NSNotificationCenter.defaultCenter
+    [[NSNotificationCenter defaultCenter]
         removeObserver:find_pasteboard_notification_observer_];
   }
 
@@ -86,7 +87,7 @@ class FindBarPlatformHelperMac : public FindBarPlatformHelper {
     }
   }
 
-  id __strong find_pasteboard_notification_observer_;
+  id find_pasteboard_notification_observer_;
 };
 
 }  // namespace

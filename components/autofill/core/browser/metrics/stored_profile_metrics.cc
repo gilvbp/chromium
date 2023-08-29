@@ -69,8 +69,12 @@ void LogStoredProfileMetrics(const std::vector<AutofillProfile*>& profiles) {
   };
 
   count_and_log(AutofillProfileSourceCategory::kLocalOrSyncable);
-  count_and_log(AutofillProfileSourceCategory::kAccountChrome);
-  count_and_log(AutofillProfileSourceCategory::kAccountNonChrome);
+  // These metrics are only relevant when kAccount profiles are loaded.
+  if (base::FeatureList::IsEnabled(
+          features::kAutofillAccountProfilesUnionView)) {
+    count_and_log(AutofillProfileSourceCategory::kAccountChrome);
+    count_and_log(AutofillProfileSourceCategory::kAccountNonChrome);
+  }
 }
 
 void LogLocalProfileSupersetMetrics(std::vector<AutofillProfile*> profiles,

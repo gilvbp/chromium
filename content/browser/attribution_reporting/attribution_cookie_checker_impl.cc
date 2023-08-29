@@ -10,7 +10,6 @@
 #include "base/check.h"
 #include "base/functional/bind.h"
 #include "base/functional/callback.h"
-#include "base/memory/raw_ref.h"
 #include "base/ranges/algorithm.h"
 #include "content/browser/storage_partition_impl.h"
 #include "net/cookies/canonical_cookie.h"
@@ -42,8 +41,9 @@ void ProcessCookies(base::OnceCallback<void(bool)> callback,
 
 AttributionCookieCheckerImpl::AttributionCookieCheckerImpl(
     StoragePartitionImpl* storage_partition)
-    : storage_partition_(
-          raw_ref<StoragePartitionImpl>::from_ptr(storage_partition)) {}
+    : storage_partition_(storage_partition) {
+  DCHECK(storage_partition_);
+}
 
 AttributionCookieCheckerImpl::~AttributionCookieCheckerImpl() = default;
 

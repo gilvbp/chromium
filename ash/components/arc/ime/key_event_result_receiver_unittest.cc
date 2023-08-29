@@ -15,7 +15,6 @@
 #include "ui/events/event_dispatcher.h"
 #include "ui/events/keycodes/dom/dom_code.h"
 #include "ui/events/keycodes/dom/dom_key.h"
-#include "ui/events/keycodes/keyboard_codes_posix.h"
 
 namespace arc {
 
@@ -42,8 +41,7 @@ TEST_F(KeyEventResultReceiverTest, ExpireCallback) {
   absl::optional<bool> result;
   auto callback =
       base::BindLambdaForTesting([&result](bool res) { result = res; });
-  ui::KeyEvent event = ui::KeyEvent::FromCharacter(
-      'a', ui::VKEY_A, ui::DomCode::NONE, ui::EF_NONE);
+  ui::KeyEvent event{'a', ui::VKEY_A, ui::DomCode::NONE, ui::EF_NONE};
 
   receiver()->SetCallback(std::move(callback), &event);
   EXPECT_FALSE(result.has_value());
@@ -58,8 +56,7 @@ TEST_F(KeyEventResultReceiverTest, EventStoppedPropagation) {
   absl::optional<bool> result;
   auto callback =
       base::BindLambdaForTesting([&result](bool res) { result = res; });
-  ui::KeyEvent event = ui::KeyEvent::FromCharacter(
-      'a', ui::VKEY_A, ui::DomCode::NONE, ui::EF_NONE);
+  ui::KeyEvent event{'a', ui::VKEY_A, ui::DomCode::NONE, ui::EF_NONE};
 
   receiver()->SetCallback(std::move(callback), &event);
   EXPECT_FALSE(result.has_value());
@@ -142,8 +139,7 @@ TEST_F(KeyEventResultReceiverTest, UnmodifiedEnterAndBackspace) {
 
 TEST_F(KeyEventResultReceiverTest, ControlCharacters) {
   absl::optional<bool> result;
-  ui::KeyEvent event = ui::KeyEvent::FromCharacter(
-      'a', ui::VKEY_A, ui::DomCode::NONE, ui::EF_CONTROL_DOWN);
+  ui::KeyEvent event{'a', ui::VKEY_A, ui::DomCode::NONE, ui::EF_CONTROL_DOWN};
   auto callback =
       base::BindLambdaForTesting([&result](bool res) { result = res; });
 
@@ -159,8 +155,7 @@ TEST_F(KeyEventResultReceiverTest, ControlCharacters) {
 
 TEST_F(KeyEventResultReceiverTest, EventWithSystemModifier) {
   absl::optional<bool> result;
-  ui::KeyEvent event = ui::KeyEvent::FromCharacter(
-      'a', ui::VKEY_A, ui::DomCode::NONE, ui::EF_ALT_DOWN);
+  ui::KeyEvent event{'a', ui::VKEY_A, ui::DomCode::NONE, ui::EF_ALT_DOWN};
   auto callback =
       base::BindLambdaForTesting([&result](bool res) { result = res; });
 
@@ -176,8 +171,7 @@ TEST_F(KeyEventResultReceiverTest, EventWithSystemModifier) {
 
 TEST_F(KeyEventResultReceiverTest, NormalCharacters) {
   absl::optional<bool> result;
-  ui::KeyEvent event = ui::KeyEvent::FromCharacter(
-      'a', ui::VKEY_A, ui::DomCode::NONE, ui::EF_NONE);
+  ui::KeyEvent event{'a', ui::VKEY_A, ui::DomCode::NONE, ui::EF_NONE};
   auto callback =
       base::BindLambdaForTesting([&result](bool res) { result = res; });
 
@@ -193,10 +187,8 @@ TEST_F(KeyEventResultReceiverTest, NormalCharacters) {
 
 TEST_F(KeyEventResultReceiverTest, DifferentEvent) {
   absl::optional<bool> result;
-  ui::KeyEvent event = ui::KeyEvent::FromCharacter(
-      'a', ui::VKEY_A, ui::DomCode::NONE, ui::EF_NONE);
-  ui::KeyEvent event2 = ui::KeyEvent::FromCharacter(
-      'b', ui::VKEY_B, ui::DomCode::NONE, ui::EF_NONE);
+  ui::KeyEvent event{'a', ui::VKEY_A, ui::DomCode::NONE, ui::EF_NONE};
+  ui::KeyEvent event2{'b', ui::VKEY_B, ui::DomCode::NONE, ui::EF_NONE};
   auto callback =
       base::BindLambdaForTesting([&result](bool res) { result = res; });
 
@@ -216,10 +208,8 @@ TEST_F(KeyEventResultReceiverTest, DifferentEvent) {
 
 TEST_F(KeyEventResultReceiverTest, ProcessedKey) {
   absl::optional<bool> result;
-  ui::KeyEvent event = ui::KeyEvent::FromCharacter(
-      'a', ui::VKEY_A, ui::DomCode::NONE, ui::EF_NONE);
-  ui::KeyEvent event2 = ui::KeyEvent::FromCharacter(
-      'b', ui::VKEY_PROCESSKEY, ui::DomCode::NONE, ui::EF_NONE);
+  ui::KeyEvent event{'a', ui::VKEY_A, ui::DomCode::NONE, ui::EF_NONE};
+  ui::KeyEvent event2{'b', ui::VKEY_PROCESSKEY, ui::DomCode::NONE, ui::EF_NONE};
   auto callback =
       base::BindLambdaForTesting([&result](bool res) { result = res; });
 

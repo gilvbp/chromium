@@ -4,6 +4,3 @@ rootWebArea
 ++++++image
 ++++++++image
 ++++++++image
-++++++image
-++++++++image
-++++++++image

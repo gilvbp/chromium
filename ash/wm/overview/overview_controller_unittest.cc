@@ -19,20 +19,20 @@
 #include "ash/root_window_controller.h"
 #include "ash/shell.h"
 #include "ash/test/ash_test_base.h"
-#include "ash/wallpaper/views/wallpaper_widget_controller.h"
-#include "ash/wallpaper/wallpaper_constants.h"
+#include "ash/wallpaper/wallpaper_widget_controller.h"
 #include "ash/wm/desks/desks_controller.h"
 #include "ash/wm/desks/desks_test_util.h"
 #include "ash/wm/overview/overview_observer.h"
 #include "ash/wm/overview/overview_session.h"
 #include "ash/wm/overview/overview_test_util.h"
+#include "ash/wm/overview/overview_wallpaper_controller.h"
 #include "ash/wm/tablet_mode/tablet_mode_controller_test_api.h"
 #include "ash/wm/window_resizer.h"
 #include "ash/wm/window_util.h"
 #include "ash/wm/wm_event.h"
 #include "base/command_line.h"
+#include "base/feature_list.h"
 #include "base/run_loop.h"
-#include "chromeos/constants/chromeos_features.h"
 #include "ui/aura/client/aura_constants.h"
 #include "ui/aura/client/window_types.h"
 #include "ui/base/hit_test.h"
@@ -226,26 +226,16 @@ TEST_F(OverviewControllerTest, AnimationCallbacksForCrossFadeWallpaper) {
             observer.starting_animation_state());
   auto* wallpaper_widget_controller =
       Shell::GetPrimaryRootWindowController()->wallpaper_widget_controller();
-
-  const bool is_jellyroll_enabled = chromeos::features::IsJellyrollEnabled();
-  // When Jellyroll is enabled, wallpaper blur is removed in overview mode.
-  if (is_jellyroll_enabled) {
-    EXPECT_EQ(wallpaper_widget_controller->GetWallpaperBlur(),
-              wallpaper_constants::kClear);
-    EXPECT_FALSE(wallpaper_widget_controller->IsAnimating());
-  } else {
-    EXPECT_GT(wallpaper_widget_controller->GetWallpaperBlur(), 0);
-    EXPECT_TRUE(wallpaper_widget_controller->IsAnimating());
-    wallpaper_widget_controller->StopAnimating();
-  }
+  EXPECT_GT(wallpaper_widget_controller->GetWallpaperBlur(), 0);
+  EXPECT_TRUE(wallpaper_widget_controller->IsAnimating());
+  wallpaper_widget_controller->StopAnimating();
 
   // Exiting overview has no animations until the overview animation is
   // complete.
   ExitOverview();
   EXPECT_FALSE(overview_controller->InOverviewSession());
   EXPECT_EQ(TestOverviewObserver::UNKNOWN, observer.ending_animation_state());
-  EXPECT_EQ(is_jellyroll_enabled ? wallpaper_constants::kClear
-                                 : wallpaper_constants::kOverviewBlur,
+  EXPECT_EQ(wallpaper_constants::kOverviewBlur,
             wallpaper_widget_controller->GetWallpaperBlur());
   EXPECT_FALSE(wallpaper_widget_controller->IsAnimating());
 
@@ -253,11 +243,7 @@ TEST_F(OverviewControllerTest, AnimationCallbacksForCrossFadeWallpaper) {
   EXPECT_EQ(TestOverviewObserver::COMPLETED, observer.ending_animation_state());
   EXPECT_EQ(wallpaper_constants::kClear,
             wallpaper_widget_controller->GetWallpaperBlur());
-  if (is_jellyroll_enabled) {
-    EXPECT_FALSE(wallpaper_widget_controller->IsAnimating());
-  } else {
-    EXPECT_TRUE(wallpaper_widget_controller->IsAnimating());
-  }
+  EXPECT_TRUE(wallpaper_widget_controller->IsAnimating());
   wallpaper_widget_controller->StopAnimating();
 
   gfx::Rect bounds(0, 0, 100, 100);
@@ -315,8 +301,7 @@ TEST_F(OverviewControllerTest, AnimationCallbacksForCrossFadeWallpaper) {
   EXPECT_FALSE(wallpaper_widget_controller->IsAnimating());
 }
 
-// TODO(https://crbug.com/1472403): Investigate test flakiness and reenable.
-TEST_F(OverviewControllerTest, DISABLED_OcclusionTest) {
+TEST_F(OverviewControllerTest, OcclusionTest) {
   using OcclusionState = aura::Window::OcclusionState;
 
   Shell::Get()
@@ -596,15 +581,8 @@ TEST_F(OverviewControllerTest, WallpaperAnimationTiming) {
   EnterOverview(OverviewEnterExitType::kFadeInEnter);
   auto* wallpaper_widget_controller =
       Shell::GetPrimaryRootWindowController()->wallpaper_widget_controller();
-  // When Jellyroll is enabled, wallpaper blur is removed in overview mode.
-  if (chromeos::features::IsJellyrollEnabled()) {
-    EXPECT_EQ(wallpaper_widget_controller->GetWallpaperBlur(),
-              wallpaper_constants::kClear);
-    EXPECT_FALSE(wallpaper_widget_controller->IsAnimating());
-  } else {
-    EXPECT_GT(wallpaper_widget_controller->GetWallpaperBlur(), 0);
-    EXPECT_TRUE(wallpaper_widget_controller->IsAnimating());
-  }
+  EXPECT_GT(wallpaper_widget_controller->GetWallpaperBlur(), 0);
+  EXPECT_TRUE(wallpaper_widget_controller->IsAnimating());
 }
 
 // Tests that overview session exits cleanly if exit is requested before
@@ -697,8 +675,8 @@ TEST_F(OverviewControllerTest, OverviewEnterExitWhileDeskAnimation) {
   auto* desks_controller = DesksController::Get();
   desks_controller->NewDesk(DesksCreationRemovalSource::kKeyboard);
   ASSERT_EQ(2u, desks_controller->desks().size());
-  const Desk* desk1 = desks_controller->GetDeskAtIndex(0);
-  const Desk* desk2 = desks_controller->GetDeskAtIndex(1);
+  const Desk* desk1 = desks_controller->desks()[0].get();
+  const Desk* desk2 = desks_controller->desks()[1].get();
 
   ui::ScopedAnimationDurationScaleMode non_zero(
       ui::ScopedAnimationDurationScaleMode::NON_ZERO_DURATION);

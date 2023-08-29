@@ -184,7 +184,7 @@ CardUnmaskAuthenticationSelectionDialogControllerImpl::GetWindowTitle() const {
   return l10n_util::GetStringUTF16(
       GetChallengeOptions().size() > 1
           ? IDS_AUTOFILL_CARD_AUTH_SELECTION_DIALOG_TITLE_MULTIPLE_OPTIONS
-          : IDS_AUTOFILL_CARD_UNMASK_VERIFICATION_TITLE);
+          : IDS_AUTOFILL_CARD_UNMASK_PROMPT_TITLE_V2);
 }
 
 std::u16string

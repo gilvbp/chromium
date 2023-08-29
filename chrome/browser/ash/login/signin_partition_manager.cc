@@ -181,10 +181,9 @@ SigninPartitionManager::Factory::GetInstance() {
   return base::Singleton<SigninPartitionManager::Factory>::get();
 }
 
-std::unique_ptr<KeyedService>
-SigninPartitionManager::Factory::BuildServiceInstanceForBrowserContext(
+KeyedService* SigninPartitionManager::Factory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
-  return std::make_unique<SigninPartitionManager>(context);
+  return new SigninPartitionManager(context);
 }
 
 }  // namespace login

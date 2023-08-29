@@ -8,8 +8,12 @@
 
 #include "base/strings/sys_string_conversions.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 extern "C" {
-bool CGFontRenderingGetFontSmoothingDisabled(void);
+bool CGFontRenderingGetFontSmoothingDisabled(void) API_AVAILABLE(macos(10.14));
 }
 
 namespace content {
@@ -21,11 +25,20 @@ void SystemColorsDidChange(int aqua_color_variant) {
   // volatile. Registering in the normal application domain fails from within
   // the sandbox.
   [defaults removeVolatileDomainForName:NSArgumentDomain];
+
+  // LayoutThemeMac reads AppleAquaColorVariant on macOS versions before 10.14.
+  NSDictionary* domain_values = @{
+    @"AppleAquaColorVariant" : @(aqua_color_variant),
+  };
+  [defaults setVolatileDomain:domain_values forName:NSArgumentDomain];
 }
 
 bool IsSubpixelAntialiasingAvailable() {
-  // See https://trac.webkit.org/changeset/239306/webkit for more info.
-  return !CGFontRenderingGetFontSmoothingDisabled();
+  if (@available(macOS 10.14, *)) {
+    // See https://trac.webkit.org/changeset/239306/webkit for more info.
+    return !CGFontRenderingGetFontSmoothingDisabled();
+  }
+  return true;
 }
 
 }  // namespace content

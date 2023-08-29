@@ -2,13 +2,13 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import {PostMessageApiServer} from 'chrome://resources/ash/common/post_message_api/post_message_api_server.js';
+import {PostMessageAPIServer} from 'chrome://resources/ash/common/post_message_api/post_message_api_server.js';
 import {PromiseResolver} from 'chrome://resources/ash/common/promise_resolver.js';
 
 /**
  * Class that implements the Chrome side of the ParentAccess PostMessageAPI.
  */
-export class ParentAccessController extends PostMessageApiServer {
+export class ParentAccessController extends PostMessageAPIServer {
   /*
    * @param {!Element} webviewElement The <webview> element to listen to as a
    *     client.

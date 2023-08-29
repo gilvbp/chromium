@@ -12,6 +12,7 @@
 #include "content/public/browser/browser_context.h"
 #include "content/public/browser/browser_thread.h"
 #include "content/public/browser/web_contents.h"
+#include "media/cdm/media_foundation_cdm_data.h"
 #include "media/media_buildflags.h"
 
 #if BUILDFLAG(ENABLE_CDM_STORAGE_ID)
@@ -52,7 +53,6 @@
 #include "base/win/sid.h"
 #include "chrome/browser/media/cdm_pref_service_helper.h"
 #include "chrome/browser/media/media_foundation_service_monitor.h"
-#include "media/cdm/media_foundation_cdm_data.h"
 #include "media/cdm/win/media_foundation_cdm.h"
 #include "sandbox/policy/win/lpac_capability.h"
 #endif  // BUILDFLAG(IS_WIN)
@@ -399,17 +399,16 @@ void CdmDocumentServiceImpl::OnCdmEvent(media::CdmEvent event,
     return;
   }
 
-  auto site = render_frame_host().GetSiteInstance()->GetSiteURL();
   switch (event) {
     case media::CdmEvent::kSignificantPlayback:
-      monitor->OnSignificantPlayback(site);
+      monitor->OnSignificantPlayback();
       break;
     case media::CdmEvent::kPlaybackError:
     case media::CdmEvent::kCdmError:
-      monitor->OnPlaybackOrCdmError(site, static_cast<HRESULT>(hresult));
+      monitor->OnPlaybackOrCdmError(static_cast<HRESULT>(hresult));
       break;
     case media::CdmEvent::kHardwareContextReset:
-      monitor->OnUnexpectedHardwareContextReset(site);
+      monitor->OnUnexpectedHardwareContextReset();
       break;
   }
 }

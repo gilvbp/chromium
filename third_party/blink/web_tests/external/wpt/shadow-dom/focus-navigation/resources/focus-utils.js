@@ -1,8 +1,10 @@
 'use strict';
 
-function navigateFocusForward() {
-  // TAB = '\ue004'
-  return test_driver.send_keys(document.body, "\ue004");
+async function navigateFocusForward() {
+  return new test_driver.Actions()
+    .keyDown('\uE004')
+    .keyUp('\uE004')
+    .send();
 }
 
 async function navigateFocusBackward() {

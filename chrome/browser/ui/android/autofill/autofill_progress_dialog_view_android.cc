@@ -90,8 +90,7 @@ void AutofillProgressDialogViewAndroid::ShowDialog() {
       env, reinterpret_cast<intptr_t>(this), window_android->GetJavaObject()));
 
   Java_AutofillProgressDialogBridge_showDialog(
-      env, java_object_,
-      ConvertUTF16ToJavaString(env, controller_->GetLoadingTitle()),
+      env, java_object_, ConvertUTF16ToJavaString(env, controller_->GetTitle()),
       ConvertUTF16ToJavaString(env, controller_->GetLoadingMessage()),
       ConvertUTF16ToJavaString(env, controller_->GetCancelButtonLabel()),
       ResourceMapper::MapToJavaDrawableId(

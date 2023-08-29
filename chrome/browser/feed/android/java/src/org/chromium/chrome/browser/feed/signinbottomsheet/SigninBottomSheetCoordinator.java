@@ -121,6 +121,7 @@ public class SigninBottomSheetCoordinator implements AccountPickerDelegate {
                 .show();
     }
 
+    @VisibleForTesting
     public View getBottomSheetViewForTesting() {
         return mAccountPickerBottomSheetCoordinator.getBottomSheetViewForTesting();
     }
@@ -131,6 +132,7 @@ public class SigninBottomSheetCoordinator implements AccountPickerDelegate {
         this.mAccountPickerBottomSheetCoordinator = accountPickerBottomSheetCoordinator;
     }
 
+    @VisibleForTesting
     public void setToastOverrideForTesting() {
         this.mSetTestToast = true;
     }

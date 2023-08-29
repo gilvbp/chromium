@@ -16,8 +16,8 @@
 #include "base/strings/string_number_conversions.h"
 #include "base/system/sys_info.h"
 #include "build/build_config.h"
+#include "gpu/command_buffer/common/activity_flags.h"
 #include "gpu/command_buffer/common/constants.h"
-#include "gpu/command_buffer/common/shm_count.h"
 #include "gpu/command_buffer/service/disk_cache_proto.pb.h"
 #include "gpu/command_buffer/service/gl_utils.h"
 #include "gpu/command_buffer/service/gles2_cmd_decoder.h"
@@ -264,7 +264,7 @@ MemoryProgramCache::MemoryProgramCache(
     size_t max_cache_size_bytes,
     bool disable_gpu_shader_disk_cache,
     bool disable_program_caching_for_transform_feedback,
-    GpuProcessShmCount* use_shader_cache_shm_count)
+    GpuProcessActivityFlags* activity_flags)
     : ProgramCache(max_cache_size_bytes),
       disable_gpu_shader_disk_cache_(disable_gpu_shader_disk_cache),
       disable_program_caching_for_transform_feedback_(
@@ -272,7 +272,7 @@ MemoryProgramCache::MemoryProgramCache(
       compress_program_binaries_(CompressProgramBinaries()),
       curr_size_bytes_(0),
       store_(ProgramLRUCache::NO_AUTO_EVICT),
-      use_shader_cache_shm_count_(use_shader_cache_shm_count) {}
+      activity_flags_(activity_flags) {}
 
 MemoryProgramCache::~MemoryProgramCache() = default;
 
@@ -329,8 +329,8 @@ ProgramCache::ProgramLoadResult MemoryProgramCache::LoadLinkedProgram(
   }
 
   {
-    GpuProcessShmCount::ScopedIncrement scoped_increment(
-        use_shader_cache_shm_count_);
+    GpuProcessActivityFlags::ScopedSetFlag scoped_set_flag(
+        activity_flags_, ActivityFlagsBase::FLAG_LOADING_PROGRAM_BINARY);
     glProgramBinary(program, value->format(),
                     static_cast<const GLvoid*>(decoded.data()), decoded.size());
   }

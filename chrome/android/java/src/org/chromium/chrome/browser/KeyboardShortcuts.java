@@ -11,7 +11,6 @@ import android.view.KeyboardShortcutInfo;
 
 import org.chromium.chrome.R;
 import org.chromium.chrome.browser.fullscreen.FullscreenManager;
-import org.chromium.chrome.browser.multiwindow.MultiWindowUtils;
 import org.chromium.chrome.browser.tab.Tab;
 import org.chromium.chrome.browser.tabmodel.TabModel;
 import org.chromium.chrome.browser.tabmodel.TabModelSelector;
@@ -235,15 +234,7 @@ public class KeyboardShortcuts {
                         false);
                 return true;
             case CTRL | KeyEvent.KEYCODE_N:
-                if (MultiWindowUtils.isMultiInstanceApi31Enabled()) {
-                    menuOrKeyboardActionController.onMenuOrKeyboardAction(
-                            R.id.new_window_menu_id, false);
-                    return true;
-                } else {
-                    break;
-                }
-            case CTRL | KeyEvent.KEYCODE_S:
-                menuOrKeyboardActionController.onMenuOrKeyboardAction(R.id.offline_page_id, false);
+                menuOrKeyboardActionController.onMenuOrKeyboardAction(R.id.new_tab_menu_id, false);
                 return true;
             case CTRL | SHIFT | KeyEvent.KEYCODE_N:
                 menuOrKeyboardActionController.onMenuOrKeyboardAction(

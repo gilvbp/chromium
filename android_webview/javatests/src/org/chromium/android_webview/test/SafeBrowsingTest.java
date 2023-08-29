@@ -19,6 +19,7 @@ import androidx.test.InstrumentationRegistry;
 import androidx.test.filters.SmallTest;
 
 import org.hamcrest.Matchers;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -195,7 +196,7 @@ public class SafeBrowsingTest {
      */
     private static class MockAwBrowserContext extends AwBrowserContext {
         public MockAwBrowserContext(SharedPreferences sharedPreferences) {
-            super(sharedPreferences, 0);
+            super(sharedPreferences, 0, true);
             SafeBrowsingApiBridge.setHandler(new MockSafetyNetApiHandler());
         }
     }
@@ -310,6 +311,11 @@ public class SafeBrowsingTest {
 
         // Some tests need to inject JavaScript.
         AwActivityTestRule.enableJavaScriptOnUiThread(mAwContents);
+    }
+
+    @After
+    public void tearDown() {
+        mTestServer.stopAndDestroyServer();
     }
 
     private int getPageColor() {

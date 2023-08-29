@@ -2,9 +2,8 @@ Name: JaCoCo
 URL: https://repo1.maven.org/maven2/org/jacoco/jacoco/
 Version: 0.8.8
 License: EPL 1.0
-License File: LICENSE
+License File: NOT_SHIPPED
 Security Critical: no
-Shipped: no
 License Android Compatible: no
 
 Description:

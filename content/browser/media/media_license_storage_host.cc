@@ -28,6 +28,8 @@
 
 namespace content {
 
+using CdmFileId = MediaLicenseManager::CdmFileId;
+
 // static
 void MediaLicenseStorageHost::ReportDatabaseOpenError(
     MediaLicenseStorageHostOpenError error,
@@ -92,8 +94,7 @@ void MediaLicenseStorageHost::Open(const std::string& file_name,
     return;
   }
 
-  const CdmStorageBindingContext& binding_context =
-      receivers_.current_context();
+  const BindingContext& binding_context = receivers_.current_context();
   db_.AsyncCall(&MediaLicenseDatabase::OpenFile)
       .WithArgs(binding_context.cdm_type, file_name)
       .Then(base::BindOnce(&MediaLicenseStorageHost::DidOpenFile,
@@ -102,7 +103,7 @@ void MediaLicenseStorageHost::Open(const std::string& file_name,
 }
 
 void MediaLicenseStorageHost::BindReceiver(
-    const CdmStorageBindingContext& binding_context,
+    const BindingContext& binding_context,
     mojo::PendingReceiver<media::mojom::CdmStorage> receiver) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   DCHECK_EQ(binding_context.storage_key, bucket_locator_.storage_key);
@@ -112,7 +113,7 @@ void MediaLicenseStorageHost::BindReceiver(
 
 void MediaLicenseStorageHost::DidOpenFile(
     const std::string& file_name,
-    CdmStorageBindingContext binding_context,
+    BindingContext binding_context,
     OpenCallback callback,
     MediaLicenseStorageHostOpenError error) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);

@@ -144,10 +144,17 @@ class UserMediaRequestEntry {
 
 static const int64_t FAKE_TIME_STAMP = 3600000;
 
-class WebRtcInternalsBrowserTest : public ContentBrowserTest {
+#if BUILDFLAG(IS_WIN)
+// All tests are flaky on Windows: crbug.com/277322.
+#define MAYBE_WebRtcInternalsBrowserTest DISABLED_WebRtcInternalsBrowserTest
+#else
+#define MAYBE_WebRtcInternalsBrowserTest WebRtcInternalsBrowserTest
+#endif
+
+class MAYBE_WebRtcInternalsBrowserTest: public ContentBrowserTest {
  public:
-  WebRtcInternalsBrowserTest() = default;
-  ~WebRtcInternalsBrowserTest() override = default;
+  MAYBE_WebRtcInternalsBrowserTest() {}
+  ~MAYBE_WebRtcInternalsBrowserTest() override {}
 
   void SetUpCommandLine(base::CommandLine* command_line) override {
     command_line->AppendSwitch(switches::kUseFakeUIForMediaStream);
@@ -446,12 +453,12 @@ class WebRtcInternalsBrowserTest : public ContentBrowserTest {
     // Verifies there is one data series per stats name.
     const base::Value::Dict* data_series_dump = pc_dump->FindDict("stats");
     ASSERT_TRUE(data_series_dump);
-    // The timestamp is considered an additional data series.
-    EXPECT_EQ(stats.values.size() + 1, data_series_dump->size());
+    EXPECT_EQ(stats.values.size(), data_series_dump->size());
   }
 };
 
-IN_PROC_BROWSER_TEST_F(WebRtcInternalsBrowserTest, AddAndRemovePeerConnection) {
+IN_PROC_BROWSER_TEST_F(MAYBE_WebRtcInternalsBrowserTest,
+                       AddAndRemovePeerConnection) {
   GURL url("chrome://webrtc-internals");
   EXPECT_TRUE(NavigateToURL(shell(), url));
 
@@ -472,7 +479,8 @@ IN_PROC_BROWSER_TEST_F(WebRtcInternalsBrowserTest, AddAndRemovePeerConnection) {
   VerifyNoElementWithId(pc_2.getIdString());
 }
 
-IN_PROC_BROWSER_TEST_F(WebRtcInternalsBrowserTest, UpdateAllPeerConnections) {
+IN_PROC_BROWSER_TEST_F(MAYBE_WebRtcInternalsBrowserTest,
+                       UpdateAllPeerConnections) {
   GURL url("chrome://webrtc-internals");
   EXPECT_TRUE(NavigateToURL(shell(), url));
 
@@ -491,7 +499,7 @@ IN_PROC_BROWSER_TEST_F(WebRtcInternalsBrowserTest, UpdateAllPeerConnections) {
   VerifyPeerConnectionEntry(pc_1);
 }
 
-IN_PROC_BROWSER_TEST_F(WebRtcInternalsBrowserTest, UpdatePeerConnection) {
+IN_PROC_BROWSER_TEST_F(MAYBE_WebRtcInternalsBrowserTest, UpdatePeerConnection) {
   GURL url("chrome://webrtc-internals");
   EXPECT_TRUE(NavigateToURL(shell(), url));
 
@@ -530,7 +538,7 @@ IN_PROC_BROWSER_TEST_F(WebRtcInternalsBrowserTest, UpdatePeerConnection) {
 }
 
 // Tests that adding random named stats updates the dataSeries and graphs.
-IN_PROC_BROWSER_TEST_F(WebRtcInternalsBrowserTest, AddStats) {
+IN_PROC_BROWSER_TEST_F(MAYBE_WebRtcInternalsBrowserTest, AddStats) {
   GURL url("chrome://webrtc-internals");
   EXPECT_TRUE(NavigateToURL(shell(), url));
 
@@ -556,7 +564,7 @@ IN_PROC_BROWSER_TEST_F(WebRtcInternalsBrowserTest, AddStats) {
 }
 
 // Tests that the bandwidth estimation values are drawn on a single graph.
-IN_PROC_BROWSER_TEST_F(WebRtcInternalsBrowserTest, BweCompoundGraph) {
+IN_PROC_BROWSER_TEST_F(MAYBE_WebRtcInternalsBrowserTest, BweCompoundGraph) {
   GURL url("chrome://webrtc-internals");
   EXPECT_TRUE(NavigateToURL(shell(), url));
 
@@ -586,7 +594,7 @@ IN_PROC_BROWSER_TEST_F(WebRtcInternalsBrowserTest, BweCompoundGraph) {
 
 // Tests that the total packet/byte count is converted to count per second,
 // and the converted data is drawn.
-IN_PROC_BROWSER_TEST_F(WebRtcInternalsBrowserTest, ConvertedGraphs) {
+IN_PROC_BROWSER_TEST_F(MAYBE_WebRtcInternalsBrowserTest, ConvertedGraphs) {
   GURL url("chrome://webrtc-internals");
   EXPECT_TRUE(NavigateToURL(shell(), url));
 
@@ -628,7 +636,7 @@ IN_PROC_BROWSER_TEST_F(WebRtcInternalsBrowserTest, ConvertedGraphs) {
 // Timing out on ARM linux bot: http://crbug.com/238490
 // Disabling due to failure on Linux, Mac, Win: http://crbug.com/272413
 // Sanity check of the page content under a real PeerConnection call.
-IN_PROC_BROWSER_TEST_F(WebRtcInternalsBrowserTest,
+IN_PROC_BROWSER_TEST_F(MAYBE_WebRtcInternalsBrowserTest,
                        DISABLED_WithRealPeerConnectionCall) {
   // Start a peerconnection call in the first window.
   ASSERT_TRUE(embedded_test_server()->Start());
@@ -701,7 +709,7 @@ IN_PROC_BROWSER_TEST_F(WebRtcInternalsBrowserTest,
   EXPECT_GT(count, 0);
 }
 
-IN_PROC_BROWSER_TEST_F(WebRtcInternalsBrowserTest, CreatePageDump) {
+IN_PROC_BROWSER_TEST_F(MAYBE_WebRtcInternalsBrowserTest, CreatePageDump) {
   GURL url("chrome://webrtc-internals");
   EXPECT_TRUE(NavigateToURL(shell(), url));
 
@@ -737,7 +745,7 @@ IN_PROC_BROWSER_TEST_F(WebRtcInternalsBrowserTest, CreatePageDump) {
   VerifyStatsDump(base::test::ParseJsonDict(dump_json), pc_0, type, id, stats);
 }
 
-IN_PROC_BROWSER_TEST_F(WebRtcInternalsBrowserTest, UpdateMedia) {
+IN_PROC_BROWSER_TEST_F(MAYBE_WebRtcInternalsBrowserTest, UpdateMedia) {
   GURL url("chrome://webrtc-internals");
   EXPECT_TRUE(NavigateToURL(shell(), url));
 

@@ -76,8 +76,7 @@ bool HomeButtonController::MaybeHandleGestureEvent(ui::GestureEvent* event) {
         assistant_animation_delay_timer_->Stop();
       }
 
-      if (!chromeos::features::IsJellyEnabled() &&
-          CanActivate(button_->GetDisplayId())) {
+      if (CanActivate(button_->GetDisplayId())) {
         views::InkDrop::Get(button_)->AnimateToState(
             views::InkDropState::ACTION_TRIGGERED, event);
       }
@@ -92,8 +91,7 @@ bool HomeButtonController::MaybeHandleGestureEvent(ui::GestureEvent* event) {
                            base::Unretained(this)));
       }
 
-      if (!chromeos::features::IsJellyEnabled() &&
-          CanActivate(button_->GetDisplayId())) {
+      if (CanActivate(button_->GetDisplayId())) {
         views::InkDrop::Get(button_)->AnimateToState(
             views::InkDropState::ACTION_PENDING, event);
       }
@@ -119,10 +117,8 @@ bool HomeButtonController::MaybeHandleGestureEvent(ui::GestureEvent* event) {
         return false;
 
       // This event happens after the user long presses and lifts the finger.
-      if (!chromeos::features::IsJellyEnabled()) {
-        views::InkDrop::Get(button_)->AnimateToState(
-            views::InkDropState::HIDDEN, event);
-      }
+      views::InkDrop::Get(button_)->AnimateToState(views::InkDropState::HIDDEN,
+                                                   event);
 
       // We already handled the long press; consume the long tap to avoid
       // bringing up the context menu again.
@@ -155,10 +151,8 @@ void HomeButtonController::OnAppListVisibilityWillChange(bool shown,
 }
 
 void HomeButtonController::OnTabletModeStarted() {
-  if (!chromeos::features::IsJellyEnabled()) {
-    views::InkDrop::Get(button_)->AnimateToState(
-        views::InkDropState::DEACTIVATED, nullptr);
-  }
+  views::InkDrop::Get(button_)->AnimateToState(views::InkDropState::DEACTIVATED,
+                                               nullptr);
 }
 
 void HomeButtonController::OnAssistantFeatureAllowedChanged(

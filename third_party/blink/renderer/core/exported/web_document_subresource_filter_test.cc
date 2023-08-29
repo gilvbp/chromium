@@ -115,8 +115,7 @@ class WebDocumentSubresourceFilterTest : public testing::Test {
   }
 
   void ExpectSubresourceWasLoaded(bool loaded) {
-    WebElement web_element =
-        MainFrame()->GetDocument().QuerySelector(AtomicString("img"));
+    WebElement web_element = MainFrame()->GetDocument().QuerySelector("img");
     auto* image_element = To<HTMLImageElement>(web_element.Unwrap<Node>());
     EXPECT_EQ(loaded, !!image_element->naturalWidth());
   }

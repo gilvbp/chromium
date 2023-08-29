@@ -3,8 +3,11 @@
 // found in the LICENSE file.
 
 #include "base/strings/string_piece_rust.h"
+#include "base/rust_buildflags.h"
 
 #include "testing/gtest/include/gtest/gtest.h"
+
+#if BUILDFLAG(BUILD_RUST_BASE_CONVERSIONS)
 
 namespace base {
 namespace {
@@ -28,3 +31,5 @@ TEST(BaseStringPieceRustTest, StrToSlice) {
 
 }  // namespace
 }  // namespace base
+
+#endif  // BUILDFLAG(BUILD_RUST_BASE_CONVERSIONS)

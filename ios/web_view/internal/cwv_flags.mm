@@ -24,6 +24,10 @@
 #include "ios/web_view/internal/app/application_context.h"
 #include "third_party/abseil-cpp/absl/types/optional.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace ios_web_view {
 
 // Never skip an entry when getting feature entries.

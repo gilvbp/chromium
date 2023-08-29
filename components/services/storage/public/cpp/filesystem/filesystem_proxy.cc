@@ -13,7 +13,6 @@
 #include "base/files/important_file_writer.h"
 #include "base/task/sequenced_task_runner.h"
 #include "base/types/expected.h"
-#include "base/types/expected_macros.h"
 #include "build/build_config.h"
 #include "components/services/storage/public/cpp/filesystem/filesystem_impl.h"
 #include "mojo/public/cpp/bindings/pending_receiver.h"
@@ -304,10 +303,12 @@ base::FileErrorOr<std::unique_ptr<FilesystemProxy::FileLock>>
 FilesystemProxy::LockFile(const base::FilePath& path) {
   if (!remote_directory_) {
     base::FilePath full_path = MaybeMakeAbsolute(path);
-    ASSIGN_OR_RETURN(base::File result,
-                     FilesystemImpl::LockFileLocal(full_path));
+    base::FileErrorOr<base::File> result =
+        FilesystemImpl::LockFileLocal(full_path);
+    if (!result.has_value())
+      return base::unexpected(result.error());
     return std::make_unique<LocalFileLockImpl>(std::move(full_path),
-                                               std::move(result));
+                                               std::move(result.value()));
   }
 
   mojo::PendingRemote<mojom::FileLock> remote_lock;

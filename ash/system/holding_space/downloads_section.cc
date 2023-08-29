@@ -20,7 +20,6 @@
 #include "base/functional/bind.h"
 #include "base/functional/callback_helpers.h"
 #include "base/i18n/rtl.h"
-#include "base/memory/raw_ptr.h"
 #include "ui/base/l10n/l10n_util.h"
 #include "ui/base/models/image_model.h"
 #include "ui/color/color_id.h"
@@ -108,7 +107,7 @@ class Header : public views::Button {
   }
 
   // Owned by view hierarchy.
-  raw_ptr<views::ImageView, ExperimentalAsh> chevron_ = nullptr;
+  views::ImageView* chevron_ = nullptr;
 };
 
 }  // namespace

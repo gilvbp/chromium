@@ -211,14 +211,13 @@ void FakeSyncManager::SetInvalidatorEnabled(bool invalidator_enabled) {
 
 void FakeSyncManager::OnCookieJarChanged(bool account_mismatch) {}
 
+void FakeSyncManager::UpdateInvalidationClientId(const std::string&) {
+  NOTIMPLEMENTED();
+}
+
 void FakeSyncManager::UpdateActiveDevicesInvalidationInfo(
     ActiveDevicesInvalidationInfo active_devices_invalidation_info) {
   // Do nothing.
-}
-
-ModelTypeSet FakeSyncManager::GetTypesWithUnsyncedData() {
-  NOTIMPLEMENTED();
-  return ModelTypeSet();
 }
 
 }  // namespace syncer

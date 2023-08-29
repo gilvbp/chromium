@@ -68,6 +68,15 @@ class TestFileSystemBackend::QuotaUtil : public FileSystemQuotaUtil,
   ~QuotaUtil() override = default;
 
   // FileSystemQuotaUtil overrides.
+  base::File::Error DeleteStorageKeyDataOnFileTaskRunner(
+      FileSystemContext* context,
+      QuotaManagerProxy* proxy,
+      const blink::StorageKey& storage_key,
+      FileSystemType type) override {
+    NOTREACHED();
+    return base::File::FILE_OK;
+  }
+
   void DeleteCachedDefaultBucket(
       const blink::StorageKey& storage_key) override {
     NOTREACHED();
@@ -183,7 +192,6 @@ void TestFileSystemBackend::InitializeCopyOrMoveFileValidatorFactory(
 
 std::unique_ptr<FileSystemOperation>
 TestFileSystemBackend::CreateFileSystemOperation(
-    OperationType type,
     const FileSystemURL& url,
     FileSystemContext* context,
     base::File::Error* error_code) const {
@@ -191,7 +199,7 @@ TestFileSystemBackend::CreateFileSystemOperation(
       std::make_unique<FileSystemOperationContext>(context));
   operation_context->set_update_observers(*GetUpdateObservers(url.type()));
   operation_context->set_change_observers(*GetChangeObservers(url.type()));
-  return FileSystemOperation::Create(type, url, context,
+  return FileSystemOperation::Create(url, context,
                                      std::move(operation_context));
 }
 

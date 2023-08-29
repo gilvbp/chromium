@@ -17,7 +17,7 @@
 #include "chrome/test/base/browser_with_test_window_test.h"
 #include "chrome/test/base/test_browser_window.h"
 
-using BrowserListTest = BrowserWithTestWindowTest;
+typedef BrowserWithTestWindowTest BrowserListTest;
 
 namespace {
 
@@ -118,9 +118,6 @@ TEST_F(BrowserListTest, TabContentsIteratorVerifyBrowser) {
 
   // Close some tabs.
   browser2->tab_strip_model()->CloseAllTabs();
-  // This is normally invoked when the tab strip is empty (specifically from
-  // BrowserView::OnWindowCloseRequested).
-  browser2->OnWindowClosing();
   EXPECT_TRUE(browser2->is_delete_scheduled());
   browser3->tab_strip_model()->CloseWebContentsAt(1, TabCloseTypes::CLOSE_NONE);
 

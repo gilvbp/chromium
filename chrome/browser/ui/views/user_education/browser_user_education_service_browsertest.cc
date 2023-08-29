@@ -18,8 +18,9 @@
 #include "chrome/browser/ui/browser.h"
 #include "chrome/browser/ui/browser_element_identifiers.h"
 #include "chrome/browser/ui/browser_window.h"
-#include "chrome/browser/user_education/user_education_service.h"
-#include "chrome/browser/user_education/user_education_service_factory.h"
+#include "chrome/browser/ui/user_education/user_education_service.h"
+#include "chrome/browser/ui/user_education/user_education_service_factory.h"
+#include "chrome/browser/ui/views/user_education/browser_user_education_service.h"
 #include "chrome/test/base/in_process_browser_test.h"
 #include "components/feature_engagement/public/configuration.h"
 #include "components/feature_engagement/public/feature_configurations.h"
@@ -56,7 +57,7 @@ struct IPHException {
   IPHException& operator=(const IPHException& other) = default;
   ~IPHException() = default;
 
-  raw_ptr<const base::Feature> feature = nullptr;
+  base::raw_ptr<const base::Feature> feature = nullptr;
   absl::optional<IPHFailureReason> reason;
   const char* description = nullptr;
 };
@@ -70,9 +71,9 @@ struct IPHFailure {
   IPHFailure(const IPHFailure& other) = default;
   IPHFailure& operator=(const IPHFailure& other) = default;
 
-  raw_ptr<const base::Feature> feature = nullptr;
+  base::raw_ptr<const base::Feature> feature = nullptr;
   IPHFailureReason reason = IPHFailureReason::kNone;
-  raw_ptr<const feature_engagement::FeatureConfig> config = nullptr;
+  base::raw_ptr<const feature_engagement::FeatureConfig> config = nullptr;
 };
 
 std::ostream& operator<<(std::ostream& os,
@@ -237,10 +238,6 @@ IN_PROC_BROWSER_TEST_F(BrowserUserEducationServiceBrowserTest,
       // revisited in the future.
       {&feature_engagement::kIPHDesktopCustomizeChromeFeature,
        IPHFailureReason::kWrongSessionRate, "crbug.com/1443063"},
-      {&feature_engagement::kIPHDesktopCustomizeChromeRefreshFeature,
-       IPHFailureReason::kWrongSessionRate, "crbug.com/1443063"},
-      {&feature_engagement::kIPHDesktopCustomizeChromeRefreshFeature,
-       IPHFailureReason::kWrongSessionImpact, "crbug.com/1443063"},
       {&feature_engagement::kIPHDesktopTabGroupsNewGroupFeature,
        IPHFailureReason::kWrongSessionRate, "crbug.com/1443063"},
       {&feature_engagement::kIPHSideSearchFeature,
@@ -300,7 +297,7 @@ IN_PROC_BROWSER_TEST_F(BrowserUserEducationServiceBrowserTest,
 
   // Get the associated feature promo registry.
   const user_education::FeaturePromoRegistry& registry =
-      UserEducationServiceFactory::GetForBrowserContext(browser()->profile())
+      UserEducationServiceFactory::GetForProfile(browser()->profile())
           ->feature_promo_registry();
 
   std::vector<IPHFailure> failures;
@@ -434,17 +431,16 @@ IN_PROC_BROWSER_TEST_F(BrowserUserEducationServiceBrowserTest,
                        TutorialConsistencyCheck) {
   const auto kAlwaysPresentElementIds =
       base::MakeFixedFlatSet<ui::ElementIdentifier>(
-          {kToolbarAppMenuButtonElementId, kToolbarAvatarButtonElementId,
-           kToolbarBackButtonElementId, kBrowserViewElementId,
-           kToolbarForwardButtonElementId, kNewTabButtonElementId,
-           kOmniboxElementId, kToolbarSidePanelButtonElementId,
+          {kAppMenuButtonElementId, kAvatarButtonElementId,
+           kBackButtonElementId, kBrowserViewElementId, kForwardButtonElementId,
+           kNewTabButtonElementId, kOmniboxElementId, kSidePanelButtonElementId,
            kTabSearchButtonElementId, kTabStripElementId,
            kTabStripRegionElementId, kTopContainerElementId});
 
   std::vector<TutorialFailure> failures;
 
   auto* const service =
-      UserEducationServiceFactory::GetForBrowserContext(browser()->profile());
+      UserEducationServiceFactory::GetForProfile(browser()->profile());
   const auto& registry = service->tutorial_registry();
   for (auto identifier : registry.GetTutorialIdentifiers()) {
     const auto* const description = registry.GetTutorialDescription(identifier);
@@ -474,40 +470,4 @@ IN_PROC_BROWSER_TEST_F(BrowserUserEducationServiceBrowserTest,
   }
 
   EXPECT_TRUE(failures.empty()) << FailuresToString(failures, "Tutorial");
-}
-
-IN_PROC_BROWSER_TEST_F(BrowserUserEducationServiceBrowserTest, AutoConfigure) {
-  auto* const tracker =
-      feature_engagement::TrackerFactory::GetForBrowserContext(
-          browser()->profile());
-  const auto& config = tracker->GetConfigurationForTesting()->GetFeatureConfig(
-      feature_engagement::kIPHWebUiHelpBubbleTestFeature);
-
-  EXPECT_TRUE(config.valid);
-
-  EXPECT_EQ(feature_engagement::EventConfig(
-                "WebUiHelpBubbleTest_used",
-                feature_engagement::Comparator(feature_engagement::EQUAL, 0),
-                feature_engagement::kMaxStoragePeriod,
-                feature_engagement::kMaxStoragePeriod),
-            config.used);
-  EXPECT_EQ(
-      feature_engagement::EventConfig(
-          "WebUiHelpBubbleTest_trigger",
-          feature_engagement::Comparator(feature_engagement::LESS_THAN, 3),
-          feature_engagement::kMaxStoragePeriod,
-          feature_engagement::kMaxStoragePeriod),
-      config.trigger);
-  EXPECT_TRUE(config.event_configs.empty());
-  EXPECT_EQ(feature_engagement::Comparator(feature_engagement::EQUAL, 0),
-            config.session_rate);
-  EXPECT_EQ(feature_engagement::SessionRateImpact::Type::ALL,
-            config.session_rate_impact.type);
-  EXPECT_EQ(feature_engagement::BlockedBy(), config.blocked_by);
-  EXPECT_EQ(feature_engagement::Blocking(), config.blocking);
-  EXPECT_EQ(feature_engagement::Comparator(feature_engagement::ANY, 0),
-            config.availability);
-  EXPECT_FALSE(config.tracking_only);
-  EXPECT_EQ(feature_engagement::SnoozeParams(), config.snooze_params);
-  EXPECT_TRUE(config.groups.empty());
 }

@@ -41,10 +41,9 @@ BackgroundFetchDelegateFactory::BackgroundFetchDelegateFactory()
 
 BackgroundFetchDelegateFactory::~BackgroundFetchDelegateFactory() = default;
 
-std::unique_ptr<KeyedService>
-BackgroundFetchDelegateFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* BackgroundFetchDelegateFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
-  return std::make_unique<BackgroundFetchDelegateImpl>(context);
+  return new BackgroundFetchDelegateImpl(context);
 }
 
 content::BrowserContext* BackgroundFetchDelegateFactory::GetBrowserContextToUse(

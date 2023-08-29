@@ -9,7 +9,6 @@
 #include <string>
 #include <utility>
 
-#include "base/containers/contains.h"
 #include "base/format_macros.h"
 #include "base/functional/bind.h"
 #include "base/memory/scoped_refptr.h"
@@ -56,8 +55,8 @@ static bool CorrectAcceptEncoding(const WebURLRequest& request) {
                           .HttpHeaderField(WebString::FromUTF8(
                               net::HttpRequestHeaders::kAcceptEncoding))
                           .Utf8();
-  return (base::Contains(value, "identity;q=1")) &&
-         (base::Contains(value, "*;q=0"));
+  return (value.find("identity;q=1") != std::string::npos) &&
+         (value.find("*;q=0") != std::string::npos);
 }
 
 class ResourceMultiBufferDataProviderTest : public testing::Test {

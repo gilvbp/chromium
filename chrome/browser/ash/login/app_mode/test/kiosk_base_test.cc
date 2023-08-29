@@ -10,7 +10,6 @@
 #include "apps/test/app_window_waiter.h"
 #include "ash/constants/ash_switches.h"
 #include "ash/public/cpp/login_screen_test_api.h"
-#include "ash/webui/settings/public/constants/routes.mojom.h"
 #include "base/command_line.h"
 #include "base/functional/callback_forward.h"
 #include "base/json/json_reader.h"
@@ -36,6 +35,7 @@
 #include "chrome/browser/profiles/profile_manager.h"
 #include "chrome/browser/ui/settings_window_manager_chromeos.h"
 #include "chrome/browser/ui/webui/ash/login/error_screen_handler.h"
+#include "chrome/browser/ui/webui/settings/chromeos/constants/routes.mojom.h"
 #include "extensions/browser/app_window/app_window.h"
 #include "extensions/common/extension.h"
 #include "extensions/components/native_app_window/native_app_window_views.h"
@@ -46,6 +46,9 @@
 namespace ash {
 
 namespace {
+
+// Timeout while waiting for network connectivity during tests.
+const int kTestNetworkTimeoutSeconds = 1;
 
 // Helper function for GetConsumerKioskAutoLaunchStatusCallback.
 void ConsumerKioskAutoLaunchStatusCheck(
@@ -64,16 +67,17 @@ void WaitForNetworkConfigureLink() {
 
 }  // namespace
 
-const char kTestEnterpriseKioskAppId[] = "gcpjojfkologpegommokeppihdbcnahn";
+const char kTestEnterpriseKioskApp[] = "gcpjojfkologpegommokeppihdbcnahn";
 const char kTestEnterpriseAccountId[] = "enterprise-kiosk-app@localhost";
 
 const test::UIPath kConfigNetwork = {"app-launch-splash", "configNetwork"};
 const char kSizeChangedMessage[] = "size_changed";
 
-bool DidSessionCloseNewWindow(KioskSystemSession* session) {
+bool ShouldBrowserBeClosedByAppSessionBrowserHander(
+    AppSessionAsh* app_session) {
   base::RunLoop waiter;
   bool result = false;
-  session->SetOnHandleBrowserCallbackForTesting(
+  app_session->SetOnHandleBrowserCallbackForTesting(
       base::BindLambdaForTesting([&waiter, &result](bool is_closing) {
         result = is_closing;
         waiter.Quit();
@@ -82,16 +86,16 @@ bool DidSessionCloseNewWindow(KioskSystemSession* session) {
   return result;
 }
 
-Browser* OpenA11ySettingsBrowser(KioskSystemSession* session) {
+Browser* OpenA11ySettingsBrowser(AppSessionAsh* app_session) {
   auto* settings_manager = chrome::SettingsWindowManager::GetInstance();
   Profile* profile = ProfileManager::GetPrimaryUserProfile();
 
   settings_manager->ShowOSSettings(
       profile, chromeos::settings::mojom::kManageAccessibilitySubpagePath);
 
-  EXPECT_FALSE(DidSessionCloseNewWindow(session));
+  EXPECT_FALSE(ShouldBrowserBeClosedByAppSessionBrowserHander(app_session));
 
-  Browser* settings_browser = session->GetSettingsBrowserForTesting();
+  Browser* settings_browser = app_session->GetSettingsBrowserForTesting();
   return settings_browser;
 }
 
@@ -150,11 +154,15 @@ KioskLaunchController* KioskBaseTest::GetKioskLaunchController() {
 }
 
 void KioskBaseTest::SetUp() {
-  SetTestApp(KioskAppsMixin::kKioskAppId);
+  test_app_id_ = KioskAppsMixin::kKioskAppId;
+  set_test_app_version("1.0.0");
+  set_test_crx_file(test_app_id() + ".crx");
   needs_background_networking_ = true;
   ProfileHelper::SetAlwaysReturnPrimaryUserForTesting(true);
   skip_splash_wait_override_ =
       KioskLaunchController::SkipSplashScreenWaitForTesting();
+  network_wait_override_ = KioskLaunchController::SetNetworkWaitForTesting(
+      base::Seconds(kTestNetworkTimeoutSeconds));
   OobeBaseTest::SetUp();
 }
 
@@ -200,9 +208,9 @@ void KioskBaseTest::ReloadKioskApps() {
   SetupTestAppUpdateCheck();
 
   // Remove then add to ensure UI update.
-  KioskAppManager::Get()->RemoveApp(test_app_id(),
+  KioskAppManager::Get()->RemoveApp(test_app_id_,
                                     owner_settings_service_.get());
-  KioskAppManager::Get()->AddApp(test_app_id(), owner_settings_service_.get());
+  KioskAppManager::Get()->AddApp(test_app_id_, owner_settings_service_.get());
 }
 
 void KioskBaseTest::SetupTestAppUpdateCheck() {
@@ -216,8 +224,8 @@ void KioskBaseTest::SetupTestAppUpdateCheck() {
 void KioskBaseTest::ReloadAutolaunchKioskApps() {
   SetupTestAppUpdateCheck();
 
-  KioskAppManager::Get()->AddApp(test_app_id(), owner_settings_service_.get());
-  KioskAppManager::Get()->SetAutoLaunchApp(test_app_id(),
+  KioskAppManager::Get()->AddApp(test_app_id_, owner_settings_service_.get());
+  KioskAppManager::Get()->SetAutoLaunchApp(test_app_id_,
                                            owner_settings_service_.get());
 }
 
@@ -247,7 +255,7 @@ void KioskBaseTest::StartExistingAppLaunchFromLoginScreen(
 const extensions::Extension* KioskBaseTest::GetInstalledApp() {
   Profile* app_profile = ProfileManager::GetPrimaryUserProfile();
   return extensions::ExtensionRegistry::Get(app_profile)
-      ->GetInstalledExtension(test_app_id());
+      ->GetInstalledExtension(test_app_id_);
 }
 
 const base::Version& KioskBaseTest::GetInstalledAppVersion() {
@@ -280,14 +288,14 @@ void KioskBaseTest::WaitForAppLaunchWithOptions(bool check_launch_data,
   // Check if the kiosk webapp is really installed for the default profile.
   const extensions::Extension* app =
       extensions::ExtensionRegistry::Get(app_profile)
-          ->GetInstalledExtension(test_app_id());
+          ->GetInstalledExtension(test_app_id_);
   EXPECT_TRUE(app);
 
   // App should appear with its window.
   extensions::AppWindowRegistry* app_window_registry =
       extensions::AppWindowRegistry::Get(app_profile);
   extensions::AppWindow* window =
-      apps::AppWindowWaiter(app_window_registry, test_app_id()).Wait();
+      apps::AppWindowWaiter(app_window_registry, test_app_id_).Wait();
   EXPECT_TRUE(window);
 
   OobeWindowVisibilityWaiter(false /*target_visibility*/).Wait();
@@ -299,7 +307,7 @@ void KioskBaseTest::WaitForAppLaunchWithOptions(bool check_launch_data,
 
   // Wait until the app terminates if it is still running.
   if (!keep_app_open &&
-      !app_window_registry->GetAppWindowsForApp(test_app_id()).empty()) {
+      !app_window_registry->GetAppWindowsForApp(test_app_id_).empty()) {
     RunUntilBrowserProcessQuits();
   }
 
@@ -311,12 +319,12 @@ void KioskBaseTest::WaitForAppLaunchWithOptions(bool check_launch_data,
 }
 
 void KioskBaseTest::WaitForAppLaunchSuccess() {
-  WaitForAppLaunchWithOptions(/*check_launch_data=*/true,
-                              /*terminate_app=*/true);
+  WaitForAppLaunchWithOptions(true /* check_launch_data */,
+                              true /* terminate_app */);
 }
 
 void KioskBaseTest::RunAppLaunchNetworkDownTest() {
-  auto auto_reset = NetworkUiController::SetCanConfigureNetworkForTesting(true);
+  ScopedCanConfigureNetwork can_configure_network(true);
 
   // Start app launch and wait for network connectivity timeout.
   StartAppLaunchFromLoginScreen(
@@ -365,8 +373,8 @@ void KioskBaseTest::BlockAppLaunch(bool block) {
 }
 
 void KioskBaseTest::SetTestApp(const std::string& app_id,
-                               const std::string& version,
-                               const std::string& crx_file) {
+                               const std::string& crx_file,
+                               const std::string& version) {
   test_app_id_ = app_id;
   test_crx_file_ = (crx_file == "") ? app_id + ".crx" : crx_file;
   test_app_version_ = version;

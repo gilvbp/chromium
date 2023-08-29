@@ -34,8 +34,8 @@ struct OverflowMenuDestinationList: View {
     /// screen width minus a fixed space.
     static let largeTextSizeSpace: CGFloat = 120
 
-    /// The bottom margin between the destinations and the edge of the list.
-    static let bottomMargin: CGFloat = 5
+    /// Space above the list pushing them down from the grabber.
+    static let topMargin: CGFloat = 20
 
     /// The name for the coordinate space of the scroll view, so children can
     /// find their positioning in the scroll view.
@@ -69,20 +69,12 @@ struct OverflowMenuDestinationList: View {
   /// The current environment layout direction.
   @Environment(\.layoutDirection) var layoutDirection: LayoutDirection
 
-  @Environment(\.editMode) var editMode
-
   /// The destinations for this view.
-  @Binding var destinations: [OverflowMenuDestination]
+  var destinations: [OverflowMenuDestination]
 
   weak var metricsHandler: PopupMenuMetricsHandler?
 
   @ObservedObject var uiConfiguration: OverflowMenuUIConfiguration
-
-  // The drag handler to use for drag interactions on this list
-  var dragHandler: DestinationDragHandler?
-
-  /// The namespace for the animation of this view appearing or disappearing.
-  let namespace: Namespace.ID
 
   /// Tracks the list's current offset, to see when it scrolls. When the offset
   /// is `nil`, scroll tracking is not set up yet. This is necessary because
@@ -91,10 +83,13 @@ struct OverflowMenuDestinationList: View {
   @State var listOffset: CGFloat? = nil
 
   var body: some View {
-    GeometryReader { geometry in
-      scrollView(in: geometry)
-        .coordinateSpace(name: Constants.coordinateSpaceName)
-        .accessibilityIdentifier(kPopupMenuToolsMenuTableViewId)
+    VStack {
+      Spacer(minLength: Constants.topMargin)
+      GeometryReader { geometry in
+        scrollView(in: geometry)
+          .coordinateSpace(name: Constants.coordinateSpaceName)
+          .accessibilityIdentifier(kPopupMenuToolsMenuTableViewId)
+      }
     }
     .background(
       Color("destination_highlight_color").opacity(uiConfiguration.highlightDestinationsRow ? 1 : 0)
@@ -126,52 +121,21 @@ struct OverflowMenuDestinationList: View {
           forScreenWidth: geometry.size.width)
         let layoutParameters = OverflowMenuDestinationList.layoutParameters(
           forScreenWidth: geometry.size.width, forSizeCategory: sizeCategory)
-        let alignment: VerticalAlignment = sizeCategory >= .accessibilityMedium ? .center : .icon
+        let alignment: VerticalAlignment = sizeCategory >= .accessibilityMedium ? .center : .top
 
-        ZStack(alignment: .bottom) {
+        ZStack {
           HStack(alignment: alignment, spacing: 0) {
             // Make sure the space to the first icon is constant, so add extra
             // spacing before the first item.
             Spacer().frame(width: Constants.iconInitialSpace - spacing.iconSpacing)
             ForEach(destinations) { destination in
-              let destinationView = OverflowMenuDestinationView(
+              OverflowMenuDestinationView(
                 destination: destination, layoutParameters: layoutParameters,
                 highlighted: uiConfiguration.highlightDestination == destination.destination,
                 metricsHandler: metricsHandler
-              )
-              let destinationBeingDragged =
-                dragHandler?.dragOnDestinations ?? false
-                && dragHandler?.currentDrag?.item == destination
-              destinationView
-                .id(destination.destination)
-                .ifLet(dragHandler) { view, dragHandler in
-                  view
-                    .opacity(destinationBeingDragged ? 0.01 : 1)
-                    .onDrag {
-                      dragHandler.startDrag(from: destination)
-                      return dragHandler.newItemProvider(forDestination: destination)
-                    }
-                    .onDrop(
-                      of: [.text],
-                      delegate: dragHandler.newDropDelegate(
-                        forDestination: destination))
-                }
-                .overlay(alignment: .editButton) {
-                  if !destinationBeingDragged && editMode?.wrappedValue.isEditing == true
-                    && destination.canBeHidden
-                  {
-                    DestinationEditButton(destination: destination)
-                      .alignmentGuide(HorizontalAlignment.editButton) {
-                        $0[HorizontalAlignment.center]
-                      }
-                      .alignmentGuide(VerticalAlignment.editButton) { $0[VerticalAlignment.center] }
-                  }
-                }
-                .matchedGeometryEffect(
-                  id: MenuCustomizationAnimationID.from(destination), in: namespace
-                )
+              ).id(destination.destination)
             }
-          }.alignmentGuide(.bottom) { $0[.bottom] + Constants.bottomMargin }
+          }
 
           GeometryReader { innerGeometry in
             let frame = innerGeometry.frame(in: .named(Constants.coordinateSpaceName))
@@ -272,7 +236,8 @@ struct OverflowMenuDestinationList: View {
   {
     let layoutParameters = OverflowMenuDestinationList.layoutParameters(
       forScreenWidth: width, forSizeCategory: sizeCategory)
-    let destinationWidth = OverflowMenuDestinationView.destinationWidth(layoutParameters)
+    let destinationWidth = OverflowMenuDestinationButton.destinationWidth(
+      forLayoutParameters: layoutParameters)
 
     return (width / destinationWidth).rounded(.up)
   }
@@ -287,44 +252,4 @@ struct OverflowMenuDestinationList: View {
       / (inRange.upperBound - inRange.lowerBound)
     return (number - inRange.lowerBound) * scalingFactor + outRange.lowerBound
   }
-}
-
-extension VerticalAlignment {
-  /// A new custom alignment to align the DestinationViews by their icon
-  /// position.
-  static let icon = VerticalAlignment(Icon.self)
-
-  /// A new custom alignment to allow aligning the edit buttons at specific
-  /// locations.
-  static let editButton = VerticalAlignment(EditButton.self)
-
-  private enum Icon: AlignmentID {
-    static func defaultValue(in d: ViewDimensions) -> CGFloat {
-      return d[.bottom]
-    }
-  }
-
-  private enum EditButton: AlignmentID {
-    static func defaultValue(in d: ViewDimensions) -> CGFloat {
-      return d[.top]
-    }
-  }
-}
-
-extension HorizontalAlignment {
-  /// A new custom alignment to allow aligning the edit buttons at specific
-  /// locations.
-  static let editButton = HorizontalAlignment(EditButton.self)
-
-  private enum EditButton: AlignmentID {
-    static func defaultValue(in d: ViewDimensions) -> CGFloat {
-      return d[.leading]
-    }
-  }
-}
-
-extension Alignment {
-  /// A new custom alignment to allow aligning the edit buttons at specific
-  /// locations.
-  static let editButton = Alignment(horizontal: .editButton, vertical: .editButton)
 }

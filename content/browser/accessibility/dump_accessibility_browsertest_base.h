@@ -37,9 +37,9 @@ class BrowserAccessibilityManager;
 // testing accessibility in Chromium.
 //
 // See content/test/data/accessibility/readme.md for an overview.
-class DumpAccessibilityTestBase : public ContentBrowserTest,
-                                  public ::testing::WithParamInterface<
-                                      std::pair<ui::AXApiType::Type, bool>> {
+class DumpAccessibilityTestBase
+    : public ContentBrowserTest,
+      public ::testing::WithParamInterface<ui::AXApiType::Type> {
  public:
   DumpAccessibilityTestBase();
   ~DumpAccessibilityTestBase() override;
@@ -81,41 +81,29 @@ class DumpAccessibilityTestBase : public ContentBrowserTest,
     RunTest(mode, test_file, dir.c_str());
   }
 
-  typedef std::vector<ui::AXApiType::Type> ApiTypeVector;
-  typedef std::vector<std::pair<ui::AXApiType::Type, bool>> ParamVector;
-
-  static ParamVector TestParams(const ApiTypeVector& api_types);
-  static ParamVector TreeTestPasses() {
-    return DumpAccessibilityTestBase::TestParams(
-        ui::AXInspectTestHelper::TreeTestPasses());
-  }
-  static ParamVector EventTestPasses() {
-    return DumpAccessibilityTestBase::TestParams(
-        ui::AXInspectTestHelper::EventTestPasses());
-  }
-
-  template <ApiTypeVector TestPasses(), ui::AXApiType::TypeConstant type>
-  static ParamVector TestPassesExcept() {
-    ApiTypeVector passes = TestPasses();
+  template <std::vector<ui::AXApiType::Type> TestPasses(),
+            ui::AXApiType::TypeConstant type>
+  static std::vector<ui::AXApiType::Type> TestPassesExcept() {
+    std::vector<ui::AXApiType::Type> passes = TestPasses();
     base::Erase(passes, type);
-    return TestParams(passes);
+    return passes;
   }
 
   template <ui::AXApiType::TypeConstant type>
-  static ParamVector TreeTestPassesExcept() {
+  static std::vector<ui::AXApiType::Type> TreeTestPassesExcept() {
     return TestPassesExcept<ui::AXInspectTestHelper::TreeTestPasses, type>();
   }
 
   template <ui::AXApiType::TypeConstant type>
-  static ParamVector EventTestPassesExcept() {
+  static std::vector<ui::AXApiType::Type> EventTestPassesExcept() {
     return TestPassesExcept<ui::AXInspectTestHelper::EventTestPasses, type>();
   }
 
-  static ParamVector TreeTestPassesExceptUIA() {
+  static std::vector<ui::AXApiType::Type> TreeTestPassesExceptUIA() {
     return TreeTestPassesExcept<ui::AXApiType::kWinUIA>();
   }
 
-  static ParamVector EventTestPassesExceptUIA() {
+  static std::vector<ui::AXApiType::Type> EventTestPassesExceptUIA() {
     return EventTestPassesExcept<ui::AXApiType::kWinUIA>();
   }
 

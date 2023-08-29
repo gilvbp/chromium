@@ -219,7 +219,7 @@ public class SignInPreference
 
     // AccountsChangeObserver implementation.
     @Override
-    public void onCoreAccountInfosChanged() {
+    public void onAccountsChanged() {
         update();
     }
 }

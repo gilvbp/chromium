@@ -5,6 +5,7 @@
 #include "components/autofill/core/browser/metrics/stored_profile_metrics.h"
 
 #include "base/test/metrics/histogram_tester.h"
+#include "base/test/scoped_feature_list.h"
 #include "components/autofill/core/browser/autofill_test_utils.h"
 #include "components/autofill/core/browser/metrics/autofill_metrics_utils.h"
 #include "components/autofill/core/browser/test_utils/test_profiles.h"
@@ -19,12 +20,19 @@ namespace autofill::autofill_metrics {
 class StoredProfileMetricsTestByCategory
     : public testing::TestWithParam<AutofillProfileSourceCategory> {
  public:
-  StoredProfileMetricsTestByCategory() = default;
+  StoredProfileMetricsTestByCategory() {
+    // Metrics for kAccount profiles are only emitted when the union view is
+    // enabled, since kAccount profiles are otherwise not loaded.
+    features_.InitAndEnableFeature(features::kAutofillAccountProfilesUnionView);
+  }
 
   AutofillProfileSourceCategory Category() const { return GetParam(); }
 
   // Returns the suffix used for the metrics.
   std::string GetSuffix() const { return GetProfileCategorySuffix(Category()); }
+
+ private:
+  base::test::ScopedFeatureList features_;
 };
 
 INSTANTIATE_TEST_SUITE_P(

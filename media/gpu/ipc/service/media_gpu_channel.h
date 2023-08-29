@@ -24,7 +24,7 @@ class MediaGpuChannel {
   ~MediaGpuChannel();
 
  private:
-  const raw_ptr<gpu::GpuChannel, DanglingUntriaged> channel_;
+  const raw_ptr<gpu::GpuChannel> channel_;
   AndroidOverlayMojoFactoryCB overlay_factory_cb_;
 };
 

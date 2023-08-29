@@ -13,10 +13,8 @@
 #include <vector>
 
 #include "base/memory/raw_ptr.h"
-#include "build/build_config.h"
 #include "components/autofill/core/browser/payments/payments_client.h"
 #include "components/autofill/core/browser/payments/payments_requests/update_virtual_card_enrollment_request.h"
-#include "third_party/abseil-cpp/absl/types/optional.h"
 
 namespace network {
 class SharedURLLoaderFactory;
@@ -66,12 +64,10 @@ class TestPaymentsClient : public payments::PaymentsClient {
                               const PaymentsClient::UploadCardResponseDetails&)>
           callback) override;
 
-#if !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_IOS)
   void MigrateCards(
       const MigrationRequestDetails& details,
       const std::vector<MigratableCreditCard>& migratable_credit_cards,
       MigrateCardsCallback callback) override;
-#endif  // !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_IOS)
 
   void SelectChallengeOption(
       const SelectChallengeOptionRequestDetails& details,
@@ -129,8 +125,7 @@ class TestPaymentsClient : public payments::PaymentsClient {
   payments::PaymentsClient::UnmaskDetails* unmask_details() {
     return &unmask_details_;
   }
-  const absl::optional<payments::PaymentsClient::UnmaskRequestDetails>&
-  unmask_request() const {
+  const payments::PaymentsClient::UnmaskRequestDetails* unmask_request() {
     return unmask_request_;
   }
   const payments::PaymentsClient::SelectChallengeOptionRequestDetails*
@@ -174,8 +169,9 @@ class TestPaymentsClient : public payments::PaymentsClient {
   // useful to control whether or not GetUnmaskDetails() is responded to.
   bool should_return_unmask_details_ = true;
   payments::PaymentsClient::UnmaskDetails unmask_details_;
-  absl::optional<payments::PaymentsClient::UnmaskRequestDetails>
-      unmask_request_;
+  raw_ptr<const payments::PaymentsClient::UnmaskRequestDetails,
+          DanglingUntriaged>
+      unmask_request_ = nullptr;
   payments::PaymentsClient::SelectChallengeOptionRequestDetails
       select_challenge_option_request_;
   std::vector<std::pair<int, int>> supported_card_bin_ranges_;

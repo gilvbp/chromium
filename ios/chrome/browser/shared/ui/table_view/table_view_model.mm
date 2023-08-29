@@ -4,5 +4,9 @@
 
 #import "ios/chrome/browser/shared/ui/table_view/table_view_model.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 @implementation TableViewModel
 @end

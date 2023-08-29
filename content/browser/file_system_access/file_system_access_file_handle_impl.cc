@@ -19,9 +19,9 @@
 #include "content/browser/file_system_access/file_system_access_access_handle_host_impl.h"
 #include "content/browser/file_system_access/file_system_access_error.h"
 #include "content/browser/file_system_access/file_system_access_handle_base.h"
-#include "content/browser/file_system_access/file_system_access_lock_manager.h"
 #include "content/browser/file_system_access/file_system_access_manager_impl.h"
 #include "content/browser/file_system_access/file_system_access_transfer_token_impl.h"
+#include "content/browser/file_system_access/file_system_access_write_lock_manager.h"
 #include "content/public/browser/browser_task_traits.h"
 #include "content/public/browser/browser_thread.h"
 #include "content/public/browser/render_frame_host.h"
@@ -37,7 +37,6 @@
 #include "third_party/blink/public/mojom/blob/blob.mojom.h"
 #include "third_party/blink/public/mojom/blob/serialized_blob.mojom.h"
 #include "third_party/blink/public/mojom/file_system_access/file_system_access_capacity_allocation_host.mojom.h"
-#include "third_party/blink/public/mojom/file_system_access/file_system_access_cloud_identifier.mojom.h"
 #include "third_party/blink/public/mojom/file_system_access/file_system_access_error.mojom.h"
 #include "third_party/blink/public/mojom/file_system_access/file_system_access_file_handle.mojom.h"
 #include "third_party/blink/public/mojom/file_system_access/file_system_access_transfer_token.mojom.h"
@@ -60,39 +59,35 @@ using storage::FileSystemOperationRunner;
 
 namespace content {
 
+using WriteLockType = FileSystemAccessWriteLockManager::WriteLockType;
+
 namespace {
 
 std::pair<base::File, base::FileErrorOr<int64_t>> GetFileLengthOnBlockingThread(
     base::File file) {
   int64_t file_length = file.GetLength();
-  if (file_length < 0) {
+  if (file_length < 0)
     return {std::move(file), base::unexpected(base::File::GetLastFileError())};
-  }
   return {std::move(file), std::move(file_length)};
 }
 
 bool HasWritePermission(const base::FilePath& path) {
-  if (!base::PathExists(path)) {
+  if (!base::PathExists(path))
     return true;
-  }
 
 #if BUILDFLAG(IS_POSIX)
   int mode;
-  if (!base::GetPosixFilePermissions(path, &mode)) {
+  if (!base::GetPosixFilePermissions(path, &mode))
     return true;
-  }
 
-  if (!(mode & base::FILE_PERMISSION_WRITE_BY_USER)) {
+  if (!(mode & base::FILE_PERMISSION_WRITE_BY_USER))
     return false;
-  }
 #elif BUILDFLAG(IS_WIN)
   DWORD attrs = ::GetFileAttributes(path.value().c_str());
-  if (attrs == INVALID_FILE_ATTRIBUTES) {
+  if (attrs == INVALID_FILE_ATTRIBUTES)
     return true;
-  }
-  if (attrs & FILE_ATTRIBUTE_READONLY) {
+  if (attrs & FILE_ATTRIBUTE_READONLY)
     return false;
-  }
 #endif  // BUILDFLAG(IS_POSIX)
 
   return true;
@@ -218,7 +213,8 @@ void FileSystemAccessFileHandleImpl::Remove(RemoveCallback callback) {
 
   RunWithWritePermission(
       base::BindOnce(&FileSystemAccessHandleBase::DoRemove,
-                     weak_factory_.GetWeakPtr(), url(), /*recurse=*/false),
+                     weak_factory_.GetWeakPtr(), url(), /*recurse=*/false,
+                     WriteLockType::kExclusive),
       base::BindOnce([](blink::mojom::FileSystemAccessErrorPtr result,
                         RemoveCallback callback) {
         std::move(callback).Run(std::move(result));
@@ -227,7 +223,6 @@ void FileSystemAccessFileHandleImpl::Remove(RemoveCallback callback) {
 }
 
 void FileSystemAccessFileHandleImpl::OpenAccessHandle(
-    blink::mojom::FileSystemAccessAccessHandleLockMode mode,
     OpenAccessHandleCallback callback) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
 
@@ -241,21 +236,7 @@ void FileSystemAccessFileHandleImpl::OpenAccessHandle(
     return;
   }
 
-  FileSystemAccessLockManager::LockType lock_type;
-
-  switch (mode) {
-    case blink::mojom::FileSystemAccessAccessHandleLockMode::kReadwrite:
-      lock_type = manager()->GetExclusiveLockType();
-      break;
-    case blink::mojom::FileSystemAccessAccessHandleLockMode::kReadOnly:
-      lock_type = sah_read_only_lock_type_;
-      break;
-    case blink::mojom::FileSystemAccessAccessHandleLockMode::kReadwriteUnsafe:
-      lock_type = sah_readwrite_unsafe_lock_type_;
-      break;
-  }
-
-  auto lock = manager()->TakeLock(url(), lock_type);
+  auto lock = manager()->TakeWriteLock(url(), WriteLockType::kExclusive);
   if (!lock) {
     std::move(callback).Run(
         file_system_access_error::FromStatus(
@@ -286,7 +267,7 @@ void FileSystemAccessFileHandleImpl::OpenAccessHandle(
 }
 
 void FileSystemAccessFileHandleImpl::DoOpenIncognitoFile(
-    scoped_refptr<FileSystemAccessLockManager::Lock> lock,
+    scoped_refptr<FileSystemAccessWriteLockManager::WriteLock> lock,
     OpenAccessHandleCallback callback) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   DCHECK_EQ(GetWritePermissionStatus(),
@@ -308,7 +289,7 @@ void FileSystemAccessFileHandleImpl::DoOpenIncognitoFile(
 }
 
 void FileSystemAccessFileHandleImpl::DoOpenFile(
-    scoped_refptr<FileSystemAccessLockManager::Lock> lock,
+    scoped_refptr<FileSystemAccessWriteLockManager::WriteLock> lock,
     OpenAccessHandleCallback callback) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   DCHECK_EQ(GetWritePermissionStatus(),
@@ -325,7 +306,7 @@ void FileSystemAccessFileHandleImpl::DoOpenFile(
 
 void FileSystemAccessFileHandleImpl::DoGetLengthAfterOpenFile(
     OpenAccessHandleCallback callback,
-    scoped_refptr<FileSystemAccessLockManager::Lock> lock,
+    scoped_refptr<FileSystemAccessWriteLockManager::WriteLock> lock,
     base::File file,
     base::ScopedClosureRunner on_close_callback) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
@@ -361,7 +342,7 @@ void FileSystemAccessFileHandleImpl::DoGetLengthAfterOpenFile(
 
 void FileSystemAccessFileHandleImpl::DidOpenFileAndGetLength(
     OpenAccessHandleCallback callback,
-    scoped_refptr<FileSystemAccessLockManager::Lock> lock,
+    scoped_refptr<FileSystemAccessWriteLockManager::WriteLock> lock,
     base::ScopedClosureRunner on_close_callback,
     std::pair<base::File, base::FileErrorOr<int64_t>> file_and_length) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
@@ -458,10 +439,8 @@ void FileSystemAccessFileHandleImpl::DidGetMetaDataForBlob(
     // including platform defined mime type mappings might be nice/make sense,
     // however that method can potentially block and thus can't be called from
     // the IO thread.
-    if (net::GetWellKnownMimeTypeFromExtension(extension.substr(1),
-                                               &mime_type)) {
+    if (net::GetWellKnownMimeTypeFromExtension(extension.substr(1), &mime_type))
       content_type = std::move(mime_type);
-    }
   }
   // TODO(https://crbug.com/962306): Consider some kind of fallback type when
   // the above mime type detection fails.
@@ -523,7 +502,7 @@ void FileSystemAccessFileHandleImpl::DidVerifyHasWritePermissions(
     return;
   }
 
-  auto lock = manager()->TakeLock(url(), wfs_siloed_lock_type_);
+  auto lock = manager()->TakeWriteLock(url(), WriteLockType::kShared);
   if (!lock) {
     std::move(callback).Run(
         file_system_access_error::FromStatus(
@@ -541,7 +520,7 @@ void FileSystemAccessFileHandleImpl::StartCreateSwapFile(
     int count,
     bool keep_existing_data,
     bool auto_close,
-    scoped_refptr<FileSystemAccessLockManager::Lock> lock,
+    scoped_refptr<FileSystemAccessWriteLockManager::WriteLock> lock,
     CreateFileWriterCallback callback) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   DCHECK(count >= 0);
@@ -581,7 +560,7 @@ void FileSystemAccessFileHandleImpl::StartCreateSwapFile(
   CHECK(swap_url.is_valid());
 
   auto swap_lock =
-      manager()->TakeLock(swap_url, manager()->GetExclusiveLockType());
+      manager()->TakeWriteLock(swap_url, WriteLockType::kExclusive);
   if (!swap_lock) {
     StartCreateSwapFile(count + 1, keep_existing_data, auto_close,
                         std::move(lock), std::move(callback));
@@ -623,8 +602,8 @@ void FileSystemAccessFileHandleImpl::DidCheckSwapFileExists(
     int count,
     const storage::FileSystemURL& swap_url,
     bool auto_close,
-    scoped_refptr<FileSystemAccessLockManager::Lock> lock,
-    scoped_refptr<FileSystemAccessLockManager::Lock> swap_lock,
+    scoped_refptr<FileSystemAccessWriteLockManager::WriteLock> lock,
+    scoped_refptr<FileSystemAccessWriteLockManager::WriteLock> swap_lock,
     CreateFileWriterCallback callback,
     base::File::Error result) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
@@ -656,8 +635,8 @@ void FileSystemAccessFileHandleImpl::CreateSwapFileFromCopy(
     int count,
     const storage::FileSystemURL& swap_url,
     bool auto_close,
-    scoped_refptr<FileSystemAccessLockManager::Lock> lock,
-    scoped_refptr<FileSystemAccessLockManager::Lock> swap_lock,
+    scoped_refptr<FileSystemAccessWriteLockManager::WriteLock> lock,
+    scoped_refptr<FileSystemAccessWriteLockManager::WriteLock> swap_lock,
     CreateFileWriterCallback callback) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   DCHECK(count >= 0);
@@ -682,8 +661,8 @@ void FileSystemAccessFileHandleImpl::CreateClonedSwapFile(
     int count,
     const storage::FileSystemURL& swap_url,
     bool auto_close,
-    scoped_refptr<FileSystemAccessLockManager::Lock> lock,
-    scoped_refptr<FileSystemAccessLockManager::Lock> swap_lock,
+    scoped_refptr<FileSystemAccessWriteLockManager::WriteLock> lock,
+    scoped_refptr<FileSystemAccessWriteLockManager::WriteLock> swap_lock,
     CreateFileWriterCallback callback) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   DCHECK(count >= 0);
@@ -710,8 +689,8 @@ void FileSystemAccessFileHandleImpl::DidCloneSwapFile(
     int count,
     const storage::FileSystemURL& swap_url,
     bool auto_close,
-    scoped_refptr<FileSystemAccessLockManager::Lock> lock,
-    scoped_refptr<FileSystemAccessLockManager::Lock> swap_lock,
+    scoped_refptr<FileSystemAccessWriteLockManager::WriteLock> lock,
+    scoped_refptr<FileSystemAccessWriteLockManager::WriteLock> swap_lock,
     CreateFileWriterCallback callback,
     base::File::Error result) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
@@ -753,8 +732,8 @@ void FileSystemAccessFileHandleImpl::DidCreateSwapFile(
     const storage::FileSystemURL& swap_url,
     bool keep_existing_data,
     bool auto_close,
-    scoped_refptr<FileSystemAccessLockManager::Lock> lock,
-    scoped_refptr<FileSystemAccessLockManager::Lock> swap_lock,
+    scoped_refptr<FileSystemAccessWriteLockManager::WriteLock> lock,
+    scoped_refptr<FileSystemAccessWriteLockManager::WriteLock> swap_lock,
     CreateFileWriterCallback callback,
     base::File::Error result) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
@@ -799,13 +778,6 @@ bool FileSystemAccessFileHandleImpl::CanUseCowSwapFile() const {
          url().type() == storage::kFileSystemTypeLocal;
 }
 #endif  // BUILDFLAG(IS_MAC)
-
-void FileSystemAccessFileHandleImpl::GetCloudIdentifiers(
-    GetCloudIdentifiersCallback callback) {
-  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
-  DoGetCloudIdentifiers(FileSystemAccessPermissionContext::HandleType::kFile,
-                        std::move(callback));
-}
 
 base::WeakPtr<FileSystemAccessHandleBase>
 FileSystemAccessFileHandleImpl::AsWeakPtr() {

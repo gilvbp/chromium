@@ -27,7 +27,7 @@ import org.chromium.chrome.browser.compositor.bottombar.OverlayPanelManager.Pane
 import org.chromium.chrome.browser.compositor.layouts.Layout;
 import org.chromium.chrome.browser.compositor.layouts.LayoutManagerImpl;
 import org.chromium.chrome.browser.compositor.layouts.SceneChangeObserver;
-import org.chromium.chrome.browser.compositor.layouts.eventfilter.MotionEventHandler;
+import org.chromium.chrome.browser.compositor.layouts.eventfilter.GestureHandler;
 import org.chromium.chrome.browser.compositor.layouts.eventfilter.OverlayPanelEventFilter;
 import org.chromium.chrome.browser.layouts.EventFilter;
 import org.chromium.chrome.browser.layouts.SceneOverlay;
@@ -52,8 +52,8 @@ import java.util.List;
  * Controls the Overlay Panel.
  */
 public class OverlayPanel extends OverlayPanelAnimation
-        implements ActivityStateListener, SwipeHandler, MotionEventHandler,
-                   OverlayPanelContentFactory, SceneOverlay {
+        implements ActivityStateListener, SwipeHandler, GestureHandler, OverlayPanelContentFactory,
+                   SceneOverlay {
     /** The delay after which the hide progress will be hidden. */
     private static final long HIDE_PROGRESS_BAR_DELAY_MS = 1000 / 60 * 4;
 
@@ -166,9 +166,6 @@ public class OverlayPanel extends OverlayPanelAnimation
 
     /** This is used to make sure there is one show request to one close request. */
     private boolean mPanelShown;
-
-    /** Sequence number for peekPanel() calls to distinguish stale from fresh. */
-    private int mLastPeekSequence;
 
     /**
      * Cache the viewport width and height of the screen to filter SceneOverlay#onSizeChanged
@@ -285,10 +282,6 @@ public class OverlayPanel extends OverlayPanelAnimation
         }
     }
 
-    public int getLastPeekSequence() {
-        return mLastPeekSequence;
-    }
-
     @Override
     public void peekPanel(@StateChangeReason int reason) {
         // TODO(mdjones): This is making a protected API public and should be removed. Animation
@@ -297,7 +290,6 @@ public class OverlayPanel extends OverlayPanelAnimation
         // Since the OverlayPanelManager can show panels without requestPanelShow being called, the
         // flag for the panel being shown should be set to true here.
         mPanelShown = true;
-        ++mLastPeekSequence;
         super.peekPanel(reason);
     }
 
@@ -853,15 +845,6 @@ public class OverlayPanel extends OverlayPanelAnimation
 
     @Override
     public void onPinch(float x0, float y0, float x1, float y1, boolean firstEvent) {}
-
-    @Override
-    public void onHoverEnter(float x, float y) {}
-
-    @Override
-    public void onHoverMove(float x, float y) {}
-
-    @Override
-    public void onHoverExit() {}
 
     // SwipeHandler implementation.
 

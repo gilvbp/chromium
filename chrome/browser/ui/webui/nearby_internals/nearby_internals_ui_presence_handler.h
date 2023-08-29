@@ -46,17 +46,13 @@ class NearbyInternalsPresenceHandler
 
   void Initialize(const base::Value::List& args);
   void HandleStartPresenceScan(const base::Value::List& args);
-  void HandleStopPresenceScan(const base::Value::List& args);
   void HandleSyncPresenceCredentials(const base::Value::List& args);
   void HandleFirstTimePresenceFlow(const base::Value::List& args);
 
   void OnScanStarted(
       std::unique_ptr<ash::nearby::presence::NearbyPresenceService::ScanSession>
           scan_session,
-      ash::nearby::presence::NearbyPresenceService::StatusCode status);
-  void OnNearbyPresenceCredentialManagerInitialized();
-
-  void HandleConnectToPresenceDevice(const base::Value::List& args);
+      ash::nearby::presence::mojom::StatusCode status);
 
  private:
   const raw_ptr<content::BrowserContext> context_;

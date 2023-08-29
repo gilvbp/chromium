@@ -4,8 +4,7 @@
 
 #include "media/gpu/v4l2/v4l2_video_decoder_delegate_av1.h"
 
-#include <linux/v4l2-controls.h>
-#include <linux/videodev2.h>
+#include <linux/media/av1-ctrls.h>
 
 #include "media/gpu/macros.h"
 #include "media/gpu/v4l2/v4l2_decode_surface.h"

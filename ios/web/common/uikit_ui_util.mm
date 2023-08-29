@@ -6,12 +6,16 @@
 
 #import <UIKit/UIKit.h>
 
-#import "base/apple/foundation_util.h"
+#import "base/mac/foundation_util.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 UIWindow* GetAnyKeyWindow() {
   for (UIScene* scene in UIApplication.sharedApplication.connectedScenes) {
     UIWindowScene* windowScene =
-        base::apple::ObjCCastStrict<UIWindowScene>(scene);
+        base::mac::ObjCCastStrict<UIWindowScene>(scene);
     // Find a key window if it exists.
     for (UIWindow* window in windowScene.windows) {
       if (window.isKeyWindow)

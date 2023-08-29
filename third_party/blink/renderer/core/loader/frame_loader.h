@@ -62,6 +62,7 @@ namespace blink {
 
 class DocumentLoader;
 class FetchClientSettingsObject;
+class Frame;
 class LocalFrame;
 class LocalFrameClient;
 class PolicyContainer;
@@ -169,6 +170,9 @@ class CORE_EXPORT FrameLoader final {
       const FetchClientSettingsObject* fetch_client_settings_object,
       LocalDOMWindow* window_for_logging,
       mojom::RequestContextFrameType) const;
+
+  Frame* Opener();
+  void SetOpener(LocalFrame*);
 
   void Detach();
 

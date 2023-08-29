@@ -17,7 +17,6 @@
 #include "base/process/launch.h"
 #include "base/ranges/algorithm.h"
 #include "base/strings/string_number_conversions.h"
-#include "base/strings/string_util_win.h"
 #include "base/synchronization/waitable_event.h"
 #include "base/task/task_traits.h"
 #include "base/task/thread_pool.h"
@@ -102,6 +101,17 @@ bool ParseSerializedReport(const wchar_t* const executable_name,
          report->ParseFromString(dumped_proto_string);
 }
 
+std::wstring StringToWLower(const std::wstring& source) {
+  // TODO(joenotcharles): Investigate moving this into string_util.cc and using
+  // it instead of ToLowerASCII() through the whole code base. Case insensitive
+  // compares will also need to be changed.
+  std::wstring copy = source;
+  for (wchar_t& character : copy) {
+    character = towlower(character);
+  }
+  return copy;
+}
+
 std::vector<std::wstring> GetUnsanitizedPaths() {
   std::vector<std::wstring> unsanitized_path_strings;
   bool success = true;
@@ -114,7 +124,7 @@ std::vector<std::wstring> GetUnsanitizedPaths() {
       continue;
     }
     std::wstring unsanitized_path_string =
-        base::ToLowerASCII(unsanitized_path.value());
+        StringToWLower(unsanitized_path.value());
     unsanitized_path_strings.push_back(unsanitized_path_string);
   }
   CHECK(success);
@@ -136,7 +146,7 @@ void CheckFieldForUnsanitizedPaths(
     const std::vector<std::wstring>& unsanitized_path_strings) {
   for (const auto& sub_field : field) {
     std::string utf8_path = sub_field.file_information().path();
-    EXPECT_FALSE(ContainsAnyOf(base::ToLowerASCII(base::UTF8ToWide(utf8_path)),
+    EXPECT_FALSE(ContainsAnyOf(StringToWLower(base::UTF8ToWide(utf8_path)),
                                unsanitized_path_strings))
         << "Found unsanitized " << field_name << ":\n>>> " << utf8_path;
   }
@@ -149,11 +159,10 @@ bool CheckCleanerReportForUnsanitizedPaths(
   size_t line_number = 0;
   for (const auto& utf8_line : report.raw_log_line()) {
     ++line_number;
-    if (!ContainsAnyOf(base::ToLowerASCII(base::UTF8ToWide(utf8_line)),
+    if (!ContainsAnyOf(StringToWLower(base::UTF8ToWide(utf8_line)),
                        kAllowedLogStringsForSanitizationCheck)) {
-      EXPECT_FALSE(
-          ContainsAnyOf(base::ToLowerASCII(base::UTF8ToWide(utf8_line)),
-                        unsanitized_path_strings))
+      EXPECT_FALSE(ContainsAnyOf(StringToWLower(base::UTF8ToWide(utf8_line)),
+                                 unsanitized_path_strings))
           << "Found unsanitized logs line (" << line_number << "):\n>>> "
           << utf8_line;
     }
@@ -161,7 +170,7 @@ bool CheckCleanerReportForUnsanitizedPaths(
 
   for (const auto& unknown_uws_file : report.unknown_uws().files()) {
     std::string utf8_path = unknown_uws_file.file_information().path();
-    EXPECT_FALSE(ContainsAnyOf(base::ToLowerASCII(base::UTF8ToWide(utf8_path)),
+    EXPECT_FALSE(ContainsAnyOf(StringToWLower(base::UTF8ToWide(utf8_path)),
                                unsanitized_path_strings))
         << "Found unsanitized unknown uws file:\n>>> " << utf8_path;
   }
@@ -171,9 +180,8 @@ bool CheckCleanerReportForUnsanitizedPaths(
                                   unsanitized_path_strings);
     for (const auto& folder : detected_uws.folders()) {
       std::string utf8_path = folder.folder_information().path();
-      EXPECT_FALSE(
-          ContainsAnyOf(base::ToLowerASCII(base::UTF8ToWide(utf8_path)),
-                        unsanitized_path_strings))
+      EXPECT_FALSE(ContainsAnyOf(StringToWLower(base::UTF8ToWide(utf8_path)),
+                                 unsanitized_path_strings))
           << "Found unsanitized detected uws folder:\n>>> " << utf8_path;
     }
 
@@ -182,9 +190,8 @@ bool CheckCleanerReportForUnsanitizedPaths(
 
     for (const auto& scheduled_task : detected_uws.scheduled_tasks()) {
       std::string utf8_path = scheduled_task.scheduled_task().name();
-      EXPECT_FALSE(
-          ContainsAnyOf(base::ToLowerASCII(base::UTF8ToWide(utf8_path)),
-                        unsanitized_path_strings))
+      EXPECT_FALSE(ContainsAnyOf(StringToWLower(base::UTF8ToWide(utf8_path)),
+                                 unsanitized_path_strings))
           << "Found unsanitized detected uws scheduled task:\n>>> "
           << utf8_path;
     }
@@ -206,9 +213,8 @@ bool CheckCleanerReportForUnsanitizedPaths(
        report.system_report().installed_extensions()) {
     for (const auto& extension_file : installed_extensions.extension_files()) {
       std::string utf8_path = extension_file.path();
-      EXPECT_FALSE(
-          ContainsAnyOf(base::ToLowerASCII(base::UTF8ToWide(utf8_path)),
-                        unsanitized_path_strings))
+      EXPECT_FALSE(ContainsAnyOf(StringToWLower(base::UTF8ToWide(utf8_path)),
+                                 unsanitized_path_strings))
           << "Found unsanitized installed extension file:\n>>> " << utf8_path;
     }
   }
@@ -216,7 +222,7 @@ bool CheckCleanerReportForUnsanitizedPaths(
   for (const auto& installed_program :
        report.system_report().installed_programs()) {
     std::string utf8_path = installed_program.folder_information().path();
-    EXPECT_FALSE(ContainsAnyOf(base::ToLowerASCII(base::UTF8ToWide(utf8_path)),
+    EXPECT_FALSE(ContainsAnyOf(StringToWLower(base::UTF8ToWide(utf8_path)),
                                unsanitized_path_strings))
         << "Found unsanitized layered service provider:\n>>> " << utf8_path;
   }

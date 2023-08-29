@@ -71,6 +71,7 @@ public class FeedFeaturesTest {
     @After
     public void tearDown() {
         FeatureList.setTestValues(null);
+        FeedFeatures.setFakePrefsForTest(null);
     }
 
     @Test

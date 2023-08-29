@@ -9,7 +9,7 @@
 
 #include "base/memory/raw_ptr.h"
 #include "base/memory/weak_ptr.h"
-#include "base/time/time.h"
+#include "chrome/browser/ui/views/omnibox/omnibox_popup_view_views.h"
 #include "components/omnibox/browser/omnibox_popup_selection.h"
 #include "components/omnibox/browser/omnibox_popup_view.h"
 #include "components/prefs/pref_change_registrar.h"
@@ -22,53 +22,41 @@
 #include "ui/views/widget/widget_observer.h"
 
 class LocationBarView;
-class OmniboxController;
+class OmniboxEditModel;
 class OmniboxViewViews;
-class RealboxHandler;
-class OmniboxPopupPresenter;
+class WebUIOmniboxPopupView;
 
-class OmniboxPopupViewWebUI : public OmniboxPopupView {
+class OmniboxPopupViewWebUI : public OmniboxPopupViewViews {
  public:
   OmniboxPopupViewWebUI(OmniboxViewViews* omnibox_view,
-                        OmniboxController* controller,
+                        OmniboxEditModel* edit_model,
                         LocationBarView* location_bar_view);
-  OmniboxPopupViewWebUI(const OmniboxPopupViewWebUI&) = delete;
-  OmniboxPopupViewWebUI& operator=(const OmniboxPopupViewWebUI&) = delete;
-  ~OmniboxPopupViewWebUI() override;
+  explicit OmniboxPopupViewWebUI(const OmniboxPopupViewViews&) = delete;
+  OmniboxPopupViewWebUI& operator=(const OmniboxPopupViewViews&) = delete;
 
   // OmniboxPopupView:
-  bool IsOpen() const override;
-  void InvalidateLine(size_t line) override;
   void OnSelectionChanged(OmniboxPopupSelection old_selection,
                           OmniboxPopupSelection new_selection) override;
-  void UpdatePopupAppearance() override;
   void ProvideButtonFocusHint(size_t line) override;
   void OnMatchIconUpdated(size_t match_index) override;
-  void OnDragCanceled() override;
-  void GetPopupAccessibleNodeData(ui::AXNodeData* node_data) override;
   void AddPopupAccessibleNodeData(ui::AXNodeData* node_data) override;
-  std::u16string GetAccessibleButtonTextForResult(size_t line) override;
+
+  // views::View:
+  bool OnMouseDragged(const ui::MouseEvent& event) override;
 
  protected:
   friend class OmniboxPopupViewWebUITest;
   FRIEND_TEST_ALL_PREFIXES(OmniboxPopupViewWebUITest,
-                           PopupLoadsAndAcceptsCalls);
+                           TestSatisfiesTestCoverageRobot);
 
-  // Convenience accessor that returns the webui_view_'s WebUI handler.
-  RealboxHandler* handler() const;
+  // OmniboxPopupViewViews:
+  void UpdateChildViews() override;
+  void OnPopupCreated() override;
+  gfx::Rect GetTargetBounds() const override;
 
  private:
-  // Time when this instance was constructed, or null after use for histogram.
-  base::TimeTicks construction_time_;
-
-  // The edit view that invokes us. May be nullptr in tests.
-  raw_ptr<OmniboxViewViews> omnibox_view_;
-
-  // The location bar view that owns `omnibox_view_`. May be nullptr in tests.
-  raw_ptr<LocationBarView> location_bar_view_;
-
-  // The presenter that manages its own widget and WebUI presentation.
-  std::unique_ptr<OmniboxPopupPresenter> presenter_;
+  // The reference to the child suggestions WebView.
+  raw_ptr<WebUIOmniboxPopupView> webui_view_;
 };
 
 #endif  // CHROME_BROWSER_UI_VIEWS_OMNIBOX_OMNIBOX_POPUP_VIEW_WEBUI_H_

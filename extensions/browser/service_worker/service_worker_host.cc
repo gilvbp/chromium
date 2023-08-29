@@ -161,13 +161,15 @@ void ServiceWorkerHost::RequestWorker(mojom::RequestParamsPtr params) {
                                         render_process_host_->GetID());
 }
 
-void ServiceWorkerHost::WorkerResponseAck(const base::Uuid& request_uuid) {
+void ServiceWorkerHost::WorkerResponseAck(int request_id,
+                                          int64_t service_worker_version_id) {
   DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
   if (!GetBrowserContext()) {
     return;
   }
 
-  dispatcher_->ProcessResponseAck(request_uuid);
+  dispatcher_->ProcessServiceWorkerResponse(request_id,
+                                            service_worker_version_id);
 }
 
 content::BrowserContext* ServiceWorkerHost::GetBrowserContext() {

@@ -36,7 +36,7 @@ class ConsentAuditorFactory : public ProfileKeyedServiceFactory {
   ~ConsentAuditorFactory() override;
 
   // BrowserContextKeyedServiceFactory:
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* context) const override;
 };
 

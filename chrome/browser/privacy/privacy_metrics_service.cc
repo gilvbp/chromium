@@ -168,7 +168,8 @@ void PrivacyMetricsService::UnregisterObservers() {
 
 bool PrivacyMetricsService::IsClearOnExitEnabled() {
   return host_content_settings_map_->GetDefaultContentSetting(
-             ContentSettingsType::COOKIES) ==
+             ContentSettingsType::COOKIES,
+             /*provider_id=*/nullptr) ==
          ContentSetting::CONTENT_SETTING_SESSION_ONLY;
 }
 

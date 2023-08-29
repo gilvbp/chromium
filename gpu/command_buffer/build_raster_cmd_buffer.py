@@ -52,6 +52,9 @@ _NAMED_TYPE_INFO = {
       'GL_COMMANDS_ISSUED_TIMESTAMP_CHROMIUM',
       'GL_COMMANDS_COMPLETED_CHROMIUM',
     ],
+    'invalid': [
+      'GL_LATENCY_QUERY_CHROMIUM',
+    ],
   },
   'TextureParameter': {
     'type': 'GLenum',
@@ -172,14 +175,6 @@ _FUNCTION_INFO = {
   },
   'WritePixelsINTERNAL': {
     'decoder_func': 'DoWritePixelsINTERNAL',
-    'internal': True,
-    'type': 'PUT',
-    'count': 16,  # GL_MAILBOX_SIZE_CHROMIUM
-    'unit_test': False,
-    'trace_level': 2,
-  },
-  'WritePixelsYUVINTERNAL': {
-    'decoder_func': 'DoWritePixelsYUVINTERNAL',
     'internal': True,
     'type': 'PUT',
     'count': 16,  # GL_MAILBOX_SIZE_CHROMIUM

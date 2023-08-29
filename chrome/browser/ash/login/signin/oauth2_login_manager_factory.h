@@ -37,7 +37,7 @@ class OAuth2LoginManagerFactory : public ProfileKeyedServiceFactory {
   ~OAuth2LoginManagerFactory() override;
 
   // BrowserContextKeyedServiceFactory implementation.
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* context) const override;
 };
 

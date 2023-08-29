@@ -46,8 +46,7 @@ ExtensionPrefsFactory::ExtensionPrefsFactory()
 ExtensionPrefsFactory::~ExtensionPrefsFactory() {
 }
 
-std::unique_ptr<KeyedService>
-ExtensionPrefsFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* ExtensionPrefsFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   ExtensionsBrowserClient* client = ExtensionsBrowserClient::Get();
   std::vector<EarlyExtensionPrefsObserver*> prefs_observers;
@@ -63,8 +62,8 @@ ExtensionPrefsFactory::BuildServiceInstanceForBrowserContext(
 
 content::BrowserContext* ExtensionPrefsFactory::GetBrowserContextToUse(
     content::BrowserContext* context) const {
-  return ExtensionsBrowserClient::Get()->GetContextRedirectedToOriginal(
-      context, /*force_guest_profile=*/true);
+  return ExtensionsBrowserClient::Get()->GetRedirectedContextInIncognito(
+      context, /*force_guest_profile=*/true, /*force_system_profile=*/false);
 }
 
 }  // namespace extensions

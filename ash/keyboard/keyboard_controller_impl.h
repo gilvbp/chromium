@@ -7,7 +7,6 @@
 
 #include <memory>
 #include <set>
-#include <string_view>
 #include <vector>
 
 #include "ash/ash_export.h"
@@ -55,8 +54,7 @@ class ASH_EXPORT KeyboardControllerImpl
 
   ~KeyboardControllerImpl() override;
 
-  static void RegisterProfilePrefs(PrefRegistrySimple* registry,
-                                   std::string_view country);
+  static void RegisterProfilePrefs(PrefRegistrySimple* registry);
 
   // Create or destroy the virtual keyboard. Called from Shell. TODO(stevenjb):
   // Fix dependencies so that the virtual keyboard can be created with the

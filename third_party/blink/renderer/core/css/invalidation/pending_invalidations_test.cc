@@ -39,8 +39,8 @@ TEST_F(PendingInvalidationsTest, ScheduleOnDocumentNode) {
 
   scoped_refptr<DescendantInvalidationSet> set =
       DescendantInvalidationSet::Create();
-  set->AddTagName(AtomicString("div"));
-  set->AddTagName(AtomicString("span"));
+  set->AddTagName("div");
+  set->AddTagName("span");
 
   InvalidationLists lists;
   lists.descendants.push_back(set);
@@ -77,9 +77,7 @@ TEST_F(PendingInvalidationsTest, DescendantInvalidationOnDisplayNone) {
   GetDocument().View()->UpdateAllLifecyclePhasesForTest();
 
   // We skip scheduling descendant invalidations on display:none elements.
-  GetDocument()
-      .getElementById(AtomicString("a"))
-      ->setAttribute(html_names::kClassAttr, AtomicString("a"));
+  GetDocument().getElementById("a")->setAttribute(html_names::kClassAttr, "a");
   EXPECT_FALSE(GetDocument().NeedsLayoutTreeUpdate());
 }
 

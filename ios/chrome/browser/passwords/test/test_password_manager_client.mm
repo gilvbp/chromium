@@ -14,6 +14,10 @@
 #import "components/prefs/testing_pref_service.h"
 #import "components/safe_browsing/core/common/safe_browsing_prefs.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace {
 // HTTPS origin corresponding to kHostName.
 constexpr char kHttpsWebOrigin[] = "https://www.example.com/";

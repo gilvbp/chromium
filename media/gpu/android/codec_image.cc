@@ -96,25 +96,17 @@ void CodecImage::ReleaseResources() {
 }
 
 bool CodecImage::IsUsingGpuMemory() const {
-  // Only the images which are bound to texture accounts for gpu memory. Images
-  // are bound to textures when:
-  //   (a) the image has been rendered to the front buffer via an explicitly
-  //       binding flow or
-  //   (b) the image has been rendered to the front buffer via what would
-  //       usually be a nonbinding flow (e.g., a prerender) but the TextureOwner
-  //       always binds on update (since rendering to the front buffer triggers
-  //       a call to TextureOwner to update the image).
   AssertAcquiredDrDcLock();
-  return (was_rendered_to_front_buffer() &&
-          (rendered_via_binding_flow_ || TextureOwnerBindsOnUpdate()));
+  if (!output_buffer_renderer_)
+    return false;
+
+  // Only the images which are bound to texture accounts for gpu memory.
+  return output_buffer_renderer_->was_tex_image_bound();
 }
 
-void CodecImage::UpdateAndBindTexImage() {
+void CodecImage::UpdateAndBindTexImage(GLuint service_id) {
   AssertAcquiredDrDcLock();
-  RenderToTextureOwnerFrontBuffer();
-  if (was_rendered_to_front_buffer()) {
-    rendered_via_binding_flow_ = true;
-  }
+  RenderToTextureOwnerFrontBuffer(BindingsMode::kBindImage, service_id);
 }
 
 bool CodecImage::HasTextureOwner() const {
@@ -142,11 +134,13 @@ bool CodecImage::RenderToTextureOwnerBackBuffer() {
   return output_buffer_renderer_->RenderToTextureOwnerBackBuffer();
 }
 
-bool CodecImage::RenderToTextureOwnerFrontBuffer() {
+bool CodecImage::RenderToTextureOwnerFrontBuffer(BindingsMode bindings_mode,
+                                                 GLuint service_id) {
   AssertAcquiredDrDcLock();
   if (!output_buffer_renderer_)
     return false;
-  return output_buffer_renderer_->RenderToTextureOwnerFrontBuffer();
+  return output_buffer_renderer_->RenderToTextureOwnerFrontBuffer(bindings_mode,
+                                                                  service_id);
 }
 
 bool CodecImage::RenderToOverlay() {
@@ -157,12 +151,10 @@ bool CodecImage::RenderToOverlay() {
 }
 
 bool CodecImage::TextureOwnerBindsTextureOnUpdate() {
-  return const_cast<const CodecImage*>(this)->TextureOwnerBindsOnUpdate();
-}
-
-bool CodecImage::TextureOwnerBindsOnUpdate() const {
   AssertAcquiredDrDcLock();
-  return texture_owner() ? texture_owner()->binds_texture_on_update() : false;
+  if (!output_buffer_renderer_)
+    return false;
+  return output_buffer_renderer_->texture_owner()->binds_texture_on_update();
 }
 
 void CodecImage::ReleaseCodecBuffer() {
@@ -182,9 +174,11 @@ CodecImage::GetAHardwareBuffer() {
   if (!output_buffer_renderer_)
     return nullptr;
 
-  // Render to the front buffer to get the AHardwareBuffer from the latest
-  // image.
-  RenderToTextureOwnerFrontBuffer();
+  // Using BindingsMode::kDontBindImage here since we do not want to bind
+  // the image. We just want to get the AHardwareBuffer from the latest image.
+  // Hence pass service_id as 0.
+  RenderToTextureOwnerFrontBuffer(BindingsMode::kDontBindImage,
+                                  0 /* service_id */);
   return output_buffer_renderer_->texture_owner()->GetAHardwareBuffer();
 }
 

@@ -19,11 +19,16 @@ class Profile;
 
 namespace web_app {
 
-class WebAppProvider;
+class WebAppRegistrar;
+class WebAppSyncBridge;
+class WebAppIconManager;
 
 class RunOnOsLoginSubManager : public OsIntegrationSubManager {
  public:
-  RunOnOsLoginSubManager(Profile& profile, WebAppProvider& provider);
+  RunOnOsLoginSubManager(Profile& profile,
+                         WebAppRegistrar& registrar,
+                         WebAppSyncBridge& sync_bridge,
+                         WebAppIconManager& icon_manager);
   ~RunOnOsLoginSubManager() override;
 
   void Configure(const AppId& app_id,
@@ -58,7 +63,9 @@ class RunOnOsLoginSubManager : public OsIntegrationSubManager {
       std::unique_ptr<ShortcutInfo> shortcut_info);
 
   const raw_ref<Profile> profile_;
-  const raw_ref<WebAppProvider> provider_;
+  const raw_ref<WebAppRegistrar, DanglingUntriaged> registrar_;
+  const raw_ref<WebAppSyncBridge, DanglingUntriaged> sync_bridge_;
+  const raw_ref<WebAppIconManager, DanglingUntriaged> icon_manager_;
 
   base::WeakPtrFactory<RunOnOsLoginSubManager> weak_ptr_factory_{this};
 };

@@ -10,7 +10,6 @@ import android.widget.FrameLayout;
 
 import androidx.annotation.VisibleForTesting;
 
-import org.chromium.android_webview.common.Lifetime;
 import org.chromium.ui.base.ViewAndroidDelegate;
 
 import java.util.LinkedHashMap;
@@ -20,7 +19,6 @@ import java.util.Map.Entry;
 /**
  * Implementation of the abstract class {@link ViewAndroidDelegate} for WebView.
  */
-@Lifetime.WebView
 public class AwViewAndroidDelegate extends ViewAndroidDelegate {
     /** Used for logging. */
     private static final String TAG = "AwVAD";

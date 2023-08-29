@@ -38,6 +38,10 @@
 #import "testing/gtest_mac.h"
 #import "testing/platform_test.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 using testing::DefaultValue;
 using testing::NiceMock;
 using testing::Return;
@@ -123,7 +127,7 @@ void PassphraseTableViewControllerTest::SetUp() {
 void PassphraseTableViewControllerTest::TearDown() {
   // If the navigation controller exists, clear any of its child view
   // controllers.
-  [nav_controller_ cleanUpSettings];
+  [nav_controller_ setViewControllers:@[] animated:NO];
   nav_controller_ = nil;
   ChromeTableViewControllerTest::TearDown();
 }

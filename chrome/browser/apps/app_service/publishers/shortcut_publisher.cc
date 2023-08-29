@@ -6,7 +6,6 @@
 
 #include "base/check.h"
 #include "chrome/browser/apps/app_service/app_service_proxy.h"
-#include "components/services/app_service/public/cpp/shortcut/shortcut_registry_cache.h"
 
 namespace apps {
 
@@ -21,13 +20,7 @@ void ShortcutPublisher::RegisterShortcutPublisher(AppType app_type) {
 }
 
 void ShortcutPublisher::PublishShortcut(ShortcutPtr delta) {
-  CHECK(proxy_->ShortcutRegistryCache());
-  proxy_->ShortcutRegistryCache()->UpdateShortcut(std::move(delta));
-}
-
-void ShortcutPublisher::ShortcutRemoved(const ShortcutId& id) {
-  CHECK(proxy_->ShortcutRegistryCache());
-  proxy_->ShortcutRegistryCache()->RemoveShortcut(id);
+  proxy_->UpdateShortcut(std::move(delta));
 }
 
 }  // namespace apps

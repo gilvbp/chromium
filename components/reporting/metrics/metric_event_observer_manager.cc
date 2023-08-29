@@ -46,7 +46,7 @@ MetricEventObserverManager::MetricEventObserverManager(
   reporting_controller_ = std::make_unique<MetricReportingController>(
       reporting_settings, enable_setting_path, setting_enabled_default_value);
 
-  CHECK(!init_delay.is_negative());
+  DCHECK(!init_delay.is_negative());
   if (init_delay.is_zero()) {
     SetReportingControllerCb();
     return;

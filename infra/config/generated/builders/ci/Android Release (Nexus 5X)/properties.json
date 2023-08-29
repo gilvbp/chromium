@@ -7,7 +7,7 @@
             "builder_id": {
               "bucket": "ci",
               "builder": "Android Release (Nexus 5X)",
-              "project": "chromium"
+              "project": "chromium-m116"
             },
             "builder_spec": {
               "build_gs_bucket": "chromium-gpu-archive",
@@ -18,7 +18,7 @@
               },
               "legacy_chromium_config": {
                 "apply_configs": [
-                  "download_xr_test_apks",
+                  "download_vr_test_apks",
                   "mb"
                 ],
                 "build_config": "Release",
@@ -40,20 +40,12 @@
         {
           "bucket": "ci",
           "builder": "Android Release (Nexus 5X)",
-          "project": "chromium"
+          "project": "chromium-m116"
         }
       ],
       "mirroring_builder_group_and_names": [
         {
           "builder": "android-arm64-rel",
-          "group": "tryserver.chromium.android"
-        },
-        {
-          "builder": "android-arm64-siso-rel",
-          "group": "tryserver.chromium.android"
-        },
-        {
-          "builder": "gpu-try-android-m-nexus-5x-64",
           "group": "tryserver.chromium.android"
         }
       ]
@@ -62,8 +54,7 @@
   "$build/reclient": {
     "instance": "rbe-chromium-trusted",
     "jobs": 250,
-    "metrics_project": "chromium-reclient-metrics",
-    "scandeps_server": true
+    "metrics_project": "chromium-reclient-metrics"
   },
   "$recipe_engine/resultdb/test_presentation": {
     "column_keys": [],
@@ -75,6 +66,6 @@
   "builder_group": "chromium.gpu",
   "recipe": "chromium",
   "sheriff_rotations": [
-    "chromium.gpu"
+    "chrome_browser_release"
   ]
 }

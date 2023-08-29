@@ -1141,14 +1141,6 @@ util.isJellyEnabled = () => {
 };
 
 /**
- * Returns true if the cros-components flag is enabled.
- * @return {boolean}
- */
-util.isCrosComponentsEnabled = () => {
-  return loadTimeData.getBoolean('CROS_COMPONENTS');
-};
-
-/**
  * Returns true if DriveFsMirroring flag is enabled.
  * @return {boolean}
  */
@@ -1541,7 +1533,18 @@ util.isNullOrUndefined = (value) => value === null || value === undefined;
  * @param {string|undefined} providerId
  * @return {boolean}
  */
-util.isOneDriveId = (providerId) => providerId === constants.ODFS_EXTENSION_ID;
+util.isOneDriveId = (providerId) => {
+  if (
+      // App built manually from internal git, used for the early dogfood.
+      providerId === 'ajdgmkbkgifbokednjgbmieaemeighkg' ||
+      // App built manually from internal repo.
+      providerId === 'gcpjnalmmghdoadafjgomdlghfnllceo' ||
+      // App from official internal repo.
+      providerId === constants.ODFS_EXTENSION_ID) {
+    return true;
+  }
+  return false;
+};
 
 /**
  * @param {?VolumeInfo} volumeInfo
@@ -1552,18 +1555,7 @@ util.isOneDrive = (volumeInfo) => {
 };
 
 /**
- * Returns the ODFS root as an Entry. Request the actions of this
- * Entry to get ODFS metadata.
- * @param {VolumeInfo} odfsVolumeInfo
- * @return {Entry|FilesAppEntry}
- */
-util.getODFSMetadataQueryEntry = (odfsVolumeInfo) => {
-  return util.unwrapEntry(odfsVolumeInfo.displayRoot);
-};
-
-/**
- * Return true if the volume with |volumeInfo| is an
- * interactive volume.
+ * Return true if the volume with |volumeInfo| is an interactive volume.
  * @param {VolumeInfo} volumeInfo
  * @return {boolean}
  */

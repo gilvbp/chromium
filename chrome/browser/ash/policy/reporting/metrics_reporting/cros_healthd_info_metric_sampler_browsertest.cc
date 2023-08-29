@@ -46,11 +46,15 @@ absl::optional<MetricData> IsRecordInfo(const Record& record) {
   return record_data;
 }
 
-void AssertRecordData(Priority priority, const Record& record) {
+// Assert info in a record and returns the underlying MetricData object.
+MetricData AssertInfo(Priority priority, const Record& record) {
   EXPECT_THAT(priority, Eq(Priority::SLOW_BATCH));
   EXPECT_THAT(record.destination(), Eq(Destination::INFO_METRIC));
-  ASSERT_TRUE(record.has_source_info());
-  EXPECT_THAT(record.source_info().source(), Eq(SourceInfo::ASH));
+  MetricData record_data;
+  EXPECT_TRUE(record_data.ParseFromString(record.data()));
+  EXPECT_TRUE(record_data.has_timestamp_ms());
+  EXPECT_TRUE(record_data.has_info_data());
+  return record_data;
 }
 
 }  // namespace
@@ -101,12 +105,7 @@ IN_PROC_BROWSER_TEST_F(BusInfoSamplerBrowserTest, Thunderbolt) {
   MissiveClientTestObserver observer(base::BindRepeating(&IsRecordBusInfo));
   test::MockClock::Get().Advance(metrics::kInitialCollectionDelay);
   auto [priority, record] = observer.GetNextEnqueuedRecord();
-  AssertRecordData(priority, record);
-  MetricData metric_data;
-  ASSERT_TRUE(metric_data.ParseFromString(record.data()));
-  EXPECT_TRUE(metric_data.has_timestamp_ms());
-  ASSERT_TRUE(metric_data.has_info_data());
-  const auto& info_data = metric_data.info_data();
+  auto info_data = AssertInfo(priority, record).info_data();
   ASSERT_THAT(
       static_cast<size_t>(info_data.bus_device_info().thunderbolt_info_size()),
       Eq(kErpSecurityLevels.size()));
@@ -153,12 +152,7 @@ IN_PROC_BROWSER_TEST_F(CpuInfoSamplerBrowserTest, KeylockerUnsupported) {
   MissiveClientTestObserver observer(base::BindRepeating(&IsRecordCpuInfo));
   test::MockClock::Get().Advance(metrics::kInitialCollectionDelay);
   auto [priority, record] = observer.GetNextEnqueuedRecord();
-  AssertRecordData(priority, record);
-  MetricData metric_data;
-  ASSERT_TRUE(metric_data.ParseFromString(record.data()));
-  EXPECT_TRUE(metric_data.has_timestamp_ms());
-  ASSERT_TRUE(metric_data.has_info_data());
-  const auto& info_data = metric_data.info_data();
+  auto info_data = AssertInfo(priority, record).info_data();
   ASSERT_TRUE(info_data.cpu_info().has_keylocker_info());
   EXPECT_FALSE(info_data.cpu_info().keylocker_info().configured());
   EXPECT_FALSE(info_data.cpu_info().keylocker_info().supported());
@@ -172,12 +166,7 @@ IN_PROC_BROWSER_TEST_F(CpuInfoSamplerBrowserTest, KeylockerConfigured) {
   MissiveClientTestObserver observer(base::BindRepeating(&IsRecordCpuInfo));
   test::MockClock::Get().Advance(metrics::kInitialCollectionDelay);
   auto [priority, record] = observer.GetNextEnqueuedRecord();
-  AssertRecordData(priority, record);
-  MetricData metric_data;
-  ASSERT_TRUE(metric_data.ParseFromString(record.data()));
-  EXPECT_TRUE(metric_data.has_timestamp_ms());
-  ASSERT_TRUE(metric_data.has_info_data());
-  const auto& info_data = metric_data.info_data();
+  auto info_data = AssertInfo(priority, record).info_data();
   ASSERT_TRUE(info_data.cpu_info().has_keylocker_info());
   EXPECT_TRUE(info_data.cpu_info().keylocker_info().configured());
   EXPECT_TRUE(info_data.cpu_info().keylocker_info().supported());
@@ -217,12 +206,8 @@ class MemoryInfoSamplerBrowserTest
 
   static void AssertMemoryInfo(MissiveClientTestObserver* observer) {
     auto [priority, record] = observer->GetNextEnqueuedRecord();
-    AssertRecordData(priority, record);
-    MetricData metric_data;
-    ASSERT_TRUE(metric_data.ParseFromString(record.data()));
-    EXPECT_TRUE(metric_data.has_timestamp_ms());
-    ASSERT_TRUE(metric_data.has_info_data());
-    ::reporting::test::AssertMemoryInfo(metric_data, GetParam());
+    MetricData record_data = AssertInfo(priority, record);
+    ::reporting::test::AssertMemoryInfo(record_data, GetParam());
   }
 
  private:
@@ -323,12 +308,7 @@ IN_PROC_BROWSER_TEST_F(InputInfoSamplerBrowserTest,
 
   // Assertions
   auto [priority, record] = observer.GetNextEnqueuedRecord();
-  AssertRecordData(priority, record);
-  MetricData metric_data;
-  ASSERT_TRUE(metric_data.ParseFromString(record.data()));
-  EXPECT_TRUE(metric_data.has_timestamp_ms());
-  ASSERT_TRUE(metric_data.has_info_data());
-  const auto& info_data = metric_data.info_data();
+  auto info_data = AssertInfo(priority, record).info_data();
   ASSERT_TRUE(info_data.has_touch_screen_info());
   ASSERT_TRUE(info_data.touch_screen_info().has_library_name());
   EXPECT_THAT(info_data.touch_screen_info().library_name(),
@@ -417,12 +397,7 @@ IN_PROC_BROWSER_TEST_F(DisplayInfoSamplerBrowserTest, MultipleDisplays) {
 
   // assertions
   auto [priority, record] = observer.GetNextEnqueuedRecord();
-  AssertRecordData(priority, record);
-  MetricData metric_data;
-  ASSERT_TRUE(metric_data.ParseFromString(record.data()));
-  EXPECT_TRUE(metric_data.has_timestamp_ms());
-  ASSERT_TRUE(metric_data.has_info_data());
-  const auto& info_data = metric_data.info_data();
+  auto info_data = AssertInfo(priority, record).info_data();
   ASSERT_TRUE(info_data.has_display_info());
   ASSERT_EQ(info_data.display_info().display_device_size(), 3);
 

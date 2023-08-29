@@ -25,12 +25,13 @@ absl::optional<EntryPointDisplayReason> GetEntryPointDisplayReason(
   if (!web_contents)
     return absl::nullopt;
 
-  send_tab_to_self::SendTabToSelfSyncService* service =
-      SendTabToSelfSyncServiceFactory::GetForProfile(
-          Profile::FromBrowserContext(web_contents->GetBrowserContext()));
-  return service ? service->GetEntryPointDisplayReason(
-                       web_contents->GetLastCommittedURL())
-                 : absl::nullopt;
+  auto* profile =
+      Profile::FromBrowserContext(web_contents->GetBrowserContext());
+  return GetEntryPointDisplayReason(
+      web_contents->GetLastCommittedURL(),
+      SyncServiceFactory::GetForProfile(profile),
+      SendTabToSelfSyncServiceFactory::GetForProfile(profile),
+      profile->GetPrefs());
 }
 
 bool ShouldDisplayEntryPoint(content::WebContents* web_contents) {

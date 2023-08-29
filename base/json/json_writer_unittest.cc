@@ -7,7 +7,6 @@
 
 #include "base/containers/span.h"
 #include "base/strings/stringprintf.h"
-#include "base/test/gmock_expected_support.h"
 #include "base/values.h"
 #include "build/build_config.h"
 #include "testing/gtest/include/gtest/gtest.h"
@@ -95,7 +94,7 @@ TEST(JsonWriterTest, KeysWithPeriods) {
             R"({"a.b":3,"c":2,"d.e.f":{"g.h.i.j":1}})");
 
   EXPECT_EQ(WriteJson(Value::Dict()  //
-                          .SetByDottedPath("a.b", 2)
+                          .Set("a", Value::Dict().Set("b", 2))
                           .Set("a.b", 1)),
             R"({"a":{"b":2},"a.b":1})");
 }
@@ -184,10 +183,10 @@ TEST(JsonWriterTest, TestMaxDepthWithValidNodes) {
   }
 
   // Ensure we can read and write the JSON
-  ASSERT_OK_AND_ASSIGN(Value value,
-                       JSONReader::ReadAndReturnValueWithError(
-                           nested_json, JSON_ALLOW_TRAILING_COMMAS));
-  EXPECT_TRUE(WriteJson(std::move(value)).has_value());
+  auto json_val = JSONReader::ReadAndReturnValueWithError(
+      nested_json, JSON_ALLOW_TRAILING_COMMAS);
+  ASSERT_TRUE(json_val.has_value());
+  EXPECT_NE(WriteJson(*json_val), absl::nullopt);
 }
 
 // Test that the JSONWriter::Write method still works.

@@ -6,7 +6,6 @@
 
 #include <memory>
 
-#include "base/memory/raw_ptr_exclusion.h"
 #include "base/test/task_environment.h"
 #include "chromeos/ash/components/multidevice/remote_device_test_util.h"
 #include "chromeos/ash/services/secure_channel/authenticated_channel_impl.h"
@@ -47,9 +46,7 @@ class FakeNearbyConnectionFactory : public NearbyConnection::Factory {
     return instance;
   }
 
-  // This field is not a raw_ptr<> because it was filtered by the rewriter
-  // for: #constexpr-ctor-field-initializer
-  RAW_PTR_EXCLUSION FakeConnection* last_created_instance_ = nullptr;
+  FakeConnection* last_created_instance_ = nullptr;
 };
 
 class FakeSecureChannelFactory : public SecureChannel::Factory {
@@ -73,10 +70,7 @@ class FakeSecureChannelFactory : public SecureChannel::Factory {
     return instance;
   }
 
-  // This field is not a raw_ptr<> because it was filtered by the rewriter
-  // for: #constexpr-ctor-field-initializer
-  RAW_PTR_EXCLUSION FakeSecureChannelConnection* last_created_instance_ =
-      nullptr;
+  FakeSecureChannelConnection* last_created_instance_ = nullptr;
 };
 
 class FakeAuthenticatedChannelFactory
@@ -111,13 +105,8 @@ class FakeAuthenticatedChannelFactory
     return instance;
   }
 
-  // This field is not a raw_ptr<> because it was filtered by the rewriter
-  // for: #constexpr-ctor-field-initializer
-  RAW_PTR_EXCLUSION FakeSecureChannelConnection* expected_fake_secure_channel_ =
-      nullptr;
-  // This field is not a raw_ptr<> because it was filtered by the rewriter
-  // for: #constexpr-ctor-field-initializer
-  RAW_PTR_EXCLUSION FakeAuthenticatedChannel* last_created_instance_ = nullptr;
+  FakeSecureChannelConnection* expected_fake_secure_channel_ = nullptr;
+  FakeAuthenticatedChannel* last_created_instance_ = nullptr;
 };
 
 }  // namespace

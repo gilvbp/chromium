@@ -138,7 +138,6 @@ class FindBarHost : public DropdownBarHost,
 
  private:
   friend class FindInPageTest;
-  friend class LegacyFindInPageTest;
 
   // Allows implementation to tweak widget position.
   void GetWidgetPositionNative(gfx::Rect* avoid_overlapping_rect);

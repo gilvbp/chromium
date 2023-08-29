@@ -5,8 +5,6 @@
 import {TestRunner} from 'test_runner';
 import {NetworkTestRunner} from 'network_test_runner';
 
-import * as Common from 'devtools/core/common/common.js';
-
 (async function() {
   TestRunner.addResult('Verifies that HAR exports have correct POST data');
   await TestRunner.showPanel('network');
@@ -35,7 +33,7 @@ import * as Common from 'devtools/core/common/common.js';
 
   const harString = await new Promise(async resolve => {
     const stream = new TestRunner.StringOutputStream(resolve);
-    const progress = new Common.Progress.Progress();
+    const progress = new Common.Progress();
     const networkRequests = NetworkTestRunner.networkRequests();
     await NetworkTestRunner.writeHARLog(stream, networkRequests, progress);
     progress.done();

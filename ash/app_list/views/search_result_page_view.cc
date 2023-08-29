@@ -12,10 +12,8 @@
 #include "ash/app_list/views/app_list_search_view.h"
 #include "ash/app_list/views/contents_view.h"
 #include "ash/app_list/views/search_box_view.h"
-#include "ash/app_list/views/search_notifier_controller.h"
 #include "ash/public/cpp/style/color_provider.h"
 #include "ash/search_box/search_box_constants.h"
-#include "ash/style/ash_color_id.h"
 #include "ash/style/system_shadow.h"
 #include "base/functional/bind.h"
 #include "base/time/time.h"
@@ -85,8 +83,12 @@ END_METADATA
 SearchResultPageView::SearchResultPageView() {
   SetPaintToLayer();
   layer()->SetFillsBoundsOpaquely(false);
-  SetBorder(views::CreateEmptyBorder(
+  root_view_ = AddChildView(std::make_unique<views::View>());
+  root_view_->SetBorder(views::CreateEmptyBorder(
       gfx::Insets::TLBR(kActiveSearchBoxHeight, 0, 0, 0)));
+  root_view_->SetLayoutManager(std::make_unique<views::BoxLayout>(
+      views::BoxLayout::Orientation::kVertical, gfx::Insets(), 0));
+
   shadow_ = SystemShadow::CreateShadowOnNinePatchLayerForView(
       this, kSearchBoxSearchResultShadowType);
   shadow_->SetRoundedCornerRadius(kSearchBoxBorderCornerRadiusSearchResult);
@@ -94,7 +96,7 @@ SearchResultPageView::SearchResultPageView() {
   // Hides this view behind the search box by using the same color and
   // background border corner radius. All child views' background should be
   // set transparent so that the rounded corner is not overwritten.
-  SetBackground(views::CreateThemedSolidBackground(kColorAshShieldAndBase80));
+  SetBackground(views::CreateSolidBackground(SK_ColorTRANSPARENT));
   layer()->SetBackgroundBlur(ColorProvider::kBackgroundBlurSigma);
   layer()->SetBackdropFilterQuality(ColorProvider::kBackgroundBlurQuality);
   layer()->SetRoundedCornerRadius(
@@ -117,19 +119,12 @@ void SearchResultPageView::InitializeContainers(
       std::make_unique<AppListSearchView>(
           view_delegate, dialog_controller_.get(), search_box_view);
   search_view_ = search_view_ptr.get();
-  AddChildView(std::make_unique<SearchCardView>(std::move(search_view_ptr)));
+  root_view_->AddChildView(
+      std::make_unique<SearchCardView>(std::move(search_view_ptr)));
 }
 
 const char* SearchResultPageView::GetClassName() const {
   return "SearchResultPageView";
-}
-
-void SearchResultPageView::VisibilityChanged(View* starting_from,
-                                             bool is_visible) {
-  auto* notifier_controller = search_view_->search_notifier_controller();
-  if (starting_from == this && notifier_controller) {
-    notifier_controller->UpdateNotifierVisibility(is_visible);
-  }
 }
 
 gfx::Size SearchResultPageView::CalculatePreferredSize() const {
@@ -157,6 +152,16 @@ void SearchResultPageView::OnBoundsChanged(const gfx::Rect& previous_bounds) {
   // This allows content to properly follow target bounds when screen
   // rotates.
   layer()->SetClipRect(gfx::Rect());
+}
+
+void SearchResultPageView::OnThemeChanged() {
+  GetBackground()->SetNativeControlColor(
+      ColorProvider::Get()->GetBaseLayerColor(
+          ColorProvider::BaseLayerType::kTransparent80));
+
+  // SchedulePaint() marks the entire SearchResultPageView's bounds as dirty.
+  SchedulePaint();
+  AppListPage::OnThemeChanged();
 }
 
 void SearchResultPageView::UpdateForNewSearch() {

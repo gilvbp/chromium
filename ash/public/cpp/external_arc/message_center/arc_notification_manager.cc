@@ -471,7 +471,7 @@ void ArcNotificationManager::SendNotificationButtonClickedOnChrome(
     const std::string& key,
     const int button_index,
     const std::string& input) {
-  if (!base::Contains(items_, key)) {
+  if (items_.find(key) == items_.end()) {
     VLOG(3) << "Chrome requests to fire a click event on notification (key: "
             << key << "), but it is gone.";
     return;
@@ -588,12 +588,11 @@ bool ArcNotificationManager::ShouldIgnoreNotification(
   if (data->priority == ArcNotificationPriority::NONE)
     return true;
 
-  // Notifications from Play Store are ignored in Managed Guest Session and
-  // Kiosk mode.
+  // Notifications from Play Store are ignored in Public Session and Kiosk mode.
   // TODO (sarakato): Use centralized const for Play Store package.
   if (data->package_name.has_value() &&
       *data->package_name == kPlayStorePackageName &&
-      delegate_->IsManagedGuestSessionOrKiosk()) {
+      delegate_->IsPublicSessionOrKiosk()) {
     return true;
   }
 

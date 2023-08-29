@@ -63,8 +63,7 @@ bool UserNetworkConfigurationUpdaterFactory::ServiceIsNULLWhileTesting() const {
 }
 
 #if BUILDFLAG(IS_CHROMEOS_ASH)
-std::unique_ptr<KeyedService>
-UserNetworkConfigurationUpdaterFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* UserNetworkConfigurationUpdaterFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   Profile* profile = Profile::FromBrowserContext(context);
   const user_manager::User* user =
@@ -82,14 +81,16 @@ UserNetworkConfigurationUpdaterFactory::BuildServiceInstanceForBrowserContext(
   // TODO(https://crbug.com/1001490): Evaluate if this is can be solved in a
   // more elegant way.
   return UserNetworkConfigurationUpdaterAsh::CreateForUserPolicy(
-      profile, *user, profile->GetProfilePolicyConnector()->policy_service(),
-      ash::NetworkHandler::Get()->managed_network_configuration_handler());
+             profile, *user,
+             profile->GetProfilePolicyConnector()->policy_service(),
+             ash::NetworkHandler::Get()
+                 ->managed_network_configuration_handler())
+      .release();
 }
 #endif  // BUILDFLAG(IS_CHROMEOS_ASH)
 
 #if BUILDFLAG(IS_CHROMEOS_LACROS)
-std::unique_ptr<KeyedService>
-  UserNetworkConfigurationUpdaterFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* UserNetworkConfigurationUpdaterFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   // Lacros only handles CA certificates from the ONC policy and it is only
   // supported for the main profile.
@@ -108,7 +109,8 @@ std::unique_ptr<KeyedService>
   // TODO(https://crbug.com/1001490): Evaluate if this is can be solved in a
   // more elegant way.
   return UserNetworkConfigurationUpdater::CreateForUserPolicy(
-      profile->GetProfilePolicyConnector()->policy_service());
+             profile->GetProfilePolicyConnector()->policy_service())
+      .release();
 }
 #endif  // BUILDFLAG(IS_CHROMEOS_LACROS)
 

@@ -19,6 +19,7 @@ import org.chromium.chrome.browser.password_manager.ManagePasswordsReferrer;
 import org.chromium.chrome.browser.password_manager.PasswordManagerHelper;
 import org.chromium.chrome.browser.settings.SettingsActivity;
 import org.chromium.chrome.browser.settings.SettingsActivityTestRule;
+import org.chromium.chrome.browser.sync.SyncServiceFactory;
 import org.chromium.content_public.browser.test.util.TestThreadUtils;
 
 import java.util.ArrayList;
@@ -65,6 +66,7 @@ class PasswordSettingsTestHelper {
         }
         TestThreadUtils.runOnUiThreadBlocking(() -> {
             PasswordManagerHandlerProvider.getInstance().resetPasswordManagerHandlerForTest();
+            SyncServiceFactory.resetForTests();
         });
         setPasswordSource(null);
     }

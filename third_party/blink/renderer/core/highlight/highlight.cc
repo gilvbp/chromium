@@ -25,7 +25,7 @@ Highlight::~Highlight() = default;
 void Highlight::Trace(blink::Visitor* visitor) const {
   visitor->Trace(highlight_ranges_);
   visitor->Trace(containing_highlight_registries_);
-  EventTarget::Trace(visitor);
+  EventTargetWithInlineData::Trace(visitor);
 }
 
 void Highlight::ScheduleRepaintsInContainingHighlightRegistries() const {

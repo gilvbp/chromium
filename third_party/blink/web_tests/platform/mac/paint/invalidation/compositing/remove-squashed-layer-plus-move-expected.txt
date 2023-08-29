@@ -17,7 +17,10 @@
       "position": [8, 8],
       "bounds": [100, 50],
       "contentsOpaque": true,
-      "backgroundColor": "#ADD8E6"
+      "backgroundColor": "#ADD8E6",
+      "invalidations": [
+        [0, 0, 100, 50]
+      ]
     },
     {
       "name": "LayoutNGBlockFlow (relative positioned) DIV class='mv-tile'",

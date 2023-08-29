@@ -34,7 +34,7 @@ class InstantServiceFactory : public ProfileKeyedServiceFactory {
   ~InstantServiceFactory() override;
 
   // Overridden from BrowserContextKeyedServiceFactory:
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* context) const override;
   void BrowserContextDestroyed(
       content::BrowserContext* browser_context) override;

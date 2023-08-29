@@ -94,7 +94,7 @@ suite('systemPageTestSuite', function() {
   });
 
   setup(() => {
-    document.body.innerHTML = window.trustedTypes.emptyHTML;
+    document.body.innerHTML = '';
   });
 
   teardown(() => {

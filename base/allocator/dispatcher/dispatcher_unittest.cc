@@ -5,6 +5,7 @@
 #include "base/allocator/partition_allocator/partition_root.h"
 #include "testing/gtest/include/gtest/gtest.h"
 
+#include "base/allocator/buildflags.h"
 #include "base/allocator/dispatcher/configuration.h"
 #include "base/allocator/dispatcher/dispatcher.h"
 #include "base/allocator/dispatcher/testing/dispatcher_test.h"
@@ -13,7 +14,7 @@
 #include "build/build_config.h"
 
 #if BUILDFLAG(USE_PARTITION_ALLOC)
-#include "base/allocator/partition_allocator/partition_alloc_for_testing.h"
+#include "base/allocator/partition_allocator/partition_alloc_for_testing.h"  // nogncheck
 #endif
 
 #if BUILDFLAG(USE_ALLOCATOR_SHIM)
@@ -27,7 +28,7 @@ namespace {
 using configuration::kMaximumNumberOfObservers;
 using configuration::kMaximumNumberOfOptionalObservers;
 using partition_alloc::PartitionOptions;
-using partition_alloc::PartitionRoot;
+using partition_alloc::ThreadSafePartitionRoot;
 using testing::DispatcherTest;
 
 // A simple observer implementation. Since these tests plug in to Partition
@@ -108,7 +109,7 @@ struct PartitionAllocator {
   }
 
  private:
-  PartitionRoot alloc_{PartitionOptions{}};
+  ThreadSafePartitionRoot alloc_{PartitionOptions{}};
 };
 
 TEST_F(BaseAllocatorDispatcherTest, VerifyNotificationUsingPartitionAllocator) {

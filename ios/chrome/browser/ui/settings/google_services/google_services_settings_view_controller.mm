@@ -4,7 +4,7 @@
 
 #import "ios/chrome/browser/ui/settings/google_services/google_services_settings_view_controller.h"
 
-#import "base/apple/foundation_util.h"
+#import "base/mac/foundation_util.h"
 #import "base/metrics/user_metrics.h"
 #import "base/metrics/user_metrics_action.h"
 #import "ios/chrome/browser/net/crurl.h"
@@ -12,8 +12,6 @@
 #import "ios/chrome/browser/shared/ui/table_view/cells/table_view_switch_cell.h"
 #import "ios/chrome/browser/ui/settings/cells/sync_switch_item.h"
 #import "ios/chrome/browser/ui/settings/elements/enterprise_info_popover_view_controller.h"
-#import "ios/chrome/browser/ui/settings/elements/info_popover_view_controller.h"
-#import "ios/chrome/browser/ui/settings/elements/supervised_user_info_popover_view_controller.h"
 #import "ios/chrome/browser/ui/settings/google_services/google_services_settings_constants.h"
 #import "ios/chrome/browser/ui/settings/google_services/google_services_settings_service_delegate.h"
 #import "ios/chrome/browser/ui/settings/google_services/google_services_settings_view_controller_model_delegate.h"
@@ -22,13 +20,18 @@
 #import "net/base/mac/url_conversions.h"
 #import "ui/base/l10n/l10n_util_mac.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 @interface GoogleServicesSettingsViewController () <
     PopoverLabelViewControllerDelegate> {
   // Whether Settings have been dismissed.
   BOOL _settingsAreDismissed;
 }
 
-@property(nonatomic, strong) InfoPopoverViewController* bubbleViewController;
+@property(nonatomic, strong)
+    EnterpriseInfoPopoverViewController* bubbleViewController;
 
 @end
 
@@ -49,7 +52,7 @@
   if (self.bubbleViewController) {
     [self.bubbleViewController dismissViewControllerAnimated:YES
                                                   completion:nil];
-    UIButton* buttonView = base::apple::ObjCCastStrict<UIButton>(
+    UIButton* buttonView = base::mac::ObjCCastStrict<UIButton>(
         self.bubbleViewController.popoverPresentationController.sourceView);
     buttonView.enabled = YES;
   }
@@ -68,20 +71,14 @@
                               targetRect:targetRect];
 }
 
-// Shows an info popover anchored on `buttonView` depending on the signed-in
-// policy.
-- (void)showManagedInfoPopoverOnButton:(UIButton*)buttonView
-                 isForcedSigninEnabled:(BOOL)isForcedSigninEnabled {
-  if (self.modelDelegate.isViewControllerSubjectToParentalControls) {
-    self.bubbleViewController = [[SupervisedUserInfoPopoverViewController alloc]
-        initWithMessage:
-            l10n_util::GetNSString(
-                IDS_IOS_SNACKBAR_MESSAGE_INCOGNITO_DISABLED_BY_PARENT)];
-  } else if (isForcedSigninEnabled) {
-    self.bubbleViewController = [[EnterpriseInfoPopoverViewController alloc]
-        initWithMessage:l10n_util::GetNSString(
-                            IDS_IOS_ENTERPRISE_FORCED_SIGNIN_MESSAGE)
-         enterpriseName:nil];
+// Shows an enterprise info popover anchored on  `buttonView` giving `message`.
+// A default message is used when `message` is nil.
+- (void)showEntepriseInfoPopoverOnButton:(UIButton*)buttonView
+                             withMessage:(NSString*)message {
+  if (message) {
+    self.bubbleViewController =
+        [[EnterpriseInfoPopoverViewController alloc] initWithMessage:message
+                                                      enterpriseName:nil];
   } else {
     self.bubbleViewController = [[EnterpriseInfoPopoverViewController alloc]
         initWithEnterpriseName:nil];
@@ -114,7 +111,7 @@
     return cell;
   if ([cell isKindOfClass:[TableViewSwitchCell class]]) {
     TableViewSwitchCell* switchCell =
-        base::apple::ObjCCastStrict<TableViewSwitchCell>(cell);
+        base::mac::ObjCCastStrict<TableViewSwitchCell>(cell);
     [switchCell.switchView addTarget:self
                               action:@selector(switchAction:)
                     forControlEvents:UIControlEventValueChanged];
@@ -122,7 +119,7 @@
     switchCell.switchView.tag = item.type;
   } else if ([cell isKindOfClass:[TableViewInfoButtonCell class]]) {
     TableViewInfoButtonCell* managedCell =
-        base::apple::ObjCCastStrict<TableViewInfoButtonCell>(cell);
+        base::mac::ObjCCastStrict<TableViewInfoButtonCell>(cell);
     if ([self.modelDelegate
             isAllowChromeSigninItem:[self.tableViewModel
                                         itemAtIndexPath:indexPath]
@@ -237,16 +234,19 @@
 #pragma mark - Actions
 
 // Called when the user clicks on the information button of the managed
-// setting's UI. Shows a textual bubble with management information.
+// setting's UI. Shows a textual bubble with the information of the enterprise.
 - (void)didTapManagedUIInfoButton:(UIButton*)buttonView {
-  [self showManagedInfoPopoverOnButton:buttonView isForcedSigninEnabled:NO];
+  [self showEntepriseInfoPopoverOnButton:buttonView withMessage:nil];
 }
 
 // Called when the user taps on the information button of the allow sign-in
 // item while forced sign-in is enabled. Shows a textual bubble with
 // information about the forced sign-in policy.
 - (void)didTapForcedSigninUIInfoButton:(UIButton*)buttonView {
-  [self showManagedInfoPopoverOnButton:buttonView isForcedSigninEnabled:YES];
+  [self showEntepriseInfoPopoverOnButton:buttonView
+                             withMessage:
+                                 l10n_util::GetNSString(
+                                     IDS_IOS_ENTERPRISE_FORCED_SIGNIN_MESSAGE)];
 }
 
 #pragma mark - PopoverLabelViewControllerDelegate

@@ -118,15 +118,11 @@ class NET_EXPORT HostResolverCache final {
 
  private:
   struct Key {
-    ~Key();
-
     std::string domain_name;
     NetworkAnonymizationKey network_anonymization_key;
   };
 
   struct KeyRef {
-    ~KeyRef() = default;
-
     base::StringPiece domain_name;
     const raw_ref<const NetworkAnonymizationKey> network_anonymization_key;
   };
@@ -134,8 +130,6 @@ class NET_EXPORT HostResolverCache final {
   // Allow comparing Key to KeyRef to allow refs for entry lookup.
   struct KeyComparator {
     using is_transparent = void;
-
-    ~KeyComparator() = default;
 
     bool operator()(const Key& lhs, const Key& rhs) const {
       return std::tie(lhs.domain_name, lhs.network_anonymization_key) <

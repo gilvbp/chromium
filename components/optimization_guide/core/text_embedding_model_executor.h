@@ -15,7 +15,8 @@ class TextEmbeddingModelExecutor
     : public TFLiteModelExecutor<tflite::task::processor::EmbeddingResult,
                                  const std::string&> {
  public:
-  TextEmbeddingModelExecutor();
+  explicit TextEmbeddingModelExecutor(
+      proto::OptimizationTarget optimization_target);
   ~TextEmbeddingModelExecutor() override;
 
   using ModelExecutionTask =
@@ -30,6 +31,9 @@ class TextEmbeddingModelExecutor
   std::unique_ptr<ModelExecutionTask> BuildModelExecutionTask(
       base::MemoryMappedFile* model_file,
       ExecutionStatus* out_status) override;
+
+ private:
+  const proto::OptimizationTarget optimization_target_;
 
   // -1 tells TFLite to use its own default number of threads.
   const int num_threads_ = -1;

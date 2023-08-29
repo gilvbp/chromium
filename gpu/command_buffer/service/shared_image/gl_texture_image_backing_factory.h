@@ -8,6 +8,7 @@
 #include <memory>
 
 #include "gpu/command_buffer/service/shared_image/gl_common_image_backing_factory.h"
+#include "gpu/command_buffer/service/shared_image/gl_texture_image_backing_helper.h"
 
 namespace gfx {
 class Size;

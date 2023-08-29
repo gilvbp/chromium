@@ -48,35 +48,22 @@ export class VisitTileModuleElement extends I18nMixin
         computed: `computeLabel_(visit.urlForDisplay)`,
       },
 
-      imagesEnabled: {
-        type: Boolean,
-        reflectToAttribute: true,
-      },
-
       /* The image url for the tile. */
       imageUrl_: {
         type: Object,
         value: null,
-        reflectToAttribute: true,
       },
 
       format: {
         type: String,
-        reflectToAttribute: true,
-      },
-
-      hasDiscount: {
-        type: Boolean,
-        value: false,
+        value: 'wide',
         reflectToAttribute: true,
       },
     };
   }
 
   format: string;
-  imagesEnabled: boolean;
   visit: URLVisit;
-  hasDiscount: boolean;
   private imageUrl_: Url|null;
 
   hasImageUrl(): boolean {

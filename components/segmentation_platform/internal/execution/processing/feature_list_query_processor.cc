@@ -11,7 +11,6 @@
 #include "components/segmentation_platform/internal/database/ukm_types.h"
 #include "components/segmentation_platform/internal/execution/processing/custom_input_processor.h"
 #include "components/segmentation_platform/internal/execution/processing/feature_processor_state.h"
-#include "components/segmentation_platform/internal/execution/processing/query_processor.h"
 #include "components/segmentation_platform/internal/execution/processing/sql_feature_processor.h"
 #include "components/segmentation_platform/internal/execution/processing/uma_feature_processor.h"
 #include "components/segmentation_platform/internal/metadata/metadata_utils.h"
@@ -134,7 +133,7 @@ void FeatureListQueryProcessor::CreateProcessors(
              base::flat_map<QueryProcessor::FeatureIndex, Data>>&&
         data_to_process) {
   // Initialize a processors for each type of input features.
-  UkmDataManager* ukm_manager = storage_service_->ukm_data_manager();
+  auto* ukm_manager = storage_service_->ukm_data_manager();
   for (auto& type : data_to_process) {
     switch (type.first) {
       case Data::DataType::INPUT_UMA:
@@ -186,7 +185,7 @@ void FeatureListQueryProcessor::Process(
     // Process input feature processors.
     std::unique_ptr<QueryProcessor> processor =
         std::move(next_processor.value().first);
-    QueryProcessor* processor_ptr = processor.get();
+    auto* processor_ptr = processor.get();
     processor_ptr->Process(
         std::move(feature_processor_state),
         base::BindOnce(&FeatureListQueryProcessor::OnFeatureBatchProcessed,

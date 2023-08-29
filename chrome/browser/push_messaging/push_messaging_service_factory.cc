@@ -66,16 +66,16 @@ PushMessagingServiceFactory::~PushMessagingServiceFactory() = default;
 
 void PushMessagingServiceFactory::RestoreFactoryForTests(
     content::BrowserContext* context) {
-  SetTestingFactory(
-      context, base::BindRepeating([](content::BrowserContext* context) {
-        return GetInstance()->BuildServiceInstanceForBrowserContext(context);
-      }));
+  SetTestingFactory(context,
+                    base::BindRepeating([](content::BrowserContext* context) {
+                      return base::WrapUnique(
+                          GetInstance()->BuildServiceInstanceFor(context));
+                    }));
 }
 
-std::unique_ptr<KeyedService>
-PushMessagingServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* PushMessagingServiceFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   Profile* profile = Profile::FromBrowserContext(context);
   CHECK(!profile->IsOffTheRecord());
-  return std::make_unique<PushMessagingServiceImpl>(profile);
+  return new PushMessagingServiceImpl(profile);
 }

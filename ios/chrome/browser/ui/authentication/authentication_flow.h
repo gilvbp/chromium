@@ -10,7 +10,6 @@
 #import "components/signin/public/base/signin_metrics.h"
 #import "ios/chrome/browser/signin/constants.h"
 #import "ios/chrome/browser/ui/authentication/authentication_flow_performer_delegate.h"
-#import "ios/chrome/browser/ui/authentication/signin/signin_constants.h"
 
 @class AuthenticationFlowPerformer;
 class Browser;
@@ -58,13 +57,11 @@ class Browser;
 // `completion` must not be nil.
 - (void)startSignInWithCompletion:(signin_ui::CompletionCallback)completion;
 
-// * Interrupts the current sign-in operation (if any).
-// * Dismiss any UI presented accordingly to `action`.
-// * Calls synchronously the completion callback from
-// `startSignInWithCompletion` with the sign-in flag set to no.
-//
-// Does noting if the sign-in flow is already done
-- (void)interruptWithAction:(SigninCoordinatorInterrupt)action;
+// Cancels the current sign-in operation (if any) and dismiss any UI presented
+// by this authentication flow with animation if `animated`. Calls the
+// completion callback with the sign-in flag set to NO. Does nothing if the sign
+// in flow is already done.
+- (void)cancelAndDismissAnimated:(BOOL)animated;
 
 // The dispatcher used to clear browsing data.
 @property(nonatomic, weak) id<BrowsingDataCommands> dispatcher;

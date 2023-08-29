@@ -4,6 +4,7 @@
 
 #include "build/build_config.h"
 #include "content/browser/accessibility/browser_accessibility.h"
+#include "content/browser/accessibility/browser_accessibility_state_impl.h"
 #include "content/browser/renderer_host/render_view_host_impl.h"
 #include "content/browser/renderer_host/render_widget_host_impl.h"
 #include "content/browser/renderer_host/render_widget_host_view_base.h"
@@ -17,7 +18,6 @@
 #include "content/public/test/browser_test.h"
 #include "content/public/test/content_browser_test.h"
 #include "content/public/test/content_browser_test_utils.h"
-#include "content/public/test/scoped_accessibility_mode_override.h"
 #include "content/shell/browser/shell.h"
 #include "testing/gtest/include/gtest/gtest.h"
 #include "ui/accessibility/ax_mode.h"
@@ -200,7 +200,8 @@ IN_PROC_BROWSER_TEST_F(AccessibilityModeTest, AddScreenReaderModeFlag) {
 
   AccessibilityNotificationWaiter waiter2(shell()->web_contents(), ui::AXMode(),
                                           ax::mojom::Event::kLoadComplete);
-  ScopedAccessibilityModeOverride ax_mode_override(ui::AXMode::kScreenReader);
+  content::testing::ScopedContentAXModeSetter ax_mode_setter(
+      ui::AXMode::kScreenReader);
   ASSERT_TRUE(waiter2.WaitForNotification());
 
   const BrowserAccessibility* textbox2 =

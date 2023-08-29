@@ -37,7 +37,7 @@ class SerialPortUnderlyingSink;
 class SerialPortUnderlyingSource;
 class WritableStream;
 
-class SerialPort final : public EventTarget,
+class SerialPort final : public EventTargetWithInlineData,
                          public ActiveScriptWrappable<SerialPort>,
                          public device::mojom::blink::SerialPortClient {
   DEFINE_WRAPPERTYPEINFO();
@@ -81,7 +81,7 @@ class SerialPort final : public EventTarget,
   // ActiveScriptWrappable
   bool HasPendingActivity() const override;
 
-  // EventTarget
+  // EventTargetWithInlineData
   ExecutionContext* GetExecutionContext() const override;
   const AtomicString& InterfaceName() const override;
   DispatchEventResult DispatchEventInternal(Event& event) override;

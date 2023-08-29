@@ -18,22 +18,35 @@ ImeKeyboardImpl::~ImeKeyboardImpl() = default;
 bool ImeKeyboardImpl::SetCurrentKeyboardLayoutByName(
     const std::string& layout_name) {
   ImeKeyboard::SetCurrentKeyboardLayoutByName(layout_name);
+  last_layout_ = layout_name;
   input_controller_->SetCurrentLayoutByName(layout_name);
   return true;
 }
 
 bool ImeKeyboardImpl::SetAutoRepeatRate(const AutoRepeatRate& rate) {
-  input_controller_->SetAutoRepeatRate(rate.initial_delay,
-                                       rate.repeat_interval);
+  input_controller_->SetAutoRepeatRate(
+      base::Milliseconds(rate.initial_delay_in_ms),
+      base::Milliseconds(rate.repeat_interval_in_ms));
   return true;
 }
 
-void ImeKeyboardImpl::SetAutoRepeatEnabled(bool enabled) {
+bool ImeKeyboardImpl::SetAutoRepeatEnabled(bool enabled) {
   input_controller_->SetAutoRepeatEnabled(enabled);
+  return true;
 }
 
 bool ImeKeyboardImpl::GetAutoRepeatEnabled() {
   return input_controller_->IsAutoRepeatEnabled();
+}
+
+bool ImeKeyboardImpl::ReapplyCurrentKeyboardLayout() {
+  return SetCurrentKeyboardLayoutByName(last_layout_);
+}
+
+void ImeKeyboardImpl::ReapplyCurrentModifierLockStatus() {}
+
+void ImeKeyboardImpl::DisableNumLock() {
+  input_controller_->SetNumLockEnabled(false);
 }
 
 void ImeKeyboardImpl::SetCapsLockEnabled(bool enable_caps_lock) {
@@ -43,7 +56,7 @@ void ImeKeyboardImpl::SetCapsLockEnabled(bool enable_caps_lock) {
   input_controller_->SetCapsLockEnabled(enable_caps_lock);
 }
 
-bool ImeKeyboardImpl::IsCapsLockEnabled() {
+bool ImeKeyboardImpl::CapsLockIsEnabled() {
   return input_controller_->IsCapsLockEnabled();
 }
 

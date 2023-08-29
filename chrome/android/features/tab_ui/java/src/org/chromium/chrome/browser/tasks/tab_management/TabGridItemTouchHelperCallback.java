@@ -19,7 +19,6 @@ import androidx.annotation.VisibleForTesting;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.RecyclerView;
 
-import org.chromium.base.ResettersForTesting;
 import org.chromium.base.metrics.RecordUserAction;
 import org.chromium.chrome.browser.feature_engagement.TrackerFactory;
 import org.chromium.chrome.browser.profiles.Profile;
@@ -223,6 +222,9 @@ public class TabGridItemTouchHelperCallback extends ItemTouchHelper.SimpleCallba
             RecordUserAction.record("TabGrid.Drag.Start." + mComponentName);
         } else if (actionState == ItemTouchHelper.ACTION_STATE_IDLE) {
             mIsSwipingToDismiss = false;
+            if (!TabUiFeatureUtilities.isTabGroupsAndroidEnabled(mContext)) {
+                mHoveredTabIndex = TabModel.INVALID_TAB_INDEX;
+            }
 
             RecyclerView.ViewHolder hoveredViewHolder =
                     mRecyclerView.findViewHolderForAdapterPosition(mHoveredTabIndex);
@@ -380,6 +382,7 @@ public class TabGridItemTouchHelperCallback extends ItemTouchHelper.SimpleCallba
         }
         mCurrentActionState = actionState;
         if (actionState == ItemTouchHelper.ACTION_STATE_DRAG && mActionsOnAllRelatedTabs) {
+            if (!TabUiFeatureUtilities.isTabGroupsAndroidEnabled(mContext)) return;
             int prev_hovered = mHoveredTabIndex;
             mHoveredTabIndex = TabListRecyclerView.getHoveredTabIndex(
                     recyclerView, viewHolder.itemView, dX, dY, mMergeThreshold);
@@ -450,36 +453,32 @@ public class TabGridItemTouchHelperCallback extends ItemTouchHelper.SimpleCallba
         return out;
     }
 
+    @VisibleForTesting
     void setActionsOnAllRelatedTabsForTesting(boolean flag) {
-        var oldValue = mActionsOnAllRelatedTabs;
         mActionsOnAllRelatedTabs = flag;
-        ResettersForTesting.register(() -> mActionsOnAllRelatedTabs = oldValue);
     }
 
+    @VisibleForTesting
     void setHoveredTabIndexForTesting(int index) {
-        var oldValue = mHoveredTabIndex;
         mHoveredTabIndex = index;
-        ResettersForTesting.register(() -> mHoveredTabIndex = oldValue);
     }
 
+    @VisibleForTesting
     void setSelectedTabIndexForTesting(int index) {
-        var oldValue = mSelectedTabIndex;
         mSelectedTabIndex = index;
-        ResettersForTesting.register(() -> mSelectedTabIndex = oldValue);
     }
 
+    @VisibleForTesting
     void setUnGroupTabIndexForTesting(int index) {
-        var oldValue = mUnGroupTabIndex;
         mUnGroupTabIndex = index;
-        ResettersForTesting.register(() -> mUnGroupTabIndex = oldValue);
     }
 
+    @VisibleForTesting
     void setCurrentActionStateForTesting(int actionState) {
-        var oldValue = mCurrentActionState;
         mCurrentActionState = actionState;
-        ResettersForTesting.register(() -> mCurrentActionState = oldValue);
     }
 
+    @VisibleForTesting
     boolean hasDragFlagForTesting(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder) {
         int flags = getMovementFlags(recyclerView, viewHolder);
         return (flags >> 16) != 0;

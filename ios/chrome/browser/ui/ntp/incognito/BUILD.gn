@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 source_set("incognito") {
+  configs += [ "//build/config/compiler:enable_arc" ]
   sources = [
     "incognito_view.h",
     "incognito_view.mm",
@@ -36,6 +37,7 @@ source_set("incognito") {
 }
 
 source_set("util") {
+  configs += [ "//build/config/compiler:enable_arc" ]
   sources = [
     "incognito_view_util.h",
     "incognito_view_util.mm",

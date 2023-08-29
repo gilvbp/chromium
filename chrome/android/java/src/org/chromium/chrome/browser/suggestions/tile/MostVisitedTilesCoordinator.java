@@ -14,6 +14,7 @@ import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
 import org.chromium.chrome.R;
+import org.chromium.chrome.browser.feed.FeedFeatures;
 import org.chromium.chrome.browser.lifecycle.ActivityLifecycleDispatcher;
 import org.chromium.chrome.browser.lifecycle.ConfigurationChangedObserver;
 import org.chromium.chrome.browser.native_page.ContextMenuManager;
@@ -105,7 +106,8 @@ public class MostVisitedTilesCoordinator implements ConfigurationChangedObserver
                 mvTilesContainerLayout.findViewById(R.id.tile_grid_placeholder_stub), mRenderer,
                 propertyModel, shouldShowSkeletonUIPreNative, isScrollableMVTEnabled, isTablet,
                 snapshotTileGridChangedRunnable, tileCountChangedRunnable,
-                StartSurfaceConfiguration.isNtpAsHomeSurfaceEnabled(isTablet));
+                StartSurfaceConfiguration.isNtpAsHomeSurfaceEnabled(isTablet)
+                        && FeedFeatures.isMultiColumnFeedEnabled(activity));
     }
 
     /**
@@ -168,6 +170,7 @@ public class MostVisitedTilesCoordinator implements ConfigurationChangedObserver
         mUiConfig.updateDisplayStyle();
     }
 
+    @VisibleForTesting
     public void onTemplateURLServiceChangedForTesting() {
         mMediator.onTemplateURLServiceChanged();
     }

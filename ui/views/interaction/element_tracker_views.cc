@@ -288,12 +288,6 @@ ElementTrackerViews::ElementTrackerViews() = default;
 ElementTrackerViews::~ElementTrackerViews() = default;
 
 // static
-void ElementTrackerViews::SetContextOverrideCallback(
-    ContextOverrideCallback callback) {
-  GetContextOverrideCallback() = callback;
-}
-
-// static
 ElementTrackerViews* ElementTrackerViews::GetInstance() {
   static base::NoDestructor<ElementTrackerViews> instance;
   return instance.get();
@@ -307,13 +301,7 @@ ui::ElementContext ElementTrackerViews::GetContextForView(View* view) {
 
 // static
 ui::ElementContext ElementTrackerViews::GetContextForWidget(Widget* widget) {
-  auto* const primary = widget->GetPrimaryWindowWidget();
-  if (auto& callback = GetContextOverrideCallback()) {
-    if (ui::ElementContext context = callback.Run(primary)) {
-      return context;
-    }
-  }
-  return ui::ElementContext(primary);
+  return ui::ElementContext(widget->GetPrimaryWindowWidget());
 }
 
 TrackedElementViews* ElementTrackerViews::GetElementForView(
@@ -421,13 +409,6 @@ void ElementTrackerViews::NotifyViewActivated(ui::ElementIdentifier element_id,
   const auto it = element_data_.find(element_id);
   DCHECK(it != element_data_.end());
   it->second.NotifyViewActivated(view);
-}
-
-// static
-ElementTrackerViews::ContextOverrideCallback&
-ElementTrackerViews::GetContextOverrideCallback() {
-  static base::NoDestructor<ContextOverrideCallback> callback;
-  return *callback.get();
 }
 
 void ElementTrackerViews::MaybeTrackWidget(Widget* widget) {

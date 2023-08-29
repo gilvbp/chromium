@@ -229,8 +229,7 @@ void AdvancedProtectionStatusManager::RefreshAdvancedProtectionStatus() {
           base::BindOnce(
               &AdvancedProtectionStatusManager::OnAccessTokenFetchComplete,
               base::Unretained(this), unconsented_primary_account_id),
-          signin::PrimaryAccountAccessTokenFetcher::Mode::kImmediate,
-          signin::ConsentLevel::kSync);
+          signin::PrimaryAccountAccessTokenFetcher::Mode::kImmediate);
 }
 
 void AdvancedProtectionStatusManager::ScheduleNextRefresh() {

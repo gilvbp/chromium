@@ -7,12 +7,11 @@
 #include "base/memory/raw_ptr.h"
 #include "base/run_loop.h"
 #include "base/task/single_thread_task_runner.h"
-#include "base/test/run_until.h"
-#include "base/test/test_future.h"
 #include "chrome/browser/extensions/extension_apitest.h"
 #include "chrome/browser/speech/extension_api/tts_engine_extension_api.h"
 #include "chrome/browser/speech/tts_crosapi_util.h"
 #include "chrome/browser/speech/tts_lacros.h"
+#include "chromeos/crosapi/mojom/test_controller.mojom-test-utils.h"
 #include "chromeos/crosapi/mojom/test_controller.mojom.h"
 #include "chromeos/crosapi/mojom/tts.mojom.h"
 #include "chromeos/lacros/lacros_service.h"
@@ -25,6 +24,13 @@
 namespace extensions {
 
 namespace {
+
+void GiveItSomeTime(base::TimeDelta delta) {
+  base::RunLoop run_loop;
+  base::SingleThreadTaskRunner::GetCurrentDefault()->PostDelayedTask(
+      FROM_HERE, run_loop.QuitClosure(), delta);
+  run_loop.Run();
+}
 
 // TODO(crbug/1422469): Deprecate the version skew handling code once the stable
 // channel passes beyond 116.0.5817.0.
@@ -86,35 +92,42 @@ class LacrosTtsApiTest : public ExtensionApiTest,
   void ResetVoicesChanged() { voices_changed_ = false; }
 
   void WaitUntilVoicesLoaded(const std::string& voice_name) {
-    ASSERT_TRUE(
-        base::test::RunUntil([&] { return HasVoiceWithName(voice_name); }));
+    while (!HasVoiceWithName(voice_name)) {
+      GiveItSomeTime(base::Milliseconds(100));
+    }
   }
 
   void WaitUntilVoicesUnloaded(const std::string& voice_name) {
-    ASSERT_TRUE(
-        base::test::RunUntil([&] { return !HasVoiceWithName(voice_name); }));
+    while (HasVoiceWithName(voice_name)) {
+      GiveItSomeTime(base::Milliseconds(100));
+    }
   }
 
   // Returns true if the Tts utterance queue of TtsController running in Ash is
   // empty.
   bool IsUtteranceQueueEmpty() const {
-    base::test::TestFuture<int32_t> future;
-    chromeos::LacrosService::Get()
-        ->GetRemote<crosapi::mojom::TestController>()
-        ->GetTtsUtteranceQueueSize(future.GetCallback());
-    return future.Take() == 0;
+    crosapi::mojom::TestControllerAsyncWaiter waiter(
+        chromeos::LacrosService::Get()
+            ->GetRemote<crosapi::mojom::TestController>()
+            .get());
+    return waiter.GetTtsUtteranceQueueSize() == 0;
   }
 
   bool FoundVoiceInMojoVoices(
       const std::string& voice_name,
       const std::vector<crosapi::mojom::TtsVoicePtr>& mojo_voices) {
-    return base::Contains(mojo_voices, voice_name,
-                          &crosapi::mojom::TtsVoice::voice_name);
+    for (const auto& voice : mojo_voices) {
+      if (voice_name == voice->voice_name) {
+        return true;
+      }
+    }
+    return false;
   }
 
   void WaitUntilTtsEventReceivedByUtteranceEventDelegateInAsh() {
-    ASSERT_TRUE(
-        base::test::RunUntil([&] { return tts_event_notified_in_ash_; }));
+    while (!tts_event_notified_in_ash_) {
+      GiveItSomeTime(base::Milliseconds(100));
+    }
   }
 
   void NotifyTtsEventReceivedInAsh(content::TtsEventType tts_event) {
@@ -274,16 +287,19 @@ IN_PROC_BROWSER_TEST_F(LacrosTtsApiTest,
   EXPECT_FALSE(HasVoiceWithName("Tommy"));
 
   // Verify the same voices are also loaded in Ash.
+  crosapi::mojom::TestControllerAsyncWaiter waiter(
+      chromeos::LacrosService::Get()
+          ->GetRemote<crosapi::mojom::TestController>()
+          .get());
+
   std::vector<crosapi::mojom::TtsVoicePtr> mojo_voices;
-  ASSERT_TRUE(base::test::RunUntil([&] {
-    base::test::TestFuture<std::vector<crosapi::mojom::TtsVoicePtr>>
-        mojo_voices_future;
-    chromeos::LacrosService::Get()
-        ->GetRemote<crosapi::mojom::TestController>()
-        ->GetTtsVoices(mojo_voices_future.GetCallback());
-    mojo_voices = mojo_voices_future.Take();
-    return !mojo_voices.empty();
-  }));
+  while (mojo_voices.size() == 0) {
+    waiter.GetTtsVoices(&mojo_voices);
+    if (mojo_voices.size() > 0) {
+      break;
+    }
+    GiveItSomeTime(base::Milliseconds(100));
+  }
 
   EXPECT_TRUE(FoundVoiceInMojoVoices("Alice", mojo_voices));
   EXPECT_TRUE(FoundVoiceInMojoVoices("Alex", mojo_voices));

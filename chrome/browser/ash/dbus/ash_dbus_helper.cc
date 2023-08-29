@@ -114,19 +114,7 @@ void OverrideStubPathsIfNeeded() {
   }
 }
 
-DBusHelperObserverForTest* g_dbus_helper_observer = nullptr;
-
 }  // namespace
-
-DBusHelperObserverForTest::~DBusHelperObserverForTest() = default;  // IN-TEST
-
-// static
-void DBusHelperObserverForTest::Set(DBusHelperObserverForTest* observer) {
-  // Only allow set `g_dbus_helper_observer` when it is null or resets it.
-  DCHECK(!g_dbus_helper_observer || !observer);
-
-  g_dbus_helper_observer = observer;
-}
 
 void InitializeDBus() {
   using chromeos::InitializeDBusClient;
@@ -217,10 +205,6 @@ void InitializeDBus() {
   // g_browser_process initializes BrowserPolicyConnector.
   DeviceSettingsService::Initialize();
   InstallAttributes::Initialize();
-
-  if (g_dbus_helper_observer) {
-    g_dbus_helper_observer->PostInitializeDBus();
-  }
 }
 
 void InitializeFeatureListDependentDBus() {
@@ -262,10 +246,6 @@ void InitializeFeatureListDependentDBus() {
 }
 
 void ShutdownDBus() {
-  if (g_dbus_helper_observer) {
-    g_dbus_helper_observer->PreShutdownDBus();
-  }
-
   // Feature list-dependent D-Bus clients are shut down first because we try to
   // shut down in reverse order of initialization (in case of dependencies).
   if (features::IsSnoopingProtectionEnabled() ||

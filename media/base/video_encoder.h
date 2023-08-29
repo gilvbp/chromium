@@ -91,7 +91,7 @@ class MEDIA_EXPORT VideoEncoder {
     bool key_frame = false;
     // Per-frame codec-specific quantizer value.
     // Should only be used when encoder configured with kExternal bitrate mode.
-    absl::optional<int> quantizer;
+    absl::optional<double> quantizer;
   };
 
   // A sequence of codec specific bytes, commonly known as extradata.

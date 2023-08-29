@@ -20,7 +20,6 @@
 #include "base/trace_event/trace_event.h"
 #include "ui/events/devices/device_data_manager.h"
 #include "ui/events/devices/device_util_linux.h"
-#include "ui/events/devices/input_device.h"
 #include "ui/events/devices/keyboard_device.h"
 #include "ui/events/devices/stylus_state.h"
 #include "ui/events/devices/touchpad_device.h"
@@ -87,8 +86,7 @@ void SetGestureBoolProperty(GesturePropertyProvider* provider,
 bool IsUncategorizedDevice(const EventConverterEvdev& converter) {
   return !converter.HasTouchscreen() && !converter.HasKeyboard() &&
          !converter.HasMouse() && !converter.HasPointingStick() &&
-         !converter.HasTouchpad() && !converter.HasGamepad() &&
-         !converter.HasGraphicsTablet();
+         !converter.HasTouchpad() && !converter.HasGamepad();
 }
 
 }  // namespace
@@ -530,10 +528,6 @@ void InputDeviceFactoryEvdev::UpdateDirtyFlags(
   if (converter->HasTouchpad())
     touchpad_list_dirty_ = true;
 
-  if (converter->HasGraphicsTablet()) {
-    graphics_tablet_list_dirty_ = true;
-  }
-
   if (converter->HasGamepad())
     gamepad_list_dirty_ = true;
 
@@ -554,9 +548,6 @@ void InputDeviceFactoryEvdev::NotifyDevicesUpdated() {
     NotifyPointingStickDevicesUpdated();
   if (touchpad_list_dirty_)
     NotifyTouchpadDevicesUpdated();
-  if (graphics_tablet_list_dirty_) {
-    NotifyGraphicsTabletDevicesUpdated();
-  }
   if (gamepad_list_dirty_)
     NotifyGamepadDevicesUpdated();
   if (uncategorized_list_dirty_)
@@ -570,7 +561,6 @@ void InputDeviceFactoryEvdev::NotifyDevicesUpdated() {
   mouse_list_dirty_ = false;
   pointing_stick_list_dirty_ = false;
   touchpad_list_dirty_ = false;
-  graphics_tablet_list_dirty_ = false;
   gamepad_list_dirty_ = false;
   uncategorized_list_dirty_ = false;
 }
@@ -679,17 +669,6 @@ void InputDeviceFactoryEvdev::NotifyTouchpadDevicesUpdated() {
   }
 
   dispatcher_->DispatchTouchpadDevicesUpdated(touchpads, has_haptic_touchpad);
-}
-
-void InputDeviceFactoryEvdev::NotifyGraphicsTabletDevicesUpdated() {
-  std::vector<InputDevice> graphics_tablets;
-  for (const auto& it : converters_) {
-    if (it.second->HasGraphicsTablet()) {
-      graphics_tablets.push_back(it.second->input_device());
-    }
-  }
-
-  dispatcher_->DispatchGraphicsTabletDevicesUpdated(graphics_tablets);
 }
 
 void InputDeviceFactoryEvdev::NotifyGamepadDevicesUpdated() {

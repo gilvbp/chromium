@@ -23,7 +23,6 @@ namespace content {
 class NavigationRequest;
 class RenderFrameHostImpl;
 class RenderProcessHost;
-class SharedDictionaryAccessObserver;
 
 // URLLoaderFactoryParamsHelper encapsulates details of how to create
 // network::mojom::URLLoaderFactoryParams (taking //content-focused parameters,
@@ -109,9 +108,7 @@ class URLLoaderFactoryParamsHelper {
       const network::mojom::EarlyHints& early_hints,
       mojo::PendingRemote<network::mojom::CookieAccessObserver> cookie_observer,
       mojo::PendingRemote<network::mojom::TrustTokenAccessObserver>
-          trust_token_observer,
-      mojo::PendingRemote<network::mojom::SharedDictionaryAccessObserver>
-          shared_dictionary_observer);
+          trust_token_observer);
 
  private:
   // Only static methods.

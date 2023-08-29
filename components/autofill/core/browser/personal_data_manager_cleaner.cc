@@ -81,7 +81,9 @@ void PersonalDataManagerCleaner::SyncStarted(syncer::ModelType model_type) {
   // `autofill_profile_sync_started` and `contact_info_sync_started`.
   autofill_profile_sync_started |= model_type == syncer::AUTOFILL_PROFILE;
   contact_info_sync_started |= model_type == syncer::CONTACT_INFO;
-  if (autofill_profile_sync_started && contact_info_sync_started &&
+  if (autofill_profile_sync_started &&
+      (contact_info_sync_started ||
+       !base::FeatureList::IsEnabled(syncer::kSyncEnableContactInfoDataType)) &&
       !alternative_state_name_map_updater_
            ->is_alternative_state_name_map_populated() &&
       base::FeatureList::IsEnabled(
@@ -153,6 +155,8 @@ bool PersonalDataManagerCleaner::ApplyDedupingRoutine() {
 
   const std::vector<AutofillProfile*>& profiles =
       base::FeatureList::IsEnabled(
+          features::kAutofillAccountProfilesUnionView) &&
+              base::FeatureList::IsEnabled(
                   features::kAutofillAccountProfileStorage)
           ? personal_data_manager_->GetProfiles()
           : personal_data_manager_->GetProfilesFromSource(
@@ -340,12 +344,11 @@ void PersonalDataManagerCleaner::UpdateCardsBillingAddressReference(
 
     // If the card was modified, apply the changes to the database.
     if (was_modified) {
-      if (credit_card->record_type() == CreditCard::RecordType::kLocalCard) {
+      if (credit_card->record_type() == CreditCard::LOCAL_CARD)
         personal_data_manager_->GetLocalDatabase()->UpdateCreditCard(
             *credit_card);
-      } else {
+      else
         server_cards_to_be_updated.push_back(*credit_card);
-      }
     }
   }
 

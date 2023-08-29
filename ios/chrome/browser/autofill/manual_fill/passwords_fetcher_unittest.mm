@@ -5,8 +5,6 @@
 #import "ios/chrome/browser/autofill/manual_fill/passwords_fetcher.h"
 
 #import <Foundation/Foundation.h>
-#import <memory>
-#import <utility>
 
 #import "base/functional/bind.h"
 #import "base/strings/utf_string_conversions.h"
@@ -25,17 +23,19 @@
 #import "testing/gtest_mac.h"
 #import "testing/platform_test.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
+using base::test::ios::kWaitForActionTimeout;
+using base::test::ios::WaitUntilCondition;
+
 // Test object conforming to PasswordFetcherDelegate used to verify the results
 // from the password store.
 @interface TestPasswordFetcherDelegate : NSObject<PasswordFetcherDelegate> {
   // Ivar to store the results from the store.
   std::vector<std::unique_ptr<password_manager::PasswordForm>> _passwords;
-
-  // Run loop used to wait for didFetchPasswords to be called.
-  std::unique_ptr<base::RunLoop> _runLoop;
 }
-
-- (void)waitForPasswords;
 
 // Returns the count of recieved passwords.
 @property(nonatomic, readonly) size_t passwordNumber;
@@ -44,21 +44,11 @@
 
 @implementation TestPasswordFetcherDelegate
 
-- (void)waitForPasswords {
-  ASSERT_FALSE(_runLoop);
-  _runLoop = std::make_unique<base::RunLoop>();
-  _runLoop->Run();
-  _runLoop.reset();
-}
-
 - (void)passwordFetcher:(PasswordFetcher*)passwordFetcher
       didFetchPasswords:
           (std::vector<std::unique_ptr<password_manager::PasswordForm>>)
               passwords {
   _passwords = std::move(passwords);
-  ASSERT_TRUE(_runLoop);
-  ASSERT_TRUE(_runLoop->running());
-  _runLoop->Quit();
 }
 
 - (size_t)passwordNumber {
@@ -137,6 +127,9 @@ class PasswordFetcherTest : public PlatformTest {
         base::BindRepeating(&BuildPasswordStore,
                             password_manager::IsAccountStore(true)));
     chrome_browser_state_ = test_cbs_builder.Build();
+    ASSERT_EQ(base::FeatureList::IsEnabled(
+                  password_manager::features::kEnablePasswordsAccountStorage),
+              !!GetAccountPasswordStore());
   }
 
   scoped_refptr<password_manager::PasswordStoreInterface>
@@ -179,7 +172,12 @@ TEST_F(PasswordFetcherTest, ReturnsPassword) {
               accountPasswordStore:GetAccountPasswordStore()
                           delegate:passwordFetcherDelegate
                                URL:GURL::EmptyGURL()];
-  [passwordFetcherDelegate waitForPasswords];
+
+  WaitUntilCondition(
+      ^bool {
+        return passwordFetcherDelegate.passwordNumber > 0;
+      },
+      /*run_message_loop=*/true, kWaitForActionTimeout);
 
   EXPECT_EQ(passwordFetcherDelegate.passwordNumber, 1u);
   EXPECT_TRUE(passwordFetcher);
@@ -197,7 +195,11 @@ TEST_F(PasswordFetcherTest, ReturnsTwoPasswords) {
               accountPasswordStore:GetAccountPasswordStore()
                           delegate:passwordFetcherDelegate
                                URL:GURL::EmptyGURL()];
-  [passwordFetcherDelegate waitForPasswords];
+  WaitUntilCondition(
+      ^bool {
+        return passwordFetcherDelegate.passwordNumber > 0;
+      },
+      /*run_message_loop=*/true, kWaitForActionTimeout);
 
   EXPECT_EQ(passwordFetcherDelegate.passwordNumber, 2u);
   EXPECT_TRUE(passwordFetcher);
@@ -215,7 +217,11 @@ TEST_F(PasswordFetcherTest, IgnoresBlocked) {
               accountPasswordStore:GetAccountPasswordStore()
                           delegate:passwordFetcherDelegate
                                URL:GURL::EmptyGURL()];
-  [passwordFetcherDelegate waitForPasswords];
+  WaitUntilCondition(
+      ^bool {
+        return passwordFetcherDelegate.passwordNumber > 0;
+      },
+      /*run_message_loop=*/true, kWaitForActionTimeout);
 
   EXPECT_EQ(passwordFetcherDelegate.passwordNumber, 1u);
   EXPECT_TRUE(passwordFetcher);
@@ -235,7 +241,11 @@ TEST_F(PasswordFetcherTest, IgnoresDuplicated) {
               accountPasswordStore:GetAccountPasswordStore()
                           delegate:passwordFetcherDelegate
                                URL:GURL::EmptyGURL()];
-  [passwordFetcherDelegate waitForPasswords];
+  WaitUntilCondition(
+      ^bool {
+        return passwordFetcherDelegate.passwordNumber > 0;
+      },
+      /*run_message_loop=*/true, kWaitForActionTimeout);
 
   EXPECT_EQ(passwordFetcherDelegate.passwordNumber, 1u);
   EXPECT_TRUE(passwordFetcher);
@@ -252,14 +262,20 @@ TEST_F(PasswordFetcherTest, ReceivesZeroPasswords) {
               accountPasswordStore:GetAccountPasswordStore()
                           delegate:passwordFetcherDelegate
                                URL:GURL::EmptyGURL()];
-  [passwordFetcherDelegate waitForPasswords];
-
+  WaitUntilCondition(
+      ^bool {
+        return passwordFetcherDelegate.passwordNumber > 0;
+      },
+      /*run_message_loop=*/true, kWaitForActionTimeout);
   ASSERT_EQ(passwordFetcherDelegate.passwordNumber, 1u);
 
   GetProfilePasswordStore()->RemoveLogin(MakeForm1());
 
-  [passwordFetcherDelegate waitForPasswords];
-
+  WaitUntilCondition(
+      ^bool {
+        return passwordFetcherDelegate.passwordNumber == 0;
+      },
+      /*run_message_loop=*/true, kWaitForActionTimeout);
   EXPECT_EQ(passwordFetcherDelegate.passwordNumber, 0u);
   EXPECT_TRUE(passwordFetcher);
 }
@@ -277,14 +293,29 @@ TEST_F(PasswordFetcherTest, FilterPassword) {
                           delegate:passwordFetcherDelegate
                                URL:GURL("http://www.example.com/accounts/"
                                         "Login")];
-  [passwordFetcherDelegate waitForPasswords];
+  WaitUntilCondition(
+      ^bool {
+        return passwordFetcherDelegate.passwordNumber > 0;
+      },
+      /*run_message_loop=*/true, kWaitForActionTimeout);
 
   EXPECT_EQ(passwordFetcherDelegate.passwordNumber, 1u);
   EXPECT_TRUE(passwordFetcher);
 }
 
+class PasswordFetcherTestWithAccountStorage : public PasswordFetcherTest {
+ protected:
+  PasswordFetcherTestWithAccountStorage() {
+    feature_list_.InitAndEnableFeature(
+        password_manager::features::kEnablePasswordsAccountStorage);
+  }
+
+ private:
+  base::test::ScopedFeatureList feature_list_;
+};
+
 // Tests PasswordFetcher ignores duplicated passwords in different stores.
-TEST_F(PasswordFetcherTest, IgnoresDuplicateInOtherStore) {
+TEST_F(PasswordFetcherTestWithAccountStorage, IgnoresDuplicateInOtherStore) {
   GetProfilePasswordStore()->AddLogin(MakeForm1());
   GetAccountPasswordStore()->AddLogin(MakeForm1());
 
@@ -295,7 +326,11 @@ TEST_F(PasswordFetcherTest, IgnoresDuplicateInOtherStore) {
               accountPasswordStore:GetAccountPasswordStore()
                           delegate:passwordFetcherDelegate
                                URL:GURL::EmptyGURL()];
-  [passwordFetcherDelegate waitForPasswords];
+  WaitUntilCondition(
+      ^bool {
+        return passwordFetcherDelegate.passwordNumber > 0;
+      },
+      /*run_message_loop=*/true, kWaitForActionTimeout);
 
   EXPECT_EQ(passwordFetcherDelegate.passwordNumber, 1u);
   EXPECT_TRUE(passwordFetcher);

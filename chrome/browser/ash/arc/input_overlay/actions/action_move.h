@@ -27,8 +27,7 @@ class ActionMove : public Action {
 
   // Override from Action.
   bool ParseFromJson(const base::Value::Dict& value) override;
-  bool InitByAddingNewAction() override;
-  void InitByChangingActionType(Action* action) override;
+  bool InitFromEditor() override;
   bool RewriteEvent(const ui::Event& origin,
                     const bool is_mouse_locked,
                     const gfx::Transform* rotation_transform,
@@ -39,7 +38,7 @@ class ActionMove : public Action {
       DisplayOverlayController* display_overlay_controller) override;
   void UnbindInput(const InputElement& input_element) override;
   std::unique_ptr<ActionProto> ConvertToProtoIfCustomized() const override;
-  ActionType GetType() const override;
+  ActionType GetType() override;
 
   void set_move_distance(int move_distance) { move_distance_ = move_distance; }
   int move_distance() { return move_distance_; }
@@ -109,8 +108,8 @@ class ActionMove : public Action {
   // Return the bounds in the root window.
   absl::optional<gfx::RectF> CalculateApplyArea(
       const gfx::RectF& content_bound);
-  // Transform mouse location from app window to the `target_area_` if
-  // `target_area_` exists. Input values are in root window's coordinate system.
+  // Transform mouse location from app window to the |target_area_| if
+  // |target_area_| exists. Input values are in root window's coordinate system.
   // Return the point pixel to the host window's.
   gfx::PointF TransformLocationInPixels(const gfx::RectF& content_bounds,
                                         const gfx::PointF& point);

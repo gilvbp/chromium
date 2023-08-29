@@ -695,8 +695,7 @@ TEST_F(TranslateMetricsLoggerImplTest, LogTriggerDecision) {
       TriggerDecision::kShowUI,
       TriggerDecision::kDisabledByRanker,
       TriggerDecision::kDisabledOffline,
-      TriggerDecision::kDisabledNeverTranslateLanguage,
-      TriggerDecision::kDisabledMatchesPreviousLanguage};
+      TriggerDecision::kDisabledNeverTranslateLanguage};
 
   for (const auto& trigger_decision : kTriggerDecisions)
     translate_metrics_logger()->LogTriggerDecision(trigger_decision);

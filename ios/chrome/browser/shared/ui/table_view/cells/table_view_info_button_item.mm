@@ -9,6 +9,10 @@
 #import "ios/chrome/grit/ios_strings.h"
 #import "ui/base/l10n/l10n_util.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 @implementation TableViewInfoButtonItem
 
 - (instancetype)initWithType:(NSInteger)type {
@@ -38,7 +42,7 @@
   } else {
     [cell updatePaddingForDetailText:NO];
   }
-  [cell setStatusText:self.statusText];
+  cell.statusTextLabel.text = self.statusText;
   if (self.accessibilityHint) {
     cell.customizedAccessibilityHint = self.accessibilityHint;
   }

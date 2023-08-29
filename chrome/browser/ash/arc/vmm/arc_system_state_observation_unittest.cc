@@ -41,7 +41,14 @@ ArcAppListPrefs::AppInfo MakePlayStoreInfo(bool ready) {
 
 class ArcSystemStateObservationTest : public testing::Test {
  public:
-  ArcSystemStateObservationTest() {
+  ArcSystemStateObservationTest() = default;
+  ArcSystemStateObservationTest(const ArcSystemStateObservationTest&) = delete;
+  ArcSystemStateObservationTest& operator=(
+      const ArcSystemStateObservationTest&) = delete;
+
+  ~ArcSystemStateObservationTest() override = default;
+
+  void SetUp() override {
     arc_test().SetUp(&profile_);
 
     observation_ = std::make_unique<ArcSystemStateObservation>(&profile_);
@@ -53,14 +60,8 @@ class ArcSystemStateObservationTest : public testing::Test {
     arc_window_observer_ =
         observation_->GetObserverByName(kArcWindowObserverName);
   }
-  ArcSystemStateObservationTest(const ArcSystemStateObservationTest&) = delete;
-  ArcSystemStateObservationTest& operator=(
-      const ArcSystemStateObservationTest&) = delete;
 
-  ~ArcSystemStateObservationTest() override {
-    observation_.reset();
-    arc_test().TearDown();
-  }
+  void TearDown() override { observation_.reset(); }
 
   ArcSystemStateObservation* observation() { return observation_.get(); }
   ArcAppTest& arc_test() { return arc_test_; }
@@ -74,12 +75,9 @@ class ArcSystemStateObservationTest : public testing::Test {
 
   std::unique_ptr<ArcSystemStateObservation> observation_;
 
-  raw_ptr<ash::ThrottleObserver, DanglingUntriaged | ExperimentalAsh>
-      active_window_observer_;
-  raw_ptr<ash::ThrottleObserver, DanglingUntriaged | ExperimentalAsh>
-      background_service_observer_;
-  raw_ptr<ash::ThrottleObserver, DanglingUntriaged | ExperimentalAsh>
-      arc_window_observer_;
+  raw_ptr<ash::ThrottleObserver, ExperimentalAsh> active_window_observer_;
+  raw_ptr<ash::ThrottleObserver, ExperimentalAsh> background_service_observer_;
+  raw_ptr<ash::ThrottleObserver, ExperimentalAsh> arc_window_observer_;
 };
 
 TEST_F(ArcSystemStateObservationTest, TestConstructDestruct) {}

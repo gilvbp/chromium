@@ -32,8 +32,7 @@ class UnifiedKeyboardBacklightToggleView
                           controller,
                           kUnifiedMenuKeyboardBrightnessIcon,
                           IDS_ASH_STATUS_TRAY_BRIGHTNESS,
-                          /*is_togglable=*/false,
-                          /*read_only=*/true),
+                          true /* readonly*/),
         model_(model) {
     model_->AddObserver(this);
 

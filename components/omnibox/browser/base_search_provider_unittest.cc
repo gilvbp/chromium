@@ -9,7 +9,6 @@
 #include <string>
 #include <utility>
 
-#include "base/containers/contains.h"
 #include "base/functional/callback.h"
 #include "base/strings/string_number_conversions.h"
 #include "base/strings/utf_string_conversions.h"
@@ -106,9 +105,12 @@ class TestBaseSearchProvider : public BaseSearchProvider {
   ~TestBaseSearchProvider() override {}
 };
 
-class BaseSearchProviderTestFixture {
+class BaseSearchProviderTest : public testing::TestWithParam<bool> {
+ public:
+  ~BaseSearchProviderTest() override {}
+
  protected:
-  void SetUp() {
+  void SetUp() override {
     auto template_url_service = std::make_unique<TemplateURLService>(
         nullptr /* PrefService */, std::make_unique<SearchTermsData>(),
         nullptr /* KeywordWebDataService */,
@@ -119,22 +121,26 @@ class BaseSearchProviderTestFixture {
 
     provider_ = new NiceMock<TestBaseSearchProvider>(
         AutocompleteProvider::TYPE_SEARCH, client_.get());
+
+    scoped_feature_list_ = std::make_unique<base::test::ScopedFeatureList>();
+    if (GetParam()) {
+      scoped_feature_list_->InitAndEnableFeature(
+          omnibox::kDisambiguateEntitySuggestions);
+    } else {
+      scoped_feature_list_->InitAndDisableFeature(
+          omnibox::kDisambiguateEntitySuggestions);
+    }
   }
 
   base::test::TaskEnvironment task_environment_;
   std::unique_ptr<MockAutocompleteProviderClient> client_;
   scoped_refptr<NiceMock<TestBaseSearchProvider>> provider_;
+  std::unique_ptr<base::test::ScopedFeatureList> scoped_feature_list_;
 };
 
-class BaseSearchProviderTest : public BaseSearchProviderTestFixture,
-                               public testing::Test {
- public:
-  ~BaseSearchProviderTest() override = default;
+INSTANTIATE_TEST_SUITE_P(All, BaseSearchProviderTest, testing::Bool());
 
-  void SetUp() override { BaseSearchProviderTestFixture::SetUp(); }
-};
-
-TEST_F(BaseSearchProviderTest, PreserveAnswersWhenDeduplicating) {
+TEST_P(BaseSearchProviderTest, PreserveAnswersWhenDeduplicating) {
   TemplateURLData data;
   data.SetURL("http://foo.com/url?bar={searchTerms}");
   auto template_url = std::make_unique<TemplateURL>(data);
@@ -214,7 +220,7 @@ TEST_F(BaseSearchProviderTest, PreserveAnswersWhenDeduplicating) {
   EXPECT_EQ(850, duplicate.relevance);
 }
 
-TEST_F(BaseSearchProviderTest, PreserveImageWhenDeduplicating) {
+TEST_P(BaseSearchProviderTest, PreserveImageWhenDeduplicating) {
   // Ensure categorical suggestions are enabled.
   base::test::ScopedFeatureList scoped_feature_list;
   scoped_feature_list.InitAndEnableFeature(omnibox::kCategoricalSuggestions);
@@ -301,60 +307,7 @@ TEST_F(BaseSearchProviderTest, PreserveImageWhenDeduplicating) {
   EXPECT_EQ(850, duplicate.relevance);
 }
 
-TEST_F(BaseSearchProviderTest, PreserveSubtypesWhenDeduplicating) {
-  // Ensure categorical suggestions and merging subtypes are enabled.
-  base::test::ScopedFeatureList scoped_feature_list;
-  scoped_feature_list.InitWithFeatures(
-      {omnibox::kCategoricalSuggestions, omnibox::kMergeSubtypes}, {});
-
-  TemplateURLData data;
-  data.SetURL("http://foo.com/url?bar={searchTerms}");
-  auto template_url = std::make_unique<TemplateURL>(data);
-
-  TestBaseSearchProvider::MatchMap map;
-  std::u16string query = u"wrist wa";
-
-  SearchSuggestionParser::SuggestResult more_relevant(
-      query, AutocompleteMatchType::SEARCH_HISTORY, omnibox::TYPE_NATIVE_CHROME,
-      /*subtypes=*/{omnibox::SUBTYPE_PERSONAL}, /*from_keyword=*/false,
-      /*relevance=*/1300, /*relevance_from_server=*/true,
-      /*input_text=*/query);
-  provider_->AddMatchToMap(
-      more_relevant, std::string(), AutocompleteInput(), template_url.get(),
-      client_->GetTemplateURLService()->search_terms_data(),
-      TemplateURLRef::NO_SUGGESTION_CHOSEN, false, false, &map);
-
-  SearchSuggestionParser::SuggestResult less_relevant(
-      query, AutocompleteMatchType::SEARCH_SUGGEST_ENTITY,
-      omnibox::TYPE_CATEGORICAL_QUERY,
-      /*subtypes=*/{omnibox::SUBTYPE_TRENDS}, /*from_keyword=*/false,
-      /*relevance=*/850, /*relevance_from_server=*/true,
-      /*input_text=*/query);
-  provider_->AddMatchToMap(
-      less_relevant, std::string(), AutocompleteInput(), template_url.get(),
-      client_->GetTemplateURLService()->search_terms_data(),
-      TemplateURLRef::NO_SUGGESTION_CHOSEN, false, false, &map);
-
-  ASSERT_EQ(1U, map.size());
-
-  AutocompleteMatch match = map.begin()->second;
-  EXPECT_EQ(AutocompleteMatchType::SEARCH_HISTORY, match.type);
-  EXPECT_EQ(omnibox::TYPE_NATIVE_CHROME, match.suggest_type);
-  ASSERT_EQ(2U, match.subtypes.size());
-  EXPECT_TRUE(base::Contains(match.subtypes, omnibox::SUBTYPE_PERSONAL));
-  EXPECT_TRUE(base::Contains(match.subtypes, omnibox::SUBTYPE_TRENDS));
-  EXPECT_EQ(1300, match.relevance);
-
-  ASSERT_EQ(1U, match.duplicate_matches.size());
-  AutocompleteMatch duplicate = match.duplicate_matches[0];
-  EXPECT_EQ(AutocompleteMatchType::SEARCH_SUGGEST_ENTITY, duplicate.type);
-  EXPECT_EQ(omnibox::TYPE_CATEGORICAL_QUERY, duplicate.suggest_type);
-  ASSERT_EQ(1U, duplicate.subtypes.size());
-  EXPECT_TRUE(base::Contains(duplicate.subtypes, omnibox::SUBTYPE_TRENDS));
-  EXPECT_EQ(850, duplicate.relevance);
-}
-
-TEST_F(BaseSearchProviderTest, PreserveAdditionalQueryParamsWhenDeduplicating) {
+TEST_P(BaseSearchProviderTest, PreserveAdditionalQueryParamsWhenDeduplicating) {
   TemplateURLData data;
   data.SetURL("http://example.com/?q={searchTerms}");
   auto template_url = std::make_unique<TemplateURL>(data);
@@ -425,7 +378,8 @@ TEST_F(BaseSearchProviderTest, PreserveAdditionalQueryParamsWhenDeduplicating) {
 
   // Ensure that a subsequent match, with duplicate search terms and a unique
   // non-empty additional query params, is added to the map with a pre-computed
-  // `stripped_destination_url`.
+  // `stripped_destination_url`, if omnibox::kDisambiguateEntitySuggestions is
+  // enabled.
   SearchSuggestionParser::SuggestResult entity_2 =
       BuildSuggestion(query, AutocompleteMatchType::SEARCH_HISTORY,
                       omnibox::TYPE_NATIVE_CHROME, {omnibox::SUBTYPE_PERSONAL},
@@ -440,7 +394,8 @@ TEST_F(BaseSearchProviderTest, PreserveAdditionalQueryParamsWhenDeduplicating) {
   match = map[std::make_pair(query, "gs_ssp=2")];
   ASSERT_EQ(1297, match.relevance);
   EXPECT_EQ("http://example.com/?gs_ssp=2&q=tom+cruise", match.destination_url);
-  EXPECT_EQ(match.destination_url, match.stripped_destination_url);
+  EXPECT_EQ(GetParam() ? match.destination_url : GURL(),
+            match.stripped_destination_url);
   ASSERT_EQ(0U, match.duplicate_matches.size());
 
   // Ensure that a duplicate match, with identical search terms and additional
@@ -460,13 +415,15 @@ TEST_F(BaseSearchProviderTest, PreserveAdditionalQueryParamsWhenDeduplicating) {
   match = map[std::make_pair(query, "gs_ssp=2")];
   ASSERT_EQ(1297, match.relevance);
   EXPECT_EQ("http://example.com/?gs_ssp=2&q=tom+cruise", match.destination_url);
-  EXPECT_EQ(match.destination_url, match.stripped_destination_url);
+  EXPECT_EQ(GetParam() ? match.destination_url : GURL(),
+            match.stripped_destination_url);
   ASSERT_EQ(1U, match.duplicate_matches.size());
   ASSERT_EQ(1296, match.duplicate_matches[0].relevance);
 
   // Ensure that a duplicate match, with identical search terms and additional
   // query params, and with a higher relevance replaces the existing match in
-  // the map with a pre-computed `stripped_destination_url`.
+  // the map with a pre-computed `stripped_destination_url`, if
+  // omnibox::kDisambiguateEntitySuggestions is enabled.
   SearchSuggestionParser::SuggestResult duplicate_2_entity_2 =
       BuildSuggestion(query, AutocompleteMatchType::SEARCH_HISTORY,
                       omnibox::TYPE_NATIVE_CHROME, {omnibox::SUBTYPE_PERSONAL},
@@ -481,13 +438,14 @@ TEST_F(BaseSearchProviderTest, PreserveAdditionalQueryParamsWhenDeduplicating) {
   match = map[std::make_pair(query, "gs_ssp=2")];
   ASSERT_EQ(1301, match.relevance);
   EXPECT_EQ("http://example.com/?gs_ssp=2&q=tom+cruise", match.destination_url);
-  EXPECT_EQ(match.destination_url, match.stripped_destination_url);
+  EXPECT_EQ(GetParam() ? match.destination_url : GURL(),
+            match.stripped_destination_url);
   ASSERT_EQ(2U, match.duplicate_matches.size());
   ASSERT_EQ(1296, match.duplicate_matches[0].relevance);
   ASSERT_EQ(1297, match.duplicate_matches[1].relevance);
 }
 
-TEST_F(BaseSearchProviderTest, MatchTailSuggestionProperly) {
+TEST_P(BaseSearchProviderTest, MatchTailSuggestionProperly) {
   TemplateURLData data;
   data.SetURL("http://foo.com/url?bar={searchTerms}");
   auto template_url = std::make_unique<TemplateURL>(data);
@@ -518,7 +476,7 @@ TEST_F(BaseSearchProviderTest, MatchTailSuggestionProperly) {
   EXPECT_GE(text.length(), length);
 }
 
-TEST_F(BaseSearchProviderTest, DeleteDuplicateMatch) {
+TEST_P(BaseSearchProviderTest, DeleteDuplicateMatch) {
   TemplateURLData data;
   data.SetURL("http://foo.com/url?bar={searchTerms}");
   auto template_url = std::make_unique<TemplateURL>(data);
@@ -560,7 +518,7 @@ TEST_F(BaseSearchProviderTest, DeleteDuplicateMatch) {
 }
 
 // Tests that the prerender hint can be aggregated to another SuggestResult.
-TEST_F(BaseSearchProviderTest, PrerenderDefaultMatch) {
+TEST_P(BaseSearchProviderTest, PrerenderDefaultMatch) {
   TemplateURLData data;
   data.SetURL("http://foo.com/url?bar={searchTerms}");
   auto template_url = std::make_unique<TemplateURL>(data);
@@ -599,21 +557,7 @@ TEST_F(BaseSearchProviderTest, PrerenderDefaultMatch) {
   EXPECT_TRUE(BaseSearchProvider::ShouldPrerender(match));
 }
 
-class BaseSearchProviderOnDeviceSuggestionTest
-    : public BaseSearchProviderTestFixture,
-      public testing::TestWithParam<bool> {
- public:
-  ~BaseSearchProviderOnDeviceSuggestionTest() override = default;
-
-  void SetUp() override { BaseSearchProviderTestFixture::SetUp(); }
-};
-
-INSTANTIATE_TEST_SUITE_P(All,
-                         BaseSearchProviderOnDeviceSuggestionTest,
-                         testing::Bool());
-
-TEST_P(BaseSearchProviderOnDeviceSuggestionTest,
-       CreateOnDeviceSearchSuggestion) {
+TEST_P(BaseSearchProviderTest, CreateOnDeviceSearchSuggestion) {
   bool is_tail_suggestion = GetParam();
   TemplateURLData data;
   data.SetURL("http://foo.com/url?bar={searchTerms}");
@@ -649,7 +593,7 @@ TEST_P(BaseSearchProviderOnDeviceSuggestionTest,
   }
 }
 
-TEST_F(BaseSearchProviderTest, CreateActionInSuggest_BuildActionURL) {
+TEST_P(BaseSearchProviderTest, CreateActionInSuggest_BuildActionURL) {
   using omnibox::ActionInfo;
   // Correlation between ActionType and UMA-recorded bucket.
   struct {

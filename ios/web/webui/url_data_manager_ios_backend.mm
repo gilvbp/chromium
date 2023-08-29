@@ -35,6 +35,10 @@
 #import "ui/base/webui/i18n_source_stream.h"
 #import "url/url_util.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 using web::WebThread;
 
 namespace web {

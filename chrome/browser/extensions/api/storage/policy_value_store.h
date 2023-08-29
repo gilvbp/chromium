@@ -13,7 +13,6 @@
 
 #include "components/value_store/value_store.h"
 #include "extensions/browser/api/storage/settings_observer.h"
-#include "extensions/common/extension_id.h"
 
 namespace policy {
 class PolicyMap;
@@ -64,7 +63,7 @@ class PolicyValueStore : public value_store::ValueStore {
   value_store::ValueStore* delegate() { return delegate_.get(); }
 
  private:
-  ExtensionId extension_id_;
+  std::string extension_id_;
   SequenceBoundSettingsChangedCallback observer_;
   std::unique_ptr<value_store::ValueStore> delegate_;
 };

@@ -29,6 +29,7 @@
 #include "testing/gtest/include/gtest/gtest.h"
 
 using content::BrowserThread;
+using content::MessageLoopRunner;
 
 namespace safe_browsing {
 
@@ -38,7 +39,7 @@ class Delegate {
  public:
   Delegate() : state_(TwoPhaseUploader::STATE_NONE) {}
 
-  void FinishCallback(base::RunLoop* run_loop,
+  void FinishCallback(scoped_refptr<MessageLoopRunner> runner,
                       TwoPhaseUploader::State state,
                       int net_error,
                       int response_code,
@@ -47,7 +48,7 @@ class Delegate {
     net_error_ = net_error;
     response_code_ = response_code;
     response_ = response;
-    run_loop->Quit();
+    runner->Quit();
   }
 
   TwoPhaseUploader::State state_;
@@ -100,7 +101,7 @@ class TwoPhaseUploaderTest : public testing::Test {
 };
 
 TEST_F(TwoPhaseUploaderTest, UploadFile) {
-  base::RunLoop run_loop;
+  scoped_refptr<MessageLoopRunner> runner = new MessageLoopRunner;
   LocalTwoPhaseTestServer test_server;
   ASSERT_TRUE(test_server.Start());
   Delegate delegate;
@@ -108,10 +109,10 @@ TEST_F(TwoPhaseUploaderTest, UploadFile) {
       shared_url_loader_factory_, task_runner_.get(),
       test_server.GetURL("/start"), "metadata", GetTestFilePath(),
       base::BindOnce(&Delegate::FinishCallback, base::Unretained(&delegate),
-                     &run_loop),
+                     runner),
       TRAFFIC_ANNOTATION_FOR_TESTS));
   uploader->Start();
-  run_loop.Run();
+  runner->Run();
   EXPECT_EQ(TwoPhaseUploader::STATE_SUCCESS, delegate.state_);
   EXPECT_EQ(net::OK, delegate.net_error_);
   EXPECT_EQ(200, delegate.response_code_);
@@ -123,7 +124,7 @@ TEST_F(TwoPhaseUploaderTest, UploadFile) {
 }
 
 TEST_F(TwoPhaseUploaderTest, BadPhaseOneResponse) {
-  base::RunLoop run_loop;
+  scoped_refptr<MessageLoopRunner> runner = new MessageLoopRunner;
   LocalTwoPhaseTestServer test_server;
   ASSERT_TRUE(test_server.Start());
   Delegate delegate;
@@ -131,10 +132,10 @@ TEST_F(TwoPhaseUploaderTest, BadPhaseOneResponse) {
       shared_url_loader_factory_, task_runner_.get(),
       test_server.GetURL("/start?p1code=500"), "metadata", GetTestFilePath(),
       base::BindOnce(&Delegate::FinishCallback, base::Unretained(&delegate),
-                     &run_loop),
+                     runner),
       TRAFFIC_ANNOTATION_FOR_TESTS));
   uploader->Start();
-  run_loop.Run();
+  runner->Run();
   EXPECT_EQ(TwoPhaseUploader::UPLOAD_METADATA, delegate.state_);
   EXPECT_EQ(net::OK, delegate.net_error_);
   EXPECT_EQ(500, delegate.response_code_);
@@ -142,7 +143,7 @@ TEST_F(TwoPhaseUploaderTest, BadPhaseOneResponse) {
 }
 
 TEST_F(TwoPhaseUploaderTest, BadPhaseTwoResponse) {
-  base::RunLoop run_loop;
+  scoped_refptr<MessageLoopRunner> runner = new MessageLoopRunner;
   LocalTwoPhaseTestServer test_server;
   ASSERT_TRUE(test_server.Start());
   Delegate delegate;
@@ -150,10 +151,10 @@ TEST_F(TwoPhaseUploaderTest, BadPhaseTwoResponse) {
       shared_url_loader_factory_, task_runner_.get(),
       test_server.GetURL("/start?p2code=500"), "metadata", GetTestFilePath(),
       base::BindOnce(&Delegate::FinishCallback, base::Unretained(&delegate),
-                     &run_loop),
+                     runner),
       TRAFFIC_ANNOTATION_FOR_TESTS));
   uploader->Start();
-  run_loop.Run();
+  runner->Run();
   EXPECT_EQ(TwoPhaseUploader::UPLOAD_FILE, delegate.state_);
   EXPECT_EQ(net::OK, delegate.net_error_);
   EXPECT_EQ(500, delegate.response_code_);
@@ -165,7 +166,7 @@ TEST_F(TwoPhaseUploaderTest, BadPhaseTwoResponse) {
 }
 
 TEST_F(TwoPhaseUploaderTest, PhaseOneConnectionClosed) {
-  base::RunLoop run_loop;
+  scoped_refptr<MessageLoopRunner> runner = new MessageLoopRunner;
   LocalTwoPhaseTestServer test_server;
   ASSERT_TRUE(test_server.Start());
   Delegate delegate;
@@ -173,17 +174,17 @@ TEST_F(TwoPhaseUploaderTest, PhaseOneConnectionClosed) {
       shared_url_loader_factory_, task_runner_.get(),
       test_server.GetURL("/start?p1close=1"), "metadata", GetTestFilePath(),
       base::BindOnce(&Delegate::FinishCallback, base::Unretained(&delegate),
-                     &run_loop),
+                     runner),
       TRAFFIC_ANNOTATION_FOR_TESTS));
   uploader->Start();
-  run_loop.Run();
+  runner->Run();
   EXPECT_EQ(TwoPhaseUploader::UPLOAD_METADATA, delegate.state_);
   EXPECT_EQ(net::ERR_EMPTY_RESPONSE, delegate.net_error_);
   EXPECT_EQ("", delegate.response_);
 }
 
 TEST_F(TwoPhaseUploaderTest, PhaseTwoConnectionClosed) {
-  base::RunLoop run_loop;
+  scoped_refptr<MessageLoopRunner> runner = new MessageLoopRunner;
   LocalTwoPhaseTestServer test_server;
   ASSERT_TRUE(test_server.Start());
   Delegate delegate;
@@ -191,10 +192,10 @@ TEST_F(TwoPhaseUploaderTest, PhaseTwoConnectionClosed) {
       shared_url_loader_factory_, task_runner_.get(),
       test_server.GetURL("/start?p2close=1"), "metadata", GetTestFilePath(),
       base::BindOnce(&Delegate::FinishCallback, base::Unretained(&delegate),
-                     &run_loop),
+                     runner),
       TRAFFIC_ANNOTATION_FOR_TESTS));
   uploader->Start();
-  run_loop.Run();
+  runner->Run();
   EXPECT_EQ(TwoPhaseUploader::UPLOAD_FILE, delegate.state_);
   EXPECT_EQ(net::ERR_EMPTY_RESPONSE, delegate.net_error_);
   EXPECT_EQ("", delegate.response_);

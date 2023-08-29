@@ -8,6 +8,7 @@ import android.content.Context;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 
 import org.chromium.chrome.browser.incognito.reauth.IncognitoReauthManager.IncognitoReauthCallback;
 import org.chromium.chrome.browser.tasks.tab_management.TabSwitcherCustomViewManager;
@@ -91,6 +92,7 @@ class TabSwitcherIncognitoReauthCoordinator extends IncognitoReauthCoordinatorBa
     /**
      * A test-only method for setting the new tab interactability token.
      */
+    @VisibleForTesting
     protected void setNewTabInteractabilityTokenForTesting(@NonNull Integer token) {
         mNewTabInteractabilityToken = token;
     }

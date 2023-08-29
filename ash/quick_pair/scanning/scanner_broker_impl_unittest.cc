@@ -112,7 +112,7 @@ class FakeFastPairDiscoverableScannerFactory
 
  protected:
   bool create_instance_ = false;
-  raw_ptr<FakeFastPairDiscoverableScanner, DanglingUntriaged | ExperimentalAsh>
+  raw_ptr<FakeFastPairDiscoverableScanner, ExperimentalAsh>
       fake_fast_pair_discoverable_scanner_ = nullptr;
 };
 
@@ -171,8 +171,7 @@ class FakeFastPairNotDiscoverableScannerFactory
 
  protected:
   bool create_instance_ = false;
-  raw_ptr<FakeFastPairNotDiscoverableScanner,
-          DanglingUntriaged | ExperimentalAsh>
+  raw_ptr<FakeFastPairNotDiscoverableScanner, ExperimentalAsh>
       fake_fast_pair_not_discoverable_scanner_ = nullptr;
 };
 

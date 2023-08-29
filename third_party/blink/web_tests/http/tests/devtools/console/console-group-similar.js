@@ -5,8 +5,6 @@
 import {TestRunner} from 'test_runner';
 import {ConsoleTestRunner} from 'console_test_runner';
 
-import * as SDK from 'devtools/core/sdk/sdk.js';
-
 (async function() {
   TestRunner.addResult(`Tests that console correctly groups similar messages.\n`);
 
@@ -49,10 +47,10 @@ import * as SDK from 'devtools/core/sdk/sdk.js';
    * @param {string} level
    */
   function addViolationMessage(text, url, level) {
-    var message = new SDK.ConsoleModel.ConsoleMessage(
+    var message = new SDK.ConsoleMessage(
         null, Protocol.Log.LogEntrySource.Violation, level, text,
         {type: Protocol.Runtime.ConsoleAPICalledEventType.Log, url});
-    const consoleModel = SDK.TargetManager.TargetManager.instance().primaryPageTarget().model(SDK.ConsoleModel.ConsoleModel);
+    const consoleModel = SDK.targetManager.primaryPageTarget().model(SDK.ConsoleModel);
     consoleModel.addMessage(message);
   }
 
@@ -61,11 +59,11 @@ import * as SDK from 'devtools/core/sdk/sdk.js';
    * @param {string} url
    */
   function addConsoleAPIMessage(text,  url) {
-    var message = new SDK.ConsoleModel.ConsoleMessage(
-        null, SDK.ConsoleModel.FrontendMessageSource.ConsoleAPI,
+    var message = new SDK.ConsoleMessage(
+        null, SDK.ConsoleMessage.FrontendMessageSource.ConsoleAPI,
         Protocol.Log.LogEntryLevel.Info, text,
         {type: Protocol.Runtime.ConsoleAPICalledEventType.Log, url});
-    const consoleModel = SDK.TargetManager.TargetManager.instance().primaryPageTarget().model(SDK.ConsoleModel.ConsoleModel);
+    const consoleModel = SDK.targetManager.primaryPageTarget().model(SDK.ConsoleModel);
     consoleModel.addMessage(message);
   }
 })();

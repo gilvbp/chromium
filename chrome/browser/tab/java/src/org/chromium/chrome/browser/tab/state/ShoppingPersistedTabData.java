@@ -265,7 +265,7 @@ public class ShoppingPersistedTabData extends PersistedTabData {
             return;
         }
         OptimizationGuideBridgeFactoryHolder.sOptimizationGuideBridgeFactory.create()
-                .canApplyOptimization(navigationHandle.getUrl(),
+                .canApplyOptimizationAsync(navigationHandle,
                         HintsProto.OptimizationType.PRICE_TRACKING, (decision, metadata) -> {
                             if (!tab.isInitialized()) {
                                 if (onCompleteForTesting != null) {
@@ -319,6 +319,7 @@ public class ShoppingPersistedTabData extends PersistedTabData {
         }
     }
 
+    @VisibleForTesting
     protected PriceDropMetricsLogger getPriceDropMetricsLoggerForTesting() {
         return mPriceDropMetricsLogger;
     }
@@ -383,10 +384,12 @@ public class ShoppingPersistedTabData extends PersistedTabData {
         mPriceDropData = new PriceDropData();
     }
 
+    @VisibleForTesting
     public EmptyTabObserver getUrlUpdatedObserverForTesting() {
         return mUrlUpdatedObserver;
     }
 
+    @VisibleForTesting
     public PriceDropData getPriceDropDataForTesting() {
         return mPriceDropData;
     }
@@ -730,10 +733,12 @@ public class ShoppingPersistedTabData extends PersistedTabData {
         return mPriceDropData.previousPriceMicros != NO_PRICE_KNOWN;
     }
 
+    @VisibleForTesting
     public void setPriceMicrosForTesting(long priceMicros) {
         mPriceDropData.priceMicros = priceMicros;
     }
 
+    @VisibleForTesting
     public void setPreviousPriceMicrosForTesting(long previousPriceMicros) {
         mPriceDropData.previousPriceMicros = previousPriceMicros;
     }
@@ -938,6 +943,7 @@ public class ShoppingPersistedTabData extends PersistedTabData {
         return mLastPriceChangeTimeMs;
     }
 
+    @VisibleForTesting
     public void setLastPriceChangeTimeMsForTesting(long lastPriceChangeTimeMs) {
         mLastPriceChangeTimeMs = lastPriceChangeTimeMs;
     }
@@ -1014,6 +1020,7 @@ public class ShoppingPersistedTabData extends PersistedTabData {
         return DelayedInitMethod.DELAY_RESPONSES_UNTIL_INIT;
     }
 
+    @VisibleForTesting
     public static void enablePriceTrackingWithOptimizationGuideForTesting() {
         sPriceTrackingWithOptimizationGuideForTesting = true;
     }

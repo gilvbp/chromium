@@ -79,9 +79,6 @@ PriceTrackingIconView::PriceTrackingIconView(
   SetAccessibilityProperties(
       /*role*/ absl::nullopt,
       l10n_util::GetStringUTF16(IDS_OMNIBOX_TRACK_PRICE));
-
-  SetUseTonalColorsWhenExpanded(
-      base::FeatureList::IsEnabled(commerce::kPriceTrackingIconColors));
 }
 
 PriceTrackingIconView::~PriceTrackingIconView() = default;
@@ -198,7 +195,7 @@ bool PriceTrackingIconView::MaybeShowIPH() {
     return false;
   }
   return browser_->window()->MaybeShowFeaturePromo(
-      feature_engagement::kIPHPriceTrackingChipFeature,
+      feature_engagement::kIPHPriceTrackingChipFeature, {},
       base::BindOnce(&PriceTrackingIconView::UnpauseAnimation,
                      base::Unretained(this)));
 }

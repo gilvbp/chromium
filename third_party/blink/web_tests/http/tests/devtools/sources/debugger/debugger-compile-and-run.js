@@ -5,8 +5,6 @@
 import {TestRunner} from 'test_runner';
 import {SourcesTestRunner} from 'sources_test_runner';
 
-import * as SDK from 'devtools/core/sdk/sdk.js';
-
 (async function() {
   TestRunner.addResult(`Tests separate compilation and run.\n`);
   await TestRunner.loadLegacyModule('sources');
@@ -33,7 +31,7 @@ import * as SDK from 'devtools/core/sdk/sdk.js';
     }
   }
 
-  var contextId = UI.context.flavor(SDK.RuntimeModel.ExecutionContext).id;
+  var contextId = UI.context.flavor(SDK.ExecutionContext).id;
   SourcesTestRunner.runDebuggerTestSuite([
     async function testSuccessfulCompileAndRun(next) {
       var expression = 'var a = 1; var b = 2; a + b; ';

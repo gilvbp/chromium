@@ -21,7 +21,7 @@ class MockFormValidationMessageClient
     : public GarbageCollected<MockFormValidationMessageClient>,
       public ValidationMessageClient {
  public:
-  void ShowValidationMessage(Element& anchor,
+  void ShowValidationMessage(const Element& anchor,
                              const String&,
                              TextDirection,
                              const String&,
@@ -64,7 +64,7 @@ class HTMLFormControlElementTest : public PageTestBase {
 
 void HTMLFormControlElementTest::SetUp() {
   PageTestBase::SetUp();
-  GetDocument().SetMimeType(AtomicString("text/html"));
+  GetDocument().SetMimeType("text/html");
 }
 
 TEST_F(HTMLFormControlElementTest, customValidationMessageTextDirection) {
@@ -131,8 +131,8 @@ TEST_F(HTMLFormControlElementTest, DoNotUpdateLayoutDuringDOMMutation) {
   // dangerous. This test ensures ShowValidationMessage() is NOT called in
   // appendChild(). crbug.com/756408
   GetDocument().documentElement()->setInnerHTML("<select></select>");
-  auto* const select = To<HTMLFormControlElement>(
-      GetDocument().QuerySelector(AtomicString("select")));
+  auto* const select =
+      To<HTMLFormControlElement>(GetDocument().QuerySelector("select"));
   auto* const optgroup =
       GetDocument().CreateRawElement(html_names::kOptgroupTag);
   auto* validation_client =

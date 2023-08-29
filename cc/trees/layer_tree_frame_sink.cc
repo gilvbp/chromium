@@ -113,6 +113,7 @@ bool LayerTreeFrameSink::BindToClient(LayerTreeFrameSinkClient* client) {
 }
 
 void LayerTreeFrameSink::DetachFromClient() {
+  DCHECK(client_);
   DCHECK_CALLED_ON_VALID_THREAD(thread_checker_);
 
   client_ = nullptr;
@@ -125,9 +126,8 @@ void LayerTreeFrameSink::DetachFromClient() {
     context_provider_->RemoveObserver(this);
     context_provider_ = nullptr;
   }
-  if (worker_context_lost_forwarder_) {
-    auto* worker_context_provider_ptr = worker_context_provider();
-    CHECK(worker_context_provider_ptr);
+
+  if (auto* worker_context_provider_ptr = worker_context_provider()) {
     viz::RasterContextProvider::ScopedRasterContextLock lock(
         worker_context_provider_ptr);
     worker_context_provider_ptr->RemoveObserver(

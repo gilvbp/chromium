@@ -21,7 +21,7 @@ class CrosWindow;
 class CrosScreen;
 class ScriptPromiseResolver;
 
-class CrosWindowManagement : public EventTarget,
+class CrosWindowManagement : public EventTargetWithInlineData,
                              public mojom::blink::CrosWindowManagementObserver,
                              public Supplement<ExecutionContext>,
                              public ExecutionContextClient {

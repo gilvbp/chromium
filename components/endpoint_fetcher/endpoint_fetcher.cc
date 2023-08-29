@@ -6,7 +6,6 @@
 
 #include "base/strings/string_util.h"
 #include "base/strings/stringprintf.h"
-#include "components/signin/public/base/consent_level.h"
 #include "components/signin/public/identity_manager/access_token_info.h"
 #include "components/signin/public/identity_manager/identity_manager.h"
 #include "components/version_info/channel.h"
@@ -35,8 +34,7 @@ EndpointFetcher::EndpointFetcher(
     int64_t timeout_ms,
     const std::string& post_data,
     const net::NetworkTrafficAnnotationTag& annotation_tag,
-    signin::IdentityManager* identity_manager,
-    signin::ConsentLevel consent_level)
+    signin::IdentityManager* const identity_manager)
     : EndpointFetcher(oauth_consumer_name,
                       url,
                       http_method,
@@ -46,8 +44,7 @@ EndpointFetcher::EndpointFetcher(
                       post_data,
                       annotation_tag,
                       url_loader_factory,
-                      identity_manager,
-                      consent_level) {}
+                      identity_manager) {}
 
 EndpointFetcher::EndpointFetcher(
     const scoped_refptr<network::SharedURLLoaderFactory>& url_loader_factory,
@@ -69,7 +66,6 @@ EndpointFetcher::EndpointFetcher(
       annotation_tag_(annotation_tag),
       url_loader_factory_(url_loader_factory),
       identity_manager_(nullptr),
-      consent_level_(absl::nullopt),
       sanitize_response_(true),
       is_stable_channel_(is_stable_channel) {}
 
@@ -86,7 +82,6 @@ EndpointFetcher::EndpointFetcher(
       annotation_tag_(annotation_tag),
       url_loader_factory_(url_loader_factory),
       identity_manager_(nullptr),
-      consent_level_(absl::nullopt),
       sanitize_response_(false) {}
 
 EndpointFetcher::EndpointFetcher(
@@ -99,8 +94,7 @@ EndpointFetcher::EndpointFetcher(
     const std::string& post_data,
     const net::NetworkTrafficAnnotationTag& annotation_tag,
     const scoped_refptr<network::SharedURLLoaderFactory>& url_loader_factory,
-    signin::IdentityManager* identity_manager,
-    signin::ConsentLevel consent_level)
+    signin::IdentityManager* const identity_manager)
     : auth_type_(OAUTH),
       oauth_consumer_name_(oauth_consumer_name),
       url_(url),
@@ -111,7 +105,6 @@ EndpointFetcher::EndpointFetcher(
       annotation_tag_(annotation_tag),
       url_loader_factory_(url_loader_factory),
       identity_manager_(identity_manager),
-      consent_level_(consent_level),
       sanitize_response_(true) {
   for (auto scope : scopes) {
     oauth_scopes_.insert(scope);
@@ -128,7 +121,7 @@ EndpointFetcher::EndpointFetcher(
     const std::vector<std::string>& cors_exempt_headers,
     const net::NetworkTrafficAnnotationTag& annotation_tag,
     const scoped_refptr<network::SharedURLLoaderFactory>& url_loader_factory,
-    bool is_oauth_fetch)
+    const bool is_oauth_fetch)
     : auth_type_(is_oauth_fetch ? OAUTH : CHROME_API_KEY),
       url_(url),
       http_method_(http_method),
@@ -140,7 +133,6 @@ EndpointFetcher::EndpointFetcher(
       annotation_tag_(annotation_tag),
       url_loader_factory_(url_loader_factory),
       identity_manager_(nullptr),
-      consent_level_(absl::nullopt),
       sanitize_response_(true) {}
 
 EndpointFetcher::EndpointFetcher(
@@ -148,7 +140,6 @@ EndpointFetcher::EndpointFetcher(
     : timeout_ms_(kDefaultTimeOutMs),
       annotation_tag_(annotation_tag),
       identity_manager_(nullptr),
-      consent_level_(absl::nullopt),
       sanitize_response_(true) {}
 
 EndpointFetcher::~EndpointFetcher() = default;
@@ -157,10 +148,9 @@ void EndpointFetcher::Fetch(EndpointFetcherCallback endpoint_fetcher_callback) {
   DCHECK(!access_token_fetcher_);
   DCHECK(!simple_url_loader_);
   DCHECK(identity_manager_);
-  DCHECK(consent_level_);
-  // Check if we have a primary account with the consent level provided to the
-  // constructor.
-  if (!identity_manager_->HasPrimaryAccount(*consent_level_)) {
+  // Check if we have a primary account with the default consent level "sync"
+  // before attempting to fetch a token.
+  if (!identity_manager_->HasPrimaryAccount(signin::ConsentLevel::kSync)) {
     auto response = std::make_unique<EndpointResponse>();
     VLOG(1) << __func__ << " No primary accounts found";
     response->response = "No primary accounts found";
@@ -180,8 +170,7 @@ void EndpointFetcher::Fetch(EndpointFetcherCallback endpoint_fetcher_callback) {
       std::make_unique<signin::PrimaryAccountAccessTokenFetcher>(
           oauth_consumer_name_, identity_manager_, oauth_scopes_,
           std::move(token_callback),
-          signin::PrimaryAccountAccessTokenFetcher::Mode::kWaitUntilAvailable,
-          *consent_level_);
+          signin::PrimaryAccountAccessTokenFetcher::Mode::kWaitUntilAvailable);
 }
 
 void EndpointFetcher::OnAuthTokenFetched(

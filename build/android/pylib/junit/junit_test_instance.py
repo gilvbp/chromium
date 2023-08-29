@@ -20,12 +20,16 @@ class JunitTestInstance(test_instance.TestInstance):
     self._resource_apk = args.resource_apk
     self._robolectric_runtime_deps_dir = args.robolectric_runtime_deps_dir
     self._runner_filter = args.runner_filter
-    self._json_config = args.json_config
     self._shards = args.shards
     self._shard_filter = None
     if args.shard_filter:
       self._shard_filter = {int(x) for x in args.shard_filter.split(',')}
     self._test_filters = test_filter.InitializeFiltersFromArgs(args)
+    self._has_literal_filters = bool(args.isolated_script_test_filters
+                                     or args.test_filters)
+    if not self._has_literal_filters and args.test_filter_files:
+      self._has_literal_filters = len(args.test_filter_files) == 1 and (
+          args.test_filter_files[0].endswith('rerun_failed_tests.filter'))
     self._test_suite = args.test_suite
 
   #override
@@ -77,8 +81,8 @@ class JunitTestInstance(test_instance.TestInstance):
     return self._test_filters
 
   @property
-  def json_config(self):
-    return self._json_config
+  def has_literal_filters(self):
+    return self._has_literal_filters
 
   @property
   def shards(self):

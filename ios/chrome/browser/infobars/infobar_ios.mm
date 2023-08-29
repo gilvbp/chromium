@@ -7,6 +7,10 @@
 #import "base/check.h"
 #import "ios/chrome/browser/infobars/infobar_type.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 using infobars::InfoBar;
 using infobars::InfoBarDelegate;
 

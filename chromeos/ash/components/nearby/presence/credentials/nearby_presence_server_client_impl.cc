@@ -20,7 +20,6 @@
 #include "components/signin/public/identity_manager/access_token_info.h"
 #include "components/signin/public/identity_manager/identity_manager.h"
 #include "components/signin/public/identity_manager/primary_account_access_token_fetcher.h"
-#include "google_apis/gaia/gaia_constants.h"
 #include "services/network/public/cpp/shared_url_loader_factory.h"
 
 namespace {
@@ -30,7 +29,7 @@ namespace {
 const char kDefaultNearbyPresenceV1HTTPHost[] =
     "https://nearbypresence-pa.googleapis.com";
 
-const char kNearbyPresenceV1Path[] = "v1/presence/";
+const char kNearbyPresenceV1Path[] = "v1/";
 
 const char kListPublicCertificatesPath[] = "publicCertificates";
 
@@ -38,7 +37,9 @@ const char kPageSize[] = "page_size";
 const char kPageToken[] = "page_token";
 const char kSecretIds[] = "secret_ids";
 
-const char kNearbyPresenceOAthConsumerName[] = "nearby_presence_server_client";
+const char kNearbyPresenceOAuth2Scope[] =
+    "https://www.googleapis.com/auth/nearbypresence-pa";
+const char kNearbyPresenceOAthConsumerName[] = "nearby_presence_client";
 
 // Creates the full Nearby Presence v1 URL for endpoint to the API with
 // |request_path|.
@@ -270,7 +271,7 @@ void NearbyPresenceServerClientImpl::MakeApiCall(
   error_callback_ = std::move(error_callback);
 
   OAuth2AccessTokenManager::ScopeSet scopes;
-  scopes.insert(GaiaConstants::kNearbyPresenceOAuth2Scope);
+  scopes.insert(kNearbyPresenceOAuth2Scope);
 
   access_token_fetcher_ = std::make_unique<
       signin::PrimaryAccountAccessTokenFetcher>(

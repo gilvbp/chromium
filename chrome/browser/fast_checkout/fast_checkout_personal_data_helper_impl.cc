@@ -18,7 +18,8 @@ FastCheckoutPersonalDataHelperImpl::GetPersonalDataManager() const {
   Profile* profile =
       Profile::FromBrowserContext(web_contents_->GetBrowserContext());
   autofill::PersonalDataManager* pdm =
-      autofill::PersonalDataManagerFactory::GetForProfile(profile);
+      autofill::PersonalDataManagerFactory::GetForProfile(
+          profile->GetOriginalProfile());
   DCHECK(pdm);
   return pdm;
 }

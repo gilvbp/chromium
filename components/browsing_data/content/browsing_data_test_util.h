@@ -9,7 +9,6 @@
 
 namespace content {
 class WebContents;
-class RenderFrameHost;
 }
 
 namespace browsing_data_test_util {
@@ -19,9 +18,6 @@ bool HasDataForType(const std::string& type,
 
 void SetDataForType(const std::string& type,
                     content::WebContents* web_contents);
-
-void SetDataForType(const std::string& type,
-                    content::RenderFrameHost* render_frame_host);
 
 }  // namespace browsing_data_test_util
 

@@ -20,7 +20,6 @@
 #include "components/google/core/common/google_util.h"
 #include "components/pref_registry/pref_registry_syncable.h"
 #include "components/prefs/pref_service.h"
-#include "components/signin/public/identity_manager/identity_manager.h"
 #include "components/supervised_user/core/browser/kids_chrome_management_client.h"
 #include "components/supervised_user/core/browser/supervised_user_service_observer.h"
 #include "components/supervised_user/core/browser/supervised_user_settings_service.h"
@@ -44,7 +43,6 @@ SupervisedUserService::~SupervisedUserService() {
 // static
 void SupervisedUserService::RegisterProfilePrefs(
     user_prefs::PrefRegistrySyncable* registry) {
-  registry->RegisterStringPref(prefs::kSupervisedUserId, std::string());
   registry->RegisterDictionaryPref(prefs::kSupervisedUserManualHosts);
   registry->RegisterDictionaryPref(prefs::kSupervisedUserManualURLs);
   registry->RegisterIntegerPref(prefs::kDefaultSupervisedUserFilteringBehavior,
@@ -72,8 +70,7 @@ void SupervisedUserService::Init() {
   supervised_user::FirstTimeInterstitialBannerState banner_state =
       static_cast<supervised_user::FirstTimeInterstitialBannerState>(
           user_prefs_->GetInteger(prefs::kFirstTimeInterstitialBannerState));
-#if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX) || \
-    BUILDFLAG(IS_IOS)
+#if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX)
   if (supervised_user::CanDisplayFirstTimeInterstitialBanner()) {
     if (banner_state ==
             supervised_user::FirstTimeInterstitialBannerState::kUnknown &&
@@ -150,6 +147,7 @@ std::string SupervisedUserService::GetSecondCustodianName() const {
 }
 
 bool SupervisedUserService::IsURLFilteringEnabled() const {
+// TODO(b/271413641): Use capabilities to verify if filtering is enabled on iOS.
 #if BUILDFLAG(IS_ANDROID) || BUILDFLAG(IS_CHROMEOS)
   return IsSubjectToParentalControls();
 #else
@@ -189,7 +187,6 @@ void SupervisedUserService::RemoveObserver(
 }
 
 SupervisedUserService::SupervisedUserService(
-    signin::IdentityManager* identity_manager,
     KidsChromeManagementClient* kids_chrome_management_client,
     PrefService& user_prefs,
     SupervisedUserSettingsService& settings_service,
@@ -200,7 +197,6 @@ SupervisedUserService::SupervisedUserService(
     : user_prefs_(user_prefs),
       settings_service_(settings_service),
       sync_service_(sync_service),
-      identity_manager_(identity_manager),
       kids_chrome_management_client_(kids_chrome_management_client),
       delegate_(nullptr),
       url_filter_(std::move(check_webstore_url_callback),
@@ -232,8 +228,7 @@ void SupervisedUserService::SetActive(bool active) {
   settings_service_->SetActive(active_);
 
   // Trigger a sync reconfig to enable/disable the right SU data types.
-  // The logic to do this lives in the
-  // SupervisedUserSettingsModelTypeController.
+  // The logic to do this lives in the SupervisedUserSyncModelTypeController.
   // TODO(crbug.com/946473): Get rid of this hack and instead call
   // DataTypePreconditionChanged from the controller.
   if (sync_service_->GetUserSettings()->IsInitialSyncFeatureSetupComplete()) {

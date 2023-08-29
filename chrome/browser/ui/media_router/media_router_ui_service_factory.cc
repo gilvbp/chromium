@@ -45,11 +45,9 @@ MediaRouterUIServiceFactory::MediaRouterUIServiceFactory()
 
 MediaRouterUIServiceFactory::~MediaRouterUIServiceFactory() = default;
 
-std::unique_ptr<KeyedService>
-MediaRouterUIServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* MediaRouterUIServiceFactory::BuildServiceInstanceFor(
     BrowserContext* context) const {
-  return std::make_unique<MediaRouterUIService>(
-      Profile::FromBrowserContext(context));
+  return new MediaRouterUIService(Profile::FromBrowserContext(context));
 }
 
 #if !BUILDFLAG(IS_ANDROID)

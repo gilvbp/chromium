@@ -63,8 +63,6 @@ found in the LICENSE file.
         <item android:id="@+id/quick_delete_menu_id"
             android:title="@string/menu_quick_delete"
             android:icon="@drawable/quick_delete_trash_bin_icon_24dp"/>
-        <item android:id="@+id/quick_delete_divider_line_id"
-            android:title="@null" />
         <item android:id="@+id/downloads_menu_id"
             android:title="@string/menu_downloads"
             android:icon="@drawable/infobar_download_complete" />
@@ -107,9 +105,6 @@ found in the LICENSE file.
         <item android:id="@+id/translate_id"
             android:title="@string/menu_translate"
             android:icon="@drawable/ic_translate" />
-        <item android:id="@+id/readaloud_menu_id"
-            android:title="@string/menu_listen_to_this_page"
-            android:icon="@drawable/ic_play_circle" />
         <item android:id="@+id/add_to_homescreen_id"
             android:title="@string/menu_add_to_homescreen"
             android:icon="@drawable/ic_add_to_home_screen" />

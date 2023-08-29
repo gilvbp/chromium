@@ -26,7 +26,6 @@
 #include "chrome/browser/prefs/session_startup_pref.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/profiles/profile_manager.h"
-#include "chrome/browser/ui/web_applications/test/isolated_web_app_builder.h"
 #include "chrome/browser/ui/web_applications/test/isolated_web_app_test_utils.h"
 #include "chrome/browser/web_applications/policy/web_app_policy_manager.h"
 #include "chrome/browser/web_applications/test/web_app_test_observers.h"
@@ -195,9 +194,7 @@ class IsolatedWebAppPolicyManagerAshBrowserTest
           policy::DeviceLocalAccount::TYPE_PUBLIC_SESSION));
   policy::UserPolicyBuilder device_local_account_policy_;
   const web_app::TestSignedWebBundle iwa_bundle_ =
-      web_app::TestSignedWebBundleBuilder::BuildDefault(
-          TestSignedWebBundleBuilder::BuildOptions().SetVersion(
-              base::Version("7.0.6")));
+      web_app::BuildDefaultTestSignedWebBundle(base::Version("7.0.6"));
 
  private:
   ash::EmbeddedPolicyTestServerMixin policy_test_server_mixin_{&mixin_host_};

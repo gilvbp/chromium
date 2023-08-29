@@ -12,6 +12,10 @@
 #import "ios/chrome/browser/ui/tabs/requirements/tab_strip_presentation.h"
 #import "ios/chrome/browser/ui/tabs/tab_strip_controller.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 @protocol TabStripContaining;
 
 @interface TabStripLegacyCoordinator ()
@@ -57,6 +61,15 @@
 
 - (void)tabStripSizeDidChange {
   [self.tabStripController tabStripSizeDidChange];
+}
+
+- (void)setPanGestureHandler:
+    (ViewRevealingVerticalPanHandler*)panGestureHandler {
+  self.tabStripController.panGestureHandler = panGestureHandler;
+}
+
+- (id<ViewRevealingAnimatee>)animatee {
+  return self.tabStripController.animatee;
 }
 
 #pragma mark - ChromeCoordinator

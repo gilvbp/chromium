@@ -27,6 +27,10 @@ class MockPasswordReuseManager : public PasswordReuseManager {
               (const std::string& username, bool is_under_advanced_protection),
               (override));
   MOCK_METHOD(void,
+              PreparePasswordHashData,
+              (const std::string& sync_username, bool is_signed_in),
+              (override));
+  MOCK_METHOD(void,
               CheckReuse,
               (const std::u16string& input,
                const std::string& domain,
@@ -37,7 +41,7 @@ class MockPasswordReuseManager : public PasswordReuseManager {
               (const std::string& username,
                const std::u16string& password,
                bool is_primary_account,
-               metrics_util::GaiaPasswordHashChange event),
+               GaiaPasswordHashChange event),
               (override));
   MOCK_METHOD(void,
               SaveEnterprisePasswordHash,
@@ -46,7 +50,7 @@ class MockPasswordReuseManager : public PasswordReuseManager {
   MOCK_METHOD(void,
               SaveSyncPasswordHash,
               (const PasswordHashData& sync_password_data,
-               metrics_util::GaiaPasswordHashChange event),
+               GaiaPasswordHashChange event),
               (override));
   MOCK_METHOD(void,
               ClearGaiaPasswordHash,
@@ -64,6 +68,12 @@ class MockPasswordReuseManager : public PasswordReuseManager {
   MOCK_METHOD(void,
               SetPasswordStoreSigninNotifier,
               (std::unique_ptr<PasswordStoreSigninNotifier> notifier),
+              (override));
+  MOCK_METHOD(void,
+              SchedulePasswordHashUpdate,
+              (bool should_log_metrics,
+               bool does_primary_account_exists,
+               bool is_signed_in),
               (override));
   MOCK_METHOD(void, ScheduleEnterprisePasswordURLUpdate, (), (override));
 };

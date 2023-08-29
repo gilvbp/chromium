@@ -16,7 +16,6 @@
 #include "third_party/blink/renderer/bindings/core/v8/script_value.h"
 #include "third_party/blink/renderer/bindings/core/v8/v8_union_arraybuffer_arraybufferview_blob_usvstring.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_union_arraybuffer_arraybufferview_blob_usvstring_writeparams.h"
-#include "third_party/blink/renderer/bindings/modules/v8/v8_write_command_type.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_write_params.h"
 #include "third_party/blink/renderer/core/fileapi/blob.h"
 #include "third_party/blink/renderer/modules/file_system_access/file_system_access_error.h"
@@ -96,7 +95,7 @@ ScriptPromise FileSystemUnderlyingSink::HandleParams(
     ScriptState* script_state,
     const WriteParams& params,
     ExceptionState& exception_state) {
-  if (params.type() == V8WriteCommandType::Enum::kTruncate) {
+  if (params.type() == "truncate") {
     if (!params.hasSizeNonNull()) {
       ThrowDOMExceptionAndInvalidateSink(
           exception_state, DOMExceptionCode::kSyntaxError,
@@ -106,7 +105,7 @@ ScriptPromise FileSystemUnderlyingSink::HandleParams(
     return Truncate(script_state, params.sizeNonNull(), exception_state);
   }
 
-  if (params.type() == V8WriteCommandType::Enum::kSeek) {
+  if (params.type() == "seek") {
     if (!params.hasPositionNonNull()) {
       ThrowDOMExceptionAndInvalidateSink(
           exception_state, DOMExceptionCode::kSyntaxError,
@@ -116,7 +115,7 @@ ScriptPromise FileSystemUnderlyingSink::HandleParams(
     return Seek(script_state, params.positionNonNull(), exception_state);
   }
 
-  if (params.type() == V8WriteCommandType::Enum::kWrite) {
+  if (params.type() == "write") {
     uint64_t position =
         params.hasPositionNonNull() ? params.positionNonNull() : offset_;
     if (!params.hasData()) {

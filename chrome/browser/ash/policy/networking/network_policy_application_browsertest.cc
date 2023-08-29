@@ -758,17 +758,13 @@ class NetworkPolicyApplicationTest : public ash::LoginManagerTest {
   }
 
   // Unowned pointers -- just pointers to the singleton instances.
-  raw_ptr<ash::ShillManagerClient::TestInterface,
-          DanglingUntriaged | ExperimentalAsh>
+  raw_ptr<ash::ShillManagerClient::TestInterface, ExperimentalAsh>
       shill_manager_client_test_ = nullptr;
-  raw_ptr<ash::ShillServiceClient::TestInterface,
-          DanglingUntriaged | ExperimentalAsh>
+  raw_ptr<ash::ShillServiceClient::TestInterface, ExperimentalAsh>
       shill_service_client_test_ = nullptr;
-  raw_ptr<ash::ShillProfileClient::TestInterface,
-          DanglingUntriaged | ExperimentalAsh>
+  raw_ptr<ash::ShillProfileClient::TestInterface, ExperimentalAsh>
       shill_profile_client_test_ = nullptr;
-  raw_ptr<ash::ShillDeviceClient::TestInterface,
-          DanglingUntriaged | ExperimentalAsh>
+  raw_ptr<ash::ShillDeviceClient::TestInterface, ExperimentalAsh>
       shill_device_client_test_ = nullptr;
 
   AccountId test_account_id_;

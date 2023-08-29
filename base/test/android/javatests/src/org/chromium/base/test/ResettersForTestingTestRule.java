@@ -11,8 +11,9 @@ import org.junit.runners.model.Statement;
 import org.chromium.base.ResettersForTesting;
 
 /**
- * Include this rule when using ParameterizedRobolectricTest.
- * Resetters registered during @BeforeClass will be reset after each method.
+ * Ensures that all resetters are cleaned up after a test. The resetters are registered through
+ * {@link ResettersForTesting#register(Runnable)} and are typically used whenever we have code that
+ * has <code>public static void setFooForTesting(...)</code> constructs.
  */
 class ResettersForTestingTestRule implements TestRule {
     @Override
@@ -23,9 +24,7 @@ class ResettersForTestingTestRule implements TestRule {
                 try {
                     base.evaluate();
                 } finally {
-                    // We cannot guarantee that this Rule will be evaluated first, so never
-                    // call setMethodMode(), and reset class resetters after each method.
-                    ResettersForTesting.onAfterClass();
+                    ResettersForTesting.executeResetters();
                 }
             }
         };

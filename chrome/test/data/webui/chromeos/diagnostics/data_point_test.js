@@ -18,7 +18,7 @@ suite('dataPointTestSuite', function() {
   let dataPointElement = null;
 
   setup(() => {
-    document.body.innerHTML = window.trustedTypes.emptyHTML;
+    document.body.innerHTML = '';
   });
 
   teardown(() => {

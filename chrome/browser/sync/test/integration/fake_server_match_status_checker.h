@@ -32,7 +32,7 @@ class FakeServerMatchStatusChecker : public StatusChangeChecker,
   FakeServer* fake_server() const;
 
  private:
-  const raw_ptr<FakeServer> fake_server_;
+  raw_ptr<FakeServer> fake_server_;
 };
 
 }  // namespace fake_server

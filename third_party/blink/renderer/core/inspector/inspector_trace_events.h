@@ -34,6 +34,8 @@ class QuadF;
 
 namespace v8 {
 class Function;
+template <typename T>
+class Local;
 }  // namespace v8
 
 namespace WTF {
@@ -115,7 +117,8 @@ class CORE_EXPORT InspectorTraceEvents
                         DocumentLoader*,
                         base::TimeTicks monotonic_finish_time,
                         int64_t encoded_data_length,
-                        int64_t decoded_body_length);
+                        int64_t decoded_body_length,
+                        bool should_report_corb_blocking);
   void DidFailLoading(
       CoreProbeSink* sink,
       uint64_t identifier,
@@ -499,10 +502,9 @@ void Data(perfetto::TracedValue context,
 namespace inspector_compile_script_event {
 
 struct V8ConsumeCacheResult {
-  V8ConsumeCacheResult(int cache_size, bool rejected, bool full);
+  V8ConsumeCacheResult(int cache_size, bool rejected);
   int cache_size;
   bool rejected;
-  bool full;
 };
 
 void Data(perfetto::TracedValue context,

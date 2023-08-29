@@ -5,7 +5,6 @@
 #include "content/renderer/java/gin_java_bridge_dispatcher.h"
 
 #include "base/auto_reset.h"
-#include "base/containers/contains.h"
 #include "base/strings/string_number_conversions.h"
 #include "base/strings/utf_string_conversions.h"
 #include "content/common/gin_java_bridge_messages.h"
@@ -73,8 +72,9 @@ void GinJavaBridgeDispatcher::OnAddNamedObject(
 void GinJavaBridgeDispatcher::OnRemoveNamedObject(const std::string& name) {
   // Removal becomes in effect on next reload. We simply removing the entry
   // from the map here.
-  DCHECK(base::Contains(named_objects_, name));
-  named_objects_.erase(name);
+  NamedObjectMap::iterator iter = named_objects_.find(name);
+  DCHECK(iter != named_objects_.end());
+  named_objects_.erase(iter);
 }
 
 void GinJavaBridgeDispatcher::GetJavaMethods(

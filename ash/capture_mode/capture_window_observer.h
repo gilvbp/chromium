@@ -6,9 +6,10 @@
 #define ASH_CAPTURE_MODE_CAPTURE_WINDOW_OBSERVER_H_
 
 #include "ash/ash_export.h"
-#include "ash/wm/desks/desks_controller.h"
+#include "ash/capture_mode/capture_mode_types.h"
 #include "base/memory/raw_ptr.h"
 #include "ui/aura/window_observer.h"
+#include "ui/base/cursor/cursor.h"
 #include "ui/gfx/geometry/point.h"
 #include "ui/gfx/native_widget_types.h"
 #include "ui/wm/public/activation_change_observer.h"
@@ -23,8 +24,7 @@ class CaptureModeSession;
 
 // Class to observe the current selected to-be-captured window.
 class ASH_EXPORT CaptureWindowObserver : public aura::WindowObserver,
-                                         public ::wm::ActivationChangeObserver,
-                                         public DesksController::Observer {
+                                         public ::wm::ActivationChangeObserver {
  public:
   explicit CaptureWindowObserver(CaptureModeSession* capture_mode_session);
   CaptureWindowObserver(const CaptureWindowObserver&) = delete;
@@ -62,10 +62,6 @@ class ASH_EXPORT CaptureWindowObserver : public aura::WindowObserver,
   void OnWindowActivated(ActivationReason reason,
                          aura::Window* gained_active,
                          aura::Window* lost_active) override;
-
-  // DesksController::Observer:
-  void OnDeskActivationChanged(const Desk* activated,
-                               const Desk* deactivated) override;
 
  private:
   void StartObserving(aura::Window* window);

@@ -2,41 +2,26 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import {CrScrollableBehavior, CrScrollableBehaviorInterface} from 'chrome://resources/ash/common/cr_scrollable_behavior.js';
-import {html, mixinBehaviors, PolymerElement} from 'chrome://resources/polymer/v3_0/polymer/polymer_bundled.min.js';
+import {CrScrollableBehavior} from 'chrome://resources/ash/common/cr_scrollable_behavior.js';
+import {html, Polymer} from 'chrome://resources/polymer/v3_0/polymer/polymer_bundled.min.js';
 
-/**
- * @constructor
- * @extends {PolymerElement}
- * @implements {CrScrollableBehaviorInterface}
- */
-const EduCoexistenceTemplateBase =
-    mixinBehaviors([CrScrollableBehavior], PolymerElement);
+Polymer({
+  is: 'edu-coexistence-template',
 
-/**
- * @polymer
- */
-class EduCoexistenceTemplate extends EduCoexistenceTemplateBase {
-  static get is() {
-    return 'edu-coexistence-template';
-  }
+  _template: html`{__html_template__}`,
 
-  static get template() {
-    return html`{__html_template__}`;
-  }
+  behaviors: [CrScrollableBehavior],
 
-  static get properties() {
-    return {
-      /**
-       * Indicates whether the footer/button div should be shown.
-       * @private
-       */
-      showButtonFooter_: {
-        type: Boolean,
-        value: false,
-      },
-    };
-  }
+  properties: {
+    /**
+     * Indicates whether the footer/button div should be shown.
+     * @private {boolean}
+     */
+    showButtonFooter_: {
+      type: Boolean,
+      value: false,
+    },
+  },
 
   /**
    * Shows/hides the button footer.
@@ -44,7 +29,6 @@ class EduCoexistenceTemplate extends EduCoexistenceTemplateBase {
    */
   showButtonFooter(show) {
     this.showButtonFooter_ = show;
-  }
-}
+  },
 
-customElements.define(EduCoexistenceTemplate.is, EduCoexistenceTemplate);
+});

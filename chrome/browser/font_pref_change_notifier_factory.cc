@@ -32,9 +32,8 @@ FontPrefChangeNotifierFactory* FontPrefChangeNotifierFactory::GetInstance() {
   return instance.get();
 }
 
-std::unique_ptr<KeyedService>
-FontPrefChangeNotifierFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* FontPrefChangeNotifierFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
-  return std::make_unique<FontPrefChangeNotifier>(
+  return new FontPrefChangeNotifier(
       Profile::FromBrowserContext(context)->GetPrefs());
 }

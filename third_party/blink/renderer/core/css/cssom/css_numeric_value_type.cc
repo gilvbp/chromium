@@ -67,8 +67,6 @@ CSSNumericValueType::BaseType UnitTypeToBaseType(
     case UnitType::kIcs:
     case UnitType::kLhs:
     case UnitType::kRlhs:
-    case UnitType::kCaps:
-    case UnitType::kRcaps:
       return BaseType::kLength;
     case UnitType::kMilliseconds:
     case UnitType::kSeconds:

@@ -52,9 +52,8 @@ bool IsProhibitedByPolicy(Profile* profile) {
 }
 
 bool IsLoggedInAsPrimaryUser(Profile* profile) {
-  // Guest/incognito/signin profiles cannot use Phone Hub.
-  if (ash::ProfileHelper::IsSigninProfile(profile) ||
-      profile->IsOffTheRecord()) {
+  // Guest/incognito profiles cannot use Phone Hub.
+  if (profile->IsOffTheRecord()) {
     return false;
   }
 

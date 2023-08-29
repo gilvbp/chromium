@@ -148,7 +148,7 @@ void VirtualKeyboard::hide() {
 
 void VirtualKeyboard::Trace(Visitor* visitor) const {
   visitor->Trace(bounding_rect_);
-  EventTarget::Trace(visitor);
+  EventTargetWithInlineData::Trace(visitor);
   Supplement<Navigator>::Trace(visitor);
 }
 

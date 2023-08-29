@@ -8,6 +8,7 @@ import android.os.SystemClock;
 import android.text.TextUtils;
 
 import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 
 import com.google.errorprone.annotations.DoNotMock;
 
@@ -368,6 +369,7 @@ public class GURL {
     }
 
     /** Inits this GURL with the internal state of another GURL. */
+    @VisibleForTesting
     /* package */ void initForTesting(GURL gurl) {
         init(gurl.mSpec, gurl.mIsValid, gurl.mParsed);
     }

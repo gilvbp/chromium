@@ -26,19 +26,17 @@ class FakeRasterBufferProviderImpl : public RasterBufferProvider {
       bool depends_on_at_raster_decodes,
       bool depends_on_hardware_accelerated_jpeg_candidates,
       bool depends_on_hardware_accelerated_webp_candidates) override;
+  void Flush() override;
   viz::SharedImageFormat GetFormat() const override;
   bool IsResourcePremultiplied() const override;
   bool CanPartialRasterIntoProvidedResource() const override;
   bool IsResourceReadyToDraw(
-      const ResourcePool::InUsePoolResource& resource) override;
+      const ResourcePool::InUsePoolResource& resource) const override;
   uint64_t SetReadyToDrawCallback(
       const std::vector<const ResourcePool::InUsePoolResource*>& resources,
       base::OnceClosure callback,
-      uint64_t pending_callback_id) override;
+      uint64_t pending_callback_id) const override;
   void Shutdown() override;
-
- protected:
-  void Flush() override;
 };
 
 }  // namespace cc

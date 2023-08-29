@@ -62,6 +62,7 @@ class MockFileSystemAccessManager
       GetSandboxedFileSystemCallback callback) override {}
 
   void ChooseEntries(mojom::blink::FilePickerOptionsPtr options,
+                     mojom::blink::CommonFilePickerOptionsPtr common_options,
                      ChooseEntriesCallback callback) override {
     if (choose_entries_response_callback_) {
       std::move(choose_entries_response_callback_).Run(std::move(callback));
@@ -89,10 +90,6 @@ class MockFileSystemAccessManager
       mojo::PendingRemote<
           blink::mojom::blink::FileSystemAccessDataTransferToken> token,
       GetEntryFromDataTransferTokenCallback callback) override {}
-
-  void BindObserverHost(
-      mojo::PendingReceiver<blink::mojom::blink::FileSystemAccessObserverHost>
-          observer_host) override {}
 
  private:
   void BindFileSystemAccessManager(mojo::ScopedMessagePipeHandle handle) {

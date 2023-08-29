@@ -20,10 +20,13 @@
         "name": "foo_tests",
         "should_retry_with_patch": false,
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Linux"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Linux"
+            }
+          ],
           "idempotent": false
         },
         "test_id_prefix": "ninja://chrome/test:telemetry_gpu_integration_test_fuchsia/"

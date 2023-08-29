@@ -82,8 +82,7 @@ class ProducerHost : public tracing::mojom::ProducerHost,
   void OnTracingSetup() override;
   void Flush(perfetto::FlushRequestID,
              const perfetto::DataSourceInstanceID* raw_data_source_ids,
-             size_t num_data_sources,
-             perfetto::FlushFlags) override;
+             size_t num_data_sources) override;
   void ClearIncrementalState(
       const perfetto::DataSourceInstanceID* data_source_ids,
       size_t num_data_sources) override;

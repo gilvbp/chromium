@@ -10,11 +10,8 @@
 #include "ash/ash_export.h"
 #include "ash/bluetooth_devices_observer.h"
 #include "ash/public/cpp/input_device_settings_controller.h"
-#include "ash/public/cpp/session/session_controller.h"
-#include "ash/public/cpp/session/session_observer.h"
 #include "ash/public/mojom/input_device_settings.mojom-forward.h"
 #include "base/containers/flat_map.h"
-#include "base/containers/flat_set.h"
 #include "base/export_template.h"
 #include "base/functional/callback.h"
 #include "base/memory/raw_ptr.h"
@@ -30,8 +27,7 @@ class BluetoothDevicesObserver;
 // Calls the given callback every time a device is connected or removed with
 // lists of which were added or removed.
 template <typename MojomDevicePtr, typename InputDeviceType>
-class ASH_EXPORT InputDeviceNotifier : public ui::InputDeviceEventObserver,
-                                       public SessionObserver {
+class ASH_EXPORT InputDeviceNotifier : public ui::InputDeviceEventObserver {
  public:
   using DeviceId = InputDeviceSettingsController::DeviceId;
   using InputDeviceListsUpdatedCallback =
@@ -51,9 +47,6 @@ class ASH_EXPORT InputDeviceNotifier : public ui::InputDeviceEventObserver,
   void OnInputDeviceConfigurationChanged(uint8_t input_device_type) override;
   void OnDeviceListsComplete() override;
 
-  // SessionObserver
-  void OnLoginStatusChanged(LoginStatus login_status) override;
-
   // Used as callback for `bluetooth_devices_observer_` whenever a bluetooth
   // device state changes.
   void OnBluetoothAdapterOrDeviceChanged(device::BluetoothDevice* device);
@@ -62,8 +55,6 @@ class ASH_EXPORT InputDeviceNotifier : public ui::InputDeviceEventObserver,
   void RefreshDevices();
 
   std::vector<InputDeviceType> GetUpdatedDeviceList();
-  void HandleImposterPref(
-      const std::vector<InputDeviceType>& updated_device_list);
 
   // `connected_devices_` is owned by `InputDeviceSettingsControllerImpl` which
   // instantiates the `InputDeviceNotifier` as a member. `connected_devices_`
@@ -72,11 +63,6 @@ class ASH_EXPORT InputDeviceNotifier : public ui::InputDeviceEventObserver,
   InputDeviceListsUpdatedCallback device_lists_updated_callback_;
 
   std::unique_ptr<BluetoothDevicesObserver> bluetooth_devices_observer_;
-
-  // The set of devices that were imposters last time devices were refreshed.
-  base::flat_set<DeviceId> imposter_devices_;
-  // The set of device keys to add to the prefs.
-  base::flat_set<std::string> imposter_false_positives_to_add_;
 };
 
 // Below explicit template instantiations needed for all supported types.
@@ -84,10 +70,6 @@ template <>
 ASH_EXPORT std::vector<ui::KeyboardDevice>
 InputDeviceNotifier<mojom::KeyboardPtr,
                     ui::KeyboardDevice>::GetUpdatedDeviceList();
-template <>
-ASH_EXPORT void
-InputDeviceNotifier<mojom::KeyboardPtr, ui::KeyboardDevice>::HandleImposterPref(
-    const std::vector<ui::KeyboardDevice>& updated_device_list);
 template <>
 ASH_EXPORT std::vector<ui::TouchpadDevice>
 InputDeviceNotifier<mojom::TouchpadPtr,
@@ -99,10 +81,6 @@ template <>
 ASH_EXPORT std::vector<ui::InputDevice>
 InputDeviceNotifier<mojom::PointingStickPtr,
                     ui::InputDevice>::GetUpdatedDeviceList();
-template <>
-ASH_EXPORT std::vector<ui::InputDevice>
-InputDeviceNotifier<mojom::GraphicsTabletPtr,
-                    ui::InputDevice>::GetUpdatedDeviceList();
 
 extern template class EXPORT_TEMPLATE_DECLARE(ASH_EXPORT)
     InputDeviceNotifier<mojom::KeyboardPtr, ui::KeyboardDevice>;
@@ -112,8 +90,6 @@ extern template class EXPORT_TEMPLATE_DECLARE(ASH_EXPORT)
     InputDeviceNotifier<mojom::MousePtr, ui::InputDevice>;
 extern template class EXPORT_TEMPLATE_DECLARE(ASH_EXPORT)
     InputDeviceNotifier<mojom::PointingStickPtr, ui::InputDevice>;
-extern template class EXPORT_TEMPLATE_DECLARE(ASH_EXPORT)
-    InputDeviceNotifier<mojom::GraphicsTabletPtr, ui::InputDevice>;
 
 }  // namespace ash
 

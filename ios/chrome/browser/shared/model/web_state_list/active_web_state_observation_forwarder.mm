@@ -6,6 +6,10 @@
 
 #import "base/check.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 ActiveWebStateObservationForwarder::ActiveWebStateObservationForwarder(
     WebStateList* web_state_list,
     web::WebStateObserver* observer)
@@ -22,18 +26,14 @@ ActiveWebStateObservationForwarder::ActiveWebStateObservationForwarder(
 
 ActiveWebStateObservationForwarder::~ActiveWebStateObservationForwarder() {}
 
-#pragma mark - WebStateListObserver
-
-void ActiveWebStateObservationForwarder::WebStateListDidChange(
+void ActiveWebStateObservationForwarder::WebStateActivatedAt(
     WebStateList* web_state_list,
-    const WebStateListChange& change,
-    const WebStateListStatus& status) {
-  if (!status.active_web_state_change()) {
-    return;
-  }
-
+    web::WebState* old_web_state,
+    web::WebState* new_web_state,
+    int active_index,
+    ActiveWebStateChangeReason reason) {
   web_state_observation_.Reset();
-  if (status.new_active_web_state) {
-    web_state_observation_.Observe(status.new_active_web_state);
+  if (new_web_state) {
+    web_state_observation_.Observe(new_web_state);
   }
 }

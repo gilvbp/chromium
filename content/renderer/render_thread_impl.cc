@@ -15,7 +15,6 @@
 #include "base/allocator/partition_alloc_support.h"
 #include "base/at_exit.h"
 #include "base/command_line.h"
-#include "base/containers/contains.h"
 #include "base/debug/crash_logging.h"
 #include "base/feature_list.h"
 #include "base/functional/bind.h"
@@ -401,9 +400,8 @@ std::string RenderThreadImpl::HistogramCustomizer::ConvertToCustomHistogramName(
     const char* histogram_name) const {
   std::string name(histogram_name);
   if (!common_host_histogram_suffix_.empty() &&
-      base::Contains(custom_histograms_, name)) {
+      custom_histograms_.find(name) != custom_histograms_.end())
     name += common_host_histogram_suffix_;
-  }
   return name;
 }
 
@@ -903,6 +901,11 @@ void RenderThreadImpl::InitializeWebKit(mojo::BinderMap* binders) {
   if (!GetContentClient()->renderer()->RunIdleHandlerWhenWidgetsHidden()) {
     // If we do not track widget visibility, then assume conservatively that
     // the isolate is in background. This reduces memory usage.
+    isolate->IsolateInBackgroundNotification();
+  }
+
+  if (base::FeatureList::IsEnabled(
+          features::kLowerV8MemoryLimitForNonMainRenderers)) {
     isolate->IsolateInBackgroundNotification();
   }
 
@@ -1726,8 +1729,7 @@ bool RenderThreadImpl::RendererIsHidden() const {
 }
 
 void RenderThreadImpl::OnRendererHidden() {
-  blink::IsolateInBackgroundNotification();
-
+  blink::MainThreadIsolate()->IsolateInBackgroundNotification();
   // TODO(rmcilroy): Remove IdleHandler and replace it with an IdleTask
   // scheduled by the RendererScheduler - http://crbug.com/469210.
   if (!GetContentClient()->renderer()->RunIdleHandlerWhenWidgetsHidden())
@@ -1736,8 +1738,11 @@ void RenderThreadImpl::OnRendererHidden() {
 }
 
 void RenderThreadImpl::OnRendererVisible() {
-  blink::IsolateInForegroundNotification();
-
+  if (!base::FeatureList::IsEnabled(
+          features::kLowerV8MemoryLimitForNonMainRenderers) ||
+      MainFrameCounter::has_main_frame()) {
+    blink::MainThreadIsolate()->IsolateInForegroundNotification();
+  }
   if (!GetContentClient()->renderer()->RunIdleHandlerWhenWidgetsHidden())
     return;
   main_thread_scheduler_->SetRendererHidden(false);

@@ -14,4 +14,6 @@ source_set("security") {
     "security_style.h",
     "ssl_status.h",
   ]
+
+  configs += [ "//build/config/compiler:enable_arc" ]
 }

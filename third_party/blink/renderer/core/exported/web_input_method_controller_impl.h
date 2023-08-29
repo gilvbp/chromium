@@ -57,6 +57,7 @@ class CORE_EXPORT WebInputMethodControllerImpl
 
   void GetLayoutBounds(gfx::Rect* control_bounds,
                        gfx::Rect* selection_bounds) override;
+  bool IsVirtualKeyboardPolicyManual() const override;
   bool IsEditContextActive() const override;
   ui::mojom::VirtualKeyboardVisibilityRequest
   GetLastVirtualKeyboardVisibilityRequest() const override;

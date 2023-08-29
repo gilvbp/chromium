@@ -6,10 +6,10 @@
 #define CHROME_BROWSER_ASH_ACCESSIBILITY_SERVICE_AUTOMATION_CLIENT_IMPL_H_
 
 #include "extensions/browser/api/automation_internal/automation_event_router_interface.h"
-#include "mojo/public/cpp/bindings/pending_associated_remote.h"
 #include "mojo/public/cpp/bindings/receiver_set.h"
 #include "mojo/public/cpp/bindings/remote_set.h"
-#include "services/accessibility/public/mojom/automation.mojom.h"
+#include "services/accessibility/public/mojom/accessibility_service.mojom.h"
+#include "ui/accessibility/mojom/ax_tree_id.mojom.h"
 
 namespace ash {
 
@@ -24,7 +24,7 @@ class AutomationClientImpl : public ax::mojom::AutomationClient,
   ~AutomationClientImpl() override;
 
   void Bind(
-      mojo::PendingAssociatedRemote<ax::mojom::Automation> automation,
+      mojo::PendingRemote<ax::mojom::Automation> automation,
       mojo::PendingReceiver<ax::mojom::AutomationClient> automation_client);
 
  private:
@@ -47,7 +47,7 @@ class AutomationClientImpl : public ax::mojom::AutomationClient,
                                    const gfx::Point& mouse_location,
                                    std::vector<ui::AXEvent> events) override;
   void DispatchAccessibilityLocationChange(
-      const content::AXLocationChangeNotificationDetails& details) override;
+      const ExtensionMsg_AccessibilityLocationChangeParams& params) override;
   void DispatchTreeDestroyedEvent(ui::AXTreeID tree_id) override;
   void DispatchActionResult(const ui::AXActionData& data,
                             bool result,
@@ -56,7 +56,8 @@ class AutomationClientImpl : public ax::mojom::AutomationClient,
       const ui::AXActionData& data,
       const absl::optional<gfx::Rect>& rect) override;
 
-  mojo::AssociatedRemoteSet<ax::mojom::Automation> automation_remotes_;
+  // Here are all the remote to Automation in the service.
+  mojo::RemoteSet<ax::mojom::Automation> automation_remotes_;
 
   // This class is the AutomationClient, receiving AutomationClient calls
   // from the AccessibilityService.

@@ -21,6 +21,10 @@
 #import "net/test/embedded_test_server/http_response.h"
 #import "url/gurl.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace {
 
 constexpr char kInputPage[] = "Input";
@@ -96,9 +100,17 @@ std::unique_ptr<net::test_server::HttpResponse> HandleRequest(
   [[EarlGrey selectElementWithMatcher:chrome_test_util::WebViewMatcher()]
       performAction:chrome_test_util::TapWebElementWithId(kInputElement)];
 
-  [ChromeEarlGrey simulatePhysicalKeyboardEvent:@"P" flags:UIKeyModifierShift];
-  for (NSString* character in @[ @"a", @"s", @"s", @"w", @"o", @"r", @"d" ]) {
-    [ChromeEarlGrey simulatePhysicalKeyboardEvent:character flags:0];
+  for (NSString* character in
+       @[ @"P", @"a", @"s", @"s", @"w", @"o", @"r", @"d" ]) {
+    id<GREYMatcher> keyMatcher = grey_allOf(
+        grey_accessibilityLabel(character),
+        grey_accessibilityTrait(UIAccessibilityTraitKeyboardKey), nil);
+
+    [ChromeEarlGrey
+        waitForUIElementToAppearWithMatcher:keyMatcher
+                                    timeout:base::test::ios::
+                                                kWaitForUIElementTimeout];
+    [[EarlGrey selectElementWithMatcher:keyMatcher] performAction:grey_tap()];
   }
 }
 

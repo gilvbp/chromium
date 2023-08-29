@@ -7,7 +7,6 @@
 #include "base/check_op.h"
 #include "base/metrics/histogram_functions.h"
 #include "base/notreached.h"
-#include "base/types/cxx23_to_underlying.h"
 #include "media/base/container_names.h"
 #include "media/ffmpeg/ffmpeg_common.h"
 
@@ -60,12 +59,9 @@ static int64_t AVIOSeekOperation(void* opaque, int64_t offset, int whence) {
 
 static void LogContainer(bool is_local_file,
                          container_names::MediaContainerName container) {
-  base::UmaHistogramSparse("Media.DetectedContainer",
-                           base::to_underlying(container));
-  if (is_local_file) {
-    base::UmaHistogramSparse("Media.DetectedContainer.Local",
-                             base::to_underlying(container));
-  }
+  base::UmaHistogramSparse("Media.DetectedContainer", container);
+  if (is_local_file)
+    base::UmaHistogramSparse("Media.DetectedContainer.Local", container);
 }
 
 FFmpegGlue::FFmpegGlue(FFmpegURLProtocol* protocol) {
@@ -130,7 +126,7 @@ bool FFmpegGlue::OpenContext(bool is_local_file) {
     LogContainer(is_local_file, container_);
 
     detected_hls_ =
-        container_ == container_names::MediaContainerName::kContainerHLS;
+        container_ == container_names::MediaContainerName::CONTAINER_HLS;
     return false;
   } else if (ret < 0) {
     return false;
@@ -138,26 +134,25 @@ bool FFmpegGlue::OpenContext(bool is_local_file) {
 
   // Rely on ffmpeg's parsing if we're able to succesfully open the file.
   if (strcmp(format_context_->iformat->name, "mov,mp4,m4a,3gp,3g2,mj2") == 0)
-    container_ = container_names::MediaContainerName::kContainerMOV;
+    container_ = container_names::CONTAINER_MOV;
   else if (strcmp(format_context_->iformat->name, "flac") == 0)
-    container_ = container_names::MediaContainerName::kContainerFLAC;
+    container_ = container_names::CONTAINER_FLAC;
   else if (strcmp(format_context_->iformat->name, "matroska,webm") == 0)
-    container_ = container_names::MediaContainerName::kContainerWEBM;
+    container_ = container_names::CONTAINER_WEBM;
   else if (strcmp(format_context_->iformat->name, "ogg") == 0)
-    container_ = container_names::MediaContainerName::kContainerOgg;
+    container_ = container_names::CONTAINER_OGG;
   else if (strcmp(format_context_->iformat->name, "wav") == 0)
-    container_ = container_names::MediaContainerName::kContainerWAV;
+    container_ = container_names::CONTAINER_WAV;
   else if (strcmp(format_context_->iformat->name, "aac") == 0)
-    container_ = container_names::MediaContainerName::kContainerAAC;
+    container_ = container_names::CONTAINER_AAC;
   else if (strcmp(format_context_->iformat->name, "mp3") == 0)
-    container_ = container_names::MediaContainerName::kContainerMP3;
+    container_ = container_names::CONTAINER_MP3;
   else if (strcmp(format_context_->iformat->name, "amr") == 0)
-    container_ = container_names::MediaContainerName::kContainerAMR;
+    container_ = container_names::CONTAINER_AMR;
   else if (strcmp(format_context_->iformat->name, "avi") == 0)
-    container_ = container_names::MediaContainerName::kContainerAVI;
+    container_ = container_names::CONTAINER_AVI;
 
-  // For a successfully opened file, we will get a container we've compiled in.
-  CHECK_NE(container_, container_names::MediaContainerName::kContainerUnknown);
+  DCHECK_NE(container_, container_names::CONTAINER_UNKNOWN);
   LogContainer(is_local_file, container_);
 
   return true;

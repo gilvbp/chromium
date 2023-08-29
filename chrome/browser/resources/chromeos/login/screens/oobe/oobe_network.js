@@ -99,17 +99,6 @@ class NetworkScreen extends NetworkScreenBase {
         type: Boolean,
         value: true,
       },
-
-      /**
-       * Whether Quick start feature is enabled. If it's enabled the quick start
-       * button will be shown in the network screen.
-       * @type {boolean}
-       * @private
-       */
-      isQuickStartEnabled_: {
-        type: Boolean,
-        value: false,
-      },
     };
   }
 
@@ -118,7 +107,7 @@ class NetworkScreen extends NetworkScreenBase {
   }
 
   get EXTERNAL_API() {
-    return ['setError', 'setQuickStartEnabled'];
+    return ['setError'];
   }
 
   /** Called when dialog is shown. */
@@ -166,10 +155,6 @@ class NetworkScreen extends NetworkScreenBase {
    */
   setError(message) {
     this.errorMessage_ = message;
-  }
-
-  setQuickStartEnabled() {
-    this.isQuickStartEnabled_ = true;
   }
 
   /**
@@ -220,14 +205,6 @@ class NetworkScreen extends NetworkScreenBase {
    */
   onNextClicked_() {
     chrome.send('login.NetworkScreen.userActed', ['continue']);
-  }
-
-  /**
-   * Quick start button click handler.
-   * @private
-   */
-  onQuickStartClicked_() {
-    chrome.send('login.NetworkScreen.userActed', ['activateQuickStart']);
   }
 
   /**

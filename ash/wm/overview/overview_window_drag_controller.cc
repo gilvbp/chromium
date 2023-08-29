@@ -97,13 +97,13 @@ void UnpauseOcclusionTracker() {
       kOcclusionPauseDurationForDrag);
 }
 
-bool GetVirtualDesksBarEnabled(OverviewItemBase* item) {
+bool GetVirtualDesksBarEnabled(OverviewItem* item) {
   return desks_util::ShouldDesksBarBeCreated() &&
          item->overview_grid()->desks_bar_view();
 }
 
 // Returns whether |item|'s window is visible on all desks.
-bool DraggedItemIsVisibleOnAllDesks(OverviewItemBase* item) {
+bool DraggedItemIsVisibleOnAllDesks(OverviewItem* item) {
   aura::Window* const dragged_window = item->GetWindow();
   return dragged_window &&
          desks_util::IsWindowVisibleOnAllWorkspaces(dragged_window);
@@ -217,7 +217,7 @@ class OverviewItemMoveHelper : public aura::WindowObserver {
       session->AddItemInMruOrder(window, /*reposition=*/false,
                                  /*animate=*/false, /*restack=*/false,
                                  /*use_spawn_animation=*/false);
-      OverviewItemBase* item = session->GetOverviewItemForWindow(window);
+      OverviewItem* item = session->GetOverviewItemForWindow(window);
       DCHECK(item);
       item->SetBounds(target_item_bounds_, OVERVIEW_ANIMATION_NONE);
       item->set_should_restack_on_animation_end(true);
@@ -235,7 +235,7 @@ class OverviewItemMoveHelper : public aura::WindowObserver {
 
 OverviewWindowDragController::OverviewWindowDragController(
     OverviewSession* overview_session,
-    OverviewItemBase* item,
+    OverviewItem* item,
     bool is_touch_dragging)
     : overview_session_(overview_session),
       item_(item),
@@ -248,13 +248,7 @@ OverviewWindowDragController::OverviewWindowDragController(
               ->IsDividerAnimating());
 }
 
-OverviewWindowDragController::~OverviewWindowDragController() {
-  // This object is deleted using `DeleteSoon()`, so the shell may be destroyed
-  // already during shutdown.
-  if (Shell::HasInstance()) {
-    Shell::Get()->mouse_cursor_filter()->HideSharedEdgeIndicator();
-  }
-}
+OverviewWindowDragController::~OverviewWindowDragController() = default;
 
 void OverviewWindowDragController::InitiateDrag(
     const gfx::PointF& location_in_screen) {
@@ -430,7 +424,7 @@ OverviewWindowDragController::DragResult OverviewWindowDragController::Fling(
   if (current_drag_behavior_ == DragBehavior::kDragToClose ||
       current_drag_behavior_ == DragBehavior::kUndefined) {
     if (std::abs(velocity_y) > kFlingToCloseVelocityThreshold) {
-      item_->AnimateAndCloseItem(
+      item_->AnimateAndCloseWindow(
           (location_in_screen - initial_event_location_).y() < 0);
       did_move_ = false;
       item_ = nullptr;
@@ -478,7 +472,7 @@ void OverviewWindowDragController::ResetGesture() {
     DCHECK(item_->overview_grid()->drop_target_widget());
 
     Shell::Get()->mouse_cursor_filter()->HideSharedEdgeIndicator();
-    item_->DestroyMirrorsForDragging();
+    item_->DestroyPhantomsForDragging();
     overview_session_->RemoveDropTargets();
     if (should_allow_split_view_) {
       SplitViewController::Get(Shell::GetPrimaryRootWindow())
@@ -489,7 +483,7 @@ void OverviewWindowDragController::ResetGesture() {
   }
 
   // No need to position windows that are being destroyed.
-  base::flat_set<OverviewItemBase*> ignored_items;
+  base::flat_set<OverviewItem*> ignored_items;
   if (item_->GetWindow()->is_destroying()) {
     ignored_items.insert(item_);
   }
@@ -570,7 +564,7 @@ OverviewWindowDragController::CompleteDragToClose(
   overview_session_->GetGridWithRootWindow(item_->root_window())->EndNudge();
   const float y_distance = (location_in_screen - initial_event_location_).y();
   if (std::abs(y_distance) > kDragToCloseDistanceThresholdDp) {
-    item_->AnimateAndCloseItem(/*up=*/y_distance < 0);
+    item_->AnimateAndCloseWindow(/*up=*/y_distance < 0);
     RecordDragToClose(kSwipeToCloseSuccessful);
     return DragResult::kSuccessfulDragToClose;
   }
@@ -719,7 +713,7 @@ void OverviewWindowDragController::ContinueNormalDrag(
   }
 
   if (display_count_ > 1u)
-    item_->UpdateMirrorsForDragging(is_touch_dragging_);
+    item_->UpdatePhantomsForDragging(is_touch_dragging_);
 }
 
 OverviewWindowDragController::DragResult
@@ -729,7 +723,7 @@ OverviewWindowDragController::CompleteNormalDrag(
   auto* item_overview_grid = item_->overview_grid();
   DCHECK(item_overview_grid->drop_target_widget());
   Shell::Get()->mouse_cursor_filter()->HideSharedEdgeIndicator();
-  item_->DestroyMirrorsForDragging();
+  item_->DestroyPhantomsForDragging();
   overview_session_->RemoveDropTargets();
 
   item_->UpdateShadowTypeForDrag(/*is_dragging=*/false);

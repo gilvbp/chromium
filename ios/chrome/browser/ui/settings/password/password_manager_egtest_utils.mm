@@ -18,6 +18,10 @@
 #import "ios/testing/earl_grey/earl_grey_test.h"
 #import "ui/base/l10n/l10n_util.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 using chrome_test_util::ButtonWithAccessibilityLabel;
 
 namespace {
@@ -40,16 +44,10 @@ NSString* GetDetailTextForPasswordCheckUIState(PasswordCheckUIState state,
                                                int number) {
   switch (state) {
     case PasswordCheckStateSafe:
-      return
-          [PasswordSettingsAppInterface isPasswordCheckupEnabled]
-              ? [NSString
-                    stringWithFormat:
-                        @"%@. %@", @"Checked just now",
-                        l10n_util::GetNSString(
-                            IDS_IOS_PASSWORD_CHECKUP_SAFE_STATE_ACCESSIBILITY_LABEL)]
-              : base::SysUTF16ToNSString(l10n_util::GetPluralStringFUTF16(
-                    IDS_IOS_PASSWORD_CHECKUP_COMPROMISED_COUNT, 0));
-
+      return [PasswordSettingsAppInterface isPasswordCheckupEnabled]
+                 ? @"Checked just now"
+                 : base::SysUTF16ToNSString(l10n_util::GetPluralStringFUTF16(
+                       IDS_IOS_PASSWORD_CHECKUP_COMPROMISED_COUNT, 0));
     case PasswordCheckStateUnmutedCompromisedPasswords:
       return base::SysUTF16ToNSString(l10n_util::GetPluralStringFUTF16(
           [PasswordSettingsAppInterface isPasswordCheckupEnabled]
@@ -81,12 +79,6 @@ NSString* GetDetailTextForPasswordCheckUIState(PasswordCheckUIState state,
                  ? l10n_util::GetNSString(IDS_IOS_PASSWORD_CHECKUP_ERROR)
                  : l10n_util::GetNSString(IDS_IOS_PASSWORD_CHECK_ERROR);
   }
-}
-
-id<GREYMatcher> DeletePasswordConfirmationButton() {
-  return grey_allOf(ButtonWithAccessibilityLabel(
-                        l10n_util::GetNSString(IDS_IOS_DELETE_ACTION_TITLE)),
-                    grey_interactable(), nullptr);
 }
 
 }  // anonymous namespace
@@ -129,31 +121,19 @@ id<GREYMatcher> EditPasswordConfirmationButton() {
                     grey_interactable(), nullptr);
 }
 
-id<GREYMatcher> UsernameTextfieldForUsernameAndSites(NSString* username,
-                                                     NSString* sites) {
-  return grey_allOf(
-      grey_accessibilityID([NSString
-          stringWithFormat:@"%@%@%@", kUsernameTextfieldForPasswordDetailsId,
-                           username, sites]),
-      grey_interactable(), nullptr);
-}
-
-id<GREYMatcher> PasswordTextfieldForUsernameAndSites(NSString* username,
-                                                     NSString* sites) {
-  return grey_allOf(
-      grey_accessibilityID([NSString
-          stringWithFormat:@"%@%@%@", kPasswordTextfieldForPasswordDetailsId,
-                           username, sites]),
-      grey_interactable(), nullptr);
-}
-
-id<GREYMatcher> DeleteButtonForUsernameAndSites(NSString* username,
-                                                NSString* sites) {
+id<GREYMatcher> DeleteButtonForUsernameAndPassword(NSString* username,
+                                                   NSString* password) {
   return grey_allOf(
       grey_accessibilityID([NSString
           stringWithFormat:@"%@%@%@", kDeleteButtonForPasswordDetailsId,
-                           username, sites]),
+                           username, password]),
       grey_interactable(), nullptr);
+}
+
+id<GREYMatcher> DeletePasswordConfirmationButton() {
+  return grey_allOf(ButtonWithAccessibilityLabel(
+                        l10n_util::GetNSString(IDS_IOS_DELETE_ACTION_TITLE)),
+                    grey_interactable(), nullptr);
 }
 
 GREYElementInteraction* GetInteractionForIssuesListItem(
@@ -230,9 +210,9 @@ void TapNavigationBarEditButton() {
       performAction:grey_tap()];
 }
 
-void DeleteCredential(NSString* username, NSString* sites) {
-  [[EarlGrey
-      selectElementWithMatcher:DeleteButtonForUsernameAndSites(username, sites)]
+void DeleteCredential(NSString* username, NSString* password) {
+  [[EarlGrey selectElementWithMatcher:DeleteButtonForUsernameAndPassword(
+                                          username, password)]
       performAction:grey_tap()];
 
   [[EarlGrey selectElementWithMatcher:DeletePasswordConfirmationButton()]

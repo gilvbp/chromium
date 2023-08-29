@@ -2,17 +2,16 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import {AddChildEntriesAction, ClearStaleCachedEntriesAction, UpdateMetadataAction} from './ducks/all_entries.js';
-import {AddAndroidAppsAction} from './ducks/android_apps.js';
-import {UpdateBulkPinProgressAction} from './ducks/bulk_pinning.js';
-import {ChangeDirectoryAction, ChangeFileTasksAction, ChangeSelectionAction, UpdateDirectoryContentAction} from './ducks/current_directory.js';
-import {UpdateDeviceConnectionStateAction} from './ducks/device.js';
-import {AddFolderShortcutAction, RefreshFolderShortcutAction, RemoveFolderShortcutAction} from './ducks/folder_shortcuts.js';
-import {RefreshNavigationRootsAction, UpdateNavigationEntryAction} from './ducks/navigation.js';
-import {UpdatePreferencesAction} from './ducks/preferences.js';
-import {SearchAction} from './ducks/search.js';
-import {AddUiEntryAction, RemoveUiEntryAction} from './ducks/ui_entries.js';
-import {AddVolumeAction, RemoveVolumeAction, UpdateIsInteractiveVolumeAction} from './ducks/volumes.js';
+import {AddChildEntriesAction, ClearStaleCachedEntriesAction, UpdateMetadataAction} from './actions/all_entries.js';
+import {AddAndroidAppsAction} from './actions/android_apps.js';
+import {UpdateBulkPinProgressAction} from './actions/bulk_pinning.js';
+import {ChangeDirectoryAction, ChangeFileTasksAction, ChangeSelectionAction, UpdateDirectoryContentAction} from './actions/current_directory.js';
+import {AddFolderShortcutAction, RefreshFolderShortcutAction, RemoveFolderShortcutAction} from './actions/folder_shortcuts.js';
+import {RefreshNavigationRootsAction, UpdateNavigationEntryAction} from './actions/navigation.js';
+import {UpdatePreferencesAction} from './actions/preferences.js';
+import {SearchAction} from './actions/search.js';
+import {AddUiEntryAction, RemoveUiEntryAction} from './actions/ui_entries.js';
+import {AddVolumeAction, RemoveVolumeAction, UpdateIsInteractiveVolumeAction} from './actions/volumes.js';
 
 /**
  * Union of all types of Actions in Files app.
@@ -28,8 +27,7 @@ export type Action = AddVolumeAction|RemoveVolumeAction|
     UpdateMetadataAction|RefreshFolderShortcutAction|AddFolderShortcutAction|
     RemoveFolderShortcutAction|AddAndroidAppsAction|AddChildEntriesAction|
     UpdateNavigationEntryAction|UpdateBulkPinProgressAction|
-    UpdatePreferencesAction|UpdateIsInteractiveVolumeAction|
-    UpdateDeviceConnectionStateAction;
+    UpdatePreferencesAction|UpdateIsInteractiveVolumeAction;
 
 
 /** Enum to identify every Action in Files app. */
@@ -55,5 +53,4 @@ export const enum ActionType {
   UPDATE_BULK_PIN_PROGRESS = 'update-bulk-pin-progress',
   UPDATE_PREFERENCES = 'update-preferences',
   UPDATE_IS_INTERACTIVE_VOLUME = 'update-is-interactive-volume',
-  UPDATE_DEVICE_CONNECTION_STATE = 'update-device-connection-state',
 }

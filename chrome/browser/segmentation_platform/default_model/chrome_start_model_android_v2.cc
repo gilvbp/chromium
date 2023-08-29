@@ -36,7 +36,7 @@ constexpr std::array<MetadataWriter::UMAFeature, 3> kChromeStartUMAFeatures = {
     MetadataWriter::UMAFeature::FromUserAction("MobileNTPMostVisited", 7),
 };
 
-std::unique_ptr<DefaultModelProvider> GetChromeStartAndroidModelV2() {
+std::unique_ptr<ModelProvider> GetChromeStartAndroidModelV2() {
   if (!base::GetFieldTrialParamByFeatureAsBool(
           chrome::android::kStartSurfaceReturnTime, kDefaultModelEnabledParam,
           true)) {
@@ -61,7 +61,6 @@ std::unique_ptr<Config> ChromeStartModelV2::GetConfig() {
       chrome::android::kStartSurfaceReturnTime,
       kVariationsParamNameSegmentSelectionTTLDays,
       kChromeStartV2DefaultSelectionTTLDays);
-  config->auto_execute_and_cache = true;
   config->segment_selection_ttl = base::Days(segment_selection_ttl_days);
   config->unknown_selection_ttl = config->segment_selection_ttl;
   config->is_boolean_segment = true;
@@ -70,10 +69,10 @@ std::unique_ptr<Config> ChromeStartModelV2::GetConfig() {
 }
 
 ChromeStartModelV2::ChromeStartModelV2()
-    : DefaultModelProvider(kChromeStartSegmentId) {}
+    : ModelProvider(kChromeStartSegmentId) {}
 
-std::unique_ptr<DefaultModelProvider::ModelConfig>
-ChromeStartModelV2::GetModelConfig() {
+void ChromeStartModelV2::InitAndFetchModel(
+    const ModelUpdatedCallback& model_updated_callback) {
   proto::SegmentationModelMetadata chrome_start_metadata;
   MetadataWriter writer(&chrome_start_metadata);
   writer.SetDefaultSegmentationMetadataConfig(
@@ -84,8 +83,10 @@ ChromeStartModelV2::GetModelConfig() {
                         kChromeStartUMAFeatures.size());
 
   constexpr int kModelVersion = 1;
-  return std::make_unique<ModelConfig>(std::move(chrome_start_metadata),
-                                       kModelVersion);
+  base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
+      FROM_HERE,
+      base::BindRepeating(model_updated_callback, kChromeStartSegmentId,
+                          std::move(chrome_start_metadata), kModelVersion));
 }
 
 void ChromeStartModelV2::ExecuteModelWithInput(
@@ -107,6 +108,10 @@ void ChromeStartModelV2::ExecuteModelWithInput(
       FROM_HERE,
       base::BindOnce(std::move(callback),
                      ModelProvider::Response(1, return_time_in_seconds)));
+}
+
+bool ChromeStartModelV2::ModelAvailable() {
+  return true;
 }
 
 }  // namespace segmentation_platform

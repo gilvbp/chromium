@@ -47,8 +47,7 @@ SecurityEventRecorderFactory::SecurityEventRecorderFactory()
 
 SecurityEventRecorderFactory::~SecurityEventRecorderFactory() = default;
 
-std::unique_ptr<KeyedService>
-SecurityEventRecorderFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* SecurityEventRecorderFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   Profile* profile = static_cast<Profile*>(context);
   syncer::OnceModelTypeStoreFactory store_factory =
@@ -62,6 +61,6 @@ SecurityEventRecorderFactory::BuildServiceInstanceForBrowserContext(
   auto security_event_sync_bridge =
       std::make_unique<SecurityEventSyncBridgeImpl>(
           std::move(store_factory), std::move(change_processor));
-  return std::make_unique<SecurityEventRecorderImpl>(
-      std::move(security_event_sync_bridge), base::DefaultClock::GetInstance());
+  return new SecurityEventRecorderImpl(std::move(security_event_sync_bridge),
+                                       base::DefaultClock::GetInstance());
 }

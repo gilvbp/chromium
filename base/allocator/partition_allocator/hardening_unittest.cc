@@ -28,7 +28,7 @@ TEST(HardeningTest, PartialCorruption) {
   char* to_corrupt = const_cast<char*>(important_data.c_str());
 
   PartitionRoot root(PartitionOptions{
-      .aligned_alloc = PartitionOptions::kAllowed,
+      .aligned_alloc = PartitionOptions::AlignedAlloc::kAllowed,
   });
   root.UncapEmptySlotSpanMemoryForTesting();
 
@@ -43,8 +43,8 @@ TEST(HardeningTest, PartialCorruption) {
   // Even if it looks reasonable (valid encoded pointer), freelist corruption
   // detection will make the code crash, because shadow_ doesn't match
   // encoded_next_.
-  EncodedNextFreelistEntry::EmplaceAndInitForTest(root.ObjectToSlotStart(data),
-                                                  to_corrupt, false);
+  PartitionFreelistEntry::EmplaceAndInitForTest(root.ObjectToSlotStart(data),
+                                                to_corrupt, false);
   EXPECT_DEATH(root.Alloc(kAllocSize, ""), "");
 }
 
@@ -53,7 +53,7 @@ TEST(HardeningTest, OffHeapPointerCrashing) {
   char* to_corrupt = const_cast<char*>(important_data.c_str());
 
   PartitionRoot root(PartitionOptions{
-      .aligned_alloc = PartitionOptions::kAllowed,
+      .aligned_alloc = PartitionOptions::AlignedAlloc::kAllowed,
   });
   root.UncapEmptySlotSpanMemoryForTesting();
 
@@ -65,8 +65,8 @@ TEST(HardeningTest, OffHeapPointerCrashing) {
 
   // See "PartialCorruption" above for details. This time, make shadow_
   // consistent.
-  EncodedNextFreelistEntry::EmplaceAndInitForTest(root.ObjectToSlotStart(data),
-                                                  to_corrupt, true);
+  PartitionFreelistEntry::EmplaceAndInitForTest(root.ObjectToSlotStart(data),
+                                                to_corrupt, true);
 
   // Crashes, because |to_corrupt| is not on the same superpage as data.
   EXPECT_DEATH(root.Alloc(kAllocSize, ""), "");
@@ -74,7 +74,7 @@ TEST(HardeningTest, OffHeapPointerCrashing) {
 
 TEST(HardeningTest, MetadataPointerCrashing) {
   PartitionRoot root(PartitionOptions{
-      .aligned_alloc = PartitionOptions::kAllowed,
+      .aligned_alloc = PartitionOptions::AlignedAlloc::kAllowed,
   });
   root.UncapEmptySlotSpanMemoryForTesting();
 
@@ -86,7 +86,7 @@ TEST(HardeningTest, MetadataPointerCrashing) {
 
   uintptr_t slot_start = root.ObjectToSlotStart(data);
   auto* metadata = SlotSpanMetadata::FromSlotStart(slot_start);
-  EncodedNextFreelistEntry::EmplaceAndInitForTest(slot_start, metadata, true);
+  PartitionFreelistEntry::EmplaceAndInitForTest(slot_start, metadata, true);
 
   // Crashes, because |metadata| points inside the metadata area.
   EXPECT_DEATH(root.Alloc(kAllocSize, ""), "");
@@ -101,7 +101,7 @@ TEST(HardeningTest, MetadataPointerCrashing) {
 
 TEST(HardeningTest, SuccessfulCorruption) {
   PartitionRoot root(PartitionOptions{
-      .aligned_alloc = PartitionOptions::kAllowed,
+      .aligned_alloc = PartitionOptions::AlignedAlloc::kAllowed,
   });
   root.UncapEmptySlotSpanMemoryForTesting();
 
@@ -117,8 +117,8 @@ TEST(HardeningTest, SuccessfulCorruption) {
   root.Free(data2);
   root.Free(data);
 
-  EncodedNextFreelistEntry::EmplaceAndInitForTest(root.ObjectToSlotStart(data),
-                                                  to_corrupt, true);
+  PartitionFreelistEntry::EmplaceAndInitForTest(root.ObjectToSlotStart(data),
+                                                to_corrupt, true);
 
 #if BUILDFLAG(USE_FREESLOT_BITMAP)
   // This part crashes with freeslot bitmap because it detects freelist

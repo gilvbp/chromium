@@ -15,6 +15,7 @@
 #import "components/grit/version_ui_resources.h"
 #import "components/grit/version_ui_resources_map.h"
 #import "components/strings/grit/components_chromium_strings.h"
+#import "components/strings/grit/components_google_chrome_strings.h"
 #import "components/strings/grit/components_strings.h"
 #import "components/variations/service/variations_service.h"
 #import "components/version_info/version_info.h"
@@ -31,6 +32,10 @@
 #import "ios/web/public/webui/web_ui_ios_data_source.h"
 #import "ui/base/device_form_factor.h"
 #import "ui/base/l10n/l10n_util.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace {
 

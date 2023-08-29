@@ -176,6 +176,7 @@ public class WebFeedRecommendationFollowAcceleratorController {
                 }));
     }
 
+    @VisibleForTesting
     public WebFeedFollowIntroView getIntroViewForTesting() {
         return mWebFeedFollowIntroView;
     }

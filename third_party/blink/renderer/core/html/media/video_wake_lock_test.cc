@@ -183,13 +183,12 @@ class VideoWakeLockTest : public testing::Test {
 
     GetDocument().body()->setInnerHTML(
         "<body><div></div><video></video></body>");
-    video_ = To<HTMLVideoElement>(
-        GetDocument().QuerySelector(AtomicString("video")));
-    div_ = To<HTMLDivElement>(GetDocument().QuerySelector(AtomicString("div")));
+    video_ = To<HTMLVideoElement>(GetDocument().QuerySelector("video"));
+    div_ = To<HTMLDivElement>(GetDocument().QuerySelector("div"));
     SetFakeCcLayer(fake_layer_.get());
     video_->SetReadyState(HTMLMediaElement::ReadyState::kHaveMetadata);
     video_wake_lock_ = MakeGarbageCollected<VideoWakeLock>(*video_.Get());
-    video_->SetSrc(AtomicString("http://example.com/foo.mp4"));
+    video_->SetSrc("http://example.com/foo.mp4");
     test::RunPendingTasks();
 
     GetPage().SetVisibilityState(mojom::blink::PageVisibilityState::kVisible,
@@ -473,7 +472,7 @@ TEST_F(VideoWakeLockTest, LoadingCancelsLock) {
   // The network state has to be non-empty for the resetting to actually kick.
   SimulateNetworkState(HTMLMediaElement::kNetworkIdle);
 
-  Video()->SetSrc(g_empty_atom);
+  Video()->SetSrc("");
   test::RunPendingTasks();
   EXPECT_FALSE(HasWakeLock());
 }

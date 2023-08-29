@@ -22,7 +22,6 @@ import {loadTimeData} from './i18n_setup.js';
 import {addScreensToMainContainer} from './login_ui_tools.js';
 import {MultiTapDetector} from './multi_tap_detector.js';
 import {TraceEvent, traceExecution} from './oobe_trace.js';
-import {priorityCommonScreenList} from './priority_screens_common_flow.js';
 import {priorityOobeScreenList} from './priority_screens_oobe_flow.js';
 import * as OobeTestApi from './test_api/test_api.js';
 
@@ -165,6 +164,7 @@ function startOobe() {
     });
   }
 
+
   // Add OOBE or LOGIN screens to the document.
   const isOobeFlow = loadTimeData.getBoolean('isOobeFlow');
 
@@ -172,7 +172,6 @@ function startOobe() {
   // flow. For the 'Add Person' flow, we remove it.
   if (!isOobeFlow) {
     document.body.classList.remove('oobe-display');
-    document.documentElement.style.setProperty('--shelf-area-height', '0px');
   } else {
     assert(
         document.body.classList.contains('oobe-display'),
@@ -182,10 +181,8 @@ function startOobe() {
   // For the OOBE flow, we prioritize the loading of the Welcome screen.
   if (isOobeFlow) {
     addScreensToMainContainer(priorityOobeScreenList);
+    traceExecution(TraceEvent.PRIORITY_SCREENS_ADDED);
   }
-
-  addScreensToMainContainer(priorityCommonScreenList);
-  traceExecution(TraceEvent.PRIORITY_SCREENS_ADDED);
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', lazyLoadOobe);

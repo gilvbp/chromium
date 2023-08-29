@@ -35,10 +35,9 @@ void DiceWebSigninInterceptorFactory::RegisterProfilePrefs(
   DiceWebSigninInterceptor::RegisterProfilePrefs(registry);
 }
 
-std::unique_ptr<KeyedService>
-DiceWebSigninInterceptorFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* DiceWebSigninInterceptorFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
-  return std::make_unique<DiceWebSigninInterceptor>(
+  return new DiceWebSigninInterceptor(
       Profile::FromBrowserContext(context),
       std::make_unique<DiceWebSigninInterceptorDelegate>());
 }

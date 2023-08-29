@@ -31,14 +31,17 @@
 #include "testing/gtest/include/gtest/gtest.h"
 #include "testing/multiprocess_func_list.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace content {
 
 namespace {
 
 void SetParametersForTest(sandbox::SandboxCompiler* compiler,
                           const base::FilePath& logging_path,
-                          const base::FilePath& executable_path,
-                          bool use_syscall_filter) {
+                          const base::FilePath& executable_path) {
   bool enable_logging = true;
   CHECK(compiler->SetBooleanParameter(sandbox::policy::kParamEnableLogging,
                                       enable_logging));
@@ -73,7 +76,7 @@ void SetParametersForTest(sandbox::SandboxCompiler* compiler,
                                executable_path.value()));
 
   CHECK(compiler->SetBooleanParameter(sandbox::policy::kParamFilterSyscalls,
-                                      use_syscall_filter));
+                                      true));
 }
 
 }  // namespace
@@ -103,11 +106,7 @@ MULTIPROCESS_TEST_MAIN(SandboxProfileProcess) {
   const base::FilePath log_file = temp_path.Append("log-file");
   const base::FilePath exec_file("/bin/ls");
 
-  // TODO(crbug.com/1456568): re-enable syscall filter for this test.
-  // SandboxV2Test.SandboxProfileTest uses system() which uses a denied syscall,
-  // which should cause the test to fail.
-  SetParametersForTest(&compiler, log_file, exec_file,
-                       /*use_syscall_filter=*/false);
+  SetParametersForTest(&compiler, log_file, exec_file);
 
   std::string error;
   bool result = compiler.CompileAndApplyProfile(error);

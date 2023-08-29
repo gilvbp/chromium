@@ -70,8 +70,7 @@ DebugLogsManagerFactory::DebugLogsManagerFactory()
 
 DebugLogsManagerFactory::~DebugLogsManagerFactory() = default;
 
-std::unique_ptr<KeyedService>
-DebugLogsManagerFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* DebugLogsManagerFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   Profile* profile = Profile::FromBrowserContext(context);
 
@@ -79,7 +78,7 @@ DebugLogsManagerFactory::BuildServiceInstanceForBrowserContext(
   if (!ProfileHelper::Get()->IsPrimaryProfile(profile))
     return nullptr;
 
-  return std::make_unique<DebugLogsManagerService>(profile);
+  return new DebugLogsManagerService(profile);
 }
 
 bool DebugLogsManagerFactory::ServiceIsCreatedWithBrowserContext() const {

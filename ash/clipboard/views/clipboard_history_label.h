@@ -14,11 +14,7 @@ namespace ash {
 class ClipboardHistoryLabel : public views::Label {
  public:
   METADATA_HEADER(ClipboardHistoryLabel);
-
-  ClipboardHistoryLabel(const std::u16string& text,
-                        gfx::ElideBehavior elide_behavior,
-                        size_t max_lines);
-
+  explicit ClipboardHistoryLabel(const std::u16string& text);
   ClipboardHistoryLabel(const ClipboardHistoryLabel& rhs) = delete;
   ClipboardHistoryLabel& operator=(const ClipboardHistoryLabel& rhs) = delete;
   ~ClipboardHistoryLabel() override = default;

@@ -11,8 +11,6 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
 import android.util.Log;
 
-import org.chromium.android_webview.common.Lifetime;
-
 /**
  * This database is used to support WebView's setHttpAuthUsernamePassword and
  * getHttpAuthUsernamePassword methods, and WebViewDatabase's clearHttpAuthUsernamePassword and
@@ -28,8 +26,8 @@ import org.chromium.android_webview.common.Lifetime;
  * if triggered early on (e.g. as a side effect of CookieSyncManager.createInstance() call),
  * sufficiently in advance of the first blocking usage of the API.
  */
-@Lifetime.Profile
 public class HttpAuthDatabase {
+
     private static final String LOGTAG = "HttpAuthDatabase";
 
     private static final int DATABASE_VERSION = 1;

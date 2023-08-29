@@ -15,9 +15,7 @@
 #include "ash/constants/ash_switches.h"
 #include "base/check_op.h"
 #include "base/command_line.h"
-#include "base/files/file_enumerator.h"
 #include "base/files/file_path.h"
-#include "base/files/file_util.h"
 #include "base/functional/callback_helpers.h"
 #include "base/strings/escape.h"
 #include "chrome/browser/ash/drive/drive_integration_service.h"
@@ -28,20 +26,16 @@
 #include "chromeos/ash/components/login/login_state/login_state.h"
 #include "components/drive/drive_pref_names.h"
 #include "components/prefs/pref_service.h"
+#include "components/sync/base/command_line_switches.h"
 #include "components/user_manager/user.h"
-#include "components/user_manager/user_manager.h"
 #include "components/version_info/version_info.h"
 #include "content/public/browser/browser_thread.h"
 #include "content/public/browser/network_service_instance.h"
-#include "google_apis/gaia/gaia_auth_util.h"
 #include "services/network/public/cpp/network_connection_tracker.h"
 
 using content::BrowserThread;
 
 namespace drive::util {
-
-using user_manager::User;
-using user_manager::UserManager;
 
 DriveIntegrationService* GetIntegrationServiceByProfile(Profile* profile) {
   DriveIntegrationService* service =
@@ -100,8 +94,15 @@ bool IsDriveAvailableForProfile(const Profile* const profile) {
   if (profile->IsOffTheRecord()) {
     return false;
   }
-  const User* const user = ash::ProfileHelper::Get()->GetUserByProfile(profile);
+  const user_manager::User* user =
+      ash::ProfileHelper::Get()->GetUserByProfile(profile);
   if (!user || !user->HasGaiaAccount()) {
+    return false;
+  }
+
+  // Disable drive if sync is disabled by command line flag. Outside tests, this
+  // only occurs in cases already handled by the gaia account check above.
+  if (!syncer::IsSyncAllowedByFlag()) {
     return false;
   }
 
@@ -119,50 +120,21 @@ bool IsDriveEnabledForProfile(const Profile* const profile) {
 }
 
 bool IsDriveFsBulkPinningEnabled(const Profile* const profile) {
-  // Check the "DriveFsBulkPinning" Chrome feature. If this feature is disabled,
-  // then it probably means that the kill switch has been activated, and the
-  // bulk-pinning feature should not be available.
-  if (!base::FeatureList::IsEnabled(ash::features::kDriveFsBulkPinning)) {
+  DCHECK(profile);
+  if (profile->GetProfilePolicyConnector()->IsManaged()) {
     return false;
   }
 
-  // Check the "drivefs.bulk_pinning.visible" boolean pref. If this pref is
-  // false, then it probably means that it has been turned down by an enterprise
-  // policy, and the bulk-pinning feature should not be available.
-  if (profile &&
-      !profile->GetPrefs()->GetBoolean(prefs::kDriveFsBulkPinningVisible)) {
-    return false;
-  }
-
-  // Does the user profile belong to a managed user or not?
-  if (!profile || !profile->GetProfilePolicyConnector()->IsManaged()) {
-    // Not a managed user. The bulk-pinning feature is available on suitable
-    // devices, as controlled by the "FeatureManagementDriveFsBulkPinning"
-    // Chrome feature.
+  // TODO(b/279872186): Prior to M117 and only on canary builds the feature
+  // should be enabled by the feature management module OR a direct feature
+  // flag. After M117 these 2 flags should be required to enable the feature.
+  if (version_info::GetMajorVersionNumberAsInt() < 117) {
     return base::FeatureList::IsEnabled(
-        ash::features::kFeatureManagementDriveFsBulkPinning);
+               ash::features::kFeatureManagementDriveFsBulkPinning) ||
+           base::FeatureList::IsEnabled(ash::features::kDriveFsBulkPinning);
   }
 
-  // Managed user. For Googlers, the bulk-pinning feature is available on any
-  // kind of device. This allows Googlers to easily test ("dogfood") the
-  // bulk-pinning feature.
-  //
-  // TODO(b/296316774) Revisit this decision for Googlers.
-  //
-  // Other managed users (non-Googlers) do not have access to the bulk-pinning
-  // feature for the time being.
-  //
-  // TODO(b/296315040) Allow managed users to access the bulk-pinning feature on
-  // suitable devices.
-  const User* const user = UserManager::Get()->GetActiveUser();
-  return user && gaia::IsGoogleInternalAccountEmail(
-                     user->GetAccountId().GetUserEmail());
-}
-
-bool IsOobeDrivePinningEnabled(const Profile* const profile) {
-  return base::FeatureList::IsEnabled(ash::features::kOobeDrivePinning) &&
-         ash::features::IsOobeChoobeEnabled() &&
-         IsDriveFsBulkPinningEnabled(profile);
+  return ash::features::IsDriveFsBulkPinningEnabled();
 }
 
 ConnectionStatusType GetDriveConnectionStatus(Profile* profile) {
@@ -198,26 +170,6 @@ bool IsPinnableGDocMimeType(const std::string& mime_type) {
   };
 
   return base::Contains(kPinnableGDocMimeTypes, mime_type);
-}
-
-int64_t ComputeDriveFsContentCacheSize(
-    const base::FilePath& content_cache_path) {
-  int64_t running_size = 0;
-  base::FileEnumerator file_iter(content_cache_path,
-                                 /*recursive=*/true,
-                                 base::FileEnumerator::FILES);
-  while (!file_iter.Next().empty()) {
-    const base::FileEnumerator::FileInfo& file_info = file_iter.GetInfo();
-
-    // Ignore the `chunks.db*` files when calculating the size of the content
-    // cache.
-    if (base::StartsWith(file_info.GetName().value(), "chunks.db")) {
-      continue;
-    }
-    running_size += file_info.GetSize();
-  }
-  LOG(ERROR) << "ComputeDriveFsContentCacheSize: " << running_size;
-  return running_size;
 }
 
 }  // namespace drive::util

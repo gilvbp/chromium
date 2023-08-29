@@ -39,7 +39,7 @@ class LocalPresentationManagerFactory
   ~LocalPresentationManagerFactory() override;
 
   // BrowserContextKeyedServiceFactory interface.
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* context) const override;
 };
 

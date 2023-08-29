@@ -31,7 +31,7 @@ class ChromeAppIconServiceFactory : public ProfileKeyedServiceFactory {
   ChromeAppIconServiceFactory();
   ~ChromeAppIconServiceFactory() override;
 
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* context) const override;
 };
 

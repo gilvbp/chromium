@@ -35,6 +35,7 @@ class ContactInfoModelTypeController
       const ContactInfoModelTypeController&) = delete;
 
   // ModelTypeController overrides.
+  bool ShouldRunInTransportOnlyMode() const override;
   PreconditionState GetPreconditionState() const override;
 
   // SyncServiceObserver overrides.

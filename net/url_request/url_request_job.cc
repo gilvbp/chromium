@@ -404,11 +404,9 @@ void URLRequestJob::NotifySSLCertificateError(int net_error,
   request_->NotifySSLCertificateError(net_error, ssl_info, fatal);
 }
 
-bool URLRequestJob::CanSetCookie(
-    const net::CanonicalCookie& cookie,
-    CookieOptions* options,
-    CookieInclusionStatus* inclusion_status) const {
-  return request_->CanSetCookie(cookie, options, inclusion_status);
+bool URLRequestJob::CanSetCookie(const net::CanonicalCookie& cookie,
+                                 CookieOptions* options) const {
+  return request_->CanSetCookie(cookie, options);
 }
 
 void URLRequestJob::NotifyHeadersComplete() {

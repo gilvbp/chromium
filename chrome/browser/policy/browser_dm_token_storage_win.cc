@@ -60,27 +60,13 @@ void ConfigureProxyBlanket(IUnknown* interface_pointer) {
 #if BUILDFLAG(GOOGLE_CHROME_BRANDING)
 Microsoft::WRL::ComPtr<IAppCommandWeb> GetUpdaterAppCommand(
     const std::wstring& command_name) {
-  Microsoft::WRL::ComPtr<IUnknown> server;
+  Microsoft::WRL::ComPtr<IGoogleUpdate3Web> google_update;
   HRESULT hr = ::CoCreateInstance(CLSID_GoogleUpdate3WebSystemClass, nullptr,
-                                  CLSCTX_ALL, IID_PPV_ARGS(&server));
+                                  CLSCTX_ALL, IID_PPV_ARGS(&google_update));
   if (FAILED(hr))
     return nullptr;
 
-  ConfigureProxyBlanket(server.Get());
-
-  // Chrome queries for the SxS IIDs first, with a fallback to the legacy IID.
-  // Without this change, marshaling can load the typelib from the wrong hive
-  // (HKCU instead of HKLM, or vice-versa).
-  Microsoft::WRL::ComPtr<IGoogleUpdate3Web> google_update;
-  hr = server.CopyTo(__uuidof(IGoogleUpdate3WebSystem),
-                     IID_PPV_ARGS_Helper(&google_update));
-  if (FAILED(hr)) {
-    hr = server.As(&google_update);
-    if (FAILED(hr)) {
-      return nullptr;
-    }
-  }
-
+  ConfigureProxyBlanket(google_update.Get());
   Microsoft::WRL::ComPtr<IDispatch> dispatch;
   hr = google_update->createAppBundleWeb(&dispatch);
   if (FAILED(hr))

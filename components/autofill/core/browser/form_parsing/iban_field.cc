@@ -12,28 +12,31 @@
 namespace autofill {
 
 // static
-std::unique_ptr<FormField> IbanField::Parse(AutofillScanner* scanner,
+std::unique_ptr<FormField> IBANField::Parse(AutofillScanner* scanner,
                                             const LanguageCode& page_language,
                                             PatternSource pattern_source,
                                             LogManager* log_manager) {
+  if (!base::FeatureList::IsEnabled(features::kAutofillParseIBANFields))
+    return nullptr;
+
   raw_ptr<AutofillField> field;
   base::span<const MatchPatternRef> iban_patterns =
       GetMatchPatterns(IBAN_VALUE, page_language, pattern_source);
 
-  if (ParseFieldSpecifics(scanner, kIbanRe,
+  if (ParseFieldSpecifics(scanner, kIBANRe,
                           kDefaultMatchParamsWith<MatchFieldType::kNumber,
                                                   MatchFieldType::kTextArea>,
-                          iban_patterns, &field, {log_manager, "kIbanRe"})) {
-    return std::make_unique<IbanField>(field);
+                          iban_patterns, &field, {log_manager, "kIBANRe"})) {
+    return std::make_unique<IBANField>(field);
   }
 
   return nullptr;
 }
 
-IbanField::IbanField(const AutofillField* field) : field_(field) {}
+IBANField::IBANField(const AutofillField* field) : field_(field) {}
 
-void IbanField::AddClassifications(FieldCandidatesMap& field_candidates) const {
-  AddClassification(field_, IBAN_VALUE, kBaseIbanParserScore, field_candidates);
+void IBANField::AddClassifications(FieldCandidatesMap& field_candidates) const {
+  AddClassification(field_, IBAN_VALUE, kBaseIBANParserScore, field_candidates);
 }
 
 }  // namespace autofill

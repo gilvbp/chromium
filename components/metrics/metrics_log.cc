@@ -35,7 +35,6 @@
 #include "components/metrics/metrics_pref_names.h"
 #include "components/metrics/metrics_provider.h"
 #include "components/metrics/metrics_service_client.h"
-#include "components/network_time/network_time_tracker.h"
 #include "components/prefs/pref_registry_simple.h"
 #include "components/prefs/pref_service.h"
 #include "components/variations/hashing.h"
@@ -103,18 +102,10 @@ void RecordCurrentTime(
     metrics::ChromeUserMetricsExtension::RealLocalTime* time) {
   // Record the current time and the clock used to determine the time.
   base::Time now;
-  if (network_time_tracker != nullptr &&
-      network_time_tracker->GetNetworkTime(&now, nullptr) ==
-          network_time::NetworkTimeTracker::NETWORK_TIME_AVAILABLE) {
-    // |network_time_tracker| can be null in certain settings such as WebView
-    // (which doesn't run a NetworkTimeTracker) and tests.
-    time->set_time_source(
-        metrics::ChromeUserMetricsExtension::RealLocalTime::NETWORK_TIME_CLOCK);
-  } else {
-    now = clock->Now();
-    time->set_time_source(
-        metrics::ChromeUserMetricsExtension::RealLocalTime::CLIENT_CLOCK);
-  }
+  // TODO(http://crbug.com/1257449): Enable network time on Android.
+  now = clock->Now();
+  time->set_time_source(
+      metrics::ChromeUserMetricsExtension::RealLocalTime::CLIENT_CLOCK);
   time->set_time_sec(now.ToTimeT());
 
   if (record_time_zone) {
@@ -545,25 +536,12 @@ bool MetricsLog::LoadSavedEnvironmentFromPrefs(PrefService* local_state) {
   return recorder.LoadEnvironmentFromPrefs(system_profile);
 }
 
-metrics::ChromeUserMetricsExtension::RealLocalTime
-MetricsLog::GetCurrentClockTime(bool record_time_zone) {
-  CHECK_EQ(log_type_, MetricsLog::ONGOING_LOG);
-  metrics::ChromeUserMetricsExtension::RealLocalTime time;
-  RecordCurrentTime(clock_, network_clock_, record_time_zone, &time);
-  return time;
-}
-
-void MetricsLog::FinalizeLog(
-    bool truncate_events,
-    const std::string& current_app_version,
-    absl::optional<ChromeUserMetricsExtension::RealLocalTime> close_time,
-    std::string* encoded_log) {
+void MetricsLog::FinalizeLog(bool truncate_events,
+                             const std::string& current_app_version,
+                             std::string* encoded_log) {
   if (truncate_events)
     TruncateEvents();
   RecordLogWrittenByAppVersionIfNeeded(current_app_version);
-  if (close_time.has_value()) {
-    *uma_proto_.mutable_time_log_closed() = std::move(close_time.value());
-  }
   CloseLog();
 
   uma_proto_.SerializeToString(encoded_log);
@@ -571,15 +549,11 @@ void MetricsLog::FinalizeLog(
 
 void MetricsLog::CloseLog() {
   DCHECK(!closed_);
-
-  // Ongoing logs (and only ongoing logs) should have a closed timestamp. Other
-  // types of logs (initial stability and independent) contain metrics from
-  // previous sessions, so do not add timestamps as they would not accurately
-  // represent the time at which those metrics were emitted.
-  CHECK(log_type_ == MetricsLog::ONGOING_LOG
-            ? uma_proto_.has_time_log_closed()
-            : !uma_proto_.has_time_log_closed());
-
+  if (log_type_ == MetricsLog::ONGOING_LOG) {
+    RecordCurrentTime(clock_, network_clock_,
+                      /*record_time_zone=*/true,
+                      uma_proto_.mutable_time_log_closed());
+  }
   closed_ = true;
 }
 

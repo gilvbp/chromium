@@ -201,7 +201,8 @@ void BidirectionalStreamSpdyImpl::OnEarlyHintsReceived(
 }
 
 void BidirectionalStreamSpdyImpl::OnHeadersReceived(
-    const spdy::Http2HeaderBlock& response_headers) {
+    const spdy::Http2HeaderBlock& response_headers,
+    const spdy::Http2HeaderBlock* pushed_request_headers) {
   DCHECK(stream_);
 
   if (delegate_)

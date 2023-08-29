@@ -102,7 +102,7 @@ export type EnterOptions = DialogEnterOptions|FlashEnterOptions|
     OptionPanelOptions|PTZPanelOptions|WarningEnterOptions;
 
 export type LeaveCondition = {
-  kind: 'BACKGROUND_CLICKED'|'ESC_KEY_PRESSED'|'STREAMING_STOPPED',
+  kind: 'BACKGROUND_CLICKED'|'ESC_KEY_PRESSED'|'STOP_STREAMING',
 }|{
   kind: 'CLOSED',
   val?: unknown,
@@ -172,7 +172,7 @@ export class View {
     if (dismissOnStopStreaming) {
       state.addObserver(state.State.STREAMING, (streaming) => {
         if (!streaming && state.get(this.name)) {
-          this.leave({kind: 'STREAMING_STOPPED'});
+          this.leave({kind: 'STOP_STREAMING'});
         }
       });
     }

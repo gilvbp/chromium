@@ -283,8 +283,7 @@ class AX_EXPORT AXTree {
   // This allows us to notify observers of structure changes when the
   // tree is still in a stable and unchanged state.
   bool ComputePendingChanges(const AXTreeUpdate& update,
-                             AXTreeUpdateState* update_state,
-                             bool& has_stale_data);
+                             AXTreeUpdateState* update_state);
 
   // Populates |update_state| with information about actions that will
   // be performed on the tree during the update, such as adding or
@@ -292,8 +291,7 @@ class AX_EXPORT AXTree {
   // Nothing within this call should modify tree structure or node data.
   bool ComputePendingChangesToNode(const AXNodeData& new_data,
                                    bool is_new_root,
-                                   AXTreeUpdateState* update_state,
-                                   bool& has_stale_data);
+                                   AXTreeUpdateState* update_state);
 
   // This is called from within Unserialize(), it returns true on success.
   bool UpdateNode(const AXNodeData& src,
@@ -305,6 +303,12 @@ class AX_EXPORT AXTree {
   void NotifySubtreeWillBeReparentedOrDeleted(
       AXNode* node,
       const AXTreeUpdateState* update_state);
+
+  // Experimental version of the above method.
+  void NotifySubtreeWillBeReparentedOrDeletedExperimental(
+      AXNode* node,
+      const AXTreeUpdateState* update_state,
+      AXTreeObserver& observer);
 
   // Notify the delegate that |node| will be destroyed or reparented.
   void NotifyNodeWillBeReparentedOrDeleted(
@@ -348,6 +352,17 @@ class AX_EXPORT AXTree {
   void NotifyNodeAttributesHaveBeenChanged(
       AXNode* node,
       AXTreeUpdateState& update_state,
+      const AXTreeData* optional_old_tree_data,
+      const AXNodeData& old_data,
+      const AXTreeData* new_tree_data,
+      const AXNodeData& new_data);
+
+  // Notify the delegate that |node| has changed its data attributes, including
+  // its ignored state. Only for |kAccessibilityUnserializeOptimizations| flag.
+  void NotifyNodeAttributesHaveBeenChangedOptimized(
+      AXNode* node,
+      AXTreeUpdateState& update_state,
+      AXTreeObserver& observer,
       const AXTreeData* optional_old_tree_data,
       const AXNodeData& old_data,
       const AXTreeData* new_tree_data,

@@ -16,18 +16,14 @@ class FakeTouchToFillPasswordGenerationBridge
   ~FakeTouchToFillPasswordGenerationBridge() override;
 
   bool Show(content::WebContents* web_contents,
-            TouchToFillPasswordGenerationDelegate* delegate,
+            base::WeakPtr<TouchToFillPasswordGenerationDelegate> delegate,
             std::u16string password,
             std::string account) override;
   void Hide() override;
   void OnDismissed(JNIEnv* env) override;
-  void OnGeneratedPasswordAccepted(
-      JNIEnv* env,
-      const base::android::JavaParamRef<jstring>& password) override;
-  void OnGeneratedPasswordRejected(JNIEnv* env) override;
 
  private:
-  raw_ptr<TouchToFillPasswordGenerationDelegate> delegate_;
+  base::WeakPtr<TouchToFillPasswordGenerationDelegate> delegate_;
 };
 
 #endif  // CHROME_BROWSER_TOUCH_TO_FILL_PASSWORD_GENERATION_ANDROID_FAKE_TOUCH_TO_FILL_PASSWORD_GENERATION_BRIDGE_H_

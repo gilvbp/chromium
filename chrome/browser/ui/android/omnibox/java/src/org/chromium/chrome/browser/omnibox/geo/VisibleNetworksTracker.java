@@ -87,6 +87,7 @@ class VisibleNetworksTracker {
         sVisibleNetworksTime = Long.MAX_VALUE;
     }
 
+    @VisibleForTesting
     static void setVisibleNetworksForTesting(VisibleNetworks visibleNetworksForTesting) {
         sVisibleNetworksForTesting = visibleNetworksForTesting;
         sUseVisibleNetworksForTesting = true;

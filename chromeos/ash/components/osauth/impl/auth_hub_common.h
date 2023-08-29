@@ -13,7 +13,8 @@
 namespace ash {
 
 using AuthEnginesMap =
-    base::flat_map<AshAuthFactor, raw_ptr<AuthFactorEngine, DanglingUntriaged>>;
+    base::flat_map<AshAuthFactor,
+                   base::raw_ptr<AuthFactorEngine, DanglingUntriaged>>;
 
 class AuthHubConnector {
  public:

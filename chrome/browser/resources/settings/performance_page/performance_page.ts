@@ -68,7 +68,7 @@ export class SettingsPerformancePageElement extends
         readOnly: true,
         type: Boolean,
         value() {
-          return loadTimeData.getBoolean('highEfficiencyShowRecommendedBadge');
+          return loadTimeData.getBoolean('highEfficiencyDefaultHeuristicMode');
         },
       },
 

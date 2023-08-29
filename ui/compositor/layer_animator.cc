@@ -63,13 +63,13 @@ LayerAnimator::~LayerAnimator() {
 }
 
 // static
-scoped_refptr<LayerAnimator> LayerAnimator::CreateDefaultAnimator() {
-  return base::MakeRefCounted<LayerAnimator>(base::Milliseconds(0));
+LayerAnimator* LayerAnimator::CreateDefaultAnimator() {
+  return new LayerAnimator(base::Milliseconds(0));
 }
 
 // static
-scoped_refptr<LayerAnimator> LayerAnimator::CreateImplicitAnimator() {
-  return base::MakeRefCounted<LayerAnimator>(
+LayerAnimator* LayerAnimator::CreateImplicitAnimator() {
+  return new LayerAnimator(
       base::Milliseconds(kLayerAnimatorDefaultTransitionDurationMs));
 }
 

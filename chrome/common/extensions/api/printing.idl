@@ -154,10 +154,8 @@ namespace printing {
 
   interface Functions {
     // Submits the job for print.
-    // Use the
-    // <a href="https://chromeenterprise.google/policies/#PrintingAPIExtensionsAllowlist">
-    // <code>PrintingAPIExtensionsAllowlist</code></a> to bypass promting
-    // the user to confirm printing.
+    // If the extension is not listed in PrintingAPIExtensionsAllowlist policy,
+    // the user will be prompted to accept the print job.
     [supportsPromises] static void submitJob(SubmitJobRequest request,
                                              SubmitJobCallback callback);
 

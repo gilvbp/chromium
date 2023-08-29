@@ -8,9 +8,6 @@
 #include "ui/base/ui_base_features.h"
 #include "ui/views/controls/menu/menu_controller.h"
 #include "ui/views/controls/menu/menu_item_view.h"
-#include "ui/views/layout/layout_provider.h"
-#include "ui/views/style/typography.h"
-#include "ui/views/style/typography_provider.h"
 
 namespace views {
 
@@ -53,19 +50,14 @@ void MenuConfig::InitCR2023() {
   if (!features::IsChromeRefresh2023()) {
     return;
   }
-
-  font_list = LayoutProvider::Get()->GetTypographyProvider().GetFont(
-      style::CONTEXT_MENU, style::STYLE_BODY_3_EMPHASIS);
+  // CR2023 menu metrics
   reserve_dedicated_arrow_column = false;
-  menu_horizontal_border_size = 0;
-  submenu_horizontal_overlap = 0;
-  item_vertical_margin = 6;
-  item_horizontal_border_padding = 12;
   separator_height = 17;
-  separator_spacing_height = 4;
-  use_outer_border = false;
-
-  InitPlatformCR2023();
+  separator_left_margin = 12;
+  separator_right_margin = 12;
+  item_top_margin = 6;
+  item_bottom_margin = 6;
+  item_horizontal_border_padding = 12;
 }
 
 // static

@@ -3,9 +3,6 @@
 // found in the LICENSE file.
 
 #include "headless/lib/browser/directory_enumerator.h"
-
-#include <utility>
-
 #include "net/base/net_errors.h"
 
 namespace headless {
@@ -14,7 +11,6 @@ namespace headless {
 void DirectoryEnumerator::Start(
     base::FilePath path,
     scoped_refptr<content::FileSelectListener> listener) {
-  // Self deleting.
   auto* instance =
       new DirectoryEnumerator(std::move(path), std::move(listener));
   instance->directory_lister_.Start();
@@ -32,8 +28,9 @@ DirectoryEnumerator::~DirectoryEnumerator() = default;
 void DirectoryEnumerator::OnListFile(const DirectoryListerData& data) {
   if (data.info.IsDirectory())
     return;
+  static const std::u16string kNoDisplayName;
   entries_.push_back(blink::mojom::FileChooserFileInfo::NewNativeFile(
-      blink::mojom::NativeFileInfo::New(data.path, /*display_name=*/u"")));
+      blink::mojom::NativeFileInfo::New(data.path, kNoDisplayName)));
 }
 
 void DirectoryEnumerator::OnListDone(int error) {

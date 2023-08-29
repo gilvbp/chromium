@@ -11,7 +11,6 @@
 
 class PrefRegistry;
 class PrefService;
-class PrefStore;
 
 namespace base {
 class FilePath;
@@ -48,8 +47,7 @@ std::unique_ptr<sync_preferences::PrefServiceSyncable> CreateBrowserStatePrefs(
     base::SequencedTaskRunner* pref_io_task_runner,
     const scoped_refptr<user_prefs::PrefRegistrySyncable>& pref_registry,
     policy::PolicyService* policy_service,
-    policy::BrowserPolicyConnector* policy_connector,
-    const scoped_refptr<PrefStore>& supervised_user_prefs);
+    policy::BrowserPolicyConnector* policy_connector);
 
 // Creates an incognito copy of `pref_service` that shares most prefs but uses
 // a fresh non-persistent overlay for the user pref store.

@@ -25,6 +25,10 @@
 #import "components/rlz/rlz_tracker.h"  // nogncheck
 #endif
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace ios {
 
 UIThreadSearchTermsData::UIThreadSearchTermsData() {

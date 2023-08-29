@@ -5,13 +5,10 @@
 #include "components/sync/nigori/cryptographer_impl.h"
 
 #include <utility>
-#include <vector>
 
-#include "base/containers/span.h"
 #include "components/sync/engine/nigori/cross_user_sharing_public_private_key_pair.h"
 #include "components/sync/engine/nigori/key_derivation_params.h"
-#include "components/sync/engine/nigori/nigori.h"
-#include "components/sync/nigori/nigori_key_bag.h"
+#include "components/sync/protocol/nigori_local_data.pb.h"
 #include "testing/gmock/include/gmock/gmock.h"
 #include "testing/gtest/include/gtest/gtest.h"
 
@@ -117,8 +114,6 @@ TEST(CryptographerImplTest, ShouldSerializeToAndFromProto) {
       "password1", KeyDerivationParams::CreateForPbkdf2());
   const std::string key_name2 = original_cryptographer->EmplaceKey(
       "password2", KeyDerivationParams::CreateForPbkdf2());
-  original_cryptographer->EmplaceKeyPair(
-      CrossUserSharingPublicPrivateKeyPair::GenerateNewKeyPair(), 0);
 
   original_cryptographer->SelectDefaultEncryptionKey(key_name1);
   sync_pb::EncryptedData encrypted1;
@@ -133,7 +128,6 @@ TEST(CryptographerImplTest, ShouldSerializeToAndFromProto) {
       CryptographerImpl::FromProto(original_cryptographer->ToProto());
   ASSERT_THAT(restored_cryptographer, NotNull());
   EXPECT_TRUE(restored_cryptographer->CanEncrypt());
-  EXPECT_TRUE(restored_cryptographer->HasKeyPair(0));
 
   std::string decrypted;
   EXPECT_TRUE(restored_cryptographer->DecryptToString(encrypted1, &decrypted));
@@ -167,32 +161,13 @@ TEST(CryptographerImplTest, ShouldEmplaceKeyPair) {
   std::unique_ptr<CryptographerImpl> cryptographer =
       CryptographerImpl::CreateEmpty();
   ASSERT_THAT(cryptographer, NotNull());
-  absl::optional<CrossUserSharingPublicPrivateKeyPair> key_pair =
+  CrossUserSharingPublicPrivateKeyPair key_pair =
       CrossUserSharingPublicPrivateKeyPair::GenerateNewKeyPair();
-  ASSERT_TRUE(key_pair.has_value());
   ASSERT_FALSE(cryptographer->HasKeyPair(0));
 
-  cryptographer->EmplaceKeyPair(std::move(key_pair.value()), 0);
+  cryptographer->EmplaceKeyPair(std::move(key_pair), 0);
 
   EXPECT_TRUE(cryptographer->HasKeyPair(0));
-}
-
-TEST(CryptographerImplTest, ShouldEmplaceKeysFrom) {
-  std::unique_ptr<CryptographerImpl> cryptographer =
-      CryptographerImpl::CreateEmpty();
-  ASSERT_THAT(cryptographer, NotNull());
-  NigoriKeyBag key_bag = NigoriKeyBag::CreateEmpty();
-  const std::string key_name_1 = key_bag.AddKey(Nigori::CreateByDerivation(
-      KeyDerivationParams::CreateForPbkdf2(), "password1"));
-  const std::string key_name_2 = key_bag.AddKey(Nigori::CreateByDerivation(
-      KeyDerivationParams::CreateForPbkdf2(), "password2"));
-  ASSERT_FALSE(cryptographer->HasKey(key_name_1));
-  ASSERT_FALSE(cryptographer->HasKey(key_name_2));
-
-  cryptographer->EmplaceKeysFrom(key_bag);
-
-  EXPECT_TRUE(cryptographer->HasKey(key_name_1));
-  EXPECT_TRUE(cryptographer->HasKey(key_name_2));
 }
 
 TEST(CryptographerImplTest, ShouldEmplaceExistingKeyPair) {
@@ -208,59 +183,6 @@ TEST(CryptographerImplTest, ShouldEmplaceExistingKeyPair) {
       CrossUserSharingPublicPrivateKeyPair::GenerateNewKeyPair(), 0);
 
   EXPECT_TRUE(cryptographer->HasKeyPair(0));
-}
-
-TEST(CryptographerImplTest, ShouldEmplaceCrossUserSharingKeysFrom) {
-  std::unique_ptr<CryptographerImpl> cryptographer =
-      CryptographerImpl::CreateEmpty();
-  ASSERT_THAT(cryptographer, NotNull());
-  ASSERT_FALSE(cryptographer->HasKeyPair(0));
-  CrossUserSharingKeys keys = CrossUserSharingKeys::CreateEmpty();
-  keys.AddKeyPair(CrossUserSharingPublicPrivateKeyPair::GenerateNewKeyPair(),
-                  0);
-  keys.AddKeyPair(CrossUserSharingPublicPrivateKeyPair::GenerateNewKeyPair(),
-                  1);
-
-  cryptographer->EmplaceCrossUserSharingKeysFrom(keys);
-
-  EXPECT_TRUE(cryptographer->HasKeyPair(0));
-  EXPECT_TRUE(cryptographer->HasKeyPair(1));
-}
-
-TEST(CryptographerImplTest, ShouldEncryptAndDecryptForCrossUserSharing) {
-  std::unique_ptr<CryptographerImpl> cryptographer_sender =
-      CryptographerImpl::FromProto(
-          sync_pb::CryptographerData::default_instance(), 0);
-  ASSERT_THAT(cryptographer_sender, NotNull());
-  cryptographer_sender->EmplaceKeyPair(
-      CrossUserSharingPublicPrivateKeyPair::GenerateNewKeyPair(), 0);
-  std::unique_ptr<CryptographerImpl> cryptographer_recipient =
-      CryptographerImpl::FromProto(
-          sync_pb::CryptographerData::default_instance(), 0);
-
-  ASSERT_THAT(cryptographer_recipient, NotNull());
-  cryptographer_recipient->EmplaceKeyPair(
-      CrossUserSharingPublicPrivateKeyPair::GenerateNewKeyPair(), 0);
-
-  const std::string plaintext = "Sharing is caring";
-
-  absl::optional<std::vector<uint8_t>> encrypted_message =
-      cryptographer_sender->AuthEncryptForCrossUserSharing(
-          base::as_bytes(base::make_span(plaintext)),
-          cryptographer_recipient->GetCrossUserSharingKeyPairForTesting(0)
-              .GetRawPublicKey());
-
-  EXPECT_TRUE(encrypted_message.has_value());
-
-  absl::optional<std::vector<uint8_t>> decrypted_message =
-      cryptographer_recipient->AuthDecryptForCrossUserSharing(
-          encrypted_message.value(),
-          cryptographer_sender->GetCrossUserSharingKeyPairForTesting(0)
-              .GetRawPublicKey(),
-          0);
-
-  EXPECT_TRUE(decrypted_message.has_value());
-  EXPECT_THAT(decrypted_message.value(), testing::ElementsAreArray(plaintext));
 }
 
 }  // namespace syncer

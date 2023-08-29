@@ -7,7 +7,6 @@
 #include <utility>
 
 #include "base/functional/bind.h"
-#include "base/notreached.h"
 #include "base/observer_list.h"
 #include "base/task/sequenced_task_runner.h"
 #include "base/task/single_thread_task_runner.h"
@@ -60,7 +59,7 @@ NetworkConnectionTracker::~NetworkConnectionTracker() {
 }
 
 bool NetworkConnectionTracker::GetConnectionType(
-    network::mojom::ConnectionType* const type,
+    network::mojom::ConnectionType* type,
     ConnectionTypeCallback callback) {
   // |connection_type_| is initialized when NetworkService starts up. In most
   // cases, it won't be kConnectionTypeInvalid and code will return early.
@@ -88,7 +87,7 @@ bool NetworkConnectionTracker::GetConnectionType(
   return false;
 }
 
-bool NetworkConnectionTracker::IsOffline() const {
+bool NetworkConnectionTracker::IsOffline() {
   base::subtle::Atomic32 type_value =
       base::subtle::NoBarrier_Load(&connection_type_);
   if (type_value != kConnectionTypeInvalid) {
@@ -100,23 +99,24 @@ bool NetworkConnectionTracker::IsOffline() const {
 
 // static
 bool NetworkConnectionTracker::IsConnectionCellular(
-    const network::mojom::ConnectionType type) {
+    network::mojom::ConnectionType type) {
+  bool is_cellular = false;
   switch (type) {
     case network::mojom::ConnectionType::CONNECTION_2G:
     case network::mojom::ConnectionType::CONNECTION_3G:
     case network::mojom::ConnectionType::CONNECTION_4G:
     case network::mojom::ConnectionType::CONNECTION_5G:
-      return true;
-
+      is_cellular = true;
+      break;
     case network::mojom::ConnectionType::CONNECTION_UNKNOWN:
     case network::mojom::ConnectionType::CONNECTION_ETHERNET:
     case network::mojom::ConnectionType::CONNECTION_WIFI:
     case network::mojom::ConnectionType::CONNECTION_NONE:
     case network::mojom::ConnectionType::CONNECTION_BLUETOOTH:
-      return false;
+      is_cellular = false;
+      break;
   }
-
-  NOTREACHED_NORETURN() << "Unexpected connection type " << type;
+  return is_cellular;
 }
 
 void NetworkConnectionTracker::AddNetworkConnectionObserver(

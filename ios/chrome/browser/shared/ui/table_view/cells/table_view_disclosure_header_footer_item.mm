@@ -4,7 +4,7 @@
 
 #import "ios/chrome/browser/shared/ui/table_view/cells/table_view_disclosure_header_footer_item.h"
 
-#import "base/apple/foundation_util.h"
+#import "base/mac/foundation_util.h"
 #import "base/numerics/math_constants.h"
 #import "ios/chrome/browser/shared/ui/table_view/chrome_table_view_styler.h"
 #import "ios/chrome/browser/shared/ui/util/rtl_geometry.h"
@@ -13,6 +13,10 @@
 #import "ios/chrome/common/ui/table_view/table_view_cells_constants.h"
 #import "ios/chrome/grit/ios_strings.h"
 #import "ui/base/l10n/l10n_util_mac.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace {
 // Identity rotation angle that positions disclosure pointing down.
@@ -35,7 +39,7 @@ static const CGFloat kDisabledOpacity = (CGFloat)0.40;
                        withStyler:(ChromeTableViewStyler*)styler {
   [super configureHeaderFooterView:headerFooter withStyler:styler];
   TableViewDisclosureHeaderFooterView* header =
-      base::apple::ObjCCastStrict<TableViewDisclosureHeaderFooterView>(
+      base::mac::ObjCCastStrict<TableViewDisclosureHeaderFooterView>(
           headerFooter);
   header.titleLabel.text = self.text;
   header.subtitleLabel.text = self.subtitleText;

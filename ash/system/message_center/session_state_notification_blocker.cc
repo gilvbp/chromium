@@ -82,7 +82,7 @@ bool IsAllowedDuringOOBE(std::string_view notification_id) {
   // because profile-bound notifications have a profile-specific prefix added
   // to them.
   for (const auto& id : kAllowedProfileBoundNotificationIDs) {
-    if (base::Contains(notification_id, id)) {
+    if (notification_id.find(id) != std::string::npos) {
       return true;
     }
   }

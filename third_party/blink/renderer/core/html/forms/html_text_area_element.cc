@@ -33,7 +33,6 @@
 #include "third_party/blink/renderer/core/dom/document.h"
 #include "third_party/blink/renderer/core/dom/events/event.h"
 #include "third_party/blink/renderer/core/dom/events/simulated_click_options.h"
-#include "third_party/blink/renderer/core/dom/focus_params.h"
 #include "third_party/blink/renderer/core/dom/shadow_root.h"
 #include "third_party/blink/renderer/core/dom/text.h"
 #include "third_party/blink/renderer/core/editing/frame_selection.h"
@@ -188,19 +187,29 @@ void HTMLTextAreaElement::CollectStyleForPresentationAttribute(
     MutableCSSPropertyValueSet* style) {
   if (name == html_names::kWrapAttr) {
     if (ShouldWrapText()) {
-      // Longhands of `white-space: pre-wrap`.
-      AddPropertyToPresentationAttributeStyle(
-          style, CSSPropertyID::kWhiteSpaceCollapse, CSSValueID::kPreserve);
-      AddPropertyToPresentationAttributeStyle(style, CSSPropertyID::kTextWrap,
-                                              CSSValueID::kWrap);
+      if (!RuntimeEnabledFeatures::CSSWhiteSpaceShorthandEnabled()) {
+        AddPropertyToPresentationAttributeStyle(
+            style, CSSPropertyID::kWhiteSpace, CSSValueID::kPreWrap);
+      } else {
+        // Longhands of `white-space: pre-wrap`.
+        AddPropertyToPresentationAttributeStyle(
+            style, CSSPropertyID::kWhiteSpaceCollapse, CSSValueID::kPreserve);
+        AddPropertyToPresentationAttributeStyle(style, CSSPropertyID::kTextWrap,
+                                                CSSValueID::kWrap);
+      }
       AddPropertyToPresentationAttributeStyle(
           style, CSSPropertyID::kOverflowWrap, CSSValueID::kBreakWord);
     } else {
-      // Longhands of `white-space: pre`.
-      AddPropertyToPresentationAttributeStyle(
-          style, CSSPropertyID::kWhiteSpaceCollapse, CSSValueID::kPreserve);
-      AddPropertyToPresentationAttributeStyle(style, CSSPropertyID::kTextWrap,
-                                              CSSValueID::kNowrap);
+      if (!RuntimeEnabledFeatures::CSSWhiteSpaceShorthandEnabled()) {
+        AddPropertyToPresentationAttributeStyle(
+            style, CSSPropertyID::kWhiteSpace, CSSValueID::kPre);
+      } else {
+        // Longhands of `white-space: pre`.
+        AddPropertyToPresentationAttributeStyle(
+            style, CSSPropertyID::kWhiteSpaceCollapse, CSSValueID::kPreserve);
+        AddPropertyToPresentationAttributeStyle(style, CSSPropertyID::kTextWrap,
+                                                CSSValueID::kNowrap);
+      }
       AddPropertyToPresentationAttributeStyle(
           style, CSSPropertyID::kOverflowWrap, CSSValueID::kNormal);
     }
@@ -662,7 +671,7 @@ bool HTMLTextAreaElement::IsValidValue(const String& candidate) const {
 }
 
 void HTMLTextAreaElement::AccessKeyAction(SimulatedClickCreationScope) {
-  Focus(FocusParams(FocusTrigger::kUserGesture));
+  Focus();
 }
 
 void HTMLTextAreaElement::setCols(unsigned cols) {
@@ -737,14 +746,14 @@ bool HTMLTextAreaElement::IsInteractiveContent() const {
 
 void HTMLTextAreaElement::CloneNonAttributePropertiesFrom(
     const Element& source,
-    NodeCloningData& data) {
+    CloneChildrenFlag flag) {
   const auto& source_element = To<HTMLTextAreaElement>(source);
   SetValueCommon(source_element.Value(),
                  TextFieldEventBehavior::kDispatchNoEvent,
                  TextControlSetValueSelection::kSetSelectionToStart,
                  source_element.GetAutofillState());
   is_dirty_ = source_element.is_dirty_;
-  TextControlElement::CloneNonAttributePropertiesFrom(source, data);
+  TextControlElement::CloneNonAttributePropertiesFrom(source, flag);
 }
 
 String HTMLTextAreaElement::DefaultToolTip() const {

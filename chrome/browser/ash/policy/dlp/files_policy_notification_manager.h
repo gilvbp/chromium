@@ -8,7 +8,6 @@
 #include <memory>
 #include <queue>
 
-#include "base/files/file_path.h"
 #include "base/functional/callback_forward.h"
 #include "base/memory/raw_ptr.h"
 #include "chrome/browser/ash/file_manager/io_task.h"
@@ -18,12 +17,12 @@
 #include "chrome/browser/chromeos/policy/dlp/dlp_confidential_file.h"
 #include "chrome/browser/chromeos/policy/dlp/dlp_file_destination.h"
 #include "chrome/browser/chromeos/policy/dlp/dlp_files_utils.h"
+#include "chrome/browser/notifications/notification_display_service.h"
 #include "chrome/browser/ui/browser_list_observer.h"
 #include "components/keyed_service/core/keyed_service.h"
 #include "content/public/browser/browser_context.h"
 #include "third_party/abseil-cpp/absl/types/optional.h"
 #include "ui/gfx/native_widget_types.h"
-#include "ui/views/widget/widget_observer.h"
 
 namespace content {
 class BrowserContext;
@@ -60,9 +59,6 @@ class FilesPolicyNotificationManager
 
   ~FilesPolicyNotificationManager() override;
 
-  // KeyedService overrides:
-  void Shutdown() override;
-
   // Show DLP block UI. If `task_id` is set, the corresponding IOTask will be
   // updated with the blocked files. Otherwise a desktop notification will be
   // shown.
@@ -71,16 +67,9 @@ class FilesPolicyNotificationManager
       std::vector<base::FilePath> blocked_files,
       dlp::FileAction action);
 
-  // Add `blocked_files` from enterprise connectors to the information
-  // corresponding to the IOTask with `task_id`.
-  virtual void AddConnectorsBlockedFiles(
-      file_manager::io_task::IOTaskId task_id,
-      std::vector<base::FilePath> blocked_files,
-      dlp::FileAction action);
-
-  // Shows DLP Warning UI. If `task_id` is set, the corresponding IOTask
-  // will be paused. Otherwise a desktop notification will be shown. Virtual
-  // to allow overrides in tests.
+  // Shows DLP Warning UI. If `task_id` is set, the corresponding IOTask will be
+  // paused. Otherwise a desktop notification will be shown.
+  // Virtual to allow overrides in tests.
   virtual void ShowDlpWarning(
       OnDlpRestrictionCheckedCallback callback,
       absl::optional<file_manager::io_task::IOTaskId> task_id,
@@ -88,16 +77,9 @@ class FilesPolicyNotificationManager
       const DlpFileDestination& destination,
       dlp::FileAction action);
 
-  // Shows Connectors Warning UI and pauses the corresponding IOTask.
-  // Virtual to allow overrides in tests.
-  virtual void ShowConnectorsWarning(OnDlpRestrictionCheckedCallback callback,
-                                     file_manager::io_task::IOTaskId task_id,
-                                     std::vector<base::FilePath> warning_files,
-                                     dlp::FileAction action);
-
   // Shows a Files Policy warning or error desktop notification with
-  // `notification_id` based on `status`. Used for IO tasks.
-  virtual void ShowFilesPolicyNotification(
+  // `notification_id` based on `status`.
+  void ShowsFilesPolicyNotification(
       const std::string& notification_id,
       const file_manager::io_task::ProgressStatus& status);
 
@@ -106,31 +88,15 @@ class FilesPolicyNotificationManager
   void ShowDialog(file_manager::io_task::IOTaskId task_id,
                   FilesDialogType type);
 
-  // Shows a DLP warning timeout notification for `action`. `notification_id`
-  // should have value for IO tasks. When it  doesn't have a value, i.e. for non
-  // IO tasks, computes a new unique id for the notification.
-  void ShowDlpWarningTimeoutNotification(
-      dlp::FileAction action,
-      absl::optional<std::string> notification_id = absl::nullopt);
-
   // Returns whether IO task is being tracked.
   bool HasIOTask(file_manager::io_task::IOTaskId task_id) const;
 
   // Runs warning callback for the corresponding IOTask with should_proceed set
   // to true.
-  virtual void OnIOTaskResumed(file_manager::io_task::IOTaskId task_id);
-
-  // Force shows a desktop notification for all tracked IO tasks with blocked
-  // files.
-  void ShowBlockedNotifications();
-
-  // Clears any info stored about the task with `task_id`.
-  void OnErrorItemDismissed(file_manager::io_task::IOTaskId task_id);
+  void OnIOTaskResumed(file_manager::io_task::IOTaskId task_id);
 
   std::map<DlpConfidentialFile, Policy> GetIOTaskBlockedFilesForTesting(
       file_manager::io_task::IOTaskId task_id) const;
-  // Returns whether IO task has a warning timeout timer.
-  bool HasWarningTimerForTesting(file_manager::io_task::IOTaskId task_id) const;
 
   // Used in tests to set the test task runner.
   void SetTaskRunnerForTesting(scoped_refptr<base::SequencedTaskRunner>);
@@ -172,54 +138,21 @@ class FilesPolicyNotificationManager
   };
 
   // Holds needed information for each tracked file task.
-  class FileTaskInfo : public views::WidgetObserver {
-   public:
+  struct FileTaskInfo {
     explicit FileTaskInfo(dlp::FileAction action);
     FileTaskInfo(FileTaskInfo&& other);
-    ~FileTaskInfo() override;
-
-    // Starts observing `widget`. Should be called when the warning/error dialog
-    // is created.
-    void AddWidget(views::Widget* widget);
-    // Closes `widget_` if it's not nullptr.
-    void CloseWidget();
-    views::Widget* widget() const { return widget_; }
-
-    // Sets `warning_info_`.
-    void SetWarningInfo(WarningInfo warning_info);
-    // Resets `warning_info_`.
-    void ResetWarningInfo();
-    // Returns a pointer to WarningInfo if it exists. Otherwise, it returns
-    // nullptr.
-    WarningInfo* GetWarningInfo();
-    // Returns true if `warning_info_` has value.
-    bool HasWarningInfo() const;
-
-    const std::map<DlpConfidentialFile, Policy>& blocked_files() const {
-      return blocked_files_;
-    }
-    // Add `file` to the blocked files map.
-    void AddBlockedFile(DlpConfidentialFile file, Policy policy);
-
-    dlp::FileAction action() const { return action_; }
-
-   private:
-    // views::WidgetObserver overrides:
-    void OnWidgetDestroying(views::Widget* widget) override;
+    ~FileTaskInfo();
 
     // Should have value only if there's warning.
-    absl::optional<WarningInfo> warning_info_;
+    absl::optional<WarningInfo> warning_info;
     // A map of all files blocked to be transferred and the block reason for
     // each.
-    std::map<DlpConfidentialFile, Policy> blocked_files_;
+    std::map<DlpConfidentialFile, Policy> blocked_files;
     // The action that's restricted.
-    dlp::FileAction action_;
-    // Warning/Error dialog widget. Each FileTask is expected to have only one
-    // open dialog at a time.
-    raw_ptr<views::Widget> widget_ = nullptr;
-    // Warning/Error dialog widget observation.
-    base::ScopedObservation<views::Widget, views::WidgetObserver>
-        widget_observation_{this};
+    dlp::FileAction action;
+    // The destination of the action. Optional.
+    // TODO(b/285568353): Remove this.
+    absl::optional<DlpFileDestination> destination;
   };
 
   // Callback to show the dialog. Invoked with a Files App window when
@@ -251,11 +184,6 @@ class FilesPolicyNotificationManager
     base::OneShotTimer timeout_timer;
   };
 
-  // Shows a Files Policy warning or error desktop notification with
-  // `notification_id` for an IOTask with `task_id`.
-  void ShowFilesPolicyNotification(const std::string& notification_id,
-                                   file_manager::io_task::IOTaskId task_id);
-
   // Click handler for Data Leak Prevention or Enterprise Connectors policy
   // warning notifications.
   void HandleFilesPolicyWarningNotificationClick(
@@ -271,8 +199,13 @@ class FilesPolicyNotificationManager
       absl::optional<int> button_index);
 
   // Click handler for DLP warning notifications. Used for non IO tasks.
-  void HandleDlpWarningNotificationClick(std::string notification_id,
-                                         absl::optional<int> button_index);
+  void HandleDlpWarningNotificationClick(
+      std::string notification_id,
+      OnDlpRestrictionCheckedCallback callback,
+      std::vector<DlpConfidentialFile> files,
+      DlpFileDestination destination,
+      dlp::FileAction action,
+      absl::optional<int> button_index);
 
   // Click handler for DLP error notifications. Used for non IO tasks.
   void HandleDlpErrorNotificationClick(std::string notification_id,
@@ -307,7 +240,7 @@ class FilesPolicyNotificationManager
   // BrowserListObserver overrides:
   // Called when opening a new Files App window to use as the modal parent for a
   // FilesPolicyDialog.
-  void OnBrowserAdded(Browser* browser) override;
+  void OnBrowserSetLastActive(Browser* browser) override;
 
   // file_manager::io_task::IOTaskController::Observer overrides:
   void OnIOTaskStatus(
@@ -339,6 +272,7 @@ class FilesPolicyNotificationManager
   // associated with `notification_id`. Resumes/cancels the operation based on
   // the value of `should_proceed`.
   void OnNonIOTaskWarningDialogClicked(const std::string& notification_id,
+                                       Policy warning_reason,
                                        bool should_proceed);
 
   // Opens DLP Learn more link and closes the notification having
@@ -351,6 +285,9 @@ class FilesPolicyNotificationManager
 
   // Calls the IOTaskController to cancel the task with `task_id`.
   void Cancel(file_manager::io_task::IOTaskId task_id);
+
+  // KeyedService overrides:
+  void Shutdown() override;
 
   // Shows DLP block desktop notification.
   void ShowDlpBlockNotification(std::vector<base::FilePath> blocked_files,
@@ -369,35 +306,28 @@ class FilesPolicyNotificationManager
                    dlp::FileAction action,
                    Policy warning_reason);
 
+  // Starts a timer when `info` is created.
+  void StartTimer(DialogInfo* info, base::OnceClosure on_timeout_callback);
+
   // Called after opening the Files App times out.
   // Stops waiting for the app and shows a dialog for `task_id` without a modal
   // parent (i.e. as a system modal).
-  void OnIOTaskAppLaunchTimedOut(file_manager::io_task::IOTaskId task_id);
+  void OnIOTaskTimedOut(file_manager::io_task::IOTaskId task_id);
 
   // Called after opening the Files App times out.
   // Stops waiting for the app and shows a dialog for `notification_id` without
   // a modal parent (i.e. as a system modal).
-  void OnNonIOTaskAppLaunchTimedOut(std::string notification_id);
+  void OnNonIOTaskTimedOut(std::string notification_id);
 
   // Helper method that pops the oldest entry from `pending_dialogs_` and
   // creates a dialog with with `modal_parent`. No-op if the list is empty.
   void ShowPendingDialog(gfx::NativeWindow modal_parent);
 
-  // Called when the warning times out. Stops waiting for the user input,
-  // cancels the task, and runs the warning callback with should_proceed set to
-  // false.
-  void OnIOTaskWarningTimedOut(const file_manager::io_task::IOTaskId& task_id);
-
-  // Called when the warning times out. Stops waiting for the user input, and
-  // runs the warning callback with should_proceed set to false.
-  void OnNonIOTaskWarningTimedOut(const std::string& notification_id);
-
   // Callback to show a policy dialog after waiting to open a Files App window.
   base::OnceCallback<void(gfx::NativeWindow)> pending_callback_;
 
   // Context for which the FPNM is created.
-  raw_ptr<content::BrowserContext, DanglingUntriaged | ExperimentalAsh>
-      context_;
+  raw_ptr<content::BrowserContext, ExperimentalAsh> context_;
 
   // A map from tracked IO tasks ids to their info.
   std::map<file_manager::io_task::IOTaskId, FileTaskInfo> io_tasks_;
@@ -410,15 +340,6 @@ class FilesPolicyNotificationManager
 
   // Used to fallack to system modal if opening the Files App times out.
   scoped_refptr<base::SequencedTaskRunner> task_runner_;
-
-  // Active timers for IOTasks warnings.
-  base::flat_map<file_manager::io_task::IOTaskId,
-                 std::unique_ptr<base::OneShotTimer>>
-      io_tasks_warning_timers_;
-
-  // Active timers for non-IOTasks warnings.
-  base::flat_map<std::string, std::unique_ptr<base::OneShotTimer>>
-      non_io_tasks_warning_timers_;
 
   base::WeakPtrFactory<FilesPolicyNotificationManager> weak_factory_{this};
 };

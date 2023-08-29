@@ -56,11 +56,9 @@ bool NetworkDelegateImpl::OnAnnotateAndMoveUserBlockedCookies(
   return true;
 }
 
-bool NetworkDelegateImpl::OnCanSetCookie(
-    const URLRequest& request,
-    const net::CanonicalCookie& cookie,
-    CookieOptions* options,
-    CookieInclusionStatus* inclusion_status) {
+bool NetworkDelegateImpl::OnCanSetCookie(const URLRequest& request,
+                                         const net::CanonicalCookie& cookie,
+                                         CookieOptions* options) {
   return true;
 }
 

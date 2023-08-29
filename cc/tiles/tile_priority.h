@@ -36,14 +36,14 @@ std::string TileResolutionToString(TileResolution resolution);
 struct CC_EXPORT TilePriority {
   enum PriorityBin { NOW, SOON, EVENTUALLY };
 
-  constexpr TilePriority()
+  TilePriority()
       : resolution(NON_IDEAL_RESOLUTION),
         priority_bin(EVENTUALLY),
         distance_to_visible(std::numeric_limits<float>::infinity()) {}
 
-  constexpr TilePriority(TileResolution resolution,
-                         PriorityBin bin,
-                         float distance_to_visible)
+  TilePriority(TileResolution resolution,
+               PriorityBin bin,
+               float distance_to_visible)
       : resolution(resolution),
         priority_bin(bin),
         distance_to_visible(distance_to_visible) {}

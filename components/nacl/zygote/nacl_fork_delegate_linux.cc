@@ -220,7 +220,8 @@ void NaClForkDelegate::Init(const int sandboxdesc,
       };
       const base::CommandLine& current_cmd_line =
           *base::CommandLine::ForCurrentProcess();
-      cmd_line.CopySwitchesFrom(current_cmd_line, kForwardSwitches);
+      cmd_line.CopySwitchesFrom(current_cmd_line, kForwardSwitches,
+                                std::size(kForwardSwitches));
 
       // The command line needs to be tightly controlled to use
       // |helper_bootstrap_exe|. So from now on, argv_to_launch should be

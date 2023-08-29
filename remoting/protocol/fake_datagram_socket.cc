@@ -6,7 +6,6 @@
 
 #include <utility>
 
-#include "base/containers/contains.h"
 #include "base/functional/bind.h"
 #include "base/location.h"
 #include "base/task/single_thread_task_runner.h"
@@ -180,7 +179,7 @@ void FakeDatagramChannelFactory::NotifyChannelCreated(
     std::unique_ptr<FakeDatagramSocket> owned_socket,
     const std::string& name,
     ChannelCreatedCallback callback) {
-  if (base::Contains(channels_, name)) {
+  if (channels_.find(name) != channels_.end()) {
     std::move(callback).Run(std::move(owned_socket));
   }
 }

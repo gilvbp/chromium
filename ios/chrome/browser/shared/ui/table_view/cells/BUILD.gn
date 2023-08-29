@@ -82,6 +82,7 @@ source_set("cells") {
     "//net",
     "//ui/base",
   ]
+  configs += [ "//build/config/compiler:enable_arc" ]
 }
 
 source_set("unit_tests") {
@@ -116,4 +117,6 @@ source_set("unit_tests") {
     "//testing/gtest",
     "//third_party/ocmock:ocmock",
   ]
+
+  configs += [ "//build/config/compiler:enable_arc" ]
 }

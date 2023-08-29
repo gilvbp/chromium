@@ -12,7 +12,6 @@
 #include "base/check.h"
 #include "base/ranges/algorithm.h"
 #include "base/types/expected.h"
-#include "base/types/expected_macros.h"
 #include "base/values.h"
 #include "components/attribution_reporting/constants.h"
 #include "components/attribution_reporting/filters.h"
@@ -136,11 +135,20 @@ AggregatableTriggerData::FromJSON(base::Value& value) {
         TriggerRegistrationError::kAggregatableTriggerDataWrongType);
   }
 
-  ASSIGN_OR_RETURN(auto key_piece, ParseKeyPiece(*dict));
-  ASSIGN_OR_RETURN(auto source_keys, ParseSourceKeys(*dict));
-  ASSIGN_OR_RETURN(auto filters, FilterPair::FromJSON(*dict));
-  return AggregatableTriggerData(key_piece, std::move(source_keys),
-                                 std::move(filters));
+  auto key_piece = ParseKeyPiece(*dict);
+  if (!key_piece.has_value()) {
+    return base::unexpected(key_piece.error());
+  }
+  auto source_keys = ParseSourceKeys(*dict);
+  if (!source_keys.has_value()) {
+    return base::unexpected(source_keys.error());
+  }
+  auto filters = FilterPair::FromJSON(*dict);
+  if (!filters.has_value()) {
+    return base::unexpected(filters.error());
+  }
+  return AggregatableTriggerData(*key_piece, std::move(*source_keys),
+                                 std::move(*filters));
 }
 
 AggregatableTriggerData::AggregatableTriggerData() = default;

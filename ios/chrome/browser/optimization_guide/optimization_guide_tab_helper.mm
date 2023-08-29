@@ -13,6 +13,10 @@
 #import "ios/web/public/navigation/navigation_context.h"
 #import "url/gurl.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 IOSOptimizationGuideNavigationData::IOSOptimizationGuideNavigationData(
     int64_t navigation_id)
     : OptimizationGuideNavigationData(

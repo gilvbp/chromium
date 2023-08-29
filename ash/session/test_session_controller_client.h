@@ -99,8 +99,7 @@ class TestSessionControllerClient : public SessionControllerClient {
       user_manager::UserType user_type = user_manager::USER_TYPE_REGULAR,
       bool provide_pref_service = true,
       bool is_new_profile = false,
-      const std::string& given_name = std::string(),
-      bool is_account_managed = false);
+      const std::string& given_name = std::string());
 
   // Adds a user session from a given AccountId.
   void AddUserSession(
@@ -109,8 +108,7 @@ class TestSessionControllerClient : public SessionControllerClient {
       user_manager::UserType user_type = user_manager::USER_TYPE_REGULAR,
       bool provide_pref_service = true,
       bool is_new_profile = false,
-      const std::string& given_name = std::string(),
-      bool is_account_managed = false);
+      const std::string& given_name = std::string());
 
   // Creates a test PrefService and associates it with the user.
   void ProvidePrefServiceForUser(const AccountId& account_id);

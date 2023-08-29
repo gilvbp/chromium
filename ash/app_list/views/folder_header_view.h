@@ -44,7 +44,6 @@ class ASH_EXPORT FolderHeaderView : public views::View,
   void OnBoundsChanged(const gfx::Rect& previous_bounds) override;
 
   views::Textfield* GetFolderNameViewForTest() const;
-  bool IsFolderNameViewActiveForTest() const;
 
   int GetMaxFolderNameCharLengthForTest() const;
 

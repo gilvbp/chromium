@@ -234,27 +234,27 @@ export class PrintPreviewDestinationSettingsElement extends
   /**
    * @param defaultPrinter The system default printer ID.
    * @param pdfPrinterDisabled Whether the PDF printer is disabled.
-   * @param saveToDriveDisabled Whether the 'Save to Google Drive' destination
-   *     is disabled in print preview. Only used on Chrome OS.
+   * @param isDriveMounted Whether Google Drive is mounted. Only used
+        on Chrome OS.
    * @param serializedDefaultDestinationRulesStr String with rules
    *     for selecting a default destination.
    */
   init(
       defaultPrinter: string, pdfPrinterDisabled: boolean,
-      saveToDriveDisabled: boolean,
+      isDriveMounted: boolean,
       serializedDefaultDestinationRulesStr: string|null) {
     this.pdfPrinterDisabled_ = pdfPrinterDisabled;
     let recentDestinations =
         this.getSettingValue('recentDestinations') as RecentDestination[];
     // <if expr="is_chromeos">
     this.driveDestinationKey_ =
-        saveToDriveDisabled ? '' : SAVE_TO_DRIVE_CROS_DESTINATION_KEY;
+        isDriveMounted ? SAVE_TO_DRIVE_CROS_DESTINATION_KEY : '';
     // </if>
 
     recentDestinations = recentDestinations.slice(
         0, this.getRecentDestinationsDisplayCount_(recentDestinations));
     this.destinationStore_!.init(
-        this.pdfPrinterDisabled_, saveToDriveDisabled, defaultPrinter,
+        this.pdfPrinterDisabled_, isDriveMounted, defaultPrinter,
         serializedDefaultDestinationRulesStr, recentDestinations);
   }
 

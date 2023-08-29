@@ -38,17 +38,19 @@ class TreeModelNode {
 class COMPONENT_EXPORT(UI_BASE) TreeModelObserver {
  public:
   // Notification that nodes were added to the specified parent.
-  virtual void TreeNodeAdded(TreeModel* model,
-                             TreeModelNode* parent,
-                             size_t index) {}
+  virtual void TreeNodesAdded(TreeModel* model,
+                              TreeModelNode* parent,
+                              size_t start,
+                              size_t count) = 0;
 
   // Notification that nodes were removed from the specified parent.
-  virtual void TreeNodeRemoved(TreeModel* model,
-                               TreeModelNode* parent,
-                               size_t index) {}
+  virtual void TreeNodesRemoved(TreeModel* model,
+                                TreeModelNode* parent,
+                                size_t start,
+                                size_t count) = 0;
 
   // Notification that the contents of a node has changed.
-  virtual void TreeNodeChanged(TreeModel* model, TreeModelNode* node) {}
+  virtual void TreeNodeChanged(TreeModel* model, TreeModelNode* node) = 0;
 
  protected:
   virtual ~TreeModelObserver() {}

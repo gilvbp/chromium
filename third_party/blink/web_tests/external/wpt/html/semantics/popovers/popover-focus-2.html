@@ -35,27 +35,29 @@
   }
 </style>
 <script>
-async function verifyFocusOrder(order,description) {
+async function verifyFocusOrder(order) {
   order[0].focus();
   for(let i=0;i<order.length;++i) {
     const control = order[i];
-    assert_equals(document.activeElement,control,`${description}: Step ${i+1}`);
+    assert_equals(document.activeElement,control,`Step ${i+1}`);
     await sendTab();
   }
-  for(let i=order.length-1;i>=0;--i) {
-    const control = order[i];
-    await sendShiftTab();
-    assert_equals(document.activeElement,control,`${description}: Step ${i+1} (backwards)`);
-  }
+  // Shift-tab not supported, crbug.com/893480.
+  // for(let i=order.length-1;i>=0;--i) {
+  //   const control = order[i];
+  //   await sendShiftTab();
+  //   assert_equals(document.activeElement,control,`Step ${i+1} (backwards)`);
+  // }
 }
 promise_test(async t => {
   button1.focus();
   assert_equals(document.activeElement,button1);
   await sendTab();
   assert_equals(document.activeElement,button2,'Hidden popover should be skipped');
-  await sendShiftTab();
-  assert_equals(document.activeElement,button1,'Hidden popover should be skipped backwards');
-  await sendTab();
+  // Shift-tab not supported, crbug.com/893480.
+  // await sendShiftTab();
+  // assert_equals(document.activeElement,button1,'Hidden popover should be skipped backwards');
+  //await sendTab();
   await sendTab();
   assert_equals(document.activeElement,invoker1);
   await sendEnter(); // Activate the invoker
@@ -65,7 +67,7 @@ promise_test(async t => {
   assert_equals(document.activeElement,inside_popover1,'Focus should move from invoker into the open popover');
   await sendTab();
   assert_equals(document.activeElement,invoker2,'Focus should move within popover');
-  await verifyFocusOrder([button1, button2, invoker1, inside_popover1, invoker2, inside_popover2, button3, button4],'set 1');
+  await verifyFocusOrder([button1, button2, invoker1, inside_popover1, invoker2, inside_popover2, button3, button4]);
   invoker2.focus();
   await sendEnter(); // Activate the nested invoker
   assert_true(popover2.matches(':popover-open'), 'popover2 should be invoked by nested invoker');
@@ -79,16 +81,12 @@ promise_test(async t => {
   assert_equals(document.activeElement,invoker3,'Focus should stay on the invoker');
   await sendTab();
   assert_equals(document.activeElement,inside_popover2,'Focus should skip popover without focusable content, going back to higher scope');
-  await sendShiftTab();
-  assert_equals(document.activeElement,invoker3,'Shift-tab from the higher scope should return to the lower scope');
-  await sendTab();
-  assert_equals(document.activeElement,inside_popover2);
   await sendTab();
   assert_equals(document.activeElement,button3,'Focus should exit popovers');
   await sendTab();
   assert_equals(document.activeElement,button4,'Focus should skip popovers');
   button1.focus();
-  await verifyFocusOrder([button1, button2, invoker1, inside_popover1, invoker2, inside_popover3, invoker3, inside_popover2, button3, button4],'set 2');
+  await verifyFocusOrder([button1, button2, invoker1, inside_popover1, invoker2, inside_popover3, invoker3, inside_popover2, button3, button4]);
 }, "Popover focus navigation");
 </script>
 
@@ -98,12 +96,12 @@ promise_test(async t => {
   <button id=circular2 popovertarget=popover4 popovertargetaction=show tabindex="0"></button>
   <button id=circular3 popovertarget=popover4 tabindex="0"></button>
 </div>
-<button id=circular4 tabindex="0">after</button>
+<button id=circular4>after</button>
 <script>
 promise_test(async t => {
   circular0.focus();
   await sendEnter(); // Activate the invoker
-  await verifyFocusOrder([circular0, circular1, circular2, circular3, circular4],'circular reference');
+  await verifyFocusOrder([circular0, circular1, circular2, circular3, circular4]);
   popover4.hidePopover();
 }, "Circular reference tab navigation");
 </script>

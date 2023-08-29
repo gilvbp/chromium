@@ -9,7 +9,6 @@
 #include "base/functional/callback.h"
 #include "base/memory/raw_ptr.h"
 #include "base/memory/weak_ptr.h"
-#include "extensions/common/extension_id.h"
 
 namespace content {
 class BrowserContext;
@@ -51,7 +50,7 @@ class AccessibilityExtensionLoader {
                                   base::OnceClosure done_cb);
   void UnloadExtension(content::BrowserContext* browser_context);
 
-  extensions::ExtensionId extension_id_;
+  std::string extension_id_;
   base::FilePath extension_path_;
   const base::FilePath::CharType* manifest_filename_;
   const base::FilePath::CharType* guest_manifest_filename_;

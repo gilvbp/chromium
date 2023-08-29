@@ -23,13 +23,6 @@ class Profile;
 // the download toolbar button.
 class DownloadBubbleUIController {
  public:
-  // Get a valid controller for the given `download`. In the case of web apps,
-  // this will always be the web app window's controller. For regular downloads,
-  // this could be the controller for the most recently active window associated
-  // with this profile.
-  static DownloadBubbleUIController* GetForDownload(
-      download::DownloadItem* download);
-
   explicit DownloadBubbleUIController(Browser* browser);
   // Used to inject a custom DownloadBubbleUpdateService for testing. Prefer
   // the constructor above which uses that of the profile.
@@ -69,15 +62,9 @@ class DownloadBubbleUIController {
   std::vector<DownloadUIModel::DownloadUIModelPtr> GetPartialView();
 
   // Process button press on the bubble.
-  void ProcessDownloadButtonPress(base::WeakPtr<DownloadUIModel> model,
+  void ProcessDownloadButtonPress(DownloadUIModel* model,
                                   DownloadCommands::Command command,
                                   bool is_main_view);
-
-  // Process button press on the bubble and return whether the bubble should
-  // close.
-  bool ProcessDownloadButtonPressWithClose(base::WeakPtr<DownloadUIModel> model,
-                                           DownloadCommands::Command command,
-                                           bool is_main_view);
 
   // Notify when a download toolbar button (in any window) is pressed.
   void HandleButtonPressed();
@@ -138,8 +125,7 @@ class DownloadBubbleUIController {
   // DownloadDisplayController and DownloadBubbleUIController have the same
   // lifetime. Both are owned, constructed together, and destructed together by
   // DownloadToolbarButtonView. If one is valid, so is the other.
-  raw_ptr<DownloadDisplayController, AcrossTasksDanglingUntriaged>
-      display_controller_;
+  raw_ptr<DownloadDisplayController, DanglingUntriaged> display_controller_;
 
   absl::optional<base::Time> last_partial_view_shown_time_ = absl::nullopt;
 

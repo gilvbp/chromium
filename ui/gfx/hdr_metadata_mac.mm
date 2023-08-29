@@ -7,14 +7,18 @@
 
 #include <simd/simd.h>
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace gfx {
 
-base::apple::ScopedCFTypeRef<CFDataRef> GenerateContentLightLevelInfo(
+base::ScopedCFTypeRef<CFDataRef> GenerateContentLightLevelInfo(
     const absl::optional<gfx::HDRMetadata>& hdr_metadata) {
   if (!hdr_metadata || !hdr_metadata->cta_861_3 ||
       hdr_metadata->cta_861_3->max_content_light_level == 0.f ||
       hdr_metadata->cta_861_3->max_frame_average_light_level == 0.f) {
-    return base::apple::ScopedCFTypeRef<CFDataRef>();
+    return base::ScopedCFTypeRef<CFDataRef>();
   }
 
   // This is a SMPTEST2086 Content Light Level Information box.
@@ -31,11 +35,11 @@ base::apple::ScopedCFTypeRef<CFDataRef> GenerateContentLightLevelInfo(
   sei.max_frame_average_light_level =
       __builtin_bswap16(hdr_metadata->cta_861_3->max_frame_average_light_level);
 
-  return base::apple::ScopedCFTypeRef<CFDataRef>(
+  return base::ScopedCFTypeRef<CFDataRef>(
       CFDataCreate(nullptr, reinterpret_cast<const UInt8*>(&sei), 4));
 }
 
-base::apple::ScopedCFTypeRef<CFDataRef> GenerateMasteringDisplayColorVolume(
+base::ScopedCFTypeRef<CFDataRef> GenerateMasteringDisplayColorVolume(
     const absl::optional<gfx::HDRMetadata>& hdr_metadata) {
   // This is a SMPTEST2086 Mastering Display Color Volume box.
   struct MasteringDisplayColorVolumeSEI {
@@ -78,7 +82,7 @@ base::apple::ScopedCFTypeRef<CFDataRef> GenerateMasteringDisplayColorVolume(
   sei.luminance_max = __builtin_bswap32(md->luminance_max + 0.5f);
   sei.luminance_min = __builtin_bswap32(md->luminance_min + 0.5f);
 
-  return base::apple::ScopedCFTypeRef<CFDataRef>(
+  return base::ScopedCFTypeRef<CFDataRef>(
       CFDataCreate(nullptr, reinterpret_cast<const UInt8*>(&sei), 24));
 }
 

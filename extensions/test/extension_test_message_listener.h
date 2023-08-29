@@ -207,7 +207,7 @@ class ExtensionTestMessageListener : public extensions::TestApiObserver {
   const ReplyBehavior reply_behavior_;
 
   // The extension id that we listen for, or empty.
-  extensions::ExtensionId extension_id_;
+  std::string extension_id_;
 
   // If non-null, we listen to messages only from this BrowserContext.
   raw_ptr<const content::BrowserContext> browser_context_ = nullptr;

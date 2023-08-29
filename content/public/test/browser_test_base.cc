@@ -19,7 +19,6 @@
 #include "base/feature_list.h"
 #include "base/files/file_path.h"
 #include "base/functional/bind.h"
-#include "base/functional/callback_helpers.h"
 #include "base/i18n/icu_util.h"
 #include "base/location.h"
 #include "base/logging.h"
@@ -51,7 +50,6 @@
 #include "content/browser/startup_data_impl.h"
 #include "content/browser/startup_helper.h"
 #include "content/browser/storage_partition_impl.h"
-#include "content/browser/tracing/background_tracing_manager_impl.h"
 #include "content/browser/tracing/memory_instrumentation_util.h"
 #include "content/browser/tracing/startup_tracing_controller.h"
 #include "content/browser/tracing/tracing_controller_impl.h"
@@ -410,6 +408,13 @@ void BrowserTestBase::SetUp() {
   use_software_gl = false;
 #endif
 
+#if BUILDFLAG(IS_CHROMEOS_ASH)
+  // If the test is running on the chromeos envrionment (such as
+  // device or vm bots), we use hardware GL.
+  if (base::SysInfo::IsRunningOnChromeOS())
+    use_software_gl = false;
+#endif
+
 #if BUILDFLAG(IS_FUCHSIA)
   // GPU support is not available to tests.
   // TODO(crbug.com/1259462): Enable GPU support.
@@ -593,7 +598,7 @@ void BrowserTestBase::SetUp() {
   // Unlike other platforms, android_browsertests can reuse the same process for
   // multiple tests. Need to reset startup metrics to allow recording them
   // again.
-  startup_metric_utils::GetBrowser().ResetSessionForTesting();
+  startup_metric_utils::ResetSessionForTesting();
 
   base::i18n::AllowMultipleInitializeCallsForTesting();
   base::i18n::InitializeICU();
@@ -775,7 +780,8 @@ void BrowserTestBase::SimulateNetworkServiceCrash() {
   FlushNetworkServiceInstanceForTesting();
 
   // Need to re-initialize the network process.
-  ForceInitializeNetworkProcess();
+  initialized_network_process_ = false;
+  InitializeNetworkProcess();
 }
 
 void BrowserTestBase::IgnoreNetworkServiceCrashes() {
@@ -889,11 +895,6 @@ void BrowserTestBase::ProxyRunTestOnMainThreadLoop() {
                          base::Unretained(this)));
     }
     initial_web_contents_.reset();
-
-    OnRestartNetworkServiceForTesting(
-        base::BindRepeating(&BrowserTestBase::ForceInitializeNetworkProcess,
-                            base::Unretained(this)));
-
     SetUpOnMainThread();
 
     if (!IsSkipped()) {
@@ -915,8 +916,6 @@ void BrowserTestBase::ProxyRunTestOnMainThreadLoop() {
 
     TearDownOnMainThread();
     AssertThatNetworkServiceDidNotCrash();
-
-    OnRestartNetworkServiceForTesting(base::NullCallback());
   }
 
   PostRunTestOnMainThread();
@@ -1002,7 +1001,7 @@ void BrowserTestBase::AssertThatNetworkServiceDidNotCrash() {
   // TODO(https://crbug.com/1169431#c2): Enable NetworkService crash detection
   // on Fuchsia.
 #if !BUILDFLAG(IS_FUCHSIA)
-  if (initialized_network_process_ && network_service_test_.is_bound()) {
+  if (network_service_test_.is_bound()) {
     // If there was a crash, then |network_service_test_| will receive an error
     // notification, but it's not guaranteed to have arrived at this point.
     // Flush the remote to make sure the notification has been received.
@@ -1012,11 +1011,6 @@ void BrowserTestBase::AssertThatNetworkServiceDidNotCrash() {
         << "Expecting no NetworkService crashes";
   }
 #endif
-}
-
-void BrowserTestBase::ForceInitializeNetworkProcess() {
-  initialized_network_process_ = false;
-  InitializeNetworkProcess();
 }
 
 void BrowserTestBase::InitializeNetworkProcess() {

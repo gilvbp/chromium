@@ -32,27 +32,35 @@ class MockPermissionManager : public PermissionControllerDelegate {
                blink::mojom::PermissionStatus(blink::PermissionType permission,
                                               const GURL& requesting_origin,
                                               const GURL& embedding_origin));
-  MOCK_METHOD3(GetPermissionResultForOriginWithoutContext,
-               PermissionResult(blink::PermissionType permission,
-                                const url::Origin& requesting_origin,
-                                const url::Origin& embedding_origin));
-  MOCK_METHOD2(
-      GetPermissionStatusForCurrentDocument,
-      blink::mojom::PermissionStatus(blink::PermissionType permission,
-                                     RenderFrameHost* render_frame_host));
-  MOCK_METHOD3(
-      GetPermissionStatusForWorker,
-      blink::mojom::PermissionStatus(blink::PermissionType permission,
-                                     RenderProcessHost* render_process_host,
-                                     const GURL& worker_origin));
+  MOCK_METHOD2(GetPermissionResultForOriginWithoutContext,
+               content::PermissionResult(blink::PermissionType permission,
+                                         const url::Origin& origin));
+  MOCK_METHOD2(GetPermissionStatusForCurrentDocument,
+               blink::mojom::PermissionStatus(
+                   blink::PermissionType permission,
+                   content::RenderFrameHost* render_frame_host));
+  MOCK_METHOD3(GetPermissionStatusForWorker,
+               blink::mojom::PermissionStatus(
+                   blink::PermissionType permission,
+                   content::RenderProcessHost* render_process_host,
+                   const GURL& worker_origin));
   MOCK_METHOD3(
       GetPermissionStatusForEmbeddedRequester,
       blink::mojom::PermissionStatus(blink::PermissionType permission,
                                      RenderFrameHost* render_frame_host,
                                      const url::Origin& overridden_origin));
-  void RequestPermissions(
+  void RequestPermission(
+      blink::PermissionType permission,
       RenderFrameHost* render_frame_host,
-      const PermissionRequestDescription& request_description,
+      const GURL& requesting_origin,
+      bool user_gesture,
+      base::OnceCallback<void(blink::mojom::PermissionStatus)> callback)
+      override;
+  void RequestPermissions(
+      const std::vector<blink::PermissionType>& permission,
+      RenderFrameHost* render_frame_host,
+      const GURL& requesting_origin,
+      bool user_gesture,
       base::OnceCallback<
           void(const std::vector<blink::mojom::PermissionStatus>&)> callback)
       override;
@@ -60,8 +68,9 @@ class MockPermissionManager : public PermissionControllerDelegate {
                        const GURL& requesting_origin,
                        const GURL& embedding_origin) override;
   void RequestPermissionsFromCurrentDocument(
-      RenderFrameHost* render_frame_host,
-      const PermissionRequestDescription& request_description,
+      const std::vector<blink::PermissionType>& permissions,
+      content::RenderFrameHost* render_frame_host,
+      bool user_gesture,
       base::OnceCallback<
           void(const std::vector<blink::mojom::PermissionStatus>&)> callback)
       override;

@@ -325,9 +325,7 @@ namespace networkingPrivate {
     EAPProperties? EAP;
     DOMString? Group;
     long? IKEVersion;
-    DOMString? LocalIdentity;
     DOMString? PSK;
-    DOMString? RemoteIdentity;
     boolean? SaveCredentials;
     DOMString[]? ServerCAPEMs;
     DOMString[]? ServerCARefs;

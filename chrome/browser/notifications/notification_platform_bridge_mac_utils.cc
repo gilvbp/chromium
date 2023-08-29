@@ -154,11 +154,10 @@ bool VerifyMacNotificationData(
 }
 
 void ProcessMacNotificationResponse(
-    mac_notifications::NotificationStyle notification_style,
+    bool is_alert,
     mac_notifications::mojom::NotificationActionInfoPtr info) {
   bool is_valid = VerifyMacNotificationData(info);
-  mac_notifications::LogMacNotificationActionReceived(notification_style,
-                                                      is_valid);
+  mac_notifications::LogMacNotificationActionReceived(is_alert, is_valid);
 
   if (!is_valid)
     return;

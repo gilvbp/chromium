@@ -33,10 +33,9 @@ BrowsingDataRemoverDelegateFactory::BrowsingDataRemoverDelegateFactory()
 BrowsingDataRemoverDelegateFactory::~BrowsingDataRemoverDelegateFactory() =
     default;
 
-std::unique_ptr<KeyedService>
-BrowsingDataRemoverDelegateFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* BrowsingDataRemoverDelegateFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
-  return std::make_unique<BrowsingDataRemoverDelegate>(context);
+  return new BrowsingDataRemoverDelegate(context);
 }
 
 content::BrowserContext*

@@ -57,10 +57,6 @@ String ToString(CSSMathOperator op) {
       return "rem";
     case CSSMathOperator::kHypot:
       return "hypot";
-    case CSSMathOperator::kAbs:
-      return "abs";
-    case CSSMathOperator::kSign:
-      return "sign";
     default:
       NOTREACHED();
       return String();

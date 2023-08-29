@@ -36,9 +36,8 @@ class GPURenderBundleEncoder : public DawnObject<WGPURenderBundleEncoder>,
 
   // gpu_render_bundle_encoder.idl
   void setBindGroup(uint32_t index, DawnObject<WGPUBindGroup>* bindGroup) {
-    WGPUBindGroupImpl* bgImpl = bindGroup ? bindGroup->GetHandle() : nullptr;
-    GetProcs().renderBundleEncoderSetBindGroup(GetHandle(), index, bgImpl, 0,
-                                               nullptr);
+    GetProcs().renderBundleEncoderSetBindGroup(
+        GetHandle(), index, bindGroup->GetHandle(), 0, nullptr);
   }
   void setBindGroup(uint32_t index,
                     GPUBindGroup* bindGroup,
@@ -82,17 +81,15 @@ class GPURenderBundleEncoder : public DawnObject<WGPURenderBundleEncoder>,
   void setVertexBuffer(uint32_t slot,
                        const DawnObject<WGPUBuffer>* buffer,
                        uint64_t offset) {
-    WGPUBufferImpl* bufferImpl = buffer ? buffer->GetHandle() : nullptr;
-    GetProcs().renderBundleEncoderSetVertexBuffer(GetHandle(), slot, bufferImpl,
-                                                  offset, WGPU_WHOLE_SIZE);
+    GetProcs().renderBundleEncoderSetVertexBuffer(
+        GetHandle(), slot, buffer->GetHandle(), offset, WGPU_WHOLE_SIZE);
   }
   void setVertexBuffer(uint32_t slot,
                        const DawnObject<WGPUBuffer>* buffer,
                        uint64_t offset,
                        uint64_t size) {
-    WGPUBufferImpl* bufferImpl = buffer ? buffer->GetHandle() : nullptr;
-    GetProcs().renderBundleEncoderSetVertexBuffer(GetHandle(), slot, bufferImpl,
-                                                  offset, size);
+    GetProcs().renderBundleEncoderSetVertexBuffer(
+        GetHandle(), slot, buffer->GetHandle(), offset, size);
   }
   void draw(uint32_t vertexCount,
             uint32_t instanceCount,

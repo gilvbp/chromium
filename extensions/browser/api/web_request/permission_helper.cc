@@ -17,10 +17,8 @@ namespace extensions {
 
 PermissionHelper::PermissionHelper(content::BrowserContext* context)
     : browser_context_(context),
-      extension_registry_(ExtensionRegistry::Get(context)) {
-  // Ensure the dependency is constructed.
-  ProcessMap::Get(browser_context_);
-}
+      process_map_(ProcessMap::Get(context)),
+      extension_registry_(ExtensionRegistry::Get(context)) {}
 
 PermissionHelper::~PermissionHelper() = default;
 

@@ -10,7 +10,7 @@
 
 #import <MaterialComponents/MaterialSnackbar.h>
 
-#import "base/apple/foundation_util.h"
+#import "base/mac/foundation_util.h"
 #import "base/metrics/user_metrics.h"
 #import "base/metrics/user_metrics_action.h"
 #import "components/google/core/common/google_util.h"
@@ -36,6 +36,10 @@
 #import "ios/chrome/grit/ios_strings.h"
 #import "ui/base/l10n/l10n_util.h"
 #import "url/gurl.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace {
 
@@ -167,7 +171,7 @@ NSString* const kTranslateSettingsCategory = @"ChromeTranslateSettings";
     case ItemTypeTranslate: {
       cell.selectionStyle = UITableViewCellSelectionStyleNone;
       TableViewSwitchCell* switchCell =
-          base::apple::ObjCCastStrict<TableViewSwitchCell>(cell);
+          base::mac::ObjCCastStrict<TableViewSwitchCell>(cell);
       [switchCell.switchView addTarget:self
                                 action:@selector(translateToggled:)
                       forControlEvents:UIControlEventValueChanged];
@@ -189,7 +193,7 @@ NSString* const kTranslateSettingsCategory = @"ChromeTranslateSettings";
   if (SectionIdentifierTranslate ==
       [self.tableViewModel sectionIdentifierForSectionIndex:section]) {
     TableViewLinkHeaderFooterView* footer =
-        base::apple::ObjCCastStrict<TableViewLinkHeaderFooterView>(footerView);
+        base::mac::ObjCCastStrict<TableViewLinkHeaderFooterView>(footerView);
     footer.delegate = self;
   }
   return footerView;
@@ -237,10 +241,10 @@ NSString* const kTranslateSettingsCategory = @"ChromeTranslateSettings";
                               sectionIdentifier:SectionIdentifierTranslate];
 
   TableViewSwitchItem* switchItem =
-      base::apple::ObjCCastStrict<TableViewSwitchItem>(
+      base::mac::ObjCCastStrict<TableViewSwitchItem>(
           [self.tableViewModel itemAtIndexPath:switchPath]);
   TableViewSwitchCell* switchCell =
-      base::apple::ObjCCastStrict<TableViewSwitchCell>(
+      base::mac::ObjCCastStrict<TableViewSwitchCell>(
           [self.tableView cellForRowAtIndexPath:switchPath]);
 
   DCHECK_EQ(switchCell.switchView, sender);

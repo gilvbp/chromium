@@ -5465,7 +5465,7 @@ TEST_F(DrawPropertiesStickyPositionTest, StickyPositionNested) {
       inner_sticky_impl->ScreenSpaceTransform().To2dTranslation());
 }
 
-class DrawPropertiesAnchorPositionScrollTest : public DrawPropertiesTest {
+class DrawPropertiesAnchorScrollTest : public DrawPropertiesTest {
  protected:
   void CreateRoot() {
     root_ = Layer::Create();
@@ -5500,9 +5500,9 @@ class DrawPropertiesAnchorPositionScrollTest : public DrawPropertiesTest {
     anchored->SetBounds(gfx::Size(10, 10));
     CopyProperties(parent, anchored.get());
     CreateTransformNode(anchored.get());
-    SetAnchorPositionScrollers(anchored.get(),
-                               inner_most_scroller->scroll_tree_index(),
-                               outer_most_scroller->scroll_tree_index());
+    SetAnchorScrollContainers(anchored.get(),
+                              inner_most_scroller->scroll_tree_index(),
+                              outer_most_scroller->scroll_tree_index());
     root_->AddChild(anchored);
     return anchored;
   }
@@ -5519,13 +5519,13 @@ class DrawPropertiesAnchorPositionScrollTest : public DrawPropertiesTest {
     return layer_tree_impl->LayerById(layer->id());
   }
 
-  void SetAnchorPositionScrollers(Layer* anchored,
-                                  int inner_most_scroll_container_id,
-                                  int outer_most_scroll_container_id) {
-    auto& data = GetPropertyTrees(anchored)
-                     ->transform_tree_mutable()
-                     .EnsureAnchorPositionScrollersData(
-                         anchored->transform_tree_index());
+  void SetAnchorScrollContainers(Layer* anchored,
+                                 int inner_most_scroll_container_id,
+                                 int outer_most_scroll_container_id) {
+    auto& data =
+        GetPropertyTrees(anchored)
+            ->transform_tree_mutable()
+            .EnsureAnchorScrollContainersData(anchored->transform_tree_index());
     for (int scroller_id = inner_most_scroll_container_id;
          scroller_id != kInvalidPropertyNodeId;) {
       const ScrollNode* scroll_node =
@@ -5542,7 +5542,7 @@ class DrawPropertiesAnchorPositionScrollTest : public DrawPropertiesTest {
   scoped_refptr<Layer> root_;
 };
 
-TEST_F(DrawPropertiesAnchorPositionScrollTest, Basics) {
+TEST_F(DrawPropertiesAnchorScrollTest, Basics) {
   // Virtual layer hierarchy:
   // + root
   //   + container
@@ -5581,7 +5581,7 @@ TEST_F(DrawPropertiesAnchorPositionScrollTest, Basics) {
       GetImpl(anchored.get())->ScreenSpaceTransform().To2dTranslation());
 }
 
-TEST_F(DrawPropertiesAnchorPositionScrollTest, NestedScrollers) {
+TEST_F(DrawPropertiesAnchorScrollTest, NestedScrollers) {
   // Virtual layer hierarchy:
   // + root
   //   + container1

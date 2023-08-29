@@ -44,6 +44,10 @@ class TraceProcessorStorage;
 namespace base {
 class RefCountedString;
 
+namespace tracing {
+class PerfettoPlatform;
+}  // namespace tracing
+
 namespace trace_event {
 
 struct TraceCategory;
@@ -116,7 +120,7 @@ class BASE_EXPORT TraceLog :
     // OnSetup call, so we can't guarantee that we know the config by the time
     // TrackEvent::IsEnabled() is true.
     AutoLock lock(track_event_lock_);
-    return track_event_sessions_.size() > 0;
+    return track_event_enabled_;
 #else   // !BUILDFLAG(USE_PERFETTO_CLIENT_LIBRARY)
     AutoLock lock(lock_);
     return enabled_;
@@ -158,10 +162,9 @@ class BASE_EXPORT TraceLog :
 
   // Asynchronous enabled state listeners. When tracing is enabled or disabled,
   // for each observer, a task for invoking its appropriate callback is posted
-  // to the `SequencedTaskRunner` from which AddAsyncEnabledStateObserver() was
-  // called. This allows the observer to be safely destroyed, provided that it
-  // happens on the same `SequencedTaskRunner` that invoked
-  // AddAsyncEnabledStateObserver().
+  // to the thread from which AddAsyncEnabledStateObserver() was called. This
+  // allows the observer to be safely destroyed, provided that it happens on the
+  // same thread that invoked AddAsyncEnabledStateObserver().
   class BASE_EXPORT AsyncEnabledStateObserver {
    public:
     virtual ~AsyncEnabledStateObserver() = default;
@@ -419,21 +422,8 @@ class BASE_EXPORT TraceLog :
   void SetTraceBufferForTesting(std::unique_ptr<TraceBuffer> trace_buffer);
 
 #if BUILDFLAG(USE_PERFETTO_CLIENT_LIBRARY)
-  struct TrackEventSession {
-    uint32_t internal_instance_index;
-    perfetto::DataSourceConfig config;
-    perfetto::BackendType backend_type = perfetto::kUnspecifiedBackend;
-  };
-  std::vector<TrackEventSession> GetTrackEventSessions() const;
-
-  // DEPRECATED. In the presence of multiple simultaneous sessions, this method
-  // returns only the first session's config. When no tracing sessions are
-  // active, returns an empty config for compatibility with legacy code.
-  // TODO(khokhlov): Remove this method and migrate all its uses to
-  // GetTrackEventSessions().
   perfetto::DataSourceConfig GetCurrentTrackEventDataSourceConfig() const;
   void InitializePerfettoIfNeeded();
-  bool IsPerfettoInitializedByTraceLog() const;
   void SetEnabledImpl(const TraceConfig& trace_config,
                       const perfetto::TraceConfig& perfetto_config);
 
@@ -516,6 +506,7 @@ class BASE_EXPORT TraceLog :
                      bool discard_events);
 
 #if BUILDFLAG(USE_PERFETTO_CLIENT_LIBRARY)
+  tracing::PerfettoPlatform* GetOrCreatePerfettoPlatform();
   void OnTraceData(const char* data, size_t size, bool has_more);
 #endif  // BUILDFLAG(USE_PERFETTO_CLIENT_LIBRARY)
 
@@ -626,18 +617,18 @@ class BASE_EXPORT TraceLog :
   std::atomic<UpdateDurationFunction> update_duration_override_{nullptr};
 
 #if BUILDFLAG(USE_PERFETTO_CLIENT_LIBRARY)
+  std::unique_ptr<::base::tracing::PerfettoPlatform> perfetto_platform_;
   std::unique_ptr<perfetto::TracingSession> tracing_session_;
   perfetto::TraceConfig perfetto_config_;
-  std::vector<TrackEventSession> track_event_sessions_
-      GUARDED_BY(track_event_lock_);
-  int active_track_event_sessions_ = 0;
+  perfetto::DataSourceConfig track_event_config_ GUARDED_BY(track_event_lock_);
+  bool track_event_enabled_ GUARDED_BY(track_event_lock_) = false;
   mutable Lock track_event_lock_;
-#if BUILDFLAG(USE_PERFETTO_TRACE_PROCESSOR)
+#if !BUILDFLAG(IS_NACL)
   std::unique_ptr<perfetto::trace_processor::TraceProcessorStorage>
       trace_processor_;
   std::unique_ptr<JsonStringOutputWriter> json_output_writer_;
   OutputCallback proto_output_callback_;
-#endif  // BUILDFLAG(USE_PERFETTO_TRACE_PROCESSOR)
+#endif  // !BUILDFLAG(IS_NACL)
 #endif  // BUILDFLAG(USE_PERFETTO_CLIENT_LIBRARY)
 
 #if BUILDFLAG(IS_ANDROID)

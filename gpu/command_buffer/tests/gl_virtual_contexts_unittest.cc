@@ -322,6 +322,7 @@ TEST_P(GLVirtualContextsTest, VirtualQueries) {
     GL_COMMANDS_COMPLETED_CHROMIUM,
     GL_COMMANDS_ISSUED_CHROMIUM,
     GL_GET_ERROR_QUERY_CHROMIUM,
+    GL_LATENCY_QUERY_CHROMIUM,
     GL_TIME_ELAPSED_EXT,
   };
 
@@ -444,3 +445,4 @@ INSTANTIATE_TEST_SUITE_P(WithWorkarounds,
                          ::testing::ValuesIn(workarounds_cases));
 
 }  // namespace gpu
+

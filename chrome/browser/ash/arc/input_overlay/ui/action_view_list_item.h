@@ -28,8 +28,7 @@ class ActionViewListItem : public views::View {
   ActionViewListItem& operator=(const ActionViewListItem&) = delete;
   ~ActionViewListItem() override;
 
-  void OnActionInputBindingUpdated();
-  void OnActionNameUpdated();
+  void OnActionUpdated();
 
   Action* action() const { return action_; }
 
@@ -42,7 +41,7 @@ class ActionViewListItem : public views::View {
   raw_ptr<Action, DanglingUntriaged> action_;
 
   raw_ptr<EditLabels> labels_view_ = nullptr;
-  raw_ptr<NameTag> name_tag_ = nullptr;
+  raw_ptr<NameTag> labels_name_tag_ = nullptr;
 };
 
 }  // namespace arc::input_overlay

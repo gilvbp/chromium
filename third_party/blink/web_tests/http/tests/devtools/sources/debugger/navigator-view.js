@@ -6,8 +6,6 @@ import {TestRunner} from 'test_runner';
 import {SourcesTestRunner} from 'sources_test_runner';
 import {SDKTestRunner} from 'sdk_test_runner';
 
-import * as SDK from 'devtools/core/sdk/sdk.js';
-
 (async function() {
   TestRunner.addResult(`Tests scripts panel file selectors.\n`);
   await TestRunner.loadLegacyModule('sources');
@@ -153,7 +151,7 @@ import * as SDK from 'devtools/core/sdk/sdk.js';
 
   TestRunner.addResult('\n\n================================================');
   TestRunner.addResult('Removing all resources:');
-  for (const target of SDK.TargetManager.TargetManager.instance().targets()) {
+  for (const target of SDK.targetManager.targets()) {
     if (target !== TestRunner.mainTarget)
       Bindings.debuggerWorkspaceBinding.resetForTest(target);
   }

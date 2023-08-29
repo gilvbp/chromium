@@ -8,18 +8,16 @@
 #import <UIKit/UIKit.h>
 
 #import "ios/chrome/browser/shared/coordinator/chrome_coordinator/chrome_coordinator.h"
+#import "ios/chrome/browser/ui/toolbar/public/side_swipe_toolbar_snapshot_providing.h"
 #import "ios/chrome/browser/ui/toolbar/toolbar_coordinatee.h"
 
 @class AdaptiveToolbarViewController;
 class Browser;
 
-namespace web {
-class WebState;
-}  // namespace web
-
 // Coordinator for the adaptive toolbar. This Coordinator is the super class of
 // the specific coordinator (primary or secondary).
-@interface AdaptiveToolbarCoordinator : ChromeCoordinator <ToolbarCoordinatee>
+@interface AdaptiveToolbarCoordinator
+    : ChromeCoordinator<SideSwipeToolbarSnapshotProviding, ToolbarCoordinatee>
 
 // The Toolbar view controller owned by this coordinator.
 @property(nonatomic, strong) AdaptiveToolbarViewController* viewController;
@@ -35,14 +33,6 @@ class WebState;
 // called after start.
 - (void)setLocationBarViewController:
     (UIViewController*)locationBarViewController;
-
-// Prepares the toolbar for a side swipe snapshot with `webState`.
-- (void)updateToolbarForSideSwipeSnapshot:(web::WebState*)webState;
-// Resets the toolbar after a side swipe snapshot.
-- (void)resetToolbarAfterSideSwipeSnapshot;
-
-// Shows the animation when transitioning to a prerendered page.
-- (void)showPrerenderingAnimation;
 
 @end
 

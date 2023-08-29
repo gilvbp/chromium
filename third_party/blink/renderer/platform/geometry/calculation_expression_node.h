@@ -28,8 +28,6 @@ enum class CalculationOperator {
   kMod,
   kRem,
   kHypot,
-  kAbs,
-  kSign,
   kInvalid
 };
 

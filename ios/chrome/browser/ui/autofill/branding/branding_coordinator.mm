@@ -8,6 +8,10 @@
 #import "ios/chrome/browser/ui/autofill/branding/branding_mediator.h"
 #import "ios/chrome/browser/ui/autofill/branding/branding_view_controller.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 @implementation BrandingCoordinator {
   // Mediator that handles branding visibility and animation.
   BrandingMediator* _mediator;

@@ -95,7 +95,7 @@ function testClickButton(buttonSelector: string, element: HTMLElement|null) {
   actionButton.click();
 }
 
-suite('Consent', function() {
+suite('PrivacySandboxDialogConsent', function() {
   let page: PrivacySandboxDialogAppElement;
   let browserProxy: TestPrivacySandboxDialogBrowserProxy;
 
@@ -191,7 +191,7 @@ suite('Consent', function() {
   });
 });
 
-suite('Notice', function() {
+suite('PrivacySandboxDialogNotice', function() {
   let page: PrivacySandboxDialogAppElement;
   let browserProxy: TestPrivacySandboxDialogBrowserProxy;
 
@@ -248,7 +248,7 @@ suite('Notice', function() {
   });
 });
 
-suite('Combined', function() {
+suite('PrivacySandboxDialogCombined', function() {
   let page: PrivacySandboxCombinedDialogAppElement;
   let browserProxy: TestPrivacySandboxDialogBrowserProxy;
 
@@ -468,7 +468,7 @@ suite('Combined', function() {
   });
 });
 
-suite('NoticeEEA', function() {
+suite('PrivacySandboxDialogNoticeEEA', function() {
   let page: PrivacySandboxCombinedDialogAppElement;
   let browserProxy: TestPrivacySandboxDialogBrowserProxy;
 
@@ -606,7 +606,7 @@ suite('NoticeEEA', function() {
   });
 });
 
-suite('NoticeROW', function() {
+suite('PrivacySandboxDialogNoticeROW', function() {
   let page: PrivacySandboxNoticeDialogAppElement;
   let browserProxy: TestPrivacySandboxDialogBrowserProxy;
 
@@ -727,7 +727,7 @@ suite('NoticeROW', function() {
   });
 });
 
-suite('NoticeRestricted', function() {
+suite('PrivacySandboxDialogNoticeRestricted', function() {
   let page: PrivacySandboxNoticeRestrictedDialogAppElement;
   let browserProxy: TestPrivacySandboxDialogBrowserProxy;
 
@@ -835,7 +835,7 @@ suite('NoticeRestricted', function() {
   });
 });
 
-suite('Mixin', function() {
+suite('PrivacySandboxDialogMixin', function() {
   const TestElementBase = PrivacySandboxDialogMixin(PolymerElement);
 
   // Create a test element to have more control over size of the element and

@@ -5,15 +5,13 @@
 #ifndef IOS_WEB_PUBLIC_DOWNLOAD_DOWNLOAD_TASK_OBSERVER_H_
 #define IOS_WEB_PUBLIC_DOWNLOAD_DOWNLOAD_TASK_OBSERVER_H_
 
-#include "base/observer_list_types.h"
-
 namespace web {
 
 class DownloadTask;
 
 // Allows observation of DownloadTask updates. All methods are called on UI
 // thread.
-class DownloadTaskObserver : public base::CheckedObserver {
+class DownloadTaskObserver {
  public:
   // Called when the download task has started, downloaded a chunk of data or
   // the download has been completed. Clients may call DownloadTask::IsDone() to
@@ -32,7 +30,7 @@ class DownloadTaskObserver : public base::CheckedObserver {
   DownloadTaskObserver(const DownloadTaskObserver&) = delete;
   DownloadTaskObserver& operator=(const DownloadTaskObserver&) = delete;
 
-  ~DownloadTaskObserver() override;
+  virtual ~DownloadTaskObserver() = default;
 };
 
 }  // namespace web

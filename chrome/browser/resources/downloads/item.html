@@ -175,12 +175,8 @@
   }
 
   @media (prefers-color-scheme: light) {
-    .is-active :-webkit-any(#file-link, #show) {
+    .is-active :-webkit-any(#name, #file-link, #show) {
       color: var(--google-blue-600);
-    }
-
-    .is-active #name {
-      color: var(--cr-primary-text-color);
     }
   }
 
@@ -209,13 +205,13 @@
   }
 
   #progress,
-  .description:not(:empty),
+  #description:not(:empty),
   .controls {
     margin-top: 16px;
   }
 
   @media (prefers-color-scheme: light) {
-    .is-active .description {
+    .is-active #description {
       color: #616161;
     }
   }
@@ -301,9 +297,9 @@
   <div id="file-icon-wrapper" class="icon-wrapper" aria-hidden="true">
     <img class="icon" id="file-icon" alt="" hidden="[[!useFileIcon_]]"
     icon-color$="[[computeIconColor_(isDangerous_, data.dangerType,
-    useFileIcon_, updateDeepScanningUx_)]]">
+    useFileIcon_)]]">
     <iron-icon class="icon" icon$="[[computeIcon_(
-        isDangerous_, data.dangerType, useFileIcon_, updateDeepScanningUx_)]]"
+        isDangerous_, data.dangerType, useFileIcon_)]]"
         hidden="[[useFileIcon_]]" icon-color$="[[computeIconColor_(isDangerous_,
         data.dangerType, useFileIcon_)]]"></iron-icon>
   </div>
@@ -311,13 +307,13 @@
   <div id="details">
     <div id="title-area" role="gridcell"><!--
       Can't have any line breaks.
-      --><a is="action-link" id="file-link" href="[[data.url.url]]"
+      --><a is="action-link" id="file-link" href="[[data.url]]"
           on-click="onFileLinkClick_" focus-row-control
           focus-type="fileLink"
-          hidden="[[!shouldLinkFilename_]]">[[data.fileName]]</a><!--
+          hidden="[[!completelyOnDisk_]]">[[data.fileName]]</a><!--
       Before #name.
       --><span id="name"
-          hidden="[[shouldLinkFilename_]]">[[data.fileName]]</span>
+          hidden="[[completelyOnDisk_]]">[[data.fileName]]</span>
       <span id="tag">[[computeTag_(data.state,
                                    data.lastReasonText,
                                    data.fileExternallyRemoved)]]</span>
@@ -325,31 +321,23 @@
 
     <div role="gridcell">
       <a id="url" target="_blank" on-click="onUrlClick_" focus-row-control
-          focus-type="url">[[getDisplayUrlStr_(data.displayUrl)]]</a>
+          focus-type="url">[[chopUrl_(data.url)]]</a>
     </div>
 
-    <div class="description" role="gridcell"
+    <div id="description" role="gridcell"
         hidden$="[[!computeDescriptionVisible_(data.*)]]">
       [[computeDescription_(
           data.state,
           data.dangerType,
           data.fileName,
-          data.progressStatusText,
-          updateDeepScanningUx_)]]
-    </div>
-
-    <div class="description" role="gridcell"
-        hidden="[[!computeSecondLineVisible_(data.state,
-        updateDeepScanningUx_)]]">
-      $i18n{asyncScanningDownloadDescSecond}
+          data.progressStatusText)]]
     </div>
 
     <template is="dom-if" if="[[showProgress_]]">
       <div role="gridcell">
         <paper-progress id="progress"
-            indeterminate="[[isIndeterminate_(data.percent,
-            updateDeepScanningUx_)]]" value="[[data.percent]]">
-        </paper-progress>
+            indeterminate="[[isIndeterminate_(data.percent)]]"
+            value="[[data.percent]]"></paper-progress>
       </div>
     </template>
 
@@ -403,14 +391,6 @@
           <cr-button on-click="onCancelClick_" focus-row-control
               focus-type="cancel">
             $i18n{controlCancel}
-          </cr-button>
-        </span>
-      </template>
-      <template is="dom-if" if="[[showOpenAnyway_]]">
-        <span role="gridcell">
-          <cr-button on-click="onOpenAnywayClick_" id="openAnyway"
-              focus-row-control focus-type="open">
-            $i18n{controlOpenAnyway}
           </cr-button>
         </span>
       </template>

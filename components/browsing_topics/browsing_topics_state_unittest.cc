@@ -4,6 +4,7 @@
 
 #include "components/browsing_topics/browsing_topics_state.h"
 
+#include "base/base64.h"
 #include "base/files/file_util.h"
 #include "base/files/scoped_temp_dir.h"
 #include "base/functional/callback_helpers.h"
@@ -37,14 +38,12 @@ constexpr browsing_topics::HmacKey kZeroKey = {};
 constexpr browsing_topics::HmacKey kTestKey = {1};
 constexpr browsing_topics::HmacKey kTestKey2 = {2};
 
-constexpr int kConfigVersion = 1;
 constexpr int kTaxonomyVersion = 1;
 constexpr int64_t kModelVersion = 2;
 constexpr size_t kPaddedTopTopicsStartIndex = 3;
 
 EpochTopics CreateTestEpochTopics(base::Time calculation_time,
-                                  bool from_manually_triggered_calculation,
-                                  int config_version = kConfigVersion) {
+                                  bool from_manually_triggered_calculation) {
   std::vector<TopicAndDomains> top_topics_and_observing_domains;
   top_topics_and_observing_domains.emplace_back(
       TopicAndDomains(Topic(1), {HashedDomain(1)}));
@@ -58,8 +57,8 @@ EpochTopics CreateTestEpochTopics(base::Time calculation_time,
       TopicAndDomains(Topic(5), {HashedDomain(1)}));
 
   EpochTopics epoch_topics(std::move(top_topics_and_observing_domains),
-                           kPaddedTopTopicsStartIndex, config_version,
-                           kTaxonomyVersion, kModelVersion, calculation_time,
+                           kPaddedTopTopicsStartIndex, kTaxonomyVersion,
+                           kModelVersion, calculation_time,
                            from_manually_triggered_calculation);
 
   return epoch_topics;
@@ -93,7 +92,8 @@ class BrowsingTopicsStateTest : public testing::Test {
 
   void CreateOrOverrideTestFile(std::vector<EpochTopics> epochs,
                                 base::Time next_scheduled_calculation_time,
-                                std::string hex_encoded_hmac_key) {
+                                std::string hex_encoded_hmac_key,
+                                int config_version) {
     base::Value::List epochs_list;
     for (const EpochTopics& epoch : epochs) {
       epochs_list.Append(epoch.ToDictValue());
@@ -104,6 +104,7 @@ class BrowsingTopicsStateTest : public testing::Test {
     dict.Set("next_scheduled_calculation_time",
              base::TimeToValue(next_scheduled_calculation_time));
     dict.Set("hex_encoded_hmac_key", std::move(hex_encoded_hmac_key));
+    dict.Set("config_version", config_version);
 
     JSONFileValueSerializer(TestFilePath()).Serialize(dict);
   }
@@ -162,7 +163,7 @@ TEST_F(BrowsingTopicsStateTest, InitFromNoFile_SaveToDiskAfterDelay) {
   EXPECT_TRUE(base::PathExists(TestFilePath()));
   EXPECT_EQ(
       GetTestFileContent(),
-      "{\"epochs\": [ ],\"hex_encoded_hmac_key\": "
+      "{\"config_version\": 1,\"epochs\": [ ],\"hex_encoded_hmac_key\": "
       "\"0100000000000000000000000000000000000000000000000000000000000000\","
       "\"next_scheduled_calculation_time\": \"0\"}");
 }
@@ -190,7 +191,7 @@ TEST_F(BrowsingTopicsStateTest,
   EXPECT_FALSE(state.HasScheduledSaveForTesting());
 
   std::string expected_content = base::StrCat(
-      {"{\"epochs\": [ ],\"hex_encoded_hmac_key\": "
+      {"{\"config_version\": 1,\"epochs\": [ ],\"hex_encoded_hmac_key\": "
        "\"0100000000000000000000000000000000000000000000000000000000000000"
        "\",\"next_scheduled_calculation_time\": \"",
        base::NumberToString(state.next_scheduled_calculation_time()
@@ -206,29 +207,24 @@ TEST_F(BrowsingTopicsStateTest, AddEpoch) {
   task_environment_->RunUntilIdle();
 
   // Successful topics calculation at `kTime1`.
-  absl::optional<EpochTopics> maybe_removed_epoch_1 =
-      state.AddEpoch(CreateTestEpochTopics(
-          kTime1, /*from_manually_triggered_calculation=*/false));
+  state.AddEpoch(CreateTestEpochTopics(
+      kTime1, /*from_manually_triggered_calculation=*/false));
 
   EXPECT_EQ(state.epochs().size(), 1u);
   EXPECT_FALSE(state.epochs()[0].empty());
   EXPECT_EQ(state.epochs()[0].calculation_time(), kTime1);
-  EXPECT_FALSE(maybe_removed_epoch_1.has_value());
 
   // Successful topics calculation at `kTime2`.
-  absl::optional<EpochTopics> maybe_removed_epoch_2 =
-      state.AddEpoch(CreateTestEpochTopics(
-          kTime2, /*from_manually_triggered_calculation=*/false));
+  state.AddEpoch(CreateTestEpochTopics(
+      kTime2, /*from_manually_triggered_calculation=*/false));
   EXPECT_EQ(state.epochs().size(), 2u);
   EXPECT_FALSE(state.epochs()[0].empty());
   EXPECT_EQ(state.epochs()[0].calculation_time(), kTime1);
   EXPECT_FALSE(state.epochs()[1].empty());
   EXPECT_EQ(state.epochs()[1].calculation_time(), kTime2);
-  EXPECT_FALSE(maybe_removed_epoch_2.has_value());
 
   // Failed topics calculation.
-  absl::optional<EpochTopics> maybe_removed_epoch_3 =
-      state.AddEpoch(EpochTopics(kTime3));
+  state.AddEpoch(EpochTopics(kTime3));
   EXPECT_EQ(state.epochs().size(), 3u);
   EXPECT_FALSE(state.epochs()[0].empty());
   EXPECT_EQ(state.epochs()[0].calculation_time(), kTime1);
@@ -236,12 +232,10 @@ TEST_F(BrowsingTopicsStateTest, AddEpoch) {
   EXPECT_EQ(state.epochs()[1].calculation_time(), kTime2);
   EXPECT_TRUE(state.epochs()[2].empty());
   EXPECT_EQ(state.epochs()[2].calculation_time(), kTime3);
-  EXPECT_FALSE(maybe_removed_epoch_3.has_value());
 
   // Successful topics calculation at `kTime4`.
-  absl::optional<EpochTopics> maybe_removed_epoch_4 =
-      state.AddEpoch(CreateTestEpochTopics(
-          kTime4, /*from_manually_triggered_calculation=*/false));
+  state.AddEpoch(CreateTestEpochTopics(
+      kTime4, /*from_manually_triggered_calculation=*/false));
   EXPECT_EQ(state.epochs().size(), 4u);
   EXPECT_FALSE(state.epochs()[0].empty());
   EXPECT_EQ(state.epochs()[0].calculation_time(), kTime1);
@@ -250,13 +244,11 @@ TEST_F(BrowsingTopicsStateTest, AddEpoch) {
   EXPECT_TRUE(state.epochs()[2].empty());
   EXPECT_FALSE(state.epochs()[3].empty());
   EXPECT_EQ(state.epochs()[3].calculation_time(), kTime4);
-  EXPECT_FALSE(maybe_removed_epoch_4.has_value());
 
   // Successful topics calculation at `kTime5`. When this epoch is added, the
   // first one should be evicted.
-  absl::optional<EpochTopics> maybe_removed_epoch_5 =
-      state.AddEpoch(CreateTestEpochTopics(
-          kTime5, /*from_manually_triggered_calculation=*/false));
+  state.AddEpoch(CreateTestEpochTopics(
+      kTime5, /*from_manually_triggered_calculation=*/false));
   EXPECT_EQ(state.epochs().size(), 4u);
   EXPECT_FALSE(state.epochs()[0].empty());
   EXPECT_EQ(state.epochs()[0].calculation_time(), kTime2);
@@ -265,8 +257,6 @@ TEST_F(BrowsingTopicsStateTest, AddEpoch) {
   EXPECT_EQ(state.epochs()[2].calculation_time(), kTime4);
   EXPECT_FALSE(state.epochs()[3].empty());
   EXPECT_EQ(state.epochs()[3].calculation_time(), kTime5);
-  EXPECT_TRUE(maybe_removed_epoch_5.has_value());
-  EXPECT_EQ(maybe_removed_epoch_5.value().calculation_time(), kTime1);
 
   // The `next_scheduled_calculation_time` and `hmac_key` are unaffected.
   EXPECT_EQ(state.next_scheduled_calculation_time(), base::Time());
@@ -536,7 +526,8 @@ TEST_F(BrowsingTopicsStateTest, InitFromPreexistingFile_CorruptedHmacKey) {
 
   CreateOrOverrideTestFile(std::move(epochs),
                            /*next_scheduled_calculation_time=*/kTime2,
-                           /*hex_encoded_hmac_key=*/"123");
+                           /*hex_encoded_hmac_key=*/"123",
+                           /*config_version=*/1);
 
   BrowsingTopicsState state(temp_dir_.GetPath(), base::DoNothing());
   task_environment_->RunUntilIdle();
@@ -559,7 +550,8 @@ TEST_F(BrowsingTopicsStateTest, InitFromPreexistingFile_SameConfigVersion) {
 
   CreateOrOverrideTestFile(std::move(epochs),
                            /*next_scheduled_calculation_time=*/kTime2,
-                           /*hex_encoded_hmac_key=*/base::HexEncode(kTestKey2));
+                           /*hex_encoded_hmac_key=*/base::HexEncode(kTestKey2),
+                           /*config_version=*/1);
 
   BrowsingTopicsState state(temp_dir_.GetPath(), base::DoNothing());
   task_environment_->RunUntilIdle();
@@ -576,17 +568,17 @@ TEST_F(BrowsingTopicsStateTest, InitFromPreexistingFile_SameConfigVersion) {
 }
 
 TEST_F(BrowsingTopicsStateTest,
-       InitFromPreexistingFile_IncompatibleConfigVersion) {
+       InitFromPreexistingFile_DifferentConfigVersion) {
   base::HistogramTester histograms;
 
   std::vector<EpochTopics> epochs;
   epochs.emplace_back(CreateTestEpochTopics(
-      kTime1, /*from_manually_triggered_calculation=*/false,
-      /*config_version=*/100));
+      kTime1, /*from_manually_triggered_calculation=*/false));
 
   CreateOrOverrideTestFile(std::move(epochs),
                            /*next_scheduled_calculation_time=*/kTime2,
-                           /*hex_encoded_hmac_key=*/base::HexEncode(kTestKey2));
+                           /*hex_encoded_hmac_key=*/base::HexEncode(kTestKey2),
+                           /*config_version=*/100);
 
   BrowsingTopicsState state(temp_dir_.GetPath(), base::DoNothing());
   task_environment_->RunUntilIdle();
@@ -759,7 +751,7 @@ TEST_F(BrowsingTopicsStateTest, ShouldSaveFileDespiteShutdownWhileScheduled) {
   EXPECT_TRUE(base::PathExists(TestFilePath()));
   EXPECT_EQ(
       GetTestFileContent(),
-      "{\"epochs\": [ ],\"hex_encoded_hmac_key\": "
+      "{\"config_version\": 1,\"epochs\": [ ],\"hex_encoded_hmac_key\": "
       "\"0100000000000000000000000000000000000000000000000000000000000000\","
       "\"next_scheduled_calculation_time\": \"0\"}");
 }

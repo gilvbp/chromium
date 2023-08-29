@@ -293,7 +293,9 @@ void FilePathWatcherImpl::DestroyWatch() {
 
 }  // namespace
 
-FilePathWatcher::FilePathWatcher()
-    : FilePathWatcher(std::make_unique<FilePathWatcherImpl>()) {}
+FilePathWatcher::FilePathWatcher() {
+  DETACH_FROM_SEQUENCE(sequence_checker_);
+  impl_ = std::make_unique<FilePathWatcherImpl>();
+}
 
 }  // namespace base

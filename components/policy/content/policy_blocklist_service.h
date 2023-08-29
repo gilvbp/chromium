@@ -46,7 +46,7 @@ class PolicyBlocklistFactory : public BrowserContextKeyedServiceFactory {
   friend struct base::DefaultSingletonTraits<PolicyBlocklistFactory>;
 
   // BrowserContextKeyedServiceFactory:
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* context) const override;
 
   // Finds which browser context (if any) to use.

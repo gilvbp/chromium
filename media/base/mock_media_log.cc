@@ -35,8 +35,4 @@ std::string MockMediaLog::MediaEventToLogString(const MediaLogRecord& event) {
   return params_json;
 }
 
-bool MockMediaLog::ShouldLogToDebugConsole() const {
-  return false;
-}
-
 }  // namespace media

@@ -29,16 +29,10 @@ DetailedViewDelegate::DetailedViewDelegate(
 DetailedViewDelegate::~DetailedViewDelegate() = default;
 
 void DetailedViewDelegate::TransitionToMainView(bool restore_focus) {
-  if (!tray_controller_) {
-    return;
-  }
   tray_controller_->TransitionToMainView(restore_focus);
 }
 
 void DetailedViewDelegate::CloseBubble() {
-  if (!tray_controller_) {
-    return;
-  }
   tray_controller_->CloseBubble();
 }
 
@@ -70,9 +64,8 @@ views::Button* DetailedViewDelegate::CreateSettingsButton(
   auto* button = new IconButton(std::move(callback), IconButton::Type::kMedium,
                                 &vector_icons::kSettingsOutlineIcon,
                                 setting_accessible_name_id);
-  if (!TrayPopupUtils::CanOpenWebUISettings()) {
+  if (!TrayPopupUtils::CanOpenWebUISettings())
     button->SetEnabled(false);
-  }
   return button;
 }
 
@@ -82,9 +75,8 @@ views::Button* DetailedViewDelegate::CreateHelpButton(
       new IconButton(std::move(callback), IconButton::Type::kMedium,
                      &vector_icons::kHelpOutlineIcon, IDS_ASH_STATUS_TRAY_HELP);
   // Help opens a web page, so treat it like Web UI settings.
-  if (!TrayPopupUtils::CanOpenWebUISettings()) {
+  if (!TrayPopupUtils::CanOpenWebUISettings())
     button->SetEnabled(false);
-  }
   return button;
 }
 

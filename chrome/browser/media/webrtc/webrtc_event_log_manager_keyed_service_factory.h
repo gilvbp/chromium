@@ -36,7 +36,7 @@ class WebRtcEventLogManagerKeyedServiceFactory
   WebRtcEventLogManagerKeyedServiceFactory();
   ~WebRtcEventLogManagerKeyedServiceFactory() override;
 
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* context) const override;
 };
 

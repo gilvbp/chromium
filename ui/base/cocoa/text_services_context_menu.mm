@@ -4,7 +4,6 @@
 
 #include "ui/base/cocoa/text_services_context_menu.h"
 
-#import <AVFAudio/AVFAudio.h>
 #import <AppKit/AppKit.h>
 
 #include <utility>
@@ -15,9 +14,10 @@
 
 namespace {
 
-AVSpeechSynthesizer* SpeechSynthesizer() {
-  static AVSpeechSynthesizer* speech_synthesizer =
-      [[AVSpeechSynthesizer alloc] init];
+NSSpeechSynthesizer* SpeechSynthesizer() {
+  static NSSpeechSynthesizer* speech_synthesizer =
+      [[NSSpeechSynthesizer alloc] initWithVoice:nil];
+
   return speech_synthesizer;
 }
 
@@ -73,24 +73,20 @@ TextServicesContextMenu::TextServicesContextMenu(Delegate* delegate)
 // @end
 //
 // However, it is an explicit decision to not use these messages, and to keep an
-// independent `AVSpeechSynthesizer`, as Chromium tries to avoid the use of SPI
+// independent `NSSpeechSynthesizer`, as Chromium tries to avoid the use of SPI
 // when it's reasonably straightforward to do so. This does mean that speech
 // initiated within Chromium doesn't interoperate with speech initiated with
 // any native controls (if there are any left) via this submenu.
 
 void TextServicesContextMenu::SpeakText(const std::u16string& text) {
-  if (IsSpeaking()) {
-    StopSpeaking();
-  }
+  if (IsSpeaking())
+    [SpeechSynthesizer() stopSpeaking];
 
-  AVSpeechUtterance* utterance = [AVSpeechUtterance
-      speechUtteranceWithString:base::SysUTF16ToNSString(text)];
-
-  [SpeechSynthesizer() speakUtterance:utterance];
+  [SpeechSynthesizer() startSpeakingString:base::SysUTF16ToNSString(text)];
 }
 
 void TextServicesContextMenu::StopSpeaking() {
-  [SpeechSynthesizer() stopSpeakingAtBoundary:AVSpeechBoundaryImmediate];
+  [SpeechSynthesizer() stopSpeaking];
 }
 
 bool TextServicesContextMenu::IsSpeaking() {

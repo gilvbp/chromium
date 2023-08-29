@@ -14,6 +14,10 @@
 #import "ios/chrome/browser/text_selection/text_classifier_model_service.h"
 #import "ios/chrome/browser/text_selection/text_selection_util.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 // static
 TextClassifierModelServiceFactory*
 TextClassifierModelServiceFactory::GetInstance() {

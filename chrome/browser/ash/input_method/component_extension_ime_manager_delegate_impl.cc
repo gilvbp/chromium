@@ -53,18 +53,18 @@ struct AllowlistedComponentExtensionIME {
 } allowlisted_component_extensions[] = {
 #if BUILDFLAG(GOOGLE_CHROME_BRANDING)
     {
-        // Official Google ChromeOS 1P Input.
+        // Official Google XKB Input.
         extension_ime_util::kXkbExtensionId,
         IDR_GOOGLE_XKB_MANIFEST,
     },
 #else
     {
-        // Open-sourced ChromiumOS xkb extension.
+        // Open-sourced ChromeOS xkb extension.
         extension_ime_util::kXkbExtensionId,
         IDR_XKB_MANIFEST,
     },
     {
-        // Open-sourced ChromiumOS Keyboards extension.
+        // Open-sourced ChromeOS Keyboards extension.
         extension_ime_util::kM17nExtensionId,
         IDR_M17N_MANIFEST,
     },
@@ -332,12 +332,7 @@ bool ComponentExtensionIMEManagerDelegateImpl::ReadEngineComponent(
 
   const std::string* option_page =
       dict.FindString(extensions::manifest_keys::kOptionsPage);
-
-  bool flag_allows_settings_page =
-      (*engine_id != "vkd_vi_vni" && *engine_id != "vkd_vi_telex") ||
-      base::FeatureList::IsEnabled(features::kFirstPartyVietnameseInput);
-
-  if (option_page && flag_allows_settings_page) {
+  if (option_page) {
     url_string = *option_page;
     GURL options_page_url = extensions::Extension::GetResourceURL(
         extensions::Extension::GetBaseURLFromExtensionId(
@@ -349,15 +344,6 @@ bool ComponentExtensionIMEManagerDelegateImpl::ReadEngineComponent(
   } else {
     // Fallback to extension level options page.
     out->options_page_url = component_extension.options_page_url;
-  }
-
-  const std::string* handwriting_language =
-      dict.FindString(extensions::manifest_keys::kHandwritingLanguage);
-
-  if (handwriting_language != nullptr) {
-    out->handwriting_language = *handwriting_language;
-  } else {
-    out->handwriting_language = absl::nullopt;
   }
 
   return true;

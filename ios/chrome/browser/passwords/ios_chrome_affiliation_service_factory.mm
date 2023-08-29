@@ -19,6 +19,10 @@
 #import "ios/chrome/browser/shared/model/browser_state/chrome_browser_state.h"
 #import "services/network/public/cpp/shared_url_loader_factory.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 // static
 IOSChromeAffiliationServiceFactory*
 IOSChromeAffiliationServiceFactory::GetInstance() {
@@ -51,7 +55,8 @@ IOSChromeAffiliationServiceFactory::BuildServiceInstanceFor(
            base::TaskShutdownBehavior::BLOCK_SHUTDOWN});
   auto affiliation_service =
       std::make_unique<password_manager::AffiliationServiceImpl>(
-          context->GetSharedURLLoaderFactory(), backend_task_runner);
+          context->GetSharedURLLoaderFactory(), backend_task_runner,
+          ChromeBrowserState::FromBrowserState(context)->GetPrefs());
 
   base::FilePath database_path = context->GetStatePath().Append(
       password_manager::kAffiliationDatabaseFileName);

@@ -416,8 +416,7 @@ class WebFrameTest : public testing::Test {
     auto* frame =
         To<LocalFrame>(web_view_helper->GetWebView()->GetPage()->MainFrame());
     DCHECK(frame);
-    Element* element =
-        frame->GetDocument()->getElementById(AtomicString(testcase.c_str()));
+    Element* element = frame->GetDocument()->getElementById(testcase.c_str());
     return DataTransfer::NodeImage(*frame, *element);
   }
 
@@ -2562,7 +2561,7 @@ TEST_F(WebFrameTest,
 
   WebLocalFrameImpl* frame = web_view_helper.LocalMainFrame();
   Document* document = frame->GetFrame()->GetDocument();
-  Element* element = document->getElementById(AtomicString("tap_button"));
+  Element* element = document->getElementById("tap_button");
 
   ASSERT_NE(nullptr, element);
   EXPECT_EQ(String("oldValue"), element->innerText());
@@ -5416,7 +5415,7 @@ TEST_F(WebFrameTest, FindOnDetachedFrame) {
   auto* second_frame = To<WebLocalFrameImpl>(main_frame->TraverseNext());
 
   // Detach the frame before finding.
-  RemoveElementById(main_frame, AtomicString("frame"));
+  RemoveElementById(main_frame, "frame");
 
   EXPECT_TRUE(main_frame->GetFindInPage()->FindInternal(
       kFindIdentifier, search_text, *options, false));
@@ -5468,7 +5467,7 @@ TEST_F(WebFrameTest, FindDetachFrameBeforeScopeStrings) {
   EXPECT_FALSE(find_in_page_client.FindResultsAreReady());
 
   // Detach the frame between finding and scoping.
-  RemoveElementById(main_frame, AtomicString("frame"));
+  RemoveElementById(main_frame, "frame");
 
   main_frame->EnsureTextFinder().ResetMatchCount();
 
@@ -5521,7 +5520,7 @@ TEST_F(WebFrameTest, FindDetachFrameWhileScopingStrings) {
 
   // The first startScopingStringMatches will have reset the state. Detach
   // before it actually scopes.
-  RemoveElementById(main_frame, AtomicString("frame"));
+  RemoveElementById(main_frame, "frame");
 
   for (WebLocalFrameImpl* frame = main_frame; frame;
        frame = To<WebLocalFrameImpl>(frame->TraverseNext())) {
@@ -6985,7 +6984,7 @@ TEST_F(WebFrameTest, ReplaceMisspelledRange) {
   frame->SetTextCheckClient(&textcheck);
 
   Document* document = frame->GetFrame()->GetDocument();
-  Element* element = document->getElementById(AtomicString("data"));
+  Element* element = document->getElementById("data");
 
   web_view_helper.GetWebView()->GetSettings()->SetEditingBehavior(
       mojom::EditingBehavior::kEditingWindowsBehavior);
@@ -7031,7 +7030,7 @@ TEST_F(WebFrameTest, RemoveSpellingMarkers) {
   frame->SetTextCheckClient(&textcheck);
 
   Document* document = frame->GetFrame()->GetDocument();
-  Element* element = document->getElementById(AtomicString("data"));
+  Element* element = document->getElementById("data");
 
   web_view_helper.GetWebView()->GetSettings()->SetEditingBehavior(
       mojom::EditingBehavior::kEditingWindowsBehavior);
@@ -7082,7 +7081,7 @@ TEST_F(WebFrameTest, RemoveSpellingMarkersUnderWords) {
 
   LocalFrame* frame = web_frame->GetFrame();
   Document* document = frame->GetDocument();
-  Element* element = document->getElementById(AtomicString("data"));
+  Element* element = document->getElementById("data");
 
   web_view_helper.GetWebView()->GetSettings()->SetEditingBehavior(
       mojom::EditingBehavior::kEditingWindowsBehavior);
@@ -7156,7 +7155,7 @@ TEST_F(WebFrameTest, SlowSpellcheckMarkerPosition) {
   frame->SetTextCheckClient(&textcheck);
 
   Document* document = frame->GetFrame()->GetDocument();
-  Element* element = document->getElementById(AtomicString("data"));
+  Element* element = document->getElementById("data");
 
   web_view_helper.GetWebView()->GetSettings()->SetEditingBehavior(
       mojom::EditingBehavior::kEditingWindowsBehavior);
@@ -7190,7 +7189,7 @@ TEST_F(WebFrameTest, SpellcheckResultErasesMarkers) {
   frame->SetTextCheckClient(&textcheck);
 
   Document* document = frame->GetFrame()->GetDocument();
-  Element* element = document->getElementById(AtomicString("data"));
+  Element* element = document->getElementById("data");
 
   web_view_helper.GetWebView()->GetSettings()->SetEditingBehavior(
       mojom::EditingBehavior::kEditingWindowsBehavior);
@@ -7226,7 +7225,7 @@ TEST_F(WebFrameTest, SpellcheckResultsSavedInDocument) {
   frame->SetTextCheckClient(&textcheck);
 
   Document* document = frame->GetFrame()->GetDocument();
-  Element* element = document->getElementById(AtomicString("data"));
+  Element* element = document->getElementById("data");
 
   web_view_helper.GetWebView()->GetSettings()->SetEditingBehavior(
       mojom::EditingBehavior::kEditingWindowsBehavior);
@@ -8273,13 +8272,10 @@ TEST_F(WebFrameTest, fixedPositionInFixedViewport) {
   web_view_helper.Resize(gfx::Size(100, 100));
 
   Document* document = web_view->MainFrameImpl()->GetFrame()->GetDocument();
-  Element* bottom_fixed =
-      document->getElementById(AtomicString("bottom-fixed"));
-  Element* top_bottom_fixed =
-      document->getElementById(AtomicString("top-bottom-fixed"));
-  Element* right_fixed = document->getElementById(AtomicString("right-fixed"));
-  Element* left_right_fixed =
-      document->getElementById(AtomicString("left-right-fixed"));
+  Element* bottom_fixed = document->getElementById("bottom-fixed");
+  Element* top_bottom_fixed = document->getElementById("top-bottom-fixed");
+  Element* right_fixed = document->getElementById("right-fixed");
+  Element* left_right_fixed = document->getElementById("left-right-fixed");
 
   // The layout viewport will hit the min-scale limit of 0.25, so it'll be
   // 400x800.
@@ -8432,7 +8428,7 @@ TEST_F(WebFrameTest, FullscreenLayerSize) {
   Document* document = frame->GetDocument();
   LocalFrame::NotifyUserActivation(
       frame, mojom::UserActivationNotificationType::kTest);
-  Element* div_fullscreen = document->getElementById(AtomicString("div1"));
+  Element* div_fullscreen = document->getElementById("div1");
   Fullscreen::RequestFullscreen(*div_fullscreen);
   EXPECT_EQ(nullptr, Fullscreen::FullscreenElementFrom(*document));
   web_view_impl->DidEnterFullscreen();
@@ -8468,7 +8464,7 @@ TEST_F(WebFrameTest, FullscreenLayerNonScrollable) {
   Document* document = frame->GetDocument();
   LocalFrame::NotifyUserActivation(
       frame, mojom::UserActivationNotificationType::kTest);
-  Element* div_fullscreen = document->getElementById(AtomicString("div1"));
+  Element* div_fullscreen = document->getElementById("div1");
   Fullscreen::RequestFullscreen(*div_fullscreen);
   EXPECT_EQ(nullptr, Fullscreen::FullscreenElementFrom(*document));
   web_view_impl->DidEnterFullscreen();
@@ -8563,7 +8559,7 @@ TEST_F(WebFrameTest, FullscreenSubframe) {
   Document* document = frame->GetDocument();
   LocalFrame::NotifyUserActivation(
       frame, mojom::UserActivationNotificationType::kTest);
-  Element* div_fullscreen = document->getElementById(AtomicString("div1"));
+  Element* div_fullscreen = document->getElementById("div1");
   Fullscreen::RequestFullscreen(*div_fullscreen);
   web_view_impl->DidEnterFullscreen();
   UpdateAllLifecyclePhases(web_view_impl);
@@ -8596,8 +8592,7 @@ TEST_F(WebFrameTest, FullscreenNestedExit) {
   Document* top_doc = web_view_impl->MainFrameImpl()->GetFrame()->GetDocument();
   Element* top_body = top_doc->body();
 
-  auto* iframe =
-      To<HTMLIFrameElement>(top_doc->QuerySelector(AtomicString("iframe")));
+  auto* iframe = To<HTMLIFrameElement>(top_doc->QuerySelector("iframe"));
   Document* iframe_doc = iframe->contentDocument();
   Element* iframe_body = iframe_doc->body();
 
@@ -8857,7 +8852,7 @@ TEST_F(WebFrameTest, WebXrImmersiveOverlay) {
   LocalFrame* frame = web_view_impl->MainFrameImpl()->GetFrame();
   Document* document = frame->GetDocument();
 
-  Element* overlay = document->getElementById(AtomicString("overlay"));
+  Element* overlay = document->getElementById("overlay");
   EXPECT_FALSE(Fullscreen::IsFullscreenElement(*overlay));
   EXPECT_TRUE(layer_tree_host->background_color().isOpaque());
 
@@ -8920,7 +8915,7 @@ TEST_F(WebFrameTest, FullscreenFrameSet) {
   Document* document = frame->GetDocument();
   LocalFrame::NotifyUserActivation(
       frame, mojom::UserActivationNotificationType::kTest);
-  Element* frameset = document->getElementById(AtomicString("frameset"));
+  Element* frameset = document->getElementById("frameset");
   Fullscreen::RequestFullscreen(*frameset);
   EXPECT_EQ(nullptr, Fullscreen::FullscreenElementFrom(*document));
   web_view_impl->DidEnterFullscreen();
@@ -9121,7 +9116,8 @@ TEST_F(WebFrameTest, PrintingBasic)
 
   WebLocalFrame* frame = web_view_helper.LocalMainFrame();
 
-  WebPrintParams print_params((gfx::SizeF(500, 500)));
+  WebPrintParams print_params;
+  print_params.print_content_area.set_size(gfx::Size(500, 500));
 
   uint32_t page_count = frame->PrintBegin(print_params, WebNode());
   EXPECT_EQ(1u, page_count);
@@ -10132,17 +10128,16 @@ TEST_F(WebFrameSwapTest, WindowOpenOnRemoteFrame) {
   ScriptState::Scope entered_context_scope(script_state);
   v8::Context::BackupIncumbentScope incumbent_context_scope(
       script_state->GetContext());
-  main_window->open(script_state->GetIsolate(), destination,
-                    AtomicString("frame1"), "", exception_state);
+  main_window->open(script_state->GetIsolate(), destination, "frame1", "",
+                    exception_state);
   base::RunLoop().RunUntilIdle();
   ASSERT_TRUE(interceptor.GetInterceptedParams());
   EXPECT_EQ(KURL(interceptor.GetInterceptedParams()->url), KURL(destination));
 
   // Pointing a named frame to an empty URL should just return a reference to
   // the frame's window without navigating it.
-  DOMWindow* result =
-      main_window->open(script_state->GetIsolate(), "", AtomicString("frame1"),
-                        "", exception_state);
+  DOMWindow* result = main_window->open(script_state->GetIsolate(), "",
+                                        "frame1", "", exception_state);
   base::RunLoop().RunUntilIdle();
   ASSERT_TRUE(interceptor.GetInterceptedParams());
   EXPECT_EQ(KURL(interceptor.GetInterceptedParams()->url), KURL(destination));
@@ -10362,7 +10357,7 @@ TEST_F(WebFrameTest, ResizeInvalidatesDeviceMediaQueries) {
                                     nullptr, nullptr, ConfigureAndroid);
   auto* frame =
       To<LocalFrame>(web_view_helper.GetWebView()->GetPage()->MainFrame());
-  Element* element = frame->GetDocument()->getElementById(AtomicString("test"));
+  Element* element = frame->GetDocument()->getElementById("test");
   ASSERT_TRUE(element);
 
   display::ScreenInfo screen_info =
@@ -11053,6 +11048,10 @@ TEST_P(WebFrameOverscrollTest, OverscrollBehaviorGoesToCompositor) {
 }
 
 TEST_P(WebFrameOverscrollTest, SubframeOverscrollBehaviorPreventsChaining) {
+  // This test fails without scroll unification (crbug.com/1222427).
+  if (!base::FeatureList::IsEnabled(::features::kScrollUnification))
+    return;
+
   RegisterMockedHttpURLLoad("overscroll/iframe-overscroll.html");
   RegisterMockedHttpURLLoad("overscroll/scrollable-iframe.html");
   frame_test_helpers::WebViewHelper web_view_helper;
@@ -11123,7 +11122,7 @@ TEST_F(WebFrameTest, MaxFrames) {
   }
   auto* iframe = MakeGarbageCollected<HTMLIFrameElement>(
       *frame->GetFrame()->GetDocument());
-  iframe->setAttribute(html_names::kSrcAttr, g_empty_atom);
+  iframe->setAttribute(html_names::kSrcAttr, "");
   frame->GetFrame()->GetDocument()->body()->appendChild(iframe);
   EXPECT_FALSE(iframe->ContentFrame());
 }
@@ -11330,7 +11329,7 @@ TEST_F(WebFrameTest, ImeSelectionCommitDoesNotChangeClipboard) {
   Document* document = web_frame->GetFrame()->GetDocument();
 
   document->write("<div id='sample' contenteditable>hello world</div>");
-  document->getElementById(AtomicString("sample"))->Focus();
+  document->getElementById("sample")->Focus();
 
   Vector<ImeTextSpan> ime_text_spans;
   ime_text_spans.push_back(ImeTextSpan(
@@ -12165,7 +12164,7 @@ TEST_F(WebFrameTest, MouseOverDifferntNodeClearsTooltip) {
   UpdateAllLifecyclePhases(web_view);
 
   Document* document = web_view->MainFrameImpl()->GetFrame()->GetDocument();
-  Element* div1_tag = document->getElementById(AtomicString("div1"));
+  Element* div1_tag = document->getElementById("div1");
 
   HitTestResult hit_test_result =
       web_view->MainFrameViewWidget()->CoreHitTestResultAt(
@@ -12192,7 +12191,7 @@ TEST_F(WebFrameTest, MouseOverDifferntNodeClearsTooltip) {
       div1_tag,
       document->GetFrame()->GetChromeClient().LastSetTooltipNodeForTesting());
 
-  Element* div2_tag = document->getElementById(AtomicString("div2"));
+  Element* div2_tag = document->getElementById("div2");
 
   WebMouseEvent mouse_move_event(
       WebInputEvent::Type::kMouseMove,
@@ -12275,8 +12274,7 @@ TEST_F(WebFrameSimTest, HitTestWithIgnoreClippingAtNegativeOffset) {
   HitTestResult result(request, location);
   frame_view->GetLayoutView()->HitTest(location, result);
 
-  EXPECT_EQ(GetDocument().getElementById(AtomicString("top")),
-            result.InnerNode());
+  EXPECT_EQ(GetDocument().getElementById("top"), result.InnerNode());
 }
 
 TEST_F(WebFrameSimTest, TickmarksDocumentRelative) {
@@ -12365,8 +12363,8 @@ TEST_F(WebFrameSimTest, FindInPageSelectNextMatch) {
   auto* local_frame = To<LocalFrame>(WebView().GetPage()->MainFrame());
   auto* frame_view = local_frame->View();
 
-  Element* box1 = GetDocument().getElementById(AtomicString("box1"));
-  Element* box2 = GetDocument().getElementById(AtomicString("box2"));
+  Element* box1 = GetDocument().getElementById("box1");
+  Element* box2 = GetDocument().getElementById("box2");
 
   gfx::Rect box1_rect = box1->GetLayoutObject()->AbsoluteBoundingBoxRect();
   gfx::Rect box2_rect = box2->GetLayoutObject()->AbsoluteBoundingBoxRect();
@@ -12646,7 +12644,7 @@ TEST_F(WebFrameSimTest, TestScrollFocusedEditableInRootScroller) {
   TopDocumentRootScrollerController& rs_controller =
       GetDocument().GetPage()->GlobalRootScrollerController();
 
-  Element* scroller = GetDocument().getElementById(AtomicString("scroller"));
+  Element* scroller = GetDocument().getElementById("scroller");
   ASSERT_EQ(scroller, rs_controller.GlobalRootScroller());
 
   auto* frame = To<LocalFrame>(WebView().GetPage()->MainFrame());
@@ -12757,7 +12755,7 @@ TEST_F(WebFrameSimTest, ScrollFocusedIntoViewClipped) {
       ->FrameWidget()
       ->ScrollFocusedEditableElementIntoView();
 
-  Element* input = GetDocument().getElementById(AtomicString("target"));
+  Element* input = GetDocument().getElementById("target");
   gfx::Rect input_rect(input->getBoundingClientRect()->top(),
                        input->getBoundingClientRect()->left(),
                        input->getBoundingClientRect()->width(),
@@ -12780,7 +12778,7 @@ TEST_F(WebFrameSimTest, ScrollFocusedIntoViewClipped) {
 
   // Additional gut-check that we actually scrolled the non-user-scrollable
   // clip element to make sure the input is in view.
-  Element* clip = GetDocument().getElementById(AtomicString("clip"));
+  Element* clip = GetDocument().getElementById("clip");
   EXPECT_GT(clip->scrollTop(), 0);
 }
 
@@ -12818,8 +12816,7 @@ TEST_F(WebFrameSimTest, ScrollFocusedSelectionIntoView) {
   Compositor().BeginFrame();
   WebView().AdvanceFocus(false);
 
-  auto* input = To<HTMLInputElement>(
-      GetDocument().getElementById(AtomicString("target")));
+  auto* input = To<HTMLInputElement>(GetDocument().getElementById("target"));
   input->select();
 
   // Simulate the keyboard being shown and resizing the widget. Cause a scroll
@@ -12882,7 +12879,7 @@ TEST_F(WebFrameSimTest, DoubleTapZoomWhileScrolled) {
   frame_view->GetScrollableArea()->SetScrollOffset(
       ScrollOffset(2000 - 440, 3000 - 450),
       mojom::blink::ScrollType::kProgrammatic);
-  Element* target = GetDocument().QuerySelector(AtomicString("#target"));
+  Element* target = GetDocument().QuerySelector("#target");
   DOMRect* rect = target->getBoundingClientRect();
   ASSERT_EQ(440, rect->left());
   ASSERT_EQ(450, rect->top());
@@ -12933,7 +12930,7 @@ TEST_F(WebFrameSimTest, ChangeBackgroundColor) {
   LoadURL("https://example.com/test.html");
   main_resource.Complete("<!DOCTYPE html><body></body>");
 
-  Element* body = GetDocument().QuerySelector(AtomicString("body"));
+  Element* body = GetDocument().QuerySelector("body");
   EXPECT_TRUE(!!body);
 
   Compositor().BeginFrame();
@@ -12975,7 +12972,7 @@ TEST_F(WebFrameSimTest, ScrollFocusedEditableIntoViewNoLayoutObject) {
 
   Compositor().BeginFrame();
 
-  Element* input = GetDocument().getElementById(AtomicString("target"));
+  Element* input = GetDocument().getElementById("target");
   input->Focus();
 
   ScrollableArea* area = GetDocument().View()->LayoutViewport();
@@ -13049,7 +13046,7 @@ TEST_F(WebFrameSimTest, DisplayNoneIFrameHasNoLayoutObjects) {
       "<!DOCTYPE html>"
       "<html><body>This is a visible iframe.</body></html>");
 
-  Element* element = GetDocument().QuerySelector(AtomicString("iframe"));
+  Element* element = GetDocument().QuerySelector("iframe");
   auto* frame_owner_element = To<HTMLFrameOwnerElement>(element);
   Document* iframe_doc = frame_owner_element->contentDocument();
   EXPECT_FALSE(iframe_doc->documentElement()->GetLayoutObject());
@@ -13082,14 +13079,15 @@ TEST_F(WebFrameSimTest, DisplayNoneIFramePrints) {
       "<!DOCTYPE html>"
       "<html><body>This is a visible iframe.</body></html>");
 
-  Element* element = GetDocument().QuerySelector(AtomicString("iframe"));
+  Element* element = GetDocument().QuerySelector("iframe");
   auto* frame_owner_element = To<HTMLFrameOwnerElement>(element);
   Document* iframe_doc = frame_owner_element->contentDocument();
   EXPECT_FALSE(iframe_doc->documentElement()->GetLayoutObject());
 
   gfx::SizeF page_size(400, 400);
   float maximum_shrink_ratio = 1.0;
-  iframe_doc->GetFrame()->StartPrinting(page_size, maximum_shrink_ratio);
+  iframe_doc->GetFrame()->StartPrinting(page_size, page_size,
+                                        maximum_shrink_ratio);
   EXPECT_TRUE(iframe_doc->documentElement()->GetLayoutObject());
 
   iframe_doc->GetFrame()->EndPrinting();
@@ -13108,7 +13106,7 @@ TEST_F(WebFrameSimTest, NormalIFrameHasLayoutObjects) {
       "<!DOCTYPE html>"
       "<html><body>This is a visible iframe.</body></html>");
 
-  Element* element = GetDocument().QuerySelector(AtomicString("iframe"));
+  Element* element = GetDocument().QuerySelector("iframe");
   auto* frame_owner_element = To<HTMLFrameOwnerElement>(element);
   Document* iframe_doc = frame_owner_element->contentDocument();
   EXPECT_TRUE(iframe_doc->documentElement()->GetLayoutObject());
@@ -13192,7 +13190,7 @@ TEST_F(WebFrameSimTest, NamedLookupIgnoresEmptyNames) {
     <iframe name="" src="data:text/html,"></iframe>
     </body>)HTML");
 
-  EXPECT_EQ(nullptr, MainFrame().GetFrame()->Tree().ScopedChild(g_empty_atom));
+  EXPECT_EQ(nullptr, MainFrame().GetFrame()->Tree().ScopedChild(""));
   EXPECT_EQ(nullptr,
             MainFrame().GetFrame()->Tree().ScopedChild(AtomicString()));
   EXPECT_EQ(nullptr, MainFrame().GetFrame()->Tree().ScopedChild(g_empty_atom));
@@ -13523,7 +13521,7 @@ TEST_F(WebFrameTest, AltTextOnAboutBlankPage) {
   // Check LayoutText with alt text "foo alt"
   LayoutObject* layout_object = frame->GetFrame()
                                     ->GetDocument()
-                                    ->getElementById(AtomicString("foo"))
+                                    ->getElementById("foo")
                                     ->GetLayoutObject()
                                     ->SlowFirstChild();
   String text = "";
@@ -13537,12 +13535,12 @@ TEST_F(WebFrameTest, AltTextOnAboutBlankPage) {
 }
 
 static void TestFramePrinting(WebLocalFrameImpl* frame) {
+  WebPrintParams print_params;
   gfx::Size page_size(500, 500);
-  WebPrintParams print_params((gfx::SizeF(page_size)));
+  print_params.print_content_area.set_size(page_size);
   EXPECT_EQ(1u, frame->PrintBegin(print_params, WebNode()));
   cc::PaintRecorder recorder;
-  frame->PrintPagesForTesting(recorder.beginRecording(), print_params,
-                              page_size);
+  frame->PrintPagesForTesting(recorder.beginRecording(), page_size, page_size);
   frame->PrintEnd();
 }
 
@@ -13601,13 +13599,14 @@ void RecursiveCollectTextRunDOMNodeIds(
 std::vector<TextRunDOMNodeIdInfo> GetPrintedTextRunDOMNodeIds(
     WebLocalFrame* frame,
     const WebVector<uint32_t>* pages = nullptr) {
+  WebPrintParams print_params;
   gfx::Size page_size(500, 500);
-  WebPrintParams print_params((gfx::SizeF(page_size)));
+  print_params.print_content_area.set_size(page_size);
 
   frame->PrintBegin(print_params, WebNode());
   cc::PaintRecorder recorder;
-  frame->PrintPagesForTesting(recorder.beginRecording(), print_params,
-                              page_size, pages);
+  frame->PrintPagesForTesting(recorder.beginRecording(), page_size, page_size,
+                              pages);
   frame->PrintEnd();
 
   cc::PaintRecord paint_record = recorder.finishRecordingAsPicture();
@@ -13799,18 +13798,12 @@ TEST_F(WebFrameSimTest, GetPageSizeType) {
   CSSStyleDeclaration* style_decl =
       To<CSSPageRule>(sheet->cssRules(ASSERT_NO_EXCEPTION)->item(0))->style();
 
-  // GetPageSizeType() requires layout to be up-to-date.
-  WebView().MainFrameWidget()->UpdateAllLifecyclePhases(
-      DocumentUpdateReason::kTest);
-
   // Initially empty @page rule.
   EXPECT_EQ(PageSizeType::kAuto, main_frame->GetPageSizeType(1));
 
   for (const auto& test : test_cases) {
     style_decl->setProperty(doc->GetExecutionContext(), "size", test.size, "",
                             ASSERT_NO_EXCEPTION);
-    WebView().MainFrameWidget()->UpdateAllLifecyclePhases(
-        DocumentUpdateReason::kTest);
     EXPECT_EQ(test.page_size_type, main_frame->GetPageSizeType(1));
   }
 }
@@ -13844,7 +13837,8 @@ TEST_F(WebFrameSimTest, PageOrientation) {
   RunPendingTasks();
 
   auto* frame = WebView().MainFrame()->ToWebLocalFrame();
-  WebPrintParams print_params((gfx::SizeF(page_size)));
+  WebPrintParams print_params;
+  print_params.print_content_area.set_size(page_size);
   EXPECT_EQ(4u, frame->PrintBegin(print_params, WebNode()));
 
   WebPrintPageDescription description;
@@ -13934,8 +13928,8 @@ TEST_F(WebFrameTest, RemoteViewportAndMainframeIntersections) {
       )HTML",
                                      ToKURL("about:blank"));
 
-  Element* target = local_frame->GetFrame()->GetDocument()->getElementById(
-      AtomicString("target"));
+  Element* target =
+      local_frame->GetFrame()->GetDocument()->getElementById("target");
   ASSERT_TRUE(target);
   ASSERT_TRUE(target->GetLayoutObject());
 
@@ -14421,7 +14415,7 @@ TEST_F(WebFrameTest, VerticalRLScrollOffset) {
   )HTML");
 
   frame->GetDocument()->documentElement()->setAttribute(
-      html_names::kStyleAttr, AtomicString("writing-mode: vertical-rl"));
+      html_names::kStyleAttr, "writing-mode: vertical-rl");
   frame->View()->UpdateAllLifecyclePhasesForTest();
 
   auto* web_main_frame = web_view_helper.LocalMainFrame();
@@ -14438,8 +14432,8 @@ TEST_F(WebFrameTest, FrameOwnerColorScheme) {
   WebViewImpl* web_view = web_view_helper.GetWebView();
 
   Document* document = web_view->MainFrameImpl()->GetFrame()->GetDocument();
-  HTMLFrameOwnerElement* frame = To<HTMLFrameOwnerElement>(
-      document->getElementById(AtomicString("frame")));
+  HTMLFrameOwnerElement* frame =
+      To<HTMLFrameOwnerElement>(document->getElementById("frame"));
   EXPECT_EQ(frame->GetColorScheme(), mojom::blink::ColorScheme::kLight);
   EXPECT_EQ(frame->contentDocument()->GetStyleEngine().GetOwnerColorScheme(),
             mojom::blink::ColorScheme::kLight);
@@ -14454,6 +14448,8 @@ TEST_F(WebFrameTest, FrameOwnerColorScheme) {
 }
 
 TEST_F(WebFrameSimTest, RenderBlockingPromotesResource) {
+  ScopedBlockingAttributeForTest enabled_scope(true);
+
   SimRequest main_request("https://example.com/", "text/html");
   SimSubresourceRequest script_request("https://example.com/script.js",
                                        "text/javascript");

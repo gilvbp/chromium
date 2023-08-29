@@ -6,7 +6,6 @@
 #define CHROME_BROWSER_UI_VIEWS_EXTENSIONS_EXTENSIONS_TOOLBAR_UNITTEST_H_
 
 #include "base/memory/raw_ptr.h"
-#include "chrome/browser/extensions/site_permissions_helper.h"
 #include "chrome/browser/ui/views/extensions/extensions_toolbar_container.h"
 #include "chrome/browser/ui/views/frame/browser_view.h"
 #include "chrome/browser/ui/views/frame/test_with_browser_view.h"
@@ -26,10 +25,8 @@ class ExtensionService;
 // interactive ui or browser test since they are faster and less flaky.
 class ExtensionsToolbarUnitTest : public TestWithBrowserView {
  public:
-  ExtensionsToolbarUnitTest();
-  explicit ExtensionsToolbarUnitTest(
-      base::test::TaskEnvironment::TimeSource time_source);
-  ~ExtensionsToolbarUnitTest() override;
+  ExtensionsToolbarUnitTest() = default;
+  ~ExtensionsToolbarUnitTest() override = default;
   ExtensionsToolbarUnitTest(const ExtensionsToolbarUnitTest&) = delete;
   const ExtensionsToolbarUnitTest& operator=(const ExtensionsToolbarUnitTest&) =
       delete;
@@ -117,11 +114,6 @@ class ExtensionsToolbarUnitTest : public TestWithBrowserView {
       const extensions::Extension& extension,
       const GURL& url) const;
 
-  // Returns the `extension` site interaction on `web_contents`.
-  extensions::SitePermissionsHelper::SiteInteraction GetSiteInteraction(
-      const extensions::Extension& extension,
-      content::WebContents* web_contents) const;
-
   // Returns a list of the views of the currently pinned extensions, in order
   // from left to right.
   std::vector<ToolbarActionView*> GetPinnedExtensionViews();
@@ -144,14 +136,12 @@ class ExtensionsToolbarUnitTest : public TestWithBrowserView {
 
   // TestWithBrowserView:
   void SetUp() override;
-  void TearDown() override;
 
  private:
   raw_ptr<extensions::ExtensionService, DanglingUntriaged> extension_service_ =
       nullptr;
   raw_ptr<extensions::PermissionsManager, DanglingUntriaged>
       permissions_manager_ = nullptr;
-  std::unique_ptr<extensions::SitePermissionsHelper> permissions_helper_;
 };
 
 #endif  // CHROME_BROWSER_UI_VIEWS_EXTENSIONS_EXTENSIONS_TOOLBAR_UNITTEST_H_

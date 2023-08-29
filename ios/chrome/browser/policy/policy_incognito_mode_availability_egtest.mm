@@ -6,10 +6,8 @@
 
 #import "base/json/json_string_value_serializer.h"
 #import "base/strings/sys_string_conversions.h"
-#import "components/policy/core/common/policy_loader_ios_constants.h"
 #import "components/policy/policy_constants.h"
 #import "ios/chrome/browser/policy/policy_app_interface.h"
-#import "ios/chrome/browser/policy/policy_earl_grey_matchers.h"
 #import "ios/chrome/browser/ui/popup_menu/popup_menu_constants.h"
 #import "ios/chrome/browser/ui/toolbar/public/toolbar_constants.h"
 #import "ios/chrome/grit/ios_strings.h"
@@ -18,13 +16,12 @@
 #import "ios/chrome/test/earl_grey/chrome_matchers.h"
 #import "ios/chrome/test/earl_grey/chrome_test_case.h"
 #import "ios/testing/earl_grey/app_launch_configuration.h"
-#import "ios/testing/earl_grey/app_launch_manager.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 using chrome_test_util::ToolsMenuView;
-using policy::AssertContextMenuItemDisabled;
-using policy::AssertContextMenuItemEnabled;
-using policy::AssertOverflowMenuElementDisabled;
-using policy::AssertOverflowMenuElementEnabled;
 
 namespace {
 
@@ -52,6 +49,44 @@ id<GREYMatcher> TabGridButton() {
       IDS_IOS_TOOLBAR_SHOW_TABS);
 }
 
+// Tests the enabled state of an item.
+// `string_id` is the ID of the string associated with the item.
+// `enabled` is the expected availability.
+void AssertItemEnabled(int string_id, bool enabled) {
+  id<GREYMatcher> assertion_matcher =
+      enabled
+          ? grey_not(grey_accessibilityTrait(UIAccessibilityTraitNotEnabled))
+          : grey_accessibilityTrait(UIAccessibilityTraitNotEnabled);
+  [[EarlGrey
+      selectElementWithMatcher:
+          grey_allOf(
+              chrome_test_util::ButtonWithAccessibilityLabelId(string_id),
+              grey_ancestor(grey_kindOfClassName(@"UICollectionView")),
+              grey_sufficientlyVisible(), nil)]
+      assertWithMatcher:assertion_matcher];
+}
+
+// Tests the enabled state of an item.
+// `parentMatcher` is the container matcher of the `item`.
+// `availability` is the expected availability.
+void AssertItemEnabledState(id<GREYMatcher> item,
+                            id<GREYMatcher> parentMatcher,
+                            bool enabled) {
+  id<GREYMatcher> enabledMatcher =
+      [ChromeEarlGrey isNewOverflowMenuEnabled]
+          // TODO(crbug.com/1285974): grey_userInteractionEnabled doesn't work
+          // for SwiftUI views.
+          ? grey_not(grey_accessibilityTrait(UIAccessibilityTraitNotEnabled))
+          : grey_userInteractionEnabled();
+  [[[EarlGrey selectElementWithMatcher:item]
+         usingSearchAction:grey_scrollInDirection(kGREYDirectionDown,
+                                                  /*amount=*/200)
+      onElementWithMatcher:parentMatcher]
+      assertWithMatcher:enabled ? enabledMatcher
+                                : grey_accessibilityTrait(
+                                      UIAccessibilityTraitNotEnabled)];
+}
+
 }  // namespace
 
 // Test case to verify that the IncognitoModeAvailability policy is set and
@@ -72,6 +107,8 @@ id<GREYMatcher> TabGridButton() {
 
 - (void)tearDown {
   [super tearDown];
+  // Close the popup menu.
+  [ChromeTestCase removeAnyOpenMenusAndInfoBars];
 }
 
 // When the IncognitoModeAvailability policy is set to available, the tools
@@ -80,8 +117,10 @@ id<GREYMatcher> TabGridButton() {
   SetIncognitoAvailabiliy(IncognitoAvailability::kAvailable);
   [ChromeEarlGreyUI openToolsMenu];
 
-  AssertOverflowMenuElementEnabled(kToolsMenuNewTabId);
-  AssertOverflowMenuElementEnabled(kToolsMenuNewIncognitoTabId);
+  AssertItemEnabledState(grey_accessibilityID(kToolsMenuNewTabId),
+                         ToolsMenuView(), /*enabled=*/YES);
+  AssertItemEnabledState(grey_accessibilityID(kToolsMenuNewIncognitoTabId),
+                         ToolsMenuView(), /*enabled=*/YES);
 }
 
 // When the IncognitoModeAvailability policy is set to disabled, the tools menu
@@ -90,8 +129,10 @@ id<GREYMatcher> TabGridButton() {
   SetIncognitoAvailabiliy(IncognitoAvailability::kDisabled);
   [ChromeEarlGreyUI openToolsMenu];
 
-  AssertOverflowMenuElementEnabled(kToolsMenuNewTabId);
-  AssertOverflowMenuElementDisabled(kToolsMenuNewIncognitoTabId);
+  AssertItemEnabledState(grey_accessibilityID(kToolsMenuNewTabId),
+                         ToolsMenuView(), /*enabled=*/YES);
+  AssertItemEnabledState(grey_accessibilityID(kToolsMenuNewIncognitoTabId),
+                         ToolsMenuView(), /*enabled=*/NO);
 }
 
 // When the IncognitoModeAvailability policy is set to forced, the tools menu
@@ -100,8 +141,10 @@ id<GREYMatcher> TabGridButton() {
   SetIncognitoAvailabiliy(IncognitoAvailability::kOnly);
   [ChromeEarlGreyUI openToolsMenu];
 
-  AssertOverflowMenuElementDisabled(kToolsMenuNewTabId);
-  AssertOverflowMenuElementEnabled(kToolsMenuNewIncognitoTabId);
+  AssertItemEnabledState(grey_accessibilityID(kToolsMenuNewTabId),
+                         ToolsMenuView(), /*enabled=*/NO);
+  AssertItemEnabledState(grey_accessibilityID(kToolsMenuNewIncognitoTabId),
+                         ToolsMenuView(), /*enabled=*/YES);
 }
 
 // When the IncognitoModeAvailability policy is set to available, the "New Tab"
@@ -113,8 +156,8 @@ id<GREYMatcher> TabGridButton() {
   [[EarlGrey selectElementWithMatcher:TabGridButton()]
       performAction:grey_longPress()];
 
-  AssertContextMenuItemEnabled(IDS_IOS_TOOLS_MENU_NEW_TAB);
-  AssertContextMenuItemEnabled(IDS_IOS_TOOLS_MENU_NEW_INCOGNITO_TAB);
+  AssertItemEnabled(IDS_IOS_TOOLS_MENU_NEW_TAB, /*enabled=*/true);
+  AssertItemEnabled(IDS_IOS_TOOLS_MENU_NEW_INCOGNITO_TAB, /*enabled=*/true);
 }
 
 // When the IncognitoModeAvailability policy is set to disabled, the "New
@@ -126,8 +169,8 @@ id<GREYMatcher> TabGridButton() {
   [[EarlGrey selectElementWithMatcher:TabGridButton()]
       performAction:grey_longPress()];
 
-  AssertContextMenuItemEnabled(IDS_IOS_TOOLS_MENU_NEW_TAB);
-  AssertContextMenuItemDisabled(IDS_IOS_TOOLS_MENU_NEW_INCOGNITO_TAB);
+  AssertItemEnabled(IDS_IOS_TOOLS_MENU_NEW_TAB, /*enabled=*/true);
+  AssertItemEnabled(IDS_IOS_TOOLS_MENU_NEW_INCOGNITO_TAB, /*enabled=*/false);
 }
 
 // When the IncognitoModeAvailability policy is set to forced, the "New Tab"
@@ -139,54 +182,8 @@ id<GREYMatcher> TabGridButton() {
   [[EarlGrey selectElementWithMatcher:TabGridButton()]
       performAction:grey_longPress()];
 
-  AssertContextMenuItemDisabled(IDS_IOS_TOOLS_MENU_NEW_TAB);
-  AssertContextMenuItemEnabled(IDS_IOS_TOOLS_MENU_NEW_INCOGNITO_TAB);
-}
-
-// Tests that when the IncognitoModeAvailability policy is set to forced, the
-// "New Tab" keyboard shortcut action is disabled and can't open a new regular
-// tab. This doesn't verify the tab grid UI.
-- (void)testOpenNewTab_FromPhysicalKeyboard_ForcedIncognito {
-  // Restart the app with the incognito policy.
-  AppLaunchConfiguration config;
-  config.relaunch_policy = ForceRelaunchByCleanShutdown;
-  // Configure the policy to force sign-in.
-  config.additional_args.push_back(
-      "-" + base::SysNSStringToUTF8(kPolicyLoaderIOSConfigurationKey));
-  config.additional_args.push_back(
-      "<dict><key>IncognitoModeAvailability</key><integer>2</integer></dict>");
-  [[AppLaunchManager sharedManager] ensureAppLaunchedWithConfiguration:config];
-
-  // Use the `CMD + n` keyboard shorcut to try opening a regular tab.
-  [ChromeEarlGrey simulatePhysicalKeyboardEvent:@"n"
-                                          flags:UIKeyModifierCommand];
-
-  // Verify that the browser view is still in incognito mode.
-  GREYAssertTrue([ChromeEarlGrey isIncognitoMode],
-                 @"should stay in incognito mode");
-}
-
-// Tests that when the IncognitoModeAvailability policy is set to disabled, the
-// "New Incognito Tab" keyboard shortcut action is disabled and can't open a new
-// incognito tab. This doesn't verify the tab grid UI.
-- (void)testOpenNewTab_FromPhysicalKeyboard__DisabledIncognito {
-  // Restart the app to take into consideration the policy value.
-  AppLaunchConfiguration config;
-  config.relaunch_policy = ForceRelaunchByCleanShutdown;
-  // Configure the policy to force sign-in.
-  config.additional_args.push_back(
-      "-" + base::SysNSStringToUTF8(kPolicyLoaderIOSConfigurationKey));
-  config.additional_args.push_back(
-      "<dict><key>IncognitoModeAvailability</key><integer>1</integer></dict>");
-  [[AppLaunchManager sharedManager] ensureAppLaunchedWithConfiguration:config];
-
-  // Use the `CMD + SHIFT + n` keyboard shorcut to try opening an incognito tab.
-  [ChromeEarlGrey
-      simulatePhysicalKeyboardEvent:@"n"
-                              flags:UIKeyModifierCommand | UIKeyModifierShift];
-
-  GREYAssertFalse([ChromeEarlGrey isIncognitoMode],
-                  @"should stay in regular mode");
+  AssertItemEnabled(IDS_IOS_TOOLS_MENU_NEW_TAB, /*enabled=*/false);
+  AssertItemEnabled(IDS_IOS_TOOLS_MENU_NEW_INCOGNITO_TAB, /*enabled=*/true);
 }
 
 // TODO(crbug.com/1165655): Add test to new tab long-press menu.

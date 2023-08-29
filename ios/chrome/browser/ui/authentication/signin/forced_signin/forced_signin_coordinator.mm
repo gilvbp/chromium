@@ -19,6 +19,10 @@
 #import "ios/chrome/browser/ui/screen/screen_provider.h"
 #import "ios/chrome/browser/ui/screen/screen_type.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 @interface ForcedSigninCoordinator () <FirstRunScreenDelegate>
 
 @property(nonatomic, strong) ScreenProvider* screenProvider;
@@ -117,7 +121,6 @@
     case kHistorySync:
     case kTangibleSync:
     case kDefaultBrowserPromo:
-    case kChoice:
     case kStepsCompleted:
       NOTREACHED() << "Type of screen not supported." << static_cast<int>(type);
       break;
@@ -153,7 +156,7 @@
 
 #pragma mark - SigninCoordinator
 
-- (void)interruptWithAction:(SigninCoordinatorInterrupt)action
+- (void)interruptWithAction:(SigninCoordinatorInterruptAction)action
                  completion:(ProceduralBlock)completion {
   __weak __typeof(self) weakSelf = self;
   ProceduralBlock finishCompletion = ^() {
@@ -164,17 +167,19 @@
   };
   BOOL animated = NO;
   switch (action) {
-    case SigninCoordinatorInterrupt::UIShutdownNoDismiss: {
+    case SigninCoordinatorInterruptActionNoDismiss: {
       [self.childCoordinator
-          interruptWithAction:SigninCoordinatorInterrupt::UIShutdownNoDismiss
-                   completion:finishCompletion];
+          interruptWithAction:SigninCoordinatorInterruptActionNoDismiss
+                   completion:^{
+                     finishCompletion();
+                   }];
       return;
     }
-    case SigninCoordinatorInterrupt::DismissWithoutAnimation: {
+    case SigninCoordinatorInterruptActionDismissWithoutAnimation: {
       animated = NO;
       break;
     }
-    case SigninCoordinatorInterrupt::DismissWithAnimation: {
+    case SigninCoordinatorInterruptActionDismissWithAnimation: {
       animated = YES;
       break;
     }
@@ -183,7 +188,8 @@
   // Interrupt the child coordinator UI first before dismissing the forced
   // sign-in navigation controller.
   [self.childCoordinator
-      interruptWithAction:SigninCoordinatorInterrupt::DismissWithoutAnimation
+      interruptWithAction:
+          SigninCoordinatorInterruptActionDismissWithoutAnimation
                completion:^{
                  [weakSelf.navigationController.presentingViewController
                      dismissViewControllerAnimated:animated

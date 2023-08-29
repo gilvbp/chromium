@@ -15,11 +15,7 @@ FakeLocalDeviceDataProvider::~FakeLocalDeviceDataProvider() = default;
 bool FakeLocalDeviceDataProvider::HaveSharedCredentialsChanged(
     const std::vector<::nearby::internal::SharedCredential>&
         shared_credentials) {
-  if (have_shared_credentials_changed_callback_) {
-    std::move(have_shared_credentials_changed_callback_).Run();
-  }
-
-  return have_shared_credentials_changed_;
+  return have_credentials_changed_;
 }
 
 std::string FakeLocalDeviceDataProvider::GetDeviceId() {
@@ -49,8 +45,8 @@ void FakeLocalDeviceDataProvider::SetRegistrationComplete(bool complete) {
 }
 
 void FakeLocalDeviceDataProvider::SetHaveSharedCredentialsChanged(
-    bool have_shared_credentials_changed) {
-  have_shared_credentials_changed_ = have_shared_credentials_changed;
+    bool have_credentials_changed) {
+  have_credentials_changed_ = have_credentials_changed;
 }
 
 void FakeLocalDeviceDataProvider::SetDeviceId(std::string device_id) {
@@ -69,11 +65,6 @@ void FakeLocalDeviceDataProvider::SetAccountName(std::string account_name) {
 void FakeLocalDeviceDataProvider::SetUpdatePersistedSharedCredentialsCallback(
     base::OnceClosure callback) {
   on_persist_credentials_callback_ = std::move(callback);
-}
-
-void FakeLocalDeviceDataProvider::SetHaveSharedCredentialsChangedCallback(
-    base::OnceClosure callback) {
-  have_shared_credentials_changed_callback_ = std::move(callback);
 }
 
 void FakeLocalDeviceDataProvider::UpdatePersistedSharedCredentials(

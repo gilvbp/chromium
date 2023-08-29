@@ -44,6 +44,17 @@ export class SettingsCreditCardListEntryElement extends
       creditCard: Object,
 
       /**
+       * Whether the expiration date should be shown as secondary label.
+       */
+      showExpirationAsSecondaryLabelEnabled_: {
+        type: Boolean,
+        value() {
+          return loadTimeData.getBoolean('removeCardExpirationAndTypeTitles');
+        },
+        readOnly: true,
+      },
+
+      /**
        * Whether virtual card enrollment management on settings page is enabled.
        */
       virtualCardEnrollmentEnabled_: {
@@ -57,6 +68,7 @@ export class SettingsCreditCardListEntryElement extends
   }
 
   creditCard: chrome.autofillPrivate.CreditCardEntry;
+  private readonly showExpirationAsSecondaryLabelEnabled_: boolean;
   private readonly virtualCardEnrollmentEnabled_: boolean;
 
   get dotsMenu(): HTMLElement|null {
@@ -131,6 +143,11 @@ export class SettingsCreditCardListEntryElement extends
         this.creditCard.metadata!.isVirtualCardEnrolled!;
   }
 
+  private shouldShowVirtualCardLabel_(): boolean {
+    return this.isVirtualCardEnrolled_() &&
+        !this.showExpirationAsSecondaryLabelEnabled_;
+  }
+
   private getSummaryAriaLabel_(): string {
     const cardNumberDescription =
         this.getCardNumberDescription_(this.creditCard);
@@ -184,8 +201,14 @@ export class SettingsCreditCardListEntryElement extends
         this.isVirtualCardEnrollmentEligible_();
   }
 
+  private shouldShowPaymentsLabel_(): boolean {
+    return !this.creditCard.metadata!.isLocal &&
+        !this.showExpirationAsSecondaryLabelEnabled_;
+  }
+
   private shouldShowPaymentsIndicator_(): boolean {
-    return !this.creditCard.metadata!.isLocal;
+    return !this.creditCard.metadata!.isLocal &&
+        this.showExpirationAsSecondaryLabelEnabled_;
   }
 
   private getPaymentsLabel_(): string {

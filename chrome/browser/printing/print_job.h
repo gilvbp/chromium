@@ -19,17 +19,11 @@
 #include "printing/print_settings.h"
 
 #if BUILDFLAG(IS_CHROMEOS)
-#include <string>
-
 #include "chromeos/crosapi/mojom/local_printer.mojom.h"
 #endif
 
 #if BUILDFLAG(IS_WIN)
 #include "third_party/abseil-cpp/absl/types/optional.h"
-#endif
-
-#if BUILDFLAG(IS_WIN)
-class GURL;
 #endif
 
 namespace base {
@@ -98,8 +92,7 @@ class PrintJob : public base::RefCountedThreadSafe<PrintJob> {
       scoped_refptr<base::RefCountedMemory> print_data,
       const gfx::Size& page_size,
       const gfx::Rect& content_area,
-      const gfx::Point& physical_offsets,
-      const GURL& url);
+      const gfx::Point& physical_offsets);
 
   // Overwrites the PDF page mapping to fill in values of -1 for all indices
   // that are not selected. This is needed when the user opens the system
@@ -134,13 +127,6 @@ class PrintJob : public base::RefCountedThreadSafe<PrintJob> {
   // since Cancel() calls Stop(). See WARNING above for Stop().
   virtual void Cancel();
 
-#if BUILDFLAG(ENABLE_PRINT_CONTENT_ANALYSIS)
-  // Cleanup a printing job after content analysis denies printing.  Performs
-  // any extra cleanup for this particular case that can't be safely done from
-  // within Cancel().
-  void CleanupAfterContentAnalysisDenial();
-#endif
-
   // Synchronously wait for the job to finish. It is mainly useful when the
   // process is about to be shut down and we're waiting for the spooler to eat
   // our data.
@@ -165,14 +151,14 @@ class PrintJob : public base::RefCountedThreadSafe<PrintJob> {
 
   // Returns the ID of the source.
   const std::string& source_id() const;
-
-  const base::ObserverList<Observer>& GetObserversForTesting() {
-    return observers_;
-  }
 #endif  // BUILDFLAG(IS_CHROMEOS)
 
   // Posts the given task to be run.
   bool PostTask(const base::Location& from_here, base::OnceClosure task);
+
+  const base::ObserverList<Observer>& GetObserversForTesting() {
+    return observers_;
+  }
 
   // Adds and removes observers for `PrintJob` events. The order in
   // which notifications are sent to observers is undefined. Observers must be
@@ -190,18 +176,12 @@ class PrintJob : public base::RefCountedThreadSafe<PrintJob> {
   // testing contexts.
   PrintJob();
 
-  void set_job_pending_for_testing(bool pending);
+  // The functions below are used for tests only.
+  void set_job_pending(bool pending);
 
   // Updates `document_` to a new instance. Protected so that tests can access
   // it.
   void UpdatePrintedDocument(scoped_refptr<PrintedDocument> new_document);
-
-#if BUILDFLAG(IS_WIN)
-  // Virtual to support testing.
-  virtual void OnPdfPageConverted(uint32_t page_index,
-                                  float scale_factor,
-                                  std::unique_ptr<MetafilePlayer> metafile);
-#endif
 
  private:
 #if BUILDFLAG(IS_WIN)
@@ -229,22 +209,22 @@ class PrintJob : public base::RefCountedThreadSafe<PrintJob> {
   virtual void StartPdfToEmfConversion(
       scoped_refptr<base::RefCountedMemory> bytes,
       const gfx::Size& page_size,
-      const gfx::Rect& content_area,
-      const GURL& url);
+      const gfx::Rect& content_area);
 
   virtual void StartPdfToPostScriptConversion(
       scoped_refptr<base::RefCountedMemory> bytes,
       const gfx::Rect& content_area,
       const gfx::Point& physical_offsets,
-      bool ps_level2,
-      const GURL& url);
+      bool ps_level2);
 
   virtual void StartPdfToTextConversion(
       scoped_refptr<base::RefCountedMemory> bytes,
-      const gfx::Size& page_size,
-      const GURL& url);
+      const gfx::Size& page_size);
 
   void OnPdfConversionStarted(uint32_t page_count);
+  void OnPdfPageConverted(uint32_t page_number,
+                          float scale_factor,
+                          std::unique_ptr<MetafilePlayer> metafile);
 
   // Helper method to do the work for ResetPageMapping(). Split for unit tests.
   static std::vector<uint32_t> GetFullPageMapping(

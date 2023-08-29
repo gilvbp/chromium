@@ -35,7 +35,6 @@ import traceback
 
 from blinkpy.common import exit_codes
 from blinkpy.common.host import Host
-from blinkpy.common.system import command_line
 from blinkpy.web_tests.controllers.manager import Manager
 from blinkpy.web_tests.models import test_run_results
 from blinkpy.web_tests.port import factory
@@ -86,7 +85,7 @@ def main(argv, stderr):
 
 
 def parse_args(args):
-    parser = command_line.ArgumentParser(
+    parser = argparse.ArgumentParser(
         usage='%(prog)s [options] [tests]',
         description=('Runs Blink web tests as described in '
                      '//docs/testing/web_tests.md'))
@@ -140,6 +139,8 @@ def parse_args(args):
 
     # FIXME: Move these into json_results_generator.py.
     json_group = parser.add_argument_group('Result JSON Options')
+    # TODO(qyearsley): --build-name is unused and should be removed.
+    json_group.add_argument('--build-name', help=argparse.SUPPRESS)
     json_group.add_argument(
         '--step-name',
         default='blink_web_tests',

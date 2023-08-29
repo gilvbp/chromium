@@ -39,19 +39,6 @@ void ReadAnythingAppModel::OnThemeChanged(
   foreground_color_ = new_theme->foreground_color;
 }
 
-void ReadAnythingAppModel::OnSettingsRestoredFromPrefs(
-    read_anything::mojom::LineSpacing line_spacing,
-    read_anything::mojom::LetterSpacing letter_spacing,
-    const std::string& font,
-    double font_size,
-    read_anything::mojom::Colors color) {
-  line_spacing_ = GetLineSpacingValue(line_spacing);
-  letter_spacing_ = GetLetterSpacingValue(letter_spacing);
-  font_name_ = font;
-  font_size_ = font_size;
-  color_theme_ = static_cast<size_t>(color);
-}
-
 void ReadAnythingAppModel::InsertDisplayNode(ui::AXNodeID node) {
   display_node_ids_.insert(node);
 }
@@ -553,6 +540,7 @@ void ReadAnythingAppModel::ProcessNonGeneratedEvents(
 
         // Audit these events e.g. to require distillation.
       case ax::mojom::Event::kActiveDescendantChanged:
+      case ax::mojom::Event::kAriaAttributeChanged:
       case ax::mojom::Event::kCheckedStateChanged:
       case ax::mojom::Event::kChildrenChanged:
       case ax::mojom::Event::kDocumentSelectionChanged:
@@ -610,8 +598,6 @@ void ReadAnythingAppModel::ProcessNonGeneratedEvents(
       case ax::mojom::Event::kTreeChanged:
       case ax::mojom::Event::kValueChanged:
         break;
-      case ax::mojom::Event::kAriaAttributeChangedDeprecated:
-        NOTREACHED_NORETURN();
     }
   }
 }
@@ -689,7 +675,6 @@ void ReadAnythingAppModel::ProcessGeneratedEvents(
       case ui::AXEventGenerator::Event::MULTISELECTABLE_STATE_CHANGED:
       case ui::AXEventGenerator::Event::NAME_CHANGED:
       case ui::AXEventGenerator::Event::OBJECT_ATTRIBUTE_CHANGED:
-      case ui::AXEventGenerator::Event::ORIENTATION_CHANGED:
       case ui::AXEventGenerator::Event::OTHER_ATTRIBUTE_CHANGED:
       case ui::AXEventGenerator::Event::PARENT_CHANGED:
       case ui::AXEventGenerator::Event::PLACEHOLDER_CHANGED:
@@ -718,19 +703,5 @@ void ReadAnythingAppModel::ProcessGeneratedEvents(
       case ui::AXEventGenerator::Event::WIN_IACCESSIBLE_STATE_CHANGED:
         break;
     }
-  }
-}
-
-void ReadAnythingAppModel::IncreaseTextSize() {
-  font_size_ += kReadAnythingFontScaleIncrement;
-  if (font_size_ > kReadAnythingMaximumFontScale) {
-    font_size_ = kReadAnythingMaximumFontScale;
-  }
-}
-
-void ReadAnythingAppModel::DecreaseTextSize() {
-  font_size_ -= kReadAnythingFontScaleIncrement;
-  if (font_size_ < kReadAnythingMinimumFontScale) {
-    font_size_ = kReadAnythingMinimumFontScale;
   }
 }

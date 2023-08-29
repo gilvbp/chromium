@@ -5,8 +5,6 @@
 import {TestRunner} from 'test_runner';
 import {ElementsTestRunner} from 'elements_test_runner';
 
-import * as SDK from 'devtools/core/sdk/sdk.js';
-
 (async function() {
   TestRunner.addResult(`Tests that disabling style is undone properly.\n`);
   await TestRunner.loadLegacyModule('elements');
@@ -32,7 +30,7 @@ import * as SDK from 'devtools/core/sdk/sdk.js';
     var treeItem = ElementsTestRunner.getElementStylePropertyTreeItem('font-weight');
     ElementsTestRunner.dumpStyleTreeItem(treeItem, '');
 
-    SDK.DOMModel.DOMModelUndoStack.instance().undo();
+    SDK.domModelUndoStack.undo();
     ElementsTestRunner.waitForStyles('container', step3);
   }
 
@@ -41,7 +39,7 @@ import * as SDK from 'devtools/core/sdk/sdk.js';
     var treeItem = ElementsTestRunner.getElementStylePropertyTreeItem('font-weight');
     ElementsTestRunner.dumpStyleTreeItem(treeItem, '');
 
-    SDK.DOMModel.DOMModelUndoStack.instance().redo();
+    SDK.domModelUndoStack.redo();
     ElementsTestRunner.waitForStyles('container', step4);
   }
 

@@ -25,6 +25,8 @@ FrameSinkHost::~FrameSinkHost() {
 
   FrameSinkHolder::DeleteWhenLastResourceHasBeenReclaimed(
       std::move(frame_sink_holder_), host_window_);
+
+  host_window_->RemoveObserver(this);
 }
 
 void FrameSinkHost::SetPresentationCallback(PresentationCallback callback) {
@@ -66,8 +68,7 @@ void FrameSinkHost::SetHostWindow(aura::Window* host_window) {
                                    "added to the window hierarchy first.";
 
   host_window_ = host_window;
-  host_window_observation_.Reset();
-  host_window_observation_.Observe(host_window_);
+  host_window_->AddObserver(this);
 }
 
 void FrameSinkHost::UpdateSurface(const gfx::Rect& content_rect,
@@ -115,7 +116,7 @@ void FrameSinkHost::OnWindowDestroying(aura::Window* window) {
   FrameSinkHolder::DeleteWhenLastResourceHasBeenReclaimed(
       std::move(frame_sink_holder_), host_window_);
 
-  host_window_observation_.Reset();
+  host_window_->RemoveObserver(this);
   host_window_ = nullptr;
 }
 

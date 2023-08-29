@@ -5,8 +5,8 @@
 #import <UIKit/UIKit.h>
 #import <XCTest/XCTest.h>
 
-#import "base/apple/foundation_util.h"
 #import "base/functional/bind.h"
+#import "base/mac/foundation_util.h"
 #import "base/strings/sys_string_conversions.h"
 #import "base/test/ios/wait_util.h"
 #import "components/strings/grit/components_strings.h"
@@ -29,8 +29,12 @@
 #import "net/test/embedded_test_server/http_response.h"
 #import "url/gurl.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
+using chrome_test_util::ButtonWithAccessibilityLabelId;
 using chrome_test_util::ContextMenuCopyButton;
-using chrome_test_util::ContextMenuItemWithAccessibilityLabelId;
 using chrome_test_util::OmniboxText;
 using chrome_test_util::OpenLinkInNewTabButton;
 using chrome_test_util::SystemSelectionCalloutCopyButton;
@@ -152,13 +156,12 @@ NSString* const kLongImgTitle =
 
 // Matcher for the open image button in the context menu.
 id<GREYMatcher> OpenImageButton() {
-  return ContextMenuItemWithAccessibilityLabelId(
-      IDS_IOS_CONTENT_CONTEXT_OPENIMAGE);
+  return ButtonWithAccessibilityLabelId(IDS_IOS_CONTENT_CONTEXT_OPENIMAGE);
 }
 
 // Matcher for the open image in new tab button in the context menu.
 id<GREYMatcher> OpenImageInNewTabButton() {
-  return ContextMenuItemWithAccessibilityLabelId(
+  return ButtonWithAccessibilityLabelId(
       IDS_IOS_CONTENT_CONTEXT_OPENIMAGENEWTAB);
 }
 
@@ -425,9 +428,7 @@ void TapOnContextMenuButton(id<GREYMatcher> context_menu_item_button) {
       assertWithMatcher:grey_nil()];
 
   // Verify that system text selection callout is displayed.
-  [[EarlGrey
-      selectElementWithMatcher:grey_allOf(SystemSelectionCalloutCopyButton(),
-                                          grey_sufficientlyVisible(), nil)]
+  [[EarlGrey selectElementWithMatcher:SystemSelectionCalloutCopyButton()]
       assertWithMatcher:grey_notNil()];
 
   // TODO(crbug.com/1233056): Tap to dismiss the system selection callout
@@ -494,19 +495,20 @@ void TapOnContextMenuButton(id<GREYMatcher> context_menu_item_button) {
 
   // Check the different buttons.
   [[EarlGrey
-      selectElementWithMatcher:ContextMenuItemWithAccessibilityLabelId(
+      selectElementWithMatcher:chrome_test_util::ButtonWithAccessibilityLabelId(
                                    IDS_IOS_CONTENT_CONTEXT_OPENLINKNEWTAB)]
       assertWithMatcher:grey_sufficientlyVisible()];
   [[EarlGrey
-      selectElementWithMatcher:ContextMenuItemWithAccessibilityLabelId(
+      selectElementWithMatcher:chrome_test_util::ButtonWithAccessibilityLabelId(
                                    IDS_IOS_OPEN_IN_INCOGNITO_ACTION_TITLE)]
       assertWithMatcher:grey_sufficientlyVisible()];
   [[EarlGrey
-      selectElementWithMatcher:ContextMenuItemWithAccessibilityLabelId(
+      selectElementWithMatcher:chrome_test_util::ButtonWithAccessibilityLabelId(
                                    IDS_IOS_CONTENT_CONTEXT_ADDTOREADINGLIST)]
       assertWithMatcher:grey_sufficientlyVisible()];
-  [[EarlGrey selectElementWithMatcher:ContextMenuItemWithAccessibilityLabelId(
-                                          IDS_IOS_COPY_LINK_ACTION_TITLE)]
+  [[EarlGrey
+      selectElementWithMatcher:chrome_test_util::ButtonWithAccessibilityLabelId(
+                                   IDS_IOS_COPY_LINK_ACTION_TITLE)]
       assertWithMatcher:grey_sufficientlyVisible()];
 }
 
@@ -582,13 +584,15 @@ void TapOnContextMenuButton(id<GREYMatcher> context_menu_item_button) {
   LongPressElement(kInitialPageDestinationLinkId);
 
   // Check the different buttons.
-  [[EarlGrey selectElementWithMatcher:ContextMenuItemWithAccessibilityLabelId(
-                                          IDS_IOS_COPY_LINK_ACTION_TITLE)]
+  [[EarlGrey
+      selectElementWithMatcher:chrome_test_util::ButtonWithAccessibilityLabelId(
+                                   IDS_IOS_COPY_LINK_ACTION_TITLE)]
       assertWithMatcher:grey_sufficientlyVisible()];
 
   // Make sure that the open action is not displayed.
-  [[EarlGrey selectElementWithMatcher:ContextMenuItemWithAccessibilityLabelId(
-                                          IDS_IOS_CONTENT_CONTEXT_OPEN)]
+  [[EarlGrey
+      selectElementWithMatcher:chrome_test_util::ButtonWithAccessibilityLabelId(
+                                   IDS_IOS_CONTENT_CONTEXT_OPEN)]
       assertWithMatcher:grey_nil()];
 }
 
@@ -600,8 +604,9 @@ void TapOnContextMenuButton(id<GREYMatcher> context_menu_item_button) {
   LongPressElement(kInitialPageDestinationLinkId);
 
   // Check the different buttons.
-  [[EarlGrey selectElementWithMatcher:ContextMenuItemWithAccessibilityLabelId(
-                                          IDS_IOS_COPY_LINK_ACTION_TITLE)]
+  [[EarlGrey
+      selectElementWithMatcher:chrome_test_util::ButtonWithAccessibilityLabelId(
+                                   IDS_IOS_COPY_LINK_ACTION_TITLE)]
       assertWithMatcher:grey_sufficientlyVisible()];
 }
 

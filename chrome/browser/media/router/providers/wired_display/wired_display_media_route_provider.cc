@@ -51,12 +51,10 @@ MediaSinkInternal CreateSinkForDisplay(const Display& display,
 bool CompareDisplays(int64_t primary_id,
                      const Display& display1,
                      const Display& display2) {
-  if (display2.id() == primary_id) {
-    return false;
-  }
-  if (display1.id() == primary_id) {
+  if (display1.id() == primary_id)
     return true;
-  }
+  if (display2.id() == primary_id)
+    return false;
   return display1.bounds().y() < display2.bounds().y() ||
          (display1.bounds().y() == display2.bounds().y() &&
           display1.bounds().x() < display2.bounds().x());

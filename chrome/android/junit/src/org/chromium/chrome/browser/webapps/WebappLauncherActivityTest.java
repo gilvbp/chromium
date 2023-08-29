@@ -12,6 +12,7 @@ import static org.junit.Assert.assertTrue;
 import android.content.Intent;
 import android.os.Bundle;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -38,6 +39,11 @@ public class WebappLauncherActivityTest {
     @Before
     public void setUp() {
         WebApkValidator.setDisableValidationForTesting(true);
+    }
+
+    @After
+    public void tearDown() {
+        WebApkValidator.setDisableValidationForTesting(false);
     }
 
     /**

@@ -1,7 +1,6 @@
 include_rules = [
   "+third_party/skia",
   "+ui/aura",
-  "+ui/color",
   "+ui/compositor",
   "+ui/compositor_extra",
   "+ui/gfx",

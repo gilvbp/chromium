@@ -76,7 +76,7 @@ class DiceWebSigninInterceptionBubbleView
                            BubbleAcceptedGuestMode);
   FRIEND_TEST_ALL_PREFIXES(DiceWebSigninInterceptionBubbleBrowserTest,
                            ProfileKeepAlive);
-  FRIEND_TEST_ALL_PREFIXES(DiceWebSigninInterceptionBubbleBrowserTest,
+  FRIEND_TEST_ALL_PREFIXES(DiceWebSigninInterceptionBubbleV2BrowserTest,
                            OpenLearnMoreLinkInNewTab);
   FRIEND_TEST_ALL_PREFIXES(ProfileBubbleInteractiveUiTest,
                            InterceptionBubbleFocus);

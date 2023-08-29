@@ -20,7 +20,6 @@
 #include "ui/gfx/color_utils.h"
 #include "ui/views/background.h"
 #include "ui/views/controls/focus_ring.h"
-#include "ui/views/widget/widget.h"
 
 namespace arc::input_overlay {
 
@@ -60,9 +59,9 @@ constexpr SkColor kCenterColorDrag30White =
 
 // Draw the cross shape path with round corner. It starts from bottom to up on
 // line #0 and draws clock-wisely.
-// `overall_length` is the total length of one side excluding the stroke
-// thickness. `mid_length` is the length of the middle part which is close to
-// the one third of `overall_length`.
+// |overall_length| is the total length of one side excluding the stroke
+// thickness. |mid_length| is the length of the middle part which is close to
+// the one third of |overall_length|.
 //      __
 //   _0^  |__
 //  |__    __|

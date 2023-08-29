@@ -20,13 +20,12 @@
 #import "ios/chrome/browser/shared/model/web_state_list/web_state_list.h"
 #import "ios/chrome/browser/shared/public/commands/autofill_bottom_sheet_commands.h"
 #import "ios/chrome/browser/shared/public/commands/command_dispatcher.h"
-#import "ios/chrome/browser/shared/public/commands/mini_map_commands.h"
 #import "ios/chrome/browser/shared/public/commands/web_content_commands.h"
 #import "ios/chrome/browser/snapshots/snapshot_tab_helper.h"
 #import "ios/chrome/browser/ssl/captive_portal_tab_helper.h"
 #import "ios/chrome/browser/ui/download/download_manager_coordinator.h"
 #import "ios/chrome/browser/ui/ntp/new_tab_page_coordinator.h"
-#import "ios/chrome/browser/ui/print/print_coordinator.h"
+#import "ios/chrome/browser/ui/print/print_controller.h"
 #import "ios/chrome/browser/ui/side_swipe/side_swipe_mediator.h"
 #import "ios/chrome/browser/web/annotations/annotations_tab_helper.h"
 #import "ios/chrome/browser/web/print/print_tab_helper.h"
@@ -38,6 +37,10 @@
 #import "ios/chrome/browser/webui/net_export_tab_helper.h"
 #import "ios/chrome/browser/webui/net_export_tab_helper_delegate.h"
 #import "ui/base/device_form_factor.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 @interface TabLifecycleMediator () <DependencyInstalling>
 @end
@@ -78,10 +81,10 @@
   PasswordTabHelper* passwordTabHelper =
       PasswordTabHelper::FromWebState(webState);
   DCHECK(_baseViewController);
-  DCHECK(_passwordControllerDelegate);
+  DCHECK(_delegate);
   DCHECK(_commandDispatcher);
   passwordTabHelper->SetBaseViewController(_baseViewController);
-  passwordTabHelper->SetPasswordControllerDelegate(_passwordControllerDelegate);
+  passwordTabHelper->SetPasswordControllerDelegate(_delegate);
   passwordTabHelper->SetDispatcher(_commandDispatcher);
 
   AutofillBottomSheetTabHelper* bottomSheetTabHelper =
@@ -94,9 +97,9 @@
       _overscrollActionsDelegate);
 
   // DownloadManagerTabHelper cannot function without its delegate.
-  DCHECK(_downloadManagerTabHelperDelegate);
+  DCHECK(_downloadManagerCoordinator);
   DownloadManagerTabHelper::FromWebState(webState)->SetDelegate(
-      _downloadManagerTabHelperDelegate);
+      _downloadManagerCoordinator);
 
   DCHECK(_tabHelperDelegate);
   NetExportTabHelper::FromWebState(webState)->SetDelegate(_tabHelperDelegate);
@@ -113,8 +116,8 @@
   AutofillTabHelper::FromWebState(webState)->SetBaseViewController(
       _baseViewController);
 
-  DCHECK(_printCoordinator);
-  PrintTabHelper::FromWebState(webState)->set_printer(_printCoordinator);
+  DCHECK(_printController);
+  PrintTabHelper::FromWebState(webState)->set_printer(_printController);
 
   RepostFormTabHelper::FromWebState(webState)->SetDelegate(_repostFormDelegate);
 
@@ -131,13 +134,10 @@
   NewTabPageTabHelper::FromWebState(webState)->SetDelegate(
       _NTPTabHelperDelegate);
 
-  AnnotationsTabHelper* annotationsTabHelper =
-      AnnotationsTabHelper::FromWebState(webState);
-  if (annotationsTabHelper) {
+  if (AnnotationsTabHelper::FromWebState(webState)) {
     DCHECK(_baseViewController);
-    annotationsTabHelper->SetBaseViewController(_baseViewController);
-    annotationsTabHelper->SetMiniMapCommands(
-        HandlerForProtocol(_commandDispatcher, MiniMapCommands));
+    AnnotationsTabHelper::FromWebState(webState)->SetBaseViewController(
+        _baseViewController);
   }
 
   PriceNotificationsTabHelper* priceNotificationsTabHelper =
@@ -189,11 +189,8 @@
 
   NewTabPageTabHelper::FromWebState(webState)->SetDelegate(nil);
 
-  AnnotationsTabHelper* annotationsTabHelper =
-      AnnotationsTabHelper::FromWebState(webState);
-  if (annotationsTabHelper) {
-    annotationsTabHelper->SetBaseViewController(nil);
-    annotationsTabHelper->SetMiniMapCommands(nil);
+  if (AnnotationsTabHelper::FromWebState(webState)) {
+    AnnotationsTabHelper::FromWebState(webState)->SetBaseViewController(nil);
   }
 
   PriceNotificationsTabHelper* priceNotificationsTabHelper =

@@ -159,7 +159,7 @@ bool VaapiVideoEncodeAccelerator::Initialize(
     }
 #endif  // BUILDFLAG(IS_CHROMEOS)
 
-    if (config.inter_layer_pred != SVCInterLayerPredMode::kOnKeyPic) {
+    if (config.inter_layer_pred != Config::InterLayerPredMode::kOnKeyPic) {
       MEDIA_LOG(ERROR, media_log.get()) << "Only K-SVC encoding is supported.";
       return false;
     }
@@ -498,9 +498,6 @@ void VaapiVideoEncodeAccelerator::ReturnBitstreamBuffer(
             << (metadata.key_frame ? "(keyframe)" : "")
             << " id: " << buffer.id() << " size: " << data_size;
 
-  TRACE_EVENT2("media,gpu", "VAVEA::BitstreamBufferReady", "timestamp",
-               metadata.timestamp.InMicroseconds(), "bitstream_buffer_id",
-               buffer.id());
   child_task_runner_->PostTask(
       FROM_HERE, base::BindOnce(&Client::BitstreamBufferReady, client_,
                                 buffer.id(), std::move(metadata)));
@@ -508,7 +505,7 @@ void VaapiVideoEncodeAccelerator::ReturnBitstreamBuffer(
 
 void VaapiVideoEncodeAccelerator::Encode(scoped_refptr<VideoFrame> frame,
                                          bool force_keyframe) {
-  DVLOGF(4) << "Frame timestamp: " << frame->timestamp().InMicroseconds()
+  DVLOGF(4) << "Frame timestamp: " << frame->timestamp().InMilliseconds()
             << " force_keyframe: " << force_keyframe;
   DCHECK_CALLED_ON_VALID_SEQUENCE(child_sequence_checker_);
 
@@ -522,9 +519,8 @@ void VaapiVideoEncodeAccelerator::EncodeTask(scoped_refptr<VideoFrame> frame,
                                              bool force_keyframe) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(encoder_sequence_checker_);
   DCHECK_NE(state_, kUninitialized);
+
   if (frame) {
-    TRACE_EVENT1("media,gpu", "VAVEA::EncodeTask", "timestamp",
-                 frame->timestamp().InMicroseconds());
     // |frame| can be nullptr to indicate a flush.
     const bool is_expected_storage_type =
         native_input_mode_
@@ -595,20 +591,29 @@ bool VaapiVideoEncodeAccelerator::CreateSurfacesForGpuMemoryBufferEncoding(
   // Create input surfaces.
   TRACE_EVENT1("media,gpu", "VAVEA::ConstructSurfaces", "layers",
                spatial_layer_resolutions.size());
-  input_surfaces->reserve(spatial_layer_resolutions.size());
+  input_surfaces->resize(spatial_layer_resolutions.size());
+  // Process from uppermost layer, then use immediate upper layer as vpp source
+  // surface if applicable.
   auto source_rect = frame.visible_rect();
-  for (const gfx::Size& encode_size : spatial_layer_resolutions) {
+  for (size_t i = spatial_layer_resolutions.size() - 1; i != std::variant_npos;
+       --i) {
+    const gfx::Size& encode_size = spatial_layer_resolutions[i];
     const bool engage_vpp = source_rect != gfx::Rect(encode_size);
+
     // Crop and Scale input surface to a surface whose size is |encode_size|.
     // The size of a reconstructed surface is also |encode_size|.
     if (engage_vpp) {
-      input_surfaces->push_back(
-          ExecuteBlitSurface(*source_surface, source_rect, encode_size));
+      if (i + 1 < spatial_layer_resolutions.size()) {
+        source_surface = input_surfaces->at(i + 1);
+        source_rect = gfx::Rect(source_surface->size());
+      }
+      input_surfaces->at(i) =
+          ExecuteBlitSurface(*source_surface, source_rect, encode_size);
     } else {
-      input_surfaces->push_back(source_surface);
+      input_surfaces->at(i) = source_surface;
     }
 
-    if (!input_surfaces->back()) {
+    if (!input_surfaces->at(i)) {
       return false;
     }
   }
@@ -780,9 +785,6 @@ scoped_refptr<VASurface> VaapiVideoEncodeAccelerator::ExecuteBlitSurface(
     return nullptr;
 
   DCHECK(vpp_vaapi_wrapper_);
-  TRACE_EVENT2("media,gpu", "VAVEA::ImageProcessor::BlitSurface",
-               "source_visible_rect", source_visible_rect.ToString(),
-               "dest_visible_rect", gfx::Rect(encode_size).ToString());
   if (!vpp_vaapi_wrapper_->BlitSurface(source_surface, *blit_surface,
                                        source_visible_rect,
                                        gfx::Rect(encode_size))) {
@@ -905,7 +907,7 @@ void VaapiVideoEncodeAccelerator::EncodePendingInputs() {
     for (size_t spatial_idx = 0; spatial_idx < num_spatial_layers;
          ++spatial_idx) {
       std::unique_ptr<EncodeJob> job;
-      TRACE_EVENT0("media,gpu", "VAVEA::CreateEncoderJob");
+      TRACE_EVENT0("media,gpu", "VAVEA::FromCreateEncodeJobToReturn");
       const bool force_key =
           (spatial_idx == 0 ? input_frame.force_keyframe : false);
       job = CreateEncodeJob(force_key, input_frame.frame->timestamp(),
@@ -918,29 +920,22 @@ void VaapiVideoEncodeAccelerator::EncodePendingInputs() {
     }
 
     for (auto& job : jobs) {
-      TRACE_EVENT_NESTABLE_ASYNC_BEGIN0("media,gpu", "PlatformEncoding.Encode",
-                                        TRACE_ID_LOCAL(&job));
-
+      TRACE_EVENT0("media,gpu", "VAVEA::Encode");
       if (!encoder_->Encode(*job)) {
         NotifyError({EncoderStatus::Codes::kEncoderFailedEncode,
                      "Failed encoding job"});
         return;
       }
     }
-    for (size_t i = 0; i < jobs.size(); i++) {
+    for (auto&& job : jobs) {
+      TRACE_EVENT0("media,gpu", "VAVEA::GetEncodeResult");
       absl::optional<EncodeResult> result =
-          encoder_->GetEncodeResult(std::move(jobs[i]));
+          encoder_->GetEncodeResult(std::move(job));
       if (!result) {
         NotifyError({EncoderStatus::Codes::kEncoderFailedEncode,
                      "Failed getting encode result"});
         return;
       }
-
-      TRACE_EVENT_NESTABLE_ASYNC_END2(
-          "media,gpu", "PlatformEncoding.Encode", TRACE_ID_LOCAL(&jobs[i]),
-          "timestamp", result->metadata().timestamp.InMicroseconds(), "size",
-          spatial_layer_resolutions[i].ToString());
-
       pending_encode_results_.push(std::move(result));
     }
 

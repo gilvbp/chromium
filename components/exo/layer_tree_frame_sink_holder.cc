@@ -6,7 +6,7 @@
 
 #include "base/containers/contains.h"
 #include "base/task/single_thread_task_runner.h"
-#include "cc/mojo_embedder/async_layer_tree_frame_sink.h"
+#include "cc/trees/layer_tree_frame_sink.h"
 #include "components/exo/surface_tree_host.h"
 #include "components/viz/common/frame_timing_details.h"
 #include "components/viz/common/hit_test/hit_test_region_list.h"
@@ -16,14 +16,14 @@ namespace exo {
 
 BASE_FEATURE(kExoReactiveFrameSubmission,
              "ExoReactiveFrameSubmission",
-             base::FEATURE_ENABLED_BY_DEFAULT);
+             base::FEATURE_DISABLED_BY_DEFAULT);
 
 ////////////////////////////////////////////////////////////////////////////////
 // LayerTreeFrameSinkHolder, public:
 
 LayerTreeFrameSinkHolder::LayerTreeFrameSinkHolder(
     SurfaceTreeHost* surface_tree_host,
-    std::unique_ptr<cc::mojo_embedder::AsyncLayerTreeFrameSink> frame_sink)
+    std::unique_ptr<cc::LayerTreeFrameSink> frame_sink)
     : surface_tree_host_(surface_tree_host),
       frame_sink_(std::move(frame_sink)),
       reactive_frame_submission_(
@@ -55,7 +55,7 @@ void LayerTreeFrameSinkHolder::DeleteWhenLastResourceHasBeenReclaimed(
   if (holder->is_lost_)
     return;
 
-  if (holder->frame_sink_->last_submitted_size_in_pixels().IsEmpty()) {
+  if (holder->last_frame_size_in_pixels_.IsEmpty()) {
     // Delete sink holder immediately if no frame has been submitted.
     DCHECK(holder->last_frame_resources_.empty());
     return;
@@ -69,13 +69,11 @@ void LayerTreeFrameSinkHolder::DeleteWhenLastResourceHasBeenReclaimed(
       viz::BeginFrameAck::CreateManualAckWithDamage();
   frame.metadata.frame_token =
       holder->surface_tree_host_->GenerateNextFrameToken();
-  frame.metadata.device_scale_factor =
-      holder->frame_sink_->last_submitted_device_scale_factor();
+  frame.metadata.device_scale_factor = holder->last_frame_device_scale_factor_;
   auto pass = viz::CompositorRenderPass::Create();
   pass->SetNew(viz::CompositorRenderPassId{1},
-               gfx::Rect(holder->frame_sink_->last_submitted_size_in_pixels()),
-               gfx::Rect(holder->frame_sink_->last_submitted_size_in_pixels()),
-               gfx::Transform());
+               gfx::Rect(holder->last_frame_size_in_pixels_),
+               gfx::Rect(holder->last_frame_size_in_pixels_), gfx::Transform());
   frame.render_pass_list.push_back(std::move(pass));
   holder->SubmitCompositorFrameToRemote(&frame);
 
@@ -96,8 +94,8 @@ void LayerTreeFrameSinkHolder::DeleteWhenLastResourceHasBeenReclaimed(
   lifetime_manager->AddObserver(holder.release());
 }
 
-void LayerTreeFrameSinkHolder::SubmitCompositorFrame(viz::CompositorFrame frame,
-                                                     bool submit_now) {
+void LayerTreeFrameSinkHolder::SubmitCompositorFrame(
+    viz::CompositorFrame frame) {
   if (!reactive_frame_submission_) {
     SubmitCompositorFrameToRemote(&frame);
     return;
@@ -107,7 +105,7 @@ void LayerTreeFrameSinkHolder::SubmitCompositorFrame(viz::CompositorFrame frame,
 
   DiscardCachedFrame(&frame);
 
-  if (!ShouldSubmitFrameNow() && !submit_now) {
+  if (!ShouldSubmitFrameNow()) {
     cached_frame_ = std::move(frame);
     return;
   }
@@ -115,21 +113,6 @@ void LayerTreeFrameSinkHolder::SubmitCompositorFrame(viz::CompositorFrame frame,
   ProcessFirstPendingBeginFrame(&frame);
   SubmitCompositorFrameToRemote(&frame);
   UpdateSubmitFrameTimer();
-}
-
-void LayerTreeFrameSinkHolder::SetLocalSurfaceId(
-    const viz::LocalSurfaceId& local_surface_id) {
-  frame_sink_->SetLocalSurfaceId(local_surface_id);
-}
-
-float LayerTreeFrameSinkHolder::LastDeviceScaleFactor() const {
-  return cached_frame_ ? cached_frame_->device_scale_factor()
-                       : frame_sink_->last_submitted_device_scale_factor();
-}
-
-const gfx::Size& LayerTreeFrameSinkHolder::LastSizeInPixels() const {
-  return cached_frame_ ? cached_frame_->size_in_pixels()
-                       : frame_sink_->last_submitted_size_in_pixels();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -162,9 +145,6 @@ void LayerTreeFrameSinkHolder::ReclaimResources(
   for (auto& resource : resources) {
     // Skip resources that are also in last frame. This can happen if
     // the frame sink id changed.
-    // TODO(crbug/1448681): if viz reclaims the resources b/c the viz::Surface
-    // never gets embedded, this prevents clients from receiving release
-    // callbacks. This needs to be addressed.
     if (base::Contains(last_frame_resources_, resource.id)) {
       continue;
     }
@@ -314,6 +294,8 @@ void LayerTreeFrameSinkHolder::SubmitCompositorFrameToRemote(
                                           base::TimeTicks::Now());
   }
 
+  last_frame_size_in_pixels_ = frame->size_in_pixels();
+  last_frame_device_scale_factor_ = frame->metadata.device_scale_factor;
   last_frame_resources_.clear();
   for (auto& resource : frame->resource_list) {
     last_frame_resources_.push_back(resource.id);
@@ -322,10 +304,6 @@ void LayerTreeFrameSinkHolder::SubmitCompositorFrameToRemote(
   frame_sink_->SubmitCompositorFrame(std::move(*frame),
                                      /*hit_test_data_changed=*/true);
 
-  // TODO(crbug.com/1473386): Push an object to
-  // `pending_discarded_frame_notifications_` instead of using the counter here,
-  // s.t. we don't have to wait until this counter drop to zero before
-  // `SendDiscardedFrameNotifications()`, and frame_acks are properly ordered.
   pending_submit_frames_++;
 }
 
@@ -438,16 +416,11 @@ void LayerTreeFrameSinkHolder::UpdateSubmitFrameTimer() {
 
 void LayerTreeFrameSinkHolder::ProcessFirstPendingBeginFrame(
     viz::CompositorFrame* frame) {
-  if (!pending_begin_frames_.empty()) {
-    frame->metadata.begin_frame_ack =
-        pending_begin_frames_.front().begin_frame_ack;
-    pending_begin_frames_.pop();
-    return;
-  }
+  DCHECK(!pending_begin_frames_.empty());
 
-  // Submit an unsolicited frame.
   frame->metadata.begin_frame_ack =
-      viz::BeginFrameAck::CreateManualAckWithDamage();
+      pending_begin_frames_.front().begin_frame_ack;
+  pending_begin_frames_.pop();
 }
 
 bool LayerTreeFrameSinkHolder::ShouldSubmitFrameNow() const {

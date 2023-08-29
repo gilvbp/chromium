@@ -23,7 +23,6 @@ class Sender;
 }
 
 namespace media {
-class VideoEncoderMetricsProvider;
 class VideoFrame;
 }
 
@@ -51,8 +50,6 @@ class VideoSender : public FrameSender::Client {
               StatusChangeCallback status_change_cb,
               const CreateVideoEncodeAcceleratorCallback& create_vea_cb,
               CastTransport* const transport_sender,
-              std::unique_ptr<media::VideoEncoderMetricsProvider>
-                  encoder_metrics_provider,
               PlayoutDelayChangeCB playout_delay_change_cb,
               media::VideoCaptureFeedbackCB feedback_callback);
 
@@ -64,8 +61,6 @@ class VideoSender : public FrameSender::Client {
               StatusChangeCallback status_change_cb,
               const CreateVideoEncodeAcceleratorCallback& create_vea_cb,
               std::unique_ptr<openscreen::cast::Sender> sender,
-              std::unique_ptr<media::VideoEncoderMetricsProvider>
-                  encoder_metrics_provider,
               PlayoutDelayChangeCB playout_delay_change_cb,
               media::VideoCaptureFeedbackCB feedback_cb,
               FrameSender::GetSuggestedVideoBitrateCB get_bitrate_cb);
@@ -105,8 +100,6 @@ class VideoSender : public FrameSender::Client {
               StatusChangeCallback status_change_cb,
               const CreateVideoEncodeAcceleratorCallback& create_vea_cb,
               std::unique_ptr<FrameSender> sender,
-              std::unique_ptr<media::VideoEncoderMetricsProvider>
-                  encoder_metrics_provider,
               PlayoutDelayChangeCB playout_delay_change_cb,
               media::VideoCaptureFeedbackCB feedback_callback);
 

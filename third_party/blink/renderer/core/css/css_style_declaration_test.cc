@@ -79,29 +79,27 @@ TEST(CSSStyleDeclarationTest, ExposureCacheLeak) {
 
   DummyExceptionStateForTesting exception_state;
 
-  const AtomicString origin_trial_test_property("originTrialTestProperty");
   {
     ScopedOriginTrialsSampleAPIForTest scoped_feature(true);
     EXPECT_TRUE(
-        style->NamedPropertyQuery(origin_trial_test_property, exception_state));
+        style->NamedPropertyQuery("originTrialTestProperty", exception_state));
     EXPECT_EQ(NamedPropertySetterResult::kIntercepted,
               style->AnonymousNamedSetter(script_state,
-                                          origin_trial_test_property, normal));
-    EXPECT_EQ("normal",
-              style->AnonymousNamedGetter(origin_trial_test_property));
+                                          "originTrialTestProperty", normal));
+    EXPECT_EQ("normal", style->AnonymousNamedGetter("originTrialTestProperty"));
   }
 
   {
     ScopedOriginTrialsSampleAPIForTest scoped_feature(false);
-    // Now that the feature is disabled, 'origin_trial_test_property' must not
+    // Now that the feature is disabled, 'originTrialTestProperty' must not
     // be usable just because it was enabled and accessed previously.
     EXPECT_FALSE(
-        style->NamedPropertyQuery(origin_trial_test_property, exception_state));
+        style->NamedPropertyQuery("originTrialTestProperty", exception_state));
     EXPECT_EQ(NamedPropertySetterResult::kDidNotIntercept,
               style->AnonymousNamedSetter(script_state,
-                                          origin_trial_test_property, normal));
+                                          "originTrialTestProperty", normal));
     EXPECT_EQ(g_null_atom,
-              style->AnonymousNamedGetter(origin_trial_test_property));
+              style->AnonymousNamedGetter("originTrialTestProperty"));
   }
 }
 

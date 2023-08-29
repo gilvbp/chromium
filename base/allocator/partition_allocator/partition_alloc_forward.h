@@ -35,6 +35,8 @@ static_assert(kAlignment <= 16,
               "PartitionAlloc doesn't support a fundamental alignment larger "
               "than 16 bytes.");
 
+constexpr bool ThreadSafe = true;
+
 struct SlotSpanMetadata;
 class PA_LOCKABLE Lock;
 
@@ -51,6 +53,8 @@ static constexpr bool is_offset_type =
 class PartitionStatsDumper;
 
 struct PartitionRoot;
+
+using ThreadSafePartitionRoot = PartitionRoot;
 
 namespace internal {
 // Declare PartitionRootLock() for thread analysis. Its implementation

@@ -71,7 +71,6 @@ export class ModuleHeaderElement extends PolymerElement {
 
       dismissText: String,
       disableText: String,
-      moreActionsText: String,
 
       modulesRedesignedEnabled_: {
         type: Boolean,
@@ -101,7 +100,6 @@ export class ModuleHeaderElement extends PolymerElement {
   hideMenuButton: boolean;
   dismissText: string;
   disableText: string;
-  moreActionsText: string;
   private modulesRedesignedEnabled_: boolean;
 
   private computeIconStyle_() {

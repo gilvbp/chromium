@@ -51,7 +51,6 @@
 #include "chrome/browser/ash/child_accounts/child_policy_observer.h"
 #include "chrome/browser/ash/crosapi/browser_data_back_migrator.h"
 #include "chrome/browser/ash/crosapi/browser_data_migrator.h"
-#include "chrome/browser/ash/drive/file_system_util.h"
 #include "chrome/browser/ash/eol_notification.h"
 #include "chrome/browser/ash/first_run/first_run.h"
 #include "chrome/browser/ash/floating_workspace/floating_workspace_service.h"
@@ -72,7 +71,6 @@
 #include "chrome/browser/ash/login/saml/password_sync_token_verifier.h"
 #include "chrome/browser/ash/login/saml/password_sync_token_verifier_factory.h"
 #include "chrome/browser/ash/login/screens/display_size_screen.h"
-#include "chrome/browser/ash/login/screens/drive_pinning_screen.h"
 #include "chrome/browser/ash/login/screens/sync_consent_screen.h"
 #include "chrome/browser/ash/login/security_token_session_controller_factory.h"
 #include "chrome/browser/ash/login/session/user_session_initializer.h"
@@ -85,8 +83,6 @@
 #include "chrome/browser/ash/login/ui/login_display_host.h"
 #include "chrome/browser/ash/login/users/chrome_user_manager.h"
 #include "chrome/browser/ash/login/wizard_controller.h"
-#include "chrome/browser/ash/notifications/update_notification.h"
-#include "chrome/browser/ash/notifications/update_notification_showing_controller.h"
 #include "chrome/browser/ash/policy/core/browser_policy_connector_ash.h"
 #include "chrome/browser/ash/policy/handlers/adb_sideloading_allowance_mode_policy_handler.h"
 #include "chrome/browser/ash/policy/handlers/minimum_version_policy_handler.h"
@@ -96,10 +92,10 @@
 #include "chrome/browser/ash/settings/about_flags.h"
 #include "chrome/browser/ash/settings/cros_settings.h"
 #include "chrome/browser/ash/settings/device_settings_service.h"
-#include "chrome/browser/ash/system_web_apps/apps/help_app/help_app_notification_controller.h"
 #include "chrome/browser/ash/tether/tether_service.h"
 #include "chrome/browser/ash/tpm_firmware_update_notification.h"
 #include "chrome/browser/ash/u2f_notification.h"
+#include "chrome/browser/ash/web_applications/help_app/help_app_notification_controller.h"
 #include "chrome/browser/browser_process.h"
 #include "chrome/browser/browser_process_platform_part_ash.h"
 #include "chrome/browser/chrome_notification_types.h"
@@ -112,9 +108,10 @@
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/profiles/profile_manager.h"
 #include "chrome/browser/signin/identity_manager_factory.h"
+#include "chrome/browser/supervised_user/child_accounts/child_account_service.h"
 #include "chrome/browser/supervised_user/child_accounts/child_account_service_factory.h"
 #include "chrome/browser/sync/desk_sync_service_factory.h"
-#include "chrome/browser/trusted_vault/trusted_vault_service_factory.h"
+#include "chrome/browser/sync/sync_service_factory.h"
 #include "chrome/browser/ui/startup/launch_mode_recorder.h"
 #include "chrome/browser/ui/startup/startup_browser_creator.h"
 #include "chrome/common/channel_info.h"
@@ -132,7 +129,6 @@
 #include "chromeos/ash/components/login/auth/auth_session_authenticator.h"
 #include "chromeos/ash/components/login/auth/challenge_response/known_user_pref_utils.h"
 #include "chromeos/ash/components/login/auth/stub_authenticator_builder.h"
-#include "chromeos/ash/components/login/hibernate/hibernate_manager.h"
 #include "chromeos/ash/components/login/session/session_termination_manager.h"
 #include "chromeos/ash/components/network/portal_detector/network_portal_detector.h"
 #include "chromeos/ash/components/settings/cros_settings_names.h"
@@ -162,9 +158,7 @@
 #include "components/signin/public/identity_manager/identity_manager.h"
 #include "components/signin/public/identity_manager/primary_account_mutator.h"
 #include "components/signin/public/identity_manager/tribool.h"
-#include "components/supervised_user/core/browser/child_account_service.h"
-#include "components/trusted_vault/trusted_vault_client.h"
-#include "components/trusted_vault/trusted_vault_service.h"
+#include "components/sync/service/sync_service.h"
 #include "components/user_manager/common_types.h"
 #include "components/user_manager/known_user.h"
 #include "components/user_manager/user.h"
@@ -435,21 +429,21 @@ void SaveSyncTrustedVaultKeysToProfile(
     const std::string& gaia_id,
     const SyncTrustedVaultKeys& trusted_vault_keys,
     Profile* profile) {
-  trusted_vault::TrustedVaultService* trusted_vault_service =
-      TrustedVaultServiceFactory::GetForProfile(profile);
-  if (!trusted_vault_service) {
+  syncer::SyncService* sync_service =
+      SyncServiceFactory::GetForProfile(profile);
+  if (!sync_service) {
     return;
   }
 
   if (!trusted_vault_keys.encryption_keys().empty()) {
-    trusted_vault_service->GetTrustedVaultClient()->StoreKeys(
+    sync_service->AddTrustedVaultDecryptionKeysFromWeb(
         gaia_id, trusted_vault_keys.encryption_keys(),
         trusted_vault_keys.last_encryption_key_version());
   }
 
   for (const SyncTrustedVaultKeys::TrustedRecoveryMethod& method :
        trusted_vault_keys.trusted_recovery_methods()) {
-    trusted_vault_service->GetTrustedVaultClient()->AddTrustedRecoveryMethod(
+    sync_service->AddTrustedVaultRecoveryMethodFromWeb(
         gaia_id, method.public_key, method.type_hint, base::DoNothing());
   }
 }
@@ -887,14 +881,6 @@ void UserSessionManager::SetFirstLoginPrefs(
   VLOG(1) << "Setting first login prefs";
   InitLocaleAndInputMethodsForNewUser(this, profile, public_session_locale,
                                       public_session_input_method);
-
-  // Turn on the feature of the low battery sound for all users on the device
-  // when a new user login.
-  if (!g_browser_process->local_state()->IsManagedPreference(
-          prefs::kLowBatterySoundEnabled)) {
-    g_browser_process->local_state()->SetBoolean(prefs::kLowBatterySoundEnabled,
-                                                 true);
-  }
 }
 
 void UserSessionManager::DoBrowserLaunch(Profile* profile) {
@@ -1013,18 +999,10 @@ bool UserSessionManager::RespectLocalePreference(
 bool UserSessionManager::RestartToApplyPerSessionFlagsIfNeed(
     Profile* profile,
     bool early_restart) {
-  if (!ProfileHelper::IsUserProfile(profile)) {
+  if (!SessionManagerClient::Get()->SupportsBrowserRestart())
     return false;
-  }
 
-  if (ash::HibernateManager::IsHibernateSupported()) {
-    // No need to do anything if Hibernate isn't even supported on this
-    // device.
-    flags_ui::PrefServiceFlagsStorage flags_storage(profile->GetPrefs());
-    ash::HibernateManager::Get()->MaybeResume(flags_storage.GetFlags());
-  }
-
-  if (!SessionManagerClient::Get()->SupportsBrowserRestart()) {
+  if (!ProfileHelper::IsUserProfile(profile)) {
     return false;
   }
 
@@ -1615,7 +1593,6 @@ void UserSessionManager::InitProfilePreferences(
 
 void UserSessionManager::UserProfileInitialized(Profile* profile,
                                                 const AccountId& account_id) {
-  TRACE_EVENT0("login", "UserSessionManager::UserProfileInitialized");
   // Check whether this `profile` was already initialized.
   if (user_profile_initialized_called_.contains(profile))
     return;
@@ -1704,8 +1681,6 @@ void UserSessionManager::UserProfileInitialized(Profile* profile,
 
 void UserSessionManager::CompleteProfileCreateAfterAuthTransfer(
     Profile* profile) {
-  TRACE_EVENT0("login",
-               "UserSessionManager::CompleteProfileCreateAfterAuthTransfer");
   RestoreAuthSessionImpl(profile, has_auth_cookies_);
   BootTimesRecorder::Get()->AddLoginTimeMarker("TPMOwn-Start", false);
   PrepareTpm(base::BindOnce(OnPrepareTpmDeviceFinished));
@@ -1713,7 +1688,6 @@ void UserSessionManager::CompleteProfileCreateAfterAuthTransfer(
 }
 
 void UserSessionManager::FinalizePrepareProfile(Profile* profile) {
-  TRACE_EVENT0("login", "UserSessionManager::FinalizePrepareProfile");
   user_manager::UserManager* user_manager = user_manager::UserManager::Get();
   user_manager::User* user = ProfileHelper::Get()->GetUserByProfile(profile);
   user_manager::KnownUser known_user(g_browser_process->local_state());
@@ -1872,7 +1846,7 @@ bool UserSessionManager::MaybeStartNewUserOnboarding(Profile* profile) {
   if (!user_manager->IsCurrentUserNew()) {
     return false;
   }
-  supervised_user::ChildAccountService* child_service =
+  ChildAccountService* child_service =
       ChildAccountServiceFactory::GetForProfile(profile);
   child_service->AddChildStatusReceivedCallback(
       base::BindOnce(&UserSessionManager::ChildAccountStatusReceivedCallback,
@@ -2092,7 +2066,7 @@ void UserSessionManager::NotifyUserProfileLoaded(
       if (!token_handle_util_->HasToken(user_context_.GetAccountId())) {
         // New user.
         token_handle_fetcher_ = std::make_unique<TokenHandleFetcher>(
-            profile, token_handle_util_.get(), user_context_.GetAccountId());
+            token_handle_util_.get(), user_context_.GetAccountId());
         token_handle_fetcher_->FillForNewUser(
             user_context_.GetAccessToken(),
             base::BindOnce(&UserSessionManager::OnTokenHandleObtained,
@@ -2114,9 +2088,6 @@ void UserSessionManager::StartTetherServiceIfPossible(Profile* profile) {
 }
 
 void UserSessionManager::ShowNotificationsIfNeeded(Profile* profile) {
-  // Checks whether to show the update notification.
-  MaybeShowUpdateNotification(profile);
-
   // Check to see if this profile should show TPM Firmware Update Notification
   // and show the message accordingly.
   tpm_firmware_update::ShowNotificationIfNeeded(profile);
@@ -2150,9 +2121,6 @@ void UserSessionManager::PerformPostBrowserLaunchOOBEActions(Profile* profile) {
   SyncConsentScreen::MaybeLaunchSyncConsentSettings(profile);
   if (features::IsOobeDisplaySizeEnabled()) {
     DisplaySizeScreen::MaybeUpdateZoomFactor(profile);
-  }
-  if (drive::util::IsOobeDrivePinningEnabled(profile)) {
-    DrivePinningScreen::ApplyDrivePinningPref(profile);
   }
 }
 
@@ -2312,7 +2280,6 @@ void UserSessionManager::CheckEolInfo(Profile* profile) {
 
 void UserSessionManager::DoBrowserLaunchInternal(Profile* profile,
                                                  bool locale_pref_checked) {
-  TRACE_EVENT0("login", "UserSessionManager::DoBrowserLaunchInternal");
   if (browser_shutdown::IsTryingToQuit() ||
       chrome::IsSendingStopRequestToSessionManager())
     return;
@@ -2558,17 +2525,6 @@ void UserSessionManager::MaybeShowU2FNotification() {
   }
 }
 
-void UserSessionManager::MaybeShowUpdateNotification(Profile* profile) {
-  if (!ProfileHelper::IsPrimaryProfile(profile)) {
-    return;
-  }
-
-  if (features::IsUpdateNotificationEnabled() && !update_notification_) {
-    GetUpdateNotificationShowingController(profile)
-        ->MaybeShowUpdateNotification();
-  }
-}
-
 void UserSessionManager::MaybeShowHelpAppReleaseNotesNotification(
     Profile* profile) {
   if (!ProfileHelper::IsPrimaryProfile(profile))
@@ -2614,10 +2570,10 @@ void UserSessionManager::UpdateTokenHandleIfRequired(
 void UserSessionManager::UpdateTokenHandle(Profile* const profile,
                                            const AccountId& account_id) {
   token_handle_fetcher_ = std::make_unique<TokenHandleFetcher>(
-      profile, token_handle_util_.get(), account_id);
+      token_handle_util_.get(), account_id);
   token_handle_fetcher_->BackfillToken(
-      base::BindOnce(&UserSessionManager::OnTokenHandleObtained,
-                     GetUserSessionManagerAsWeakPtr()));
+      profile, base::BindOnce(&UserSessionManager::OnTokenHandleObtained,
+                              GetUserSessionManagerAsWeakPtr()));
   token_handle_backfill_tried_for_testing_ = true;
 }
 
@@ -2660,15 +2616,6 @@ UserSessionManager::GetHelpAppNotificationController(Profile* profile) {
         std::make_unique<HelpAppNotificationController>(profile);
   }
   return help_app_notification_controller_.get();
-}
-
-UpdateNotificationShowingController*
-UserSessionManager::GetUpdateNotificationShowingController(Profile* profile) {
-  if (!update_notification_showing_controller_) {
-    update_notification_showing_controller_ =
-        std::make_unique<UpdateNotificationShowingController>(profile);
-  }
-  return update_notification_showing_controller_.get();
 }
 
 }  // namespace ash

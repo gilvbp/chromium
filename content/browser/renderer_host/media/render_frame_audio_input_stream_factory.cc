@@ -77,8 +77,9 @@ void TranslateDeviceId(const std::string& device_id,
   DCHECK_CURRENTLY_ON(BrowserThread::IO);
   for (const auto& device_info :
        device_array[static_cast<size_t>(MediaDeviceType::MEDIA_AUDIO_OUTPUT)]) {
-    if (DoesRawMediaDeviceIDMatchHMAC(salt_and_origin, device_id,
-                                      device_info.device_id)) {
+    if (MediaStreamManager::DoesMediaDeviceIDMatchHMAC(
+            salt_and_origin.device_id_salt, salt_and_origin.origin, device_id,
+            device_info.device_id)) {
       cb.Run(device_info.device_id);
       break;
     }
@@ -161,6 +162,7 @@ class RenderFrameAudioInputStreamFactory::Core final
   const raw_ptr<MediaStreamManager> media_stream_manager_;
   const int process_id_;
   const int frame_id_;
+  const url::Origin origin_;
 
   mojo::Receiver<RendererAudioInputStreamFactory> receiver_{this};
   // Always null-check this weak pointer before dereferencing it.
@@ -197,7 +199,8 @@ RenderFrameAudioInputStreamFactory::Core::Core(
     RenderFrameHost* render_frame_host)
     : media_stream_manager_(media_stream_manager),
       process_id_(render_frame_host->GetProcess()->GetID()),
-      frame_id_(render_frame_host->GetRoutingID()) {
+      frame_id_(render_frame_host->GetRoutingID()),
+      origin_(render_frame_host->GetLastCommittedOrigin()) {
   DCHECK_CURRENTLY_ON(BrowserThread::UI);
 
   ForwardingAudioStreamFactory::Core* tmp_factory =

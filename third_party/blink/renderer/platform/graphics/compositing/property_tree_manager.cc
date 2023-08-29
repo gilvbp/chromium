@@ -62,7 +62,7 @@ static void UpdateCcTransformLocalMatrix(
     cc::TransformNode& compositor_node,
     const TransformPaintPropertyNode& transform_node) {
   if (transform_node.GetStickyConstraint() ||
-      transform_node.GetAnchorPositionScrollersData()) {
+      transform_node.GetAnchorScrollContainersData()) {
     // The sticky offset on the blink transform node is pre-computed and stored
     // to the local matrix. Cc applies sticky offset dynamically on top of the
     // local matrix. We should not set the local matrix on cc node if it is a
@@ -485,10 +485,11 @@ int PropertyTreeManager::EnsureCompositorTransformNode(
     }
   }
 
-  if (const auto* data = transform_node.GetAnchorPositionScrollersData()) {
-    cc::AnchorPositionScrollersData& compositor_data =
-        transform_tree_.EnsureAnchorPositionScrollersData(id);
-    compositor_data = *data;
+  if (const auto* anchor_scroll_data =
+          transform_node.GetAnchorScrollContainersData()) {
+    cc::AnchorScrollContainersData& compositor_data =
+        transform_tree_.EnsureAnchorScrollContainersData(id);
+    compositor_data = *anchor_scroll_data;
   }
 
   auto compositor_element_id = transform_node.GetCompositorElementId();
@@ -1158,9 +1159,8 @@ void PropertyTreeManager::BuildEffectNodesRecursively(
     // with the first contiguous set of chunks) is tagged with the shared
     // element resource ID. The view transition should either prevent such
     // content or ensure effect nodes are contiguous. See crbug.com/1303081 for
-    // details. This restriction also applies to element capture.
-    DCHECK((!next_effect.ViewTransitionElementId().valid() &&
-            next_effect.ElementCaptureId()->is_zero()) ||
+    // details.
+    DCHECK(!next_effect.ViewTransitionElementId().valid() ||
            !has_multiple_groups)
         << next_effect.ToString();
     PopulateCcEffectNode(effect_node, next_effect, output_clip_id);
@@ -1239,9 +1239,6 @@ static cc::RenderSurfaceReason RenderSurfaceReasonForEffect(
   if (effect.FlattensAtLeafOf3DScene())
     return cc::RenderSurfaceReason::k3dTransformFlattening;
 
-  if (!effect.ElementCaptureId()->is_zero()) {
-    return cc::RenderSurfaceReason::kSubtreeIsBeingCaptured;
-  }
   auto conditional_reason = ConditionalRenderSurfaceReasonForEffect(effect);
   DCHECK(conditional_reason == cc::RenderSurfaceReason::kNone ||
          IsConditionalRenderSurfaceReason(conditional_reason));
@@ -1277,9 +1274,6 @@ void PropertyTreeManager::PopulateCcEffectNode(
       effect.ViewTransitionElementId();
   effect_node.view_transition_element_resource_id =
       effect.ViewTransitionElementResourceId();
-
-  effect_node.subtree_capture_id =
-      viz::SubtreeCaptureId(*effect.ElementCaptureId());
 }
 
 void PropertyTreeManager::UpdateConditionalRenderSurfaceReasons(

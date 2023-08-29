@@ -28,14 +28,9 @@ ActionViewListItem::ActionViewListItem(DisplayOverlayController* controller,
 
 ActionViewListItem::~ActionViewListItem() = default;
 
-void ActionViewListItem::OnActionInputBindingUpdated() {
-  labels_view_->OnActionInputBindingUpdated();
-}
-
-void ActionViewListItem::OnActionNameUpdated() {
-  auto action_name = GetActionNameAtIndex(controller_->action_name_list(),
-                                          action_->name_label_index());
-  name_tag_->SetTitle(action_name);
+void ActionViewListItem::OnActionUpdated() {
+  labels_view_->OnActionUpdated();
+  labels_name_tag_->SetSubtitle(labels_view_->GetTextForNameTag());
 }
 
 void ActionViewListItem::Init() {
@@ -57,12 +52,11 @@ void ActionViewListItem::Init() {
                  /*fixed_width=*/0, /*min_width=*/0)
       .AddRows(1, /*vertical_resize=*/views::TableLayout::kFixedSize);
 
+  auto labels_view = EditLabels::CreateEditLabels(controller_, action_);
   // TODO(b/270969479): Replace the hardcoded string.
-  auto title_string = GetActionNameAtIndex(controller_->action_name_list(),
-                                           action_->name_label_index());
-  name_tag_ = container->AddChildView(NameTag::CreateNameTag(title_string));
-  labels_view_ = container->AddChildView(EditLabels::CreateEditLabels(
-      controller_, action_, name_tag_, /*set_title=*/true));
+  labels_name_tag_ = container->AddChildView(
+      NameTag::CreateNameTag(u"title", labels_view->GetTextForNameTag()));
+  labels_view_ = container->AddChildView(std::move(labels_view));
 }
 
 }  // namespace arc::input_overlay

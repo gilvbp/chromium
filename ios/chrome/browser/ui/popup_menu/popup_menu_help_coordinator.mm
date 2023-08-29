@@ -30,6 +30,10 @@
 #import "ios/chrome/grit/ios_strings.h"
 #import "ui/base/l10n/l10n_util_mac.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace {
 base::TimeDelta kPromoDisplayDelayForTests = base::Seconds(1);
 }  // namespace
@@ -185,7 +189,7 @@ base::TimeDelta kPromoDisplayDelayForTests = base::Seconds(1);
       [[BubbleViewControllerPresenter alloc]
           initDefaultBubbleWithText:text
                      arrowDirection:arrowDirection
-                          alignment:BubbleAlignmentBottomOrTrailing
+                          alignment:BubbleAlignmentTrailing
                isLongDurationBubble:NO
                   dismissalCallback:dismissalCallback];
   bubbleViewControllerPresenter.voiceOverAnnouncement = text;
@@ -200,11 +204,6 @@ base::TimeDelta kPromoDisplayDelayForTests = base::Seconds(1);
 }
 
 - (void)prepareToShowPopupMenuBubble {
-  // There must be a feature engagment tracker to show a bubble.
-  if (!self.featureEngagementTracker) {
-    return;
-  }
-
   // If the Feature Engagement Tracker isn't ready, queue up and re-show when
   // it has finished initializing.
   if (!self.featureEngagementTracker->IsInitialized()) {
@@ -287,8 +286,8 @@ base::TimeDelta kPromoDisplayDelayForTests = base::Seconds(1);
       };
 
   BubbleAlignment alignment = anchorXInParent < 0.5 * parentViewWidth
-                                  ? BubbleAlignmentTopOrLeading
-                                  : BubbleAlignmentBottomOrTrailing;
+                                  ? BubbleAlignmentLeading
+                                  : BubbleAlignmentTrailing;
 
   // Create the BubbleViewControllerPresenter.
   BubbleArrowDirection arrowDirection = BubbleArrowDirectionUp;

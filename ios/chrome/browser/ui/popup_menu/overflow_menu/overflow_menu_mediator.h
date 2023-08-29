@@ -20,23 +20,17 @@ class Tracker;
 namespace web {
 class WebState;
 }
-namespace supervised_user {
-class SupervisedUserService;
-}
 namespace syncer {
 class SyncService;
 }
 
 @protocol ActivityServiceCommands;
 @protocol ApplicationCommands;
-class AuthenticationService;
 @protocol BookmarksCommands;
 @protocol BrowserCoordinatorCommands;
 class BrowserPolicyConnectorIOS;
 @protocol FindInPageCommands;
 class FollowBrowserAgent;
-@protocol OverflowMenuCustomizationCommands;
-@class OverflowMenuOrderer;
 class OverlayPresenter;
 @protocol PageInfoCommands;
 @protocol PopupMenuCommands;
@@ -44,7 +38,6 @@ class PrefService;
 @protocol PriceNotificationsCommands;
 class PromosManager;
 class ReadingListBrowserAgent;
-class ReadingListModel;
 @protocol TextZoomCommands;
 class WebNavigationBrowserAgent;
 class WebStateList;
@@ -54,7 +47,7 @@ class WebStateList;
 @interface OverflowMenuMediator : NSObject <BrowserContainerConsumer>
 
 // The data model for the overflow menu.
-@property(nonatomic, weak) OverflowMenuModel* model;
+@property(nonatomic, readonly) OverflowMenuModel* overflowMenuModel;
 
 // The WebStateList that this mediator listens for any changes on the current
 // WebState.
@@ -65,7 +58,6 @@ class WebStateList;
                               ApplicationCommands,
                               BrowserCoordinatorCommands,
                               FindInPageCommands,
-                              OverflowMenuCustomizationCommands,
                               PriceNotificationsCommands,
                               TextZoomCommands>
     dispatcher;
@@ -80,9 +72,6 @@ class WebStateList;
 // If the current session is off the record or not.
 @property(nonatomic, assign) bool isIncognito;
 
-// The Orderer to control the order of the overflow menu.
-@property(nonatomic, weak) OverflowMenuOrderer* menuOrderer;
-
 // BaseViewController for presenting some UI.
 @property(nonatomic, weak) UIViewController* baseViewController;
 
@@ -90,9 +79,6 @@ class WebStateList;
 @property(nonatomic, assign)
     bookmarks::BookmarkModel* localOrSyncableBookmarkModel;
 @property(nonatomic, assign) bookmarks::BookmarkModel* accountBookmarkModel;
-
-// Readinglist model to know if model has finished loading.
-@property(nonatomic, assign) ReadingListModel* readingListModel;
 
 // Pref service to retrieve browser state preference values.
 @property(nonatomic, assign) PrefService* browserStatePrefs;
@@ -116,12 +102,12 @@ class WebStateList;
 // The FollowBrowserAgent used to manage web channels subscriptions.
 @property(nonatomic, assign) FollowBrowserAgent* followBrowserAgent;
 
+// The number of destinations immediately visible to the user when opening the
+// new overflow menu (i.e. the number of "above-the-fold" destinations).
+@property(nonatomic, assign) int visibleDestinationsCount;
+
 // The Sync Service that provides the status of Sync.
 @property(nonatomic, assign) syncer::SyncService* syncService;
-
-// Service that describes the supervision state of the account.
-@property(nonatomic, assign)
-    supervised_user::SupervisedUserService* supervisedUserService;
 
 // The Promos Manager to alert if the user uses What's New.
 @property(nonatomic, assign) PromosManager* promosManager;
@@ -129,8 +115,11 @@ class WebStateList;
 // The ReadingListBrowserAgent used to add urls to reading list.
 @property(nonatomic, assign) ReadingListBrowserAgent* readingListBrowserAgent;
 
-// The AuthenticationService to get sign-in info.
-@property(nonatomic, assign) AuthenticationService* authenticationService;
+// Updates the pin state of the tab corresponding to the given `webState` in
+// `webStateList`.
++ (void)setTabPinned:(BOOL)pinned
+            webState:(web::WebState*)webState
+        webStateList:(WebStateList*)webStateList;
 
 // Disconnect the mediator.
 - (void)disconnect;

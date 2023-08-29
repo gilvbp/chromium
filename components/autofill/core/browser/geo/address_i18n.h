@@ -7,7 +7,6 @@
 
 #include <memory>
 #include <string>
-#include <vector>
 
 #include "base/functional/callback_forward.h"
 #include "components/autofill/core/browser/field_types.h"

@@ -9,19 +9,16 @@
 #include "chrome/browser/ui/views/accessibility/theme_tracking_non_accessible_image_view.h"
 #include "chrome/browser/ui/views/autofill/payments/payments_view_util.h"
 #include "chrome/browser/ui/views/autofill/payments/promo_code_label_button.h"
-#include "chrome/browser/ui/views/autofill/payments/promo_code_label_view.h"
 #include "chrome/browser/ui/views/chrome_layout_provider.h"
 #include "chrome/browser/ui/views/chrome_typography.h"
 #include "chrome/grit/theme_resources.h"
 #include "components/autofill/core/browser/data_model/autofill_offer_data.h"
 #include "components/autofill/core/browser/data_model/credit_card.h"
 #include "components/autofill/core/common/autofill_payments_features.h"
-#include "components/commerce/core/commerce_feature_list.h"
 #include "components/strings/grit/components_strings.h"
 #include "ui/base/clipboard/clipboard_buffer.h"
 #include "ui/base/clipboard/scoped_clipboard_writer.h"
 #include "ui/base/l10n/l10n_util.h"
-#include "ui/base/ui_base_features.h"
 #include "ui/gfx/geometry/insets.h"
 #include "ui/views/bubble/bubble_frame_view.h"
 #include "ui/views/controls/styled_label.h"
@@ -65,7 +62,12 @@ void OfferNotificationBubbleViews::Init() {
       InitWithCardLinkedOfferContent();
       return;
     case AutofillOfferData::OfferType::GPAY_PROMO_CODE_OFFER:
-      InitWithGPayPromoCodeOfferContent();
+      if (base::FeatureList::IsEnabled(
+              features::kAutofillFillMerchantPromoCodeFields)) {
+        InitWithGPayPromoCodeOfferContent();
+      } else {
+        InitWithFreeListingCouponOfferContent();
+      }
       return;
     case AutofillOfferData::OfferType::FREE_LISTING_COUPON_OFFER:
       InitWithFreeListingCouponOfferContent();
@@ -76,36 +78,26 @@ void OfferNotificationBubbleViews::Init() {
 }
 
 void OfferNotificationBubbleViews::AddedToWidget() {
-  const AutofillOfferData* offer = controller_->GetOffer();
-  DCHECK(offer);
+  GetBubbleFrameView()->SetTitleView(
+      std::make_unique<TitleWithIconAndSeparatorView>(
+          GetWindowTitle(), TitleWithIconAndSeparatorView::Icon::GOOGLE_G));
 
-  if (controller_->GetOffer()->IsFreeListingCouponOffer()) {
-    int image_resource_id = IDR_AUTOFILL_OFFERS;
-    if (::features::IsChromeRefresh2023()) {
-      auto title_label = std::make_unique<views::Label>(
-          base::ASCIIToUTF16(offer->GetDisplayStrings().value_prop_text),
-          views::style::CONTEXT_DIALOG_TITLE);
-      title_label->SetHorizontalAlignment(gfx::ALIGN_LEFT);
-      title_label->SetMultiLine(true);
-      GetBubbleFrameView()->SetTitleView(std::move(title_label));
-      image_resource_id = IDR_AUTOFILL_OFFERS_CHROME_REFRESH_2023;
-    } else {
-      GetBubbleFrameView()->SetTitleView(
-          std::make_unique<TitleWithIconAndSeparatorView>(
-              GetWindowTitle(), TitleWithIconAndSeparatorView::Icon::GOOGLE_G));
-    }
-
-    // Set the header image.
+  // Set the header image for free listing coupon notification bubble.
+  // If the promo code field autofill feature is off, we also need to add this
+  // image for GPay promo code offer because we are showing the free listing
+  // coupon bubble in this case.
+  if (controller_->GetOffer()->IsFreeListingCouponOffer() ||
+      (!base::FeatureList::IsEnabled(
+           features::kAutofillFillMerchantPromoCodeFields) &&
+       controller_->GetOffer()->IsGPayPromoCodeOffer())) {
     ui::ResourceBundle& bundle = ui::ResourceBundle::GetSharedInstance();
-    auto* autofill_offers_banner = bundle.GetImageSkiaNamed(image_resource_id);
+    auto* autofill_offers_banner =
+        bundle.GetImageSkiaNamed(IDR_AUTOFILL_OFFERS);
     auto image_view = std::make_unique<ThemeTrackingNonAccessibleImageView>(
         *autofill_offers_banner, *autofill_offers_banner,
         base::BindRepeating(&views::BubbleDialogDelegate::GetBackgroundColor,
                             base::Unretained(this)));
     GetBubbleFrameView()->SetHeaderView(std::move(image_view));
-  } else {
-    GetBubbleFrameView()->SetTitleView(CreateTitleView(
-        GetWindowTitle(), TitleWithIconAndSeparatorView::Icon::GOOGLE_G));
   }
 }
 
@@ -123,9 +115,8 @@ void OfferNotificationBubbleViews::WindowClosing() {
 
 void OfferNotificationBubbleViews::OnWidgetDestroying(views::Widget* widget) {
   LocationBarBubbleDelegateView::OnWidgetDestroying(widget);
-  if (!widget->IsClosed()) {
+  if (!widget->IsClosed())
     return;
-  }
   DCHECK_NE(widget->closed_reason(),
             views::Widget::ClosedReason::kCancelButtonClicked);
 }
@@ -158,67 +149,26 @@ void OfferNotificationBubbleViews::InitWithFreeListingCouponOfferContent() {
       ChromeLayoutProvider::Get()->GetDistanceMetric(
           views::DISTANCE_UNRELATED_CONTROL_VERTICAL)));
   layout->set_cross_axis_alignment(
-      ::features::IsChromeRefresh2023()
-          ? views::BoxLayout::CrossAxisAlignment::kStart
-          : views::BoxLayout::CrossAxisAlignment::kCenter);
+      views::BoxLayout::CrossAxisAlignment::kCenter);
 
   const AutofillOfferData* offer = controller_->GetOffer();
   DCHECK(offer);
   DCHECK(!offer->GetPromoCode().empty());
 
-  std::u16string promo_code_value_prop_string;
+  promo_code_label_button_ =
+      AddChildView(std::make_unique<PromoCodeLabelButton>(
+          base::BindRepeating(
+              &OfferNotificationBubbleViews::OnPromoCodeButtonClicked,
+              base::Unretained(this)),
+          base::ASCIIToUTF16(offer->GetPromoCode())));
 
-  if (::features::IsChromeRefresh2023()) {
-    const int dialog_inset = views::LayoutProvider::Get()
-                                 ->GetInsetsMetric(views::INSETS_DIALOG)
-                                 .left();
-    const int dialog_width = views::LayoutProvider::Get()->GetDistanceMetric(
-        views::DISTANCE_BUBBLE_PREFERRED_WIDTH);
-    auto promo_code_label_view_preferred_size =
-        gfx::Size(dialog_width - dialog_inset * 2, 0);
-    promo_code_label_view_ = AddChildView(std::make_unique<PromoCodeLabelView>(
-        promo_code_label_view_preferred_size,
-        base::ASCIIToUTF16(offer->GetPromoCode()),
-        base::BindRepeating(
-            &OfferNotificationBubbleViews::OnPromoCodeButtonClicked,
-            base::Unretained(this))));
-    promo_code_value_prop_string = l10n_util::GetStringUTF16(
-        IDS_AUTOFILL_PROMO_CODE_OFFERS_USE_THIS_CODE_TEXT);
-  } else {
-    promo_code_label_button_ =
-        AddChildView(std::make_unique<PromoCodeLabelButton>(
-            base::BindRepeating(
-                &OfferNotificationBubbleViews::OnPromoCodeButtonClicked,
-                base::Unretained(this)),
-            base::ASCIIToUTF16(offer->GetPromoCode())));
-    if (!offer->GetDisplayStrings().value_prop_text.empty()) {
-      promo_code_value_prop_string =
-          base::ASCIIToUTF16(offer->GetDisplayStrings().value_prop_text);
-    }
-  }
-
-  if (base::FeatureList::IsEnabled(commerce::kShowDiscountOnNavigation)) {
-    // TODO(b/296338434): Update the format of the date.
-    auto expiration_date_text = l10n_util::GetStringFUTF16(
-        IDS_DISCOUNT_EXPIRATION_DATE,
-        base::ASCIIToUTF16(TimeFormatHTTP(offer->GetExpiry())));
-    if (promo_code_value_prop_string.empty()) {
-      promo_code_value_prop_string = expiration_date_text;
-    } else {
-      promo_code_value_prop_string = l10n_util::GetStringFUTF16(
-          IDS_TWO_STRINGS_CONNECTOR, promo_code_value_prop_string,
-          expiration_date_text);
-    }
-  }
-
-  if (!promo_code_value_prop_string.empty()) {
+  if (!offer->GetDisplayStrings().value_prop_text.empty()) {
     auto* promo_code_value_prop = AddChildView(std::make_unique<views::Label>(
-        promo_code_value_prop_string, views::style::CONTEXT_DIALOG_BODY_TEXT,
-        views::style::STYLE_SECONDARY));
+        base::ASCIIToUTF16(offer->GetDisplayStrings().value_prop_text),
+        views::style::CONTEXT_DIALOG_BODY_TEXT, views::style::STYLE_SECONDARY));
     promo_code_value_prop->SetHorizontalAlignment(gfx::ALIGN_LEFT);
     promo_code_value_prop->SetMultiLine(true);
   }
-
   UpdateButtonTooltipsAndAccessibleNames();
 }
 
@@ -292,15 +242,13 @@ void OfferNotificationBubbleViews::OnPromoCodeSeeDetailsClicked() {
 }
 
 void OfferNotificationBubbleViews::UpdateButtonTooltipsAndAccessibleNames() {
-  std::u16string tooltip = controller_->GetPromoCodeButtonTooltip();
+  if (!promo_code_label_button_)
+    return;
 
-  if (promo_code_label_button_) {
-    promo_code_label_button_->SetTooltipText(tooltip);
-    promo_code_label_button_->SetAccessibleName(
-        base::StrCat({promo_code_label_button_->GetText(), u" ", tooltip}));
-  } else if (promo_code_label_view_) {
-    promo_code_label_view_->UpdateCopyButtonTooltipsAndAccessibleNames(tooltip);
-  }
+  std::u16string tooltip = controller_->GetPromoCodeButtonTooltip();
+  promo_code_label_button_->SetTooltipText(tooltip);
+  promo_code_label_button_->SetAccessibleName(
+      base::StrCat({promo_code_label_button_->GetText(), u" ", tooltip}));
 }
 
 }  // namespace autofill

@@ -4,14 +4,15 @@
 
 #include "gpu/config/gpu_info_collector.h"
 
-#import <Metal/Metal.h>
-
+#include "base/mac/scoped_nsobject.h"
 #include "base/metrics/histogram_macros.h"
 #include "base/trace_event/trace_event.h"
 #include "gpu/command_buffer/common/gpu_memory_buffer_support.h"
 #include "third_party/angle/src/gpu_info_util/SystemInfo.h"
 #include "ui/gl/gl_display.h"
 #include "ui/gl/gl_utils.h"
+
+#import <Metal/Metal.h>
 
 namespace gpu {
 
@@ -36,9 +37,9 @@ void RecordReadWriteMetalTexturesSupportedHistogram() {
   // perhaps when running in an environment like VMWare?
   NSUInteger best_tier = 0;
 
-  NSArray<id<MTLDevice>>* devices = MTLCopyAllDevices();
-  for (id<MTLDevice> device in devices) {
-    best_tier = std::max(best_tier, device.readWriteTextureSupport + 1);
+  base::scoped_nsobject<NSArray<id<MTLDevice>>> devices(MTLCopyAllDevices());
+  for (id<MTLDevice> device in devices.get()) {
+    best_tier = std::max(best_tier, [device readWriteTextureSupport] + 1);
   }
 
   UMA_HISTOGRAM_ENUMERATION(

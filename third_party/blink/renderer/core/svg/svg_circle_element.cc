@@ -24,7 +24,6 @@
 #include "third_party/blink/renderer/core/layout/svg/layout_svg_ellipse.h"
 #include "third_party/blink/renderer/core/svg/svg_animated_length.h"
 #include "third_party/blink/renderer/core/svg/svg_length.h"
-#include "third_party/blink/renderer/core/svg/svg_length_functions.h"
 #include "third_party/blink/renderer/platform/heap/garbage_collected.h"
 
 namespace blink {
@@ -60,14 +59,14 @@ void SVGCircleElement::Trace(Visitor* visitor) const {
 Path SVGCircleElement::AsPath() const {
   Path path;
 
-  const SVGViewportResolver viewport_resolver(*this);
+  SVGLengthContext length_context(this);
   const ComputedStyle& style = ComputedStyleRef();
 
-  float r = ValueForLength(style.R(), viewport_resolver, style,
-                           SVGLengthMode::kOther);
+  float r =
+      length_context.ValueForLength(style.R(), style, SVGLengthMode::kOther);
   if (r > 0) {
-    gfx::PointF center =
-        PointForLengthPair(style.Cx(), style.Cy(), viewport_resolver, style);
+    gfx::PointF center = gfx::PointAtOffsetFromOrigin(
+        length_context.ResolveLengthPair(style.Cx(), style.Cy(), style));
     path.AddEllipse(center, r, r);
   }
   return path;

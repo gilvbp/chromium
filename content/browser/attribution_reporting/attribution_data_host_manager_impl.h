@@ -14,22 +14,19 @@
 #include "base/containers/flat_map.h"
 #include "base/containers/flat_set.h"
 #include "base/functional/function_ref.h"
-#include "base/memory/raw_ref.h"
+#include "base/memory/raw_ptr.h"
 #include "base/memory/weak_ptr.h"
 #include "base/timer/timer.h"
 #include "base/types/expected.h"
 #include "content/browser/attribution_reporting/attribution_beacon_id.h"
 #include "content/browser/attribution_reporting/attribution_data_host_manager.h"
 #include "content/common/content_export.h"
-#include "mojo/public/cpp/bindings/pending_receiver.h"
 #include "mojo/public/cpp/bindings/receiver_set.h"
 #include "net/http/structured_headers.h"
 #include "services/data_decoder/public/cpp/data_decoder.h"
 #include "third_party/abseil-cpp/absl/types/variant.h"
 #include "third_party/blink/public/common/tokens/tokens.h"
 #include "third_party/blink/public/mojom/conversions/attribution_data_host.mojom.h"
-
-class GURL;
 
 namespace attribution_reporting {
 class SuitableOrigin;
@@ -72,28 +69,31 @@ class CONTENT_EXPORT AttributionDataHostManagerImpl
       mojo::PendingReceiver<blink::mojom::AttributionDataHost> data_host,
       attribution_reporting::SuitableOrigin context_origin,
       bool is_within_fenced_frame,
-      attribution_reporting::mojom::RegistrationEligibility,
+      attribution_reporting::mojom::RegistrationType,
       GlobalRenderFrameHostId render_frame_id,
       int64_t last_navigation_id) override;
   bool RegisterNavigationDataHost(
       mojo::PendingReceiver<blink::mojom::AttributionDataHost> data_host,
-      const blink::AttributionSrcToken& attribution_src_token) override;
+      const blink::AttributionSrcToken& attribution_src_token,
+      AttributionInputEvent input_event) override;
 
   void NotifyNavigationRegistrationStarted(
       const blink::AttributionSrcToken& attribution_src_token,
-      AttributionInputEvent input_event,
       const attribution_reporting::SuitableOrigin& source_origin,
       bool is_within_fenced_frame,
       GlobalRenderFrameHostId render_frame_id,
-      int64_t navigation_id,
-      std::string devtools_request_id) override;
+      int64_t navigation_id) override;
   bool NotifyNavigationRegistrationData(
       const blink::AttributionSrcToken& attribution_src_token,
       const net::HttpResponseHeaders* headers,
-      GURL reporting_url,
-      network::AttributionReportingRuntimeFeatures) override;
-  void NotifyNavigationRegistrationCompleted(
-      const blink::AttributionSrcToken& attribution_src_token) override;
+      attribution_reporting::SuitableOrigin reporting_origin,
+      const attribution_reporting::SuitableOrigin& source_origin,
+      AttributionInputEvent input_event,
+      bool is_within_fenced_frame,
+      GlobalRenderFrameHostId render_frame_id,
+      int64_t navigation_id,
+      network::AttributionReportingRuntimeFeatures,
+      bool is_final_response) override;
 
   void NotifyFencedFrameReportingBeaconStarted(
       BeaconId beacon_id,
@@ -101,12 +101,11 @@ class CONTENT_EXPORT AttributionDataHostManagerImpl
       attribution_reporting::SuitableOrigin source_origin,
       bool is_within_fenced_frame,
       AttributionInputEvent input_event,
-      GlobalRenderFrameHostId render_frame_id,
-      std::string devtools_request_id) override;
+      GlobalRenderFrameHostId render_frame_id) override;
   void NotifyFencedFrameReportingBeaconData(
       BeaconId beacon_id,
       network::AttributionReportingRuntimeFeatures,
-      GURL reporting_url,
+      url::Origin reporting_origin,
       const net::HttpResponseHeaders* headers,
       bool is_final_response) override;
 
@@ -115,6 +114,7 @@ class CONTENT_EXPORT AttributionDataHostManagerImpl
 
   struct DeferredReceiverTimeout;
   struct DeferredReceiver;
+  struct NavigationDataHost;
 
   // Represents a set of attribution sources which registered in a top-level
   // navigation redirect or a beacon chain, and associated info to process them.
@@ -141,13 +141,11 @@ class CONTENT_EXPORT AttributionDataHostManagerImpl
 
   void OnReceiverDisconnected();
 
-  enum class Registrar;
   struct RegistrarAndHeader;
-  struct HeaderPendingDecode;
 
   void ParseSource(base::flat_set<SourceRegistrations>::iterator,
-                   HeaderPendingDecode,
-                   Registrar);
+                   attribution_reporting::SuitableOrigin reporting_origin,
+                   RegistrarAndHeader);
   void HandleNextWebDecode(const SourceRegistrations&);
   void OnWebSourceParsed(SourceRegistrationsId,
                          data_decoder::DataDecoder::ValueOrError result);
@@ -167,7 +165,7 @@ class CONTENT_EXPORT AttributionDataHostManagerImpl
   void MaybeBindDeferredReceivers(int64_t navigation_id, bool due_to_timeout);
 
   // Owns `this`.
-  const raw_ref<AttributionManager> attribution_manager_;
+  raw_ptr<AttributionManager> attribution_manager_;
 
   mojo::ReceiverSet<blink::mojom::AttributionDataHost, RegistrationContext>
       receivers_;
@@ -176,8 +174,7 @@ class CONTENT_EXPORT AttributionDataHostManagerImpl
   // register sources associated with a navigation. These are not added to
   // `receivers_` until the necessary browser process information is available
   // to validate the attribution sources which is after the navigation starts.
-  base::flat_map<blink::AttributionSrcToken,
-                 mojo::PendingReceiver<blink::mojom::AttributionDataHost>>
+  base::flat_map<blink::AttributionSrcToken, NavigationDataHost>
       navigation_data_host_map_;
 
   // If eligible, sources can be registered during a navigation. These

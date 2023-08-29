@@ -40,9 +40,9 @@ IbanBubbleController* IbanBubbleController::GetOrCreate(
 IbanBubbleControllerImpl::~IbanBubbleControllerImpl() = default;
 
 void IbanBubbleControllerImpl::OfferLocalSave(
-    const Iban& iban,
+    const IBAN& iban,
     bool should_show_prompt,
-    AutofillClient::LocalSaveIbanPromptCallback save_iban_prompt_callback) {
+    AutofillClient::LocalSaveIBANPromptCallback save_iban_prompt_callback) {
   // Don't show the bubble if it's already visible.
   if (bubble_view()) {
     return;
@@ -114,7 +114,7 @@ std::u16string IbanBubbleControllerImpl::GetDeclineButtonText() const {
   }
 }
 
-const Iban& IbanBubbleControllerImpl::GetIban() const {
+const IBAN& IbanBubbleControllerImpl::GetIBAN() const {
   return iban_;
 }
 
@@ -129,12 +129,20 @@ void IbanBubbleControllerImpl::OnAcceptButton(const std::u16string& nickname) {
           !nickname.empty());
       iban_.set_nickname(nickname);
       std::move(local_save_iban_prompt_callback_)
-          .Run(AutofillClient::SaveIbanOfferUserDecision::kAccepted, nickname);
+          .Run(AutofillClient::SaveIBANOfferUserDecision::kAccepted, nickname);
       return;
     case IbanBubbleType::kManageSavedIban:
       return;
     case IbanBubbleType::kInactive:
       NOTREACHED();
+  }
+}
+
+void IbanBubbleControllerImpl::OnCancelButton() {
+  if (current_bubble_type_ == IbanBubbleType::kLocalSave) {
+    std::move(local_save_iban_prompt_callback_)
+        .Run(AutofillClient::SaveIBANOfferUserDecision::kDeclined,
+             absl::nullopt);
   }
 }
 
@@ -148,18 +156,6 @@ void IbanBubbleControllerImpl::OnManageSavedIbanExtraButtonClicked() {
 
 void IbanBubbleControllerImpl::OnBubbleClosed(
     PaymentsBubbleClosedReason closed_reason) {
-  if (current_bubble_type_ == IbanBubbleType::kLocalSave) {
-    if (closed_reason == PaymentsBubbleClosedReason::kCancelled) {
-      std::move(local_save_iban_prompt_callback_)
-          .Run(AutofillClient::SaveIbanOfferUserDecision::kDeclined,
-               absl::nullopt);
-    } else if (closed_reason == PaymentsBubbleClosedReason::kClosed) {
-      std::move(local_save_iban_prompt_callback_)
-          .Run(AutofillClient::SaveIbanOfferUserDecision::kIgnored,
-               absl::nullopt);
-    }
-  }
-
   set_bubble_view(nullptr);
 
   // Log save IBAN prompt result according to the closed reason.
@@ -263,10 +259,6 @@ IbanBubbleControllerImpl::GetPaymentBubbleType() const {
     case IbanBubbleType::kInactive:
       return PaymentBubbleType::kUnknown;
   }
-}
-
-int IbanBubbleControllerImpl::GetSaveSuccessAnimationStringId() const {
-  return IDS_AUTOFILL_IBAN_SAVED;
 }
 
 PageActionIconType IbanBubbleControllerImpl::GetPageActionIconType() {

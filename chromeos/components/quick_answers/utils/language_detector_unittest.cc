@@ -47,14 +47,13 @@ class FakeTextClassifier
                      FindLanguagesCallback callback) override {
     std::vector<TextLanguagePtr> languages;
 
-    const auto it = detection_results_.find(text);
-    if (it == detection_results_.end()) {
+    if (detection_results_.find(text) == detection_results_.end()) {
       languages.push_back(DefaultLanguage());
       std::move(callback).Run(std::move(languages));
       return;
     }
 
-    languages.push_back(it->second.Clone());
+    languages.push_back(detection_results_[text].Clone());
     std::move(callback).Run(std::move(languages));
   }
 

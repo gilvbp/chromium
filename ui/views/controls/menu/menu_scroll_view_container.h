@@ -39,18 +39,15 @@ class VIEWS_EXPORT MenuScrollViewContainer : public View {
   // External function to check if the bubble border is used.
   bool HasBubbleBorder() const;
 
-  // View:
-  gfx::Insets GetInsets() const override;
-  void GetAccessibleNodeData(ui::AXNodeData* node_data) override;
+  // View overrides.
   gfx::Size CalculatePreferredSize() const override;
   void OnPaintBackground(gfx::Canvas* canvas) override;
+  void GetAccessibleNodeData(ui::AXNodeData* node_data) override;
   void OnThemeChanged() override;
 
   void SetBorderColorId(absl::optional<ui::ColorId> border_color_id) {
     border_color_id_ = border_color_id;
   }
-
-  gfx::Insets outside_border_insets() const { return outside_border_insets_; }
 
  protected:
   // View override.
@@ -78,12 +75,10 @@ class VIEWS_EXPORT MenuScrollViewContainer : public View {
   // Returns the last item in the menu if it is of type HIGHLIGHTED.
   MenuItemView* GetFootnote() const;
 
-  // Returns the corner radius according to the `MenuConfig`.
-  int GetCornerRadius() const;
-
-  // Calculates the rounded corners of the view based on either
-  // `rounded_corners()` if it's set in `MenuController`, or else
-  // `GetCornerRadius()`.
+  // Calcultes the rounded corners of the view based on: either the
+  // `rounded_corners()` if it's set in `MenuController`, or the
+  // `CornerRadiusForMenu` in the `MenuConfig` if `rounded_corners()` is not
+  // set.
   gfx::RoundedCornersF GetRoundedCorners() const;
 
   class MenuScrollView;
@@ -106,13 +101,6 @@ class VIEWS_EXPORT MenuScrollViewContainer : public View {
 
   // Corner radius of the background.
   int corner_radius_ = 0;
-
-  // The portion of GetInsets() that represent the region outside the border
-  // (e.g. any shadows).
-  gfx::Insets outside_border_insets_;
-
-  // Any additional insets to add inside the border.
-  gfx::Insets additional_insets_;
 
   // Whether the menu uses ash system UI layout.
   const bool use_ash_system_ui_layout_;

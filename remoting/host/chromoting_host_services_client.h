@@ -19,6 +19,10 @@ namespace base {
 class Environment;
 }  // namespace base
 
+namespace mojo {
+class IsolatedConnection;
+}  // namespace mojo
+
 namespace remoting {
 
 // Maintains connection to a ChromotingHostServices server, and provides the
@@ -50,8 +54,8 @@ class ChromotingHostServicesClient final
  private:
   friend class ChromotingHostServicesClientTest;
 
-  using ConnectToServerCallback = base::RepeatingCallback<
-      mojo::PendingRemote<mojom::ChromotingHostServices>()>;
+  using ConnectToServerCallback = base::RepeatingCallback<mojo::PendingRemote<
+      mojom::ChromotingHostServices>(mojo::IsolatedConnection&)>;
 
 #if BUILDFLAG(IS_LINUX)
   static constexpr char kChromeRemoteDesktopSessionEnvVar[] =
@@ -75,6 +79,8 @@ class ChromotingHostServicesClient final
 
   std::unique_ptr<base::Environment> environment_;
   ConnectToServerCallback connect_to_server_;
+  std::unique_ptr<mojo::IsolatedConnection> connection_
+      GUARDED_BY_CONTEXT(sequence_checker_);
   mojo::Remote<mojom::ChromotingHostServices> remote_
       GUARDED_BY_CONTEXT(sequence_checker_);
   mojo::Remote<mojom::ChromotingSessionServices> session_services_remote_

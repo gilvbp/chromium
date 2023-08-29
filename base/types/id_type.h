@@ -8,7 +8,6 @@
 #include <cstdint>
 #include <type_traits>
 
-#include "base/ranges/algorithm.h"
 #include "base/types/strong_alias.h"
 
 namespace base {
@@ -33,7 +32,7 @@ namespace base {
 //   IdType32<T> / IdTypeU32<T>: Signed / unsigned 32-bit IDs
 //   IdType64<T> / IdTypeU64<T>: Signed / unsigned 64-bit IDs
 //   IdType<>: For when you need a different underlying type or
-//             default/null values other than zero.
+//             a default/null value other than zero.
 //
 // IdType32<Foo> behaves just like an int32_t in the following aspects:
 // - it can be used as a key in std::map;
@@ -49,37 +48,25 @@ namespace base {
 // - it restricts the set of available operations (e.g. no multiplication);
 // - it default-constructs to a null value and allows checking against the null
 //   value via is_null method.
-// - optionally it may have additional values that are all considered null.
 template <typename TypeMarker,
           typename WrappedType,
           WrappedType kInvalidValue,
-          WrappedType kFirstGeneratedId = kInvalidValue + 1,
-          WrappedType... kExtraInvalidValues>
+          WrappedType kFirstGeneratedId = kInvalidValue + 1>
 class IdType : public StrongAlias<TypeMarker, WrappedType> {
  public:
-  static constexpr WrappedType kAllInvalidValues[] = {kInvalidValue,
-                                                      kExtraInvalidValues...};
+  static_assert(
+      std::is_unsigned<WrappedType>::value || kInvalidValue <= 0,
+      "If signed, the invalid value should be negative or equal to zero to "
+      "avoid overflow issues.");
 
-  static_assert(std::is_unsigned<WrappedType>::value ||
-                    base::ranges::all_of(kAllInvalidValues,
-                                         [](WrappedType v) { return v <= 0; }),
-                "If signed, invalid values should be negative or equal to zero "
-                "to avoid overflow issues.");
-
-  static_assert(base::ranges::all_of(kAllInvalidValues,
-                                     [](WrappedType v) {
-                                       return kFirstGeneratedId != v;
-                                     }),
+  static_assert(kFirstGeneratedId != kInvalidValue,
                 "The first generated ID cannot be invalid.");
 
   static_assert(std::is_unsigned<WrappedType>::value ||
-                    base::ranges::all_of(kAllInvalidValues,
-                                         [](WrappedType v) {
-                                           return kFirstGeneratedId > v;
-                                         }),
-                "If signed, the first generated ID must be greater than all "
-                "invalid values so that the monotonically increasing "
-                "GenerateNextId method will never return an invalid value.");
+                    kFirstGeneratedId > kInvalidValue,
+                "If signed, the first generated ID must be greater than the "
+                "invalid value so that the monotonically increasing "
+                "GenerateNextId method will never return the invalid value.");
 
   using StrongAlias<TypeMarker, WrappedType>::StrongAlias;
 
@@ -104,12 +91,7 @@ class IdType : public StrongAlias<TypeMarker, WrappedType> {
   constexpr IdType()
       : StrongAlias<TypeMarker, WrappedType>::StrongAlias(kInvalidValue) {}
 
-  constexpr bool is_null() const {
-    return base::ranges::any_of(kAllInvalidValues, [this](WrappedType value) {
-      return this->value() == value;
-    });
-  }
-
+  constexpr bool is_null() const { return this->value() == kInvalidValue; }
   constexpr explicit operator bool() const { return !is_null(); }
 
   // TODO(mpawlowski) Replace these with constructor/value() getter. The

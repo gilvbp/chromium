@@ -137,6 +137,7 @@ public class DisplayCutoutTabHelper implements UserData {
         mCutoutController.destroy();
     }
 
+    @VisibleForTesting
     static void initForTesting(Tab tab, DisplayCutoutController controller) {
         DisplayCutoutTabHelper tabHelper = new DisplayCutoutTabHelper(tab);
         tabHelper.mCutoutController = controller;

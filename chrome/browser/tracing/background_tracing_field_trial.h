@@ -7,7 +7,7 @@
 
 namespace tracing {
 
-bool SetupBackgroundTracingFieldTrial();
+void SetupBackgroundTracingFieldTrial();
 
 }  // namespace tracing
 

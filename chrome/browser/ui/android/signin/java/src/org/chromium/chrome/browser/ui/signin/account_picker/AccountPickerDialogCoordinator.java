@@ -9,6 +9,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 
 import androidx.annotation.MainThread;
+import androidx.annotation.VisibleForTesting;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -77,6 +78,7 @@ public class AccountPickerDialogCoordinator {
         };
     }
 
+    @VisibleForTesting
     View getAccountPickerViewForTests() {
         return mAccountPickerView;
     }

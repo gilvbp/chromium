@@ -17,8 +17,6 @@ std::string AnnotationTypeToString(AnnotationType type) {
       return "ContentVisibility";
     case AnnotationType::kPageEntities:
       return "PageEntities";
-    case AnnotationType::kTextEmbedding:
-      return "TextEmbedding";
   }
 }
 

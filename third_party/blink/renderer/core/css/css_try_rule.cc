@@ -21,8 +21,10 @@ void StyleRuleTry::TraceAfterDispatch(Visitor* visitor) const {
   StyleRuleBase::TraceAfterDispatch(visitor);
 }
 
-CSSTryRule::CSSTryRule(StyleRuleTry* try_rule)
-    : CSSRule(nullptr), try_rule_(try_rule) {}
+CSSTryRule::CSSTryRule(StyleRuleTry* try_rule, CSSPositionFallbackRule* parent)
+    : CSSRule(nullptr), try_rule_(try_rule) {
+  SetParentRule(parent);
+}
 
 CSSTryRule::~CSSTryRule() = default;
 

@@ -45,8 +45,7 @@ class NoopLock : public Lock {
 
  private:
   friend WebAppLockManager;
-  NoopLock(std::unique_ptr<content::PartitionedLockHolder> holder,
-           base::WeakPtr<WebAppLockManager> lock_manager);
+  explicit NoopLock(std::unique_ptr<content::PartitionedLockHolder> holder);
 
   base::WeakPtrFactory<NoopLock> weak_factory_{this};
 };

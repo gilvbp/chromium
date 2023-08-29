@@ -23,7 +23,7 @@ class NetworkMetadataStore;
 // - Must not be a managed network.
 class COMPONENT_EXPORT(CHROMEOS_NETWORK) HiddenNetworkHandler {
  public:
-  HiddenNetworkHandler() = default;
+  HiddenNetworkHandler();
   HiddenNetworkHandler(const HiddenNetworkHandler&) = delete;
   HiddenNetworkHandler& operator=(const HiddenNetworkHandler&) = delete;
   ~HiddenNetworkHandler() = default;

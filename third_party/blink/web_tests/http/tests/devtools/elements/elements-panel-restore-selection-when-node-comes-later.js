@@ -5,8 +5,6 @@
 import {TestRunner} from 'test_runner';
 import {ElementsTestRunner} from 'elements_test_runner';
 
-import * as SDK from 'devtools/core/sdk/sdk.js';
-
 (async function() {
   TestRunner.addResult(
       `Verify that last selected element is restored properly later, even if it failed to do so once.\n`);
@@ -79,7 +77,7 @@ import * as SDK from 'devtools/core/sdk/sdk.js';
    * @param {string} pathToIgnore
    */
   function overridePushNodeForPath(pathToIgnore) {
-    var original = TestRunner.override(SDK.DOMModel.DOMModel.prototype, 'pushNodeByPathToFrontend', override);
+    var original = TestRunner.override(SDK.DOMModel.prototype, 'pushNodeByPathToFrontend', override);
 
     function override(nodePath) {
       if (nodePath === pathToIgnore)

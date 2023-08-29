@@ -8,6 +8,5 @@ package org.chromium.chrome.browser.init;
  * Delegate for Chrome startup initialization, implemented downstream.
  */
 public class ChromeStartupDelegate {
-    public void initGlobals() {}
     public void init() {}
 }

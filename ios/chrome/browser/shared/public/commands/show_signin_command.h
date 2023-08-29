@@ -9,46 +9,40 @@
 
 #include "components/signin/public/base/signin_metrics.h"
 
-@class SigninCompletionInfo;
 typedef NS_ENUM(NSUInteger, SigninCoordinatorResult);
 @protocol SystemIdentity;
 
 using ShowSigninCommandCompletionCallback =
-    void (^)(SigninCoordinatorResult result, SigninCompletionInfo*);
+    void (^)(SigninCoordinatorResult result);
 
-enum class AuthenticationOperation {
+typedef NS_ENUM(NSInteger, AuthenticationOperation) {
   // Operation to start a re-authenticate operation. The user is presented with
   // the SSOAuth re-authenticate dialog. This command can only be used if there
   // is a primary account. Please note that the primary account can disappear
   // (for external reasons) when the reauth is in progress.
-  kPrimaryAccountReauth,
+  AuthenticationOperationPrimaryAccountReauth,
   // Operation to start a re-authenticate operation. The user is presented with
   // the SSOAuth re-authenticate dialog. This command can only be used if there
   // is no primary account.
-  kSigninAndSyncReauth,
+  AuthenticationOperationSigninAndSyncReauth,
   // Operation to start a sign-in and sync operation. The user is presented with
   // the sign-in page with the user consent.
-  kSigninAndSync,
+  AuthenticationOperationSigninAndSync,
   // Operation to start a sign-in only operation. The user is presented with
   // the consistency web sign-in dialog.
-  kSigninOnly,
+  AuthenticationOperationSigninOnly,
   // Operation to add a secondary account. The user is presented with the
   // SSOAUth sign-in page. This command can only be used if there is a primary
   // account.
-  kAddAccount,
+  AuthenticationOperationAddAccount,
   // Operation to start a forced sign-in operation. The user is presented with
   // the sign-in page with information about the policy and cannot dimiss it.
-  kForcedSigninAndSync,
+  AuthenticationOperationForcedSigninAndSync,
   // Operation to start a sign-in and sync operation. The user is presented with
   // the sign-in page with the user consent. The views are the newer FRE style
   // views with the first being a screen that asks the user if they want to
   // sign in and the second being the "tangible sync" screen.
-  kSigninAndSyncWithTwoScreens,
-  // Operation to trigger sign-in only operation, without presenting UI if an
-  // identity is selected in `-ShowSigninCommand.identity`. Otherwise,
-  // a dialog to choose an identity is presented and the user is signed in as
-  // soon as the identity is selected.
-  kInstantSignin,
+  AuthenticationOperationSigninAndSyncWithTwoScreens,
 };
 
 // A command to perform a sign in operation.

@@ -4,14 +4,13 @@
 
 package org.chromium.components.external_intents;
 
-import static org.mockito.Mockito.when;
-
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Instrumentation;
 import android.app.Instrumentation.ActivityMonitor;
 import android.content.Context;
 import android.content.ContextWrapper;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.ActivityInfo;
@@ -24,6 +23,7 @@ import android.os.SystemClock;
 import android.provider.Browser;
 import android.test.mock.MockPackageManager;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.filters.MediumTest;
 import androidx.test.filters.SmallTest;
@@ -50,7 +50,6 @@ import org.chromium.base.test.util.Batch;
 import org.chromium.base.test.util.Features;
 import org.chromium.base.test.util.MaxAndroidSdkLevel;
 import org.chromium.base.test.util.MinAndroidSdkLevel;
-import org.chromium.components.external_intents.ExternalNavigationHandler.IncognitoDialogDelegate;
 import org.chromium.components.external_intents.ExternalNavigationHandler.OverrideUrlLoadingAsyncActionType;
 import org.chromium.components.external_intents.ExternalNavigationHandler.OverrideUrlLoadingResult;
 import org.chromium.components.external_intents.ExternalNavigationHandler.OverrideUrlLoadingResultType;
@@ -60,10 +59,7 @@ import org.chromium.content_public.browser.WebContents;
 import org.chromium.content_public.browser.test.NativeLibraryTestUtils;
 import org.chromium.ui.base.PageTransition;
 import org.chromium.ui.base.WindowAndroid;
-import org.chromium.ui.modaldialog.ModalDialogManager;
-import org.chromium.ui.modaldialog.ModalDialogProperties;
 import org.chromium.ui.test.util.BlankUiTestActivity;
-import org.chromium.ui.test.util.modaldialog.FakeModalDialogManager;
 import org.chromium.url.GURL;
 
 import java.net.URISyntaxException;
@@ -80,6 +76,7 @@ import java.util.regex.Pattern;
 @Batch(Batch.UNIT_TESTS)
 @Features.DisableFeatures(ExternalIntentsFeatures.EXTERNAL_NAVIGATION_DEBUG_LOGS_NAME)
 @Features.EnableFeatures({ExternalIntentsFeatures.BLOCK_FRAME_RENAVIGATIONS_NAME,
+        ExternalIntentsFeatures.DO_NOT_REQUIRE_SPECIALIZED_CCT_HANDLER_NAME,
         ExternalIntentsFeatures.BLOCK_INTENTS_TO_SELF_NAME})
 public class ExternalNavigationHandlerTest {
     // Expectations
@@ -156,8 +153,6 @@ public class ExternalNavigationHandlerTest {
     private static final String WEBAPK_PACKAGE_NAME = WEBAPK_PACKAGE_PREFIX + ".template";
     private static final String INVALID_WEBAPK_PACKAGE_NAME = WEBAPK_PACKAGE_PREFIX + ".invalid";
 
-    private static final String SELF_SCHEME = "selfscheme";
-
     @Rule
     public MockitoRule mMockitoRule = MockitoJUnit.rule().strictness(Strictness.STRICT_STUBS);
 
@@ -165,12 +160,9 @@ public class ExternalNavigationHandlerTest {
     public TestRule mFeaturesProcessorRule = new Features.JUnitProcessor();
 
     @Mock
-    private IncognitoDialogDelegate mIncognitoDialogDelegateMock;
-    @Mock
-    private WindowAndroid mWindowAndroidMock;
+    AlertDialog mAlertDialog;
 
     private Context mContext;
-    private FakeModalDialogManager mModalDialogManager;
     private final TestExternalNavigationDelegate mDelegate;
     private ExternalNavigationHandlerForTesting mUrlHandler;
 
@@ -178,26 +170,28 @@ public class ExternalNavigationHandlerTest {
 
     public ExternalNavigationHandlerTest() {
         mDelegate = new TestExternalNavigationDelegate();
+        mUrlHandler = new ExternalNavigationHandlerForTesting(mDelegate);
     }
 
     @Before
     public void setUp() {
         mApplicationContextToRestore = ContextUtils.getApplicationContext();
-        mContext = new TestContext(InstrumentationRegistry.getTargetContext(), mDelegate);
-        mModalDialogManager = new FakeModalDialogManager(ModalDialogManager.ModalDialogType.APP);
 
+        mContext = new TestContext(InstrumentationRegistry.getTargetContext(), mDelegate);
         ContextUtils.initApplicationContextForTests(mContext);
         mDelegate.setContext(mContext);
 
-        when(mWindowAndroidMock.getModalDialogManager()).thenReturn(mModalDialogManager);
-        mDelegate.setWindowAndroid(mWindowAndroidMock);
-        mUrlHandler = new ExternalNavigationHandlerForTesting(mDelegate);
         NativeLibraryTestUtils.loadNativeLibraryNoBrowserProcess();
     }
 
     @After
     public void tearDown() {
         ContextUtils.initApplicationContextForTests(mApplicationContextToRestore);
+        // Any tests showing the dialog should have closed the dialog, even if assertions in the
+        // test failed.
+        if (mUrlHandler.mShownIncognitoAlertDialog != null) {
+            Assert.assertFalse(mUrlHandler.mShownIncognitoAlertDialog.isShowing());
+        }
     }
 
     private RedirectHandler redirectHandlerForLinkClick() {
@@ -1071,8 +1065,7 @@ public class ExternalNavigationHandlerTest {
                                 START_INCOGNITO);
                 Assert.assertNull(mUrlHandler.mStartActivityIntent);
                 Assert.assertNull(mUrlHandler.mNewUrlAfterClobbering);
-
-                mUrlHandler.mIncognitoDialogDelegate.cancelDialog();
+                mUrlHandler.mShownIncognitoAlertDialog.cancel();
             });
             // Cancel callback is posted, so continue after posting to the task queue.
             ThreadUtils.runOnUiThreadBlocking(() -> {
@@ -1086,9 +1079,8 @@ public class ExternalNavigationHandlerTest {
                                 OverrideUrlLoadingAsyncActionType.UI_GATING_INTENT_LAUNCH,
                                 START_INCOGNITO);
                 Assert.assertNull(mUrlHandler.mStartActivityIntent);
-
-                mUrlHandler.mIncognitoDialogDelegate.performClick(
-                        ModalDialogProperties.ButtonType.POSITIVE);
+                mUrlHandler.mShownIncognitoAlertDialog.getButton(DialogInterface.BUTTON_POSITIVE)
+                        .performClick();
             });
             // Click callback is posted, so continue after posting to the task queue.
             ThreadUtils.runOnUiThreadBlocking(() -> {
@@ -1098,6 +1090,10 @@ public class ExternalNavigationHandlerTest {
                         mUrlHandler.mStartActivityIntent.getDataString());
             });
         } finally {
+            if (mUrlHandler.mShownIncognitoAlertDialog != null
+                    && mUrlHandler.mShownIncognitoAlertDialog.isShowing()) {
+                mUrlHandler.mShownIncognitoAlertDialog.cancel();
+            }
             activity.finish();
             InstrumentationRegistry.getInstrumentation().removeMonitor(monitor);
         }
@@ -1130,7 +1126,7 @@ public class ExternalNavigationHandlerTest {
                 Assert.assertNull(mUrlHandler.mStartActivityIntent);
                 Assert.assertNull(mUrlHandler.mNewUrlAfterClobbering);
                 if (clearRedirectHandler) redirectHandler.clear();
-                mUrlHandler.mIncognitoDialogDelegate.cancelDialog();
+                mUrlHandler.mShownIncognitoAlertDialog.cancel();
             });
             // Cancel callback is posted, so continue after posting to the task queue.
             ThreadUtils.runOnUiThreadBlocking(() -> {
@@ -1149,13 +1145,16 @@ public class ExternalNavigationHandlerTest {
                                 START_INCOGNITO);
                 Assert.assertNull(mUrlHandler.mStartActivityIntent);
                 if (clearRedirectHandler) redirectHandler.clear();
-                mUrlHandler.mIncognitoDialogDelegate.cancelDialog();
+                mUrlHandler.mShownIncognitoAlertDialog.cancel();
             });
             // Click callback is posted, so continue after posting to the task queue.
             ThreadUtils.runOnUiThreadBlocking(() -> {
                 Assert.assertEquals("http://google.com/", mUrlHandler.mNewUrlAfterClobbering);
             });
         } finally {
+            if (mUrlHandler.mShownIncognitoAlertDialog != null) {
+                mUrlHandler.mShownIncognitoAlertDialog.cancel();
+            }
             activity.finish();
         }
     }
@@ -1211,7 +1210,7 @@ public class ExternalNavigationHandlerTest {
                 Assert.assertNull(mUrlHandler.mNewUrlAfterClobbering);
 
                 // Verify that the incognito dialog was not shown.
-                Assert.assertNull(mUrlHandler.mIncognitoDialogDelegate);
+                Assert.assertNull(mUrlHandler.mShownIncognitoAlertDialog);
 
                 // Verify that the delegate was given the opportunity to present the dialog.
                 Assert.assertNotNull(mDelegate.incognitoDialogUserDecisionCallback);
@@ -1232,7 +1231,7 @@ public class ExternalNavigationHandlerTest {
                 Assert.assertNull(mUrlHandler.mStartActivityIntent);
 
                 // Verify that the incognito dialog was not shown.
-                Assert.assertNull(mUrlHandler.mIncognitoDialogDelegate);
+                Assert.assertNull(mUrlHandler.mShownIncognitoAlertDialog);
 
                 // Verify that the delegate was given the opportunity to present the dialog.
                 Assert.assertNotNull(mDelegate.incognitoDialogUserDecisionCallback);
@@ -1279,7 +1278,7 @@ public class ExternalNavigationHandlerTest {
                 Assert.assertNull(mUrlHandler.mNewUrlAfterClobbering);
 
                 // Verify that the incognito dialog was not shown.
-                Assert.assertNull(mUrlHandler.mIncognitoDialogDelegate);
+                Assert.assertNull(mUrlHandler.mShownIncognitoAlertDialog);
 
                 // Verify that the delegate was given the opportunity to present the dialog.
                 Assert.assertNotNull(mDelegate.incognitoDialogUserDecisionCallback);
@@ -1302,7 +1301,7 @@ public class ExternalNavigationHandlerTest {
                 Assert.assertNull(mUrlHandler.mStartActivityIntent);
 
                 // Verify that the incognito dialog was not shown.
-                Assert.assertNull(mUrlHandler.mIncognitoDialogDelegate);
+                Assert.assertNull(mUrlHandler.mShownIncognitoAlertDialog);
 
                 // Verify that the delegate was given the opportunity to present the dialog.
                 Assert.assertNotNull(mDelegate.incognitoDialogUserDecisionCallback);
@@ -1336,12 +1335,12 @@ public class ExternalNavigationHandlerTest {
         // Callback won't have been run with the mocked AlertDialog.
         mUrlHandler.mAsyncActionCallback.onResult(AsyncActionTakenParams.forNoAction());
 
-        Mockito.doReturn(true).when(mIncognitoDialogDelegateMock).isShowing();
+        Mockito.doReturn(true).when(mAlertDialog).isShowing();
         redirectHandler.updateNewUrlLoading(PageTransition.LINK, false, false, 0, 0, false, true);
         checkUrl(YOUTUBE_URL, redirectHandler)
                 .withIsIncognito(true)
                 .expecting(OverrideUrlLoadingResultType.NO_OVERRIDE, IGNORE);
-        Mockito.verify(mIncognitoDialogDelegateMock).cancelDialog();
+        Mockito.verify(mAlertDialog).cancel();
     }
 
     @Test
@@ -2615,27 +2614,13 @@ public class ExternalNavigationHandlerTest {
 
     @Test
     @SmallTest
-    public void testBlockHiddenCrossFrameReNavigation() {
+    public void testBlockCrossFrameReNavigation() {
         mDelegate.add(new IntentActivity(YOUTUBE_URL, YOUTUBE_PACKAGE_NAME));
 
         checkUrl(YOUTUBE_URL, redirectHandlerForLinkClick())
                 .withIsInitialNavigationInFrame(false)
-                .withIsHiddenCrossFrame(true)
+                .withIsCrossFrame(true)
                 .expecting(OverrideUrlLoadingResultType.NO_OVERRIDE, IGNORE);
-    }
-
-    @Test
-    @SmallTest
-    // Tests googlechrome:// URLs.
-    public void testSelfSchemeUrl() {
-        mUrlHandler.mResolveInfoContainsSelf = true;
-
-        checkUrl(SELF_SCHEME + ExternalNavigationHandler.SELF_SCHEME_NAVIGATE_PREFIX
-                        + "https://www.example.com/",
-                redirectHandlerForLinkClick())
-                .withHasUserGesture(true)
-                .expecting(OverrideUrlLoadingResultType.OVERRIDE_WITH_NAVIGATE_TAB, IGNORE);
-        Assert.assertEquals("https://www.example.com/", mUrlHandler.mNewUrlAfterClobbering);
     }
 
     private static List<ResolveInfo> makeResolveInfos(ResolveInfo... infos) {
@@ -2711,13 +2696,13 @@ public class ExternalNavigationHandlerTest {
         public Intent mStartActivityInIncognitoIntent;
         public boolean mStartIncognitoIntentCalled;
         public boolean mCanShowIncognitoDialog;
+        public AlertDialog mShownIncognitoAlertDialog;
         public boolean mResolveInfoContainsSelf;
         public Intent mStartActivityIntent;
         public boolean mRequiresIntentChooser;
         private boolean mSendIntentsForReal;
         public boolean mExpectingMessage;
         public Callback<AsyncActionTakenParams> mAsyncActionCallback;
-        public IncognitoDialogDelegate mIncognitoDialogDelegate;
 
         public ExternalNavigationHandlerForTesting(ExternalNavigationDelegate delegate) {
             super(delegate);
@@ -2737,12 +2722,12 @@ public class ExternalNavigationHandlerTest {
         }
 
         @Override
-        protected IncognitoDialogDelegate showLeavingIncognitoDialog(
+        protected AlertDialog showLeavingIncognitoAlert(
                 Context context, ExternalNavigationParams params, Intent intent, GURL fallbackUrl) {
-            if (context instanceof TestContext) return mIncognitoDialogDelegateMock;
-            mIncognitoDialogDelegate =
-                    super.showLeavingIncognitoDialog(context, params, intent, fallbackUrl);
-            return mIncognitoDialogDelegate;
+            if (context instanceof TestContext) return mAlertDialog;
+            mShownIncognitoAlertDialog =
+                    super.showLeavingIncognitoAlert(context, params, intent, fallbackUrl);
+            return mShownIncognitoAlertDialog;
         }
 
         @Override
@@ -2820,14 +2805,11 @@ public class ExternalNavigationHandlerTest {
     };
 
     private static class TestExternalNavigationDelegate implements ExternalNavigationDelegate {
-        private WindowAndroid mWindowAndroid;
-
         public List<ResolveInfo> queryIntentActivities(Intent intent) {
             List<ResolveInfo> list = new ArrayList<>();
             String dataString = intent.getDataString();
             if (intent.getScheme() != null) {
-                if (dataString.startsWith("http://") || dataString.startsWith("https://")
-                        || intent.getScheme().equals(SELF_SCHEME)) {
+                if (dataString.startsWith("http://") || dataString.startsWith("https://")) {
                     list.add(newResolveInfo(SELF_PACKAGE_NAME));
                 }
                 for (IntentActivity intentActivity : mIntentActivities) {
@@ -2941,7 +2923,7 @@ public class ExternalNavigationHandlerTest {
 
         @Override
         public WindowAndroid getWindowAndroid() {
-            return mWindowAndroid;
+            return null;
         }
 
         @Override
@@ -2985,11 +2967,6 @@ public class ExternalNavigationHandlerTest {
         @Override
         public boolean shouldEmbedderInitiatedNavigationsStayInBrowser() {
             return mShouldEmbedderInitiatedNavigationsStayInBrowser;
-        }
-
-        @Override
-        public String getSelfScheme() {
-            return SELF_SCHEME;
         }
 
         public void reset() {
@@ -3064,10 +3041,6 @@ public class ExternalNavigationHandlerTest {
             mResolvesToOtherBrowser = value;
         }
 
-        public void setWindowAndroid(WindowAndroid windowAndroid) {
-            mWindowAndroid = windowAndroid;
-        }
-
         public boolean startIncognitoIntentCalled;
         public boolean maybeSetRequestMetadataCalled;
         public Callback<Boolean> incognitoDialogUserDecisionCallback;
@@ -3117,7 +3090,7 @@ public class ExternalNavigationHandlerTest {
         private boolean mIsRendererInitiated = true;
         private boolean mIsMainFrame = true;
         private boolean mIsInitialNavigationInFrame;
-        private boolean mIsHiddenCrossFrame;
+        private boolean mIsCrossFrame;
 
         private ExternalNavigationTestParams(String url, RedirectHandler handler) {
             mUrl = url;
@@ -3183,8 +3156,8 @@ public class ExternalNavigationHandlerTest {
             return this;
         }
 
-        public ExternalNavigationTestParams withIsHiddenCrossFrame(boolean isHiddenCrossFrame) {
-            mIsHiddenCrossFrame = isHiddenCrossFrame;
+        public ExternalNavigationTestParams withIsCrossFrame(boolean isCrossFrame) {
+            mIsCrossFrame = isCrossFrame;
             return this;
         }
 
@@ -3234,7 +3207,7 @@ public class ExternalNavigationHandlerTest {
                             .setIsRendererInitiated(mIsRendererInitiated)
                             .setAsyncActionTakenCallback(callback)
                             .setIsInitialNavigationInFrame(mIsInitialNavigationInFrame)
-                            .setIsHiddenCrossFrameNavigation(mIsHiddenCrossFrame)
+                            .setIsCrossFrameNavigation(mIsCrossFrame)
                             .build();
             OverrideUrlLoadingResult result = mUrlHandler.shouldOverrideUrlLoading(params);
 

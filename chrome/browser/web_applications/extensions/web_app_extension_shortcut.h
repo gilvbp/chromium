@@ -10,7 +10,6 @@
 
 #include "base/functional/callback_forward.h"
 #include "build/build_config.h"
-#include "chrome/browser/web_applications/os_integration/os_integration_sub_manager.h"
 #include "chrome/browser/web_applications/os_integration/web_app_shortcut.h"
 #include "chrome/browser/web_applications/web_app_id.h"
 
@@ -63,8 +62,6 @@ void CreateShortcuts(ShortcutCreationReason reason,
 // Creates shortcuts for a webapp. This loads the app's icon from disk, and
 // calls CreateShortcutsWithInfo(). If you already have a ShortcutInfo with the
 // app's icon loaded, you should use CreateShortcutsWithInfo() directly.
-// TODO(crbug.com/1401125): Clean up after OS integration sub managers have been
-// released.
 void CreateShortcutsForWebApp(ShortcutCreationReason reason,
                               const ShortcutLocations& locations,
                               Profile* profile,
@@ -101,10 +98,6 @@ void UpdateRelaunchDetailsForApp(Profile* profile,
                                  const extensions::Extension* extension,
                                  HWND hwnd);
 #endif  // BUILDFLAG(IS_WIN)
-
-SynchronizeOsOptions ConvertShortcutLocationsToSynchronizeOptions(
-    const ShortcutLocations& locations,
-    ShortcutCreationReason reason);
 
 }  // namespace web_app
 

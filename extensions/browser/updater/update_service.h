@@ -65,6 +65,7 @@ class UpdateService : public KeyedService {
                                 UpdateFoundCallback update_found_callback,
                                 base::OnceClosure callback);
 
+ protected:
   UpdateService(content::BrowserContext* context,
                 scoped_refptr<update_client::UpdateClient> update_client);
   ~UpdateService() override;

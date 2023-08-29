@@ -40,9 +40,8 @@ import org.chromium.chrome.browser.profiles.OTRProfileID;
 import org.chromium.chrome.test.ChromeJUnit4ClassRunner;
 import org.chromium.chrome.test.ChromeTabbedActivityTestRule;
 import org.chromium.chrome.test.R;
-import org.chromium.chrome.test.util.browser.Features.EnableFeatures;
+import org.chromium.chrome.test.util.browser.Features;
 import org.chromium.components.browser_ui.modaldialog.AppModalPresenter;
-import org.chromium.components.browser_ui.modaldialog.ModalDialogTestUtils;
 import org.chromium.content_public.browser.test.util.TestThreadUtils;
 import org.chromium.ui.modaldialog.ModalDialogManager;
 
@@ -50,7 +49,7 @@ import org.chromium.ui.modaldialog.ModalDialogManager;
  * Test to verify download dialog scenarios.
  */
 @RunWith(ChromeJUnit4ClassRunner.class)
-@EnableFeatures({ChromeFeatureList.INCOGNITO_DOWNLOADS_WARNING})
+@Features.EnableFeatures({ChromeFeatureList.INCOGNITO_DOWNLOADS_WARNING})
 @CommandLineFlags.Add({ChromeSwitches.DISABLE_FIRST_RUN_EXPERIENCE})
 public class DownloadDialogIncognitoTest {
     private static final long TOTAL_BYTES = 1024L;
@@ -78,7 +77,6 @@ public class DownloadDialogIncognitoTest {
                         mAppModalPresenter, ModalDialogManager.ModalDialogType.APP);
             });
         });
-        ModalDialogTestUtils.overrideEnableButtonTapProtection(false);
     }
 
     @Test

@@ -37,7 +37,7 @@
 
   const auctionJs = `
     navigator.runAdAuction({
-      decisionLogicURL: "${base}fledge_decision_logic.js.php",
+      decisionLogicUrl: "${base}fledge_decision_logic.js.php",
       seller: "https://a.test:8443",
       interestGroupBuyers: ["https://a.test:8443"]})`;
 

@@ -54,7 +54,6 @@ class TrayBubbleView;
 class TrayItemView;
 class TimeTrayItemView;
 class UnifiedSliderBubbleController;
-class UnifiedSliderView;
 class UnifiedSystemTrayBubble;
 class UnifiedMessageCenterBubble;
 
@@ -110,8 +109,9 @@ class ASH_EXPORT UnifiedSystemTray
   // accelerator is shown.
   bool IsSliderBubbleShown() const;
 
-  // Gets the slider view of the slider bubble.
-  UnifiedSliderView* GetSliderView() const;
+  // Gets the height of the slider bubble used to calculate the baseline of
+  // notification popups and side aligned toasts so they don't overlap.
+  int GetSliderBubbleHeight() const;
 
   // True if the bubble containing notifications is visible..
   bool IsMessageCenterBubbleShown() const;
@@ -269,10 +269,6 @@ class ASH_EXPORT UnifiedSystemTray
   CameraMicTrayItemView* camera_view() { return camera_view_; }
 
   CameraMicTrayItemView* mic_view() { return mic_view_; }
-
-  NotificationIconsController* notification_icons_controller() {
-    return notification_icons_controller_.get();
-  }
 
  private:
   static const base::TimeDelta kNotificationCountUpdateDelay;

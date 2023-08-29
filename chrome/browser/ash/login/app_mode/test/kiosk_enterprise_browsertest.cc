@@ -144,15 +144,17 @@ class KioskEnterpriseTest : public KioskBaseTest {
 
 IN_PROC_BROWSER_TEST_F(KioskEnterpriseTest, EnterpriseKioskApp) {
   // Prepare Fake CWS to serve app crx.
-  SetTestApp(kTestEnterpriseKioskAppId);
+  set_test_app_id(kTestEnterpriseKioskApp);
+  set_test_app_version("1.0.0");
+  set_test_crx_file(test_app_id() + ".crx");
   SetupTestAppUpdateCheck();
 
-  // Configure `kTestEnterpriseKioskAppId` in device policy.
-  ConfigureKioskAppInPolicy(kTestEnterpriseAccountId, kTestEnterpriseKioskAppId,
-                            /*update_url=*/"");
+  // Configure kTestEnterpriseKioskApp in device policy.
+  ConfigureKioskAppInPolicy(kTestEnterpriseAccountId, kTestEnterpriseKioskApp,
+                            "");
 
   PrepareAppLaunch();
-  EXPECT_TRUE(LaunchApp(kTestEnterpriseKioskAppId));
+  EXPECT_TRUE(LaunchApp(kTestEnterpriseKioskApp));
 
   KioskSessionInitializedWaiter().Wait();
 
@@ -164,7 +166,7 @@ IN_PROC_BROWSER_TEST_F(KioskEnterpriseTest, EnterpriseKioskApp) {
   extensions::AppWindow* window =
       apps::AppWindowWaiter(extensions::AppWindowRegistry::Get(
                                 ProfileManager::GetPrimaryUserProfile()),
-                            kTestEnterpriseKioskAppId)
+                            kTestEnterpriseKioskApp)
           .Wait();
   ASSERT_TRUE(window);
   EXPECT_TRUE(content::WaitForLoadStop(window->web_contents()));
@@ -190,7 +192,7 @@ IN_PROC_BROWSER_TEST_F(KioskEnterpriseTest, EnterpriseKioskApp) {
 }
 
 IN_PROC_BROWSER_TEST_F(KioskEnterpriseTest, PrivateStore) {
-  SetTestApp(kTestEnterpriseKioskAppId);
+  set_test_app_id(kTestEnterpriseKioskApp);
 
   const char kPrivateStoreUpdate[] = "/private_store_update";
   net::EmbeddedTestServer private_server;
@@ -203,26 +205,25 @@ IN_PROC_BROWSER_TEST_F(KioskEnterpriseTest, PrivateStore) {
 
   FakeCWS private_store;
   private_store.InitAsPrivateStore(&private_server, kPrivateStoreUpdate);
-  private_store.SetUpdateCrx(kTestEnterpriseKioskAppId,
-                             std::string(kTestEnterpriseKioskAppId) + ".crx",
+  private_store.SetUpdateCrx(kTestEnterpriseKioskApp,
+                             std::string(kTestEnterpriseKioskApp) + ".crx",
                              "1.0.0");
 
   private_server.StartAcceptingConnections();
 
-  // Configure `kTestEnterpriseKioskAppId` in device policy.
-  ConfigureKioskAppInPolicy(kTestEnterpriseAccountId, kTestEnterpriseKioskAppId,
+  // Configure kTestEnterpriseKioskApp in device policy.
+  ConfigureKioskAppInPolicy(kTestEnterpriseAccountId, kTestEnterpriseKioskApp,
                             private_server.GetURL(kPrivateStoreUpdate).spec());
 
   // Meta should be able to be extracted from crx before launching.
   KioskAppManager* manager = KioskAppManager::Get();
-  TestAppDataLoadWaiter waiter(manager, kTestEnterpriseKioskAppId,
-                               std::string());
+  TestAppDataLoadWaiter waiter(manager, kTestEnterpriseKioskApp, std::string());
   waiter.WaitForAppData();
 
   PrepareAppLaunch();
-  EXPECT_TRUE(LaunchApp(kTestEnterpriseKioskAppId));
-  WaitForAppLaunchWithOptions(/*check_launch_data=*/false,
-                              /*terminate_app=*/true);
+  EXPECT_TRUE(LaunchApp(kTestEnterpriseKioskApp));
+  WaitForAppLaunchWithOptions(false /* check_launch_data */,
+                              true /* terminate_app */);
 
   // Private store should serve crx and CWS should not.
   DCHECK_GT(private_store.GetUpdateCheckCountAndReset(), 0);
@@ -231,7 +232,7 @@ IN_PROC_BROWSER_TEST_F(KioskEnterpriseTest, PrivateStore) {
 }
 IN_PROC_BROWSER_TEST_F(KioskEnterpriseTest,
                        HittingNetworkAcceleratorShouldShowNetworkScreen) {
-  auto auto_reset = NetworkUiController::SetCanConfigureNetworkForTesting(true);
+  ScopedCanConfigureNetwork can_configure_network(true);
 
   // Block app loading until the welcome screen is shown.
   BlockAppLaunch(true);
@@ -259,12 +260,14 @@ IN_PROC_BROWSER_TEST_F(KioskEnterpriseTest,
 
 IN_PROC_BROWSER_TEST_F(
     KioskEnterpriseTest,
-    LaunchingAppThatRequiresNetworkWhilstOfflineShouldShowNetworkScreen) {
-  auto auto_reset = NetworkUiController::SetCanConfigureNetworkForTesting(true);
+    DISABLED_LaunchingAppThatRequiresNetworkWhilstOfflineShouldShowNetworkScreen) {
+  ScopedCanConfigureNetwork can_configure_network(true);
 
   // Start app launch with network portal state.
   StartAppLaunchFromLoginScreen(
       NetworkPortalDetector::CAPTIVE_PORTAL_STATUS_PORTAL);
+
+  WaitForOobeScreen(AppLaunchSplashScreenView::kScreenId);
 
   WaitForNetworkScreen();
 
@@ -297,8 +300,9 @@ IN_PROC_BROWSER_TEST_F(KioskEnterpriseTest, LaunchAppUserCancel) {
 class KioskEnterpriseEphemeralTest
     : public KioskEnterpriseTest,
       public testing::WithParamInterface<std::tuple<
-          /*ephemeral_users_enabled=*/bool,
-          /*kiosk_ephemeral_mode=*/policy::DeviceLocalAccount::EphemeralMode>> {
+          /* ephemeral_users_enabled */ bool,
+          /* kiosk_ephemeral_mode */ policy::DeviceLocalAccount::
+              EphemeralMode>> {
  public:
   KioskEnterpriseEphemeralTest(const KioskEnterpriseEphemeralTest&) = delete;
   KioskEnterpriseEphemeralTest& operator=(const KioskEnterpriseEphemeralTest&) =
@@ -354,15 +358,17 @@ INSTANTIATE_TEST_SUITE_P(
 IN_PROC_BROWSER_TEST_P(KioskEnterpriseEphemeralTest,
                        EnterpriseKioskAppEphemeral) {
   // Prepare Fake CWS to serve app crx.
-  SetTestApp(kTestEnterpriseKioskAppId);
+  set_test_app_id(kTestEnterpriseKioskApp);
+  set_test_app_version("1.0.0");
+  set_test_crx_file(test_app_id() + ".crx");
   SetupTestAppUpdateCheck();
 
   // Configure device policies.
-  ConfigureEphemeralPolicies(
-      kTestEnterpriseAccountId, kTestEnterpriseKioskAppId, /*update_url=*/"",
-      GetKioskEphemeralMode(), GetEphemeralUsersEnabled());
+  ConfigureEphemeralPolicies(kTestEnterpriseAccountId, kTestEnterpriseKioskApp,
+                             "", GetKioskEphemeralMode(),
+                             GetEphemeralUsersEnabled());
 
-  EXPECT_TRUE(LaunchApp(kTestEnterpriseKioskAppId));
+  EXPECT_TRUE(LaunchApp(kTestEnterpriseKioskApp));
 
   KioskSessionInitializedWaiter().Wait();
 

@@ -158,7 +158,7 @@ class CORE_EXPORT HTMLFormControlElement : public HTMLElement,
   String NameForAutofill() const;
 
   void CloneNonAttributePropertiesFrom(const Element&,
-                                       NodeCloningData&) override;
+                                       CloneChildrenFlag) override;
 
   FormAssociated* ToFormAssociatedOrNull() override { return this; }
   void AssociateWith(HTMLFormElement*) override;
@@ -171,10 +171,6 @@ class CORE_EXPORT HTMLFormControlElement : public HTMLElement,
   }
 
   int32_t GetAxId() const;
-
-  void SetInteractedSinceLastFormSubmit(bool);
-  bool MatchesUserInvalidPseudo();
-  bool MatchesUserValidPseudo();
 
  protected:
   HTMLFormControlElement(const QualifiedName& tag_name, Document&);
@@ -209,8 +205,6 @@ class CORE_EXPORT HTMLFormControlElement : public HTMLElement,
   bool prevent_highlighting_of_autofilled_fields_ : 1;
 
   bool blocks_form_submission_ : 1;
-
-  bool interacted_since_last_form_submit_ : 1;
 };
 
 template <>

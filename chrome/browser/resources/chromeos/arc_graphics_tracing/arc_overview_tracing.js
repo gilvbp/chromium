@@ -14,15 +14,10 @@ cr.define('cr.ArcOverviewTracing', function() {
     initialize() {
       const maxTime = $('arc-overview-tracing-max-time');
       maxTime.addEventListener('change', function(event) {
-        let value = parseFloat(maxTime.value);
-        if (Number.isNaN(value) || value < 1) {
-          console.error('invalid maxTime:', maxTime.value);
-          value = 1;
-          maxTime.value = '1';
-        }
-        chrome.send('setMaxTime', [value]);
+        chrome.send('setMaxTime', [parseInt(maxTime.value)]);
       }, false);
-      chrome.send('setMaxTime', [parseFloat(maxTime.value)]);
+      chrome.send('ready');
+      chrome.send('setMaxTime', [parseInt(maxTime.value)]);
       initializeOverviewUi();
     },
 

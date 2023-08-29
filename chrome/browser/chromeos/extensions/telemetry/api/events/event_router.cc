@@ -63,13 +63,6 @@ void EventRouter::ResetReceiversOfExtensionByCategory(
   }
 
   it->second.erase(category);
-  if (it->second.empty()) {
-    observers_.erase(it);
-  }
-}
-
-bool EventRouter::IsExtensionObserving(extensions::ExtensionId extension_id) {
-  return observers_.find(extension_id) != observers_.end();
 }
 
 bool EventRouter::IsExtensionObservingForCategory(

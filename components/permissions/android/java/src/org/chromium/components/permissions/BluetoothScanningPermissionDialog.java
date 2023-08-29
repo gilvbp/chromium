@@ -270,6 +270,7 @@ public class BluetoothScanningPermissionDialog {
     /**
      * Returns the dialog associated with this class. For use with tests only.
      */
+    @VisibleForTesting
     public Dialog getDialogForTesting() {
         return mDialog;
     }
@@ -277,6 +278,7 @@ public class BluetoothScanningPermissionDialog {
     /**
      * Returns the ItemAdapter associated with this class. For use with tests only.
      */
+    @VisibleForTesting
     public DeviceItemAdapter getItemAdapterForTesting() {
         return mItemAdapter;
     }

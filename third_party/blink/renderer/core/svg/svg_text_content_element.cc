@@ -277,19 +277,29 @@ void SVGTextContentElement::CollectStyleForPresentationAttribute(
 
     if (value == preserve_string) {
       UseCounter::Count(GetDocument(), WebFeature::kWhiteSpacePreFromXMLSpace);
-      // Longhands of `white-space: pre`.
-      AddPropertyToPresentationAttributeStyle(
-          style, CSSPropertyID::kWhiteSpaceCollapse, CSSValueID::kPreserve);
-      AddPropertyToPresentationAttributeStyle(style, CSSPropertyID::kTextWrap,
-                                              CSSValueID::kNowrap);
+      if (!RuntimeEnabledFeatures::CSSWhiteSpaceShorthandEnabled()) {
+        AddPropertyToPresentationAttributeStyle(
+            style, CSSPropertyID::kWhiteSpace, CSSValueID::kPre);
+      } else {
+        // Longhands of `white-space: pre`.
+        AddPropertyToPresentationAttributeStyle(
+            style, CSSPropertyID::kWhiteSpaceCollapse, CSSValueID::kPreserve);
+        AddPropertyToPresentationAttributeStyle(style, CSSPropertyID::kTextWrap,
+                                                CSSValueID::kNowrap);
+      }
     } else {
       UseCounter::Count(GetDocument(),
                         WebFeature::kWhiteSpaceNowrapFromXMLSpace);
-      // Longhands of `white-space: nowrap`.
-      AddPropertyToPresentationAttributeStyle(
-          style, CSSPropertyID::kWhiteSpaceCollapse, CSSValueID::kCollapse);
-      AddPropertyToPresentationAttributeStyle(style, CSSPropertyID::kTextWrap,
-                                              CSSValueID::kNowrap);
+      if (!RuntimeEnabledFeatures::CSSWhiteSpaceShorthandEnabled()) {
+        AddPropertyToPresentationAttributeStyle(
+            style, CSSPropertyID::kWhiteSpace, CSSValueID::kNowrap);
+      } else {
+        // Longhands of `white-space: nowrap`.
+        AddPropertyToPresentationAttributeStyle(
+            style, CSSPropertyID::kWhiteSpaceCollapse, CSSValueID::kCollapse);
+        AddPropertyToPresentationAttributeStyle(style, CSSPropertyID::kTextWrap,
+                                                CSSValueID::kNowrap);
+      }
     }
   } else {
     SVGGraphicsElement::CollectStyleForPresentationAttribute(name, value,

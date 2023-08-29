@@ -9,7 +9,6 @@
 #include "base/test/scoped_feature_list.h"
 #include "chromeos/ash/components/dbus/concierge/fake_concierge_client.h"
 #include "chromeos/ash/components/dbus/vm_applications/apps.pb.h"
-#include "components/user_manager/scoped_user_manager.h"
 
 class TestingProfile;
 
@@ -18,6 +17,10 @@ namespace test {
 class ScopedRunningOnChromeOS;
 }  // namespace test
 }  // namespace base
+
+namespace user_manager {
+class ScopedUserManager;
+}  // namespace user_manager
 
 namespace plugin_vm {
 

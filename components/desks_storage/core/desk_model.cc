@@ -84,10 +84,11 @@ void DeskModel::SetPolicyDeskTemplates(const std::string& policy_json) {
   }
 
   for (auto& desk_template : parsed_list->GetList()) {
-    auto dt = desk_template_conversion::ParseDeskTemplateFromBaseValue(
-        desk_template, ash::DeskTemplateSource::kPolicy);
-    if (dt.has_value()) {
-      policy_entries_.push_back(std::move(dt.value()));
+    std::unique_ptr<ash::DeskTemplate> dt =
+        desk_template_conversion::ParseDeskTemplateFromBaseValue(
+            desk_template, ash::DeskTemplateSource::kPolicy);
+    if (dt) {
+      policy_entries_.push_back(std::move(dt));
     } else {
       LOG(WARNING) << "Failed to parse admin template from JSON: "
                    << desk_template;

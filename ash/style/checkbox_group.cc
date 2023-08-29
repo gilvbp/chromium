@@ -16,21 +16,19 @@ CheckboxGroup::CheckboxGroup(int group_width)
 CheckboxGroup::CheckboxGroup(int group_width,
                              const gfx::Insets& inside_border_insets,
                              int between_child_spacing,
-                             const gfx::Insets& checkbox_padding,
-                             int image_label_spacing)
+                             const gfx::Insets& checkbox_padding)
     : OptionButtonGroup(group_width,
                         inside_border_insets,
                         between_child_spacing,
-                        checkbox_padding,
-                        image_label_spacing) {}
+                        checkbox_padding) {}
 
 CheckboxGroup::~CheckboxGroup() = default;
 
 Checkbox* CheckboxGroup::AddButton(Checkbox::PressedCallback callback,
                                    const std::u16string& label) {
-  auto* button = AddChildView(std::make_unique<Checkbox>(
-      group_width_ - inside_border_insets_.width(), callback, label,
-      button_padding_, image_label_spacing_));
+  auto* button = AddChildView(
+      std::make_unique<Checkbox>(group_width_ - inside_border_insets_.width(),
+                                 callback, label, button_padding_));
   button->set_delegate(this);
   buttons_.push_back(button);
   return button;

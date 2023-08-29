@@ -11,6 +11,10 @@
 #import "ios/chrome/browser/infobars/overlays/infobar_overlay_request_inserter.h"
 #import "ios/chrome/browser/overlays/public/overlay_request_queue.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace {
 infobars::InfoBarDelegate* GetInfobarDelegate(InfoBarIOS* infobar) {
   infobars::InfoBarDelegate* delegate = infobar->delegate();

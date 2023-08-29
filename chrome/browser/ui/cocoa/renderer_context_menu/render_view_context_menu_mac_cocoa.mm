@@ -7,11 +7,11 @@
 
 #include <utility>
 
-#import "base/apple/scoped_objc_class_swizzler.h"
 #include "base/compiler_specific.h"
 #include "base/mac/mac_util.h"
+#import "base/mac/scoped_objc_class_swizzler.h"
 #import "base/mac/scoped_sending_event.h"
-#import "base/message_loop/message_pump_apple.h"
+#import "base/message_loop/message_pump_mac.h"
 #include "base/no_destructor.h"
 #include "base/strings/sys_string_conversions.h"
 #include "base/task/current_thread.h"
@@ -26,7 +26,7 @@
 
 namespace {
 
-base::apple::ScopedObjCClassSwizzler* g_populatemenu_swizzler = nullptr;
+base::mac::ScopedObjCClassSwizzler* g_populatemenu_swizzler = nullptr;
 
 // |g_filtered_entries_array| is only set during testing (see
 // +[ChromeSwizzleServicesMenuUpdater storeFilteredEntriesForTestingInArray:]).
@@ -109,7 +109,8 @@ NSMenuItem* GetMenuItemByID(ui::MenuModel* model,
 }
 
 + (void)storeFilteredEntriesForTestingInArray:(NSMutableArray*)array {
-  g_filtered_entries_array = array;
+  [g_filtered_entries_array release];
+  g_filtered_entries_array = [array retain];
 }
 
 + (void)load {
@@ -148,7 +149,7 @@ NSMenuItem* GetMenuItemByID(ui::MenuModel* model,
     // a static so that it never goes out of scope, because the scoper's
     // destructor undoes the swizzling.
     Class swizzleClass = [ChromeSwizzleServicesMenuUpdater class];
-    static base::NoDestructor<base::apple::ScopedObjCClassSwizzler>
+    static base::NoDestructor<base::mac::ScopedObjCClassSwizzler>
         servicesMenuFilter(targetClass, swizzleClass, targetSelector);
     g_populatemenu_swizzler = servicesMenuFilter.get();
   });
@@ -156,7 +157,7 @@ NSMenuItem* GetMenuItemByID(ui::MenuModel* model,
 
 @end
 
-// macOS implementation of the ToolkitDelegate.
+// OSX implemenation of the ToolkitDelegate.
 // This simply (re)delegates calls to RVContextMenuMac because they do not
 // have to be componentized.
 class ToolkitDelegateMacCocoa : public RenderViewContextMenu::ToolkitDelegate {
@@ -214,12 +215,13 @@ void RenderViewContextMenuMacCocoa::Show() {
 
   const ui::ColorProvider* color_provider = widget->GetColorProvider();
 
-  menu_controller_delegate_ = [[MenuControllerCocoaDelegateImpl alloc] init];
-  menu_controller_ =
-      [[MenuControllerCocoa alloc] initWithModel:&menu_model_
-                                        delegate:menu_controller_delegate_
-                                   colorProvider:color_provider
-                          useWithPopUpButtonCell:NO];
+  menu_controller_delegate_.reset(
+      [[MenuControllerCocoaDelegateImpl alloc] init]);
+  menu_controller_.reset([[MenuControllerCocoa alloc]
+               initWithModel:&menu_model_
+                    delegate:menu_controller_delegate_.get()
+               colorProvider:color_provider
+      useWithPopUpButtonCell:NO]);
 
   gfx::Point params_position(params_.x, params_.y);
   // TODO(dfried): this is almost certainly wrong; let's fix it.

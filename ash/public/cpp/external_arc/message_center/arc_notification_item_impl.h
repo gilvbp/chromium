@@ -44,7 +44,6 @@ class ArcNotificationItemImpl : public ArcNotificationItem {
   void OpenSettings() override;
   void OpenSnooze() override;
   void ToggleExpansion() override;
-  void SetExpandState(bool expanded) override;
   void OnWindowActivated(bool activated) override;
   void OnRemoteInputActivationChanged(bool activated) override;
   void AddObserver(Observer* observer) override;

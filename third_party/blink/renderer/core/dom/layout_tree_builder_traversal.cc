@@ -399,16 +399,11 @@ int LayoutTreeBuilderTraversal::ComparePreorderTreePosition(const Node& node1,
   if (anc2 < 0) {
     return 1;
   }
-  // Compare the children of the first common ancestor and the current top-most
-  // ancestors of the nodes.
+  // Start linear search from last ancestor we found
   const Node* parent = Parent(*ancestors1[anc1]);
-  for (const Node* child = FirstChild(*parent); child;
-       child = NextSibling(*child)) {
-    if (child == ancestors1[anc1]) {
+  for (const Node* elem = ancestors1[anc1]; elem; elem = Next(*elem, parent)) {
+    if (elem == ancestors2[anc2]) {
       return -1;
-    }
-    if (child == ancestors2[anc2]) {
-      return 1;
     }
   }
   return 1;

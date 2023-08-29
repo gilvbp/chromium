@@ -48,13 +48,6 @@ class FormFieldTest
     return field_candidates_map_.size();
   }
 
-  int ParseStandaloneCVCFields() {
-    FormField::ParseStandaloneCVCFields(list_, LanguageCode(""),
-                                        GetActivePatternSource(),
-                                        field_candidates_map_);
-    return field_candidates_map_.size();
-  }
-
   // FormFieldTestBase:
   // This function is unused in these unit tests, because FormField is not a
   // parser itself, but the infrastructure combining them.
@@ -214,6 +207,9 @@ TEST_P(FormFieldTest, ParseFormFieldsForSingleFieldPromoCode) {
 
 // Test that `ParseSingleFieldForms` parses single field IBAN.
 TEST_P(FormFieldTest, ParseSingleFieldFormsIban) {
+  base::test::ScopedFeatureList scoped_feature;
+  scoped_feature.InitAndEnableFeature(features::kAutofillParseIBANFields);
+
   // Parse single field IBAN.
   AddTextFormFieldData("", "IBAN", IBAN_VALUE);
   EXPECT_EQ(1, ParseSingleFieldForms());
@@ -224,16 +220,6 @@ TEST_P(FormFieldTest, ParseSingleFieldFormsIban) {
   // part of the expectations in `TestClassificationExpectations()`.
   AddTextFormFieldData("", "Address line 1", UNKNOWN_TYPE);
   EXPECT_EQ(1, ParseSingleFieldForms());
-  TestClassificationExpectations();
-}
-
-// Test that `ParseStandaloneCvcField` parses standalone CVC fields.
-TEST_P(FormFieldTest, ParseStandaloneCVCFields) {
-  base::test::ScopedFeatureList scoped_feature(
-      features::kAutofillParseVcnCardOnFileStandaloneCvcFields);
-
-  AddTextFormFieldData("", "CVC", CREDIT_CARD_STANDALONE_VERIFICATION_CODE);
-  EXPECT_EQ(1, ParseStandaloneCVCFields());
   TestClassificationExpectations();
 }
 

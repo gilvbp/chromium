@@ -94,8 +94,7 @@ class DynamicModuleResolverTestModulator final : public DummyModulator {
                  network::mojom::RequestDestination,
                  const ScriptFetchOptions&,
                  ModuleScriptCustomFetchType custom_fetch_type,
-                 ModuleTreeClient* client,
-                 String) final {
+                 ModuleTreeClient* client) final {
     EXPECT_EQ(expected_fetch_tree_url_, url);
     EXPECT_EQ(expected_fetch_tree_module_type_, module_type);
 

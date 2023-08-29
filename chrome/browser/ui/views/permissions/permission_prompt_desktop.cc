@@ -42,11 +42,6 @@ PermissionPromptDesktop::GetTabSwitchingBehavior() {
       kDestroyPromptButKeepRequestPending;
 }
 
-absl::optional<gfx::Rect> PermissionPromptDesktop::GetViewBoundsInScreen()
-    const {
-  return absl::nullopt;
-}
-
 views::Widget* PermissionPromptDesktop::GetPromptBubbleWidgetForTesting() {
   return nullptr;
 }

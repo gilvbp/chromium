@@ -95,8 +95,7 @@ class COMPONENT_EXPORT(CHROMEOS_NETWORK) ESimPolicyLoginMetricsLogger
 
   raw_ptr<NetworkStateHandler, ExperimentalAsh> network_state_handler_ =
       nullptr;
-  raw_ptr<ManagedNetworkConfigurationHandler,
-          DanglingUntriaged | ExperimentalAsh>
+  raw_ptr<ManagedNetworkConfigurationHandler, ExperimentalAsh>
       managed_network_configuration_handler_ = nullptr;
 
   NetworkStateHandlerScopedObservation network_state_handler_observer_{this};

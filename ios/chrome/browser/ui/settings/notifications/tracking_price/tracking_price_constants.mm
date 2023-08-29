@@ -4,6 +4,10 @@
 
 #import "ios/chrome/browser/ui/settings/notifications/tracking_price/tracking_price_constants.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 NSString* const kTrackingPriceTableViewId = @"kTrackingPriceTableViewId";
 
 NSString* const kSettingsTrackingPriceMobileNotificationsCellId =

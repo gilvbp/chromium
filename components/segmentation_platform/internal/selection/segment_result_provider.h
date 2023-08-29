@@ -18,6 +18,7 @@ class Clock;
 }
 namespace segmentation_platform {
 
+class DefaultModelManager;
 class ExecutionService;
 class SignalStorageConfig;
 
@@ -75,6 +76,7 @@ class SegmentResultProvider {
   static std::unique_ptr<SegmentResultProvider> Create(
       SegmentInfoDatabase* segment_info_database,
       SignalStorageConfig* signal_storage_config,
+      DefaultModelManager* default_model_manager,
       ExecutionService* execution_service,
       base::Clock* clock,
       bool force_refresh_results);

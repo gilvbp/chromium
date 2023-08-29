@@ -210,7 +210,7 @@ void ServiceWorkerContainer::Trace(Visitor* visitor) const {
   visitor->Trace(dom_content_loaded_observer_);
   visitor->Trace(service_worker_registration_objects_);
   visitor->Trace(service_worker_objects_);
-  EventTarget::Trace(visitor);
+  EventTargetWithInlineData::Trace(visitor);
   Supplement<LocalDOMWindow>::Trace(visitor);
   ExecutionContextLifecycleObserver::Trace(visitor);
 }

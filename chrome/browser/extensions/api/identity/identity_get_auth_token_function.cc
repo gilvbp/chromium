@@ -13,7 +13,6 @@
 #include "base/metrics/histogram_functions.h"
 #include "base/notreached.h"
 #include "base/strings/strcat.h"
-#include "base/strings/string_piece.h"
 #include "base/time/time.h"
 #include "base/trace_event/trace_event.h"
 #include "build/build_config.h"
@@ -61,12 +60,12 @@ bool IsBrowserSigninAllowed(Profile* profile) {
   return profile->GetPrefs()->GetBoolean(prefs::kSigninAllowed);
 }
 
-base::StringPiece GetOAuth2MintTokenFlowVersion() {
-  return version_info::GetVersionNumber();
+std::string GetOAuth2MintTokenFlowVersion() {
+  return std::string(version_info::GetVersionNumber());
 }
 
-base::StringPiece GetOAuth2MintTokenFlowChannel() {
-  return version_info::GetChannelString(chrome::GetChannel());
+std::string GetOAuth2MintTokenFlowChannel() {
+  return std::string(version_info::GetChannelString(chrome::GetChannel()));
 }
 
 void RecordFunctionResult(const IdentityGetAuthTokenError& error,
@@ -238,7 +237,7 @@ void IdentityGetAuthTokenFunction::OnReceivedExtensionAccountInfo(
 #if BUILDFLAG(IS_CHROMEOS)
   if (g_browser_process->browser_policy_connector()
           ->IsDeviceEnterpriseManaged()) {
-    if (profiles::IsManagedGuestSession()) {
+    if (profiles::IsPublicSession()) {
       CompleteFunctionWithError(IdentityGetAuthTokenError(
           IdentityGetAuthTokenError::State::kNotAllowlistedInPublicSession));
       return;
@@ -457,9 +456,8 @@ void IdentityGetAuthTokenFunction::StartMintToken(
     switch (cache_status) {
       case IdentityTokenCacheValue::CACHE_STATUS_NOTFOUND:
 #if BUILDFLAG(IS_CHROMEOS)
-        // Always force minting token for ChromeOS kiosk app and managed guest
-        // session.
-        if (profiles::IsManagedGuestSession()) {
+        // Always force minting token for ChromeOS kiosk app and public session.
+        if (profiles::IsPublicSession()) {
           CompleteFunctionWithError(
               IdentityGetAuthTokenError(IdentityGetAuthTokenError::State::
                                             kNotAllowlistedInPublicSession));
@@ -658,8 +656,14 @@ void IdentityGetAuthTokenFunction::OnGaiaRemoteConsentFlowFailed(
 
   switch (failure) {
     case GaiaRemoteConsentFlow::WINDOW_CLOSED:
+    case GaiaRemoteConsentFlow::USER_NAVIGATED_AWAY:
       error = IdentityGetAuthTokenError(
           IdentityGetAuthTokenError::State::kRemoteConsentFlowRejected);
+      break;
+
+    case GaiaRemoteConsentFlow::SET_ACCOUNTS_IN_COOKIE_FAILED:
+      error = IdentityGetAuthTokenError(
+          IdentityGetAuthTokenError::State::kSetAccountsInCookieFailure);
       break;
 
     case GaiaRemoteConsentFlow::LOAD_FAILED:
@@ -872,13 +876,13 @@ IdentityGetAuthTokenFunction::CreateMintTokenFlow() {
       GetSigninScopedDeviceIdForProfile(GetProfile());
   auto mint_token_flow = std::make_unique<OAuth2MintTokenFlow>(
       this,
-      OAuth2MintTokenFlow::Parameters::CreateForExtensionFlow(
+      OAuth2MintTokenFlow::Parameters(
           extension()->id(), oauth2_client_id_,
-          std::vector<base::StringPiece>(token_key_.scopes.begin(),
-                                         token_key_.scopes.end()),
-          gaia_mint_token_mode_, enable_granular_permissions_,
-          GetOAuth2MintTokenFlowVersion(), GetOAuth2MintTokenFlowChannel(),
-          signin_scoped_device_id, GetSelectedUserId(), consent_result_));
+          std::vector<std::string>(token_key_.scopes.begin(),
+                                   token_key_.scopes.end()),
+          enable_granular_permissions_, signin_scoped_device_id,
+          GetSelectedUserId(), consent_result_, GetOAuth2MintTokenFlowVersion(),
+          GetOAuth2MintTokenFlowChannel(), gaia_mint_token_mode_));
   return mint_token_flow;
 }
 

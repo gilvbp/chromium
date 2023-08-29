@@ -13,4 +13,5 @@ source_set("recent_tabs") {
     "//ios/showcase/common",
   ]
   frameworks = [ "UIKit.framework" ]
+  configs += [ "//build/config/compiler:enable_arc" ]
 }

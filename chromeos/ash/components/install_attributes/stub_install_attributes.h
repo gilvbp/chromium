@@ -28,6 +28,10 @@ class StubInstallAttributes : public InstallAttributes {
   static std::unique_ptr<StubInstallAttributes> CreateCloudManaged(
       const std::string& domain,
       const std::string& device_id);
+  // Creates a StubInstallAttributes and calls SetActiveDirectoryManaged.
+  static std::unique_ptr<StubInstallAttributes> CreateActiveDirectoryManaged(
+      const std::string& realm,
+      const std::string& device_id);
   // Creates a StubInstallAttributes and calls SetDemoMode.
   static std::unique_ptr<StubInstallAttributes> CreateDemoMode();
 
@@ -37,6 +41,10 @@ class StubInstallAttributes : public InstallAttributes {
   void SetConsumerOwned();
   // Setup as managed by Google cloud. (Clears existing configuration.)
   void SetCloudManaged(const std::string& domain, const std::string& device_id);
+  // Setup as managed by Active Directory server. (Clears existing
+  // configuration.)
+  void SetActiveDirectoryManaged(const std::string& realm,
+                                 const std::string& device_id);
 
   // Setup as demo mode device. Clears existing configuration.
   void SetDemoMode();

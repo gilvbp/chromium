@@ -52,22 +52,19 @@ bool IsValidPageStateTransition(PageState old_state, PageState new_state) {
 PageNodeImpl::PageNodeImpl(const WebContentsProxy& contents_proxy,
                            const std::string& browser_context_id,
                            const GURL& visible_url,
-                           PagePropertyFlags initial_properties,
+                           bool is_visible,
+                           bool is_audible,
                            base::TimeTicks visibility_change_time,
                            PageState page_state)
     : contents_proxy_(contents_proxy),
       visibility_change_time_(visibility_change_time),
       main_frame_url_(visible_url),
       browser_context_id_(browser_context_id),
-      is_visible_(initial_properties.Has(PagePropertyFlag::kIsVisible)),
-      is_audible_(initial_properties.Has(PagePropertyFlag::kIsAudible)),
+      is_visible_(is_visible),
+      is_audible_(is_audible),
       page_state_(page_state) {
   DCHECK(IsValidInitialPageState(page_state));
   weak_this_ = weak_factory_.GetWeakPtr();
-
-  if (is_audible_.value()) {
-    audible_change_time_ = base::TimeTicks::Now();
-  }
 
   DETACH_FROM_SEQUENCE(sequence_checker_);
 }
@@ -123,11 +120,6 @@ void PageNodeImpl::SetType(PageType type) {
   type_.SetAndMaybeNotify(this, type);
 }
 
-void PageNodeImpl::SetIsFocused(bool is_focused) {
-  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
-  is_focused_.SetAndMaybeNotify(this, is_focused);
-}
-
 void PageNodeImpl::SetIsVisible(bool is_visible) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   if (is_visible_.SetAndMaybeNotify(this, is_visible)) {
@@ -141,12 +133,7 @@ void PageNodeImpl::SetIsVisible(bool is_visible) {
 
 void PageNodeImpl::SetIsAudible(bool is_audible) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
-  if (is_audible_.SetAndMaybeNotify(this, is_audible)) {
-    // The change time needs to be updated after observers are notified, as they
-    // use this to determine time passed since the *previous* state change. They
-    // can infer the current state change time themselves via NowTicks.
-    audible_change_time_ = base::TimeTicks::Now();
-  }
+  is_audible_.SetAndMaybeNotify(this, is_audible);
 }
 
 void PageNodeImpl::SetUkmSourceId(ukm::SourceId ukm_source_id) {
@@ -214,15 +201,6 @@ base::TimeDelta PageNodeImpl::TimeSinceLastVisibilityChange() const {
   return base::TimeTicks::Now() - visibility_change_time_;
 }
 
-absl::optional<base::TimeDelta> PageNodeImpl::TimeSinceLastAudibleChange()
-    const {
-  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
-  if (audible_change_time_.has_value()) {
-    return base::TimeTicks::Now() - audible_change_time_.value();
-  }
-  return absl::nullopt;
-}
-
 FrameNodeImpl* PageNodeImpl::GetMainFrameNodeImpl() const {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   if (main_frame_nodes_.empty())
@@ -259,11 +237,6 @@ PageNodeImpl::EmbeddingType PageNodeImpl::embedding_type() const {
 PageType PageNodeImpl::type() const {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   return type_.value();
-}
-
-bool PageNodeImpl::is_focused() const {
-  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
-  return is_focused_.value();
 }
 
 bool PageNodeImpl::is_visible() const {
@@ -491,11 +464,6 @@ PageType PageNodeImpl::GetType() const {
   return type();
 }
 
-bool PageNodeImpl::IsFocused() const {
-  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
-  return is_focused();
-}
-
 bool PageNodeImpl::IsVisible() const {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   return is_visible();
@@ -509,12 +477,6 @@ base::TimeDelta PageNodeImpl::GetTimeSinceLastVisibilityChange() const {
 bool PageNodeImpl::IsAudible() const {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   return is_audible();
-}
-
-absl::optional<base::TimeDelta> PageNodeImpl::GetTimeSinceLastAudibleChange()
-    const {
-  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
-  return TimeSinceLastAudibleChange();
 }
 
 PageNode::LoadingState PageNodeImpl::GetLoadingState() const {
@@ -582,19 +544,6 @@ const base::flat_set<const FrameNode*> PageNodeImpl::GetMainFrameNodes() const {
 const GURL& PageNodeImpl::GetMainFrameUrl() const {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   return main_frame_url();
-}
-
-uint64_t PageNodeImpl::EstimateMainFramePrivateFootprintSize() const {
-  uint64_t total = 0;
-  FrameNodeImpl* main_frame_node = GetMainFrameNodeImpl();
-  if (main_frame_node) {
-    performance_manager::GraphImplOperations::VisitFrameAndChildrenPreOrder(
-        main_frame_node, [&total](FrameNodeImpl* frame_node) {
-          total += frame_node->private_footprint_kb_estimate();
-          return true;
-        });
-  }
-  return total;
 }
 
 bool PageNodeImpl::HadFormInteraction() const {

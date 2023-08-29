@@ -42,7 +42,8 @@ class TemporaryAppListSortTest : public test::AppListSyncableServiceTestBase {
   // Returns the app list order stored as preference.
   ash::AppListSortOrder GetSortOrderFromPrefs() {
     return static_cast<ash::AppListSortOrder>(
-        profile()->GetPrefs()->GetInteger(prefs::kAppListPreferredOrder));
+        app_list_syncable_service()->profile()->GetPrefs()->GetInteger(
+            prefs::kAppListPreferredOrder));
   }
 
   syncer::StringOrdinal GetPositionFromModelUpdater(const std::string& id) {

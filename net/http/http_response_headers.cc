@@ -123,7 +123,11 @@ bool ShouldUpdateHeader(base::StringPiece name) {
 }
 
 bool HasEmbeddedNulls(base::StringPiece str) {
-  return str.find('\0') != std::string::npos;
+  for (char c : str) {
+    if (c == '\0')
+      return true;
+  }
+  return false;
 }
 
 void CheckDoesNotHaveEmbeddedNulls(base::StringPiece str) {
@@ -453,8 +457,6 @@ void HttpResponseHeaders::UpdateWithNewRange(const HttpByteRange& byte_range,
 
 void HttpResponseHeaders::Parse(const std::string& raw_input) {
   raw_headers_.reserve(raw_input.size());
-  // TODO(https://crbug.com/1470137): Call reserve() on `parsed_` with an
-  // appropriate value.
 
   // ParseStatusLine adds a normalized status line to raw_headers_
   std::string::const_iterator line_begin = raw_input.begin();
@@ -622,11 +624,7 @@ bool HttpResponseHeaders::HasHeader(base::StringPiece name) const {
   return FindHeader(0, name) != std::string::npos;
 }
 
-HttpResponseHeaders::~HttpResponseHeaders() {
-  // TODO(https://crbug.com/1470137): Remove this histogram in M118.
-  UMA_HISTOGRAM_EXACT_LINEAR("Net.HttpResponseHeaders.HeaderCount",
-                             parsed_.size(), 101);
-}
+HttpResponseHeaders::~HttpResponseHeaders() = default;
 
 // Note: this implementation implicitly assumes that line_end points at a valid
 // sentinel character (such as '\0').

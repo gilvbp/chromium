@@ -6,7 +6,6 @@ default	rel
 %define XMMWORD
 %define YMMWORD
 %define ZMMWORD
-%define _CET_ENDBR
 
 %ifdef BORINGSSL_PREFIX
 %include "boringssl_prefix_symbols_nasm.inc"
@@ -353,7 +352,6 @@ ALIGN	32
 aesni_gcm_decrypt:
 
 $L$SEH_begin_aesni_gcm_decrypt_1:
-_CET_ENDBR
 	xor	rax,rax
 
 
@@ -614,7 +612,6 @@ ALIGN	32
 aesni_gcm_encrypt:
 
 $L$SEH_begin_aesni_gcm_encrypt_1:
-_CET_ENDBR
 %ifdef BORINGSSL_DISPATCH_TEST
 EXTERN	BORINGSSL_function_hit
 	mov	BYTE[((BORINGSSL_function_hit+2))],1

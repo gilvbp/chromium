@@ -154,10 +154,9 @@ PrerenderNavigationThrottle::WillStartOrRedirectRequest(bool is_redirection) {
   // Allow only HTTP(S) schemes.
   // https://wicg.github.io/nav-speculation/prerendering.html#no-bad-navs
   if (!navigation_url.SchemeIsHTTPOrHTTPS()) {
-    // For non-redirection, this should be checked in
-    // PrerenderHostRegistry::CreateAndStartHost().
-    CHECK(is_redirection);
-    CancelPrerendering(PrerenderFinalStatus::kInvalidSchemeRedirect);
+    CancelPrerendering(is_redirection
+                           ? PrerenderFinalStatus::kInvalidSchemeRedirect
+                           : PrerenderFinalStatus::kInvalidSchemeNavigation);
     return CANCEL;
   }
 
@@ -179,20 +178,7 @@ PrerenderNavigationThrottle::WillStartOrRedirectRequest(bool is_redirection) {
       // cross-site to the initial prerendering URL.
       if (prerender_navigation_utils::IsCrossSite(
               navigation_url, initial_prerendering_origin)) {
-        // TODO(crbug.com/1456866): Remove this crash key when investigation is
-        // completed.
-        if (!is_redirection) {
-          SCOPED_CRASH_KEY_BOOL("Bug1456866", "scheme",
-                                navigation_origin.scheme() !=
-                                    initial_prerendering_origin.scheme());
-          SCOPED_CRASH_KEY_BOOL(
-              "Bug1456866", "host",
-              navigation_origin.host() != initial_prerendering_origin.host());
-          SCOPED_CRASH_KEY_BOOL(
-              "Bug1456866", "port",
-              navigation_origin.port() != initial_prerendering_origin.port());
-          NOTREACHED_NORETURN();
-        }
+        CHECK(is_redirection);
         AnalyzeCrossOriginRedirection(
             navigation_origin, initial_prerendering_origin,
             prerender_host_->trigger_type(),

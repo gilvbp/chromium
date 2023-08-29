@@ -25,13 +25,13 @@ ThreadAllocStats GetAllocStatsForCurrentThread();
 // in the process.
 class ThreadCacheProcessScopeForTesting {
  public:
-  explicit ThreadCacheProcessScopeForTesting(PartitionRoot* root);
+  explicit ThreadCacheProcessScopeForTesting(ThreadSafePartitionRoot* root);
   ~ThreadCacheProcessScopeForTesting();
 
   ThreadCacheProcessScopeForTesting() = delete;
 
  private:
-  PartitionRoot* root_ = nullptr;
+  ThreadSafePartitionRoot* root_ = nullptr;
 #if BUILDFLAG(USE_PARTITION_ALLOC_AS_MALLOC)
   bool regular_was_enabled_ = false;
 #endif

@@ -7,7 +7,6 @@
 #include "ash/constants/ash_features.h"
 #include "ash/public/cpp/shelf_config.h"
 #include "ash/public/cpp/shell_window_ids.h"
-#include "ash/public/cpp/style/color_provider.h"
 #include "ash/resources/vector_icons/vector_icons.h"
 #include "ash/root_window_controller.h"
 #include "ash/shelf/hotseat_widget.h"
@@ -32,6 +31,9 @@ namespace {
 
 // The corner radius of the nudge view.
 constexpr int kNudgeCornerRadius = 8;
+
+// The blur radius for the nudge view's background.
+constexpr int kNudgeBlurRadius = 30;
 
 // The margin between the edge of the screen/shelf and the nudge widget bounds.
 constexpr int kNudgeMargin = 8;
@@ -88,10 +90,8 @@ class SystemNudge::SystemNudgeView : public views::View {
         views::BoxLayout::CrossAxisAlignment::kStart);
     SetLayoutManager(std::move(layout));
     SetPaintToLayer(ui::LAYER_SOLID_COLOR);
-    if (features::IsBackgroundBlurEnabled()) {
-      layer()->SetBackgroundBlur(ColorProvider::kBackgroundBlurSigma);
-      layer()->SetBackdropFilterQuality(ColorProvider::kBackgroundBlurQuality);
-    }
+    if (features::IsBackgroundBlurEnabled())
+      layer()->SetBackgroundBlur(kNudgeBlurRadius);
     layer()->SetRoundedCornerRadius({kNudgeCornerRadius, kNudgeCornerRadius,
                                      kNudgeCornerRadius, kNudgeCornerRadius});
 

@@ -8,8 +8,7 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
-
-import org.chromium.base.ResettersForTesting;
+import androidx.annotation.VisibleForTesting;
 
 import java.util.List;
 
@@ -94,8 +93,8 @@ public class PageInfoAdPersonalizationController extends PageInfoPreferenceSubpa
         mSubPage = null;
     }
 
+    @VisibleForTesting
     public static void setTopicsForTesting(List<String> topics) {
         sTopicsForTesting = topics;
-        ResettersForTesting.register(() -> sTopicsForTesting = null);
     }
 }

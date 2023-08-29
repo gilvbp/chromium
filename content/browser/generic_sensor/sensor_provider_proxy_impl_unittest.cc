@@ -8,7 +8,6 @@
 #include "base/functional/callback.h"
 #include "base/test/bind.h"
 #include "content/browser/generic_sensor/sensor_provider_proxy_impl.h"
-#include "content/public/browser/permission_request_description.h"
 #include "content/public/test/mock_permission_manager.h"
 #include "content/public/test/test_browser_context.h"
 #include "content/test/test_render_view_host.h"
@@ -28,14 +27,14 @@ namespace {
 class TestPermissionManager : public MockPermissionManager {
  public:
   void RequestPermissionsFromCurrentDocument(
-      RenderFrameHost* render_frame_host,
-      const PermissionRequestDescription& request_description,
+      const std::vector<blink::PermissionType>& permissions,
+      content::RenderFrameHost* render_frame_host,
+      bool user_gesture,
       base::OnceCallback<
           void(const std::vector<blink::mojom::PermissionStatus>&)> callback)
       override {
-    ASSERT_EQ(request_description.permissions.size(), 1ul);
-    ASSERT_EQ(request_description.permissions[0],
-              blink::PermissionType::SENSORS);
+    ASSERT_EQ(permissions.size(), 1ul);
+    ASSERT_EQ(permissions[0], blink::PermissionType::SENSORS);
     std::move(callback).Run({blink::mojom::PermissionStatus::GRANTED});
   }
 };

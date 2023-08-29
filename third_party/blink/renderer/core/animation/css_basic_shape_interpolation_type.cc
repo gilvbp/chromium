@@ -16,7 +16,6 @@
 #include "third_party/blink/renderer/core/css/resolver/style_resolver_state.h"
 #include "third_party/blink/renderer/core/style/basic_shapes.h"
 #include "third_party/blink/renderer/core/style/computed_style.h"
-#include "third_party/blink/renderer/core/style/computed_style_constants.h"
 #include "third_party/blink/renderer/core/style/shape_clip_path_operation.h"
 #include "third_party/blink/renderer/core/style/shape_offset_path_operation.h"
 #include "third_party/blink/renderer/platform/heap/garbage_collected.h"
@@ -218,9 +217,8 @@ void CSSBasicShapeInterpolationType::ApplyStandardPropertyValue(
           std::move(shape), CoordBox::kBorderBox));
       break;
     case CSSPropertyID::kClipPath:
-      // TODO(pdr): Handle geometry box.
-      state.StyleBuilder().SetClipPath(ShapeClipPathOperation::Create(
-          std::move(shape), GeometryBox::kBorderBox));
+      state.StyleBuilder().SetClipPath(
+          ShapeClipPathOperation::Create(std::move(shape)));
       break;
     case CSSPropertyID::kObjectViewBox:
       state.StyleBuilder().SetObjectViewBox(std::move(shape));

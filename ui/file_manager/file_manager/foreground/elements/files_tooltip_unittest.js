@@ -2,12 +2,11 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import './files_tooltip.js';
-
-import {getTrustedHTML} from 'chrome://resources/js/static_types.js';
 import {assertEquals, assertFalse, assertNotEquals, assertTrue} from 'chrome://webui-test/chromeos/chai_assert.js';
 
 import {reportPromise} from '../../common/js/test_error_reporting.js';
+
+import {FilesTooltip} from './files_tooltip.js';
 
 /** @type {Element} */
 let chocolateButton;
@@ -24,10 +23,7 @@ let otherButton;
 /** @type {FilesTooltip|Element} */
 let tooltip;
 
-const windowEdgePadding = 6;
-
-export function setUp() {
-  document.body.innerHTML = getTrustedHTML`
+const bodyContent = `
   <style type="text/css">
    button {
      display: flex;
@@ -64,6 +60,11 @@ export function setUp() {
   <!-- Polymer files tooltip element. -->
   <files-tooltip></files-tooltip>
 `;
+
+const windowEdgePadding = 6;
+
+export function setUp() {
+  document.body.innerHTML = bodyContent;
   chocolateButton = document.querySelector('#chocolate');
   cherriesButton = document.querySelector('#cherries');
   cheeseButton = document.querySelector('#cheese');

@@ -74,9 +74,6 @@ export class SettingsSliderElement extends SettingsSliderElementBase {
 
       disabled: Boolean,
 
-      // The value of ariaDisabled should only be "true" or "false".
-      ariaDisabled: String,
-
       showMarkers: Boolean,
 
       disableSlider_: {
@@ -113,8 +110,6 @@ export class SettingsSliderElement extends SettingsSliderElementBase {
   private disableSlider_: boolean;
   updateValueInstantly: boolean;
   private loaded_: boolean;
-
-  override ariaDisabled: string;
 
   override connectedCallback() {
     super.connectedCallback();

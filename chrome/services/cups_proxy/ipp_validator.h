@@ -49,7 +49,7 @@ class IppValidator {
   bool ValidateIppData(const std::vector<uint8_t>& ipp_data);
 
   // Unowned delegate providing necessary Profile dependencies.
-  const raw_ptr<CupsProxyServiceDelegate, ExperimentalAsh> delegate_;
+  CupsProxyServiceDelegate* const delegate_;
 
   SEQUENCE_CHECKER(sequence_checker_);
 };

@@ -4,10 +4,6 @@
 
 #include "chrome/browser/ui/views/side_panel/side_panel_combobox_model.h"
 
-#include <memory>
-#include <string>
-#include <utility>
-
 #include "base/containers/cxx20_erase.h"
 #include "base/ranges/algorithm.h"
 #include "base/strings/utf_string_conversions.h"
@@ -45,8 +41,7 @@ void SidePanelComboboxModel::AddItem(SidePanelEntry* entry) {
   ui::ImageModel icon = entry->icon();
   if (entry->icon().IsVectorIcon()) {
     icon = ui::ImageModel::FromVectorIcon(
-        *entry->icon().GetVectorIcon().vector_icon(),
-        kColorSidePanelEntryDropdownIcon,
+        *entry->icon().GetVectorIcon().vector_icon(), kColorSidePanelEntryIcon,
         /*icon_size=*/16);
   }
   entries_.emplace_back(entry->key(), entry->name(), icon);
@@ -80,7 +75,7 @@ void SidePanelComboboxModel::AddItems(
       if (entry->icon().IsVectorIcon()) {
         icon = ui::ImageModel::FromVectorIcon(
             *entry->icon().GetVectorIcon().vector_icon(),
-            kColorSidePanelEntryDropdownIcon,
+            kColorSidePanelEntryIcon,
             /*icon_size=*/16);
       }
       entries_.emplace_back(entry->key(), entry->name(), icon);

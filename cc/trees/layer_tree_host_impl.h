@@ -905,7 +905,6 @@ class CC_EXPORT LayerTreeHostImpl : public TileManagerClient,
   void SetDownsampleMetricsForTesting(bool value) {
     downsample_metrics_ = value;
   }
-  const LayerTreeHostImplClient* client_for_testing() const { return client_; }
 
  protected:
   LayerTreeHostImpl(

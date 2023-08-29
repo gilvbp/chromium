@@ -19,7 +19,6 @@
 #include "third_party/blink/renderer/bindings/core/v8/v8_binding_for_testing.h"
 #include "third_party/blink/renderer/core/dom/document.h"
 #include "third_party/blink/renderer/core/frame/local_frame.h"
-#include "third_party/blink/renderer/core/testing/null_execution_context.h"
 #include "third_party/blink/renderer/platform/blob/testing/fake_blob.h"
 #include "third_party/blink/renderer/platform/file_metadata.h"
 #include "third_party/blink/renderer/platform/heap/garbage_collected.h"
@@ -176,9 +175,7 @@ void ExpectTimestampIsNow(const File& file) {
 }  // namespace
 
 TEST(FileTest, NativeFileWithoutTimestamp) {
-  ScopedNullExecutionContext context;
-  auto* const file = MakeGarbageCollected<File>(&context.GetExecutionContext(),
-                                                "/native/path");
+  auto* const file = MakeGarbageCollected<File>("/native/path");
   MockBlob::Create(file, base::Time());
 
   EXPECT_TRUE(file->HasBackingFile());
@@ -188,9 +185,7 @@ TEST(FileTest, NativeFileWithoutTimestamp) {
 }
 
 TEST(FileTest, NativeFileWithUnixEpochTimestamp) {
-  ScopedNullExecutionContext context;
-  auto* const file = MakeGarbageCollected<File>(&context.GetExecutionContext(),
-                                                "/native/path");
+  auto* const file = MakeGarbageCollected<File>("/native/path");
   MockBlob::Create(file, base::Time::UnixEpoch());
 
   EXPECT_TRUE(file->HasBackingFile());
@@ -199,9 +194,7 @@ TEST(FileTest, NativeFileWithUnixEpochTimestamp) {
 }
 
 TEST(FileTest, NativeFileWithApocalypseTimestamp) {
-  ScopedNullExecutionContext context;
-  auto* const file = MakeGarbageCollected<File>(&context.GetExecutionContext(),
-                                                "/native/path");
+  auto* const file = MakeGarbageCollected<File>("/native/path");
   MockBlob::Create(file, base::Time::Max());
 
   EXPECT_TRUE(file->HasBackingFile());
@@ -336,13 +329,9 @@ TEST(FileTest, fileSystemFileWithoutNativeSnapshot) {
 }
 
 TEST(FileTest, hsaSameSource) {
-  ScopedNullExecutionContext context;
-  auto* const native_file_a1 = MakeGarbageCollected<File>(
-      &context.GetExecutionContext(), "/native/pathA");
-  auto* const native_file_a2 = MakeGarbageCollected<File>(
-      &context.GetExecutionContext(), "/native/pathA");
-  auto* const native_file_b = MakeGarbageCollected<File>(
-      &context.GetExecutionContext(), "/native/pathB");
+  auto* const native_file_a1 = MakeGarbageCollected<File>("/native/pathA");
+  auto* const native_file_a2 = MakeGarbageCollected<File>("/native/pathA");
+  auto* const native_file_b = MakeGarbageCollected<File>("/native/pathB");
 
   const scoped_refptr<BlobDataHandle> blob_data_a = BlobDataHandle::Create();
   const scoped_refptr<BlobDataHandle> blob_data_b = BlobDataHandle::Create();

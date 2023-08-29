@@ -18,6 +18,7 @@ import org.chromium.base.Log;
 import org.chromium.base.StreamUtil;
 import org.chromium.base.TimeUtils.UptimeMillisTimer;
 import org.chromium.base.annotations.AccessedByNative;
+import org.chromium.base.annotations.JniIgnoreNatives;
 import org.chromium.base.metrics.RecordHistogram;
 
 import java.io.BufferedReader;
@@ -72,6 +73,7 @@ import javax.annotation.concurrent.GuardedBy;
  *   available to then send the Bundle to Linkers in other processes, consumed
  *   by takeSharedRelrosFromBundle().
  */
+@JniIgnoreNatives
 class Linker {
     private static final String TAG = "Linker";
 
@@ -110,6 +112,12 @@ class Linker {
     @GuardedBy("mLock")
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     boolean mRelroProducer = true;
+
+    // Keeps stats about searching the WebView memory reservation. After each _successful_ library
+    // load a UMA histogram is recorded using this data.
+    @GuardedBy("mLock")
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    WebViewReservationSearchResult mWebviewReservationSearchResult;
 
     /**
      * The state machine of library loading.
@@ -195,6 +203,28 @@ class Linker {
         }
     }
 
+    /**
+     * A helper class to group a couple of stats related to WebView reservation lookup, and
+     * recording a histogram after that.
+     */
+    private static class WebViewReservationSearchResult {
+        private final boolean mSuccess;
+        private final long mDurationMs;
+
+        WebViewReservationSearchResult(boolean searchSucceeded, long searchDurationMs) {
+            mSuccess = searchSucceeded;
+            mDurationMs = searchDurationMs;
+        }
+
+        private void recordHistograms(String suffix) {
+            String successAsString = mSuccess ? "Found" : "NotFound";
+            RecordHistogram.recordTimesHistogram(
+                    "ChromiumAndroidLinker.TimeToFindWebViewReservation." + successAsString + "."
+                            + suffix,
+                    mDurationMs);
+        }
+    }
+
     // Exposed to be able to mock out an assertion.
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     boolean isNonZeroLoadAddress(LibInfo libInfo) {
@@ -272,8 +302,10 @@ class Linker {
         loadLinkerJniLibraryLocked();
         switch (preference) {
             case PreferAddress.FIND_RESERVED:
+                UptimeMillisTimer timer = new UptimeMillisTimer();
                 boolean reservationFound =
                         getLinkerJni().findRegionReservedByWebViewZygote(mLocalLibInfo);
+                saveWebviewReservationSearchStats(reservationFound, timer.getElapsedMillis());
                 if (reservationFound) {
                     assert isNonZeroLoadAddress(mLocalLibInfo);
                     if (addressHint == 0 || addressHint == mLocalLibInfo.mLoadAddress) {
@@ -299,6 +331,26 @@ class Linker {
                 // Intentional fallthrough.
             case PreferAddress.RESERVE_RANDOM:
                 getLinkerJni().findMemoryRegionAtRandomAddress(mLocalLibInfo);
+        }
+    }
+
+    @GuardedBy("mLock")
+    private void saveWebviewReservationSearchStats(boolean succeeded, long durationMs) {
+        assert mState == State.UNINITIALIZED;
+        assert mWebviewReservationSearchResult == null;
+        mWebviewReservationSearchResult = new WebViewReservationSearchResult(succeeded, durationMs);
+    }
+
+    /**
+     * Records UMA histograms related to library loading.
+     *
+     * @param suffix to append to the histogram name before recording it. A process type
+     * (e.g. "Browser") can be used here to avoid making the Linker aware of the process type.
+     */
+    void recordHistograms(String suffix) {
+        synchronized (mLock) {
+            if (mWebviewReservationSearchResult == null) return;
+            mWebviewReservationSearchResult.recordHistograms(suffix);
         }
     }
 
@@ -475,7 +527,7 @@ class Linker {
     private void loadWithoutProducingRelro(String libFilePath) {
         assert mRemoteLibInfo == null || libFilePath.equals(mRemoteLibInfo.mLibFilePath);
         if (!getLinkerJni().loadLibrary(libFilePath, mLocalLibInfo, false /* spawnRelroRegion */)) {
-            resetAndThrow(String.format("Unable to load library: %s", libFilePath), null);
+            resetAndThrow(String.format("Unable to load library: %s", libFilePath));
         }
         assert mLocalLibInfo.mRelroFd == -1;
     }
@@ -577,7 +629,7 @@ class Linker {
         try {
             System.loadLibrary(library);
         } catch (UnsatisfiedLinkError e) {
-            resetAndThrow("Failed at System.loadLibrary()", e);
+            resetAndThrow("Failed at System.loadLibrary()");
         }
         recordDetailedLoadTimeSince(
                 timer, performedModernLoad ? "Second" : "NoSharing", backgroundStateBeforeLoad);
@@ -693,14 +745,20 @@ class Linker {
     }
 
     @GuardedBy("mLock")
-    private void resetAndThrow(String message, UnsatisfiedLinkError cause) {
+    private void resetAndThrow(String message) {
         mState = State.INITIALIZED;
         Log.e(TAG, message);
-        var e = new UnsatisfiedLinkError(message);
-        if (cause != null) {
-            e.initCause(cause);
-        }
-        throw e;
+        throw new UnsatisfiedLinkError(message);
+    }
+
+    public static void reportDlopenExtTime(long millis) {
+        RecordHistogram.recordTimesHistogram(
+                "ChromiumAndroidLinker.ModernLinkerDlopenExtTime", millis);
+    }
+
+    public static void reportIteratePhdrTime(long millis) {
+        RecordHistogram.recordTimesHistogram(
+                "ChromiumAndroidLinker.ModernLinkerIteratePhdrTime", millis);
     }
 
     /**
@@ -711,6 +769,7 @@ class Linker {
      * well.
      */
     @VisibleForTesting(otherwise = VisibleForTesting.PROTECTED)
+    @JniIgnoreNatives
     static class LibInfo implements Parcelable {
         private static final String EXTRA_LINKER_LIB_INFO = "libinfo";
 
@@ -811,6 +870,8 @@ class Linker {
         public int mRelroFd = -1; // shared RELRO file descriptor, or -1
     }
 
+    // Intentionally omitting @NativeMethods because generation of the stubs it requires (as
+    // GEN_JNI.java) is disabled by the @JniIgnoreNatives.
     interface Natives {
         /**
          * Reserves a memory region (=mapping) of sufficient size to hold the loaded library before

@@ -5,6 +5,7 @@
 #import "base/functional/bind.h"
 #import "base/strings/sys_string_conversions.h"
 #import "components/strings/grit/components_strings.h"
+#import "ios/chrome/browser/shared/ui/util/named_guide.h"
 #import "ios/chrome/browser/ui/toolbar/adaptive_toolbar_app_interface.h"
 #import "ios/chrome/browser/ui/toolbar/public/toolbar_constants.h"
 #import "ios/chrome/grit/ios_strings.h"
@@ -21,6 +22,10 @@
 #import "net/test/embedded_test_server/http_request.h"
 #import "net/test/embedded_test_server/http_response.h"
 #import "ui/base/l10n/l10n_util_mac.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace {
 
@@ -180,11 +185,8 @@ void CheckOmniboxVisibility(BOOL omniboxFocused) {
     CheckVisibleInPrimaryToolbar(chrome_test_util::Omnibox(), YES);
   } else {
     // Check that location view is visible.
-    BOOL isBottomOmnibox = [ChromeEarlGrey isUnfocusedOmniboxAtBottom];
-    ButtonVisibility locationBarVisibility =
-        isBottomOmnibox ? ButtonVisibilitySecondary : ButtonVisibilityPrimary;
-    CheckVisibilityInToolbar(chrome_test_util::DefocusedLocationView(),
-                             locationBarVisibility);
+      CheckVisibleInPrimaryToolbar(chrome_test_util::DefocusedLocationView(),
+                                   YES);
   }
 }
 
@@ -384,7 +386,7 @@ UIViewController* TopPresentedViewController() {
   FocusOmnibox();
 
   // Check the visiblity when focusing the omnibox.
-  CheckToolbarButtonVisibility(secondTraitCollection, /*omniboxFocused=*/YES);
+  CheckToolbarButtonVisibility(secondTraitCollection, YES);
 
   // Revert the orientation/trait collection to the original.
   if ([ChromeEarlGrey isIPadIdiom]) {
@@ -399,7 +401,7 @@ UIViewController* TopPresentedViewController() {
   }
 
   // Check the visiblity after a rotation.
-  CheckToolbarButtonVisibility(originalTraitCollection, /*omniboxFocused=*/YES);
+  CheckToolbarButtonVisibility(originalTraitCollection, YES);
 }
 
 // Check the button visibility of the toolbar when the omnibox is focused from
@@ -416,14 +418,14 @@ UIViewController* TopPresentedViewController() {
       topViewController.traitCollection;
 
   // Check the button visibility.
-  CheckToolbarButtonVisibility(originalTraitCollection, /*omniboxFocused=*/YES);
+  CheckToolbarButtonVisibility(originalTraitCollection, YES);
 
   // Change the orientation or the trait collection.
   UITraitCollection* secondTraitCollection =
       RotateOrChangeTraitCollection(originalTraitCollection, topViewController);
 
   // Check the visiblity after a size class change.
-  CheckToolbarButtonVisibility(secondTraitCollection, /*omniboxFocused=*/YES);
+  CheckToolbarButtonVisibility(secondTraitCollection, YES);
 
   if ([ChromeEarlGrey isIPadIdiom]) {
     // Remove the override.
@@ -438,7 +440,7 @@ UIViewController* TopPresentedViewController() {
 
   // Check the visiblity after a size class change. This should let the trait
   // collection change come into effect.
-  CheckToolbarButtonVisibility(originalTraitCollection, /*omniboxFocused=*/YES);
+  CheckToolbarButtonVisibility(originalTraitCollection, YES);
 }
 
 // Verifies that the back/forward buttons are working and are correctly enabled
@@ -542,14 +544,14 @@ UIViewController* TopPresentedViewController() {
 // Test that the bottom toolbar is still visible after closing the last
 // incognito tab using long press. See https://crbug.com/849937.
 - (void)testBottomToolbarHeightAfterClosingTab {
-
   if (![ChromeEarlGrey isSplitToolbarMode])
     EARL_GREY_TEST_SKIPPED(@"This test needs a bottom toolbar.");
   // Close all tabs.
   [[EarlGrey selectElementWithMatcher:TabGridButton()]
       performAction:grey_tap()];
-
-  [[self class] closeAllTabs];
+  [[EarlGrey selectElementWithMatcher:chrome_test_util::
+                                          TabGridCloseButtonForCellAtIndex(0)]
+      performAction:grey_tap()];
 
   // Open incognito tab.
   [[EarlGrey selectElementWithMatcher:chrome_test_util::
@@ -579,14 +581,14 @@ UIViewController* TopPresentedViewController() {
       topViewController.traitCollection;
 
   // Check the button visibility.
-  CheckToolbarButtonVisibility(originalTraitCollection, /*omniboxFocused=*/NO);
+  CheckToolbarButtonVisibility(originalTraitCollection, NO);
 
   // Change the orientation or the trait collection.
   UITraitCollection* secondTraitCollection =
       RotateOrChangeTraitCollection(originalTraitCollection, topViewController);
 
   // Check the visiblity after a size class change.
-  CheckToolbarButtonVisibility(secondTraitCollection, /*omniboxFocused=*/NO);
+  CheckToolbarButtonVisibility(secondTraitCollection, NO);
 
   if ([ChromeEarlGrey isIPadIdiom]) {
     // Remove the override.

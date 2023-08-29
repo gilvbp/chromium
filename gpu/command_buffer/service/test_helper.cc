@@ -676,10 +676,7 @@ void TestHelper::SetupFeatureInfoInitExpectationsWithGLVersion(
         .RetiresOnSaturation();
   }
 
-  // These expectations are for IsGL_REDSupportedOnFBOs(), which is
-  // skipped universally on macOS, and by default (with a Finch
-  // kill-switch) on Android.
-#if !BUILDFLAG(IS_MAC) && !BUILDFLAG(IS_ANDROID)
+#if !BUILDFLAG(IS_MAC)
   if (gl_info.is_es3 || gl_info.is_desktop_core_profile ||
       gfx::HasExtension(extension_set, "GL_EXT_texture_rg") ||
       (gfx::HasExtension(extension_set, "GL_ARB_texture_rg"))) {

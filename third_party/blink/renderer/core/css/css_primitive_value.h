@@ -129,8 +129,6 @@ class CORE_EXPORT CSSPrimitiveValue : public CSSValue {
     kIcs,
     kLhs,
     kRlhs,
-    kCaps,
-    kRcaps,
     kUserUnits,  // The SVG term for unitless lengths
     // Angle units
     kDegrees,
@@ -165,8 +163,6 @@ class CORE_EXPORT CSSPrimitiveValue : public CSSValue {
     kUnitTypePercentage,
     kUnitTypeFontSize,
     kUnitTypeFontXSize,
-    kUnitTypeFontCapitalHeight,
-    kUnitTypeRootFontCapitalHeight,
     kUnitTypeRootFontSize,
     kUnitTypeRootFontXSize,
     kUnitTypeRootFontZeroCharacterWidth,
@@ -235,9 +231,6 @@ class CORE_EXPORT CSSPrimitiveValue : public CSSValue {
     static_assert(kUnitTypeZeroCharacterWidth < kSize, "ch unit supported");
     static_assert(kUnitTypeRootFontZeroCharacterWidth < kSize,
                   "rch unit supported");
-    static_assert(kUnitTypeFontCapitalHeight < kSize, "cap unit supported");
-    static_assert(kUnitTypeRootFontCapitalHeight < kSize,
-                  "rcap unit supported");
     static_assert(kUnitTypeViewportWidth < kSize, "vw unit supported");
     static_assert(kUnitTypeViewportHeight < kSize, "vh unit supported");
     static_assert(kUnitTypeViewportInlineSize < kSize, "vi unit supported");
@@ -310,8 +303,7 @@ class CORE_EXPORT CSSPrimitiveValue : public CSSValue {
            type == UnitType::kChs || type == UnitType::kIcs ||
            type == UnitType::kLhs || type == UnitType::kRexs ||
            type == UnitType::kRchs || type == UnitType::kRics ||
-           type == UnitType::kRlhs || type == UnitType::kCaps ||
-           type == UnitType::kRcaps || IsViewportPercentageLength(type) ||
+           type == UnitType::kRlhs || IsViewportPercentageLength(type) ||
            IsContainerPercentageLength(type);
   }
   bool IsLength() const;
@@ -385,8 +377,6 @@ class CORE_EXPORT CSSPrimitiveValue : public CSSValue {
 
   template <typename T>
   inline T ConvertTo() const;  // Defined in CSSPrimitiveValueMappings.h
-
-  int ComputeInteger(const CSSLengthResolver&) const;
 
   static const char* UnitTypeToString(UnitType);
   static UnitType StringToUnitType(StringView string) {

@@ -7,6 +7,7 @@
 #include "base/json/json_writer.h"
 #include "base/scoped_observation.h"
 #include "base/test/gtest_tags.h"
+#include "base/test/repeating_test_future.h"
 #include "base/test/test_future.h"
 #include "chrome/browser/ash/login/app_mode/test/kiosk_base_test.h"
 #include "chrome/browser/ash/login/test/device_state_mixin.h"
@@ -76,16 +77,16 @@ class TestAudioObserver : public ash::CrasAudioHandler::AudioObserver {
 
   // `ash::CrasAudioHandler::AudioObserver` implementation:
   void OnOutputNodeVolumeChanged(uint64_t node_id, int volume) override {
-    waiter_.SetValue(volume);
+    waiter_.AddValue(volume);
   }
 
-  int WaitForVolumeChange() {
+  void WaitForVolumeChange() {
     EXPECT_TRUE(waiter_.Wait()) << "Never received a volume changed event";
-    return waiter_.Take();
+    waiter_.Take();
   }
 
  private:
-  base::test::TestFuture<int> waiter_;
+  base::test::RepeatingTestFuture<int> waiter_;
   base::ScopedObservation<ash::CrasAudioHandler,
                           ash::CrasAudioHandler::AudioObserver>
       observation_;

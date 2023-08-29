@@ -419,12 +419,12 @@ IN_PROC_BROWSER_TEST_P(PrinterProviderApiTest, GetPrintersAsyncSuccess) {
 IN_PROC_BROWSER_TEST_P(PrinterProviderApiTest, GetPrintersTwoExtensions) {
   ResultCatcher catcher;
 
-  ExtensionId extension_id_1;
+  std::string extension_id_1;
   InitializePrinterProviderTestExtension("printer_provider/request_printers",
                                          "OK", &extension_id_1);
   ASSERT_FALSE(extension_id_1.empty());
 
-  ExtensionId extension_id_2;
+  std::string extension_id_2;
   InitializePrinterProviderTestExtension(
       "printer_provider/request_printers_second", "OK", &extension_id_2);
   ASSERT_FALSE(extension_id_2.empty());
@@ -475,12 +475,12 @@ IN_PROC_BROWSER_TEST_P(PrinterProviderApiTest,
                        GetPrintersTwoExtensionsBothUnloaded) {
   ResultCatcher catcher;
 
-  ExtensionId extension_id_1;
+  std::string extension_id_1;
   InitializePrinterProviderTestExtension("printer_provider/request_printers",
                                          "IGNORE_CALLBACK", &extension_id_1);
   ASSERT_FALSE(extension_id_1.empty());
 
-  ExtensionId extension_id_2;
+  std::string extension_id_2;
   InitializePrinterProviderTestExtension(
       "printer_provider/request_printers_second", "IGNORE_CALLBACK",
       &extension_id_2);
@@ -505,12 +505,12 @@ IN_PROC_BROWSER_TEST_P(PrinterProviderApiTest,
                        GetPrintersTwoExtensionsOneFails) {
   ResultCatcher catcher;
 
-  ExtensionId extension_id_1;
+  std::string extension_id_1;
   InitializePrinterProviderTestExtension("printer_provider/request_printers",
                                          "NOT_ARRAY", &extension_id_1);
   ASSERT_FALSE(extension_id_1.empty());
 
-  ExtensionId extension_id_2;
+  std::string extension_id_2;
   InitializePrinterProviderTestExtension(
       "printer_provider/request_printers_second", "OK", &extension_id_2);
   ASSERT_FALSE(extension_id_2.empty());
@@ -547,12 +547,12 @@ IN_PROC_BROWSER_TEST_P(PrinterProviderApiTest,
                        GetPrintersTwoExtensionsOneWithNoListener) {
   ResultCatcher catcher;
 
-  ExtensionId extension_id_1;
+  std::string extension_id_1;
   InitializePrinterProviderTestExtension("printer_provider/request_printers",
                                          "NO_LISTENER", &extension_id_1);
   ASSERT_FALSE(extension_id_1.empty());
 
-  ExtensionId extension_id_2;
+  std::string extension_id_2;
   InitializePrinterProviderTestExtension(
       "printer_provider/request_printers_second", "OK", &extension_id_2);
   ASSERT_FALSE(extension_id_2.empty());

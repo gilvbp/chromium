@@ -20,7 +20,6 @@
 #include "base/strings/string_piece.h"
 #include "base/task/single_thread_task_runner.h"
 #include "base/test/bind.h"
-#include "base/test/scoped_feature_list.h"
 #include "base/test/values_test_util.h"
 #include "base/time/time.h"
 #include "base/values.h"
@@ -37,8 +36,6 @@
 #include "pdf/mojom/pdf.mojom.h"
 #include "pdf/paint_ready_rect.h"
 #include "pdf/pdf_accessibility_data_handler.h"
-#include "pdf/pdf_accessibility_image_fetcher.h"
-#include "pdf/pdf_features.h"
 #include "pdf/test/mock_web_associated_url_loader.h"
 #include "pdf/test/test_helpers.h"
 #include "pdf/test/test_pdfium_engine.h"
@@ -309,7 +306,7 @@ class FakePdfViewWebPluginClient : public PdfViewWebPlugin::Client {
 
   MOCK_METHOD(std::unique_ptr<PdfAccessibilityDataHandler>,
               CreateAccessibilityDataHandler,
-              (PdfAccessibilityActionHandler*, PdfAccessibilityImageFetcher*),
+              (PdfAccessibilityActionHandler*),
               (override));
 };
 
@@ -334,8 +331,7 @@ class FakePdfService : public pdf::mojom::PdfService {
 
 }  // namespace
 
-class PdfViewWebPluginWithoutInitializeTest
-    : public testing::TestWithParam<bool> {
+class PdfViewWebPluginWithoutInitializeTest : public testing::Test {
  protected:
   // Custom deleter for `plugin_`. PdfViewWebPlugin must be destroyed by
   // PdfViewWebPlugin::Destroy() instead of its destructor.
@@ -1728,16 +1724,6 @@ TEST_F(PdfViewWebPluginTest, OnDocumentLoadComplete) {
 }
 
 class PdfViewWebPluginWithDocInfoTest : public PdfViewWebPluginTest {
- public:
-  void SetUp() override {
-    PdfViewWebPluginTest::SetUp();
-    if (IsPortfolioEnabled()) {
-      scoped_feature_list_.InitAndEnableFeature(features::kPdfPortfolio);
-    }
-  }
-
-  bool IsPortfolioEnabled() { return GetParam(); }
-
  protected:
   class TestPDFiumEngineWithDocInfo : public TestPDFiumEngine {
    public:
@@ -1892,25 +1878,20 @@ class PdfViewWebPluginWithDocInfoTest : public PdfViewWebPluginTest {
       return engine;
     });
   }
-
-  base::test::ScopedFeatureList scoped_feature_list_;
 };
 
-TEST_P(PdfViewWebPluginWithDocInfoTest, OnDocumentLoadComplete) {
+TEST_F(PdfViewWebPluginWithDocInfoTest, OnDocumentLoadComplete) {
   const base::Value::Dict expect_attachments =
       CreateExpectedAttachmentsResponse();
   const base::Value::Dict expect_bookmarks =
       CreateExpectedBookmarksResponse(engine_ptr_->GetBookmarks());
   const base::Value::Dict expect_metadata = CreateExpectedMetadataResponse();
   EXPECT_CALL(*client_ptr_, PostMessage);
-  EXPECT_CALL(*client_ptr_, PostMessage(Eq(std::ref(expect_attachments))))
-      .Times(IsPortfolioEnabled() ? 1 : 0);
+  EXPECT_CALL(*client_ptr_, PostMessage(Eq(std::ref(expect_attachments))));
   EXPECT_CALL(*client_ptr_, PostMessage(Eq(std::ref(expect_bookmarks))));
   EXPECT_CALL(*client_ptr_, PostMessage(Eq(std::ref(expect_metadata))));
   plugin_->DocumentLoadComplete();
 }
-
-INSTANTIATE_TEST_SUITE_P(All, PdfViewWebPluginWithDocInfoTest, testing::Bool());
 
 class PdfViewWebPluginSaveTest : public PdfViewWebPluginTest {
  protected:

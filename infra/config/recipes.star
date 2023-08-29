@@ -206,10 +206,6 @@ build_recipe(
 )
 
 build_recipe(
-    name = "recipe:chromium_rts/rts_analyze",
-)
-
-build_recipe(
     name = "recipe:chromium_trybot",
     bootstrappable = True,
 )
@@ -224,6 +220,10 @@ build_recipe(
 
 build_recipe(
     name = "recipe:cronet",
+)
+
+build_recipe(
+    name = "recipe:flakiness/generate_builder_test_data",
 )
 
 build_recipe(
@@ -267,6 +267,10 @@ build_recipe(
 
 build_recipe(
     name = "recipe:swarming/deterministic_build",
+)
+
+build_recipe(
+    name = "recipe:swarming/staging",
 )
 
 build_recipe(

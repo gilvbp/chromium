@@ -8,6 +8,10 @@
 
 #import "ios/web/test/web_test_with_web_controller.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace web {
 
 // Tests for all web_view_only APIs in //ios/web/public/web_view_only

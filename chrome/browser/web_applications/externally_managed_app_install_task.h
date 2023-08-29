@@ -31,7 +31,9 @@ enum class UninstallResultCode;
 
 namespace web_app {
 
-class WebAppProvider;
+class WebAppInstallFinalizer;
+class WebAppCommandScheduler;
+class WebAppUiManager;
 class WebAppDataRetriever;
 
 // Class to install WebApp from a WebContents. A queue of such tasks is owned by
@@ -49,7 +51,9 @@ class ExternallyManagedAppInstallTask {
   explicit ExternallyManagedAppInstallTask(
       Profile* profile,
       WebAppUrlLoader* url_loader,
-      WebAppProvider& provider,
+      WebAppUiManager* ui_manager,
+      WebAppInstallFinalizer* install_finalizer,
+      WebAppCommandScheduler* command_scheduler,
       DataRetrieverFactory data_retriever_factory,
       ExternalInstallOptions install_options);
 
@@ -77,6 +81,9 @@ class ExternallyManagedAppInstallTask {
   // by system apps.
   void InstallFromInfo(ResultCallback result_callback);
 
+  void OnWebContentsReady(content::WebContents* web_contents,
+                          ResultCallback result_callback,
+                          WebAppUrlLoader::Result prepare_for_load_result);
   void OnUrlLoaded(content::WebContents* web_contents,
                    ResultCallback result_callback,
                    WebAppUrlLoader::Result load_url_result);
@@ -113,7 +120,9 @@ class ExternallyManagedAppInstallTask {
 
   const raw_ptr<Profile> profile_;
   const raw_ptr<WebAppUrlLoader, DanglingUntriaged> url_loader_;
-  const raw_ref<WebAppProvider> provider_;
+  const raw_ptr<WebAppUiManager> ui_manager_;
+  const raw_ptr<WebAppInstallFinalizer> install_finalizer_;
+  const raw_ptr<WebAppCommandScheduler> command_scheduler_;
 
   DataRetrieverFactory data_retriever_factory_;
   const ExternalInstallOptions install_options_;

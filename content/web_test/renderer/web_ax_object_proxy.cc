@@ -378,8 +378,8 @@ gin::ObjectTemplateBuilder WebAXObjectProxy::GetObjectTemplateBuilder(
                  &WebAXObjectProxy::AriaControlsElementAtIndex)
       .SetMethod("ariaDetailsElementAtIndex",
                  &WebAXObjectProxy::AriaDetailsElementAtIndex)
-      .SetMethod("ariaErrorMessageElementAtIndex",
-                 &WebAXObjectProxy::AriaErrorMessageElementAtIndex)
+      .SetMethod("ariaErrorMessageElement",
+                 &WebAXObjectProxy::AriaErrorMessageElement)
       .SetMethod("ariaFlowToElementAtIndex",
                  &WebAXObjectProxy::AriaFlowToElementAtIndex)
       .SetMethod("ariaOwnsElementAtIndex",
@@ -1179,20 +1179,16 @@ v8::Local<v8::Object> WebAXObjectProxy::AriaDetailsElementAtIndex(
   return factory_->GetOrCreate(web_ax_object);
 }
 
-v8::Local<v8::Object> WebAXObjectProxy::AriaErrorMessageElementAtIndex(
-    unsigned index) {
+v8::Local<v8::Object> WebAXObjectProxy::AriaErrorMessageElement() {
   UpdateLayout();
-  auto ax_ids = GetAXNodeData().GetIntListAttribute(
-      ax::mojom::IntListAttribute::kErrormessageIds);
-  size_t element_count = ax_ids.size();
+  int ax_id =
+      GetAXNodeData().GetIntAttribute(ax::mojom::IntAttribute::kErrormessageId);
 
-  if (index >= element_count) {
+  if (!ax_id)
     return v8::Local<v8::Object>();
-  }
 
   blink::WebAXObject web_ax_object = blink::WebAXObject::FromWebDocumentByID(
-      accessibility_object_.GetDocument(), ax_ids[index]);
-
+      accessibility_object_.GetDocument(), ax_id);
   return factory_->GetOrCreate(web_ax_object);
 }
 

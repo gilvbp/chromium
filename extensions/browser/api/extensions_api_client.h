@@ -126,10 +126,6 @@ class ExtensionsAPIClient {
   virtual void ClearActionCount(content::BrowserContext* context,
                                 const Extension& extension);
 
-  // A method to open file: URL for tests.
-  virtual void OpenFileUrl(const GURL& file_url,
-                           content::BrowserContext* browser_context);
-
   // Creates the AppViewGuestDelegate.
   virtual AppViewGuestDelegate* CreateAppViewGuestDelegate() const;
 
@@ -140,7 +136,7 @@ class ExtensionsAPIClient {
 
   // Returns a delegate for GuestViewManagerDelegate.
   virtual std::unique_ptr<guest_view::GuestViewManagerDelegate>
-  CreateGuestViewManagerDelegate() const;
+  CreateGuestViewManagerDelegate(content::BrowserContext* context) const;
 
   // Creates a delegate for MimeHandlerViewGuest.
   virtual std::unique_ptr<MimeHandlerViewGuestDelegate>

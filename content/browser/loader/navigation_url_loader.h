@@ -13,7 +13,6 @@
 #include "content/common/content_export.h"
 #include "services/network/public/mojom/cookie_access_observer.mojom.h"
 #include "services/network/public/mojom/devtools_observer.mojom-forward.h"
-#include "services/network/public/mojom/shared_dictionary_access_observer.mojom.h"
 #include "services/network/public/mojom/trust_token_access_observer.mojom-forward.h"
 #include "services/network/public/mojom/url_loader_network_service_observer.mojom.h"
 
@@ -75,8 +74,6 @@ class CONTENT_EXPORT NavigationURLLoader {
       mojo::PendingRemote<network::mojom::CookieAccessObserver> cookie_observer,
       mojo::PendingRemote<network::mojom::TrustTokenAccessObserver>
           trust_token_observer,
-      mojo::PendingRemote<network::mojom::SharedDictionaryAccessObserver>
-          shared_dictionary_observer,
       mojo::PendingRemote<network::mojom::URLLoaderNetworkServiceObserver>
           url_loader_network_observer,
       mojo::PendingRemote<network::mojom::DevToolsObserver> devtools_observer,

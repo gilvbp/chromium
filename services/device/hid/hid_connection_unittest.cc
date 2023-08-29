@@ -16,6 +16,7 @@
 #include "base/run_loop.h"
 #include "base/scoped_observation.h"
 #include "base/strings/utf_string_conversions.h"
+#include "base/test/repeating_test_future.h"
 #include "base/test/task_environment.h"
 #include "base/test/test_future.h"
 #include "base/test/test_io_thread.h"
@@ -168,9 +169,8 @@ class HidConnectionTest : public testing::Test {
 
  protected:
   void SetUp() override {
-    if (!UsbTestGadget::IsTestEnabled() || !usb_service_) {
+    if (!UsbTestGadget::IsTestEnabled() || !usb_service_)
       return;
-    }
 
     service_ = HidService::Create();
     ASSERT_TRUE(service_);
@@ -196,9 +196,8 @@ class HidConnectionTest : public testing::Test {
 };
 
 TEST_F(HidConnectionTest, ReadWrite) {
-  if (!UsbTestGadget::IsTestEnabled()) {
+  if (!UsbTestGadget::IsTestEnabled())
     return;
-  }
 
   TestConnectCallback connect_callback;
   service_->Connect(device_guid_, /*allow_protected_reports=*/false,
@@ -303,7 +302,7 @@ class HidConnectionProtectedReportTest : public testing::Test,
 
   TestHidConnection& connection() { return *connection_.get(); }
 
-  bool HasNextInputReport() { return input_report_future_.IsReady(); }
+  bool HasNextInputReport() { return !input_report_future_.IsEmpty(); }
 
   std::pair<scoped_refptr<base::RefCountedBytes>, size_t>
   TakeNextInputReport() {
@@ -314,12 +313,12 @@ class HidConnectionProtectedReportTest : public testing::Test,
   // HidConnection::Client:
   void OnInputReport(scoped_refptr<base::RefCountedBytes> buffer,
                      size_t size) override {
-    input_report_future_.SetValue(buffer, size);
+    input_report_future_.AddValue(buffer, size);
   }
 
   base::test::SingleThreadTaskEnvironment task_environment_;
   scoped_refptr<TestHidConnection> connection_;
-  base::test::TestFuture<scoped_refptr<base::RefCountedBytes>, size_t>
+  base::test::RepeatingTestFuture<scoped_refptr<base::RefCountedBytes>, size_t>
       input_report_future_;
 };
 

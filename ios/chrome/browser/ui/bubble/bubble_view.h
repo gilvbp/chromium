@@ -26,26 +26,16 @@ typedef NS_ENUM(NSInteger, BubbleArrowDirection) {
   BubbleArrowDirectionUp,
   // Bubble is above the target UI element and the arrow is pointing down.
   BubbleArrowDirectionDown,
-  // Bubble is on the trailing side of the target UI element and the arrow is
-  // pointing to the leadng edge.
-  BubbleArrowDirectionLeading,
-  // Bubble is on the leading side of the target UI element and the arrow is
-  // pointing to the trailing edge.
-  BubbleArrowDirectionTrailing,
 };
 
 // Alignment of the bubble's arrow relative to the rest of the bubble.
 typedef NS_ENUM(NSInteger, BubbleAlignment) {
-  // When bubble arrow direction is up or down, arrow is aligned to the leading
-  // edge of the bubble; if arrow direction is leading or trailing, arrow is
-  // aligned to the top edge of the bubble.
-  BubbleAlignmentTopOrLeading,
+  // Arrow is aligned to the leading edge of the bubble.
+  BubbleAlignmentLeading,
   // Arrow is center aligned on the bubble.
   BubbleAlignmentCenter,
-  // When bubble arrow direction is up or down, arrow is aligned to the trailing
-  // edge of the bubble; if arrow direction is leading or trailing, arrow is
-  // aligned to the bottom edge of the bubble.
-  BubbleAlignmentBottomOrTrailing,
+  // Arrow is aligned to the trailing edge of the bubble.
+  BubbleAlignmentTrailing,
 };
 
 // Type of bubble views. BubbleViewTypeDefault uses sizeThatFits for its size,

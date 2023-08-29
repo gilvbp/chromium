@@ -33,7 +33,6 @@
 #include "chrome/test/base/ui_test_utils.h"
 #include "components/custom_handlers/protocol_handler.h"
 #include "components/custom_handlers/protocol_handler_registry.h"
-#include "components/enterprise/buildflags/buildflags.h"
 #include "components/network_session_configurator/common/network_switches.h"
 #include "components/policy/core/common/cloud/cloud_policy_constants.h"
 #include "components/prefs/pref_service.h"
@@ -56,7 +55,6 @@
 #include "net/test/embedded_test_server/http_request.h"
 #include "net/test/embedded_test_server/http_response.h"
 #include "ui/color/color_provider.h"
-#include "ui/color/color_provider_key.h"
 #include "ui/color/color_provider_manager.h"
 #include "ui/color/color_provider_source.h"
 #include "ui/native_theme/native_theme.h"
@@ -74,7 +72,10 @@
 #include "chrome/test/base/launchservices_utils_mac.h"
 #endif
 
-#if BUILDFLAG(ENTERPRISE_CONTENT_ANALYSIS)
+// TODO(b/283093731): Replace this macro with cloud content analysis equivalent
+// buildflag condition.
+#if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX) || \
+    BUILDFLAG(IS_CHROMEOS)
 #include "base/files/scoped_temp_dir.h"
 #include "base/test/bind.h"
 #include "base/threading/scoped_blocking_call.h"
@@ -83,11 +84,14 @@
 #include "chrome/browser/enterprise/connectors/test/fake_content_analysis_delegate.h"  // nogncheck
 #include "ui/base/clipboard/clipboard_format_type.h"
 
-#if BUILDFLAG(ENTERPRISE_LOCAL_CONTENT_ANALYSIS)
+// TODO(b/283093731): Replace this macro with local content analysis equivalent
+// buildflag condition.
+#if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX)
 #include "chrome/browser/enterprise/connectors/analysis/fake_content_analysis_sdk_manager.h"  // nogncheck
-#endif  // BUILDFLAG(ENTERPRISE_LOCAL_CONTENT_ANALYSIS)
+#endif
 
-#endif  // BUILDFLAG(ENTERPRISE_CONTENT_ANALYSIS)
+#endif  // BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX) ||
+        // BUILDFLAG(IS_CHROMEOS)
 
 namespace {
 
@@ -402,8 +406,8 @@ class PrefersColorSchemeTest
   class MockColorProviderSource : public ui::ColorProviderSource {
    public:
     explicit MockColorProviderSource(bool is_dark) {
-      key_.color_mode = is_dark ? ui::ColorProviderKey::ColorMode::kDark
-                                : ui::ColorProviderKey::ColorMode::kLight;
+      key_.color_mode = is_dark ? ui::ColorProviderManager::ColorMode::kDark
+                                : ui::ColorProviderManager::ColorMode::kLight;
       provider_.GenerateColorMap();
     }
     MockColorProviderSource(const MockColorProviderSource&) = delete;
@@ -414,11 +418,13 @@ class PrefersColorSchemeTest
     const ui::ColorProvider* GetColorProvider() const override {
       return &provider_;
     }
-    ui::ColorProviderKey GetColorProviderKey() const override { return key_; }
+    ui::ColorProviderManager::Key GetColorProviderKey() const override {
+      return key_;
+    }
 
    private:
     ui::ColorProvider provider_;
-    ui::ColorProviderKey key_;
+    ui::ColorProviderManager::Key key_;
   };
 
   base::test::ScopedFeatureList feature_list_;
@@ -688,79 +694,8 @@ IN_PROC_BROWSER_TEST_F(KeepaliveDurationOnShutdownTest, DynamicUpdate) {
 
 #endif  // !BUILDFLAG(IS_ANDROID)
 
-#if BUILDFLAG(ENTERPRISE_CONTENT_ANALYSIS)
-
-class ClipboardTestContentAnalysisDelegate
-    : public enterprise_connectors::test::FakeContentAnalysisDelegate {
- public:
-  ClipboardTestContentAnalysisDelegate(base::RepeatingClosure delete_closure,
-                                       StatusCallback status_callback,
-                                       std::string dm_token,
-                                       content::WebContents* web_contents,
-                                       Data data,
-                                       CompletionCallback callback)
-      : enterprise_connectors::test::FakeContentAnalysisDelegate(
-            delete_closure,
-            std::move(status_callback),
-            std::move(dm_token),
-            web_contents,
-            std::move(data),
-            std::move(callback)) {}
-
-  static std::unique_ptr<ContentAnalysisDelegate> Create(
-      base::RepeatingClosure delete_closure,
-      StatusCallback status_callback,
-      std::string dm_token,
-      content::WebContents* web_contents,
-      Data data,
-      CompletionCallback callback) {
-    auto ret = std::make_unique<ClipboardTestContentAnalysisDelegate>(
-        delete_closure, std::move(status_callback), std::move(dm_token),
-        web_contents, std::move(data), std::move(callback));
-    enterprise_connectors::FilesRequestHandler::SetFactoryForTesting(
-        base::BindRepeating(
-            &enterprise_connectors::test::FakeFilesRequestHandler::Create,
-            base::BindRepeating(&ClipboardTestContentAnalysisDelegate::
-                                    FakeUploadFileForDeepScanning,
-                                base::Unretained(ret.get()))));
-    return ret;
-  }
-
- private:
-  void UploadTextForDeepScanning(
-      std::unique_ptr<safe_browsing::BinaryUploadService::Request> request)
-      override {
-    ASSERT_EQ(request->reason(),
-              enterprise_connectors::ContentAnalysisRequest::CLIPBOARD_PASTE);
-
-    enterprise_connectors::test::FakeContentAnalysisDelegate::
-        UploadTextForDeepScanning(std::move(request));
-  }
-
-  void UploadImageForDeepScanning(
-      std::unique_ptr<safe_browsing::BinaryUploadService::Request> request)
-      override {
-    ASSERT_EQ(request->reason(),
-              enterprise_connectors::ContentAnalysisRequest::CLIPBOARD_PASTE);
-
-    enterprise_connectors::test::FakeContentAnalysisDelegate::
-        UploadImageForDeepScanning(std::move(request));
-  }
-
-  void FakeUploadFileForDeepScanning(
-      safe_browsing::BinaryUploadService::Result result,
-      const base::FilePath& path,
-      std::unique_ptr<safe_browsing::BinaryUploadService::Request> request,
-      enterprise_connectors::test::FakeFilesRequestHandler::
-          FakeFileRequestCallback callback) override {
-    ASSERT_EQ(request->reason(),
-              enterprise_connectors::ContentAnalysisRequest::CLIPBOARD_PASTE);
-
-    enterprise_connectors::test::FakeContentAnalysisDelegate::
-        FakeUploadFileForDeepScanning(result, path, std::move(request),
-                                      std::move(callback));
-  }
-};
+#if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX) || \
+    BUILDFLAG(IS_CHROMEOS)
 
 class IsClipboardPasteContentAllowedTest : public InProcessBrowserTest {
  public:
@@ -781,7 +716,8 @@ class IsClipboardPasteContentAllowedTest : public InProcessBrowserTest {
 
     enterprise_connectors::ContentAnalysisDelegate::SetFactoryForTesting(
         base::BindRepeating(
-            &ClipboardTestContentAnalysisDelegate::Create, base::DoNothing(),
+            &enterprise_connectors::test::FakeContentAnalysisDelegate::Create,
+            base::DoNothing(),
             base::BindRepeating([](const std::string& contents,
                                    const base::FilePath& path) {
               bool success = false;
@@ -856,7 +792,7 @@ class IsClipboardPasteContentAllowedTest : public InProcessBrowserTest {
 
   base::ScopedTempDir temp_dir_;
   raw_ptr<ChromeContentBrowserClient> client_ = nullptr;
-#if BUILDFLAG(ENTERPRISE_LOCAL_CONTENT_ANALYSIS)
+#if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX)
   // This installs a fake SDK manager that creates fake SDK clients when
   // its GetClient() method is called. This is needed so that calls to
   // ContentAnalysisSdkManager::Get()->GetClient() do not fail.
@@ -894,14 +830,7 @@ IN_PROC_BROWSER_TEST_F(IsClipboardPasteContentAllowedTest, TextBlocked) {
       base::BindOnce(
           [](absl::optional<ChromeContentBrowserClient::ClipboardPasteData>
                  clipboard_paste_data) {
-#if BUILDFLAG(ENTERPRISE_LOCAL_CONTENT_ANALYSIS)
             EXPECT_FALSE(clipboard_paste_data.has_value());
-#else
-            // Platforms that don't support local content analysis shouldn't
-            // block anything, even when the policy is set to a local service
-            // provider value.
-            EXPECT_TRUE(clipboard_paste_data.has_value());
-#endif
           }));
 }
 
@@ -942,18 +871,9 @@ IN_PROC_BROWSER_TEST_F(IsClipboardPasteContentAllowedTest, AllFilesBlocked) {
       contents, GURL("google.com"), ui::ClipboardFormatType::FilenamesType(),
       clipboard_paste_data,
       base::BindLambdaForTesting(
-          [paths](absl::optional<ChromeContentBrowserClient::ClipboardPasteData>
-                      clipboard_paste_data) {
-#if BUILDFLAG(ENTERPRISE_LOCAL_CONTENT_ANALYSIS)
+          [](absl::optional<ChromeContentBrowserClient::ClipboardPasteData>
+                 clipboard_paste_data) {
             EXPECT_FALSE(clipboard_paste_data.has_value());
-#else
-            // Platforms that don't support local content analysis shouldn't
-            // block anything, even when the policy is set to a local service
-            // provider value.
-            EXPECT_TRUE(clipboard_paste_data.has_value());
-            EXPECT_EQ(clipboard_paste_data->file_paths[0], paths[0]);
-            EXPECT_EQ(clipboard_paste_data->file_paths[1], paths[1]);
-#endif
           }));
 }
 
@@ -977,6 +897,7 @@ IN_PROC_BROWSER_TEST_F(IsClipboardPasteContentAllowedTest, SomeFilesBlocked) {
             EXPECT_EQ(clipboard_paste_data->file_paths[0], paths[0]);
           }));
 }
-#endif  // BUILDFLAG(ENTERPRISE_CONTENT_ANALYSIS)
+#endif  // BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX) ||
+        // BUILDFLAG(IS_CHROMEOS)
 
 }  // namespace

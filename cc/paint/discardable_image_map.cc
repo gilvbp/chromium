@@ -298,11 +298,10 @@ class DiscardableImageGenerator {
     }
 
     auto& rects = image_id_to_rects_[paint_image.stable_id()];
-    if (rects.size() >= kMaxRectsSize) {
-      rects.back().Union(image_rect);
-    } else {
-      rects.push_back(image_rect);
-    }
+    if (rects->size() >= kMaxRectsSize)
+      rects->back().Union(image_rect);
+    else
+      rects->push_back(image_rect);
 
     if (paint_image.IsLazyGenerated()) {
       auto decoding_mode_it = decoding_mode_map_.find(paint_image.stable_id());
@@ -401,8 +400,11 @@ void DiscardableImageMap::GetDiscardableImagesInRect(
     images_rtree_ = std::make_unique<RTree<const DrawImage*>>();
 
     images_rtree_->Build(
-        images_.size(), [this](size_t index) { return images_[index].second; },
-        [this](size_t index) { return &images_[index].first; });
+        images_,
+        [](const std::vector<std::pair<DrawImage, gfx::Rect>>& items,
+           size_t index) { return items[index].second; },
+        [](const std::vector<std::pair<DrawImage, gfx::Rect>>& items,
+           size_t index) { return &items[index].first; });
   }
   images_rtree_->Search(rect, images);
 }

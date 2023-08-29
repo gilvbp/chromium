@@ -33,7 +33,7 @@ void CloseAllHandles(absl::Span<const IpczDriverHandle> handles) {
 // Provides shared ownership of a transport object given to the driver by ipcz
 // during driver transport activation. Within ipcz this corresponds to a
 // DriverTransport object.
-class TransportWrapper : public RefCounted<TransportWrapper> {
+class TransportWrapper : public RefCounted {
  public:
   TransportWrapper(IpczHandle transport,
                    IpczTransportActivityHandler activity_handler)
@@ -47,9 +47,7 @@ class TransportWrapper : public RefCounted<TransportWrapper> {
   void NotifyError() { DoNotify(IPCZ_TRANSPORT_ACTIVITY_ERROR); }
 
  private:
-  friend class RefCounted<TransportWrapper>;
-
-  ~TransportWrapper() {
+  ~TransportWrapper() override {
     // Since this is destruction, we can safely assume the invocation will be
     // exclusive. Otherwise someone is mismanaging a reference count or has
     // a UAF bug.

@@ -2,6 +2,7 @@
 // META: script=/common/get-host-info.sub.js
 // META: script=resources/webtransport-test-helpers.sub.js
 // META: script=/common/utils.js
+// META: timeout=long
 
 promise_test(async t => {
   const id = token();
@@ -26,19 +27,6 @@ promise_test(async t => {
   assert_equals(info.close_info.code, 0, 'code');
   assert_equals(info.close_info.reason, '', 'reason');
 }, 'close');
-
-promise_test(async t => {
-  const wt = new WebTransport(webtransport_url('echo.py'));
-  wt.close();
-  try {
-    await wt.closed;
-  } catch(e) {
-    await promise_rejects_exactly(t, e, wt.ready, 'ready promise should be rejected');
-    assert_true(e instanceof WebTransportError);
-    assert_equals(e.source, 'session', 'source');
-    assert_equals(e.streamErrorCode, null, 'streamErrorCode');
-  }
-}, 'close without waiting for ready');
 
 promise_test(async t => {
   const id = token();

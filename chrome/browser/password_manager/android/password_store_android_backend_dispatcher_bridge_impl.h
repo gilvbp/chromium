@@ -45,9 +45,6 @@ class PasswordStoreAndroidBackendDispatcherBridgeImpl
   void GetLoginsForSignonRealm(JobId job_id,
                                const std::string& signon_realm,
                                Account account) override;
-  void GetAffiliatedLoginsForSignonRealm(JobId job_id,
-                                         const std::string& signon_realm,
-                                         Account account) override;
   void AddLogin(JobId job_id,
                 const password_manager::PasswordForm& form,
                 Account account) override;

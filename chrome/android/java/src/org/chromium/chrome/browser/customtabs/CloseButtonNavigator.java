@@ -17,8 +17,6 @@ import org.chromium.content_public.browser.NavigationController;
 import org.chromium.content_public.browser.NavigationHistory;
 import org.chromium.content_public.browser.WebContents;
 
-import java.util.function.Predicate;
-
 import javax.inject.Inject;
 
 /**
@@ -40,8 +38,7 @@ import javax.inject.Inject;
  */
 @ActivityScope
 public class CloseButtonNavigator {
-    @Nullable
-    private Predicate<String> mLandingPagePredicate;
+    @Nullable private PageCriteria mLandingPageCriteria;
     private final CustomTabActivityTabController mTabController;
     private final CustomTabActivityTabProvider mTabProvider;
     private final boolean mButtonClosesChildTab;
@@ -55,18 +52,22 @@ public class CloseButtonNavigator {
         mButtonClosesChildTab = intentDataProvider.isWebappOrWebApkActivity();
     }
 
-    /**
-     * Sets the criteria for the page to go back to.
-     * @param criteria A predicate that returns true when given the URL of a landing page.
-     */
-    public void setLandingPageCriteria(Predicate<String> criteria) {
-        assert mLandingPagePredicate == null : "Conflicting criteria for close button navigation.";
+    // TODO(peconn): Replace with Predicate<T> when we can use Java 8 libraries.
+    /** An interface that allows specifying if a URL matches some criteria. */
+    public interface PageCriteria {
+        /** Whether the given |url| matches the criteria. */
+        boolean matches(String url);
+    }
 
-        mLandingPagePredicate = criteria;
+    /** Sets the criteria for the page to go back to. */
+    public void setLandingPageCriteria(PageCriteria criteria) {
+        assert mLandingPageCriteria == null : "Conflicting criteria for close button navigation.";
+
+        mLandingPageCriteria = criteria;
     }
 
     private boolean isLandingPage(String url) {
-        return mLandingPagePredicate != null && mLandingPagePredicate.test(url);
+        return mLandingPageCriteria != null && mLandingPageCriteria.matches(url);
     }
 
     /**
@@ -89,6 +90,9 @@ public class CloseButtonNavigator {
             // See if there's a close button navigation in our current Tab.
             NavigationController navigationController = getNavigationController();
             if (navigationController != null && navigateSingleTab(getNavigationController())) {
+                if (isFromChildTab) {
+                    recordChildTabScopeAlgorithmClosesOneTab(false);
+                }
                 return;
             }
 
@@ -101,6 +105,9 @@ public class CloseButtonNavigator {
             // we would not navigate at all.
             Tab nextTab = mTabProvider.getTab();
             if (nextTab != null && isLandingPage(nextTab.getUrl().getSpec())) {
+                if (isFromChildTab) {
+                    recordChildTabScopeAlgorithmClosesOneTab(numTabsClosed == 1);
+                }
                 return;
             }
         }
@@ -116,7 +123,7 @@ public class CloseButtonNavigator {
      * criteria for what is a landing page has been given or no such page can be found.
      */
     private boolean navigateSingleTab(@Nullable NavigationController controller) {
-        if (mLandingPagePredicate == null || controller == null) return false;
+        if (mLandingPageCriteria == null || controller == null) return false;
 
         NavigationHistory history = controller.getNavigationHistory();
         for (int i = history.getCurrentEntryIndex() - 1; i >= 0; i--) {
@@ -128,6 +135,16 @@ public class CloseButtonNavigator {
         }
 
         return false;
+    }
+
+    /**
+     * Records how often the "navigate to landing page" algorithm for child tabs for Custom Tabs and
+     * Trusted Web Activities produces the same behaviour as the webapp "close current tab"
+     * algorithm.
+     */
+    private void recordChildTabScopeAlgorithmClosesOneTab(boolean closesOneTab) {
+        RecordHistogram.recordBooleanHistogram(
+                "CustomTabs.CloseButton.ChildTab.ScopeAlgorithm.ClosesOneTab", closesOneTab);
     }
 
     private @Nullable NavigationController getNavigationController() {

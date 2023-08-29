@@ -6,7 +6,6 @@
 
 #include "base/logging.h"
 #include "base/strings/string_util.h"
-#include "chromeos/ash/components/dbus/dlcservice/dlcservice_client.h"
 #include "components/language/core/common/locale_util.h"
 #include "components/session_manager/core/session_manager.h"
 #include "components/session_manager/session_manager_types.h"
@@ -99,8 +98,8 @@ DlcErrorTypeEnum GetDlcErrorTypeForUma(const std::string& error_str) {
 
 PackResult CreateInvalidDlcPackResult() {
   PackResult result;
-  result.operation_error = PackResult::ErrorCode::kWrongId;
-  result.pack_state = PackResult::StatusCode::kUnknown;
+  result.operation_error = dlcservice::kErrorInvalidDlc;
+  result.pack_state = PackResult::WRONG_ID;
   return result;
 }
 
@@ -109,57 +108,21 @@ PackResult ConvertDlcStateToPackResult(const dlcservice::DlcState& dlc_state) {
 
   switch (dlc_state.state()) {
     case dlcservice::DlcState_State_INSTALLED:
-      result.pack_state = PackResult::StatusCode::kInstalled;
+      result.pack_state = PackResult::INSTALLED;
       result.path = dlc_state.root_path();
       break;
     case dlcservice::DlcState_State_INSTALLING:
-      result.pack_state = PackResult::StatusCode::kInProgress;
+      result.pack_state = PackResult::IN_PROGRESS;
       break;
     case dlcservice::DlcState_State_NOT_INSTALLED:
-      result.pack_state = PackResult::StatusCode::kNotInstalled;
+      result.pack_state = PackResult::NOT_INSTALLED;
       break;
     default:
-      result.pack_state = PackResult::StatusCode::kUnknown;
+      result.pack_state = PackResult::UNKNOWN;
       break;
   }
 
-  result.operation_error =
-      ConvertDlcErrorToErrorCode(dlc_state.last_error_code());
-
   return result;
-}
-
-PackResult ConvertDlcInstallResultToPackResult(
-    const DlcserviceClient::InstallResult& install_result) {
-  PackResult result;
-
-  result.operation_error = ConvertDlcErrorToErrorCode(install_result.error);
-
-  if (result.operation_error == PackResult::ErrorCode::kNone) {
-    result.pack_state = PackResult::StatusCode::kInstalled;
-    result.path = install_result.root_path;
-  } else {
-    result.pack_state = PackResult::StatusCode::kUnknown;
-  }
-
-  return result;
-}
-
-PackResult::ErrorCode ConvertDlcErrorToErrorCode(std::string_view err) {
-  if (err.empty() || err == dlcservice::kErrorNone) {
-    return PackResult::ErrorCode::kNone;
-  } else if (err == dlcservice::kErrorInvalidDlc) {
-    return PackResult::ErrorCode::kWrongId;
-  } else if (err == dlcservice::kErrorNeedReboot) {
-    return PackResult::ErrorCode::kNeedReboot;
-  } else if (err == dlcservice::kErrorAllocation) {
-    return PackResult::ErrorCode::kAllocation;
-  } else {
-    // We use INTERNAL for all remaining errors thrown by DLC Service because
-    // there's nothing we or the client can do about it.
-    // Error code BUSY is never returned.
-    return PackResult::ErrorCode::kOther;
-  }
 }
 
 const std::string ResolveLocale(const std::string& feature_id,

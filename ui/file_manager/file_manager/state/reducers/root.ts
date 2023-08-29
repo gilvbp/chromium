@@ -3,33 +3,18 @@
 // found in the LICENSE file.
 
 import {State} from '../../externs/ts/state.js';
-import {Action} from '../actions.js';
-import {allEntriesReducersMap} from '../ducks/all_entries.js';
-import {androidAppsReducersMap} from '../ducks/android_apps.js';
-import {bulkPinningReducersMap} from '../ducks/bulk_pinning.js';
-import {currentDirectoryReducersMap} from '../ducks/current_directory.js';
-import {deviceReducersMap} from '../ducks/device.js';
-import {folderShortcutsReducersMap} from '../ducks/folder_shortcuts.js';
-import {navigationReducersMap} from '../ducks/navigation.js';
-import {preferencesReducersMap} from '../ducks/preferences.js';
-import {searchReducersMap} from '../ducks/search.js';
-import {uiEntriesReducersMap} from '../ducks/ui_entries.js';
-import {volumesReducersMap} from '../ducks/volumes.js';
+import {Action, ActionType} from '../actions.js';
 
-// Reducers map created from merging together each slice's exported reducersMap.
-const rootReducersMap = new Map([
-  ...searchReducersMap,
-  ...volumesReducersMap,
-  ...bulkPinningReducersMap,
-  ...uiEntriesReducersMap,
-  ...androidAppsReducersMap,
-  ...folderShortcutsReducersMap,
-  ...navigationReducersMap,
-  ...preferencesReducersMap,
-  ...deviceReducersMap,
-  ...currentDirectoryReducersMap,
-  ...allEntriesReducersMap,
-]);
+import {addChildEntries, cacheEntries, clearCachedEntries, updateMetadata} from './all_entries.js';
+import {addAndroidApps} from './android_apps.js';
+import {updateBulkPinning} from './bulk_pinning.js';
+import {changeDirectory, updateDirectoryContent, updateFileTasks, updateSelection} from './current_directory.js';
+import {addFolderShortcut, refreshFolderShortcut, removeFolderShortcut} from './folder_shortcuts.js';
+import {refreshNavigationRoots, updateNavigationEntry} from './navigation.js';
+import {updatePreferences} from './preferences.js';
+import {search} from './search.js';
+import {addUiEntry, removeUiEntry} from './ui_entries.js';
+import {addVolume, removeVolume, updateIsInteractiveVolume} from './volumes.js';
 
 /**
  * Root reducer for the State for Files app.
@@ -40,6 +25,10 @@ const rootReducersMap = new Map([
  * from here.
  */
 export function rootReducer(currentState: State, action: Action): State {
+  // Before any actual Reducer, we cache the entries, so the reducers can just
+  // use any entry from `allEntries`.
+  const state = cacheEntries(currentState, action);
+
   if (window.DEBUG_STORE) {
     console.groupCollapsed(`Action: ${action.type}`);
     console.dir(action.payload);
@@ -47,14 +36,51 @@ export function rootReducer(currentState: State, action: Action): State {
   }
 
   switch (action.type) {
+    case ActionType.CHANGE_DIRECTORY:
+      return changeDirectory(state, action);
+    case ActionType.CHANGE_SELECTION:
+      return updateSelection(state, action);
+    case ActionType.CHANGE_FILE_TASKS:
+      return updateFileTasks(state, action);
+    case ActionType.CLEAR_STALE_CACHED_ENTRIES:
+      return clearCachedEntries(state, action);
+    case ActionType.SEARCH:
+      return search(state, action);
+    case ActionType.UPDATE_DIRECTORY_CONTENT:
+      return updateDirectoryContent(state, action);
+    case ActionType.UPDATE_METADATA:
+      return updateMetadata(state, action);
+    case ActionType.ADD_VOLUME:
+      return addVolume(currentState, action);
+    case ActionType.REMOVE_VOLUME:
+      return removeVolume(currentState, action);
+    case ActionType.REFRESH_NAVIGATION_ROOTS:
+      return refreshNavigationRoots(currentState, action);
+    case ActionType.UPDATE_NAVIGATION_ENTRY:
+      return updateNavigationEntry(currentState, action);
+    case ActionType.ADD_UI_ENTRY:
+      return addUiEntry(currentState, action);
+    case ActionType.REMOVE_UI_ENTRY:
+      return removeUiEntry(currentState, action);
+    case ActionType.REFRESH_FOLDER_SHORTCUT:
+      return refreshFolderShortcut(currentState, action);
+    case ActionType.ADD_FOLDER_SHORTCUT:
+      return addFolderShortcut(currentState, action);
+    case ActionType.REMOVE_FOLDER_SHORTCUT:
+      return removeFolderShortcut(currentState, action);
+    case ActionType.ADD_ANDROID_APPS:
+      return addAndroidApps(currentState, action);
+    case ActionType.ADD_CHILD_ENTRIES:
+      return addChildEntries(currentState, action);
+    case ActionType.UPDATE_BULK_PIN_PROGRESS:
+      return updateBulkPinning(currentState, action);
+    case ActionType.UPDATE_PREFERENCES:
+      return updatePreferences(currentState, action);
+    case ActionType.UPDATE_IS_INTERACTIVE_VOLUME:
+      return updateIsInteractiveVolume(currentState, action);
     default:
-      // Handles ducks reducers.
-      const reducers = rootReducersMap.get(action.type);
-      if (!reducers) {
-        console.error(`No registered reducers for action: ${action.type}`);
-        return currentState;
-      }
-      return reducers.reduce(
-          (state, reducer) => reducer(state, action.payload), currentState);
+      console.error(`invalid action type: ${(action as any)?.type} action: ${
+          JSON.stringify(action)}`);
+      return state;
   }
 }

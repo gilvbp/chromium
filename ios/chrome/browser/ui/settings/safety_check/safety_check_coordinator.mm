@@ -4,7 +4,7 @@
 
 #import "ios/chrome/browser/ui/settings/safety_check/safety_check_coordinator.h"
 
-#import "base/apple/foundation_util.h"
+#import "base/mac/foundation_util.h"
 #import "base/memory/scoped_refptr.h"
 #import "base/metrics/histogram_functions.h"
 #import "base/metrics/histogram_macros.h"
@@ -25,7 +25,8 @@
 #import "ios/chrome/browser/shared/public/features/features.h"
 #import "ios/chrome/browser/shared/ui/table_view/table_view_utils.h"
 #import "ios/chrome/browser/signin/authentication_service_factory.h"
-#import "ios/chrome/browser/sync/sync_service_factory.h"
+#import "ios/chrome/browser/sync/sync_setup_service.h"
+#import "ios/chrome/browser/sync/sync_setup_service_factory.h"
 #import "ios/chrome/browser/ui/settings/elements/enterprise_info_popover_view_controller.h"
 #import "ios/chrome/browser/ui/settings/password/password_checkup/password_checkup_coordinator.h"
 #import "ios/chrome/browser/ui/settings/password/password_issues/password_issues_coordinator.h"
@@ -38,6 +39,10 @@
 #import "ios/chrome/common/ui/elements/popover_label_view_controller.h"
 #import "net/base/mac/url_conversions.h"
 #import "url/gurl.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 using password_manager::WarningType;
 
@@ -114,7 +119,7 @@ using password_manager::WarningType;
          passwordCheckManager:passwordCheckManager
                   authService:AuthenticationServiceFactory::GetForBrowserState(
                                   self.browser->GetBrowserState())
-                  syncService:SyncServiceFactory::GetForBrowserState(
+                  syncService:SyncSetupServiceFactory::GetForBrowserState(
                                   self.browser->GetBrowserState())];
 
   self.mediator.consumer = self.viewController;

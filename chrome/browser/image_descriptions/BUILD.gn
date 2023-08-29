@@ -31,7 +31,6 @@ android_library("java") {
     "//net/android:net_java",
     "//third_party/androidx:androidx_annotation_annotation_java",
     "//third_party/androidx:androidx_preference_preference_java",
-    "//ui/accessibility:ax_base_java",
     "//ui/android:ui_full_java",
   ]
 
@@ -70,7 +69,6 @@ android_library("unit_device_javatests") {
     ":java",
     ":java_resources",
     "//base:base_java_test_support",
-    "//base:jni_java",
     "//chrome/browser/device:java",
     "//chrome/browser/flags:java",
     "//chrome/browser/preferences:java",
@@ -106,7 +104,6 @@ android_library("javatests") {
     ":java",
     ":java_resources",
     "//base:base_java_test_support",
-    "//chrome/android:chrome_java",
     "//chrome/browser/device:java",
     "//chrome/browser/flags:java",
     "//chrome/browser/preferences:java",
@@ -120,7 +117,6 @@ android_library("javatests") {
     "//content/public/android:content_java",
     "//content/public/test/android:content_java_test_support",
     "//third_party/android_deps:espresso_java",
-    "//third_party/androidx:androidx_fragment_fragment_java",
     "//third_party/androidx:androidx_preference_preference_java",
     "//third_party/androidx:androidx_test_runner_java",
     "//third_party/hamcrest:hamcrest_core_java",

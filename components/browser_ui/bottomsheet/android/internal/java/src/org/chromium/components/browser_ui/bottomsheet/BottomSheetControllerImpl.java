@@ -20,6 +20,7 @@ import org.chromium.components.browser_ui.widget.scrim.ScrimCoordinator;
 import org.chromium.components.browser_ui.widget.scrim.ScrimProperties;
 import org.chromium.ui.KeyboardVisibilityDelegate;
 import org.chromium.ui.modelutil.PropertyModel;
+import org.chromium.ui.util.AccessibilityUtil;
 import org.chromium.ui.util.TokenHolder;
 
 import java.util.ArrayList;
@@ -79,6 +80,9 @@ class BottomSheetControllerImpl implements ManagedBottomSheetController {
      * sheet is suppressed.
      */
     private final TokenHolder mSuppressionTokens;
+
+    /** A means of checking whether accessibility is currently enabled. */
+    private AccessibilityUtil mAccessibilityUtil;
 
     /** A supplier indicating whether back press should be handled by the bottom sheet. */
     private final ObservableSupplierImpl<Boolean> mBackPressStateChangedSupplier =
@@ -168,6 +172,7 @@ class BottomSheetControllerImpl implements ManagedBottomSheetController {
         initializedCallback.onResult(mBottomSheet);
 
         mBottomSheet.init(window, keyboardDelegate, mAlwaysFullWidth);
+        mBottomSheet.setAccessibilityUtil(mAccessibilityUtil);
 
         // Initialize the queue with a comparator that checks content priority.
         mContentQueue = new PriorityQueue<>(INITIAL_QUEUE_CAPACITY,
@@ -424,14 +429,22 @@ class BottomSheetControllerImpl implements ManagedBottomSheetController {
         mSheetStateBeforeSuppress = SheetState.NONE;
     }
 
+    @Override
+    public void setAccessibilityUtil(AccessibilityUtil enabledSupplier) {
+        mAccessibilityUtil = enabledSupplier;
+    }
+
+    @VisibleForTesting
     void setSheetStateForTesting(@SheetState int state, boolean animate) {
         mBottomSheet.setSheetState(state, animate);
     }
 
+    @VisibleForTesting
     View getBottomSheetViewForTesting() {
         return mBottomSheet;
     }
 
+    @VisibleForTesting
     public void endAnimationsForTesting() {
         mBottomSheet.endAnimations();
     }
@@ -605,6 +618,7 @@ class BottomSheetControllerImpl implements ManagedBottomSheetController {
         return !mBottomSheet.isSheetOpen();
     }
 
+    @VisibleForTesting
     boolean hasSuppressionTokensForTesting() {
         return mSuppressionTokens.hasTokens();
     }

@@ -10,8 +10,9 @@ namespace permissions {
 const char kChooserBluetoothOverviewURL[] =
     "https://support.google.com/chrome?p=bluetooth";
 
+// TODO(b/276716358): Update URL to the correct help center article.
 const char kEmbeddedContentHelpCenterURL[] =
-    "https://support.google.com/chrome/?p=embedded_content";
+    "https://support.google.com/chrome?p=bluetooth";
 
 #if !BUILDFLAG(IS_ANDROID)
 // The key in `Product Specific String Data` under which the disposition of the

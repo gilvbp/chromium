@@ -6,8 +6,6 @@ import {TestRunner} from 'test_runner';
 import {ElementsTestRunner} from 'elements_test_runner';
 import {SourcesTestRunner} from 'sources_test_runner';
 
-import * as Common from 'devtools/core/common/common.js';
-
 (async function() {
   TestRunner.addResult(
       `Tests framework black-boxing on DOM, XHR and Event breakpoints.\n`);
@@ -86,7 +84,7 @@ import * as Common from 'devtools/core/common/common.js';
   `);
 
   var frameworkRegexString = '/framework\\.js$';
-  Common.Settings.settingForTest('skipStackFramesPattern').set(frameworkRegexString);
+  Common.settingForTest('skipStackFramesPattern').set(frameworkRegexString);
 
   SourcesTestRunner.setQuiet(true);
 

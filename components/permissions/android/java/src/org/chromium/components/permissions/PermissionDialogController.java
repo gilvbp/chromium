@@ -8,6 +8,7 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 
 import androidx.annotation.IntDef;
+import androidx.annotation.VisibleForTesting;
 
 import org.chromium.base.BuildInfo;
 import org.chromium.base.ObserverList;
@@ -337,10 +338,12 @@ public class PermissionDialogController
         mState = State.NOT_SHOWING;
     }
 
+    @VisibleForTesting
     public boolean isDialogShownForTest() {
         return mDialogDelegate != null;
     }
 
+    @VisibleForTesting
     public void clickButtonForTest(@ModalDialogProperties.ButtonType int buttonType) {
         onClick(mDialogModel, buttonType);
     }

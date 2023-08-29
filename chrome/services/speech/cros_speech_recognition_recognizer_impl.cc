@@ -47,12 +47,11 @@ void CrosSpeechRecognitionRecognizerImpl::Create(
     media::mojom::SpeechRecognitionOptionsPtr options,
     const base::FilePath& binary_path,
     const base::flat_map<std::string, base::FilePath>& config_paths,
-    const std::string& primary_language_name,
-    const bool mask_offensive_words) {
+    const std::string& primary_language_name) {
   mojo::MakeSelfOwnedReceiver(
       std::make_unique<CrosSpeechRecognitionRecognizerImpl>(
           std::move(remote), std::move(options), binary_path, config_paths,
-          primary_language_name, mask_offensive_words),
+          primary_language_name),
       std::move(receiver));
 }
 CrosSpeechRecognitionRecognizerImpl::~CrosSpeechRecognitionRecognizerImpl() =
@@ -63,14 +62,12 @@ CrosSpeechRecognitionRecognizerImpl::CrosSpeechRecognitionRecognizerImpl(
     media::mojom::SpeechRecognitionOptionsPtr options,
     const base::FilePath& binary_path,
     const base::flat_map<std::string, base::FilePath>& config_paths,
-    const std::string& primary_language_name,
-    const bool mask_offensive_words)
+    const std::string& primary_language_name)
     : SpeechRecognitionRecognizerImpl(std::move(remote),
                                       std::move(options),
                                       binary_path,
                                       config_paths,
-                                      primary_language_name,
-                                      mask_offensive_words),
+                                      primary_language_name),
       binary_path_(binary_path) {
   cros_soda_client_ = std::make_unique<soda::CrosSodaClient>();
 }

@@ -41,7 +41,6 @@ class ChromeAppKioskLacrosTest : public KioskBaseTest {
     KioskBaseTest::SetUpOnMainThread();
     if (kiosk_ash_starter_.HasLacrosArgument()) {
       kiosk_ash_starter_.SetLacrosAvailabilityPolicy();
-      kiosk_ash_starter_.SetUpBrowserManager();
     }
   }
 

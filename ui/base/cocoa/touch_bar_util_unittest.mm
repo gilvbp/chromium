@@ -4,10 +4,14 @@
 
 #import "ui/base/cocoa/touch_bar_util.h"
 
-#include "base/apple/foundation_util.h"
+#include "base/mac/foundation_util.h"
 #include "testing/gtest/include/gtest/gtest.h"
 #include "testing/platform_test.h"
 #import "ui/base/test/cocoa_helper.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace {
 
@@ -25,7 +29,7 @@ class TouchBarUtilTest : public ui::CocoaTest {
 };
 
 TEST_F(TouchBarUtilTest, TouchBarIdentifiers) {
-  base::apple::SetBaseBundleID(kTestChromeBundleId);
+  base::mac::SetBaseBundleID(kTestChromeBundleId);
   EXPECT_TRUE([ui::GetTouchBarId(kTestTouchBarId)
       isEqualToString:@"test.bundleid.test-touch-bar"]);
   EXPECT_TRUE([ui::GetTouchBarItemId(kTestTouchBarId, kTestTouchBarItemId)

@@ -67,7 +67,7 @@ public class SystemAccountManagerDelegate implements AccountManagerDelegate {
         BroadcastReceiver receiver = new BroadcastReceiver() {
             @Override
             public void onReceive(final Context context, final Intent intent) {
-                mObserver.onCoreAccountInfosChanged();
+                mObserver.onAccountsChanged();
             }
         };
         IntentFilter accountsChangedIntentFilter = new IntentFilter();

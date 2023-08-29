@@ -13,7 +13,6 @@
 #include "ash/constants/ash_switches.h"
 #include "base/check.h"
 #include "base/command_line.h"
-#include "base/containers/contains.h"
 #include "base/files/file_util.h"
 #include "base/json/json_file_value_serializer.h"
 #include "base/logging.h"
@@ -472,7 +471,8 @@ void StatisticsProviderImpl::LoadMachineStatistics(bool load_oem_manifest) {
     // Use the write-protect value from crossystem only if it hasn't been loaded
     // from any other source, since the result of crossystem is less reliable
     // for this key.
-    if (!base::Contains(machine_info_, kFirmwareWriteProtectCurrentKey) &&
+    if (machine_info_.find(kFirmwareWriteProtectCurrentKey) ==
+            machine_info_.end() &&
         !crossystem_wpsw.empty()) {
       LOG(WARNING) << "wpsw_cur missing from machine_info, using value: "
                    << crossystem_wpsw;
@@ -500,10 +500,10 @@ void StatisticsProviderImpl::LoadMachineStatistics(bool load_oem_manifest) {
     VLOG(1) << "CrOS region set to '" << region << "'";
   }
 
-  const auto it = machine_info_.find(kRegionKey);
-
   LoadRegionsFile(sources_.cros_regions_filepath,
-                  it != machine_info_.end() ? it->second : "");
+                  machine_info_.find(kRegionKey) != machine_info_.end()
+                      ? machine_info_[kRegionKey]
+                      : "");
 
   SignalStatisticsLoaded();
 }
@@ -652,13 +652,11 @@ void StatisticsProviderImpl::LoadRegionsFile(const base::FilePath& filename,
 
 absl::optional<base::StringPiece>
 StatisticsProviderImpl::GetRegionalInformation(base::StringPiece name) const {
-  if (!base::Contains(machine_info_, kRegionKey)) {
+  if (machine_info_.find(kRegionKey) == machine_info_.end())
     return absl::nullopt;
-  }
 
-  if (const auto iter = region_info_.find(name); iter != region_info_.end()) {
+  if (const auto iter = region_info_.find(name); iter != region_info_.end())
     return base::StringPiece(iter->second);
-  }
 
   return absl::nullopt;
 }

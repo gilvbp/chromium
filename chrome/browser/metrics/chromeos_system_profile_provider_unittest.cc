@@ -42,6 +42,8 @@ using Hardware = metrics::SystemProfileProto::Hardware;
 
 namespace {
 
+constexpr uint64_t kTpmFirmwareVersion = 100;
+
 class FakeMultiDeviceSetupClientImplFactory
     : public ash::multidevice_setup::MultiDeviceSetupClientImpl::Factory {
  public:
@@ -139,14 +141,12 @@ class ChromeOSSystemProfileProviderTest : public testing::Test {
   }
 
  protected:
-  raw_ptr<ash::multidevice_setup::FakeMultiDeviceSetupClient,
-          DanglingUntriaged | ExperimentalAsh>
+  raw_ptr<ash::multidevice_setup::FakeMultiDeviceSetupClient, ExperimentalAsh>
       fake_multidevice_setup_client_;
   base::test::ScopedFeatureList scoped_feature_list_;
   ash::system::ScopedFakeStatisticsProvider fake_statistics_provider_;
   std::unique_ptr<TestingProfileManager> profile_manager_;
-  raw_ptr<TestingProfile, DanglingUntriaged | ExperimentalAsh>
-      testing_profile_ = nullptr;
+  raw_ptr<TestingProfile, ExperimentalAsh> testing_profile_ = nullptr;
   std::unique_ptr<FakeMultiDeviceSetupClientImplFactory>
       fake_multidevice_setup_client_impl_factory_;
 
@@ -306,12 +306,11 @@ TEST_F(ChromeOSSystemProfileProviderTest, DemoModeDimensions) {
   EXPECT_EQ(store_id, expected_store_id);
 }
 
-TEST_F(ChromeOSSystemProfileProviderTest, TpmRwFirmwareVersion) {
-  const std::string expected_rw_firmware_version = "0.5.190";
+TEST_F(ChromeOSSystemProfileProviderTest, TpmFirmwareVersion) {
   chromeos::TpmManagerClient::Get()
       ->GetTestInterface()
       ->mutable_version_info_reply()
-      ->set_rw_version(expected_rw_firmware_version);
+      ->set_firmware_version(kTpmFirmwareVersion);
 
   TestChromeOSSystemProfileProvider provider;
   provider.OnDidCreateMetricsLog();
@@ -319,8 +318,8 @@ TEST_F(ChromeOSSystemProfileProviderTest, TpmRwFirmwareVersion) {
   provider.ProvideSystemProfileMetrics(&system_profile);
 
   ASSERT_TRUE(system_profile.has_hardware());
-  ASSERT_TRUE(system_profile.hardware().has_tpm_rw_firmware_version());
+  ASSERT_TRUE(system_profile.hardware().has_tpm_firmware_version());
 
-  EXPECT_EQ(system_profile.hardware().tpm_rw_firmware_version(),
-            expected_rw_firmware_version);
+  EXPECT_EQ(system_profile.hardware().tpm_firmware_version(),
+            kTpmFirmwareVersion);
 }

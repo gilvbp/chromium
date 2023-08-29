@@ -8,8 +8,6 @@ import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assume.assumeTrue;
 
-import static org.chromium.net.truth.UrlResponseInfoSubject.assertThat;
-
 import android.content.Context;
 import android.content.MutableContextWrapper;
 import android.os.Build;
@@ -52,16 +50,16 @@ public class CronetTestRule implements TestRule {
     }
 
     /**
-     * Requires the user to call {@code CronetTestFramework.startEngine()} but allows to customize
-     * the builder parameters.
+     * Starts the Cronet engine automatically for each test case, but doesn't allow any
+     * customizations to the builder.
      */
     public static CronetTestRule withManualEngineStartup() {
         return new CronetTestRule(EngineStartupMode.MANUAL);
     }
 
     /**
-     * Starts the Cronet engine automatically for each test case, but doesn't allow any
-     * customizations to the builder.
+     * Requires the user to call {@code CronetTestFramework.startEngine()} but allows to customize
+     * the builder parameters.
      */
     public static CronetTestRule withAutomaticEngineStartup() {
         return new CronetTestRule(EngineStartupMode.AUTOMATIC);
@@ -72,20 +70,18 @@ public class CronetTestRule implements TestRule {
     }
 
     public void assertResponseEquals(UrlResponseInfo expected, UrlResponseInfo actual) {
-        assertThat(actual).hasHeadersThat().isEqualTo(expected.getAllHeaders());
-        assertThat(actual).hasHeadersListThat().isEqualTo(expected.getAllHeadersAsList());
-        assertThat(actual).hasHttpStatusCodeThat().isEqualTo(expected.getHttpStatusCode());
-        assertThat(actual).hasHttpStatusTextThat().isEqualTo(expected.getHttpStatusText());
-        assertThat(actual).hasUrlChainThat().isEqualTo(expected.getUrlChain());
-        assertThat(actual).hasUrlThat().isEqualTo(expected.getUrl());
+        assertThat(actual.getAllHeaders()).isEqualTo(expected.getAllHeaders());
+        assertThat(actual.getAllHeadersAsList()).isEqualTo(expected.getAllHeadersAsList());
+        assertThat(actual.getHttpStatusCode()).isEqualTo(expected.getHttpStatusCode());
+        assertThat(actual.getHttpStatusText()).isEqualTo(expected.getHttpStatusText());
+        assertThat(actual.getUrlChain()).isEqualTo(expected.getUrlChain());
+        assertThat(actual.getUrl()).isEqualTo(expected.getUrl());
         // Transferred bytes and proxy server are not supported in pure java
         if (!testingJavaImpl()) {
-            assertThat(actual).hasReceivedByteCountThat().isEqualTo(
-                    expected.getReceivedByteCount());
-            assertThat(actual).hasProxyServerThat().isEqualTo(expected.getProxyServer());
+            assertThat(actual.getReceivedByteCount()).isEqualTo(expected.getReceivedByteCount());
+            assertThat(actual.getProxyServer()).isEqualTo(expected.getProxyServer());
             // This is a place where behavior intentionally differs between native and java
-            assertThat(actual).hasNegotiatedProtocolThat().isEqualTo(
-                    expected.getNegotiatedProtocol());
+            assertThat(actual.getNegotiatedProtocol()).isEqualTo(expected.getNegotiatedProtocol());
         }
     }
 
@@ -127,7 +123,7 @@ public class CronetTestRule implements TestRule {
 
         // Find the API version required by the test.
         int requiredApiVersion = getMaximumAvailableApiLevel();
-        int requiredAndroidApiVersion = Build.VERSION_CODES.LOLLIPOP;
+        int requiredAndroidApiVersion = Build.VERSION_CODES.KITKAT;
         for (Annotation a : desc.getTestClass().getAnnotations()) {
             if (a instanceof RequiresMinApi) {
                 requiredApiVersion = ((RequiresMinApi) a).value();
@@ -300,21 +296,6 @@ public class CronetTestRule implements TestRule {
      * Creates and holds pointer to CronetEngine.
      */
     public static class CronetTestFramework implements AutoCloseable {
-        // This is the Context that Cronet will use. The specific Context instance can never change
-        // because that would break ContextUtils.initApplicationContext(). We work around this by
-        // using a static MutableContextWrapper whose identity is constant, but the wrapped
-        // Context isn't.
-        @SuppressWarnings("StaticFieldLeak")
-        private static final MutableContextWrapper sContextWrapper =
-                new MutableContextWrapper(null) {
-                    @Override
-                    public Context getApplicationContext() {
-                        // Ensure the code under test (in particular, the CronetEngineBuilderImpl
-                        // constructor) cannot use this method to "escape" context interception.
-                        return this;
-                    }
-                };
-
         private final CronetImplementation mImplementation;
         private final ExperimentalCronetEngine.Builder mBuilder;
         private final MutableContextWrapper mContextWrapper;
@@ -326,15 +307,13 @@ public class CronetTestRule implements TestRule {
         private CronetTestFramework(CronetImplementation implementation) {
             this.mContextWrapper =
                     new MutableContextWrapper(ApplicationProvider.getApplicationContext());
-            assert sContextWrapper.getBaseContext() == null;
-            sContextWrapper.setBaseContext(mContextWrapper);
-            this.mBuilder = implementation.createBuilder(sContextWrapper)
-                                    .setUserAgent(UserAgent.from(sContextWrapper))
+            this.mBuilder = implementation.createBuilder(mContextWrapper)
+                                    .setUserAgent(UserAgent.from(mContextWrapper))
                                     .enableQuic(true);
             this.mImplementation = implementation;
 
             System.loadLibrary("cronet_tests");
-            ContextUtils.initApplicationContext(sContextWrapper);
+            ContextUtils.initApplicationContext(getContext().getApplicationContext());
             PathUtils.setPrivateDataDirectorySuffix(PRIVATE_DATA_DIRECTORY_SUFFIX);
             prepareTestStorage(getContext());
             mOldVmPolicy = StrictMode.getVmPolicy();
@@ -375,7 +354,7 @@ public class CronetTestRule implements TestRule {
          */
         public Context getContext() {
             checkNotClosed();
-            return sContextWrapper;
+            return mContextWrapper;
         }
 
         public CronetEngine.Builder enableDiskCache(CronetEngine.Builder cronetEngineBuilder) {
@@ -450,8 +429,6 @@ public class CronetTestRule implements TestRule {
                 return;
             }
             shutdownEngine();
-            assert sContextWrapper.getBaseContext() == mContextWrapper;
-            sContextWrapper.setBaseContext(null);
             mClosed = true;
 
             try {

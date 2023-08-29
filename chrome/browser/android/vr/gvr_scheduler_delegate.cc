@@ -1271,9 +1271,7 @@ void GvrSchedulerDelegate::ProcessWebVrFrameFromMailbox(
   DCHECK(webxr_.HaveProcessingFrame());
   webxr_.GetProcessingFrame()->state_locked = true;
 
-  // We don't do any scaling here, so we can just pass an identity transform.
-  bool swapped =
-      mailbox_bridge_->CopyMailboxToSurfaceAndSwap(mailbox, gfx::Transform());
+  bool swapped = mailbox_bridge_->CopyMailboxToSurfaceAndSwap(mailbox);
   DCHECK(swapped);
   // Tell OnWebXrFrameAvailable to expect a new frame to arrive on
   // the SurfaceTexture, and save the associated frame index.

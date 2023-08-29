@@ -38,7 +38,7 @@ class CaptivePortalServiceFactory : public ProfileKeyedServiceFactory {
   ~CaptivePortalServiceFactory() override;
 
   // BrowserContextKeyedServiceFactory:
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* profile) const override;
 };
 

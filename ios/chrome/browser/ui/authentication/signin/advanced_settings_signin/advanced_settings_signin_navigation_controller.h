@@ -9,16 +9,13 @@
 
 #import <UIKit/UIKit.h>
 
-@class AdvancedSettingsSigninNavigationController;
-
 // Delegate for AdvancedSettingsSigninNavigationController to receive navigation
 // button events.
 @protocol
     AdvancedSettingsSigninNavigationControllerNavigationDelegate <NSObject>
 
 // Called when the navigation done button was tapped.
-- (void)navigationDoneButtonWasTapped:
-    (AdvancedSettingsSigninNavigationController*)controller;
+- (void)navigationDoneButtonWasTapped;
 
 @end
 

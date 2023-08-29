@@ -14,12 +14,11 @@
 #include "base/synchronization/lock.h"
 #include "base/task/single_thread_task_runner.h"
 #include "base/thread_annotations.h"
-#include "build/build_config.h"
+#include "components/viz/common/resources/resource_format_utils.h"
 #include "gpu/command_buffer/common/mailbox_holder.h"
 #include "ui/gfx/gpu_memory_buffer.h"
 
 #if BUILDFLAG(USE_VAAPI) || BUILDFLAG(USE_V4L2_CODEC)
-#include "media/base/media_switches.h"
 #include "media/gpu/chromeos/platform_video_frame_utils.h"
 #endif  // BUILDFLAG(USE_VAAPI) || BUILDFLAG(USE_V4L2_CODEC)
 
@@ -164,14 +163,7 @@ class PictureBufferManagerImpl : public PictureBufferManager {
             CreateGpuMemoryBufferVideoFrame(
                 pixel_format, texture_size, gfx::Rect(texture_size),
                 texture_size, base::TimeDelta(),
-#if defined(ARCH_CPU_ARM_FAMILY)
-                base::FeatureList::IsEnabled(media::kPreferSoftwareMT21)
-                    ? gfx::BufferUsage::SCANOUT_CPU_READ_WRITE
-                    : gfx::BufferUsage::SCANOUT_VDA_WRITE
-#else
-                gfx::BufferUsage::SCANOUT_VDA_WRITE
-#endif
-            );
+                gfx::BufferUsage::SCANOUT_VDA_WRITE);
         if (!gpu_memory_buffer_video_frame)
           return {};
         if (gpu_memory_buffer_video_frame->format() != pixel_format) {

@@ -24,7 +24,6 @@ import android.view.inputmethod.InputContentInfo;
 import androidx.annotation.VisibleForTesting;
 
 import org.chromium.base.Log;
-import org.chromium.ui.accessibility.AccessibilityState;
 
 import java.util.Locale;
 import java.util.regex.Pattern;
@@ -106,6 +105,7 @@ public class SpannableAutocompleteEditTextModel implements AutocompleteEditTextM
         return mInputConnection;
     }
 
+    @VisibleForTesting
     public void setInputConnectionForTesting(AutocompleteInputConnection connection) {
         mInputConnection = connection;
     }
@@ -183,7 +183,7 @@ public class SpannableAutocompleteEditTextModel implements AutocompleteEditTextM
 
     private void notifyAccessibilityService() {
         if (mCurrentState.equals(mPreviouslyNotifiedState)) return;
-        if (!AccessibilityState.isAccessibilityEnabled()) return;
+        if (!mDelegate.isAccessibilityEnabled()) return;
         sendAccessibilityEventForUserTextChange(mPreviouslyNotifiedState, mCurrentState);
         // Read autocomplete text separately.
         sendAccessibilityEventForAppendingAutocomplete(mCurrentState);
@@ -247,21 +247,14 @@ public class SpannableAutocompleteEditTextModel implements AutocompleteEditTextM
         if (mInputConnection == null) {
             return mDelegate.super_dispatchKeyEvent(event);
         }
-
-        boolean retVal;
         mInputConnection.onBeginImeCommand();
-        if (hasAutocomplete()
-                && ((mLayoutDirectionIsLtr && event.getKeyCode() == KeyEvent.KEYCODE_DPAD_RIGHT)
-                        || (!mLayoutDirectionIsLtr
-                                && event.getKeyCode() == KeyEvent.KEYCODE_DPAD_LEFT)
-                        || (event.getKeyCode() == KeyEvent.KEYCODE_TAB)
-                        || event.getKeyCode() == KeyEvent.KEYCODE_ENTER)
+        if (((mLayoutDirectionIsLtr && event.getKeyCode() == KeyEvent.KEYCODE_DPAD_RIGHT)
+                    || (!mLayoutDirectionIsLtr && event.getKeyCode() == KeyEvent.KEYCODE_DPAD_LEFT)
+                    || event.getKeyCode() == KeyEvent.KEYCODE_ENTER)
                 && event.getAction() == KeyEvent.ACTION_DOWN) {
             mInputConnection.commitAutocomplete();
-            retVal = true;
-        } else {
-            retVal = mDelegate.super_dispatchKeyEvent(event);
         }
+        boolean retVal = mDelegate.super_dispatchKeyEvent(event);
         mInputConnection.onEndImeCommand();
         return retVal;
     }
@@ -444,11 +437,6 @@ public class SpannableAutocompleteEditTextModel implements AutocompleteEditTextM
     @Override
     public void setLayoutDirectionIsLtr(boolean isLtr) {
         mLayoutDirectionIsLtr = isLtr;
-    }
-
-    @VisibleForTesting
-    public AutocompleteState getCurrentAutocompleteState() {
-        return mCurrentState;
     }
 
     /**

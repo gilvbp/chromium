@@ -7,6 +7,7 @@ package org.chromium.chrome.browser.compositor.scene_layer;
 import android.content.Context;
 
 import androidx.annotation.ColorInt;
+import androidx.annotation.VisibleForTesting;
 
 import org.chromium.base.annotations.JNINamespace;
 import org.chromium.base.annotations.NativeMethods;
@@ -71,14 +72,10 @@ public class TabStripSceneLayer extends SceneOverlayLayer {
      * @param resourceManager A resource manager.
      * @param stripLayoutTabsToRender Array of strip layout tabs.
      * @param yOffset Current browser controls offset in dp.
-     * @param selectedTabId The ID of the selected tab.
-     * @param hoveredTabId The ID of the hovered tab, if any. If no tab is hovered on, this ID will
-     *         be invalid.
      */
     public void pushAndUpdateStrip(StripLayoutHelperManager layoutHelper,
             LayerTitleCache layerTitleCache, ResourceManager resourceManager,
-            StripLayoutTab[] stripLayoutTabsToRender, float yOffset, int selectedTabId,
-            int hoveredTabId) {
+            StripLayoutTab[] stripLayoutTabsToRender, float yOffset, int selectedTabId) {
         if (mNativePtr == 0) return;
         final boolean visible = yOffset > -layoutHelper.getHeight();
         // This will hide the tab strips if necessary.
@@ -88,7 +85,7 @@ public class TabStripSceneLayer extends SceneOverlayLayer {
         if (visible) {
             pushButtonsAndBackground(layoutHelper, resourceManager, yOffset);
             pushStripTabs(layoutHelper, layerTitleCache, resourceManager, stripLayoutTabsToRender,
-                    selectedTabId, hoveredTabId);
+                    selectedTabId);
         }
         TabStripSceneLayerJni.get().finishBuildingFrame(mNativePtr, TabStripSceneLayer.this);
     }
@@ -153,7 +150,7 @@ public class TabStripSceneLayer extends SceneOverlayLayer {
 
     private void pushStripTabs(StripLayoutHelperManager layoutHelper,
             LayerTitleCache layerTitleCache, ResourceManager resourceManager,
-            StripLayoutTab[] stripTabs, int selectedTabId, int hoveredTabId) {
+            StripLayoutTab[] stripTabs, int selectedTabId) {
         final int tabsCount = stripTabs != null ? stripTabs.length : 0;
 
         // TODO(https://crbug.com/1450380): Cleanup params, as some don't change and others are now
@@ -161,15 +158,14 @@ public class TabStripSceneLayer extends SceneOverlayLayer {
         for (int i = 0; i < tabsCount; i++) {
             final StripLayoutTab st = stripTabs[i];
             boolean isSelected = st.getId() == selectedTabId;
-            boolean isHovered = st.getId() == hoveredTabId;
 
             TabStripSceneLayerJni.get().putStripTabLayer(mNativePtr, TabStripSceneLayer.this,
                     st.getId(), st.getCloseButton().getResourceId(), st.getDividerResourceId(),
                     st.getResourceId(), st.getOutlineResourceId(), st.getCloseButton().getTint(),
-                    st.getDividerTint(), st.getTint(isSelected, isHovered),
-                    st.getOutlineTint(isSelected), isSelected, st.getClosePressed(),
-                    layoutHelper.getWidth() * mDpToPx, st.getDrawX() * mDpToPx,
-                    st.getDrawY() * mDpToPx, st.getWidth() * mDpToPx, st.getHeight() * mDpToPx,
+                    st.getDividerTint(), st.getTint(isSelected), st.getOutlineTint(isSelected),
+                    isSelected, st.getClosePressed(), layoutHelper.getWidth() * mDpToPx,
+                    st.getDrawX() * mDpToPx, st.getDrawY() * mDpToPx, st.getWidth() * mDpToPx,
+                    st.getHeight() * mDpToPx, st.getContentOffsetX() * mDpToPx,
                     st.getContentOffsetY() * mDpToPx, st.getDividerOffsetX() * mDpToPx,
                     st.getBottomMargin() * mDpToPx, st.getTopMargin() * mDpToPx,
                     st.getCloseButtonPadding() * mDpToPx, st.getCloseButton().getOpacity(),
@@ -215,15 +211,17 @@ public class TabStripSceneLayer extends SceneOverlayLayer {
                 int closeResourceId, int dividerResourceId, int handleResourceId,
                 int handleOutlineResourceId, int closeTint, int dividerTint, int handleTint,
                 int handleOutlineTint, boolean foreground, boolean closePressed, float toolbarWidth,
-                float x, float y, float width, float height, float contentOffsetY,
-                float dividerOffsetX, float bottomMargin, float topMargin, float closeButtonPadding,
-                float closeButtonAlpha, boolean isStartDividerVisible, boolean isEndDividerVisible,
-                boolean isLoading, float spinnerRotation, float brightness, float opacity,
-                LayerTitleCache layerTitleCache, ResourceManager resourceManager);
+                float x, float y, float width, float height, float contentOffsetX,
+                float contentOffsetY, float dividerOffsetX, float bottomMargin, float topMargin,
+                float closeButtonPadding, float closeButtonAlpha, boolean isStartDividerVisible,
+                boolean isEndDividerVisible, boolean isLoading, float spinnerRotation,
+                float brightness, float opacity, LayerTitleCache layerTitleCache,
+                ResourceManager resourceManager);
         void setContentTree(
                 long nativeTabStripSceneLayer, TabStripSceneLayer caller, SceneLayer contentTree);
     }
 
+    @VisibleForTesting
     public void initializeNativeForTesting() {
         this.initializeNative();
     }

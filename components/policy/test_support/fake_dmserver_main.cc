@@ -5,15 +5,13 @@
 #include "base/command_line.h"
 #include "base/run_loop.h"
 #include "base/task/single_thread_task_executor.h"
-#include "base/task/thread_pool/thread_pool_instance.h"
 #include "components/policy/test_support/fake_dmserver.h"
 
 int main(int argc, char** argv) {
   base::SingleThreadTaskExecutor io_task_executor(base::MessagePumpType::IO);
-  base::ThreadPoolInstance::CreateAndStartWithDefaultParams("fake_dmserver");
   base::CommandLine::Init(argc, argv);
 
-  std::string policy_blob_path, client_state_path, unix_socket_path;
+  std::string policy_blob_path, client_state_path;
   absl::optional<std::string> log_path;
   base::ScopedFD startup_pipe;
   int min_log_level;
@@ -21,15 +19,13 @@ int main(int argc, char** argv) {
 
   base::CommandLine* command_line = base::CommandLine::ForCurrentProcess();
   fakedms::ParseFlags(*command_line, policy_blob_path, client_state_path,
-                      unix_socket_path, log_path, startup_pipe, log_to_console,
-                      min_log_level);
+                      log_path, startup_pipe, log_to_console, min_log_level);
   fakedms::InitLogging(log_path, log_to_console, min_log_level);
 
   base::RunLoop run_loop;
   fakedms::FakeDMServer policy_test_server(policy_blob_path, client_state_path,
-                                           unix_socket_path,
                                            run_loop.QuitClosure());
-  if (!policy_test_server.StartFakeServer()) {
+  if (!policy_test_server.Start()) {
     return 1;
   }
   if (startup_pipe.is_valid()) {
@@ -38,6 +34,5 @@ int main(int argc, char** argv) {
     }
   }
   run_loop.Run();
-  base::ThreadPoolInstance::Get()->Shutdown();
   return 0;
 }

@@ -4,7 +4,7 @@
 
 #import "ios/chrome/browser/ui/ntp/metrics/feed_metrics_recorder.h"
 
-#import "base/apple/foundation_util.h"
+#import "base/mac/foundation_util.h"
 #import "base/metrics/histogram_functions.h"
 #import "base/metrics/histogram_macros.h"
 #import "base/metrics/user_metrics.h"
@@ -17,6 +17,10 @@
 #import "ios/chrome/browser/ui/ntp/metrics/feed_session_recorder.h"
 #import "ios/chrome/browser/ui/ntp/new_tab_page_follow_delegate.h"
 #import "ios/chrome/browser/ui/ntp/new_tab_page_metrics_delegate.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 using feed::FeedEngagementType;
 using feed::FeedUserActionType;
@@ -168,16 +172,15 @@ using feed::FeedUserActionType;
 
   NSUserDefaults* defaults = [NSUserDefaults standardUserDefaults];
   if (visible) {
-    NSDate* lastInteractionTimeForGoodVisitsDate =
-        base::apple::ObjCCast<NSDate>(
-            [defaults objectForKey:kLastInteractionTimeForGoodVisits]);
+    NSDate* lastInteractionTimeForGoodVisitsDate = base::mac::ObjCCast<NSDate>(
+        [defaults objectForKey:kLastInteractionTimeForGoodVisits]);
     if (lastInteractionTimeForGoodVisitsDate != nil) {
       self.lastInteractionTimeForGoodVisits =
           base::Time::FromNSDate(lastInteractionTimeForGoodVisitsDate);
     }
 
     NSDate* lastInteractionTimeForDiscoverGoodVisitsDate =
-        base::apple::ObjCCast<NSDate>(
+        base::mac::ObjCCast<NSDate>(
             [defaults objectForKey:kLastInteractionTimeForDiscoverGoodVisits]);
     if (lastInteractionTimeForDiscoverGoodVisitsDate != nil) {
       self.lastInteractionTimeForDiscoverGoodVisits =
@@ -185,7 +188,7 @@ using feed::FeedUserActionType;
     }
 
     NSDate* lastInteractionTimeForFollowingGoodVisitsDate =
-        base::apple::ObjCCast<NSDate>(
+        base::mac::ObjCCast<NSDate>(
             [defaults objectForKey:kLastInteractionTimeForFollowingGoodVisits]);
     if (lastInteractionTimeForFollowingGoodVisitsDate != nil) {
       self.lastInteractionTimeForFollowingGoodVisits =
@@ -208,7 +211,7 @@ using feed::FeedUserActionType;
     // Checks if there is a timestamp in defaults for when a user clicked
     // on an article in order to be able to trigger a non-short click
     // interaction.
-    NSDate* articleVisitStart = base::apple::ObjCCast<NSDate>(
+    NSDate* articleVisitStart = base::mac::ObjCCast<NSDate>(
         [defaults objectForKey:kArticleVisitTimestampKey]);
     self.feedBecameVisibleTime = base::Time::Now();
 
@@ -918,7 +921,7 @@ using feed::FeedUserActionType;
   NSDate* now = [NSDate date];
   NSUserDefaults* defaults = [NSUserDefaults standardUserDefaults];
 
-  NSDate* lastActivityBucketReported = base::apple::ObjCCast<NSDate>(
+  NSDate* lastActivityBucketReported = base::mac::ObjCCast<NSDate>(
       [defaults objectForKey:kActivityBucketLastReportedDateKey]);
   // If the `lastActivityBucketReported` does not exist, set it to now to
   // prevent the first day from logging a metric.
@@ -1344,7 +1347,7 @@ using feed::FeedUserActionType;
   // The midnight time for the day in which the
   // `ContentSuggestions.Feed.TimeSpentInFeed` was last recorded.
   NSUserDefaults* defaults = [NSUserDefaults standardUserDefaults];
-  NSDate* lastInteractionReported = base::apple::ObjCCast<NSDate>(
+  NSDate* lastInteractionReported = base::mac::ObjCCast<NSDate>(
       [defaults objectForKey:kLastDayTimeInFeedReportedKey]);
   base::Time lastInteractionReportedInTime;
   if (lastInteractionReported != nil) {

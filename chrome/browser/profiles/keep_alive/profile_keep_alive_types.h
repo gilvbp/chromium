@@ -151,10 +151,7 @@ enum class ProfileKeepAliveOrigin {
   // Used during installation of an Isolated Web App.
   kIsolatedWebAppInstall = 34,
 
-  // Used during update of an Isolated Web App.
-  kIsolatedWebAppUpdate = 35,
-
-  kMaxValue = kIsolatedWebAppUpdate,
+  kMaxValue = kIsolatedWebAppInstall,
 };
 
 std::ostream& operator<<(std::ostream& out,

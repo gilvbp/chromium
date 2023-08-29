@@ -13,25 +13,21 @@
 namespace ash {
 
 DeskActionContextMenu::DeskActionContextMenu(
-    const absl::optional<std::u16string>& combine_desks_target_name,
-    const views::MenuAnchorPosition anchor_position,
+    const std::u16string& initial_combine_desks_target_name,
     base::RepeatingClosure combine_desks_callback,
     base::RepeatingClosure close_all_callback,
     base::RepeatingClosure on_context_menu_closed_callback)
-    : anchor_position_(anchor_position),
-      combine_desks_callback_(std::move(combine_desks_callback)),
+    : combine_desks_callback_(std::move(combine_desks_callback)),
       close_all_callback_(std::move(close_all_callback)),
       on_context_menu_closed_callback_(
           std::move(on_context_menu_closed_callback)),
       context_menu_model_(this) {
-  if (combine_desks_target_name) {
-    context_menu_model_.AddItemWithIcon(
-        CommandId::kCombineDesks,
-        l10n_util::GetStringFUTF16(IDS_ASH_DESKS_COMBINE_DESKS_DESCRIPTION,
-                                   combine_desks_target_name.value()),
-        ui::ImageModel::FromVectorIcon(kCombineDesksIcon,
-                                       ui::kColorAshSystemUIMenuIcon));
-  }
+  context_menu_model_.AddItemWithIcon(
+      CommandId::kCombineDesks,
+      l10n_util::GetStringFUTF16(IDS_ASH_DESKS_COMBINE_DESKS_DESCRIPTION,
+                                 initial_combine_desks_target_name),
+      ui::ImageModel::FromVectorIcon(kCombineDesksIcon,
+                                     ui::kColorAshSystemUIMenuIcon));
 
   context_menu_model_.AddItemWithIcon(
       CommandId::kCloseAll,
@@ -41,6 +37,18 @@ DeskActionContextMenu::DeskActionContextMenu(
 }
 
 DeskActionContextMenu::~DeskActionContextMenu() = default;
+
+void DeskActionContextMenu::UpdateCombineDesksTargetName(
+    const std::u16string& new_combine_desks_target_name) {
+  context_menu_model_.SetLabel(
+      CommandId::kCombineDesks,
+      l10n_util::GetStringFUTF16(IDS_ASH_DESKS_COMBINE_DESKS_DESCRIPTION,
+                                 new_combine_desks_target_name));
+}
+
+void DeskActionContextMenu::SetCombineDesksMenuItemVisibility(bool visible) {
+  context_menu_model_.SetVisibleAt(CommandId::kCombineDesks, visible);
+}
 
 void DeskActionContextMenu::MaybeCloseMenu() {
   if (context_menu_runner_)
@@ -77,11 +85,10 @@ void DeskActionContextMenu::ShowContextMenuForViewImpl(
   context_menu_runner_ =
       std::make_unique<views::MenuRunner>(&context_menu_model_, run_types);
 
-  context_menu_runner_->RunMenuAt(source->GetWidget(),
-                                  /*button_controller=*/nullptr,
-                                  /*bounds=*/gfx::Rect(point, gfx::Size()),
-                                  /*anchor=*/
-                                  anchor_position_, source_type);
+  context_menu_runner_->RunMenuAt(
+      source->GetWidget(), /*button_controller=*/nullptr,
+      /*bounds=*/gfx::Rect(point, gfx::Size()),
+      /*anchor=*/views::MenuAnchorPosition::kBubbleBottomRight, source_type);
 }
 
 }  // namespace ash

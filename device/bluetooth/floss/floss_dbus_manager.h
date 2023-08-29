@@ -38,7 +38,6 @@ class FlossGattManagerClient;
 class FlossLEScanClient;
 class FlossLoggingClient;
 class FlossManagerClient;
-class FlossBluetoothTelephonyClient;
 class FlossSocketManager;
 
 #if BUILDFLAG(IS_CHROMEOS)
@@ -187,7 +186,6 @@ class DEVICE_BLUETOOTH_EXPORT FlossDBusManager {
   FlossLEScanClient* GetLEScanClient();
   FlossLoggingClient* GetLoggingClient();
   FlossManagerClient* GetManagerClient();
-  FlossBluetoothTelephonyClient* GetBluetoothTelephonyClient();
   FlossSocketManager* GetSocketManager();
 
 #if BUILDFLAG(IS_CHROMEOS)
@@ -250,8 +248,6 @@ class DEVICE_BLUETOOTH_EXPORT FlossDBusManagerSetter {
   void SetFlossLEScanClient(std::unique_ptr<FlossLEScanClient> client);
   void SetFlossLoggingClient(std::unique_ptr<FlossLoggingClient> client);
   void SetFlossManagerClient(std::unique_ptr<FlossManagerClient> client);
-  void SetFlossBluetoothTelephonyClient(
-      std::unique_ptr<FlossBluetoothTelephonyClient> client);
   void SetFlossSocketManager(std::unique_ptr<FlossSocketManager> manager);
 #if BUILDFLAG(IS_CHROMEOS)
   void SetFlossAdminClient(std::unique_ptr<FlossAdminClient> client);
@@ -323,10 +319,6 @@ class DEVICE_BLUETOOTH_EXPORT FlossClientBundle {
     return battery_manager_client_.get();
   }
 
-  FlossBluetoothTelephonyClient* bluetooth_telephony_client() {
-    return bluetooth_telephony_client_.get();
-  }
-
  private:
   friend FlossDBusManagerSetter;
   friend FlossDBusManager;
@@ -342,7 +334,6 @@ class DEVICE_BLUETOOTH_EXPORT FlossClientBundle {
   std::unique_ptr<FlossLoggingClient> logging_client_;
   std::unique_ptr<FlossAdvertiserClient> advertiser_client_;
   std::unique_ptr<FlossBatteryManagerClient> battery_manager_client_;
-  std::unique_ptr<FlossBluetoothTelephonyClient> bluetooth_telephony_client_;
 #if BUILDFLAG(IS_CHROMEOS)
   std::unique_ptr<FlossAdminClient> admin_client_;
 #endif  // BUILDFLAG(IS_CHROMEOS)

@@ -55,7 +55,6 @@ constexpr int kRefreshThumbInset = -4;
 constexpr int kRefreshThumbInsetSelected = -2;
 constexpr int kRefreshThumbPressedOutset = 1;
 constexpr int kRefreshHoverDiameter = 20;
-constexpr float kBorderStrokeWidth = 1.0f;
 
 const gfx::Size GetTrackSize() {
   return features::IsChromeRefresh2023() ? kRefreshTrackSize : kTrackSize;
@@ -513,7 +512,9 @@ void ToggleButton::StateChanged(ButtonState old_state) {
 SkPath ToggleButton::GetFocusRingPath() const {
   SkPath path;
   if (features::IsChromeRefresh2023()) {
-    gfx::RectF bounds(GetTrackBounds());
+    gfx::RectF bounds(GetLocalBounds());
+    constexpr float kFocusRingInset = 3.f;
+    bounds.Inset(kFocusRingInset);
     const SkRect sk_rect = gfx::RectFToSkRect(bounds);
     const float corner_radius = sk_rect.height() / 2;
     path.addRoundRect(sk_rect, corner_radius, corner_radius);
@@ -574,10 +575,9 @@ void ToggleButton::PaintButtonContents(gfx::Canvas* canvas) {
       GetTrackColor(true), GetTrackColor(false), color_ratio));
   canvas->DrawRoundRect(track_rect, radius, track_flags);
   if (!GetIsOn() && features::IsChromeRefresh2023()) {
-    track_rect.Inset(kBorderStrokeWidth * dsf / 2.0f);
     track_flags.setColor(
         GetColorProvider()->GetColor(ui::kColorToggleButtonShadow));
-    track_flags.setStrokeWidth(kBorderStrokeWidth * dsf);
+    track_flags.setStrokeWidth(0.5f);
     track_flags.setStyle(cc::PaintFlags::kStroke_Style);
     canvas->DrawRoundRect(track_rect, radius, track_flags);
   }

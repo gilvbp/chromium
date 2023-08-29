@@ -63,9 +63,7 @@ class TabAndroid : public base::SupportsUserData {
   // Function to attach helpers to the contentView.
   static void AttachTabHelpers(content::WebContents* web_contents);
 
-  TabAndroid(JNIEnv* env,
-             const base::android::JavaRef<jobject>& obj,
-             int tab_id);
+  TabAndroid(JNIEnv* env, const base::android::JavaRef<jobject>& obj);
 
   TabAndroid(const TabAndroid&) = delete;
   TabAndroid& operator=(const TabAndroid&) = delete;
@@ -171,8 +169,6 @@ class TabAndroid : public base::SupportsUserData {
 
  private:
   JavaObjectWeakGlobalRef weak_java_tab_;
-
-  int tab_id_;
 
   // Identifier of the window the tab is in.
   SessionID session_window_id_;

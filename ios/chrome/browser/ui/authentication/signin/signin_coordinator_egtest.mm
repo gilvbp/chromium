@@ -8,8 +8,8 @@
 #import "base/test/ios/wait_util.h"
 #import "base/time/time.h"
 #import "components/bookmarks/common/bookmark_features.h"
-#import "components/bookmarks/common/storage_type.h"
 #import "components/policy/policy_constants.h"
+#import "components/signin/internal/identity_manager/account_capabilities_constants.h"
 #import "components/signin/public/base/signin_metrics.h"
 #import "components/signin/public/base/signin_switches.h"
 #import "components/strings/grit/components_strings.h"
@@ -49,6 +49,10 @@
 #import "ios/testing/earl_grey/matchers.h"
 #import "net/test/embedded_test_server/embedded_test_server.h"
 #import "ui/base/l10n/l10n_util_mac.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 using chrome_test_util::BookmarksNavigationBarDoneButton;
 using chrome_test_util::ButtonWithAccessibilityLabelId;
@@ -95,7 +99,12 @@ void SetParentalControlsCapabilityForIdentity(FakeSystemIdentity* identity) {
   // The identity must exist in the test storage to be able to set capabilities
   // through the fake identity service.
   [SigninEarlGrey addFakeIdentity:identity];
-  [SigninEarlGrey setIsSubjectToParentalControls:YES forIdentity:identity];
+
+  ios::CapabilitiesDict* capabilities = @{
+    @(kIsSubjectToParentalControlsCapabilityName) :
+        @(static_cast<int>(SystemIdentityCapabilityResult::kTrue))
+  };
+  [SigninEarlGrey setCapabilities:capabilities forIdentity:identity];
 }
 // Closes the sign-in import data dialog and choose either to combine the data
 // or keep the data separate.
@@ -193,22 +202,15 @@ void SetSigninEnterprisePolicyValue(BrowserSigninMode signinMode) {
       [self isRunningTest:@selector(testSigninPromoClosedWhenSyncOff)] ||
       [self isRunningTest:@selector(testSigninPromoWhenSyncOff)]) {
     // TODO(crbug.com/1455018): Re-enable the flag for non-legacy tests.
-    config.features_disabled.push_back(syncer::kEnableBookmarksAccountStorage);
+    config.features_disabled.push_back(
+        bookmarks::kEnableBookmarksAccountStorage);
   }
 
-  if ([self isRunningTest:@selector(testOpenSignInAndSyncFromNTP)] ||
-      [self isRunningTest:@selector
-            (testOpenManageSyncSettingsFromNTPWhenSyncDisabledByPolicy)]) {
+  if ([self isRunningTest:@selector(testOpenSignInAndSyncFromNTP)]) {
     config.features_disabled.push_back(
         syncer::kReplaceSyncPromosWithSignInPromos);
   }
-  if ([self isRunningTest:@selector
-            (testOpenSigninSheetFromNTPIfHasDeviceAccount)] ||
-      [self isRunningTest:@selector
-            (testOpenAuthActivityFromNTPIfNoDeviceAccount)] ||
-      [self isRunningTest:@selector
-            (testOpenSignInFromNTPWhenSyncDisabledByPolicy)] ||
-      [self isRunningTest:@selector(testSwitchToSupervisedUser)]) {
+  if ([self isRunningTest:@selector(testOpenSignInFromNTPIfHasDeviceAccount)]) {
     config.features_enabled.push_back(
         syncer::kReplaceSyncPromosWithSignInPromos);
   }
@@ -221,8 +223,8 @@ void SetSigninEnterprisePolicyValue(BrowserSigninMode signinMode) {
   // Remove closed tab history to make sure the sign-in promo is always visible
   // in recent tabs.
   [ChromeEarlGrey clearBrowsingHistory];
-  [BookmarkEarlGrey waitForBookmarkModelsLoaded];
-  [BookmarkEarlGrey clearBookmarks];
+  [ChromeEarlGrey waitForBookmarksToFinishLoading];
+  [ChromeEarlGrey clearBookmarks];
   GREYAssertNil([MetricsAppInterface setupHistogramTester],
                 @"Failed to set up histogram tester.");
   // TODO(crbug.com/1450472): Remove when kHideSettingsSyncPromo is launched.
@@ -261,8 +263,9 @@ void SetSigninEnterprisePolicyValue(BrowserSigninMode signinMode) {
   [SigninEarlGrey verifySignedInWithFakeIdentity:fakeIdentity];
 }
 
-// Tests that switching between an unsupervised and supervised account does not
-// merge data on the device.
+// Tests that signing out from an unsupervised account without clearing data
+// and then signing in to a supervised account performs a local data clearing
+// on sign-in.
 - (void)testSwitchToSupervisedUser {
   // Add a fake supervised identity to the device.
   FakeSystemIdentity* fakeSupervisedIdentity =
@@ -279,12 +282,10 @@ void SetSigninEnterprisePolicyValue(BrowserSigninMode signinMode) {
   // Add a bookmark after sync is initialized.
   [ChromeEarlGrey waitForSyncEngineInitialized:YES
                                    syncTimeout:kSyncOperationTimeout];
-  [BookmarkEarlGrey waitForBookmarkModelsLoaded];
-  [BookmarkEarlGrey
-      setupStandardBookmarksInStorage:bookmarks::StorageType::kLocalOrSyncable];
+  [ChromeEarlGrey waitForBookmarksToFinishLoading];
+  [BookmarkEarlGrey setupStandardBookmarks];
 
-  // Confirmation choice is ignored when `kReplaceSyncPromosWithSignInPromos` is
-  // enabled.
+  // Sign out with option to keep local data.
   [SigninEarlGreyUI
       signOutWithConfirmationChoice:SignOutConfirmationChoiceKeepData];
 
@@ -318,9 +319,8 @@ void SetSigninEnterprisePolicyValue(BrowserSigninMode signinMode) {
   // Add a bookmark after sync is initialized.
   [ChromeEarlGrey waitForSyncEngineInitialized:YES
                                    syncTimeout:kSyncOperationTimeout];
-  [BookmarkEarlGrey waitForBookmarkModelsLoaded];
-  [BookmarkEarlGrey
-      setupStandardBookmarksInStorage:bookmarks::StorageType::kLocalOrSyncable];
+  [ChromeEarlGrey waitForBookmarksToFinishLoading];
+  [BookmarkEarlGrey setupStandardBookmarks];
 
   // Sign out from the supervised account with option to keep local data.
   [SigninEarlGreyUI
@@ -343,9 +343,8 @@ void SetSigninEnterprisePolicyValue(BrowserSigninMode signinMode) {
   // Add a bookmark after sync is initialized.
   [ChromeEarlGrey waitForSyncEngineInitialized:YES
                                    syncTimeout:kSyncOperationTimeout];
-  [BookmarkEarlGrey waitForBookmarkModelsLoaded];
-  [BookmarkEarlGrey
-      setupStandardBookmarksInStorage:bookmarks::StorageType::kLocalOrSyncable];
+  [ChromeEarlGrey waitForBookmarksToFinishLoading];
+  [BookmarkEarlGrey setupStandardBookmarks];
 
   // Sign out from the supervised account with option to clear local data.
   [SigninEarlGreyUI
@@ -986,9 +985,8 @@ void SetSigninEnterprisePolicyValue(BrowserSigninMode signinMode) {
       performAction:grey_tap()];
 }
 
-// Tests that a signed-out user with device accounts can open "Sign in" sheet
-// from the NTP.
-- (void)testOpenSigninSheetFromNTPIfHasDeviceAccount {
+// Tests that a signed-out user can open "Sign in" sheet from the NTP.
+- (void)testOpenSignInFromNTPIfHasDeviceAccount {
   [SigninEarlGrey addFakeIdentity:[FakeSystemIdentity fakeIdentity1]];
 
   // Select the identity disc particle.
@@ -998,50 +996,9 @@ void SetSigninEnterprisePolicyValue(BrowserSigninMode signinMode) {
       performAction:grey_tap()];
 
   // Ensure the sign-in sheet is displayed.
-  [[EarlGrey
-      selectElementWithMatcher:grey_accessibilityLabel(l10n_util::GetNSString(
-                                   IDS_IOS_IDENTITY_DISC_SIGN_IN_PROMO_LABEL))]
-      assertWithMatcher:grey_sufficientlyVisible()];
-}
-
-// Tests that a signed-out user with no device account can open the auth
-// activity from the NTP.
-- (void)testOpenAuthActivityFromNTPIfNoDeviceAccount {
-  // Select the identity disc particle.
   [[EarlGrey selectElementWithMatcher:
-                 grey_accessibilityLabel(GetNSString(
-                     IDS_IOS_IDENTITY_DISC_SIGNED_OUT_ACCESSIBILITY_LABEL))]
-      performAction:grey_tap()];
-
-  // Ensure the auth activity is displayed.
-  [[EarlGrey selectElementWithMatcher:grey_accessibilityID(
-                                          kFakeAuthActivityViewIdentifier)]
-      assertWithMatcher:grey_sufficientlyVisible()];
-}
-
-// Tests that a signed-out user with the SyncDisabled policy can still open the
-// "Sign in" sheet from the NTP, to get sign-in benefits other than sync.
-- (void)testOpenSignInFromNTPWhenSyncDisabledByPolicy {
-  [SigninEarlGrey addFakeIdentity:[FakeSystemIdentity fakeIdentity1]];
-  // Disable sync by policy.
-  policy_test_utils::SetPolicy(true, policy::key::kSyncDisabled);
-  [[EarlGrey
-      selectElementWithMatcher:grey_allOf(
-                                   grey_accessibilityLabel(GetNSString(
-                                       IDS_IOS_SYNC_SYNC_DISABLED_CONTINUE)),
-                                   grey_userInteractionEnabled(), nil)]
-      performAction:grey_tap()];
-
-  // Select the identity disc particle.
-  [[EarlGrey selectElementWithMatcher:
-                 grey_accessibilityLabel(GetNSString(
-                     IDS_IOS_IDENTITY_DISC_SIGNED_OUT_ACCESSIBILITY_LABEL))]
-      performAction:grey_tap()];
-
-  // Ensure the sign-in sheet is displayed.
-  [[EarlGrey
-      selectElementWithMatcher:
-          grey_accessibilityID(kWebSigninPrimaryButtonAccessibilityIdentifier)]
+                 grey_accessibilityLabel(l10n_util::GetNSString(
+                     IDS_IOS_IDENTITY_DISC_SIGNED_OUT_PROMO_LABEL))]
       assertWithMatcher:grey_sufficientlyVisible()];
 }
 

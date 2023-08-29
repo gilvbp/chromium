@@ -133,7 +133,6 @@ void SegmentInfoDatabase::UpdateSegment(
       std::vector<std::pair<std::string, proto::SegmentInfo>>>();
   auto keys_to_delete = std::make_unique<std::vector<std::string>>();
   if (segment_info.has_value()) {
-    segment_info->set_model_source(model_source);
     entries_to_save->emplace_back(std::make_pair(
         ToString(segment_id, model_source), segment_info.value()));
   } else {
@@ -160,10 +159,8 @@ void SegmentInfoDatabase::UpdateMultipleSegments(
                               absl::make_optional(segment_info));
 
     // Determining entries to save for database.
-    auto* segment_info_as_ptr = const_cast<proto::SegmentInfo*>(&segment_info);
-    segment_info_as_ptr->set_model_source(model_source);
     entries_to_save->emplace_back(std::make_pair(
-        ToString(segment_id, model_source), std::move(*segment_info_as_ptr)));
+        ToString(segment_id, model_source), std::move(segment_info)));
   }
 
   // The cache has been updated now. We can notify the client synchronously.

@@ -17,10 +17,8 @@
 #import "components/reading_list/features/reading_list_switches.h"
 #import "components/signin/public/base/signin_pref_names.h"
 #import "components/signin/public/identity_manager/objc/identity_manager_observer_bridge.h"
-#import "components/sync/base/features.h"
 #import "components/sync/base/user_selectable_type.h"
 #import "components/sync/service/sync_service.h"
-#import "components/sync/service/sync_user_settings.h"
 #import "ios/chrome/browser/favicon/ios_chrome_favicon_loader_factory.h"
 #import "ios/chrome/browser/favicon/ios_chrome_large_icon_service_factory.h"
 #import "ios/chrome/browser/feature_engagement/tracker_factory.h"
@@ -71,6 +69,10 @@
 #import "ui/base/l10n/l10n_util.h"
 #import "ui/strings/grit/ui_strings.h"
 #import "url/gurl.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 // TODO(crbug.com/1425862): SigninPromoViewMediator will be refactored so that
 // we can move the SigninPromoViewConsumer implementation from the coordinator
@@ -199,19 +201,19 @@
   ChromeAccountManagerService* accountManagerService =
       ChromeAccountManagerServiceFactory::GetForBrowserState(browserState);
   _signinPromoViewMediator = [[SigninPromoViewMediator alloc]
-      initWithAccountManagerService:accountManagerService
-                        authService:_authService
-                        prefService:_prefService
-                        syncService:_syncService
-                        accessPoint:signin_metrics::AccessPoint::
-                                        ACCESS_POINT_READING_LIST
-                          presenter:self
-                 baseViewController:self.tableViewController];
-  _signinPromoViewMediator.signinPromoAction =
-      SigninPromoAction::kInstantSignin;
+            initWithBrowser:(Browser*)self.browser
+      accountManagerService:accountManagerService
+                authService:_authService
+                prefService:_prefService
+                syncService:_syncService
+                accessPoint:signin_metrics::AccessPoint::
+                                ACCESS_POINT_READING_LIST
+                  presenter:self
+         baseViewController:self.tableViewController];
+  _signinPromoViewMediator.signInOnly = YES;
   _signinPromoViewMediator.consumer = self;
-  _signinPromoViewMediator.dataTypeToWaitForInitialSync =
-      syncer::ModelType::READING_LIST;
+  [_signinPromoViewMediator
+      setDataTypeToWaitForInitialSync:syncer::ModelType::READING_LIST];
   [self updateSignInPromoVisibility];
 
   [super start];
@@ -598,7 +600,7 @@
     (const signin::PrimaryAccountChangeEvent&)event {
   switch (event.GetEventTypeFor(signin::ConsentLevel::kSignin)) {
     case signin::PrimaryAccountChangeEvent::Type::kSet:
-      if (!_signinPromoViewMediator.showSpinner) {
+      if (!_signinPromoViewMediator.signinInProgress) {
         self.shouldShowSignInPromo = NO;
       }
       break;
@@ -617,9 +619,10 @@
 - (void)updateSignInPromoVisibility {
   BOOL areAccountStorageAndPromoEnabled =
       base::FeatureList::IsEnabled(
-          syncer::kReadingListEnableDualReadingListModel) &&
+          reading_list::switches::kReadingListEnableDualReadingListModel) &&
       base::FeatureList::IsEnabled(
-          syncer::kReadingListEnableSyncTransportModeUponSignIn);
+          reading_list::switches::
+              kReadingListEnableSyncTransportModeUponSignIn);
   if (!areAccountStorageAndPromoEnabled || self.isSyncDisabledByAdministrator) {
     self.shouldShowSignInPromo = NO;
     return;
@@ -638,7 +641,7 @@
     // If the user is signed-in with the promo (thus opted-in for Reading List
     // account storage), the promo should stay visible during the initial sync
     // and a spinner should be shown on it.
-    self.shouldShowSignInPromo = _signinPromoViewMediator.showSpinner;
+    self.shouldShowSignInPromo = _signinPromoViewMediator.signinInProgress;
   } else {
     const std::string lastSignedInGaiaId =
         _prefService->GetString(prefs::kGoogleServicesLastGaiaId);
@@ -690,9 +693,8 @@
 - (BOOL)isSyncDisabledByAdministrator {
   const bool syncDisabledPolicy = _syncService->HasDisableReason(
       syncer::SyncService::DISABLE_REASON_ENTERPRISE_POLICY);
-  const bool syncTypesDisabledPolicy =
-      _syncService->GetUserSettings()->IsTypeManagedByPolicy(
-          syncer::UserSelectableType::kReadingList);
+  const bool syncTypesDisabledPolicy = IsManagedSyncDataType(
+      _syncService, syncer::UserSelectableType::kReadingList);
   return syncDisabledPolicy || syncTypesDisabledPolicy;
 }
 

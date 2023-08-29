@@ -36,10 +36,6 @@ class ASH_PUBLIC_EXPORT MockInputDeviceSettingsController
               GetConnectedPointingSticks,
               (),
               (override));
-  MOCK_METHOD(std::vector<mojom::GraphicsTabletPtr>,
-              GetConnectedGraphicsTablets,
-              (),
-              (override));
   MOCK_METHOD(const mojom::KeyboardSettings*,
               GetKeyboardSettings,
               (DeviceId id),
@@ -80,10 +76,6 @@ class ASH_PUBLIC_EXPORT MockInputDeviceSettingsController
   MOCK_METHOD(void,
               SetPointingStickSettings,
               (DeviceId id, mojom::PointingStickSettingsPtr settings),
-              (override));
-  MOCK_METHOD(void,
-              SetGraphicsTabletSettings,
-              (DeviceId id, mojom::GraphicsTabletSettingsPtr settings),
               (override));
   MOCK_METHOD(void,
               OnLoginScreenFocusedPodChanged,

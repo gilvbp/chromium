@@ -101,10 +101,6 @@ void Advance(uintptr_t, uintptr_t) {}
 
 void Duplicate(uintptr_t) {}
 
-void WrapPtrForDuplication(uintptr_t) {}
-
-void UnsafelyUnwrapForDuplication(uintptr_t) {}
-
 }  // namespace
 
 const RawPtrHooks* GetRawPtrAsanHooks() {
@@ -116,8 +112,6 @@ const RawPtrHooks* GetRawPtrAsanHooks() {
       UnsafelyUnwrapForComparison,
       Advance,
       Duplicate,
-      WrapPtrForDuplication,
-      UnsafelyUnwrapForDuplication,
   };
 
   return &hooks;

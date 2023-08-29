@@ -13,9 +13,6 @@
 #include "base/test/metrics/histogram_tester.h"
 #include "base/test/task_environment.h"
 #include "build/buildflag.h"
-#include "chrome/browser/web_applications/jobs/uninstall/remove_install_source_job.h"
-#include "chrome/browser/web_applications/jobs/uninstall/remove_install_url_job.h"
-#include "chrome/browser/web_applications/jobs/uninstall/remove_web_app_job.h"
 #include "chrome/browser/web_applications/test/fake_web_app_provider.h"
 #include "chrome/browser/web_applications/test/mock_file_utils_wrapper.h"
 #include "chrome/browser/web_applications/test/mock_os_integration_manager.h"
@@ -24,6 +21,9 @@
 #include "chrome/browser/web_applications/test/web_app_test.h"
 #include "chrome/browser/web_applications/test/web_app_test_observers.h"
 #include "chrome/browser/web_applications/test/web_app_test_utils.h"
+#include "chrome/browser/web_applications/uninstall/remove_install_source_job.h"
+#include "chrome/browser/web_applications/uninstall/remove_install_url_job.h"
+#include "chrome/browser/web_applications/uninstall/remove_web_app_job.h"
 #include "chrome/browser/web_applications/user_uninstalled_preinstalled_web_app_prefs.h"
 #include "chrome/browser/web_applications/web_app.h"
 #include "chrome/browser/web_applications/web_app_command_manager.h"
@@ -54,25 +54,26 @@ class WebAppUninstallCommandTest : public WebAppTest {
   void SetUp() override {
     WebAppTest::SetUp();
 
+    FakeWebAppProvider* provider = FakeWebAppProvider::Get(profile());
     file_utils_wrapper_ =
         base::MakeRefCounted<testing::StrictMock<MockFileUtilsWrapper>>();
-    fake_provider().SetFileUtils(file_utils_wrapper_);
+    provider->SetIconManager(
+        std::make_unique<WebAppIconManager>(profile(), file_utils_wrapper_));
     auto manager =
         std::make_unique<testing::StrictMock<MockOsIntegrationManager>>();
     os_integration_manager_ = manager.get();
-    fake_provider().SetOsIntegrationManager(std::move(manager));
+    provider->SetOsIntegrationManager(std::move(manager));
     test::AwaitStartWebAppProviderAndSubsystems(profile());
   }
 
   void TearDown() override {
     file_utils_wrapper_ = nullptr;
-    os_integration_manager_ = nullptr;
     WebAppTest::TearDown();
   }
 
   WebAppProvider* provider() { return WebAppProvider::GetForTest(profile()); }
 
-  raw_ptr<testing::StrictMock<MockOsIntegrationManager>>
+  raw_ptr<testing::StrictMock<MockOsIntegrationManager>, DanglingUntriaged>
       os_integration_manager_;
   scoped_refptr<testing::StrictMock<MockFileUtilsWrapper>> file_utils_wrapper_;
   base::HistogramTester histogram_tester_;
@@ -83,8 +84,7 @@ TEST_F(WebAppUninstallCommandTest, SimpleUninstallInternal) {
                                     WebAppManagement::kSync);
   AppId app_id = web_app->app_id();
   {
-    ScopedRegistryUpdate update =
-        provider()->sync_bridge_unsafe().BeginUpdate();
+    ScopedRegistryUpdate update(&provider()->sync_bridge_unsafe());
     update->CreateApp(std::move(web_app));
   }
 
@@ -120,8 +120,7 @@ TEST_F(WebAppUninstallCommandTest, SimpleUninstallExternal) {
                                     WebAppManagement::kDefault);
   AppId app_id = web_app->app_id();
   {
-    ScopedRegistryUpdate update =
-        provider()->sync_bridge_unsafe().BeginUpdate();
+    ScopedRegistryUpdate update(&provider()->sync_bridge_unsafe());
     update->CreateApp(std::move(web_app));
   }
 
@@ -158,8 +157,7 @@ TEST_F(WebAppUninstallCommandTest, FailedDataDeletion) {
                                     WebAppManagement::kSync);
   AppId app_id = web_app->app_id();
   {
-    ScopedRegistryUpdate update =
-        provider()->sync_bridge_unsafe().BeginUpdate();
+    ScopedRegistryUpdate update(&provider()->sync_bridge_unsafe());
     update->CreateApp(std::move(web_app));
   }
 
@@ -195,8 +193,7 @@ TEST_F(WebAppUninstallCommandTest, FailedOsHooksSetting) {
                                     WebAppManagement::kSync);
   AppId app_id = web_app->app_id();
   {
-    ScopedRegistryUpdate update =
-        provider()->sync_bridge_unsafe().BeginUpdate();
+    ScopedRegistryUpdate update(&provider()->sync_bridge_unsafe());
     update->CreateApp(std::move(web_app));
   }
 
@@ -264,8 +261,7 @@ TEST_F(WebAppUninstallCommandTest, CommandManagerShutdownThrowsError) {
                                     WebAppManagement::kSync);
   AppId app_id = web_app->app_id();
   {
-    ScopedRegistryUpdate update =
-        provider()->sync_bridge_unsafe().BeginUpdate();
+    ScopedRegistryUpdate update(&provider()->sync_bridge_unsafe());
     update->CreateApp(std::move(web_app));
   }
 
@@ -301,8 +297,7 @@ TEST_F(WebAppUninstallCommandTest, UserUninstalledPrefsFilled) {
   web_app->AddInstallURLToManagementExternalConfigMap(
       WebAppManagement::kDefault, GURL("https://www.example.com/install"));
   {
-    ScopedRegistryUpdate update =
-        provider()->sync_bridge_unsafe().BeginUpdate();
+    ScopedRegistryUpdate update(&provider()->sync_bridge_unsafe());
     update->CreateApp(std::move(web_app));
   }
   EXPECT_FALSE(UserUninstalledPreinstalledWebAppPrefs(profile()->GetPrefs())
@@ -342,8 +337,7 @@ TEST_F(WebAppUninstallCommandTest, ExternalConfigMapMissing) {
                                     WebAppManagement::kDefault);
   AppId app_id = web_app->app_id();
   {
-    ScopedRegistryUpdate update =
-        provider()->sync_bridge_unsafe().BeginUpdate();
+    ScopedRegistryUpdate update(&provider()->sync_bridge_unsafe());
     update->CreateApp(std::move(web_app));
   }
   EXPECT_TRUE(provider()->registrar_unsafe().IsLocallyInstalled(app_id));
@@ -387,8 +381,7 @@ TEST_F(WebAppUninstallCommandTest, RemoveSourceAndTriggerOSUninstallation) {
   EXPECT_FALSE(web_app->CanUserUninstallWebApp());
   AppId app_id = web_app->app_id();
   {
-    ScopedRegistryUpdate update =
-        provider()->sync_bridge_unsafe().BeginUpdate();
+    ScopedRegistryUpdate update(&provider()->sync_bridge_unsafe());
     update->CreateApp(std::move(web_app));
   }
 
@@ -469,8 +462,7 @@ TEST_P(WebAppUninstallCommandSourceTest, RunTestForUninstallSource) {
                                     WebAppManagement::kSync);
   AppId app_id = web_app->app_id();
   {
-    ScopedRegistryUpdate update =
-        provider()->sync_bridge_unsafe().BeginUpdate();
+    ScopedRegistryUpdate update(&provider()->sync_bridge_unsafe());
     update->CreateApp(std::move(web_app));
   }
 

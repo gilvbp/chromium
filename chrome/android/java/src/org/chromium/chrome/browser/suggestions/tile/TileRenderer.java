@@ -145,7 +145,8 @@ public class TileRenderer {
 
             for (Tile tile : sectionTiles) {
                 SuggestionsTileView tileView = oldTileViews.get(tile.getData());
-                if (tileView == null) {
+                if (tileView == null || tileView.getIconView() == null
+                        || tileView.getIconView().getDrawable() == null) {
                     tileView = buildTileView(tile, parent, setupDelegate);
                 }
 
@@ -345,6 +346,7 @@ public class TileRenderer {
         return 0;
     }
 
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     public void setIconGeneratorForTesting(RoundedIconGenerator generator) {
         mIconGenerator = generator;
     }

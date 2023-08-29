@@ -48,7 +48,6 @@ struct AutofillErrorDialogContext;
 class AutofillOptimizationGuide;
 class AutofillPopupControllerImpl;
 #if BUILDFLAG(IS_ANDROID)
-class AutofillSaveCardBottomSheetBridge;
 class AutofillSnackbarControllerImpl;
 #endif  // BUILDFLAG(IS_ANDROID)
 struct VirtualCardEnrollmentFields;
@@ -103,15 +102,9 @@ class ChromeAutofillClient : public ContentAutofillClient,
   scoped_refptr<network::SharedURLLoaderFactory> GetURLLoaderFactory() override;
   AutofillDownloadManager* GetDownloadManager() override;
   AutofillOptimizationGuide* GetAutofillOptimizationGuide() const override;
-  AutofillMlPredictionModelHandler* GetAutofillMlPredictionModelHandler()
-      override;
   PersonalDataManager* GetPersonalDataManager() override;
   AutocompleteHistoryManager* GetAutocompleteHistoryManager() override;
-  IbanManager* GetIbanManager() override;
-  plus_addresses::PlusAddressService* GetPlusAddressService() override;
-  void OfferPlusAddressCreation(
-      const url::Origin& main_frame_origin,
-      plus_addresses::PlusAddressCallback callback) override;
+  IBANManager* GetIBANManager() override;
   MerchantPromoCodeManager* GetMerchantPromoCodeManager() override;
   CreditCardCvcAuthenticator* GetCvcAuthenticator() override;
   CreditCardOtpAuthenticator* GetOtpAuthenticator() override;
@@ -183,9 +176,9 @@ class ChromeAutofillClient : public ContentAutofillClient,
       const std::u16string& tip_message,
       const std::vector<MigratableCreditCard>& migratable_credit_cards,
       MigrationDeleteCardCallback delete_local_card_callback) override;
-  void ConfirmSaveIbanLocally(const Iban& iban,
+  void ConfirmSaveIBANLocally(const IBAN& iban,
                               bool should_show_prompt,
-                              LocalSaveIbanPromptCallback callback) override;
+                              LocalSaveIBANPromptCallback callback) override;
   void ShowWebauthnOfferDialog(
       WebauthnDialogCallback offer_dialog_callback) override;
   void ShowWebauthnVerifyPendingDialog(
@@ -218,8 +211,6 @@ class ChromeAutofillClient : public ContentAutofillClient,
   void CreditCardUploadCompleted(bool card_saved) override;
   void ConfirmCreditCardFillAssist(const CreditCard& card,
                                    base::OnceClosure callback) override;
-  void ShowEditAddressProfileDialog(const AutofillProfile& profile) override;
-  void ShowDeleteAddressProfileDialog() override;
   void ConfirmSaveAddressProfile(
       const AutofillProfile& profile,
       const AutofillProfile* original_profile,
@@ -240,19 +231,16 @@ class ChromeAutofillClient : public ContentAutofillClient,
       const std::vector<std::u16string>& labels) override;
   std::vector<Suggestion> GetPopupSuggestions() const override;
   void PinPopupView() override;
-  PopupOpenArgs GetReopenPopupArgs(
-      AutofillSuggestionTriggerSource trigger_source) const override;
+  PopupOpenArgs GetReopenPopupArgs() const override;
   void UpdatePopup(const std::vector<Suggestion>& suggestions,
-                   PopupType popup_type,
-                   AutofillSuggestionTriggerSource trigger_source) override;
+                   PopupType popup_type) override;
   void HideAutofillPopup(PopupHidingReason reason) override;
   void UpdateOfferNotification(const AutofillOfferData* offer,
-                               bool notification_has_been_shown,
-                               bool expand_notification_icon) override;
+                               bool notification_has_been_shown) override;
   void DismissOfferNotification() override;
   void OnVirtualCardDataAvailable(
       const VirtualCardManualFallbackBubbleOptions& options) override;
-  void ShowAutofillErrorDialog(
+  void ShowVirtualCardErrorDialog(
       const AutofillErrorDialogContext& context) override;
   void ShowAutofillProgressDialog(
       AutofillProgressDialogType autofill_progress_dialog_type,
@@ -262,10 +250,10 @@ class ChromeAutofillClient : public ContentAutofillClient,
       base::OnceClosure no_interactive_authentication_callback) override;
   bool IsAutocompleteEnabled() const override;
   bool IsPasswordManagerEnabled() override;
-  void PropagateAutofillPredictionsDeprecated(
+  void PropagateAutofillPredictions(
       AutofillDriver* driver,
       const std::vector<FormStructure*>& forms) override;
-  void DidFillOrPreviewForm(mojom::AutofillActionPersistence action_persistence,
+  void DidFillOrPreviewForm(mojom::RendererFormDataAction action,
                             AutofillTriggerSource trigger_source,
                             bool is_refill) override;
   void DidFillOrPreviewField(const std::u16string& autofilled_value,
@@ -313,11 +301,6 @@ class ChromeAutofillClient : public ContentAutofillClient,
 
  protected:
   explicit ChromeAutofillClient(content::WebContents* web_contents);
-#if BUILDFLAG(IS_ANDROID)
-  void SetAutofillSaveCardBottomSheetBridgeForTesting(
-      std::unique_ptr<AutofillSaveCardBottomSheetBridge>
-          autofill_save_card_bottom_sheet_bridge);
-#endif
 
  private:
   Profile* GetProfile() const;
@@ -353,8 +336,6 @@ class ChromeAutofillClient : public ContentAutofillClient,
   std::unique_ptr<AutofillSnackbarControllerImpl>
       autofill_snackbar_controller_impl_;
   std::unique_ptr<FastCheckoutClient> fast_checkout_client_;
-  std::unique_ptr<AutofillSaveCardBottomSheetBridge>
-      autofill_save_card_bottom_sheet_bridge_;
 #endif
   std::unique_ptr<CardUnmaskPromptControllerImpl> unmask_controller_;
   AutofillErrorDialogControllerImpl autofill_error_dialog_controller_;

@@ -7,37 +7,32 @@ Application
     Presentation
     Protocol Handlers
     Icons
-    Window Controls Overlay
-  Service workers
+  Service Workers
   Storage
 Storage
-  Local storage
+  Local Storage
     http://127.0.0.1:8000
-  Session storage
+  Session Storage
     http://127.0.0.1:8000
   IndexedDB
   Web SQL
   Cookies
     http://127.0.0.1:8000
-  Private state tokens
-  Interest groups
-  Shared storage
+  Private State Tokens
+  Interest Groups
+  Shared Storage
     http://127.0.0.1:8000
-  Cache storage
-Background services
+  Cache Storage
+Background Services
   Back/forward cache
-  Background fetch
-  Background sync
-  Bounce tracking mitigations
+  Background Fetch
+  Background Sync
+  Bounce Tracking Mitigations
   Notifications
-  Payment handler
-  Periodic background sync
-  Push messaging
+  Payment Handler
+  Periodic Background Sync
+  Push Messaging
   Reporting API
-Preloading
-  Speculation rules
-  Preloads
-  This page
 Frames
   top
     Scripts
@@ -51,38 +46,33 @@ Application
     Presentation
     Protocol Handlers
     Icons
-    Window Controls Overlay
-  Service workers
+  Service Workers
   Storage
 Storage
-  Local storage
+  Local Storage
     http://127.0.0.1:8000
-  Session storage
+  Session Storage
     http://127.0.0.1:8000
   IndexedDB
   Web SQL
     inspector-test-db (selected)
   Cookies
     http://127.0.0.1:8000
-  Private state tokens
-  Interest groups
-  Shared storage
+  Private State Tokens
+  Interest Groups
+  Shared Storage
     http://127.0.0.1:8000
-  Cache storage
-Background services
+  Cache Storage
+Background Services
   Back/forward cache
-  Background fetch
-  Background sync
-  Bounce tracking mitigations
+  Background Fetch
+  Background Sync
+  Bounce Tracking Mitigations
   Notifications
-  Payment handler
-  Periodic background sync
-  Push messaging
+  Payment Handler
+  Periodic Background Sync
+  Push Messaging
   Reporting API
-Preloading
-  Speculation rules
-  Preloads
-  This page
 Frames
   top
     Scripts
@@ -95,13 +85,12 @@ Application
     Presentation
     Protocol Handlers
     Icons
-    Window Controls Overlay
-  Service workers
+  Service Workers
   Storage
 Storage
-  Local storage
+  Local Storage
     http://127.0.0.1:8000
-  Session storage
+  Session Storage
     http://127.0.0.1:8000
   IndexedDB
   Web SQL
@@ -109,25 +98,21 @@ Storage
       table1
   Cookies
     http://127.0.0.1:8000
-  Private state tokens
-  Interest groups
-  Shared storage
+  Private State Tokens
+  Interest Groups
+  Shared Storage
     http://127.0.0.1:8000
-  Cache storage
-Background services
+  Cache Storage
+Background Services
   Back/forward cache
-  Background fetch
-  Background sync
-  Bounce tracking mitigations
+  Background Fetch
+  Background Sync
+  Bounce Tracking Mitigations
   Notifications
-  Payment handler
-  Periodic background sync
-  Push messaging
+  Payment Handler
+  Periodic Background Sync
+  Push Messaging
   Reporting API
-Preloading
-  Speculation rules
-  Preloads
-  This page
 Frames
   top
     Scripts

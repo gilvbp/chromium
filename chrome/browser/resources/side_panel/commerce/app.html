@@ -14,8 +14,6 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    margin: 0;
-    padding: 0;
   }
 
   .panel-subtitle {
@@ -50,12 +48,9 @@
   .history-subtitle {
     line-height: 20px;
     max-width: 100%;
+    overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-  }
-
-  #priceRange {
-    overflow: hidden;
   }
 
   shopping-insights-history-graph {
@@ -65,7 +60,7 @@
 
 <div id="insightsContainer">
   <div class="section" id="titleSection">
-    <h1 class="panel-title">[[productInfo.clusterTitle]]</h1>
+    <div class="panel-title">[[productInfo.clusterTitle]]</div>
     <div id="priceRange" class="panel-subtitle"
         hidden="[[!priceInsightsInfo.typicalLowPrice.length]]">
       [[getRangeDescription_(priceInsightsInfo)]]
@@ -82,7 +77,7 @@
     <div class="divider"></div>
     <div class="section" id="historySection">
       <div class="section-title" id="historyTitle">
-        $i18n{historyTitle}
+        [[getHistoryTitle_(priceInsightsInfo)]]
       </div>
       <catalog-attributes-row class="history-subtitle"
           price-insights-info="[[priceInsightsInfo]]"

@@ -3,7 +3,6 @@
 // found in the LICENSE file.
 
 #include <sys/types.h>
-#include <memory>
 #include <utility>
 
 #include "base/memory/raw_ptr.h"
@@ -32,7 +31,6 @@
 #include "components/user_manager/scoped_user_manager.h"
 #include "content/public/test/browser_task_environment.h"
 #include "testing/gtest/include/gtest/gtest.h"
-#include "third_party/abseil-cpp/absl/types/optional.h"
 
 using HttpsLatencyProblemMojom =
     ::chromeos::network_diagnostics::mojom::HttpsLatencyProblem;
@@ -94,9 +92,7 @@ class FakeMetricReportingManagerDelegate
   std::unique_ptr<MetricReportQueue> CreateMetricReportQueue(
       EventType event_type,
       Destination destination,
-      Priority priority,
-      std::unique_ptr<RateLimiterInterface> rate_limiter,
-      absl::optional<SourceInfo> source_info) override {
+      Priority priority) override {
     if (event_type != EventType::kDevice ||
         destination != Destination::EVENT_METRIC ||
         priority != Priority::SLOW_BATCH) {
@@ -183,8 +179,7 @@ class HttpsLatencyEventsTest : public ::testing::Test {
   ash::ScopedTestingCrosSettings scoped_testing_cros_settings_;
 
   std::unique_ptr<TestingProfile> profile_;
-  raw_ptr<ash::FakeChromeUserManager, DanglingUntriaged | ExperimentalAsh>
-      user_manager_;
+  raw_ptr<ash::FakeChromeUserManager, ExperimentalAsh> user_manager_;
   std::unique_ptr<user_manager::ScopedUserManager> user_manager_enabler_;
 
   ::ash::NetworkHandlerTestHelper network_handler_test_helper_;

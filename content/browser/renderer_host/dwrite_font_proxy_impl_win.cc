@@ -12,7 +12,6 @@
 #include <memory>
 #include <set>
 #include <string>
-#include <tuple>
 #include <utility>
 
 #include "base/check_op.h"
@@ -29,6 +28,7 @@
 #include "base/time/time.h"
 #include "base/trace_event/trace_event.h"
 #include "content/browser/renderer_host/dwrite_font_file_util_win.h"
+#include "content/browser/renderer_host/dwrite_font_uma_logging_win.h"
 #include "content/public/common/content_features.h"
 #include "mojo/public/cpp/bindings/callback_helpers.h"
 #include "mojo/public/cpp/bindings/self_owned_receiver.h"
@@ -101,6 +101,11 @@ bool CheckRequiredStylesPresent(IDWriteFontCollection* collection,
       if (font->GetWeight() != font_style.required_weight ||
           font->GetStretch() != font_style.required_stretch ||
           font->GetStyle() != font_style.required_style) {
+        // Not really a loader type, but good to have telemetry on how often
+        // fonts like these are encountered, and the data can be compared with
+        // the other loader types.
+        LogLoaderType(
+            DirectWriteFontLoaderType::FONT_WITH_MISSING_REQUIRED_STYLES);
         return false;
       }
       break;
@@ -301,6 +306,10 @@ void DWriteFontProxyImpl::GetFontFileHandles(
   mswr::ComPtr<IDWriteFontFamily> family;
   HRESULT hr = collection_->GetFontFamily(family_index, &family);
   if (FAILED(hr)) {
+    if (IsLastResortFallbackFont(family_index)) {
+      LogMessageFilterError(
+          MessageFilterError::LAST_RESORT_FONT_GET_FAMILY_FAILED);
+    }
     return;
   }
 
@@ -314,10 +323,19 @@ void DWriteFontProxyImpl::GetFontFileHandles(
     mswr::ComPtr<IDWriteFont> font;
     hr = family->GetFont(font_index, &font);
     if (FAILED(hr)) {
+      if (IsLastResortFallbackFont(family_index)) {
+        LogMessageFilterError(
+            MessageFilterError::LAST_RESORT_FONT_GET_FONT_FAILED);
+      }
       return;
     }
 
-    std::ignore = AddFilesForFont(font.Get(), windows_fonts_path_, &path_set);
+    if (FAILED(AddFilesForFont(font.Get(), windows_fonts_path_, &path_set))) {
+      if (IsLastResortFallbackFont(family_index)) {
+        LogMessageFilterError(
+            MessageFilterError::LAST_RESORT_FONT_ADD_FILES_FAILED);
+      }
+    }
   }
 
   std::vector<base::File> file_handles;
@@ -442,6 +460,7 @@ void DWriteFontProxyImpl::MapCharacters(
   }
 
   // Could not find a matching family
+  LogMessageFilterError(MessageFilterError::MAP_CHARACTERS_NO_FAMILY);
   DCHECK_EQ(result->family_index, UINT32_MAX);
   DCHECK_GT(result->mapped_length, 0u);
 }
@@ -572,6 +591,9 @@ void DWriteFontProxyImpl::InitializeDirectWrite() {
   DCHECK(SUCCEEDED(hr));
 
   if (!collection_) {
+    base::UmaHistogramSparse(
+        "DirectWrite.Fonts.Proxy.GetSystemFontCollectionResult", hr);
+    LogMessageFilterError(MessageFilterError::ERROR_NO_COLLECTION);
     return;
   }
 
@@ -585,6 +607,7 @@ void DWriteFontProxyImpl::InitializeDirectWrite() {
       last_resort_fonts_.push_back(font_index);
     }
   }
+  LogLastResortFontCount(last_resort_fonts_.size());
 }
 
 bool DWriteFontProxyImpl::IsLastResortFallbackFont(uint32_t font_index) {

@@ -83,9 +83,8 @@ PerformanceScriptTiming::PerformanceScriptTiming(
   info_ = info;
   time_origin_ = time_origin;
   cross_origin_isolated_capability_ = cross_origin_isolated_capability;
-  if (!info_->Window() || !source) {
-    window_attribution_ = AtomicString("other");
-  } else if (info_->Window() == source) {
+  DCHECK(info_->Window() && source);
+  if (info_->Window() == source) {
     window_attribution_ = AtomicString("self");
   } else if (!info_->Window()->GetFrame()) {
     window_attribution_ = AtomicString("other");
@@ -174,11 +173,10 @@ WTF::String PerformanceScriptTiming::sourceLocation() const {
   }
 
   builder.Append(source_location.url);
-  if (source_location.start_position >= 0) {
-    builder.Append(":");
-    builder.AppendNumber(source_location.start_position);
-  }
-
+  builder.Append(":");
+  builder.AppendNumber(source_location.line_number);
+  builder.Append(":");
+  builder.AppendNumber(source_location.column_number);
   return builder.ToString();
 }
 

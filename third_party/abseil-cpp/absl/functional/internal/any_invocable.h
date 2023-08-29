@@ -440,11 +440,11 @@ class CoreImpl {
 
   CoreImpl() noexcept : manager_(EmptyManager), invoker_(nullptr) {}
 
-  enum class TargetType {
-    kPointer,
-    kCompatibleAnyInvocable,
-    kIncompatibleAnyInvocable,
-    kOther,
+  enum class TargetType : int {
+    kPointer = 0,
+    kCompatibleAnyInvocable = 1,
+    kIncompatibleAnyInvocable = 2,
+    kOther = 3,
   };
 
   // Note: QualDecayedTRef here includes the cv-ref qualifiers associated with
@@ -466,7 +466,8 @@ class CoreImpl {
     // NOTE: We only use integers instead of enums as template parameters in
     // order to work around a bug on C++14 under MSVC 2017.
     // See b/236131881.
-    Initialize<kTargetType, QualDecayedTRef>(std::forward<F>(f));
+    Initialize<static_cast<int>(kTargetType), QualDecayedTRef>(
+        std::forward<F>(f));
   }
 
   // Note: QualTRef here includes the cv-ref qualifiers associated with the
@@ -517,8 +518,8 @@ class CoreImpl {
     invoker_ = nullptr;
   }
 
-  template <TargetType target_type, class QualDecayedTRef, class F,
-            absl::enable_if_t<target_type == TargetType::kPointer, int> = 0>
+  template <int target_type, class QualDecayedTRef, class F,
+            absl::enable_if_t<target_type == 0, int> = 0>
   void Initialize(F&& f) {
 // This condition handles types that decay into pointers, which includes
 // function references. Since function references cannot be null, GCC warns
@@ -542,9 +543,8 @@ class CoreImpl {
     InitializeStorage<QualDecayedTRef>(std::forward<F>(f));
   }
 
-  template <TargetType target_type, class QualDecayedTRef, class F,
-            absl::enable_if_t<
-                target_type == TargetType::kCompatibleAnyInvocable, int> = 0>
+  template <int target_type, class QualDecayedTRef, class F,
+            absl::enable_if_t<target_type == 1, int> = 0>
   void Initialize(F&& f) {
     // In this case we can "steal the guts" of the other AnyInvocable.
     f.manager_(FunctionToCall::relocate_from_to, &f.state_, &state_);
@@ -555,9 +555,8 @@ class CoreImpl {
     f.invoker_ = nullptr;
   }
 
-  template <TargetType target_type, class QualDecayedTRef, class F,
-            absl::enable_if_t<
-                target_type == TargetType::kIncompatibleAnyInvocable, int> = 0>
+  template <int target_type, class QualDecayedTRef, class F,
+            absl::enable_if_t<target_type == 2, int> = 0>
   void Initialize(F&& f) {
     if (f.HasValue()) {
       InitializeStorage<QualDecayedTRef>(std::forward<F>(f));
@@ -567,8 +566,8 @@ class CoreImpl {
     }
   }
 
-  template <TargetType target_type, class QualDecayedTRef, class F,
-            typename = absl::enable_if_t<target_type == TargetType::kOther>>
+  template <int target_type, class QualDecayedTRef, class F,
+            typename = absl::enable_if_t<target_type == 3>>
   void Initialize(F&& f) {
     InitializeStorage<QualDecayedTRef>(std::forward<F>(f));
   }

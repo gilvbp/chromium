@@ -104,6 +104,7 @@ public class MerchantTrustMessageScheduler {
         setScheduledMessage(null);
     }
 
+    @VisibleForTesting
     void setHandlerForTesting(Handler handler) {
         mEnqueueMessageTimer = handler;
     }

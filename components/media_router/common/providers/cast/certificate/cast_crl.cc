@@ -9,11 +9,9 @@
 
 #include <memory>
 
-#include "base/build_time.h"
 #include "base/containers/span.h"
 #include "base/logging.h"
 #include "base/memory/singleton.h"
-#include "components/media_router/common/providers/cast/certificate/cast_fallback_crl.h"
 #include "crypto/sha2.h"
 #include "net/cert/pki/cert_errors.h"
 #include "net/cert/pki/parse_certificate.h"
@@ -64,11 +62,6 @@ enum CrlVersion {
 // These constants are defined by the file included next:
 
 #include "components/media_router/common/providers/cast/certificate/cast_crl_root_ca_cert_der-inc.h"
-
-// When the fallback Cast CRL is used, ignore the back-up Cast CRL’s validity
-// range. Instead, use the Build Time as the not_before date and Build Time + 20
-// weeks as the not_after time. This is a constant as 20 weeks in seconds
-constexpr static int kFallbackCrlValidityInSeconds = 20 * 7 * 24 * 60 * 60;
 
 // Singleton for the Cast CRL trust store.
 class CastCRLTrustStore {
@@ -378,19 +371,17 @@ bool CastCRLImpl::CheckRevocation(
 }  // namespace
 
 std::unique_ptr<CastCRL> ParseAndVerifyCRL(const std::string& crl_proto,
-                                           const base::Time& time,
-                                           const bool is_fallback_crl) {
-  return ParseAndVerifyCRLUsingCustomTrustStore(
-      crl_proto, time, &CastCRLTrustStore::Get(), is_fallback_crl);
+                                           const base::Time& time) {
+  return ParseAndVerifyCRLUsingCustomTrustStore(crl_proto, time,
+                                                &CastCRLTrustStore::Get());
 }
 
 std::unique_ptr<CastCRL> ParseAndVerifyCRLUsingCustomTrustStore(
     const std::string& crl_proto,
     const base::Time& time,
-    net::TrustStore* trust_store,
-    const bool is_fallback_crl) {
+    net::TrustStore* trust_store) {
   if (!trust_store)
-    return ParseAndVerifyCRL(crl_proto, time, is_fallback_crl);
+    return ParseAndVerifyCRL(crl_proto, time);
 
   CrlBundle crl_bundle;
   if (!crl_bundle.ParseFromString(crl_proto)) {
@@ -406,13 +397,6 @@ std::unique_ptr<CastCRL> ParseAndVerifyCRLUsingCustomTrustStore(
     if (tbs_crl.version() != CRL_VERSION_0) {
       continue;
     }
-
-    if (is_fallback_crl) {
-      tbs_crl.set_not_before_seconds(base::GetBuildTime().ToTimeT());
-      tbs_crl.set_not_after_seconds(base::GetBuildTime().ToTimeT() +
-                                    kFallbackCrlValidityInSeconds);
-    }
-
     net::der::GeneralizedTime overall_not_after;
     if (!VerifyCRL(crl, tbs_crl, time, trust_store, &overall_not_after)) {
       LOG(ERROR) << "CRL - Verification failed.";
@@ -422,17 +406,6 @@ std::unique_ptr<CastCRL> ParseAndVerifyCRLUsingCustomTrustStore(
   }
   LOG(ERROR) << "No supported version of revocation data.";
   return nullptr;
-}
-
-std::unique_ptr<CastCRL> ParseAndVerifyFallbackCRLUsingCustomTrustStore(
-    const base::Time& time,
-    net::TrustStore* trust_store) {
-  std::string fallback_serialized_crl(
-      kCastFallbackCRLs, kCastFallbackCRLs + sizeof kCastFallbackCRLs /
-                                                 sizeof kCastFallbackCRLs[0]);
-
-  return ParseAndVerifyCRLUsingCustomTrustStore(
-      fallback_serialized_crl, time, trust_store, true /* is_fallback_crl */);
 }
 
 }  // namespace cast_certificate

@@ -23,23 +23,36 @@ using content::BrowserContext;
 
 PasswordsPrivateDelegateProxy::PasswordsPrivateDelegateProxy(
     BrowserContext* browser_context)
-    : browser_context_(browser_context) {}
+    : browser_context_(browser_context) {
+  if (base::FeatureList::IsEnabled(
+          password_manager::features::kPasswordManagerRedesign)) {
+    return;
+  }
+  scoped_instance_ = base::MakeRefCounted<PasswordsPrivateDelegateImpl>(
+      static_cast<Profile*>(browser_context_));
+}
 
 PasswordsPrivateDelegateProxy::PasswordsPrivateDelegateProxy(
     BrowserContext* browser_context,
     scoped_refptr<PasswordsPrivateDelegate> delegate)
-    : browser_context_(browser_context) {
-  weak_instance_ = delegate->AsWeakPtr();
+    : browser_context_(browser_context), scoped_instance_(std::move(delegate)) {
+  weak_instance_ = scoped_instance_->AsWeakPtr();
 }
 PasswordsPrivateDelegateProxy::~PasswordsPrivateDelegateProxy() = default;
 
 void PasswordsPrivateDelegateProxy::Shutdown() {
   browser_context_ = nullptr;
   weak_instance_ = nullptr;
+  scoped_instance_ = nullptr;
 }
 
 scoped_refptr<PasswordsPrivateDelegate>
 PasswordsPrivateDelegateProxy::GetOrCreateDelegate() {
+  if (!base::FeatureList::IsEnabled(
+          password_manager::features::kPasswordManagerRedesign)) {
+    return scoped_instance_;
+  }
+
   if (weak_instance_) {
     return scoped_refptr<PasswordsPrivateDelegate>(weak_instance_.get());
   }
@@ -53,7 +66,11 @@ PasswordsPrivateDelegateProxy::GetOrCreateDelegate() {
 
 scoped_refptr<PasswordsPrivateDelegate>
 PasswordsPrivateDelegateProxy::GetDelegate() {
-  return scoped_refptr<PasswordsPrivateDelegate>(weak_instance_.get());
+  if (base::FeatureList::IsEnabled(
+          password_manager::features::kPasswordManagerRedesign)) {
+    return scoped_refptr<PasswordsPrivateDelegate>(weak_instance_.get());
+  }
+  return scoped_instance_;
 }
 
 // static
@@ -92,10 +109,9 @@ PasswordsPrivateDelegateFactory::PasswordsPrivateDelegateFactory()
 
 PasswordsPrivateDelegateFactory::~PasswordsPrivateDelegateFactory() = default;
 
-std::unique_ptr<KeyedService>
-PasswordsPrivateDelegateFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* PasswordsPrivateDelegateFactory::BuildServiceInstanceFor(
     content::BrowserContext* profile) const {
-  return std::make_unique<PasswordsPrivateDelegateProxy>(profile);
+  return new PasswordsPrivateDelegateProxy(profile);
 }
 
 }  // namespace extensions

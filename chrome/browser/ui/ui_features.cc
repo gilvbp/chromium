@@ -8,8 +8,6 @@
 #include "base/metrics/field_trial_params.h"
 #include "build/build_config.h"
 #include "build/chromeos_buildflags.h"
-#include "components/flags_ui/feature_entry.h"
-#include "ui/base/ui_base_features.h"
 
 namespace features {
 
@@ -19,22 +17,14 @@ BASE_FEATURE(kAllowWindowDragUsingSystemDragDrop,
              "AllowWindowDragUsingSystemDragDrop",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
-// Enables the use of WGC for the Eye Dropper screen capture.
-BASE_FEATURE(kAllowEyeDropperWGCScreenCapture,
-             "AllowEyeDropperWGCScreenCapture",
-#if BUILDFLAG(IS_WIN)
-             base::FEATURE_ENABLED_BY_DEFAULT
-#else
-             base::FEATURE_DISABLED_BY_DEFAULT
-#endif  // BUILDFLAG(IS_WIN)
-);
+#if !BUILDFLAG(IS_CHROMEOS) && !BUILDFLAG(IS_ANDROID)
+BASE_FEATURE(kDesktopPWAsAppHomePage,
+             "DesktopPWAsAppHomePage",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+#endif  // !BUILDFLAG(IS_CHROMEOS) && !BUILDFLAG(IS_ANDROID)
 
 // Enables Chrome Labs menu in the toolbar. See https://crbug.com/1145666
-BASE_FEATURE(kChromeLabs, "ChromeLabs", base::FEATURE_ENABLED_BY_DEFAULT);
-const char kChromeLabsActivationParameterName[] =
-    "chrome_labs_activation_percentage";
-const base::FeatureParam<int> kChromeLabsActivationPercentage{
-    &kChromeLabs, kChromeLabsActivationParameterName, 99};
+BASE_FEATURE(kChromeLabs, "ChromeLabs", base::FEATURE_DISABLED_BY_DEFAULT);
 
 // Enables "Chrome What's New" UI.
 BASE_FEATURE(kChromeWhatsNewUI,
@@ -85,12 +75,6 @@ BASE_FEATURE(kGetTheMostOutOfChrome,
              base::FEATURE_DISABLED_BY_DEFAULT);
 #endif
 
-#if !BUILDFLAG(IS_ANDROID)
-// Enables or disables the Happiness Tracking Surveys being delivered via chrome
-// webui, rather than a separate static website.
-BASE_FEATURE(kHaTSWebUI, "HaTSWebUI", base::FEATURE_DISABLED_BY_DEFAULT);
-#endif  // !BUILDFLAG(IS_ANDROID)
-
 #if BUILDFLAG(ENABLE_EXTENSIONS)
 // Controls whether we use a different UX for simple extensions overriding
 // settings.
@@ -107,12 +91,6 @@ BASE_FEATURE(kPowerBookmarksSidePanel,
 // Enables the QuickCommands UI surface. See https://crbug.com/1014639
 BASE_FEATURE(kQuickCommands,
              "QuickCommands",
-             base::FEATURE_DISABLED_BY_DEFAULT);
-
-// Enable responsive toolbar. Toolbar buttons overflow to a chevron button when
-// the browser width is resized smaller than normal.
-BASE_FEATURE(kResponsiveToolbar,
-             "ResponsiveToolbar",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
 // Enables the side search feature for Google Search. Presents recent Google
@@ -224,15 +202,6 @@ const char kTabHoverCardImagesCrossfadePreviewAtParameterName[] =
     "crossfade_preview_at";
 const char kTabHoverCardAdditionalMaxWidthDelay[] =
     "additional_max_width_delay";
-
-BASE_FEATURE(kTabOrganization,
-             "TabOrganization",
-             base::FEATURE_DISABLED_BY_DEFAULT);
-
-bool IsTabOrganization() {
-  return IsChromeRefresh2023() &&
-         base::FeatureList::IsEnabled(features::kTabOrganization);
-}
 
 BASE_FEATURE(kTabSearchChevronIcon,
              "TabSearchChevronIcon",
@@ -384,9 +353,8 @@ int GetLocationPermissionsExperimentLabelPromptLimit() {
 #endif
 
 // Reduce resource usage when view is hidden by not rendering loading animation.
-// TODO(crbug.com/1322081): Clean up the feature in M117.
 BASE_FEATURE(kStopLoadingAnimationForHiddenWindow,
              "StopLoadingAnimationForHiddenWindow",
-             base::FEATURE_ENABLED_BY_DEFAULT);
+             base::FEATURE_DISABLED_BY_DEFAULT);
 
 }  // namespace features

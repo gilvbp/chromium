@@ -38,8 +38,8 @@ enum class FormControlType {
   kCheckbox = 4,
   kRadio = 5,
   kSelectOne = 6,
-  kSelectlist = 7,
-  kMaxValue = kSelectlist,
+  kSelectmenu = 7,
+  kMaxValue = kSelectmenu,
 };
 
 class AutofillField : public FormFieldData {
@@ -59,8 +59,6 @@ class AutofillField : public FormFieldData {
 
   AutofillField(const AutofillField&) = delete;
   AutofillField& operator=(const AutofillField&) = delete;
-  AutofillField(AutofillField&&);
-  AutofillField& operator=(AutofillField&&);
 
   virtual ~AutofillField();
 

@@ -9,6 +9,7 @@ declare_args() {
 }
 
 source_set("branding") {
+  configs += [ "//build/config/compiler:enable_arc" ]
   sources = [
     "branding_coordinator.h",
     "branding_coordinator.mm",
@@ -26,6 +27,7 @@ source_set("branding") {
 }
 
 source_set("branding_ui") {
+  configs += [ "//build/config/compiler:enable_arc" ]
   sources = [
     "branding_consumer.h",
     "branding_view_controller.h",
@@ -43,7 +45,10 @@ source_set("branding_ui") {
 }
 
 source_set("eg2_tests") {
-  configs += [ "//build/config/ios:xctest_config" ]
+  configs += [
+    "//build/config/compiler:enable_arc",
+    "//build/config/ios:xctest_config",
+  ]
   testonly = true
   sources = [ "branding_view_controller_egtest.mm" ]
   deps = [

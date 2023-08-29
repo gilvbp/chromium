@@ -43,7 +43,11 @@ bool LayoutNGView::IsFragmentationContextRoot() const {
 
 void LayoutNGView::UpdateLayout() {
   NOT_DESTROYED();
-  if (ShouldUsePrintingLayout()) {
+  if (!GetDocument().Printing()) {
+    page_size_ = PhysicalSize();
+  }
+
+  if (PageLogicalHeight() && ShouldUsePrintingLayout()) {
     intrinsic_logical_widths_ = LogicalWidth();
     if (!fragmentation_context_) {
       fragmentation_context_ =
@@ -67,22 +71,16 @@ void LayoutNGView::UpdateLayout() {
       chrome_client.GetScreenInfo(frame).device_scale_factor);
 #endif
 
-  bool is_resizing_initial_containing_block =
+  is_resizing_initial_containing_block_ =
       LogicalWidth() != ViewLogicalWidthForBoxSizing() ||
       LogicalHeight() != ViewLogicalHeightForBoxSizing();
   bool invalidate_svg_roots =
       GetDocument().SvgExtensions() && !ShouldUsePrintingLayout() &&
-      (!GetFrameView() || is_resizing_initial_containing_block);
+      (!GetFrameView() || is_resizing_initial_containing_block_);
   if (invalidate_svg_roots) {
     GetDocument()
         .AccessSVGExtensions()
         .InvalidateSVGRootsWithRelativeLengthDescendents();
-  }
-
-  DCHECK(!initial_containing_block_resize_handled_list_);
-  if (is_resizing_initial_containing_block) {
-    initial_containing_block_resize_handled_list_ =
-        MakeGarbageCollected<HeapHashSet<Member<const LayoutObject>>>();
   }
 
   const auto& style = StyleRef();
@@ -94,14 +92,25 @@ void LayoutNGView::UpdateLayout() {
   builder.SetIsFixedBlockSize(true);
 
   NGBlockNode(this).Layout(builder.ToConstraintSpace());
-  initial_containing_block_resize_handled_list_ = nullptr;
+  is_resizing_initial_containing_block_ = false;
+}
+
+MinMaxSizes LayoutNGView::ComputeIntrinsicLogicalWidths() const {
+  NOT_DESTROYED();
+  WritingMode writing_mode = StyleRef().GetWritingMode();
+
+  NGConstraintSpace space =
+      NGConstraintSpaceBuilder(writing_mode, StyleRef().GetWritingDirection(),
+                               /* is_new_fc */ true)
+          .ToConstraintSpace();
+
+  NGBlockNode node(const_cast<LayoutNGView*>(this));
+  DCHECK(node.CanUseNewLayout());
+  return node.ComputeMinMaxSizes(writing_mode, MinMaxSizesType::kContent, space)
+      .sizes;
 }
 
 AtomicString LayoutNGView::NamedPageAtIndex(wtf_size_t page_index) const {
-  // If layout is dirty, it's not possible to look up page names reliably.
-  DCHECK_GE(GetDocument().Lifecycle().GetState(),
-            DocumentLifecycle::kLayoutClean);
-
   if (!PhysicalFragmentCount())
     return AtomicString();
   DCHECK_EQ(PhysicalFragmentCount(), 1u);

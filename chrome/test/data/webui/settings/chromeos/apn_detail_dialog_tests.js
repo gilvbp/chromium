@@ -13,7 +13,7 @@ import {ApnAuthenticationType, ApnIpType, ApnProperties, ApnState, ApnType, Mana
 import {NetworkType} from 'chrome://resources/mojo/chromeos/services/network_config/public/mojom/network_types.mojom-webui.js';
 import {FakeNetworkConfig} from 'chrome://test/chromeos/fake_network_config_mojom.js';
 import {assertEquals, assertFalse, assertTrue} from 'chrome://webui-test/chai_assert.js';
-import {flushTasks, waitAfterNextRender} from 'chrome://webui-test/polymer_test_util.js';
+import {flushTasks} from 'chrome://webui-test/polymer_test_util.js';
 import {eventToPromise} from 'chrome://webui-test/test_util.js';
 
 /** @type {!ApnProperties} */
@@ -67,6 +67,8 @@ suite('ApnDetailDialog', function() {
     apnDetailDialog = document.createElement('apn-detail-dialog');
     apnDetailDialog.guid = 'fake-guid';
     apnDetailDialog.apnList = [TEST_APN];
+    document.body.appendChild(apnDetailDialog);
+    await flushTasks();
   });
 
   teardown(function() {
@@ -76,13 +78,7 @@ suite('ApnDetailDialog', function() {
     });
   });
 
-  async function init() {
-    document.body.appendChild(apnDetailDialog);
-    return waitAfterNextRender(apnDetailDialog);
-  }
-
-  test('Element contains dialog', async function() {
-    await init();
+  test('Element contains dialog', function() {
     const dialog = apnDetailDialog.shadowRoot.querySelector('cr-dialog');
     assertTrue(!!dialog);
     assertTrue(dialog.open);
@@ -108,13 +104,9 @@ suite('ApnDetailDialog', function() {
     assertTrue(
         !!apnDetailDialog.shadowRoot.querySelector('#apnDetailActionBtn'));
     assertFalse(!!apnDetailDialog.shadowRoot.querySelector('#apnDoneBtn'));
-    assertEquals(
-        apnDetailDialog.shadowRoot.querySelector('#apnInput'),
-        apnDetailDialog.shadowRoot.activeElement);
   });
 
   test('Clicking the cancel button fires the close event', async function() {
-    await init();
     const closeEventPromise = eventToPromise('close', window);
     const cancelBtn =
         apnDetailDialog.shadowRoot.querySelector('#apnDetailCancelBtn');
@@ -127,8 +119,7 @@ suite('ApnDetailDialog', function() {
 
   test(
       'Clicking on the advanced settings button expands/collapses section',
-      async function() {
-        await init();
+      function() {
         const isAdvancedSettingShowing = () =>
             apnDetailDialog.shadowRoot.querySelector('iron-collapse').opened;
         assertFalse(!!isAdvancedSettingShowing());
@@ -175,7 +166,6 @@ suite('ApnDetailDialog', function() {
       });
 
   test('Clicking on the add button calls createCustomApn', async () => {
-    await init();
     apnDetailDialog.$.apnInput.value = TEST_APN.accessPointName;
     apnDetailDialog.$.usernameInput.value = TEST_APN.username;
     apnDetailDialog.$.passwordInput.value = TEST_APN.password;
@@ -228,13 +218,9 @@ suite('ApnDetailDialog', function() {
       assertTrue(!!element);
       assertTrue(element.disabled);
     };
-
-    // Set the dialog mode before opening the dialog so that the default focus
-    // can be tested.
     apnDetailDialog.mode = ApnDetailDialogMode.VIEW;
     apnDetailDialog.apnProperties = TEST_APN;
-
-    await init();
+    await flushTasks();
     assertEquals(
         apnDetailDialog.i18n('apnDetailViewApnDialogTitle'),
         apnDetailDialog.shadowRoot.querySelector('#apnDetailDialogTitle')
@@ -253,11 +239,9 @@ suite('ApnDetailDialog', function() {
     assertFieldDisabled('#apnDefaultTypeCheckbox');
     assertFieldDisabled('#apnAttachTypeCheckbox');
     assertFieldDisabled('#ipTypeDropDown');
-    assertEquals(doneBtn, apnDetailDialog.shadowRoot.activeElement);
   });
 
   test('Dialog input fields are validated', async () => {
-    await init();
     const apnInputField = apnDetailDialog.$.apnInput;
     const actionButton =
         apnDetailDialog.shadowRoot.querySelector('#apnDetailActionBtn');
@@ -298,7 +282,6 @@ suite('ApnDetailDialog', function() {
   });
 
   test('Apn types are correctly validated in all modes', async () => {
-    await init();
     const updateApnTypeCheckboxes = (defaultType, attachType) => {
       apnDetailDialog.$.apnDefaultTypeCheckbox.checked = defaultType;
       apnDetailDialog.$.apnAttachTypeCheckbox.checked = attachType;
@@ -407,13 +390,9 @@ suite('ApnDetailDialog', function() {
     const apnWithId = TEST_APN;
     apnWithId.id = '1';
     apnWithId.apnTypes = [ApnType.kDefault];
-
-    // Set the dialog mode before opening the dialog so that the default focus
-    // can be tested.
     apnDetailDialog.mode = ApnDetailDialogMode.EDIT;
     apnDetailDialog.apnProperties = apnWithId;
-
-    await init();
+    await flushTasks();
     assertEquals(
         apnDetailDialog.i18n('apnDetailEditApnDialogTitle'),
         apnDetailDialog.shadowRoot.querySelector('#apnDetailDialogTitle')
@@ -453,9 +432,6 @@ suite('ApnDetailDialog', function() {
     assertEquals(apnWithId.ipType, apn.ipType);
     assertEquals(apnWithId.apnTypes.length, apn.apnTypes.length);
     assertEquals(apnWithId.apnTypes[0], apn.apnTypes[0]);
-    assertEquals(
-        apnDetailDialog.shadowRoot.querySelector('#apnInput'),
-        apnDetailDialog.shadowRoot.activeElement);
   });
 
 });

@@ -299,8 +299,7 @@ class HttpStreamFactory::JobController
   // |request_|.
   raw_ptr<HttpStreamRequest, DanglingUntriaged> request_ = nullptr;
 
-  const raw_ptr<HttpStreamRequest::Delegate, AcrossTasksDanglingUntriaged>
-      delegate_;
+  const raw_ptr<HttpStreamRequest::Delegate, DanglingUntriaged> delegate_;
 
   // True if this JobController is used to preconnect streams.
   const bool is_preconnect_;

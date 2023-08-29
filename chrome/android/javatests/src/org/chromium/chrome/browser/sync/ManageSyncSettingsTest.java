@@ -40,6 +40,7 @@ import org.chromium.base.test.util.CommandLineFlags;
 import org.chromium.base.test.util.DisabledTest;
 import org.chromium.base.test.util.Feature;
 import org.chromium.base.test.util.JniMocker;
+import org.chromium.chrome.browser.autofill.PersonalDataManager;
 import org.chromium.chrome.browser.flags.ChromeSwitches;
 import org.chromium.chrome.browser.profiles.Profile;
 import org.chromium.chrome.browser.settings.SettingsActivity;
@@ -83,8 +84,6 @@ public class ManageSyncSettingsTest {
     static {
         UI_DATATYPES.put(UserSelectableType.AUTOFILL, ManageSyncSettings.PREF_SYNC_AUTOFILL);
         UI_DATATYPES.put(UserSelectableType.BOOKMARKS, ManageSyncSettings.PREF_SYNC_BOOKMARKS);
-        UI_DATATYPES.put(
-                UserSelectableType.PAYMENTS, ManageSyncSettings.PREF_SYNC_PAYMENTS_INTEGRATION);
         UI_DATATYPES.put(UserSelectableType.HISTORY, ManageSyncSettings.PREF_SYNC_HISTORY);
         UI_DATATYPES.put(UserSelectableType.PASSWORDS, ManageSyncSettings.PREF_SYNC_PASSWORDS);
         UI_DATATYPES.put(
@@ -170,9 +169,7 @@ public class ManageSyncSettingsTest {
         // not checked, while all other preferences should be user selectable.
         for (CheckBoxPreference dataType : dataTypes) {
             if (dataType.getKey().equals(ManageSyncSettings.PREF_SYNC_PASSWORDS)
-                    || dataType.getKey().equals(ManageSyncSettings.PREF_SYNC_AUTOFILL)
-                    || dataType.getKey().equals(
-                            ManageSyncSettings.PREF_SYNC_PAYMENTS_INTEGRATION)) {
+                    || dataType.getKey().equals(ManageSyncSettings.PREF_SYNC_AUTOFILL)) {
                 Assert.assertFalse(dataType.isChecked());
                 Assert.assertFalse(dataType.isEnabled());
             } else {
@@ -180,6 +177,10 @@ public class ManageSyncSettingsTest {
                 Assert.assertFalse(dataType.isEnabled());
             }
         }
+        CheckBoxPreference paymentsIntegration = (CheckBoxPreference) fragment.findPreference(
+                ManageSyncSettings.PREF_SYNC_PAYMENTS_INTEGRATION);
+        Assert.assertFalse(paymentsIntegration.isEnabled());
+        Assert.assertFalse(paymentsIntegration.isChecked());
 
         // Toggle the Sync everything button, and only non-managed types should be enabled.
         mSyncTestRule.togglePreference(syncEverything);
@@ -189,9 +190,7 @@ public class ManageSyncSettingsTest {
 
         for (CheckBoxPreference dataType : dataTypes) {
             if (dataType.getKey().equals(ManageSyncSettings.PREF_SYNC_PASSWORDS)
-                    || dataType.getKey().equals(ManageSyncSettings.PREF_SYNC_AUTOFILL)
-                    || dataType.getKey().equals(
-                            ManageSyncSettings.PREF_SYNC_PAYMENTS_INTEGRATION)) {
+                    || dataType.getKey().equals(ManageSyncSettings.PREF_SYNC_AUTOFILL)) {
                 Assert.assertFalse(dataType.isChecked());
                 Assert.assertFalse(dataType.isEnabled());
             } else {
@@ -199,6 +198,8 @@ public class ManageSyncSettingsTest {
                 Assert.assertTrue(dataType.isEnabled());
             }
         }
+        Assert.assertFalse(paymentsIntegration.isEnabled());
+        Assert.assertFalse(paymentsIntegration.isChecked());
 
         // Check that the preference shows the managed text.
         onView(withText("Passwords"))
@@ -234,7 +235,6 @@ public class ManageSyncSettingsTest {
         mSyncTestRule.togglePreference(dataTypes.get(UserSelectableType.AUTOFILL));
         mSyncTestRule.togglePreference(dataTypes.get(UserSelectableType.PASSWORDS));
         expectedTypes.remove(UserSelectableType.AUTOFILL);
-        expectedTypes.remove(UserSelectableType.PAYMENTS);
         expectedTypes.remove(UserSelectableType.PASSWORDS);
 
         closeFragment(fragment);
@@ -303,11 +303,7 @@ public class ManageSyncSettingsTest {
         mSyncTestRule.setUpChildAccountAndEnableSyncForTesting();
         ManageSyncSettings fragment = startManageSyncPreferences();
 
-        // Payments integration should be disabled even though Sync Everything is on
-        Set<Integer> forcedUncheckedDataTypes = new HashSet<>();
-        forcedUncheckedDataTypes.add(UserSelectableType.PAYMENTS);
-        assertSyncOnState(fragment, forcedUncheckedDataTypes);
-
+        assertSyncOnState(fragment);
         Preference turnOffSyncPreference =
                 fragment.findPreference(ManageSyncSettings.PREF_TURN_OFF_SYNC);
         Assert.assertTrue(
@@ -325,6 +321,7 @@ public class ManageSyncSettingsTest {
     @Feature({"Sync"})
     public void testPaymentsIntegrationChecked() {
         mSyncTestRule.setUpAccountAndEnableSyncForTesting();
+        mSyncTestRule.setPaymentsIntegrationEnabled(true);
 
         ManageSyncSettings fragment = startManageSyncPreferences();
         assertSyncOnState(fragment);
@@ -341,16 +338,15 @@ public class ManageSyncSettingsTest {
     @Feature({"Sync"})
     public void testPaymentsIntegrationUnchecked() {
         mSyncTestRule.setUpAccountAndEnableSyncForTesting();
+        mSyncTestRule.setPaymentsIntegrationEnabled(false);
 
-        Set<Integer> allDataTypesExceptPayments = new HashSet<>(UI_DATATYPES.keySet());
-        allDataTypesExceptPayments.remove(UserSelectableType.PAYMENTS);
-
-        mSyncTestRule.setSelectedTypes(false, allDataTypesExceptPayments);
+        mSyncTestRule.setSelectedTypes(false, UI_DATATYPES.keySet());
         ManageSyncSettings fragment = startManageSyncPreferences();
 
         CheckBoxPreference paymentsIntegration = (CheckBoxPreference) fragment.findPreference(
                 ManageSyncSettings.PREF_SYNC_PAYMENTS_INTEGRATION);
 
+        // All data types are enabled by default as syncEverything is toggled off.
         Assert.assertTrue(paymentsIntegration.isEnabled());
         Assert.assertFalse(paymentsIntegration.isChecked());
     }
@@ -360,6 +356,7 @@ public class ManageSyncSettingsTest {
     @Feature({"Sync"})
     public void testPaymentsIntegrationCheckboxDisablesPaymentsIntegration() {
         mSyncTestRule.setUpAccountAndEnableSyncForTesting();
+        mSyncTestRule.setPaymentsIntegrationEnabled(true);
 
         ManageSyncSettings fragment = startManageSyncPreferences();
         assertSyncOnState(fragment);
@@ -380,7 +377,7 @@ public class ManageSyncSettingsTest {
     @Feature({"Sync"})
     public void testPaymentsIntegrationCheckboxEnablesPaymentsIntegration() {
         mSyncTestRule.setUpAccountAndEnableSyncForTesting();
-        mSyncTestRule.disableDataType(UserSelectableType.PAYMENTS);
+        mSyncTestRule.setPaymentsIntegrationEnabled(false);
 
         mSyncTestRule.setSelectedTypes(false, UI_DATATYPES.keySet());
         ManageSyncSettings fragment = startManageSyncPreferences();
@@ -399,6 +396,7 @@ public class ManageSyncSettingsTest {
     @Feature({"Sync"})
     public void testPaymentsIntegrationCheckboxClearsServerAutofillCreditCards() {
         mSyncTestRule.setUpAccountAndEnableSyncForTesting();
+        mSyncTestRule.setPaymentsIntegrationEnabled(true);
 
         Assert.assertFalse(
                 "There should be no server cards", mSyncTestRule.hasServerAutofillCreditCards());
@@ -427,6 +425,7 @@ public class ManageSyncSettingsTest {
     @Feature({"Sync"})
     public void testPaymentsIntegrationDisabledByAutofillSyncCheckbox() {
         mSyncTestRule.setUpAccountAndEnableSyncForTesting();
+        mSyncTestRule.setPaymentsIntegrationEnabled(true);
 
         // Get the UI elements.
         ManageSyncSettings fragment = startManageSyncPreferences();
@@ -459,7 +458,7 @@ public class ManageSyncSettingsTest {
     @Feature({"Sync"})
     public void testPaymentsIntegrationEnabledBySyncEverything() {
         mSyncTestRule.setUpAccountAndEnableSyncForTesting();
-        mSyncTestRule.disableDataType(UserSelectableType.PAYMENTS);
+        mSyncTestRule.setPaymentsIntegrationEnabled(false);
         mSyncTestRule.disableDataType(UserSelectableType.AUTOFILL);
 
         // Get the UI elements.
@@ -602,11 +601,9 @@ public class ManageSyncSettingsTest {
         CheckBoxPreference paymentsIntegration = (CheckBoxPreference) fragment.findPreference(
                 ManageSyncSettings.PREF_SYNC_PAYMENTS_INTEGRATION);
 
-        // Payments integration should be disabled even though Sync Everything is on
-        Set<Integer> forcedUncheckedDataTypes = new HashSet<>();
-        forcedUncheckedDataTypes.add(UserSelectableType.PAYMENTS);
-        assertSyncOnState(fragment, forcedUncheckedDataTypes);
+        assertSyncOnState(fragment);
 
+        // Payments integration should be disabled even though Sync Everything is on
         assertPaymentsIntegrationEnabled(false);
         Assert.assertFalse(paymentsIntegration.isChecked());
         Assert.assertFalse(paymentsIntegration.isEnabled());
@@ -808,40 +805,6 @@ public class ManageSyncSettingsTest {
     }
 
     @Test
-    @LargeTest
-    @Feature({"Sync", "RenderTest"})
-    @Policies.Add({
-        @Policies.Item(key = "SyncTypesListDisabled",
-                string =
-                        "[\"bookmarks\", \"readingList\", \"preferences\", \"passwords\", \"autofill\", \"typedUrls\", \"tabs\"]")
-    })
-    public void
-    testSyncSettingsTopViewWithSyncTypesManagedByPolicy() throws Exception {
-        mSyncTestRule.setUpAccountAndEnableSyncForTesting();
-        final ManageSyncSettings fragment = startManageSyncPreferences();
-        render(fragment, "sync_settings_top_view_with_sync_types_disabled_by_policy");
-    }
-
-    @Test
-    @LargeTest
-    @Feature({"Sync", "RenderTest"})
-    @Policies.Add({
-        @Policies.Item(key = "SyncTypesListDisabled",
-                string =
-                        "[\"bookmarks\", \"readingList\", \"preferences\", \"passwords\", \"autofill\", \"typedUrls\", \"tabs\"]")
-    })
-    public void
-    testSyncSettingsBottomViewWithSyncTypesManagedByPolicy() throws Exception {
-        mSyncTestRule.setUpAccountAndEnableSyncForTesting();
-        final ManageSyncSettings fragment = startManageSyncPreferences();
-        TestThreadUtils.runOnUiThreadBlocking(() -> {
-            RecyclerView recyclerView = fragment.getView().findViewById(R.id.recycler_view);
-            recyclerView.scrollToPosition(recyclerView.getAdapter().getItemCount() - 1);
-        });
-        render(fragment, "sync_settings_bottom_view_with_sync_types_disabled_by_policy");
-    }
-
-    @Test
     @SmallTest
     @Feature({"Sync"})
     public void testAdvancedSyncFlowFromSyncConsentDoesNotEnableUKM() throws Exception {
@@ -1026,25 +989,14 @@ public class ManageSyncSettingsTest {
     }
 
     private void assertSyncOnState(ManageSyncSettings fragment) {
-        assertSyncOnState(fragment, new HashSet<Integer>());
-    }
-
-    private void assertSyncOnState(
-            ManageSyncSettings fragment, Set<Integer> forcedUncheckedDataTypes) {
         ChromeSwitchPreference syncEverything = getSyncEverything(fragment);
         Assert.assertTrue("The sync everything switch should be on.", syncEverything.isChecked());
         Assert.assertTrue(
                 "The sync everything switch should be enabled.", syncEverything.isEnabled());
-        for (Map.Entry<Integer, CheckBoxPreference> dataType : getDataTypes(fragment).entrySet()) {
-            CheckBoxPreference checkBox = dataType.getValue();
-            String key = checkBox.getKey();
-            Assert.assertFalse("Data type " + key + " should be disabled.", checkBox.isEnabled());
-            if (forcedUncheckedDataTypes.contains(dataType.getKey())) {
-                Assert.assertFalse(
-                        "Data type " + key + " should be unchecked.", checkBox.isChecked());
-            } else {
-                Assert.assertTrue("Data type " + key + " should be checked.", checkBox.isChecked());
-            }
+        for (CheckBoxPreference dataType : getDataTypes(fragment).values()) {
+            String key = dataType.getKey();
+            Assert.assertTrue("Data type " + key + " should be checked.", dataType.isChecked());
+            Assert.assertFalse("Data type " + key + " should be disabled.", dataType.isEnabled());
         }
         Assert.assertTrue("The google activity controls button should always be enabled.",
                 getGoogleActivityControls(fragment).isEnabled());
@@ -1066,12 +1018,7 @@ public class ManageSyncSettingsTest {
 
     private void assertPaymentsIntegrationEnabled(final boolean enabled) {
         TestThreadUtils.runOnUiThreadBlocking(() -> {
-            Set<Integer> actualDataTypes = mSyncTestRule.getSyncService().getSelectedTypes();
-            if (enabled) {
-                Assert.assertTrue(actualDataTypes.contains(UserSelectableType.PAYMENTS));
-            } else {
-                Assert.assertFalse(actualDataTypes.contains(UserSelectableType.PAYMENTS));
-            }
+            Assert.assertEquals(enabled, PersonalDataManager.isPaymentsIntegrationEnabled());
         });
     }
 

@@ -13,7 +13,6 @@
 #include "base/path_service.h"
 #include "base/ranges/algorithm.h"
 #include "base/strings/string_piece.h"
-#include "base/test/gmock_expected_support.h"
 #include "base/test/scoped_feature_list.h"
 #include "base/test/values_test_util.h"
 #include "base/types/expected.h"
@@ -80,9 +79,10 @@ void ProcessReports(base::Value::Dict& dict, base::StringPiece key) {
 class AttributionInteropTest : public ::testing::TestWithParam<base::FilePath> {
  public:
   static void SetUpTestSuite() {
-    ASSERT_OK_AND_ASSIGN(
-        g_config_, ParseAttributionConfig(ReadJsonFromFile(
-                       GetInputDir().AppendASCII(kDefaultConfigFileName))));
+    auto maybe_config = ParseAttributionConfig(
+        ReadJsonFromFile(GetInputDir().AppendASCII(kDefaultConfigFileName)));
+    ASSERT_TRUE(maybe_config.has_value()) << maybe_config.error();
+    g_config_ = *maybe_config;
   }
 
   AttributionInteropTest() {
@@ -119,24 +119,23 @@ TEST_P(AttributionInteropTest, HasExpectedOutput) {
   absl::optional<base::Value> input = dict.Extract("input");
   ASSERT_TRUE(input && input->is_dict());
 
-  ASSERT_OK_AND_ASSIGN(
-      auto actual_output,
-      RunAttributionInteropSimulation(std::move(*input).TakeDict(), config));
+  auto actual_output =
+      RunAttributionInteropSimulation(std::move(*input).TakeDict(), config);
+  ASSERT_TRUE(actual_output.has_value()) << actual_output.error();
 
   absl::optional<base::Value> expected_output = dict.Extract("output");
   ASSERT_TRUE(expected_output.has_value());
 
   base::Value::Dict& expected_output_dict = expected_output->GetDict();
 
-  for (const char* key :
-       {kEventLevelResultsKey, kDebugEventLevelResultsKey,
-        kAggregatableResultsKey, kDebugAggregatableResultsKey,
-        kVerboseDebugReportsKey, kUnparsableRegistrationsKey}) {
-    ProcessReports(actual_output, key);
+  for (const char* key : {kEventLevelResultsKey, kDebugEventLevelResultsKey,
+                          kAggregatableResultsKey, kDebugAggregatableResultsKey,
+                          kVerboseDebugReportsKey}) {
+    ProcessReports(*actual_output, key);
     ProcessReports(expected_output_dict, key);
   }
 
-  EXPECT_THAT(actual_output, base::test::IsJson(expected_output_dict));
+  EXPECT_THAT(*actual_output, base::test::IsJson(expected_output_dict));
 }
 
 INSTANTIATE_TEST_SUITE_P(

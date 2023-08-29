@@ -22,6 +22,9 @@ struct CONTENT_EXPORT SyntheticTapGestureParams
 
   gfx::PointF position;
   float duration_ms;
+
+  static const SyntheticTapGestureParams* Cast(
+      const SyntheticGestureParams* gesture_params);
 };
 
 }  // namespace content

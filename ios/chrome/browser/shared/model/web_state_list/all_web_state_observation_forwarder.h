@@ -31,9 +31,9 @@ class AllWebStateObservationForwarder : public WebStateListObserver {
   ~AllWebStateObservationForwarder() override;
 
   // WebStateListObserver.
-  void WebStateListDidChange(WebStateList* web_state_list,
-                             const WebStateListChange& change,
-                             const WebStateListStatus& status) override;
+  void WebStateListChanged(WebStateList* web_state_list,
+                           const WebStateListChange& change,
+                           const WebStateSelection& selection) override;
 
  private:
   base::ScopedObservation<WebStateList, WebStateListObserver>

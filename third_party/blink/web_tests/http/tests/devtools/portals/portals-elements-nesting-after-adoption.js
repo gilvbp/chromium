@@ -5,8 +5,6 @@
 import {TestRunner} from 'test_runner';
 import {ElementsTestRunner} from 'elements_test_runner';
 
-import * as Host from 'devtools/core/host/host.js';
-
 (async function() {
   TestRunner.addResult(
       `Tests that adopted portal is rendered inline correctly.\n`);
@@ -26,7 +24,7 @@ import * as Host from 'devtools/core/host/host.js';
         TestRunner
             .waitForEvent(
                 Host.InspectorFrontendHostAPI.Events.ReattachRootTarget,
-                Host.InspectorFrontendHost.InspectorFrontendHostInstance.events)
+                Host.InspectorFrontendHost.events)
             .then(next);
       });
     },

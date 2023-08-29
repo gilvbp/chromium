@@ -60,24 +60,10 @@ void BrowsingTopicsSiteDataManagerImpl::GetBrowsingTopicsApiUsage(
 
 void BrowsingTopicsSiteDataManagerImpl::OnBrowsingTopicsApiUsed(
     const browsing_topics::HashedHost& hashed_main_frame_host,
-    const browsing_topics::HashedDomain& hashed_context_domain,
-    const std::string& context_domain,
+    const base::flat_set<browsing_topics::HashedDomain>& hashed_context_domains,
     base::Time time) {
   storage_.AsyncCall(&BrowsingTopicsSiteDataStorage::OnBrowsingTopicsApiUsed)
-      .WithArgs(hashed_main_frame_host, hashed_context_domain, context_domain,
-                time);
-}
-
-void BrowsingTopicsSiteDataManagerImpl::
-    GetContextDomainsFromHashedContextDomains(
-        const std::set<browsing_topics::HashedDomain>& hashed_context_domains,
-        BrowsingTopicsSiteDataManager::
-            GetContextDomainsFromHashedContextDomainsCallback callback) {
-  storage_
-      .AsyncCall(&BrowsingTopicsSiteDataStorage::
-                     GetContextDomainsFromHashedContextDomains)
-      .WithArgs(hashed_context_domains)
-      .Then(std::move(callback));
+      .WithArgs(hashed_main_frame_host, hashed_context_domains, time);
 }
 
 }  // namespace content

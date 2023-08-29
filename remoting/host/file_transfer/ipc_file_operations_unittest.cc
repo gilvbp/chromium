@@ -19,8 +19,6 @@
 #include "base/test/bind.h"
 #include "base/test/scoped_path_override.h"
 #include "base/test/task_environment.h"
-#include "remoting/host/file_transfer/directory_helpers.h"
-#include "remoting/host/file_transfer/ensure_user.h"
 #include "remoting/host/file_transfer/fake_file_chooser.h"
 #include "remoting/host/file_transfer/local_file_operations.h"
 #include "remoting/host/file_transfer/session_file_operations_handler.h"
@@ -332,9 +330,6 @@ void IpcFileOperationsTest::SetUp() {
   fake_desktop_session_agent_.Bind(
       remote.BindNewEndpointAndPassDedicatedReceiver());
   fake_desktop_session_proxy_.Bind(remote.Unbind());
-
-  DisableUserContextCheckForTesting();
-  SetFileUploadDirectoryForTesting(TestDir());
 }
 
 base::FilePath IpcFileOperationsTest::TestDir() {

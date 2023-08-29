@@ -42,7 +42,6 @@
 #include "components/password_manager/core/common/password_manager_pref_names.h"
 #include "components/payments/core/payment_prefs.h"
 #include "components/performance_manager/public/user_tuning/prefs.h"
-#include "components/permissions/pref_names.h"
 #include "components/prefs/pref_service.h"
 #include "components/privacy_sandbox/privacy_sandbox_prefs.h"
 #include "components/proxy_config/proxy_config_pref_names.h"
@@ -189,8 +188,6 @@ const PrefsUtil::TypedPrefMap& PrefsUtil::GetAllowlistedKeys() {
   (*s_allowlist)[autofill::prefs::kAutofillPaymentMethodsMandatoryReauth] =
       settings_api::PrefType::PREF_TYPE_BOOLEAN;
 #endif
-  (*s_allowlist)[autofill::prefs::kAutofillPaymentCvcStorage] =
-      settings_api::PrefType::PREF_TYPE_BOOLEAN;
   (*s_allowlist)[payments::kCanMakePaymentEnabled] =
       settings_api::PrefType::PREF_TYPE_BOOLEAN;
   (*s_allowlist)[bookmarks::prefs::kShowBookmarkBar] =
@@ -211,6 +208,8 @@ const PrefsUtil::TypedPrefMap& PrefsUtil::GetAllowlistedKeys() {
   (*s_allowlist)[::prefs::kPolicyThemeColor] =
       settings_api::PrefType::PREF_TYPE_NUMBER;
 #if BUILDFLAG(IS_LINUX)
+  (*s_allowlist)[::prefs::kUsesSystemThemeDeprecated] =
+      settings_api::PrefType::PREF_TYPE_BOOLEAN;
   (*s_allowlist)[::prefs::kSystemTheme] =
       settings_api::PrefType::PREF_TYPE_NUMBER;
 #endif
@@ -399,8 +398,6 @@ const PrefsUtil::TypedPrefMap& PrefsUtil::GetAllowlistedKeys() {
       settings_api::PrefType::PREF_TYPE_BOOLEAN;
   (*s_allowlist)[ash::prefs::kAssistPredictiveWritingEnabled] =
       settings_api::PrefType::PREF_TYPE_BOOLEAN;
-  (*s_allowlist)[ash::prefs::kOrcaEnabled] =
-      settings_api::PrefType::PREF_TYPE_BOOLEAN;
   (*s_allowlist)[ash::prefs::kEmojiSuggestionEnabled] =
       settings_api::PrefType::PREF_TYPE_BOOLEAN;
   (*s_allowlist)[ash::prefs::kLacrosProxyControllingExtension] =
@@ -453,9 +450,6 @@ const PrefsUtil::TypedPrefMap& PrefsUtil::GetAllowlistedKeys() {
       settings_api::PrefType::PREF_TYPE_NUMBER;
   (*s_allowlist)[::prefs::kEnableQuietNotificationPermissionUi] =
       settings_api::PrefType::PREF_TYPE_BOOLEAN;
-  (*s_allowlist)
-      [::permissions::prefs::kUnusedSitePermissionsRevocationEnabled] =
-          settings_api::PrefType::PREF_TYPE_BOOLEAN;
 
   // Clear browsing data settings.
   (*s_allowlist)[browsing_data::prefs::kDeleteBrowsingHistory] =
@@ -509,8 +503,6 @@ const PrefsUtil::TypedPrefMap& PrefsUtil::GetAllowlistedKeys() {
       settings_api::PrefType::PREF_TYPE_BOOLEAN;
   (*s_allowlist)[::prefs::kLiveCaptionLanguageCode] =
       settings_api::PrefType::PREF_TYPE_STRING;
-  (*s_allowlist)[::prefs::kLiveCaptionMaskOffensiveWords] =
-      settings_api::PrefType::PREF_TYPE_BOOLEAN;
   (*s_allowlist)[::prefs::kLiveTranslateEnabled] =
       settings_api::PrefType::PREF_TYPE_BOOLEAN;
   (*s_allowlist)[::prefs::kLiveTranslateTargetLanguageCode] =
@@ -518,10 +510,6 @@ const PrefsUtil::TypedPrefMap& PrefsUtil::GetAllowlistedKeys() {
 #endif
 #if BUILDFLAG(ENABLE_SCREEN_AI_SERVICE)
   (*s_allowlist)[::prefs::kAccessibilityPdfOcrAlwaysActive] =
-      settings_api::PrefType::PREF_TYPE_BOOLEAN;
-#endif
-#if defined(USE_AURA)
-  (*s_allowlist)[::prefs::kOverscrollHistoryNavigationEnabled] =
       settings_api::PrefType::PREF_TYPE_BOOLEAN;
 #endif
 
@@ -561,11 +549,11 @@ const PrefsUtil::TypedPrefMap& PrefsUtil::GetAllowlistedKeys() {
       settings_api::PrefType::PREF_TYPE_BOOLEAN;
   (*s_allowlist)[ash::prefs::kAccessibilityAutoclickMovementThreshold] =
       settings_api::PrefType::PREF_TYPE_NUMBER;
-  (*s_allowlist)[ash::prefs::kAccessibilityColorCorrectionEnabled] =
+  (*s_allowlist)[ash::prefs::kAccessibilityColorFiltering] =
       settings_api::PrefType::PREF_TYPE_BOOLEAN;
   (*s_allowlist)[ash::prefs::kAccessibilityColorVisionCorrectionAmount] =
       settings_api::PrefType::PREF_TYPE_NUMBER;
-  (*s_allowlist)[ash::prefs::kAccessibilityColorVisionCorrectionType] =
+  (*s_allowlist)[ash::prefs::kAccessibilityColorVisionDeficiencyType] =
       settings_api::PrefType::PREF_TYPE_NUMBER;
   (*s_allowlist)[ash::prefs::kShouldAlwaysShowAccessibilityMenu] =
       settings_api::PrefType::PREF_TYPE_BOOLEAN;

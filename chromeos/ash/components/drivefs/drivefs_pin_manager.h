@@ -37,21 +37,6 @@
 
 namespace drivefs::pinning {
 
-// These values are logged to UMA. Entries should not be renumbered and
-// numeric values should never be reused. Please keep in sync with
-// "FileManagerGoogleDriveBulkPinningEnabledSource" in
-// src/tools/metrics/histograms/enums.xml.
-enum class BulkPinningEnabledSource {
-  kBanner = 0,
-  kSystemSettings = 1,
-  kDriveInternal = 2,
-  kChoobe = 3,
-  kMaxValue = kChoobe,
-};
-
-COMPONENT_EXPORT(CHROMEOS_ASH_COMPONENTS_DRIVEFS)
-void RecordBulkPinningEnabledSource(BulkPinningEnabledSource source);
-
 // Imbue the output stream with a locale that prints numbers with thousands
 // separators.
 COMPONENT_EXPORT(CHROMEOS_ASH_COMPONENTS_DRIVEFS)
@@ -137,17 +122,14 @@ struct COMPONENT_EXPORT(CHROMEOS_ASH_COMPONENTS_DRIVEFS) Progress {
   // High watermark of the number of active queries.
   int max_active_queries = 0;
 
+  // Estimated number of seconds remaining to pin all `bytes_to_pin`.
+  double remaining_seconds = 0;
+
   // Stage of the setup process.
   Stage stage = Stage::kStopped;
 
-  // Time spent listing and enumerating items.
   base::TimeDelta time_spent_listing_items;
-
-  // Time spent pinning and caching files.
   base::TimeDelta time_spent_pinning_files;
-
-  // Estimated time remaining to pin and cache all the files.
-  base::TimeDelta remaining_time = base::TimeDelta::Max();
 
   // Has the PinManager ever emptied its set of tracking items?
   bool emptied_queue = false;
@@ -177,10 +159,7 @@ class COMPONENT_EXPORT(CHROMEOS_ASH_COMPONENTS_DRIVEFS) PinManager
  public:
   using Path = base::FilePath;
 
-  PinManager(Path profile_path,
-             Path mount_path,
-             mojom::DriveFs* drivefs,
-             int64_t queue_size);
+  PinManager(Path profile_path, Path mount_path, mojom::DriveFs* drivefs);
 
   PinManager(const PinManager&) = delete;
   PinManager& operator=(const PinManager&) = delete;
@@ -199,9 +178,7 @@ class COMPONENT_EXPORT(CHROMEOS_ASH_COMPONENTS_DRIVEFS) PinManager
 
   // Lists the files and calculates the required space and free disk space. This
   // doesn't pin any files and doesn't keep the space calculations up to date.
-  // Does nothing and returns false if this pin manager is not in the right
-  // stage to start calculating the required space.
-  [[nodiscard]] bool CalculateRequiredSpace();
+  void CalculateRequiredSpace();
 
   // Gets the current progress status.
   Progress GetProgress() const {
@@ -214,6 +191,9 @@ class COMPONENT_EXPORT(CHROMEOS_ASH_COMPONENTS_DRIVEFS) PinManager
    public:
     // Called when the setup progresses.
     virtual void OnProgress(const Progress& progress) {}
+
+    // Called when the PinManager is getting deleted.
+    virtual void OnDrop() {}
   };
 
   void AddObserver(Observer* const observer) {
@@ -223,6 +203,7 @@ class COMPONENT_EXPORT(CHROMEOS_ASH_COMPONENTS_DRIVEFS) PinManager
 
   void RemoveObserver(Observer* const observer) {
     DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+    DCHECK(HasObserver(observer));
     observers_.RemoveObserver(observer);
   }
 
@@ -269,28 +250,23 @@ class COMPONENT_EXPORT(CHROMEOS_ASH_COMPONENTS_DRIVEFS) PinManager
     completion_callback_ = std::move(f);
   }
 
-  // Sets the flag controlling whether the feature should actually pin files.
-  void ShouldPin() {
+  // Sets the flag controlling whether the feature should actually pin files
+  // (default), or whether it should stop after checking the space requirements.
+  void ShouldPin(const bool b) {
     DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
-    should_pin_ = true;
+    should_pin_ = b;
   }
 
   // Sets the online or offline network status, and starts or pauses the Pin
   // manager accordingly.
   void SetOnline(bool online);
 
-  // Starts checking for free space.
+  // Check for free space.
   void CheckFreeSpace();
 
-  // Whether the supplied `id` is currently being tracked by the PinManager and
-  // that it is unpinned.
-  bool IsTrackedAndUnpinned(Id id) const;
-
-  // For tests don't pin files after enumerating.
-  void SetShouldPinFilesForTesting(bool should_pin_files_for_testing) {
-    DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
-    should_pin_files_for_testing_ = should_pin_files_for_testing;
-  }
+  // Whether `path` is parented at a path that is untracked (e.g. a shortcut
+  // directory residing outside of My drive).
+  bool IsUntrackedPath(const Path& path);
 
  private:
   // Progress of a file being synced or to be synced.
@@ -434,10 +410,6 @@ class COMPONENT_EXPORT(CHROMEOS_ASH_COMPONENTS_DRIVEFS) PinManager
   bool StartMonitoringSpace();
   void StopMonitoringSpace();
 
-  // Sends a message to the Docs offline extension telling it to enable offline
-  // mode.
-  void EnableDocsOffline();
-
   // Counts the files that have been marked as pinned and that are still being
   // tracked. Should always be equal to progress_.syncing_files. For debugging
   // only.
@@ -448,16 +420,16 @@ class COMPONENT_EXPORT(CHROMEOS_ASH_COMPONENTS_DRIVEFS) PinManager
         [](const Files::value_type& entry) { return entry.second.pinned; });
   }
 
+  // Maximum number of items that can be pinned but not cached yet at the same
+  // time.
+  static constexpr int kMaxQueueSize = 200;
+
   SEQUENCE_CHECKER(sequence_checker_);
 
   const Path profile_path_ GUARDED_BY_CONTEXT(sequence_checker_);
   const Path mount_path_ GUARDED_BY_CONTEXT(sequence_checker_);
   const raw_ptr<mojom::DriveFs, DanglingUntriaged> drivefs_
       GUARDED_BY_CONTEXT(sequence_checker_);
-
-  // Maximum number of items that can be pinned but not cached yet at the same
-  // time.
-  const int64_t queue_size_ GUARDED_BY_CONTEXT(sequence_checker_);
 
   // Is the device connected to a suitable network? Assume it is online for
   // tests.
@@ -475,11 +447,7 @@ class COMPONENT_EXPORT(CHROMEOS_ASH_COMPONENTS_DRIVEFS) PinManager
 
   // Should the feature use `OnItemProgress`, if false it will fall back to
   // `OnSyncingStatusUpdate`.
-  bool use_on_item_progress_ GUARDED_BY_CONTEXT(sequence_checker_) = true;
-
-  // Stop at the `PinSomeFiles` stage during testing to perform assertions, this
-  // should always be true and only overridden in browser tests.
-  bool should_pin_files_for_testing_ GUARDED_BY_CONTEXT(sequence_checker_) =
+  bool should_use_on_item_progress_ GUARDED_BY_CONTEXT(sequence_checker_) =
       true;
 
   // `spaced` daemon client.
@@ -510,11 +478,12 @@ class COMPONENT_EXPORT(CHROMEOS_ASH_COMPONENTS_DRIVEFS) PinManager
   Files files_to_track_ GUARDED_BY_CONTEXT(sequence_checker_);
 
   // Tracks the remaining seconds for the current syncing operation to complete.
-  file_manager::Speedometer speedometer_ GUARDED_BY_CONTEXT(sequence_checker_);
+  std::unique_ptr<file_manager::Speedometer> speedometer_
+      GUARDED_BY_CONTEXT(sequence_checker_);
 
-  // Tracks the last time a LOG was output indicating the listing files stage is
-  // taking a long time. Used to avoid emitting the WARNING log too frequently.
-  base::Time last_long_listing_files_warning_time_;
+  // Shortcut paths where the target path resides outside the users My drive.
+  std::unordered_set<Path> untracked_shortcut_paths_
+      GUARDED_BY_CONTEXT(sequence_checker_);
 
   base::WeakPtrFactory<PinManager> weak_ptr_factory_{this};
 
@@ -549,7 +518,6 @@ class COMPONENT_EXPORT(CHROMEOS_ASH_COMPONENTS_DRIVEFS) PinManager
   FRIEND_TEST_ALL_PREFIXES(DriveFsPinManagerTest, OnSearchResult);
   FRIEND_TEST_ALL_PREFIXES(DriveFsPinManagerTest, HandleQueryItem);
   FRIEND_TEST_ALL_PREFIXES(DriveFsPinManagerTest, DropQuery);
-  FRIEND_TEST_ALL_PREFIXES(DriveFsPinManagerTest, CalculateRequiredSpace);
 };
 
 COMPONENT_EXPORT(CHROMEOS_ASH_COMPONENTS_DRIVEFS)

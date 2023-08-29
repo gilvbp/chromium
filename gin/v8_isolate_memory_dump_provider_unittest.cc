@@ -6,7 +6,6 @@
 
 #include <memory>
 
-#include "base/containers/contains.h"
 #include "base/task/single_thread_task_runner.h"
 #include "base/task/thread_pool/thread_pool_instance.h"
 #include "base/trace_event/process_memory_dump.h"
@@ -54,13 +53,13 @@ TEST_F(V8MemoryDumpProviderTest, DumpStatistics) {
   bool did_dump_objects_stats = false;
   for (const auto& name_dump : allocator_dumps) {
     const std::string& name = name_dump.first;
-    if (base::Contains(name, "v8/main")) {
+    if (name.find("v8/main") != std::string::npos) {
       did_dump_isolate_stats = true;
     }
-    if (base::Contains(name, "v8/main/heap")) {
+    if (name.find("v8/main/heap") != std::string::npos) {
       did_dump_space_stats = true;
     }
-    if (base::Contains(name, "v8/main/heap_objects")) {
+    if (name.find("v8/main/heap_objects") != std::string::npos) {
       did_dump_objects_stats = true;
     }
   }
@@ -83,7 +82,7 @@ TEST_F(V8MemoryDumpProviderTest, DumpGlobalHandlesSize) {
   bool did_dump_global_handles = false;
   for (const auto& name_dump : allocator_dumps) {
     const std::string& name = name_dump.first;
-    if (base::Contains(name, "v8/main/global_handles")) {
+    if (name.find("v8/main/global_handles") != std::string::npos) {
       did_dump_global_handles = true;
     }
   }
@@ -105,10 +104,10 @@ TEST_F(V8MemoryDumpProviderTest, DumpContextStatistics) {
   bool did_dump_native_contexts = false;
   for (const auto& name_dump : allocator_dumps) {
     const std::string& name = name_dump.first;
-    if (base::Contains(name, "main/contexts/detached_context")) {
+    if (name.find("main/contexts/detached_context") != std::string::npos) {
       did_dump_detached_contexts = true;
     }
-    if (base::Contains(name, "main/contexts/native_context")) {
+    if (name.find("main/contexts/native_context") != std::string::npos) {
       did_dump_native_contexts = true;
     }
   }
@@ -131,10 +130,12 @@ TEST_F(V8MemoryDumpProviderWorkerTest, DumpContextStatistics) {
   bool did_dump_native_contexts = false;
   for (const auto& name_dump : allocator_dumps) {
     const std::string& name = name_dump.first;
-    if (base::Contains(name, "workers/contexts/detached_context/isolate_0x")) {
+    if (name.find("workers/contexts/detached_context/isolate_0x") !=
+        std::string::npos) {
       did_dump_detached_contexts = true;
     }
-    if (base::Contains(name, "workers/contexts/native_context/isolate_0x")) {
+    if (name.find("workers/contexts/native_context/isolate_0x") !=
+        std::string::npos) {
       did_dump_native_contexts = true;
     }
   }
@@ -166,16 +167,16 @@ TEST_F(V8MemoryDumpProviderTest, DumpCodeStatistics) {
 
   for (const auto& name_dump : allocator_dumps) {
     const std::string& name = name_dump.first;
-    if (base::Contains(name, "code_stats")) {
+    if (name.find("code_stats") != std::string::npos) {
       for (const base::trace_event::MemoryAllocatorDump::Entry& entry :
            name_dump.second->entries()) {
-        if (base::Contains(entry.name, "bytecode_and_metadata_size")) {
+        if (entry.name == "bytecode_and_metadata_size") {
           did_dump_bytecode_size = true;
-        } else if (base::Contains(entry.name, "code_and_metadata_size")) {
+        } else if (entry.name == "code_and_metadata_size") {
           did_dump_code_size = true;
-        } else if (base::Contains(entry.name, "external_script_source_size")) {
+        } else if (entry.name == "external_script_source_size") {
           did_dump_external_scripts_size = true;
-        } else if (base::Contains(entry.name, "cpu_profiler_metadata_size")) {
+        } else if (entry.name == "cpu_profiler_metadata_size") {
           did_dump_cpu_profiler_metadata_size = true;
         }
       }

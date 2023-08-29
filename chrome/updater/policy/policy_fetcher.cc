@@ -23,7 +23,6 @@
 #include "chrome/updater/device_management/dm_storage.h"
 #include "chrome/updater/policy/dm_policy_manager.h"
 #include "chrome/updater/policy/service.h"
-#include "chrome/updater/util/util.h"
 #include "third_party/abseil-cpp/absl/types/optional.h"
 #include "url/gurl.h"
 
@@ -43,11 +42,9 @@ scoped_refptr<base::SequencedTaskRunner> GetBlockingTaskRunner() {
 
 PolicyFetcher::PolicyFetcher(
     const GURL& server_url,
-    const absl::optional<PolicyServiceProxyConfiguration>& proxy_configuration,
-    const absl::optional<bool>& override_is_managed_device)
+    const absl::optional<PolicyServiceProxyConfiguration>& proxy_configuration)
     : server_url_(server_url),
       policy_service_proxy_configuration_(proxy_configuration),
-      override_is_managed_device_(override_is_managed_device),
       sequenced_task_runner_(GetBlockingTaskRunner()) {
   VLOG(0) << "Policy server: " << server_url_.possibly_invalid_spec();
 }
@@ -72,9 +69,9 @@ void PolicyFetcher::FetchPolicies(
 void PolicyFetcher::RegisterDevice(
     scoped_refptr<base::SequencedTaskRunner> main_task_runner,
     base::OnceCallback<void(bool, DMClient::RequestResult)> callback) {
+  VLOG(1) << __func__;
+
   scoped_refptr<DMStorage> dm_storage = GetDefaultDMStorage();
-  VLOG(1) << __func__
-          << " with enrollment token: " << dm_storage->GetEnrollmentToken();
   DMClient::RegisterDevice(
       DMClient::CreateDefaultConfigurator(server_url_,
                                           policy_service_proxy_configuration_),
@@ -100,7 +97,6 @@ void PolicyFetcher::OnRegisterDeviceRequestComplete(
                        base::BindPostTaskToCurrentDefault(
                            base::BindOnce(std::move(callback), kErrorOk))));
   } else {
-    VLOG(1) << "Device registration failed, skip fetching policies.";
     base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
         FROM_HERE,
         base::BindOnce(
@@ -129,7 +125,7 @@ PolicyFetcher::OnFetchPolicyRequestComplete(
   VLOG(1) << __func__;
 
   if (result == DMClient::RequestResult::kSuccess)
-    return CreateDMPolicyManager(override_is_managed_device_);
+    return CreateDMPolicyManager();
 
   for (const auto& validation_result : validation_results) {
     base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
@@ -143,7 +139,7 @@ PolicyFetcher::OnFetchPolicyRequestComplete(
               if (result != DMClient::RequestResult::kSuccess)
                 LOG(WARNING)
                     << "DMClient::ReportPolicyValidationErrors failed: "
-                    << result;
+                    << static_cast<int>(result);
             })));
   }
 

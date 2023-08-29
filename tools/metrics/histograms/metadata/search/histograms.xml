@@ -23,13 +23,13 @@ chromium-metrics-reviews@google.com.
 <histograms>
 
 <variants name="AuxiliarySearchDataType">
-  <variant name="" summary="All Requests"/>
-  <variant name=".Bookmarks" summary="Bookmarks"/>
-  <variant name=".Tabs" summary="Tabs"/>
+  <variant name="" summary="all requests"/>
+  <variant name=".Bookmark" summary="BOOKMARK"/>
+  <variant name=".Tab" summary="TAB"/>
 </variants>
 
 <histogram name="Search.Ambient.Query" enum="AmbientSearchEntryPoint"
-    expires_after="2024-02-11">
+    expires_after="2023-12-10">
   <owner>juanmojica@google.com</owner>
   <owner>schechter@google.com</owner>
   <owner>stanfield@google.com</owner>
@@ -56,7 +56,6 @@ chromium-metrics-reviews@google.com.
   <summary>
     Records the count of failed deletions from the auxiliary search.
   </summary>
-  <token key="AuxiliarySearchDataType" variants="AuxiliarySearchDataType"/>
 </histogram>
 
 <histogram name="Search.AuxiliarySearch.DeletionRequestStatus"
@@ -85,7 +84,6 @@ chromium-metrics-reviews@google.com.
   <summary>
     Records the count of failed donations from the auxiliary search.
   </summary>
-  <token key="AuxiliarySearchDataType" variants="AuxiliarySearchDataType"/>
 </histogram>
 
 <histogram name="Search.AuxiliarySearch.DonationRequestStatus"
@@ -106,7 +104,6 @@ chromium-metrics-reviews@google.com.
   <summary>
     Records the count of contents which are sent to the auxiliary search.
   </summary>
-  <token key="AuxiliarySearchDataType" variants="AuxiliarySearchDataType"/>
 </histogram>
 
 <histogram name="Search.AuxiliarySearch.QueryTime{AuxiliarySearchDataType}"
@@ -114,7 +111,6 @@ chromium-metrics-reviews@google.com.
   <owner>gangwu@chromium.org</owner>
   <owner>chrome-mobile-search@google.com</owner>
   <summary>Time taken for query contents for the auxiliary search.</summary>
-  <token key="AuxiliarySearchDataType" variants="AuxiliarySearchDataType"/>
 </histogram>
 
 <histogram name="Search.ContextualSearch.All.ResultsSeen" enum="Boolean"
@@ -139,7 +135,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Search.ContextualSearch.All.Searches"
-    enum="BooleanBottomSearchKind" expires_after="2024-02-25">
+    enum="BooleanBottomSearchKind" expires_after="2023-10-22">
 <!-- TODO(donnd): change expires_after to "never" once established and
        approved. -->
 
@@ -216,7 +212,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Search.ContextualSearch.NetError" enum="NetErrorCodes"
-    expires_after="2024-01-14">
+    expires_after="2023-11-12">
   <owner>donnd@chromium.org</owner>
   <owner>basiaz@google.com</owner>
   <summary>
@@ -407,7 +403,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Search.ContextualSearch.SelectionExpanded"
-    enum="ContextualSearchGestureIsTap" expires_after="2024-01-14">
+    enum="ContextualSearchGestureIsTap" expires_after="2023-11-12">
   <owner>donnd@chromium.org</owner>
   <owner>twellington@chromium.org</owner>
   <summary>
@@ -1357,10 +1353,10 @@ chromium-metrics-reviews@google.com.
   </summary>
 </histogram>
 
-<histogram name="Search.DefaultSearchProviderType2{Population}"
-    enum="OmniboxSearchEngineType" expires_after="2024-07-18">
+<histogram name="Search.DefaultSearchProviderType2"
+    enum="OmniboxSearchEngineType" expires_after="2023-11-12">
   <owner>mpearson@chromium.org</owner>
-  <owner>ftirelo@chromium.org</owner>
+  <owner>csharp@chromium.org</owner>
   <summary>
     The type of the default search engine that is loaded when a regular, guest,
     or ChromeOS sign-in screen profile is opened or after a profile reset. (A
@@ -1376,14 +1372,7 @@ chromium-metrics-reviews@google.com.
     people cannot search / browse the web using this profile. As such, the
     default search engine setting for this profile does not have any practical
     meaning.
-
-    {Population}
   </summary>
-  <token key="Population">
-    <variant name="" summary="Reported for all users."/>
-    <variant name=".SetByEnterprisePolicy"
-        summary="Reported for users with DSP set by Enterprise policy."/>
-  </token>
 </histogram>
 
 <histogram name="Search.GsaAccountChangeNotificationSource"
@@ -1428,7 +1417,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Search.Image.Camera.Open" enum="CameraOpenEntryPoint"
-    expires_after="2024-02-04">
+    expires_after="2023-12-04">
   <owner>juanmojica@google.com</owner>
   <owner>schechter@google.com</owner>
   <owner>stanfield@google.com</owner>
@@ -1440,7 +1429,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Search.Image.Camera.Result" enum="CameraResult"
-    expires_after="2024-01-24">
+    expires_after="2023-08-07">
   <owner>juanmojica@google.com</owner>
   <owner>schechter@google.com</owner>
   <owner>stanfield@google.com</owner>
@@ -1453,7 +1442,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Search.iOS.SelectDefaultSearchEngine"
-    enum="OmniboxSearchEngineType" expires_after="2024-01-28">
+    enum="OmniboxSearchEngineType" expires_after="2023-09-24">
   <owner>sczs@chromium.org</owner>
   <owner>gambard@chromium.org</owner>
   <summary>
@@ -1653,7 +1642,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Search.QueryTiles.TrendingTileEvent" enum="TrendingTileEvent"
-    expires_after="2024-01-14">
+    expires_after="2023-11-12">
   <owner>qinmin@chromium.org</owner>
   <owner>chrome-upboarding-eng@google.com</owner>
   <summary>
@@ -1663,7 +1652,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Search.RegionSearch.Lens.RegionAspectRatio"
-    enum="LensRegionSearchAspectRatio" expires_after="2024-02-25">
+    enum="LensRegionSearchAspectRatio" expires_after="2023-12-10">
   <owner>juanmojica@google.com</owner>
   <owner>benwgold@google.com</owner>
   <owner>stanfield@google.com</owner>
@@ -1675,7 +1664,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Search.RegionSearch.Lens.RegionViewportProportion" units="pct"
-    expires_after="2024-02-25">
+    expires_after="2023-12-10">
   <owner>juanmojica@google.com</owner>
   <owner>benwgold@google.com</owner>
   <owner>stanfield@google.com</owner>
@@ -1687,7 +1676,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Search.RegionSearch.Lens.Result"
-    enum="LensRegionSearchCaptureResult" expires_after="2024-02-11">
+    enum="LensRegionSearchCaptureResult" expires_after="2023-12-10">
   <owner>juanmojica@google.com</owner>
   <owner>benwgold@google.com</owner>
   <owner>stanfield@google.com</owner>
@@ -1713,7 +1702,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Search.RelatedSearches.CarouselLastVisibleItemPosition"
-    units="position" expires_after="2023-12-31">
+    units="position" expires_after="2023-10-22">
   <owner>donnd@chromium.org</owner>
   <owner>gangwu@chromium.org</owner>
   <owner>related-searches-vteam@google.com</owner>
@@ -1727,7 +1716,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Search.RelatedSearches.CarouselScrollAndClick"
-    enum="ScrollAndClickStatus" expires_after="2024-02-11">
+    enum="ScrollAndClickStatus" expires_after="2023-12-10">
   <owner>donnd@chromium.org</owner>
   <owner>gangwu@chromium.org</owner>
   <owner>related-searches-vteam@google.com</owner>
@@ -1739,7 +1728,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Search.RelatedSearches.CarouselScrolled" enum="Boolean"
-    expires_after="2023-12-31">
+    expires_after="2023-10-15">
   <owner>donnd@chromium.org</owner>
   <owner>gangwu@chromium.org</owner>
   <owner>related-searches-vteam@google.com</owner>
@@ -1766,7 +1755,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Search.RelatedSearches.NumberOfSuggestionsClicked2"
-    units="selected" expires_after="2024-02-25">
+    units="selected" expires_after="2023-10-22">
   <owner>donnd@chromium.org</owner>
   <owner>related-searches-vteam@google.com</owner>
   <summary>
@@ -1777,7 +1766,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Search.RelatedSearches.QualifiedUsers" enum="Boolean"
-    expires_after="2023-12-31">
+    expires_after="2023-10-22">
   <owner>donnd@chromium.org</owner>
   <owner>related-searches-vteam@google.com</owner>
   <summary>

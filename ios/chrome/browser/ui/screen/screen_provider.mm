@@ -7,6 +7,10 @@
 #import "base/check.h"
 #import "ios/chrome/browser/shared/public/features/features.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 @interface ScreenProvider ()
 
 // Index in the array of screens currently shown.

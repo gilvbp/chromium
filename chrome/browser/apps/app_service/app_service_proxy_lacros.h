@@ -17,7 +17,6 @@
 #include "build/chromeos_buildflags.h"
 #include "chrome/browser/apps/app_service/browser_app_launcher.h"
 #include "chrome/browser/apps/app_service/launch_result_type.h"
-#include "chrome/browser/apps/app_service/metrics/website_metrics_service_lacros.h"
 #include "chromeos/crosapi/mojom/app_service.mojom.h"
 #include "components/keyed_service/core/keyed_service.h"
 #include "components/services/app_service/public/cpp/app_capability_access_cache.h"
@@ -101,8 +100,6 @@ class AppServiceProxyLacros : public KeyedService,
   apps::PreferredAppsListHandle& PreferredAppsList();
 
   apps::BrowserAppInstanceTracker* BrowserAppInstanceTracker();
-
-  apps::WebsiteMetricsServiceLacros* WebsiteMetricsService();
 
   // apps::IconLoader overrides.
   absl::optional<IconKey> GetIconKey(const std::string& app_id) override;
@@ -223,6 +220,11 @@ class AppServiceProxyLacros : public KeyedService,
       const std::vector<GURL>& filesystem_urls,
       const std::vector<std::string>& mime_types);
 
+  // Adds a preferred app for |url|.
+  void AddPreferredApp(const std::string& app_id, const GURL& url);
+  // Adds a preferred app for |intent|.
+  void AddPreferredApp(const std::string& app_id, const IntentPtr& intent);
+
   // Sets |app_id| as the preferred app for all of its supported links ('view'
   // intent filters with a scheme and host). Any existing preferred apps for
   // those links will have all their supported links unset, as if
@@ -243,10 +245,6 @@ class AppServiceProxyLacros : public KeyedService,
   void SetWebsiteMetricsServiceForTesting(
       std::unique_ptr<apps::WebsiteMetricsServiceLacros>
           website_metrics_service);
-
-  void SetBrowserAppInstanceTrackerForTesting(
-      std::unique_ptr<apps::BrowserAppInstanceTracker>
-          browser_app_instance_tracker);
 
   // Exposes AppServiceSubscriber methods to allow tests to fake calls that
   // would normally come from Ash via the mojo interface.

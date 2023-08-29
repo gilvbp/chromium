@@ -67,8 +67,6 @@ class FastPairHandshake {
 
   bool completed_successfully() { return completed_successfully_; }
 
-  void set_completed_successfully() { completed_successfully_ = true; }
-
   FastPairDataEncryptor* fast_pair_data_encryptor() {
     return fast_pair_data_encryptor_.get();
   }

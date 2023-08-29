@@ -61,7 +61,7 @@ PhysicalRect BoxModelObjectPainter::AdjustRectForScrolledContent(
 }
 
 NGPhysicalBoxStrut BoxModelObjectPainter::ComputeBorders() const {
-  return box_model_.BorderOutsets();
+  return box_model_.BorderBoxOutsets();
 }
 
 NGPhysicalBoxStrut BoxModelObjectPainter::ComputePadding() const {

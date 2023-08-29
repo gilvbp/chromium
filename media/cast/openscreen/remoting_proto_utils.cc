@@ -62,10 +62,9 @@ scoped_refptr<media::DecoderBuffer> ConvertProtoToDecoderBuffer(
   }
 
   if (buffer_message.has_side_data()) {
-    const uint8_t* side_ptr =
-        reinterpret_cast<const uint8_t*>(buffer_message.side_data().data());
-    buffer->WritableSideData().alpha_data.assign(
-        side_ptr, side_ptr + buffer_message.side_data().size());
+    buffer->CopySideDataFrom(
+        reinterpret_cast<const uint8_t*>(buffer_message.side_data().data()),
+        buffer_message.side_data().size());
   }
 
   return buffer;
@@ -91,11 +90,9 @@ void ConvertDecoderBufferToProto(
   buffer_message->set_back_discard_usec(
       decoder_buffer.discard_padding().second.InMicroseconds());
 
-  if (decoder_buffer.has_side_data() &&
-      !decoder_buffer.side_data()->alpha_data.empty()) {
-    buffer_message->set_side_data(
-        decoder_buffer.side_data()->alpha_data.data(),
-        decoder_buffer.side_data()->alpha_data.size());
+  if (decoder_buffer.side_data_size()) {
+    buffer_message->set_side_data(decoder_buffer.side_data(),
+                                  decoder_buffer.side_data_size());
   }
 }
 

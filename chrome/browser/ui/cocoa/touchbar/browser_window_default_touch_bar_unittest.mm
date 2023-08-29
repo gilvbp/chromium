@@ -6,7 +6,7 @@
 
 #import <Cocoa/Cocoa.h>
 
-#include "base/apple/foundation_util.h"
+#include "base/mac/foundation_util.h"
 #include "base/mac/mac_util.h"
 #include "base/strings/sys_string_conversions.h"
 #include "chrome/app/chrome_command_ids.h"
@@ -28,6 +28,10 @@
 #include "testing/gtest_mac.h"
 #import "ui/base/cocoa/touch_bar_util.h"
 #include "ui/base/l10n/l10n_util_mac.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 class BrowserWindowDefaultTouchBarUnitTest : public BrowserWithTestWindowTest {
  public:
@@ -162,14 +166,14 @@ TEST_F(BrowserWindowDefaultTouchBarUnitTest, ReloadOrStopTouchBarItem) {
   NSTouchBarItem* item =
       [touch_bar itemForIdentifier:BrowserWindowDefaultTouchBar
                                        .reloadOrStopItemIdentifier];
-  NSButton* button = base::apple::ObjCCast<NSButton>([item view]);
+  NSButton* button = base::mac::ObjCCast<NSButton>([item view]);
   EXPECT_EQ(IDC_RELOAD, [button tag]);
   EXPECT_EQ([BrowserWindowDefaultTouchBar reloadIcon], [button image]);
 
   [touch_bar_ setIsPageLoading:YES];
   item = [touch_bar itemForIdentifier:BrowserWindowDefaultTouchBar
                                           .reloadOrStopItemIdentifier];
-  button = base::apple::ObjCCast<NSButton>([item view]);
+  button = base::mac::ObjCCast<NSButton>([item view]);
   EXPECT_EQ(IDC_STOP, [button tag]);
   EXPECT_EQ([BrowserWindowDefaultTouchBar navigateStopIcon], [button image]);
 }
@@ -182,13 +186,13 @@ TEST_F(BrowserWindowDefaultTouchBarUnitTest, BookmkarStarTouchBarItem) {
   NSTouchBarItem* item =
       [touch_bar itemForIdentifier:BrowserWindowDefaultTouchBar
                                        .bookmarkStarItemIdentifier];
-  NSButton* button = base::apple::ObjCCast<NSButton>([item view]);
+  NSButton* button = base::mac::ObjCCast<NSButton>([item view]);
   EXPECT_EQ([BrowserWindowDefaultTouchBar starDefaultIcon], [button image]);
 
   [touch_bar_ setIsStarred:YES];
   item = [touch_bar itemForIdentifier:BrowserWindowDefaultTouchBar
                                           .bookmarkStarItemIdentifier];
-  button = base::apple::ObjCCast<NSButton>([item view]);
+  button = base::mac::ObjCCast<NSButton>([item view]);
   EXPECT_EQ([BrowserWindowDefaultTouchBar starActiveIcon], [button image]);
 }
 
@@ -197,7 +201,7 @@ TEST_F(BrowserWindowDefaultTouchBarUnitTest, BackCommandUpdate) {
   NSTouchBar* touch_bar = [touch_bar_ makeTouchBar];
   NSTouchBarItem* item = [touch_bar
       itemForIdentifier:BrowserWindowDefaultTouchBar.backItemIdentifier];
-  NSButton* button = base::apple::ObjCCast<NSButton>(item.view);
+  NSButton* button = base::mac::ObjCCast<NSButton>(item.view);
 
   UpdateCommandEnabled(IDC_BACK, true);
   EXPECT_TRUE(button.enabled);
@@ -211,7 +215,7 @@ TEST_F(BrowserWindowDefaultTouchBarUnitTest, ForwardCommandUpdate) {
   NSTouchBar* touch_bar = [touch_bar_ makeTouchBar];
   NSTouchBarItem* item = [touch_bar
       itemForIdentifier:BrowserWindowDefaultTouchBar.forwardItemIdentifier];
-  NSButton* button = base::apple::ObjCCast<NSButton>(item.view);
+  NSButton* button = base::mac::ObjCCast<NSButton>(item.view);
 
   UpdateCommandEnabled(IDC_FORWARD, true);
   EXPECT_TRUE(button.enabled);

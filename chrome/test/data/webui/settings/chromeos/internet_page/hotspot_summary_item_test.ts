@@ -4,17 +4,18 @@
 
 import 'chrome://os-settings/os_settings.js';
 
-import {CrPolicyIndicatorElement, CrToggleElement, HotspotSummaryItemElement, LocalizedLinkElement, Router, routes} from 'chrome://os-settings/os_settings.js';
+import {CrToggleElement, HotspotSummaryItemElement, LocalizedLinkElement, Router, routes} from 'chrome://os-settings/os_settings.js';
 import {setHotspotConfigForTesting} from 'chrome://resources/ash/common/hotspot/cros_hotspot_config.js';
 import {CrosHotspotConfigInterface, CrosHotspotConfigObserverInterface, CrosHotspotConfigObserverRemote, HotspotAllowStatus, HotspotControlResult, HotspotState, WiFiSecurityMode} from 'chrome://resources/ash/common/hotspot/cros_hotspot_config.mojom-webui.js';
 import {FakeHotspotConfig} from 'chrome://resources/ash/common/hotspot/fake_hotspot_config.js';
+import {CrPolicyIndicatorElement} from 'chrome://resources/cr_elements/policy/cr_policy_indicator.js';
 import {flush} from 'chrome://resources/polymer/v3_0/polymer/polymer_bundled.min.js';
 import {assertEquals, assertFalse, assertNull, assertTrue} from 'chrome://webui-test/chai_assert.js';
 import {eventToPromise} from 'chrome://webui-test/test_util.js';
 
 suite('<hotspot-summary-item>', () => {
   let hotspotSummaryItem: HotspotSummaryItemElement;
-  let hotspotConfig: CrosHotspotConfigInterface&FakeHotspotConfig;
+  let hotspotConfig_: CrosHotspotConfigInterface&FakeHotspotConfig;
   let hotspotConfigObserver: CrosHotspotConfigObserverInterface;
 
   function queryHotspotStateSublabel(): HTMLElement|null {
@@ -47,8 +48,8 @@ suite('<hotspot-summary-item>', () => {
   }
 
   suiteSetup(() => {
-    hotspotConfig = new FakeHotspotConfig();
-    setHotspotConfigForTesting(hotspotConfig);
+    hotspotConfig_ = new FakeHotspotConfig();
+    setHotspotConfigForTesting(hotspotConfig_);
   });
 
   function flushAsync() {
@@ -64,14 +65,14 @@ suite('<hotspot-summary-item>', () => {
 
     hotspotConfigObserver = {
       async onHotspotInfoChanged() {
-        const response = await hotspotConfig.getHotspotInfo();
+        const response = await hotspotConfig_.getHotspotInfo();
         hotspotSummaryItem.hotspotInfo = response.hotspotInfo;
       },
     };
-    hotspotConfig.addObserver(
+    hotspotConfig_.addObserver(
         hotspotConfigObserver as CrosHotspotConfigObserverRemote);
 
-    hotspotConfig.setFakeHotspotInfo({
+    hotspotConfig_.setFakeHotspotInfo({
       state: HotspotState.kDisabled,
       allowStatus: HotspotAllowStatus.kAllowed,
       clientCount: 0,
@@ -85,7 +86,7 @@ suite('<hotspot-summary-item>', () => {
   teardown(() => {
     hotspotSummaryItem.remove();
     Router.getInstance().resetRouteForTesting();
-    hotspotConfig.reset();
+    hotspotConfig_.reset();
   });
 
   test(
@@ -136,7 +137,7 @@ suite('<hotspot-summary-item>', () => {
   });
 
   test('UI state when hotspot is allowed and state is on', async () => {
-    hotspotConfig.setFakeHotspotState(HotspotState.kEnabled);
+    hotspotConfig_.setFakeHotspotState(HotspotState.kEnabled);
     await flushAsync();
 
     const hotspotStateSublabel = queryHotspotStateSublabel();
@@ -165,36 +166,8 @@ suite('<hotspot-summary-item>', () => {
         'Disabled sublabel link should hide');
   });
 
-  test('Hotspot sublabel in various hotspot states', async () => {
-    hotspotConfig.setFakeHotspotState(HotspotState.kEnabling);
-    await flushAsync();
-    const hotspotStateSublabel = queryHotspotStateSublabel();
-    assertTrue(!!hotspotStateSublabel);
-    assertEquals(
-        hotspotSummaryItem.i18n('hotspotSummaryStateTurningOn'),
-        hotspotStateSublabel.textContent!.trim());
-
-    hotspotConfig.setFakeHotspotState(HotspotState.kEnabled);
-    await flushAsync();
-    assertEquals(
-        hotspotSummaryItem.i18n('hotspotSummaryStateOn'),
-        hotspotStateSublabel.textContent!.trim());
-
-    hotspotConfig.setFakeHotspotState(HotspotState.kDisabling);
-    await flushAsync();
-    assertEquals(
-        hotspotSummaryItem.i18n('hotspotSummaryStateTurningOff'),
-        hotspotStateSublabel.textContent!.trim());
-
-    hotspotConfig.setFakeHotspotState(HotspotState.kDisabled);
-    await flushAsync();
-    assertEquals(
-        hotspotSummaryItem.i18n('hotspotSummaryStateOff'),
-        hotspotStateSublabel.textContent!.trim());
-  });
-
   test('UI state when disallowed by policy', async () => {
-    hotspotConfig.setFakeHotspotAllowStatus(
+    hotspotConfig_.setFakeHotspotAllowStatus(
         HotspotAllowStatus.kDisallowedByPolicy);
     await flushAsync();
 
@@ -226,7 +199,7 @@ suite('<hotspot-summary-item>', () => {
 
     // Verify toggle is able to turn on/off by CrosHotspotConfig even when it is
     // disabled by policy.
-    hotspotConfig.setFakeHotspotState(HotspotState.kEnabled);
+    hotspotConfig_.setFakeHotspotState(HotspotState.kEnabled);
     await flushAsync();
     assertEquals(
         hotspotSummaryItem.i18n('hotspotSummaryStateOn'),
@@ -235,7 +208,7 @@ suite('<hotspot-summary-item>', () => {
     assertTrue(!!icon);
     assertTrue(icon.classList.contains('hotspot-on'));
 
-    hotspotConfig.setFakeHotspotState(HotspotState.kDisabled);
+    hotspotConfig_.setFakeHotspotState(HotspotState.kDisabled);
     await flushAsync();
     assertEquals(
         hotspotSummaryItem.i18n('hotspotSummaryStateOff'),
@@ -246,7 +219,7 @@ suite('<hotspot-summary-item>', () => {
   });
 
   test('UI state when mobile data plan doesn\'t support hotspot', async () => {
-    hotspotConfig.setFakeHotspotAllowStatus(
+    hotspotConfig_.setFakeHotspotAllowStatus(
         HotspotAllowStatus.kDisallowedReadinessCheckFail);
     await flushAsync();
 
@@ -280,7 +253,7 @@ suite('<hotspot-summary-item>', () => {
   });
 
   test('UI state when no mobile data connection', async () => {
-    hotspotConfig.setFakeHotspotAllowStatus(
+    hotspotConfig_.setFakeHotspotAllowStatus(
         HotspotAllowStatus.kDisallowedNoMobileData);
     await flushAsync();
 
@@ -318,7 +291,7 @@ suite('<hotspot-summary-item>', () => {
     assertFalse(enableHotspotToggle.checked);
 
     // Simulate clicking toggle to turn on hotspot and fail.
-    hotspotConfig.setFakeEnableHotspotResult(
+    hotspotConfig_.setFakeEnableHotspotResult(
         HotspotControlResult.kNetworkSetupFailure);
     enableHotspotToggle.click();
     await flushAsync();
@@ -329,7 +302,7 @@ suite('<hotspot-summary-item>', () => {
     // Simulate clicking toggle to turn on hotspot and succeed.
     let a11yMessagesEventPromise =
         eventToPromise('cr-a11y-announcer-messages-sent', document.body);
-    hotspotConfig.setFakeEnableHotspotResult(HotspotControlResult.kSuccess);
+    hotspotConfig_.setFakeEnableHotspotResult(HotspotControlResult.kSuccess);
     enableHotspotToggle.click();
     await flushAsync();
     // Toggle should be on this time.
@@ -342,7 +315,7 @@ suite('<hotspot-summary-item>', () => {
     // Simulate clicking on toggle to turn off hotspot and succeed.
     a11yMessagesEventPromise =
         eventToPromise('cr-a11y-announcer-messages-sent', document.body);
-    hotspotConfig.setFakeDisableHotspotResult(HotspotControlResult.kSuccess);
+    hotspotConfig_.setFakeDisableHotspotResult(HotspotControlResult.kSuccess);
     enableHotspotToggle.click();
     await flushAsync();
     // Toggle should be off
@@ -353,14 +326,14 @@ suite('<hotspot-summary-item>', () => {
         hotspotSummaryItem.i18n('hotspotDisabledA11yLabel')));
 
     // Simulate state becoming kEnabling.
-    hotspotConfig.setFakeHotspotState(HotspotState.kEnabling);
+    hotspotConfig_.setFakeHotspotState(HotspotState.kEnabling);
     await flushAsync();
-    // Toggle should be enabled to support abort operation.
-    assertFalse(enableHotspotToggle.disabled);
-    hotspotConfig.setFakeHotspotState(HotspotState.kDisabled);
+    // Toggle should be disabled.
+    assertTrue(enableHotspotToggle.disabled);
+    hotspotConfig_.setFakeHotspotState(HotspotState.kDisabled);
 
     // Simulate AllowStatus becoming kDisallowedByPolicy.
-    hotspotConfig.setFakeHotspotAllowStatus(
+    hotspotConfig_.setFakeHotspotAllowStatus(
         HotspotAllowStatus.kDisallowedByPolicy);
     await flushAsync();
     // Toggle should be disabled.

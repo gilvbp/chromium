@@ -16,7 +16,6 @@
 #include "third_party/blink/renderer/bindings/core/v8/script_promise_property.h"
 #include "third_party/blink/renderer/bindings/core/v8/script_value.h"
 #include "third_party/blink/renderer/bindings/core/v8/v8_throw_dom_exception.h"
-#include "third_party/blink/renderer/core/css/css_rule.h"
 #include "third_party/blink/renderer/core/css/style_change_reason.h"
 #include "third_party/blink/renderer/core/dom/document.h"
 #include "third_party/blink/renderer/core/dom/dom_exception.h"
@@ -589,17 +588,7 @@ void ViewTransition::ProcessCurrentState() {
         // created by the script API.
         DCHECK(script_bound_state_);
 
-        DOMCallbackResult result = InvokeDOMChangeCallback();
-
-        // Since invoking the callback could yield (at least when devtools
-        // breakpoint is hit, but maybe in other situations), we could have
-        // timed out already. Make sure we don't advance the state out of a
-        // terminal state.
-        if (IsTerminalState(state_)) {
-          break;
-        }
-
-        switch (result) {
+        switch (InvokeDOMChangeCallback()) {
           case DOMCallbackResult::kFinished:
             process_next_state = AdvanceTo(State::kDOMCallbackFinished);
             DCHECK(process_next_state);
@@ -840,7 +829,8 @@ bool ViewTransition::NeedsViewTransitionEffectNode(
 
   // Otherwise check if the layout object has an active transition element.
   auto* element = DynamicTo<Element>(object.GetNode());
-  return element && IsTransitionElementExcludingRoot(*element);
+  return style_tracker_ && element &&
+         style_tracker_->IsTransitionElement(*element);
 }
 
 bool ViewTransition::NeedsViewTransitionClipNode(
@@ -863,21 +853,21 @@ bool ViewTransition::IsRepresentedViaPseudoElements(
   }
 
   if (IsA<LayoutView>(object)) {
-    return document_->documentElement() &&
-           style_tracker_->IsTransitionElement(*document_->documentElement());
+    return style_tracker_->IsRootTransitioning();
   }
 
-  auto* element = DynamicTo<Element>(object.GetNode());
-  return element && IsTransitionElementExcludingRoot(*element);
+  if (auto* element = DynamicTo<Element>(object.GetNode())) {
+    return IsRepresentedViaPseudoElements(*element);
+  }
+  return false;
 }
 
-bool ViewTransition::IsTransitionElementExcludingRoot(
-    const Element& node) const {
+bool ViewTransition::IsRepresentedViaPseudoElements(
+    const Element& element) const {
   if (IsTerminalState(state_)) {
     return false;
   }
-
-  return !node.IsDocumentElement() && style_tracker_->IsTransitionElement(node);
+  return style_tracker_->IsTransitionElement(element);
 }
 
 PaintPropertyChangeType ViewTransition::UpdateEffect(
@@ -901,18 +891,14 @@ PaintPropertyChangeType ViewTransition::UpdateEffect(
     // The only non-element participant is the layout view.
     DCHECK(object.IsLayoutView());
 
-    // We always generate an effect node for the root element but element and
-    // resource IDs are only setup if the root element is participating in the
-    // transition, requiring a snapshot.
-    if (IsRootTransitioning()) {
-      style_tracker_->UpdateElementIndicesAndSnapshotId(
-          document_->documentElement(), state.view_transition_element_id,
-          state.view_transition_element_resource_id);
-    }
+    style_tracker_->UpdateRootIndexAndSnapshotId(
+        state.view_transition_element_id,
+        state.view_transition_element_resource_id);
+    DCHECK(state.view_transition_element_id.valid() ||
+           !style_tracker_->IsRootTransitioning());
     return style_tracker_->UpdateRootEffect(std::move(state), current_effect);
   }
 
-  state.self_or_ancestor_participates_in_view_transition = true;
   style_tracker_->UpdateElementIndicesAndSnapshotId(
       element, state.view_transition_element_id,
       state.view_transition_element_resource_id);
@@ -994,13 +980,13 @@ PseudoElement* ViewTransition::CreatePseudoElement(
                                              view_transition_name);
 }
 
-CSSStyleSheet* ViewTransition::UAStyleSheet() const {
+String ViewTransition::UAStyleSheet() const {
   // TODO(vmpstr): We can still request getComputedStyle(html,
   // "::view-transition-pseudo") outside of a page transition. What should we
   // return in that case?
   if (!style_tracker_)
-    return nullptr;
-  return &style_tracker_->UAStyleSheet();
+    return "";
+  return style_tracker_->UAStyleSheet();
 }
 
 void ViewTransition::WillCommitCompositorFrame() {

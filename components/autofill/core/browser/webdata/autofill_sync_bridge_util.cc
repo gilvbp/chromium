@@ -5,13 +5,10 @@
 #include "components/autofill/core/browser/webdata/autofill_sync_bridge_util.h"
 
 #include "base/base64.h"
-#include "base/check.h"
 #include "base/pickle.h"
 #include "base/ranges/algorithm.h"
-#include "base/strings/string_number_conversions.h"
 #include "base/strings/string_util.h"
 #include "base/strings/utf_string_conversions.h"
-#include "base/time/time.h"
 #include "build/build_config.h"
 #include "components/autofill/core/browser/autofill_data_util.h"
 #include "components/autofill/core/browser/data_model/autofill_offer_data.h"
@@ -80,7 +77,7 @@ const char* CardNetworkFromWalletCardType(
 
 // Creates a CreditCard from the specified `card` specifics.
 CreditCard CardFromSpecifics(const sync_pb::WalletMaskedCreditCard& card) {
-  CreditCard result(CreditCard::RecordType::kMaskedServerCard, card.id());
+  CreditCard result(CreditCard::MASKED_SERVER_CARD, card.id());
   result.SetNumber(base::UTF8ToUTF16(card.last_four()));
   result.SetNetworkForMaskedCard(CardNetworkFromWalletCardType(card.type()));
   result.SetRawInfo(CREDIT_CARD_NAME_FULL,
@@ -89,16 +86,16 @@ CreditCard CardFromSpecifics(const sync_pb::WalletMaskedCreditCard& card) {
   result.SetExpirationYear(card.exp_year());
   result.set_billing_address_id(card.billing_address_id());
 
-  CreditCard::Issuer issuer = CreditCard::Issuer::kIssuerUnknown;
+  CreditCard::Issuer issuer = CreditCard::ISSUER_UNKNOWN;
   switch (card.card_issuer().issuer()) {
     case sync_pb::CardIssuer::ISSUER_UNKNOWN:
-      issuer = CreditCard::Issuer::kIssuerUnknown;
+      issuer = CreditCard::ISSUER_UNKNOWN;
       break;
     case sync_pb::CardIssuer::GOOGLE:
-      issuer = CreditCard::Issuer::kGoogle;
+      issuer = CreditCard::GOOGLE;
       break;
     case sync_pb::CardIssuer::EXTERNAL_ISSUER:
-      issuer = CreditCard::Issuer::kExternalIssuer;
+      issuer = CreditCard::EXTERNAL_ISSUER;
       break;
   }
   result.set_card_issuer(issuer);
@@ -111,19 +108,19 @@ CreditCard CardFromSpecifics(const sync_pb::WalletMaskedCreditCard& card) {
   CreditCard::VirtualCardEnrollmentState state;
   switch (card.virtual_card_enrollment_state()) {
     case sync_pb::WalletMaskedCreditCard::UNENROLLED:
-      state = CreditCard::VirtualCardEnrollmentState::kUnenrolled;
+      state = CreditCard::UNENROLLED;
       break;
     case sync_pb::WalletMaskedCreditCard::ENROLLED:
-      state = CreditCard::VirtualCardEnrollmentState::kEnrolled;
+      state = CreditCard::ENROLLED;
       break;
     case sync_pb::WalletMaskedCreditCard::UNENROLLED_AND_NOT_ELIGIBLE:
-      state = CreditCard::VirtualCardEnrollmentState::kUnenrolledAndNotEligible;
+      state = CreditCard::UNENROLLED_AND_NOT_ELIGIBLE;
       break;
     case sync_pb::WalletMaskedCreditCard::UNENROLLED_AND_ELIGIBLE:
-      state = CreditCard::VirtualCardEnrollmentState::kUnenrolledAndEligible;
+      state = CreditCard::UNENROLLED_AND_ELIGIBLE;
       break;
     case sync_pb::WalletMaskedCreditCard::UNSPECIFIED:
-      state = CreditCard::VirtualCardEnrollmentState::kUnspecified;
+      state = CreditCard::UNSPECIFIED;
       break;
   }
   result.set_virtual_card_enrollment_state(state);
@@ -134,16 +131,13 @@ CreditCard CardFromSpecifics(const sync_pb::WalletMaskedCreditCard& card) {
     CreditCard::VirtualCardEnrollmentType virtual_card_enrollment_type;
     switch (card.virtual_card_enrollment_type()) {
       case sync_pb::WalletMaskedCreditCard::TYPE_UNSPECIFIED:
-        virtual_card_enrollment_type =
-            CreditCard::VirtualCardEnrollmentType::kTypeUnspecified;
+        virtual_card_enrollment_type = CreditCard::TYPE_UNSPECIFIED;
         break;
       case sync_pb::WalletMaskedCreditCard::ISSUER:
-        virtual_card_enrollment_type =
-            CreditCard::VirtualCardEnrollmentType::kIssuer;
+        virtual_card_enrollment_type = CreditCard::ISSUER;
         break;
       case sync_pb::WalletMaskedCreditCard::NETWORK:
-        virtual_card_enrollment_type =
-            CreditCard::VirtualCardEnrollmentType::kNetwork;
+        virtual_card_enrollment_type = CreditCard::NETWORK;
         break;
     }
     result.set_virtual_card_enrollment_type(virtual_card_enrollment_type);
@@ -298,13 +292,13 @@ void SetAutofillWalletSpecificsFromServerCard(
 
   sync_pb::CardIssuer::Issuer issuer = sync_pb::CardIssuer::ISSUER_UNKNOWN;
   switch (card.card_issuer()) {
-    case CreditCard::Issuer::kIssuerUnknown:
+    case CreditCard::ISSUER_UNKNOWN:
       issuer = sync_pb::CardIssuer::ISSUER_UNKNOWN;
       break;
-    case CreditCard::Issuer::kGoogle:
+    case CreditCard::GOOGLE:
       issuer = sync_pb::CardIssuer::GOOGLE;
       break;
-    case CreditCard::Issuer::kExternalIssuer:
+    case CreditCard::EXTERNAL_ISSUER:
       issuer = sync_pb::CardIssuer::EXTERNAL_ISSUER;
       break;
   }
@@ -315,38 +309,37 @@ void SetAutofillWalletSpecificsFromServerCard(
 
   sync_pb::WalletMaskedCreditCard::VirtualCardEnrollmentState state;
   switch (card.virtual_card_enrollment_state()) {
-    case CreditCard::VirtualCardEnrollmentState::kUnenrolled:
+    case CreditCard::UNENROLLED:
       state = sync_pb::WalletMaskedCreditCard::UNENROLLED;
       break;
-    case CreditCard::VirtualCardEnrollmentState::kEnrolled:
+    case CreditCard::ENROLLED:
       state = sync_pb::WalletMaskedCreditCard::ENROLLED;
       break;
-    case CreditCard::VirtualCardEnrollmentState::kUnenrolledAndNotEligible:
+    case CreditCard::UNENROLLED_AND_NOT_ELIGIBLE:
       state = sync_pb::WalletMaskedCreditCard::UNENROLLED_AND_NOT_ELIGIBLE;
       break;
-    case CreditCard::VirtualCardEnrollmentState::kUnenrolledAndEligible:
+    case CreditCard::UNENROLLED_AND_ELIGIBLE:
       state = sync_pb::WalletMaskedCreditCard::UNENROLLED_AND_ELIGIBLE;
       break;
-    case CreditCard::VirtualCardEnrollmentState::kUnspecified:
+    case CreditCard::UNSPECIFIED:
       state = sync_pb::WalletMaskedCreditCard::UNSPECIFIED;
       break;
   }
   wallet_card->set_virtual_card_enrollment_state(state);
 
   // We should only have a virtual card enrollment type for enrolled cards.
-  if (card.virtual_card_enrollment_state() ==
-      CreditCard::VirtualCardEnrollmentState::kEnrolled) {
+  if (card.virtual_card_enrollment_state() == CreditCard::ENROLLED) {
     sync_pb::WalletMaskedCreditCard::VirtualCardEnrollmentType
         virtual_card_enrollment_type;
     switch (card.virtual_card_enrollment_type()) {
-      case CreditCard::VirtualCardEnrollmentType::kTypeUnspecified:
+      case CreditCard::TYPE_UNSPECIFIED:
         virtual_card_enrollment_type =
             sync_pb::WalletMaskedCreditCard::TYPE_UNSPECIFIED;
         break;
-      case CreditCard::VirtualCardEnrollmentType::kIssuer:
+      case CreditCard::ISSUER:
         virtual_card_enrollment_type = sync_pb::WalletMaskedCreditCard::ISSUER;
         break;
-      case CreditCard::VirtualCardEnrollmentType::kNetwork:
+      case CreditCard::NETWORK:
         virtual_card_enrollment_type = sync_pb::WalletMaskedCreditCard::NETWORK;
         break;
     }
@@ -529,35 +522,6 @@ AutofillOfferData AutofillOfferDataFromOfferSpecifics(
         offer_specifics.promo_code_offer_data().promo_code());
     return offer_data;
   }
-}
-
-sync_pb::AutofillWalletCredentialSpecifics
-AutofillWalletCredentialSpecificsFromStructData(const ServerCvc& server_cvc) {
-  sync_pb::AutofillWalletCredentialSpecifics wallet_credential_specifics;
-  CHECK(!server_cvc.cvc.empty());
-  wallet_credential_specifics.set_instrument_id(
-      base::NumberToString(server_cvc.instrument_id));
-  wallet_credential_specifics.set_cvc(base::UTF16ToUTF8(server_cvc.cvc));
-  wallet_credential_specifics.set_last_updated_time_unix_epoch_millis(
-      (server_cvc.last_updated_timestamp - base::Time::UnixEpoch())
-          .InMilliseconds());
-  return wallet_credential_specifics;
-}
-
-ServerCvc AutofillWalletCvcStructDataFromWalletCredentialSpecifics(
-    const sync_pb::AutofillWalletCredentialSpecifics&
-        wallet_credential_specifics) {
-  CHECK(IsAutofillWalletCredentialDataSpecificsValid(
-      wallet_credential_specifics));
-  int64_t instrument_id;
-  base::StringToInt64(wallet_credential_specifics.instrument_id(),
-                      &instrument_id);
-
-  return ServerCvc(
-      instrument_id, base::UTF8ToUTF16(wallet_credential_specifics.cvc()),
-      base::Time::UnixEpoch() +
-          base::Milliseconds(wallet_credential_specifics
-                                 .last_updated_time_unix_epoch_millis()));
 }
 
 VirtualCardUsageData VirtualCardUsageDataFromUsageSpecifics(
@@ -793,19 +757,6 @@ bool IsVirtualCardUsageDataSet(
   return *virtual_card_usage_data.instrument_id() != 0 &&
          !virtual_card_usage_data.usage_data_id()->empty() &&
          !virtual_card_usage_data.virtual_card_last_four()->empty();
-}
-
-bool IsAutofillWalletCredentialDataSpecificsValid(
-    const sync_pb::AutofillWalletCredentialSpecifics&
-        wallet_credential_specifics) {
-  int64_t temp_instrument_id;
-  return !wallet_credential_specifics.instrument_id().empty() &&
-         base::StringToInt64(wallet_credential_specifics.instrument_id(),
-                             &temp_instrument_id) &&
-         !wallet_credential_specifics.cvc().empty() &&
-         wallet_credential_specifics
-             .has_last_updated_time_unix_epoch_millis() &&
-         wallet_credential_specifics.last_updated_time_unix_epoch_millis() != 0;
 }
 
 }  // namespace autofill

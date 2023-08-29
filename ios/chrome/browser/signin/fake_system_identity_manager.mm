@@ -20,6 +20,10 @@
 #import "ios/chrome/browser/signin/system_identity.h"
 #import "ios/public/provider/chrome/browser/signin/signin_resources_api.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace {
 
 // Expiration duration of the fake access token returned by `GetAccessToken()`.
@@ -99,12 +103,14 @@ void FakeSystemIdentityManager::ForgetIdentityFromOtherApplication(
   ForgetIdentityAsync(identity, base::DoNothing(), /*notify_user*/ true);
 }
 
-AccountCapabilitiesTestMutator*
-FakeSystemIdentityManager::GetCapabilitiesMutator(id<SystemIdentity> identity) {
+void FakeSystemIdentityManager::SetCapabilities(
+    id<SystemIdentity> identity,
+    const std::map<std::string, CapabilityResult>& capabilities) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   DCHECK([storage_ containsIdentity:identity]);
   FakeSystemIdentityDetails* details = [storage_ detailsForIdentity:identity];
-  return details.capabilitiesMutator;
+  details.capabilities = capabilities;
+  FireIdentityUpdatedNotification(identity);
 }
 
 void FakeSystemIdentityManager::FireSystemIdentityReloaded() {
@@ -381,14 +387,13 @@ void FakeSystemIdentityManager::FetchCapabilitiesAsync(
   FakeSystemIdentityDetails* details = [storage_ detailsForIdentity:identity];
   const FakeSystemIdentityCapabilitiesMap& capabilities = details.capabilities;
 
-  std::map<std::string, CapabilityResult> result;
+  FakeSystemIdentityCapabilitiesMap result;
   for (const std::string& name : names) {
     const auto& iter = capabilities.find(name);
     if (iter == capabilities.end()) {
       result.insert({name, CapabilityResult::kUnknown});
     } else {
-      result.insert({name, iter->second ? CapabilityResult::kTrue
-                                        : CapabilityResult::kFalse});
+      result.insert({name, iter->second});
     }
   }
 

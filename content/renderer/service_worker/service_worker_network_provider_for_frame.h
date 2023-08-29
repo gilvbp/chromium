@@ -10,7 +10,6 @@
 #include "content/renderer/service_worker/service_worker_provider_context.h"
 #include "services/network/public/cpp/shared_url_loader_factory.h"
 #include "third_party/blink/public/mojom/service_worker/controller_service_worker.mojom-forward.h"
-#include "third_party/blink/public/mojom/service_worker/service_worker_fetch_handler_bypass_option.mojom-shared.h"
 #include "third_party/blink/public/mojom/service_worker/service_worker_provider.mojom-forward.h"
 #include "third_party/blink/public/platform/modules/service_worker/web_service_worker_network_provider.h"
 
@@ -49,8 +48,6 @@ class ServiceWorkerNetworkProviderForFrame final
   blink::mojom::ControllerServiceWorkerMode GetControllerServiceWorkerMode()
       override;
   blink::mojom::ServiceWorkerFetchHandlerType GetFetchHandlerType() override;
-  blink::mojom::ServiceWorkerFetchHandlerBypassOption
-  GetFetchHandlerBypassOption() override;
   int64_t ControllerServiceWorkerID() override;
   void DispatchNetworkQuiet() override;
 

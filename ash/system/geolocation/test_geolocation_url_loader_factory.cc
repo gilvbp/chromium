@@ -15,12 +15,15 @@ namespace {
 // Creates a serialized dictionary string of the geoposition.
 std::string CreateResponseBody(const Geoposition& position) {
   base::Value::Dict value;
-  value.Set("accuracy", position.accuracy);
+  if (position.accuracy)
+    value.Set("accuracy", position.accuracy);
 
-  base::Value::Dict location;
-  location.Set("lat", position.latitude);
-  location.Set("lng", position.longitude);
-  value.Set("location", std::move(location));
+  if (position.latitude && position.longitude) {
+    base::Value::Dict location;
+    location.Set("lat", position.latitude);
+    location.Set("lng", position.longitude);
+    value.Set("location", std::move(location));
+  }
 
   if (position.error_code) {
     base::Value::Dict error;

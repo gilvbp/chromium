@@ -21,6 +21,8 @@ void BrowserProcessPlatformPartBase::PlatformSpecificCommandLineProcessing(
     const base::CommandLine& /* command_line */) {
 }
 
+void BrowserProcessPlatformPartBase::BeginStartTearDown() {}
+
 void BrowserProcessPlatformPartBase::StartTearDown() {
 }
 

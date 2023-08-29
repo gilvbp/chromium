@@ -8,8 +8,12 @@
 #import <cmath>
 #import <limits>
 
-#import "base/apple/foundation_util.h"
+#import "base/mac/foundation_util.h"
 #import "ui/gfx/ios/uikit_util.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 CGFloat DeviceCornerRadius() {
   UIUserInterfaceIdiom idiom = [[UIDevice currentDevice] userInterfaceIdiom];
@@ -17,7 +21,7 @@ CGFloat DeviceCornerRadius() {
   UIWindow* window = nil;
   for (UIScene* scene in UIApplication.sharedApplication.connectedScenes) {
     UIWindowScene* windowScene =
-        base::apple::ObjCCastStrict<UIWindowScene>(scene);
+        base::mac::ObjCCastStrict<UIWindowScene>(scene);
     UIWindow* firstWindow = [windowScene.windows firstObject];
     if (firstWindow) {
       window = firstWindow;

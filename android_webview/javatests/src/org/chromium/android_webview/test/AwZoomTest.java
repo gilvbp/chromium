@@ -285,7 +285,7 @@ public class AwZoomTest {
     }
 
     @Test
-    @DisableHardwareAcceleration
+    @DisableHardwareAccelerationForTest
     @SmallTest
     @Feature({"AndroidWebView"})
     public void testZoomControlsOnOrientationChange() throws Throwable {

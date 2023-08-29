@@ -43,7 +43,6 @@ class ConsentDialogCoordinator : public ConsentRequester {
 
   void OnConsentDialogAccept();
   void OnConsentDialogCancel();
-  void OnConsentDialogClose();
 
   void OnConsentPreferenceUpdated(RequestConsentCallback callback);
 

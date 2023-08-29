@@ -50,13 +50,7 @@ constexpr char kProjectorSaveErrorNotificationId[] =
     "projector_save_error_notification";
 
 ProjectorAnnotationTray* GetProjectorAnnotationTrayForRoot(aura::Window* root) {
-  // It may happen that root is nullptr. This may happen in the event that
-  // the annotation tray is hidden before the canvas finishes its
-  // initialization.
-  if (!root) {
-    return nullptr;
-  }
-
+  DCHECK(root);
   DCHECK(root->IsRootWindow());
 
   // Recording can end when a display being fullscreen-captured gets removed, in

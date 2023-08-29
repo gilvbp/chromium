@@ -43,10 +43,9 @@ RendererUpdater* RendererUpdaterFactory::GetForProfile(Profile* profile) {
       GetInstance()->GetServiceForBrowserContext(profile, true));
 }
 
-std::unique_ptr<KeyedService>
-RendererUpdaterFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* RendererUpdaterFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
-  return std::make_unique<RendererUpdater>(static_cast<Profile*>(context));
+  return new RendererUpdater(static_cast<Profile*>(context));
 }
 
 bool RendererUpdaterFactory::ServiceIsCreatedWithBrowserContext() const {

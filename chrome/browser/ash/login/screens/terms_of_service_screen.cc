@@ -129,9 +129,8 @@ bool TermsOfServiceScreen::MaybeSkip(WizardContext& context) {
     exit_callback_.Run(Result::NOT_APPLICABLE);
     return true;
   }
-  if (user_manager::UserManager::Get()->IsLoggedInAsManagedGuestSession()) {
+  if (user_manager::UserManager::Get()->IsLoggedInAsPublicAccount())
     return false;
-  }
 
   return false;
 }

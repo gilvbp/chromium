@@ -28,7 +28,7 @@ class FontFaceCache;
 
 using FontFaceSetIterable = ValueSyncIterable<FontFaceSet>;
 
-class CORE_EXPORT FontFaceSet : public EventTarget,
+class CORE_EXPORT FontFaceSet : public EventTargetWithInlineData,
                                 public ExecutionContextClient,
                                 public FontFaceSetIterable,
                                 public FontFace::LoadFontCallback {

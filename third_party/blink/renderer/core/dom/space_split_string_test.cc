@@ -11,23 +11,23 @@ namespace blink {
 TEST(SpaceSplitStringTest, Set) {
   SpaceSplitString tokens;
 
-  tokens.Set(AtomicString("foo"));
+  tokens.Set("foo");
   EXPECT_EQ(1u, tokens.size());
   EXPECT_EQ(AtomicString("foo"), tokens[0]);
 
-  tokens.Set(AtomicString(" foo\t"));
+  tokens.Set(" foo\t");
   EXPECT_EQ(1u, tokens.size());
   EXPECT_EQ(AtomicString("foo"), tokens[0]);
 
-  tokens.Set(AtomicString("foo foo\t"));
+  tokens.Set("foo foo\t");
   EXPECT_EQ(1u, tokens.size());
   EXPECT_EQ(AtomicString("foo"), tokens[0]);
 
-  tokens.Set(AtomicString("foo foo  foo"));
+  tokens.Set("foo foo  foo");
   EXPECT_EQ(1u, tokens.size());
   EXPECT_EQ(AtomicString("foo"), tokens[0]);
 
-  tokens.Set(AtomicString("foo foo bar foo"));
+  tokens.Set("foo foo bar foo");
   EXPECT_EQ(2u, tokens.size());
   EXPECT_EQ(AtomicString("foo"), tokens[0]);
   EXPECT_EQ(AtomicString("bar"), tokens[1]);
@@ -38,18 +38,18 @@ TEST(SpaceSplitStringTest, SerializeToString) {
 
   EXPECT_EQ("", tokens.SerializeToString());
 
-  tokens.Set(AtomicString("foo"));
+  tokens.Set("foo");
   EXPECT_EQ("foo", tokens.SerializeToString());
 
-  tokens.Set(AtomicString("foo bar"));
+  tokens.Set("foo bar");
   EXPECT_EQ("foo bar", tokens.SerializeToString());
 
-  tokens.Set(AtomicString("foo"));
-  tokens.Add(AtomicString("bar"));
+  tokens.Set("foo");
+  tokens.Add("bar");
   EXPECT_EQ("foo bar", tokens.SerializeToString());
 
-  tokens.Set(AtomicString("bar"));
-  tokens.Add(AtomicString("foo"));
+  tokens.Set("bar");
+  tokens.Add("foo");
   EXPECT_EQ("bar foo", tokens.SerializeToString());
 }
 }

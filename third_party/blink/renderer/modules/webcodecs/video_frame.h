@@ -85,8 +85,8 @@ class MODULES_EXPORT VideoFrame final : public ScriptWrappable,
   uint32_t codedWidth() const;
   uint32_t codedHeight() const;
 
-  DOMRectReadOnly* codedRect();
-  DOMRectReadOnly* visibleRect();
+  absl::optional<DOMRectReadOnly*> codedRect();
+  absl::optional<DOMRectReadOnly*> visibleRect();
 
   uint32_t displayWidth() const;
   uint32_t displayHeight() const;

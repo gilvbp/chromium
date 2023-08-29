@@ -66,7 +66,7 @@ bool ShellExtensionsBrowserClient::AreExtensionsDisabled(
   return false;
 }
 
-bool ShellExtensionsBrowserClient::IsValidContext(void* context) {
+bool ShellExtensionsBrowserClient::IsValidContext(BrowserContext* context) {
   DCHECK(browser_context_);
   return context == browser_context_;
 }
@@ -93,28 +93,26 @@ BrowserContext* ShellExtensionsBrowserClient::GetOriginalContext(
 }
 
 content::BrowserContext*
-ShellExtensionsBrowserClient::GetContextRedirectedToOriginal(
+ShellExtensionsBrowserClient::GetRedirectedContextInIncognito(
     content::BrowserContext* context,
-    bool force_guest_profile) {
-  return context;
-}
-
-content::BrowserContext* ShellExtensionsBrowserClient::GetContextOwnInstance(
-    content::BrowserContext* context,
-    bool force_guest_profile) {
+    bool force_guest_profile,
+    bool force_system_profile) {
   return context;
 }
 
 content::BrowserContext*
-ShellExtensionsBrowserClient::GetContextForOriginalOnly(
+ShellExtensionsBrowserClient::GetContextForRegularAndIncognito(
     content::BrowserContext* context,
-    bool force_guest_profile) {
+    bool force_guest_profile,
+    bool force_system_profile) {
   return context;
 }
 
-bool ShellExtensionsBrowserClient::AreExtensionsDisabledForContext(
-    content::BrowserContext* context) {
-  return false;
+content::BrowserContext* ShellExtensionsBrowserClient::GetRegularProfile(
+    content::BrowserContext* context,
+    bool force_guest_profile,
+    bool force_system_profile) {
+  return context;
 }
 
 #if BUILDFLAG(IS_CHROMEOS_ASH)

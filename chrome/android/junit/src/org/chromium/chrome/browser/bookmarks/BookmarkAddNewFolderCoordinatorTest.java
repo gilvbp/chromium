@@ -12,7 +12,6 @@ import static org.mockito.Mockito.verify;
 import android.content.Context;
 import android.view.ContextThemeWrapper;
 
-import androidx.appcompat.widget.DialogTitle;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.rules.ActivityScenarioRule;
 
@@ -89,12 +88,9 @@ public class BookmarkAddNewFolderCoordinatorTest {
         verify(mModalDialogManager).showDialog(mModelCaptor.capture(), eq(ModalDialogType.APP));
 
         PropertyModel model = mModelCaptor.getValue();
+        assertEquals("Create new folder", model.get(ModalDialogProperties.TITLE));
         assertEquals("Add", model.get(ModalDialogProperties.POSITIVE_BUTTON_TEXT));
         assertEquals("Cancel", model.get(ModalDialogProperties.NEGATIVE_BUTTON_TEXT));
-
-        DialogTitle title =
-                model.get(ModalDialogProperties.CUSTOM_VIEW).findViewById(R.id.dialog_title);
-        assertEquals("Create new folder", title.getText());
 
         BookmarkTextInputLayout folderTitle =
                 model.get(ModalDialogProperties.CUSTOM_VIEW).findViewById(R.id.folder_title);

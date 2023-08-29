@@ -8,18 +8,19 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 
+import androidx.annotation.DrawableRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.VisibleForTesting;
 
 import org.chromium.base.metrics.RecordUserAction;
 import org.chromium.chrome.browser.omnibox.R;
-import org.chromium.chrome.browser.omnibox.styles.OmniboxDrawableState;
-import org.chromium.chrome.browser.omnibox.styles.OmniboxImageSupplier;
 import org.chromium.chrome.browser.omnibox.styles.OmniboxResourceProvider;
-import org.chromium.chrome.browser.omnibox.styles.SuggestionSpannable;
+import org.chromium.chrome.browser.omnibox.suggestions.FaviconFetcher;
 import org.chromium.chrome.browser.omnibox.suggestions.SuggestionHost;
 import org.chromium.chrome.browser.omnibox.suggestions.base.BaseSuggestionViewProcessor;
 import org.chromium.chrome.browser.omnibox.suggestions.base.BaseSuggestionViewProperties.Action;
+import org.chromium.chrome.browser.omnibox.suggestions.base.SuggestionDrawableState;
+import org.chromium.chrome.browser.omnibox.suggestions.base.SuggestionSpannable;
 import org.chromium.chrome.browser.omnibox.suggestions.basic.SuggestionViewProperties;
 import org.chromium.components.omnibox.AutocompleteMatch;
 import org.chromium.components.omnibox.OmniboxSuggestionType;
@@ -33,11 +34,11 @@ public class ClipboardSuggestionProcessor extends BaseSuggestionViewProcessor {
     /**
      * @param context An Android context.
      * @param suggestionHost A handle to the object using the suggestions.
-     * @param imageSupplier Supplier used to retrieve suggestion icons and images.
+     * @param faviconFetcher Mechanism used to retrieve favicons.
      */
     public ClipboardSuggestionProcessor(
-            Context context, SuggestionHost suggestionHost, OmniboxImageSupplier imageSupplier) {
-        super(context, suggestionHost, imageSupplier);
+            Context context, SuggestionHost suggestionHost, FaviconFetcher faviconFetcher) {
+        super(context, suggestionHost, faviconFetcher);
     }
 
     @Override
@@ -61,7 +62,9 @@ public class ClipboardSuggestionProcessor extends BaseSuggestionViewProcessor {
     public void populateModel(AutocompleteMatch suggestion, PropertyModel model, int position) {
         super.populateModel(suggestion, model, position);
 
-        model.set(SuggestionViewProperties.IS_SEARCH_SUGGESTION, suggestion.isSearchSuggestion());
+        boolean isUrlSuggestion = suggestion.getType() == OmniboxSuggestionType.CLIPBOARD_URL;
+
+        model.set(SuggestionViewProperties.IS_SEARCH_SUGGESTION, !isUrlSuggestion);
         model.set(SuggestionViewProperties.TEXT_LINE_1_TEXT,
                 new SuggestionSpannable(suggestion.getDescription()));
 
@@ -69,7 +72,7 @@ public class ClipboardSuggestionProcessor extends BaseSuggestionViewProcessor {
     }
 
     @Override
-    protected boolean allowOmniboxActions() {
+    public boolean allowOmniboxActions() {
         return false;
     }
 
@@ -100,8 +103,15 @@ public class ClipboardSuggestionProcessor extends BaseSuggestionViewProcessor {
      */
     private void updateSuggestionIcon(@NonNull AutocompleteMatch suggestion,
             @NonNull PropertyModel model, boolean showContent) {
+        boolean isUrlSuggestion = suggestion.getType() == OmniboxSuggestionType.CLIPBOARD_URL;
+        final @DrawableRes int icon =
+                isUrlSuggestion ? R.drawable.ic_globe_24dp : R.drawable.ic_suggestion_magnifier;
+        setSuggestionDrawableState(model,
+                SuggestionDrawableState.Builder.forDrawableRes(mContext, icon)
+                        .setAllowTint(true)
+                        .build());
+
         if (!showContent) {
-            setOmniboxDrawableState(model, getFallbackIcon(suggestion));
             return;
         }
 
@@ -124,10 +134,18 @@ public class ClipboardSuggestionProcessor extends BaseSuggestionViewProcessor {
                         bitmap = Bitmap.createScaledBitmap(bitmap, (int) Math.round(scale * width),
                                 (int) Math.round(scale * height), true);
                     }
-                    setOmniboxDrawableState(model, OmniboxDrawableState.forImage(mContext, bitmap));
+                    setSuggestionDrawableState(model,
+                            SuggestionDrawableState.Builder.forBitmap(mContext, bitmap)
+                                    .setUseRoundedCorners(true)
+                                    .setLarge(true)
+                                    .build());
+                    return;
                 }
             }
-        } else if (!suggestion.isSearchSuggestion()) {
+        }
+
+        if (isUrlSuggestion) {
+            // Update favicon for URL if it is available.
             fetchSuggestionFavicon(model, suggestion.getUrl());
         }
     }
@@ -152,8 +170,12 @@ public class ClipboardSuggestionProcessor extends BaseSuggestionViewProcessor {
                 -> concealButtonClickHandler(suggestion, model)
                 : () -> revealButtonClickHandler(suggestion, model);
         setActionButtons(model,
-                Arrays.asList(new Action(OmniboxDrawableState.forDefaultIcon(mContext, icon, true),
-                        iconString, announcementString, action)));
+                Arrays.asList(
+                        new Action(SuggestionDrawableState.Builder.forDrawableRes(mContext, icon)
+                                           .setLarge(true)
+                                           .setAllowTint(true)
+                                           .build(),
+                                iconString, announcementString, action)));
     }
 
     @Override

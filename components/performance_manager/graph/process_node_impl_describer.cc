@@ -5,7 +5,6 @@
 #include "components/performance_manager/graph/process_node_impl_describer.h"
 
 #include "base/i18n/time_formatting.h"
-#include "base/notreached.h"
 #include "base/numerics/safe_conversions.h"
 #include "base/process/process.h"
 #include "base/process/process_handle.h"
@@ -61,20 +60,6 @@ std::string HostedProcessTypesToString(
   return str;
 }
 
-#if !BUILDFLAG(IS_APPLE)
-const char* GetProcessPriorityString(const base::Process& process) {
-  switch (process.GetPriority()) {
-    case base::Process::Priority::kBestEffort:
-      return "Best effort";
-    case base::Process::Priority::kUserVisible:
-      return "User visible";
-    case base::Process::Priority::kUserBlocking:
-      return "User blocking";
-  }
-  NOTREACHED_NORETURN();
-}
-#endif
-
 base::Value GetProcessValueDict(const base::Process& process) {
   base::Value::Dict ret;
 
@@ -107,9 +92,9 @@ base::Value GetProcessValueDict(const base::Process& process) {
 
   if (process.IsValid()) {
     // These properties can only be accessed for valid processes.
-    ret.Set("os_priority", process.GetOSPriority());
+    ret.Set("os_priority", process.GetPriority());
 #if !BUILDFLAG(IS_APPLE)
-    ret.Set("priority", GetProcessPriorityString(process));
+    ret.Set("is_backgrounded", process.IsProcessBackgrounded());
 #endif
 #if !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_WIN)
     ret.Set("creation_time",
@@ -160,7 +145,6 @@ base::Value::Dict ProcessNodeImplDescriber::DescribeProcessNodeData(
 
   ret.Set("launch_time", base::TimeFormatTimeOfDayWithMilliseconds(
                              TicksToTime(impl->launch_time())));
-  ret.Set("resource_context", impl->resource_context().ToString());
 
   if (impl->exit_status()) {
     ret.Set("exit_status", impl->exit_status().value());

@@ -64,7 +64,9 @@ class TransactionalLevelDBTransaction
                                             bool* found);
   [[nodiscard]] virtual leveldb::Status Commit(bool sync_on_commit);
 
-  void Rollback();
+  // If the underlying scopes system is in single-sequence mode, then this
+  // method will return the result of the rollback task.
+  [[nodiscard]] leveldb::Status Rollback();
 
   // The returned iterator must be destroyed before the destruction of this
   // transaction.  This may return null, if it does, status will explain why.

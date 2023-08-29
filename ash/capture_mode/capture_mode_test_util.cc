@@ -23,7 +23,6 @@
 #include "ash/shell.h"
 #include "ash/style/icon_button.h"
 #include "ash/style/pill_button.h"
-#include "ash/style/tab_slider.h"
 #include "ash/system/accessibility/autoclick_menu_bubble_controller.h"
 #include "ash/wm/tablet_mode/tablet_mode_controller_test_api.h"
 #include "base/files/file_path.h"
@@ -38,6 +37,7 @@
 #include "base/threading/scoped_blocking_call.h"
 #include "testing/gtest/include/gtest/gtest.h"
 #include "ui/base/ime/constants.h"
+#include "ui/display/screen.h"
 #include "ui/events/test/event_generator.h"
 #include "ui/gfx/image/image.h"
 #include "ui/views/view.h"
@@ -105,6 +105,14 @@ void WaitForRecordingToStart() {
   test_delegate->set_on_recording_started_callback(run_loop.QuitClosure());
   run_loop.Run();
   ASSERT_TRUE(controller->is_recording_in_progress());
+}
+
+void MoveMouseToAndUpdateCursorDisplay(
+    const gfx::Point& point,
+    ui::test::EventGenerator* event_generator) {
+  Shell::Get()->cursor_manager()->SetDisplay(
+      display::Screen::GetScreen()->GetDisplayNearestPoint(point));
+  event_generator->MoveMouseTo(point);
 }
 
 void StartVideoRecordingImmediately() {
@@ -196,7 +204,7 @@ void ClickOrTapView(const views::View* view,
 views::Widget* GetCaptureModeBarWidget() {
   auto* session = CaptureModeController::Get()->capture_mode_session();
   DCHECK(session);
-  return session->GetCaptureModeBarWidget();
+  return session->capture_mode_bar_widget();
 }
 
 CaptureModeBarView* GetCaptureModeBarView() {
@@ -298,21 +306,21 @@ gfx::Image ReadAndDecodeImageFile(const base::FilePath& image_path) {
   return image;
 }
 
-TabSliderButton* GetImageToggleButton() {
+IconButton* GetImageToggleButton() {
   auto* controller = CaptureModeController::Get();
   DCHECK(controller->IsActive());
   auto* capture_type_view = GetCaptureModeBarView()->GetCaptureTypeView();
   return capture_type_view ? capture_type_view->image_toggle_button() : nullptr;
 }
 
-TabSliderButton* GetVideoToggleButton() {
+IconButton* GetVideoToggleButton() {
   auto* controller = CaptureModeController::Get();
   DCHECK(controller->IsActive());
   auto* capture_type_view = GetCaptureModeBarView()->GetCaptureTypeView();
   return capture_type_view ? capture_type_view->video_toggle_button() : nullptr;
 }
 
-TabSliderButton* GetFullscreenToggleButton() {
+IconButton* GetFullscreenToggleButton() {
   auto* controller = CaptureModeController::Get();
   DCHECK(controller->IsActive());
   auto* capture_source_view = GetCaptureModeBarView()->GetCaptureSourceView();
@@ -320,7 +328,7 @@ TabSliderButton* GetFullscreenToggleButton() {
                              : nullptr;
 }
 
-TabSliderButton* GetRegionToggleButton() {
+IconButton* GetRegionToggleButton() {
   auto* controller = CaptureModeController::Get();
   DCHECK(controller->IsActive());
   auto* capture_source_view = GetCaptureModeBarView()->GetCaptureSourceView();
@@ -328,7 +336,7 @@ TabSliderButton* GetRegionToggleButton() {
                              : nullptr;
 }
 
-TabSliderButton* GetWindowToggleButton() {
+IconButton* GetWindowToggleButton() {
   auto* controller = CaptureModeController::Get();
   DCHECK(controller->IsActive());
   auto* capture_source_view = GetCaptureModeBarView()->GetCaptureSourceView();
@@ -399,8 +407,11 @@ void RemoveDefaultCamera() {
 // -----------------------------------------------------------------------------
 // ProjectorCaptureModeIntegrationHelper:
 
-ProjectorCaptureModeIntegrationHelper::ProjectorCaptureModeIntegrationHelper() =
-    default;
+ProjectorCaptureModeIntegrationHelper::ProjectorCaptureModeIntegrationHelper() {
+  scoped_feature_list_.InitWithFeatures(
+      /*enabled_features=*/{features::kProjector},
+      /*disabled_features=*/{});
+}
 
 void ProjectorCaptureModeIntegrationHelper::SetUp() {
   auto* projector_controller = ProjectorController::Get();

@@ -6,6 +6,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <cwctype>
 
 #include "base/auto_reset.h"
 #include "base/command_line.h"

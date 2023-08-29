@@ -124,9 +124,7 @@ class TestSafeBrowsingBlockingPage : public SafeBrowsingBlockingPage {
             /*history_service=*/nullptr,
             /*navigation_observer_manager=*/nullptr,
             /*metrics_collector=*/nullptr,
-            /*trigger_manager=*/nullptr,
-            /*is_proceed_anyway_disabled=*/false,
-            /*is_safe_browsing_surveys_enabled=*/true) {
+            /*trigger_manager=*/nullptr) {
     // Don't delay details at all for the unittest.
     SetThreatDetailsProceedDelayForTesting(0);
     DontCreateViewForTesting();

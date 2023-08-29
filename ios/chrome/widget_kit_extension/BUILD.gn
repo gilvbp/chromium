@@ -21,10 +21,6 @@ config("ios_enable_shortcuts_widget") {
   swiftflags = [ "-DIOS_ENABLE_SHORTCUTS_WIDGET" ]
 }
 
-config("ios_enable_search_passwords_widget") {
-  swiftflags = [ "-DIOS_ENABLE_SEARCH_PASSWORDS_WIDGET" ]
-}
-
 source_set("crash_helper") {
   sources = [
     "crash_helper.h",
@@ -33,11 +29,11 @@ source_set("crash_helper") {
 
   deps = [ "//ios/chrome/common/crash_report" ]
   frameworks = [ "Foundation.framework" ]
+  configs += [ "//build/config/compiler:enable_arc" ]
 }
 
 swift_source_set("widget_kit_extension_swift") {
   sources = [
-    "compat_util.swift",
     "dino_game_widget.swift",
     "lockscreen_launcher_widget.swift",
     "main.swift",
@@ -62,7 +58,6 @@ swift_source_set("widget_kit_extension_swift") {
     "resources:widget_dino_background_placeholder",
     "resources:widget_incognito_icon",
     "resources:widget_lens_icon",
-    "resources:widget_password_manager_logo",
     "resources:widget_search_bar_color",
     "resources:widget_separator_color",
     "resources:widget_text_color",
@@ -70,6 +65,8 @@ swift_source_set("widget_kit_extension_swift") {
     "//ios/chrome/common/ntp_tile",
     "//ui/base:base",
   ]
+
+  configs += [ "//build/config/compiler:enable_arc" ]
 
   # Swift does not have the equivalent of __IPHONE_16_0, so use a
   # custom define instead.
@@ -84,11 +81,6 @@ swift_source_set("widget_kit_extension_swift") {
   if (ios_enable_shortcuts_widget) {
     configs += [ ":ios_enable_shortcuts_widget" ]
     sources += [ "shortcuts_widget.swift" ]
-  }
-
-  if (ios_enable_search_passwords_widget) {
-    configs += [ ":ios_enable_search_passwords_widget" ]
-    sources += [ "search_passwords_widget.swift" ]
   }
 
   frameworks = [

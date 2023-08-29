@@ -8,6 +8,7 @@
 #include <stdint.h>
 
 #include "base/functional/callback.h"
+#import "base/mac/scoped_nsobject.h"
 #include "base/time/time.h"
 #include "ui/views/controls/menu/menu_runner_impl_interface.h"
 
@@ -52,10 +53,10 @@ class VIEWS_EXPORT MenuRunnerImplCocoa : public MenuRunnerImplInterface {
   ~MenuRunnerImplCocoa() override;
 
   // The Cocoa menu controller that this instance is bridging.
-  MenuControllerCocoa* __strong menu_controller_;
+  base::scoped_nsobject<MenuControllerCocoa> menu_controller_;
 
   // The delegate for the |menu_controller_|.
-  MenuControllerCocoaDelegateImpl* __strong menu_delegate_;
+  base::scoped_nsobject<MenuControllerCocoaDelegateImpl> menu_delegate_;
 
   // Are we in run waiting for it to return?
   bool running_ = false;

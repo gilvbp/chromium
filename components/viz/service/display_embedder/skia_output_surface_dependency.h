@@ -16,6 +16,7 @@
 #include "components/viz/service/viz_service_export.h"
 #include "gpu/command_buffer/common/constants.h"
 #include "gpu/command_buffer/service/sequence_id.h"
+#include "gpu/config/gpu_preferences.h"
 #include "gpu/ipc/common/surface_handle.h"
 #include "ui/gl/gl_surface_format.h"
 
@@ -37,7 +38,6 @@ class SharedImageManager;
 class SingleTaskSequence;
 class SyncPointManager;
 struct GpuFeatureInfo;
-struct GpuPreferences;
 
 namespace raster {
 class GrShaderCache;
@@ -109,6 +109,14 @@ class VIZ_SERVICE_EXPORT SkiaOutputSurfaceDependency {
 
   // This returns true if CompositorGpuThread(aka DrDc thread) is enabled.
   virtual bool IsUsingCompositorGpuThread() = 0;
+
+  gpu::GrContextType gr_context_type() const {
+    return GetGpuPreferences().gr_context_type;
+  }
+
+  bool IsUsingVulkan() const {
+    return gr_context_type() == gpu::GrContextType::kVulkan;
+  }
 };
 
 }  // namespace viz

@@ -41,9 +41,8 @@ SSLHostStateDelegate::CertJudgment MockSSLHostStateDelegate::QueryPolicy(
     const net::X509Certificate& cert,
     int error,
     StoragePartition* storage_partition) {
-  if (!base::Contains(exceptions_, host)) {
+  if (exceptions_.find(host) == exceptions_.end())
     return SSLHostStateDelegate::DENIED;
-  }
 
   return SSLHostStateDelegate::ALLOWED;
 }
@@ -59,7 +58,8 @@ bool MockSSLHostStateDelegate::DidHostRunInsecureContent(
     const std::string& host,
     int child_id,
     InsecureContentType content_type) {
-  return base::Contains(hosts_ran_insecure_content_, host);
+  return hosts_ran_insecure_content_.find(host) !=
+         hosts_ran_insecure_content_.end();
 }
 
 void MockSSLHostStateDelegate::AllowHttpForHost(
@@ -93,13 +93,13 @@ bool MockSSLHostStateDelegate::IsHttpsEnforcedForHost(
 
 void MockSSLHostStateDelegate::RevokeUserAllowExceptions(
     const std::string& host) {
-  exceptions_.erase(host);
+  exceptions_.erase(exceptions_.find(host));
 }
 
 bool MockSSLHostStateDelegate::HasAllowException(
     const std::string& host,
     StoragePartition* storage_partition) {
-  return base::Contains(exceptions_, host);
+  return exceptions_.find(host) != exceptions_.end();
 }
 
 bool MockSSLHostStateDelegate::HasAllowExceptionForAnyHost(

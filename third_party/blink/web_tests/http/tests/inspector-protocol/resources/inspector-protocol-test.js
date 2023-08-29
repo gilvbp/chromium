@@ -42,13 +42,6 @@ var TestRunner = class {
     ];
   }
 
-  static extendStabilizeNames(extended){
-    return [
-      ...TestRunner.stabilizeNames,
-      ...extended
-    ]
-  };
-
   startDumpingProtocolMessages() {
     this._dumpInspectorProtocolMessages = true;
   };
@@ -287,7 +280,7 @@ var TestRunner = class {
       const tabTargetId =
           (await bp.Target.createTarget(params)).result.targetId;
       const tabTargetSessionId = (await bp.Target.attachToTarget({
-          targetId: tabTargetId,
+                                   targetId: tabTargetId,
                                    flatten: true
                                  })).result.sessionId;
       const tabTargetSession = new TestRunner.Session(this, tabTargetSessionId);

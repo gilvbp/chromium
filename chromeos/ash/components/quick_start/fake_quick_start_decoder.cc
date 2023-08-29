@@ -7,6 +7,7 @@
 #include "chromeos/ash/services/nearby/public/mojom/quick_start_decoder_types.mojom-forward.h"
 #include "chromeos/ash/services/nearby/public/mojom/quick_start_decoder_types.mojom-shared.h"
 #include "chromeos/ash/services/nearby/public/mojom/quick_start_decoder_types.mojom.h"
+#include "testing/gtest/include/gtest/gtest.h"
 
 namespace ash::quick_start {
 
@@ -21,7 +22,7 @@ FakeQuickStartDecoder::GetRemote() {
   return pending_remote;
 }
 void FakeQuickStartDecoder::DecodeBootstrapConfigurations(
-    const absl::optional<std::vector<uint8_t>>& data,
+    const std::vector<uint8_t>& data,
     DecodeBootstrapConfigurationsCallback callback) {
   std::move(callback).Run(
       mojom::BootstrapConfigurations::New(response_cryptauth_device_id_),
@@ -29,13 +30,13 @@ void FakeQuickStartDecoder::DecodeBootstrapConfigurations(
 }
 
 void FakeQuickStartDecoder::DecodeWifiCredentialsResponse(
-    const absl::optional<std::vector<uint8_t>>& data,
+    const std::vector<uint8_t>& data,
     DecodeWifiCredentialsResponseCallback callback) {
   std::move(callback).Run(std::move(credentials_), error_);
 }
 
 void FakeQuickStartDecoder::DecodeUserVerificationRequested(
-    const absl::optional<std::vector<uint8_t>>& data,
+    const std::vector<uint8_t>& data,
     DecodeUserVerificationRequestedCallback callback) {
   if (error_ != absl::nullopt) {
     std::move(callback).Run(nullptr, error_);
@@ -46,7 +47,7 @@ void FakeQuickStartDecoder::DecodeUserVerificationRequested(
 }
 
 void FakeQuickStartDecoder::DecodeUserVerificationResult(
-    const absl::optional<std::vector<uint8_t>>& data,
+    const std::vector<uint8_t>& data,
     DecodeUserVerificationResultCallback callback) {
   if (error_ != absl::nullopt) {
     std::move(callback).Run(nullptr, error_);
@@ -57,17 +58,17 @@ void FakeQuickStartDecoder::DecodeUserVerificationResult(
 }
 
 void FakeQuickStartDecoder::DecodeGetAssertionResponse(
-    const absl::optional<std::vector<uint8_t>>& data,
+    const std::vector<uint8_t>& data,
     DecodeGetAssertionResponseCallback callback) {
-  if (error_.has_value()) {
-    std::move(callback).Run(nullptr, error_);
-  }
-
-  std::move(callback).Run(std::move(fido_assertion_), absl::nullopt);
+  EXPECT_EQ(expected_data_, data);
+  std::move(callback).Run(mojom::GetAssertionResponse::New(
+      response_status_, response_decoder_status_, response_decoder_error_,
+      response_email_, response_credential_id_, response_data_,
+      response_signature_));
 }
 
 void FakeQuickStartDecoder::DecodeNotifySourceOfUpdateResponse(
-    const absl::optional<std::vector<uint8_t>>& data,
+    const std::vector<uint8_t>& data,
     DecodeNotifySourceOfUpdateResponseCallback callback) {
   std::move(callback).Run(/*ack_received=*/notify_source_of_update_response_);
 }
@@ -96,8 +97,20 @@ void FakeQuickStartDecoder::SetUserVerificationResponse(
 }
 
 void FakeQuickStartDecoder::SetAssertionResponse(
-    mojom::FidoAssertionResponsePtr fido_assertion) {
-  fido_assertion_ = std::move(fido_assertion);
+    mojom::GetAssertionResponse::GetAssertionStatus status,
+    uint8_t decoder_status,
+    uint8_t decoder_error,
+    const std::string& email,
+    const std::string& credential_id,
+    const std::vector<uint8_t>& signature,
+    const std::vector<uint8_t>& data) {
+  response_status_ = status;
+  response_decoder_status_ = decoder_status;
+  response_decoder_error_ = decoder_error;
+  response_email_ = email;
+  response_credential_id_ = credential_id;
+  response_signature_ = signature;
+  response_data_ = data;
 }
 
 void FakeQuickStartDecoder::SetWifiCredentialsResponse(

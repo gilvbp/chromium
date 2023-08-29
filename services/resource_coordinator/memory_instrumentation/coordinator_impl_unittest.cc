@@ -75,6 +75,7 @@ class CoordinatorImplTest : public testing::Test {
   CoordinatorImplTest() = default;
 
   void SetUp() override {
+    TracingObserverProto::RegisterForTesting();
     coordinator_ = std::make_unique<NiceMock<FakeCoordinatorImpl>>();
     tracing::PerfettoTracedProcess::GetTaskRunner()->ResetTaskRunnerForTesting(
         base::SingleThreadTaskRunner::GetCurrentDefault());
@@ -788,8 +789,10 @@ TEST_F(CoordinatorImplTest, VmRegionsForHeapProfiler) {
 // RequestGlobalMemoryDump, as opposite to RequestGlobalMemoryDumpAndAddToTrace,
 // shouldn't add anything into the trace
 TEST_F(CoordinatorImplTest, DumpsArentAddedToTraceUnlessRequested) {
+  CoordinatorImpl* coordinator = CoordinatorImpl::GetInstance();
   tracing::DataSourceTester data_source_tester(
-      TracingObserverProto::GetInstance());
+      reinterpret_cast<TracingObserverProto*>(
+          coordinator->tracing_observer_.get()));
 
   base::RunLoop run_loop;
 
@@ -837,8 +840,10 @@ TEST_F(CoordinatorImplTest, DumpsArentAddedToTraceUnlessRequested) {
   DumpsAreAddedToTraceWhenRequested
 #endif
 TEST_F(CoordinatorImplTest, MAYBE_DumpsAreAddedToTraceWhenRequested) {
+  CoordinatorImpl* coordinator = CoordinatorImpl::GetInstance();
   tracing::DataSourceTester data_source_tester(
-      TracingObserverProto::GetInstance());
+      reinterpret_cast<TracingObserverProto*>(
+          coordinator->tracing_observer_.get()));
 
   base::RunLoop run_loop;
 

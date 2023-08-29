@@ -51,9 +51,8 @@
     fill: var(--customize-chrome-check-mark-wrapper-color);
   }
 
-  :host([checked]):host(:not([checkmark-border-hidden])) ::slotted(*) {
-    border: 2px solid
-        var(--customize-chrome-check-mark-wrapper-background) !important;
+  :host([checked]) ::slotted(*) {
+    border: 2px solid var(--customize-chrome-check-mark-wrapper-background);
   }
 </style>
 <svg id="svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">

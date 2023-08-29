@@ -180,8 +180,6 @@ xmlHashTablePtr
 xmlHashCreate(int size) {
     xmlHashTablePtr table;
 
-    xmlInitParser();
-
     if (size <= 0)
         size = 256;
 

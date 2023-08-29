@@ -30,16 +30,14 @@ ImageLoaderFactory::ImageLoaderFactory()
 ImageLoaderFactory::~ImageLoaderFactory() {
 }
 
-std::unique_ptr<KeyedService>
-ImageLoaderFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* ImageLoaderFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
-  return std::make_unique<ImageLoader>();
+  return new ImageLoader;
 }
 
 content::BrowserContext* ImageLoaderFactory::GetBrowserContextToUse(
     content::BrowserContext* context) const {
-  return ExtensionsBrowserClient::Get()->GetContextRedirectedToOriginal(
-      context, /*force_guest_profile=*/true);
+  return ExtensionsBrowserClient::Get()->GetOriginalContext(context);
 }
 
 }  // namespace extensions

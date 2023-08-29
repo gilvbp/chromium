@@ -37,7 +37,7 @@ class SmbServiceFactory : public ProfileKeyedServiceFactory {
   ~SmbServiceFactory() override;
 
   // BrowserContextKeyedServiceFactory overrides:
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* context) const override;
   bool ServiceIsCreatedWithBrowserContext() const override;
   void RegisterProfilePrefs(

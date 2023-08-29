@@ -8,7 +8,6 @@
 #import "components/favicon/core/large_icon_service.h"
 #import "ios/chrome/browser/shared/model/application_context/application_context.h"
 #import "ios/chrome/browser/ui/content_suggestions/cells/content_suggestions_most_visited_item.h"
-#import "ios/chrome/browser/ui/content_suggestions/content_suggestions_constants.h"
 #import "ios/chrome/browser/ui/content_suggestions/content_suggestions_consumer.h"
 #import "ios/chrome/browser/ui/content_suggestions/content_suggestions_feature.h"
 #import "ios/chrome/browser/ui/content_suggestions/content_suggestions_metrics_recorder.h"
@@ -17,13 +16,16 @@
 #import "ios/chrome/browser/ui/favicon/favicon_attributes_with_payload.h"
 #import "ui/gfx/image/image.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace {
 
 // Size of the favicon returned by the provider for the most visited items.
 const CGFloat kMostVisitedFaviconSize = 48;
 // Size below which the provider returns a colored tile instead of an image.
 const CGFloat kMostVisitedFaviconMinimalSize = 32;
-const CGFloat kMagicStackMostVisitedFaviconMinimalSize = 18;
 
 }  // namespace
 
@@ -50,11 +52,8 @@ const CGFloat kMagicStackMostVisitedFaviconMinimalSize = 18;
   self = [super init];
   if (self) {
     _mostVisitedAttributesProvider = [[FaviconAttributesProvider alloc]
-        initWithFaviconSize:IsMagicStackEnabled() ? kMagicStackFaviconWidth
-                                                  : kMostVisitedFaviconSize
-             minFaviconSize:IsMagicStackEnabled()
-                                ? kMagicStackMostVisitedFaviconMinimalSize
-                                : kMostVisitedFaviconMinimalSize
+        initWithFaviconSize:kMostVisitedFaviconSize
+             minFaviconSize:kMostVisitedFaviconMinimalSize
            largeIconService:largeIconService];
     // Set a cache only for the Most Visited provider, as the cache is
     // overwritten for every new results and the size of the favicon fetched for

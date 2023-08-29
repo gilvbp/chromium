@@ -144,8 +144,7 @@ class DualReadingListModelTest : public testing::Test {
         local_or_syncable_model_storage->AsWeakPtr();
     auto local_or_syncable_model = std::make_unique<ReadingListModelImpl>(
         std::move(local_or_syncable_model_storage),
-        syncer::StorageType::kUnspecified,
-        syncer::WipeModelUponSyncDisabledBehavior::kNever, &clock_);
+        syncer::StorageType::kUnspecified, &clock_);
     local_or_syncable_model_ptr_ = local_or_syncable_model.get();
 
     auto account_model_storage =
@@ -153,7 +152,7 @@ class DualReadingListModelTest : public testing::Test {
     account_model_storage_ptr_ = account_model_storage->AsWeakPtr();
     auto account_model = std::make_unique<ReadingListModelImpl>(
         std::move(account_model_storage), syncer::StorageType::kAccount,
-        syncer::WipeModelUponSyncDisabledBehavior::kAlways, &clock_);
+        &clock_);
     account_model_ptr_ = account_model.get();
 
     dual_model_ = std::make_unique<reading_list::DualReadingListModel>(

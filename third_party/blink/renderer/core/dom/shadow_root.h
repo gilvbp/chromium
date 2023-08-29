@@ -129,10 +129,7 @@ class CORE_EXPORT ShadowRoot final : public DocumentFragment,
   String getInnerHTML(const GetInnerHTMLOptions* options) const;
   void setInnerHTML(const String&, ExceptionState& = ASSERT_NO_EXCEPTION);
 
-  Node* Clone(Document& factory,
-              NodeCloningData& data,
-              ContainerNode* append_to,
-              ExceptionState& append_exception_state) const override;
+  Node* Clone(Document&, CloneChildrenFlag) const override;
 
   void SetDelegatesFocus(bool flag) { delegates_focus_ = flag; }
   bool delegatesFocus() const { return delegates_focus_; }

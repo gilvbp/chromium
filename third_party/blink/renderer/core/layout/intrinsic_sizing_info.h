@@ -15,12 +15,19 @@ struct IntrinsicSizingInfo {
 
   IntrinsicSizingInfo() : has_width(true), has_height(true) {}
 
+  // Both size and aspect_ratio use logical coordinates.
   // Because they are using float instead of LayoutUnit, we can't use
-  // PhysicalSize here.
+  // LogicalSize here.
   gfx::SizeF size;
   gfx::SizeF aspect_ratio;
   bool has_width;
   bool has_height;
+
+  void Transpose() {
+    size.Transpose();
+    aspect_ratio.Transpose();
+    std::swap(has_width, has_height);
+  }
 };
 
 }  // namespace blink

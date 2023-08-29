@@ -182,8 +182,7 @@ void SerialPortUnderlyingSource::ReadDataOrArmWatcher() {
       watcher_.ArmOrNotify();
       break;
     default:
-      invalid_data_pipe_read_result_ = result;
-      NOTREACHED() << "Invalid data pipe read result: " << result;
+      NOTREACHED();
       break;
   }
 }

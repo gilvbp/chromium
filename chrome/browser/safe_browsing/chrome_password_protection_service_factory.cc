@@ -55,14 +55,13 @@ ChromePasswordProtectionServiceFactory::ChromePasswordProtectionServiceFactory()
   DependsOn(SafeBrowsingNavigationObserverManagerFactory::GetInstance());
 }
 
-std::unique_ptr<KeyedService>
-ChromePasswordProtectionServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* ChromePasswordProtectionServiceFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   if (!g_browser_process->safe_browsing_service()) {
     return nullptr;
   }
   Profile* profile = Profile::FromBrowserContext(context);
-  return std::make_unique<ChromePasswordProtectionService>(
+  return new ChromePasswordProtectionService(
       g_browser_process->safe_browsing_service(), profile);
 }
 

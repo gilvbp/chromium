@@ -83,10 +83,6 @@ class TestResponseAdapter : public signin::ResponseAdapter,
     return is_outermost_main_frame_;
   }
   GURL GetUrl() const override { return GURL("https://accounts.google.com"); }
-  absl::optional<url::Origin> GetRequestInitiator() const override {
-    // Pretend the request came from the same origin.
-    return url::Origin::Create(GetUrl());
-  }
   const net::HttpResponseHeaders* GetHeaders() const override {
     return headers_.get();
   }

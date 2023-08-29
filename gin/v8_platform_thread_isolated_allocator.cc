@@ -26,7 +26,8 @@ ThreadIsolatedAllocator::~ThreadIsolatedAllocator() = default;
 void ThreadIsolatedAllocator::Initialize(int pkey) {
   pkey_ = pkey;
   allocator_.init(partition_alloc::PartitionOptions{
-      .aligned_alloc = partition_alloc::PartitionOptions::kAllowed,
+      .aligned_alloc =
+          partition_alloc::PartitionOptions::AlignedAlloc::kAllowed,
       .thread_isolation = partition_alloc::ThreadIsolationOption(pkey_),
   });
 }

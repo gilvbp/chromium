@@ -4,11 +4,15 @@
 
 #import "ios/chrome/browser/ui/ntp/metrics/feed_session_recorder.h"
 
-#import "base/apple/foundation_util.h"
+#import "base/mac/foundation_util.h"
 #import "base/metrics/histogram_functions.h"
 #import "base/metrics/histogram_macros.h"
 #import "base/time/time.h"
 #import "ios/chrome/browser/ui/ntp/metrics/feed_session_recorder+testing.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace {
 
@@ -72,7 +76,7 @@ constexpr base::TimeDelta kSessionTimeout = base::Minutes(5);
     // Disk value can be nil if this is a fresh install or if there was an issue
     // writing to NSUserDefaults.
     NSUserDefaults* defaults = [NSUserDefaults standardUserDefaults];
-    NSDate* previousInteractionDate = base::apple::ObjCCast<NSDate>(
+    NSDate* previousInteractionDate = base::mac::ObjCCast<NSDate>(
         [defaults objectForKey:kFeedPreviousInteractionDateKey]);
     if (previousInteractionDate) {
       _previousInteractionDate =

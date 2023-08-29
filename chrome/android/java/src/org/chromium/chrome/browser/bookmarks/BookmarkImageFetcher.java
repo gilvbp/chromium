@@ -31,7 +31,6 @@ public class BookmarkImageFetcher {
     private final LargeIconBridge mLargeIconBridge;
     private final int mFaviconFetchSize;
     private final CallbackController mCallbackController = new CallbackController();
-    private final PageImageServiceQueue mPageImageServiceQueue;
 
     private RoundedIconGenerator mRoundedIconGenerator;
     private int mImageSize;
@@ -58,13 +57,11 @@ public class BookmarkImageFetcher {
         mRoundedIconGenerator = roundedIconGenerator;
         mImageSize = imageSize;
         mFaviconSize = faviconSize;
-        mPageImageServiceQueue = new PageImageServiceQueue(mBookmarkModel);
     }
 
     /** Destroys this object. */
     public void destroy() {
         mCallbackController.destroy();
-        mPageImageServiceQueue.destroy();
     }
 
     /**
@@ -149,7 +146,7 @@ public class BookmarkImageFetcher {
                     }
                 });
 
-        mPageImageServiceQueue.getSalientImageUrl(
+        mBookmarkModel.getImageUrlForBookmark(
                 item.getUrl(), mCallbackController.makeCancelable((imageUrl) -> {
                     if (imageUrl == null) {
                         callback.onResult(null);

@@ -22,7 +22,6 @@
  *    </pin-keyboard>
  */
 
-import 'chrome://resources/cr_elements/chromeos/cros_color_overrides.css.js';
 import 'chrome://resources/cr_elements/cr_button/cr_button.js';
 import 'chrome://resources/cr_elements/cr_icon_button/cr_icon_button.js';
 import 'chrome://resources/cr_elements/cr_input/cr_input.js';
@@ -271,12 +270,8 @@ export class PinKeyboardElement extends PinKeyboardElementBase {
   focusInputSynchronously(selectionStart?: number, selectionEnd?: number):
       void {
     this.passwordElement_().focus();
-    if (selectionStart !== undefined) {
-      this.selectionStart_ = selectionStart;
-    }
-    if (selectionEnd !== undefined) {
-      this.selectionEnd_ = selectionEnd;
-    }
+    this.selectionStart_ = selectionStart || 0;
+    this.selectionEnd_ = selectionEnd || 0;
   }
 
   /**

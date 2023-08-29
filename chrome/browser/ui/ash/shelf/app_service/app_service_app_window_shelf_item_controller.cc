@@ -64,17 +64,13 @@ void AppServiceAppWindowShelfItemController::ItemSelected(
     return;
   }
 
-  if (!task_ids_.empty()) {
-    arc::SetTaskActive(*task_ids_.begin());
-    std::move(callback).Run(ash::SHELF_ACTION_NEW_WINDOW_CREATED, {});
+  if (task_ids_.empty()) {
+    NOTREACHED();
+    std::move(callback).Run(ash::SHELF_ACTION_NONE, {});
     return;
   }
-
-  if (session_ids_.empty()) {
-    NOTREACHED();
-  }
-
-  std::move(callback).Run(ash::SHELF_ACTION_NONE, {});
+  arc::SetTaskActive(*task_ids_.begin());
+  std::move(callback).Run(ash::SHELF_ACTION_NEW_WINDOW_CREATED, {});
 }
 
 ash::ShelfItemDelegate::AppMenuItems

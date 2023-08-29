@@ -8,12 +8,8 @@ import android.content.Intent;
 import android.view.ActionMode;
 import android.view.textclassifier.TextClassifier;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-
 import org.chromium.base.supplier.ObservableSupplier;
 import org.chromium.content.browser.selection.SelectionPopupControllerImpl;
-import org.chromium.content_public.browser.selection.SelectionDropdownMenuDelegate;
 import org.chromium.ui.base.WindowAndroid;
 
 /**
@@ -76,16 +72,16 @@ public interface SelectionPopupController {
     }
 
     /**
-     * Set {@link ActionModeCallback} used by {@link SelectionPopupController}.
+     * Set {@link ActionMode.Callback} used by {@link SelectionPopupController}.
+     * @param callback ActionMode.Callback instance.
      */
-    void setActionModeCallback(ActionModeCallback callback);
+    void setActionModeCallback(ActionMode.Callback2 callback);
 
     /**
      * Sets the {@link AdditionalSelectionMenuItemProvider} used by {@link SelectionPopupController}
      * when no text is selected.
      */
-    void setNonSelectionAdditionalMenuItemProvider(
-            @Nullable AdditionalSelectionMenuItemProvider provider);
+    void setNonSelectionAdditionalMenuItemProvider(AdditionalSelectionMenuItemProvider provider);
 
     /**
      * @return {@link SelectionClient.ResultCallback} instance.
@@ -174,9 +170,4 @@ public interface SelectionPopupController {
      * @param focused If the WebContents currently has focus.
      */
     void updateTextSelectionUI(boolean focused);
-
-    /**
-     * Set the dropdown menu delegate that handles showing a dropdown style text selection menu.
-     */
-    void setDropdownMenuDelegate(@NonNull SelectionDropdownMenuDelegate dropdownMenuDelegate);
 }

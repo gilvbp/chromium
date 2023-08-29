@@ -470,8 +470,7 @@ class TestImporterTest(LoggingTestCase):
         self.assertEqual(
             importer._commit_message('aaaa', '1111'), 'Import 1111\n\n'
             'Using wpt-import in Chromium aaaa.\n\n'
-            'No-Export: true\n'
-            'Validate-Test-Flakiness: skip')
+            'No-Export: true')
 
     def test_cl_description_with_empty_environ(self):
         host = self.mock_host()
@@ -488,7 +487,6 @@ class TestImporterTest(LoggingTestCase):
             '/chromium/src/+/main/docs/testing/web_platform_tests.md\n\n'
             'NOAUTOREVERT=true\n'
             'No-Export: true\n'
-            'Validate-Test-Flakiness: skip\n'
             'Cq-Include-Trybots: luci.chromium.try:linux-wpt-identity-fyi-rel,'
             'linux-wpt-input-fyi-rel,linux-blink-rel')
         self.assertEqual(host.executive.calls,

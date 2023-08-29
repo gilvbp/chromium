@@ -53,6 +53,10 @@
 #import "third_party/abseil-cpp/absl/types/optional.h"
 #import "ui/base/l10n/l10n_util_mac.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 @interface PromosManagerCoordinator () <
     ConfirmationAlertActionHandler,
     UIAdaptivePresentationControllerDelegate,
@@ -77,11 +81,8 @@
       std::map<promos_manager::Promo, id<StandardPromoAlertProvider>>>
       _alertProviderPromos;
 
-  // The currently displayed promo data, if any.
-  absl::optional<PromoDisplayData> _currentPromoData;
-
-  // The handler for the CredentialProviderPromoCommands.
-  id<CredentialProviderPromoCommands> _credentialProviderPromoCommandHandler;
+  // The currently displayed promo, if any.
+  absl::optional<promos_manager::Promo> current_promo;
 }
 
 // A mediator that observes when it's a good time to display a promo.
@@ -106,12 +107,9 @@
 #pragma mark - Initialization
 
 - (instancetype)initWithBaseViewController:(UIViewController*)viewController
-                                   browser:(Browser*)browser
-            credentialProviderPromoHandler:
-                (id<CredentialProviderPromoCommands>)handler {
+                                   browser:(Browser*)browser {
   if (self = [super initWithBaseViewController:viewController
                                        browser:browser]) {
-    _credentialProviderPromoCommandHandler = handler;
     [self registerPromos];
 
     BOOL promosExist = _displayHandlerPromos.size() > 0 ||
@@ -172,12 +170,7 @@
 }
 
 - (void)displayPromoCallback:(BOOL)isFirstShownPromo {
-  // If there's already a displayed promo, skip.
-  if (_currentPromoData.has_value()) {
-    return;
-  }
-
-  absl::optional<PromoDisplayData> nextPromoForDisplay =
+  absl::optional<promos_manager::Promo> nextPromoForDisplay =
       [self.mediator nextPromoForDisplay:isFirstShownPromo];
 
   if (nextPromoForDisplay.has_value()) {
@@ -204,10 +197,9 @@
 }
 
 - (void)promoWasDismissed {
-  if (ShouldPromosManagerUseFET() && _currentPromoData.has_value() &&
-      !_currentPromoData.value().was_forced) {
+  if (ShouldPromosManagerUseFET() && current_promo.has_value()) {
     PromoConfigsSet configs = [self promoImpressionLimits];
-    auto it = configs.find(_currentPromoData.value().promo);
+    auto it = configs.find(current_promo.value());
     if (it == configs.end() || !it->feature_engagement_feature) {
       return;
     }
@@ -217,16 +209,25 @@
             self.browser->GetBrowserState());
     tracker->Dismissed(*it->feature_engagement_feature);
   }
-  _currentPromoData = absl::nullopt;
+  current_promo = absl::nullopt;
 }
 
-- (void)displayPromo:(PromoDisplayData)promoData {
+- (void)displayPromo:(promos_manager::Promo)promo {
   if (tests_hook::DisablePromoManagerFullScreenPromos()) {
     return;
   }
 
-  promos_manager::Promo promo = promoData.promo;
-  _currentPromoData = promoData;
+  // Trying to display a promo while the previous dismissal was not communicated
+  // back to the promos manager.
+  // TODO(crbug.com/1452233): Remove once all promos dismiss themselves.
+  if (current_promo.has_value()) {
+    static crash_reporter::CrashKeyString<40> key("current-promo");
+    crash_reporter::ScopedCrashKeyString crashKey(
+        &key, ShortNameForPromo(current_promo.value()));
+    base::debug::DumpWithoutCrashing();
+  }
+
+  current_promo = promo;
 
   auto handler_it = _displayHandlerPromos.find(promo);
   auto provider_it = _viewProviderPromos.find(promo);
@@ -566,9 +567,10 @@
 
   // CredentialProvider Promo handler
   if (IsCredentialProviderExtensionPromoEnabled() || IsIOSSetUpListEnabled()) {
+    id<CredentialProviderPromoCommands> handler = HandlerForProtocol(
+        self.browser->GetCommandDispatcher(), CredentialProviderPromoCommands);
     _displayHandlerPromos[promos_manager::Promo::CredentialProviderExtension] =
-        [[CredentialProviderPromoDisplayHandler alloc]
-            initWithHandler:_credentialProviderPromoCommandHandler];
+        [[CredentialProviderPromoDisplayHandler alloc] initWithHandler:handler];
   }
 
   // DefaultBrowser Promo handler
@@ -580,8 +582,7 @@
   // Choice Promo handler
   if (ios::provider::IsChoiceEnabled()) {
     _displayHandlerPromos[promos_manager::Promo::Choice] =
-        ios::provider::CreateChoiceDisplayHandler(
-            self.browser->GetBrowserState());
+        ios::provider::CreateChoiceDisplayHandler();
   }
 }
 

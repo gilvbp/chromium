@@ -42,6 +42,7 @@ source_set("history") {
     "//net",
     "//url",
   ]
+  configs += [ "//build/config/compiler:enable_arc" ]
 }
 
 source_set("history_utils") {
@@ -55,6 +56,7 @@ source_set("history_utils") {
     "//ios/components/webui:url_constants",
     "//url",
   ]
+  configs += [ "//build/config/compiler:enable_arc" ]
 }
 
 source_set("tab_helper") {
@@ -79,6 +81,7 @@ source_set("tab_helper") {
     "//ui/base",
     "//url",
   ]
+  configs += [ "//build/config/compiler:enable_arc" ]
 }
 
 source_set("unit_tests") {
@@ -97,4 +100,5 @@ source_set("unit_tests") {
     "//ios/web/public/test/fakes",
     "//testing/gtest",
   ]
+  configs += [ "//build/config/compiler:enable_arc" ]
 }

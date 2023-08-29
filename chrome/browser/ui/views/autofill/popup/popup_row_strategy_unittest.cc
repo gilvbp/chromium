@@ -112,12 +112,10 @@ class PopupRowStrategyTest : public ChromeViewsTestBase {
   // Checks that the expected callbacks for content cells are set and call the
   // controller.
   void TestContentCallbacks(const PopupCellView& cell, int index) {
-    constexpr base::TimeTicks kTime = base::TimeTicks() + base::Seconds(5);
-    PopupCellView::OnAcceptedCallback on_accept_callback =
-        cell.GetOnAcceptedCallback();
+    base::RepeatingClosure on_accept_callback = cell.GetOnAcceptedCallback();
     ASSERT_TRUE(on_accept_callback);
-    EXPECT_CALL(controller(), AcceptSuggestion(index, kTime));
-    on_accept_callback.Run(kTime);
+    EXPECT_CALL(controller(), AcceptSuggestion(index));
+    on_accept_callback.Run();
 
     base::RepeatingClosure on_select_callback = cell.GetOnSelectedCallback();
     ASSERT_TRUE(on_select_callback);
@@ -191,11 +189,10 @@ TEST_P(PopupRowStrategyParametrizedTest, DeletedControllerIsHandledGracefully) {
 
   // Test that the executing the callbacks does not crash even if the controller
   // has disappeared.
-  PopupCellView::OnAcceptedCallback callback =
-      content_cell->GetOnAcceptedCallback();
+  base::RepeatingClosure callback = content_cell->GetOnAcceptedCallback();
   controller().InvalidateWeakPtrs();
   EXPECT_CALL(controller(), AcceptSuggestion).Times(0);
-  callback.Run(base::TimeTicks::Now());
+  callback.Run();
 }
 
 TEST_P(PopupRowStrategyParametrizedTest,

@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 source_set("promo") {
+  configs += [ "//build/config/compiler:enable_arc" ]
   sources = [
     "whats_new_promo_display_handler.h",
     "whats_new_promo_display_handler.mm",
@@ -47,4 +48,5 @@ source_set("unit_tests") {
     "//ios/chrome/browser/ui/whats_new:util",
     "//third_party/ocmock",
   ]
+  configs += [ "//build/config/compiler:enable_arc" ]
 }

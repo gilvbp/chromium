@@ -4,17 +4,18 @@
 
 #include "chrome/browser/supervised_user/supervised_user_service_factory.h"
 
+#include "base/feature_list.h"
 #include "base/functional/bind.h"
 #include "chrome/browser/browser_process.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/profiles/profile_key.h"
-#include "chrome/browser/signin/identity_manager_factory.h"
 #include "chrome/browser/supervised_user/kids_chrome_management/kids_chrome_management_client_factory.h"
 #include "chrome/browser/supervised_user/supervised_user_browser_utils.h"
 #include "chrome/browser/supervised_user/supervised_user_settings_service_factory.h"
 #include "chrome/browser/sync/sync_service_factory.h"
 #include "components/supervised_user/core/browser/supervised_user_service.h"
 #include "components/supervised_user/core/browser/supervised_user_url_filter.h"
+#include "components/supervised_user/core/common/features.h"
 #include "components/sync/service/sync_service.h"
 #include "components/variations/service/variations_service.h"
 #include "content/public/browser/browser_context.h"
@@ -71,7 +72,6 @@ SupervisedUserServiceFactory* SupervisedUserServiceFactory::GetInstance() {
 // static
 KeyedService* SupervisedUserServiceFactory::BuildInstanceFor(Profile* profile) {
   return new supervised_user::SupervisedUserService(
-      IdentityManagerFactory::GetForProfile(profile),
       KidsChromeManagementClientFactory::GetInstance()->GetForProfile(profile),
       *profile->GetPrefs(),
       *SupervisedUserSettingsServiceFactory::GetInstance()->GetForKey(
@@ -85,12 +85,19 @@ KeyedService* SupervisedUserServiceFactory::BuildInstanceFor(Profile* profile) {
 SupervisedUserServiceFactory::SupervisedUserServiceFactory()
     : ProfileKeyedServiceFactory(
           "SupervisedUserService",
-          supervised_user::BuildProfileSelectionsForRegularAndGuest()) {
+          base::FeatureList::IsEnabled(
+              supervised_user::kUpdateSupervisedUserFactoryCreation)
+              ? supervised_user::BuildProfileSelectionsForRegularAndGuest()
+              : ProfileSelections::Builder()
+                    .WithRegular(ProfileSelection::kRedirectedToOriginal)
+                    // TODO(crbug.com/1418376): Check if this service is needed
+                    // in Guest mode.
+                    .WithGuest(ProfileSelection::kRedirectedToOriginal)
+                    .Build()) {
 #if BUILDFLAG(ENABLE_EXTENSIONS)
   DependsOn(
       extensions::ExtensionsBrowserClient::Get()->GetExtensionSystemFactory());
 #endif
-  DependsOn(IdentityManagerFactory::GetInstance());
   DependsOn(KidsChromeManagementClientFactory::GetInstance());
   DependsOn(SyncServiceFactory::GetInstance());
   DependsOn(SupervisedUserSettingsServiceFactory::GetInstance());

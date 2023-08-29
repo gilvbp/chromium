@@ -105,7 +105,8 @@ std::pair<PhysicalRect, bool> InitializeTargetRect(const LayoutObject* target,
                                                    const Vector<Length>& margin,
                                                    const LayoutObject* root) {
   std::pair<PhysicalRect, bool> result;
-  if (flags & IntersectionGeometry::kForFrameViewportIntersection) {
+  if ((flags & IntersectionGeometry::kShouldUseReplacedContentRect) &&
+      target->IsLayoutEmbeddedContent()) {
     result.first = To<LayoutEmbeddedContent>(target)->ReplacedContentRect();
   } else if (target->IsBox()) {
     result.first =
@@ -161,7 +162,7 @@ static const unsigned kConstructorFlagsMask =
     IntersectionGeometry::kShouldReportRootBounds |
     IntersectionGeometry::kShouldComputeVisibility |
     IntersectionGeometry::kShouldTrackFractionOfRoot |
-    IntersectionGeometry::kForFrameViewportIntersection |
+    IntersectionGeometry::kShouldUseReplacedContentRect |
     IntersectionGeometry::kShouldConvertToCSSPixels |
     IntersectionGeometry::kUseOverflowClipEdge;
 
@@ -238,9 +239,8 @@ IntersectionGeometry::RootAndTarget::RootAndTarget(
     const Node* root_node,
     const Element& target_element)
     : target(GetTargetLayoutObject(target_element)),
-      root(target ? GetRootLayoutObject(root_node) : nullptr) {
-  ComputeRelationship(!root_node);
-}
+      root(target ? GetRootLayoutObject(root_node) : nullptr),
+      relationship(ComputeRelationship(!root_node)) {}
 
 // Validates the given target element and returns its LayoutObject
 const LayoutObject* IntersectionGeometry::RootAndTarget::GetTargetLayoutObject(
@@ -283,53 +283,43 @@ const LayoutObject* IntersectionGeometry::RootAndTarget::GetRootLayoutObject(
   return nullptr;
 }
 
-void IntersectionGeometry::RootAndTarget::ComputeRelationship(
-    bool root_is_implicit) {
+IntersectionGeometry::RootAndTarget::Relationship
+IntersectionGeometry::RootAndTarget::ComputeRelationship(
+    bool root_is_implicit) const {
   if (!root || !target || root == target) {
-    relationship = kInvalid;
-    return;
+    return kInvalid;
   }
   if (root_is_implicit && !target->GetFrame()->IsOutermostMainFrame()) {
-    relationship = kTargetInSubFrame;
-    return;
+    return kTargetInSubFrame;
   }
   if (target->GetFrame() != root->GetFrame()) {
     // The case of different frame with implicit root has been covered by the
     // previous condition.
     DCHECK(!root_is_implicit);
     // The target and the explicit root are required to be in the same frame.
-    relationship = kInvalid;
-    return;
+    return kInvalid;
   }
-  bool has_intermediate_clippers = false;
-  const LayoutObject* container = target;
-  while (container != root) {
-    has_filter |= container->HasFilterInducingProperty();
-    // Don't check for filters if we've already found one.
-    LayoutObject::AncestorSkipInfo skip_info(root, !has_filter);
-    container = container->Container(&skip_info);
-    if (!has_filter) {
-      has_filter = skip_info.FilterSkipped();
-    }
+  LayoutObject::AncestorSkipInfo skip_info(root);
+  bool has_intermediate_scrollers = false;
+  for (const LayoutObject* container = target->Container(&skip_info);
+       container != root; container = container->Container(&skip_info)) {
     if (!container || skip_info.AncestorSkipped()) {
       // The root is not in the containing block chain of the target.
-      relationship = kInvalid;
-      return;
+      return kInvalid;
     }
-    if (container != root && container->HasNonVisibleOverflow() &&
+    if (container->IsScrollContainer() &&
         // Non-scrollable scrollers are ignored.
         To<LayoutBox>(container)->HasLayoutOverflow()) {
-      has_intermediate_clippers = true;
+      has_intermediate_scrollers = true;
     }
   }
-  if (has_intermediate_clippers) {
-    relationship = kScrollableWithIntermediateClippers;
-  } else if (root->IsScrollContainer() &&
-             To<LayoutBox>(root)->HasLayoutOverflow()) {
-    relationship = kScrollableByRootOnly;
-  } else {
-    relationship = kNotScrollable;
+  if (has_intermediate_scrollers) {
+    return kScrollableByIntermediateScrollers;
   }
+  if (root->IsScrollContainer() && To<LayoutBox>(root)->HasLayoutOverflow()) {
+    return kScrollableByRootOnly;
+  }
+  return kNotScrollable;
 }
 
 IntersectionGeometry::RootAndTarget
@@ -345,8 +335,7 @@ IntersectionGeometry::PrepareComputeGeometry(const Node* root_node,
   RootAndTarget root_and_target(root_node, target_element);
 
   if (ShouldUseCachedRects()) {
-    CHECK(!RootIsImplicit() ||
-          RuntimeEnabledFeatures::IntersectionOptimizationEnabled());
+    CHECK(!RootIsImplicit());
     // Cached rects can only be used if there are no scrollable objects in the
     // hierarchy between target and root (a scrollable root is ok). The reason
     // is that a scroll change in an intermediate scroller would change the
@@ -367,13 +356,9 @@ IntersectionGeometry::PrepareComputeGeometry(const Node* root_node,
       return false;
     };
     if (RuntimeEnabledFeatures::IntersectionOptimizationEnabled()
-            // TODO(wangxianzhu): Don't use cached rects for implicit root for
-            // now because that would expose some under-invalidaiton bugs.
-            //
-            ? (RootIsImplicit() ||
-               (root_and_target.relationship != RootAndTarget::kNotScrollable &&
-                root_and_target.relationship !=
-                    RootAndTarget::kScrollableByRootOnly))
+            ? (root_and_target.relationship != RootAndTarget::kNotScrollable &&
+               root_and_target.relationship !=
+                   RootAndTarget::kScrollableByRootOnly)
             : !legacy_can_use_cached_rects()) {
       flags_ &= ~kShouldUseCachedRects;
     }
@@ -387,7 +372,6 @@ void IntersectionGeometry::ComputeGeometry(const RootGeometry& root_geometry,
                                            const Vector<float>& thresholds,
                                            const Vector<Length>& target_margin,
                                            CachedRects* cached_rects) {
-  CHECK_GE(thresholds.size(), 1u);
   DCHECK(cached_rects || !ShouldUseCachedRects());
   flags_ |= kDidComputeGeometry;
 
@@ -559,14 +543,12 @@ void IntersectionGeometry::ComputeGeometry(const RootGeometry& root_geometry,
     root_rect_ = PhysicalRect::EnclosingRect(root_float_rect);
   }
 
-  min_scroll_delta_to_update_ = ComputeMinScrollDeltaToUpdate(
-      root_and_target, target_to_document_transform,
-      root_geometry.root_to_document_transform, thresholds);
+  ComputeMinScrollDeltaToUpdate(
+      root_and_target.relationship, target_to_document_transform,
+      root_geometry.root_to_document_transform, thresholds, cached_rects);
 
-  if (cached_rects) {
-    cached_rects->min_scroll_delta_to_update = min_scroll_delta_to_update_;
+  if (cached_rects)
     cached_rects->valid = true;
-  }
 }
 
 bool IntersectionGeometry::ClipToRoot(const LayoutObject* root,
@@ -664,97 +646,66 @@ unsigned IntersectionGeometry::FirstThresholdGreaterThan(
   return result;
 }
 
-gfx::Vector2dF IntersectionGeometry::ComputeMinScrollDeltaToUpdate(
-    const RootAndTarget& root_and_target,
+void IntersectionGeometry::ComputeMinScrollDeltaToUpdate(
+    RootAndTarget::Relationship relationship,
     const gfx::Transform& target_to_document_transform,
     const gfx::Transform& root_to_document_transform,
-    const Vector<float>& thresholds) const {
+    const Vector<float>& thresholds,
+    CachedRects* cached_rects) const {
+  if (!cached_rects) {
+    return;
+  }
+  cached_rects->min_scroll_delta_to_update = gfx::Vector2dF();
   if (!RuntimeEnabledFeatures::IntersectionOptimizationEnabled()) {
-    return gfx::Vector2dF();
+    return;
   }
   if (ShouldComputeVisibility()) {
     // We don't have enough data (e.g. the occluded area of target and the
     // occluding areas of the covering elements) to calculate the minimum
     // scroll delta affecting visibility.
-    return gfx::Vector2dF();
+    return;
   }
-  if (root_and_target.relationship == RootAndTarget::kTargetInSubFrame) {
-    return gfx::Vector2dF();
+  if (relationship == RootAndTarget::kTargetInSubFrame) {
+    return;
   }
-  if (root_and_target.relationship == RootAndTarget::kNotScrollable) {
+  if (relationship == RootAndTarget::kNotScrollable) {
     // Intersection is not affected by scroll.
-    return kInfiniteScrollDelta;
-  }
-  if (root_and_target.has_filter) {
-    // With filters, the intersection rect can be non-empty even if root_rect_
-    // and target_rect_ don't intersect.
-    return gfx::Vector2dF();
+    cached_rects->min_scroll_delta_to_update = gfx::Vector2dF(
+        std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
+    return;
   }
   if (!target_to_document_transform.IsIdentityOr2dTranslation() ||
       !root_to_document_transform.IsIdentityOr2dTranslation()) {
-    return gfx::Vector2dF();
+    return;
   }
-  CHECK_GE(thresholds.size(), 1u);
-  if (thresholds[0] == 1) {
-    if (ShouldTrackFractionOfRoot()) {
-      if (root_rect_.Width() > target_rect_.Width() ||
-          root_rect_.Height() > target_rect_.Height()) {
-        // The intersection rect (which is contained by target_rect_) can never
-        // cover root_rect_ 100%.
-        return kInfiniteScrollDelta;
-      }
-      if (target_rect_.Contains(root_rect_) &&
-          root_and_target.relationship ==
-              RootAndTarget::kScrollableWithIntermediateClippers) {
-        // When target_rect_ fully contains root_rect_, whether the intersection
-        // rect fully covers root_rect_ depends on intermediate clips, so there
-        // is no minimum scroll delta.
-        return gfx::Vector2dF();
-      }
+  if (thresholds.size() != 1) {
+    return;
+  }
+  if (thresholds[0] <= kMinimumThreshold) {
+    // kMinimumThreshold is equivalent to 0 for minimum scroll delta.
+    cached_rects->min_scroll_delta_to_update =
+        gfx::Vector2dF(std::min((root_rect_.Right() - target_rect_.X()).Abs(),
+                                (target_rect_.Right() - root_rect_.X()).Abs())
+                           .ToFloat(),
+                       std::min((root_rect_.Bottom() - target_rect_.Y()).Abs(),
+                                (target_rect_.Bottom() - root_rect_.Y()).Abs())
+                           .ToFloat());
+  } else if (thresholds[0] == 1) {
+    if (target_rect_.Width() > root_rect_.Width() ||
+        target_rect_.Height() > root_rect_.Height()) {
+      // The target can't be scrolled to be fully visible.
+      cached_rects->min_scroll_delta_to_update = gfx::Vector2dF(
+          std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
     } else {
-      if (target_rect_.Width() > root_rect_.Width() ||
-          target_rect_.Height() > root_rect_.Height()) {
-        // The intersection rect (which is contained by root_rect_) can never
-        // cover target_rect_ 100%.
-        return kInfiniteScrollDelta;
-      }
-      if (root_rect_.Contains(target_rect_) &&
-          root_and_target.relationship ==
-              RootAndTarget::kScrollableWithIntermediateClippers) {
-        // When root_rect_ fully contains target_rect_, whether target_rect_
-        // is fully visible depends on intermediate clips, so there is no
-        // minimum scroll delta.
-        return gfx::Vector2dF();
-      }
+      cached_rects->min_scroll_delta_to_update = gfx::Vector2dF(
+          std::min((root_rect_.X() - target_rect_.X()).Abs(),
+                   (root_rect_.Right() - target_rect_.Right()).Abs())
+              .ToFloat(),
+          std::min((root_rect_.Y() - target_rect_.Y()).Abs(),
+                   (root_rect_.Bottom() - target_rect_.Bottom()).Abs())
+              .ToFloat());
     }
-    // Otherwise, we can skip update until target_rect_/root_rect_ is or isn't
-    // fully contained by root_rect_/target_rect_.
-    return gfx::Vector2dF(
-        std::min((root_rect_.X() - target_rect_.X()).Abs(),
-                 (root_rect_.Right() - target_rect_.Right()).Abs())
-            .ToFloat(),
-        std::min((root_rect_.Y() - target_rect_.Y()).Abs(),
-                 (root_rect_.Bottom() - target_rect_.Bottom()).Abs())
-            .ToFloat());
   }
-  // Otherwise, if root_rect_ and target_rect_ intersect, the intersection
-  // status may change on any scroll in case of intermediate clips or non-zero
-  // thresholds. kMinimumThreshold equivalent to 0 for minimum scroll delta.
-  if (root_rect_.IntersectsInclusively(target_rect_) &&
-      (thresholds.size() != 1 || thresholds[0] > kMinimumThreshold ||
-       root_and_target.relationship ==
-           RootAndTarget::kScrollableWithIntermediateClippers ||
-       IsForFrameViewportIntersection())) {
-    return gfx::Vector2dF();
-  }
-  // Otherwise we can skip update until root_rect_ and target_rect_ is about
-  // to change intersection status in either direction.
-  return gfx::Vector2dF(std::min((root_rect_.Right() - target_rect_.X()).Abs(),
-                                 (target_rect_.Right() - root_rect_.X()).Abs())
-                            .ToFloat(),
-                        std::min((root_rect_.Bottom() - target_rect_.Y()).Abs(),
-                                 (target_rect_.Bottom() - root_rect_.Y()).Abs())
-                            .ToFloat());
 }
 
 }  // namespace blink

@@ -10,16 +10,11 @@
 #import "components/bookmarks/browser/bookmark_node.h"
 #import "components/bookmarks/common/bookmark_metrics.h"
 #import "components/bookmarks/test/bookmark_test_helpers.h"
-#import "components/policy/core/common/policy_pref_names.h"
-#import "components/sync_preferences/testing_pref_service_syncable.h"
-#import "ios/chrome/browser/bookmarks/model/local_or_syncable_bookmark_model_factory.h"
-#import "ios/chrome/browser/find_in_page/find_tab_helper.h"
+#import "ios/chrome/browser/bookmarks/local_or_syncable_bookmark_model_factory.h"
 #import "ios/chrome/browser/find_in_page/java_script_find_tab_helper.h"
-#import "ios/chrome/browser/find_in_page/util.h"
 #import "ios/chrome/browser/lens/lens_browser_agent.h"
 #import "ios/chrome/browser/ntp/new_tab_page_tab_helper.h"
 #import "ios/chrome/browser/ntp/new_tab_page_tab_helper_delegate.h"
-#import "ios/chrome/browser/policy/policy_util.h"
 #import "ios/chrome/browser/sessions/fake_tab_restore_service.h"
 #import "ios/chrome/browser/sessions/ios_chrome_tab_restore_service_factory.h"
 #import "ios/chrome/browser/shared/coordinator/scene/scene_state.h"
@@ -45,7 +40,6 @@
 #import "ios/web/public/test/fakes/fake_navigation_manager.h"
 #import "ios/web/public/test/fakes/fake_web_frames_manager.h"
 #import "ios/web/public/test/fakes/fake_web_state.h"
-#import "ios/web/public/test/web_task_environment.h"
 #import "testing/gtest/include/gtest/gtest.h"
 #import "testing/gtest_mac.h"
 #import "testing/platform_test.h"
@@ -53,6 +47,10 @@
 #import "third_party/ocmock/gtest_support.h"
 #import "third_party/ocmock/ocmock_extensions.h"
 #import "ui/base/l10n/l10n_util.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace {
 
@@ -160,7 +158,7 @@ class KeyCommandsProviderTest : public PlatformTest {
     EXPECT_EQ(user_action_tester_.GetActionCount(user_action), 1);
   }
 
-  web::WebTaskEnvironment task_environment_;
+  base::test::TaskEnvironment task_environment_;
   std::unique_ptr<TestChromeBrowserState> browser_state_;
   std::unique_ptr<TestBrowser> browser_;
   WebStateList* web_state_list_;
@@ -287,35 +285,24 @@ TEST_F(KeyCommandsProviderTest, CanPerform_FindInPageActions) {
 
   // Open a tab.
   web::FakeWebState* web_state = InsertNewWebState(0);
-  if (IsNativeFindInPageAvailable()) {
-    NewTabPageTabHelper::CreateForWebState(web_state);
-    FindTabHelper::CreateForWebState(web_state);
-  } else {
-    web_state->SetWebFramesManager(
-        web::ContentWorld::kIsolatedWorld,
-        std::make_unique<web::FakeWebFramesManager>());
-    web::JavaScriptFindInPageManagerImpl::CreateForWebState(web_state);
-    JavaScriptFindTabHelper::CreateForWebState(web_state);
-  }
+  web_state->SetWebFramesManager(web::ContentWorld::kIsolatedWorld,
+                                 std::make_unique<web::FakeWebFramesManager>());
+  web::JavaScriptFindInPageManagerImpl::CreateForWebState(web_state);
+  JavaScriptFindTabHelper::CreateForWebState(web_state);
 
-  if (IsNativeFindInPageAvailable()) {
-    EXPECT_TRUE(CanPerform(@"keyCommand_find"));
-  } else {
-    // If Native Find in Page unavailable, then Find in Page only works if
-    // content is HTML.
-    web_state->SetContentIsHTML(false);
-    EXPECT_FALSE(CanPerform(@"keyCommand_find"));
+  // No Find in Page.
+  web_state->SetContentIsHTML(false);
+  EXPECT_FALSE(CanPerform(@"keyCommand_find"));
 
-    // Can Find in Page.
-    web_state->SetContentIsHTML(true);
-    EXPECT_TRUE(CanPerform(@"keyCommand_find"));
-    EXPECT_FALSE(CanPerform(@"keyCommand_findNext"));
-    EXPECT_FALSE(CanPerform(@"keyCommand_findPrevious"));
-  }
+  // Can Find in Page.
+  web_state->SetContentIsHTML(true);
+  EXPECT_TRUE(CanPerform(@"keyCommand_find"));
+  EXPECT_FALSE(CanPerform(@"keyCommand_findNext"));
+  EXPECT_FALSE(CanPerform(@"keyCommand_findPrevious"));
 
   // Find UI active.
-  AbstractFindTabHelper* helper =
-      GetConcreteFindTabHelperFromWebState(web_state);
+  JavaScriptFindTabHelper* helper =
+      JavaScriptFindTabHelper::FromWebState(web_state);
   helper->SetFindUIActive(YES);
   EXPECT_TRUE(CanPerform(@"keyCommand_findNext"));
   EXPECT_TRUE(CanPerform(@"keyCommand_findPrevious"));
@@ -498,39 +485,6 @@ TEST_F(KeyCommandsProviderTest, CanPerform_ReportAnIssue) {
             ios::provider::IsUserFeedbackSupported());
 }
 
-// Checks that openNewRegularTab doesn't open a tab when regular tabs are
-// disabled by policy.
-TEST_F(KeyCommandsProviderTest,
-       CanPerform_OpenNewIncognitoTab_DisabledByPolicy) {
-  // Disable regular tabs with policy.
-  browser_state_->GetTestingPrefService()->SetManagedPref(
-      policy::policy_prefs::kIncognitoModeAvailability,
-      std::make_unique<base::Value>(
-          static_cast<int>(IncognitoModePrefs::kForced)));
-
-  // Verify that the regular tabs can't be opened.
-  EXPECT_FALSE(CanPerform(@"keyCommand_openNewRegularTab"));
-
-  // Verify that incognito tab can still be opened as a sanity check.
-  EXPECT_TRUE(CanPerform(@"keyCommand_openNewIncognitoTab"));
-}
-
-// Checks that openNewIncognitoTab doesn't open a tab when incognito tabs are
-// disabled by policy.
-TEST_F(KeyCommandsProviderTest, CanPerform_OpenNewRegularTab_DisabledByPolicy) {
-  // Disable regular tabs with policy.
-  browser_state_->GetTestingPrefService()->SetManagedPref(
-      policy::policy_prefs::kIncognitoModeAvailability,
-      std::make_unique<base::Value>(
-          static_cast<int>(IncognitoModePrefs::kDisabled)));
-
-  // Verify that incognito tabs can't be opened.
-  EXPECT_FALSE(CanPerform(@"keyCommand_openNewIncognitoTab"));
-
-  // Verify that regular tabs can still be opened as a sanity check.
-  EXPECT_TRUE(CanPerform(@"keyCommand_openNewRegularTab"));
-}
-
 #pragma mark - Metrics Tests
 
 // Checks that metrics are correctly reported.
@@ -634,8 +588,6 @@ TEST_F(KeyCommandsProviderTest, OpenNewTab_RegularBrowserState) {
   OCMExpect([provider_.dispatcher openURLInNewTab:newTabCommand]);
 
   [provider_ keyCommand_openNewTab];
-
-  EXPECT_OCMOCK_VERIFY(provider_.dispatcher);
 }
 
 // Checks the openNewTab logic based on an incognito browser state.
@@ -652,8 +604,6 @@ TEST_F(KeyCommandsProviderTest, OpenNewTab_IncognitoBrowserState) {
   OCMExpect([provider_.dispatcher openURLInNewTab:newTabCommand]);
 
   [provider_ keyCommand_openNewTab];
-
-  EXPECT_OCMOCK_VERIFY(provider_.dispatcher);
 }
 
 // Checks that openNewRegularTab opens a tab in the regular browser state.
@@ -666,8 +616,6 @@ TEST_F(KeyCommandsProviderTest, OpenNewRegularTab) {
   OCMExpect([provider_.dispatcher openURLInNewTab:newTabCommand]);
 
   [provider_ keyCommand_openNewTab];
-
-  EXPECT_OCMOCK_VERIFY(provider_.dispatcher);
 }
 
 // Checks that openNewIncognitoTab opens a tab in the Incognito browser state.
@@ -680,8 +628,6 @@ TEST_F(KeyCommandsProviderTest, OpenNewIncognitoTab) {
   OCMExpect([provider_.dispatcher openURLInNewTab:newTabCommand]);
 
   [provider_ keyCommand_openNewIncognitoTab];
-
-  EXPECT_OCMOCK_VERIFY(provider_.dispatcher);
 }
 
 // Checks the next/previous tab actions work OK.
@@ -891,21 +837,13 @@ TEST_F(KeyCommandsProviderTest, BackForward) {
 TEST_F(KeyCommandsProviderTest, ValidateCommands) {
   // Open a tab.
   web::FakeWebState* web_state = InsertNewWebState(0);
-  if (IsNativeFindInPageAvailable()) {
-    NewTabPageTabHelper::CreateForWebState(web_state);
-    FindTabHelper::CreateForWebState(web_state);
-  } else {
-    web_state->SetWebFramesManager(
-        web::ContentWorld::kIsolatedWorld,
-        std::make_unique<web::FakeWebFramesManager>());
-    web::JavaScriptFindInPageManagerImpl::CreateForWebState(web_state);
-    JavaScriptFindTabHelper::CreateForWebState(web_state);
-  }
+  web_state->SetWebFramesManager(web::ContentWorld::kIsolatedWorld,
+                                 std::make_unique<web::FakeWebFramesManager>());
+  web::JavaScriptFindInPageManagerImpl::CreateForWebState(web_state);
+  JavaScriptFindTabHelper::CreateForWebState(web_state);
 
-  if (!IsNativeFindInPageAvailable()) {
-    // JavaScript Find in Page only works if content is HTML.
-    web_state->SetContentIsHTML(true);
-  }
+  // Can Find in Page.
+  web_state->SetContentIsHTML(true);
   EXPECT_TRUE(CanPerform(@"keyCommand_find"));
   EXPECT_TRUE(CanPerform(@"keyCommand_select1"));
 

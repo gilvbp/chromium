@@ -121,8 +121,11 @@ mojom::SharedStorageOperationPtr MakeSharedStorageOperation(
 
 SharedStorageRequestHelper::SharedStorageRequestHelper(
     bool shared_storage_writable,
+    const url::Origin& original_request_origin,
     mojom::URLLoaderNetworkServiceObserver* observer)
-    : shared_storage_writable_(shared_storage_writable), observer_(observer) {}
+    : shared_storage_writable_(shared_storage_writable),
+      original_request_origin_(original_request_origin),
+      observer_(observer) {}
 
 SharedStorageRequestHelper::~SharedStorageRequestHelper() = default;
 
@@ -207,7 +210,7 @@ bool SharedStorageRequestHelper::ProcessResponse(net::URLRequest& request,
   }
 
   observer_->OnSharedStorageHeaderReceived(
-      url::Origin::Create(request.url()), std::move(operations),
+      original_request_origin_, std::move(operations),
       base::BindOnce(&SharedStorageRequestHelper::OnOperationsQueued,
                      weak_ptr_factory_.GetWeakPtr(), std::move(done)));
   return true;

@@ -454,14 +454,17 @@ public class PlayerManager {
         return sCompositorDelegateFactory;
     }
 
+    @VisibleForTesting
     public boolean checkRequiredBitmapsLoadedForTest() {
         return mRootFrameCoordinator.checkRequiredBitmapsLoadedForTest();
     }
 
+    @VisibleForTesting
     public WebContentsAccessibility getWebContentsAccessibilityForTesting() {
         return mWebContentsAccessibility;
     }
 
+    @VisibleForTesting
     public static void overrideCompositorDelegateFactoryForTesting(
             PlayerCompositorDelegate.Factory factory) {
         if (factory == null) {

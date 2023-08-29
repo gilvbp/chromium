@@ -54,8 +54,7 @@ class ASH_EXPORT PhoneStatusView : public TriView,
 
   void UpdateMobileStatus();
   void UpdateBatteryStatus();
-  PowerStatus::BatteryImageInfo CalculateBatteryInfo(
-      const SkColor icon_fg_color);
+  PowerStatus::BatteryImageInfo CalculateBatteryInfo();
   void SetBatteryTooltipText();
 
   // Clear the existing labels and icons for the phone status.

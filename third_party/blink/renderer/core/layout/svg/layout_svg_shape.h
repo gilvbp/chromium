@@ -171,7 +171,7 @@ class LayoutSVGShape : public LayoutSVGModelObject {
                                           const WindRule) const;
 
   gfx::RectF fill_bounding_box_;
-  gfx::RectF decorated_bounding_box_;
+  gfx::RectF stroke_bounding_box_;
 
   LayoutSVGShapeRareData& EnsureRareData() const;
 
@@ -188,9 +188,6 @@ class LayoutSVGShape : public LayoutSVGModelObject {
            LayoutSVGModelObject::IsOfType(type);
   }
   void UpdateLayout() final;
-  // Update LayoutObject state after layout has completed. Returns true if
-  // boundaries needs to be propagated (because of a change to the transform).
-  bool UpdateAfterLayout(bool bbox_changed);
   void Paint(const PaintInfo&) const final;
 
   bool NodeAtPoint(HitTestResult&,
@@ -201,13 +198,9 @@ class LayoutSVGShape : public LayoutSVGModelObject {
                     const HitTestLocation&,
                     PointerEventsHitRules);
 
-  // Calculates the tight stroke bounding box of the shape excluding any dash
-  // pattern.
-  gfx::RectF StrokeBoundingBox() const final;
-
-  gfx::RectF DecoratedBoundingBox() const final {
+  gfx::RectF StrokeBoundingBox() const final {
     NOT_DESTROYED();
-    return decorated_bounding_box_;
+    return stroke_bounding_box_;
   }
 
   // Calculates an inclusive bounding box of this shape as if this shape has a

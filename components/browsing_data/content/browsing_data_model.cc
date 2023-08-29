@@ -5,42 +5,30 @@
 #include "components/browsing_data/content/browsing_data_model.h"
 
 #include <set>
-#include <string>
 
 #include "base/barrier_closure.h"
-#include "base/check.h"
-#include "base/containers/contains.h"
 #include "base/containers/enum_set.h"
-#include "base/feature_list.h"
-#include "base/functional/bind.h"
 #include "base/functional/callback.h"
 #include "base/functional/overloaded.h"
 #include "base/memory/weak_ptr.h"
 #include "components/browsing_data/content/browsing_data_quota_helper.h"
-#include "components/browsing_data/content/shared_worker_info.h"
+#include "components/browsing_data/content/local_storage_helper.h"
 #include "components/browsing_data/core/features.h"
 #include "components/services/storage/public/mojom/storage_usage_info.mojom.h"
 #include "components/services/storage/shared_storage/shared_storage_manager.h"
 #include "content/public/browser/browser_context.h"
 #include "content/public/browser/browser_thread.h"
-#include "content/public/browser/dom_storage_context.h"
-#include "content/public/browser/private_aggregation_data_model.h"
-#include "content/public/browser/shared_worker_service.h"
 #include "content/public/browser/storage_partition.h"
 #include "content/public/browser/storage_partition_config.h"
-#include "content/public/browser/storage_usage_info.h"
 #include "mojo/public/cpp/bindings/callback_helpers.h"
 #include "services/network/network_context.h"
-#include "services/network/public/cpp/features.h"
 #include "services/network/public/mojom/clear_data_filter.mojom.h"
-#include "services/network/public/mojom/network_context.mojom.h"
 #include "services/network/public/mojom/trust_tokens.mojom.h"
 #include "third_party/abseil-cpp/absl/types/variant.h"
 #include "third_party/blink/public/common/features.h"
 #include "third_party/blink/public/common/interest_group/interest_group.h"
 #include "third_party/blink/public/common/storage_key/storage_key.h"
 #include "url/origin.h"
-#include "url/url_util.h"
 
 namespace {
 
@@ -67,33 +55,23 @@ struct GetDataOwner {
         return *owner;
       }
     }
-
-    return GetOwningOriginOrHost(data_key);
+    // By default all data is owned by its host.
+    return GetOwningHost(data_key);
   }
 
  private:
   template <class T>
-  BrowsingDataModel::DataOwner GetOwningOriginOrHost(const T& data_key) const;
-
-  // Returns the origin's host if the URL scheme is `http` or `https` otherwise
-  // returns the origin.
-  BrowsingDataModel::DataOwner GetOwnerBasedOnScheme(
-      const url::Origin origin) const {
-    if (origin.GetURL().SchemeIsHTTPOrHTTPS()) {
-      return origin.host();
-    }
-    return origin;
-  }
+  std::string GetOwningHost(const T& data_key) const;
 
   raw_ptr<BrowsingDataModel::Delegate> delegate_;
   BrowsingDataModel::StorageType storage_type_;
 };
 
 template <>
-BrowsingDataModel::DataOwner GetDataOwner::GetOwningOriginOrHost<url::Origin>(
+std::string GetDataOwner::GetOwningHost<url::Origin>(
     const url::Origin& data_key) const {
   if (storage_type_ == BrowsingDataModel::StorageType::kTrustTokens) {
-    return GetOwnerBasedOnScheme(data_key);
+    return data_key.host();
   }
 
   NOTREACHED() << "Unexpected StorageType: " << static_cast<int>(storage_type_);
@@ -101,18 +79,19 @@ BrowsingDataModel::DataOwner GetDataOwner::GetOwningOriginOrHost<url::Origin>(
 }
 
 template <>
-BrowsingDataModel::DataOwner
-GetDataOwner::GetOwningOriginOrHost<blink::StorageKey>(
+std::string GetDataOwner::GetOwningHost<blink::StorageKey>(
     const blink::StorageKey& data_key) const {
   // TODO(crbug.com/1271155): This logic is useful for testing during the
   // implementation of the model, but ultimately these storage types may not
   // coexist.
   switch (storage_type_) {
-    case BrowsingDataModel::StorageType::kQuotaStorage:
+    case BrowsingDataModel::StorageType::kPartitionedQuotaStorage:
+      return data_key.top_level_site().GetURL().host();
+
+    case BrowsingDataModel::StorageType::kUnpartitionedQuotaStorage:
     case BrowsingDataModel::StorageType::kSharedStorage:
     case BrowsingDataModel::StorageType::kLocalStorage:
-    case BrowsingDataModel::StorageType::kSessionStorage:
-      return GetOwnerBasedOnScheme(data_key.origin());
+      return data_key.origin().host();
     default:
       NOTREACHED() << "Unexpected StorageType: "
                    << static_cast<int>(storage_type_);
@@ -121,44 +100,19 @@ GetDataOwner::GetOwningOriginOrHost<blink::StorageKey>(
 }
 
 template <>
-BrowsingDataModel::DataOwner GetDataOwner::GetOwningOriginOrHost<
+std::string GetDataOwner::GetOwningHost<
     content::InterestGroupManager::InterestGroupDataKey>(
     const content::InterestGroupManager::InterestGroupDataKey& data_key) const {
-  CHECK_EQ(BrowsingDataModel::StorageType::kInterestGroup, storage_type_);
-  return GetOwnerBasedOnScheme(data_key.owner);
+  DCHECK_EQ(BrowsingDataModel::StorageType::kInterestGroup, storage_type_);
+  return data_key.owner.host();
 }
 
 template <>
-BrowsingDataModel::DataOwner
-GetDataOwner::GetOwningOriginOrHost<content::AttributionDataModel::DataKey>(
+std::string GetDataOwner::GetOwningHost<content::AttributionDataModel::DataKey>(
     const content::AttributionDataModel::DataKey& data_key) const {
-  CHECK_EQ(BrowsingDataModel::StorageType::kAttributionReporting,
-           storage_type_);
-  return GetOwnerBasedOnScheme(data_key.reporting_origin());
-}
-
-template <>
-BrowsingDataModel::DataOwner GetDataOwner::GetOwningOriginOrHost<
-    content::PrivateAggregationDataModel::DataKey>(
-    const content::PrivateAggregationDataModel::DataKey& data_key) const {
-  CHECK_EQ(BrowsingDataModel::StorageType::kPrivateAggregation, storage_type_);
-  return GetOwnerBasedOnScheme(data_key.reporting_origin());
-}
-
-template <>
-BrowsingDataModel::DataOwner
-GetDataOwner::GetOwningOriginOrHost<net::SharedDictionaryIsolationKey>(
-    const net::SharedDictionaryIsolationKey& isolation_key) const {
-  DCHECK_EQ(BrowsingDataModel::StorageType::kSharedDictionary, storage_type_);
-  return GetOwnerBasedOnScheme(isolation_key.frame_origin());
-}
-
-template <>
-BrowsingDataModel::DataOwner
-GetDataOwner::GetOwningOriginOrHost<browsing_data::SharedWorkerInfo>(
-    const browsing_data::SharedWorkerInfo& shared_worker_info) const {
-  DCHECK_EQ(BrowsingDataModel::StorageType::kSharedWorker, storage_type_);
-  return GetOwnerBasedOnScheme(shared_worker_info.storage_key.origin());
+  DCHECK_EQ(BrowsingDataModel::StorageType::kAttributionReporting,
+            storage_type_);
+  return data_key.reporting_origin().host();
 }
 
 // Helper which allows the lifetime management of a deletion action to occur
@@ -167,20 +121,23 @@ struct StorageRemoverHelper {
   explicit StorageRemoverHelper(
       content::StoragePartition* storage_partition,
       scoped_refptr<BrowsingDataQuotaHelper> quota_helper,
+      scoped_refptr<browsing_data::LocalStorageHelper> local_storage_helper,
       BrowsingDataModel::Delegate* delegate
       // TODO(crbug.com/1271155): Inject other dependencies.
       )
       : storage_partition_(storage_partition),
         quota_helper_(quota_helper),
+        local_storage_helper_(local_storage_helper),
         delegate_(delegate) {}
 
-  void RemoveDataKeyEntries(
+  void RemoveByPrimaryHost(
+      const BrowsingDataModel::DataOwner& data_owner,
       const BrowsingDataModel::DataKeyEntries& data_key_entries,
       base::OnceClosure completed);
 
  private:
   // Visitor struct to hold information used for deletion. absl::visit doesn't
-  // support multiple arguments elegantly.
+  // support multiple arguments elegently.
   struct Visitor {
     raw_ptr<StorageRemoverHelper> helper;
     BrowsingDataModel::StorageTypeSet types;
@@ -202,11 +159,13 @@ struct StorageRemoverHelper {
 
   raw_ptr<content::StoragePartition> storage_partition_;
   scoped_refptr<BrowsingDataQuotaHelper> quota_helper_;
-  raw_ptr<BrowsingDataModel::Delegate, AcrossTasksDanglingUntriaged> delegate_;
+  scoped_refptr<browsing_data::LocalStorageHelper> local_storage_helper_;
+  raw_ptr<BrowsingDataModel::Delegate, DanglingUntriaged> delegate_;
   base::WeakPtrFactory<StorageRemoverHelper> weak_ptr_factory_{this};
 };
 
-void StorageRemoverHelper::RemoveDataKeyEntries(
+void StorageRemoverHelper::RemoveByPrimaryHost(
+    const BrowsingDataModel::DataOwner& data_owner,
     const BrowsingDataModel::DataKeyEntries& data_key_entries,
     base::OnceClosure completed) {
   // At a helper level, only a single deletion may occur at a time. However
@@ -259,29 +218,18 @@ void StorageRemoverHelper::Visitor::operator()<blink::StorageKey>(
             helper->GetCompleteCallback()));
   }
 
-  if (types.Has(BrowsingDataModel::StorageType::kQuotaStorage)) {
+  if (types.Has(BrowsingDataModel::StorageType::kUnpartitionedQuotaStorage)) {
     const blink::mojom::StorageType quota_types[] = {
         blink::mojom::StorageType::kTemporary,
         blink::mojom::StorageType::kSyncable};
     for (auto type : quota_types) {
-      helper->quota_helper_->DeleteStorageKeyData(
-          storage_key, type, helper->GetCompleteCallback());
+      helper->quota_helper_->DeleteHostData(storage_key.origin().host(), type);
     }
   }
 
   if (types.Has(BrowsingDataModel::StorageType::kLocalStorage)) {
-    helper->storage_partition_->GetDOMStorageContext()->DeleteLocalStorage(
+    helper->local_storage_helper_->DeleteStorageKey(
         storage_key, helper->GetCompleteCallback());
-  }
-}
-
-template <>
-void StorageRemoverHelper::Visitor::operator()<browsing_data::SharedWorkerInfo>(
-    const browsing_data::SharedWorkerInfo& shared_worker_info) {
-  if (types.Has(BrowsingDataModel::StorageType::kSharedWorker)) {
-    helper->storage_partition_->GetSharedWorkerService()->TerminateWorker(
-        shared_worker_info.worker, shared_worker_info.name,
-        shared_worker_info.storage_key);
   }
 }
 
@@ -289,61 +237,30 @@ template <>
 void StorageRemoverHelper::Visitor::operator()<
     content::InterestGroupManager::InterestGroupDataKey>(
     const content::InterestGroupManager::InterestGroupDataKey& data_key) {
-  CHECK(types.Has(BrowsingDataModel::StorageType::kInterestGroup));
-  helper->storage_partition_->GetInterestGroupManager()
-      ->RemoveInterestGroupsByDataKey(
-          data_key, base::BindOnce(
-                        [](base::OnceClosure complete_callback) {
-                          std::move(complete_callback).Run();
-                        },
-                        helper->GetCompleteCallback()));
+  if (types.Has(BrowsingDataModel::StorageType::kInterestGroup)) {
+    helper->storage_partition_->GetInterestGroupManager()
+        ->RemoveInterestGroupsByDataKey(
+            data_key, base::BindOnce(
+                          [](base::OnceClosure complete_callback) {
+                            std::move(complete_callback).Run();
+                          },
+                          helper->GetCompleteCallback()));
+  } else {
+    NOTREACHED();
+  }
 }
 
 template <>
 void StorageRemoverHelper::Visitor::operator()<
     content::AttributionDataModel::DataKey>(
     const content::AttributionDataModel::DataKey& data_key) {
-  CHECK(types.Has(BrowsingDataModel::StorageType::kAttributionReporting));
-  helper->storage_partition_->GetAttributionDataModel()
-      ->RemoveAttributionDataByDataKey(data_key, helper->GetCompleteCallback());
-}
-
-template <>
-void StorageRemoverHelper::Visitor::operator()<
-    content::PrivateAggregationDataModel::DataKey>(
-    const content::PrivateAggregationDataModel::DataKey& data_key) {
-  CHECK(types.Has(BrowsingDataModel::StorageType::kPrivateAggregation));
-  helper->storage_partition_->GetPrivateAggregationDataModel()
-      ->RemovePendingDataKey(data_key, helper->GetCompleteCallback());
-}
-
-template <>
-void StorageRemoverHelper::Visitor::operator()<
-    net::SharedDictionaryIsolationKey>(
-    const net::SharedDictionaryIsolationKey& isolation_key) {
-  if (types.Has(BrowsingDataModel::StorageType::kSharedDictionary)) {
-    helper->storage_partition_->GetNetworkContext()
-        ->ClearSharedDictionaryCacheForIsolationKey(
-            isolation_key, helper->GetCompleteCallback());
+  if (types.Has(BrowsingDataModel::StorageType::kAttributionReporting)) {
+    helper->storage_partition_->GetAttributionDataModel()
+        ->RemoveAttributionDataByDataKey(data_key,
+                                         helper->GetCompleteCallback());
   } else {
     NOTREACHED();
   }
-}
-
-void RemoveBrowsingDataEntries(
-    const BrowsingDataModel::DataKeyEntries& browsing_data_entries,
-    std::unique_ptr<StorageRemoverHelper> storage_remover_helper,
-    base::OnceClosure completed) {
-  // Bind the lifetime of the helper to the lifetime of the callback.
-  auto* helper_pointer = storage_remover_helper.get();
-
-  base::OnceClosure wrapped_completed = base::BindOnce(
-      [](std::unique_ptr<StorageRemoverHelper> storage_remover,
-         base::OnceClosure completed) { std::move(completed).Run(); },
-      std::move(storage_remover_helper), std::move(completed));
-
-  helper_pointer->RemoveDataKeyEntries(browsing_data_entries,
-                                       std::move(wrapped_completed));
 }
 
 base::OnceClosure StorageRemoverHelper::GetCompleteCallback() {
@@ -358,11 +275,6 @@ void StorageRemoverHelper::BackendFinished() {
 
   if (callbacks_seen_ == callbacks_expected_)
     std::move(completed_).Run();
-}
-
-// Only websafe state is considered browsing data.
-bool HasStorageScheme(const url::Origin& origin) {
-  return base::Contains(url::GetWebStorageSchemes(), origin.scheme());
 }
 
 void OnTrustTokenIssuanceInfoLoaded(
@@ -420,28 +332,16 @@ void OnAttributionReportingLoaded(
   std::move(loaded_callback).Run();
 }
 
-void OnPrivateAggregationLoaded(
-    BrowsingDataModel* model,
-    base::OnceClosure loaded_callback,
-    std::set<content::PrivateAggregationDataModel::DataKey>
-        private_aggregation) {
-  for (const auto& data_key : private_aggregation) {
-    model->AddBrowsingData(data_key,
-                           BrowsingDataModel::StorageType::kPrivateAggregation,
-                           kSmallAmountOfDataInBytes);
-  }
-  std::move(loaded_callback).Run();
-}
-
-void OnQuotaStorageLoaded(
+void OnQuotaManagedDataLoaded(
     BrowsingDataModel* model,
     base::OnceClosure loaded_callback,
     const std::list<BrowsingDataQuotaHelper::QuotaInfo>& quota_info) {
   DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
   for (const auto& entry : quota_info) {
-    model->AddBrowsingData(entry.storage_key,
-                           BrowsingDataModel::StorageType::kQuotaStorage,
-                           entry.syncable_usage + entry.temporary_usage);
+    model->AddBrowsingData(
+        entry.storage_key,
+        BrowsingDataModel::StorageType::kUnpartitionedQuotaStorage,
+        entry.syncable_usage + entry.temporary_usage);
   }
   std::move(loaded_callback).Run();
 }
@@ -449,24 +349,10 @@ void OnQuotaStorageLoaded(
 void OnLocalStorageLoaded(
     BrowsingDataModel* model,
     base::OnceClosure loaded_callback,
-    const std::vector<content::StorageUsageInfo>& storage_usage_info) {
+    const std::list<content::StorageUsageInfo>& storage_usage_info) {
   for (const auto& info : storage_usage_info) {
-    if (HasStorageScheme(info.storage_key.origin())) {
-      model->AddBrowsingData(info.storage_key,
-                             BrowsingDataModel::StorageType::kLocalStorage,
-                             info.total_size_bytes);
-    }
-  }
-  std::move(loaded_callback).Run();
-}
-
-void OnSharedDictionaryUsageLoaded(
-    BrowsingDataModel* model,
-    base::OnceClosure loaded_callback,
-    const std::vector<net::SharedDictionaryUsageInfo>& usage_info) {
-  for (const auto& info : usage_info) {
-    model->AddBrowsingData(info.isolation_key,
-                           BrowsingDataModel::StorageType::kSharedDictionary,
+    model->AddBrowsingData(info.storage_key,
+                           BrowsingDataModel::StorageType::kLocalStorage,
                            info.total_size_bytes);
   }
   std::move(loaded_callback).Run();
@@ -499,15 +385,6 @@ BrowsingDataModel::BrowsingDataEntryView::BrowsingDataEntryView(
     const DataDetails& data_details)
     : data_owner(data_owner), data_key(data_key), data_details(data_details) {}
 BrowsingDataModel::BrowsingDataEntryView::~BrowsingDataEntryView() = default;
-
-// static
-const std::string BrowsingDataModel::GetHost(const DataOwner& data_owner) {
-  return absl::visit(
-      base::Overloaded{
-          [&](const std::string& host) { return host; },
-          [&](const url::Origin& origin) { return origin.host(); }},
-      data_owner);
-}
 
 bool BrowsingDataModel::BrowsingDataEntryView::Matches(
     const url::Origin& origin) const {
@@ -654,10 +531,20 @@ void BrowsingDataModel::RemoveBrowsingData(const DataOwner& data_owner,
                                            base::OnceClosure completed) {
   DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
 
+  // Bind the lifetime of the helper to the lifetime of the callback.
   auto helper = std::make_unique<StorageRemoverHelper>(
-      storage_partition_, quota_helper_, delegate_.get());
-  RemoveBrowsingDataEntries(browsing_data_entries_[data_owner],
-                            std::move(helper), std::move(completed));
+      storage_partition_, quota_helper_, local_storage_helper_,
+      delegate_.get());
+  auto* helper_pointer = helper.get();
+
+  base::OnceClosure wrapped_completed = base::BindOnce(
+      [](std::unique_ptr<StorageRemoverHelper> storage_remover,
+         base::OnceClosure completed) { std::move(completed).Run(); },
+      std::move(helper), std::move(completed));
+
+  helper_pointer->RemoveByPrimaryHost(data_owner,
+                                      browsing_data_entries_[data_owner],
+                                      std::move(wrapped_completed));
 
   // Immediately remove the affected entries from the in-memory model. Different
   // UI elements have different sync vs. async expectations. Exposing a
@@ -665,89 +552,16 @@ void BrowsingDataModel::RemoveBrowsingData(const DataOwner& data_owner,
   browsing_data_entries_.erase(data_owner);
 }
 
-void BrowsingDataModel::RemovePartitionedBrowsingData(
-    const DataOwner& data_owner,
-    const net::SchemefulSite& top_level_site,
-    base::OnceClosure completed) {
-  DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
-
-  DataKeyEntries affected_data_key_entries;
-
-  for (const auto& entry : browsing_data_entries_[data_owner]) {
-    // Only blink::StorageKeys data keys can represent partitioned storage.
-    // TODO(crbug/1455899): If this list of data keys starts to grow, consider
-    // revisiting an implementation of a visitor pattern here.
-    auto* storage_key = absl::get_if<blink::StorageKey>(&entry.first);
-    if (!storage_key) {
-      continue;
-    }
-
-    if (storage_key->top_level_site() == top_level_site) {
-      affected_data_key_entries.insert(entry);
-    }
-  }
-
-  auto helper = std::make_unique<StorageRemoverHelper>(
-      storage_partition_, quota_helper_, delegate_.get());
-  RemoveBrowsingDataEntries(affected_data_key_entries, std::move(helper),
-                            std::move(completed));
-
-  // Immediately remove the affected entries from the in-memory model.
-  // Different UI elements have different sync vs. async expectations.
-  // Exposing a completed callback, but updating the model synchronously,
-  // serves both.
-  auto& data_owner_entries = browsing_data_entries_[data_owner];
-  for (auto& entry : affected_data_key_entries) {
-    data_owner_entries.erase(entry.first);
-  }
-}
-
-bool BrowsingDataModel::IsBlockedByThirdPartyCookieBlocking(
-    StorageType type) const {
-  if (delegate_) {
-    auto delegate_response =
-        delegate_->IsBlockedByThirdPartyCookieBlocking(type);
-    if (delegate_response.has_value()) {
-      return delegate_response.value();
-    }
-  }
-
-  // TODO(crbug.com/1469304, 1453783): When CHIPS is represented in the model,
-  // and partitioned storage stops respecting 3PC blocking, these will need to
-  // be accounted for. We will likely need to pass in the data key to
-  // disambiguate these cases from their storage types.
-  switch (type) {
-    case BrowsingDataModel::StorageType::kTrustTokens:
-    case BrowsingDataModel::StorageType::kSharedStorage:
-    case BrowsingDataModel::StorageType::kInterestGroup:
-    case BrowsingDataModel::StorageType::kAttributionReporting:
-    case BrowsingDataModel::StorageType::kPrivateAggregation:
-    case BrowsingDataModel::StorageType::kSharedDictionary:
-      return false;
-    case BrowsingDataModel::StorageType::kLocalStorage:
-    case BrowsingDataModel::StorageType::kSessionStorage:
-    case BrowsingDataModel::StorageType::kQuotaStorage:
-    case BrowsingDataModel::StorageType::kSharedWorker:
-      return true;
-    case (BrowsingDataModel::StorageType::kExtendedDelegateRange):
-      NOTREACHED_NORETURN();
-  }
-}
-
 void BrowsingDataModel::PopulateFromDisk(base::OnceClosure finished_callback) {
   DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
   bool is_shared_storage_enabled =
       base::FeatureList::IsEnabled(blink::features::kSharedStorageAPI);
-  bool is_shared_dictionary_enabled = base::FeatureList::IsEnabled(
-      network::features::kCompressionDictionaryTransportBackend);
   bool is_interest_group_enabled =
       base::FeatureList::IsEnabled(blink::features::kAdInterestGroupAPI);
   bool is_attribution_reporting_enabled =
       base::FeatureList::IsEnabled(blink::features::kConversionMeasurement);
-  bool is_private_aggregation_enabled =
-      base::FeatureList::IsEnabled(blink::features::kPrivateAggregationApi);
-  bool is_migrate_storage_to_bdm_enabled = base::FeatureList::IsEnabled(
-      browsing_data::features::kMigrateStorageToBDM);
+  bool is_cookies_tree_model_deprecated = base::FeatureList::IsEnabled(
+      browsing_data::features::kDeprecateCookiesTreeModel);
 
   base::RepeatingClosure completion =
       base::BindRepeating([](const base::OnceClosure&) {},
@@ -768,12 +582,6 @@ void BrowsingDataModel::PopulateFromDisk(base::OnceClosure finished_callback) {
         base::BindOnce(&OnSharedStorageLoaded, this, completion));
   }
 
-  // Shared Dictionaries.
-  if (is_shared_dictionary_enabled) {
-    storage_partition_->GetNetworkContext()->GetSharedDictionaryUsageInfo(
-        base::BindOnce(&OnSharedDictionaryUsageLoaded, this, completion));
-  }
-
   // Interest Groups
   if (is_interest_group_enabled) {
     storage_partition_->GetInterestGroupManager()->GetAllInterestGroupDataKeys(
@@ -786,16 +594,10 @@ void BrowsingDataModel::PopulateFromDisk(base::OnceClosure finished_callback) {
         base::BindOnce(&OnAttributionReportingLoaded, this, completion));
   }
 
-  // Private Aggregation
-  if (is_private_aggregation_enabled) {
-    storage_partition_->GetPrivateAggregationDataModel()->GetAllDataKeys(
-        base::BindOnce(&OnPrivateAggregationLoaded, this, completion));
-  }
-
-  if (is_migrate_storage_to_bdm_enabled) {
+  if (is_cookies_tree_model_deprecated) {
     quota_helper_->StartFetching(
-        base::BindOnce(&OnQuotaStorageLoaded, this, completion));
-    storage_partition_->GetDOMStorageContext()->GetLocalStorageUsage(
+        base::BindOnce(&OnQuotaManagedDataLoaded, this, completion));
+    local_storage_helper_->StartFetching(
         base::BindOnce(&OnLocalStorageLoaded, this, completion));
   }
 
@@ -812,5 +614,8 @@ BrowsingDataModel::BrowsingDataModel(
     : storage_partition_(storage_partition), delegate_(std::move(delegate)) {
   if (storage_partition_) {
     quota_helper_ = BrowsingDataQuotaHelper::Create(storage_partition_);
+    local_storage_helper_ =
+        base::MakeRefCounted<browsing_data::LocalStorageHelper>(
+            storage_partition_);
   }
 }

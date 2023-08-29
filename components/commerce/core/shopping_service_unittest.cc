@@ -5,7 +5,6 @@
 #include "components/commerce/core/shopping_service.h"
 #include "base/functional/bind.h"
 #include "base/run_loop.h"
-#include "base/uuid.h"
 #include "base/values.h"
 #include "components/bookmarks/browser/bookmark_model.h"
 #include "components/bookmarks/browser/bookmark_node.h"
@@ -13,10 +12,9 @@
 #include "components/commerce/core/commerce_feature_list.h"
 #include "components/commerce/core/mock_account_checker.h"
 #include "components/commerce/core/pref_names.h"
-#include "components/commerce/core/proto/shopping_page_types.pb.h"
 #include "components/commerce/core/shopping_service_test_base.h"
 #include "components/commerce/core/test_utils.h"
-#include "components/optimization_guide/core/optimization_guide_decider.h"
+#include "components/optimization_guide/core/new_optimization_guide_decider.h"
 #include "components/optimization_guide/core/optimization_guide_decision.h"
 #include "components/optimization_guide/core/optimization_metadata.h"
 #include "components/optimization_guide/proto/hints.pb.h"
@@ -105,7 +103,7 @@ TEST_F(ShoppingServiceTest, TestProductInfoResponse) {
       GURL(kProductUrl),
       base::BindOnce(
           [](base::RunLoop* run_loop, const GURL& url,
-             const absl::optional<const ProductInfo>& info) {
+             const absl::optional<ProductInfo>& info) {
             ASSERT_EQ(kProductUrl, url.spec());
             ASSERT_TRUE(info.has_value());
 
@@ -139,7 +137,7 @@ TEST_F(ShoppingServiceTest, TestProductInfoResponse_ApiDisabled) {
   shopping_service_->GetProductInfoForUrl(
       GURL(kProductUrl), base::BindOnce(
                              [](base::RunLoop* run_loop, const GURL& url,
-                                const absl::optional<const ProductInfo>& info) {
+                                const absl::optional<ProductInfo>& info) {
                                ASSERT_EQ(kProductUrl, url.spec());
                                ASSERT_FALSE(info.has_value());
                                run_loop->Quit();
@@ -171,7 +169,7 @@ TEST_F(ShoppingServiceTest, TestProductInfoResponse_CurrencyMismatch) {
       GURL(kProductUrl),
       base::BindOnce(
           [](base::RunLoop* run_loop, const GURL& url,
-             const absl::optional<const ProductInfo>& info) {
+             const absl::optional<ProductInfo>& info) {
             ASSERT_EQ(kProductUrl, url.spec());
             ASSERT_TRUE(info.has_value());
 
@@ -205,7 +203,7 @@ TEST_F(ShoppingServiceTest, TestProductInfoResponse_OptGuideFalse) {
   shopping_service_->GetProductInfoForUrl(
       GURL(kProductUrl), base::BindOnce(
                              [](base::RunLoop* run_loop, const GURL& url,
-                                const absl::optional<const ProductInfo>& info) {
+                                const absl::optional<ProductInfo>& info) {
                                ASSERT_EQ(kProductUrl, url.spec());
                                ASSERT_FALSE(info.has_value());
                                run_loop->Quit();
@@ -296,7 +294,7 @@ TEST_F(ShoppingServiceTest, TestProductInfoCacheFullLifecycle) {
   shopping_service_->GetProductInfoForUrl(
       GURL(kProductUrl), base::BindOnce(
                              [](base::RunLoop* run_loop, const GURL& url,
-                                const absl::optional<const ProductInfo>& info) {
+                                const absl::optional<ProductInfo>& info) {
                                ASSERT_EQ(kProductUrl, url.spec());
                                ASSERT_TRUE(info.has_value());
 
@@ -357,7 +355,7 @@ TEST_F(ShoppingServiceTest,
   shopping_service_->GetProductInfoForUrl(
       GURL(kProductUrl), base::BindOnce(
                              [](base::RunLoop* run_loop, const GURL& url,
-                                const absl::optional<const ProductInfo>& info) {
+                                const absl::optional<ProductInfo>& info) {
                                ASSERT_EQ(kProductUrl, url.spec());
                                ASSERT_TRUE(info.has_value());
 
@@ -435,7 +433,7 @@ TEST_F(ShoppingServiceTest,
   shopping_service_->GetProductInfoForUrl(
       GURL(kProductUrl), base::BindOnce(
                              [](base::RunLoop* run_loop, const GURL& url,
-                                const absl::optional<const ProductInfo>& info) {
+                                const absl::optional<ProductInfo>& info) {
                                ASSERT_EQ(kProductUrl, url.spec());
                                ASSERT_TRUE(info.has_value());
 
@@ -515,18 +513,18 @@ TEST_F(ShoppingServiceTest, TestGetUpdatedProductInfoForBookmarks) {
   opt_guide_->AddOnDemandShoppingResponse(
       GURL(kProductUrl), OptimizationGuideDecision::kTrue, updated_meta);
 
-  std::vector<base::Uuid> bookmark_uuids;
-  bookmark_uuids.push_back(product1->uuid());
-  int expected_calls = bookmark_uuids.size();
+  std::vector<int64_t> bookmark_ids;
+  bookmark_ids.push_back(product1->id());
+  int expected_calls = bookmark_ids.size();
 
   base::RunLoop run_loop;
 
   auto callback = base::BindRepeating(
       [](bookmarks::BookmarkModel* model, int* call_count,
-         base::RunLoop* run_loop, const base::Uuid& uuid, const GURL& url,
+         base::RunLoop* run_loop, const int64_t id, const GURL& url,
          absl::optional<ProductInfo> info) {
         const bookmarks::BookmarkNode* node =
-            bookmarks::GetBookmarkNodeByUuid(model, uuid);
+            bookmarks::GetBookmarkNodeByID(model, id);
         EXPECT_EQ(url.spec(), node->url().spec());
 
         (*call_count)--;
@@ -535,8 +533,7 @@ TEST_F(ShoppingServiceTest, TestGetUpdatedProductInfoForBookmarks) {
       },
       bookmark_model_.get(), &expected_calls, &run_loop);
 
-  shopping_service_->GetUpdatedProductInfoForBookmarks(bookmark_uuids,
-                                                       callback);
+  shopping_service_->GetUpdatedProductInfoForBookmarks(bookmark_ids, callback);
   run_loop.Run();
 
   EXPECT_EQ(0, expected_calls);
@@ -1013,69 +1010,6 @@ TEST_F(ShoppingServiceTest, TestPriceInsightsInfoResponse_EmptyRange) {
           },
           &run_loop));
   run_loop.Run();
-}
-
-TEST_F(ShoppingServiceTest, TestIsShoppingPage) {
-  test_features_.InitAndEnableFeature(kShoppingPageTypes);
-  base::RunLoop run_loop[3];
-  OptimizationMetadata meta;
-  ShoppingPageTypes data;
-
-  data.add_shopping_page_types(commerce::ShoppingPageTypes::SHOPPING_PAGE);
-  data.add_shopping_page_types(
-      commerce::ShoppingPageTypes::MERCHANT_DOMAIN_PAGE);
-  Any any;
-  any.set_type_url(data.GetTypeName());
-  data.SerializeToString(any.mutable_value());
-  meta.set_any_metadata(any);
-  opt_guide_->SetResponse(GURL(kProductUrl),
-                          OptimizationType::SHOPPING_PAGE_TYPES,
-                          OptimizationGuideDecision::kTrue, meta);
-
-  shopping_service_->IsShoppingPage(
-      GURL(kProductUrl), base::BindOnce(
-                             [](base::RunLoop* run_loop, const GURL& url,
-                                absl::optional<bool> info) {
-                               ASSERT_TRUE(info.has_value());
-                               ASSERT_TRUE(info.value());
-                               run_loop->Quit();
-                             },
-                             &run_loop[0]));
-  run_loop[0].Run();
-
-  opt_guide_->SetResponse(GURL(kProductUrl),
-                          OptimizationType::SHOPPING_PAGE_TYPES,
-                          OptimizationGuideDecision::kFalse, meta);
-
-  shopping_service_->IsShoppingPage(
-      GURL(kProductUrl), base::BindOnce(
-                             [](base::RunLoop* run_loop, const GURL& url,
-                                absl::optional<bool> info) {
-                               ASSERT_FALSE(info.has_value());
-                               run_loop->Quit();
-                             },
-                             &run_loop[1]));
-  run_loop[1].Run();
-
-  data.clear_shopping_page_types();
-  data.add_shopping_page_types(
-      commerce::ShoppingPageTypes::MERCHANT_DOMAIN_PAGE);
-  data.SerializeToString(any.mutable_value());
-  meta.set_any_metadata(any);
-  opt_guide_->SetResponse(GURL(kProductUrl),
-                          OptimizationType::SHOPPING_PAGE_TYPES,
-                          OptimizationGuideDecision::kTrue, meta);
-
-  shopping_service_->IsShoppingPage(
-      GURL(kProductUrl), base::BindOnce(
-                             [](base::RunLoop* run_loop, const GURL& url,
-                                absl::optional<bool> info) {
-                               ASSERT_TRUE(info.has_value());
-                               ASSERT_FALSE(info.value());
-                               run_loop->Quit();
-                             },
-                             &run_loop[2]));
-  run_loop[2].Run();
 }
 
 }  // namespace commerce

@@ -113,6 +113,9 @@ int FileSystemContext::GetPermissionPolicy(FileSystemType type) {
     case kFileSystemTypeFuseBox:
       return FILE_PERMISSION_USE_FILE_PERMISSION;
 
+    case kFileSystemTypeRestrictedLocal:
+      return FILE_PERMISSION_READ_ONLY | FILE_PERMISSION_USE_FILE_PERMISSION;
+
     case kFileSystemTypeDeviceMedia:
     case kFileSystemTypeLocalMedia:
       return FILE_PERMISSION_USE_FILE_PERMISSION;
@@ -268,54 +271,39 @@ void FileSystemContext::Initialize() {
           base::RetainedRef(this), std::move(quota_client_receiver)));
 }
 
-void FileSystemContext::DeleteDataForStorageKeyOnFileTaskRunner(
+bool FileSystemContext::DeleteDataForStorageKeyOnFileTaskRunner(
     const blink::StorageKey& storage_key) {
   DCHECK(default_file_task_runner()->RunsTasksInCurrentSequence());
   DCHECK(!storage_key.origin().opaque());
 
-  // Different FileSystemTypes may map to the same BucketLocator. Retrieve the
-  // bucket once for those FileSystemTypes.
-  base::flat_map<blink::mojom::StorageType, std::vector<FileSystemType>>
-      quota_to_fs_type_map;
+  bool success = true;
+  bool delete_default_cache = false;
   for (auto& type_backend_pair : backend_map_) {
-    if (!type_backend_pair.second->GetQuotaUtil()) {
+    FileSystemBackend* backend = type_backend_pair.second;
+    if (!backend->GetQuotaUtil())
       continue;
+    if (backend->GetQuotaUtil()->DeleteStorageKeyDataOnFileTaskRunner(
+            this, quota_manager_proxy().get(), storage_key,
+            type_backend_pair.first) != base::File::FILE_OK) {
+      // Continue the loop, but record the failure.
+      success = false;
     }
-    auto quota_type = FileSystemTypeToQuotaStorageType(type_backend_pair.first);
-    quota_to_fs_type_map[quota_type].push_back(type_backend_pair.first);
-  }
 
-  for (auto& type_pair : quota_to_fs_type_map) {
-    quota_manager_proxy()->GetOrCreateBucketDeprecated(
-        BucketInitParams::ForDefaultBucket(storage_key), type_pair.first,
-        default_file_task_runner_.get(),
-        base::BindOnce(&FileSystemContext::OnGetBucketForStorageKeyDeletion,
-                       weak_factory_.GetWeakPtr(), type_pair.second));
-  }
-}
-
-void FileSystemContext::OnGetBucketForStorageKeyDeletion(
-    std::vector<FileSystemType> types,
-    QuotaErrorOr<BucketInfo> result) {
-  if (!result.has_value()) {
-    return;
-  }
-
-  auto bucket = result->ToBucketLocator();
-  for (auto& type : types) {
-    FileSystemBackend* backend = GetFileSystemBackend(type);
-    backend->GetQuotaUtil()->DeleteBucketDataOnFileTaskRunner(
-        this, quota_manager_proxy().get(), bucket, type);
+    if (FileSystemTypeToQuotaStorageType(type_backend_pair.first) ==
+        blink::mojom::StorageType::kTemporary) {
+      delete_default_cache = true;
+    }
   }
 
   // Trigger cache deletion for the default bucket once. This is done after
   // `storage_key` data deletion so deletion doesn't trigger twice for
   // kFileSystemTypeTemporary and kFileSystemTypePersistent.
-  if (bucket.type == blink::mojom::StorageType::kTemporary) {
-    if (auto* quota_util = GetQuotaUtil(kFileSystemTypeTemporary)) {
-      quota_util->DeleteCachedDefaultBucket(bucket.storage_key);
-    }
+  if (delete_default_cache) {
+    if (auto* quota_util = GetQuotaUtil(kFileSystemTypeTemporary))
+      quota_util->DeleteCachedDefaultBucket(storage_key);
   }
+
+  return success;
 }
 
 scoped_refptr<QuotaReservation>
@@ -420,6 +408,11 @@ std::vector<FileSystemType> FileSystemContext::GetFileSystemTypes() const {
   for (const auto& type_backend_pair : backend_map_)
     types.push_back(type_backend_pair.first);
   return types;
+}
+
+ExternalFileSystemBackend* FileSystemContext::external_backend() const {
+  return static_cast<ExternalFileSystemBackend*>(
+      GetFileSystemBackend(kFileSystemTypeExternal));
 }
 
 void FileSystemContext::OpenFileSystem(
@@ -589,31 +582,13 @@ void FileSystemContext::DeleteFileSystem(const blink::StorageKey& storage_key,
     return;
   }
 
-  quota_manager_proxy()->GetOrCreateBucketDeprecated(
-      BucketInitParams::ForDefaultBucket(storage_key),
-      FileSystemTypeToQuotaStorageType(type), io_task_runner_.get(),
-      base::BindOnce(&FileSystemContext::OnGetBucketForDeleteFileSystem,
-                     weak_factory_.GetWeakPtr(), type, std::move(callback)));
-}
-
-void FileSystemContext::OnGetBucketForDeleteFileSystem(
-    FileSystemType type,
-    StatusCallback callback,
-    QuotaErrorOr<BucketInfo> result) {
-  if (!result.has_value()) {
-    std::move(callback).Run(base::File::FILE_ERROR_FAILED);
-    return;
-  }
-
-  FileSystemBackend* backend = GetFileSystemBackend(type);
   default_file_task_runner()->PostTaskAndReplyWithResult(
       FROM_HERE,
       // It is safe to pass Unretained(quota_util) since context owns it.
-      base::BindOnce(&FileSystemQuotaUtil::DeleteBucketDataOnFileTaskRunner,
-                     base::Unretained(backend->GetQuotaUtil()),
-                     base::RetainedRef(this),
-                     base::Unretained(quota_manager_proxy().get()),
-                     result->ToBucketLocator(), type),
+      base::BindOnce(
+          &FileSystemQuotaUtil::DeleteStorageKeyDataOnFileTaskRunner,
+          base::Unretained(backend->GetQuotaUtil()), base::RetainedRef(this),
+          base::Unretained(quota_manager_proxy().get()), storage_key, type),
       std::move(callback));
 }
 
@@ -719,8 +694,7 @@ FileSystemContext::QuotaManagedStorageTypes() {
 }
 
 std::unique_ptr<FileSystemOperation>
-FileSystemContext::CreateFileSystemOperation(OperationType type,
-                                             const FileSystemURL& url,
+FileSystemContext::CreateFileSystemOperation(const FileSystemURL& url,
                                              base::File::Error* error_code) {
   if (!url.is_valid()) {
     if (error_code)
@@ -737,7 +711,7 @@ FileSystemContext::CreateFileSystemOperation(OperationType type,
 
   base::File::Error fs_error = base::File::FILE_OK;
   std::unique_ptr<FileSystemOperation> operation =
-      backend->CreateFileSystemOperation(type, url, this, &fs_error);
+      backend->CreateFileSystemOperation(url, this, &fs_error);
 
   if (error_code)
     *error_code = fs_error;

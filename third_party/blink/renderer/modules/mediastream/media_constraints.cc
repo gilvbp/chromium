@@ -481,12 +481,6 @@ void MediaConstraints::Assign(const MediaConstraints& other) {
   private_ = other.private_;
 }
 
-MediaConstraints::MediaConstraints() = default;
-
-MediaConstraints::MediaConstraints(const MediaConstraints& other) {
-  Assign(other);
-}
-
 void MediaConstraints::Reset() {
   private_.Reset();
 }

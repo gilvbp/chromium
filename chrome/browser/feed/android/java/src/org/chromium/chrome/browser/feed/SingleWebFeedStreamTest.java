@@ -54,13 +54,13 @@ import org.chromium.chrome.browser.profiles.Profile;
 import org.chromium.chrome.browser.share.ShareDelegate;
 import org.chromium.chrome.browser.ui.messages.snackbar.Snackbar;
 import org.chromium.chrome.browser.ui.messages.snackbar.SnackbarManager;
+import org.chromium.chrome.browser.xsurface.FeedLaunchReliabilityLogger;
 import org.chromium.chrome.browser.xsurface.HybridListRenderer;
 import org.chromium.chrome.browser.xsurface.SurfaceActionsHandler;
 import org.chromium.chrome.browser.xsurface.SurfaceActionsHandler.OpenMode;
 import org.chromium.chrome.browser.xsurface.SurfaceActionsHandler.OpenUrlOptions;
 import org.chromium.chrome.browser.xsurface.SurfaceActionsHandler.WebFeedFollowUpdate;
 import org.chromium.chrome.browser.xsurface.feed.FeedActionsHandler;
-import org.chromium.chrome.browser.xsurface.feed.FeedLaunchReliabilityLogger;
 import org.chromium.chrome.browser.xsurface.feed.FeedSurfaceScope;
 import org.chromium.chrome.test.util.browser.Features;
 import org.chromium.components.browser_ui.bottomsheet.BottomSheetController;
@@ -91,7 +91,7 @@ public class SingleWebFeedStreamTest {
     private FeedListContentManager mContentManager;
 
     @Mock
-    private FeedSurfaceRendererBridge mFeedSurfaceRendererBridgeMock;
+    private FeedStream.Natives mFeedStreamJniMock;
     @Mock
     private FeedServiceBridge.Natives mFeedServiceBridgeJniMock;
     @Mock
@@ -144,18 +144,6 @@ public class SingleWebFeedStreamTest {
     @Mock
     private Stream.StreamsMediator mStreamsMediator;
 
-    private FeedSurfaceRendererBridge.Renderer mBridgeRenderer;
-
-    class FeedSurfaceRendererBridgeFactory implements FeedSurfaceRendererBridge.Factory {
-        @Override
-        public FeedSurfaceRendererBridge create(FeedSurfaceRendererBridge.Renderer renderer,
-                FeedReliabilityLoggingBridge reliabilityLoggingBridge, @StreamKind int streamKind,
-                SingleWebFeedParameters webFeedParameters) {
-            mBridgeRenderer = renderer;
-            return mFeedSurfaceRendererBridgeMock;
-        }
-    }
-
     @Rule
     public JniMocker mocker = new JniMocker();
     // Enable the Features class, so we can call code which checks to see if features are enabled
@@ -174,6 +162,7 @@ public class SingleWebFeedStreamTest {
         MockitoAnnotations.initMocks(this);
         mActivity = Robolectric.buildActivity(Activity.class).get();
 
+        mocker.mock(FeedStreamJni.TEST_HOOKS, mFeedStreamJniMock);
         mocker.mock(FeedServiceBridge.getTestHooksForTesting(), mFeedServiceBridgeJniMock);
         mocker.mock(FeedReliabilityLoggingBridge.getTestHooksForTesting(),
                 mFeedReliabilityLoggingBridgeJniMock);
@@ -192,8 +181,7 @@ public class SingleWebFeedStreamTest {
                 /* helpAndFeedbackLauncher= */ null,
                 /* FeedContentFirstLoadWatcher= */ null,
                 /* streamsMediator= */ null,
-                new SingleWebFeedParameters("WebFeedId".getBytes(), SingleWebFeedEntryPoint.OTHER),
-                new FeedSurfaceRendererBridgeFactory());
+                new SingleWebFeedParameters("WebFeedId".getBytes(), SingleWebFeedEntryPoint.OTHER));
 
         mFeedStream.mMakeGURL = url -> JUnitTestGURLs.getGURL(url);
         mRecyclerView = new RecyclerView(mActivity);
@@ -213,7 +201,7 @@ public class SingleWebFeedStreamTest {
     public void testBind() {
         bindToView();
         // Called surfaceOpened.
-        verify(mFeedSurfaceRendererBridgeMock).surfaceOpened();
+        verify(mFeedStreamJniMock).surfaceOpened(anyLong(), any(FeedStream.class));
         // Set handlers in contentmanager.
         assertEquals(2, mContentManager.getContextValues(0).size());
     }
@@ -222,7 +210,7 @@ public class SingleWebFeedStreamTest {
     public void testUnbind() {
         bindToView();
         mFeedStream.unbind(false, false);
-        verify(mFeedSurfaceRendererBridgeMock).surfaceClosed();
+        verify(mFeedStreamJniMock).surfaceClosed(anyLong(), any(FeedStream.class));
         // Unset handlers in contentmanager.
         assertEquals(0, mContentManager.getContextValues(0).size());
     }
@@ -513,8 +501,9 @@ public class SingleWebFeedStreamTest {
             }
         });
 
-        verify(mFeedSurfaceRendererBridgeMock)
-                .reportOtherUserAction(eq(FeedUserActionType.TAPPED_ADD_TO_READING_LIST));
+        verify(mFeedStreamJniMock)
+                .reportOtherUserAction(anyLong(), any(FeedStream.class),
+                        eq(FeedUserActionType.TAPPED_ADD_TO_READING_LIST));
         verify(mActionDelegate).addToReadingList(eq(title), eq(TEST_URL));
     }
 

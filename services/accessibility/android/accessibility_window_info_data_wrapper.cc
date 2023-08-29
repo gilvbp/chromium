@@ -46,7 +46,7 @@ bool AccessibilityWindowInfoDataWrapper::IsVisibleToUser() const {
   return true;
 }
 
-bool AccessibilityWindowInfoDataWrapper::IsWebNode() const {
+bool AccessibilityWindowInfoDataWrapper::IsVirtualNode() const {
   return false;
 }
 

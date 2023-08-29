@@ -28,8 +28,7 @@ using extensions::Manifest;
 using ::testing::ElementsAre;
 using ::testing::Eq;
 using ::testing::IsEmpty;
-using LaunchResult = chromeos::ChromeKioskAppLauncher::LaunchResult;
-using chromeos::ChromeKioskAppLauncher;
+using LaunchResult = ash::ChromeKioskAppLauncher::LaunchResult;
 
 namespace ash {
 

@@ -48,20 +48,12 @@ void OnboardingUiTrackerImpl::DismissSetupUi() {
   UpdateShouldShowOnboardingUi();
 }
 
-void OnboardingUiTrackerImpl::HandleGetStarted(
-    bool is_icon_clicked_when_nudge_visible) {
+void OnboardingUiTrackerImpl::HandleGetStarted() {
   FeatureStatus status = feature_status_provider_->GetStatus();
 
   // The user is not opted into Better Together yet.
   if (status == FeatureStatus::kEligiblePhoneButNotSetUp) {
     show_multidevice_setup_dialog_callback_.Run();
-    if (is_icon_clicked_when_nudge_visible) {
-      util::LogMultiDeviceSetupDialogEntryPoint(
-          util::MultiDeviceSetupDialogEntrypoint::kPhoneHubBubbleAferNudge);
-    } else {
-      util::LogMultiDeviceSetupDialogEntryPoint(
-          util::MultiDeviceSetupDialogEntrypoint::kPhoneHubBubble);
-    }
     return;
   }
 

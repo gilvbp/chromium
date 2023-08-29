@@ -171,15 +171,15 @@ pub fn collect_dependencies(
     exclude: Option<Vec<String>>,
 ) -> Vec<Package> {
     // The metadata is split into two parts:
-    // 1. A list of packages and associated info: targets (e.g. lib, bin, tests),
-    //    source path, etc. This includes all workspace members and all transitive
-    //    dependencies. Deps are not filtered based on platform or features: it is
-    //    the maximal set of dependencies.
-    // 2. Resolved dependency graph. There is a node for each package pointing to
-    //    its dependencies in each configuration (normal, build, dev), and the
-    //    resolved feature set. This includes platform-specific info so one can
-    //    filter based on target platform. Nodes include an ID that uniquely refers
-    //    to a package in both (1) and (2).
+    // 1. A list of packages and associated info: targets (e.g. lib, bin,
+    //    tests), source path, etc. This includes all workspace members and all
+    //    transitive dependencies. Deps are not filtered based on platform or
+    //    features: it is the maximal set of dependencies.
+    // 2. Resolved dependency graph. There is a node for each package pointing
+    //    to its dependencies in each configuration (normal, build, dev), and
+    //    the resolved feature set. This includes platform-specific info so one
+    //    can filter based on target platform. Nodes include an ID that uniquely
+    //    refers to a package in both (1) and (2).
     //
     // We need info from both parts. Traversing the graph tells us exactly which
     // crates are needed for a given configuration and platform. In the process,
@@ -293,7 +293,8 @@ pub fn collect_dependencies(
                 TargetType::BuildScript => {
                     assert_eq!(
                         dep.build_script, None,
-                        "found duplicate build script target {target:?}"
+                        "found duplicate build script target {:?}",
+                        target
                     );
                     dep.build_script = Some(src_root);
                 }
@@ -328,14 +329,14 @@ pub fn collect_dependencies(
 
         // Make sure the package comes from our vendored source. If not, report
         // the error for later.
-        dep.is_local = package.source.is_none();
+        dep.is_local = package.source == None;
 
         // Determine whether it's a workspace member or third-party dependency.
         dep.is_workspace_member = dep_graph.workspace_members.contains(&package.id);
     }
 
     // Return a flat list of dependencies.
-    dependencies.into_values().collect()
+    dependencies.into_iter().map(|(_, v)| v).collect()
 }
 
 /// Graph traversal state shared by recursive calls of `explore_node`.
@@ -430,43 +431,46 @@ struct DependencyEdge<'a> {
 /// Iterates over the dependencies of `node`, filtering out platforms we don't
 /// support.
 fn iter_node_deps(node: &cargo_metadata::Node) -> impl Iterator<Item = DependencyEdge<'_>> + '_ {
-    node.deps.iter().flat_map(|node_dep| {
-        // Each NodeDep has information about the package depended on, as
-        // well as the kinds of dependence: as a normal, build script, or
-        // test dependency. For each kind there is an optional platform
-        // filter.
-        //
-        // Filter out kinds for unsupported platforms while mapping the
-        // dependency edges to our own type.
-        //
-        // Cargo may also have duplicates in the dep_kinds list, which may
-        // or may not be a Cargo bug, but we want to filter them out too.
-        // See crbug.com/1393600.
-        let mut seen = HashSet::new();
-        node_dep.dep_kinds.iter().filter_map(move |dep_kind_info| {
-            // Filter if it's for a platform we don't support.
-            match &dep_kind_info.target {
-                None => (),
-                Some(platform) => {
-                    if !platforms::matches_supported_target(platform) {
-                        return None;
+    node.deps
+        .iter()
+        .map(|node_dep| {
+            // Each NodeDep has information about the package depended on, as
+            // well as the kinds of dependence: as a normal, build script, or
+            // test dependency. For each kind there is an optional platform
+            // filter.
+            //
+            // Filter out kinds for unsupported platforms while mapping the
+            // dependency edges to our own type.
+            //
+            // Cargo may also have duplicates in the dep_kinds list, which may
+            // or may not be a Cargo bug, but we want to filter them out too.
+            // See crbug.com/1393600.
+            let mut seen = HashSet::new();
+            node_dep.dep_kinds.iter().filter_map(move |dep_kind_info| {
+                // Filter if it's for a platform we don't support.
+                match &dep_kind_info.target {
+                    None => (),
+                    Some(platform) => {
+                        if !platforms::matches_supported_target(platform) {
+                            return None;
+                        }
                     }
+                };
+
+                if seen.contains(&(&dep_kind_info.kind, &dep_kind_info.target)) {
+                    return None;
                 }
-            };
+                seen.insert((&dep_kind_info.kind, &dep_kind_info.target));
 
-            if seen.contains(&(&dep_kind_info.kind, &dep_kind_info.target)) {
-                return None;
-            }
-            seen.insert((&dep_kind_info.kind, &dep_kind_info.target));
-
-            Some(DependencyEdge {
-                pkg: &node_dep.pkg,
-                lib_name: &node_dep.name,
-                kind: dep_kind_info.kind,
-                target: dep_kind_info.target.clone(),
+                Some(DependencyEdge {
+                    pkg: &node_dep.pkg,
+                    lib_name: &node_dep.name,
+                    kind: dep_kind_info.kind,
+                    target: dep_kind_info.target.clone(),
+                })
             })
         })
-    })
+        .flatten()
 }
 
 /// Indexable representation of the `cargo_metadata::Metadata` fields we need.
@@ -478,7 +482,7 @@ struct MetadataGraph<'a> {
 }
 
 /// Convert the flat lists in `metadata` to maps indexable by PackageId.
-fn build_graph(metadata: &cargo_metadata::Metadata) -> MetadataGraph<'_> {
+fn build_graph<'a>(metadata: &'a cargo_metadata::Metadata) -> MetadataGraph<'a> {
     // `metadata` always has `resolve` unless cargo was explicitly asked not to
     // output the dependency graph.
     let resolve = metadata.resolve.as_ref().unwrap();
@@ -903,5 +907,5 @@ mod tests {
     // test_metadata.json contains the output of "cargo metadata" run in
     // sample_package. The dependency graph is relatively simple but includes
     // transitive deps and a workspace member.
-    static SAMPLE_CARGO_METADATA: &str = include_str!("test_metadata.json");
+    static SAMPLE_CARGO_METADATA: &'static str = include_str!("test_metadata.json");
 }

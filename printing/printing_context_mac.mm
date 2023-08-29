@@ -13,9 +13,9 @@
 #import <numeric>
 
 #include "base/apple/bridging.h"
-#include "base/apple/foundation_util.h"
-#include "base/apple/scoped_cftyperef.h"
 #include "base/check.h"
+#include "base/mac/foundation_util.h"
+#include "base/mac/scoped_cftyperef.h"
 #include "base/strings/string_piece.h"
 #include "base/strings/sys_string_conversions.h"
 #include "base/strings/utf_string_conversions.h"
@@ -28,6 +28,10 @@
 #include "printing/print_settings_initializer_mac.h"
 #include "printing/printing_features.h"
 #include "printing/units.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace printing {
 
@@ -74,15 +78,6 @@ PMPaper MatchPaper(CFArrayRef paper_list,
     }
   }
   return best_matching_paper;
-}
-
-bool IsIppColorModelColorful(mojom::ColorModel color_model) {
-  // Accept `kUnknownColorModel` as it can occur with raw CUPS printers.
-  // Treat it similarly to the behavior in  `GetColorModelForModel()`.
-  if (color_model == mojom::ColorModel::kUnknownColorModel) {
-    return false;
-  }
-  return IsColorModelSelected(color_model).value();
 }
 
 }  // namespace
@@ -259,7 +254,7 @@ bool PrintingContextMac::SetPrinter(const std::string& device_name) {
   if (!current_printer_id)
     return false;
 
-  base::apple::ScopedCFTypeRef<CFStringRef> new_printer_id(
+  base::ScopedCFTypeRef<CFStringRef> new_printer_id(
       base::SysUTF8ToCFStringRef(device_name));
   if (!new_printer_id.get())
     return false;
@@ -291,7 +286,7 @@ bool PrintingContextMac::UpdatePageFormatWithPaperInfo() {
 
   double page_width = 0.0;
   double page_height = 0.0;
-  base::apple::ScopedCFTypeRef<CFStringRef> paper_name;
+  base::ScopedCFTypeRef<CFStringRef> paper_name;
   PMPaperMargins margins = {0};
 
   const PrintSettings::RequestedMedia& media = settings_->requested_media();
@@ -427,7 +422,7 @@ bool PrintingContextMac::SetOutputColor(int color_mode) {
   // may still expect PPD color values if the printer was added to the system
   // with a PPD. To avoid parsing PPDs (which is the point of using CUPS IPP),
   // set every single known PPD color setting and hope that one of them sticks.
-  const bool is_color = IsIppColorModelColorful(color_model);
+  const bool is_color = IsColorModelSelected(color_model).value_or(false);
   for (const auto& setting : GetKnownPpdColorSettings()) {
     const base::StringPiece& color_setting_name = setting.name;
     const base::StringPiece& color_value =
@@ -463,9 +458,8 @@ bool PrintingContextMac::SetKeyValue(base::StringPiece key,
                                      base::StringPiece value) {
   PMPrintSettings print_settings =
       static_cast<PMPrintSettings>([print_info_ PMPrintSettings]);
-  base::apple::ScopedCFTypeRef<CFStringRef> cf_key =
-      base::SysUTF8ToCFStringRef(key);
-  base::apple::ScopedCFTypeRef<CFStringRef> cf_value =
+  base::ScopedCFTypeRef<CFStringRef> cf_key = base::SysUTF8ToCFStringRef(key);
+  base::ScopedCFTypeRef<CFStringRef> cf_value =
       base::SysUTF8ToCFStringRef(value);
 
   return PMPrintSettingsSetValue(print_settings, cf_key.get(), cf_value.get(),
@@ -500,7 +494,7 @@ mojom::ResultCode PrintingContextMac::NewDocument(
   PMPageFormat page_format =
       static_cast<PMPageFormat>([print_info_ PMPageFormat]);
 
-  base::apple::ScopedCFTypeRef<CFStringRef> job_title =
+  base::ScopedCFTypeRef<CFStringRef> job_title =
       base::SysUTF16ToCFStringRef(document_name);
   PMPrintSettingsSetJobName(print_settings, job_title.get());
 

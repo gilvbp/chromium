@@ -5,12 +5,17 @@
 #import <Carbon/Carbon.h>
 #import <Cocoa/Cocoa.h>
 
-#import "base/apple/foundation_util.h"
 #include "base/files/file_path.h"
+#import "base/mac/foundation_util.h"
+#include "base/mac/scoped_nsobject.h"
 #include "base/path_service.h"
 #import "content/browser/cocoa/system_hotkey_map.h"
 #include "content/public/common/content_paths.h"
 #include "testing/gtest/include/gtest/gtest.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace content {
 
@@ -26,7 +31,7 @@ class SystemHotkeyMapTest : public ::testing::Test {
 
     base::FilePath test_path = test_data_dir.AppendASCII(file);
     return [NSDictionary
-        dictionaryWithContentsOfURL:base::apple::FilePathToNSURL(test_path)
+        dictionaryWithContentsOfURL:base::mac::FilePathToNSURL(test_path)
                               error:nil];
   }
 

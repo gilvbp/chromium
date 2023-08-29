@@ -46,19 +46,18 @@ def make_constructors(cg_context):
     return decls, None
 
 
-def generate_sync_iterator_blink_impl_class(iterator_class_like=None,
+def generate_sync_iterator_blink_impl_class(sync_iterator=None,
                                             api_component=None,
                                             for_testing=None,
                                             header_blink_ns=None,
                                             source_blink_ns=None):
-    assert isinstance(iterator_class_like, web_idl.SyncIterator)
+    assert sync_iterator is not None
     assert api_component is not None
     assert for_testing is not None
     assert header_blink_ns is not None
     assert source_blink_ns is not None
 
     # SyncIterator<InterfaceClass> (ScriptWrappable) definition
-    sync_iterator = iterator_class_like
     cg_context = CodeGenContext(sync_iterator=sync_iterator,
                                 class_name=blink_class_name(sync_iterator),
                                 base_class_name="bindings::SyncIteratorBase")
@@ -118,14 +117,15 @@ def generate_sync_iterator_blink_impl_class(iterator_class_like=None,
     source_blink_ns.body.append(EmptyNode())
 
 
-def generate_sync_iterator(sync_iterator_identifier):
-    assert isinstance(sync_iterator_identifier, web_idl.Identifier)
+def generate_sync_iterator(interface_identifier):
+    assert isinstance(interface_identifier, web_idl.Identifier)
 
     web_idl_database = package_initializer().web_idl_database()
-    sync_iterator = web_idl_database.find(sync_iterator_identifier)
+    interface = web_idl_database.find(interface_identifier)
+    sync_iterator = interface.sync_iterator
 
     generate_class_like(sync_iterator,
-                        generate_iterator_blink_impl_class_callback=(
+                        generate_sync_iterator_blink_impl_class_callback=(
                             generate_sync_iterator_blink_impl_class))
 
 
@@ -134,5 +134,7 @@ def generate_sync_iterators(task_queue):
 
     web_idl_database = package_initializer().web_idl_database()
 
-    for sync_iterator in web_idl_database.sync_iterators:
-        task_queue.post_task(generate_sync_iterator, sync_iterator.identifier)
+    for interface in web_idl_database.interfaces:
+        if not interface.sync_iterator:
+            continue
+        task_queue.post_task(generate_sync_iterator, interface.identifier)

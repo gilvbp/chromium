@@ -31,7 +31,6 @@ void IsDistillablePageForDetector(content::WebContents* web_contents,
 struct DistillabilityResult {
   bool is_distillable;
   bool is_last;
-  bool is_long_article;
   bool is_mobile_friendly;
 };
 

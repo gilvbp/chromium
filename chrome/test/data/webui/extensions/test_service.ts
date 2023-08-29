@@ -32,8 +32,6 @@ export class TestService extends TestBrowserProxy implements ServiceInterface {
       'deleteActivitiesFromExtension',
       'deleteErrors',
       'deleteItem',
-      'deleteItems',
-      'uninstallItem',
       'downloadActivities',
       'getExtensionActivityLog',
       'getExtensionsInfo',
@@ -63,7 +61,6 @@ export class TestService extends TestBrowserProxy implements ServiceInterface {
       'setItemCollectsErrors',
       'setItemEnabled',
       'setItemHostAccess',
-      'setItemSafetyCheckWarningAcknowledged',
       'setProfileInDevMode',
       'setShortcutHandlingSuspended',
       'setShowAccessRequestsInToolbar',
@@ -153,11 +150,6 @@ export class TestService extends TestBrowserProxy implements ServiceInterface {
 
   setItemAllowedOnFileUrls(id: string, isAllowedOnFileUrls: boolean) {
     this.methodCalled('setItemAllowedOnFileUrls', [id, isAllowedOnFileUrls]);
-  }
-
-
-  setItemSafetyCheckWarningAcknowledged(id: string) {
-    this.methodCalled('setItemSafetyCheckWarningAcknowledged', id);
   }
 
   setItemEnabled(id: string, isEnabled: boolean) {
@@ -311,16 +303,6 @@ export class TestService extends TestBrowserProxy implements ServiceInterface {
 
   deleteItem(id: string) {
     this.methodCalled('deleteItem', id);
-  }
-
-  deleteItems(ids: string[]) {
-    this.methodCalled('deleteItems', ids);
-    return Promise.resolve();
-  }
-
-  uninstallItem(id: string) {
-    this.methodCalled('uninstallItem', id);
-    return Promise.resolve();
   }
 
   getOnExtensionActivity() {

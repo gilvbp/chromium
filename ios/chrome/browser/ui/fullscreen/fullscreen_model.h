@@ -5,13 +5,13 @@
 #ifndef IOS_CHROME_BROWSER_UI_FULLSCREEN_FULLSCREEN_MODEL_H_
 #define IOS_CHROME_BROWSER_UI_FULLSCREEN_FULLSCREEN_MODEL_H_
 
-#include <CoreGraphics/CoreGraphics.h>
+#import <CoreGraphics/CoreGraphics.h>
 #include <cmath>
 
 #include "base/observer_list.h"
-#include "ios/chrome/browser/shared/public/features/features.h"
-#include "ios/chrome/browser/ui/broadcaster/chrome_broadcast_observer_bridge.h"
-#include "ios/chrome/browser/ui/fullscreen/scoped_fullscreen_disabler.h"
+#import "ios/chrome/browser/shared/public/features/features.h"
+#import "ios/chrome/browser/ui/broadcaster/chrome_broadcast_observer_bridge.h"
+#import "ios/chrome/browser/ui/fullscreen/scoped_fullscreen_disabler.h"
 
 class FullscreenModelObserver;
 
@@ -26,8 +26,12 @@ class FullscreenModel : public ChromeBroadcastObserverInterface {
   ~FullscreenModel() override;
 
   // Adds and removes FullscreenModelObservers.
-  void AddObserver(FullscreenModelObserver* observer);
-  void RemoveObserver(FullscreenModelObserver* observer);
+  void AddObserver(FullscreenModelObserver* observer) {
+    observers_.AddObserver(observer);
+  }
+  void RemoveObserver(FullscreenModelObserver* observer) {
+    observers_.RemoveObserver(observer);
+  }
 
   // The progress value calculated by the model.
   CGFloat progress() const { return progress_; }
@@ -100,10 +104,6 @@ class FullscreenModel : public ChromeBroadcastObserverInterface {
   // toolbar be completely visible.
   void IncrementDisabledCounter();
   void DecrementDisabledCounter();
-
-  // Force enter fullscreen without animation. Setting the progress to 0.0 even
-  // when fullscreen is disabled.
-  void ForceEnterFullscreen();
 
   // Recalculates the fullscreen progress for a new navigation.
   void ResetForNavigation();
@@ -222,7 +222,7 @@ class FullscreenModel : public ChromeBroadcastObserverInterface {
   void OnCollapsedBottomToolbarHeightBroadcasted(CGFloat height) override;
 
   // The observers for this model.
-  base::ObserverList<FullscreenModelObserver, true> observers_;
+  base::ObserverList<FullscreenModelObserver>::Unchecked observers_;
   // The percentage of the toolbar that should be visible, where 1.0 denotes a
   // fully visible toolbar and 0.0 denotes a completely hidden one.
   CGFloat progress_ = 0.0;

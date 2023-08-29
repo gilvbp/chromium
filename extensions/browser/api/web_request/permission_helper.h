@@ -7,7 +7,6 @@
 
 #include "base/memory/raw_ptr.h"
 #include "extensions/browser/browser_context_keyed_api_factory.h"
-#include "extensions/browser/process_map.h"
 
 namespace extensions {
 class ExtensionRegistry;
@@ -34,9 +33,7 @@ class PermissionHelper : public BrowserContextKeyedAPI {
   bool ShouldHideBrowserNetworkRequest(const WebRequestInfo& request) const;
   bool CanCrossIncognito(const Extension* extension) const;
 
-  const ProcessMap* process_map() const {
-    return ProcessMap::Get(browser_context_);
-  }
+  const ProcessMap* process_map() const { return process_map_; }
 
   const ExtensionRegistry* extension_registry() const {
     return extension_registry_;
@@ -46,6 +43,7 @@ class PermissionHelper : public BrowserContextKeyedAPI {
   friend class BrowserContextKeyedAPIFactory<PermissionHelper>;
 
   const raw_ptr<content::BrowserContext> browser_context_;
+  const raw_ptr<ProcessMap> process_map_;
   const raw_ptr<ExtensionRegistry> extension_registry_;
 
   // BrowserContextKeyedAPI implementation.

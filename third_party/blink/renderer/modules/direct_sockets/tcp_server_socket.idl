@@ -3,7 +3,7 @@
 // found in the LICENSE file.
 
 [
-    Exposed=(Window,DedicatedWorker),
+    Exposed=(Window,Worker),
     SecureContext,
     RuntimeEnabled=DirectSockets,
     IsolatedContext

@@ -8,6 +8,12 @@
 
 namespace arc {
 
+ArcPaymentAppBridgeTestSupport::MockPaymentAppInstance::
+    MockPaymentAppInstance() = default;
+
+ArcPaymentAppBridgeTestSupport::MockPaymentAppInstance::
+    ~MockPaymentAppInstance() = default;
+
 ArcPaymentAppBridgeTestSupport::ScopedSetInstance::ScopedSetInstance(
     ArcServiceManager* manager,
     chromeos::payments::mojom::PaymentAppInstance* instance)

@@ -24,7 +24,7 @@ class AddressSpaceStatsDumperImpl final
  public:
   explicit AddressSpaceStatsDumperImpl(ProcessMemoryDump* memory_dump)
       : memory_dump_(memory_dump) {}
-  ~AddressSpaceStatsDumperImpl() final = default;
+  ~AddressSpaceStatsDumperImpl() = default;
 
   void DumpStats(
       const partition_alloc::AddressSpaceStats* address_space_stats) override {

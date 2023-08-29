@@ -5,8 +5,6 @@
 #ifndef EXTENSIONS_BROWSER_UPDATER_UPDATE_SERVICE_FACTORY_H_
 #define EXTENSIONS_BROWSER_UPDATER_UPDATE_SERVICE_FACTORY_H_
 
-#include <memory>
-
 #include "base/memory/singleton.h"
 #include "components/keyed_service/content/browser_context_keyed_service_factory.h"
 
@@ -31,9 +29,7 @@ class UpdateServiceFactory : public BrowserContextKeyedServiceFactory {
   ~UpdateServiceFactory() override;
 
   // BrowserContextKeyedServiceFactory:
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
-      content::BrowserContext* context) const override;
-  content::BrowserContext* GetBrowserContextToUse(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* context) const override;
 };
 

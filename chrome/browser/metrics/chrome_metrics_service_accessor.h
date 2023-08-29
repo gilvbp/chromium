@@ -91,11 +91,7 @@ class IsMetricsAndCrashReportingEnabled;
 
 namespace ash {
 class DemoSession;
-
-namespace settings {
-class PerSessionSettingsUserActionTracker;
-}  // namespace settings
-}  // namespace ash
+}
 
 // This class limits and documents access to metrics service helper methods.
 // Since these methods are private, each user has to be explicitly declared
@@ -131,7 +127,6 @@ class ChromeMetricsServiceAccessor : public metrics::MetricsServiceAccessor {
       OnMetricsReportingCallbackType,
       ChangeMetricsReportingStateCalledFrom);
   friend void ApplyMetricsReportingPolicy();
-  friend class ash::settings::PerSessionSettingsUserActionTracker;
   friend class settings::MetricsReportingHandler;
   friend class UmaSessionStats;
   friend class safe_browsing::ChromeCleanerControllerDelegate;
@@ -175,7 +170,7 @@ class ChromeMetricsServiceAccessor : public metrics::MetricsServiceAccessor {
   friend class ClonedInstallClientIdResetBrowserTest;
   friend class metrics::ChromeOSPerUserMetricsBrowserTestBase;
   friend class SampledOutClientIdSavedBrowserTest;
-  friend class MetricsInternalsUIBrowserTestWithLog;
+  friend class MetricsInternalsUIBrowserTest;
   FRIEND_TEST_ALL_PREFIXES(ChromeMetricsServiceAccessorTest,
                            MetricsReportingEnabled);
   FRIEND_TEST_ALL_PREFIXES(ChromeMetricsServicesManagerClientTest,

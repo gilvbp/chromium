@@ -26,9 +26,7 @@ void AuthenticatorImpl::Create(
   // navigates or is deleted. See DocumentService for details.
   new AuthenticatorImpl(
       *render_frame_host, std::move(receiver),
-      std::make_unique<AuthenticatorCommonImpl>(
-          render_frame_host,
-          AuthenticatorCommonImpl::ServingRequestsFor::kWebContents));
+      std::make_unique<AuthenticatorCommonImpl>(render_frame_host));
 }
 
 void AuthenticatorImpl::CreateForTesting(

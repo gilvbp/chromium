@@ -6,7 +6,6 @@
 #import "base/strings/sys_string_conversions.h"
 #import "base/test/ios/wait_util.h"
 #import "base/time/time.h"
-#import "components/bookmarks/common/storage_type.h"
 #import "components/sync/base/command_line_switches.h"
 #import "components/sync/base/features.h"
 #import "ios/chrome/browser/signin/fake_system_identity.h"
@@ -22,6 +21,10 @@
 #import "ios/web/public/test/http_server/http_server_util.h"
 #import "net/base/mac/url_conversions.h"
 #import "net/test/embedded_test_server/embedded_test_server.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace {
 
@@ -63,8 +66,8 @@ void WaitForAutofillProfileLocallyPresent(const std::string& guid,
 @implementation SyncFakeServerTestCase
 
 - (void)tearDown {
-  [BookmarkEarlGrey waitForBookmarkModelsLoaded];
-  [BookmarkEarlGrey clearBookmarks];
+  [ChromeEarlGrey waitForBookmarksToFinishLoading];
+  [ChromeEarlGrey clearBookmarks];
 
   [ChromeEarlGrey clearSyncServerData];
 
@@ -93,10 +96,12 @@ void WaitForAutofillProfileLocallyPresent(const std::string& guid,
   AppLaunchConfiguration config = [super appConfigurationForTestCase];
   config.additional_args.push_back(std::string("--") +
                                    syncer::kSyncShortNudgeDelayForTest);
-  if ([self isRunningTest:@selector(testSyncTypedURLUpload)] ||
-      [self isRunningTest:@selector(testSyncTypedUrlDownload)] ||
-      [self isRunningTest:@selector(testSyncTypedURLDeleteFromClient)] ||
-      [self isRunningTest:@selector(testSyncTypedURLDeleteFromServer)]) {
+  if ([self isRunningTest:@selector(testSyncInvalidationsEnabled)]) {
+    config.features_enabled.push_back(syncer::kUseSyncInvalidations);
+  } else if ([self isRunningTest:@selector(testSyncTypedURLUpload)] ||
+             [self isRunningTest:@selector(testSyncTypedUrlDownload)] ||
+             [self isRunningTest:@selector(testSyncTypedURLDeleteFromClient)] ||
+             [self isRunningTest:@selector(testSyncTypedURLDeleteFromServer)]) {
     // TypedURL tests need to disable the History data type, since that one
     // replaced TypedURLs.
     config.features_disabled.push_back(syncer::kSyncEnableHistoryDataType);
@@ -104,32 +109,13 @@ void WaitForAutofillProfileLocallyPresent(const std::string& guid,
              [self isRunningTest:@selector(testSyncHistoryDownload)]) {
     config.features_enabled.push_back(syncer::kSyncEnableHistoryDataType);
   }
-
-  // Several datatypes, as well as logic related to initial sync, become
-  // unused and cannot be tested if kReplaceSyncPromosWithSignInPromos is
-  // enabled.
-  if ([self isRunningTest:@selector(testSyncUploadBookmarkOnFirstSync)] ||
-      [self isRunningTest:@selector(testSyncDeleteAutofillProfile)] ||
-      [self isRunningTest:@selector(testSyncDownloadAutofillProfile)] ||
-      [self isRunningTest:@selector(testSyncUpdateAutofillProfile)] ||
-      [self isRunningTest:@selector(testSyncTypedURLDeleteFromClient)] ||
-      [self isRunningTest:@selector(testSyncTypedURLDeleteFromServer)] ||
-      [self isRunningTest:@selector(testSyncTypedURLUpload)] ||
-      [self isRunningTest:@selector(testSyncTypedUrlDownload)]) {
-    config.features_disabled.push_back(
-        syncer::kReplaceSyncPromosWithSignInPromos);
-  }
-
   return config;
 }
 
 // Tests that a bookmark added on the client (before Sync is enabled) is
 // uploaded to the Sync server once Sync is turned on.
 - (void)testSyncUploadBookmarkOnFirstSync {
-  [BookmarkEarlGrey
-      addBookmarkWithTitle:@"foo"
-                       URL:@"https://www.foo.com"
-                 inStorage:bookmarks::StorageType::kLocalOrSyncable];
+  [BookmarkEarlGrey addBookmarkWithTitle:@"foo" URL:@"https://www.foo.com"];
 
   // Sign in to sync, after a bookmark has been added.
   FakeSystemIdentity* fakeIdentity = [FakeSystemIdentity fakeIdentity1];
@@ -151,26 +137,14 @@ void WaitForAutofillProfileLocallyPresent(const std::string& guid,
   // Add a bookmark after sync is initialized.
   [ChromeEarlGrey waitForSyncEngineInitialized:YES
                                    syncTimeout:kSyncOperationTimeout];
-  bookmarks::StorageType inStorage =
-      [ChromeEarlGrey isReplaceSyncWithSigninEnabled]
-          ? bookmarks::StorageType::kAccount
-          : bookmarks::StorageType::kLocalOrSyncable;
-  [BookmarkEarlGrey addBookmarkWithTitle:@"goo"
-                                     URL:@"https://www.goo.com"
-                               inStorage:inStorage];
+  [BookmarkEarlGrey addBookmarkWithTitle:@"goo" URL:@"https://www.goo.com"];
   WaitForEntitiesOnFakeServer(1, syncer::BOOKMARKS);
 }
 
 // Tests that a bookmark injected in the FakeServer is synced down to the
 // client.
 - (void)testSyncDownloadBookmark {
-  bookmarks::StorageType inStorage =
-      [ChromeEarlGrey isReplaceSyncWithSigninEnabled]
-          ? bookmarks::StorageType::kAccount
-          : bookmarks::StorageType::kLocalOrSyncable;
-  [BookmarkEarlGrey verifyBookmarksWithTitle:@"hoo"
-                               expectedCount:0
-                                   inStorage:inStorage];
+  [BookmarkEarlGrey verifyBookmarksWithTitle:@"hoo" expectedCount:0];
   const GURL URL = web::test::HttpServer::MakeUrl("http://www.hoo.com");
   [ChromeEarlGrey addFakeSyncServerBookmarkWithURL:URL title:"hoo"];
 
@@ -181,9 +155,7 @@ void WaitForAutofillProfileLocallyPresent(const std::string& guid,
 
   [ChromeEarlGrey
       waitForSyncTransportStateActiveWithTimeout:kSyncOperationTimeout];
-  [BookmarkEarlGrey verifyBookmarksWithTitle:@"hoo"
-                               expectedCount:1
-                                   inStorage:inStorage];
+  [BookmarkEarlGrey verifyBookmarksWithTitle:@"hoo" expectedCount:1];
 }
 
 // Tests that the local cache guid changes when the user signs out and then
@@ -535,17 +507,8 @@ void WaitForAutofillProfileLocallyPresent(const std::string& guid,
   NSString* title1 = @"title1";
   NSString* title2 = @"title2";
 
-  bookmarks::StorageType inStorage =
-      [ChromeEarlGrey isReplaceSyncWithSigninEnabled]
-          ? bookmarks::StorageType::kAccount
-          : bookmarks::StorageType::kLocalOrSyncable;
-
-  [BookmarkEarlGrey verifyBookmarksWithTitle:title1
-                               expectedCount:0
-                                   inStorage:inStorage];
-  [BookmarkEarlGrey verifyBookmarksWithTitle:title2
-                               expectedCount:0
-                                   inStorage:inStorage];
+  [BookmarkEarlGrey verifyBookmarksWithTitle:title1 expectedCount:0];
+  [BookmarkEarlGrey verifyBookmarksWithTitle:title2 expectedCount:0];
 
   // Mimic the creation of two bookmarks from two different devices, with the
   // same client item ID.
@@ -566,12 +529,8 @@ void WaitForAutofillProfileLocallyPresent(const std::string& guid,
   [ChromeEarlGrey
       waitForSyncTransportStateActiveWithTimeout:kSyncOperationTimeout];
 
-  [BookmarkEarlGrey verifyBookmarksWithTitle:title1
-                               expectedCount:1
-                                   inStorage:inStorage];
-  [BookmarkEarlGrey verifyBookmarksWithTitle:title2
-                               expectedCount:1
-                                   inStorage:inStorage];
+  [BookmarkEarlGrey verifyBookmarksWithTitle:title1 expectedCount:1];
+  [BookmarkEarlGrey verifyBookmarksWithTitle:title2 expectedCount:1];
 }
 
 - (void)testSyncInvalidationsEnabled {

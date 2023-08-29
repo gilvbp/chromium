@@ -49,7 +49,7 @@ bool ChoobeScreen::MaybeSkip(WizardContext& context) {
     return true;
   }
 
-  if (chrome_user_manager_util::IsManagedGuestSessionOrEphemeralLogin()) {
+  if (chrome_user_manager_util::IsPublicSessionOrEphemeralLogin()) {
     exit_callback_.Run(Result::NOT_APPLICABLE);
     return true;
   }

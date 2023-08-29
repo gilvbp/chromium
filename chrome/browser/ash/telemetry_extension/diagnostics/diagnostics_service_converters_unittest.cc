@@ -15,7 +15,8 @@
 #include "testing/gtest/include/gtest/gtest.h"
 #include "third_party/abseil-cpp/absl/types/optional.h"
 
-namespace ash::converters::diagnostics {
+namespace ash {
+namespace converters {
 
 // Tests that |ConvertDiagnosticsPtr| function returns nullptr if input is
 // nullptr. ConvertDiagnosticsPtr is a template, so we can test this function
@@ -78,20 +79,6 @@ TEST(DiagnosticsServiceConvertersTest, ConvertDiagnosticRoutineEnum) {
             crosapi::DiagnosticsRoutineEnum::kSmartctlCheckWithPercentageUsed);
   EXPECT_EQ(Convert(cros_healthd::DiagnosticRoutineEnum::kEmmcLifetime),
             crosapi::DiagnosticsRoutineEnum::kEmmcLifetime);
-  EXPECT_EQ(Convert(cros_healthd::DiagnosticRoutineEnum::kBluetoothPower),
-            crosapi::DiagnosticsRoutineEnum::kBluetoothPower);
-  EXPECT_EQ(Convert(cros_healthd::DiagnosticRoutineEnum::kUfsLifetime),
-            crosapi::DiagnosticsRoutineEnum::kUfsLifetime);
-  EXPECT_EQ(Convert(cros_healthd::DiagnosticRoutineEnum::kPowerButton),
-            crosapi::DiagnosticsRoutineEnum::kPowerButton);
-  EXPECT_EQ(Convert(cros_healthd::DiagnosticRoutineEnum::kAudioDriver),
-            crosapi::DiagnosticsRoutineEnum::kAudioDriver);
-  EXPECT_EQ(Convert(cros_healthd::DiagnosticRoutineEnum::kBluetoothDiscovery),
-            crosapi::DiagnosticsRoutineEnum::kBluetoothDiscovery);
-  EXPECT_EQ(Convert(cros_healthd::DiagnosticRoutineEnum::kBluetoothScanning),
-            crosapi::DiagnosticsRoutineEnum::kBluetoothScanning);
-  EXPECT_EQ(Convert(cros_healthd::DiagnosticRoutineEnum::kBluetoothPairing),
-            crosapi::DiagnosticsRoutineEnum::kBluetoothPairing);
 
   EXPECT_EQ(Convert(cros_healthd::DiagnosticRoutineEnum::kArcHttp),
             absl::nullopt);
@@ -173,10 +160,6 @@ TEST(DiagnosticsServiceConvertersTest,
   EXPECT_EQ(
       Convert(cros_healthd::DiagnosticRoutineUserMessageEnum::kCheckLedColor),
       crosapi::DiagnosticsRoutineUserMessageEnum::kUnknown);
-  EXPECT_EQ(
-      Convert(
-          cros_healthd::DiagnosticRoutineUserMessageEnum::kPressPowerButton),
-      crosapi::DiagnosticsRoutineUserMessageEnum::kPressPowerButton);
 }
 
 TEST(DiagnosticsServiceConvertersTest, ConvertDiagnosticRoutineCommandEnum) {
@@ -239,4 +222,5 @@ TEST(DiagnosticsServiceConvertersTest, ConvertUInt32ValuePtr) {
             cros_healthd::NullableUint32::New(42));
 }
 
-}  // namespace ash::converters::diagnostics
+}  // namespace converters
+}  // namespace ash

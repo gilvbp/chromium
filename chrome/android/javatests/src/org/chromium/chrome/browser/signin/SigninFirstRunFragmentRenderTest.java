@@ -143,21 +143,16 @@ public class SigninFirstRunFragmentRenderTest extends BlankUiTestActivityTestCas
 
     @Before
     public void setUp() {
-        OneshotSupplierImpl<Profile> profileSupplier =
-                TestThreadUtils.runOnUiThreadBlockingNoException(() -> {
-                    OneshotSupplierImpl<Profile> supplier = new OneshotSupplierImpl<>();
-                    supplier.set(mProfileMock);
-                    return supplier;
-                });
-        when(mFirstRunPageDelegateMock.getProfileSupplier()).thenReturn(profileSupplier);
-
+        Profile.setLastUsedProfileForTesting(mProfileMock);
         when(mExternalAuthUtilsMock.canUseGooglePlayServices()).thenReturn(true);
         ExternalAuthUtils.setInstanceForTesting(mExternalAuthUtilsMock);
         IdentityServicesProvider.setInstanceForTests(mIdentityServicesProviderMock);
         TestThreadUtils.runOnUiThreadBlocking(() -> {
-            when(IdentityServicesProvider.get().getSigninManager(mProfileMock))
+            when(IdentityServicesProvider.get().getSigninManager(
+                         Profile.getLastUsedRegularProfile()))
                     .thenReturn(mSigninManagerMock);
-            when(IdentityServicesProvider.get().getIdentityManager(mProfileMock))
+            when(IdentityServicesProvider.get().getIdentityManager(
+                         Profile.getLastUsedRegularProfile()))
                     .thenReturn(mIdentityManagerMock);
         });
         SigninCheckerProvider.setForTests(mSigninCheckerMock);
@@ -532,7 +527,7 @@ public class SigninFirstRunFragmentRenderTest extends BlankUiTestActivityTestCas
         ApplicationTestUtils.waitForActivityState(getActivity(), Stage.RESUMED);
         // Parts of SigninFirstRunFragment are initialized asynchronously, so ensure the load
         // spinner is not displayed before grabbing a screenshot.
-        ViewUtils.waitForVisibleView(withId(R.id.signin_fre_continue_button));
+        ViewUtils.waitForView(withId(R.id.signin_fre_continue_button), ViewUtils.VIEW_VISIBLE);
         onView(withId(R.id.fre_native_and_policy_load_progress_spinner))
                 .check(matches(not(isDisplayed())));
     }

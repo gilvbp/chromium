@@ -278,9 +278,6 @@ Testing 'document.body':
 Testing 'window':
 {
     type : window
-    value : {
-        context : <string>
-    }
 }
 
 Testing 'document.querySelector('body > div')':

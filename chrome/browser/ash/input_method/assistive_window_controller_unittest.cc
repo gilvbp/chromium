@@ -15,7 +15,6 @@
 #include "chrome/browser/ui/views/chrome_layout_provider.h"
 #include "chrome/test/base/chrome_ash_test_base.h"
 #include "chrome/test/base/testing_profile.h"
-#include "chromeos/ash/components/standalone_browser/feature_refs.h"
 #include "chromeos/ash/services/ime/public/cpp/assistive_suggestions.h"
 #include "content/public/test/browser_task_environment.h"
 #include "testing/gtest/include/gtest/gtest.h"
@@ -110,7 +109,7 @@ class AssistiveWindowControllerTest : public ChromeAshTestBase {
   void EnableLacros() {
     feature_list_.Reset();
     feature_list_.InitWithFeatures(
-        /*enabled_features=*/ash::standalone_browser::GetFeatureRefs(),
+        /*enabled_features=*/{features::kLacrosSupport},
         /*disabled_features=*/{});
   }
 

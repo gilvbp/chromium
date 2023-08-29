@@ -16,6 +16,10 @@
 #import "ios/chrome/browser/ui/policy/user_policy/user_policy_prompt_view_controller.h"
 #import "ios/chrome/common/ui/confirmation_alert/confirmation_alert_action_handler.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 class ChromeBrowserState;
 
 namespace {
@@ -43,7 +47,7 @@ constexpr CGFloat kHalfSheetCornerRadius = 20;
 #pragma mark - Internal
 
 // Returns the domain of the administrator hosting the primary account.
-// Returns an empty string if the account isn't managed.
+// Returns an empty string if the account isn't managed OR isn't syncing.
 - (NSString*)managedDomain {
   return base::SysUTF16ToNSString(HostedDomainForPrimaryAccount(self.browser));
 }
@@ -105,11 +109,7 @@ constexpr CGFloat kHalfSheetCornerRadius = 20;
 #pragma mark - UserPolicyPromptPresenter
 
 - (void)stopPresenting {
-  [self.delegate didCompletePresentationAndShowLearnMoreAfterward:NO];
-}
-
-- (void)stopPresentingAndShowLearnMoreAfterward {
-  [self.delegate didCompletePresentationAndShowLearnMoreAfterward:YES];
+  [self.delegate didCompletePresentation:self];
 }
 
 - (void)showActivityOverlay {

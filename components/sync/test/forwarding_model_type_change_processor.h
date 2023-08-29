@@ -53,7 +53,7 @@ class ForwardingModelTypeChangeProcessor : public ModelTypeChangeProcessor {
   base::WeakPtr<ModelTypeChangeProcessor> GetWeakPtr() override;
 
  private:
-  const raw_ptr<ModelTypeChangeProcessor> other_;
+  raw_ptr<ModelTypeChangeProcessor> other_;
 };
 
 }  // namespace syncer

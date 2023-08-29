@@ -387,9 +387,6 @@ void CompanionPageHandler::OnExpsOptInStatusAvailable(bool is_exps_opted_in) {
 
 void CompanionPageHandler::OnOpenInNewTabButtonURLChanged(
     const GURL& url_to_open) {
-  if (!web_contents()) {
-    return;
-  }
   auto* companion_helper =
       companion::CompanionTabHelper::FromWebContents(web_contents());
   DCHECK(companion_helper);
@@ -458,10 +455,6 @@ void CompanionPageHandler::OpenUrlInBrowser(
     return;
   }
   signin_delegate_->OpenUrlInBrowser(url_to_open.value(), use_new_tab);
-}
-
-void CompanionPageHandler::RefreshCompanionPage() {
-  NotifyURLChanged(/*is_full_reload*/ true);
 }
 
 void CompanionPageHandler::OnNavigationError() {

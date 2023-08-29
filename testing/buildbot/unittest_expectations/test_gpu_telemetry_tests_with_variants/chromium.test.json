@@ -24,10 +24,13 @@
         "name": "swarming_test a_variant",
         "should_retry_with_patch": false,
         "swarming": {
-          "dimensions": {
-            "gpu": "8086:3e92-24.20.100.6286",
-            "os": "Linux"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "gpu": "8086:3e92-24.20.100.6286",
+              "os": "Linux"
+            }
+          ],
           "idempotent": false
         },
         "test_id_prefix": "ninja://chrome/test:telemetry_gpu_integration_test/",
@@ -42,26 +45,27 @@
           "-v",
           "--stable-jobs",
           "--extra-browser-args=--enable-logging=stderr --js-flags=--expose-gc",
-          "--platform",
-          "sim",
-          "--version",
-          "2"
+          "a",
+          "b"
         ],
         "isolate_name": "telemetry_gpu_integration_test",
         "merge": {
           "script": "//testing/merge_scripts/standard_isolated_script_merge.py"
         },
-        "name": "swarming_test b_variant",
+        "name": "swarming_test ab",
         "should_retry_with_patch": false,
         "swarming": {
-          "dimensions": {
-            "gpu": "8086:3e92-24.20.100.6286",
-            "os": "Linux"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "gpu": "8086:3e92-24.20.100.6286",
+              "os": "Linux"
+            }
+          ],
           "idempotent": false
         },
         "test_id_prefix": "ninja://chrome/test:telemetry_gpu_integration_test/",
-        "variant_id": "b_variant"
+        "variant_id": "ab"
       }
     ]
   }

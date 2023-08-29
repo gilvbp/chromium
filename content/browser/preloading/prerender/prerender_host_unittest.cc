@@ -29,7 +29,6 @@
 #include "testing/gmock/include/gmock/gmock.h"
 #include "testing/gtest/include/gtest/gtest.h"
 #include "third_party/blink/public/common/loader/loader_constants.h"
-#include "third_party/blink/public/mojom/speculation_rules/speculation_rules.mojom-shared.h"
 
 namespace content {
 namespace {
@@ -130,7 +129,6 @@ class PrerenderHostTest : public RenderViewHostImplTestHarness {
     return PrerenderAttributes(
         url, PrerenderTriggerType::kSpeculationRule,
         /*embedder_histogram_suffix=*/"", Referrer(),
-        blink::mojom::SpeculationEagerness::kEager,
         rfh->GetLastCommittedOrigin(), rfh->GetProcess()->GetID(),
         contents()->GetWeakPtr(), rfh->GetFrameToken(),
         rfh->GetFrameTreeNodeId(), rfh->GetPageUkmSourceId(),
@@ -219,7 +217,8 @@ TEST_F(PrerenderHostTest, MainFrameNavigationForReservedHost) {
 
   {
     MockCommitDeferringConditionInstaller installer(
-        kPrerenderingUrl, CommitDeferringCondition::Result::kDefer);
+        kPrerenderingUrl,
+        /*is_ready_to_commit=*/false);
     // Start trying to activate the prerendered page.
     navigation = CreateActivation(kPrerenderingUrl, *contents());
     navigation->Start();

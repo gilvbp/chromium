@@ -48,7 +48,7 @@ void XRDeviceAbstraction::HandleDeviceLost() {}
 bool XRDeviceAbstraction::HasSessionEnded() {
   return false;
 }
-void XRDeviceAbstraction::OnLayerBoundsChanged(const gfx::Size& frame_size) {}
+void XRDeviceAbstraction::OnLayerBoundsChanged() {}
 device::mojom::XREnvironmentBlendMode
 XRDeviceAbstraction::GetEnvironmentBlendMode(
     device::mojom::XRSessionMode session_mode) {
@@ -222,7 +222,7 @@ void XRCompositorCommon::UpdateLayerBounds(int16_t frame_id,
 
   source_size_ = source_size;
 
-  OnLayerBoundsChanged(source_size_);
+  OnLayerBoundsChanged();
 }
 
 void XRCompositorCommon::RequestSession(

@@ -702,6 +702,7 @@ public class AndroidPaymentAppFinder implements ManifestVerifyCallback {
      * @param packageName The package name of the app store.
      * @param paymentMethod The payment method identifier of the app store.
      */
+    @VisibleForTesting
     public void addAppStoreForTest(String packageName, GURL paymentMethod) {
         assert paymentMethod.isValid();
         mAppStores.put(packageName, paymentMethod);

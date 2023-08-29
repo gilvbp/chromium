@@ -13,7 +13,6 @@
 
 #include "base/files/file.h"
 #include "base/functional/bind.h"
-#include "base/memory/raw_ptr.h"
 #include "base/run_loop.h"
 #include "base/test/bind.h"
 #include "base/test/mock_callback.h"
@@ -130,7 +129,7 @@ class CfmHotlineClientTest : public testing::Test {
   }
 
   base::test::SingleThreadTaskEnvironment task_environment_;
-  raw_ptr<CfmHotlineClient, ExperimentalAsh> client_;
+  CfmHotlineClient* client_;
   scoped_refptr<dbus::MockBus> mock_bus_;
   scoped_refptr<dbus::MockObjectProxy> mock_proxy_;
   std::deque<std::unique_ptr<dbus::Response>> responses_;

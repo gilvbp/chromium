@@ -154,11 +154,6 @@ export class ProgressCenterItem {
     this.cancelCallback = null;
 
     /**
-     * Optional callback to be invoked after dismissing the item.
-     */
-    this.dismissCallback = null;
-
-    /**
      * The predicted remaining time to complete the progress item in seconds.
      * @type {number}
      */
@@ -183,18 +178,6 @@ export class ProgressCenterItem {
      * @type {?PolicyErrorType}
      */
     this.policyError = null;
-
-    /**
-     * The number of files with a policy restriction, if any.
-     * @type {?number}
-     */
-    this.policyFileCount = null;
-
-    /**
-     * The name of the first file with a policy restriction, if any.
-     * @type {?string}
-     */
-    this.policyFileName = null;
   }
 
   /**

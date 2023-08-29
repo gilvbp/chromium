@@ -5,6 +5,7 @@
 import("//build/config/chrome_build.gni")
 
 source_set("tangible_sync") {
+  configs += [ "//build/config/compiler:enable_arc" ]
   sources = [
     "tangible_sync_coordinator.h",
     "tangible_sync_coordinator.mm",
@@ -37,6 +38,7 @@ source_set("tangible_sync") {
 }
 
 source_set("signin_ui") {
+  configs += [ "//build/config/compiler:enable_arc" ]
   sources = [
     "tangible_sync_consumer.h",
     "tangible_sync_view_controller.h",
@@ -45,6 +47,7 @@ source_set("signin_ui") {
   ]
   deps = [
     "//components/password_manager/core/common:features",
+    "//components/signin/public/base",
     "//ios/chrome/app/strings",
     "//ios/chrome/browser/shared/ui/elements",
     "//ios/chrome/browser/shared/ui/symbols",

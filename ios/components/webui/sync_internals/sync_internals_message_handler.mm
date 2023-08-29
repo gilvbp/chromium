@@ -24,6 +24,10 @@
 #import "ios/web/public/thread/web_thread.h"
 #import "ios/web/public/webui/web_ui_ios.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace {
 
 // Returns the initial state of the "include specifics" flag, based on whether

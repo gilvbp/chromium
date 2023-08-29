@@ -98,31 +98,27 @@ TEST_F(CookieSettingsPolicyHandlerTest,
 }
 
 TEST_F(CookieSettingsPolicyHandlerTest,
-       DefaultCookieContentBlockAllImplicitDisable) {
+       DefaultCookieContentBlockAllPrivacySandboxDisabled) {
   SetDefaultCookiePolicy(CONTENT_SETTING_BLOCK);
   const base::Value* value;
   EXPECT_TRUE(store_->GetValue(prefs::kPrivacySandboxApisEnabled, &value));
   EXPECT_EQ(value->GetBool(), false);
   EXPECT_TRUE(store_->GetValue(prefs::kPrivacySandboxApisEnabledV2, &value));
   EXPECT_EQ(value->GetBool(), false);
-  EXPECT_TRUE(store_->GetValue(prefs::kCookieControlsMode, &value));
-  EXPECT_EQ(static_cast<CookieControlsMode>(value->GetInt()),
-            CookieControlsMode::kBlockThirdParty);
 }
 
 TEST_F(CookieSettingsPolicyHandlerTest,
-       DefaultCookieContentAllowedImplicitDisableNotSet) {
+       DefaultCookieContentAllowedPrivacySandboxNotSet) {
   SetDefaultCookiePolicy(CONTENT_SETTING_ALLOW);
   const base::Value* value;
   EXPECT_FALSE(store_->GetValue(prefs::kPrivacySandboxApisEnabled, &value));
   EXPECT_FALSE(store_->GetValue(prefs::kPrivacySandboxApisEnabledV2, &value));
-  EXPECT_FALSE(store_->GetValue(prefs::kCookieControlsMode, &value));
 }
 
 TEST_F(CookieSettingsPolicyHandlerTest,
-       DefaultCookieContentBlockOverridesThirdParty) {
+       DefaultCookieContentBlockOverridesThirdPartyForPrivacySandbox) {
   // A policy which sets the default cookie content setting to block should
-  // override a policy enabling 3P cookies.
+  // override a policy enabling 3P cookies, w.r.t the Privacy Sandbox.
   policy::PolicyMap policy;
   policy.Set(policy::key::kBlockThirdPartyCookies,
              policy::POLICY_LEVEL_MANDATORY, policy::POLICY_SCOPE_USER,
@@ -137,9 +133,6 @@ TEST_F(CookieSettingsPolicyHandlerTest,
   EXPECT_EQ(value->GetBool(), false);
   EXPECT_TRUE(store_->GetValue(prefs::kPrivacySandboxApisEnabledV2, &value));
   EXPECT_EQ(value->GetBool(), false);
-  EXPECT_TRUE(store_->GetValue(prefs::kCookieControlsMode, &value));
-  EXPECT_EQ(static_cast<CookieControlsMode>(value->GetInt()),
-            CookieControlsMode::kBlockThirdParty);
 }
 
 }  // namespace content_settings

@@ -276,29 +276,36 @@ void LayoutTreeAsText::WriteLayoutObject(WTF::TextStream& ts,
   }
 
   if (behavior & kLayoutAsTextShowLayoutState) {
-    bool needs_layout = o.NeedsLayout();
+    bool needs_layout = o.SelfNeedsLayout() ||
+                        o.NeedsPositionedMovementLayout() ||
+                        o.PosChildNeedsLayout() || o.NormalChildNeedsLayout();
     if (needs_layout)
       ts << " (needs layout:";
 
     bool have_previous = false;
-    if (o.SelfNeedsFullLayout()) {
+    if (o.SelfNeedsLayout()) {
       ts << " self";
       have_previous = true;
     }
 
-    if (o.ChildNeedsFullLayout()) {
+    if (o.NeedsPositionedMovementLayout()) {
+      if (have_previous)
+        ts << ",";
+      have_previous = true;
+      ts << " positioned movement";
+    }
+
+    if (o.NormalChildNeedsLayout()) {
       if (have_previous)
         ts << ",";
       have_previous = true;
       ts << " child";
     }
 
-    if (o.NeedsSimplifiedLayout()) {
-      if (have_previous) {
+    if (o.PosChildNeedsLayout()) {
+      if (have_previous)
         ts << ",";
-      }
-      have_previous = true;
-      ts << " simplified";
+      ts << " positioned child";
     }
 
     if (needs_layout)
@@ -555,6 +562,14 @@ void LayoutTreeAsText::WriteLayers(WTF::TextStream& ts,
   if (embedded && embedded->IsThrottledFrameView())
     should_dump = false;
 
+#if DCHECK_IS_ON()
+  if (!RuntimeEnabledFeatures::RemoveConvertToLayerCoordsEnabled() &&
+      layer->NeedsPositionUpdate()) {
+    WriteIndent(ts, indent);
+    ts << " NEEDS POSITION UPDATE\n";
+  }
+#endif
+
   bool should_dump_children = !layer_object.ChildLayoutBlockedByDisplayLock();
 
   const auto& neg_list = ChildLayers(layer, kNegativeZOrderChildren);
@@ -697,11 +712,11 @@ String ExternalRepresentation(LocalFrame* frame,
     return String();
   auto* layout_box = To<LayoutBox>(layout_object);
 
-  PrintContext print_context(frame);
+  PrintContext print_context(frame, /*use_printing_layout=*/true);
   bool is_text_printing_mode = !!(behavior & kLayoutAsTextPrintingMode);
   if (is_text_printing_mode) {
-    gfx::SizeF page_size(layout_box->ClientWidth(), layout_box->ClientHeight());
-    print_context.BeginPrintMode(WebPrintParams(page_size));
+    print_context.BeginPrintMode(layout_box->ClientWidth(),
+                                 layout_box->ClientHeight());
 
     // The lifecycle needs to be run again after changing printing mode,
     // to account for any style updates due to media query change.

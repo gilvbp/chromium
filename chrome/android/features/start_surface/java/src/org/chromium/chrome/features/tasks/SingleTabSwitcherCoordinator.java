@@ -18,7 +18,7 @@ import androidx.annotation.VisibleForTesting;
 import org.chromium.base.Callback;
 import org.chromium.base.supplier.Supplier;
 import org.chromium.chrome.R;
-import org.chromium.chrome.browser.compositor.layouts.content.TabContentManager;
+import org.chromium.chrome.browser.feed.FeedFeatures;
 import org.chromium.chrome.browser.flags.ChromeFeatureList;
 import org.chromium.chrome.browser.lifecycle.ActivityLifecycleDispatcher;
 import org.chromium.chrome.browser.tab.EmptyTabObserver;
@@ -53,35 +53,29 @@ public class SingleTabSwitcherCoordinator implements TabSwitcher {
             @NonNull TabModelSelector tabModelSelector, boolean isTablet,
             boolean isScrollableMvtEnabled, Tab mostRecentTab,
             @Nullable Runnable singleTabCardClickedCallback,
-            @Nullable Runnable snapshotParentViewRunnable,
-            @Nullable TabContentManager tabContentManager) {
+            @Nullable Runnable snapshotParentViewRunnable) {
         mTabModelSelector = tabModelSelector;
         mIsTablet = isTablet;
         mLastActiveTab = mostRecentTab;
         mSnapshotParentViewRunnable = snapshotParentViewRunnable;
-        boolean isSurfacePolishEnabled = isSurfacePolishEnabled();
         PropertyModel propertyModel = new PropertyModel(SingleTabViewProperties.ALL_KEYS);
-        int layoutId = isSurfacePolishEnabled ? R.layout.single_tab_module_layout
-                                              : R.layout.single_tab_view_layout;
-        SingleTabView singleTabView =
-                (SingleTabView) LayoutInflater.from(activity).inflate(layoutId, container, false);
+        SingleTabView singleTabView = (SingleTabView) LayoutInflater.from(activity).inflate(
+                R.layout.single_tab_view_layout, container, false);
         mContainer = container;
         mContainer.addView(singleTabView);
         mPropertyModelChangeProcessor = PropertyModelChangeProcessor.create(
                 propertyModel, singleTabView, SingleTabViewBinder::bind);
-        mTabListFaviconProvider = new TabListFaviconProvider(activity, false,
-                isSurfacePolishEnabled ? R.dimen.favicon_corner_radius_polished
-                                       : R.dimen.default_favicon_corner_radius);
+        mTabListFaviconProvider = new TabListFaviconProvider(activity, false);
         if (!mIsTablet) {
-            mMediator = new SingleTabSwitcherMediator(activity, propertyModel, tabModelSelector,
-                    mTabListFaviconProvider, isSurfacePolishEnabled ? tabContentManager : null,
-                    isSurfacePolishEnabled);
+            mMediator = new SingleTabSwitcherMediator(
+                    activity, propertyModel, tabModelSelector, mTabListFaviconProvider);
             mMediatorOnTablet = null;
         } else {
-            mMediatorOnTablet = new SingleTabSwitcherOnTabletMediator(activity, propertyModel,
-                    activityLifecycleDispatcher, tabModelSelector, mTabListFaviconProvider,
-                    mostRecentTab, isScrollableMvtEnabled, singleTabCardClickedCallback,
-                    isSurfacePolishEnabled ? tabContentManager : null);
+            mMediatorOnTablet =
+                    new SingleTabSwitcherOnTabletMediator(propertyModel, activity.getResources(),
+                            activityLifecycleDispatcher, tabModelSelector, mTabListFaviconProvider,
+                            mostRecentTab, FeedFeatures.isMultiColumnFeedEnabled(activity),
+                            isScrollableMvtEnabled, singleTabCardClickedCallback);
             mMediator = null;
         }
         if (ChromeFeatureList.sInstantStart.isEnabled()) {
@@ -102,23 +96,27 @@ public class SingleTabSwitcherCoordinator implements TabSwitcher {
             }
 
             @Override
+            @VisibleForTesting
             public void setBitmapCallbackForTesting(Callback<Bitmap> callback) {
                 assert false : "should not reach here";
             }
 
             @Override
+            @VisibleForTesting
             public int getBitmapFetchCountForTesting() {
                 assert false : "should not reach here";
                 return 0;
             }
 
             @Override
+            @VisibleForTesting
             public int getSoftCleanupDelayForTesting() {
                 assert false : "should not reach here";
                 return 0;
             }
 
             @Override
+            @VisibleForTesting
             public int getCleanupDelayForTesting() {
                 assert false : "should not reach here";
                 return 0;
@@ -131,6 +129,7 @@ public class SingleTabSwitcherCoordinator implements TabSwitcher {
             }
 
             @Override
+            @VisibleForTesting
             public int getListModeForTesting() {
                 assert false : "should not reach here";
                 return 0;
@@ -224,56 +223,13 @@ public class SingleTabSwitcherCoordinator implements TabSwitcher {
     }
 
     /** @see SingleTabSwitcherOnTabletMediator#setVisibility. */
-    void setVisibility(boolean isVisible) {
+    public void setVisibility(boolean isVisible) {
         if (!mIsTablet) return;
 
         mMediatorOnTablet.setVisibility(isVisible);
         mContainer.setVisibility(isVisible ? View.VISIBLE : View.GONE);
     }
 
-    /**
-     * Shows the single tab module and updates the Tab to track. It is possible to hide the single
-     * Tab module if the new tracking Tab is invalid: e.g., a NTP.
-     * @param mostRecentTab The most recent Tab to track.
-     */
-    public void showModule(Tab mostRecentTab) {
-        if (!mIsTablet) return;
-
-        showModule(true, mostRecentTab);
-    }
-
-    /**
-     * Shows the single tab module.
-     */
-    public void showModule() {
-        if (!mIsTablet) return;
-
-        showModule(false, null);
-    }
-
-    /**
-     * Hides the single tab module.
-     */
-    public void hide() {
-        if (!mIsTablet) return;
-
-        setVisibility(false);
-    }
-
-    /**
-     * Shows the single tab module.
-     * @param shouldUpdateTab Whether to update the tracking Tab of the single Tab module.
-     * @param mostRecentTab The most recent Tab to track.
-     */
-    private void showModule(boolean shouldUpdateTab, Tab mostRecentTab) {
-        if (!mIsTablet) return;
-
-        boolean hasTabToTrack = true;
-        if (shouldUpdateTab) {
-            hasTabToTrack = updateTrackingTab(mostRecentTab);
-        }
-        setVisibility(hasTabToTrack);
-    }
     /**
      * Update the most recent tab to track in the single tab card.
      * @param tabToTrack The tab to track as the most recent tab.
@@ -305,9 +261,5 @@ public class SingleTabSwitcherCoordinator implements TabSwitcher {
         if (mMediatorOnTablet == null) return false;
 
         return mMediatorOnTablet.isVisible();
-    }
-
-    private boolean isSurfacePolishEnabled() {
-        return ChromeFeatureList.sSurfacePolish.isEnabled();
     }
 }

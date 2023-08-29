@@ -4,7 +4,7 @@
 
 import 'chrome://os-settings/lazy_load.js';
 
-import {InternetPageBrowserProxyImpl, Router, routes, setUserActionRecorderForTesting, userActionRecorderMojom} from 'chrome://os-settings/os_settings.js';
+import {InternetPageBrowserProxyImpl, Router, routes} from 'chrome://os-settings/os_settings.js';
 import {MojoConnectivityProvider} from 'chrome://resources/ash/common/connectivity/mojo_connectivity_provider.js';
 import {MojoInterfaceProviderImpl} from 'chrome://resources/ash/common/network/mojo_interface_provider.js';
 import {OncMojo} from 'chrome://resources/ash/common/network/onc_mojo.js';
@@ -16,8 +16,6 @@ import {FakeNetworkConfig} from 'chrome://webui-test/chromeos/fake_network_confi
 import {FakePasspointService} from 'chrome://webui-test/chromeos/fake_passpoint_service_mojom.js';
 import {waitAfterNextRender} from 'chrome://webui-test/polymer_test_util.js';
 import {eventToPromise} from 'chrome://webui-test/test_util.js';
-
-import {FakeUserActionRecorder} from '../fake_user_action_recorder.js';
 
 import {TestInternetPageBrowserProxy} from './test_internet_page_browser_proxy.js';
 
@@ -33,9 +31,6 @@ suite('InternetDetailPage', function() {
 
   /** @type {?TestInternetPageBrowserProxy} */
   let browserProxy = null;
-
-  /** @type {?userActionRecorderMojom.UserActionRecorderInterface} */
-  let userActionRecorder = null;
 
   /** @type {Object} */
   const prefs_ = {
@@ -130,7 +125,10 @@ suite('InternetDetailPage', function() {
   }
 
   function getHiddenToggle() {
-    return internetDetailPage.shadowRoot.querySelector('#hiddenToggle');
+    if (loadTimeData.getBoolean('enableHiddenNetworkMigration')) {
+      return internetDetailPage.shadowRoot.querySelector('#hiddenToggle');
+    }
+    return internetDetailPage.shadowRoot.querySelector('#hiddenToggleLegacy');
   }
 
   /**
@@ -170,9 +168,6 @@ suite('InternetDetailPage', function() {
   }
 
   setup(function() {
-    userActionRecorder = new FakeUserActionRecorder();
-    setUserActionRecorderForTesting(userActionRecorder);
-
     loadTimeData.overrideValues({
       internetAddConnection: 'internetAddConnection',
       internetAddConnectionExpandA11yLabel:
@@ -203,7 +198,6 @@ suite('InternetDetailPage', function() {
       internetDetailPage = null;
       Router.getInstance().resetRouteForTesting();
     });
-    setUserActionRecorderForTesting(null);
   });
 
   /**
@@ -421,26 +415,45 @@ suite('InternetDetailPage', function() {
       });
     });
 
-    test('Hidden toggle hidden for non-WiFi networks', function() {
-      init();
-      mojoApi_.resetForTest();
-      for (const networkType
-               of [NetworkType.kCellular, NetworkType.kEthernet,
-                   NetworkType.kTether, NetworkType.kVPN]) {
-        mojoApi_.setNetworkTypeEnabledState(networkType, true);
-        const networkTypeString = OncMojo.getNetworkTypeString(networkType);
-        const networkGuid = 'network_guid_' + networkTypeString;
-        const networkName = 'network_name_' + networkTypeString;
-        const network = getManagedProperties(networkType, networkName);
+    // Syntactic sugar for running test twice with different values for the
+    // apnRevamp feature flag.
+    [true, false].forEach(shouldEnableHiddenNetworkMigration => {
+      test(
+          'Hidden toggle is shown in a different location depending on feature flag',
+          async () => {
+            loadTimeData.overrideValues({
+              enableHiddenNetworkMigration: shouldEnableHiddenNetworkMigration,
+            });
 
-        mojoApi_.setManagedPropertiesForTest(network);
+            init();
+            mojoApi_.resetForTest();
+            mojoApi_.setNetworkTypeEnabledState(NetworkType.kWiFi, true);
+            const wifiNetwork =
+                getManagedProperties(NetworkType.kWiFi, 'wifi_user');
+            wifiNetwork.source = OncSource.kUser;
+            wifiNetwork.connectable = true;
 
-        internetDetailPage.init(networkGuid, networkTypeString, networkName);
-        return flushAsync().then(() => {
-          const hiddenToggle = getHiddenToggle();
-          assertFalse(!!hiddenToggle);
-        });
-      }
+            mojoApi_.setManagedPropertiesForTest(wifiNetwork);
+
+            internetDetailPage.init('wifi_user_guid', 'WiFi', 'wifi_user');
+
+            return flushAsync().then(() => {
+              const enableHiddenNetworkMigration =
+                  loadTimeData.getBoolean('enableHiddenNetworkMigration');
+              const hiddenToggle =
+                  internetDetailPage.shadowRoot.querySelector('#hiddenToggle');
+              const hiddenToggleLegacy =
+                  internetDetailPage.shadowRoot.querySelector(
+                      '#hiddenToggleLegacy');
+              if (loadTimeData.getBoolean('enableHiddenNetworkMigration')) {
+                assertTrue(!!hiddenToggle);
+                assertFalse(!!hiddenToggleLegacy);
+              } else {
+                assertFalse(!!hiddenToggle);
+                assertTrue(!!hiddenToggleLegacy);
+              }
+            });
+          });
     });
 
     test('Proxy Unshared', function() {

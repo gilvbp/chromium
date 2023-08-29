@@ -30,8 +30,7 @@ AutofillWalletModelTypeController::AutofillWalletModelTypeController(
                           std::move(delegate_for_transport_mode)),
       pref_service_(pref_service),
       sync_service_(sync_service) {
-  DCHECK(type == syncer::AUTOFILL_WALLET_CREDENTIAL ||
-         type == syncer::AUTOFILL_WALLET_DATA ||
+  DCHECK(type == syncer::AUTOFILL_WALLET_DATA ||
          type == syncer::AUTOFILL_WALLET_METADATA ||
          type == syncer::AUTOFILL_WALLET_OFFER ||
          type == syncer::AUTOFILL_WALLET_USAGE);
@@ -56,19 +55,21 @@ syncer::DataTypeController::PreconditionState
 AutofillWalletModelTypeController::GetPreconditionState() const {
   DCHECK(CalledOnValidThread());
   bool preconditions_met =
+      pref_service_->GetBoolean(
+          autofill::prefs::kAutofillWalletImportEnabled) &&
       pref_service_->GetBoolean(autofill::prefs::kAutofillCreditCardEnabled);
   return preconditions_met ? PreconditionState::kPreconditionsMet
                            : PreconditionState::kMustStopAndClearData;
 }
 
 bool AutofillWalletModelTypeController::ShouldRunInTransportOnlyMode() const {
-  if (!base::FeatureList::IsEnabled(
-          syncer::kReplaceSyncPromosWithSignInPromos)) {
-    if (sync_service_->GetUserSettings()->IsUsingExplicitPassphrase()) {
-      return false;
-    }
+  if (type() != syncer::AUTOFILL_WALLET_DATA) {
+    return false;
   }
-  return ModelTypeController::ShouldRunInTransportOnlyMode();
+  if (sync_service_->GetUserSettings()->IsUsingExplicitPassphrase()) {
+    return false;
+  }
+  return true;
 }
 
 void AutofillWalletModelTypeController::OnUserPrefChanged() {
@@ -78,6 +79,10 @@ void AutofillWalletModelTypeController::OnUserPrefChanged() {
 
 void AutofillWalletModelTypeController::SubscribeToPrefChanges() {
   pref_registrar_.Init(pref_service_);
+  pref_registrar_.Add(
+      autofill::prefs::kAutofillWalletImportEnabled,
+      base::BindRepeating(&AutofillWalletModelTypeController::OnUserPrefChanged,
+                          base::Unretained(this)));
   pref_registrar_.Add(
       autofill::prefs::kAutofillCreditCardEnabled,
       base::BindRepeating(&AutofillWalletModelTypeController::OnUserPrefChanged,

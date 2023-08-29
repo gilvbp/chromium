@@ -105,7 +105,7 @@ enum CompositeOperator {
   kCompositePlusLighter
 };
 
-enum class BlendMode : uint8_t {
+enum class BlendMode {
   kNormal,
   kMultiply,
   kScreen,
@@ -126,8 +126,6 @@ enum class BlendMode : uint8_t {
   // operator. Canvas uses the same enum but the kPlusLighter is not a valid
   // canvas value. We should consider splitting the enums.
   kPlusLighter,
-
-  kMaxBlendMode = kPlusLighter,
 };
 
 enum OpacityMode {

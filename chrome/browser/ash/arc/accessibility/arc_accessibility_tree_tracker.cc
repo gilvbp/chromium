@@ -4,7 +4,6 @@
 
 #include "chrome/browser/ash/arc/accessibility/arc_accessibility_tree_tracker.h"
 
-#include <memory>
 #include <utility>
 
 #include "ash/accessibility/accessibility_controller_impl.h"
@@ -29,7 +28,6 @@
 #include "chrome/browser/ash/accessibility/accessibility_manager.h"
 #include "chrome/browser/ash/accessibility/magnification_manager.h"
 #include "chrome/browser/ash/arc/accessibility/arc_accessibility_util.h"
-#include "chrome/browser/ash/arc/accessibility/arc_serialization_delegate.h"
 #include "chrome/browser/ash/arc/input_method_manager/arc_input_method_manager_service.h"
 #include "chrome/common/extensions/api/accessibility_private.h"
 #include "components/exo/input_method_surface.h"
@@ -306,11 +304,13 @@ class ArcAccessibilityTreeTracker::MojoConnectionObserver
   }
 
   void OnConnectionReady() override {
-    owner_->notification_observer_ =
-        std::make_unique<NotificationObserver>(owner_);
+    owner_->notification_surface_observer_ =
+        std::make_unique<ArcNotificationSurfaceManagerObserver>(owner_);
   }
 
-  void OnConnectionClosed() override { owner_->notification_observer_.reset(); }
+  void OnConnectionClosed() override {
+    owner_->notification_surface_observer_.reset();
+  }
 
  private:
   base::ScopedObservation<
@@ -321,29 +321,20 @@ class ArcAccessibilityTreeTracker::MojoConnectionObserver
   raw_ptr<ArcAccessibilityTreeTracker, ExperimentalAsh> owner_;
 };
 
-// Observes (1) Addition and removal of ArcNotificationSurface, and
-// (2) Removal of aura::Window corresponds to ARC notification.
-class ArcAccessibilityTreeTracker::NotificationObserver
-    : public ash::ArcNotificationSurfaceManager::Observer,
-      public aura::WindowObserver {
+class ArcAccessibilityTreeTracker::ArcNotificationSurfaceManagerObserver
+    : public ash::ArcNotificationSurfaceManager::Observer {
  public:
-  explicit NotificationObserver(ArcAccessibilityTreeTracker* owner)
+  explicit ArcNotificationSurfaceManagerObserver(
+      ArcAccessibilityTreeTracker* owner)
       : owner_(owner) {
     auto* surface_manager = ash::ArcNotificationSurfaceManager::Get();
-    if (surface_manager) {
+    if (surface_manager)
       arc_notification_observation_.Observe(surface_manager);
-    }
   }
 
-  // ash::ArcNotificationSurfaceManager::Observer overrides:
   void OnNotificationSurfaceAdded(
       ash::ArcNotificationSurface* surface) override {
     owner_->OnNotificationSurfaceAdded(surface);
-
-    aura::Window* window = surface->GetWindow();
-    if (window && !window_observations_.IsObservingSource(window)) {
-      window_observations_.AddObservation(window);
-    }
   }
 
   void OnNotificationSurfaceRemoved(
@@ -351,20 +342,10 @@ class ArcAccessibilityTreeTracker::NotificationObserver
     owner_->OnNotificationSurfaceRemoved(surface);
   }
 
-  // aura::WindowObserver overrides:
-  void OnWindowDestroying(aura::Window* window) override {
-    if (window_observations_.IsObservingSource(window)) {
-      window_observations_.RemoveObservation(window);
-    }
-    owner_->OnNotificationWindowRemoved(window);
-  }
-
  private:
   base::ScopedObservation<ash::ArcNotificationSurfaceManager,
                           ash::ArcNotificationSurfaceManager::Observer>
       arc_notification_observation_{this};
-  base::ScopedMultiSourceObservation<aura::Window, aura::WindowObserver>
-      window_observations_{this};
   raw_ptr<ArcAccessibilityTreeTracker, ExperimentalAsh> owner_;
 };
 
@@ -632,7 +613,7 @@ ArcAccessibilityTreeTracker::OnAccessibilityEvent(
       tree = CreateFromKey(key, input_method_surface->host_window());
       input_method_surface->SetChildAxTreeId(tree->ax_tree_id());
     }
-    CHECK(tree->window() == input_method_surface->host_window());
+    DCHECK(tree->window() == input_method_surface->host_window());
 
     return tree;
   } else {
@@ -697,16 +678,6 @@ void ArcAccessibilityTreeTracker::OnNotificationSurfaceRemoved(
     return;
 
   tree->set_window(nullptr);
-}
-
-void ArcAccessibilityTreeTracker::OnNotificationWindowRemoved(
-    aura::Window* window) {
-  for (auto& [treeKey, tree] : trees_) {
-    if (tree->window() == window) {
-      // Actual clean-up is done in OnNotificationStateChanged.
-      tree->set_window(nullptr);
-    }
-  }
 }
 
 void ArcAccessibilityTreeTracker::OnNotificationStateChanged(
@@ -844,8 +815,7 @@ ax::android::AXTreeSourceAndroid* ArcAccessibilityTreeTracker::CreateFromKey(
     TreeKey key,
     aura::Window* window) {
   auto tree = std::make_unique<ax::android::AXTreeSourceAndroid>(
-      tree_source_delegate_, std::make_unique<ArcSerializationDelegate>(),
-      window);
+      tree_source_delegate_, window);
   auto [itr, inserted] = trees_.try_emplace(std::move(key), std::move(tree));
   DCHECK(inserted);
   return itr->second.get();

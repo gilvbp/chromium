@@ -87,7 +87,6 @@ class ChromeDownloadManagerDelegate
                           DownloadDialogBridge::DialogCallback callback);
 
   void SetDownloadDialogBridgeForTesting(DownloadDialogBridge* bridge);
-  void SetDownloadMessageBridgeForTesting(DownloadMessageBridge* bridge);
 #endif
 
   // Callbacks passed to GetNextId() will not be called until the returned
@@ -333,7 +332,7 @@ class ChromeDownloadManagerDelegate
   // Called after a unique file name is generated in the case that there is a
   // TARGET_CONFLICT and the new file name should be displayed to the user.
   void GenerateUniqueFileNameDone(
-      const std::string& download_guid,
+      gfx::NativeWindow native_window,
       DownloadTargetDeterminerDelegate::ConfirmationCallback callback,
       download::PathValidationResult result,
       const base::FilePath& target_path);

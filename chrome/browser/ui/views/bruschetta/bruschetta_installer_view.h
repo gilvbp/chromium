@@ -13,7 +13,6 @@
 #include "chrome/browser/ash/guest_os/guest_id.h"
 #include "ui/base/metadata/metadata_header_macros.h"
 #include "ui/views/controls/button/radio_button.h"
-#include "ui/views/controls/link.h"
 #include "ui/views/controls/progress_bar.h"
 #include "ui/views/window/dialog_delegate.h"
 
@@ -66,7 +65,6 @@ class BruschettaInstallerView
   // Public for testing purposes.
   std::u16string GetPrimaryMessage() const;
   std::u16string GetSecondaryMessage() const;
-  views::Link* GetLinkLabelForTesting() const { return link_label_; }
   void OnInstallationEnded();
 
   // Let tests inject mock installers.
@@ -118,11 +116,9 @@ class BruschettaInstallerView
   raw_ptr<Profile> profile_ = nullptr;
   raw_ptr<views::Label> primary_message_label_ = nullptr;
   raw_ptr<views::Label> secondary_message_label_ = nullptr;
-  raw_ptr<views::Link> link_label_ = nullptr;
   raw_ptr<views::ProgressBar> progress_bar_ = nullptr;
   raw_ptr<views::View, DanglingUntriaged> radio_button_container_ = nullptr;
 
-  GURL learn_more_url_;
   base::flat_map<std::string, raw_ptr<views::RadioButton, DanglingUntriaged>>
       radio_buttons_;
   std::string selected_config_;

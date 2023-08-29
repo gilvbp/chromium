@@ -161,6 +161,7 @@ public class AccessorySheetCoordinator {
         mMediator.setOnPageChangeListener(onPageChangeListener);
     }
 
+    @VisibleForTesting
     AccessorySheetMediator getMediatorForTesting() {
         return mMediator;
     }

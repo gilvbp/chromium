@@ -8,16 +8,15 @@
 #import "ios/web/public/favicon/favicon_status.h"
 #import "ios/web/web_state/web_state_impl.h"
 
+@class CRWNavigationItemStorage;
+
 namespace web {
-namespace proto {
-class WebStateMetadataStorage;
-}  // namespace proto
 
 // Object storing the information needed to realize a WebState.
 //
-// This object is mostly read-only storage, but some information may
-// be modified during the lifetime of the object (mostly the favicon
-// information).
+// This object is mostly a storage, but has some helper method to allow
+// an "unrealized" WebState to be queried for information available in
+// the serialized state.
 //
 // Like RealizedWebState, the WebStateImpl may forward method to this
 // class. Those methods will not be documented, but instead they will
@@ -25,16 +24,10 @@ class WebStateMetadataStorage;
 class WebStateImpl::SerializedData {
  public:
   // Creates a SerializedData with a non-null pointer to the owning
-  // WebStateImpl, `browser_state`, unique and stable identifiers,
-  // and data loaded from disk via `metadata`. The `storage_loader`
-  // is used when the WebState will transition to "realized" state.
+  // WebStateImpl and a copy of the serialized state.
   SerializedData(WebStateImpl* owner,
-                 BrowserState* browser_state,
-                 NSString* stable_identifier,
-                 SessionID unique_identifier,
-                 proto::WebStateMetadataStorage metadata,
-                 WebStateStorageLoader storage_loader,
-                 NativeSessionFetcher session_fetcher);
+                 const CreateParams& create_params,
+                 CRWSessionStorage* session_storage);
 
   SerializedData(const SerializedData&) = delete;
   SerializedData& operator=(const SerializedData) = delete;
@@ -47,17 +40,11 @@ class WebStateImpl::SerializedData {
   // pointer (thus it must be non-null).
   void TearDown();
 
-  // Getter and setter for the CRWSessionStorage; only available when the
-  // session serialization optimisation feature is disabled.
-  // TODO(crbug.com/1383087): remove once the feature is fully launched.
+  // Returns a copy of `params_`.
+  CreateParams GetCreateParams() const;
+
+  // Returns the serialized representation of the session.
   CRWSessionStorage* GetSessionStorage() const;
-  void SetSessionStorage(CRWSessionStorage* storage);
-
-  // Returns the callback used to load the complete data from disk.
-  WebStateStorageLoader TakeStorageLoader();
-
-  // Returns the callback used to fetch the native session data blob.
-  NativeSessionFetcher TakeNativeSessionFetcher();
 
   // WebState:
   base::Time GetLastActiveTime() const;
@@ -81,36 +68,21 @@ class WebStateImpl::SerializedData {
     return owner_->policy_deciders_;
   }
 
+  // Returns the CRWNavigationItemStorage* corresponding to the last committed
+  // navigation item from the serialized state. May return nil.
+  CRWNavigationItemStorage* GetLastCommittedItem() const;
+
   // Owner. Never null. Owns this object.
-  WebStateImpl* const owner_;
+  WebStateImpl* owner_ = nullptr;
 
-  // The owning BrowserState. Indirectly owns this object.
-  BrowserState* const browser_state_;
+  // Parameters to initialize the RealizedWebState.
+  CreateParams create_params_;
 
-  // The stable and unique identifiers.
-  NSString* const stable_identifier_;
-  const SessionID unique_identifier_;
-
-  // Information about this WebState available when the object is not
-  // yet realized. This is limited to the information accessible in
-  // the `storage` instance passed in the constructor.
-  const base::Time creation_time_;
-  const base::Time last_active_time_;
-  const std::u16string page_title_;
-  const GURL page_visible_url_;
-  const int navigation_item_count_;
+  // Serialized representation of the session. Never nil.
+  __strong CRWSessionStorage* session_storage_ = nil;
 
   // Favicon status.
   FaviconStatus favicon_status_;
-
-  // Callbacks used to load the full data about this WebState.
-  WebStateStorageLoader storage_loader_;
-  NativeSessionFetcher session_fetcher_;
-
-  // Serialized representation of the session; only available when the
-  // session serialization optimisation feature is disabled.
-  // TODO(crbug.com/1383087): remove once the feature is fully launched.
-  __strong CRWSessionStorage* session_storage_ = nil;
 };
 
 }  // namespace web

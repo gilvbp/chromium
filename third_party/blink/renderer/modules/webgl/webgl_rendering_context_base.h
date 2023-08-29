@@ -654,7 +654,9 @@ class MODULES_EXPORT WebGLRenderingContextBase : public CanvasRenderingContext,
   SkColorInfo CanvasRenderingContextSkColorInfo() const override;
   scoped_refptr<StaticBitmapImage> GetImage(
       CanvasResourceProvider::FlushReason) override;
-  void SetHdrMetadata(const gfx::HDRMetadata& hdr_metadata) override;
+  void SetHDRConfiguration(
+      gfx::HDRMode hdr_mode,
+      absl::optional<gfx::HDRMetadata> hdr_metadata) override;
   void SetFilterQuality(cc::PaintFlags::FilterQuality) override;
 
   V8UnionHTMLCanvasElementOrOffscreenCanvas* getHTMLOrOffscreenCanvas() const;
@@ -691,7 +693,6 @@ class MODULES_EXPORT WebGLRenderingContextBase : public CanvasRenderingContext,
   friend class WebGLVertexArrayObjectBase;
 
   // Implementation helpers.
-  friend class ScopedPixelLocalStorageInterrupt;
   friend class ScopedDrawingBufferBinder;
   friend class ScopedFramebufferRestorer;
   friend class ScopedTexture2DRestorer;
@@ -722,7 +723,6 @@ class MODULES_EXPORT WebGLRenderingContextBase : public CanvasRenderingContext,
   friend class WebGLMultiDraw;
   friend class WebGLMultiDrawCommon;
   friend class WebGLMultiDrawInstancedBaseVertexBaseInstance;
-  friend class WebGLShaderPixelLocalStorage;
   friend class WebGLVideoTexture;
 
   WebGLRenderingContextBase(CanvasRenderingContextHost*,
@@ -758,8 +758,6 @@ class MODULES_EXPORT WebGLRenderingContextBase : public CanvasRenderingContext,
 
   // DrawingBuffer::Client implementation.
   bool DrawingBufferClientIsBoundForDraw() override;
-  void DrawingBufferClientInterruptPixelLocalStorage() override;
-  void DrawingBufferClientRestorePixelLocalStorage() override;
   void DrawingBufferClientRestoreScissorTest() override;
   void DrawingBufferClientRestoreMaskAndClearValues() override;
   void DrawingBufferClientRestorePixelPackParameters() override;
@@ -770,8 +768,7 @@ class MODULES_EXPORT WebGLRenderingContextBase : public CanvasRenderingContext,
   void DrawingBufferClientRestorePixelUnpackBufferBinding() override;
   void DrawingBufferClientRestorePixelPackBufferBinding() override;
   bool DrawingBufferClientUserAllocatedMultisampledRenderbuffers() override;
-  void DrawingBufferClientForceLostContextWithAutoRecovery(
-      const char* reason) override;
+  void DrawingBufferClientForceLostContextWithAutoRecovery() override;
 
   // All draw calls should go through this wrapper so that various
   // bookkeeping related to compositing and preserveDrawingBuffer
@@ -2005,11 +2002,6 @@ class MODULES_EXPORT WebGLRenderingContextBase : public CanvasRenderingContext,
   int number_of_user_allocated_multisampled_renderbuffers_;
 
   bool has_been_drawn_to_ = false;
-
-  // Tracks if the context has ever called glBeginPixelLocalStorageANGLE. If it
-  // has, we need to start using the pixel local storage interrupt mechanism
-  // when we take over the client's context.
-  bool has_activated_pixel_local_storage_ = false;
 
   PredefinedColorSpace drawing_buffer_color_space_ =
       PredefinedColorSpace::kSRGB;

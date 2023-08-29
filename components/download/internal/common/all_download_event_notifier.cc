@@ -28,7 +28,7 @@ AllDownloadEventNotifier::~AllDownloadEventNotifier() {
   }
   observing_.clear();
 
-  CHECK(!SimpleDownloadManagerCoordinator::Observer::IsInObserverList());
+  CHECK(!IsInObserverList());
 }
 
 void AllDownloadEventNotifier::AddObserver(Observer* observer) {

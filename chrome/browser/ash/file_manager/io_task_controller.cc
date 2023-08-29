@@ -144,7 +144,7 @@ void IOTaskController::ProgressPausedTasks() {
 }
 
 void IOTaskController::CompleteWithError(IOTaskId task_id,
-                                         PolicyError policy_error) {
+                                         PolicyErrorType policy_error) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
 
   auto it = tasks_.find(task_id);

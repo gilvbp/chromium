@@ -47,9 +47,6 @@ class InterestGroupManagerImpl;
 // updated recently.
 class CONTENT_EXPORT InterestGroupUpdateManager {
  public:
-  using AreReportingOriginsAttestedCallback =
-      base::RepeatingCallback<bool(const std::vector<url::Origin>&)>;
-
   // `manager` should be the InterestGroupManagerImpl that owns this
   // InterestGroupManager.
   InterestGroupUpdateManager(
@@ -62,8 +59,7 @@ class CONTENT_EXPORT InterestGroupUpdateManager {
   // load or validate are skipped, but other updates will proceed.
   void UpdateInterestGroupsOfOwner(
       const url::Origin& owner,
-      network::mojom::ClientSecurityStatePtr client_security_state,
-      AreReportingOriginsAttestedCallback callback);
+      network::mojom::ClientSecurityStatePtr client_security_state);
 
   // Like UpdateInterestGroupsOfOwner(), but handles multiple interest group
   // owners.
@@ -71,8 +67,7 @@ class CONTENT_EXPORT InterestGroupUpdateManager {
   // The list is shuffled in-place to ensure fairness.
   void UpdateInterestGroupsOfOwners(
       base::span<url::Origin> owners,
-      network::mojom::ClientSecurityStatePtr client_security_state,
-      AreReportingOriginsAttestedCallback callback);
+      network::mojom::ClientSecurityStatePtr client_security_state);
 
   // For testing *only*; changes the maximum amount of time that the update
   // process can run before it gets cancelled for taking too long.
@@ -256,9 +251,6 @@ class CONTENT_EXPORT InterestGroupUpdateManager {
   // All active network requests -- active requests will be cancelled when
   // destroyed.
   UrlLoadersList url_loaders_;
-
-  // For checking if all allowed reporting origins are attested.
-  AreReportingOriginsAttestedCallback attestation_callback_;
 
   // TODO(crbug.com/1186444): Do we need to test InterestGroupManager
   // destruction during update? If so, how?

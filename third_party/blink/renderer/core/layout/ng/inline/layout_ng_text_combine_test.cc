@@ -1187,8 +1187,7 @@ LayoutNGBlockFlow DIV id="root"
             ToSimpleLayoutTree(root_layout_object))
       << "There are no wrapper.";
 
-  GetElementById("combine")->setAttribute(
-      html_names::kStyleAttr, AtomicString("text-combine-upright: all"));
+  GetElementById("combine")->setAttribute("style", "text-combine-upright: all");
   RunDocumentLifecycle();
   EXPECT_EQ(R"DUMP(
 LayoutNGBlockFlow DIV id="root"
@@ -1223,8 +1222,8 @@ LayoutNGBlockFlow DIV id="root"
 )DUMP",
             ToSimpleLayoutTree(root_layout_object));
 
-  GetElementById("combine")->setAttribute(
-      html_names::kStyleAttr, AtomicString("text-combine-upright: none"));
+  GetElementById("combine")->setAttribute("style",
+                                          "text-combine-upright: none");
   RunDocumentLifecycle();
   EXPECT_EQ(R"DUMP(
 LayoutNGBlockFlow DIV id="root"
@@ -1258,8 +1257,7 @@ LayoutNGBlockFlow DIV id="root"
 )DUMP",
             ToSimpleLayoutTree(root_layout_object));
 
-  root.setAttribute(html_names::kStyleAttr,
-                    AtomicString("writing-mode: horizontal-tb"));
+  root.setAttribute("style", "writing-mode: horizontal-tb");
   RunDocumentLifecycle();
   EXPECT_EQ(R"DUMP(
 LayoutNGBlockFlow DIV id="root" style="writing-mode: horizontal-tb"
@@ -1287,8 +1285,7 @@ LayoutNGBlockFlow DIV id="root"
 )DUMP",
             ToSimpleLayoutTree(*root.GetLayoutObject()));
 
-  root.setAttribute(html_names::kStyleAttr,
-                    AtomicString("writing-mode: horizontal-tb"));
+  root.setAttribute("style", "writing-mode: horizontal-tb");
   RunDocumentLifecycle();
   EXPECT_EQ(R"DUMP(
 LayoutNGBlockFlow DIV id="root" style="writing-mode: horizontal-tb"
@@ -1314,8 +1311,7 @@ LayoutNGBlockFlow DIV id="root"
 )DUMP",
             ToSimpleLayoutTree(root_layout_object));
 
-  root.setAttribute(html_names::kStyleAttr,
-                    AtomicString("writing-mode: vertical-rl"));
+  root.setAttribute("style", "writing-mode: vertical-rl");
   RunDocumentLifecycle();
   EXPECT_EQ(R"DUMP(
 LayoutNGBlockFlow DIV id="root" style="writing-mode: vertical-rl"

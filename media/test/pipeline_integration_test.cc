@@ -6,16 +6,13 @@
 #include <stdint.h>
 
 #include <memory>
-#include <string>
 #include <utility>
 
 #include "base/command_line.h"
-#include "base/containers/cxx20_erase.h"
 #include "base/functional/bind.h"
 #include "base/functional/callback_helpers.h"
 #include "base/memory/ref_counted.h"
 #include "base/run_loop.h"
-#include "base/strings/strcat.h"
 #include "base/strings/string_split.h"
 #include "base/strings/string_util.h"
 #include "base/task/single_thread_task_runner.h"
@@ -40,7 +37,6 @@
 #include "media/test/pipeline_integration_test_base.h"
 #include "media/test/test_media_source.h"
 #include "testing/gmock/include/gmock/gmock.h"
-#include "third_party/abseil-cpp/absl/strings/ascii.h"
 #include "url/gurl.h"
 
 #if BUILDFLAG(IS_ANDROID)
@@ -523,13 +519,16 @@ class MSEChangeTypeTest
     template <class ParamType>
     std::string operator()(
         const testing::TestParamInfo<ParamType>& info) const {
-      std::string s = base::StrCat({std::get<0>(info.param).filename, "_AND_",
-                                    std::get<1>(info.param).filename});
+      std::stringstream ss;
+      ss << std::get<0>(info.param) << "_AND_" << std::get<1>(info.param);
+      std::string s = ss.str();
       // Strip out invalid param name characters.
-      base::EraseIf(s, [](char c) {
-        return !absl::ascii_isalnum(static_cast<unsigned char>(c)) && c != '_';
-      });
-      return s;
+      std::stringstream ss2;
+      for (size_t i = 0; i < s.size(); ++i) {
+        if (isalnum(s[i]) || s[i] == '_')
+          ss2 << s[i];
+      }
+      return ss2.str();
     }
   };
 

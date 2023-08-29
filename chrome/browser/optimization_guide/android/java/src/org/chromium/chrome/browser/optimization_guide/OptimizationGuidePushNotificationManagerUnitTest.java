@@ -106,6 +106,7 @@ public class OptimizationGuidePushNotificationManagerUnitTest {
     public void resetFeatureFlags() {
         CachedFeatureFlags.resetFlagsForTesting();
         OptimizationGuidePushNotificationManager.clearCacheForAllTypes();
+        OptimizationGuidePushNotificationManager.setNativeIsInitializedForTesting(null);
         FeatureList.setTestFeatures(null);
     }
 

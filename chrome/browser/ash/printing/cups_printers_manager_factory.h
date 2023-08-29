@@ -43,7 +43,7 @@ class CupsPrintersManagerFactory : public ProfileKeyedServiceFactory {
   ~CupsPrintersManagerFactory() override;
 
   // BrowserContextKeyedServiceFactory overrides:
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* context) const override;
   void BrowserContextShutdown(content::BrowserContext* context) override;
   bool ServiceIsCreatedWithBrowserContext() const override;

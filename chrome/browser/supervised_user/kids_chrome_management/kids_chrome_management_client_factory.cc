@@ -29,7 +29,10 @@ KidsChromeManagementClientFactory::GetInstance() {
 KidsChromeManagementClientFactory::KidsChromeManagementClientFactory()
     : ProfileKeyedServiceFactory(
           "KidsChromeManagementClient",
-          supervised_user::BuildProfileSelectionsForRegularAndGuest()) {
+          base::FeatureList::IsEnabled(
+              supervised_user::kUpdateSupervisedUserFactoryCreation)
+              ? supervised_user::BuildProfileSelectionsForRegularAndGuest()
+              : supervised_user::BuildProfileSelectionsLegacy()) {
   DependsOn(IdentityManagerFactory::GetInstance());
 }
 

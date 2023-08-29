@@ -679,10 +679,9 @@ DevicePermissionsManagerFactory::DevicePermissionsManagerFactory()
 DevicePermissionsManagerFactory::~DevicePermissionsManagerFactory() {
 }
 
-std::unique_ptr<KeyedService>
-DevicePermissionsManagerFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* DevicePermissionsManagerFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
-  return std::make_unique<DevicePermissionsManager>(context);
+  return new DevicePermissionsManager(context);
 }
 
 BrowserContext* DevicePermissionsManagerFactory::GetBrowserContextToUse(
@@ -690,8 +689,7 @@ BrowserContext* DevicePermissionsManagerFactory::GetBrowserContextToUse(
   // Return the original (possibly off-the-record) browser context so that a
   // separate instance of the DevicePermissionsManager is used in incognito
   // mode. The parent class's implemenation returns NULL.
-  return ExtensionsBrowserClient::Get()->GetContextOwnInstance(
-      context, /*force_guest_profile=*/true);
+  return context;
 }
 
 }  // namespace extensions

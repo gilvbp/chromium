@@ -32,6 +32,7 @@ class ChromeBrowserMainPartsFuchsia : public ChromeBrowserMainParts,
   void ShowMissingLocaleMessageBox() override;
 
   // content::BrowserMainParts overrides.
+  int PreEarlyInitialization() override;
   void PostCreateMainMessageLoop() override;
   int PreMainMessageLoopRun() override;
 

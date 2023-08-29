@@ -182,6 +182,7 @@ public final class WebFeedFollowIntroControllerTest {
     @After
     public void tearDown() {
         TextBubble.setSkipShowCheckForTesting(false);
+        TrackerFactory.setTrackerForTests(null);
     }
 
     @Test

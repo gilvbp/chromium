@@ -47,7 +47,6 @@
 #include "net/traffic_annotation/network_traffic_annotation.h"
 #include "net/traffic_annotation/network_traffic_annotation_test_helper.h"
 #include "testing/gtest/include/gtest/gtest.h"
-#include "third_party/abseil-cpp/absl/strings/ascii.h"
 
 #if BUILDFLAG(IS_ANDROID)
 #include "base/android/build_info.h"
@@ -69,7 +68,9 @@ inline char AsciifyLow(char x) {
 }
 
 inline char Asciify(char x) {
-  return absl::ascii_isprint(static_cast<unsigned char>(x)) ? x : '.';
+  if ((x < 0) || !isprint(x))
+    return '.';
+  return x;
 }
 
 void DumpData(const char* data, int data_len) {

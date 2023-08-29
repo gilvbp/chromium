@@ -20,7 +20,6 @@
 #include "ui/events/event.h"
 #include "ui/gfx/font_list.h"
 #include "ui/gfx/geometry/insets.h"
-#include "ui/gfx/geometry/rounded_corners_f.h"
 #include "ui/gfx/range/range.h"
 #include "ui/gfx/text_constants.h"
 #include "ui/views/background.h"
@@ -49,9 +48,15 @@ constexpr char16_t kChipThreeQueryPlaceholder[] = u"5 cm in inches";
 
 constexpr char16_t kAssistantButtonPlaceholder[] = u"Assistant";
 
-constexpr gfx::RoundedCornersF kBackgroundRadiiClamshellLTR = {16, 4, 16, 16};
+constexpr views::Radii kBackgroundRadiiClamshellLTR = {.top_left = 16.0f,
+                                                       .top_right = 4.0f,
+                                                       .bottom_right = 16.0f,
+                                                       .bottom_left = 16.0f};
 
-constexpr gfx::RoundedCornersF kBackgroundRadiiClamshellRTL = {4, 16, 16, 16};
+constexpr views::Radii kBackgroundRadiiClamshellRTL = {.top_left = 4.0f,
+                                                       .top_right = 16.0f,
+                                                       .bottom_right = 16.0f,
+                                                       .bottom_left = 16.0f};
 
 // There are 4px margins for the top and the bottom (and for the left in LTR
 // Clamshell mode) provided by SearchBoxViewBase's root level container, i.e.

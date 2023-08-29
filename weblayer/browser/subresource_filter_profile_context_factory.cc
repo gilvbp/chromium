@@ -35,11 +35,13 @@ SubresourceFilterProfileContextFactory::SubresourceFilterProfileContextFactory()
   DependsOn(HostContentSettingsMapFactory::GetInstance());
 }
 
-std::unique_ptr<KeyedService>
-SubresourceFilterProfileContextFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* SubresourceFilterProfileContextFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
-  return std::make_unique<subresource_filter::SubresourceFilterProfileContext>(
-      HostContentSettingsMapFactory::GetForBrowserContext(context));
+  auto* subresource_filter_profile_context =
+      new subresource_filter::SubresourceFilterProfileContext(
+          HostContentSettingsMapFactory::GetForBrowserContext(context));
+
+  return subresource_filter_profile_context;
 }
 
 content::BrowserContext*

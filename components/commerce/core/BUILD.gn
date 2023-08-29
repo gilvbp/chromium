@@ -76,7 +76,6 @@ proto_library("proto") {
     "proto/merchant_trust.proto",
     "proto/price_insights.proto",
     "proto/price_tracking.proto",
-    "proto/shopping_page_types.proto",
   ]
 }
 
@@ -209,7 +208,6 @@ static_library("shopping_service") {
     "//components/search:search",
     "//components/session_proto_db:core",
     "//components/signin/public/identity_manager:identity_manager",
-    "//components/strings:components_strings_grit",
     "//components/sync/service",
     "//components/unified_consent",
     "//services/network/public/cpp:cpp",
@@ -218,7 +216,6 @@ static_library("shopping_service") {
   ]
 
   public_deps = [
-    ":commerce_types",
     "//components/commerce/core/subscriptions:subscriptions",
     "//services/data_decoder/public/cpp",
   ]
@@ -381,10 +378,4 @@ source_set("commerce_constants") {
     "commerce_constants.cc",
     "commerce_constants.h",
   ]
-}
-
-source_set("commerce_types") {
-  sources = [ "commerce_types.h" ]
-
-  deps = [ "//url" ]
 }

@@ -13,7 +13,6 @@ namespace blink {
 
 class NGBlockNode;
 class NGBoxFragment;
-class NGBoxFragmentBuilder;
 class NGConstraintSpaceBuilder;
 class NGTableBorders;
 enum class NGCacheSlot;

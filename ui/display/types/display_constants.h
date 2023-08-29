@@ -13,9 +13,6 @@
 
 namespace display {
 
-// 1 inch in mm.
-constexpr float kInchInMm = 25.4f;
-
 // Display ID that represents an invalid display. Often used as a default value
 // before display IDs are known.
 constexpr int64_t kInvalidDisplayId = -1;

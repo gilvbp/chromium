@@ -11,23 +11,29 @@
 
 #include "base/memory/raw_ptr.h"
 #include "base/memory/scoped_refptr.h"
+#include "base/memory/weak_ptr.h"
 #include "build/build_config.h"
 #include "build/chromeos_buildflags.h"
 #include "components/signin/public/base/signin_client.h"
 #include "services/network/public/cpp/shared_url_loader_factory.h"
+#include "services/network/public/mojom/network_change_manager.mojom-forward.h"
 
-class WaitForNetworkCallbackHelper;
+#if !BUILDFLAG(IS_CHROMEOS_ASH)
+#include "services/network/public/cpp/network_connection_tracker.h"
+#endif
 
 #if !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_CHROMEOS_ASH)
 class ForceSigninVerifier;
 #endif
 class Profile;
 
-namespace version_info {
-enum class Channel;
-}
-
-class ChromeSigninClient : public SigninClient {
+class ChromeSigninClient
+    : public SigninClient
+#if !BUILDFLAG(IS_CHROMEOS_ASH)
+    ,
+      public network::NetworkConnectionTracker::NetworkConnectionObserver
+#endif
+{
  public:
   explicit ChromeSigninClient(Profile* profile);
 
@@ -75,7 +81,12 @@ class ChromeSigninClient : public SigninClient {
   std::unique_ptr<GaiaAuthFetcher> CreateGaiaAuthFetcher(
       GaiaAuthConsumer* consumer,
       gaia::GaiaSource source) override;
-  version_info::Channel GetClientChannel() override;
+
+#if !BUILDFLAG(IS_CHROMEOS_ASH)
+  // network::NetworkConnectionTracker::NetworkConnectionObserver
+  // implementation.
+  void OnConnectionChanged(network::mojom::ConnectionType type) override;
+#endif
 
 #if BUILDFLAG(IS_CHROMEOS_LACROS)
   absl::optional<account_manager::Account> GetInitialPrimaryAccount() override;
@@ -109,12 +120,14 @@ class ChromeSigninClient : public SigninClient {
       const base::FilePath& profile_path);
   void OnCloseBrowsersAborted(const base::FilePath& profile_path);
 
-  const std::unique_ptr<WaitForNetworkCallbackHelper>
-      wait_for_network_callback_helper_;
   raw_ptr<Profile, DanglingUntriaged> profile_;
 
   // Stored callback from PreSignOut();
   base::OnceCallback<void(SignoutDecision)> on_signout_decision_reached_;
+
+#if !BUILDFLAG(IS_CHROMEOS_ASH)
+  std::list<base::OnceClosure> delayed_callbacks_;
+#endif
 
   bool should_display_user_manager_ = true;
 #if !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_CHROMEOS_ASH)
@@ -123,6 +136,8 @@ class ChromeSigninClient : public SigninClient {
 
   scoped_refptr<network::SharedURLLoaderFactory>
       url_loader_factory_for_testing_;
+
+  base::WeakPtrFactory<ChromeSigninClient> weak_ptr_factory_{this};
 };
 
 #endif  // CHROME_BROWSER_SIGNIN_CHROME_SIGNIN_CLIENT_H_

@@ -190,17 +190,18 @@ void LayoutText::Trace(Visitor* visitor) const {
   LayoutObject::Trace(visitor);
 }
 
-LayoutText* LayoutText::CreateEmptyAnonymous(Document& doc,
-                                             const ComputedStyle* style) {
+LayoutText* LayoutText::CreateEmptyAnonymous(
+    Document& doc,
+    scoped_refptr<const ComputedStyle> style) {
   auto* text = MakeGarbageCollected<LayoutText>(nullptr, StringImpl::empty_);
   text->SetDocumentForAnonymous(&doc);
-  text->SetStyle(style);
+  text->SetStyle(std::move(style));
   return text;
 }
 
 LayoutText* LayoutText::CreateAnonymousForFormattedText(
     Document& doc,
-    const ComputedStyle* style,
+    scoped_refptr<const ComputedStyle> style,
     String text) {
   auto* layout_text =
       MakeGarbageCollected<LayoutText>(nullptr, std::move(text));
@@ -212,21 +213,6 @@ LayoutText* LayoutText::CreateAnonymousForFormattedText(
 bool LayoutText::IsWordBreak() const {
   NOT_DESTROYED();
   return false;
-}
-
-void LayoutText::StyleWillChange(StyleDifference diff,
-                                 const ComputedStyle& new_style) {
-  NOT_DESTROYED();
-
-  if (const ComputedStyle* current_style = Style()) {
-    // Process accessibility for style changes that affect text.
-    if (current_style->Visibility() != new_style.Visibility() ||
-        current_style->IsInert() != new_style.IsInert()) {
-      if (AXObjectCache* cache = GetDocument().ExistingAXObjectCache()) {
-        cache->StyleChanged(this, /*visibility_or_inertness_changed*/ true);
-      }
-    }
-  }
 }
 
 void LayoutText::StyleDidChange(StyleDifference diff,
@@ -341,15 +327,6 @@ void LayoutText::SetFirstInlineFragmentItemIndex(wtf_size_t index) {
   // TODO(yosin): Call |NGAbstractInlineTextBox::WillDestroy()|.
   DCHECK_NE(index, 0u);
   DetachAbstractInlineTextBoxesIfNeeded();
-  // Changing the first fragment item index causes
-  // LayoutText::FirstAbstractInlineTextBox to return a box,
-  // so notify the AX object for this LayoutText that it might need to
-  // recompute its text child.
-  if (index > 0 && first_fragment_item_index_ == 0) {
-    if (AXObjectCache* cache = GetDocument().ExistingAXObjectCache()) {
-      cache->TextChanged(this);
-    }
-  }
   first_fragment_item_index_ = index;
 }
 
@@ -411,8 +388,10 @@ Vector<LayoutText::TextBoxInfo> LayoutText::GetTextBoxInfo() const {
         const unsigned box_length = clamped_end - clamped_start;
 
         // Compute rect of the legacy text box.
-        PhysicalRect rect = cursor.CurrentLocalRect(clamped_start, clamped_end);
-        rect.offset += cursor.Current().OffsetInContainerFragment();
+        LayoutRect rect =
+            cursor.CurrentLocalRect(clamped_start, clamped_end).ToLayoutRect();
+        rect.MoveBy(
+            cursor.Current().OffsetInContainerFragment().ToLayoutPoint());
 
         // Compute start of the legacy text box.
         if (unit.AssociatedNode()) {
@@ -821,7 +800,7 @@ void LayoutText::LogicalStartingPointAndHeight(
       logical_starting_point = {physical_offset.left, physical_offset.top};
       return;
     }
-    PhysicalSize outer_size = ContainingBlock()->Size();
+    PhysicalSize outer_size = PhysicalSizeToBeNoop(ContainingBlock()->Size());
     logical_starting_point = physical_offset.ConvertToLogical(
         StyleRef().GetWritingDirection(), outer_size, cursor.Current().Size());
     cursor.MoveToLastForSameLayoutObject();

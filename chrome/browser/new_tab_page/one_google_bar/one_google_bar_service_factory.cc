@@ -49,20 +49,19 @@ OneGoogleBarServiceFactory::OneGoogleBarServiceFactory()
 
 OneGoogleBarServiceFactory::~OneGoogleBarServiceFactory() = default;
 
-std::unique_ptr<KeyedService>
-OneGoogleBarServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* OneGoogleBarServiceFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   Profile* profile = Profile::FromBrowserContext(context);
   signin::IdentityManager* identity_manager =
       IdentityManagerFactory::GetForProfile(profile);
-  scoped_refptr<content_settings::CookieSettings> cookie_settings =
-      CookieSettingsFactory::GetForProfile(profile);
+  content_settings::CookieSettings* cookie_settings =
+      CookieSettingsFactory::GetForProfile(profile).get();
   auto url_loader_factory = context->GetDefaultStoragePartition()
                                 ->GetURLLoaderFactoryForBrowserProcess();
-  return std::make_unique<OneGoogleBarService>(
+  return new OneGoogleBarService(
       identity_manager,
       std::make_unique<OneGoogleBarLoaderImpl>(
           url_loader_factory, g_browser_process->GetApplicationLocale(),
           AccountConsistencyModeManager::IsMirrorEnabledForProfile(profile) &&
-              signin::SettingsAllowSigninCookies(cookie_settings.get())));
+              signin::SettingsAllowSigninCookies(cookie_settings)));
 }

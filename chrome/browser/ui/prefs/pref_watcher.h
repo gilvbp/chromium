@@ -65,7 +65,7 @@ class PrefWatcherFactory : public ProfileKeyedServiceFactory {
   ~PrefWatcherFactory() override;
 
   // BrowserContextKeyedServiceFactory:
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* browser_context) const override;
 };
 

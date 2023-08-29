@@ -48,8 +48,7 @@ bool KerberosCredentialsManagerFactory::ServiceIsCreatedWithBrowserContext()
   return true;
 }
 
-std::unique_ptr<KeyedService>
-KerberosCredentialsManagerFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* KerberosCredentialsManagerFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   // Verify that UserManager is initialized before calling IsPrimaryProfile.
   if (!user_manager::UserManager::IsInitialized())
@@ -66,7 +65,7 @@ KerberosCredentialsManagerFactory::BuildServiceInstanceForBrowserContext(
     return nullptr;
 
   PrefService* local_state = g_browser_process->local_state();
-  return std::make_unique<KerberosCredentialsManager>(local_state, profile);
+  return new KerberosCredentialsManager(local_state, profile);
 }
 
 }  // namespace ash

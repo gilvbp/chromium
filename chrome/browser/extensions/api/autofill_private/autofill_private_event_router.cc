@@ -100,4 +100,9 @@ void AutofillPrivateEventRouter::BroadcastCurrentData() {
   event_router_->BroadcastEvent(std::move(extension_event));
 }
 
+AutofillPrivateEventRouter* AutofillPrivateEventRouter::Create(
+    content::BrowserContext* context) {
+  return new AutofillPrivateEventRouter(context);
+}
+
 }  // namespace extensions

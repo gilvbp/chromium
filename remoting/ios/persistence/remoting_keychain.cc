@@ -6,8 +6,8 @@
 
 #import <Security/Security.h>
 
-#include "base/apple/scoped_cftyperef.h"
 #include "base/logging.h"
+#include "base/mac/scoped_cftyperef.h"
 #include "base/no_destructor.h"
 #include "base/strings/sys_string_conversions.h"
 
@@ -15,15 +15,13 @@ namespace remoting {
 
 namespace {
 
-using ScopedMutableDictionary =
-    base::apple::ScopedCFTypeRef<CFMutableDictionaryRef>;
+using ScopedMutableDictionary = base::ScopedCFTypeRef<CFMutableDictionaryRef>;
 
 const char kServicePrefix[] = "com.google.ChromeRemoteDesktop.";
 
-base::apple::ScopedCFTypeRef<CFDataRef> CFDataFromStdString(
-    const std::string& data) {
+base::ScopedCFTypeRef<CFDataRef> CFDataFromStdString(const std::string& data) {
   const UInt8* data_pointer = reinterpret_cast<const UInt8*>(data.data());
-  return base::apple::ScopedCFTypeRef<CFDataRef>(
+  return base::ScopedCFTypeRef<CFDataRef>(
       CFDataCreate(kCFAllocatorDefault, data_pointer, data.size()));
 }
 
@@ -37,10 +35,10 @@ ScopedMutableDictionary CreateQueryForUpdate(const std::string& service,
                                              const std::string& account) {
   ScopedMutableDictionary dictionary = CreateScopedMutableDictionary();
   CFDictionarySetValue(dictionary.get(), kSecClass, kSecClassGenericPassword);
-  base::apple::ScopedCFTypeRef<CFStringRef> service_cf(
+  base::ScopedCFTypeRef<CFStringRef> service_cf(
       base::SysUTF8ToCFStringRef(service));
   CFDictionarySetValue(dictionary.get(), kSecAttrService, service_cf.get());
-  base::apple::ScopedCFTypeRef<CFStringRef> account_cf(
+  base::ScopedCFTypeRef<CFStringRef> account_cf(
       base::SysUTF8ToCFStringRef(account));
   CFDictionarySetValue(dictionary.get(), kSecAttrAccount, account_cf.get());
 
@@ -115,7 +113,7 @@ std::string RemotingKeychain::GetData(Key key,
   std::string service = KeyToService(key);
 
   ScopedMutableDictionary query = CreateQueryForLookup(service, account);
-  base::apple::ScopedCFTypeRef<CFDataRef> cf_result;
+  base::ScopedCFTypeRef<CFDataRef> cf_result;
   OSStatus status =
       SecItemCopyMatching(query, (CFTypeRef*)cf_result.InitializeInto());
   if (status == errSecItemNotFound) {

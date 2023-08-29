@@ -10,6 +10,9 @@ import android.view.ViewStub;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import org.chromium.base.FeatureList;
+import org.chromium.chrome.browser.device.DeviceClassManager;
+import org.chromium.chrome.browser.flags.ChromeFeatureList;
 import org.chromium.chrome.browser.tabmodel.IncognitoStateProvider;
 import org.chromium.chrome.browser.tabmodel.IncognitoTabModelObserver;
 import org.chromium.chrome.browser.tabmodel.TabModelSelector;
@@ -47,16 +50,20 @@ class TabSwitcherModeTTCoordinator {
     @Nullable
     private IncognitoTabModelObserver mIncognitoTabModelObserver;
 
+    private final boolean mIsGridTabSwitcherEnabled;
     private final boolean mIsTabToGtsAnimationEnabled;
     private final BooleanSupplier mIsIncognitoModeEnabledSupplier;
     private final TopToolbarInteractabilityManager mTopToolbarInteractabilityManager;
 
     TabSwitcherModeTTCoordinator(ViewStub tabSwitcherToolbarStub,
-            MenuButtonCoordinator menuButtonCoordinator, boolean isTabToGtsAnimationEnabled,
+            ViewStub tabSwitcherFullscreenToolbarStub, MenuButtonCoordinator menuButtonCoordinator,
+            boolean isGridTabSwitcherEnabled, boolean isTabToGtsAnimationEnabled,
             BooleanSupplier isIncognitoModeEnabledSupplier,
             ToolbarColorObserverManager toolbarColorObserverManager) {
         mTabSwitcherToolbarStub = tabSwitcherToolbarStub;
+        mTabSwitcherFullscreenToolbarStub = tabSwitcherFullscreenToolbarStub;
         mMenuButtonCoordinator = menuButtonCoordinator;
+        mIsGridTabSwitcherEnabled = isGridTabSwitcherEnabled;
         mIsTabToGtsAnimationEnabled = isTabToGtsAnimationEnabled;
         mIsIncognitoModeEnabledSupplier = isIncognitoModeEnabledSupplier;
         mTopToolbarInteractabilityManager =
@@ -185,8 +192,9 @@ class TabSwitcherModeTTCoordinator {
      * @param isFullscreenToolbar Whether or not the given toolbar is fullscreen or not.
      */
     private void initializeToolbar(TabSwitcherModeTopToolbar toolbar, boolean isFullscreenToolbar) {
-        toolbar.initialize(isFullscreenToolbar, mIsTabToGtsAnimationEnabled,
-                mIsIncognitoModeEnabledSupplier, mToolbarColorObserverManager);
+        toolbar.initialize(mIsGridTabSwitcherEnabled, isFullscreenToolbar,
+                mIsTabToGtsAnimationEnabled, mIsIncognitoModeEnabledSupplier,
+                mToolbarColorObserverManager);
         mMenuButtonCoordinator.setMenuButton(toolbar.findViewById(R.id.menu_button_wrapper));
 
         // It's expected that these properties are set by the time the tab switcher is entered.
@@ -205,6 +213,18 @@ class TabSwitcherModeTTCoordinator {
         if (mAccessibilityEnabled) {
             toolbar.onAccessibilityStatusChanged(mAccessibilityEnabled);
         }
+    }
+
+    private boolean isNewTabVariationEnabled() {
+        boolean accessibilityEnabled =
+                DeviceClassManager.enableAccessibilityLayout(mTabSwitcherToolbarStub.getContext());
+
+        return (mIsGridTabSwitcherEnabled || accessibilityEnabled) && FeatureList.isInitialized()
+                && mIsIncognitoModeEnabledSupplier.getAsBoolean()
+                && !ChromeFeatureList
+                            .getFieldTrialParamByFeature(ChromeFeatureList.TAB_GRID_LAYOUT_ANDROID,
+                                    "tab_grid_layout_android_new_tab")
+                            .equals("false");
     }
 
     /**
@@ -226,8 +246,7 @@ class TabSwitcherModeTTCoordinator {
      */
     private void maybeInitializeIncognitoTabModelObserver() {
         if (mTabModelSelector == null || mActiveTabSwitcherToolbar == null
-                || !mIsIncognitoModeEnabledSupplier.getAsBoolean()
-                || mIncognitoTabModelObserver != null) {
+                || !isNewTabVariationEnabled() || mIncognitoTabModelObserver != null) {
             return;
         }
 
@@ -254,7 +273,7 @@ class TabSwitcherModeTTCoordinator {
      */
     private void maybeNotifyOnIncognitoTabsExistenceChanged() {
         if (mTabModelSelector == null || mActiveTabSwitcherToolbar == null
-                || !mIsIncognitoModeEnabledSupplier.getAsBoolean()) {
+                || !isNewTabVariationEnabled()) {
             return;
         }
 

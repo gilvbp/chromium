@@ -160,7 +160,7 @@ IN_PROC_BROWSER_TEST_F(SadTabViewInteractiveUITest,
   // Pressing the Tab key should cycle focus back to the toolbar or the browser
   // frame if the tab search caption button is enabled.
   PressTab();
-  if (WindowFrameUtil::IsWindowsTabSearchCaptionButtonEnabled(browser())) {
+  if (WindowFrameUtil::IsWin10TabSearchCaptionButtonEnabled(browser())) {
     const auto* frame_view = BrowserView::GetBrowserViewForBrowser(browser())
                                  ->frame()
                                  ->GetFrameView();

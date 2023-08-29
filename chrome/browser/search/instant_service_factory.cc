@@ -55,11 +55,10 @@ InstantServiceFactory::InstantServiceFactory()
 
 InstantServiceFactory::~InstantServiceFactory() = default;
 
-std::unique_ptr<KeyedService>
-InstantServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* InstantServiceFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   DCHECK(search::IsInstantExtendedAPIEnabled());
-  return std::make_unique<InstantService>(Profile::FromBrowserContext(context));
+  return new InstantService(Profile::FromBrowserContext(context));
 }
 
 void InstantServiceFactory::BrowserContextDestroyed(

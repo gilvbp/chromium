@@ -41,9 +41,8 @@ SearchPrefetchServiceFactory::SearchPrefetchServiceFactory()
 
 SearchPrefetchServiceFactory::~SearchPrefetchServiceFactory() = default;
 
-std::unique_ptr<KeyedService>
-SearchPrefetchServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* SearchPrefetchServiceFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   Profile* profile = Profile::FromBrowserContext(context);
-  return std::make_unique<SearchPrefetchService>(profile);
+  return new SearchPrefetchService(profile);
 }

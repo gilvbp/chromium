@@ -43,13 +43,9 @@ class CONTENT_EXPORT BrowsingTopicsSiteDataManagerImpl
 
   void OnBrowsingTopicsApiUsed(
       const browsing_topics::HashedHost& hashed_main_frame_host,
-      const browsing_topics::HashedDomain& hashed_context_domain,
-      const std::string& context_domain,
+      const base::flat_set<browsing_topics::HashedDomain>&
+          hashed_context_domains,
       base::Time time) override;
-
-  void GetContextDomainsFromHashedContextDomains(
-      const std::set<browsing_topics::HashedDomain>& hashed_context_domains,
-      GetContextDomainsFromHashedContextDomainsCallback callback) override;
 
  private:
   base::SequenceBound<BrowsingTopicsSiteDataStorage> storage_;

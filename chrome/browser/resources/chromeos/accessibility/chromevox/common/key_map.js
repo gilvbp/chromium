@@ -12,39 +12,36 @@
  * A caller is responsible for providing a JSON keymap (a simple Object key
  * value structure), which has (key, command) key value pairs.
  *
- * To retrieve static data about user commands, see CommandStore.
+ * Due to execution of user commands within the content script, the function
+ * name of the command is not explicitly checked within the background page via
+ * Closure. Any errors would only be caught at runtime.
+ *
+ * To retrieve static data about user commands, see both CommandStore and
+ * UserCommands.
  */
 import {KeyCode} from '../../common/key_code.js';
 
 import {Command} from './command_store.js';
-import {KeySequence, SerializedKeySequence} from './key_sequence.js';
-
-/**
- * @typedef {{
- *     command: !Command,
- *     sequence: !KeySequence,
- *     keySeq: (string|undefined),
- *     title: (string|undefined),
- * }}
- */
-export let KeyBinding;
+import {KeySequence} from './key_sequence.js';
 
 export class KeyMap {
   /**
-   * @param {!Array<!KeyBinding>} keyBindings
-   * @private
+   * @param {Array<Object<{command: !Command, sequence: KeySequence}>>}
+   * commandsAndKeySequences An array of pairs - KeySequences and commands.
    */
-  constructor(keyBindings) {
+  constructor(commandsAndKeySequences) {
     /**
-     * An array of bindings - Commands and KeySequences.
-     * @private {!Array<!KeyBinding>}
+     * An array of bindings - commands and KeySequences.
+     * @type {Array<Object<{command: !Command, sequence: KeySequence}>>}
+     * @private
      */
-    this.bindings_ = keyBindings;
+    this.bindings_ = commandsAndKeySequences;
 
     /**
      * Maps a command to a key. This optimizes the process of searching for a
      * key sequence when you already know the command.
-     * @private {Object<!Command, !KeySequence>}
+     * @type {Object<KeySequence>}
+     * @private
      */
     this.commandToKey_ = {};
     this.buildCommandToKey_();
@@ -60,32 +57,39 @@ export class KeyMap {
 
   /**
    * Returns a copy of all KeySequences in this map.
-   * @return {!Array<!KeySequence>} Array of all keys.
+   * @return {Array<KeySequence>} Array of all keys.
    */
   keys() {
     return this.bindings_.map(binding => binding.sequence);
   }
 
   /**
-   * Returns a shallow copy of the Command, KeySequence bindings.
-   * @return {!Array<!KeyBinding>} Array of all command, key bindings.
+   * Returns a collection of command, KeySequence bindings.
+   * @return {Array<Object<{command: string, sequence: KeySequence}>>} Array of
+   *     all command, key bindings.
    */
   bindings() {
-    return this.bindings_.slice();
+    return this.bindings_;
   }
 
   /**
    * Checks if this key map has a given binding.
    * @param {!Command} command The command.
-   * @param {!KeySequence} sequence The key sequence.
+   * @param {KeySequence} sequence The key sequence.
    * @return {boolean} Whether the binding exists.
    */
   hasBinding(command, sequence) {
     if (this.commandToKey_ != null) {
       return this.commandToKey_[command] === sequence;
+    } else {
+      for (let i = 0; i < this.bindings_.length; i++) {
+        const binding = this.bindings_[i];
+        if (binding.command === command && binding.sequence === sequence) {
+          return true;
+        }
+      }
     }
-    return this.bindings_.some(
-        b => b.command === command && b.sequence.equals(sequence));
+    return false;
   }
 
   /**
@@ -96,40 +100,69 @@ export class KeyMap {
   hasCommand(command) {
     if (this.commandToKey_ != null) {
       return this.commandToKey_[command] !== undefined;
+    } else {
+      for (let i = 0; i < this.bindings_.length; i++) {
+        const binding = this.bindings_[i];
+        if (binding.command === command) {
+          return true;
+        }
+      }
     }
-    return this.bindings_.some(b => b.command === command);
+    return false;
   }
 
   /**
    * Checks if this key map has a given key.
-   * @param {!KeySequence} key The key to check.
-   * @return {boolean} Whether |key| has a binding.
+   * @param {KeySequence} key The key to check.
+   * @return {boolean} Whether 'key' has a binding.
    */
   hasKey(key) {
-    return this.bindings_.some(b => b.sequence.equals(key));
+    for (let i = 0; i < this.bindings_.length; i++) {
+      const binding = this.bindings_[i];
+      if (binding.sequence.equals(key)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**
    * Gets a command given a key.
-   * @param {!KeySequence} key The key to query.
+   * @param {KeySequence} key The key to query.
    * @return {?Command} The command, if any.
    */
   commandForKey(key) {
-    return this.bindings_.find(b => b.sequence.equals(key))?.command;
+    if (key != null) {
+      for (let i = 0; i < this.bindings_.length; i++) {
+        const binding = this.bindings_[i];
+        if (binding.sequence.equals(key)) {
+          return binding.command;
+        }
+      }
+    }
+    return null;
   }
 
   /**
    * Gets a key given a command.
    * @param {!Command} command The command to query.
-   * @return {!Array<!KeySequence>} The keys associated with that command,
+   * @return {!Array<KeySequence>} The keys associated with that command,
    * if any.
    */
   keyForCommand(command) {
+    let keySequenceArray;
     if (this.commandToKey_ != null) {
       return [this.commandToKey_[command]];
+    } else {
+      keySequenceArray = [];
+      for (let i = 0; i < this.bindings_.length; i++) {
+        const binding = this.bindings_[i];
+        if (binding.command === command) {
+          keySequenceArray.push(binding.sequence);
+        }
+      }
     }
-    return this.bindings_.filter(b => b.command === command)
-        .map(b => b.sequence);
+    return (keySequenceArray.length > 0) ? keySequenceArray : [];
   }
 
   /**
@@ -137,24 +170,24 @@ export class KeyMap {
    * @return {!KeyMap} The resulting object.
    */
   static get() {
-    if (KeyMap.instance) {
-      return KeyMap.instance;
-    }
+    const commandsAndKeySequences =
+        /**
+         * @type {Array<Object<{command: !Command,
+         *                       sequence: KeySequence}>>}
+         */
+        (KeyMap.BINDINGS_);
 
-    const keyBindings = [];
-
-    // Validate the type of the keyBindings array.
-    for (const binding of KeyMap.BINDINGS_) {
-      if (binding.command === undefined || binding.sequence === undefined) {
+    // Validate the type of the commandsAndKeySequences array.
+    for (let i = 0; i < commandsAndKeySequences.length; i++) {
+      if (commandsAndKeySequences[i].command === undefined ||
+          commandsAndKeySequences[i].sequence === undefined) {
         throw new Error('Invalid key map.');
+      } else {
+        commandsAndKeySequences[i].sequence = /** @type {KeySequence} */
+            (KeySequence.deserialize(commandsAndKeySequences[i].sequence));
       }
-      keyBindings.push({
-        command: binding.command,
-        sequence: KeySequence.deserialize(binding.sequence),
-      });
     }
-    KeyMap.instance = new KeyMap(keyBindings);
-    return KeyMap.instance;
+    return new KeyMap(commandsAndKeySequences);
   }
 
   /**
@@ -164,7 +197,8 @@ export class KeyMap {
   buildCommandToKey_() {
     // TODO (dtseng): What about more than one sequence mapped to the same
     // command?
-    for (const binding of this.bindings_) {
+    for (let i = 0; i < this.bindings_.length; i++) {
+      const binding = this.bindings_[i];
       if (this.commandToKey_[binding.command] !== undefined) {
         // There's at least two key sequences mapped to the same
         // command. continue.
@@ -175,10 +209,9 @@ export class KeyMap {
   }
 }
 
-/** @type {KeyMap} */
-KeyMap.instance;
-
-/** @private {!Array<{command: !Command, sequence: !SerializedKeySequence}>} */
+// This is intentionally not type-checked, as it is a serialized set of
+// KeySequence objects.
+/** @private {!Object} */
 KeyMap.BINDINGS_ = [
   {
     command: Command.PREVIOUS_OBJECT,

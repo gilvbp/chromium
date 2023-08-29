@@ -66,7 +66,7 @@ class BlockingMethodCallerTest : public testing::Test {
 
     // Set an expectation so mock_proxy's CallMethodAndBlock() will use
     // CreateMockProxyResponse() to return responses.
-    EXPECT_CALL(*mock_proxy_.get(), CallMethodAndBlock(_, _))
+    EXPECT_CALL(*mock_proxy_.get(), CallMethodAndBlockWithErrorDetails(_, _, _))
         .WillRepeatedly(
             Invoke(this, &BlockingMethodCallerTest::CreateMockProxyResponse));
 
@@ -96,8 +96,10 @@ class BlockingMethodCallerTest : public testing::Test {
  private:
   // Returns a response for the given method call. Used to implement
   // CallMethodAndBlock() for |mock_proxy_|.
-  base::expected<std::unique_ptr<dbus::Response>, dbus::Error>
-  CreateMockProxyResponse(dbus::MethodCall* method_call, int timeout_ms) {
+  std::unique_ptr<dbus::Response> CreateMockProxyResponse(
+      dbus::MethodCall* method_call,
+      int timeout_ms,
+      dbus::ScopedDBusError* error) {
     if (method_call->GetInterface() == "org.chromium.TestInterface" &&
         method_call->GetMember() == "Echo") {
       dbus::MessageReader reader(method_call);
@@ -107,12 +109,12 @@ class BlockingMethodCallerTest : public testing::Test {
             dbus::Response::CreateEmpty();
         dbus::MessageWriter writer(response.get());
         writer.AppendString(text_message);
-        return base::ok(std::move(response));
+        return response;
       }
     }
 
     LOG(ERROR) << "Unexpected method call: " << method_call->ToString();
-    return base::unexpected(dbus::Error());
+    return nullptr;
   }
 };
 
@@ -129,12 +131,12 @@ TEST_F(BlockingMethodCallerTest, Echo) {
 
   // Call the method.
   BlockingMethodCaller blocking_method_caller(mock_bus_.get(), proxy);
-  auto result = blocking_method_caller.CallMethodAndBlock(&method_call);
-  ASSERT_TRUE(result.has_value());
+  std::unique_ptr<dbus::Response> response(
+      blocking_method_caller.CallMethodAndBlock(&method_call));
 
   // Check the response.
-  ASSERT_TRUE(result->get());
-  dbus::MessageReader reader(result->get());
+  ASSERT_TRUE(response.get());
+  dbus::MessageReader reader(response.get());
   std::string text_message;
   ASSERT_TRUE(reader.PopString(&text_message));
   // The text message should be echo'ed back.

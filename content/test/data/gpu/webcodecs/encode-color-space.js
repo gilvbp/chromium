@@ -67,12 +67,8 @@ async function main(arg) {
   };
 
   TEST.log('Starting test with arguments: ' + JSON.stringify(arg));
-  let supported = false;
-  try {
-    supported = (await VideoEncoder.isConfigSupported(encoderConfig)).supported;
-  } catch (e) {
-  }
-  if (!supported) {
+  let support = await VideoEncoder.isConfigSupported(encoderConfig);
+  if (!support.supported) {
     TEST.skip('Unsupported codec: ' + arg.codec);
     return;
   }
@@ -142,7 +138,11 @@ async function main(arg) {
   TEST.assert_eq(inputFrames[2].format, 'RGBA', 'inputs[2] is RGBA');
   TEST.assert(isSRGB(inputFrames[2].colorSpace), 'inputs[2] is sRGB');
 
-  TEST.assert(outputChunks[2].type == 'key', 'outputs[2] is key');
+  // TODO(https://crbug.com/1241448): Uncomment the line below once android
+  // reliably produces a key frame at the appropriate time. For now this
+  // is covered by a DCHECK (excluding android) in video_encoder.cc.
+  // TEST.assert(outputChunks[2].type == 'key', 'outputs[2] is key');
+
   TEST.assert(
       'decoderConfig' in outputMetadata[2], 'metadata[2] has decoderConfig');
   TEST.assert(
@@ -168,10 +168,8 @@ async function main(arg) {
   // space information in the bitstream.
 
   // VP8 doesn't have embedded color space information in the bitstream.
-  if (arg.codec == 'vp8') {
-    TEST.reportSuccess();
+  if (arg.codec == 'vp8')
     return;
-  }
 
   let decodedFrames = [];
   const decoderInit = {
@@ -194,10 +192,6 @@ async function main(arg) {
       config.colorSpace = {};
 
       config.hardwareAcceleration = arg.acceleration;
-      let support = await VideoDecoder.isConfigSupported(config);
-      if (!support.supported)
-        config.hardwareAcceleration = 'no-preference';
-
       decoder.configure(config);
     }
     decoder.decode(outputChunks[i]);
@@ -243,10 +237,8 @@ async function main(arg) {
       if (decodedFrames[i].colorSpace.transfer != colorSpace.transfer) {
         // Allow functionally equivalent matches.
         TEST.assert(
-            (colorSpace.transfer == 'smpte170m' &&
-             decodedFrames[i].colorSpace.transfer == 'bt709') ||
-                (colorSpace.transfer == 'bt709' &&
-                 decodedFrames[i].colorSpace.transfer == 'smpte170m'),
+            colorSpace.transfer == 'smpte170m' &&
+                decodedFrames[i].colorSpace.transfer == 'bt709',
             `Frame ${i} color transfer mismatch`)
       } else {
         TEST.assert_eq(
@@ -262,5 +254,5 @@ async function main(arg) {
     }
     decodedFrames[i].close();
   }
-  TEST.reportSuccess();
+  TEST.log('Test completed');
 }

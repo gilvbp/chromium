@@ -106,7 +106,7 @@ void PartitionAllocGlobalUninitForTesting() {
   internal::g_oom_handling_function = nullptr;
 }
 
-PartitionAllocator::PartitionAllocator() = default;
+namespace internal {
 
 PartitionAllocator::~PartitionAllocator() {
   MemoryReclaimer::Instance()->UnregisterPartition(&partition_root_);
@@ -114,11 +114,13 @@ PartitionAllocator::~PartitionAllocator() {
 
 void PartitionAllocator::init(PartitionOptions opts) {
 #if BUILDFLAG(USE_PARTITION_ALLOC_AS_MALLOC)
-  PA_CHECK(opts.thread_cache == PartitionOptions::kDisabled)
+  PA_CHECK(opts.thread_cache == PartitionOptions::ThreadCache::kDisabled)
       << "Cannot use a thread cache when PartitionAlloc is malloc().";
 #endif
   partition_root_.Init(opts);
   MemoryReclaimer::Instance()->RegisterPartition(&partition_root_);
 }
+
+}  // namespace internal
 
 }  // namespace partition_alloc

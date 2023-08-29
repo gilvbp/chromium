@@ -9,14 +9,33 @@
 #include "base/containers/contains.h"
 #include "base/observer_list.h"
 #include "build/chromeos_buildflags.h"
-#include "components/services/app_service/public/cpp/app_registry_cache_wrapper.h"
 
 namespace apps {
+
+AppRegistryCache::Observer::Observer(AppRegistryCache* cache) {
+  Observe(cache);
+}
 
 AppRegistryCache::Observer::Observer() = default;
 
 AppRegistryCache::Observer::~Observer() {
-  CHECK(!IsInObserverList());
+  if (cache_) {
+    cache_->RemoveObserver(this);
+  }
+}
+
+void AppRegistryCache::Observer::Observe(AppRegistryCache* cache) {
+  if (cache == cache_) {
+    // Early exit to avoid infinite loops if we're in the middle of a callback.
+    return;
+  }
+  if (cache_) {
+    cache_->RemoveObserver(this);
+  }
+  cache_ = cache;
+  if (cache_) {
+    cache_->AddObserver(this);
+  }
 }
 
 AppRegistryCache::AppRegistryCache() : account_id_(EmptyAccountId()) {}
@@ -26,7 +45,6 @@ AppRegistryCache::~AppRegistryCache() {
     obs.OnAppRegistryCacheWillBeDestroyed(this);
   }
   DCHECK(observers_.empty());
-  AppRegistryCacheWrapper::Get().RemoveAppRegistryCache(this);
 }
 
 void AppRegistryCache::AddObserver(Observer* observer) {

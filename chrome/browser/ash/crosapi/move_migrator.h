@@ -47,22 +47,20 @@ constexpr char kMoveMigratorResumeCount[] =
     "Ash.BrowserDataMigrator.MoveMigrator.ResumeCount";
 constexpr char kMoveMigratorResumeStepUMA[] =
     "Ash.BrowserDataMigrator.MoveMigrator.ResumeStep";
-constexpr char kMoveMigratorMaxResumeReached[] =
-    "Ash.BrowserDataMigrator.MoveMigrator.MaxResumeReached";
 constexpr char kMoveMigratorTaskStatusUMA[] =
     "Ash.BrowserDataMigrator.MoveMigrator.TaskStatus";
 constexpr char kMoveMigratorExtraSpaceRequiredMB[] =
     "Ash.BrowserDataMigrator.MoveMigrator.ExtraSpaceRequiredMB";
 constexpr char kMoveMigratorPreMigrationCleanUpTimeUMA[] =
-    "Ash.BrowserDataMigrator.MoveMigrator.PreMigrationCleanUpTime";
+    "Ash.BrowserDataMigrator.MoveMigrator.PreMigrationCleanUpTimeMS";
 constexpr char kMoveMigratorSetupLacrosDirCopyTargetItemsTimeUMA[] =
-    "Ash.BrowserDataMigrator.MoveMigrator.SetupLacrosDirCopyTargetItemsTime";
+    "Ash.BrowserDataMigrator.MoveMigrator.SetupLacrosDirCopyTargetItemsTimeMS";
 constexpr char kMoveMigratorCancelledMigrationTimeUMA[] =
-    "Ash.BrowserDataMigrator.MoveMigrator.CancelledMigrationTime";
+    "Ash.BrowserDataMigrator.MoveMigrator.CancelledMigrationTimeMS";
 constexpr char kMoveMigratorSuccessfulMigrationTimeUMA[] =
-    "Ash.BrowserDataMigrator.MoveMigrator.SuccessfulMigrationTime";
+    "Ash.BrowserDataMigrator.MoveMigrator.SuccessfulMigrationTimeMS";
 constexpr char kMoveMigratorMoveLacrosItemsTimeUMA[] =
-    "Ash.BrowserDataMigrator.MoveMigrator.MoveLacrosItemsTime";
+    "Ash.BrowserDataMigrator.MoveMigrator.MoveLacrosItemsTimeMS";
 constexpr char kMoveMigratorPosixErrnoUMA[] =
     "Ash.BrowserDataMigrator.MoveMigrator.PosixErrno.";
 constexpr char kMoveMigratorTmpProfileDirSize[] =

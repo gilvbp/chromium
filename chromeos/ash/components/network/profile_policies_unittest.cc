@@ -39,7 +39,9 @@ base::Value::List NetworkConfigsList(
 //   "guid": <passed_guid>
 // }
 base::Value::Dict NetworkConfig(base::StringPiece guid) {
-  return base::Value::Dict().Set(::onc::network_config::kGUID, guid);
+  base::Value::Dict result;
+  result.Set(::onc::network_config::kGUID, guid);
+  return result;
 }
 
 bool FalseShillPropertiesMatcher(
@@ -83,16 +85,17 @@ base::Value::Dict Inject(
 
   if (resolved_cert.status() ==
       client_cert::ResolvedCert::Status::kNothingMatched) {
-    result.Set("cert_info", base::Value::Dict().Set("status", "no cert"));
+    base::Value::Dict cert_dict;
+    cert_dict.Set("status", "no cert");
+    result.Set("cert_info", std::move(cert_dict));
   } else if (resolved_cert.status() ==
              client_cert::ResolvedCert::Status::kCertMatched) {
-    auto cert_dict = base::Value::Dict()
-                         .Set("slot_id", resolved_cert.slot_id())
-                         .Set("pkcs11_id", resolved_cert.pkcs11_id());
+    base::Value::Dict cert_dict;
     for (const auto& pair : resolved_cert.variable_expansions()) {
       cert_dict.Set(pair.first, pair.second);
     }
-
+    cert_dict.Set("slot_id", resolved_cert.slot_id());
+    cert_dict.Set("pkcs11_id", resolved_cert.pkcs11_id());
     result.Set("cert_info", std::move(cert_dict));
   }
 
@@ -112,8 +115,11 @@ TEST(ProfilePoliciesTest, GlobalNetworkConfigIsEmpty) {
 
 // Sets / retrieves GlobalNetworkConfig.
 TEST(ProfilePoliciesTest, SetAndOverwriteGlobalNetworkConfig) {
-  auto global_network_config_1 = base::Value::Dict().Set("key1", "value1");
-  auto global_network_config_2 = base::Value::Dict().Set("key2", "value2");
+  base::Value::Dict global_network_config_1;
+  global_network_config_1.Set("key1", "value1");
+
+  base::Value::Dict global_network_config_2;
+  global_network_config_2.Set("key2", "value2");
 
   ProfilePolicies profile_policies;
   profile_policies.SetGlobalNetworkConfig(global_network_config_1);

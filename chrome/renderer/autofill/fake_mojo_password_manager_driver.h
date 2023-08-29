@@ -44,19 +44,8 @@ class FakeMojoPasswordManagerDriver
 #endif
 
   MOCK_METHOD(void,
-              UserModifiedNonPasswordField,
-              (autofill::FieldRendererId renderer_id,
-               const std::u16string& value,
-               bool autocomplete_attribute_has_username,
-               bool is_likely_otp),
-              (override));
-  MOCK_METHOD(void,
               ShowPasswordSuggestions,
-              (autofill::FieldRendererId element_id,
-               const autofill::FormData& form,
-               uint64_t username_field_index,
-               uint64_t password_field_index,
-               base::i18n::TextDirection,
+              (base::i18n::TextDirection,
                const std::u16string&,
                int,
                const gfx::RectF&),
@@ -163,6 +152,12 @@ class FakeMojoPasswordManagerDriver
   void RecordSavePasswordProgress(const std::string& log) override;
 
   void UserModifiedPasswordField() override;
+
+  void UserModifiedNonPasswordField(
+      autofill::FieldRendererId renderer_id,
+      const std::u16string& field_name,
+      const std::u16string& value,
+      bool autocomplete_attribute_has_username) override;
 
   void CheckSafeBrowsingReputation(const GURL& form_action,
                                    const GURL& frame_url) override;

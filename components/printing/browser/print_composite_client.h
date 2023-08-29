@@ -21,7 +21,10 @@
 #include "mojo/public/cpp/bindings/associated_remote.h"
 #include "mojo/public/cpp/bindings/remote.h"
 #include "printing/buildflags/buildflags.h"
+
+#if BUILDFLAG(ENABLE_TAGGED_PDF)
 #include "ui/accessibility/ax_tree_update_forward.h"
+#endif
 
 namespace printing {
 
@@ -41,8 +44,10 @@ class PrintCompositeClient
   // content::WebContentsObserver
   void RenderFrameDeleted(content::RenderFrameHost* render_frame_host) override;
 
+#if BUILDFLAG(ENABLE_TAGGED_PDF)
   void SetAccessibilityTree(int document_cookie,
                             const ui::AXTreeUpdate& accessibility_tree);
+#endif
 
   // Instructs the specified subframe to print.
   void PrintCrossProcessSubframe(const gfx::Rect& rect,
@@ -81,7 +86,6 @@ class PrintCompositeClient
       int cookie,
       content::RenderFrameHost* render_frame_host,
       const mojom::DidPrintContentParams& content,
-      const ui::AXTreeUpdate& accessibility_tree,
       mojom::PrintCompositor::CompositeDocumentToPdfCallback callback);
 
   // Get the concurrent composition status for a document.  Identifies if the

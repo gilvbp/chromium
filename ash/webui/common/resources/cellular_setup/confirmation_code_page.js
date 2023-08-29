@@ -1,4 +1,4 @@
-// Copyright 2023 The Chromium Authors
+// Copyright 2020 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -14,9 +14,9 @@ import './base_page.js';
 
 import {I18nBehavior} from '//resources/ash/common/i18n_behavior.js';
 import {Polymer} from '//resources/polymer/v3_0/polymer/polymer_bundled.min.js';
-import {ESimProfileProperties} from 'chrome://resources/mojo/chromeos/ash/services/cellular_setup/public/mojom/esim_manager.mojom-webui.js';
+import {ESimProfileProperties, ESimProfileRemote} from 'chrome://resources/mojo/chromeos/ash/services/cellular_setup/public/mojom/esim_manager.mojom-webui.js';
 
-import {getTemplate} from './confirmation_code_page_legacy.html.js';
+import {getTemplate} from './confirmation_code_page.html.js';
 
 Polymer({
   _template: getTemplate(),
@@ -26,10 +26,11 @@ Polymer({
 
   properties: {
     /**
-     * @type {?ESimProfileProperties}
+     * @type {?ESimProfileRemote}
      */
-    profileProperties: {
+    profile: {
       type: Object,
+      observer: 'onProfileChanged_',
     },
 
     confirmationCode: {
@@ -50,6 +51,15 @@ Polymer({
     },
 
     /**
+     * @type {?ESimProfileProperties}
+     * @private
+     */
+    profileProperties_: {
+      type: Object,
+      value: null,
+    },
+
+    /**
      * @type {boolean}
      * @private
      */
@@ -57,6 +67,17 @@ Polymer({
       type: Boolean,
       value: false,
     },
+  },
+
+  /** @private */
+  onProfileChanged_() {
+    if (!this.profile) {
+      this.profileProperties_ = null;
+      return;
+    }
+    this.profile.getProperties().then(response => {
+      this.profileProperties_ = response.properties;
+    });
   },
 
   /**
@@ -75,7 +96,7 @@ Polymer({
    * @private
    */
   shouldShowProfileDetails_() {
-    return !!this.profileProperties;
+    return !!this.profile;
   },
 
   /**
@@ -83,10 +104,10 @@ Polymer({
    * @private
    */
   getProfileName_() {
-    if (!this.profileProperties) {
+    if (!this.profileProperties_) {
       return '';
     }
-    return String.fromCharCode(...this.profileProperties.name.data);
+    return String.fromCharCode(...this.profileProperties_.name.data);
   },
 
   /**

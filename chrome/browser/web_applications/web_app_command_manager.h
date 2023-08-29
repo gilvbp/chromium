@@ -17,7 +17,6 @@
 #include "base/types/pass_key.h"
 #include "base/values.h"
 #include "chrome/browser/web_applications/commands/web_app_command.h"
-#include "chrome/browser/web_applications/locks/web_app_lock_manager.h"
 #include "chrome/browser/web_applications/web_app_id.h"
 
 class Profile;
@@ -29,6 +28,8 @@ class WebContents;
 namespace web_app {
 
 class WebAppProvider;
+class WebAppLockManager;
+class WebAppUrlLoader;
 enum class WebAppUrlLoaderResult;
 
 // The command manager is used to schedule commands or callbacks to write & read
@@ -44,10 +45,8 @@ class WebAppCommandManager {
  public:
   using PassKey = base::PassKey<WebAppCommandManager>;
 
-  explicit WebAppCommandManager(Profile* profile);
+  explicit WebAppCommandManager(Profile* profile, WebAppProvider* provider);
   ~WebAppCommandManager();
-
-  void SetProvider(base::PassKey<WebAppProvider>, WebAppProvider& provider);
 
   // Starts running commands.
   void Start();
@@ -76,11 +75,14 @@ class WebAppCommandManager {
 
   void AwaitAllCommandsCompleteForTesting();
 
+  // TODO(https://crbug.com/1329934): Figure out better ownership of this.
+  void SetUrlLoaderForTesting(std::unique_ptr<WebAppUrlLoader> url_loader);
+
   bool has_web_contents_for_testing() const {
     return shared_web_contents_.get();
   }
 
-  WebAppLockManager& lock_manager() { return lock_manager_; }
+  WebAppLockManager& lock_manager() const { return *lock_manager_; }
 
   // Only used by `WebAppLockManager` to give web contents access to certain
   // locks.
@@ -100,7 +102,12 @@ class WebAppCommandManager {
   void OnLockAcquired(WebAppCommand::Id command_id,
                       base::OnceClosure start_command);
 
-  void StartCommand(WebAppCommand* command, base::OnceClosure start_command);
+  void StartCommandOrPrepareForLoad(WebAppCommand* command,
+                                    base::OnceClosure start_command);
+
+  void OnAboutBlankLoadedForCommandStart(WebAppCommand* command,
+                                         base::OnceClosure start_command,
+                                         WebAppUrlLoaderResult result);
 
   content::WebContents* EnsureWebContentsCreated();
 
@@ -111,13 +118,16 @@ class WebAppCommandManager {
   raw_ptr<Profile> profile_;
   raw_ptr<WebAppProvider> provider_;
 
+  // TODO(https://crbug.com/1329934): Figure out better ownership of this.
+  // Perhaps set as subsystem?
+  std::unique_ptr<WebAppUrlLoader> url_loader_;
   std::unique_ptr<content::WebContents> shared_web_contents_;
 
   bool started_ = false;
   bool is_in_shutdown_ = false;
   std::deque<base::Value> command_debug_log_;
 
-  WebAppLockManager lock_manager_;
+  std::unique_ptr<WebAppLockManager> lock_manager_;
 
   std::map<WebAppCommand::Id, std::unique_ptr<WebAppCommand>> commands_{};
 

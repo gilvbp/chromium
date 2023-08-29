@@ -11,7 +11,6 @@
 #include "components/autofill/core/browser/field_types.h"
 #include "components/autofill/core/browser/metrics/profile_import_metrics.h"
 #include "components/autofill/core/browser/personal_data_manager.h"
-#include "components/autofill/core/browser/profile_requirement_utils.h"
 #include "components/autofill/core/common/autofill_clock.h"
 #include "components/autofill/core/common/autofill_features.h"
 
@@ -160,6 +159,8 @@ void ProfileImportProcess::DetermineProfileImportType() {
       if (allow_only_silent_updates_ ||
           (existing_profile->source() == AutofillProfile::Source::kAccount &&
            !(base::FeatureList::IsEnabled(
+                 features::kAutofillAccountProfilesUnionView) &&
+             base::FeatureList::IsEnabled(
                  features::kAutofillAccountProfileStorage)))) {
         ++number_of_unchanged_profiles;
         continue;
@@ -194,7 +195,10 @@ void ProfileImportProcess::DetermineProfileImportType() {
     // If the profile changed but all settings-visible values are maintained,
     // the profile can be updated silently. Silent updates can also be disabled
     // using a feature flag.
-    if (!base::FeatureList::IsEnabled(
+    if ((existing_profile->source() ==
+             AutofillProfile::Source::kLocalOrSyncable ||
+         features::kAutofillEnableSilentUpdatesForAccountProfiles.Get()) &&
+        !base::FeatureList::IsEnabled(
             features::test::kAutofillDisableSilentProfileUpdates)) {
       merged_profile.set_modification_date(AutofillClock::Now());
       updated_profiles_.emplace_back(merged_profile);
@@ -292,9 +296,13 @@ void ProfileImportProcess::MaybeSetMigrationCandidate(
     return;
   }
   // Check the eligiblity of the user and profile.
-  if (IsEligibleForMigrationToAccount(*personal_data_manager_, profile)) {
-    migration_candidate = profile;
+  if (!personal_data_manager_->IsEligibleForAddressAccountStorage() ||
+      personal_data_manager_->IsProfileMigrationBlocked(profile.guid()) ||
+      !personal_data_manager_->IsCountryEligibleForAccountStorage(
+          base::UTF16ToUTF8(profile.GetRawInfo(ADDRESS_HOME_COUNTRY)))) {
+    return;
   }
+  migration_candidate = profile;
 }
 
 std::vector<AutofillProfile> ProfileImportProcess::GetResultingProfiles() {

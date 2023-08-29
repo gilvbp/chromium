@@ -4,8 +4,6 @@
 
 import {TestRunner} from 'test_runner';
 
-import * as Network from 'devtools/panels/network/network.js';
-
 (async function() {
   TestRunner.addResult(`Tests that mobile, network, and CPU throttling interact with each other logically.\n`);
   await TestRunner.showPanel("network");
@@ -19,7 +17,7 @@ import * as Network from 'devtools/panels/network/network.js';
 
   var deviceModeThrottling = deviceModeView.toolbar.throttlingConditionsItem;
   var networkPanelThrottling = UI.panels.network.throttlingSelectForTest();
-  var networkConfigView = Network.NetworkConfigView.NetworkConfigView.instance();
+  var networkConfigView = Network.NetworkConfigView.instance();
   var networkConditionsDrawerThrottlingSelector =
       networkConfigView.contentElement.querySelector('.network-config-throttling select.chrome-select');
   var performancePanelNetworkThrottling = UI.panels.timeline.networkThrottlingSelect;

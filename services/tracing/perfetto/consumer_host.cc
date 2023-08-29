@@ -601,18 +601,15 @@ void ConsumerHost::TracingSession::Flush(
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   flush_callback_ = std::move(callback);
   base::WeakPtr<TracingSession> weak_this = weak_factory_.GetWeakPtr();
-  host_->consumer_endpoint()->Flush(
-      timeout,
-      [weak_this](bool success) {
-        if (!weak_this) {
-          return;
-        }
+  host_->consumer_endpoint()->Flush(timeout, [weak_this](bool success) {
+    if (!weak_this) {
+      return;
+    }
 
-        if (weak_this->flush_callback_) {
-          std::move(weak_this->flush_callback_).Run(success);
-        }
-      },
-      perfetto::FlushFlags(0));
+    if (weak_this->flush_callback_) {
+      std::move(weak_this->flush_callback_).Run(success);
+    }
+  });
 }
 
 // static
@@ -676,11 +673,6 @@ void ConsumerHost::EnableTracing(
   perfetto::base::ScopedFile file(output_file.TakePlatformFile());
 #endif
 
-#if BUILDFLAG(USE_PERFETTO_CLIENT_LIBRARY)
-  tracing_session_ = std::make_unique<TracingSession>(
-      this, std::move(tracing_session_host), std::move(tracing_session_client),
-      trace_config, std::move(file), priority);
-#else   // !BUILDFLAG(USE_PERFETTO_CLIENT_LIBRARY)
   // We create our new TracingSession async, if the PerfettoService allows
   // us to, after it's stopped any currently running lower or equal priority
   // tracing sessions.
@@ -707,7 +699,6 @@ void ConsumerHost::EnableTracing(
                     weak_factory_.GetWeakPtr(), std::move(tracing_session_host),
                     std::move(tracing_session_client), trace_config,
                     std::move(file), priority));
-#endif  // !BUILDFLAG(USE_PERFETTO_CLIENT_LIBRARY)
 }
 
 void ConsumerHost::OnConnect() {}

@@ -30,7 +30,7 @@ class MODULES_EXPORT NavigatorShare final
  public:
   static const char kSupplementName[];
 
-  NavigatorShare(Navigator& navigator) : Supplement(navigator) {}
+  NavigatorShare() : Supplement(nullptr) {}
   ~NavigatorShare() = default;
 
   // Gets, or creates, NavigatorShare supplement on Navigator.

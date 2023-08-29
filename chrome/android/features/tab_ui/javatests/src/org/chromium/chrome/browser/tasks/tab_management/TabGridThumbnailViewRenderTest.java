@@ -24,8 +24,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 
 import org.chromium.base.test.BaseActivityTestRule;
 import org.chromium.base.test.params.ParameterAnnotations;
@@ -33,15 +31,12 @@ import org.chromium.base.test.params.ParameterSet;
 import org.chromium.base.test.params.ParameterizedRunner;
 import org.chromium.base.test.util.Batch;
 import org.chromium.base.test.util.Feature;
-import org.chromium.chrome.browser.browser_controls.BrowserControlsStateProvider;
 import org.chromium.chrome.browser.flags.ChromeFeatureList;
 import org.chromium.chrome.browser.tab.TabUtils;
 import org.chromium.chrome.test.ChromeJUnit4RunnerDelegate;
 import org.chromium.chrome.test.R;
 import org.chromium.chrome.test.util.ChromeRenderTestRule;
 import org.chromium.chrome.test.util.browser.Features;
-import org.chromium.chrome.test.util.browser.Features.DisableFeatures;
-import org.chromium.chrome.test.util.browser.Features.EnableFeatures;
 import org.chromium.content_public.browser.test.util.TestThreadUtils;
 import org.chromium.ui.test.util.BlankUiTestActivity;
 import org.chromium.ui.test.util.NightModeTestUtils;
@@ -65,7 +60,7 @@ public class TabGridThumbnailViewRenderTest {
     public final ChromeRenderTestRule mRenderTestRule =
             ChromeRenderTestRule.Builder.withPublicCorpus()
                     .setBugComponent(RenderTestRule.Component.UI_BROWSER_MOBILE_TAB_SWITCHER_GRID)
-                    .setRevision(3)
+                    .setRevision(2)
                     .build();
 
     @Rule
@@ -74,9 +69,6 @@ public class TabGridThumbnailViewRenderTest {
 
     @Rule
     public TestRule mJunitProcessor = new Features.JUnitProcessor();
-
-    @Mock
-    private BrowserControlsStateProvider mBrowserControlsStateProvider;
 
     private FrameLayout mContentView;
     private ViewGroup mTabCard;
@@ -90,7 +82,6 @@ public class TabGridThumbnailViewRenderTest {
 
     @Before
     public void setUp() {
-        MockitoAnnotations.initMocks(this);
         mActivityTestRule.launchActivity(null);
         mActivityTestRule.getActivity().setTheme(R.style.Theme_BrowserUI_DayNight);
         TestThreadUtils.runOnUiThreadBlocking(() -> {
@@ -110,8 +101,8 @@ public class TabGridThumbnailViewRenderTest {
         });
         TestThreadUtils.runOnUiThreadBlocking(() -> {
             final int cardWidthPx = mContentView.getMeasuredWidth() / 2;
-            final int cardHeightPx = TabUtils.deriveGridCardHeight(
-                    cardWidthPx, mActivityTestRule.getActivity(), mBrowserControlsStateProvider);
+            final int cardHeightPx =
+                    TabUtils.deriveGridCardHeight(cardWidthPx, mActivityTestRule.getActivity());
             mTabCard.setMinimumWidth(cardWidthPx);
             mTabCard.setMinimumHeight(cardHeightPx);
             mTabCard.getLayoutParams().width = cardWidthPx;
@@ -161,7 +152,7 @@ public class TabGridThumbnailViewRenderTest {
     @Test
     @MediumTest
     @Feature("RenderTest")
-    @EnableFeatures({ChromeFeatureList.THUMBNAIL_PLACEHOLDER})
+    @Features.EnableFeatures({ChromeFeatureList.THUMBNAIL_PLACEHOLDER})
     public void testPlaceholderDrawable() throws IOException, InterruptedException {
         TestThreadUtils.runOnUiThreadBlocking(() -> {
             updateColor(/*isIncognito=*/true, /*isSelected=*/false);
@@ -203,7 +194,7 @@ public class TabGridThumbnailViewRenderTest {
     @Test
     @MediumTest
     @Feature("RenderTest")
-    @DisableFeatures({ChromeFeatureList.THUMBNAIL_PLACEHOLDER})
+    @Features.DisableFeatures({ChromeFeatureList.THUMBNAIL_PLACEHOLDER})
     public void testNoPlaceholderDrawable() throws IOException, InterruptedException {
         TestThreadUtils.runOnUiThreadBlocking(() -> {
             updateColor(/*isIncognito=*/true, /*isSelected=*/false);

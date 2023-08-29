@@ -16,8 +16,7 @@ class FakeOnDeviceTailModelService : public OnDeviceTailModelService {
 
   void OnModelUpdated(
       optimization_guide::proto::OptimizationTarget optimization_target,
-      base::optional_ref<const optimization_guide::ModelInfo> model_info)
-      override;
+      const optimization_guide::ModelInfo& model_info) override;
 };
 
 #endif  // COMPONENTS_OMNIBOX_BROWSER_FAKE_ON_DEVICE_TAIL_MODEL_SERVICE_H_

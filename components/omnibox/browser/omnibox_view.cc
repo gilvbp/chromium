@@ -204,7 +204,7 @@ ui::ImageModel OmniboxView::GetIcon(int dip_size,
     // search queries with the chrome refresh feature.
     if (OmniboxFieldTrial::IsChromeRefreshIconsEnabled()) {
       if (search::DefaultSearchProviderIsGoogle(
-              controller_->client()->GetTemplateURLService())) {
+              model()->client()->GetTemplateURLService())) {
         // For non chrome builds this would return an empty image model. In
         // those cases revert to using the favicon.
         ui::ImageModel icon = model()->GetSuperGIcon(dip_size, dark_mode);
@@ -214,7 +214,7 @@ ui::ImageModel OmniboxView::GetIcon(int dip_size,
       }
     }
 
-    favicon = controller_->client()->GetFaviconForDefaultSearchProvider(
+    favicon = model()->client()->GetFaviconForDefaultSearchProvider(
         std::move(on_icon_fetched));
 
   } else if (match.type != AutocompleteMatchType::HISTORY_CLUSTER) {
@@ -225,21 +225,20 @@ ui::ImageModel OmniboxView::GetIcon(int dip_size,
     // styling support.
     if (!AutocompleteMatch::IsStarterPackType(match.type)) {
       // For site suggestions, display site's favicon.
-      favicon = controller_->client()->GetFaviconForPageUrl(
+      favicon = model()->client()->GetFaviconForPageUrl(
           match.destination_url, std::move(on_icon_fetched));
     }
   }
 
   if (!favicon.IsEmpty())
-    return ui::ImageModel::FromImage(
-        controller_->client()->GetSizedIcon(favicon));
+    return ui::ImageModel::FromImage(model()->client()->GetSizedIcon(favicon));
   // If the client returns an empty favicon, fall through to provide the
   // generic vector icon. |on_icon_fetched| may or may not be called later.
   // If it's never called, the vector icon we provide below should remain.
 
   // For bookmarked suggestions, display bookmark icon.
   bookmarks::BookmarkModel* bookmark_model =
-      controller_->client()->GetBookmarkModel();
+      model()->client()->GetBookmarkModel();
   const bool is_bookmarked =
       bookmark_model && bookmark_model->IsBookmarked(match.destination_url);
 
@@ -247,7 +246,8 @@ ui::ImageModel OmniboxView::GetIcon(int dip_size,
   // icon.
   const TemplateURL* turl =
       match.associated_keyword
-          ? controller_->client()
+          ? model()
+                ->client()
                 ->GetTemplateURLService()
                 ->GetTemplateURLForKeyword(match.associated_keyword->keyword)
           : nullptr;
@@ -369,7 +369,7 @@ OmniboxView::OmniboxView(std::unique_ptr<OmniboxClient> client)
           std::move(client))) {}
 
 const LocationBarModel* OmniboxView::GetLocationBarModel() const {
-  return controller_->client()->GetLocationBarModel();
+  return model() ? model()->client()->GetLocationBarModel() : nullptr;
 }
 
 OmniboxEditModel* OmniboxView::model() {
@@ -379,15 +379,6 @@ OmniboxEditModel* OmniboxView::model() {
 
 const OmniboxEditModel* OmniboxView::model() const {
   return controller_->edit_model();
-}
-
-OmniboxController* OmniboxView::controller() {
-  return const_cast<OmniboxController*>(
-      const_cast<const OmniboxView*>(this)->controller());
-}
-
-const OmniboxController* OmniboxView::controller() const {
-  return controller_.get();
 }
 
 void OmniboxView::TextChanged() {
@@ -420,7 +411,7 @@ void OmniboxView::UpdateTextStyle(
 
   const bool is_extension_url =
 #if BUILDFLAG(ENABLE_EXTENSIONS)
-      base::EqualsASCII(url_scheme, extensions::kExtensionScheme);
+      url_scheme == base::UTF8ToUTF16(extensions::kExtensionScheme);
 #else
       false;
 #endif

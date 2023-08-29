@@ -3,7 +3,6 @@
 // found in the LICENSE file.
 
 #include "base/threading/platform_thread.h"
-#include "base/threading/thread_id_name_manager.h"
 
 #include "base/task/current_thread.h"
 #include "third_party/abseil-cpp/absl/base/attributes.h"
@@ -22,7 +21,7 @@ ABSL_CONST_INIT thread_local ThreadType current_thread_type =
 }  // namespace
 
 // static
-void PlatformThreadBase::SetCurrentThreadType(ThreadType thread_type) {
+void PlatformThread::SetCurrentThreadType(ThreadType thread_type) {
   MessagePumpType message_pump_type = MessagePumpType::DEFAULT;
   if (CurrentIOThread::IsSet()) {
     message_pump_type = MessagePumpType::IO;
@@ -36,12 +35,12 @@ void PlatformThreadBase::SetCurrentThreadType(ThreadType thread_type) {
 }
 
 // static
-ThreadType PlatformThreadBase::GetCurrentThreadType() {
+ThreadType PlatformThread::GetCurrentThreadType() {
   return current_thread_type;
 }
 
 // static
-absl::optional<TimeDelta> PlatformThreadBase::GetThreadLeewayOverride() {
+absl::optional<TimeDelta> PlatformThread::GetThreadLeewayOverride() {
 #if BUILDFLAG(IS_FUCHSIA)
   // On Fuchsia, all audio threads run with the CPU scheduling profile that uses
   // an interval of |kAudioSchedulingPeriod|. Using the default leeway may lead
@@ -51,11 +50,6 @@ absl::optional<TimeDelta> PlatformThreadBase::GetThreadLeewayOverride() {
     return kAudioSchedulingPeriod;
 #endif
   return absl::nullopt;
-}
-
-// static
-void PlatformThreadBase::SetNameCommon(const std::string& name) {
-  ThreadIdNameManager::GetInstance()->SetName(name);
 }
 
 namespace internal {

@@ -168,6 +168,7 @@ public class BrowserStartupControllerImpl implements BrowserStartupController {
         return sInstance;
     }
 
+    @VisibleForTesting
     public static void overrideInstanceForTest(BrowserStartupController controller) {
         sInstance = (BrowserStartupControllerImpl) controller;
     }

@@ -42,9 +42,6 @@ class PermissionsManagerUnittest : public ExtensionsTest {
       delete;
 
   scoped_refptr<const Extension> AddExtension(const std::string& name);
-  scoped_refptr<const Extension> AddExtensionWithAPIPermission(
-      const std::string& name,
-      const std::string& permission);
   scoped_refptr<const Extension> AddExtensionWithHostPermission(
       const std::string& name,
       const std::string& host_permission);
@@ -92,23 +89,6 @@ scoped_refptr<const Extension> PermissionsManagerUnittest::AddExtension(
 }
 
 scoped_refptr<const Extension>
-PermissionsManagerUnittest::AddExtensionWithAPIPermission(
-    const std::string& name,
-    const std::string& permission) {
-  scoped_refptr<const extensions::Extension> extension =
-      extensions::ExtensionBuilder(name)
-          .SetManifestVersion(3)
-          .AddPermission(permission)
-          .Build();
-  DCHECK(extension->permissions_data()->HasAPIPermission(permission));
-
-  ExtensionRegistryFactory::GetForBrowserContext(browser_context())
-      ->AddEnabled(extension);
-
-  return extension;
-}
-
-scoped_refptr<const Extension>
 PermissionsManagerUnittest::AddExtensionWithHostPermission(
     const std::string& name,
     const std::string& host_permission) {
@@ -127,7 +107,17 @@ PermissionsManagerUnittest::AddExtensionWithHostPermission(
 
 scoped_refptr<const Extension>
 PermissionsManagerUnittest::AddExtensionWithActiveTab(const std::string& name) {
-  return AddExtensionWithAPIPermission(name, "activeTab");
+  scoped_refptr<const extensions::Extension> extension =
+      extensions::ExtensionBuilder(name)
+          .SetManifestVersion(3)
+          .AddPermission("activeTab")
+          .Build();
+  DCHECK(extension->permissions_data()->HasAPIPermission("activeTab"));
+
+  ExtensionRegistryFactory::GetForBrowserContext(browser_context())
+      ->AddEnabled(extension);
+
+  return extension;
 }
 
 const base::Value* PermissionsManagerUnittest::GetRestrictedSitesFromPrefs() {
@@ -478,27 +468,6 @@ TEST_F(PermissionsManagerUnittest, CanUserSelectSiteAccess_ActiveTab) {
                                                  UserSiteAccess::kOnSite));
   EXPECT_FALSE(manager_->CanUserSelectSiteAccess(*extension, url,
                                                  UserSiteAccess::kOnAllSites));
-}
-
-TEST_F(PermissionsManagerUnittest,
-       ExtensionRequestsHostPermissionsOrActiveTab) {
-  auto no_permissions_extension = AddExtension("Extension");
-  auto dnr_extension =
-      AddExtensionWithAPIPermission("DNR extension", "declarativeNetRequest");
-  auto active_tab_extension = AddExtensionWithActiveTab("ActiveTab Extension");
-  auto host_permissions_extension = AddExtensionWithHostPermission(
-      "RequestedUrl Extension", "*://*.requested.com/*");
-
-  // Verify that ExtensionRequestsHostPermissionsOrActiveTab returns true only
-  // for extensions that explicitly request host permissions or activeTab.
-  EXPECT_FALSE(manager_->ExtensionRequestsHostPermissionsOrActiveTab(
-      *no_permissions_extension));
-  EXPECT_FALSE(
-      manager_->ExtensionRequestsHostPermissionsOrActiveTab(*dnr_extension));
-  EXPECT_TRUE(manager_->ExtensionRequestsHostPermissionsOrActiveTab(
-      *active_tab_extension));
-  EXPECT_TRUE(manager_->ExtensionRequestsHostPermissionsOrActiveTab(
-      *host_permissions_extension));
 }
 
 class PermissionsManagerWithPermittedSitesUnitTest

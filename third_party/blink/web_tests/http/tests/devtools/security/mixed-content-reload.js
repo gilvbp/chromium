@@ -5,8 +5,6 @@
 import {TestRunner} from 'test_runner';
 import {SecurityTestRunner} from 'security_test_runner';
 
-import * as SDK from 'devtools/core/sdk/sdk.js';
-
 (async function() {
   TestRunner.addResult(
       `Tests that the mixed content explanation prompts the user to refresh when there are no recorded requests, and links to the network panel when there are recorded requests.\n`);
@@ -36,7 +34,7 @@ import * as SDK from 'devtools/core/sdk/sdk.js';
         Security.SecurityModel.Events.VisibleSecurityStateChanged,
         pageVisibleSecurityState);
 
-  var request = SDK.NetworkRequest.NetworkRequest.create(
+  var request = SDK.NetworkRequest.create(
       0, 'http://foo.test', 'https://foo.test', 0, 0, null);
   request.mixedContentType = 'optionally-blockable';
   SecurityTestRunner.dispatchRequestFinished(request);

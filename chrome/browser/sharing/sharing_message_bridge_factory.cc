@@ -39,14 +39,12 @@ SharingMessageBridge* SharingMessageBridgeFactory::GetForBrowserContext(
       GetInstance()->GetServiceForBrowserContext(context, true));
 }
 
-std::unique_ptr<KeyedService>
-SharingMessageBridgeFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* SharingMessageBridgeFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   auto change_processor =
       std::make_unique<syncer::ClientTagBasedModelTypeProcessor>(
           syncer::SHARING_MESSAGE,
           base::BindRepeating(&syncer::ReportUnrecoverableError,
                               chrome::GetChannel()));
-  return std::make_unique<SharingMessageBridgeImpl>(
-      std::move(change_processor));
+  return new SharingMessageBridgeImpl(std::move(change_processor));
 }

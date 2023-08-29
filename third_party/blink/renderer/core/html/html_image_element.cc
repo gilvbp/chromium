@@ -58,7 +58,6 @@
 #include "third_party/blink/renderer/core/layout/layout_block_flow.h"
 #include "third_party/blink/renderer/core/layout/layout_image.h"
 #include "third_party/blink/renderer/core/layout/ng/layout_ng_block_flow.h"
-#include "third_party/blink/renderer/core/lcp_critical_path_predictor/lcp_critical_path_predictor.h"
 #include "third_party/blink/renderer/core/loader/resource/image_resource_content.h"
 #include "third_party/blink/renderer/core/media_type_names.h"
 #include "third_party/blink/renderer/core/page/chrome_client.h"
@@ -116,18 +115,7 @@ HTMLImageElement::HTMLImageElement(Document& document, bool created_by_parser)
       is_ad_related_(false),
       is_lcp_element_(false),
       is_changed_shortly_after_mouseover_(false),
-      has_sizes_attribute_in_img_or_sibling_(false) {
-  if (base::FeatureList::IsEnabled(features::kLCPScriptObserver)) {
-    if (LocalFrame* frame = document.GetFrame()) {
-      if (LCPCriticalPathPredictor* lcpp = frame->GetLCPP()) {
-        if (LCPScriptObserver* script_observer = lcpp->lcp_script_observer()) {
-          // Record scripts that created this HTMLImageElement.
-          creator_scripts_ = script_observer->GetExecutingScriptUrls();
-        }
-      }
-    }
-  }
-}
+      has_sizes_attribute_in_img_or_sibling_(false) {}
 
 HTMLImageElement::~HTMLImageElement() = default;
 
@@ -388,15 +376,6 @@ void HTMLImageElement::ParseAttribute(
       window->GetFrame()->GetAttributionSrcLoader()->Register(params.new_value,
                                                               /*element=*/this);
     }
-  } else if (name == html_names::kSharedstoragewritableAttr &&
-             RuntimeEnabledFeatures::SharedStorageAPIM118Enabled(
-                 GetExecutionContext()) &&
-             !GetExecutionContext()->IsSecureContext()) {
-    GetDocument().AddConsoleMessage(MakeGarbageCollected<ConsoleMessage>(
-        mojom::blink::ConsoleMessageSource::kOther,
-        mojom::blink::ConsoleMessageLevel::kError,
-        WebString::FromUTF8("sharedStorageWritable: sharedStorage operations "
-                            "are only available in secure contexts.")));
   } else {
     HTMLElement::ParseAttribute(params);
   }
@@ -543,20 +522,6 @@ Node::InsertionNotificationRequest HTMLImageElement::InsertedInto(
       GetImageLoader().NoImageResourceToLoad();
     }
   }
-
-  if (base::FeatureList::IsEnabled(features::kLCPScriptObserver)) {
-    if (LocalFrame* frame = GetDocument().GetFrame()) {
-      if (LCPCriticalPathPredictor* lcpp = frame->GetLCPP()) {
-        if (LCPScriptObserver* script_observer = lcpp->lcp_script_observer()) {
-          // Record scripts that inserted this HTMLImageElement.
-          for (auto& url : script_observer->GetExecutingScriptUrls()) {
-            creator_scripts_.insert(url);
-          }
-        }
-      }
-    }
-  }
-
   return HTMLElement::InsertedInto(insertion_point);
 }
 
@@ -630,32 +595,32 @@ unsigned HTMLImageElement::height() {
   return LayoutBoxHeight();
 }
 
-PhysicalSize HTMLImageElement::DensityCorrectedIntrinsicDimensions() const {
+LayoutSize HTMLImageElement::DensityCorrectedIntrinsicDimensions() const {
   if (IsDefaultIntrinsicSize()) {
-    return PhysicalSize(LayoutUnit(LayoutReplaced::kDefaultWidth),
-                        LayoutUnit(LayoutReplaced::kDefaultHeight));
+    return LayoutSize(LayoutReplaced::kDefaultWidth,
+                      LayoutReplaced::kDefaultHeight);
   }
   ImageResourceContent* image_content = GetImageLoader().GetContent();
   if (!image_content || !image_content->HasImage())
-    return PhysicalSize();
+    return LayoutSize();
 
   float pixel_density = image_device_pixel_ratio_;
   if (image_content->HasDevicePixelRatioHeaderValue() &&
       image_content->DevicePixelRatioHeaderValue() > 0)
     pixel_density = 1 / image_content->DevicePixelRatioHeaderValue();
 
-  PhysicalSize natural_size(
+  LayoutSize natural_size(
       image_content->GetImage()->Size(kRespectImageOrientation));
   natural_size.Scale(pixel_density);
   return natural_size;
 }
 
 unsigned HTMLImageElement::naturalWidth() const {
-  return DensityCorrectedIntrinsicDimensions().width.ToUnsigned();
+  return DensityCorrectedIntrinsicDimensions().Width().ToUnsigned();
 }
 
 unsigned HTMLImageElement::naturalHeight() const {
-  return DensityCorrectedIntrinsicDimensions().height.ToUnsigned();
+  return DensityCorrectedIntrinsicDimensions().Height().ToUnsigned();
 }
 
 unsigned HTMLImageElement::LayoutBoxWidth() const {
@@ -846,7 +811,7 @@ gfx::SizeF HTMLImageElement::DefaultDestinationSize(
   if (auto* svg_image = DynamicTo<SVGImage>(image))
     return svg_image->ConcreteObjectSize(default_object_size);
 
-  PhysicalSize size(image->Size(respect_orientation));
+  LayoutSize size(image->Size(respect_orientation));
   if (GetLayoutObject() && GetLayoutObject()->IsLayoutImage() &&
       image->HasIntrinsicSize())
     size.Scale(To<LayoutImage>(GetLayoutObject())->ImageDevicePixelRatio());

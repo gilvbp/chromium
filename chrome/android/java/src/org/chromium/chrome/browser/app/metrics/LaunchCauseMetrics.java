@@ -266,6 +266,7 @@ public abstract class LaunchCauseMetrics implements ApplicationStatus.Applicatio
         return display.getState() != Display.STATE_ON;
     }
 
+    @VisibleForTesting
     public static void resetForTests() {
         ThreadUtils.assertOnUiThread();
         sRecordedLaunchCause = false;

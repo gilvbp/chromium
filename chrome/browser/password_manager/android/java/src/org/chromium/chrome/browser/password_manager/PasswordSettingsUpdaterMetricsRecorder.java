@@ -83,6 +83,7 @@ class PasswordSettingsUpdaterMetricsRecorder {
         }
     }
 
+    @VisibleForTesting
     String getFunctionSuffixForTesting() {
         return mFunctionSuffix;
     }

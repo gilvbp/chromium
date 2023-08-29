@@ -16,6 +16,10 @@
 #import "ios/testing/earl_grey/earl_grey_test.h"
 #import "net/test/embedded_test_server/embedded_test_server.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 using chrome_test_util::ButtonWithAccessibilityLabelId;
 using chrome_test_util::ManualFallbackKeyboardIconMatcher;
 using chrome_test_util::ManualFallbackPasswordIconMatcher;
@@ -88,7 +92,8 @@ void BringUpKeyboard() {
 
 // Dismisses the keyboard, if it exist.
 void DismissKeyboard() {
-  [EarlGrey dismissKeyboardWithError:nil];
+  [[EarlGrey selectElementWithMatcher:WebViewMatcher()]
+      performAction:grey_tap()];
   ConditionBlock keyboardDismissed = ^{
     return ![EarlGrey isKeyboardShownWithError:nil];
   };

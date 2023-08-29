@@ -4,12 +4,8 @@
 
 package org.chromium.chrome.browser.customtabs;
 
-import static androidx.browser.customtabs.CustomTabsIntent.ACTIVITY_HEIGHT_ADJUSTABLE;
-import static androidx.browser.customtabs.CustomTabsIntent.ACTIVITY_HEIGHT_DEFAULT;
-import static androidx.browser.customtabs.CustomTabsIntent.ACTIVITY_HEIGHT_FIXED;
 import static androidx.browser.customtabs.CustomTabsIntent.COLOR_SCHEME_DARK;
 import static androidx.browser.customtabs.CustomTabsIntent.COLOR_SCHEME_LIGHT;
-import static androidx.browser.customtabs.CustomTabsIntent.EXTRA_ACTIVITY_HEIGHT_RESIZE_BEHAVIOR;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -33,6 +29,7 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.view.ContextThemeWrapper;
 
 import androidx.browser.customtabs.CustomTabColorSchemeParams;
@@ -42,6 +39,7 @@ import androidx.browser.trusted.ScreenOrientation;
 import androidx.browser.trusted.TrustedWebActivityIntentBuilder;
 import androidx.test.core.app.ApplicationProvider;
 
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -53,10 +51,10 @@ import org.robolectric.annotation.Config;
 
 import org.chromium.base.IntentUtils;
 import org.chromium.base.test.BaseRobolectricTestRunner;
-import org.chromium.base.test.util.Batch;
 import org.chromium.base.test.util.CommandLineFlags;
 import org.chromium.chrome.R;
 import org.chromium.chrome.browser.IntentHandler;
+import org.chromium.chrome.browser.browserservices.intents.BrowserServicesIntentDataProvider;
 import org.chromium.chrome.browser.browserservices.intents.ColorProvider;
 import org.chromium.chrome.browser.document.ChromeLauncherActivity;
 import org.chromium.chrome.browser.flags.ChromeFeatureList;
@@ -70,7 +68,6 @@ import java.util.Collections;
 
 /** Tests for {@link CustomTabIntentDataProvider}. */
 @RunWith(BaseRobolectricTestRunner.class)
-@Batch(Batch.UNIT_TESTS)
 @Config(manifest = Config.NONE)
 public class CustomTabIntentDataProviderTest {
     @Rule
@@ -84,6 +81,11 @@ public class CustomTabIntentDataProviderTest {
     public void setUp() {
         mContext = new ContextThemeWrapper(
                 ApplicationProvider.getApplicationContext(), R.style.Theme_BrowserUI_DayNight);
+    }
+
+    @After
+    public void tearDown() {
+        CustomTabsConnection.setInstanceForTesting(null);
     }
 
     @Test
@@ -244,7 +246,7 @@ public class CustomTabIntentDataProviderTest {
     }
 
     @Test
-    @EnableFeatures(ChromeFeatureList.CCT_RESIZABLE_FOR_THIRD_PARTIES)
+    @EnableFeatures({ChromeFeatureList.CCT_RESIZABLE_FOR_THIRD_PARTIES})
     public void isAllowedThirdParty_noDefaultPolicy() {
         CustomTabIntentDataProvider.DENYLIST_ENTRIES.setForTesting(
                 "com.dc.joker|com.marvel.thanos");
@@ -381,7 +383,8 @@ public class CustomTabIntentDataProviderTest {
     @Test
     public void partialCustomTabHeightResizeBehavior_Default() {
         Intent intent = new Intent().putExtra(
-                EXTRA_ACTIVITY_HEIGHT_RESIZE_BEHAVIOR, ACTIVITY_HEIGHT_DEFAULT);
+                CustomTabIntentDataProvider.EXTRA_ACTIVITY_HEIGHT_RESIZE_BEHAVIOR,
+                BrowserServicesIntentDataProvider.ACTIVITY_HEIGHT_DEFAULT);
 
         CustomTabIntentDataProvider dataProvider =
                 new CustomTabIntentDataProvider(intent, mContext, COLOR_SCHEME_LIGHT);
@@ -393,7 +396,8 @@ public class CustomTabIntentDataProviderTest {
     @Test
     public void partialCustomTabHeightResizeBehavior_Adjustable() {
         Intent intent = new Intent().putExtra(
-                EXTRA_ACTIVITY_HEIGHT_RESIZE_BEHAVIOR, ACTIVITY_HEIGHT_ADJUSTABLE);
+                CustomTabIntentDataProvider.EXTRA_ACTIVITY_HEIGHT_RESIZE_BEHAVIOR,
+                BrowserServicesIntentDataProvider.ACTIVITY_HEIGHT_ADJUSTABLE);
 
         CustomTabIntentDataProvider dataProvider =
                 new CustomTabIntentDataProvider(intent, mContext, COLOR_SCHEME_LIGHT);
@@ -404,8 +408,9 @@ public class CustomTabIntentDataProviderTest {
 
     @Test
     public void partialCustomTabHeightResizeBehavior_Fixed() {
-        Intent intent =
-                new Intent().putExtra(EXTRA_ACTIVITY_HEIGHT_RESIZE_BEHAVIOR, ACTIVITY_HEIGHT_FIXED);
+        Intent intent = new Intent().putExtra(
+                CustomTabIntentDataProvider.EXTRA_ACTIVITY_HEIGHT_RESIZE_BEHAVIOR,
+                BrowserServicesIntentDataProvider.ACTIVITY_HEIGHT_FIXED);
 
         CustomTabIntentDataProvider dataProvider =
                 new CustomTabIntentDataProvider(intent, mContext, COLOR_SCHEME_LIGHT);
@@ -457,18 +462,18 @@ public class CustomTabIntentDataProviderTest {
     }
 
     @Test
-    public void testGetAppIdFromReferrer() {
+    public void testGetReferrerPackageName() {
         assertEquals("extra.activity.referrer",
-                CustomTabIntentDataProvider.getAppIdFromReferrer(
+                CustomTabIntentDataProvider.getReferrerPackageName(
                         buildMockActivity("android-app://extra.activity.referrer")));
         assertEquals("co.abc.xyz",
-                CustomTabIntentDataProvider.getAppIdFromReferrer(
+                CustomTabIntentDataProvider.getReferrerPackageName(
                         buildMockActivity("android-app://co.abc.xyz")));
 
-        assertNonPackageUriReferrer("");
-        assertNonPackageUriReferrer("invalid");
-        assertNonPackageUriReferrer("android-app://"); // empty host name is invalid.
-        assertNonPackageUriReferrer(Uri.parse("https://www.one.com").toString());
+        assertReferrerInvalid("");
+        assertReferrerInvalid("invalid");
+        assertReferrerInvalid("android-app://");
+        assertReferrerInvalid(Uri.parse("https://www.one.com").toString());
     }
 
     @Test
@@ -527,7 +532,7 @@ public class CustomTabIntentDataProviderTest {
     }
 
     @Test
-    @DisableFeatures(ChromeFeatureList.CCT_AUTO_TRANSLATE)
+    @DisableFeatures({ChromeFeatureList.CCT_AUTO_TRANSLATE})
     public void getTranslateLanguage_autoTranslateFeatureDisabled() {
         CustomTabsConnection connection = Mockito.mock(CustomTabsConnection.class);
         when(connection.getClientPackageNameForSession(any())).thenReturn("com.example.foo");
@@ -544,7 +549,7 @@ public class CustomTabIntentDataProviderTest {
     }
 
     @Test
-    @EnableFeatures(ChromeFeatureList.CCT_AUTO_TRANSLATE)
+    @EnableFeatures({ChromeFeatureList.CCT_AUTO_TRANSLATE})
     public void getTranslateLanguage_autoTranslateExtraMissing() {
         CustomTabIntentDataProvider.AUTO_TRANSLATE_ALLOW_ALL_FIRST_PARTIES.setForTesting(false);
         CustomTabIntentDataProvider.AUTO_TRANSLATE_PACKAGE_NAME_ALLOWLIST.setForTesting(
@@ -564,7 +569,7 @@ public class CustomTabIntentDataProviderTest {
     }
 
     @Test
-    @EnableFeatures(ChromeFeatureList.CCT_AUTO_TRANSLATE)
+    @EnableFeatures({ChromeFeatureList.CCT_AUTO_TRANSLATE})
     public void getTranslateLanguage_autoTranslateWithAllowedPackageName() {
         CustomTabIntentDataProvider.AUTO_TRANSLATE_ALLOW_ALL_FIRST_PARTIES.setForTesting(false);
         CustomTabIntentDataProvider.AUTO_TRANSLATE_PACKAGE_NAME_ALLOWLIST.setForTesting(
@@ -585,7 +590,7 @@ public class CustomTabIntentDataProviderTest {
     }
 
     @Test
-    @EnableFeatures(ChromeFeatureList.CCT_AUTO_TRANSLATE)
+    @EnableFeatures({ChromeFeatureList.CCT_AUTO_TRANSLATE})
     public void getTranslateLanguage_autoTranslateWithoutAllowedPackageName() {
         CustomTabIntentDataProvider.AUTO_TRANSLATE_ALLOW_ALL_FIRST_PARTIES.setForTesting(false);
         CustomTabIntentDataProvider.AUTO_TRANSLATE_PACKAGE_NAME_ALLOWLIST.setForTesting(
@@ -606,7 +611,7 @@ public class CustomTabIntentDataProviderTest {
     }
 
     @Test
-    @EnableFeatures(ChromeFeatureList.CCT_AUTO_TRANSLATE)
+    @EnableFeatures({ChromeFeatureList.CCT_AUTO_TRANSLATE})
     public void getTranslateLanguage_autoTranslateWithFirstPartyAllowed() {
         CustomTabIntentDataProvider.AUTO_TRANSLATE_ALLOW_ALL_FIRST_PARTIES.setForTesting(true);
         CustomTabIntentDataProvider.AUTO_TRANSLATE_PACKAGE_NAME_ALLOWLIST.setForTesting(
@@ -628,7 +633,7 @@ public class CustomTabIntentDataProviderTest {
     }
 
     @Test
-    @EnableFeatures(ChromeFeatureList.CCT_AUTO_TRANSLATE)
+    @EnableFeatures({ChromeFeatureList.CCT_AUTO_TRANSLATE})
     public void getTranslateLanguage_autoTranslateWithThirdPartyPackageName() {
         CustomTabIntentDataProvider.AUTO_TRANSLATE_ALLOW_ALL_FIRST_PARTIES.setForTesting(true);
         CustomTabIntentDataProvider.AUTO_TRANSLATE_PACKAGE_NAME_ALLOWLIST.setForTesting(
@@ -660,7 +665,7 @@ public class CustomTabIntentDataProviderTest {
     }
 
     @Test
-    @DisableFeatures(ChromeFeatureList.CCT_BOTTOM_BAR_SWIPE_UP_GESTURE)
+    @DisableFeatures({ChromeFeatureList.CCT_BOTTOM_BAR_SWIPE_UP_GESTURE})
     public void getSecondaryToolbarSwipeUpPendingIntent_featureDisabled() {
         Intent intent = new Intent();
         var pendingIntent = mock(PendingIntent.class);
@@ -784,9 +789,10 @@ public class CustomTabIntentDataProviderTest {
         return Uri.parse("https://www.example.com/");
     }
 
-    private void assertNonPackageUriReferrer(String referrerStr) {
-        assertEquals(referrerStr,
-                CustomTabIntentDataProvider.getAppIdFromReferrer(buildMockActivity(referrerStr)));
+    private void assertReferrerInvalid(String referrerStr) {
+        assertTrue("Referrer should be invalid for the input: " + referrerStr,
+                TextUtils.isEmpty(CustomTabIntentDataProvider.getReferrerPackageName(
+                        buildMockActivity(referrerStr))));
     }
 
     private Activity buildMockActivity(String referrer) {

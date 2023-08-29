@@ -71,10 +71,9 @@ class DnsResolverPresentRoutineTest : public NetworkDiagnosticsTestHelper {
     }
 
     // Set up the IP config
-    auto ip_config_properties =
-        base::Value::Dict()
-            .Set(shill::kMethodProperty, type)
-            .Set(shill::kNameServersProperty, dns_servers.Clone());
+    base::Value::Dict ip_config_properties;
+    ip_config_properties.Set(shill::kMethodProperty, type);
+    ip_config_properties.Set(shill::kNameServersProperty, dns_servers.Clone());
     helper()->ip_config_test()->AddIPConfig(kIPConfigPath,
                                             ip_config_properties.Clone());
     std::string wifi_device_path =

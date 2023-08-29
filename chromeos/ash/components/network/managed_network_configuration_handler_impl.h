@@ -21,7 +21,6 @@
 #include "chromeos/ash/components/network/network_profile_observer.h"
 #include "chromeos/ash/components/network/policy_applicator.h"
 #include "chromeos/ash/components/network/profile_policies.h"
-#include "chromeos/ash/components/network/text_message_suppression_state.h"
 
 namespace base {
 class Value;
@@ -35,7 +34,6 @@ class NetworkConfigurationHandler;
 struct NetworkProfile;
 class NetworkProfileHandler;
 class NetworkStateHandler;
-class HotspotController;
 
 class COMPONENT_EXPORT(CHROMEOS_NETWORK) ManagedNetworkConfigurationHandlerImpl
     : public ManagedNetworkConfigurationHandler,
@@ -145,9 +143,7 @@ class COMPONENT_EXPORT(CHROMEOS_NETWORK) ManagedNetworkConfigurationHandlerImpl
       const base::flat_set<std::string>& new_cellular_policy_guids);
   void OnCellularPoliciesApplied(const NetworkProfile& profile) override;
 
-  PolicyTextMessageSuppressionState GetAllowTextMessages() const override;
   bool AllowCellularSimLock() const override;
-  bool AllowCellularHotspot() const override;
   bool AllowOnlyPolicyCellularNetworks() const override;
   bool AllowOnlyPolicyWiFiToConnect() const override;
   bool AllowOnlyPolicyWiFiToConnectIfAvailable() const override;
@@ -245,8 +241,7 @@ class COMPONENT_EXPORT(CHROMEOS_NETWORK) ManagedNetworkConfigurationHandlerImpl
             NetworkProfileHandler* network_profile_handler,
             NetworkConfigurationHandler* network_configuration_handler,
             NetworkDeviceHandler* network_device_handler,
-            ProhibitedTechnologiesHandler* prohibited_technologies_handler,
-            HotspotController* hotspot_controller);
+            ProhibitedTechnologiesHandler* prohibited_technologies_handler);
 
   // Returns the ProfilePolicies for the given |userhash|, or the device
   // policies if |userhash| is empty. Creates the ProfilePolicies entry if it
@@ -348,8 +343,6 @@ class COMPONENT_EXPORT(CHROMEOS_NETWORK) ManagedNetworkConfigurationHandlerImpl
       prohibited_technologies_handler_ = nullptr;
   raw_ptr<UIProxyConfigService, DanglingUntriaged | ExperimentalAsh>
       ui_proxy_config_service_ = nullptr;
-  raw_ptr<HotspotController, DanglingUntriaged | ExperimentalAsh>
-      hotspot_controller_ = nullptr;
 
   UserToPolicyApplicationInfo policy_application_info_map_;
 

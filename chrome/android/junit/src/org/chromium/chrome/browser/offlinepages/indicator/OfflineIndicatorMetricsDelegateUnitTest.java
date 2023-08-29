@@ -83,6 +83,13 @@ public final class OfflineIndicatorMetricsDelegateUnitTest {
         assertFalse(mMetricsDelegate.isTrackingShownDuration());
         checkUniqueSample(
                 OfflineIndicatorMetricsDelegate.OFFLINE_INDICATOR_SHOWN_DURATION_V2, 1000);
+        checkUniqueSample(
+                OfflineIndicatorMetricsDelegate
+                        .OFFLINE_INDICATOR_SHOWN_DURATION_V2_IN_FOREGROUND_WITHOUT_BEING_BACKGROUNDED,
+                1000);
+        checkUniqueSample(OfflineIndicatorMetricsDelegate
+                                  .OFFLINE_INDICATOR_SHOWN_DURATION_V2_NUM_TIMES_BACKGROUNDED,
+                0);
     }
 
     /**
@@ -113,6 +120,14 @@ public final class OfflineIndicatorMetricsDelegateUnitTest {
         assertFalse(mMetricsDelegate.isTrackingShownDuration());
         checkUniqueSample(
                 OfflineIndicatorMetricsDelegate.OFFLINE_INDICATOR_SHOWN_DURATION_V2, 7000);
+        checkUniqueSample(OfflineIndicatorMetricsDelegate
+                                  .OFFLINE_INDICATOR_SHOWN_DURATION_V2_NUM_TIMES_BACKGROUNDED,
+                1);
+
+        assertEquals(0,
+                RecordHistogram.getHistogramTotalCountForTesting(
+                        OfflineIndicatorMetricsDelegate
+                                .OFFLINE_INDICATOR_SHOWN_DURATION_V2_IN_FOREGROUND_WITHOUT_BEING_BACKGROUNDED));
     }
 
     /**
@@ -149,6 +164,14 @@ public final class OfflineIndicatorMetricsDelegateUnitTest {
         assertFalse(mMetricsDelegate.isTrackingShownDuration());
         checkUniqueSample(OfflineIndicatorMetricsDelegate.OFFLINE_INDICATOR_SHOWN_DURATION_V2,
                 2000 * numStateChanges + 1000);
+        checkUniqueSample(OfflineIndicatorMetricsDelegate
+                                  .OFFLINE_INDICATOR_SHOWN_DURATION_V2_NUM_TIMES_BACKGROUNDED,
+                numStateChanges);
+
+        assertEquals(0,
+                RecordHistogram.getHistogramTotalCountForTesting(
+                        OfflineIndicatorMetricsDelegate
+                                .OFFLINE_INDICATOR_SHOWN_DURATION_V2_IN_FOREGROUND_WITHOUT_BEING_BACKGROUNDED));
     }
 
     /**
@@ -188,6 +211,14 @@ public final class OfflineIndicatorMetricsDelegateUnitTest {
         assertFalse(mMetricsDelegate.isTrackingShownDuration());
         checkUniqueSample(
                 OfflineIndicatorMetricsDelegate.OFFLINE_INDICATOR_SHOWN_DURATION_V2, 15000);
+        checkUniqueSample(OfflineIndicatorMetricsDelegate
+                                  .OFFLINE_INDICATOR_SHOWN_DURATION_V2_NUM_TIMES_BACKGROUNDED,
+                1);
+
+        assertEquals(0,
+                RecordHistogram.getHistogramTotalCountForTesting(
+                        OfflineIndicatorMetricsDelegate
+                                .OFFLINE_INDICATOR_SHOWN_DURATION_V2_IN_FOREGROUND_WITHOUT_BEING_BACKGROUNDED));
     }
 
     /**
@@ -219,6 +250,14 @@ public final class OfflineIndicatorMetricsDelegateUnitTest {
         assertFalse(mMetricsDelegate.isTrackingShownDuration());
         checkUniqueSample(
                 OfflineIndicatorMetricsDelegate.OFFLINE_INDICATOR_SHOWN_DURATION_V2, 7000);
+        checkUniqueSample(OfflineIndicatorMetricsDelegate
+                                  .OFFLINE_INDICATOR_SHOWN_DURATION_V2_NUM_TIMES_BACKGROUNDED,
+                1);
+
+        assertEquals(0,
+                RecordHistogram.getHistogramTotalCountForTesting(
+                        OfflineIndicatorMetricsDelegate
+                                .OFFLINE_INDICATOR_SHOWN_DURATION_V2_IN_FOREGROUND_WITHOUT_BEING_BACKGROUNDED));
     }
 
     /**
@@ -242,6 +281,14 @@ public final class OfflineIndicatorMetricsDelegateUnitTest {
 
         checkUniqueSample(
                 OfflineIndicatorMetricsDelegate.OFFLINE_INDICATOR_SHOWN_DURATION_V2, 7000);
+        checkUniqueSample(OfflineIndicatorMetricsDelegate
+                                  .OFFLINE_INDICATOR_SHOWN_DURATION_V2_NUM_TIMES_BACKGROUNDED,
+                1);
+
+        assertEquals(0,
+                RecordHistogram.getHistogramTotalCountForTesting(
+                        OfflineIndicatorMetricsDelegate
+                                .OFFLINE_INDICATOR_SHOWN_DURATION_V2_IN_FOREGROUND_WITHOUT_BEING_BACKGROUNDED));
 
         // After checking the histograms, clear them, so our next check only looks at new data.
         UmaRecorderHolder.resetForTesting();
@@ -264,6 +311,13 @@ public final class OfflineIndicatorMetricsDelegateUnitTest {
 
         checkUniqueSample(
                 OfflineIndicatorMetricsDelegate.OFFLINE_INDICATOR_SHOWN_DURATION_V2, 32000);
+        checkUniqueSample(
+                OfflineIndicatorMetricsDelegate
+                        .OFFLINE_INDICATOR_SHOWN_DURATION_V2_IN_FOREGROUND_WITHOUT_BEING_BACKGROUNDED,
+                32000);
+        checkUniqueSample(OfflineIndicatorMetricsDelegate
+                                  .OFFLINE_INDICATOR_SHOWN_DURATION_V2_NUM_TIMES_BACKGROUNDED,
+                0);
     }
 
     /**

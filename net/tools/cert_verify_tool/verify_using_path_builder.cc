@@ -21,7 +21,6 @@
 #include "net/cert/pki/simple_path_builder_delegate.h"
 #include "net/cert/pki/trust_store_collection.h"
 #include "net/cert/pki/trust_store_in_memory.h"
-#include "net/cert/time_conversions.h"
 #include "net/cert/x509_certificate.h"
 #include "net/cert/x509_util.h"
 #include "net/tools/cert_verify_tool/cert_verify_tool_util.h"
@@ -29,6 +28,20 @@
 #include "third_party/boringssl/src/include/openssl/mem.h"
 
 namespace {
+
+// Converts a base::Time::Exploded to a net::der::GeneralizedTime.
+// TODO(mattm): This function exists in cast_cert_validator.cc also. Dedupe it?
+net::der::GeneralizedTime ConvertExplodedTime(
+    const base::Time::Exploded& exploded) {
+  net::der::GeneralizedTime result;
+  result.year = exploded.year;
+  result.month = exploded.month;
+  result.day = exploded.day_of_month;
+  result.hours = exploded.hour;
+  result.minutes = exploded.minute;
+  result.seconds = exploded.second;
+  return result;
+}
 
 bool AddPemEncodedCert(const net::ParsedCertificate* cert,
                        std::vector<std::string>* pem_encoded_chain) {
@@ -141,10 +154,9 @@ bool VerifyUsingPathBuilder(
     const base::FilePath& dump_prefix_path,
     scoped_refptr<net::CertNetFetcher> cert_net_fetcher,
     net::SystemTrustStore* system_trust_store) {
-  net::der::GeneralizedTime time;
-  if (!net::EncodeTimeAsGeneralizedTime(at_time, &time)) {
-    return false;
-  }
+  base::Time::Exploded exploded_time;
+  at_time.UTCExplode(&exploded_time);
+  net::der::GeneralizedTime time = ConvertExplodedTime(exploded_time);
 
   net::TrustStoreInMemory additional_roots;
   for (const auto& cert_input_with_trust : der_certs_with_trust_settings) {

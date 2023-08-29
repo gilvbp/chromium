@@ -17,12 +17,10 @@
 #include "extensions/browser/api/content_settings/content_settings_service.h"
 #include "extensions/browser/extension_prefs.h"
 #include "extensions/browser/extension_prefs_helper.h"
-#include "extensions/common/api/types.h"
 #include "extensions/common/extension.h"
 #include "testing/gtest/include/gtest/gtest.h"
 
 using base::Value;
-using extensions::api::types::ChromeSettingScope;
 
 namespace extensions {
 
@@ -97,7 +95,7 @@ void ExtensionControlledPrefsTest::InstallExtensionControlledPref(
     base::Value value) {
   EnsureExtensionInstalled(extension);
   prefs_helper_.SetExtensionControlledPref(
-      extension->id(), key, ChromeSettingScope::kRegular, std::move(value));
+      extension->id(), key, kExtensionPrefsScopeRegular, std::move(value));
 }
 
 void ExtensionControlledPrefsTest::InstallExtensionControlledPrefIncognito(
@@ -106,7 +104,7 @@ void ExtensionControlledPrefsTest::InstallExtensionControlledPrefIncognito(
     base::Value value) {
   EnsureExtensionInstalled(extension);
   prefs_helper_.SetExtensionControlledPref(
-      extension->id(), key, ChromeSettingScope::kIncognitoPersistent,
+      extension->id(), key, kExtensionPrefsScopeIncognitoPersistent,
       std::move(value));
 }
 
@@ -116,7 +114,7 @@ void ExtensionControlledPrefsTest::
                                                        base::Value value) {
   EnsureExtensionInstalled(extension);
   prefs_helper_.SetExtensionControlledPref(
-      extension->id(), key, ChromeSettingScope::kIncognitoSessionOnly,
+      extension->id(), key, kExtensionPrefsScopeIncognitoSessionOnly,
       std::move(value));
 }
 
@@ -248,7 +246,7 @@ class ControlledPrefsUninstallExtension : public ExtensionControlledPrefsTest {
         ContentSettingsPattern::FromString("http://[*.]example.com");
     store->SetExtensionContentSetting(
         extension1()->id(), pattern, pattern, ContentSettingsType::IMAGES,
-        CONTENT_SETTING_BLOCK, ChromeSettingScope::kRegular);
+        CONTENT_SETTING_BLOCK, kExtensionPrefsScopeRegular);
 
     UninstallExtension(extension1()->id());
   }

@@ -9,7 +9,6 @@
 #include "ash/constants/ash_switches.h"
 #include "base/functional/bind.h"
 #include "base/metrics/histogram_macros.h"
-#include "base/trace_event/trace_event.h"
 #include "chromeos/ash/components/multidevice/logging/logging.h"
 #include "chromeos/ash/components/network/network_state.h"
 #include "chromeos/ash/components/tether/connection_preserver.h"
@@ -162,7 +161,6 @@ void HostScannerImpl::OnTetherAvailabilityResponse(
 }
 
 void HostScannerImpl::OnSessionStateChanged() {
-  TRACE_EVENT0("login", "HostScannerImpl::OnSessionStateChanged");
   if (!has_notification_been_shown_in_previous_scan_ ||
       !session_manager_->IsScreenLocked()) {
     return;

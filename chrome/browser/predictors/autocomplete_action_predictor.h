@@ -45,6 +45,7 @@ class NoStatePrefetchHandle;
 }
 
 namespace predictors {
+
 // This class is responsible for determining the correct predictive network
 // action to take given for a given AutocompleteMatch and entered text. It can
 // be instantiated for both normal and incognito profiles.  For normal profiles,
@@ -63,18 +64,11 @@ class AutocompleteActionPredictor
       public history::HistoryServiceObserver,
       public base::SupportsWeakPtr<AutocompleteActionPredictor> {
  public:
-  // An `Action` is a recommendation on what pre* technology to invoke on a
-  // given `AutocompleteMatch`.
   enum Action {
-    // Trigger Prerender2 (or NoStatePrefetch if that's disabled).
     ACTION_PRERENDER = 0,
-
-    // Invoke `LoadingPredictor::PrepareForPageLoad` to
-    // prefetch, preconnect, and preresolve.
     ACTION_PRECONNECT,
-
-    // The recommendation is to not perform any action.
     ACTION_NONE,
+    LAST_PREDICT_ACTION = ACTION_NONE
   };
 
   explicit AutocompleteActionPredictor(Profile* profile);
@@ -146,8 +140,6 @@ class AutocompleteActionPredictor
                              bool* is_in_db) const;
 
   bool initialized() { return initialized_; }
-
-  static Action DecideActionByConfidence(double confidence);
 
  private:
   friend class AutocompleteActionPredictorTest;
@@ -276,6 +268,7 @@ class AutocompleteActionPredictor
 
   std::unique_ptr<prerender::NoStatePrefetchHandle> no_state_prefetch_handle_;
 
+  base::WeakPtr<content::PrerenderHandle> search_prerender_handle_;
   base::WeakPtr<content::PrerenderHandle> direct_url_input_prerender_handle_;
 
   // Local caches of the data store.  For incognito-owned predictors this is the

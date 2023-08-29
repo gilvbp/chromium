@@ -19,7 +19,6 @@
 #include "device/fido/opaque_attestation_statement.h"
 #include "device/fido/p256_public_key.h"
 #include "device/fido/public_key.h"
-#include "fido_transport_protocol.h"
 #include "testing/gmock/include/gmock/gmock.h"
 #include "testing/gtest/include/gtest/gtest.h"
 
@@ -649,8 +648,7 @@ TEST(CTAPResponseTest, TestSerializeAuthenticatorDataForSign) {
 TEST(CTAPResponseTest, TestParseSignResponseData) {
   auto response = AuthenticatorGetAssertionResponse::CreateFromU2fSignResponse(
       test_data::kApplicationParameter, GetTestSignResponse(),
-      GetTestCredentialRawIdBytes(),
-      FidoTransportProtocol::kUsbHumanInterfaceDevice);
+      GetTestCredentialRawIdBytes());
   ASSERT_TRUE(response);
   EXPECT_EQ(GetTestCredentialRawIdBytes(), response->credential->id);
   EXPECT_THAT(
@@ -658,22 +656,19 @@ TEST(CTAPResponseTest, TestParseSignResponseData) {
       ::testing::ElementsAreArray(test_data::kTestSignAuthenticatorData));
   EXPECT_THAT(response->signature,
               ::testing::ElementsAreArray(test_data::kU2fSignature));
-  EXPECT_EQ(response->transport_used,
-            FidoTransportProtocol::kUsbHumanInterfaceDevice);
 }
 
 TEST(CTAPResponseTest, TestParseU2fSignWithNullNullKeyHandle) {
   auto response = AuthenticatorGetAssertionResponse::CreateFromU2fSignResponse(
       test_data::kApplicationParameter, GetTestSignResponse(),
-      std::vector<uint8_t>(), FidoTransportProtocol::kUsbHumanInterfaceDevice);
+      std::vector<uint8_t>());
   EXPECT_FALSE(response);
 }
 
 TEST(CTAPResponseTest, TestParseU2fSignWithNullResponse) {
   auto response = AuthenticatorGetAssertionResponse::CreateFromU2fSignResponse(
       test_data::kApplicationParameter, std::vector<uint8_t>(),
-      GetTestCredentialRawIdBytes(),
-      FidoTransportProtocol::kUsbHumanInterfaceDevice);
+      GetTestCredentialRawIdBytes());
   EXPECT_FALSE(response);
 }
 
@@ -688,8 +683,7 @@ TEST(CTAPResponseTest, TestParseU2fSignWithCTAP2Flags) {
 
   auto response = AuthenticatorGetAssertionResponse::CreateFromU2fSignResponse(
       test_data::kApplicationParameter, sign_response,
-      GetTestCredentialRawIdBytes(),
-      FidoTransportProtocol::kUsbHumanInterfaceDevice);
+      GetTestCredentialRawIdBytes());
   EXPECT_FALSE(response);
 }
 
@@ -697,8 +691,7 @@ TEST(CTAPResponseTest, TestParseU2fSignWithNullCorruptedCounter) {
   // A sign response of less than 5 bytes.
   auto response = AuthenticatorGetAssertionResponse::CreateFromU2fSignResponse(
       test_data::kApplicationParameter, GetTestCorruptedSignResponse(3),
-      GetTestCredentialRawIdBytes(),
-      FidoTransportProtocol::kUsbHumanInterfaceDevice);
+      GetTestCredentialRawIdBytes());
   EXPECT_FALSE(response);
 }
 
@@ -706,8 +699,7 @@ TEST(CTAPResponseTest, TestParseU2fSignWithNullCorruptedSignature) {
   // A sign response no more than 5 bytes.
   auto response = AuthenticatorGetAssertionResponse::CreateFromU2fSignResponse(
       test_data::kApplicationParameter, GetTestCorruptedSignResponse(5),
-      GetTestCredentialRawIdBytes(),
-      FidoTransportProtocol::kUsbHumanInterfaceDevice);
+      GetTestCredentialRawIdBytes());
   EXPECT_FALSE(response);
 }
 
@@ -977,7 +969,7 @@ TEST(CTAPResponseTest, AttestationObjectResponseFields) {
       0x36, 0xcb, 0xa9, 0xe7, 0xf6, 0x4b, 0xaf, 0xf9, 0xbc, 0x84, 0x1d, 0x1a,
       0x66, 0xc8, 0x01, 0x1c, 0x05, 0x42, 0x31, 0x3a, 0x26, 0x3a, 0x5d, 0x2a,
       0x12, 0xd6, 0x6d, 0x26, 0xf4};
-  static const std::vector<uint8_t> kPublicKeyBytes = {
+  static const std::vector<uint8_t> kPublicKey = {
       0x30, 0x59, 0x30, 0x13, 0x06, 0x07, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x02,
       0x01, 0x06, 0x08, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x03, 0x01, 0x07, 0x03,
       0x42, 0x00, 0x04, 0xa2, 0x68, 0x2f, 0x95, 0x1e, 0xdf, 0x6c, 0xba, 0xe7,
@@ -1000,7 +992,7 @@ TEST(CTAPResponseTest, AttestationObjectResponseFields) {
     EXPECT_EQ(fields->authenticator_data,
               attestation_object.authenticator_data().SerializeToByteArray());
     EXPECT_EQ(fields->public_key_algo, -7);
-    EXPECT_EQ(fields->public_key_der, kPublicKeyBytes);
+    EXPECT_EQ(fields->public_key_der, kPublicKey);
   }
 
   {
@@ -1011,7 +1003,7 @@ TEST(CTAPResponseTest, AttestationObjectResponseFields) {
 
     EXPECT_NE(fields->attestation_object_bytes, kAttestationObjectBytes);
     EXPECT_EQ(fields->public_key_algo, -7);
-    EXPECT_EQ(fields->public_key_der, kPublicKeyBytes);
+    EXPECT_EQ(fields->public_key_der, kPublicKey);
 
     const AttestationObject attestation_object = *AttestationObject::Parse(
         *cbor::Reader::Read(fields->attestation_object_bytes));

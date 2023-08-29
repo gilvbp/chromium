@@ -5,6 +5,7 @@
 import("//ios/build/config.gni")
 
 source_set("thread") {
+  configs += [ "//build/config/compiler:enable_arc" ]
   deps = [
     "//build:blink_buildflags",
     "//ios/web:threads",

@@ -6,14 +6,10 @@
 
 #include <memory>
 
-#include "base/containers/flat_map.h"
-#include "base/containers/span.h"
 #include "base/strings/string_util.h"
-#include "components/autofill/core/browser/autofill_type.h"
 #include "components/autofill/core/browser/field_types.h"
+#include "components/autofill/core/browser/form_structure.h"
 #include "components/autofill/core/browser/proto/password_requirements.pb.h"
-#include "components/autofill/core/common/form_data.h"
-#include "components/autofill/core/common/signatures.h"
 #include "components/password_manager/core/browser/browser_save_password_progress_logger.h"
 #include "components/password_manager/core/browser/generation/password_generator.h"
 #include "components/password_manager/core/browser/password_feature_manager.h"
@@ -24,15 +20,10 @@
 #include "components/password_manager/core/browser/password_requirements_service.h"
 #include "components/password_manager/core/common/password_manager_features.h"
 #include "third_party/abseil-cpp/absl/types/optional.h"
-#include "url/gurl.h"
 
-using autofill::AutofillType;
-using autofill::CalculateFieldSignatureForField;
-using autofill::CalculateFormSignature;
 using autofill::FieldSignature;
-using autofill::FormData;
-using autofill::FormFieldData;
 using autofill::FormSignature;
+using autofill::FormStructure;
 
 namespace password_manager {
 
@@ -65,9 +56,7 @@ void PasswordGenerationFrameHelper::PrefetchSpec(const GURL& origin) {
 }
 
 void PasswordGenerationFrameHelper::ProcessPasswordRequirements(
-    base::span<const FormData* const> forms,
-    const base::flat_map<autofill::FieldGlobalId,
-                         AutofillType::ServerPrediction>& predictions) {
+    const std::vector<autofill::FormStructure*>& forms) {
   // IsGenerationEnabled is called multiple times and it is sufficient to
   // log debug data once.
   if (!IsGenerationEnabled(/*log_debug_data=*/false))
@@ -81,18 +70,13 @@ void PasswordGenerationFrameHelper::ProcessPasswordRequirements(
     return;
 
   // Store password requirements from the autofill server.
-  for (const FormData* form : forms) {
-    absl::optional<FormSignature> form_signature;
-    for (const FormFieldData& field : form->fields) {
-      if (auto it = predictions.find(field.global_id());
-          it != predictions.end() && it->second.password_requirements) {
-        if (!form_signature) {
-          form_signature = autofill::CalculateFormSignature(*form);
-        }
+  for (const autofill::FormStructure* form : forms) {
+    for (const auto& field : *form) {
+      if (field->password_requirements()) {
         password_requirements_service->AddSpec(
-            form->url.DeprecatedGetOriginAsURL(), *form_signature,
-            CalculateFieldSignatureForField(field),
-            *it->second.password_requirements);
+            form->source_url().DeprecatedGetOriginAsURL(),
+            form->form_signature(), field->GetFieldSignature(),
+            field->password_requirements().value());
       }
     }
   }

@@ -5,6 +5,7 @@
 #include "third_party/blink/renderer/core/layout/ng/inline/ng_inline_item_segment.h"
 
 #include "third_party/blink/renderer/core/layout/layout_inline.h"
+#include "third_party/blink/renderer/core/layout/layout_object.h"
 #include "third_party/blink/renderer/core/layout/ng/inline/ng_inline_item.h"
 #include "third_party/blink/renderer/core/style/computed_style.h"
 #include "third_party/blink/renderer/platform/fonts/shaping/harfbuzz_shaper.h"
@@ -112,15 +113,6 @@ void NGInlineItemSegments::CheckOffset(
   DCHECK_LT(offset, segment->EndOffset());
 }
 #endif
-
-void NGInlineItemSegments::ToRanges(RunSegmenterRanges& ranges) const {
-  ranges.ReserveInitialCapacity(segments_.size());
-  wtf_size_t start_offset = 0;
-  for (const NGInlineItemSegment& segment : segments_) {
-    ranges.push_back(segment.ToRunSegmenterRange(start_offset));
-    start_offset = segment.EndOffset();
-  }
-}
 
 NGInlineItemSegments::Iterator NGInlineItemSegments::Ranges(
     unsigned start_offset,

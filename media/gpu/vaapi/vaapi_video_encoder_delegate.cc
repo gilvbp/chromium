@@ -7,8 +7,6 @@
 #include <va/va.h>
 
 #include "base/memory/ref_counted_memory.h"
-#include "base/trace_event/trace_event.h"
-#include "media/base/media_util.h"
 #include "media/base/video_frame.h"
 #include "media/gpu/codec_picture.h"
 #include "media/gpu/gpu_video_encode_accelerator_helpers.h"
@@ -118,7 +116,6 @@ BitstreamBufferMetadata VaapiVideoEncoderDelegate::GetMetadata(
 }
 
 bool VaapiVideoEncoderDelegate::Encode(EncodeJob& encode_job) {
-  TRACE_EVENT0("media,gpu", "VAVEDelegate::Encode");
   if (!PrepareEncodeJob(encode_job)) {
     VLOGF(1) << "Failed preparing an encode job";
     return false;
@@ -136,7 +133,6 @@ bool VaapiVideoEncoderDelegate::Encode(EncodeJob& encode_job) {
 absl::optional<VaapiVideoEncoderDelegate::EncodeResult>
 VaapiVideoEncoderDelegate::GetEncodeResult(
     std::unique_ptr<EncodeJob> encode_job) {
-  TRACE_EVENT0("media,gpu", "VAVEDelegate::GetEncodeResult");
   const VASurfaceID va_surface_id = encode_job->input_surface_id();
   const uint64_t encoded_chunk_size = vaapi_wrapper_->GetEncodedChunkSize(
       encode_job->coded_buffer_id(), va_surface_id);

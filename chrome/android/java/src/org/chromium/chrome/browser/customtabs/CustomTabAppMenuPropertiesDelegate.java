@@ -78,8 +78,7 @@ public class CustomTabAppMenuPropertiesDelegate extends AppMenuPropertiesDelegat
             boolean showShare, boolean showStar, boolean showDownload, boolean isIncognito,
             boolean isStartIconMenu, BooleanSupplier isPageInsightsHubEnabled) {
         super(context, activityTabProvider, multiWindowModeStateDispatcher, tabModelSelector,
-                toolbarManager, decorView, null, null, bookmarkModelSupplier, null,
-                /*readAloudControllerSupplier=*/null);
+                toolbarManager, decorView, null, null, bookmarkModelSupplier, null);
         mVerifier = verifier;
         mUiType = uiType;
         mMenuEntries = menuEntries;

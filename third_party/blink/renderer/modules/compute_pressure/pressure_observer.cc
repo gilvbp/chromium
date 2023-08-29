@@ -107,11 +107,11 @@ void PressureObserver::unobserve(V8PressureSource source) {
   if (!manager_)
     return;
 
-  // https://w3c.github.io/compute-pressure/#the-unobserve-method
+  // https://wicg.github.io/compute-pressure/#the-unobserve-method
   manager_->RemoveObserver(source.AsEnum(), this);
   last_record_map_[ToSourceIndex(source.AsEnum())].Clear();
   // Reject all pending promises for `source`.
-  RejectPendingResolvers(source.AsEnum(), DOMExceptionCode::kAbortError,
+  RejectPendingResolvers(source.AsEnum(), DOMExceptionCode::kNotSupportedError,
                          "Called unobserve method.");
   records_.erase(base::ranges::remove_if(records_,
                                          [source](const auto& record) {
@@ -125,13 +125,14 @@ void PressureObserver::disconnect() {
   if (!manager_)
     return;
 
-  // https://w3c.github.io/compute-pressure/#the-disconnect-method
+  // https://wicg.github.io/compute-pressure/#the-disconnect-method
   manager_->RemoveObserverFromAllSources(this);
   for (auto& last_record : last_record_map_)
     last_record.Clear();
   // Reject all pending promises.
   for (const auto& source : supportedSources()) {
-    RejectPendingResolvers(source.AsEnum(), DOMExceptionCode::kAbortError,
+    RejectPendingResolvers(source.AsEnum(),
+                           DOMExceptionCode::kNotSupportedError,
                            "Called disconnect method.");
   }
   records_.clear();
@@ -221,7 +222,7 @@ HeapVector<Member<PressureRecord>> PressureObserver::takeRecords() {
   return records;
 }
 
-// https://w3c.github.io/compute-pressure/#dfn-passes-rate-test
+// https://wicg.github.io/compute-pressure/#dfn-passes-rate-test
 bool PressureObserver::PassesRateTest(
     V8PressureSource::Enum source,
     const DOMHighResTimeStamp& timestamp) const {
@@ -235,7 +236,7 @@ bool PressureObserver::PassesRateTest(
   return (time_delta_milliseconds / 1000.0) >= interval_seconds;
 }
 
-// https://w3c.github.io/compute-pressure/#dfn-has-change-in-data
+// https://wicg.github.io/compute-pressure/#dfn-has-change-in-data
 bool PressureObserver::HasChangeInData(V8PressureSource::Enum source,
                                        V8PressureState::Enum state) const {
   const auto& last_record = last_record_map_[ToSourceIndex(source)];

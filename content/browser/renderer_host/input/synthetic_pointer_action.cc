@@ -11,10 +11,7 @@ namespace content {
 
 SyntheticPointerAction::SyntheticPointerAction(
     const SyntheticPointerActionListParams& params)
-    : SyntheticGestureBase(params) {
-  CHECK_EQ(SyntheticGestureParams::POINTER_ACTION_LIST,
-           params.GetGestureType());
-}
+    : params_(params) {}
 
 SyntheticPointerAction::~SyntheticPointerAction() {}
 
@@ -29,7 +26,7 @@ SyntheticGesture::Result SyntheticPointerAction::ForwardInputEvents(
       dispatching_controller_;
 
   if (state_ == GestureState::UNINITIALIZED) {
-    gesture_source_type_ = params().gesture_source_type;
+    gesture_source_type_ = params_.gesture_source_type;
     if (gesture_source_type_ ==
         content::mojom::GestureSourceType::kDefaultInput)
       gesture_source_type_ = target->GetDefaultSyntheticGestureSourceType();
@@ -37,7 +34,7 @@ SyntheticGesture::Result SyntheticPointerAction::ForwardInputEvents(
     if (!external_synthetic_pointer_driver_) {
       DCHECK(!internal_synthetic_pointer_driver_);
       internal_synthetic_pointer_driver_ = SyntheticPointerDriver::Create(
-          gesture_source_type_, params().from_devtools_debugger);
+          gesture_source_type_, params_.from_devtools_debugger);
     }
 
     state_ = GestureState::RUNNING;
@@ -72,7 +69,7 @@ bool SyntheticPointerAction::AllowHighFrequencyDispatch() const {
 void SyntheticPointerAction::WaitForTargetAck(
     base::OnceClosure callback,
     SyntheticGestureTarget* target) const {
-  target->WaitForTargetAck(params().GetGestureType(), gesture_source_type_,
+  target->WaitForTargetAck(params_.GetGestureType(), gesture_source_type_,
                            std::move(callback));
 }
 
@@ -80,18 +77,17 @@ SyntheticPointerAction::GestureState
 SyntheticPointerAction::ForwardTouchOrMouseInputEvents(
     const base::TimeTicks& timestamp,
     SyntheticGestureTarget* target) {
-  if (!params().params.size()) {
+  if (!params_.params.size())
     return GestureState::DONE;
-  }
 
   // An external pointer driver could be destroyed while the gesture is running.
   if (!PointerDriver()) {
     return GestureState::DONE;
   }
 
-  DCHECK_LT(num_actions_dispatched_, params().params.size());
+  DCHECK_LT(num_actions_dispatched_, params_.params.size());
   SyntheticPointerActionListParams::ParamList& param_list =
-      params().params[num_actions_dispatched_];
+      params_.params[num_actions_dispatched_];
 
   // CAUTION: Forwarding a pointer input can cause `this` to be deleted.
   // Keep this on the stack so we can check if the forwarded event caused the
@@ -147,11 +143,10 @@ SyntheticPointerAction::ForwardTouchOrMouseInputEvents(
   }
 
   num_actions_dispatched_++;
-  if (num_actions_dispatched_ == params().params.size()) {
+  if (num_actions_dispatched_ == params_.params.size())
     return GestureState::DONE;
-  } else {
+  else
     return GestureState::RUNNING;
-  }
 }
 
 SyntheticPointerDriver* SyntheticPointerAction::PointerDriver() const {

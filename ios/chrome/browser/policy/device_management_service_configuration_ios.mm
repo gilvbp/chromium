@@ -14,6 +14,10 @@
 #import "components/policy/core/browser/browser_policy_connector.h"
 #import "components/version_info/version_info.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace policy {
 
 DeviceManagementServiceConfigurationIOS::

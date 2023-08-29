@@ -5,10 +5,11 @@
 
 import argparse
 import logging
+import time
 
 from typing import List, Optional
 
-from common import catch_sigterm, run_continuous_ffx_command, wait_for_sigterm
+from common import catch_sigterm, run_continuous_ffx_command
 from test_runner import TestRunner
 
 
@@ -46,8 +47,14 @@ class WebpageTestRunner(TestRunner):
         if self._test_args:
             browser_cmd.extend(self._test_args)
         logging.info('Starting %s', self._packages[0])
-        browser_proc = run_continuous_ffx_command(browser_cmd)
         try:
-            wait_for_sigterm('shutting down the webpage.')
-        finally:
+            browser_proc = run_continuous_ffx_command(browser_cmd)
+            while True:
+                time.sleep(10000)
+        except KeyboardInterrupt:
+            logging.info('Ctrl-C received; shutting down the webpage.')
             browser_proc.kill()
+        except SystemExit:
+            logging.info('SIGTERM received; shutting down the webpage.')
+            browser_proc.kill()
+        return browser_proc

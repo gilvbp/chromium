@@ -114,8 +114,7 @@ class FakeEventRouter : public extensions::EventRouter {
   void set_reply_result(base::File::Error result) { reply_result_ = result; }
 
  private:
-  const raw_ptr<ProvidedFileSystemInterface,
-                DanglingUntriaged | ExperimentalAsh>
+  const raw_ptr<ProvidedFileSystemInterface, ExperimentalAsh>
       file_system_;  // Not owned.
   base::File::Error reply_result_;
 };

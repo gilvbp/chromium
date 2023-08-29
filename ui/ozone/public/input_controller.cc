@@ -119,7 +119,6 @@ class StubInputController : public InputController {
   void SetHapticTouchpadEffectForNextButtonRelease(
       HapticTouchpadEffect effect_type,
       HapticTouchpadEffectStrength strength) override {}
-  bool AreAnyKeysPressed() override { return false; }
 };
 
 }  // namespace

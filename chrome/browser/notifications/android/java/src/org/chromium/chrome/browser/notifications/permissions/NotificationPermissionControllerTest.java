@@ -11,27 +11,27 @@ import static org.robolectric.Shadows.shadowOf;
 
 import android.app.Activity;
 import android.content.pm.PackageManager;
-import android.os.Build;
-import android.os.Build.VERSION_CODES;
 import android.os.UserManager;
-import android.text.format.DateUtils;
 
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.rules.ActivityScenarioRule;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.annotation.Config;
+import org.robolectric.annotation.internal.DoNotInstrument;
+import org.robolectric.shadows.ShadowSystemClock;
 import org.robolectric.shadows.ShadowUserManager;
 
 import org.chromium.base.ContextUtils;
-import org.chromium.base.FakeTimeTestRule;
 import org.chromium.base.FeatureList;
 import org.chromium.base.metrics.RecordHistogram;
 import org.chromium.base.metrics.UmaRecorderHolder;
 import org.chromium.base.test.BaseRobolectricTestRunner;
+import org.chromium.base.test.ShadowBuildInfo;
 import org.chromium.chrome.browser.flags.ChromeFeatureList;
 import org.chromium.chrome.browser.notifications.NotificationUmaTracker.NotificationPermissionState;
 import org.chromium.chrome.browser.notifications.permissions.NotificationPermissionController.PermissionRequestMode;
@@ -44,27 +44,45 @@ import org.chromium.ui.permissions.PermissionConstants;
 import org.chromium.ui.permissions.PermissionPrefs;
 
 import java.lang.ref.WeakReference;
+import java.time.Duration;
 
 /**
  * Robolectric unit tests for {@link NotificationPermissionController}.
  */
 @RunWith(BaseRobolectricTestRunner.class)
-@Config(sdk = VERSION_CODES.TIRAMISU, manifest = Config.NONE)
+@Config(sdk = 30, manifest = Config.NONE,
+        shadows = {ShadowBuildInfo.class, ShadowSystemClock.class},
+        // We use ShadowSystemClock to manipulate System.currentTimeMillis, but we must tell
+        // Robolectric to instrument the code in the packages below so it can replace the original
+        // implementation with the shadow one.
+        instrumentedPackages = {"org.chromium.chrome.browser.notifications.permissions",
+                "org.chromium.ui.permissions"})
+@DoNotInstrument
 public class NotificationPermissionControllerTest {
     private static final int DEMO_USER_ID = 2;
     private ShadowUserManager mShadowUserManager;
 
-    @Rule
-    public FakeTimeTestRule mFakeTimeRule = new FakeTimeTestRule();
-
     @Before
     public void setUp() {
+        ShadowBuildInfo.reset();
         UmaRecorderHolder.resetForTesting();
+        ShadowSystemClock.reset();
+        // Set a non-zero currentTimeMillis.
+        ShadowSystemClock.advanceBy(Duration.ofDays(10));
         mShadowUserManager = shadowOf(
                 ApplicationProvider.getApplicationContext().getSystemService(UserManager.class));
         mShadowUserManager.addUser(DEMO_USER_ID, "demo_user", ShadowUserManager.FLAG_DEMO);
 
         setupFeatureParams(false, null, null);
+
+        // These tests only apply on builds targeting T running on a T device.
+        ShadowBuildInfo.setTargetsAtLeastT(true);
+        ShadowBuildInfo.setIsAtLeastT(true);
+    }
+
+    @After
+    public void tearDown() {
+        ShadowBuildInfo.reset();
     }
 
     @Rule
@@ -174,8 +192,10 @@ public class NotificationPermissionControllerTest {
     }
 
     @Test
-    @Config(sdk = VERSION_CODES.R)
     public void testNotificationPrompt_nothingHappensWhenNotTargetingT() {
+        // Build targeting a <T SDK.
+        ShadowBuildInfo.setTargetsAtLeastT(false);
+
         mActivityScenarios.getScenario().onActivity(activity -> {
             TestRationaleDelegate rationaleDelegate = new TestRationaleDelegate();
             TestAndroidPermissionDelegate permissionDelegate =
@@ -195,8 +215,10 @@ public class NotificationPermissionControllerTest {
     }
 
     @Test
-    @Config(sdk = Build.VERSION_CODES.R)
     public void testNotificationPrompt_nothingHappensWhenNotRunningOnT() {
+        // Running on a <T device.
+        ShadowBuildInfo.setIsAtLeastT(false);
+
         mActivityScenarios.getScenario().onActivity(activity -> {
             TestRationaleDelegate rationaleDelegate = new TestRationaleDelegate();
             TestAndroidPermissionDelegate permissionDelegate =
@@ -256,7 +278,7 @@ public class NotificationPermissionControllerTest {
             invokeOSPermissionCallback(permissionDelegate, false);
 
             // 10 days have passed since last request.
-            mFakeTimeRule.advanceMillis(10 * DateUtils.DAY_IN_MILLIS);
+            ShadowSystemClock.advanceBy(Duration.ofDays(10));
 
             // If the user hits "Deny" on the permission dialog then we have one more chance to ask
             // again, so Android tells us to show a rationale first.
@@ -275,7 +297,7 @@ public class NotificationPermissionControllerTest {
                     PermissionPrefs.getAndroidNotificationPermissionRequestTimestamp();
 
             // 15 days have passed since the second request.
-            mFakeTimeRule.advanceMillis(15 * DateUtils.DAY_IN_MILLIS);
+            ShadowSystemClock.advanceBy(Duration.ofDays(15));
 
             // Call method a couple of times, nothing should happen.
             notificationPermissionController.requestPermissionIfNeeded();
@@ -355,7 +377,7 @@ public class NotificationPermissionControllerTest {
 
             // Try showing the second time after 10 days. This time click positive button on
             // rationale and negative on OS prompt.
-            mFakeTimeRule.advanceMillis(10 * DateUtils.DAY_IN_MILLIS);
+            ShadowSystemClock.advanceBy(Duration.ofDays(10));
             assertEquals(PermissionRequestMode.REQUEST_PERMISSION_WITH_RATIONALE,
                     notificationPermissionController.shouldRequestPermission());
             rationaleDelegate.setDialogAction(DialogDismissalCause.POSITIVE_BUTTON_CLICKED);
@@ -370,7 +392,7 @@ public class NotificationPermissionControllerTest {
 
             // After 10 days. Request permission again. This time again click positive button on
             // rationale and negative on OS prompt.
-            mFakeTimeRule.advanceMillis(10 * DateUtils.DAY_IN_MILLIS);
+            ShadowSystemClock.advanceBy(Duration.ofDays(10));
             setShouldShowRequestPermissionRationale(activity, true);
             assertEquals(PermissionRequestMode.REQUEST_PERMISSION_WITH_RATIONALE,
                     notificationPermissionController.shouldRequestPermission());
@@ -379,7 +401,7 @@ public class NotificationPermissionControllerTest {
             invokeOSPermissionCallback(permissionDelegate, false);
 
             // After 10 days. Request permission again. Can't request this time.
-            mFakeTimeRule.advanceMillis(10 * DateUtils.DAY_IN_MILLIS);
+            ShadowSystemClock.advanceBy(Duration.ofDays(10));
             setShouldShowRequestPermissionRationale(activity, false);
             assertEquals(PermissionRequestMode.DO_NOT_REQUEST,
                     notificationPermissionController.shouldRequestPermission());
@@ -407,7 +429,7 @@ public class NotificationPermissionControllerTest {
                     PermissionPrefs.getAndroidNotificationPermissionRequestTimestamp();
 
             // 1 day later.
-            mFakeTimeRule.advanceMillis(1 * DateUtils.DAY_IN_MILLIS);
+            ShadowSystemClock.advanceBy(Duration.ofDays(1));
 
             // Subsequent calls to this method won't do anything, we already got permission.
             notificationPermissionController.requestPermissionIfNeeded();
@@ -450,7 +472,7 @@ public class NotificationPermissionControllerTest {
                     PermissionPrefs.getAndroidNotificationPermissionRequestTimestamp();
 
             // 1 day later.
-            mFakeTimeRule.advanceMillis(1 * DateUtils.DAY_IN_MILLIS);
+            ShadowSystemClock.advanceBy(Duration.ofDays(1));
 
             // Try showing it for the second time before sufficient time has elapsed assuming user
             // dismissed the OS prompt by touching outside.
@@ -490,7 +512,7 @@ public class NotificationPermissionControllerTest {
                     PermissionPrefs.getAndroidNotificationPermissionRequestTimestamp();
 
             // 1 day later.
-            mFakeTimeRule.advanceMillis(1 * DateUtils.DAY_IN_MILLIS);
+            ShadowSystemClock.advanceBy(Duration.ofDays(1));
 
             // Try showing it for the second time before sufficient time has elapsed assuming user
             // rejected the OS prompt by tapping "Deny".
@@ -533,7 +555,7 @@ public class NotificationPermissionControllerTest {
             setShouldShowRequestPermissionRationale(activity, false);
 
             // 10 days have passed.
-            mFakeTimeRule.advanceMillis(10 * DateUtils.DAY_IN_MILLIS);
+            ShadowSystemClock.advanceBy(Duration.ofDays(10));
 
             notificationPermissionController.requestPermissionIfNeeded();
             long secondPermissionRequestTimestamp =
@@ -576,7 +598,7 @@ public class NotificationPermissionControllerTest {
             setShouldShowRequestPermissionRationale(activity, true);
 
             // 10 days have passed.
-            mFakeTimeRule.advanceMillis(10 * DateUtils.DAY_IN_MILLIS);
+            ShadowSystemClock.advanceBy(Duration.ofDays(10));
 
             // Set the rationale dialog to be dismissed.
             rationaleDelegate.setDialogAction(DialogDismissalCause.NAVIGATE_BACK_OR_TOUCH_OUTSIDE);
@@ -627,7 +649,7 @@ public class NotificationPermissionControllerTest {
             setShouldShowRequestPermissionRationale(activity, true);
 
             // 10 days have passed since last request.
-            mFakeTimeRule.advanceMillis(10 * DateUtils.DAY_IN_MILLIS);
+            ShadowSystemClock.advanceBy(Duration.ofDays(10));
 
             // Set the rationale dialog to be approved.
             rationaleDelegate.setDialogAction(DialogDismissalCause.POSITIVE_BUTTON_CLICKED);
@@ -685,7 +707,7 @@ public class NotificationPermissionControllerTest {
             setShouldShowRequestPermissionRationale(activity, true);
 
             // 10 days have passed since last request.
-            mFakeTimeRule.advanceMillis(10 * DateUtils.DAY_IN_MILLIS);
+            ShadowSystemClock.advanceBy(Duration.ofDays(10));
 
             // Set the rationale dialog to be approved, this should trigger a new OS prompt.
             rationaleDelegate.setDialogAction(DialogDismissalCause.POSITIVE_BUTTON_CLICKED);
@@ -701,7 +723,7 @@ public class NotificationPermissionControllerTest {
                     PermissionPrefs.getAndroidNotificationPermissionRequestTimestamp();
 
             // 15 days have passed since the second request.
-            mFakeTimeRule.advanceMillis(15 * DateUtils.DAY_IN_MILLIS);
+            ShadowSystemClock.advanceBy(Duration.ofDays(15));
 
             // If our prompt gets rejected twice then we can't request permissions anymore.
             setShouldShowRequestPermissionRationale(activity, false);
@@ -750,7 +772,7 @@ public class NotificationPermissionControllerTest {
             setShouldShowRequestPermissionRationale(activity, true);
 
             // Show for the second time after 10 days with rationale.
-            mFakeTimeRule.advanceMillis(10 * DateUtils.DAY_IN_MILLIS);
+            ShadowSystemClock.advanceBy(Duration.ofDays(10));
 
             // Dismiss rationale.
             Integer rationaleDialogAction = DialogDismissalCause.NAVIGATE_BACK_OR_TOUCH_OUTSIDE;
@@ -760,7 +782,7 @@ public class NotificationPermissionControllerTest {
                     PermissionPrefs.getAndroidNotificationPermissionRequestTimestamp();
 
             // Try for a third time after 10 days. We shouldn't show.
-            mFakeTimeRule.advanceMillis(10 * DateUtils.DAY_IN_MILLIS);
+            ShadowSystemClock.advanceBy(Duration.ofDays(10));
             notificationPermissionController.requestPermissionIfNeeded();
 
             // The third call shouldn't have shown either rationale or permission dialog.
@@ -776,6 +798,7 @@ public class NotificationPermissionControllerTest {
 
     @Test
     public void testNotificationPrompt_usesWaitIntervalFromFieldTrialParams() {
+        ShadowBuildInfo.setIsAtLeastT(true);
         mActivityScenarios.getScenario().onActivity(activity -> {
             TestRationaleDelegate rationaleDelegate = new TestRationaleDelegate();
             NotificationPermissionController notificationPermissionController =
@@ -792,7 +815,7 @@ public class NotificationPermissionControllerTest {
                     PermissionPrefs.getAndroidNotificationPermissionRequestTimestamp();
 
             // Wait 10 days, nothing should happen yet.
-            mFakeTimeRule.advanceMillis(10 * DateUtils.DAY_IN_MILLIS);
+            ShadowSystemClock.advanceBy(Duration.ofDays(10));
             notificationPermissionController.requestPermissionIfNeeded();
 
             long requestTimestampAfterSecondStartup =
@@ -800,7 +823,7 @@ public class NotificationPermissionControllerTest {
             int rationaleCallCountAfterSecondStartup = rationaleDelegate.getCallCount();
 
             // Wait 5 more days, now we should show the rationale.
-            mFakeTimeRule.advanceMillis(5 * DateUtils.DAY_IN_MILLIS);
+            ShadowSystemClock.advanceBy(Duration.ofDays(5));
             rationaleDelegate.setDialogAction(DialogDismissalCause.NEGATIVE_BUTTON_CLICKED);
             notificationPermissionController.requestPermissionIfNeeded();
             int rationaleCallCountAfterThirdStartup = rationaleDelegate.getCallCount();

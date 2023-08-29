@@ -11,7 +11,6 @@
 #include "ash/constants/ash_features.h"
 #include "ash/webui/common/backend/accessibility_features.h"
 #include "ash/webui/common/mojom/accessibility_features.mojom.h"
-#include "ash/webui/common/trusted_types_util.h"
 #include "ash/webui/grit/ash_scanning_app_resources.h"
 #include "ash/webui/grit/ash_scanning_app_resources_map.h"
 #include "ash/webui/scanning/mojom/scanning.mojom.h"
@@ -169,7 +168,7 @@ ScanningUI::ScanningUI(
       network::mojom::CSPDirectiveName::ScriptSrc,
       "script-src chrome://resources chrome://test chrome://webui-test "
       "'self';");
-  ash::EnableTrustedTypesCSP(html_source);
+  html_source->DisableTrustedTypesCSP();
 
   accessibility_features_ = std::make_unique<AccessibilityFeatures>();
 

@@ -14,7 +14,7 @@ namespace ash {
 ArcKioskAppService* ArcKioskAppServiceFactory::GetForBrowserContext(
     content::BrowserContext* context) {
   return static_cast<ArcKioskAppService*>(
-      GetInstance()->GetServiceForBrowserContext(context, /*create=*/true));
+      GetInstance()->GetServiceForBrowserContext(context, true /* create */));
 }
 
 // static

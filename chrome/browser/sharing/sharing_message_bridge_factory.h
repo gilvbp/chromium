@@ -35,7 +35,7 @@ class SharingMessageBridgeFactory : public ProfileKeyedServiceFactory {
       delete;
 
   // BrowserContextKeyedServiceFactory overrides:
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* context) const override;
 };
 

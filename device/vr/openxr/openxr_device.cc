@@ -137,32 +137,23 @@ void OpenXrDevice::EnsureRenderLoop() {
 void OpenXrDevice::RequestSession(
     mojom::XRRuntimeSessionOptionsPtr options,
     mojom::XRRuntime::RequestSessionCallback callback) {
-  CHECK(!request_session_callback_);
-  CHECK(!HasExclusiveSession());
-
-  request_session_callback_ = std::move(callback);
+  // TODO(https://crbug.com/1450707): Strengthen the guarantees from the browser
+  // process that we will not get a session request while one is pending.
+  if (request_session_callback_ || HasExclusiveSession()) {
+    LOG(ERROR) << __func__
+               << " New session request while processing previous request.";
+    std::move(callback).Run(nullptr);
+    return;
+  }
 
   OpenXrCreateInfo create_info;
   create_info.render_process_id = options->render_process_id;
   create_info.render_frame_id = options->render_frame_id;
-  platform_helper_->CreateInstanceWithCreateInfo(
-      create_info,
-      base::BindOnce(&OpenXrDevice::OnCreateInstanceResult,
-                     weak_ptr_factory_.GetWeakPtr(), std::move(options)));
-}
-
-void OpenXrDevice::OnCreateInstanceResult(
-    mojom::XRRuntimeSessionOptionsPtr options,
-    XrResult result,
-    XrInstance instance) {
-  if (XR_FAILED(result)) {
+  if (XR_FAILED(platform_helper_->CreateInstance(&instance_, create_info))) {
     DVLOG(1) << __func__ << " Failed to create an XrInstance";
-    instance_ = XR_NULL_HANDLE;
-    std::move(request_session_callback_).Run(nullptr);
+    std::move(callback).Run(nullptr);
     return;
   }
-
-  instance_ = instance;
 
   extension_helper_ = std::make_unique<OpenXrExtensionHelper>(
       instance_, platform_helper_->GetExtensionEnumeration());
@@ -173,7 +164,7 @@ void OpenXrDevice::OnCreateInstanceResult(
     // Reject session request, and call ForceEndSession to ensure that we clean
     // up any objects that were already created.
     ForceEndSession(ExitXrPresentReason::kOpenXrStartFailed);
-    std::move(request_session_callback_).Run(nullptr);
+    std::move(callback).Run(nullptr);
     return;
   }
 
@@ -187,7 +178,7 @@ void OpenXrDevice::OnCreateInstanceResult(
       // Reject session request, and call ForceEndSession to ensure that we
       // clean up any objects that were already created.
       ForceEndSession(ExitXrPresentReason::kOpenXrStartFailed);
-      std::move(request_session_callback_).Run(nullptr);
+      std::move(callback).Run(nullptr);
       return;
     }
 
@@ -210,6 +201,8 @@ void OpenXrDevice::OnCreateInstanceResult(
                                 base::Unretained(render_loop_.get()),
                                 std::move(on_visibility_state_changed),
                                 std::move(options), std::move(my_callback)));
+
+  request_session_callback_ = std::move(callback);
 }
 
 void OpenXrDevice::OnRequestSessionResult(

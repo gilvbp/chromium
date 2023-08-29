@@ -31,7 +31,6 @@ import org.chromium.chrome.browser.browserservices.intents.WebappExtras;
 import org.chromium.chrome.browser.flags.ActivityType;
 import org.chromium.components.browser_ui.widget.TintedDrawable;
 import org.chromium.device.mojom.ScreenOrientationLockType;
-import org.chromium.ui.util.ColorUtils;
 
 /**
  * Stores info about a web app.
@@ -45,7 +44,6 @@ public class WebappIntentDataProvider extends BrowserServicesIntentDataProvider 
     private final @ActivityType int mActivityType;
     private final Intent mIntent;
     private final ColorProviderImpl mColorProvider;
-    private final ColorProviderImpl mDarkColorProvider;
 
     /**
      * Returns the toolbar color to use if a custom color is not specified by the webapp.
@@ -54,20 +52,11 @@ public class WebappIntentDataProvider extends BrowserServicesIntentDataProvider 
         return Color.WHITE;
     }
 
-    /**
-     * Returns the toolbar color to use if a custom dark color is not specified by the webapp.
-     */
-    public static int getDefaultDarkToolbarColor() {
-        return Color.BLACK;
-    }
-
     WebappIntentDataProvider(@NonNull Intent intent, int toolbarColor,
-            boolean hasCustomToolbarColor, int darkToolbarColor, boolean hasCustomDarkToolbarColor,
-            @Nullable ShareData shareData, @NonNull WebappExtras webappExtras,
-            @Nullable WebApkExtras webApkExtras) {
+            boolean hasCustomToolbarColor, @Nullable ShareData shareData,
+            @NonNull WebappExtras webappExtras, @Nullable WebApkExtras webApkExtras) {
         mIntent = intent;
         mColorProvider = new ColorProviderImpl(toolbarColor, hasCustomToolbarColor);
-        mDarkColorProvider = new ColorProviderImpl(darkToolbarColor, hasCustomDarkToolbarColor);
         final Context context = new ContextThemeWrapper(
                 ContextUtils.getApplicationContext(), ActivityUtils.getThemeId());
         mCloseButtonIcon = TintedDrawable.constructTintedDrawable(context, R.drawable.btn_close);
@@ -105,21 +94,7 @@ public class WebappIntentDataProvider extends BrowserServicesIntentDataProvider 
 
     @Override
     public @NonNull ColorProvider getColorProvider() {
-        boolean inDarkMode = ColorUtils.inNightMode(ContextUtils.getApplicationContext());
-        boolean hasValidDarkToolbar = mDarkColorProvider.hasCustomToolbarColor();
-        boolean hasValidLightToolbar = mColorProvider.hasCustomToolbarColor();
-        return inDarkMode && (hasValidDarkToolbar || !hasValidLightToolbar) ? mDarkColorProvider
-                                                                            : mColorProvider;
-    }
-
-    @Override
-    public @NonNull ColorProvider getLightColorProvider() {
         return mColorProvider;
-    }
-
-    @Override
-    public @NonNull ColorProvider getDarkColorProvider() {
-        return mDarkColorProvider;
     }
 
     @Override

@@ -23,10 +23,6 @@
 #include "base/nix/xdg_util.h"
 #endif
 
-#if BUILDFLAG(IS_WIN)
-#include "base/win/windows_version.h"
-#endif
-
 namespace content::desktop_capture {
 
 webrtc::DesktopCaptureOptions CreateDesktopCaptureOptions() {
@@ -58,20 +54,14 @@ webrtc::DesktopCaptureOptions CreateDesktopCaptureOptions() {
   return options;
 }
 
-std::unique_ptr<webrtc::DesktopCapturer> CreateScreenCapturer(
-    bool allow_wgc_screen_capturer) {
+std::unique_ptr<webrtc::DesktopCapturer> CreateScreenCapturer() {
 #if BUILDFLAG(IS_CHROMEOS_LACROS)
   return std::make_unique<DesktopCapturerLacros>(
       DesktopCapturerLacros::CaptureType::kScreen,
       webrtc::DesktopCaptureOptions());
 #else
-  auto options = desktop_capture::CreateDesktopCaptureOptions();
-#if defined(RTC_ENABLE_WIN_WGC)
-  if (allow_wgc_screen_capturer) {
-    options.set_allow_wgc_screen_capturer(true);
-  }
-#endif  // defined(RTC_ENABLE_WIN_WGC)
-  return webrtc::DesktopCapturer::CreateScreenCapturer(options);
+  return webrtc::DesktopCapturer::CreateScreenCapturer(
+      CreateDesktopCaptureOptions());
 #endif
 }
 

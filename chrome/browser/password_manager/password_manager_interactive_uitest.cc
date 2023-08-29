@@ -23,7 +23,6 @@
 #include "chrome/browser/ui/browser_commands.h"
 #include "chrome/browser/ui/passwords/manage_passwords_ui_controller.h"
 #include "components/autofill/core/common/autofill_features.h"
-#include "components/autofill/core/common/form_data.h"
 #include "components/password_manager/content/browser/content_password_manager_driver.h"
 #include "components/password_manager/core/browser/password_form_manager.h"
 #include "components/password_manager/core/browser/password_manager.h"
@@ -52,8 +51,6 @@ void WaitForCondition(base::RepeatingCallback<bool()> condition) {
   }
 }
 #endif  // BUILDFLAG(ENABLE_DICE_SUPPORT)
-
-constexpr autofill::FieldRendererId kElementId(1000);
 
 }  // namespace
 
@@ -361,9 +358,7 @@ IN_PROC_BROWSER_TEST_F(PasswordManagerInteractiveTest,
                             content_area_bounds.height() * 0.1);
 
   // Instruct Chrome to show the password dropdown.
-  autofill::FormData form;
-  driver->ShowPasswordSuggestions(kElementId, form, 0, 0,
-                                  base::i18n::LEFT_TO_RIGHT, std::u16string(),
+  driver->ShowPasswordSuggestions(base::i18n::LEFT_TO_RIGHT, std::u16string(),
                                   0, element_bounds);
   autofill::ChromeAutofillClient* autofill_client =
       autofill::ChromeAutofillClient::FromWebContentsForTesting(WebContents());
@@ -387,8 +382,7 @@ IN_PROC_BROWSER_TEST_F(PasswordManagerInteractiveTest,
   EXPECT_FALSE(autofill_client->popup_controller_for_testing());
   WaitForPasswordStore();
   // Reshow the dropdown.
-  driver->ShowPasswordSuggestions(kElementId, form, 0, 0,
-                                  base::i18n::LEFT_TO_RIGHT, std::u16string(),
+  driver->ShowPasswordSuggestions(base::i18n::LEFT_TO_RIGHT, std::u16string(),
                                   0, element_bounds);
   controller = autofill_client->popup_controller_for_testing().get();
   ASSERT_TRUE(controller);
@@ -407,8 +401,7 @@ IN_PROC_BROWSER_TEST_F(PasswordManagerInteractiveTest,
   EXPECT_FALSE(autofill_client->popup_controller_for_testing());
   WaitForPasswordStore();
   // Reshow the dropdown won't work because there is nothing to suggest.
-  driver->ShowPasswordSuggestions(kElementId, form, 0, 0,
-                                  base::i18n::LEFT_TO_RIGHT, std::u16string(),
+  driver->ShowPasswordSuggestions(base::i18n::LEFT_TO_RIGHT, std::u16string(),
                                   0, element_bounds);
   EXPECT_FALSE(autofill_client->popup_controller_for_testing());
 

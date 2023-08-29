@@ -35,8 +35,8 @@ void MediaToolbarButtonController::OnMediaDialogClosed() {
 
 void MediaToolbarButtonController::ShowToolbarButton() {
   if (delegate_display_state_ != DisplayState::kShown) {
-    delegate_->Show();
     delegate_->Enable();
+    delegate_->Show();
     delegate_display_state_ = DisplayState::kShown;
   }
 }

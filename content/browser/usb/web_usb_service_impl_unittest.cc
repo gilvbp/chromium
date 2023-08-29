@@ -122,7 +122,6 @@ class WebUsbServiceImplBaseTest : public testing::Test {
 
     // For tests, all devices are permitted by default.
     ON_CALL(delegate(), HasDevicePermission).WillByDefault(Return(true));
-    ON_CALL(delegate(), PageMayUseUsb).WillByDefault(Return(true));
 
     // Forward calls to the fake device manager.
     ON_CALL(delegate(), GetDevices)
@@ -165,33 +164,14 @@ class WebUsbServiceImplBaseTest : public testing::Test {
             service_.BindNewPipeAndPassReceiver());
         break;
       case kCreateForServiceWorker:
-        auto scope = GURL(kDefaultTestUrl);
-        auto origin = url::Origin::Create(scope);
-        auto worker_url = scope.Resolve("worker.js");
         embedded_worker_test_helper_ =
             std::make_unique<EmbeddedWorkerTestHelper>(base::FilePath());
         EXPECT_CALL(delegate(), IsServiceWorkerAllowedForOrigin)
-            .Times(2)
-            .WillRepeatedly(Return(true));
-        EmbeddedWorkerTestHelper::RegistrationAndVersionPair pair =
-            embedded_worker_test_helper_->PrepareRegistrationAndVersion(
-                scope, worker_url);
-        worker_version_ = pair.second;
-        worker_version_->set_fetch_handler_type(
-            ServiceWorkerVersion::FetchHandlerType::kNotSkippable);
-        // Since this test fixture is used expecting device events being
-        // handled, simulate the script having hid event handlers by setting
-        // `has_hid_event_handlers_` of `worker_version_` before it is being
-        // activated.
-        worker_version_->set_has_usb_event_handlers(true);
-        worker_version_->SetStatus(ServiceWorkerVersion::Status::ACTIVATED);
-        pair.first->SetActiveVersion(worker_version_);
-        auto* embedded_worker = worker_version_->embedded_worker();
-        embedded_worker_test_helper_->StartWorker(
-            embedded_worker,
-            embedded_worker_test_helper_->CreateStartParams(pair.second));
-        embedded_worker->BindUsbService(origin,
-                                        service_.BindNewPipeAndPassReceiver());
+            .WillOnce(Return(true));
+        WebUsbServiceImpl::Create(
+            embedded_worker_test_helper_->context()->AsWeakPtr(),
+            url::Origin::Create(GURL(kDefaultTestUrl)),
+            service_.BindNewPipeAndPassReceiver());
         break;
     }
     return service_;
@@ -252,17 +232,12 @@ class WebUsbServiceImplBaseTest : public testing::Test {
   }
 
   void SimulateDeviceServiceCrash() { device_manager_.CloseAllBindings(); }
-  void CheckIsConnected(ServiceCreationType type, bool expected_state) {
+  void CheckIsConnected(bool expected_is_connected) {
     // Skip the check for service workers which do not have web contents.
     if (!web_contents_)
       return;
 
-    if (type == kCreateForFrame) {
-      ASSERT_EQ(web_contents_->IsConnectedToUsbDevice(), expected_state);
-    } else if (type == kCreateForServiceWorker) {
-      ASSERT_EQ(worker_version_->GetExternalRequestCountForTest(),
-                expected_state ? 1u : 0u);
-    }
+    EXPECT_EQ(expected_is_connected, web_contents_->IsConnectedToUsbDevice());
   }
 
   void DestroyBrowserContext() { embedded_worker_test_helper_.reset(); }
@@ -289,7 +264,6 @@ class WebUsbServiceImplBaseTest : public testing::Test {
   TestWebContentsFactory web_contents_factory_;
   raw_ptr<WebContents> web_contents_ = nullptr;
   std::unique_ptr<EmbeddedWorkerTestHelper> embedded_worker_test_helper_;
-  scoped_refptr<content::ServiceWorkerVersion> worker_version_;
 };
 
 class WebUsbServiceImplTest : public WebUsbServiceImplBaseTest,
@@ -311,7 +285,7 @@ TEST_P(WebUsbServiceImplTest, OpenAndCloseDevice) {
 
   mojo::Remote<device::mojom::UsbDevice> device;
   service->GetDevice(device_info->guid, device.BindNewPipeAndPassReceiver());
-  CheckIsConnected(service_creation_type, false);
+  CheckIsConnected(false);
 
   EXPECT_CALL(web_contents_observer, OnIsConnectedToUsbDeviceChanged(true))
       .Times(service_creation_type == kCreateForFrame ? 1 : 0);
@@ -320,7 +294,7 @@ TEST_P(WebUsbServiceImplTest, OpenAndCloseDevice) {
   TestFuture<device::mojom::UsbOpenDeviceResultPtr> open_future;
   device->Open(open_future.GetCallback());
   EXPECT_TRUE(open_future.Get()->is_success());
-  CheckIsConnected(service_creation_type, true);
+  CheckIsConnected(true);
 
   EXPECT_CALL(web_contents_observer, OnIsConnectedToUsbDeviceChanged(false))
       .Times(service_creation_type == kCreateForFrame ? 1 : 0);
@@ -328,7 +302,7 @@ TEST_P(WebUsbServiceImplTest, OpenAndCloseDevice) {
   base::RunLoop run_loop;
   device->Close(run_loop.QuitClosure());
   run_loop.Run();
-  CheckIsConnected(service_creation_type, false);
+  CheckIsConnected(false);
 }
 
 TEST_P(WebUsbServiceImplTest, OpenAndDisconnectDevice) {
@@ -348,7 +322,7 @@ TEST_P(WebUsbServiceImplTest, OpenAndDisconnectDevice) {
 
   mojo::Remote<device::mojom::UsbDevice> device;
   service->GetDevice(device_info->guid, device.BindNewPipeAndPassReceiver());
-  CheckIsConnected(service_creation_type, false);
+  CheckIsConnected(false);
 
   EXPECT_CALL(web_contents_observer, OnIsConnectedToUsbDeviceChanged(true))
       .Times(service_creation_type == kCreateForFrame ? 1 : 0);
@@ -357,7 +331,7 @@ TEST_P(WebUsbServiceImplTest, OpenAndDisconnectDevice) {
   TestFuture<device::mojom::UsbOpenDeviceResultPtr> open_future;
   device->Open(open_future.GetCallback());
   EXPECT_TRUE(open_future.Get()->is_success());
-  CheckIsConnected(service_creation_type, true);
+  CheckIsConnected(true);
 
   base::RunLoop loop;
   EXPECT_CALL(mock_device, Close).WillOnce([&]() { loop.Quit(); });
@@ -365,16 +339,12 @@ TEST_P(WebUsbServiceImplTest, OpenAndDisconnectDevice) {
       .Times(service_creation_type == kCreateForFrame ? 1 : 0);
   DisconnectDevice(fake_device_info);
   loop.Run();
-  CheckIsConnected(service_creation_type, false);
+  CheckIsConnected(false);
 }
 
 INSTANTIATE_TEST_SUITE_P(WebUsbServiceImplTests,
                          WebUsbServiceImplTest,
-                          #if !BUILDFLAG(IS_ANDROID)
-                            Values(kCreateForFrame, kCreateForServiceWorker),
-                          #else
-                            Values(kCreateForFrame),
-                          #endif
+                         Values(kCreateForFrame, kCreateForServiceWorker),
                          [](const auto& info) {
                            return ServiceCreationTypeToString(info.param);
                          });
@@ -384,8 +354,7 @@ using WebUsbServiceImplFrameTest = WebUsbServiceImplBaseTest;
 TEST_F(WebUsbServiceImplFrameTest, OpenAndNavigateCrossOrigin) {
   const auto origin = url::Origin::Create(GURL(kDefaultTestUrl));
 
-  auto service_creation_type = kCreateForFrame;
-  const auto& service = GetService(service_creation_type);
+  const auto& service = GetService(kCreateForFrame);
   NiceMock<MockWebContentsObserver> web_contents_observer(contents());
 
   device::MockUsbMojoDevice mock_device;
@@ -397,7 +366,7 @@ TEST_F(WebUsbServiceImplFrameTest, OpenAndNavigateCrossOrigin) {
 
   mojo::Remote<device::mojom::UsbDevice> device;
   service->GetDevice(device_info->guid, device.BindNewPipeAndPassReceiver());
-  CheckIsConnected(service_creation_type, false);
+  CheckIsConnected(false);
 
   EXPECT_CALL(web_contents_observer, OnIsConnectedToUsbDeviceChanged(true));
   EXPECT_CALL(mock_device, Open)
@@ -405,14 +374,14 @@ TEST_F(WebUsbServiceImplFrameTest, OpenAndNavigateCrossOrigin) {
   TestFuture<device::mojom::UsbOpenDeviceResultPtr> open_future;
   device->Open(open_future.GetCallback());
   EXPECT_TRUE(open_future.Get()->is_success());
-  CheckIsConnected(service_creation_type, true);
+  CheckIsConnected(true);
 
   base::RunLoop loop;
   EXPECT_CALL(mock_device, Close).WillOnce([&]() { loop.Quit(); });
   EXPECT_CALL(web_contents_observer, OnIsConnectedToUsbDeviceChanged(false));
   contents()->NavigateAndCommit(GURL(kCrossOriginTestUrl));
   loop.Run();
-  CheckIsConnected(service_creation_type, false);
+  CheckIsConnected(false);
 }
 
 TEST_F(WebUsbServiceImplFrameTest, RejectOpaqueOrigin) {
@@ -523,11 +492,7 @@ TEST_P(WebUsbServiceImplProtectedInterfaceTest, BlockProtectedInterface) {
 INSTANTIATE_TEST_SUITE_P(
     WebUsbServiceImplProtectedInterfaceTests,
     WebUsbServiceImplProtectedInterfaceTest,
-#if !BUILDFLAG(IS_ANDROID)
     Combine(Values(kCreateForFrame, kCreateForServiceWorker),
-#else
-    Combine(Values(kCreateForFrame),
-#endif
             Values(device::mojom::kUsbAudioClass,
                    device::mojom::kUsbHidClass,
                    device::mojom::kUsbMassStorageClass,

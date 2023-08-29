@@ -97,7 +97,6 @@ bool RespondToChallenge(HttpAuth::Target target,
 
 
 TEST(HttpAuthHandlerDigestTest, ParseChallenge) {
-  // clang-format off
   static const struct {
     // The challenge string.
     const char* challenge;
@@ -109,7 +108,7 @@ TEST(HttpAuthHandlerDigestTest, ParseChallenge) {
     const char* parsed_domain;
     const char* parsed_opaque;
     bool parsed_stale;
-    HttpAuthHandlerDigest::Algorithm parsed_algorithm;
+    int parsed_algorithm;
     int parsed_qop;
   } tests[] = {
     { // Check that a minimal challenge works correctly.
@@ -120,7 +119,7 @@ TEST(HttpAuthHandlerDigestTest, ParseChallenge) {
       "",
       "",
       false,
-      HttpAuthHandlerDigest::Algorithm::UNSPECIFIED,
+      HttpAuthHandlerDigest::ALGORITHM_UNSPECIFIED,
       HttpAuthHandlerDigest::QOP_UNSPECIFIED
     },
 
@@ -132,7 +131,7 @@ TEST(HttpAuthHandlerDigestTest, ParseChallenge) {
       "",
       "",
       false,
-      HttpAuthHandlerDigest::Algorithm::UNSPECIFIED,
+      HttpAuthHandlerDigest::ALGORITHM_UNSPECIFIED,
       HttpAuthHandlerDigest::QOP_UNSPECIFIED
     },
 
@@ -145,7 +144,7 @@ TEST(HttpAuthHandlerDigestTest, ParseChallenge) {
       "",
       "",
       false,
-      HttpAuthHandlerDigest::Algorithm::UNSPECIFIED,
+      HttpAuthHandlerDigest::ALGORITHM_UNSPECIFIED,
       HttpAuthHandlerDigest::QOP_UNSPECIFIED
     },
 
@@ -157,7 +156,7 @@ TEST(HttpAuthHandlerDigestTest, ParseChallenge) {
       "",
       "",
       false,
-      HttpAuthHandlerDigest::Algorithm::UNSPECIFIED,
+      HttpAuthHandlerDigest::ALGORITHM_UNSPECIFIED,
       HttpAuthHandlerDigest::QOP_UNSPECIFIED
     },
 
@@ -171,7 +170,7 @@ TEST(HttpAuthHandlerDigestTest, ParseChallenge) {
       "",
       "",
       false,
-      HttpAuthHandlerDigest::Algorithm::UNSPECIFIED,
+      HttpAuthHandlerDigest::ALGORITHM_UNSPECIFIED,
       HttpAuthHandlerDigest::QOP_UNSPECIFIED,
     },
 
@@ -183,7 +182,7 @@ TEST(HttpAuthHandlerDigestTest, ParseChallenge) {
       "",
       "",
       false,
-      HttpAuthHandlerDigest::Algorithm::UNSPECIFIED,
+      HttpAuthHandlerDigest::ALGORITHM_UNSPECIFIED,
       HttpAuthHandlerDigest::QOP_UNSPECIFIED
     },
 
@@ -196,7 +195,7 @@ TEST(HttpAuthHandlerDigestTest, ParseChallenge) {
       "",
       "",
       false,
-      HttpAuthHandlerDigest::Algorithm::UNSPECIFIED,
+      HttpAuthHandlerDigest::ALGORITHM_UNSPECIFIED,
       HttpAuthHandlerDigest::QOP_UNSPECIFIED
     },
 
@@ -208,7 +207,7 @@ TEST(HttpAuthHandlerDigestTest, ParseChallenge) {
       "",
       "",
       false,
-      HttpAuthHandlerDigest::Algorithm::UNSPECIFIED,
+      HttpAuthHandlerDigest::ALGORITHM_UNSPECIFIED,
       HttpAuthHandlerDigest::QOP_UNSPECIFIED
     },
 
@@ -221,7 +220,7 @@ TEST(HttpAuthHandlerDigestTest, ParseChallenge) {
       "",
       "",
       false,
-      HttpAuthHandlerDigest::Algorithm::UNSPECIFIED,
+      HttpAuthHandlerDigest::ALGORITHM_UNSPECIFIED,
       HttpAuthHandlerDigest::QOP_UNSPECIFIED
     },
 
@@ -234,7 +233,7 @@ TEST(HttpAuthHandlerDigestTest, ParseChallenge) {
       "",
       "",
       false,
-      HttpAuthHandlerDigest::Algorithm::MD5,
+      HttpAuthHandlerDigest::ALGORITHM_MD5,
       HttpAuthHandlerDigest::QOP_UNSPECIFIED
     },
 
@@ -246,43 +245,7 @@ TEST(HttpAuthHandlerDigestTest, ParseChallenge) {
       "",
       "",
       false,
-      HttpAuthHandlerDigest::Algorithm::MD5_SESS,
-      HttpAuthHandlerDigest::QOP_UNSPECIFIED,
-    },
-
-    { // Check that that SHA-256 is a supported algorithm.
-      "Digest nonce=\"xyz\", algorithm=SHA-256, realm=\"Oblivion\"",
-      true,
-      "Oblivion",
-      "xyz",
-      "",
-      "",
-      false,
-      HttpAuthHandlerDigest::Algorithm::SHA256,
-      HttpAuthHandlerDigest::QOP_UNSPECIFIED
-    },
-
-    { // Check that that SHA-256-sess is a supported algorithm.
-      "Digest nonce=\"xyz\", algorithm=SHA-256-sess, realm=\"Oblivion\"",
-      true,
-      "Oblivion",
-      "xyz",
-      "",
-      "",
-      false,
-      HttpAuthHandlerDigest::Algorithm::SHA256_SESS,
-      HttpAuthHandlerDigest::QOP_UNSPECIFIED
-    },
-
-    { // Check that md5-sess is a supported algorithm.
-      "Digest nonce=\"xyz\", algorithm=\"md5-sess\", realm=\"Oblivion\"",
-      true,
-      "Oblivion",
-      "xyz",
-      "",
-      "",
-      false,
-      HttpAuthHandlerDigest::Algorithm::MD5_SESS,
+      HttpAuthHandlerDigest::ALGORITHM_MD5_SESS,
       HttpAuthHandlerDigest::QOP_UNSPECIFIED,
     },
 
@@ -294,7 +257,7 @@ TEST(HttpAuthHandlerDigestTest, ParseChallenge) {
       "",
       "",
       false,
-      HttpAuthHandlerDigest::Algorithm::UNSPECIFIED,
+      HttpAuthHandlerDigest::ALGORITHM_UNSPECIFIED,
       HttpAuthHandlerDigest::QOP_AUTH
     },
 
@@ -306,7 +269,7 @@ TEST(HttpAuthHandlerDigestTest, ParseChallenge) {
       "",
       "",
       false,
-      HttpAuthHandlerDigest::Algorithm::UNSPECIFIED,
+      HttpAuthHandlerDigest::ALGORITHM_UNSPECIFIED,
       HttpAuthHandlerDigest::QOP_UNSPECIFIED
     },
 
@@ -318,7 +281,7 @@ TEST(HttpAuthHandlerDigestTest, ParseChallenge) {
       "",
       "",
       false,
-      HttpAuthHandlerDigest::Algorithm::UNSPECIFIED,
+      HttpAuthHandlerDigest::ALGORITHM_UNSPECIFIED,
       HttpAuthHandlerDigest::QOP_AUTH
     },
 
@@ -330,7 +293,7 @@ TEST(HttpAuthHandlerDigestTest, ParseChallenge) {
       "",
       "",
       false,
-      HttpAuthHandlerDigest::Algorithm::UNSPECIFIED,
+      HttpAuthHandlerDigest::ALGORITHM_UNSPECIFIED,
       HttpAuthHandlerDigest::QOP_AUTH
     },
 
@@ -342,7 +305,7 @@ TEST(HttpAuthHandlerDigestTest, ParseChallenge) {
       "",
       "foobar",
       false,
-      HttpAuthHandlerDigest::Algorithm::UNSPECIFIED,
+      HttpAuthHandlerDigest::ALGORITHM_UNSPECIFIED,
       HttpAuthHandlerDigest::QOP_UNSPECIFIED
     },
 
@@ -355,7 +318,7 @@ TEST(HttpAuthHandlerDigestTest, ParseChallenge) {
       "",
       "foobar",
       false,
-      HttpAuthHandlerDigest::Algorithm::UNSPECIFIED,
+      HttpAuthHandlerDigest::ALGORITHM_UNSPECIFIED,
       HttpAuthHandlerDigest::QOP_UNSPECIFIED
     },
 
@@ -368,7 +331,7 @@ TEST(HttpAuthHandlerDigestTest, ParseChallenge) {
       "http://intranet.example.com/protection",
       "",
       false,
-      HttpAuthHandlerDigest::Algorithm::UNSPECIFIED,
+      HttpAuthHandlerDigest::ALGORITHM_UNSPECIFIED,
       HttpAuthHandlerDigest::QOP_UNSPECIFIED
     },
 
@@ -381,7 +344,7 @@ TEST(HttpAuthHandlerDigestTest, ParseChallenge) {
       "http://intranet.example.com/protection http://www.google.com",
       "",
       false,
-      HttpAuthHandlerDigest::Algorithm::UNSPECIFIED,
+      HttpAuthHandlerDigest::ALGORITHM_UNSPECIFIED,
       HttpAuthHandlerDigest::QOP_UNSPECIFIED
     },
 
@@ -393,11 +356,10 @@ TEST(HttpAuthHandlerDigestTest, ParseChallenge) {
       "",
       "",
       false,
-      HttpAuthHandlerDigest::Algorithm::UNSPECIFIED,
+      HttpAuthHandlerDigest::ALGORITHM_UNSPECIFIED,
       HttpAuthHandlerDigest::QOP_UNSPECIFIED
     },
   };
-  // clang-format on
 
   url::SchemeHostPort scheme_host_port(GURL("http://www.example.com"));
   auto factory = std::make_unique<HttpAuthHandlerDigest::Factory>();
@@ -434,7 +396,6 @@ TEST(HttpAuthHandlerDigestTest, ParseChallenge) {
 }
 
 TEST(HttpAuthHandlerDigestTest, AssembleCredentials) {
-  // clang-format off
   static const struct {
     const char* req_method;
     const char* req_path;
@@ -445,14 +406,14 @@ TEST(HttpAuthHandlerDigestTest, AssembleCredentials) {
     int nonce_count;
     const char* expected_creds;
   } tests[] = {
-    { // MD5 (default) with username/password
+    { // MD5 with username/password
       "GET",
       "/test/drealm1",
 
       // Challenge
       "Digest realm=\"DRealm1\", "
       "nonce=\"claGgoRXBAA=7583377687842fdb7b56ba0555d175baa0b800e3\", "
-      "qop=\"auth\"",
+      "algorithm=MD5, qop=\"auth\"",
 
       "foo", "bar", // username/password
       "082c875dcb2ca740", // cnonce
@@ -461,7 +422,7 @@ TEST(HttpAuthHandlerDigestTest, AssembleCredentials) {
       // Authorization
       "Digest username=\"foo\", realm=\"DRealm1\", "
       "nonce=\"claGgoRXBAA=7583377687842fdb7b56ba0555d175baa0b800e3\", "
-      "uri=\"/test/drealm1\", "
+      "uri=\"/test/drealm1\", algorithm=MD5, "
       "response=\"bcfaa62f1186a31ff1b474a19a17cf57\", "
       "qop=auth, nc=00000001, cnonce=\"082c875dcb2ca740\""
     },
@@ -563,87 +524,8 @@ TEST(HttpAuthHandlerDigestTest, AssembleCredentials) {
       "nonce=\"AAAAAAAA\", uri=\"/\", algorithm=MD5-sess, "
       "response=\"cbc1139821ee7192069580570c541a03\", "
       "qop=auth, nc=00000001, cnonce=\"15c07961ed8575c4\""
-    },
-
-    { // RFC MD5 (https://www.rfc-editor.org/rfc/rfc7616#section-3.9.1)
-      "GET",
-      "/dir/index.html",
-
-      // Challenge
-      "Digest realm=\"http-auth@example.org\", "
-      "qop=\"auth, auth-int\", "
-      "algorithm=MD5, "
-      "nonce=\"7ypf/xlj9XXwfDPEoM4URrv/xwf94BcCAzFZH4GiTo0v\","
-      "opaque=\"FQhe/qaU925kfnzjCev0ciny7QMkPqMAFRtzCUYo5tdS\"",
-
-      "Mufasa", "Circle of Life", // Username/password
-      "f2/wE4q74E6zIJEtWaHKaf5wv/H5QzzpXusqGemxURZJ", // cnonce
-      1, // nc
-
-      // Authorization
-      "Digest username=\"Mufasa\", realm=\"http-auth@example.org\", "
-      "nonce=\"7ypf/xlj9XXwfDPEoM4URrv/xwf94BcCAzFZH4GiTo0v\", "
-      "uri=\"/dir/index.html\", algorithm=MD5, "
-      "response=\"8ca523f5e9506fed4657c9700eebdbec\", "
-      "opaque=\"FQhe/qaU925kfnzjCev0ciny7QMkPqMAFRtzCUYo5tdS\", "
-      "qop=auth, nc=00000001, "
-      "cnonce=\"f2/wE4q74E6zIJEtWaHKaf5wv/H5QzzpXusqGemxURZJ\""
-    },
-
-    { // RFC SHA-256 (https://www.rfc-editor.org/rfc/rfc7616#section-3.9.1)
-      "GET",
-      "/dir/index.html",
-
-      // Challenge
-      "Digest realm=\"http-auth@example.org\", "
-      "qop=\"auth, auth-int\", "
-      "algorithm=SHA-256, "
-      "nonce=\"7ypf/xlj9XXwfDPEoM4URrv/xwf94BcCAzFZH4GiTo0v\","
-      "opaque=\"FQhe/qaU925kfnzjCev0ciny7QMkPqMAFRtzCUYo5tdS\"",
-
-      "Mufasa", "Circle of Life", // Username/password
-      "f2/wE4q74E6zIJEtWaHKaf5wv/H5QzzpXusqGemxURZJ", // cnonce
-      1, // nc
-
-      // Authorization
-      "Digest username=\"Mufasa\", realm=\"http-auth@example.org\", "
-      "nonce=\"7ypf/xlj9XXwfDPEoM4URrv/xwf94BcCAzFZH4GiTo0v\", "
-      "uri=\"/dir/index.html\", algorithm=SHA-256, "
-      "response=\"753927fa0e85d155564e2e272a28d1802ca10daf4496794697cf8db5856cb6c1\", "
-      "opaque=\"FQhe/qaU925kfnzjCev0ciny7QMkPqMAFRtzCUYo5tdS\", "
-      "qop=auth, nc=00000001, "
-      "cnonce=\"f2/wE4q74E6zIJEtWaHKaf5wv/H5QzzpXusqGemxURZJ\""
-    },
-
-    { // RFC SHA-256 and userhash
-      "GET",
-      "/doe.json",
-
-      // Challenge
-      "Digest realm=\"api@example.org\", "
-      "qop=\"auth\", "
-      "algorithm=SHA-256, "
-      "nonce=\"5TsQWLVdgBdmrQ0XsxbDODV+57QdFR34I9HAbC/RVvkK\", "
-      "opaque=\"HRPCssKJSGjCrkzDg8OhwpzCiGPChXYjwrI2QmXDnsOS\", "
-      "charset=UTF-8, userhash=true",
-
-      "J\xc3\xa4s\xc3\xb8n Doe", "Secret, or not?", // Username/password
-      "NTg6RKcb9boFIAS3KrFK9BGeh+iDa/sm6jUMp2wds69v", // cnonce
-      0x123, // nc
-
-      // Authorization
-      "Digest username=\"5a1a8a47df5c298551b9b42ba9b05835174a5bd7d511ff7fe9191d8e946fc4e7\", "
-      "realm=\"api@example.org\", "
-      "nonce=\"5TsQWLVdgBdmrQ0XsxbDODV+57QdFR34I9HAbC/RVvkK\", "
-      "uri=\"/doe.json\", algorithm=SHA-256, "
-      "response=\"61baba8a218e4b207f158ed9b9b3a95ed940c1872ef3ff4522eb10110720a145\", "
-      "opaque=\"HRPCssKJSGjCrkzDg8OhwpzCiGPChXYjwrI2QmXDnsOS\", "
-      "qop=auth, nc=00000123, "
-      "cnonce=\"NTg6RKcb9boFIAS3KrFK9BGeh+iDa/sm6jUMp2wds69v\", "
-      "userhash=true"
-    },
+    }
   };
-  // clang-format on
   url::SchemeHostPort scheme_host_port(GURL("http://www.example.com"));
   auto factory = std::make_unique<HttpAuthHandlerDigest::Factory>();
   for (const auto& test : tests) {
@@ -661,8 +543,8 @@ TEST(HttpAuthHandlerDigestTest, AssembleCredentials) {
         static_cast<HttpAuthHandlerDigest*>(handler.get());
     std::string creds = digest->AssembleCredentials(
         test.req_method, test.req_path,
-        AuthCredentials(base::UTF8ToUTF16(test.username),
-                        base::UTF8ToUTF16(test.password)),
+        AuthCredentials(base::ASCIIToUTF16(test.username),
+                        base::ASCIIToUTF16(test.password)),
         test.cnonce, test.nonce_count);
 
     EXPECT_STREQ(test.expected_creds, creds.c_str());

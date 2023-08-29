@@ -59,8 +59,7 @@ class VIZ_SERVICE_EXPORT OverlayCandidate {
     kFailPriority,
     kFailNotSharedImage,
     kFailRoundedDisplayMasksNotSupported,
-    kFailMaskFilterNotSupported,
-    kFailHasTransformButCantClip,
+    kFailMaskFilterNotSupported
   };
   using TrackingId = uint32_t;
   static constexpr TrackingId kDefaultTrackingId{0};
@@ -102,8 +101,10 @@ class VIZ_SERVICE_EXPORT OverlayCandidate {
   gfx::BufferFormat format = gfx::BufferFormat::RGBA_8888;
   // ColorSpace of the buffer for scanout.
   gfx::ColorSpace color_space;
+  // HDR mode for the buffer.
+  gfx::HDRMode hdr_mode = gfx::HDRMode::kDefault;
   // Optional HDR Metadata for the buffer.
-  gfx::HDRMetadata hdr_metadata;
+  absl::optional<gfx::HDRMetadata> hdr_metadata;
   // Size of the resource, in pixels.
   gfx::Size resource_size_in_pixels;
   // Rect in content space that, when combined with |transform|, is the bounds
@@ -241,9 +242,6 @@ class VIZ_SERVICE_EXPORT OverlayCandidate {
 
   // Whether this overlay candidate represents the root render pass.
   bool is_root_render_pass = false;
-
-  // Whether this overlay candidate is a render pass draw quad.
-  bool is_render_pass_draw_quad = false;
 };
 
 using OverlayCandidateList = std::vector<OverlayCandidate>;

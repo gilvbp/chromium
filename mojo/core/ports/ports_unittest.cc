@@ -11,7 +11,6 @@
 #include <sstream>
 #include <utility>
 
-#include "base/containers/contains.h"
 #include "base/containers/queue.h"
 #include "base/functional/bind.h"
 #include "base/functional/callback.h"
@@ -403,7 +402,7 @@ class PortsTest : public testing::Test, public MessageRouter {
     base::AutoLock global_lock(global_lock_);
     base::AutoLock lock(lock_);
     // Drop messages from nodes that have been removed.
-    if (!base::Contains(nodes_, from_node->name())) {
+    if (nodes_.find(from_node->name()) == nodes_.end()) {
       from_node->ClosePortsInEvent(event.get());
       return;
     }
@@ -442,9 +441,8 @@ class PortsTest : public testing::Test, public MessageRouter {
     base::AutoLock lock(lock_);
 
     // Drop messages from nodes that have been removed.
-    if (!base::Contains(nodes_, from_node->name())) {
+    if (nodes_.find(from_node->name()) == nodes_.end())
       return;
-    }
 
     for (const auto& entry : nodes_) {
       TestNode* node = entry.second;

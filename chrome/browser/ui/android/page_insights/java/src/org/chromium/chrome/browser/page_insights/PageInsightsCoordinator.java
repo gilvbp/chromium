@@ -7,26 +7,21 @@ package org.chromium.chrome.browser.page_insights;
 import android.content.Context;
 import android.view.View;
 
+import androidx.annotation.VisibleForTesting;
+
 import org.chromium.base.supplier.ObservableSupplier;
 import org.chromium.chrome.browser.browser_controls.BrowserControlsSizer;
 import org.chromium.chrome.browser.browser_controls.BrowserControlsStateProvider;
-import org.chromium.chrome.browser.flags.ChromeFeatureList;
-import org.chromium.chrome.browser.flags.MutableFlagWithSafeDefault;
 import org.chromium.chrome.browser.tab.Tab;
 import org.chromium.components.browser_ui.bottomsheet.BottomSheetController;
 import org.chromium.components.browser_ui.bottomsheet.ExpandedSheetHelper;
 import org.chromium.components.browser_ui.bottomsheet.ManagedBottomSheetController;
-
-import java.util.function.BooleanSupplier;
 
 /**
  * Coordinator for PageInsights bottom sheet module. Provides API, and initializes
  * various components lazily.
  */
 public class PageInsightsCoordinator {
-    private static MutableFlagWithSafeDefault sPageInsightsHub =
-            new MutableFlagWithSafeDefault(ChromeFeatureList.CCT_PAGE_INSIGHTS_HUB, false);
-
     private final Context mContext;
 
     private final ObservableSupplier<Tab> mTabProvider;
@@ -36,12 +31,8 @@ public class PageInsightsCoordinator {
     private final BrowserControlsSizer mBrowserControlsSizer;
     private final ExpandedSheetHelper mExpandedSheetHelper;
 
-    private final PageInsightsMediator mMediator;
-
-    /** Returns true if page insight is enabled in the feature flag. */
-    public static boolean isFeatureEnabled() {
-        return sPageInsightsHub.isEnabled();
-    }
+    private PageInsightsMediator mMediator;
+    private PageInsightsSheetContent mSheetContent;
 
     /**
      * Constructor.
@@ -50,15 +41,15 @@ public class PageInsightsCoordinator {
      * @param bottomSheetController {@link ManagedBottomSheetController} for page insights.
      * @param bottomUiController {@link BottomSheetController} for other bottom sheet UIs.
      * @param expandedSheetHelper Helps interaction with other UI in expanded mode.
+     * @param tabObscuringHandler A delegate that provides the functionality of obscuring all tabs.
      * @param controlsStateProvider Provides the browser controls' state.
      * @param browserControlsSizer Bottom browser controls resizer.
-     * @param isPageInsightsHubEnabled Supplier of the feature flag.
      */
     public PageInsightsCoordinator(Context context, ObservableSupplier<Tab> tabProvider,
             ManagedBottomSheetController bottomSheetController,
             BottomSheetController bottomUiController, ExpandedSheetHelper expandedSheetHelper,
             BrowserControlsStateProvider controlsStateProvider,
-            BrowserControlsSizer browserControlsSizer, BooleanSupplier isPageInsightsHubEnabled) {
+            BrowserControlsSizer browserControlsSizer) {
         mContext = context;
         mTabProvider = tabProvider;
         mBottomSheetController = bottomSheetController;
@@ -66,16 +57,21 @@ public class PageInsightsCoordinator {
         mBottomUiController = bottomUiController;
         mControlsStateProvider = controlsStateProvider;
         mBrowserControlsSizer = browserControlsSizer;
-        mMediator = new PageInsightsMediator(mContext, mTabProvider, mBottomSheetController,
-                mBottomUiController, mExpandedSheetHelper, mControlsStateProvider,
-                mBrowserControlsSizer, isPageInsightsHubEnabled);
     }
 
     /**
      * Launch PageInsights hub in bottom sheet container and fetch the data to show.
      */
     public void launch() {
-        mMediator.openInExpandedState();
+        if (mSheetContent == null) {
+            mSheetContent = new PageInsightsSheetContent(mContext);
+        }
+        if (mMediator == null) {
+            mMediator = new PageInsightsMediator(mSheetContent, mTabProvider,
+                    mBottomSheetController, mBottomUiController, mExpandedSheetHelper,
+                    mControlsStateProvider, mBrowserControlsSizer);
+        }
+        mMediator.requestShowContent();
     }
 
     /**
@@ -97,22 +93,12 @@ public class PageInsightsCoordinator {
 
     /** Destroy PageInsights component. */
     public void destroy() {
-        if (mMediator != null) mMediator.destroy();
+        assert mMediator != null;
+        mMediator.destroy();
     }
 
+    @VisibleForTesting
     float getCornerRadiusForTesting() {
         return mMediator.getCornerRadiusForTesting();
-    }
-
-    void setAutoTriggerReadyForTesting() {
-        mMediator.setAutoTriggerReadyForTesting();
-    }
-
-    void setPageInsightsDataLoaderForTesting(PageInsightsDataLoader pageInsightsDataLoader) {
-        mMediator.setPageInsightsDataLoaderForTesting(pageInsightsDataLoader);
-    }
-
-    View getContainerForTesting() {
-        return mMediator.getContainerForTesting();
     }
 }

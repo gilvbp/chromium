@@ -30,8 +30,7 @@ enum class PopupHidingReason {
   kAcceptSuggestion = 0,
   // An interstitial page displaces the popup.
   kAttachInterstitialPage = 1,
-  // The text field is no longer edited - sent directly before a focus change.
-  // TODO(crbug.com/1469610): Deprecate in favor of kFocusChanged.
+  // A field isn't edited anymore but remains focused for now.
   kEndEditing = 2,
   // Focus removed from field. Follows kEndEditing.
   kFocusChanged = 3,
@@ -77,10 +76,7 @@ enum class PopupHidingReason {
   // The context menu was opened. We hide the autofill popup to make sure it
   // does not overlap with it.
   kContextMenuOpened = 22,
-  // No frame currently has focus. This case is caught for safety because it
-  // might be reachable due to race conditions.
-  kNoFrameHasFocus = 23,
-  kMaxValue = kNoFrameHasFocus
+  kMaxValue = kContextMenuOpened
 };
 
 }  // namespace autofill

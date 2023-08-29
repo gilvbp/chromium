@@ -21,7 +21,8 @@
 #include "extensions/browser/api/file_handlers/non_native_file_system_delegate.h"
 #endif
 
-namespace extensions::app_file_handler_util {
+namespace extensions {
+namespace app_file_handler_util {
 
 namespace {
 
@@ -30,14 +31,12 @@ bool GetIsDirectoryFromFileInfo(const base::FilePath& path) {
   return GetFileInfo(path, &file_info) && file_info.is_directory;
 }
 
-}  // namespace
-
 // The callback parameter contains the result and is required to support
 // both native local directories to avoid UI thread and non native local
 // path directories for the IsNonNativeLocalPathDirectory API.
-void GetIsDirectoryForLocalPath(content::BrowserContext* context,
-                                const base::FilePath& path,
-                                base::OnceCallback<void(bool)> callback) {
+void EntryIsDirectory(content::BrowserContext* context,
+                      const base::FilePath& path,
+                      base::OnceCallback<void(bool)> callback) {
 #if BUILDFLAG(IS_CHROMEOS_ASH)
   NonNativeFileSystemDelegate* delegate =
       ExtensionsAPIClient::Get()->GetNonNativeFileSystemDelegate();
@@ -51,6 +50,8 @@ void GetIsDirectoryForLocalPath(content::BrowserContext* context,
       FROM_HERE, {base::MayBlock()},
       base::BindOnce(&GetIsDirectoryFromFileInfo, path), std::move(callback));
 }
+
+}  // namespace
 
 IsDirectoryCollector::IsDirectoryCollector(content::BrowserContext* context)
     : context_(context), left_(0) {}
@@ -77,7 +78,7 @@ void IsDirectoryCollector::CollectForEntriesPaths(
   }
 
   for (size_t i = 0; i < paths.size(); ++i) {
-    GetIsDirectoryForLocalPath(
+    EntryIsDirectory(
         context_, paths[i],
         base::BindOnce(&IsDirectoryCollector::OnIsDirectoryCollected,
                        weak_ptr_factory_.GetWeakPtr(), i));
@@ -98,4 +99,5 @@ void IsDirectoryCollector::OnIsDirectoryCollected(size_t index,
   }
 }
 
-}  // namespace extensions::app_file_handler_util
+}  // namespace app_file_handler_util
+}  // namespace extensions

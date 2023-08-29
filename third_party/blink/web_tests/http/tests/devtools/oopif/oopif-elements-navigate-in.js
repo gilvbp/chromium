@@ -5,8 +5,6 @@
 import {TestRunner} from 'test_runner';
 import {ElementsTestRunner} from 'elements_test_runner';
 
-import * as SDK from 'devtools/core/sdk/sdk.js';
-
 (async function() {
   TestRunner.addResult(`Tests that oopif iframes are rendered inline.\n`);
   await TestRunner.loadLegacyModule('elements');
@@ -17,12 +15,12 @@ import * as SDK from 'devtools/core/sdk/sdk.js';
 
   await TestRunner.navigatePromise('resources/page-out.html');
 
-  SDK.TargetManager.TargetManager.instance().observeTargets({
+  SDK.targetManager.observeTargets({
     targetAdded: async function(target) {
       if (!target.name().startsWith('inner'))
         return;
       target.pageAgent().setLifecycleEventsEnabled(true);
-      target.model(SDK.ResourceTreeModel.ResourceTreeModel).addEventListener(SDK.ResourceTreeModel.Events.LifecycleEvent, async (event) => {
+      target.model(SDK.ResourceTreeModel).addEventListener(SDK.ResourceTreeModel.Events.LifecycleEvent, async (event) => {
         if (event.data.name !== 'load')
           return;
 
@@ -30,10 +28,10 @@ import * as SDK from 'devtools/core/sdk/sdk.js';
         await ElementsTestRunner.expandAndDump();
 
         // Navigate iframe to in-process
-        let rootTarget = SDK.TargetManager.TargetManager.instance().rootTarget();
-        await rootTarget.model(SDK.ResourceTreeModel.ResourceTreeModel)._agent.setLifecycleEventsEnabled(true);
+        let rootTarget = SDK.targetManager.rootTarget();
+        await rootTarget.model(SDK.ResourceTreeModel)._agent.setLifecycleEventsEnabled(true);
         TestRunner.evaluateInPagePromise(`document.getElementById('page-iframe').src = 'http://127.0.0.1:8000/devtools/oopif/resources/inner-iframe.html';`);
-        rootTarget.model(SDK.ResourceTreeModel.ResourceTreeModel).addEventListener(SDK.ResourceTreeModel.Events.LifecycleEvent, async (event) => {
+        rootTarget.model(SDK.ResourceTreeModel).addEventListener(SDK.ResourceTreeModel.Events.LifecycleEvent, async (event) => {
           if (event.data.name === 'load') {
             await ElementsTestRunner.expandAndDump();
             TestRunner.completeTest();

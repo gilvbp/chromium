@@ -169,49 +169,26 @@ void TestUnreadContentObserver::HasUnreadContentChanged(
 TestSurfaceBase::TestSurfaceBase(const StreamType& stream_type,
                                  FeedStream* stream,
                                  SingleWebFeedEntryPoint entry_point)
-    : stream_type_(stream_type), entry_point_(entry_point) {
-  if (stream) {
+    : FeedStreamSurface(stream_type, entry_point) {
+  if (stream)
     Attach(stream);
-  }
 }
 
 TestSurfaceBase::~TestSurfaceBase() {
-  if (bound_stream_) {
+  if (stream_)
     Detach();
-  }
-
-  if (stream_) {
-    CHECK(!surface_id_.is_null());
-    stream_->DestroySurface(surface_id_);
-  }
-}
-
-SurfaceId TestSurfaceBase::GetSurfaceId() const {
-  CHECK(!surface_id_.is_null())
-      << "The surface wasn't yet created, so doesn't have an ID.";
-  return surface_id_;
-}
-
-void TestSurfaceBase::CreateWithoutAttach(FeedStream* stream) {
-  CHECK(surface_id_.is_null());
-
-  stream_ = stream->GetWeakPtr();
-  surface_id_ = stream->CreateSurface(stream_type_, entry_point_);
 }
 
 void TestSurfaceBase::Attach(FeedStream* stream) {
-  EXPECT_FALSE(bound_stream_);
-  if (surface_id_.is_null()) {
-    CreateWithoutAttach(stream);
-  }
-  bound_stream_ = stream->GetWeakPtr();
-  bound_stream_->AttachSurface(surface_id_, this);
+  EXPECT_FALSE(stream_);
+  stream_ = stream->GetWeakPtr();
+  stream_->AttachSurface(this);
 }
 
 void TestSurfaceBase::Detach() {
-  EXPECT_TRUE(bound_stream_);
-  bound_stream_->DetachSurface(surface_id_);
-  bound_stream_ = nullptr;
+  EXPECT_TRUE(stream_);
+  stream_->DetachSurface(this);
+  stream_ = nullptr;
 }
 
 void TestSurfaceBase::StreamUpdate(const feedui::StreamUpdate& stream_update) {
@@ -1013,7 +990,7 @@ void FeedApiTest::CreateStream(bool wait_for_initialization,
   chrome_info.start_surface = start_surface;
   stream_ = std::make_unique<FeedStream>(
       &refresh_scheduler_, metrics_reporter_.get(), this, &profile_prefs_,
-      &network_, image_fetcher_.get(), nullptr, store_.get(),
+      &network_, image_fetcher_.get(), store_.get(),
       persistent_key_value_store_.get(), template_url_service_.get(),
       chrome_info);
   stream_->SetWireResponseTranslatorForTesting(&response_translator_);

@@ -17,6 +17,8 @@ class Profile;
 
 namespace web_app {
 
+class WebAppRegistrar;
+
 // UrlHandlerManager allows different manager implementations: local state
 // prefs, App Service, and OS-specific implementations to enable integration
 // with system-wide URL handling APIs.
@@ -28,6 +30,8 @@ class UrlHandlerManager {
 
   UrlHandlerManager(const UrlHandlerManager&) = delete;
   UrlHandlerManager& operator=(const UrlHandlerManager&) = delete;
+
+  void SetSubsystems(WebAppRegistrar* registrar);
 
   // Returns Result::kOk if registration succeeds, Result::kError otherwise.
   virtual void RegisterUrlHandlers(const AppId& app_id,
@@ -44,12 +48,14 @@ class UrlHandlerManager {
 
  protected:
   Profile* profile() const { return profile_; }
+  WebAppRegistrar* registrar() const { return registrar_; }
   WebAppOriginAssociationManager& association_manager() {
     return *association_manager_;
   }
 
  private:
   const raw_ptr<Profile> profile_;
+  raw_ptr<WebAppRegistrar, DanglingUntriaged> registrar_;
   std::unique_ptr<WebAppOriginAssociationManager> association_manager_;
 };
 

@@ -25,8 +25,6 @@
 #include "base/system/sys_info.h"
 #include "base/values.h"
 #include "build/branding_buildflags.h"
-#include "chrome/browser/ash/boot_times_recorder_tab_helper.h"
-#include "chrome/browser/ash/drive/file_system_util.h"
 #include "chrome/browser/ash/login/enrollment/auto_enrollment_check_screen_view.h"
 #include "chrome/browser/ash/login/enrollment/enrollment_screen_view.h"
 #include "chrome/browser/ash/login/quick_unlock/pin_backend.h"
@@ -44,7 +42,6 @@
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/profiles/profile_manager.h"
 #include "chrome/browser/ui/webui/about_ui.h"
-#include "chrome/browser/ui/webui/ash/login/add_child_screen_handler.h"
 #include "chrome/browser/ui/webui/ash/login/app_downloading_screen_handler.h"
 #include "chrome/browser/ui/webui/ash/login/app_launch_splash_screen_handler.h"
 #include "chrome/browser/ui/webui/ash/login/arc_vm_data_migration_screen_handler.h"
@@ -53,7 +50,6 @@
 #include "chrome/browser/ui/webui/ash/login/base_screen_handler.h"
 #include "chrome/browser/ui/webui/ash/login/choobe_screen_handler.h"
 #include "chrome/browser/ui/webui/ash/login/consolidated_consent_screen_handler.h"
-#include "chrome/browser/ui/webui/ash/login/consumer_update_screen_handler.h"
 #include "chrome/browser/ui/webui/ash/login/core_oobe_handler.h"
 #include "chrome/browser/ui/webui/ash/login/cryptohome_recovery_screen_handler.h"
 #include "chrome/browser/ui/webui/ash/login/cryptohome_recovery_setup_screen_handler.h"
@@ -81,7 +77,6 @@
 #include "chrome/browser/ui/webui/ash/login/kiosk_enable_screen_handler.h"
 #include "chrome/browser/ui/webui/ash/login/lacros_data_backward_migration_screen_handler.h"
 #include "chrome/browser/ui/webui/ash/login/lacros_data_migration_screen_handler.h"
-#include "chrome/browser/ui/webui/ash/login/local_password_setup_handler.h"
 #include "chrome/browser/ui/webui/ash/login/local_state_error_screen_handler.h"
 #include "chrome/browser/ui/webui/ash/login/locale_switch_screen_handler.h"
 #include "chrome/browser/ui/webui/ash/login/management_transition_screen_handler.h"
@@ -96,7 +91,6 @@
 #include "chrome/browser/ui/webui/ash/login/os_trial_screen_handler.h"
 #include "chrome/browser/ui/webui/ash/login/packaged_license_screen_handler.h"
 #include "chrome/browser/ui/webui/ash/login/parental_handoff_screen_handler.h"
-#include "chrome/browser/ui/webui/ash/login/password_selection_screen_handler.h"
 #include "chrome/browser/ui/webui/ash/login/pin_setup_screen_handler.h"
 #include "chrome/browser/ui/webui/ash/login/quick_start_screen_handler.h"
 #include "chrome/browser/ui/webui/ash/login/recommend_apps_screen_handler.h"
@@ -136,7 +130,6 @@
 #include "chrome/grit/oobe_conditional_resources.h"
 #include "chrome/grit/oobe_unconditional_resources.h"
 #include "chrome/grit/oobe_unconditional_resources_map.h"
-#include "chromeos/ash/components/assistant/buildflags.h"
 #include "chromeos/ash/services/auth_factor_config/in_process_instances.h"
 #include "chromeos/ash/services/cellular_setup/public/mojom/esim_manager.mojom.h"
 #include "chromeos/ash/services/multidevice_setup/multidevice_setup_service.h"
@@ -149,7 +142,6 @@
 #include "content/public/common/content_features.h"
 #include "content/public/common/content_switches.h"
 #include "services/network/public/mojom/content_security_policy.mojom.h"
-#include "ui/accessibility/accessibility_features.h"
 #include "ui/base/resource/resource_bundle.h"
 #include "ui/base/ui_base_features.h"
 #include "ui/base/webui/web_ui_util.h"
@@ -301,23 +293,12 @@ void CreateAndAddOobeUIDataSource(Profile* profile,
   source->AddBoolean("isOobeLazyLoadingEnabled",
                      features::IsOobeLazyLoadingEnabled());
   // TODO (b/268463435) Cleanup OobeJelly
-  source->AddBoolean("isJellyEnabled", features::IsOobeJellyEnabled());
   source->AddBoolean("isOobeJellyEnabled", features::IsOobeJellyEnabled());
-  source->AddBoolean("isOobeJellyModalEnabled",
-                     features::IsOobeJellyModalEnabled());
   // TODO (b/269117729) Cleanup OobeSimon
   source->AddBoolean("isOobeSimonEnabled", features::IsOobeSimonEnabled());
-  source->AddBoolean(
-      "isChromeVoxHintImprovementsEnabled",
-      ::features::
-          IsExperimentalAccessibilityChromeVoxOobeDialogImprovementsEnabled());
-  source->AddBoolean("isOobeAssistantEnabled",
-                     !features::IsOobeSkipAssistantEnabled());
   source->AddBoolean("isOobeGaiaInfoScreenEnabled",
                      features::IsOobeGaiaInfoScreenEnabled());
   source->AddBoolean("isChoobeEnabled", features::IsOobeChoobeEnabled());
-  source->AddBoolean("isSoftwareUpdateEnabled",
-                     features::IsOobeSoftwareUpdateEnabled());
   source->AddBoolean(
       "isArcVmDataMigrationEnabled",
       base::FeatureList::IsEnabled(arc::kEnableArcVmDataMigration));
@@ -326,7 +307,7 @@ void CreateAndAddOobeUIDataSource(Profile* profile,
                      features::IsOobeTouchpadScrollEnabled());
 
   source->AddBoolean("isDrivePinningEnabled",
-                     drive::util::IsOobeDrivePinningEnabled(profile));
+                     features::IsOobeDrivePinningEnabled());
 
   // Whether the timings in oobe_trace.js will be output to the console.
   source->AddBoolean(
@@ -338,12 +319,6 @@ void CreateAndAddOobeUIDataSource(Profile* profile,
 
   source->AddBoolean("isOobeSoftwareUpdateEnabled",
                      features::IsOobeSoftwareUpdateEnabled());
-
-  source->AddBoolean("isPasswordSelectionEnabledInOobe",
-                     features::IsPasswordSelectionEnabledInOobe());
-
-  source->AddBoolean("isOobeConsumersLocalPasswordsEnabled",
-                     features::AreLocalPasswordsEnabledForConsumers());
 
   // Configure shared resources
   AddProductLogoResources(source);
@@ -469,10 +444,6 @@ void OobeUI::ConfigureOobeDisplay() {
 
   AddScreenHandler(std::make_unique<FingerprintSetupScreenHandler>());
 
-  if (features::AreLocalPasswordsEnabledForConsumers()) {
-    AddScreenHandler(std::make_unique<LocalPasswordSetupHandler>());
-  }
-
   AddScreenHandler(std::make_unique<GestureNavigationScreenHandler>());
 
   AddScreenHandler(std::make_unique<MarketingOptInScreenHandler>());
@@ -535,16 +506,8 @@ void OobeUI::ConfigureOobeDisplay() {
 
   AddScreenHandler(std::make_unique<ThemeSelectionScreenHandler>());
 
-  if (features::IsPasswordSelectionEnabledInOobe()) {
-    AddScreenHandler(std::make_unique<PasswordSelectionScreenHandler>());
-  }
-
   if (features::IsOobeChoobeEnabled()) {
     AddScreenHandler(std::make_unique<ChoobeScreenHandler>());
-  }
-
-  if (features::IsOobeSoftwareUpdateEnabled()) {
-    AddScreenHandler(std::make_unique<ConsumerUpdateScreenHandler>());
   }
 
   if (features::IsOobeTouchpadScrollEnabled()) {
@@ -555,10 +518,7 @@ void OobeUI::ConfigureOobeDisplay() {
     AddScreenHandler(std::make_unique<DisplaySizeScreenHandler>());
   }
 
-  AddScreenHandler(std::make_unique<AddChildScreenHandler>());
-
-  Profile* const profile = Profile::FromWebUI(web_ui());
-  if (drive::util::IsOobeDrivePinningEnabled(profile)) {
+  if (features::IsOobeDrivePinningEnabled()) {
     AddScreenHandler(std::make_unique<DrivePinningScreenHandler>());
   }
 
@@ -566,6 +526,7 @@ void OobeUI::ConfigureOobeDisplay() {
 
   AddScreenHandler(std::make_unique<CryptohomeRecoveryScreenHandler>());
 
+  Profile* profile = Profile::FromWebUI(web_ui());
   // Set up the chrome://theme/ source, for Chrome logo.
   content::URLDataSource::Add(profile, std::make_unique<ThemeSource>(profile));
 
@@ -574,12 +535,9 @@ void OobeUI::ConfigureOobeDisplay() {
       profile,
       std::make_unique<AboutUIHTMLSource>(chrome::kChromeUITermsHost, profile));
 
-  content::WebContents* contents = web_ui()->GetWebContents();
-
   // TabHelper is required for OOBE webui to make webview working on it.
+  content::WebContents* contents = web_ui()->GetWebContents();
   extensions::TabHelper::CreateForWebContents(contents);
-
-  BootTimesRecorderTabHelper::MaybeCreateForWebContents(contents);
 
   if (ShouldUpScaleOobe())
     UpScaleOobe();
@@ -643,6 +601,11 @@ void OobeUI::BindInterface(
 
 void OobeUI::BindInterface(
     mojo::PendingReceiver<color_change_listener::mojom::PageHandler> receiver) {
+  if (!features::IsOobeJellyEnabled()) {
+    mojo::ReportBadMessage(
+        "Jelly not enabled: OOBE should not listen to color changes.");
+    return;
+  }
   color_provider_handler_ = std::make_unique<ui::ColorChangeHandler>(
       web_ui()->GetWebContents(), std::move(receiver));
 }
@@ -756,9 +719,6 @@ base::Value::Dict OobeUI::GetLocalizedStrings() {
   // TODO (b/268463435) Cleanup OobeJelly
   if (features::IsOobeJellyEnabled()) {
     oobeClasses += "jelly-enabled ";
-  }
-  if (features::IsOobeJellyModalEnabled()) {
-    oobeClasses += "jelly-modal-enabled ";
   }
   // TODO (b/269117729) Cleanup OobeSimon
   if (features::IsOobeSimonEnabled()) {

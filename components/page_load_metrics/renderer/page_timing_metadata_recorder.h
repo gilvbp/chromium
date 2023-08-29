@@ -5,7 +5,6 @@
 #ifndef COMPONENTS_PAGE_LOAD_METRICS_RENDERER_PAGE_TIMING_METADATA_RECORDER_H_
 #define COMPONENTS_PAGE_LOAD_METRICS_RENDERER_PAGE_TIMING_METADATA_RECORDER_H_
 
-#include <cstdint>
 #include "base/profiler/sample_metadata.h"
 #include "base/time/time.h"
 #include "third_party/abseil-cpp/absl/types/optional.h"
@@ -47,17 +46,6 @@ class PageTimingMetadataRecorder {
   // `PageTimingMetricsSender::Update` is called.
   void UpdateMetadata(const MonotonicTiming& timing);
 
-  // Adds interaction duration metadata to past samples for a user interaction
-  // with the given start and end time.
-  void AddInteractionDurationMetadata(const base::TimeTicks interaction_start,
-                                      const base::TimeTicks interaction_end);
-
-  // Packs the 32 bit instance_id and interaction_id into one 64 bit signed int
-  // to fit the int64 key field of the Metadata API. Public for testing.
-  static int64_t CreateInteractionDurationMetadataKey(
-      const uint32_t instance_id,
-      const uint32_t interaction_id);
-
  protected:
   // To be overridden by test class.
   virtual void ApplyMetadataToPastSamples(base::TimeTicks period_start,
@@ -78,12 +66,7 @@ class PageTimingMetadataRecorder {
   // Uniquely identifies an instance of the PageTimingMetadataRecorder. Used to
   // distinguish page loads for different documents when applying sample
   // metadata.
-  const uint32_t instance_id_;
-
-  // Uniquely identifies an interaction in the current instance of
-  // PageTimingMetadataRecorder. Intentionally 32-bit because it will be packed
-  // with another 32-bit integer into a 64-bit integer.
-  uint32_t interaction_count_ = 0;
+  const int instance_id_;
 
   MonotonicTiming timing_;
 };

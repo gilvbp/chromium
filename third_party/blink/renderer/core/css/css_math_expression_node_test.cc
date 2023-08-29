@@ -96,10 +96,11 @@ CSSLengthArray& SetLengthArray(String text, CSSLengthArray& length_array) {
 TEST(CSSCalculationValue, AccumulatePixelsAndPercent) {
   ComputedStyleBuilder builder(*ComputedStyle::CreateInitialStyleSingleton());
   builder.SetEffectiveZoom(5);
-  const ComputedStyle* style = builder.TakeStyle();
+  scoped_refptr<const ComputedStyle> style = builder.TakeStyle();
   CSSToLengthConversionData::Flags ignored_flags = 0;
   CSSToLengthConversionData conversion_data(
-      *style, style, style, CSSToLengthConversionData::ViewportSize(nullptr),
+      *style, style.get(), style.get(),
+      CSSToLengthConversionData::ViewportSize(nullptr),
       CSSToLengthConversionData::ContainerSizes(), style->EffectiveZoom(),
       ignored_flags);
 

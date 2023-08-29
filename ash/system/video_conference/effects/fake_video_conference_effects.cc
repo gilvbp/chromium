@@ -83,9 +83,9 @@ StylishKitchenEffect::StylishKitchenEffect()
     : SimpleToggleEffect(
           /*label_text=*/u"Stylish Kitchen") {}
 
-FakeLongTextLabelToggleEffect::FakeLongTextLabelToggleEffect()
+GreenhouseEffect::GreenhouseEffect()
     : SimpleToggleEffect(
-          /*label_text=*/u"Fake Long Text Label Toggle Effect") {}
+          /*label_text=*/u"Greenhouse") {}
 
 // Delegates that host a set-value effect.
 
@@ -227,8 +227,7 @@ EffectRepository::EffectRepository(
       office_bunny_(std::make_unique<OfficeBunnyEffect>()),
       calm_forest_(std::make_unique<CalmForestEffect>()),
       stylish_kitchen_(std::make_unique<StylishKitchenEffect>()),
-      long_text_label_effect_(
-          std::make_unique<FakeLongTextLabelToggleEffect>()),
+      greenhouse_(std::make_unique<GreenhouseEffect>()),
       shaggy_fur_(std::make_unique<ShaggyFurEffect>()),
       super_cuteness_(std::make_unique<SuperCutnessEffect>()) {
   DCHECK(controller_);
@@ -239,8 +238,7 @@ EffectRepository::EffectRepository(
     controller_->effects_manager().RegisterDelegate(office_bunny_.get());
     controller_->effects_manager().RegisterDelegate(calm_forest_.get());
     controller_->effects_manager().RegisterDelegate(stylish_kitchen_.get());
-    controller_->effects_manager().RegisterDelegate(
-        long_text_label_effect_.get());
+    controller_->effects_manager().RegisterDelegate(greenhouse_.get());
     controller_->effects_manager().RegisterDelegate(shaggy_fur_.get());
     controller_->effects_manager().RegisterDelegate(super_cuteness_.get());
   }
@@ -260,9 +258,8 @@ EffectRepository::~EffectRepository() {
     calm_forest_.reset();
     controller_->effects_manager().UnregisterDelegate(stylish_kitchen_.get());
     stylish_kitchen_.reset();
-    controller_->effects_manager().UnregisterDelegate(
-        long_text_label_effect_.get());
-    long_text_label_effect_.reset();
+    controller_->effects_manager().UnregisterDelegate(greenhouse_.get());
+    greenhouse_.reset();
     controller_->effects_manager().UnregisterDelegate(shaggy_fur_.get());
     shaggy_fur_.reset();
     controller_->effects_manager().UnregisterDelegate(super_cuteness_.get());

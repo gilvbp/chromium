@@ -10,25 +10,17 @@
 
 #include <memory>
 
-#include "base/apple/foundation_util.h"
-#include "base/apple/osstatus_logging.h"
-#include "base/apple/scoped_cftyperef.h"
 #include "base/base64.h"
 #include "base/logging.h"
+#include "base/mac/foundation_util.h"
+#include "base/mac/mac_logging.h"
+#include "base/mac/scoped_cftyperef.h"
 #include "base/strings/sys_string_conversions.h"
 #include "base/strings/utf_string_conversions.h"
-#include "components/os_crypt/sync/os_crypt.h"
 #include "components/password_manager/core/common/passwords_directory_util_ios.h"
 #include "sql/statement.h"
 
-using base::apple::ScopedCFTypeRef;
-
-namespace {
-// Retrieval from keychain may fail unexpectedly. e.g. if the keychain
-// identifier that Chrome has is incorrect. This constant is not among error
-// codes that can be returned by the keychain.
-constexpr int kUnknownRetrievalError = -1;
-}  // namespace
+using base::ScopedCFTypeRef;
 
 namespace password_manager {
 
@@ -37,27 +29,15 @@ namespace password_manager {
 // stored as an attribute along with the password in the keychain.
 // A side effect of this approach is that the same password saved multiple
 // times will have different "encrypted" values.
+
+// TODO(ios): Use |Encryptor| to encrypt the login database. b/6976257
+
 LoginDatabase::EncryptionResult LoginDatabase::EncryptedString(
     const std::u16string& plain_text,
     std::string* cipher_text) {
-  return OSCrypt::EncryptString16(plain_text, cipher_text)
-             ? ENCRYPTION_RESULT_SUCCESS
-             : ENCRYPTION_RESULT_SERVICE_FAILURE;
-}
-
-LoginDatabase::EncryptionResult LoginDatabase::DecryptedString(
-    const std::string& cipher_text,
-    std::u16string* plain_text) {
-  return OSCrypt::DecryptString16(cipher_text, plain_text)
-             ? ENCRYPTION_RESULT_SUCCESS
-             : ENCRYPTION_RESULT_SERVICE_FAILURE;
-}
-
-bool CreateKeychainIdentifier(const std::u16string& plain_text,
-                              std::string* keychain_identifier) {
   if (plain_text.size() == 0) {
-    *keychain_identifier = std::string();
-    return true;
+    *cipher_text = std::string();
+    return ENCRYPTION_RESULT_SUCCESS;
   }
 
   ScopedCFTypeRef<CFUUIDRef> uuid(CFUUIDCreate(NULL));
@@ -87,25 +67,26 @@ bool CreateKeychainIdentifier(const std::u16string& plain_text,
     // sync runs on a locked device. When the linked bug is resolved it may be
     // possible to turn the LOG(ERROR) back into a NOTREACHED().
     LOG(ERROR) << "Unable to save password in keychain: " << status;
-    return false;
+    if (status == errSecDuplicateItem || status == errSecDecode)
+      return ENCRYPTION_RESULT_ITEM_FAILURE;
+    else
+      return ENCRYPTION_RESULT_SERVICE_FAILURE;
   }
 
-  *keychain_identifier = base::SysCFStringRefToUTF8(item_ref);
-  return true;
+  *cipher_text = base::SysCFStringRefToUTF8(item_ref);
+  return ENCRYPTION_RESULT_SUCCESS;
 }
 
-OSStatus GetTextFromKeychainIdentifier(const std::string& keychain_identifier,
-                                       std::u16string* plain_text) {
-  if (keychain_identifier.size() == 0) {
+LoginDatabase::EncryptionResult LoginDatabase::DecryptedString(
+    const std::string& cipher_text,
+    std::u16string* plain_text) {
+  if (cipher_text.size() == 0) {
     *plain_text = std::u16string();
-    return errSecSuccess;
+    return ENCRYPTION_RESULT_SUCCESS;
   }
 
   ScopedCFTypeRef<CFStringRef> item_ref(
-      base::SysUTF8ToCFStringRef(keychain_identifier));
-  if (item_ref == nil) {
-    return kUnknownRetrievalError;
-  }
+      base::SysUTF8ToCFStringRef(cipher_text));
   ScopedCFTypeRef<CFMutableDictionaryRef> query(
       CFDictionaryCreateMutable(NULL, 0, &kCFTypeDictionaryKeyCallBacks,
                                 &kCFTypeDictionaryValueCallBacks));
@@ -119,10 +100,13 @@ OSStatus GetTextFromKeychainIdentifier(const std::string& keychain_identifier,
   OSStatus status = SecItemCopyMatching(query, data_cftype.InitializeInto());
   if (status != errSecSuccess) {
     OSSTATUS_LOG(INFO, status) << "Failed to retrieve password from keychain";
-    return status;
+    if (status == errSecItemNotFound || status == errSecDecode)
+      return ENCRYPTION_RESULT_ITEM_FAILURE;
+    else
+      return ENCRYPTION_RESULT_SERVICE_FAILURE;
   }
 
-  CFDataRef data = base::apple::CFCast<CFDataRef>(data_cftype);
+  CFDataRef data = base::mac::CFCast<CFDataRef>(data_cftype);
   const size_t size = CFDataGetLength(data);
   std::unique_ptr<UInt8[]> buffer(new UInt8[size]);
   CFDataGetBytes(data, CFRangeMake(0, size), buffer.get());
@@ -130,14 +114,14 @@ OSStatus GetTextFromKeychainIdentifier(const std::string& keychain_identifier,
   *plain_text = base::UTF8ToUTF16(
       std::string(static_cast<char*>(static_cast<void*>(buffer.get())),
                   static_cast<size_t>(size)));
-  return errSecSuccess;
+  return ENCRYPTION_RESULT_SUCCESS;
 }
 
-void DeleteEncryptedPasswordFromKeychain(
-    const std::string& keychain_identifier) {
-  if (keychain_identifier.empty()) {
+// static
+void LoginDatabase::DeleteEncryptedPasswordFromKeychain(
+    const std::string& cipher_text) {
+  if (cipher_text.empty())
     return;
-  }
 
   ScopedCFTypeRef<CFMutableDictionaryRef> query(
       CFDictionaryCreateMutable(nullptr, 0, &kCFTypeDictionaryKeyCallBacks,
@@ -145,7 +129,7 @@ void DeleteEncryptedPasswordFromKeychain(
   CFDictionarySetValue(query, kSecClass, kSecClassGenericPassword);
 
   ScopedCFTypeRef<CFStringRef> item_ref(
-      base::SysUTF8ToCFStringRef(keychain_identifier));
+      base::SysUTF8ToCFStringRef(cipher_text));
   // We are using the account attribute to store item references.
   CFDictionarySetValue(query, kSecAttrAccount, item_ref);
 
@@ -163,18 +147,23 @@ void DeleteEncryptedPasswordFromKeychain(
   password_manager::DeletePasswordsDirectory();
 }
 
-void LoginDatabase::DeleteKeychainItemByPrimaryId(int id) {
-  CHECK(!keychain_identifier_statement_by_id_.empty());
+void LoginDatabase::DeleteEncryptedPasswordById(int id) {
+  std::string cipher_text = GetEncryptedPasswordById(id);
+  DeleteEncryptedPasswordFromKeychain(cipher_text);
+}
+
+std::string LoginDatabase::GetEncryptedPasswordById(int id) const {
+  DCHECK(!encrypted_password_statement_by_id_.empty());
   sql::Statement s(db_.GetCachedStatement(
-      SQL_FROM_HERE, keychain_identifier_statement_by_id_.c_str()));
+      SQL_FROM_HERE, encrypted_password_statement_by_id_.c_str()));
 
   s.BindInt(0, id);
 
-  std::string keychain_identifier;
+  std::string encrypted_password;
   if (s.Step()) {
-    s.ColumnBlobAsString(0, &keychain_identifier);
+    s.ColumnBlobAsString(0, &encrypted_password);
   }
-  DeleteEncryptedPasswordFromKeychain(keychain_identifier);
+  return encrypted_password;
 }
 
 }  // namespace password_manager

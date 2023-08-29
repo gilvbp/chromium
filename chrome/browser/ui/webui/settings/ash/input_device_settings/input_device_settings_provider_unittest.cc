@@ -15,7 +15,6 @@
 #include "base/containers/cxx20_erase_vector.h"
 #include "base/functional/bind.h"
 #include "base/memory/raw_ptr.h"
-#include "base/notreached.h"
 #include "base/ranges/algorithm.h"
 #include "base/run_loop.h"
 #include "base/test/scoped_feature_list.h"
@@ -224,10 +223,6 @@ class FakeInputDeviceSettingsController : public InputDeviceSettingsController {
       override {
     return mojo::Clone(pointing_sticks_);
   }
-  std::vector<::ash::mojom::GraphicsTabletPtr> GetConnectedGraphicsTablets()
-      override {
-    return mojo::Clone(graphics_tablets_);
-  }
   const ::ash::mojom::KeyboardSettings* GetKeyboardSettings(
       DeviceId id) override {
     return nullptr;
@@ -272,12 +267,6 @@ class FakeInputDeviceSettingsController : public InputDeviceSettingsController {
       DeviceId id,
       ::ash::mojom::PointingStickSettingsPtr settings) override {
     ++num_times_set_pointing_stick_settings_called_;
-  }
-  // TODO(wangdanny): Implement SetGraphicsTabletSettings.
-  void SetGraphicsTabletSettings(
-      DeviceId id,
-      ::ash::mojom::GraphicsTabletSettingsPtr settings) override {
-    NOTIMPLEMENTED();
   }
 
   void OnLoginScreenFocusedPodChanged(const AccountId& account_id) override {}
@@ -374,7 +363,6 @@ class FakeInputDeviceSettingsController : public InputDeviceSettingsController {
   std::vector<::ash::mojom::TouchpadPtr> touchpads_;
   std::vector<::ash::mojom::MousePtr> mice_;
   std::vector<::ash::mojom::PointingStickPtr> pointing_sticks_;
-  std::vector<::ash::mojom::GraphicsTabletPtr> graphics_tablets_;
   ::ash::mojom::KeyboardPoliciesPtr keyboard_policies_ =
       ::ash::mojom::KeyboardPolicies::New();
   ::ash::mojom::MousePoliciesPtr mouse_policies_ =

@@ -28,7 +28,18 @@ import {TestLanguagesBrowserProxy} from './test_languages_browser_proxy.js';
 
 // clang-format on
 
-suite('SpellCheck', function() {
+const spell_check_page_tests = {
+  TestNames: {
+    Spellcheck: 'spellcheck_all',
+    // <if expr="_google_chrome">
+    SpellcheckOfficialBuild: 'spellcheck_official',
+    // </if>
+  },
+};
+
+Object.assign(window, {spell_check_page_tests});
+
+suite('spell check page', function() {
   let languageHelper: LanguageHelper;
   let spellcheckPage: SettingsSpellCheckPageElement;
   let browserProxy: TestLanguagesBrowserProxy;
@@ -83,7 +94,7 @@ suite('SpellCheck', function() {
     document.body.innerHTML = window.trustedTypes!.emptyHTML;
   });
 
-  suite('AllBuilds', function() {
+  suite(spell_check_page_tests.TestNames.Spellcheck, function() {
     // <if expr="is_macosx">
     test('structure', function() {
       const spellCheckCollapse =
@@ -308,7 +319,7 @@ suite('SpellCheck', function() {
   });
 
   // <if expr="_google_chrome">
-  suite('OfficialBuild', function() {
+  suite(spell_check_page_tests.TestNames.SpellcheckOfficialBuild, function() {
     test('enabling and disabling the spelling service', () => {
       const previousValue =
           spellcheckPage.prefs.spellcheck.use_spelling_service.value;

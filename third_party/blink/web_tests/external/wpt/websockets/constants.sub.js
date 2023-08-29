@@ -1,14 +1,14 @@
 const __SERVER__NAME = "{{host}}";
 const __PATH = "echo";
 
-let __SCHEME;
-let __PORT;
-if (url_has_flag('h2')) {
-  __SCHEME = 'wss';
-  __PORT = "{{ports[h2][0]}}";
-} else if (url_has_variant('wss') || location.protocol === 'https:') {
+var __SCHEME;
+var __PORT;
+if (url_has_variant('wss')) {
   __SCHEME = 'wss';
   __PORT = "{{ports[wss][0]}}";
+} else if (url_has_flag('h2')) {
+  __SCHEME = 'wss';
+  __PORT = "{{ports[h2][0]}}";
 } else {
   __SCHEME = 'ws';
   __PORT = "{{ports[ws][0]}}";
@@ -72,12 +72,6 @@ function CreateWebSocketWithRepeatedProtocolsCaseInsensitive() {
   IsWebSocket();
   const url = SCHEME_DOMAIN_PORT + "/" + __PATH;
   wsocket = new WebSocket(url, ["echo", "eCho"]);
-}
-
-function CreateInsecureWebSocket() {
-  IsWebSocket();
-  const url = `ws://${__SERVER__NAME}:{{ports[ws][0]}}/${__PATH}`;
-  return new WebSocket(url);
 }
 
 function CreateWebSocket(isProtocol, isProtocols) {

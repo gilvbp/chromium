@@ -30,6 +30,10 @@
 #include "ui/display/screen_base.h"
 #endif
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace ios_web_view {
 
 WebViewWebMainParts::WebViewWebMainParts() = default;
@@ -69,7 +73,7 @@ void WebViewWebMainParts::PreCreateThreads() {
   std::string enable_features = base::JoinString(
       {
           autofill::features::kAutofillUpstream.name,
-          syncer::kSyncPasswordCleanUpAccidentalBatchDeletions.name,
+          password_manager::features::kEnablePasswordsAccountStorage.name,
       },
       ",");
   std::string disabled_features = base::JoinString(

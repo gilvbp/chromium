@@ -13,7 +13,6 @@ import androidx.annotation.VisibleForTesting;
 import org.chromium.android_webview.common.VariationsFastFetchModeUtils;
 import org.chromium.android_webview.common.variations.VariationsUtils;
 import org.chromium.base.Log;
-import org.chromium.base.ResettersForTesting;
 import org.chromium.components.variations.firstrun.VariationsSeedFetcher.SeedInfo;
 
 import java.io.File;
@@ -219,10 +218,9 @@ public class VariationsSeedHolder {
                         < VariationsFastFetchModeUtils.MAX_ALLOWABLE_SEED_AGE_MS);
     }
 
+    @VisibleForTesting
     public void setDateForTesting(Date date) {
-        var oldValue = mDate;
         mDate = date;
-        ResettersForTesting.register(() -> mDate = oldValue);
     }
 
     private long getCurrentTimestamp() {

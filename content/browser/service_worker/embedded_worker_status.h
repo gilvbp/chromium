@@ -5,11 +5,17 @@
 #ifndef CONTENT_BROWSER_SERVICE_WORKER_EMBEDDED_WORKER_STATUS_H_
 #define CONTENT_BROWSER_SERVICE_WORKER_EMBEDDED_WORKER_STATUS_H_
 
-#include "third_party/blink/public/common/service_worker/embedded_worker_status.h"
-
 namespace content {
 
-using EmbeddedWorkerStatus = blink::EmbeddedWorkerStatus;
+// These values are persisted to logs. Entries should not be renumbered and
+// numeric values should never be reused.
+enum class EmbeddedWorkerStatus {
+  STOPPED = 0,
+  STARTING = 1,
+  RUNNING = 2,
+  STOPPING = 3,
+  kMaxValue = STOPPING,
+};
 
 }  // namespace content
 

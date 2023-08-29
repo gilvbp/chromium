@@ -38,11 +38,12 @@ OAuth2LoginManagerFactory* OAuth2LoginManagerFactory::GetInstance() {
   return instance.get();
 }
 
-std::unique_ptr<KeyedService>
-OAuth2LoginManagerFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* OAuth2LoginManagerFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   Profile* profile = static_cast<Profile*>(context);
-  return std::make_unique<OAuth2LoginManager>(profile);
+  OAuth2LoginManager* service;
+  service = new OAuth2LoginManager(profile);
+  return service;
 }
 
 }  // namespace ash

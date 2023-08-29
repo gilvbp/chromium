@@ -8,25 +8,6 @@
 let expandedDetails = false;
 let keyPressState = 0;
 
-// Only begin clickjacking delay tracking when the DOM contents have
-// fully loaded.
-let timePageLastFocused = null;
-
-// The amount of delay (in ms) before the proceed button accepts
-// a "click" event.
-const PROCEED_CLICKJACKING_DELAY = 500;
-
-/**
- * This checks whether the clickjacking delay has been passed
- * since page was first loaded or last focused.
- * @return {boolean} Whether the clickjacking delay has passed or not.
- */
-function clickjackingDelayHasPassed() {
-  return (timePageLastFocused != null &&
-      (window.performance.now() - timePageLastFocused >=
-      PROCEED_CLICKJACKING_DELAY));
-}
-
 /**
  * This allows errors to be skippped by typing a secret phrase into the page.
  * @param {string} e The key that was just pressed.
@@ -101,10 +82,6 @@ function setupEvents() {
   const hidePrimaryButton = loadTimeData.getBoolean('hide_primary_button');
   const showRecurrentErrorParagraph = loadTimeData.getBoolean(
     'show_recurrent_error_paragraph');
-  const shouldUseNewDangerIcon =
-      loadTimeData.valueExists('shouldUseNewDangerIcon') ?
-      loadTimeData.getBoolean('shouldUseNewDangerIcon') :
-      false;
 
   const body = document.querySelector('#body');
   if (ssl || blockedInterception) {
@@ -180,9 +157,7 @@ function setupEvents() {
     proceedButton.classList.remove(HIDDEN_CLASS);
     proceedButton.textContent = loadTimeData.getString('proceedButtonText');
     proceedButton.addEventListener('click', function(event) {
-      if (clickjackingDelayHasPassed()) {
-        sendCommand(SecurityInterstitialCommandId.CMD_PROCEED);
-      }
+      sendCommand(SecurityInterstitialCommandId.CMD_PROCEED);
     });
   }
   if (lookalike) {
@@ -202,9 +177,7 @@ function setupEvents() {
         document.querySelector(billing ? '#proceed-button' : '#proceed-link');
     // Captive portal page isn't overridable.
     overrideElement.addEventListener('click', function(event) {
-      if (!billing || clickjackingDelayHasPassed()) {
-        sendCommand(SecurityInterstitialCommandId.CMD_PROCEED);
-      }
+      sendCommand(SecurityInterstitialCommandId.CMD_PROCEED);
     });
 
     if (ssl) {
@@ -285,23 +258,11 @@ function setupEvents() {
     console.warn(loadTimeData.getString('lookalikeConsoleMessage'));
   }
 
-  if (shouldUseNewDangerIcon) {
-    // If red interstitial facelift is enabled, use new stop sign icons.
-    if (document.getElementById('icon')) {
-      document.getElementById('icon').classList.add('new-icon');
-    }
-  }
-
   preventDefaultOnPoundLinkClicks();
   setupExtendedReportingCheckbox();
   setupEnhancedProtectionMessage();
   setupSSLDebuggingInfo();
   document.addEventListener('keypress', handleKeypress);
-
-  // Begin tracking for the clickjacking delay.
-  timePageLastFocused = window.performance.now();
-  window.addEventListener('focus', () =>
-      timePageLastFocused = window.performance.now());
 }
 
 document.addEventListener('DOMContentLoaded', setupEvents);

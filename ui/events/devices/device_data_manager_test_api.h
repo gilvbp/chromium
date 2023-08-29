@@ -39,7 +39,6 @@ class DeviceDataManagerTestApi {
   void OnDeviceListsComplete();
 
   void SetKeyboardDevices(const std::vector<KeyboardDevice>& devices);
-  void SetGraphicsTabletDevices(const std::vector<InputDevice>& devices);
   void SetMouseDevices(const std::vector<InputDevice>& devices);
   void SetPointingStickDevices(const std::vector<InputDevice>& devices);
   void SetTouchpadDevices(const std::vector<TouchpadDevice>& devices);

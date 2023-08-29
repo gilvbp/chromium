@@ -442,9 +442,9 @@ void SiteInstanceImpl::ReuseExistingProcessIfPossible(
 
 void SiteInstanceImpl::SetProcessInternal(RenderProcessHost* process) {
   if (!site_instance_group_) {
-    site_instance_group_ = base::WrapRefCounted(
-        new SiteInstanceGroup(browsing_instance(), process));
-    site_instance_group_->AddSiteInstance(this);
+    site_instance_group_ =
+        browsing_instance_->site_instance_group_manager()
+            .GetOrCreateGroupForNewSiteInstance(this, process);
   }
 
   LockProcessIfNeeded();
@@ -514,7 +514,7 @@ void SiteInstanceImpl::SetSiteInfoToDefault(
   original_url_ = GetDefaultSiteURL();
   SetSiteInfoInternal(SiteInfo::CreateForDefaultSiteInstance(
       GetIsolationContext(), storage_partition_config,
-      GetWebExposedIsolationInfo()));
+      browsing_instance_->web_exposed_isolation_info()));
 }
 
 void SiteInstanceImpl::SetSiteInfoInternal(const SiteInfo& site_info) {

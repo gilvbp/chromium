@@ -119,7 +119,7 @@ void WebAppProviderBridgeLacros::WebAppInstalledInArcImpl(
     Profile* profile) {
   DCHECK(profile);
   auto* provider = web_app::WebAppProvider::GetForWebApps(profile);
-  auto install_info = std::make_unique<web_app::WebAppInstallInfo>();
+  auto install_info = std::make_unique<WebAppInstallInfo>();
   install_info->title = arc_install_info->title;
   install_info->start_url = arc_install_info->start_url;
   install_info->display_mode = blink::mojom::DisplayMode::kStandalone;
@@ -146,7 +146,7 @@ void WebAppProviderBridgeLacros::WebAppUninstalledInArcImpl(
     Profile* profile) {
   DCHECK(profile);
   auto* provider = web_app::WebAppProvider::GetForWebApps(profile);
-  provider->scheduler().RemoveInstallSource(
+  provider->install_finalizer().UninstallExternalWebApp(
       app_id, web_app::WebAppManagement::kWebAppStore,
       webapps::WebappUninstallSource::kArc, std::move(callback));
 }
@@ -220,12 +220,17 @@ void WebAppProviderBridgeLacros::InstallPreloadWebAppImpl(
   CHECK(profile);
   auto* provider = web_app::WebAppProvider::GetForWebApps(profile);
 
+  // TODO(b/284053861) Move allowlist into InstallPreloadedVerifiedAppCommand.
+  base::flat_set<std::string> host_allowlist = {
+      "meltingpot.googleusercontent.com", "127.0.0.1" /*FOR TESTING*/};
+
   provider->command_manager().ScheduleCommand(
       std::make_unique<web_app::InstallPreloadedVerifiedAppCommand>(
           webapps::WebappInstallSource::PRELOADED_OEM,
           preload_install_info->document_url,
           preload_install_info->manifest_url, preload_install_info->manifest,
-          preload_install_info->expected_app_id, std::move(callback)));
+          preload_install_info->expected_app_id, std::move(host_allowlist),
+          std::move(callback)));
 }
 
 }  // namespace crosapi

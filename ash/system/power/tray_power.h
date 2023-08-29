@@ -37,12 +37,11 @@ class PowerTrayView : public TrayItemView, public PowerStatus::Observer {
   void OnPowerStatusChanged() override;
 
  private:
-  void UpdateStatus(bool icon_color_changed);
+  void UpdateStatus();
   void UpdateImage(bool icon_color_changed);
 
   std::u16string tooltip_;
   absl::optional<PowerStatus::BatteryImageInfo> info_;
-  bool previous_battery_saver_state_ = false;
 };
 
 }  // namespace ash

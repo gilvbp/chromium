@@ -10,9 +10,12 @@
 #import "ios/chrome/browser/shared/public/commands/command_dispatcher.h"
 #import "ios/chrome/browser/shared/public/commands/snackbar_commands.h"
 #import "ios/chrome/browser/shared/ui/util/uikit_ui_util.h"
-#import "ios/public/provider/chrome/browser/material/material_branding_api.h"
 
-@interface SnackbarCoordinator () <MDCSnackbarManagerDelegate>
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
+@interface SnackbarCoordinator ()
 
 @property(nonatomic, weak) id<SnackbarCoordinatorDelegate> delegate;
 
@@ -36,10 +39,13 @@
 - (void)start {
   DCHECK(self.browser);
 
-  MDCSnackbarManager* manager = [MDCSnackbarManager defaultManager];
-  manager.delegate = self;
+  // Set the font which supports the Dynamic Type.
+  UIFont* defaultSnackbarFont =
+      [UIFont preferredFontForTextStyle:UIFontTextStyleFootnote];
+  [[MDCSnackbarManager defaultManager] setMessageFont:defaultSnackbarFont];
+  [[MDCSnackbarManager defaultManager] setButtonFont:defaultSnackbarFont];
 
-  ios::provider::ApplyBrandingToSnackbarManager(manager);
+  [MDCSnackbarManager defaultManager].usesGM3Shapes = YES;
 
   CommandDispatcher* dispatcher = self.browser->GetCommandDispatcher();
   [dispatcher startDispatchingToTarget:self
@@ -88,13 +94,6 @@
   message.completionHandler = completionAction;
 
   [self showSnackbarMessage:message];
-}
-
-#pragma mark - MDCSnackbarManagerDelegate
-
-- (void)snackbarManager:(MDCSnackbarManager*)snackbarManager
-    willPresentSnackbarWithMessageView:(MDCSnackbarMessageView*)messageView {
-  ios::provider::ApplyBrandingToSnackbarMessageView(messageView);
 }
 
 @end

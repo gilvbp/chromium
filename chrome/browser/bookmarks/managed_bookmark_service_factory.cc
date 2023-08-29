@@ -83,10 +83,9 @@ ManagedBookmarkServiceFactory::ManagedBookmarkServiceFactory()
 
 ManagedBookmarkServiceFactory::~ManagedBookmarkServiceFactory() = default;
 
-std::unique_ptr<KeyedService>
-ManagedBookmarkServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* ManagedBookmarkServiceFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
-  return BuildManagedBookmarkService(context);
+  return BuildManagedBookmarkService(context).release();
 }
 
 bool ManagedBookmarkServiceFactory::ServiceIsNULLWhileTesting() const {

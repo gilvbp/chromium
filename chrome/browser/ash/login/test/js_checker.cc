@@ -98,19 +98,21 @@ void JSChecker::ExecuteAsync(const std::string& expression) {
 }
 
 bool JSChecker::GetBool(const std::string& expression) {
-  CHECK(web_contents_);
-  return content::EvalJs(web_contents_.get(), "!!(" + expression + ")")
-      .ExtractBool();
+  bool result;
+  GetBoolImpl(expression, &result);
+  return result;
 }
 
 int JSChecker::GetInt(const std::string& expression) {
-  CHECK(web_contents_);
-  return content::EvalJs(web_contents_.get(), expression).ExtractInt();
+  int result;
+  GetIntImpl(expression, &result);
+  return result;
 }
 
 std::string JSChecker::GetString(const std::string& expression) {
-  CHECK(web_contents_);
-  return content::EvalJs(web_contents_.get(), expression).ExtractString();
+  std::string result;
+  GetStringImpl(expression, &result);
+  return result;
 }
 
 bool JSChecker::GetAttributeBool(
@@ -324,27 +326,21 @@ std::unique_ptr<TestConditionWaiter> JSChecker::CreateHasClassWaiter(
   return CreateWaiterWithDescription(js_condition, description);
 }
 
-std::unique_ptr<TestConditionWaiter> JSChecker::CreateElementTextContentWaiter(
-    const std::string& content,
-    std::initializer_list<base::StringPiece> element_ids) {
-  TestPredicateWaiter::PredicateCheck predicate = base::BindRepeating(
-      [](JSChecker* jsChecker, const std::string& content,
-         std::initializer_list<base::StringPiece> element_ids) {
-        const std::string element_text =
-            jsChecker->GetAttributeString("textContent.trim()", element_ids);
-        return std::string::npos != element_text.find(content);
-      },
-      this, content, element_ids);
+void JSChecker::GetBoolImpl(const std::string& expression, bool* result) {
+  CHECK(web_contents_);
+  *result = content::EvalJs(web_contents_.get(), "!!(" + expression + ")")
+                .ExtractBool();
+}
 
-  auto result = std::make_unique<TestPredicateWaiter>(predicate);
+void JSChecker::GetIntImpl(const std::string& expression, int* result) {
+  CHECK(web_contents_);
+  *result = content::EvalJs(web_contents_.get(), expression).ExtractInt();
+}
 
-  std::string description;
-  description.append(DescribePath(element_ids))
-      .append(" has text content: ")
-      .append(content);
-  result->set_description(description);
-
-  return result;
+void JSChecker::GetStringImpl(const std::string& expression,
+                              std::string* result) {
+  CHECK(web_contents_);
+  *result = content::EvalJs(web_contents_.get(), expression).ExtractString();
 }
 
 void JSChecker::ExpectVisiblePath(

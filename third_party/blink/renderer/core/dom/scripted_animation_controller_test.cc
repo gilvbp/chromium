@@ -146,9 +146,9 @@ TEST_F(ScriptedAnimationControllerTest, EnqueueTaskAndEvent) {
 
   Controller().EnqueueTask(observer.CreateTask(1));
   GetDocument().addEventListener(
-      AtomicString("test"),
+      "test",
       MakeGarbageCollected<RunTaskEventListener>(observer.CreateTask(2)));
-  Event* event = Event::Create(AtomicString("test"));
+  Event* event = Event::Create("test");
   event->SetTarget(&GetDocument());
   Controller().EnqueueEvent(event);
   EXPECT_EQ(0u, observer.Order().size());
@@ -178,7 +178,7 @@ class RunTaskCallback final : public FrameCallback {
 TEST_F(ScriptedAnimationControllerTest, RegisterCallbackAndEnqueueTask) {
   TaskOrderObserver observer;
 
-  Event* event = Event::Create(AtomicString("test"));
+  Event* event = Event::Create("test");
   event->SetTarget(&GetDocument());
 
   Controller().RegisterFrameCallback(

@@ -69,10 +69,12 @@ public class AdsBlockedDialog implements ModalDialogProperties.Controller {
         mDialogHandler = dialogHandler;
     }
 
+    @VisibleForTesting
     PropertyModel getDialogModelForTesting() {
         return mDialogModel;
     }
 
+    @VisibleForTesting
     ClickableSpan getMessageClickableSpanForTesting() {
         return mClickableSpan;
     }

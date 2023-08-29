@@ -15,18 +15,10 @@
 // chrome://test/ data source only exists in a testing context, so using this
 // script in production will result in a failed network request.
 
-import {loadMochaAdapter, loadTestModule} from './test_loader_util.js';
+import {loadTestModule} from './test_loader_util.js';
 
-async function main() {
-  const mochaAdapterLoaded = await loadMochaAdapter();
-  if (!mochaAdapterLoaded) {
-    throw new Error('Failed to load Mocha adapter file.');
-  }
-
-  const testModuleLoaded = await loadTestModule();
-
-  if (!testModuleLoaded) {
+loadTestModule().then(loaded => {
+  if (!loaded) {
     throw new Error('Failed to load test module');
   }
-}
-main();
+});

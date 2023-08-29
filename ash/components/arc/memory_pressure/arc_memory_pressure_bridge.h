@@ -45,7 +45,8 @@ class ArcMemoryPressureBridge
                         uint64_t reclaim_target_kb) override;
 
   // ConnectionObserver<mojom::ProcessInstance> overrides.
-  void OnConnectionReady() override;
+  // We use the OnConnectionClosed method to know when we should reset
+  // memory_pressure_in_flight_.
   void OnConnectionClosed() override;
 
   static void EnsureFactoryBuilt();

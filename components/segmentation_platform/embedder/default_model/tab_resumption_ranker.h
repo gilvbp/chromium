@@ -10,7 +10,7 @@
 namespace segmentation_platform {
 
 // Ranker that provides score for tab resupmtion.
-class TabResumptionRanker : public DefaultModelProvider {
+class TabResumptionRanker : public ModelProvider {
  public:
   TabResumptionRanker();
   ~TabResumptionRanker() override;
@@ -21,10 +21,11 @@ class TabResumptionRanker : public DefaultModelProvider {
   static std::unique_ptr<Config> GetConfig();
 
   // ModelProvider implementation.
-  std::unique_ptr<ModelConfig> GetModelConfig() override;
-
+  void InitAndFetchModel(
+      const ModelUpdatedCallback& model_updated_callback) override;
   void ExecuteModelWithInput(const ModelProvider::Request& inputs,
                              ExecutionCallback callback) override;
+  bool ModelAvailable() override;
 
  private:
 };

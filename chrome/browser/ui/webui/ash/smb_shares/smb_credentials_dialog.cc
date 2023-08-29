@@ -6,7 +6,6 @@
 
 #include <utility>
 
-#include "ash/webui/common/trusted_types_util.h"
 #include "base/functional/bind.h"
 #include "base/json/json_writer.h"
 #include "base/values.h"
@@ -117,7 +116,7 @@ SmbCredentialsDialogUI::SmbCredentialsDialogUI(content::WebUI* web_ui)
     : ui::WebDialogUI(web_ui) {
   content::WebUIDataSource* source = content::WebUIDataSource::CreateAndAdd(
       Profile::FromWebUI(web_ui), chrome::kChromeUISmbCredentialsHost);
-  ash::EnableTrustedTypesCSP(source);
+  webui::EnableTrustedTypesCSP(source);
 
   AddSmbCredentialsDialogStrings(source);
 

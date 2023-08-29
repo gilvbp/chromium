@@ -57,6 +57,7 @@ class PA_COMPONENT_EXPORT(PARTITION_ALLOC) MemoryReclaimer {
   ~MemoryReclaimer();
   // |flags| is an OR of base::PartitionPurgeFlags
   void Reclaim(int flags);
+  void ReclaimAndReschedule();
   void ResetForTesting();
 
   internal::Lock lock_;

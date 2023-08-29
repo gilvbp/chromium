@@ -38,8 +38,7 @@ history::WebHistoryService* WebHistoryServiceFactory::GetForProfile(
       GetInstance()->GetServiceForBrowserContext(profile, true));
 }
 
-std::unique_ptr<KeyedService>
-WebHistoryServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* WebHistoryServiceFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   Profile* profile = static_cast<Profile*>(context);
   // Ensure that the service is not instantiated or used if the user is not
@@ -47,7 +46,7 @@ WebHistoryServiceFactory::BuildServiceInstanceForBrowserContext(
   if (!IsHistorySyncEnabled(profile))
     return nullptr;
 
-  return std::make_unique<history::WebHistoryService>(
+  return new history::WebHistoryService(
       IdentityManagerFactory::GetForProfile(profile),
       profile->GetDefaultStoragePartition()
           ->GetURLLoaderFactoryForBrowserProcess());

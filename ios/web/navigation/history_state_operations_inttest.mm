@@ -20,6 +20,10 @@
 #import "testing/gtest_mac.h"
 #import "url/url_canon.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 using base::ASCIIToUTF16;
 
 namespace {

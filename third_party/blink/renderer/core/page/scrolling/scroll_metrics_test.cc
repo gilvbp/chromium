@@ -149,7 +149,7 @@ TEST_P(ScrollMetricsTest, TouchAndWheelGeneralTest) {
     </div>
   )HTML");
 
-  Element* box = GetDocument().getElementById(AtomicString("box"));
+  Element* box = GetDocument().getElementById("box");
   absl::optional<HistogramTester> histogram_tester;
   histogram_tester.emplace();
 
@@ -195,7 +195,7 @@ TEST_P(ScrollMetricsTest, CompositedScrollableAreaTest) {
     </div>
   )HTML");
 
-  Element* box = GetDocument().getElementById(AtomicString("box"));
+  Element* box = GetDocument().getElementById("box");
   absl::optional<HistogramTester> histogram_tester;
   histogram_tester.emplace();
 
@@ -214,8 +214,7 @@ TEST_P(ScrollMetricsTest, CompositedScrollableAreaTest) {
   // Reset histogram tester.
   histogram_tester.emplace();
 
-  box->setAttribute(html_names::kClassAttr,
-                    AtomicString("composited transform box"));
+  box->setAttribute("class", "composited transform box");
   Compositor().BeginFrame();
   Scroll(box, WebGestureDevice::kTouchpad);
   if (!RuntimeEnabledFeatures::CompositeScrollAfterPaintEnabled()) {
@@ -240,7 +239,7 @@ TEST_P(ScrollMetricsTest, NotScrollableAreaTest) {
     </div>
   )HTML");
 
-  Element* box = GetDocument().getElementById(AtomicString("box"));
+  Element* box = GetDocument().getElementById("box");
   absl::optional<HistogramTester> histogram_tester;
   histogram_tester.emplace();
 
@@ -259,8 +258,7 @@ TEST_P(ScrollMetricsTest, NotScrollableAreaTest) {
   // Reset histogram tester.
   histogram_tester.emplace();
 
-  box->setAttribute(html_names::kClassAttr,
-                    AtomicString("hidden transform box"));
+  box->setAttribute("class", "hidden transform box");
   UpdateAllLifecyclePhases();
   Scroll(box, WebGestureDevice::kTouchpad);
 
@@ -299,28 +297,50 @@ TEST_P(ScrollMetricsTest, NestedScrollersTest) {
     </div>
   )HTML");
 
-  Element* box = GetDocument().getElementById(AtomicString("inner"));
+  Element* box = GetDocument().getElementById("inner");
   absl::optional<HistogramTester> histogram_tester;
   histogram_tester.emplace();
 
   Scroll(box, WebGestureDevice::kTouchpad);
 
-  // The gesture latches to #inner, which is composited.
-  EXPECT_WHEEL_BUCKET(cc::MainThreadScrollingReason::kNotScrollingOnMain, 1);
-  EXPECT_WHEEL_TOTAL(1);
+  if (base::FeatureList::IsEnabled(::features::kScrollUnification)) {
+    // The gesture latches to #inner, which is composited.
+    EXPECT_WHEEL_BUCKET(cc::MainThreadScrollingReason::kNotScrollingOnMain, 1);
+    EXPECT_WHEEL_TOTAL(1);
 
-  histogram_tester.emplace();
-  box->scrollBy(0, 1000);
-  Compositor().BeginFrame();
-  Scroll(box, WebGestureDevice::kTouchpad);
+    histogram_tester.emplace();
+    box->scrollBy(0, 1000);
+    Compositor().BeginFrame();
+    Scroll(box, WebGestureDevice::kTouchpad);
 
-  // The second scroll latches to the non-composited parent.
-  EXPECT_WHEEL_BUCKET(
-      BucketIndex(cc::MainThreadScrollingReason::kNotOpaqueForTextAndLCDText),
-      1);
-  EXPECT_WHEEL_BUCKET(
-      cc::MainThreadScrollingReason::kScrollingOnMainForAnyReason, 1);
-  EXPECT_WHEEL_TOTAL(2);
+    // The second scroll latches to the non-composited parent.
+    EXPECT_WHEEL_BUCKET(
+        BucketIndex(cc::MainThreadScrollingReason::kNotOpaqueForTextAndLCDText),
+        1);
+    EXPECT_WHEEL_BUCKET(
+        cc::MainThreadScrollingReason::kScrollingOnMainForAnyReason, 1);
+    EXPECT_WHEEL_TOTAL(2);
+  } else {
+    // Scrolling the inner box will gather reasons from the scrolling chain. The
+    // inner box itself has no reason because it's composited. Other scrollable
+    // areas from the chain have corresponding reasons.
+    //
+    // cc reports the following reasons:
+    //   kNoScrollingLayer (because the parent is not composited)
+    //   kScrollingOnMainForAnyReason
+    //
+    // Then main reports these reasons when handling the forwarded event:
+    //   kNotOpaqueForTextAndLCDText (because ancestors are not composited)
+    //
+    EXPECT_WHEEL_BUCKET(
+        BucketIndex(cc::MainThreadScrollingReason::kNoScrollingLayer), 1);
+    EXPECT_WHEEL_BUCKET(
+        BucketIndex(cc::MainThreadScrollingReason::kNotOpaqueForTextAndLCDText),
+        1);
+    EXPECT_WHEEL_BUCKET(
+        cc::MainThreadScrollingReason::kScrollingOnMainForAnyReason, 1);
+    EXPECT_WHEEL_TOTAL(3);
+  }
 }
 
 }  // namespace

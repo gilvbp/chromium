@@ -26,6 +26,17 @@
 
 namespace printing {
 
+namespace {
+
+#if BUILDFLAG(IS_WIN)
+void CaptureResult(mojom::ResultCode& capture_result,
+                   mojom::ResultCode result) {
+  capture_result = result;
+}
+#endif
+
+}  // namespace
+
 TestPrintingContextDelegate::TestPrintingContextDelegate() = default;
 
 TestPrintingContextDelegate::~TestPrintingContextDelegate() = default;
@@ -63,19 +74,12 @@ void TestPrintingContext::AskUserForSettings(int max_pages,
                                              bool has_selection,
                                              bool is_scripted,
                                              PrintSettingsCallback callback) {
-  std::move(callback).Run(
-      AskUserForSettingsImpl(max_pages, has_selection, is_scripted));
-}
-
-mojom::ResultCode TestPrintingContext::AskUserForSettingsImpl(
-    int max_pages,
-    bool has_selection,
-    bool is_scripted) {
   // Do not actually ask the user with a dialog, just pretend like user
   // made some kind of interaction.
   if (ask_user_for_settings_cancel_) {
     // Pretend the user hit the Cancel button.
-    return mojom::ResultCode::kCanceled;
+    std::move(callback).Run(mojom::ResultCode::kCanceled);
+    return;
   }
 
   // Allow for test-specific user modifications.
@@ -89,11 +93,13 @@ mojom::ResultCode TestPrintingContext::AskUserForSettingsImpl(
     std::string printer_name;
     if (print_backend->GetDefaultPrinterName(printer_name) !=
         mojom::ResultCode::kSuccess) {
-      return mojom::ResultCode::kFailed;
+      std::move(callback).Run(mojom::ResultCode::kFailed);
+      return;
     }
     auto found = device_settings_.find(printer_name);
     if (found == device_settings_.end()) {
-      return mojom::ResultCode::kFailed;
+      std::move(callback).Run(mojom::ResultCode::kFailed);
+      return;
     }
     settings_ = std::make_unique<PrintSettings>(*found->second);
   }
@@ -101,7 +107,7 @@ mojom::ResultCode TestPrintingContext::AskUserForSettingsImpl(
   // Capture a snapshot, simluating changes made to platform device context.
   applied_settings_ = *settings_;
 
-  return mojom::ResultCode::kSuccess;
+  std::move(callback).Run(mojom::ResultCode::kSuccess);
 }
 
 mojom::ResultCode TestPrintingContext::UseDefaultSettings() {
@@ -136,6 +142,9 @@ gfx::Size TestPrintingContext::GetPdfPaperSizeDeviceUnits() {
 mojom::ResultCode TestPrintingContext::UpdatePrinterSettings(
     const PrinterSettings& printer_settings) {
   DCHECK(!in_print_job_);
+#if BUILDFLAG(IS_MAC)
+  DCHECK(!printer_settings.external_preview) << "Not implemented";
+#endif
 
   // The printer name is to be embedded in the printing context's existing
   // settings.
@@ -160,14 +169,12 @@ mojom::ResultCode TestPrintingContext::UpdatePrinterSettings(
 
 #if BUILDFLAG(IS_WIN)
   if (printer_settings.show_system_dialog) {
-    return AskUserForSettingsImpl(printer_settings.page_count,
-                                  /*has_selection=*/false,
-                                  /*is_scripted=*/false);
+    mojom::ResultCode result = mojom::ResultCode::kFailed;
+    AskUserForSettings(printer_settings.page_count, /*has_selection=*/false,
+                       /*is_scripted=*/false,
+                       base::BindOnce(&CaptureResult, std::ref(result)));
+    return result;
   }
-#endif
-
-#if BUILDFLAG(IS_MAC)
-  destination_is_preview_ = printer_settings.external_preview;
 #endif
 
   // Capture a snapshot, simluating changes made to platform device context.
@@ -181,11 +188,7 @@ mojom::ResultCode TestPrintingContext::NewDocument(
   DCHECK(!in_print_job_);
 
   if (on_new_document_callback_) {
-    on_new_document_callback_.Run(
-#if BUILDFLAG(IS_MAC)
-        destination_is_preview_,
-#endif
-        applied_settings_);
+    on_new_document_callback_.Run(applied_settings_);
   }
 
   abort_printing_ = false;

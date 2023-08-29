@@ -262,18 +262,14 @@ CSSSupportsParser::Result CSSSupportsParser::ConsumeSupportsDecl(
   return Result::kUnsupported;
 }
 
-// <general-enclosed> = [ <function-token> <any-value>? ) ]
-//                  | ( <any-value>? )
+// <general-enclosed> = [ <function-token> <any-value> ) ]
+//                  | ( <ident> <any-value> )
 CSSSupportsParser::Result CSSSupportsParser::ConsumeGeneralEnclosed(
     const CSSParserToken& first_token,
     CSSParserTokenStream& stream) {
   if (IsGeneralEnclosed(first_token)) {
     auto block = stream.ConsumeUntilPeekedTypeIs<kRightParenthesisToken>();
-    block.ConsumeWhitespace();
-    if (block.AtEnd()) {
-      return Result::kUnsupported;
-    }
-
+    // TODO(crbug.com/1269284): We should allow empty values here.
     if (!ConsumeAnyValue(block) || !block.AtEnd()) {
       return Result::kParseFailure;
     }

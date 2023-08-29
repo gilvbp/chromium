@@ -4,8 +4,8 @@
 
 #import "ios/chrome/browser/ui/fullscreen/fullscreen_web_view_resizer.h"
 
-#import "base/apple/foundation_util.h"
 #import "base/ios/ios_util.h"
+#import "base/mac/foundation_util.h"
 #import "ios/chrome/browser/shared/model/url/chrome_url_constants.h"
 #import "ios/chrome/browser/shared/ui/util/uikit_ui_util.h"
 #import "ios/chrome/browser/ui/fullscreen/fullscreen_model.h"
@@ -14,15 +14,17 @@
 #import "ios/web/public/ui/crw_web_view_scroll_view_proxy.h"
 #import "ios/web/public/web_state.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 @interface FullscreenWebViewResizer ()
 // The fullscreen model, used to get the information about the state of
 // fullscreen.
 @property(nonatomic, assign) FullscreenModel* model;
 @end
 
-@implementation FullscreenWebViewResizer {
-  BOOL _installedObserver;
-}
+@implementation FullscreenWebViewResizer
 
 @synthesize model = _model;
 @synthesize webState = _webState;
@@ -30,7 +32,6 @@
 - (instancetype)initWithModel:(FullscreenModel*)model {
   self = [super init];
   if (self) {
-    _installedObserver = NO;
     _model = model;
     _compensateFrameChangeByOffset = YES;
   }
@@ -38,7 +39,8 @@
 }
 
 - (void)dealloc {
-  [self stopObservingWebStateViewFrame];
+  if (_webState && _webState->GetView())
+    [_webState->GetView() removeObserver:self forKeyPath:@"frame"];
 }
 
 #pragma mark - Properties
@@ -47,7 +49,9 @@
   if (_webState == webState)
     return;
 
-  [self stopObservingWebStateViewFrame];
+  if (_webState && _webState->GetView())
+    [_webState->GetView() removeObserver:self forKeyPath:@"frame"];
+
   _webState = webState;
 
   if (webState) {
@@ -71,7 +75,7 @@
   if (!self.webState)
     return;
 
-  [self stopObservingWebStateViewFrame];
+  [self.webState->GetView() removeObserver:self forKeyPath:@"frame"];
   [self updateForFullscreenProgress:progress];
   [self observeWebStateViewFrame:self.webState];
 }
@@ -141,9 +145,8 @@
 
 // Observes the frame property of the view of the `webState` using KVO.
 - (void)observeWebStateViewFrame:(web::WebState*)webState {
-  if (_installedObserver || !webState->GetView()) {
+  if (!webState->GetView())
     return;
-  }
 
   NSKeyValueObservingOptions options = 0;
   if (!base::FeatureList::IsEnabled(web::features::kSmoothScrollingDefault)) {
@@ -153,7 +156,6 @@
                         forKeyPath:@"frame"
                            options:options
                            context:nil];
-  _installedObserver = YES;
 }
 
 // Callback for the KVO.
@@ -166,9 +168,9 @@
 
   if (!base::FeatureList::IsEnabled(web::features::kSmoothScrollingDefault)) {
     NSValue* oldValue =
-        base::apple::ObjCCast<NSValue>(change[NSKeyValueChangeOldKey]);
+        base::mac::ObjCCast<NSValue>(change[NSKeyValueChangeOldKey]);
     NSValue* newValue =
-        base::apple::ObjCCast<NSValue>(change[NSKeyValueChangeNewKey]);
+        base::mac::ObjCCast<NSValue>(change[NSKeyValueChangeNewKey]);
     // If the value is unchanged -- if the old and new values are equal --
     // then return without notifying observers.
     if (oldValue && newValue && [newValue isEqualToValue:oldValue]) {
@@ -177,17 +179,6 @@
   }
 
   [self updateForCurrentState];
-}
-
-- (void)stopObservingWebStateViewFrame {
-  if (!_installedObserver) {
-    return;
-  }
-
-  DCHECK(_webState);
-  DCHECK(_webState->GetView());
-  [_webState->GetView() removeObserver:self forKeyPath:@"frame"];
-  _installedObserver = NO;
 }
 
 @end

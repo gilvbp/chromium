@@ -316,7 +316,7 @@ TEST_F(PrivacySandboxTestUtilTest, OutputKey_IsTopicsAllowedForContext) {
   url::Origin kTopFrameOrigin =
       url::Origin::Create(GURL("https://top-frame.com"));
   EXPECT_CALL(*mock_privacy_sandbox_settings(),
-              IsTopicsAllowedForContext(kTopFrameOrigin, kTopicsURL, nullptr))
+              IsTopicsAllowedForContext(kTopFrameOrigin, kTopicsURL))
       .WillOnce(testing::Return(true));
 
   CheckOutput({{InputKey::kTopicsURL, kTopicsURL},
@@ -335,15 +335,13 @@ TEST_F(PrivacySandboxTestUtilTest, OutputKey_IsFledgeAllowed) {
       url::Origin::Create(GURL("https://fledge.com"));
   url::Origin kTopFrameOrigin =
       url::Origin::Create(GURL("https://top-frame.com"));
-  EXPECT_CALL(
-      *mock_privacy_sandbox_settings(),
-      IsFledgeAllowed(kTopFrameOrigin, kFledgeAuctionPartyOrigin,
-                      content::InterestGroupApiOperation::kJoin, nullptr))
+  EXPECT_CALL(*mock_privacy_sandbox_settings(),
+              IsFledgeAllowed(kTopFrameOrigin, kFledgeAuctionPartyOrigin))
       .WillOnce(testing::Return(true));
 
   CheckOutput({{InputKey::kFledgeAuctionPartyOrigin, kFledgeAuctionPartyOrigin},
                {InputKey::kTopFrameOrigin, kTopFrameOrigin}},
-              {OutputKey::kIsFledgeJoinAllowed, true});
+              {OutputKey::kIsFledgeAllowed, true});
 }
 
 TEST_F(PrivacySandboxTestUtilTest, OutputKey_IsAttributionReportingAllowed) {
@@ -352,8 +350,8 @@ TEST_F(PrivacySandboxTestUtilTest, OutputKey_IsAttributionReportingAllowed) {
   url::Origin kTopFrameOrigin =
       url::Origin::Create(GURL("https://top-frame.com"));
   EXPECT_CALL(*mock_privacy_sandbox_settings(),
-              IsAttributionReportingAllowed(
-                  kTopFrameOrigin, kAdMeasurementReportingOrigin, nullptr))
+              IsAttributionReportingAllowed(kTopFrameOrigin,
+                                            kAdMeasurementReportingOrigin))
       .WillOnce(testing::Return(true));
 
   CheckOutput(
@@ -372,7 +370,7 @@ TEST_F(PrivacySandboxTestUtilTest, OutputKey_MaySendAttributionReport) {
   EXPECT_CALL(*mock_privacy_sandbox_settings(),
               MaySendAttributionReport(kAdMeasurementSourceOrigin,
                                        kAdMeasurementDestinationOrigin,
-                                       kAdMeasurementReportingOrigin, nullptr))
+                                       kAdMeasurementReportingOrigin))
       .WillOnce(testing::Return(true));
 
   CheckOutput(
@@ -389,9 +387,8 @@ TEST_F(PrivacySandboxTestUtilTest, OutputKey_IsSharedStorageAllowed) {
       url::Origin::Create(GURL("https://storage.com"));
   url::Origin kTopFrameOrigin =
       url::Origin::Create(GURL("https://top-frame.com"));
-  EXPECT_CALL(
-      *mock_privacy_sandbox_settings(),
-      IsSharedStorageAllowed(kTopFrameOrigin, kAccessingOrigin, nullptr))
+  EXPECT_CALL(*mock_privacy_sandbox_settings(),
+              IsSharedStorageAllowed(kTopFrameOrigin, kAccessingOrigin))
       .WillOnce(testing::Return(true));
 
   CheckOutput({{InputKey::kAccessingOrigin, kAccessingOrigin},

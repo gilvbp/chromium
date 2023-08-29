@@ -72,9 +72,10 @@ class SequenceManagerThreadDelegate : public base::Thread::Delegate {
     return default_task_runner_;
   }
 
-  void BindToCurrentThread() override {
+  void BindToCurrentThread(base::TimerSlack timer_slack) override {
     ui_sequence_manager_->BindToMessagePump(
         base::MessagePump::Create(base::MessagePumpType::DEFAULT));
+    ui_sequence_manager_->SetTimerSlack(timer_slack);
   }
 
  private:

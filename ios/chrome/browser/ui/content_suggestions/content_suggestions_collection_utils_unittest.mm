@@ -12,6 +12,10 @@
 #import "testing/platform_test.h"
 #import "third_party/ocmock/OCMock/OCMock.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace content_suggestions {
 
 CGFloat kTopInset = 20;
@@ -133,13 +137,13 @@ TEST_F(ContentSuggestionsCollectionUtilsTest, searchFieldFrameIPhoneLandscape) {
 
 TEST_F(ContentSuggestionsCollectionUtilsTest, heightForLogoHeaderIPad) {
   // Action, tests.
-  EXPECT_EQ(331, HeightForLogoHeader(YES, YES, IPadTraitCollection()));
+  EXPECT_EQ(346, HeightForLogoHeader(YES, YES, 0, IPadTraitCollection()));
 }
 
 TEST_F(ContentSuggestionsCollectionUtilsTest, heightForLogoHeaderIPhone) {
   // Action, tests.
-  EXPECT_EQ(220,
-            HeightForLogoHeader(YES, YES, IPhonePortraitTraitCollection()));
+  EXPECT_EQ(235,
+            HeightForLogoHeader(YES, YES, 0, IPhonePortraitTraitCollection()));
 }
 
 TEST_F(ContentSuggestionsCollectionUtilsTest, NearestAncestor) {

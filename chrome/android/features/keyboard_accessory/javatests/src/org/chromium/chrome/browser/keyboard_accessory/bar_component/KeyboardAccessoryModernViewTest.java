@@ -32,6 +32,7 @@ import static org.chromium.chrome.browser.keyboard_accessory.bar_component.Keybo
 import static org.chromium.chrome.browser.keyboard_accessory.bar_component.KeyboardAccessoryProperties.SHOW_SWIPING_IPH;
 import static org.chromium.chrome.browser.keyboard_accessory.bar_component.KeyboardAccessoryProperties.VISIBLE;
 import static org.chromium.ui.test.util.ViewUtils.onViewWaiting;
+import static org.chromium.ui.test.util.ViewUtils.waitForView;
 
 import android.content.pm.ActivityInfo;
 import android.graphics.Bitmap;
@@ -91,7 +92,6 @@ import org.chromium.ui.DropdownItem;
 import org.chromium.ui.ViewProvider;
 import org.chromium.ui.modelutil.LazyConstructionPropertyMcp;
 import org.chromium.ui.modelutil.PropertyModel;
-import org.chromium.ui.test.util.ViewUtils;
 import org.chromium.ui.widget.ChromeImageView;
 import org.chromium.url.GURL;
 
@@ -107,6 +107,7 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 @RunWith(ChromeJUnit4ClassRunner.class)
 @CommandLineFlags.Add({ChromeSwitches.DISABLE_FIRST_RUN_EXPERIENCE})
+@EnableFeatures(ChromeFeatureList.AUTOFILL_KEYBOARD_ACCESSORY)
 @SuppressWarnings("DoNotMock") // Mocks GURL
 public class KeyboardAccessoryModernViewTest {
     private static final String CUSTOM_ICON_URL = "https://www.example.com/image.png";
@@ -483,7 +484,7 @@ public class KeyboardAccessoryModernViewTest {
 
     @Test
     @MediumTest
-    @EnableFeatures(ChromeFeatureList.AUTOFILL_ENABLE_NEW_CARD_ART_AND_NETWORK_IMAGES)
+    @EnableFeatures({ChromeFeatureList.AUTOFILL_ENABLE_NEW_CARD_ART_AND_NETWORK_IMAGES})
     public void testCustomIconUrlSet_imageReturnedByPersonalDataManager_customIconSetOnChipView()
             throws InterruptedException {
         GURL customIconUrl = mock(GURL.class);
@@ -593,7 +594,7 @@ public class KeyboardAccessoryModernViewTest {
         View mainDecorView = mActivityTestRule.getActivity().getWindow().getDecorView();
         return onView(isRoot())
                 .inRoot(RootMatchers.withDecorView(not(is(mainDecorView))))
-                .check(ViewUtils.isEventuallyVisible(matcher));
+                .check(waitForView(matcher));
     }
 
     private void rotateActivityToLandscape() {

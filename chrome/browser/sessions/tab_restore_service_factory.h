@@ -39,7 +39,7 @@ class TabRestoreServiceFactory : public ProfileKeyedServiceFactory {
   ~TabRestoreServiceFactory() override;
 
   // BrowserContextKeyedServiceFactory:
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* browser_context) const override;
   bool ServiceIsNULLWhileTesting() const override;
 };

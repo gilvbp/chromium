@@ -24,10 +24,8 @@
 #include "ash/system/holding_space/holding_space_progress_indicator_util.h"
 #include "ash/system/holding_space/holding_space_view_delegate.h"
 #include "ash/system/progress_indicator/progress_indicator.h"
-#include "ash/system/progress_indicator/progress_indicator_animation_registry.h"
 #include "ash/system/progress_indicator/progress_ring_animation.h"
 #include "base/functional/bind.h"
-#include "base/memory/raw_ptr.h"
 #include "ui/base/l10n/l10n_util.h"
 #include "ui/base/metadata/metadata_impl_macros.h"
 #include "ui/base/models/image_model.h"
@@ -160,8 +158,7 @@ class ProgressIndicatorView : public views::View {
 
   // Copies the address of `progress_indicator_` to the specified `ptr`.
   // NOTE: This method should only be invoked after `SetHoldingSpaceItem()`.
-  void CopyProgressIndicatorAddressTo(
-      raw_ptr<ProgressIndicator, ExperimentalAsh>* ptr) {
+  void CopyProgressIndicatorAddressTo(ProgressIndicator** ptr) {
     DCHECK(progress_indicator_);
     *ptr = progress_indicator_.get();
   }
@@ -203,8 +200,7 @@ class ProgressIndicatorView : public views::View {
 };
 
 BEGIN_VIEW_BUILDER(/*no export*/, ProgressIndicatorView, views::View)
-VIEW_BUILDER_METHOD(CopyProgressIndicatorAddressTo,
-                    raw_ptr<ProgressIndicator, ExperimentalAsh>*)
+VIEW_BUILDER_METHOD(CopyProgressIndicatorAddressTo, ProgressIndicator**)
 VIEW_BUILDER_PROPERTY(const HoldingSpaceItem*, HoldingSpaceItem)
 END_VIEW_BUILDER
 
@@ -354,7 +350,8 @@ HoldingSpaceItemChipView::HoldingSpaceItemChipView(
                             .SetOrientation(Orientation::kHorizontal)
                             .SetMainAxisAlignment(MainAxisAlignment::kEnd)
                             .SetCrossAxisAlignment(CrossAxisAlignment::kCenter)
-                            .AddChild(CreatePrimaryActionBuilder())))
+                            .AddChild(CreatePrimaryActionBuilder(
+                                /*min_size=*/gfx::Size()))))
       .BuildChildren();
 
   // Subscribe to be notified of changes to `item`'s image.
@@ -366,7 +363,7 @@ HoldingSpaceItemChipView::HoldingSpaceItemChipView(
   progress_ring_animation_changed_subscription_ =
       HoldingSpaceAnimationRegistry::GetInstance()
           ->AddProgressRingAnimationChangedCallbackForKey(
-              ProgressIndicatorAnimationRegistry::AsAnimationKey(item),
+              item,
               base::IgnoreArgs<ProgressRingAnimation*>(base::BindRepeating(
                   &HoldingSpaceItemChipView::UpdateImageTransform,
                   base::Unretained(this))));
@@ -565,8 +562,7 @@ void HoldingSpaceItemChipView::UpdateImageTransform() {
 
   const ProgressRingAnimation* progress_ring_animation =
       HoldingSpaceAnimationRegistry::GetInstance()
-          ->GetProgressRingAnimationForKey(
-              ProgressIndicatorAnimationRegistry::AsAnimationKey(item()));
+          ->GetProgressRingAnimationForKey(item());
 
   gfx::Transform transform;
   if (is_item_visibly_in_progress || progress_ring_animation) {

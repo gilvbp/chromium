@@ -8,10 +8,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Linux"
-          }
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Linux"
+            }
+          ]
         },
         "test": "foo_test",
         "test_id_prefix": "ninja://chrome/test:foo_test/"
@@ -25,10 +28,13 @@
         },
         "name": "variation_test",
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Linux"
-          }
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Linux"
+            }
+          ]
         },
         "test": "foo_test",
         "test_id_prefix": "ninja://chrome/test:foo_test/"

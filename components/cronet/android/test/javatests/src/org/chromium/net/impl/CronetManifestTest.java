@@ -4,7 +4,7 @@
 
 package org.chromium.net.impl;
 
-import static com.google.common.truth.Truth.assertWithMessage;
+import static com.google.common.truth.Truth.assertThat;
 
 import android.os.Bundle;
 
@@ -17,6 +17,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import org.chromium.base.test.util.Batch;
+import org.chromium.net.ApplicationMetaDataInterceptor;
 import org.chromium.net.CronetTestRule;
 import org.chromium.net.CronetTestRule.CronetTestFramework;
 import org.chromium.net.CronetTestRule.OnlyRunNativeCronet;
@@ -39,72 +40,58 @@ public class CronetManifestTest {
     }
 
     private void setTelemetryOptIn(boolean value) {
-        Bundle metaData = new Bundle();
-        metaData.putBoolean(CronetManifest.ENABLE_TELEMETRY_META_DATA_KEY, value);
-        mCronetTestFramework.interceptContext(new CronetManifestInterceptor(metaData));
+        mCronetTestFramework.interceptContext(
+                new ApplicationMetaDataInterceptor(applicationMetaData -> {
+                    applicationMetaData = applicationMetaData != null
+                            ? new Bundle(applicationMetaData)
+                            : new Bundle();
+                    applicationMetaData.putBoolean(
+                            CronetManifest.TELEMETRY_OPT_IN_META_DATA_STR, value);
+                    return applicationMetaData;
+                }));
     }
 
     @Test
     @SmallTest
     public void testTelemetryOptIn_whenNoMetadata() throws Exception {
-        for (CronetSource source : CronetSource.values()) {
-            switch (source) {
-                case CRONET_SOURCE_STATICALLY_LINKED:
-                    assertWithMessage("Check failed for " + source)
-                            .that(CronetManifest.isAppOptedInForTelemetry(
-                                    mCronetTestFramework.getContext(), source))
-                            .isFalse();
-                    break;
-                case CRONET_SOURCE_PLATFORM:
-                    assertWithMessage("Check failed for " + source)
-                            .that(CronetManifest.isAppOptedInForTelemetry(
-                                    mCronetTestFramework.getContext(), source))
-                            .isTrue();
-                    break;
-                case CRONET_SOURCE_PLAY_SERVICES:
-                    assertWithMessage("Check failed for " + source)
-                            .that(CronetManifest.isAppOptedInForTelemetry(
-                                    mCronetTestFramework.getContext(), source))
-                            .isTrue();
-                    break;
-                case CRONET_SOURCE_FALLBACK:
-                    assertWithMessage("Check failed for " + source)
-                            .that(CronetManifest.isAppOptedInForTelemetry(
-                                    mCronetTestFramework.getContext(), source))
-                            .isFalse();
-                    break;
-                case CRONET_SOURCE_UNSPECIFIED:
-                    // This shouldn't happen, but for safety check that it will be disabled.
-                    assertWithMessage("Check failed for " + source)
-                            .that(CronetManifest.isAppOptedInForTelemetry(
-                                    mCronetTestFramework.getContext(), source))
-                            .isFalse();
-                    break;
-            }
-        }
+        assertThat(CronetManifest.isAppOptedInForTelemetry(mCronetTestFramework.getContext(),
+                           CronetSource.CRONET_SOURCE_STATICALLY_LINKED))
+                .isFalse();
+        assertThat(CronetManifest.isAppOptedInForTelemetry(mCronetTestFramework.getContext(),
+                           CronetSource.CRONET_SOURCE_PLAY_SERVICES))
+                .isFalse();
+        assertThat(CronetManifest.isAppOptedInForTelemetry(
+                           mCronetTestFramework.getContext(), CronetSource.CRONET_SOURCE_FALLBACK))
+                .isFalse();
     }
 
     @Test
     @SmallTest
     public void testTelemetryOptIn_whenMetadataIsTrue() throws Exception {
         setTelemetryOptIn(true);
-        for (CronetSource source : CronetSource.values()) {
-            assertWithMessage("Check failed for " + source)
-                    .that(CronetManifest.isAppOptedInForTelemetry(
-                            mCronetTestFramework.getContext(), source))
-                    .isTrue();
-        }
+        assertThat(CronetManifest.isAppOptedInForTelemetry(mCronetTestFramework.getContext(),
+                           CronetSource.CRONET_SOURCE_STATICALLY_LINKED))
+                .isTrue();
+        assertThat(CronetManifest.isAppOptedInForTelemetry(mCronetTestFramework.getContext(),
+                           CronetSource.CRONET_SOURCE_PLAY_SERVICES))
+                .isTrue();
+        assertThat(CronetManifest.isAppOptedInForTelemetry(
+                           mCronetTestFramework.getContext(), CronetSource.CRONET_SOURCE_FALLBACK))
+                .isTrue();
     }
 
     @Test
     @SmallTest
     public void testTelemetryOptIn_whenMetadataIsFalse() throws Exception {
         setTelemetryOptIn(false);
-        for (CronetSource source : CronetSource.values()) {
-            assertWithMessage("Check failed for " + source)
-                    .that(CronetManifest.isAppOptedInForTelemetry(
-                            mCronetTestFramework.getContext(), source))
-                    .isFalse();
-        }
+        assertThat(CronetManifest.isAppOptedInForTelemetry(mCronetTestFramework.getContext(),
+                           CronetSource.CRONET_SOURCE_STATICALLY_LINKED))
+                .isFalse();
+        assertThat(CronetManifest.isAppOptedInForTelemetry(mCronetTestFramework.getContext(),
+                           CronetSource.CRONET_SOURCE_PLAY_SERVICES))
+                .isFalse();
+        assertThat(CronetManifest.isAppOptedInForTelemetry(
+                           mCronetTestFramework.getContext(), CronetSource.CRONET_SOURCE_FALLBACK))
+                .isFalse();
     }
 }

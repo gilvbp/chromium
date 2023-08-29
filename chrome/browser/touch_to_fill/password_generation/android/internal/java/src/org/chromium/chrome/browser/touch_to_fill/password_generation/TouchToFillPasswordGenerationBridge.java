@@ -27,14 +27,14 @@ class TouchToFillPasswordGenerationBridge
                 BottomSheetControllerProvider.from(windowAndroid);
         Context context = windowAndroid.getContext().get();
         return new TouchToFillPasswordGenerationBridge(
-                nativeTouchToFillPasswordGenerationBridge, bottomSheetController, context);
+                nativeTouchToFillPasswordGenerationBridge, context, bottomSheetController);
     }
 
     public TouchToFillPasswordGenerationBridge(long nativeTouchToFillPasswordGenerationBridge,
-            BottomSheetController bottomSheetController, Context context) {
+            Context context, BottomSheetController bottomSheetController) {
         mNativeTouchToFillPasswordGenerationBridge = nativeTouchToFillPasswordGenerationBridge;
         mCoordinator =
-                new TouchToFillPasswordGenerationCoordinator(bottomSheetController, context, this);
+                new TouchToFillPasswordGenerationCoordinator(context, bottomSheetController, this);
     }
 
     @CalledByNative
@@ -55,27 +55,8 @@ class TouchToFillPasswordGenerationBridge
                 mNativeTouchToFillPasswordGenerationBridge);
     }
 
-    @Override
-    public void onGeneratedPasswordAccepted(String password) {
-        if (mNativeTouchToFillPasswordGenerationBridge == 0) return;
-
-        TouchToFillPasswordGenerationBridgeJni.get().onGeneratedPasswordAccepted(
-                mNativeTouchToFillPasswordGenerationBridge, password);
-    }
-
-    @Override
-    public void onGeneratedPasswordRejected() {
-        if (mNativeTouchToFillPasswordGenerationBridge == 0) return;
-
-        TouchToFillPasswordGenerationBridgeJni.get().onGeneratedPasswordRejected(
-                mNativeTouchToFillPasswordGenerationBridge);
-    }
-
     @NativeMethods
     interface Natives {
         void onDismissed(long nativeTouchToFillPasswordGenerationBridge);
-        void onGeneratedPasswordAccepted(
-                long nativeTouchToFillPasswordGenerationBridge, String password);
-        void onGeneratedPasswordRejected(long nativeTouchToFillPasswordGenerationBridge);
     }
 }

@@ -75,7 +75,6 @@
 #include "chrome/common/pref_names.h"
 #include "chrome/common/url_constants.h"
 #include "chrome/common/webui_url_constants.h"
-#include "chromeos/ash/components/scalable_iph/scalable_iph_constants.h"
 #include "components/commerce/content/browser/commerce_internals_ui.h"
 #include "components/commerce/core/commerce_constants.h"
 #include "components/favicon/core/favicon_service.h"
@@ -99,7 +98,6 @@
 #include "components/security_interstitials/content/known_interception_disclosure_ui.h"
 #include "components/security_interstitials/content/urls.h"
 #include "components/signin/public/base/signin_buildflags.h"
-#include "components/signin/public/base/signin_switches.h"
 #include "components/site_engagement/content/site_engagement_service.h"
 #include "components/supervised_user/core/common/buildflags.h"
 #include "content/public/browser/web_contents.h"
@@ -169,7 +167,7 @@
 #include "chrome/browser/ui/webui/side_panel/bookmarks/bookmarks_side_panel_ui.h"
 #include "chrome/browser/ui/webui/side_panel/customize_chrome/customize_chrome_ui.h"
 #include "chrome/browser/ui/webui/side_panel/history_clusters/history_clusters_side_panel_ui.h"
-#include "chrome/browser/ui/webui/side_panel/read_anything/read_anything_untrusted_ui.h"
+#include "chrome/browser/ui/webui/side_panel/read_anything/read_anything_ui.h"
 #include "chrome/browser/ui/webui/side_panel/reading_list/reading_list_ui.h"
 #include "chrome/browser/ui/webui/side_panel/user_notes/user_notes_side_panel_ui.h"
 #include "chrome/browser/ui/webui/signin/sync_confirmation_ui.h"
@@ -208,6 +206,10 @@
 
 #if BUILDFLAG(IS_CHROMEOS)
 #include "chrome/browser/ui/webui/chromeos/chrome_url_disabled/chrome_url_disabled_ui.h"
+#endif
+
+#if !BUILDFLAG(IS_CHROMEOS)
+#include "chrome/browser/ui/webui/app_launcher_page_ui.h"
 #endif
 
 #if BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS)
@@ -276,16 +278,13 @@
 
 #if BUILDFLAG(ENABLE_DICE_SUPPORT)
 #include "chrome/browser/ui/webui/signin/dice_web_signin_intercept_ui.h"
+#include "chrome/browser/ui/webui/signin/signin_reauth_ui.h"
 #include "chrome/browser/ui/webui/welcome/helpers.h"
 #include "chrome/browser/ui/webui/welcome/welcome_ui.h"
 #endif
 
 #if BUILDFLAG(ENABLE_DICE_SUPPORT) || BUILDFLAG(IS_CHROMEOS_ASH)
 #include "chrome/browser/ui/webui/signin/inline_login_ui.h"
-#endif
-
-#if BUILDFLAG(ENABLE_DICE_SUPPORT) || BUILDFLAG(IS_CHROMEOS_LACROS)
-#include "chrome/browser/ui/webui/signin/signin_reauth_ui.h"
 #endif
 
 #if BUILDFLAG(GOOGLE_CHROME_BRANDING)
@@ -300,8 +299,8 @@
 #include "chrome/browser/ui/webui/ash/chromebox_for_meetings/network_settings_dialog.h"
 #endif  // BUILDFLAG(PLATFORM_CFM)
 
-#if BUILDFLAG(ENABLE_SEARCH_ENGINE_CHOICE)
-#include "chrome/browser/ui/webui/search_engine_choice/search_engine_choice_ui.h"
+#if BUILDFLAG(ENABLE_WAFFLE_DESKTOP)
+#include "chrome/browser/ui/webui/waffle/waffle_ui.h"
 #endif
 
 using content::WebUI;
@@ -532,11 +531,15 @@ WebUIFactoryFunction GetWebUIFactoryFunction(WebUI* web_ui,
 
 #if !BUILDFLAG(IS_ANDROID)
 #if !BUILDFLAG(IS_CHROMEOS)
-  // AppHome is not needed on Android or ChromeOS.
+  // AppLauncherPage is not needed on Android or ChromeOS.
   if (url.host_piece() == chrome::kChromeUIAppLauncherPageHost && profile &&
       extensions::ExtensionSystem::Get(profile)->extension_service() &&
       !profile->IsGuestSession()) {
-    return &NewWebUI<webapps::AppHomeUI>;
+    if (base::FeatureList::IsEnabled(features::kDesktopPWAsAppHomePage)) {
+      return &NewWebUI<webapps::AppHomeUI>;
+    } else {
+      return &NewWebUI<AppLauncherPageUI>;
+    }
   }
 #endif  // !BUILDFLAG(IS_CHROMEOS)
   if (profile->IsGuestSession() &&
@@ -554,9 +557,10 @@ WebUIFactoryFunction GetWebUIFactoryFunction(WebUI* web_ui,
   // Bookmarks are part of NTP on Android.
   if (url.host_piece() == chrome::kChromeUIBookmarksHost)
     return &NewWebUI<BookmarksUI>;
-  if (url.host_piece() == password_manager::kChromeUIPasswordManagerHost) {
+  if (url.host_piece() == password_manager::kChromeUIPasswordManagerHost &&
+      base::FeatureList::IsEnabled(
+          password_manager::features::kPasswordManagerRedesign))
     return &NewWebUI<PasswordManagerUI>;
-  }
   if (url.host_piece() == chrome::kChromeUICommanderHost)
     return &NewWebUI<CommanderUI>;
   // Downloads list on Android uses the built-in download manager.
@@ -711,10 +715,10 @@ WebUIFactoryFunction GetWebUIFactoryFunction(WebUI* web_ui,
     return &NewWebUI<SigninEmailConfirmationUI>;
 #endif
 
-#if BUILDFLAG(ENABLE_SEARCH_ENGINE_CHOICE)
-  if (url.host_piece() == chrome::kChromeUISearchEngineChoiceHost &&
-      base::FeatureList::IsEnabled(switches::kSearchEngineChoice)) {
-    return &NewWebUI<SearchEngineChoiceUI>;
+#if BUILDFLAG(ENABLE_WAFFLE_DESKTOP)
+  if (url.host_piece() == chrome::kChromeUIWaffleHost &&
+      base::FeatureList::IsEnabled(kWaffle)) {
+    return &NewWebUI<WaffleUI>;
   }
 #endif
 
@@ -853,19 +857,16 @@ WebUIFactoryFunction GetWebUIFactoryFunction(WebUI* web_ui,
   }
   if (url.host_piece() == chrome::kChromeUIDiceWebSigninInterceptHost)
     return &NewWebUI<DiceWebSigninInterceptUI>;
+  if (url.host_piece() == chrome::kChromeUISigninReauthHost &&
+      !profile->IsOffTheRecord()) {
+    return &NewWebUI<SigninReauthUI>;
+  }
 #endif
 
 #if BUILDFLAG(ENABLE_DICE_SUPPORT) || BUILDFLAG(IS_CHROMEOS_ASH)
   // Inline login UI is available on all platforms except Android and Lacros.
   if (url.host_piece() == chrome::kChromeUIChromeSigninHost)
     return &NewWebUI<InlineLoginUI>;
-#endif
-
-#if BUILDFLAG(ENABLE_DICE_SUPPORT) || BUILDFLAG(IS_CHROMEOS_LACROS)
-  if (url.host_piece() == chrome::kChromeUISigninReauthHost &&
-      !profile->IsOffTheRecord()) {
-    return &NewWebUI<SigninReauthUI>;
-  }
 #endif
 
 #if BUILDFLAG(PLATFORM_CFM)
@@ -1040,6 +1041,12 @@ base::RefCountedMemory* ChromeWebUIControllerFactory::GetFaviconResourceBytes(
     return FlagsUI::GetFaviconResourceBytes(scale_factor);
 
 #if !BUILDFLAG(IS_ANDROID)
+#if !BUILDFLAG(IS_CHROMEOS)
+  // The Apps launcher page is not available on android or ChromeOS.
+  if (page_url.host_piece() == chrome::kChromeUIAppLauncherPageHost)
+    return AppLauncherPageUI::GetFaviconResourceBytes(scale_factor);
+#endif  // !BUILDFLAG(IS_CHROMEOS)
+
   if (page_url.host_piece() == chrome::kChromeUINewTabPageHost)
     return NewTabPageUI::GetFaviconResourceBytes(scale_factor);
 
@@ -1098,15 +1105,12 @@ ChromeWebUIControllerFactory::GetListOfAcceptableURLs() {
     // avoid confusion, the two instances should provide a link to each other.
     GURL(chrome::kChromeUIAboutURL),
     GURL(chrome::kChromeUIAppServiceInternalsURL),
-    GURL(chrome::kChromeUIChromeURLsURL),
     GURL(chrome::kChromeUIComponentsUrl),
     GURL(chrome::kChromeUICreditsURL),
     GURL(chrome::kChromeUIDeviceLogUrl),
-    GURL(chrome::kChromeUIExtensionsURL),
     GURL(chrome::kChromeUIFlagsURL),
     GURL(chrome::kChromeUIGpuURL),
     GURL(chrome::kChromeUIHistogramsURL),
-    GURL(chrome::kChromeUIInspectURL),
     GURL(chrome::kChromeUIInvalidationsUrl),
     GURL(chrome::kChromeUIManagementURL),
     GURL(chrome::kChromeUIPrefsInternalsURL),
@@ -1116,7 +1120,6 @@ ChromeWebUIControllerFactory::GetListOfAcceptableURLs() {
     GURL(chrome::kChromeUISystemURL),
     GURL(chrome::kChromeUITermsURL),
     GURL(chrome::kChromeUIVersionURL),
-    GURL(chrome::kChromeUIWebAppInternalsURL),
 
 #if BUILDFLAG(IS_CHROMEOS_ASH)
     // Pages that exist only in Ash, i.e. have no immediate counterpart in
@@ -1171,7 +1174,6 @@ ChromeWebUIControllerFactory::GetListOfAcceptableURLs() {
     GURL(chrome::kChromeUIPowerUrl),
     GURL(chrome::kChromeUIPrintManagementUrl),
     GURL(chrome::kChromeUIScanningAppURL),
-    GURL(chrome::kChromeUISensorInfoURL),
     GURL(chrome::kChromeUISetTimeURL),
     GURL(chrome::kChromeUISlowURL),
     GURL(chrome::kChromeUISmbShareURL),
@@ -1180,7 +1182,6 @@ ChromeWebUIControllerFactory::GetListOfAcceptableURLs() {
     GURL(chrome::kChromeUIUntrustedTerminalURL),
     GURL(chrome::kChromeUIUserImageURL),
     GURL(chrome::kChromeUIVmUrl),
-    GURL(scalable_iph::kScalableIphDebugURL),
 
 #if BUILDFLAG(ENABLE_EXTENSIONS)
     // IME extension's Japanese options page. Opened via OS_URL_HANDLER SWA
@@ -1201,14 +1202,6 @@ ChromeWebUIControllerFactory::GetListOfAcceptableURLs() {
                        url::kStandardSchemeSeparator,
                        extension_misc::kEspeakSpeechSynthesisExtensionId,
                        extension_misc::kEspeakSpeechSynthesisOptionsPath})),
-    // This file doesn't exist but the options page links to it (b/269703827),
-    // so we have to list it here anyways to prevent opening an Ash window on
-    // e.g. shift-click.
-    // TODO(b/269703827): Revisit when Espeak is fixed.
-    GURL(base::StrCat({extensions::kExtensionScheme,
-                       url::kStandardSchemeSeparator,
-                       extension_misc::kEspeakSpeechSynthesisExtensionId,
-                       "/COPYING"})),
     GURL(base::StrCat({extensions::kExtensionScheme,
                        url::kStandardSchemeSeparator,
                        extension_misc::kGoogleSpeechSynthesisExtensionId,

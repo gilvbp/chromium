@@ -31,47 +31,46 @@ class QuickStartDecoder : public mojom::QuickStartDecoder {
 
   // mojom::QuickStartDecoder;
   void DecodeBootstrapConfigurations(
-      const absl::optional<std::vector<uint8_t>>& data,
+      const std::vector<uint8_t>& data,
       DecodeBootstrapConfigurationsCallback callback) override;
 
   void DecodeGetAssertionResponse(
-      const absl::optional<std::vector<uint8_t>>& data,
+      const std::vector<uint8_t>& data,
       DecodeGetAssertionResponseCallback callback) override;
 
   void DecodeWifiCredentialsResponse(
-      const absl::optional<std::vector<uint8_t>>& data,
+      const std::vector<uint8_t>& data,
       DecodeWifiCredentialsResponseCallback callback) override;
 
   void DecodeNotifySourceOfUpdateResponse(
-      const absl::optional<std::vector<uint8_t>>& data,
+      const std::vector<uint8_t>& data,
       DecodeNotifySourceOfUpdateResponseCallback callback) override;
 
   void DecodeUserVerificationResult(
-      const absl::optional<std::vector<uint8_t>>& data,
+      const std::vector<uint8_t>& data,
       DecodeUserVerificationResultCallback callback) override;
 
   void DecodeUserVerificationRequested(
-      const absl::optional<std::vector<uint8_t>>& data,
+      const std::vector<uint8_t>& data,
       DecodeUserVerificationRequestedCallback callback) override;
   // mojom::QuickStartDecoder:
 
  private:
   friend class QuickStartDecoderTest;
   void DoDecodeBootstrapConfigurations(
-      const absl::optional<std::vector<uint8_t>>& data,
+      const std::vector<uint8_t>& data,
       DecodeBootstrapConfigurationsCallback callback);
-  void DoDecodeGetAssertionResponse(
-      const absl::optional<std::vector<uint8_t>>& data,
-      DecodeGetAssertionResponseCallback callback);
+  mojom::GetAssertionResponsePtr DoDecodeGetAssertionResponse(
+      const std::vector<uint8_t>& data);
   void DoDecodeWifiCredentialsResponse(
-      const absl::optional<std::vector<uint8_t>>& data,
+      const std::vector<uint8_t>& data,
       DecodeWifiCredentialsResponseCallback callback);
   absl::optional<std::vector<uint8_t>> ExtractFidoDataFromJsonResponse(
       const std::vector<uint8_t>& data);
   // If the kNotifySourceOfUpdateAckKey boolean is present in the response, this
   // method returns its value.
   absl::optional<bool> DoDecodeNotifySourceOfUpdateResponse(
-      const absl::optional<std::vector<uint8_t>>& data);
+      const std::vector<uint8_t>& data);
   mojo::Receiver<mojom::QuickStartDecoder> receiver_;
 };
 

@@ -136,7 +136,6 @@ class ContentBrowserClientImpl : public content::ContentBrowserClient {
       content::ChildProcessSecurityPolicy::IsolatedOriginSource source)
       override;
   base::OnceClosure SelectClientCertificate(
-      content::BrowserContext* browser_context,
       content::WebContents* web_contents,
       net::SSLCertRequestInfo* cert_request_info,
       net::ClientCertIdentityList client_certs,

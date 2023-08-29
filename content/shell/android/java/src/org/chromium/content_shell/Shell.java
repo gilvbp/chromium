@@ -5,7 +5,6 @@
 package org.chromium.content_shell;
 
 import android.content.Context;
-import android.content.Intent;
 import android.graphics.Rect;
 import android.graphics.drawable.ClipDrawable;
 import android.text.TextUtils;
@@ -24,16 +23,12 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.TextView.OnEditorActionListener;
 
-import androidx.annotation.Nullable;
-
 import org.chromium.base.Callback;
-import org.chromium.base.ResettersForTesting;
 import org.chromium.base.annotations.CalledByNative;
 import org.chromium.base.annotations.JNINamespace;
 import org.chromium.base.annotations.NativeMethods;
 import org.chromium.components.embedder_support.view.ContentView;
 import org.chromium.components.embedder_support.view.ContentViewRenderView;
-import org.chromium.content_public.browser.ActionModeCallback;
 import org.chromium.content_public.browser.ActionModeCallbackHelper;
 import org.chromium.content_public.browser.LoadUrlParams;
 import org.chromium.content_public.browser.NavigationController;
@@ -330,15 +325,15 @@ public class Shell extends LinearLayout {
     }
 
     /**
-     * {@link ActionModeCallback} that uses the default implementation in
+     * {link @ActionMode.Callback} that uses the default implementation in
      * {@link SelectionPopupController}.
      */
-    private ActionModeCallback defaultActionCallback() {
+    private ActionMode.Callback2 defaultActionCallback() {
         final ActionModeCallbackHelper helper =
                 SelectionPopupController.fromWebContents(mWebContents)
                         .getActionModeCallbackHelper();
 
-        return new ActionModeCallback() {
+        return new ActionMode.Callback2() {
             @Override
             public boolean onCreateActionMode(ActionMode mode, Menu menu) {
                 helper.onCreateActionMode(mode, menu);
@@ -353,11 +348,6 @@ public class Shell extends LinearLayout {
             @Override
             public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
                 return helper.onActionItemClicked(mode, item);
-            }
-            @Override
-            public boolean onDropdownItemClicked(int groupId, int id, @Nullable Intent intent,
-                    @Nullable OnClickListener clickListener) {
-                return helper.onDropdownItemClicked(groupId, id, intent, clickListener);
             }
 
             @Override
@@ -382,7 +372,6 @@ public class Shell extends LinearLayout {
 
     public void setOverayModeChangedCallbackForTesting(Callback<Boolean> callback) {
         mOverlayModeChangedCallbackForTesting = callback;
-        ResettersForTesting.register(() -> mOverlayModeChangedCallbackForTesting = null);
     }
 
     /**

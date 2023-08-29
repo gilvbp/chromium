@@ -10,8 +10,6 @@
 
 #include "base/functional/callback.h"
 #include "components/permissions/permission_ui_selector.h"
-#include "third_party/abseil-cpp/absl/types/optional.h"
-#include "ui/gfx/geometry/rect.h"
 #include "url/gurl.h"
 
 namespace content {
@@ -150,9 +148,6 @@ class PermissionPrompt {
 
   // Get the type of prompt UI shown for metrics.
   virtual PermissionPromptDisposition GetPromptDisposition() const = 0;
-
-  // Get the prompt view bounds in screen coordinates.
-  virtual absl::optional<gfx::Rect> GetViewBoundsInScreen() const = 0;
 };
 
 }  // namespace permissions

@@ -79,7 +79,7 @@ ScrollManager::ScrollManager(LocalFrame& frame) : frame_(frame) {
 void ScrollManager::Clear() {
   scrollbar_handling_scroll_gesture_ = nullptr;
   resize_scrollable_area_ = nullptr;
-  offset_from_resize_corner_ = {};
+  offset_from_resize_corner_ = LayoutSize();
   ClearGestureScrollState();
 }
 
@@ -921,7 +921,6 @@ bool ScrollManager::SnapAtGestureScrollEnd(
 }
 
 bool ScrollManager::GetSnapFlingInfoAndSetAnimatingSnapTarget(
-    const gfx::Vector2dF& current_delta,
     const gfx::Vector2dF& natural_displacement,
     gfx::PointF* out_initial_position,
     gfx::PointF* out_target_position) const {
@@ -1224,7 +1223,7 @@ bool ScrollManager::HandleScrollGestureOnResizer(
       resize_scrollable_area_ = layer->GetScrollableArea();
       resize_scrollable_area_->SetInResizeMode(true);
       offset_from_resize_corner_ =
-          resize_scrollable_area_->OffsetFromResizeCorner(p);
+          LayoutSize(resize_scrollable_area_->OffsetFromResizeCorner(p));
       return true;
     }
   } else if (gesture_event.GetType() ==
@@ -1275,7 +1274,7 @@ void ScrollManager::SetResizeScrollableArea(PaintLayer* layer, gfx::Point p) {
   resize_scrollable_area_ = layer->GetScrollableArea();
   resize_scrollable_area_->SetInResizeMode(true);
   offset_from_resize_corner_ =
-      resize_scrollable_area_->OffsetFromResizeCorner(p);
+      LayoutSize(resize_scrollable_area_->OffsetFromResizeCorner(p));
 }
 
 bool ScrollManager::CanHandleGestureEvent(

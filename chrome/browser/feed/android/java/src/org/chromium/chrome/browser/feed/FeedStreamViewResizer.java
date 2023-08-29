@@ -15,7 +15,6 @@ import org.chromium.base.ApiCompatibilityUtils;
 import org.chromium.components.browser_ui.widget.displaystyle.HorizontalDisplayStyle;
 import org.chromium.components.browser_ui.widget.displaystyle.UiConfig;
 import org.chromium.components.browser_ui.widget.displaystyle.ViewResizer;
-import org.chromium.ui.base.DeviceFormFactor;
 
 /**
  * Updates the paddings used to display the feed stream when switching to landscape mode. Due to the
@@ -72,7 +71,7 @@ public class FeedStreamViewResizer extends ViewResizer {
      */
     @Override
     protected int computePadding() {
-        if (DeviceFormFactor.isNonMultiDisplayContextOnTablet(mUiConfig.getContext())
+        if (FeedFeatures.isMultiColumnFeedEnabled(mUiConfig.getContext())
                 && isCurrentDisplayWide()) {
             return computePaddingWide();
         } else {

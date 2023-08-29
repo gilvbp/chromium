@@ -7,8 +7,6 @@
 
 #import <UIKit/UIKit.h>
 
-enum class ToolbarType;
-
 namespace web {
 class WebState;
 }  // namespace web
@@ -18,8 +16,7 @@ class WebState;
 
 // Returns a snapshot of the toolbar with the controls visibility adapted to
 // `webState`.
-- (UIImage*)toolbarSideSwipeSnapshotForWebState:(web::WebState*)webState
-                                withToolbarType:(ToolbarType)toolbarType;
+- (UIImage*)toolbarSideSwipeSnapshotForWebState:(web::WebState*)webState;
 
 @end
 

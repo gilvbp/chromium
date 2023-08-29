@@ -66,10 +66,9 @@ bool PopulateMojoEnumValueIfValid(int possible_enum, T* valid_enum_out) {
 
 std::string CreatePayload(
     ash::cros_healthd::mojom::RunRoutineResponsePtr response) {
-  auto root_dict =
-      base::Value::Dict()
-          .Set(kIdFieldName, response->id)
-          .Set(kStatusFieldName, static_cast<int>(response->status));
+  base::Value::Dict root_dict;
+  root_dict.Set(kIdFieldName, response->id);
+  root_dict.Set(kStatusFieldName, static_cast<int>(response->status));
 
   std::string payload;
   base::JSONWriter::Write(root_dict, &payload);
@@ -644,10 +643,6 @@ void DeviceCommandRunRoutineJob::RunImpl(CallbackWithResult result_callback) {
       break;
     }
     case ash::cros_healthd::mojom::DiagnosticRoutineEnum::kAudioDriver: {
-      NOTIMPLEMENTED();
-      break;
-    }
-    case ash::cros_healthd::mojom::DiagnosticRoutineEnum::kUfsLifetime: {
       NOTIMPLEMENTED();
       break;
     }

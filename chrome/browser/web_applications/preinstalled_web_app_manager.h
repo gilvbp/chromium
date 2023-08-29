@@ -37,7 +37,8 @@ struct LoadedConfigs;
 struct ParsedConfigs;
 }  // namespace
 
-class WebAppProvider;
+class ExternallyManagedAppManager;
+class WebAppRegistrar;
 
 // Installs web apps to be preinstalled on the device (AKA default apps) during
 // start up. Will keep the apps installed on the device in sync with the set of
@@ -77,14 +78,17 @@ class PreinstalledWebAppManager {
 
   static void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry);
 
-  static base::AutoReset<bool> SkipStartupForTesting();
+  // TODO(crbug.com/1434692): All these should return a base::AutoReset<bool> to
+  // avoid leaking override state beyond unit test execution.
+  static void SkipStartupForTesting();
   static base::AutoReset<bool> BypassAwaitingDependenciesForTesting();
-  static base::AutoReset<bool> BypassOfflineManifestRequirementForTesting();
-  static base::AutoReset<bool> OverridePreviousUserUninstallConfigForTesting();
-  static base::AutoReset<const base::Value::List*> SetConfigsForTesting(
-      const base::Value::List* configs);
-  static base::AutoReset<FileUtilsWrapper*> SetFileUtilsForTesting(
-      FileUtilsWrapper* file_utils);
+  static void BypassOfflineManifestRequirementForTesting();
+
+  static void OverridePreviousUserUninstallConfigForTesting();
+  static void SetConfigDirForTesting(const base::FilePath* config_dir);
+
+  static void SetConfigsForTesting(const base::Value::List* configs);
+  static void SetFileUtilsForTesting(FileUtilsWrapper* file_utils);
 
   explicit PreinstalledWebAppManager(Profile* profile);
   PreinstalledWebAppManager(const PreinstalledWebAppManager&) = delete;
@@ -92,7 +96,10 @@ class PreinstalledWebAppManager {
       delete;
   ~PreinstalledWebAppManager();
 
-  void SetProvider(base::PassKey<WebAppProvider>, WebAppProvider& provider);
+  void SetSubsystems(
+      WebAppRegistrar* registrar,
+      const WebAppUiManager* ui_manager,
+      ExternallyManagedAppManager* externally_managed_app_manager);
 
   // Loads the preinstalled app configs and synchronizes them with the device's
   // installed apps.
@@ -167,8 +174,11 @@ class PreinstalledWebAppManager {
   bool IsReinstallPastMilestoneNeededSinceLastSync(
       int force_reinstall_for_milestone);
 
+  raw_ptr<WebAppRegistrar, DanglingUntriaged> registrar_ = nullptr;
+  raw_ptr<const WebAppUiManager, DanglingUntriaged> ui_manager_ = nullptr;
+  raw_ptr<ExternallyManagedAppManager, DanglingUntriaged>
+      externally_managed_app_manager_ = nullptr;
   const raw_ptr<Profile> profile_;
-  raw_ptr<WebAppProvider> provider_ = nullptr;
 
 #if BUILDFLAG(IS_CHROMEOS)
   PreinstalledWebAppWindowExperiment preinstalled_web_app_window_experiment_;

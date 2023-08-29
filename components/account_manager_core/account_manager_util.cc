@@ -90,8 +90,6 @@ crosapi::mojom::GoogleServiceAuthError::State ToMojoGoogleServiceAuthErrorState(
       return cm::GoogleServiceAuthError::State::kServiceError;
     case GoogleServiceAuthError::State::SCOPE_LIMITED_UNRECOVERABLE_ERROR:
       return cm::GoogleServiceAuthError::State::kScopeLimitedUnrecoverableError;
-    case GoogleServiceAuthError::State::CHALLENGE_RESPONSE_REQUIRED:
-      return cm::GoogleServiceAuthError::State::kChallengeResponseRequired;
     case GoogleServiceAuthError::State::NUM_STATES:
       NOTREACHED();
       return cm::GoogleServiceAuthError::State::kNone;
@@ -270,12 +268,8 @@ absl::optional<GoogleServiceAuthError> FromMojoGoogleServiceAuthError(
       return GoogleServiceAuthError(
           GoogleServiceAuthError::State::REQUEST_CANCELED);
     case cm::GoogleServiceAuthError::State::kScopeLimitedUnrecoverableError:
-      return GoogleServiceAuthError::FromScopeLimitedUnrecoverableError(
-          mojo_error->error_message);
-    case cm::GoogleServiceAuthError::State::kChallengeResponseRequired:
-      return GoogleServiceAuthError::FromTokenBindingChallenge(
-          mojo_error->token_binding_challenge.value_or(
-              "MISSING_CHALLENGE_FROM_CROSAPI_MOJOM"));
+      return GoogleServiceAuthError(
+          GoogleServiceAuthError::State::SCOPE_LIMITED_UNRECOVERABLE_ERROR);
     default:
       LOG(WARNING) << "Unknown crosapi::mojom::GoogleServiceAuthError::State: "
                    << mojo_error->state;
@@ -296,10 +290,6 @@ crosapi::mojom::GoogleServiceAuthErrorPtr ToMojoGoogleServiceAuthError(
     mojo_result->invalid_gaia_credentials_reason =
         ToMojoInvalidGaiaCredentialsReason(
             error.GetInvalidGaiaCredentialsReason());
-  }
-  if (error.state() ==
-      GoogleServiceAuthError::State::CHALLENGE_RESPONSE_REQUIRED) {
-    mojo_result->token_binding_challenge = error.GetTokenBindingChallenge();
   }
   mojo_result->state = ToMojoGoogleServiceAuthErrorState(error.state());
   return mojo_result;

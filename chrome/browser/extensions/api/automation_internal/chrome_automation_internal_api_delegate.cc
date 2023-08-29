@@ -20,7 +20,6 @@
 #include "extensions/common/extension.h"
 #include "extensions/common/manifest_handlers/automation.h"
 #include "extensions/common/permissions/permissions_data.h"
-#include "ui/accessibility/ax_tree_id.h"
 
 #if defined(USE_AURA)
 #include "chrome/browser/ui/aura/accessibility/automation_manager_aura.h"

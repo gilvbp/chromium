@@ -105,6 +105,9 @@ class BASE_EXPORT BuildInfo {
     return package_name_;
   }
 
+  // Will be empty string if no app id is assigned.
+  const char* firebase_app_id() const { return firebase_app_id_; }
+
   const char* custom_themes() const { return custom_themes_; }
 
   const char* resources_version() const { return resources_version_; }
@@ -179,6 +182,7 @@ class BASE_EXPORT BuildInfo {
   const char* const gms_version_code_;
   const char* const installer_package_name_;
   const char* const abi_name_;
+  const char* const firebase_app_id_;
   const char* const custom_themes_;
   const char* const resources_version_;
   // Not needed by breakpad.

@@ -42,9 +42,7 @@ ExtensionSyncServiceFactory::ExtensionSyncServiceFactory()
 
 ExtensionSyncServiceFactory::~ExtensionSyncServiceFactory() = default;
 
-std::unique_ptr<KeyedService>
-ExtensionSyncServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* ExtensionSyncServiceFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
-  return std::make_unique<ExtensionSyncService>(
-      Profile::FromBrowserContext(context));
+  return new ExtensionSyncService(Profile::FromBrowserContext(context));
 }

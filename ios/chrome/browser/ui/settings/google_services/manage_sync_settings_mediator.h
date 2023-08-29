@@ -10,12 +10,13 @@
 #import "ios/chrome/browser/sync/sync_observer_bridge.h"
 #import "ios/chrome/browser/ui/settings/google_services/manage_sync_settings_constants.h"
 #import "ios/chrome/browser/ui/settings/google_services/manage_sync_settings_service_delegate.h"
-#import "ios/chrome/browser/ui/settings/google_services/manage_sync_settings_table_view_controller_model_delegate.h"
+#import "ios/chrome/browser/ui/settings/google_services/manage_sync_settings_view_controller_model_delegate.h"
 
 class AuthenticationService;
 class ChromeAccountManagerService;
 @protocol ManageSyncSettingsCommandHandler;
 @protocol ManageSyncSettingsConsumer;
+class PrefService;
 @protocol SyncErrorSettingsCommandHandler;
 class SyncSetupService;
 namespace signin {
@@ -40,8 +41,7 @@ class SyncService;
 // The initial account sync state at the time this mediator gets created.
 // While the mediator is running it gets updated only if the user signs
 // out.
-@property(nonatomic, assign, readonly)
-    SyncSettingsAccountState initialAccountState;
+@property(nonatomic, assign) SyncSettingsAccountState initialAccountState;
 // Error command handler.
 @property(nonatomic, weak) id<SyncErrorSettingsCommandHandler> syncErrorHandler;
 // Returns YES if the encryption item should be enabled.
@@ -56,6 +56,7 @@ class SyncService;
 // `syncService`: Sync service. Should not be null.
 - (instancetype)
       initWithSyncService:(syncer::SyncService*)syncService
+          userPrefService:(PrefService*)userPrefService
           identityManager:(signin::IdentityManager*)identityManager
     authenticationService:(AuthenticationService*)authenticationService
     accountManagerService:(ChromeAccountManagerService*)accountManagerService

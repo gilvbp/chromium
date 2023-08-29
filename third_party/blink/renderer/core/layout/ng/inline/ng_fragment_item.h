@@ -627,7 +627,7 @@ inline bool NGFragmentItem::CanReuse() const {
   if (IsDirty())
     return false;
   if (const LayoutObject* layout_object = GetLayoutObject())
-    return !layout_object->SelfNeedsFullLayout();
+    return !layout_object->SelfNeedsLayout();
   return false;
 }
 

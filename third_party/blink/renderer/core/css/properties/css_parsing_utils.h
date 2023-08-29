@@ -9,10 +9,12 @@
 #include "third_party/blink/renderer/core/core_export.h"
 #include "third_party/blink/renderer/core/css/css_anchor_query_enums.h"
 #include "third_party/blink/renderer/core/css/css_custom_ident_value.h"
+#include "third_party/blink/renderer/core/css/css_function_value.h"
 #include "third_party/blink/renderer/core/css/css_identifier_value.h"
 #include "third_party/blink/renderer/core/css/css_numeric_literal_value.h"
 #include "third_party/blink/renderer/core/css/css_primitive_value.h"
 #include "third_party/blink/renderer/core/css/css_value_list.h"
+#include "third_party/blink/renderer/core/css/parser/css_parser_mode.h"
 #include "third_party/blink/renderer/core/css/parser/css_parser_token.h"
 #include "third_party/blink/renderer/core/css/parser/css_parser_token_range.h"
 #include "third_party/blink/renderer/core/css/parser/css_property_parser.h"
@@ -87,8 +89,7 @@ CORE_EXPORT bool ConsumeAnyValue(CSSParserTokenRange&);
 CSSPrimitiveValue* ConsumeInteger(
     CSSParserTokenRange&,
     const CSSParserContext&,
-    double minimum_value = -std::numeric_limits<double>::max(),
-    const bool is_percentage_allowed = true);
+    double minimum_value = -std::numeric_limits<double>::max());
 CSSPrimitiveValue* ConsumeIntegerOrNumberCalc(
     CSSParserTokenRange&,
     const CSSParserContext&,
@@ -219,8 +220,6 @@ CSSValue* ConsumeIntrinsicSizeLonghand(CSSParserTokenRange&,
 
 CSSIdentifierValue* ConsumeShapeBox(CSSParserTokenRange&);
 CSSIdentifierValue* ConsumeVisualBox(CSSParserTokenRange&);
-
-CSSIdentifierValue* ConsumeGeometryBox(CSSParserTokenRange&);
 
 enum class IsImplicitProperty { kNotImplicit, kImplicit };
 
@@ -432,7 +431,6 @@ CSSValue* ConsumeFontPalette(CSSParserTokenRange&, const CSSParserContext&);
 CSSValue* ConsumePaletteMixFunction(CSSParserTokenRange&,
                                     const CSSParserContext&);
 CSSValueList* ConsumeFontFamily(CSSParserTokenRange&);
-CSSValueList* ConsumeNonGenericFamilyNameList(CSSParserTokenRange& range);
 CSSValue* ConsumeGenericFamily(CSSParserTokenRange&);
 CSSValue* ConsumeFamilyName(CSSParserTokenRange&);
 String ConcatenateFamilyName(CSSParserTokenRange&);
@@ -531,8 +529,6 @@ CSSValue* ConsumeTransformList(CSSParserTokenRange&,
 CSSValue* ConsumeTransitionProperty(CSSParserTokenRange&,
                                     const CSSParserContext&);
 bool IsValidPropertyList(const CSSValueList&);
-bool IsValidTransitionBehavior(const CSSValueID&);
-bool IsValidTransitionBehaviorList(const CSSValueList&);
 
 CSSValue* ConsumeBorderColorSide(CSSParserTokenRange&,
                                  const CSSParserContext&,
@@ -542,6 +538,9 @@ CSSValue* ConsumeBorderWidth(CSSParserTokenRange&,
                              UnitlessQuirk);
 CSSValue* ConsumeSVGPaint(CSSParserTokenRange&, const CSSParserContext&);
 CSSValue* ParseSpacing(CSSParserTokenRange&, const CSSParserContext&);
+CSSFunctionValue* CreateWordBoundaryDetectionValue();
+CSSValue* ParseWordBoundaryDetection(CSSParserTokenRange&,
+                                     const CSSParserContext&);
 
 CSSValue* ConsumeSingleContainerName(CSSParserTokenRange&,
                                      const CSSParserContext&);

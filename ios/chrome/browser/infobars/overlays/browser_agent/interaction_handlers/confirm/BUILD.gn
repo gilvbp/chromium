@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 source_set("confirm") {
+  configs += [ "//build/config/compiler:enable_arc" ]
   sources = [
     "confirm_infobar_banner_interaction_handler.h",
     "confirm_infobar_banner_interaction_handler.mm",
@@ -24,6 +25,7 @@ source_set("confirm") {
 }
 
 source_set("unit_tests") {
+  configs += [ "//build/config/compiler:enable_arc" ]
   testonly = true
   sources = [ "confirm_infobar_banner_interaction_handler_unittest.mm" ]
   deps = [

@@ -2,11 +2,10 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import 'chrome://os-settings/os_settings.js';
 import 'chrome://resources/polymer/v3_0/iron-test-helpers/mock-interactions.js';
 
-import {CrLinkRowElement, FakeInputDeviceSettingsProvider, fakeKeyboards, MetaKey, PolicyStatus, Router, routes, setInputDeviceSettingsProviderForTesting, SettingsPerDeviceKeyboardSubsectionElement, SettingsToggleButtonElement} from 'chrome://os-settings/os_settings.js';
-import {loadTimeData} from 'chrome://resources/ash/common/load_time_data.m.js';
+import {FakeInputDeviceSettingsProvider, fakeKeyboards, MetaKey, PolicyStatus, Router, routes, setInputDeviceSettingsProviderForTesting, SettingsPerDeviceKeyboardSubsectionElement, SettingsToggleButtonElement} from 'chrome://os-settings/os_settings.js';
+import {CrLinkRowElement} from 'chrome://resources/cr_elements/cr_link_row/cr_link_row.js';
 import {assert} from 'chrome://resources/js/assert_ts.js';
 import {assertEquals, assertFalse, assertTrue} from 'chrome://webui-test/chai_assert.js';
 import {flushTasks, waitAfterNextRender} from 'chrome://webui-test/polymer_test_util.js';
@@ -215,13 +214,6 @@ suite('<settings-per-device-keyboard-subsection>', () => {
         Object.keys(subsection.get('keyboard.settings.modifierRemappings'))
             .length);
     assertEquals('No keys customized', remapKeysSubLabel.textContent!.trim());
-    loadTimeData.overrideValues({
-      enableAltClickAndSixPackCustomization: true,
-    });
-    subsection.set('keyboard', fakeKeyboards[3]);
-    await flushTasks();
-    // Expect 3 remapped six pack key shortcuts and 2 remapped modifier keys.
-    assertEquals('5 customized keys', remapKeysSubLabel.textContent!.trim());
   });
 
   /**
@@ -339,13 +331,14 @@ suite('<settings-per-device-keyboard-subsection>', () => {
     const topRowAreFunctionKeysToggle = subsection.shadowRoot!.querySelector(
         '#externalTopRowAreFunctionKeysButton');
     assert(topRowAreFunctionKeysToggle);
-  });
+    let policyIndicator = topRowAreFunctionKeysToggle.shadowRoot!.querySelector(
+        'cr-policy-pref-indicator');
+    assertTrue(isVisible(policyIndicator));
 
-  test(
-      'Built-in Keyboard customize keys rows has additional class name',
-      async () => {
-        await changeIsExternalState(false);
-        assertTrue(subsection.shadowRoot!.querySelector('#remapKeyboardKeys')!
-                       .classList.contains('remap-keyboard-keys-row-internal'));
-      });
+    subsection.set('keyboardPolicies', {topRowAreFkeysPolicy: undefined});
+    await flushTasks();
+    policyIndicator = topRowAreFunctionKeysToggle.shadowRoot!.querySelector(
+        'cr-policy-pref-indicator');
+    assertFalse(isVisible(policyIndicator));
+  });
 });

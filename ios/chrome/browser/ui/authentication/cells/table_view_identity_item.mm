@@ -7,6 +7,10 @@
 #import "ios/chrome/browser/ui/authentication/cells/table_view_identity_cell.h"
 #import "ios/chrome/common/ui/colors/semantic_color_names.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 @implementation TableViewIdentityItem
 
 @synthesize gaiaID = _gaiaID;

@@ -25,11 +25,7 @@ class AutofillWebDataServiceObserverOnDBSequence {
 
   // Called on DB sequence when an IBAN has been added/removed/updated in
   // the WebDatabase.
-  virtual void IbanChanged(const IbanChange& change) {}
-
-  // Called on DB sequence when a server CVC has been added/removed/updated in
-  // the WebDatabase.
-  virtual void ServerCvcChanged(const ServerCvcChange& change) {}
+  virtual void IBANChanged(const IBANChange& change) {}
 
  protected:
   virtual ~AutofillWebDataServiceObserverOnDBSequence() {}

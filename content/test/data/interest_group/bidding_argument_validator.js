@@ -170,15 +170,13 @@ function validatePerBuyerSignals(perBuyerSignals) {
 function validateDirectFromSellerSignals(directFromSellerSignals) {
   const perBuyerSignalsJSON =
       JSON.stringify(directFromSellerSignals.perBuyerSignals);
-  if (perBuyerSignalsJSON !== '{"json":"for","buyer":[1]}' &&
-      perBuyerSignalsJSON !== '{"buyer":[1],"json":"for"}') {
+  if (perBuyerSignalsJSON !== '{"json":"for","buyer":[1]}') {
     throw 'Wrong directFromSellerSignals.perBuyerSignals ' +
         perBuyerSignalsJSON;
   }
   const auctionSignalsJSON =
       JSON.stringify(directFromSellerSignals.auctionSignals);
-  if (auctionSignalsJSON !== '{"json":"for","all":["parties"]}' &&
-      auctionSignalsJSON !== '{"all":["parties"],"json":"for"}') {
+  if (auctionSignalsJSON !== '{"json":"for","all":["parties"]}') {
     throw 'Wrong directFromSellerSignals.auctionSignals ' +
         auctionSignalsJSON;
   }
@@ -213,7 +211,7 @@ function validateBrowserSignals(browserSignals, isGenerateBid) {
     if (browserSignals.prevWinsMs.length !== 0)
       throw 'Wrong prevWinsMs ' + JSON.stringify(browserSignals.prevWinsMs);
   } else {
-    if (Object.keys(browserSignals).length !== 14) {
+    if (Object.keys(browserSignals).length !== 15) {
       throw 'Wrong number of browser signals fields ' +
           JSON.stringify(browserSignals);
     }
@@ -239,6 +237,8 @@ function validateBrowserSignals(browserSignals, isGenerateBid) {
     }
     if (browserSignals.adCost !== 3)
       throw 'Wrong adCost ' + browserSignals.adCost;
+    if (!browserSignals.hasOwnProperty("enforcedKAnon"))
+      throw 'Missing enforcedKAnon';
   }
 }
 

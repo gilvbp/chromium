@@ -286,7 +286,7 @@ bool FakeUserManager::IsLoggedInAsUserWithGaiaAccount() const {
   return true;
 }
 
-bool FakeUserManager::IsLoggedInAsManagedGuestSession() const {
+bool FakeUserManager::IsLoggedInAsPublicAccount() const {
   const User* active_user = GetActiveUser();
   return active_user && active_user->GetType() == USER_TYPE_PUBLIC_ACCOUNT;
 }
@@ -364,8 +364,38 @@ bool FakeUserManager::IsDeviceLocalAccountMarkedForRemoval(
   return false;
 }
 
+void FakeUserManager::UpdateLoginState(const User* active_user,
+                                       const User* primary_user,
+                                       bool is_current_user_owner) const {}
+
+bool FakeUserManager::GetPlatformKnownUserId(const std::string& user_email,
+                                             AccountId* out_account_id) const {
+  if (user_email == kStubUserEmail) {
+    *out_account_id = StubAccountId();
+    return true;
+  }
+
+  if (user_email == kGuestUserName) {
+    *out_account_id = GuestAccountId();
+    return true;
+  }
+  return false;
+}
+
+const AccountId& FakeUserManager::GetGuestAccountId() const {
+  return GuestAccountId();
+}
+
 void FakeUserManager::AsyncRemoveCryptohome(const AccountId& account_id) const {
   NOTIMPLEMENTED();
+}
+
+bool FakeUserManager::IsGuestAccountId(const AccountId& account_id) const {
+  return account_id == GuestAccountId();
+}
+
+bool FakeUserManager::IsStubAccountId(const AccountId& account_id) const {
+  return account_id == StubAccountId();
 }
 
 bool FakeUserManager::IsDeprecatedSupervisedAccountId(

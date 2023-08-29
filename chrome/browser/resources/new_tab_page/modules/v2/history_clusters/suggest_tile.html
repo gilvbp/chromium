@@ -6,7 +6,9 @@
     text-decoration: none;
   }
 
-  a:focus-visible {
+  :host-context(.focus-outline-visible) :focus,
+  :focus-visible {
+    box-shadow: var(--ntp-focus-shadow);
     outline: none;
   }
 
@@ -31,7 +33,6 @@
     background-position: center center;
     background-repeat: no-repeat;
     background-size: 20px;
-    flex-shrink: 0;
     height: 20px;
     margin: auto 16px;
     width: 20px;
@@ -46,7 +47,6 @@
 
     /* Set outline since background isn't visible in hcm. */
     a {
-      border-radius: var(--ntp-module-item-border-radius);
       outline: var(--cr-border-hcm);
     }
 

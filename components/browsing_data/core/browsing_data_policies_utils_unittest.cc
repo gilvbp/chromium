@@ -43,7 +43,6 @@ TEST(BrowsingDataPoliciesUtils, UpdateSyncTypesForBrowsingDataLifetime) {
           browsing_data_lifetime_value);
   const syncer::UserSelectableTypeSet expected_types = {
       syncer::UserSelectableType::kAutofill,
-      syncer::UserSelectableType::kPayments,
       syncer::UserSelectableType::kPreferences,
       syncer::UserSelectableType::kPasswords,
       syncer::UserSelectableType::kHistory,
@@ -78,7 +77,6 @@ TEST(BrowsingDataPoliciesUtils, UpdateSyncTypesForClearBrowsingDataOnExit) {
           clear_browsing_data_on_exit_value);
   const syncer::UserSelectableTypeSet expected_types = {
       syncer::UserSelectableType::kAutofill,
-      syncer::UserSelectableType::kPayments,
       syncer::UserSelectableType::kPreferences,
       syncer::UserSelectableType::kPasswords,
       syncer::UserSelectableType::kHistory,

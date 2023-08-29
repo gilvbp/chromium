@@ -12,10 +12,13 @@
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
         "swarming": {
-          "dimensions": {
-            "kvm": "1",
-            "os": "Linux"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "kvm": "1",
+              "os": "Linux"
+            }
+          ],
           "hard_timeout": 600
         },
         "test": "foo_test"

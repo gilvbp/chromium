@@ -8,7 +8,6 @@
 #include <memory>
 
 #include "base/memory/raw_ptr.h"
-#include "base/metrics/histogram_macros.h"
 #include "build/build_config.h"
 #include "ui/base/owned_window_anchor.h"
 #include "ui/base/ui_base_types.h"
@@ -18,7 +17,6 @@
 
 namespace views {
 
-class MenuControllerTest;
 class SubmenuView;
 class View;
 class Widget;
@@ -29,6 +27,10 @@ namespace internal {
 class PreMenuEventDispatchHandler;
 #endif  // defined(USE_AURA)
 }  // namespace internal
+
+namespace test {
+class MenuControllerTest;
+}  // namespace test
 
 // SubmenuView uses a MenuHost to house the SubmenuView.
 //
@@ -89,7 +91,7 @@ class MenuHost : public Widget, public WidgetObserver {
   void ReleaseMenuHostCapture();
 
  private:
-  friend class MenuControllerTest;
+  friend class test::MenuControllerTest;
 
   // Widget:
   internal::RootView* CreateRootView() override;
@@ -116,18 +118,6 @@ class MenuHost : public Widget, public WidgetObserver {
 
   // If true and capture is lost we don't notify the delegate.
   bool ignore_capture_lost_ = false;
-
-  // A callback to be registered with the compositor to record the time from
-  // menu host initialization to menu presentation
-  base::OnceCallback<void(base::TimeTicks)> record_init_to_presentation_time_ =
-      base::BindOnce(
-          [](base::TimeTicks menu_host_init_time,
-             base::TimeTicks presentation_time) {
-            UMA_HISTOGRAM_TIMES(
-                "Chrome.WrenchMenu.MenuHostInitToNextFramePresented",
-                presentation_time - menu_host_init_time);
-          },
-          base::TimeTicks::Now());
 
 #if defined(USE_AURA)
   // Handles raw touch events at the moment.

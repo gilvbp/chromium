@@ -50,7 +50,6 @@
 #include "base/test/metrics/histogram_tester.h"
 #include "base/test/scoped_feature_list.h"
 #include "build/build_config.h"
-#include "chromeos/constants/chromeos_features.h"
 #include "testing/gtest/include/gtest/gtest.h"
 #include "ui/compositor/layer.h"
 #include "ui/compositor/layer_animator.h"
@@ -498,7 +497,7 @@ class AppListViewTest : public views::ViewsTestBase {
   // Needed by AppsContainerView::ContinueContainer.
   AshColorProvider ash_color_provider_;
 
-  raw_ptr<AppListView, DanglingUntriaged | ExperimentalAsh> view_ =
+  raw_ptr<AppListView, ExperimentalAsh> view_ =
       nullptr;  // Owned by native widget.
   std::unique_ptr<AppListTestViewDelegate> delegate_;
   std::unique_ptr<AppsGridViewTestApi> test_api_;
@@ -731,7 +730,7 @@ class AppListViewFocusTest : public views::ViewsTestBase,
     EXPECT_EQ(is_rtl_ ? next_view : prev_view, focused_view());
 
     SimulateKeyPress(ui::VKEY_RIGHT, false);
-    EXPECT_EQ(textfield, focused_view()) << focused_view()->GetClassName();
+    EXPECT_EQ(textfield, focused_view());
   }
 
   // Test the behavior triggered by left and right key when focus is on the
@@ -746,10 +745,10 @@ class AppListViewFocusTest : public views::ViewsTestBase,
     textfield->InsertText(
         text,
         ui::TextInputClient::InsertTextCursorBehavior::kMoveCursorAfterText);
-    views::View* next_view =
+    views::View* next_view = next_view =
         view_->GetWidget()->GetFocusManager()->GetNextFocusableView(
             textfield, view_->GetWidget(), false, false);
-    views::View* prev_view =
+    views::View* prev_view = prev_view =
         view_->GetWidget()->GetFocusManager()->GetNextFocusableView(
             textfield, view_->GetWidget(), true, false);
     EXPECT_EQ(text.length(), textfield->GetCursorPosition());
@@ -854,7 +853,7 @@ class AppListViewFocusTest : public views::ViewsTestBase,
 
  private:
   AshColorProvider ash_color_provider_;
-  raw_ptr<AppListView, DanglingUntriaged | ExperimentalAsh> view_ =
+  raw_ptr<AppListView, ExperimentalAsh> view_ =
       nullptr;  // Owned by native widget.
 
   std::unique_ptr<AppListTestViewDelegate> delegate_;
@@ -1192,39 +1191,20 @@ TEST_P(AppListViewFocusTest, FocusResetAfterHittingEnterOrEscapeOnFolderName) {
   EXPECT_TRUE(contents_view()->apps_container_view()->IsInFolderView());
 
   // Set focus on the folder name.
-  FolderHeaderView* const folder_header_view =
-      app_list_folder_view()->folder_header_view();
-  views::View* const folder_name_view =
-      folder_header_view->GetFolderNameViewForTest();
+  views::View* folder_name_view =
+      app_list_folder_view()->folder_header_view()->GetFolderNameViewForTest();
   folder_name_view->RequestFocus();
-
-  EXPECT_TRUE(contents_view()->apps_container_view()->IsInFolderView());
-  EXPECT_TRUE(folder_header_view->IsFolderNameViewActiveForTest());
 
   // Hit enter key.
   SimulateKeyPress(ui::VKEY_RETURN, false);
-
   EXPECT_TRUE(contents_view()->apps_container_view()->IsInFolderView());
-  EXPECT_FALSE(folder_header_view->IsFolderNameViewActiveForTest());
+  EXPECT_FALSE(folder_name_view->HasFocus());
 
-  // Reactivate and hit escape key. NOTE: The folder name view will not have
-  // focus if Jelly feature is disabled, in that case it's sufficient to refocus
-  // the folder name view to "reactivate" it.
-  if (folder_name_view->HasFocus()) {
-    SimulateKeyPress(ui::VKEY_RETURN, false);
-  } else {
-    folder_name_view->RequestFocus();
-  }
-
-  EXPECT_TRUE(folder_header_view->IsFolderNameViewActiveForTest());
-
+  // Refocus and hit escape key.
+  folder_name_view->RequestFocus();
   SimulateKeyPress(ui::VKEY_ESCAPE, false);
   EXPECT_TRUE(contents_view()->apps_container_view()->IsInFolderView());
-  EXPECT_FALSE(folder_header_view->IsFolderNameViewActiveForTest());
-
-  // Escape when textfield is not active closes the floder.
-  SimulateKeyPress(ui::VKEY_ESCAPE, false);
-  EXPECT_FALSE(contents_view()->apps_container_view()->IsInFolderView());
+  EXPECT_FALSE(folder_name_view->HasFocus());
 }
 
 // Tests that the selection highlight follows the page change.

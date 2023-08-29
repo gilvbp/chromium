@@ -8,9 +8,8 @@
 #import <Intents/Intents.h>
 #import <UIKit/UIKit.h>
 
-#import "base/apple/foundation_util.h"
 #import "base/ios/block_types.h"
-#import "base/metrics/histogram_functions.h"
+#import "base/mac/foundation_util.h"
 #import "base/metrics/histogram_macros.h"
 #import "base/metrics/user_metrics_action.h"
 #import "base/strings/sys_string_conversions.h"
@@ -23,7 +22,6 @@
 #import "ios/chrome/app/application_mode.h"
 #import "ios/chrome/app/spotlight/actions_spotlight_manager.h"
 #import "ios/chrome/app/spotlight/spotlight_util.h"
-#import "ios/chrome/app/startup/app_launch_metrics.h"
 #import "ios/chrome/app/startup/chrome_app_startup_parameters.h"
 #import "ios/chrome/browser/metrics/first_user_action_recorder.h"
 #import "ios/chrome/browser/policy/policy_util.h"
@@ -45,6 +43,10 @@
 #import "ui/base/page_transition_types.h"
 #import "url/gurl.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 using base::UserMetricsAction;
 
 namespace {
@@ -61,8 +63,6 @@ NSString* const kShortcutLensFromSpotlight = @"OpenLensFromSpotlight";
 NSString* const kSiriShortcutOpenInChrome = @"OpenInChromeIntent";
 NSString* const kSiriShortcutSearchInChrome = @"SearchInChromeIntent";
 NSString* const kSiriShortcutOpenInIncognito = @"OpenInChromeIncognitoIntent";
-NSString* const kSiriOpenReadingList = @"OpenReadingListIntent";
-NSString* const kSiriOpenBookmarks = @"OpenBookmarksIntent";
 
 // Constants for compatible mode for user activities.
 NSString* const kRegularMode = @"RegularMode";
@@ -131,12 +131,11 @@ NSArray* CompatibleModeForActivityType(NSString* activityType) {
       [userActivity.activityType
           isEqualToString:NSUserActivityTypeBrowsingWeb]) {
     // App was launched by iOS as a result of Handoff.
-    NSString* originString = base::apple::ObjCCast<NSString>(
+    NSString* originString = base::mac::ObjCCast<NSString>(
         userActivity.userInfo[handoff::kOriginKey]);
     handoff::Origin origin = handoff::OriginFromString(originString);
     UMA_HISTOGRAM_ENUMERATION("IOS.Handoff.Origin", origin,
                               handoff::ORIGIN_COUNT);
-    base::UmaHistogramEnumeration(kAppLaunchSource, AppLaunchSource::HANDOFF);
   } else if (spotlight::IsSpotlightAvailable() &&
              [userActivity.activityType
                  isEqualToString:CSSearchableItemActionType]) {
@@ -148,8 +147,6 @@ NSArray* CompatibleModeForActivityType(NSString* activityType) {
     UMA_HISTOGRAM_ENUMERATION("IOS.Spotlight.Origin", domain,
                               spotlight::DOMAIN_COUNT);
 
-    base::UmaHistogramEnumeration(kAppLaunchSource,
-                                  AppLaunchSource::SPOTLIGHT_CHROME);
     if (!itemID) {
       return NO;
     }
@@ -176,24 +173,19 @@ NSArray* CompatibleModeForActivityType(NSString* activityType) {
           // calls.
           BOOL isActive = [[UIApplication sharedApplication]
                               applicationState] == UIApplicationStateActive;
-
-          [self
-              continueUserActivityURL:contentURL
-                  applicationIsActive:isActive
-                            tabOpener:tabOpener
-                connectionInformation:connectionInformation
-                   startupInformation:startupInformation
-                         browserState:browserState
-                            initStage:initStage
-                      openExistingTab:(domain == spotlight::DOMAIN_OPEN_TABS)];
+          [self continueUserActivityURL:contentURL
+                    applicationIsActive:isActive
+                              tabOpener:tabOpener
+                  connectionInformation:connectionInformation
+                     startupInformation:startupInformation
+                           browserState:browserState
+                              initStage:initStage];
         });
       });
       return YES;
     }
   } else if ([userActivity.activityType
                  isEqualToString:kSiriShortcutSearchInChrome]) {
-    base::UmaHistogramEnumeration(kAppLaunchSource,
-                                  AppLaunchSource::SIRI_SHORTCUT);
     base::RecordAction(UserMetricsAction("IOSLaunchedBySearchInChromeIntent"));
 
     AppStartupParameters* startupParams = [[AppStartupParameters alloc]
@@ -207,7 +199,7 @@ NSArray* CompatibleModeForActivityType(NSString* activityType) {
     }
 
     SearchInChromeIntent* intent =
-        base::apple::ObjCCastStrict<SearchInChromeIntent>(
+        base::mac::ObjCCastStrict<SearchInChromeIntent>(
             userActivity.interaction.intent);
 
     if (!intent) {
@@ -232,12 +224,9 @@ NSArray* CompatibleModeForActivityType(NSString* activityType) {
 
   } else if ([userActivity.activityType
                  isEqualToString:kSiriShortcutOpenInChrome]) {
-    base::UmaHistogramEnumeration(kAppLaunchSource,
-                                  AppLaunchSource::SIRI_SHORTCUT);
     base::RecordAction(UserMetricsAction("IOSLaunchedByOpenInChromeIntent"));
-    OpenInChromeIntent* intent =
-        base::apple::ObjCCastStrict<OpenInChromeIntent>(
-            userActivity.interaction.intent);
+    OpenInChromeIntent* intent = base::mac::ObjCCastStrict<OpenInChromeIntent>(
+        userActivity.interaction.intent);
 
     if (!intent.url) {
       return NO;
@@ -248,7 +237,7 @@ NSArray* CompatibleModeForActivityType(NSString* activityType) {
     if ([intent.url isKindOfClass:[NSURL class]]) {
       // Old intent version where `url` is of type NSURL rather than an array.
       GURL webpageGURL(
-          net::GURLWithNSURL(base::apple::ObjCCastStrict<NSURL>(intent.url)));
+          net::GURLWithNSURL(base::mac::ObjCCastStrict<NSURL>(intent.url)));
       if (!webpageGURL.is_valid())
         return NO;
       URLs.push_back(webpageGURL);
@@ -275,11 +264,9 @@ NSArray* CompatibleModeForActivityType(NSString* activityType) {
 
   } else if ([userActivity.activityType
                  isEqualToString:kSiriShortcutOpenInIncognito]) {
-    base::UmaHistogramEnumeration(kAppLaunchSource,
-                                  AppLaunchSource::SIRI_SHORTCUT);
     base::RecordAction(UserMetricsAction("IOSLaunchedByOpenInIncognitoIntent"));
     OpenInChromeIncognitoIntent* intent =
-        base::apple::ObjCCastStrict<OpenInChromeIncognitoIntent>(
+        base::mac::ObjCCastStrict<OpenInChromeIncognitoIntent>(
             userActivity.interaction.intent);
 
     if (!intent.url || intent.url.count == 0) {
@@ -301,22 +288,6 @@ NSArray* CompatibleModeForActivityType(NSString* activityType) {
                                 Incognito:YES
                                 initStage:initStage];
 
-  } else if ([userActivity.activityType isEqualToString:kSiriOpenReadingList]) {
-    AppStartupParameters* startupParams = [[AppStartupParameters alloc]
-        initWithExternalURL:GURL(kChromeUINewTabURL)
-                completeURL:GURL(kChromeUINewTabURL)
-            applicationMode:ApplicationModeForTabOpening::NORMAL];
-
-    startupParams.postOpeningAction = OPEN_READING_LIST;
-    [connectionInformation setStartupParameters:startupParams];
-  } else if ([userActivity.activityType isEqualToString:kSiriOpenBookmarks]) {
-    AppStartupParameters* startupParams = [[AppStartupParameters alloc]
-        initWithExternalURL:GURL(kChromeUINewTabURL)
-                completeURL:GURL(kChromeUINewTabURL)
-            applicationMode:ApplicationModeForTabOpening::NORMAL];
-
-    startupParams.postOpeningAction = OPEN_BOOKMARKS;
-    [connectionInformation setStartupParameters:startupParams];
   } else {
     // Do nothing for unknown activity type.
     return NO;
@@ -328,8 +299,7 @@ NSArray* CompatibleModeForActivityType(NSString* activityType) {
                  connectionInformation:connectionInformation
                     startupInformation:startupInformation
                           browserState:browserState
-                             initStage:initStage
-                       openExistingTab:NO];
+                             initStage:initStage];
 }
 
 + (BOOL)continueUserActivityURL:(NSURL*)webpageURL
@@ -338,8 +308,7 @@ NSArray* CompatibleModeForActivityType(NSString* activityType) {
           connectionInformation:(id<ConnectionInformation>)connectionInformation
              startupInformation:(id<StartupInformation>)startupInformation
                    browserState:(ChromeBrowserState*)browserState
-                      initStage:(InitStage)initStage
-                openExistingTab:(BOOL)openExistingTab {
+                      initStage:(InitStage)initStage {
   if (!webpageURL)
     return NO;
 
@@ -386,7 +355,6 @@ NSArray* CompatibleModeForActivityType(NSString* activityType) {
         initWithExternalURL:webpageGURL
                 completeURL:webpageGURL
             applicationMode:ApplicationModeForTabOpening::NORMAL];
-    startupParams.openExistingTab = openExistingTab;
     [connectionInformation setStartupParameters:startupParams];
   }
   return YES;
@@ -569,14 +537,7 @@ NSArray* CompatibleModeForActivityType(NSString* activityType) {
   } else {
     URL = externalURL;
   }
-  UrlLoadParams params;
-  if (connectionInformation.startupParameters.openExistingTab) {
-    web::NavigationManager::WebLoadParams webLoadParams =
-        web::NavigationManager::WebLoadParams(URL);
-    params = UrlLoadParams::SwitchToTab(webLoadParams);
-  } else {
-    params = UrlLoadParams::InNewTab(URL, virtualURL);
-  }
+  UrlLoadParams params = UrlLoadParams::InNewTab(URL, virtualURL);
 
   if (connectionInformation.startupParameters.imageSearchData) {
     TemplateURLService* templateURLService =
@@ -639,19 +600,9 @@ NSArray* CompatibleModeForActivityType(NSString* activityType) {
   if (initStage <= InitStageFirstRun)
     return NO;
 
-  base::UmaHistogramEnumeration(kAppLaunchSource,
-                                AppLaunchSource::LONG_PRESS_ON_APP_ICON);
-
-  // Lens entry points should not open an extra new tab page.
-  GURL startupURL =
-      ([shortcutItem.type isEqualToString:kShortcutLensFromAppIconLongPress] ||
-       [shortcutItem.type isEqualToString:kShortcutLensFromSpotlight])
-          ? GURL()
-          : GURL(kChromeUINewTabURL);
-
   AppStartupParameters* startupParams = [[AppStartupParameters alloc]
-      initWithExternalURL:startupURL
-              completeURL:startupURL
+      initWithExternalURL:GURL(kChromeUINewTabURL)
+              completeURL:GURL(kChromeUINewTabURL)
           applicationMode:ApplicationModeForTabOpening::NORMAL];
 
   if ([shortcutItem.type isEqualToString:kShortcutNewSearch]) {

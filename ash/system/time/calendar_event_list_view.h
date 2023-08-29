@@ -15,8 +15,6 @@
 
 namespace ash {
 
-class IconButton;
-
 // This view displays a scrollable list of `CalendarEventListItemView`.
 class ASH_EXPORT CalendarEventListView
     : public CalendarModel::Observer,
@@ -30,8 +28,6 @@ class ASH_EXPORT CalendarEventListView
   CalendarEventListView(const CalendarEventListView& other) = delete;
   CalendarEventListView& operator=(const CalendarEventListView& other) = delete;
   ~CalendarEventListView() override;
-
-  void RequestCloseButtonFocus();
 
  private:
   friend class CalendarViewEventListViewTest;
@@ -64,7 +60,6 @@ class ASH_EXPORT CalendarEventListView
 
   // Owned by `CalendarEventListView`.
   const raw_ptr<views::View, ExperimentalAsh> close_button_container_;
-  raw_ptr<IconButton, ExperimentalAsh> close_button_;
   const raw_ptr<views::ScrollView, ExperimentalAsh> scroll_view_;
 
   // Adds fade in/out gradients to `scroll_view_`.

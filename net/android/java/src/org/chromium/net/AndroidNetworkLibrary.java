@@ -26,12 +26,11 @@ import android.telephony.TelephonyManager;
 import android.util.Log;
 
 import androidx.annotation.RequiresApi;
+import androidx.annotation.VisibleForTesting;
 
 import org.chromium.base.ApiCompatibilityUtils;
 import org.chromium.base.ContextUtils;
-import org.chromium.base.ResettersForTesting;
 import org.chromium.base.annotations.CalledByNative;
-import org.chromium.base.annotations.CalledByNativeForTesting;
 import org.chromium.base.annotations.CalledByNativeUnchecked;
 import org.chromium.base.compat.ApiHelperForM;
 import org.chromium.base.compat.ApiHelperForN;
@@ -287,14 +286,16 @@ class AndroidNetworkLibrary {
         return "";
     }
 
-    @CalledByNativeForTesting
-    public static void setWifiEnabledForTesting(boolean enabled) {
+    // For testing, turn Wifi on/off. Only for testing but we can not append
+    // "ForTest" hooter because jni generator creates code for @CalledByNative
+    // regardless of the hooter but Chromium Binary Size checker warns
+    // "XXXForTest" is included in the production binary.
+    @CalledByNative
+    public static void setWifiEnabled(boolean enabled) {
         WifiManager wifiManager =
                 (WifiManager) ContextUtils.getApplicationContext().getSystemService(
                         Context.WIFI_SERVICE);
-        var oldValue = wifiManager.isWifiEnabled();
         wifiManager.setWifiEnabled(enabled);
-        ResettersForTesting.register(() -> wifiManager.setWifiEnabled(oldValue));
     }
 
     /**
@@ -359,11 +360,10 @@ class AndroidNetworkLibrary {
             return sInstance;
         }
 
+        @VisibleForTesting
         public static void setInstanceForTesting(
                 NetworkSecurityPolicyProxy networkSecurityPolicyProxy) {
-            var oldValue = sInstance;
             sInstance = networkSecurityPolicyProxy;
-            ResettersForTesting.register(() -> sInstance = oldValue);
         }
 
         @RequiresApi(Build.VERSION_CODES.N)

@@ -37,7 +37,8 @@ class ExtensionsGuestView : public guest_view::GuestViewMessageHandler,
 
   // guest_view::GuestViewMessageHandler:
   std::unique_ptr<guest_view::GuestViewManagerDelegate>
-  CreateGuestViewManagerDelegate() const override;
+  CreateGuestViewManagerDelegate(
+      content::BrowserContext* context) const override;
 
   // mojom::GuestView:
   void ReadyToCreateMimeHandlerView(int32_t render_frame_id,

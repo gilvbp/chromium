@@ -334,6 +334,7 @@ public class OfflinePageBridgeTest {
 
     @Test
     @MediumTest
+    @DisabledTest(message = "crbug.com/954205")
     public void testDownloadPage() throws Exception {
         final OfflinePageOrigin origin =
                 new OfflinePageOrigin("abc.xyz", new String[] {"deadbeef"});

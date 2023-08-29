@@ -30,7 +30,6 @@
 #include "ash/shelf/shelf.h"
 #include "ash/shelf/shelf_view_test_api.h"
 #include "ash/shell.h"
-#include "ash/system/privacy_hub/privacy_hub_notification_controller.h"
 #include "ash/system/status_area_widget.h"
 #include "ash/test/ash_test_helper.h"
 #include "ash/test/pixel/ash_pixel_diff_util.h"
@@ -51,7 +50,6 @@
 #include "chromeos/dbus/power/fake_power_manager_client.h"
 #include "components/account_id/account_id.h"
 #include "components/user_manager/user_names.h"
-#include "components/user_manager/user_type.h"
 #include "ui/aura/client/aura_constants.h"
 #include "ui/aura/client/window_parenting_client.h"
 #include "ui/aura/env.h"
@@ -81,11 +79,6 @@ using session_manager::SessionState;
 
 namespace ash {
 namespace {
-
-// Constants -------------------------------------------------------------------
-
-constexpr char kKioskUserEmail[] =
-    "fake_kiosk@kioks-apps.device-local.localhost";
 
 // AshEventGeneratorDelegate ---------------------------------------------------
 
@@ -164,25 +157,10 @@ void AshTestBase::SetUp(std::unique_ptr<TestShellDelegate> delegate) {
   ash_test_helper_ = std::make_unique<AshTestHelper>(
       test_context_factories_->GetContextFactory());
   ash_test_helper_->SetUp(std::move(params));
-
-  // Creates a dummy `SensorDisabledNotificationDelegate` to avoid a crash due
-  // to it missing in tests.
-  class DummyDelegate : public SensorDisabledNotificationDelegate {
-    std::vector<std::u16string> GetAppsAccessingSensor(Sensor sensor) override {
-      return {};
-    }
-  };
-  scoped_disabled_notification_delegate_ =
-      std::make_unique<ScopedSensorDisabledNotificationDelegateForTest>(
-          std::make_unique<DummyDelegate>());
 }
 
 void AshTestBase::TearDown() {
   teardown_called_ = true;
-
-  // We need to destroy the delegate while the Ash still exists.
-  scoped_disabled_notification_delegate_.reset();
-
   // Make sure that we can exit tablet mode before shutdown correctly.
   Shell::Get()->tablet_mode_controller()->SetEnabledForTest(false);
   Shell::Get()->session_controller()->NotifyChromeTerminating();
@@ -414,7 +392,10 @@ void AshTestBase::CreateUserSessions(int n) {
 
 void AshTestBase::SimulateUserLogin(const std::string& user_email,
                                     user_manager::UserType user_type) {
-  SimulateUserLogin(AccountId::FromUserEmail(user_email), user_type);
+  TestSessionControllerClient* session = GetSessionControllerClient();
+  session->AddUserSession(user_email, user_type);
+  session->SwitchActiveUser(AccountId::FromUserEmail(user_email));
+  session->SetSessionState(SessionState::ACTIVE);
 }
 
 void AshTestBase::SimulateUserLogin(const AccountId& account_id,
@@ -423,23 +404,32 @@ void AshTestBase::SimulateUserLogin(const AccountId& account_id,
 }
 
 void AshTestBase::SimulateNewUserFirstLogin(const std::string& user_email) {
-  ash_test_helper_->SimulateUserLogin(AccountId::FromUserEmail(user_email),
-                                      user_manager::UserType::USER_TYPE_REGULAR,
-                                      /*is_new_profile=*/true);
+  TestSessionControllerClient* session = GetSessionControllerClient();
+  session->AddUserSession(user_email, user_manager::USER_TYPE_REGULAR,
+                          true /* provide_pref_service */,
+                          true /* is_new_profile */);
+  session->SwitchActiveUser(AccountId::FromUserEmail(user_email));
+  session->SetSessionState(session_manager::SessionState::ACTIVE);
 }
 
 void AshTestBase::SimulateGuestLogin() {
-  SimulateUserLogin(AccountId::FromUserEmail(user_manager::kGuestUserName),
-                    user_manager::USER_TYPE_GUEST);
+  const std::string guest = user_manager::kGuestUserName;
+  TestSessionControllerClient* session = GetSessionControllerClient();
+  session->AddUserSession(guest, user_manager::USER_TYPE_GUEST);
+  session->SwitchActiveUser(AccountId::FromUserEmail(guest));
+  session->SetSessionState(SessionState::ACTIVE);
 }
 
 void AshTestBase::SimulateKioskMode(user_manager::UserType user_type) {
   DCHECK(user_type == user_manager::USER_TYPE_ARC_KIOSK_APP ||
-         user_type == user_manager::USER_TYPE_KIOSK_APP ||
-         user_type == user_manager::USER_TYPE_WEB_KIOSK_APP);
+         user_type == user_manager::USER_TYPE_KIOSK_APP);
 
-  GetSessionControllerClient()->SetIsRunningInAppMode(true);
-  SimulateUserLogin(AccountId::FromUserEmail(kKioskUserEmail), user_type);
+  const std::string user_email = "fake_kiosk@kioks-apps.device-local.localhost";
+  TestSessionControllerClient* session = GetSessionControllerClient();
+  session->SetIsRunningInAppMode(true);
+  session->AddUserSession(user_email, user_type);
+  session->SwitchActiveUser(AccountId::FromUserEmail(user_email));
+  session->SetSessionState(SessionState::ACTIVE);
 }
 
 void AshTestBase::SetAccessibilityPanelHeight(int panel_height) {
@@ -594,17 +584,6 @@ void AshTestBase::WaitForShelfAnimation() {
 void AshTestBase::MaybeRunDragAndDropSequenceForAppList(
     std::list<base::OnceClosure>* tasks,
     bool is_touch) {
-  // The app list drag and drop require this extra step since drag actually
-  // starts when the cursor is moved. In the case of the drag and drop refactor,
-  // this movement is done outside of the LoopClosure, but a second one is
-  // required since OnDragEnter() is invoked when the drag is updated.
-  tasks->push_front(base::BindLambdaForTesting([&]() {
-    if (is_touch) {
-      GetEventGenerator()->MoveTouchBy(10, 10);
-      return;
-    }
-    GetEventGenerator()->MoveMouseBy(10, 10);
-  }));
   if (!app_list_features::IsDragAndDropRefactorEnabled()) {
     while (!tasks->empty()) {
       std::move(tasks->front()).Run();
@@ -619,7 +598,15 @@ void AshTestBase::MaybeRunDragAndDropSequenceForAppList(
         tasks->pop_front();
       }),
       base::DoNothing());
-
+  tasks->push_front(base::BindLambdaForTesting([&]() {
+    // Generate OnDragEnter() event for the host view.
+    if (is_touch) {
+      GetEventGenerator()->MoveTouchBy(10, 10);
+      return;
+    }
+    GetEventGenerator()->MoveMouseBy(10, 10);
+  }));
+  // Start Drag and Drop Sequence by moving the pointer.
   if (is_touch) {
     GetEventGenerator()->MoveTouchBy(10, 10);
     return;
@@ -658,7 +645,8 @@ void AshTestBase::PrepareForPixelDiffTest() {
 
   DCHECK(!pixel_differ_);
   pixel_differ_ =
-      std::make_unique<AshPixelDiffer>(GetScreenshotPrefixForCurrentTestInfo());
+      std::make_unique<AshPixelDiffer>(GetScreenshotPrefixForCurrentTestInfo(),
+                                       /*corpus=*/std::string());
 }
 
 // ============================================================================

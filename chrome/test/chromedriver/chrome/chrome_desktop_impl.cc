@@ -23,7 +23,6 @@
 #include "chrome/test/chromedriver/chrome/devtools_event_listener.h"
 #include "chrome/test/chromedriver/chrome/devtools_http_client.h"
 #include "chrome/test/chromedriver/chrome/status.h"
-#include "chrome/test/chromedriver/chrome/target_utils.h"
 #include "chrome/test/chromedriver/chrome/web_view_impl.h"
 #include "chrome/test/chromedriver/constants/version.h"
 #include "chrome/test/chromedriver/net/timeout.h"
@@ -127,10 +126,9 @@ Status ChromeDesktopImpl::WaitForPageToLoad(
   Timeout timeout(timeout_raw);
   std::string id;
   WebViewInfo::Type type = WebViewInfo::Type::kPage;
-  while (!timeout.IsExpired()) {
+  while (timeout.GetRemainingTime().is_positive()) {
     WebViewsInfo views_info;
-    Status status = target_utils::GetWebViewsInfo(*devtools_websocket_client_,
-                                                  &timeout, views_info);
+    Status status = GetWebViewsInfo(&views_info);
     if (status.IsError())
       return status;
 
@@ -159,9 +157,8 @@ Status ChromeDesktopImpl::WaitForPageToLoad(
     mobile_device.reset();
   }
 
-  std::unique_ptr<DevToolsClient> client;
-  Status status = target_utils::AttachToPageTarget(*devtools_websocket_client_,
-                                                   id, &timeout, client);
+  std::unique_ptr<DevToolsClientImpl> client;
+  Status status = CreateClient(id, &client);
   if (status.IsError())
     return status;
   std::unique_ptr<WebViewImpl> web_view_tmp(

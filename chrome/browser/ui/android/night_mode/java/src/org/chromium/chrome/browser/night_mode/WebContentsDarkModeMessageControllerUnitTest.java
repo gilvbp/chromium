@@ -198,6 +198,7 @@ public class WebContentsDarkModeMessageControllerUnitTest {
 
     @After
     public void tearDown() {
+        TrackerFactory.setTrackerForTests(null);
         FeatureList.setTestValues(null);
     }
 

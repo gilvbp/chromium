@@ -89,8 +89,7 @@ class TestingLocationArbitrator : public LocationArbitrator {
                            /*main_task_runner=*/nullptr,
                            std::move(url_loader_factory),
                            std::string() /* api_key */,
-                           std::make_unique<FakePositionCache>(),
-                           /*internals_updated_closure=*/base::DoNothing()),
+                           std::make_unique<FakePositionCache>()),
         should_use_system_location_provider_(
             should_use_system_location_provider) {
     SetUpdateCallback(callback);

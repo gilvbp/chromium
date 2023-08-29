@@ -82,12 +82,10 @@ class ExtensionActionRunner : public content::WebContentsObserver,
   // well.
   void GrantTabPermissions(const std::vector<const Extension*>& extensions);
 
-  // TODO(crbug.com/1400812): Move the reload bubble outside of
-  // `ExtensionActionRunner` as it is no longer tied to running an action. See
-  // if it can be merged with extensions dialogs utils `ShowReloadPageDialog`.
-  // Shows the bubble to prompt the user to refresh the page to run or not the
-  // action for the given `extension_ids`.
-  void ShowReloadPageBubble(const std::vector<ExtensionId>& extension_ids);
+  // The same as ShowReloadPageBubble, but for only one extension and the
+  // callback will reload the page.
+  void ShowReloadPageBubbleWithReloadPageCallback(
+      const ExtensionId& extension_id);
 
   // Notifies the ExtensionActionRunner that an extension has been granted
   // active tab permissions. This will run any pending injections for that
@@ -188,6 +186,15 @@ class ExtensionActionRunner : public content::WebContentsObserver,
 
   // Log metrics.
   void LogUMA() const;
+
+  // TODO(crbug.com/1400812): Move this method and
+  // `ShowReloadPageBubbleWithReloadPageCallback` out of EAR and/or combine with
+  // `ShowReloadPageDialog`.
+  // Shows the bubble to prompt the user to refresh the page to run or not the
+  // action for the given `extension_ids`. `callback` is invoked when the bubble
+  // is closed.
+  void ShowReloadPageBubble(const std::vector<ExtensionId>& extension_ids,
+                            base::OnceClosure callback);
 
   // Reloads the current page.
   void OnReloadPageBubbleAccepted();

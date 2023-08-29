@@ -6,9 +6,8 @@
 #define CHROME_BROWSER_UI_VIEWS_PROFILES_FIRST_RUN_FLOW_CONTROLLER_LACROS_H_
 
 #include "base/memory/raw_ptr.h"
-#include "chrome/browser/ui/profiles/profile_picker.h"
+#include "chrome/browser/ui/profile_picker.h"
 #include "chrome/browser/ui/views/profiles/profile_management_flow_controller_impl.h"
-#include "google_apis/gaia/core_account_id.h"
 
 class FirstRunFlowControllerLacros
     : public ProfileManagementFlowControllerImpl {
@@ -39,8 +38,8 @@ class FirstRunFlowControllerLacros
   std::unique_ptr<ProfilePickerSignedInFlowController>
   CreateSignedInFlowController(
       Profile* signed_in_profile,
-      const CoreAccountId& account_id,
-      std::unique_ptr<content::WebContents> contents) override;
+      std::unique_ptr<content::WebContents> contents,
+      FinishFlowCallback finish_flow_callback) override;
 
  private:
   void MarkSyncConfirmationSeen();

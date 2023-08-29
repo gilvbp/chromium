@@ -67,14 +67,7 @@ class CORE_EXPORT CSSAnimations final {
   CSSAnimations(const CSSAnimations&) = delete;
   CSSAnimations& operator=(const CSSAnimations&) = delete;
 
-  // When |with_discrete| is set to true, this method returns not just
-  // interpolable properties, but properties which can be transitioned with
-  // transition-behavior:allow-discrete. |with_discrete| returns almost 3x as
-  // many properties, which may result in slower style update performance, so
-  // they are worth separating.
-  static const StylePropertyShorthand& PropertiesForTransitionAll(
-      bool with_discrete);
-
+  static const StylePropertyShorthand& PropertiesForTransitionAll();
   static bool IsAnimationAffectingProperty(const CSSProperty&);
   static bool IsAffectedByKeyframesFromScope(const Element&, const TreeScope&);
   static bool IsAnimatingCustomProperties(const ElementAnimations*);
@@ -88,7 +81,7 @@ class CORE_EXPORT CSSAnimations final {
                                       Element& animating_element,
                                       const ComputedStyleBuilder&);
   static void CalculateAnimationUpdate(CSSAnimationUpdate&,
-                                       Element& animating_element,
+                                       const Element& animating_element,
                                        Element&,
                                        const ComputedStyleBuilder&,
                                        const ComputedStyle* parent_style,
@@ -195,28 +188,14 @@ class CORE_EXPORT CSSAnimations final {
 
   struct RunningTransition : public GarbageCollected<RunningTransition> {
    public:
-    RunningTransition(Animation* animation,
-                      const ComputedStyle* from,
-                      const ComputedStyle* to,
-                      const ComputedStyle* reversing_adjusted_start_value,
-                      double reversing_shortening_factor)
-        : animation(animation),
-          from(from),
-          to(to),
-          reversing_adjusted_start_value(reversing_adjusted_start_value),
-          reversing_shortening_factor(reversing_shortening_factor) {}
+    virtual ~RunningTransition() = default;
 
-    void Trace(Visitor* visitor) const {
-      visitor->Trace(animation);
-      visitor->Trace(from);
-      visitor->Trace(to);
-      visitor->Trace(reversing_adjusted_start_value);
-    }
+    void Trace(Visitor* visitor) const { visitor->Trace(animation); }
 
     Member<Animation> animation;
-    Member<const ComputedStyle> from;
-    Member<const ComputedStyle> to;
-    Member<const ComputedStyle> reversing_adjusted_start_value;
+    scoped_refptr<const ComputedStyle> from;
+    scoped_refptr<const ComputedStyle> to;
+    scoped_refptr<const ComputedStyle> reversing_adjusted_start_value;
     double reversing_shortening_factor;
   };
 
@@ -282,7 +261,7 @@ class CORE_EXPORT CSSAnimations final {
     Element& animating_element;
     const ComputedStyle& old_style;
     const ComputedStyle& base_style;
-    const ComputedStyle* before_change_style;
+    scoped_refptr<const ComputedStyle> before_change_style;
     const TransitionMap* active_transitions;
     HashSet<PropertyHandle>* listed_properties;
     const CSSTransitionData* transition_data;
@@ -295,18 +274,18 @@ class CORE_EXPORT CSSAnimations final {
   static void CalculateTransitionUpdateForProperty(
       TransitionUpdateState&,
       const CSSTransitionData::TransitionProperty&,
-      wtf_size_t transition_index,
+      size_t transition_index,
       WritingDirectionMode);
 
   static void CalculateTransitionUpdateForCustomProperty(
       TransitionUpdateState&,
       const CSSTransitionData::TransitionProperty&,
-      wtf_size_t transition_index);
+      size_t transition_index);
 
   static void CalculateTransitionUpdateForStandardProperty(
       TransitionUpdateState&,
       const CSSTransitionData::TransitionProperty&,
-      wtf_size_t transition_index,
+      size_t transition_index,
       WritingDirectionMode);
 
   static bool CanCalculateTransitionUpdateForProperty(
@@ -316,7 +295,7 @@ class CORE_EXPORT CSSAnimations final {
   static void CalculateTransitionUpdateForPropertyHandle(
       TransitionUpdateState&,
       const PropertyHandle&,
-      wtf_size_t transition_index,
+      size_t transition_index,
       bool animate_all);
 
   static void CalculateAnimationActiveInterpolations(
@@ -401,7 +380,7 @@ class CORE_EXPORT CSSAnimations final {
   // on the element as of the previous style change event, except with any
   // styles derived from declarative animations updated to the current time.
   // https://drafts.csswg.org/css-transitions-1/#before-change-style
-  static const ComputedStyle* CalculateBeforeChangeStyle(
+  static scoped_refptr<const ComputedStyle> CalculateBeforeChangeStyle(
       Element& animating_element,
       const ComputedStyle& base_style);
 

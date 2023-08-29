@@ -142,15 +142,20 @@ public class VoiceRecognitionHandlerUnitTest {
 
     @After
     public void tearDown() {
+        AutocompleteControllerProvider.setControllerForTesting(null);
         mWindowAndroid.destroy();
         // Make sure destroy() propagates.
         // Any cleanup code scheduled for execution via the means of a Handler or PostTask
         // will be taken care of here.
         ShadowLooper.shadowMainLooper().idle();
         mHandler.removeObserver(mObserver);
+        VoiceRecognitionHandler.setIsRecognitionIntentPresentForTesting(null);
         FeatureList.setTestValues(null);
+        VoiceRecognitionUtil.setIsVoiceSearchEnabledForTesting(null);
         mProfileSupplier.set(null);
+        TemplateUrlServiceFactory.setInstanceForTesting(null);
         ProfileManager.onProfileAdded(null);
+        Profile.setLastUsedProfileForTesting(null);
     }
 
     /**
@@ -187,7 +192,7 @@ public class VoiceRecognitionHandlerUnitTest {
         var intent = new Intent();
         var bundle = new Bundle();
         if (text != null) {
-            bundle = RecognitionTestHelper.createPlaceholderBundle(
+            bundle = RecognitionTestHelper.createDummyBundle(
                     new String[] {text}, new float[] {confidence});
         }
         intent.putExtras(bundle);
@@ -493,10 +498,10 @@ public class VoiceRecognitionHandlerUnitTest {
     @SmallTest
     public void testParseResults_MismatchedTextAndConfidenceScores() {
         Assert.assertNull(
-                mHandler.convertBundleToVoiceResults(RecognitionTestHelper.createPlaceholderBundle(
+                mHandler.convertBundleToVoiceResults(RecognitionTestHelper.createDummyBundle(
                         new String[] {"blah"}, new float[] {0f, 1f})));
         Assert.assertNull(
-                mHandler.convertBundleToVoiceResults(RecognitionTestHelper.createPlaceholderBundle(
+                mHandler.convertBundleToVoiceResults(RecognitionTestHelper.createDummyBundle(
                         new String[] {"blah", "foo"}, new float[] {7f})));
     }
 
@@ -507,7 +512,7 @@ public class VoiceRecognitionHandlerUnitTest {
         float[] confidences = new float[] {0.8f, 1.0f, 1.0f};
 
         List<VoiceResult> results = mHandler.convertBundleToVoiceResults(
-                RecognitionTestHelper.createPlaceholderBundle(texts, confidences));
+                RecognitionTestHelper.createDummyBundle(texts, confidences));
         Assert.assertEquals(3, results.size());
         RecognitionTestHelper.assertVoiceResultsAreEqual(results, texts, confidences);
     }
@@ -524,7 +529,7 @@ public class VoiceRecognitionHandlerUnitTest {
         String[] texts = new String[] {"a", "www. b .co .uk", "engadget .com", "www.google.com"};
         float[] confidences = new float[] {1.0f, 1.0f, 1.0f, 1.0f};
         List<VoiceResult> results = mHandler.convertBundleToVoiceResults(
-                RecognitionTestHelper.createPlaceholderBundle(texts, confidences));
+                RecognitionTestHelper.createDummyBundle(texts, confidences));
 
         RecognitionTestHelper.assertVoiceResultsAreEqual(results,
                 new String[] {"a", "www.b.co.uk", "engadget.com", "www.google.com"},

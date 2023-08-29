@@ -423,8 +423,9 @@ class CORE_EXPORT NGGridSizingTrackCollection final
   LayoutUnit TotalTrackSize() const;
 
   void BuildSets(const ComputedStyle& grid_style,
-                 LayoutUnit grid_available_size,
-                 LayoutUnit gutter_size);
+                 LayoutUnit grid_available_size);
+  void InitializeSets(LayoutUnit grid_available_size = kIndefiniteSize,
+                      LayoutUnit gutter_size = LayoutUnit());
   void SetIndefiniteGrowthLimitsToBaseSize();
 
   // Caches the geometry of definite sets; this is useful when building the sets
@@ -446,11 +447,10 @@ class CORE_EXPORT NGGridSizingTrackCollection final
   friend class NGGridLayoutAlgorithmTest;
   friend class NGGridTrackCollectionTest;
 
-  // These methods are internal implementations also used in testing.
+  // This private version of |BuildSets| is directly used in testing.
   void BuildSets(const NGGridTrackList& explicit_track_list,
                  const NGGridTrackList& implicit_track_list,
                  bool is_available_size_indefinite = true);
-  void InitializeSets(LayoutUnit grid_available_size = kIndefiniteSize);
 
   wtf_size_t non_collapsed_track_count_{0};
 

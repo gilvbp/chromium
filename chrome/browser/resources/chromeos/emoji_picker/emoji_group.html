@@ -110,23 +110,11 @@
     width: var(--emoji-group-heading-size);
   }
 
-  #clear-recents-container {
-    position: absolute;
-    right: 0;
-    top: calc(var(--emoji-group-heading-padding-top)
-      + var(--emoji-group-heading-padding-bottom)
-      + var(--emoji-group-heading-size));
-    box-shadow: var(--cr-elevation-1);
-    border-radius: 4px;
-    overflow: hidden;
-    /* Declare the z-index here to ensure this container is visible above
-     * everything else. */
-    z-index: 300;
-  }
-
-  #clear-recents, #help {
+  #clear-recents {
     background-color: var(--cros-bg-color);
     border: 2px solid transparent;
+    border-radius: 4px;
+    box-shadow: var(--cr-elevation-1);
     color: var(--cros-text-color-secondary);
     cursor: pointer;
     font-family: 'Roboto', sans-serif;
@@ -134,17 +122,18 @@
     height: var(--emoji-size);
     outline: none;
     padding: 0;
+    position: absolute;
+    right: 0;
+    top: calc(var(--emoji-group-heading-padding-top)
+      + var(--emoji-group-heading-padding-bottom)
+      + var(--emoji-group-heading-size));
     white-space: nowrap;
-    width: 100%;
+    width: fit-content;
     z-index: 200;
-    display: block;
-    text-align: left;
   }
 
   #clear-recents:focus,
-  #clear-recents:active,
-  #help:focus,
-  #help:active {
+  #clear-recents:active {
     border: 2px solid var(--cros-toggle-color);
   }
 
@@ -238,19 +227,11 @@
   </div>
 </template>
 <template is = "dom-if" if="[[showClearRecents]]">
-  <div id="clear-recents-container">
-    <button id="clear-recents" on-click="onClearRecentsClick">
-      <div id="clear-recents-hover">
-        Clear recently used [[formatCategory(category)]]s
-      </div>
-    </button>
-
-    <button id="help" on-click="onHelpClick">
-      <div id="clear-recents-hover">
-        Help
-      </div>
-    </button>
-</div>
+  <button id="clear-recents" on-click="onClearRecentsClick">
+    <div id="clear-recents-hover">
+      Clear recently used [[formatCategory(category)]]s
+    </div>
+  </button>
 </template>
 
 <!-- Add emoji buttons.

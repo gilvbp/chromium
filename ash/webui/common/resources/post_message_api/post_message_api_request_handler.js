@@ -44,7 +44,7 @@ export class RequestHandler {
    * Returns the target url that this request handler is communicating with.
    * @return {URL}
    */
-  targetUrl() {
+  targetURL() {
     return this.targetURL_;
   }
 
@@ -127,7 +127,7 @@ export class RequestHandler {
             rejected: rejected,
             error: error,
           },
-          this.targetUrl().toString());
+          this.targetURL().toString());
     };
 
 

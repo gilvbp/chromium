@@ -31,8 +31,6 @@
 #ifndef THIRD_PARTY_BLINK_RENDERER_CORE_ANIMATION_TIMING_CALCULATIONS_H_
 #define THIRD_PARTY_BLINK_RENDERER_CORE_ANIMATION_TIMING_CALCULATIONS_H_
 
-#include "base/debug/dump_without_crashing.h"
-#include "base/metrics/histogram_macros.h"
 #include "base/notreached.h"
 #include "third_party/abseil-cpp/absl/types/optional.h"
 #include "third_party/blink/renderer/core/animation/timing.h"
@@ -46,20 +44,6 @@ inline bool EndsOnIterationBoundary(double iteration_count,
                                     double iteration_start) {
   DCHECK(std::isfinite(iteration_count));
   return !fmod(iteration_count + iteration_start, 1);
-}
-
-void RecordBoundaryMisalignment(AnimationTimeDelta misalignment) {
-  // Animations require 1 microsecond precision. For a scroll-based animation,
-  // percentages are internally converted to time. The animation duration in
-  // microseconds is 16 * (range in pixels).
-  // Refer to cc/animations/scroll_timeline.h for details.
-  //
-  // It is not particularly meaningful to report the misalignment as a time
-  // since there is no dependency on having a high resolution timer. Instead,
-  // we convert back to 16ths of a pixel by scaling accordingly.
-  int sample = std::round<int>(misalignment.InMicrosecondsF());
-  UMA_HISTOGRAM_EXACT_LINEAR("Blink.Animation.SDA.BoundaryMisalignment", sample,
-                             64);
 }
 
 }  // namespace
@@ -128,12 +112,12 @@ static inline AnimationTimeDelta MultiplyZeroAlwaysGivesZero(
 static inline Timing::Phase CalculatePhase(
     const Timing::NormalizedTiming& normalized,
     absl::optional<AnimationTimeDelta>& local_time,
+    bool at_progress_timeline_boundary,
     Timing::AnimationDirection direction) {
   DCHECK(GreaterThanOrEqualToWithinTimeTolerance(normalized.active_duration,
                                                  AnimationTimeDelta()));
-  if (!local_time) {
+  if (!local_time)
     return Timing::kPhaseNone;
-  }
 
   AnimationTimeDelta before_active_boundary_time =
       std::max(std::min(normalized.start_delay, normalized.end_time),
@@ -142,17 +126,10 @@ static inline Timing::Phase CalculatePhase(
                                      before_active_boundary_time)) {
     local_time = before_active_boundary_time;
   }
-
-  if (local_time.value() < before_active_boundary_time) {
-    if (normalized.is_start_boundary_aligned) {
-      RecordBoundaryMisalignment(before_active_boundary_time -
-                                 local_time.value());
-    }
-    return Timing::kPhaseBefore;
-  }
-  if ((direction == Timing::AnimationDirection::kBackwards &&
+  if (local_time.value() < before_active_boundary_time ||
+      (direction == Timing::AnimationDirection::kBackwards &&
        local_time.value() == before_active_boundary_time &&
-       !normalized.is_start_boundary_aligned)) {
+       !at_progress_timeline_boundary)) {
     return Timing::kPhaseBefore;
   }
 
@@ -164,16 +141,10 @@ static inline Timing::Phase CalculatePhase(
                                      active_after_boundary_time)) {
     local_time = active_after_boundary_time;
   }
-  if (local_time.value() > active_after_boundary_time) {
-    if (normalized.is_end_boundary_aligned) {
-      RecordBoundaryMisalignment(local_time.value() -
-                                 active_after_boundary_time);
-    }
-    return Timing::kPhaseAfter;
-  }
-  if ((direction == Timing::AnimationDirection::kForwards &&
+  if (local_time.value() > active_after_boundary_time ||
+      (direction == Timing::AnimationDirection::kForwards &&
        local_time.value() == active_after_boundary_time &&
-       !normalized.is_end_boundary_aligned)) {
+       !at_progress_timeline_boundary)) {
     return Timing::kPhaseAfter;
   }
   return Timing::kPhaseActive;

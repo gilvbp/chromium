@@ -61,7 +61,7 @@ VideoEncoderClientConfig::VideoEncoderClientConfig(
     VideoCodecProfile output_profile,
     const std::vector<VideoEncodeAccelerator::Config::SpatialLayer>&
         spatial_layers,
-    SVCInterLayerPredMode inter_layer_pred_mode,
+    VideoEncodeAccelerator::Config::InterLayerPredMode inter_layer_pred_mode,
     const VideoBitrateAllocation& bitrate_allocation,
     bool reverse)
     : output_profile(output_profile),
@@ -78,7 +78,8 @@ VideoEncoderClientConfig::VideoEncoderClientConfig(
       num_frames_to_encode(video->NumFrames()),
       reverse(reverse) {
   CHECK_EQ(spatial_layers.size() <= 1u,
-           inter_layer_pred_mode == SVCInterLayerPredMode::kOff);
+           inter_layer_pred_mode ==
+               VideoEncodeAccelerator::Config::InterLayerPredMode::kOff);
 }
 
 VideoEncoderClientConfig::VideoEncoderClientConfig(

@@ -2,18 +2,16 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// https://wicg.github.io/web-smart-card/#smartcardcontext-interface
+// https://github.com/WICG/web-smart-card/blob/main/README.md#smartcardcontext
 
 dictionary SmartCardReaderStateIn {
   required DOMString readerName;
   required SmartCardReaderStateFlags currentState;
-  unsigned long currentCount;
 };
 
 dictionary SmartCardReaderStateOut {
   required DOMString readerName;
   required SmartCardReaderStateFlags eventState;
-  required unsigned long eventCount;
   required ArrayBuffer answerToReset;
 };
 
@@ -31,30 +29,15 @@ dictionary SmartCardReaderStateFlags {
   boolean unpowered = false;
 };
 
-enum SmartCardProtocol {
-  "raw",
-  "t0",
-  "t1"
-};
-
 dictionary SmartCardConnectResult {
   required SmartCardConnection connection;
-  SmartCardProtocol activeProtocol;
+  required SmartCardProtocol activeProtocol;
 };
 
 enum SmartCardAccessMode {
   "shared",
   "exclusive",
   "direct"
-};
-
-dictionary SmartCardGetStatusChangeOptions {
-  DOMHighResTimeStamp timeout;
-  AbortSignal signal;
-};
-
-dictionary SmartCardConnectOptions {
-  sequence<SmartCardProtocol> preferredProtocols;
 };
 
 [
@@ -69,11 +52,11 @@ dictionary SmartCardConnectOptions {
   [CallWith=ScriptState, RaisesException]
   Promise<sequence<SmartCardReaderStateOut>> getStatusChange(
       sequence<SmartCardReaderStateIn> readerStates,
-      optional SmartCardGetStatusChangeOptions options = {});
+      AbortSignal signal);
 
   [CallWith=ScriptState, RaisesException]
   Promise<SmartCardConnectResult> connect(
       DOMString readerName,
       SmartCardAccessMode accessMode,
-      optional SmartCardConnectOptions options = {});
+      optional sequence<SmartCardProtocol> preferredProtocols);
 };

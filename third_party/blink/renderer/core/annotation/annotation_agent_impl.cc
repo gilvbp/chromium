@@ -74,12 +74,12 @@ bool IsValidRangeForTextFinder(const RangeInFlatTree* range) {
     }
 
     if (box->StyleRef().OverflowX() != EOverflow::kVisible &&
-        box->Size().width.RawValue() <= 0) {
+        box->Size().Width().RawValue() <= 0) {
       return false;
     }
 
     if (box->StyleRef().OverflowY() != EOverflow::kVisible &&
-        box->Size().height.RawValue() <= 0) {
+        box->Size().Height().RawValue() <= 0) {
       return false;
     }
   }

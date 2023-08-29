@@ -6,7 +6,6 @@
 
 #include <stddef.h>
 #include <stdint.h>
-#include <stdlib.h>
 
 #include <fuzzer/FuzzedDataProvider.h>
 
@@ -25,13 +24,11 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   std::vector<uint8_t> second_part =
       fuzzed_data.ConsumeRemainingBytes<uint8_t>();
 
-  net::der::Input in1(first_part);
-  net::der::Input in2(second_part);
+  net::der::Input in1(first_part.data(), first_part.size());
+  net::der::Input in2(second_part.data(), second_part.size());
   bool match = net::VerifyNameMatch(in1, in2);
   bool reverse_order_match = net::VerifyNameMatch(in2, in1);
   // Result should be the same regardless of argument order.
-  if (match != reverse_order_match) {
-    abort();
-  }
+  CHECK_EQ(match, reverse_order_match);
   return 0;
 }

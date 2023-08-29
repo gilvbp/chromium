@@ -15,7 +15,6 @@ import static androidx.test.espresso.matcher.ViewMatchers.withText;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 
@@ -72,8 +71,6 @@ public class PasswordMigrationWarningViewTest {
     public ChromeTabbedActivityTestRule mActivityTestRule = new ChromeTabbedActivityTestRule();
 
     @Mock
-    private Runnable mOnShowEventListener;
-    @Mock
     private Callback<Integer> mDismissCallback;
     @Mock
     private PasswordMigrationWarningOnClickHandler mOnClickHandler;
@@ -93,9 +90,9 @@ public class PasswordMigrationWarningViewTest {
                                          .getBottomSheetController();
         runOnUiThreadBlocking(() -> {
             mModel = PasswordMigrationWarningProperties.createDefaultModel(
-                    mOnShowEventListener, mDismissCallback, mOnClickHandler);
-            mView = new PasswordMigrationWarningView(mActivityTestRule.getActivity(),
-                    mBottomSheetController, () -> {}, (Throwable exception) -> fail());
+                    mDismissCallback, mOnClickHandler);
+            mView = new PasswordMigrationWarningView(
+                    mActivityTestRule.getActivity(), mBottomSheetController, () -> {});
             PropertyModelChangeProcessor.create(mModel, mView,
                     PasswordMigrationWarningViewBinder::bindPasswordMigrationWarningView);
         });
@@ -113,20 +110,6 @@ public class PasswordMigrationWarningViewTest {
         runOnUiThreadBlocking(() -> mModel.set(VISIBLE, false));
         pollUiThread(() -> getBottomSheetState() == BottomSheetController.SheetState.HIDDEN);
         assertThat(mView.getContentView().isShown(), is(false));
-    }
-
-    @Test
-    @MediumTest
-    public void testCallsOnShowListener() {
-        runOnUiThreadBlocking(() -> mModel.set(VISIBLE, true));
-        BottomSheetTestSupport.waitForOpen(mBottomSheetController);
-        runOnUiThreadBlocking(() -> mModel.set(CURRENT_SCREEN, ScreenType.INTRO_SCREEN));
-        // Wait for the fragment containing the button to be attached.
-        pollUiThread(()
-                             -> mActivityTestRule.getActivity().findViewById(
-                                        R.id.acknowledge_password_migration_button)
-                        != null);
-        verify(mOnShowEventListener).run();
     }
 
     @Test

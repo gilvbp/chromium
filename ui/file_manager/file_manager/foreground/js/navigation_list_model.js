@@ -12,7 +12,6 @@ import {VolumeManagerCommon} from '../../common/js/volume_manager_types.js';
 import {FilesAppEntry} from '../../externs/files_app_entry_interfaces.js';
 import {VolumeInfo} from '../../externs/volume_info.js';
 import {VolumeManager} from '../../externs/volume_manager.js';
-import {getStore} from '../../state/store.js';
 
 import {AndroidAppListModel} from './android_app_list_model.js';
 import {DirectoryModel} from './directory_model.js';
@@ -334,7 +333,7 @@ export class NavigationListModel extends EventTarget {
     }
 
     // Reorder volumes, shortcuts, and optional items for initial display.
-    this.refreshNavigationItems();
+    this.reorderNavigationItems_();
 
     // Generates a combined 'permuted' event from an event of either volumeList
     // or shortcutList.
@@ -428,7 +427,7 @@ export class NavigationListModel extends EventTarget {
       }
 
       // Reorder items after permutation.
-      this.refreshNavigationItems();
+      this.reorderNavigationItems_();
 
       // Dispatch permuted event.
       const permutedEvent = new Event('permuted');
@@ -465,7 +464,7 @@ export class NavigationListModel extends EventTarget {
    */
   set linuxFilesItem(item) {
     this.linuxFilesItem_ = item;
-    this.refreshNavigationItems();
+    this.reorderNavigationItems_();
   }
 
   /**
@@ -474,7 +473,7 @@ export class NavigationListModel extends EventTarget {
    */
   set guestOsPlaceholders(items) {
     this.guestOsPlaceholders_ = items;
-    this.refreshNavigationItems();
+    this.reorderNavigationItems_();
   }
 
   /**
@@ -483,7 +482,7 @@ export class NavigationListModel extends EventTarget {
    */
   set fakeDriveItem(item) {
     this.fakeDriveItem_ = item;
-    this.refreshNavigationItems();
+    this.reorderNavigationItems_();
   }
 
   /**
@@ -492,13 +491,15 @@ export class NavigationListModel extends EventTarget {
    */
   set fakeTrashItem(item) {
     this.trashItem_ = item;
-    this.refreshNavigationItems();
+    this.reorderNavigationItems_();
   }
 
   /**
-   * Refresh list of navigation items.
+   * Reorder navigation items when command line flag new-files-app-navigation is
+   * enabled it nests Downloads, Linux and Android files under "My Files"; when
+   * it's disabled it has a flat structure with Linux files after Recent menu.
    */
-  refreshNavigationItems() {
+  reorderNavigationItems_() {
     return this.orderAndNestItems_();
   }
 
@@ -761,15 +762,9 @@ export class NavigationListModel extends EventTarget {
     for (const provided of getVolumes(
              VolumeManagerCommon.VolumeType.PROVIDED)) {
       if (util.isOneDrive(provided.volumeInfo)) {
-        provided.section = NavigationSection.ODFS;
-        const {volumes} = getStore().getState();
-        const volume = volumes[provided.volumeInfo.volumeId];
-        // The state might not have been initialized yet. The navigation items
-        // will be refreshed once the store gets populated.
-        if (volume) {
-          provided.disabled = volume.isDisabled;
-        }
         this.navigationItems_.push(provided);
+        provided.section = NavigationSection.ODFS;
+        break;
       }
     }
 

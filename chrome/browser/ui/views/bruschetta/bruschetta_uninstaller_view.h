@@ -42,10 +42,6 @@ class BruschettaUninstallerView : public views::BubbleDialogDelegateView {
     destructor_callback_for_testing_.ReplaceClosure(std::move(callback));
   }
 
- protected:
-  // WidgetDelegate overrides
-  void OnWidgetInitialized() override;
-
  private:
   enum class State {
     PROMPT,  // Prompting the user to allow uninstallation.
@@ -57,7 +53,7 @@ class BruschettaUninstallerView : public views::BubbleDialogDelegateView {
                                      guest_os::GuestId guest_id);
   ~BruschettaUninstallerView() override;
 
-  void HandleError();
+  void HandleError(const std::u16string& error_message);
   void UninstallBruschettaFinished(bool success);
 
   State state_ = State::PROMPT;

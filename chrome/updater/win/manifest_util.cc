@@ -9,7 +9,6 @@
 #include <string>
 #include <vector>
 
-#include "base/containers/cxx20_erase.h"
 #include "base/files/file_enumerator.h"
 #include "base/files/file_path.h"
 #include "base/files/file_util.h"
@@ -233,8 +232,13 @@ bool IsArchitectureCompatible(const std::string& arch_list,
           }) != architectures.end()) {
     return false;
   }
-  base::EraseIf(architectures,
-                [](const std::string& arch) { return arch[0] == '-'; });
+
+  architectures.erase(base::ranges::remove_if(architectures,
+                                              [](const std::string& arch) {
+                                                return arch[0] == '-';
+                                              }),
+                      architectures.end());
+
   return architectures.empty() ||
          base::ranges::find_if(
              architectures, [&current_architecture](const std::string& arch) {

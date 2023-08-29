@@ -10,15 +10,16 @@
 #include <limits>
 
 #include "base/check_op.h"
-#include "base/component_export.h"
 #include "base/numerics/safe_math.h"
 #include "cc/base/math_util.h"
+#include "components/viz/common/resources/resource_format.h"
 #include "components/viz/common/resources/shared_image_format.h"
+#include "components/viz/common/viz_resource_format_export.h"
 #include "ui/gfx/geometry/size.h"
 
 namespace viz {
 
-class COMPONENT_EXPORT(VIZ_SHARED_IMAGE_FORMAT) ResourceSizes {
+class VIZ_RESOURCE_FORMAT_EXPORT ResourceSizes {
  public:
   // Returns true if the size is valid and fits in bytes, false otherwise.
   // Sets the bytes result in the out parameter |bytes|.
@@ -48,29 +49,27 @@ class COMPONENT_EXPORT(VIZ_SHARED_IMAGE_FORMAT) ResourceSizes {
 
   template <typename T>
   static bool VerifyWidthInBytesInternal(int width,
-                                         SharedImageFormat format,
+                                         ResourceFormat format,
                                          bool aligned);
 
   template <typename T>
   static bool MaybeWidthInBytesInternal(int width,
-                                        SharedImageFormat format,
+                                        ResourceFormat format,
                                         bool aligned,
                                         T* bytes);
 
   template <typename T>
   static bool MaybeSizeInBytesInternal(const gfx::Size& size,
-                                       SharedImageFormat format,
+                                       ResourceFormat format,
                                        bool aligned,
                                        T* bytes);
 
   template <typename T>
-  static T WidthInBytesInternal(int width,
-                                SharedImageFormat format,
-                                bool aligned);
+  static T WidthInBytesInternal(int width, ResourceFormat format, bool aligned);
 
   template <typename T>
   static T SizeInBytesInternal(const gfx::Size& size,
-                               SharedImageFormat format,
+                               ResourceFormat format,
                                bool aligned);
 
   template <typename T>
@@ -87,7 +86,8 @@ bool ResourceSizes::MaybeSizeInBytes(const gfx::Size& size,
   VerifyType<T>();
   if (size.IsEmpty())
     return false;
-  return MaybeSizeInBytesInternal<T>(size, format, false, bytes);
+  return MaybeSizeInBytesInternal<T>(size, format.resource_format(), false,
+                                     bytes);
 }
 
 template <typename T>
@@ -95,7 +95,8 @@ T ResourceSizes::CheckedWidthInBytes(int width, SharedImageFormat format) {
   VerifyType<T>();
   CHECK_GT(width, 0);
   T bytes;
-  CHECK(MaybeWidthInBytesInternal<T>(width, format, false, &bytes));
+  CHECK(MaybeWidthInBytesInternal<T>(width, format.resource_format(), false,
+                                     &bytes));
   return bytes;
 }
 
@@ -105,7 +106,8 @@ T ResourceSizes::CheckedSizeInBytes(const gfx::Size& size,
   VerifyType<T>();
   CHECK(!size.IsEmpty());
   T bytes;
-  CHECK(MaybeSizeInBytesInternal<T>(size, format, false, &bytes));
+  CHECK(MaybeSizeInBytesInternal<T>(size, format.resource_format(), false,
+                                    &bytes));
   return bytes;
 }
 
@@ -113,8 +115,8 @@ template <typename T>
 T ResourceSizes::UncheckedWidthInBytes(int width, SharedImageFormat format) {
   VerifyType<T>();
   DCHECK_GT(width, 0);
-  DCHECK(VerifyWidthInBytesInternal<T>(width, format, false));
-  return WidthInBytesInternal<T>(width, format, false);
+  DCHECK(VerifyWidthInBytesInternal<T>(width, format.resource_format(), false));
+  return WidthInBytesInternal<T>(width, format.resource_format(), false);
 }
 
 template <typename T>
@@ -126,7 +128,7 @@ void ResourceSizes::VerifyType() {
 
 template <typename T>
 bool ResourceSizes::VerifyWidthInBytesInternal(int width,
-                                               SharedImageFormat format,
+                                               ResourceFormat format,
                                                bool aligned) {
   T ignored;
   return MaybeWidthInBytesInternal(width, format, aligned, &ignored);
@@ -134,10 +136,11 @@ bool ResourceSizes::VerifyWidthInBytesInternal(int width,
 
 template <typename T>
 bool ResourceSizes::MaybeWidthInBytesInternal(int width,
-                                              SharedImageFormat format,
+                                              ResourceFormat format,
                                               bool aligned,
                                               T* bytes) {
-  base::CheckedNumeric<T> bits_per_row = format.BitsPerPixel();
+  base::CheckedNumeric<T> bits_per_row =
+      SharedImageFormat::SinglePlane(format).BitsPerPixel();
   bits_per_row *= width;
   if (!bits_per_row.IsValid())
     return false;
@@ -168,7 +171,7 @@ bool ResourceSizes::MaybeWidthInBytesInternal(int width,
 
 template <typename T>
 bool ResourceSizes::MaybeSizeInBytesInternal(const gfx::Size& size,
-                                             SharedImageFormat format,
+                                             ResourceFormat format,
                                              bool aligned,
                                              T* bytes) {
   T width_in_bytes;
@@ -188,9 +191,9 @@ bool ResourceSizes::MaybeSizeInBytesInternal(const gfx::Size& size,
 
 template <typename T>
 T ResourceSizes::WidthInBytesInternal(int width,
-                                      SharedImageFormat format,
+                                      ResourceFormat format,
                                       bool aligned) {
-  T bytes = format.BitsPerPixel();
+  T bytes = SharedImageFormat::SinglePlane(format).BitsPerPixel();
   bytes *= width;
   bytes = cc::MathUtil::UncheckedRoundUp<T>(bytes, 8);
   bytes /= 8;
@@ -201,7 +204,7 @@ T ResourceSizes::WidthInBytesInternal(int width,
 
 template <typename T>
 T ResourceSizes::SizeInBytesInternal(const gfx::Size& size,
-                                     SharedImageFormat format,
+                                     ResourceFormat format,
                                      bool aligned) {
   T bytes = WidthInBytesInternal<T>(size.width(), format, aligned);
   bytes *= size.height();

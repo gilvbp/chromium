@@ -90,25 +90,23 @@ ScriptPromise DOMScheduler::postTask(
     return ScriptPromise();
   }
 
-  SchedulingState state = GetSchedulingStateFromOptions(
-      script_state, options->getSignalOr(nullptr),
+  auto* task_signal = GetTaskSignalFromOptions(
+      script_state, exception_state, options->getSignalOr(nullptr),
       options->hasPriority()
           ? AtomicString(IDLEnumAsString(options->priority()))
           : g_null_atom);
-  if (state.abort_source && state.abort_source->aborted()) {
-    exception_state.RethrowV8Exception(
-        ToV8Traits<IDLAny>::ToV8(script_state,
-                                 state.abort_source->reason(script_state))
-            .ToLocalChecked());
+  if (exception_state.HadException()) {
+    // The given signal was aborted.
     return ScriptPromise();
   }
 
+  CHECK(task_signal);
   auto* task_queue =
-      GetTaskQueue(state.priority_source, WebSchedulingQueueType::kTaskQueue);
+      GetTaskQueue(task_signal, WebSchedulingQueueType::kTaskQueue);
   auto* resolver = MakeGarbageCollected<ScriptPromiseResolver>(
       script_state, exception_state.GetContext());
-  MakeGarbageCollected<DOMTask>(resolver, callback_function, state.abort_source,
-                                state.priority_source, task_queue,
+  MakeGarbageCollected<DOMTask>(resolver, callback_function, task_signal,
+                                task_queue,
                                 base::Milliseconds(options->delay()));
   return resolver->Promise();
 }
@@ -150,23 +148,19 @@ ScriptPromise DOMScheduler::yield(ScriptState* script_state,
     priority_option = AtomicString(IDLEnumAsString(options->priority()));
   }
 
-  SchedulingState state = GetSchedulingStateFromOptions(
-      script_state, signal_option, priority_option);
-  if (state.abort_source && state.abort_source->aborted()) {
-    exception_state.RethrowV8Exception(
-        ToV8Traits<IDLAny>::ToV8(script_state,
-                                 state.abort_source->reason(script_state))
-            .ToLocalChecked());
+  auto* task_signal = GetTaskSignalFromOptions(script_state, exception_state,
+                                               signal_option, priority_option);
+  if (exception_state.HadException()) {
+    // The given or inherited signal was aborted.
     return ScriptPromise();
   }
 
-  CHECK(state.priority_source);
-  auto* task_queue = GetTaskQueue(state.priority_source,
-                                  WebSchedulingQueueType::kContinuationQueue);
+  CHECK(task_signal);
+  auto* task_queue =
+      GetTaskQueue(task_signal, WebSchedulingQueueType::kContinuationQueue);
   auto* resolver = MakeGarbageCollected<ScriptPromiseResolver>(
       script_state, exception_state.GetContext());
-  MakeGarbageCollected<DOMTaskContinuation>(resolver, state.abort_source,
-                                            task_queue);
+  MakeGarbageCollected<DOMTaskContinuation>(resolver, task_signal, task_queue);
   return resolver->Promise();
 }
 
@@ -241,55 +235,97 @@ DOMScheduler::DOMTaskQueue* DOMScheduler::CreateDynamicPriorityTaskQueue(
   return dom_task_queue;
 }
 
-DOMScheduler::SchedulingState DOMScheduler::GetSchedulingStateFromOptions(
+DOMTaskSignal* DOMScheduler::GetTaskSignalFromOptions(
     ScriptState* script_state,
+    ExceptionState& exception_state,
     absl::variant<AbortSignal*, InheritOption> signal_option,
     absl::variant<AtomicString, InheritOption> priority_option) {
-  // `inherited_abort_source` and `inherited_priority_source` will be null if no
-  // inheritance was specified or there's nothing to inherit, e.g. yielding from
-  // a non-postTask task.
-  // Note: The inherited signals will be from the original task, i.e. they don't
-  // get reset by continuations.
-  AbortSignal* inherited_abort_source = nullptr;
-  DOMTaskSignal* inherited_priority_source = nullptr;
+  // `inherited_signal` will be null if no inheritance was specified or there's
+  // nothing to inherit, e.g. yielding from a non-postTask task.
+  // Note: `inherited_signal` will be the one from the original task, i.e. it
+  // doesn't get reset by continuations.
+  DOMTaskSignal* inherited_signal = nullptr;
   if (absl::holds_alternative<InheritOption>(signal_option) ||
       absl::holds_alternative<InheritOption>(priority_option)) {
     CHECK(RuntimeEnabledFeatures::SchedulerYieldEnabled(
         ExecutionContext::From(script_state)));
     if (auto* inherited_state =
             ScriptWrappableTaskState::GetCurrent(script_state)) {
-      inherited_abort_source = inherited_state->GetAbortSource();
-      inherited_priority_source = inherited_state->GetPrioritySource();
+      inherited_signal = inherited_state->GetSignal();
     }
   }
 
-  SchedulingState result;
-  result.abort_source = absl::holds_alternative<AbortSignal*>(signal_option)
-                            ? absl::get<AbortSignal*>(signal_option)
-                            : inherited_abort_source;
-  if (result.abort_source && result.abort_source->aborted()) {
-    // This task or continuation won't be scheduled, so short-circuit.
-    return result;
+  AbortSignal* abort_source =
+      absl::holds_alternative<AbortSignal*>(signal_option)
+          ? absl::get<AbortSignal*>(signal_option)
+          : inherited_signal;
+  // Short-circuit things now that we know if `abort_source` is aborted.
+  if (abort_source && abort_source->aborted()) {
+    exception_state.RethrowV8Exception(
+        ToV8Traits<IDLAny>::ToV8(script_state,
+                                 abort_source->reason(script_state))
+            .ToLocalChecked());
+    return nullptr;
   }
 
+  DOMTaskSignal* priority_source = nullptr;
   if (absl::holds_alternative<InheritOption>(priority_option)) {
-    result.priority_source = inherited_priority_source;
+    priority_source = inherited_signal;
   } else if (absl::get<AtomicString>(priority_option) != g_null_atom) {
     // The priority option overrides the signal for priority.
-    result.priority_source = GetFixedPriorityTaskSignal(
+    priority_source = GetFixedPriorityTaskSignal(
         script_state, WebSchedulingPriorityFromString(
                           absl::get<AtomicString>(priority_option)));
   } else if (IsA<DOMTaskSignal>(absl::get<AbortSignal*>(signal_option))) {
-    result.priority_source =
-        To<DOMTaskSignal>(absl::get<AbortSignal*>(signal_option));
+    priority_source = To<DOMTaskSignal>(absl::get<AbortSignal*>(signal_option));
   }
   // `priority_source` is null if there was nothing to inherit or no signal or
   // priority was specified.
-  if (!result.priority_source) {
-    result.priority_source =
+  if (!priority_source) {
+    priority_source =
         GetFixedPriorityTaskSignal(script_state, kDefaultPriority);
   }
-  return result;
+
+  // The priority and abort sources are the same non-null task signal, so use
+  // that signal.
+  if (priority_source == abort_source) {
+    return priority_source;
+  }
+
+  // `priority_source` is already settled for abort and priority, and there is
+  // no abort source to combine with. Use `priority_source` rather than creating
+  // a new one.
+  if (priority_source->HasFixedPriority() && !priority_source->CanAbort() &&
+      (!abort_source || !abort_source->CanAbort())) {
+    return priority_source;
+  }
+
+  // Otherwise there are separate priority and abort sources. Create a
+  // composite signal from the sources and use that.
+  if (RuntimeEnabledFeatures::AbortSignalCompositionEnabled()) {
+    HeapVector<Member<AbortSignal>> abort_source_signals;
+    if (abort_source) {
+      abort_source_signals.push_back(abort_source);
+    }
+    return MakeGarbageCollected<DOMTaskSignal>(
+        script_state, priority_source->priority(), priority_source,
+        abort_source_signals);
+  } else {
+    // Fall back to use Follow if composition isn't enabled (kill switch path).
+    CHECK(priority_source->HasFixedPriority());
+    CHECK_EQ(priority_source->GetSignalType(),
+             AbortSignal::SignalType::kInternal);
+    //  `priority_source` wasn't returned earlier because internal signals are
+    //  never settled. Even though an abort algorithm will be added, it's safe
+    //  to just use this signal.
+    if (!abort_source) {
+      return priority_source;
+    }
+    auto* result_signal = DOMTaskSignal::CreateFixedPriorityTaskSignal(
+        script_state, priority_source->priority());
+    result_signal->Follow(script_state, abort_source);
+    return result_signal;
+  }
 }
 
 DOMTaskSignal* DOMScheduler::GetFixedPriorityTaskSignal(

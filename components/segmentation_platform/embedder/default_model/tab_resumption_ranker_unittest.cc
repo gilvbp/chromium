@@ -26,9 +26,10 @@ TEST_F(TabResumptionRankerTest, VerifyMetadata) {
   ExpectInitAndFetchModel();
   ASSERT_TRUE(fetched_metadata_);
 
-  ASSERT_GE(fetched_metadata_->input_features_size(), 1);
+  ASSERT_EQ(1, fetched_metadata_->input_features_size());
   const proto::CustomInput& input =
       fetched_metadata_->input_features(0).custom_input();
+
   EXPECT_EQ(proto::CustomInput::FILL_TAB_METRICS, input.fill_policy());
   EXPECT_EQ(processing::TabSessionSource::kNumInputs, input.tensor_length());
 }
@@ -39,7 +40,7 @@ TEST_F(TabResumptionRankerTest, ExecuteModelWithInput) {
 
   EXPECT_FALSE(ExecuteWithInput(/*inputs=*/{}));
 
-  ModelProvider::Request input(processing::TabSessionSource::kNumInputs + 2, 0);
+  ModelProvider::Request input(8, 0);
   ASSERT_TRUE(ExecuteWithInput(input));
 
   input[processing::TabSessionSource::kInputTimeSinceModifiedSec] = 3;

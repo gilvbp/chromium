@@ -5,7 +5,6 @@
 #include "content/browser/devtools/web_contents_devtools_agent_host.h"
 
 #include "base/unguessable_token.h"
-#include "content/browser/devtools/protocol/io_handler.h"
 #include "content/browser/devtools/protocol/target_auto_attacher.h"
 #include "content/browser/devtools/protocol/target_handler.h"
 #include "content/browser/devtools/protocol/tracing_handler.h"
@@ -29,23 +28,8 @@ WebContentsDevToolsAgentHost* FindAgentHost(WebContents* wc) {
   return it == g_agent_host_instances.Get().end() ? nullptr : it->second;
 }
 
-// This implements the DevTools definition of outermost web contents,
-// which is currently the one associated to outermost frame, not
-// traversing the guest view (so for something within a guest view),
-// this returns the parent guest view. This is for compatibility,
-// as guest views were historically exposed as independent targets.
-// Note this differs from `WebContents::GetResponsibleWebContents()`
-// that traverses guest views.
-WebContents* GetRootWebContentsForDevTools(WebContents* wc) {
-  RenderFrameHost* current = wc->GetPrimaryMainFrame();
-  while (RenderFrameHost* parent = current->GetParentOrOuterDocument()) {
-    current = parent;
-  }
-  return WebContents::FromRenderFrameHost(current);
-}
-
 bool ShouldCreateDevToolsAgentHost(WebContents* wc) {
-  return wc == GetRootWebContentsForDevTools(wc);
+  return wc == wc->GetResponsibleWebContents();
 }
 
 }  // namespace
@@ -118,10 +102,6 @@ class WebContentsDevToolsAgentHost::AutoAttacher
       }
       web_contents_->ForEachRenderFrameHost(
           [&hosts](RenderFrameHost* rfh) { AddFrame(hosts, rfh); });
-      // In case primary main frame has been filtered out but some criteria
-      // in AddFrame(), ensure it's added.
-      hosts.insert(
-          RenderFrameDevToolsAgentHost::GetOrCreateFor(rfh->frame_tree_node()));
     }
     DispatchSetAttachedTargetsOfType(hosts, DevToolsAgentHost::kTypePage);
     return hosts;
@@ -140,12 +120,6 @@ class WebContentsDevToolsAgentHost::AutoAttacher
       return;
     if (ftn->IsFencedFrameRoot())
       return;
-    // Allow portals, but ignore other kinds of embedders (e.g. GuestViews)
-    if (!ftn->frame_tree().delegate()->IsPortal() &&
-        ftn->render_manager()->GetOuterDelegateNode()) {
-      return;
-    }
-
     hosts.insert(RenderFrameDevToolsAgentHost::GetOrCreateFor(ftn));
   }
 
@@ -155,23 +129,16 @@ class WebContentsDevToolsAgentHost::AutoAttacher
 // static
 WebContentsDevToolsAgentHost* WebContentsDevToolsAgentHost::GetFor(
     WebContents* web_contents) {
-  return FindAgentHost(GetRootWebContentsForDevTools(web_contents));
+  return FindAgentHost(web_contents->GetResponsibleWebContents());
 }
 
 // static
 WebContentsDevToolsAgentHost* WebContentsDevToolsAgentHost::GetOrCreateFor(
     WebContents* web_contents) {
-  web_contents = GetRootWebContentsForDevTools(web_contents);
+  web_contents = web_contents->GetResponsibleWebContents();
   if (auto* host = FindAgentHost(web_contents))
     return host;
   return new WebContentsDevToolsAgentHost(web_contents);
-}
-
-// static
-bool WebContentsDevToolsAgentHost::IsDebuggerAttached(
-    WebContents* web_contents) {
-  WebContentsDevToolsAgentHost* host = FindAgentHost(web_contents);
-  return host && host->IsAttached();
 }
 
 // static
@@ -226,7 +193,7 @@ void WebContentsDevToolsAgentHost::PortalActivated(const Portal& portal) {
     WebContents* old_wc = web_contents();
     WebContents* new_wc = portal.GetPortalContents();
     // Assure instrumentation calls for the new WC would be routed here.
-    DCHECK(GetRootWebContentsForDevTools(new_wc) == new_wc);
+    DCHECK(new_wc->GetResponsibleWebContents() == new_wc);
     DCHECK(g_agent_host_instances.Get()[old_wc] == this);
 
     g_agent_host_instances.Get().erase(old_wc);
@@ -436,7 +403,6 @@ bool WebContentsDevToolsAgentHost::AttachSession(DevToolsSession* session,
       GetId(), auto_attacher_.get(), session);
   DevToolsSession* root_session = session->GetRootSession();
   CHECK(root_session);
-  session->CreateAndAddHandler<protocol::IOHandler>(GetIOContext());
   session->CreateAndAddHandler<protocol::TracingHandler>(this, GetIOContext(),
                                                          root_session);
   return true;

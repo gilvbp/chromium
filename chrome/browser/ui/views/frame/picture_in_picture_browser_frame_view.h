@@ -16,7 +16,6 @@
 #include "chrome/browser/ui/views/overlay/close_image_button.h"
 #include "components/omnibox/browser/location_bar_model.h"
 #include "content/public/browser/web_contents.h"
-#include "third_party/abseil-cpp/absl/types/optional.h"
 #include "ui/base/metadata/metadata_header_macros.h"
 #include "ui/gfx/animation/multi_animation.h"
 #include "ui/gfx/animation/slide_animation.h"
@@ -64,7 +63,7 @@ class PictureInPictureBrowserFrameView
   void LayoutWebAppWindowTitle(const gfx::Rect& available_space,
                                views::Label& window_title_label) const override;
   int GetTopInset(bool restored) const override;
-  void OnBrowserViewInitViewsComplete() override;
+  int GetThemeBackgroundXInset() const override;
   void UpdateThrobber(bool running) override {}
   gfx::Rect GetBoundsForClientView() const override;
   gfx::Rect GetWindowBoundsForClientBounds(
@@ -103,8 +102,6 @@ class PictureInPictureBrowserFrameView
   LocationBarModel* GetLocationBarModel() const override;
   ui::ImageModel GetLocationIcon(LocationIconView::Delegate::IconFetchedCallback
                                      on_icon_fetched) const override;
-  absl::optional<ui::ColorId> GetLocationIconBackgroundColorOverride()
-      const override;
 
   // IconLabelBubbleView::Delegate:
   SkColor GetIconLabelBubbleSurroundingForegroundColor() const override;
@@ -121,7 +118,6 @@ class PictureInPictureBrowserFrameView
   void OnWidgetDestroying(views::Widget* widget) override;
 
   // gfx::AnimationDelegate:
-  void AnimationEnded(const gfx::Animation* animation) override;
   void AnimationProgressed(const gfx::Animation* animation) override;
 
   // views::View:
@@ -182,10 +178,6 @@ class PictureInPictureBrowserFrameView
   static gfx::ShadowValues GetShadowValues();
 #endif
 
-#if BUILDFLAG(IS_WIN)
-  gfx::Insets GetClientAreaInsets(HMONITOR monitor) const;
-#endif
-
   // Helper functions for testing.
   std::vector<gfx::Animation*> GetRenderActiveAnimationsForTesting();
   std::vector<gfx::Animation*> GetRenderInactiveAnimationsForTesting();
@@ -200,7 +192,7 @@ class PictureInPictureBrowserFrameView
     kOther = 0,
     kBackToTabButton = 1,
     kCloseButton = 2,
-    kMaxValue = kCloseButton
+    kMaxValue = kCloseButton,
   };
 
   CloseReason close_reason_ = CloseReason::kOther;
@@ -249,10 +241,6 @@ class PictureInPictureBrowserFrameView
   gfx::MultiAnimation show_close_button_animation_;
   gfx::MultiAnimation hide_close_button_animation_;
 
-  // The foreground color given the current state of the
-  // `top_bar_color_animation_`.
-  absl::optional<SkColor> current_foreground_color_;
-
 #if BUILDFLAG(IS_LINUX)
   // Used to draw window frame borders and shadow on Linux when GTK theme is
   // enabled.
@@ -265,11 +253,6 @@ class PictureInPictureBrowserFrameView
 
   // Used to monitor key and mouse events from native window.
   std::unique_ptr<WindowEventObserver> window_event_observer_;
-
-#if !BUILDFLAG(IS_ANDROID)
-  // If non-null, this displays the allow / block setting overlay for autopip.
-  raw_ptr<views::View> auto_pip_setting_overlay_ = nullptr;
-#endif
 };
 
 #endif  // CHROME_BROWSER_UI_VIEWS_FRAME_PICTURE_IN_PICTURE_BROWSER_FRAME_VIEW_H_

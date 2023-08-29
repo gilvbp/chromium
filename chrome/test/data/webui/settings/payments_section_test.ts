@@ -7,8 +7,9 @@ import {flush} from 'chrome://resources/polymer/v3_0/polymer/polymer_bundled.min
 import {PaymentsManagerImpl} from 'chrome://settings/lazy_load.js';
 import {CrButtonElement, loadTimeData, MetricsBrowserProxyImpl, PrivacyElementInteractions, SettingsToggleButtonElement} from 'chrome://settings/settings.js';
 import {assertEquals, assertFalse, assertTrue} from 'chrome://webui-test/chai_assert.js';
+import {isMac, isWindows} from 'chrome://resources/js/platform.js';
 
-import {createCreditCardEntry, TestPaymentsManager} from './autofill_fake_data.js';
+import {createCreditCardEntry, TestPaymentsManager} from './passwords_and_autofill_fake_data.js';
 import {createPaymentsSection, getLocalAndServerCreditCardListItems, getDefaultExpectations, getCardRowShadowRoot} from './payments_section_utils.js';
 import {TestMetricsBrowserProxy} from './test_metrics_browser_proxy.js';
 
@@ -44,10 +45,10 @@ suite('PaymentsSection', function() {
     document.body.innerHTML = window.trustedTypes!.emptyHTML;
     loadTimeData.overrideValues({
       migrationEnabled: true,
+      removeCardExpirationAndTypeTitles: true,
       virtualCardEnrollmentEnabled: true,
       showIbansSettings: true,
       deviceAuthAvailable: true,
-      autofillEnablePaymentsMandatoryReauth: true,
     });
   });
 
@@ -71,6 +72,12 @@ suite('PaymentsSection', function() {
             '#noPaymentMethodsLabel');
     assertTrue(!!noPaymentMethodsLabel);
     assertFalse(noPaymentMethodsLabel.hidden);
+
+    const creditCardsHeading =
+        creditCardList.shadowRoot!.querySelector<HTMLElement>(
+            '#creditCardsHeading');
+    assertTrue(!!creditCardsHeading);
+    assertTrue(creditCardsHeading.hidden);
 
     assertFalse(section.$.autofillCreditCardToggle.disabled);
 
@@ -97,6 +104,9 @@ suite('PaymentsSection', function() {
   });
 
   test('verifyCreditCardCount', async function() {
+    loadTimeData.overrideValues({
+      removeCardExpirationAndTypeTitles: true,
+    });
     const creditCards = [
       createCreditCardEntry(),
       createCreditCardEntry(),
@@ -119,6 +129,12 @@ suite('PaymentsSection', function() {
             '#noPaymentMethodsLabel');
     assertTrue(!!noPaymentMethodsLabel);
     assertTrue(noPaymentMethodsLabel.hidden);
+
+    const creditCardsHeading =
+        creditCardList.shadowRoot!.querySelector<HTMLElement>(
+            '#creditCardsHeading');
+    assertTrue(!!creditCardsHeading);
+    assertTrue(creditCardsHeading.hidden);
 
     assertFalse(section.$.autofillCreditCardToggle.disabled);
 
@@ -178,15 +194,9 @@ suite('PaymentsSection', function() {
     assertFalse(section.$.migrateCreditCards.hidden);
   });
 
-  // Scenario1:
-  // FIDO toggle shown- True
-  // User Verified- True
-  // Mandatory Reauth Flag- False
-  test('FidoAuthScenario1', async function() {
-    loadTimeData.overrideValues({
-      fidoAuthenticationAvailableForAutofill: true,
-      autofillEnablePaymentsMandatoryReauth: false,
-    });
+  test('verifyFIDOAuthToggleShownIfUserIsVerifiable', async function() {
+    // Set |fidoAuthenticationAvailableForAutofill| to true.
+    loadTimeData.overrideValues({fidoAuthenticationAvailableForAutofill: true});
     addFakePlatformAuthenticator();
     const section = await createPaymentsSection(
         /*creditCards=*/[], /*ibans=*/[], /*upiIds=*/[],
@@ -196,29 +206,8 @@ suite('PaymentsSection', function() {
         '#autofillCreditCardFIDOAuthToggle'));
   });
 
-  // Scenario2:
-  // FIDO toggle shown- False
-  // User Verified- True
-  // Mandatory Reauth Flag- True
-  test('FidoAuthScenario2', async function() {
-    loadTimeData.overrideValues({
-      fidoAuthenticationAvailableForAutofill: true,
-      autofillEnablePaymentsMandatoryReauth: true,
-    });
-    addFakePlatformAuthenticator();
-    const section = await createPaymentsSection(
-        /*creditCards=*/[], /*ibans=*/[], /*upiIds=*/[],
-        {credit_card_enabled: {value: true}});
-
-    assertFalse(!!section.shadowRoot!.querySelector(
-        '#autofillCreditCardFIDOAuthToggle'));
-  });
-
-  // Scenario3:
-  // FIDO toggle shown- False
-  // User Verified- False
-  // Mandatory Reauth Flag- False
-  test('FidoAuthScenario3', async function() {
+  test('verifyFIDOAuthToggleNotShownIfUserIsNotVerifiable', async function() {
+    // Set |fidoAuthenticationAvailableForAutofill| to false.
     loadTimeData.overrideValues(
         {fidoAuthenticationAvailableForAutofill: false});
     const section = await createPaymentsSection(
@@ -229,10 +218,8 @@ suite('PaymentsSection', function() {
   });
 
   test('verifyFIDOAuthToggleCheckedIfOptedIn', async function() {
-    loadTimeData.overrideValues({
-      fidoAuthenticationAvailableForAutofill: true,
-      autofillEnablePaymentsMandatoryReauth: false,
-    });
+    // Set FIDO auth pref value to true.
+    loadTimeData.overrideValues({fidoAuthenticationAvailableForAutofill: true});
     addFakePlatformAuthenticator();
     const section = await createPaymentsSection(
         /*creditCards=*/[], /*ibans=*/[], /*upiIds=*/[], {
@@ -245,10 +232,8 @@ suite('PaymentsSection', function() {
   });
 
   test('verifyFIDOAuthToggleUncheckedIfOptedOut', async function() {
-    loadTimeData.overrideValues({
-      fidoAuthenticationAvailableForAutofill: true,
-      autofillEnablePaymentsMandatoryReauth: false,
-    });
+    // Set FIDO auth pref value to false.
+    loadTimeData.overrideValues({fidoAuthenticationAvailableForAutofill: true});
     addFakePlatformAuthenticator();
     const section = await createPaymentsSection(
         /*creditCards=*/[], /*ibans=*/[], /*upiIds=*/[], {
@@ -287,20 +272,8 @@ suite('PaymentsSection', function() {
         assertTrue(addPaymentMethodsButton.hidden);
       });
 
-  /**
-   * The following tests deal with the Mandatory reauth feature. There are
-   * various conditions that can change the reauth toggle. Here are those
-   * conditions along with their shorthands to be used in the tests-
-   *    1. Mandatory reauth feature flag = flag
-   *    2. Biometric or Screen lock = device unlock
-   *    3. Autofill toggle = autofill
-   *    4. Mandatory reauth toggle = reauth
-   *
-   * There is another comment below to denote the end of the reauth tests.
-   */
-
   test(
-      'verifyReauthShownIfDeviceUnlockIsAvailableAndAutofillIsOn',
+      'verifyMandatoryAuthToggleShownIfBiometricIsAvailableAndAutofillToggleIsOn',
       async function() {
         loadTimeData.overrideValues({deviceAuthAvailable: true});
 
@@ -314,17 +287,37 @@ suite('PaymentsSection', function() {
             section.shadowRoot!.querySelector<SettingsToggleButtonElement>(
                 '#mandatoryAuthToggle');
 
-        // <if expr="is_win or is_macosx">
-        assertTrue(!!mandatoryAuthToggle);
-        assertFalse(mandatoryAuthToggle.checked);
-        // </if>
-        // <if expr="not is_win and not is_macosx">
-        assertFalse(!!mandatoryAuthToggle);
-        // </if>
+        if (isMac || isWindows) {
+          assertTrue(!!mandatoryAuthToggle);
+        } else {
+          assertFalse(!!mandatoryAuthToggle);
+        }
       });
 
   test(
-      'verifyReauthShownIfDeviceUnlockIsAvailableAndReauthIsOn',
+      'verifyMandatoryAuthToggleShownIfBiometricIsNotAvailableAndMandatoryAuthToggleIsOn',
+      async function() {
+        loadTimeData.overrideValues({deviceAuthAvailable: false});
+
+        const section = await createPaymentsSection(
+            /*creditCards=*/[], /*ibans=*/[], /*upiIds=*/[], {
+              credit_card_enabled: {value: true},
+              payment_methods_mandatory_reauth: {value: true},
+            });
+
+        const mandatoryAuthToggle =
+            section.shadowRoot!.querySelector<SettingsToggleButtonElement>(
+                '#mandatoryAuthToggle');
+
+        if (isMac || isWindows) {
+          assertTrue(!!mandatoryAuthToggle);
+        } else {
+          assertFalse(!!mandatoryAuthToggle);
+        }
+      });
+
+  test(
+      'verifyMandatoryAuthToggleShownIfBiometricIsAvailableAndMandatoryAuthToggleIsOn',
       async function() {
         loadTimeData.overrideValues({deviceAuthAvailable: true});
 
@@ -337,60 +330,16 @@ suite('PaymentsSection', function() {
         const mandatoryAuthToggle =
             section.shadowRoot!.querySelector<SettingsToggleButtonElement>(
                 '#mandatoryAuthToggle');
-        // <if expr="is_win or is_macosx">
-        assertTrue(!!mandatoryAuthToggle);
-        assertTrue(mandatoryAuthToggle.checked);
-        // </if>
-        // <if expr="not is_win and not is_macosx">
-        assertFalse(!!mandatoryAuthToggle);
-        // </if>
+
+        if (isMac || isWindows) {
+          assertTrue(!!mandatoryAuthToggle);
+        } else {
+          assertFalse(!!mandatoryAuthToggle);
+        }
       });
 
   test(
-      'verifyReauthNotShownIfDeviceUnlockIsAvailableAndReauthIsOnButFlagIsOff',
-      async function() {
-        loadTimeData.overrideValues({
-          deviceAuthAvailable: true,
-          autofillEnablePaymentsMandatoryReauth: false,
-        });
-
-        const section = await createPaymentsSection(
-            /*creditCards=*/[], /*ibans=*/[], /*upiIds=*/[], {
-              credit_card_enabled: {value: true},
-              payment_methods_mandatory_reauth: {value: true},
-            });
-
-        assertFalse(
-            !!section.shadowRoot!.querySelector('#mandatoryAuthToggle'));
-      });
-
-  test(
-      'verifyReauthDisabledIfDeviceUnlockIsNotAvailableAndReauthIsOn',
-      async function() {
-        loadTimeData.overrideValues({deviceAuthAvailable: false});
-
-        const section = await createPaymentsSection(
-            /*creditCards=*/[], /*ibans=*/[], /*upiIds=*/[], {
-              credit_card_enabled: {value: true},
-              payment_methods_mandatory_reauth: {value: true},
-            });
-
-        const mandatoryAuthToggle =
-            section.shadowRoot!.querySelector<SettingsToggleButtonElement>(
-                '#mandatoryAuthToggle');
-
-        // <if expr="is_win or is_macosx">
-        assertTrue(!!mandatoryAuthToggle);
-        assertTrue(mandatoryAuthToggle.disabled);
-        assertTrue(mandatoryAuthToggle.checked);
-        // </if>
-        // <if expr="not is_win and not is_macosx">
-        assertFalse(!!mandatoryAuthToggle);
-        // </if>
-      });
-
-  test(
-      'verifyReauthIsDisabledIfDeviceUnlockIsNotAvailableAndReauthIsOffAndAutofillIsOn',
+      'verifyMandatoryAuthToggleNotShownIfBiometricIsNotAvailableAndMandatoryAuthToggleIsOff',
       async function() {
         loadTimeData.overrideValues({deviceAuthAvailable: false});
 
@@ -403,19 +352,11 @@ suite('PaymentsSection', function() {
         const mandatoryAuthToggle =
             section.shadowRoot!.querySelector<SettingsToggleButtonElement>(
                 '#mandatoryAuthToggle');
-
-        // <if expr="is_win or is_macosx">
-        assertTrue(!!mandatoryAuthToggle);
-        assertTrue(mandatoryAuthToggle.disabled);
-        assertFalse(mandatoryAuthToggle.checked);
-        // </if>
-        // <if expr="not is_win and not is_macosx">
         assertFalse(!!mandatoryAuthToggle);
-        // </if>
       });
 
   test(
-      'verifyReauthDisabledIfDeviceUnlockIsAvailableAndReauthIsOnAndAutofillIsOff',
+      'verifyMandatoryAuthToggleNotShownIfBiometricIsAvailableAndAutofillToggleIsOffAndMandatoryAuthToggleIsOn',
       async function() {
         loadTimeData.overrideValues({deviceAuthAvailable: true});
 
@@ -428,18 +369,11 @@ suite('PaymentsSection', function() {
         const mandatoryAuthToggle =
             section.shadowRoot!.querySelector<SettingsToggleButtonElement>(
                 '#mandatoryAuthToggle');
-
-        // <if expr="is_win or is_macosx">
-        assertTrue(!!mandatoryAuthToggle);
-        assertTrue(mandatoryAuthToggle.disabled);
-        // </if>
-        // <if expr="not is_win and not is_macosx">
         assertFalse(!!mandatoryAuthToggle);
-        // </if>
       });
 
   test(
-      'verifyReauthDisabledIfDeviceUnlockIsAvailableAndReauthIsOffAndAutofillIsOff',
+      'verifyMandatoryAuthToggleNotShownIfBiometricIsAvailableAndAutofillToggleIsOff',
       async function() {
         loadTimeData.overrideValues({deviceAuthAvailable: true});
 
@@ -454,44 +388,50 @@ suite('PaymentsSection', function() {
             section.shadowRoot!.querySelector<SettingsToggleButtonElement>(
                 '#mandatoryAuthToggle');
 
-        // <if expr="is_win or is_macosx">
-        assertTrue(!!mandatoryAuthToggle);
-        assertTrue(mandatoryAuthToggle.disabled);
-        // </if>
-        // <if expr="not is_win and not is_macosx">
         assertFalse(!!mandatoryAuthToggle);
-        // </if>
       });
 
   test(
-      'verifyReauthDoesTriggerUserAuthWhenClicked', async function() {
-        loadTimeData.overrideValues({deviceAuthAvailable: true});
+      'verifyMandatoryAuthToggleNotShownIfMandatoryAuthToggleIsOffAndAutofillToggleIsOff',
+      async function() {
+        loadTimeData.overrideValues({deviceAuthAvailable: false});
 
         const section = await createPaymentsSection(
             /*creditCards=*/[], /*ibans=*/[], /*upiIds=*/[], {
-              credit_card_enabled: {value: true},
+              credit_card_enabled: {value: false},
               payment_methods_mandatory_reauth: {value: false},
             });
 
+        assertFalse(section.$.autofillCreditCardToggle.disabled);
         const mandatoryAuthToggle =
             section.shadowRoot!.querySelector<SettingsToggleButtonElement>(
                 '#mandatoryAuthToggle');
 
-        // <if expr="is_win or is_macosx">
-        const expectations = getDefaultExpectations();
-        assertTrue(!!mandatoryAuthToggle);
-        mandatoryAuthToggle.click();
-        expectations.authenticateUserAndFlipMandatoryAuthToggle = 1;
-        (PaymentsManagerImpl.getInstance() as TestPaymentsManager)
-            .assertExpectations(expectations);
-        // </if>
-        // <if expr="not is_win and not is_macosx">
         assertFalse(!!mandatoryAuthToggle);
-        // </if>
       });
 
   test(
-      'verifyReauthDoesNotTriggersUserAuthWhenNotClicked', async function() {
+      'verifyMandatoryAuthToggleNotShownIfMandatoryAuthToggleIsOnAndAutofillToggleIsOff',
+      async function() {
+        loadTimeData.overrideValues({deviceAuthAvailable: false});
+
+        const section = await createPaymentsSection(
+            /*creditCards=*/[], /*ibans=*/[], /*upiIds=*/[], {
+              credit_card_enabled: {value: false},
+              payment_methods_mandatory_reauth: {value: true},
+            });
+
+        assertFalse(section.$.autofillCreditCardToggle.disabled);
+        const mandatoryAuthToggle =
+            section.shadowRoot!.querySelector<SettingsToggleButtonElement>(
+                '#mandatoryAuthToggle');
+
+        assertFalse(!!mandatoryAuthToggle);
+      });
+
+  test(
+      'verifyMandatoryAuthToggleDoesTriggerUserAuthWhenClicked',
+      async function() {
         loadTimeData.overrideValues({deviceAuthAvailable: true});
 
         const section = await createPaymentsSection(
@@ -499,7 +439,34 @@ suite('PaymentsSection', function() {
               credit_card_enabled: {value: true},
               payment_methods_mandatory_reauth: {value: false},
             });
+        const mandatoryAuthToggle =
+            section.shadowRoot!.querySelector<SettingsToggleButtonElement>(
+                '#mandatoryAuthToggle');
 
+        if (isMac || isWindows) {
+          const paymentsManagerProxy =
+              PaymentsManagerImpl.getInstance() as TestPaymentsManager;
+          const expectations = getDefaultExpectations();
+
+          assertTrue(!!mandatoryAuthToggle);
+          mandatoryAuthToggle.click();
+          expectations.authenticateUserAndFlipMandatoryAuthToggle = 1;
+          paymentsManagerProxy.assertExpectations(expectations);
+        } else {
+          assertFalse(!!mandatoryAuthToggle);
+        }
+      });
+
+  test(
+      'verifyMandatoryAuthToggleDoesNotTriggersUserAuthWhenNotClicked',
+      async function() {
+        loadTimeData.overrideValues({deviceAuthAvailable: true});
+
+        const section = await createPaymentsSection(
+            /*creditCards=*/[], /*ibans=*/[], /*upiIds=*/[], {
+              credit_card_enabled: {value: true},
+              payment_methods_mandatory_reauth: {value: false},
+            });
         const mandatoryAuthToggle =
             section.shadowRoot!.querySelector<SettingsToggleButtonElement>(
                 '#mandatoryAuthToggle');
@@ -507,12 +474,11 @@ suite('PaymentsSection', function() {
             PaymentsManagerImpl.getInstance() as TestPaymentsManager;
         const expectations = getDefaultExpectations();
 
-        // <if expr="is_win or is_macosx">
-        assertTrue(!!mandatoryAuthToggle);
-        // </if>
-        // <if expr="not is_win and not is_macosx">
-        assertFalse(!!mandatoryAuthToggle);
-        // </if>
+        if (isMac || isWindows) {
+          assertTrue(!!mandatoryAuthToggle);
+        } else {
+          assertFalse(!!mandatoryAuthToggle);
+        }
         paymentsManagerProxy.assertExpectations(expectations);
       });
 
@@ -542,30 +508,8 @@ suite('PaymentsSection', function() {
 
     const paymentsManagerProxy =
         PaymentsManagerImpl.getInstance() as TestPaymentsManager;
-
     const expectations = getDefaultExpectations();
     expectations.authenticateUserToEditLocalCard = 1;
     paymentsManagerProxy.assertExpectations(expectations);
-  });
-
-  // --------- End of Reauth Tests ---------
-
-  test('verifyCvvStorageToggleIsShown', async function() {
-    loadTimeData.overrideValues({
-      cvcStorageAvailable: true,
-    });
-
-    const section = await createPaymentsSection(
-        /*creditCards=*/[], /*ibans=*/[], /*upiIds=*/[], {
-          credit_card_enabled: {value: true},
-        });
-    const cvcStorageToggle =
-        section.shadowRoot!.querySelector<SettingsToggleButtonElement>(
-            '#cvcStorageToggle');
-
-    assertTrue(!!cvcStorageToggle);
-    assertEquals(
-        cvcStorageToggle.subLabelWithLink,
-        loadTimeData.getString('enableCvcStorageDeleteDataSublabel'));
   });
 });

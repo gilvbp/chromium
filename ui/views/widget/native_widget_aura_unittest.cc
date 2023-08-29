@@ -445,8 +445,7 @@ class PropertyTestLayoutManager : public TestLayoutManagerBase {
   void OnWindowAddedToLayout(aura::Window* child) override {
     EXPECT_EQ(aura::client::kResizeBehaviorCanResize |
                   aura::client::kResizeBehaviorCanMaximize |
-                  aura::client::kResizeBehaviorCanMinimize |
-                  aura::client::kResizeBehaviorCanFullscreen,
+                  aura::client::kResizeBehaviorCanMinimize,
               child->GetProperty(aura::client::kResizeBehaviorKey));
     added_ = true;
   }

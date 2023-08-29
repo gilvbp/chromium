@@ -59,10 +59,7 @@ public interface TabManagementDelegate {
      * Create the {@link TabSwitcherLayout}.
      * @param context The current Android's context.
      * @param updateHost The parent {@link LayoutUpdateHost}.
-     * @param layoutStateProvider The {@link LayoutStateProvider} to provide layout state changes.
      * @param renderHost The parent {@link LayoutRenderHost}.
-     * @param browserControlsStateProvider The {@link BrowserControlsStateProvider} for the top
-     *         controls.
      * @param tabSwitcher The {@link TabSwitcher} the layout should own.
      * @param tabSwitcherScrimAnchor {@link ViewGroup} used by tab switcher layout to show scrim
      *         when overview is visible.
@@ -70,9 +67,8 @@ public interface TabManagementDelegate {
      * @return The {@link TabSwitcherLayout}.
      */
     Layout createTabSwitcherLayout(Context context, LayoutUpdateHost updateHost,
-            LayoutStateProvider layoutStateProvider, LayoutRenderHost renderHost,
-            BrowserControlsStateProvider browserControlsStateProvider, TabSwitcher tabSwitcher,
-            ViewGroup tabSwitcherScrimAnchor, ScrimCoordinator scrimCoordinator);
+            LayoutRenderHost renderHost, TabSwitcher tabSwitcher, ViewGroup tabSwitcherScrimAnchor,
+            ScrimCoordinator scrimCoordinator);
 
     /**
      * Create the {@link TabSwitcher} to display Tabs in grid.
@@ -93,8 +89,6 @@ public interface TabManagementDelegate {
      * @param incognitoReauthControllerSupplier {@link OneshotSupplier<IncognitoReauthController>}
      *         to detect pending re-auth when tab switcher is shown.
      * @param backPressManager {@link BackPressManager} to handle back press gesture.
-     * @param layoutStateProviderSupplier {@link OneshotSupplier<LayoutStateProvider>} to provide
-     *                                    the layout state changes.
      * @return The {@link TabSwitcher}.
      */
     TabSwitcher createGridTabSwitcher(@NonNull Activity activity,
@@ -111,8 +105,7 @@ public interface TabManagementDelegate {
             @NonNull SnackbarManager snackbarManager,
             @NonNull ModalDialogManager modalDialogManager,
             @NonNull OneshotSupplier<IncognitoReauthController> incognitoReauthControllerSupplier,
-            @Nullable BackPressManager backPressManager,
-            @Nullable OneshotSupplier<LayoutStateProvider> layoutStateProviderSupplier);
+            @Nullable BackPressManager backPressManager);
 
     /**
      * Create the {@link TabSwitcher} to display Tabs in carousel.
@@ -150,8 +143,6 @@ public interface TabManagementDelegate {
      * Create the {@link TabGroupUi}.
      * @param activity The {@link Activity} that creates this surface.
      * @param parentView The parent view of this UI.
-     * @param browserControlsStateProvider The {@link BrowserControlsStateProvider} of the top
-     *                                     controls.
      * @param incognitoStateProvider Observable provider of incognito state.
      * @param scrimCoordinator The {@link ScrimCoordinator} to control scrim view.
      * @param omniboxFocusStateSupplier Supplier to access the focus state of the omnibox.
@@ -168,7 +159,6 @@ public interface TabManagementDelegate {
      * @return The {@link TabGroupUi}.
      */
     TabGroupUi createTabGroupUi(@NonNull Activity activity, @NonNull ViewGroup parentView,
-            @NonNull BrowserControlsStateProvider browserControlsStateProvider,
             @NonNull IncognitoStateProvider incognitoStateProvider,
             @NonNull ScrimCoordinator scrimCoordinator,
             @NonNull ObservableSupplier<Boolean> omniboxFocusStateSupplier,

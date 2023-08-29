@@ -4,6 +4,10 @@
 
 #import "ios/chrome/browser/ui/autofill/expiration_date_picker.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace {
 int const kNumberOfSections = 2;
 int const kMonthSection = 0;

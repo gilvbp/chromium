@@ -15,7 +15,7 @@
 #include "ui/views/view.h"
 
 class ReadAnythingToolbarView;
-class ReadAnythingUntrustedUI;
+class ReadAnythingUI;
 
 ///////////////////////////////////////////////////////////////////////////////
 // ReadAnythingContainerView
@@ -33,7 +33,7 @@ class ReadAnythingContainerView : public views::View,
   ReadAnythingContainerView(
       ReadAnythingCoordinator* coordinator,
       std::unique_ptr<ReadAnythingToolbarView> toolbar,
-      std::unique_ptr<SidePanelWebUIViewT<ReadAnythingUntrustedUI>> content);
+      std::unique_ptr<SidePanelWebUIViewT<ReadAnythingUI>> content);
   ReadAnythingContainerView(const ReadAnythingContainerView&) = delete;
   ReadAnythingContainerView& operator=(const ReadAnythingContainerView&) =
       delete;

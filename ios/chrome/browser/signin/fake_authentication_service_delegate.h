@@ -18,7 +18,6 @@ class FakeAuthenticationServiceDelegate : public AuthenticationServiceDelegate {
   ~FakeAuthenticationServiceDelegate() override;
 
   // AuthenticationServiceDelegate implementation.
-  // Executes `completion` synchronously.
   void ClearBrowsingData(ProceduralBlock completion) override;
 };
 

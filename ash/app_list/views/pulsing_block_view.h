@@ -6,7 +6,6 @@
 #define ASH_APP_LIST_VIEWS_PULSING_BLOCK_VIEW_H_
 
 #include "base/compiler_specific.h"
-#include "base/memory/raw_ptr.h"
 #include "base/timer/timer.h"
 #include "ui/views/view.h"
 
@@ -21,9 +20,7 @@ class PulsingBlockView : public views::View {
  public:
   // Constructs a PulsingBlockView of |size|. Starts the pulsing animation after
   // a |animation_delay|.
-  PulsingBlockView(const gfx::Size& size,
-                   base::TimeDelta animation_delay,
-                   float corner_radius);
+  PulsingBlockView(const gfx::Size& size, base::TimeDelta animation_delay);
 
   PulsingBlockView(const PulsingBlockView&) = delete;
   PulsingBlockView& operator=(const PulsingBlockView&) = delete;
@@ -47,8 +44,7 @@ class PulsingBlockView : public views::View {
 
   base::OneShotTimer start_delay_timer_;
 
-  raw_ptr<views::View, ExperimentalAsh> background_color_view_ = nullptr;
-
+  views::View* background_color_view_ = nullptr;
   const gfx::Size block_size_;
 };
 

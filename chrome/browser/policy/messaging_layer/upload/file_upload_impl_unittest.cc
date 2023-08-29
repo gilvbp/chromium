@@ -9,7 +9,6 @@
 #include <memory>
 #include <set>
 #include <string>
-#include <string_view>
 #include <utility>
 
 #include "base/containers/contains.h"
@@ -226,7 +225,7 @@ class FileUploadDelegateTest : public ::testing::Test {
  protected:
   FileUploadDelegateTest() { DETACH_FROM_SEQUENCE(sequence_checker_); }
 
-  const GURL GetServerURL(std::string_view relative_path) const {
+  const GURL GetServerURL(base::StringPiece relative_path) const {
     return test_server_.GetURL(relative_path);
   }
 

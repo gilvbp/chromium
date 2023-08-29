@@ -13,18 +13,18 @@
 
 namespace autofill {
 
-class MockIbanManager : public IbanManager {
+class MockIBANManager : public IBANManager {
  public:
-  explicit MockIbanManager(PersonalDataManager* personal_data_manager);
+  explicit MockIBANManager(PersonalDataManager* personal_data_manager);
 
-  ~MockIbanManager() override;
+  ~MockIBANManager() override;
 
   MOCK_METHOD(bool,
               OnGetSingleFieldSuggestions,
               (AutofillSuggestionTriggerSource trigger_source,
                const FormFieldData& field,
                const AutofillClient& client,
-               base::WeakPtr<IbanManager::SuggestionsHandler> handler,
+               base::WeakPtr<IBANManager::SuggestionsHandler> handler,
                const SuggestionsContext& context),
               (override));
   MOCK_METHOD(void,
@@ -34,7 +34,7 @@ class MockIbanManager : public IbanManager {
               (override));
   MOCK_METHOD(void,
               CancelPendingQueries,
-              (const IbanManager::SuggestionsHandler*),
+              (const IBANManager::SuggestionsHandler*),
               (override));
   MOCK_METHOD(void,
               OnRemoveCurrentSingleFieldSuggestion,

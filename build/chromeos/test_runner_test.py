@@ -8,11 +8,11 @@ import os
 import shutil
 import sys
 import tempfile
-from textwrap import dedent
 import unittest
+import six
 
 # The following non-std imports are fetched via vpython. See the list at
-# //.vpython3
+# //.vpython
 import mock  # pylint: disable=import-error
 from parameterized import parameterized  # pylint: disable=import-error
 
@@ -44,7 +44,10 @@ class TestRunnerTest(unittest.TestCase):
 
     See https://bugs.python.org/issue17866.
     """
-    self.assertSetEqual(set(list1), set(list2))
+    if six.PY3:
+      self.assertSetEqual(set(list1), set(list2))
+    else:
+      self.assertCountEqual(list1, list2)
 
 
 class TastTests(TestRunnerTest):
@@ -239,12 +242,10 @@ class TastTests(TestRunnerTest):
 class GTestTest(TestRunnerTest):
 
   @parameterized.expand([
-      [True, True],
-      [True, False],
-      [False, True],
-      [False, False],
+      [True],
+      [False],
   ])
-  def test_gtest(self, use_vm, stop_ui):
+  def test_gtest(self, use_vm):
     """Tests running a gtest."""
     fd_mock = mock.mock_open()
 
@@ -256,9 +257,6 @@ class GTestTest(TestRunnerTest):
         '--path-to-outdir=out_eve/Release',
         '--use-vm' if use_vm else '--device=localhost:2222',
     ]
-    if stop_ui:
-      args.append('--stop-ui')
-
     with mock.patch.object(sys, 'argv', args),\
          mock.patch.object(test_runner.subprocess, 'Popen') as mock_popen,\
          mock.patch.object(os, 'fdopen', fd_mock),\
@@ -271,44 +269,21 @@ class GTestTest(TestRunnerTest):
       test_runner.main()
       self.assertEqual(1, mock_popen.call_count)
       expected_cmd = [
-          'vpython3', test_runner.CROS_RUN_TEST_PATH, '--board', 'eve',
-          '--cache-dir', test_runner.DEFAULT_CROS_CACHE, '--remote-cmd',
+          test_runner.CROS_RUN_TEST_PATH, '--board', 'eve', '--cache-dir',
+          test_runner.DEFAULT_CROS_CACHE, '--as-chronos', '--remote-cmd',
           '--cwd', 'out_eve/Release', '--files',
           'out_eve/Release/device_script.sh'
       ]
-      if not stop_ui:
-        expected_cmd.append('--as-chronos')
       expected_cmd.extend(['--start', '--copy-on-write']
                           if use_vm else ['--device', 'localhost:2222'])
       expected_cmd.extend(['--', './device_script.sh'])
       self.safeAssertItemsEqual(expected_cmd, mock_popen.call_args[0][0])
 
-      expected_device_script = dedent("""\
-          #!/bin/sh
-          export HOME=/usr/local/tmp
-          export TMPDIR=/usr/local/tmp
-          """)
-      core_cmd = 'LD_LIBRARY_PATH=./ ./out_eve/Release/base_unittests'\
-          ' --test-launcher-shard-index=0 --test-launcher-total-shards=1'
-      if stop_ui:
-        dbus_cmd = 'dbus-send --system --type=method_call'\
-          ' --dest=org.chromium.PowerManager'\
-          ' /org/chromium/PowerManager'\
-          ' org.chromium.PowerManager.HandleUserActivity int32:0'
-        expected_device_script += dedent("""\
-          stop ui
-          {0}
-          chown -R chronos: ../..
-          sudo -E -u chronos -- /bin/bash -c \"{1}\"
-          start ui
-          """).format(dbus_cmd, core_cmd)
-      else:
-        expected_device_script += core_cmd + '\n'
-      self.assertEqual(1, fd_mock().write.call_count)
-      # Split the strings to make failure messages easier to read.
-      self.assertListEqual(
-          expected_device_script.split('\n'),
-          fd_mock().write.call_args[0][0].split('\n'))
+      fd_mock().write.assert_called_once_with(
+          '#!/bin/sh\nexport HOME=/usr/local/tmp\n'
+          'export TMPDIR=/usr/local/tmp\n'
+          'LD_LIBRARY_PATH=./ ./out_eve/Release/base_unittests '
+          '--test-launcher-shard-index=0 --test-launcher-total-shards=1\n')
       mock_remove.assert_called_once_with('out_eve/Release/device_script.sh')
 
   def test_gtest_with_vpython(self):

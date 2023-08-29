@@ -45,7 +45,7 @@ class BLINK_EXPORT WebPerformanceMetricsForNestedContexts {
   absl::optional<base::TimeTicks> CommitNavigationEnd() const;
 
  private:
-  WebPrivatePtrForGC<WindowPerformance> private_;
+  WebPrivatePtr<WindowPerformance> private_;
 };
 }  // namespace blink
 

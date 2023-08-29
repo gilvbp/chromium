@@ -6,7 +6,6 @@
 #define CHROME_UPDATER_DEVICE_MANAGEMENT_DM_CLIENT_H_
 
 #include <memory>
-#include <ostream>
 #include <string>
 #include <vector>
 
@@ -138,9 +137,6 @@ class DMClient {
       absl::optional<PolicyServiceProxyConfiguration>
           policy_service_proxy_configuration);
 };
-
-std::ostream& operator<<(std::ostream& os,
-                         const DMClient::RequestResult& result);
 
 }  // namespace updater
 

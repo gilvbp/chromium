@@ -86,6 +86,11 @@ void SupervisedUserErrorPageController::RequestUrlAccessLocal() {
   }
 }
 
+void SupervisedUserErrorPageController::Feedback() {
+  if (delegate_)
+    delegate_->Feedback();
+}
+
 void SupervisedUserErrorPageController::OnRequestUrlAccessRemote(bool success) {
   std::string result = success ? "true" : "false";
   std::string is_outermost_main_frame =
@@ -105,5 +110,6 @@ SupervisedUserErrorPageController::GetObjectTemplateBuilder(
           .SetMethod("requestUrlAccessRemote",
                      &SupervisedUserErrorPageController::RequestUrlAccessRemote)
           .SetMethod("requestUrlAccessLocal",
-                     &SupervisedUserErrorPageController::RequestUrlAccessLocal);
+                     &SupervisedUserErrorPageController::RequestUrlAccessLocal)
+          .SetMethod("feedback", &SupervisedUserErrorPageController::Feedback);
 }

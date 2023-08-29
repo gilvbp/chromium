@@ -50,13 +50,13 @@ COMPONENT_EXPORT(PRINTING)
 void GetColorModelForModel(mojom::ColorModel color_model,
                            std::string* color_setting_name,
                            std::string* color_value);
-#endif  // BUILDFLAG(USE_CUPS)
 
-#if BUILDFLAG(USE_CUPS_IPP)
+#if BUILDFLAG(IS_MAC) || BUILDFLAG(IS_CHROMEOS)
 // Convert from `color_model` to a print-color-mode value from PWG 5100.13.
 COMPONENT_EXPORT(PRINTING)
 std::string GetIppColorModelForModel(mojom::ColorModel color_model);
-#endif  // BUILDFLAG(USE_CUPS_IPP)
+#endif
+#endif  // BUILDFLAG(USE_CUPS)
 
 class COMPONENT_EXPORT(PRINTING) PrintSettings {
  public:
@@ -135,14 +135,6 @@ class COMPONENT_EXPORT(PRINTING) PrintSettings {
   }
   const std::u16string& device_name() const { return device_name_; }
 
-  void set_borderless(bool borderless) { borderless_ = borderless; }
-  bool borderless() const { return borderless_; }
-
-  void set_media_type(const std::string& media_type) {
-    media_type_ = media_type;
-  }
-  const std::string& media_type() const { return media_type_; }
-
   void set_dpi(int dpi) { dpi_ = gfx::Size(dpi, dpi); }
   void set_dpi_xy(int dpi_horizontal, int dpi_vertical) {
     dpi_ = gfx::Size(dpi_horizontal, dpi_vertical);
@@ -161,6 +153,11 @@ class COMPONENT_EXPORT(PRINTING) PrintSettings {
 
   void set_rasterize_pdf_dpi(int32_t dpi) { rasterize_pdf_dpi_ = dpi; }
   int32_t rasterize_pdf_dpi() const { return rasterize_pdf_dpi_; }
+
+  void set_supports_alpha_blend(bool supports_alpha_blend) {
+    supports_alpha_blend_ = supports_alpha_blend;
+  }
+  bool supports_alpha_blend() const { return supports_alpha_blend_; }
 
   int device_units_per_inch() const {
 #if BUILDFLAG(IS_MAC)
@@ -300,10 +297,6 @@ class COMPONENT_EXPORT(PRINTING) PrintSettings {
   // is correctly associated with its corresponding `PrintedDocument`.
   static int NewCookie();
 
-  // Creates an invalid cookie for use in situations where the cookie needs to
-  // be marked as invalid.
-  static int NewInvalidCookie();
-
  private:
 #if BUILDFLAG(IS_MAC)
   static constexpr int kMacDeviceUnitsPerInch = 72;
@@ -350,12 +343,6 @@ class COMPONENT_EXPORT(PRINTING) PrintSettings {
   // Page setup in device units.
   PageSetup page_setup_device_units_;
 
-  // Whether the user has requested borderless (zero margin) printing.
-  bool borderless_;
-
-  // Media type requested by the user.
-  std::string media_type_;
-
   // Printer's device effective dots per inch in both axes. The two values will
   // generally be identical. However, on Windows, there are a few rare printers
   // that support resolutions with different DPI in different dimensions.
@@ -374,6 +361,9 @@ class COMPONENT_EXPORT(PRINTING) PrintSettings {
 
   // Is the orientation landscape or portrait.
   bool landscape_;
+
+  // True if this printer supports AlphaBlend.
+  bool supports_alpha_blend_;
 
 #if BUILDFLAG(IS_WIN)
   mojom::PrinterLanguageType printer_language_type_;

@@ -378,14 +378,12 @@ class HistogramRule : public BackgroundTracingRule,
 
   // BackgroundTracingManagerImpl::AgentObserver implementation
   void OnAgentAdded(tracing::mojom::BackgroundTracingAgent* agent) override {
-    agent->SetUMACallback(tracing::mojom::BackgroundTracingRule::New(rule_id()),
-                          histogram_name_, histogram_lower_value_,
+    agent->SetUMACallback(histogram_name_, histogram_lower_value_,
                           histogram_upper_value_);
   }
 
   void OnAgentRemoved(tracing::mojom::BackgroundTracingAgent* agent) override {
-    agent->ClearUMACallback(
-        tracing::mojom::BackgroundTracingRule::New(rule_id()));
+    agent->ClearUMACallback(histogram_name_);
   }
 
   void OnHistogramChangedCallback(base::Histogram::Sample reference_lower_value,

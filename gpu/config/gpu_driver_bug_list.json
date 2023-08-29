@@ -1164,6 +1164,17 @@
       ]
     },
     {
+      "id": 152,
+      "cr_bugs": [581777],
+      "description": "copyTexImage2D fails when reading from IOSurface on multiple GPU types.",
+      "os": {
+        "type": "macosx"
+      },
+      "features": [
+        "use_intermediary_for_copy_texture_image"
+      ]
+    },
+    {
       "id": 153,
       "cr_bugs": [594016],
       "description": "Vivante GC1000 with EXT_multisampled_render_to_texture fails glReadPixels",
@@ -2160,11 +2171,10 @@
     {
       "id": 245,
       "description": "Switching framebuffers without a flush can lead to crashes on Intel 9th Generation GPU Macs.",
-      "cr_bugs": [783979, 1472087],
+      "cr_bugs": [783979],
       "os": {
         "type": "macosx"
       },
-      "gl_renderer": "ANGLE.*OpenGL.*",
       "intel_gpu_series": [
         "skylake",
         "kabylake",
@@ -4170,32 +4180,6 @@
       ]
     },
     {
-      "id": 414,
-      "cr_bugs": [
-        1318380
-      ],
-      "description": "Only enable video processor auto HDR on NVIDIA GPUs with 545+ driver",
-      "os": {
-        "type": "win"
-      },
-      "exceptions": [
-        {
-          "vendor_id": "0x10de",
-          "os": {
-            "type": "win"
-          },
-          "driver_version": {
-            "schema": "nvidia_driver",
-            "op": ">",
-            "value": "545.00"
-          }
-        }
-      ],
-      "features": [
-        "disable_vp_auto_hdr"
-      ]
-    },
-    {
       "id": 415,
       "cr_bugs": [1464136],
       "description": "Disable VP9 and H.264 video acceleration on Elkhart Lake Intel devices",
@@ -4211,58 +4195,6 @@
         "disable_accelerated_vp9_decode",
         "disable_accelerated_vp9_encode",
         "disable_accelerated_vp9_profile2_decode"
-      ]
-    },
-    {
-      "id": 416,
-      "cr_bugs": [1465960],
-      "description": "Disable video acceleration on Jasper Lake Intel ChromeOS devices",
-      "os": {
-        "type": "chromeos"
-      },
-      "intel_gpu_series": [
-        "jasperlake"
-      ],
-      "features": [
-        "disable_accelerated_h264_decode",
-        "disable_accelerated_h264_encode",
-        "disable_accelerated_vp8_decode",
-        "disable_accelerated_vp9_decode",
-        "disable_accelerated_vp9_encode",
-        "disable_accelerated_vp9_profile2_decode"
-      ]
-    },
-    {
-      "id": 417,
-      "description": "Limit D3D11VideoDecoder to 11.0 due to failures on QC chipsets.",
-      "comment": [
-        "On QC chipsets calling ID3D11VideoContext1::SubmitDecoderBuffer1 with ",
-        "non-protected content can result in an E_INVALIDARG result and playback ",
-        "failure. Force the use of 11.0 to create an ID3D11VideoContext instead."
-      ],
-      "os": {
-        "type": "win"
-      },
-      "vendor_id": "0x5143",
-      "features": [
-        "limit_d3d11_video_decoder_to_11_0"
-      ]
-    },
-    {
-      "id": 418,
-      "description": "Uploading data or rendering to R8 EGL images generates driver errors.",
-      "cr_bugs": [1455752],
-      "os": {
-        "type": "android",
-        "version": {
-          "op": "<=",
-          "value": "9.0"
-        }
-      },
-      "gl_vendor": "ARM.*",
-      "gl_type": "gles",
-      "features": [
-        "r8_egl_images_broken"
       ]
     }
   ]

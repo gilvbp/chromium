@@ -11,4 +11,5 @@ source_set("common") {
   ]
   deps = [ "//base" ]
   frameworks = [ "UIKit.framework" ]
+  configs += [ "//build/config/compiler:enable_arc" ]
 }

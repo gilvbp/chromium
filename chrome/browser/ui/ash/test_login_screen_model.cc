@@ -39,6 +39,9 @@ void TestLoginScreenModel::SetTapToUnlockEnabledForUser(
     bool enabled) {}
 void TestLoginScreenModel::ForceOnlineSignInForUser(
     const AccountId& account_id) {}
+void TestLoginScreenModel::ShowEasyUnlockIcon(
+    const AccountId& account_id,
+    const ash::EasyUnlockIconInfo& icon_info) {}
 void TestLoginScreenModel::SetChallengeResponseAuthEnabledForUser(
     const AccountId& user,
     bool enabled) {}

@@ -88,10 +88,8 @@ std::unique_ptr<TextureSelector> TextureSelector::Create(
   };
   // TODO(liberato): add other options here, like "copy to rgb" for NV12.
   switch (decoder_output_format) {
-    case DXGI_FORMAT_NV12:
-    case DXGI_FORMAT_AYUV: {
-      MEDIA_LOG(INFO, media_log) << "D3D11VideoDecoder producing "
-                                 << DxgiFormatToString(decoder_output_format);
+    case DXGI_FORMAT_NV12: {
+      MEDIA_LOG(INFO, media_log) << "D3D11VideoDecoder producing NV12";
       if (!needs_texture_copy || supports_fmt(DXGI_FORMAT_NV12)) {
         output_pixel_format = PIXEL_FORMAT_NV12;
         output_dxgi_format = DXGI_FORMAT_NV12;
@@ -106,8 +104,7 @@ std::unique_ptr<TextureSelector> TextureSelector::Create(
         output_color_space.reset();
         MEDIA_LOG(INFO, media_log) << "D3D11VideoDecoder: Selected ARGB";
       } else {
-        MEDIA_LOG(INFO, media_log)
-            << DxgiFormatToString(decoder_output_format) << " not supported";
+        MEDIA_LOG(INFO, media_log) << "NV12 not supported";
         return nullptr;
       }
       break;

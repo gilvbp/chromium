@@ -212,11 +212,7 @@ export enum UserAction {
   PROPERTIES_FIRST = 63,
   PROPERTIES = 64,
 
-  // Recorded when the attachment button in the sidenav is clicked.
-  SELECT_SIDENAV_ATTACHMENT_FIRST = 65,
-  SELECT_SIDENAV_ATTACHMENT = 66,
-
-  NUMBER_OF_ACTIONS = 67,
+  NUMBER_OF_ACTIONS = 65,
 }
 
 function createFirstMap(): Map<UserAction, UserAction> {

@@ -86,9 +86,10 @@ class TestCertResolveObserver : public ClientCertResolver::Observer {
 
 class TestNetworkConnectionHandler : public NetworkConnectionHandler {
  public:
-  explicit TestNetworkConnectionHandler(
+  TestNetworkConnectionHandler(
       base::RepeatingCallback<void(const std::string&)> disconnect_handler)
-      : disconnect_handler_(std::move(disconnect_handler)) {}
+      : NetworkConnectionHandler(),
+        disconnect_handler_(std::move(disconnect_handler)) {}
   ~TestNetworkConnectionHandler() override = default;
 
   // NetworkConnectionHandler:
@@ -155,8 +156,7 @@ class AutoConnectHandlerTest : public testing::Test {
         /*managed_cellular_pref_handler=*/nullptr,
         helper_.network_state_handler(), network_profile_handler_.get(),
         network_config_handler_.get(), nullptr /* network_device_handler */,
-        nullptr /* prohibited_technologies_handler */,
-        /*hotspot_controller=*/nullptr);
+        nullptr /* prohibited_technologies_handler */);
 
     test_network_connection_handler_ =
         std::make_unique<TestNetworkConnectionHandler>(base::BindRepeating(
@@ -386,7 +386,8 @@ TEST_F(AutoConnectHandlerTest, ReconnectOnCertLoading) {
 
   // Applying the policy which restricts autoconnect should disconnect from the
   // shared, unmanaged network.
-  auto global_config = base::Value::Dict().Set(
+  base::Value::Dict global_config;
+  global_config.Set(
       ::onc::global_network_config::kAllowOnlyPolicyNetworksToAutoconnect,
       true);
 
@@ -501,7 +502,8 @@ TEST_F(AutoConnectHandlerTest, DisconnectOnPolicyLoading) {
   EXPECT_EQ(shill::kStateOnline, GetServiceState(wifi0_service_path));
   EXPECT_EQ(shill::kStateIdle, GetServiceState(wifi1_service_path));
 
-  auto global_config = base::Value::Dict().Set(
+  base::Value::Dict global_config;
+  global_config.Set(
       ::onc::global_network_config::kAllowOnlyPolicyNetworksToAutoconnect,
       true);
 
@@ -592,8 +594,9 @@ TEST_F(AutoConnectHandlerTest,
   EXPECT_EQ(shill::kStateOnline, GetServiceState(wifi0_service_path));
   EXPECT_EQ(shill::kStateIdle, GetServiceState(wifi1_service_path));
 
-  auto global_config = base::Value::Dict().Set(
-      ::onc::global_network_config::kAllowOnlyPolicyWiFiToConnect, true);
+  base::Value::Dict global_config;
+  global_config.Set(::onc::global_network_config::kAllowOnlyPolicyWiFiToConnect,
+                    true);
 
   // Applying the policy which restricts connections should disconnect from the
   // shared, unmanaged network.
@@ -705,7 +708,8 @@ TEST_F(AutoConnectHandlerTest,
   // Apply 'AllowOnlyPolicyNetworksToAutoconnect' policy as a device
   // policy and provide a network configuration for cellular2 to make it
   // managed.
-  auto global_config = base::Value::Dict().Set(
+  base::Value::Dict global_config;
+  global_config.Set(
       ::onc::global_network_config::kAllowOnlyPolicyNetworksToAutoconnect,
       true);
   SetupDevicePolicy(kCellularPolicy, global_config);
@@ -748,7 +752,8 @@ TEST_F(AutoConnectHandlerTest,
 
   // Apply 'AllowOnlyPolicyCellularNetworks' policy as a device policy and
   // provide a network configuration for cellular2 to make it managed.
-  auto global_config = base::Value::Dict().Set(
+  base::Value::Dict global_config;
+  global_config.Set(
       ::onc::global_network_config::kAllowOnlyPolicyCellularNetworks, true);
   SetupDevicePolicy(kCellularPolicy, global_config);
 
@@ -784,10 +789,11 @@ TEST_F(AutoConnectHandlerTest, DisconnectFromBlockedNetwork) {
 
   // Apply a device policy, which blocks wifi0. No disconnects should occur
   // since we wait for both device & user policy before possibly disconnecting.
-  auto global_config = base::Value::Dict().Set(
-      ::onc::global_network_config::kBlockedHexSSIDs,
-      base::Value::List().Append("7769666930")  // hex(wifi0) = 7769666930
-  );
+  base::Value::List blocked;
+  blocked.Append("7769666930");  // hex(wifi0) = 7769666930
+  base::Value::Dict global_config;
+  global_config.Set(::onc::global_network_config::kBlockedHexSSIDs,
+                    std::move(blocked));
   SetupDevicePolicy(std::string(), global_config);
   EXPECT_EQ(shill::kStateOnline, GetServiceState(wifi0_service_path));
   EXPECT_EQ(shill::kStateIdle, GetServiceState(wifi1_service_path));
@@ -819,7 +825,8 @@ TEST_F(AutoConnectHandlerTest, AllowOnlyPolicyWiFiToConnectIfAvailable) {
 
   // Apply 'AllowOnlyPolicyWiFiToConnectIfAvailable' policy as a device
   // policy and provide a network configuration for wifi1 to make it managed.
-  auto global_config = base::Value::Dict().Set(
+  base::Value::Dict global_config;
+  global_config.Set(
       ::onc::global_network_config::kAllowOnlyPolicyWiFiToConnectIfAvailable,
       true);
   SetupDevicePolicy(kPolicy, global_config);

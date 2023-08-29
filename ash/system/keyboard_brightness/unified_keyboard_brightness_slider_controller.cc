@@ -46,8 +46,7 @@ class UnifiedKeyboardBrightnessView : public UnifiedSliderView,
       : UnifiedSliderView(views::Button::PressedCallback(),
                           controller,
                           kUnifiedMenuKeyboardBrightnessIcon,
-                          IDS_ASH_STATUS_TRAY_BRIGHTNESS,
-                          /*is_togglable=*/false),
+                          IDS_ASH_STATUS_TRAY_BRIGHTNESS),
         model_(model) {
     if (Shell::Get()->rgb_keyboard_manager()->IsRgbKeyboardSupported()) {
       if (button()) {

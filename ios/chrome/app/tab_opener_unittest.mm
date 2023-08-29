@@ -26,6 +26,10 @@
 #import "testing/platform_test.h"
 #import "third_party/ocmock/OCMock/OCMock.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace {
 
 // A block that takes the arguments of
@@ -40,10 +44,6 @@ typedef void (^HandleLaunchOptions)(id self,
 class TabOpenerTest : public PlatformTest {
  protected:
   void TearDown() override {
-    if (scene_controller_) {
-      [scene_controller_ teardownUI];
-      scene_controller_ = nil;
-    }
     PlatformTest::TearDown();
   }
 

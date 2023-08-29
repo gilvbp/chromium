@@ -1,3 +1,4 @@
+#!/usr/bin/env vpython3
 # Copyright 2022 The Chromium Authors
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -15,6 +16,8 @@ suppress_flakes.py \
 --project chrome-unexpected-pass-data \
 --sample-period 5
 """
+import sys
+
 from flake_suppressor_common import argument_parsing
 from flake_suppressor_common import result_output
 from flake_suppressor_common import tag_utils as common_tag_utils
@@ -90,3 +93,7 @@ def main() -> int:
     print('\nGenerated expectations will need to have bugs manually added.')
 
     return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

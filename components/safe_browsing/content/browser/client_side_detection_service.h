@@ -32,6 +32,7 @@
 #include "components/keyed_service/core/keyed_service.h"
 #include "components/prefs/pref_change_registrar.h"
 #include "components/safe_browsing/content/browser/client_side_phishing_model.h"
+#include "components/safe_browsing/content/browser/client_side_phishing_model_optimization_guide.h"
 #include "components/safe_browsing/core/common/proto/csd.pb.h"
 #include "content/public/browser/browser_thread.h"
 #include "content/public/browser/notification_observer.h"
@@ -146,6 +147,10 @@ class ClientSideDetectionService
   // Sends a model to each renderer.
   virtual void SendModelToRenderers();
 
+  // Returns the model string. Used only for protobuf model. Virtual so that
+  // mock implementation can override it.
+  virtual const std::string& GetModelStr();
+
   // Returns the model type (protobuf or flatbuffer). Virtual so that mock
   // implementation can override it.
   virtual CSDModelType GetModelType();
@@ -161,6 +166,8 @@ class ClientSideDetectionService
   // Returns the Image Embedding model file. Virtual so that mock implementation
   // can override it.
   virtual const base::File& GetImageEmbeddingModel();
+
+  virtual bool HasImageEmbeddingModel();
 
   virtual bool IsModelMetadataImageEmbeddingVersionMatching();
 
@@ -181,9 +188,7 @@ class ClientSideDetectionService
   // Returns a WeakPtr for this service.
   base::WeakPtr<ClientSideDetectionService> GetWeakPtr();
 
-  // Checks whether the model class has a model available or not. Virtual so
-  // that mock classes can override it.
-  virtual bool IsModelAvailable();
+  bool IsModelAvailable();
 
   // For testing the model in browser test.
   void SetModelAndVisualTfLiteForTesting(const base::FilePath& model,
@@ -299,9 +304,20 @@ class ClientSideDetectionService
 
   base::CallbackListSubscription update_model_subscription_;
 
-  std::unique_ptr<ClientSidePhishingModel> client_side_phishing_model_;
+  std::unique_ptr<ClientSidePhishingModelOptimizationGuide>
+      client_side_phishing_model_optimization_guide_;
 
   SEQUENCE_CHECKER(sequence_checker_);
+
+  // Used to note whether the model update should follow with sending the image
+  // embedding model to renderer, because removing the observer from
+  // OptimizationGuide service does not remove the observer instantaneously,
+  // making a user quick resubscription scenario fail a DCHECK in their service.
+  // We will always update the model on the disc if the user has subscribed to
+  // image embedding model once in their current session, but the state of this
+  // boolean value indicate whether the model updates will be sent to the
+  // renderer or not.
+  bool send_image_embedding_model_to_renderer_ = false;
 
   // Used to asynchronously call the callbacks for
   // SendClientReportPhishingRequest.

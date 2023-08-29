@@ -14,8 +14,6 @@
 #include "chrome/browser/extensions/api/identity/identity_constants.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/common/extensions/api/identity.h"
-#include "components/prefs/pref_service.h"
-#include "extensions/browser/pref_names.h"
 
 namespace extensions {
 
@@ -28,6 +26,7 @@ IdentityLaunchWebAuthFlowFunction::Error WebAuthFlowFailureToError(
     WebAuthFlow::Failure failure) {
   switch (failure) {
     case WebAuthFlow::WINDOW_CLOSED:
+    case WebAuthFlow::USER_NAVIGATED_AWAY:
       return IdentityLaunchWebAuthFlowFunction::Error::kUserRejected;
     case WebAuthFlow::INTERACTION_REQUIRED:
       return IdentityLaunchWebAuthFlowFunction::Error::kInteractionRequired;
@@ -63,8 +62,6 @@ std::string ErrorToString(IdentityLaunchWebAuthFlowFunction::Error error) {
       return identity_constants::kPageLoadTimedOut;
     case IdentityLaunchWebAuthFlowFunction::Error::kCannotCreateWindow:
       return identity_constants::kCannotCreateWindow;
-    case IdentityLaunchWebAuthFlowFunction::Error::kInvalidURLScheme:
-      return identity_constants::kInvalidURLScheme;
   }
 }
 
@@ -102,13 +99,6 @@ ExtensionFunction::ResponseAction IdentityLaunchWebAuthFlowFunction::Run() {
   EXTENSION_FUNCTION_VALIDATE(params);
 
   GURL auth_url(params->details.url);
-  if (!auth_url.SchemeIsHTTPOrHTTPS()) {
-    Error error = Error::kInvalidURLScheme;
-
-    RecordHistogramFunctionResult(error);
-    return RespondNow(ExtensionFunction::Error(ErrorToString(error)));
-  }
-
   WebAuthFlow::Mode mode =
       params->details.interactive && *params->details.interactive
           ? WebAuthFlow::INTERACTIVE
@@ -130,18 +120,14 @@ ExtensionFunction::ResponseAction IdentityLaunchWebAuthFlowFunction::Run() {
 
   // Set up acceptable target URLs. (Does not include chrome-extension
   // scheme for this version of the API.)
-  InitFinalRedirectURLDomains(
-      extension()->id(),
-      Profile::FromBrowserContext(browser_context())
-          ->GetPrefs()
-          ->GetDict(extensions::pref_names::kOAuthRedirectUrls)
-          .FindList(extension()->id()));
+  InitFinalRedirectURLPrefix(extension()->id());
 
   AddRef();  // Balanced in OnAuthFlowSuccess/Failure.
 
   auth_flow_ = std::make_unique<WebAuthFlow>(
-      this, profile, auth_url, mode, user_gesture(),
-      abort_on_load_for_non_interactive, timeout_for_non_interactive);
+      this, profile, auth_url, mode, WebAuthFlow::LAUNCH_WEB_AUTH_FLOW,
+      user_gesture(), abort_on_load_for_non_interactive,
+      timeout_for_non_interactive);
   // An extension might call `launchWebAuthFlow()` with any URL. Add an infobar
   // to attribute displayed URL to the extension.
   auth_flow_->SetShouldShowInfoBar(extension()->name());
@@ -156,26 +142,16 @@ bool IdentityLaunchWebAuthFlowFunction::ShouldKeepWorkerAliveIndefinitely() {
   return true;
 }
 
-void IdentityLaunchWebAuthFlowFunction::InitFinalRedirectURLDomainsForTest(
+void IdentityLaunchWebAuthFlowFunction::InitFinalRedirectURLPrefixForTest(
     const std::string& extension_id) {
-  InitFinalRedirectURLDomains(extension_id, nullptr);
+  InitFinalRedirectURLPrefix(extension_id);
 }
 
-void IdentityLaunchWebAuthFlowFunction::InitFinalRedirectURLDomains(
-    const std::string& extension_id,
-    const base::Value::List* redirect_urls) {
-  if (!final_url_domains_.empty()) {
-    return;
-  }
-  final_url_domains_.emplace_back(base::StringPrintf(
-      kChromiumDomainRedirectUrlPattern, extension_id.c_str()));
-  if (redirect_urls) {
-    for (const auto& value : *redirect_urls) {
-      GURL domain(value.GetString());
-      if (domain.is_valid()) {
-        final_url_domains_.push_back(domain.Resolve("/"));
-      }
-    }
+void IdentityLaunchWebAuthFlowFunction::InitFinalRedirectURLPrefix(
+    const std::string& extension_id) {
+  if (final_url_prefix_.is_empty()) {
+    final_url_prefix_ = GURL(base::StringPrintf(
+        kChromiumDomainRedirectUrlPattern, extension_id.c_str()));
   }
 }
 
@@ -192,16 +168,14 @@ void IdentityLaunchWebAuthFlowFunction::OnAuthFlowFailure(
 
 void IdentityLaunchWebAuthFlowFunction::OnAuthFlowURLChange(
     const GURL& redirect_url) {
-  if (!base::Contains(final_url_domains_, redirect_url.Resolve("/"))) {
-    return;
+  if (redirect_url.GetWithEmptyPath() == final_url_prefix_) {
+    RecordHistogramFunctionResult(
+        IdentityLaunchWebAuthFlowFunction::Error::kNone);
+    Respond(WithArguments(redirect_url.spec()));
+    if (auth_flow_)
+      auth_flow_.release()->DetachDelegateAndDelete();
+    Release();  // Balanced in RunAsync.
   }
-  RecordHistogramFunctionResult(
-      IdentityLaunchWebAuthFlowFunction::Error::kNone);
-  Respond(WithArguments(redirect_url.spec()));
-  if (auth_flow_) {
-    auth_flow_.release()->DetachDelegateAndDelete();
-  }
-  Release();  // Balanced in RunAsync.
 }
 
 WebAuthFlow* IdentityLaunchWebAuthFlowFunction::GetWebAuthFlowForTesting() {

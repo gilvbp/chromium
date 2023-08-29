@@ -52,7 +52,8 @@ void PerformanceHandler::RegisterMessages() {
 
 void PerformanceHandler::OnJavascriptAllowed() {
   performance_handler_observer_.Observe(
-      performance_manager::user_tuning::BatterySaverModeManager::GetInstance());
+      performance_manager::user_tuning::UserPerformanceTuningManager::
+          GetInstance());
 }
 
 void PerformanceHandler::OnJavascriptDisallowed() {
@@ -114,7 +115,7 @@ void PerformanceHandler::HandleGetDeviceHasBattery(
   AllowJavascript();
   ResolveJavascriptCallback(
       callback_id, base::Value(performance_manager::user_tuning::
-                                   BatterySaverModeManager::GetInstance()
+                                   UserPerformanceTuningManager::GetInstance()
                                        ->DeviceHasBattery()));
 }
 

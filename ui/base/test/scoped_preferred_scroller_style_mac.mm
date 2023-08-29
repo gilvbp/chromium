@@ -6,10 +6,14 @@
 
 #import <AppKit/AppKit.h>
 
-#import "base/apple/scoped_objc_class_swizzler.h"
 #include "base/check.h"
+#import "base/mac/scoped_objc_class_swizzler.h"
 
-using base::apple::ScopedObjCClassSwizzler;
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
+using base::mac::ScopedObjCClassSwizzler;
 
 namespace {
 

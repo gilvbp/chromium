@@ -40,7 +40,6 @@
 #include "chrome/browser/ui/browser.h"
 #include "chrome/test/base/mixin_based_in_process_browser_test.h"
 #include "chrome/test/base/testing_profile.h"
-#include "chromeos/ash/components/chaps_util/test_util.h"
 #include "chromeos/ash/components/login/auth/public/user_context.h"
 #include "components/policy/core/common/policy_switches.h"
 #include "components/signin/public/identity_manager/identity_test_utils.h"
@@ -268,11 +267,11 @@ class PlatformKeysServiceBrowserTestBase
 
   // Unowned pointer to the profile selected by the current TestConfig.
   // Valid after SetUpOnMainThread().
-  raw_ptr<Profile, DanglingUntriaged | ExperimentalAsh> profile_ = nullptr;
+  raw_ptr<Profile, ExperimentalAsh> profile_ = nullptr;
   // Unowned pointer to the PlatformKeysService for |profile_|. Valid after
   // SetUpOnMainThread().
-  raw_ptr<PlatformKeysService, DanglingUntriaged | ExperimentalAsh>
-      platform_keys_service_ = nullptr;
+  raw_ptr<PlatformKeysService, ExperimentalAsh> platform_keys_service_ =
+      nullptr;
   // The private slot for the profile under test. This should be null if the
   // test parameter mandates testing with the sign-in profile.
   crypto::ScopedPK11Slot user_slot_;
@@ -517,7 +516,7 @@ IN_PROC_BROWSER_TEST_P(PlatformKeysServicePerTokenBrowserTest,
 
   // Arrange: Configure the ChapsUtilFactory singleton instance to return fake
   // ChapsUtil instances.
-  chromeos::ScopedChapsUtilOverride scoped_chaps_util_override;
+  test_util::ScopedChapsUtilOverride scoped_chaps_util_override;
 
   // Act: Generate the key pair.
   const TokenId token_id = GetParam().token_id;

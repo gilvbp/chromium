@@ -13,7 +13,6 @@ class TestBrowsingDataModelDelegate : public BrowsingDataModel::Delegate {
  public:
   enum class StorageType {
     kTestDelegateType = (int)BrowsingDataModel::StorageType::kLastType + 1,
-    kTestDelegateTypePartitioned,
   };
 
   TestBrowsingDataModelDelegate();
@@ -27,8 +26,6 @@ class TestBrowsingDataModelDelegate : public BrowsingDataModel::Delegate {
                      base::OnceClosure callback) override;
   absl::optional<BrowsingDataModel::DataOwner> GetDataOwner(
       BrowsingDataModel::DataKey data_key,
-      BrowsingDataModel::StorageType storage_type) const override;
-  absl::optional<bool> IsBlockedByThirdPartyCookieBlocking(
       BrowsingDataModel::StorageType storage_type) const override;
 
  private:

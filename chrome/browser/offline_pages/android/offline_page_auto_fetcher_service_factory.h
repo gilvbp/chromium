@@ -36,7 +36,7 @@ class OfflinePageAutoFetcherServiceFactory : public ProfileKeyedServiceFactory {
   OfflinePageAutoFetcherServiceFactory();
   ~OfflinePageAutoFetcherServiceFactory() override;
 
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* context) const override;
 
   std::unique_ptr<ServiceDelegate> service_delegate_;

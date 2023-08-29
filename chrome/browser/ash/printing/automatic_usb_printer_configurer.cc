@@ -81,9 +81,8 @@ void AutomaticUsbPrinterConfigurer::SetupPrinter(
   }
 
   installation_manager_->SetUpPrinter(
-      printer, /*is_automatic_installation=*/true,
-      base::BindOnce(&AutomaticUsbPrinterConfigurer::OnSetupComplete,
-                     weak_factory_.GetWeakPtr(), printer));
+      printer, base::BindOnce(&AutomaticUsbPrinterConfigurer::OnSetupComplete,
+                              weak_factory_.GetWeakPtr(), printer));
 }
 
 void AutomaticUsbPrinterConfigurer::OnSetupComplete(
@@ -98,6 +97,7 @@ void AutomaticUsbPrinterConfigurer::OnSetupComplete(
     LOG(ERROR) << "Unable to autoconfigure usb printer " << printer.id();
     return;
   }
+  installation_manager_->PrinterInstalled(printer, /*is_automatic=*/true);
   PrinterConfigurer::RecordUsbPrinterSetupSource(
       UsbPrinterSetupSource::kAutoconfigured);
   CompleteConfiguration(printer);

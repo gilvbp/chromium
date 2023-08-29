@@ -2,10 +2,33 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-{%- from 'cpp_macros.tmpl' import
- namespace_begin, namespace_end, include_guard, variant_path %}
+{%- if variant -%}
+{%-   set variant_path = "%s-%s"|format(module.path, variant) -%}
+{%- else -%}
+{%-   set variant_path = module.path -%}
+{%- endif -%}
 
-{%- set header_guard = include_guard('', module.path, variant) %}
+{%- set header_guard = "%s_H_"|format(
+        variant_path|upper|replace("/","_")|replace(".","_")|
+            replace("-", "_")) %}
+
+{%- macro namespace_begin() %}
+{%-   for namespace in namespaces_as_array %}
+namespace {{namespace}} {
+{%-   endfor %}
+{%-   if variant %}
+namespace {{variant}} {
+{%-   endif %}
+{%- endmacro %}
+
+{%- macro namespace_end() %}
+{%-   if variant %}
+}  // namespace {{variant}}
+{%-   endif %}
+{%-   for namespace in namespaces_as_array|reverse %}
+}  // namespace {{namespace}}
+{%-   endfor %}
+{%- endmacro %}
 
 {%- macro kythe_annotation(name) %}
 {%- if enable_kythe_annotations %}
@@ -38,13 +61,21 @@
 #include "third_party/perfetto/include/perfetto/tracing/traced_value_forward.h"
 
 #include "{{module.path}}-shared.h"
-#include "{{variant_path(module.path, variant)}}-forward.h"
+#include "{{variant_path}}-forward.h"
 
 {%- for import in imports %}
 {%-   if import|is_full_header_required_for_import %}
-#include "{{variant_path(import.path, variant)}}.h"
+{%-     if variant %}
+#include "{{"%s-%s.h"|format(import.path, variant)}}"
+{%-     else %}
+#include "{{import.path}}.h"
+{%-     endif %}
 {%-   else %}
-#include "{{variant_path(import.path, variant)}}-forward.h"
+{%-     if variant %}
+#include "{{"%s-%s-forward.h"|format(import.path, variant)}}"
+{%-     else %}
+#include "{{import.path}}-forward.h"
+{%-     endif %}
 {%-   endif %}
 {%- endfor %}
 
@@ -106,7 +137,7 @@
 {%- endif %}
 {%- endfor %}
 
-{{namespace_begin(namespaces_as_array, variant)}}
+{{namespace_begin()}}
 
 {%- set module_prefix = "%s"|format(namespaces_as_array|join(".")) %}
 
@@ -169,7 +200,7 @@
 {%-   endif %}
 {%- endfor %}
 
-{{namespace_end(namespaces_as_array, variant)}}
+{{namespace_end()}}
 
 namespace mojo {
 

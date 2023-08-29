@@ -19,6 +19,7 @@ import android.view.View;
 import androidx.test.filters.MediumTest;
 
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -79,11 +80,17 @@ public class LoadingModalDialogIntegrationTest {
         sActivityTestRule.launchActivity(null);
         sActivity = runOnUiThreadBlockingNoException(() -> sActivityTestRule.getActivity());
         Looper.prepare();
+
+        ObservableSupplierImpl.setIgnoreThreadChecksForTesting(true);
+    }
+
+    @AfterClass
+    public static void teardownSuite() {
+        ObservableSupplierImpl.setIgnoreThreadChecksForTesting(false);
     }
 
     @Before
     public void setupTest() throws Exception {
-        ObservableSupplierImpl.setIgnoreThreadChecksForTesting(true);
         mObserver = new TestDialogManagerObserver();
         runOnUiThreadBlocking(() -> sActivity.getModalDialogManager().addObserver(mObserver));
     }

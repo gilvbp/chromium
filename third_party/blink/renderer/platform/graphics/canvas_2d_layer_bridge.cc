@@ -64,8 +64,6 @@
 #include "third_party/blink/renderer/platform/wtf/cross_thread_copier_std.h"
 #include "third_party/blink/renderer/platform/wtf/cross_thread_functional.h"
 #include "third_party/blink/renderer/platform/wtf/functional.h"
-#include "third_party/skia/include/codec/SkCodec.h"
-#include "third_party/skia/include/codec/SkPngDecoder.h"
 #include "third_party/skia/include/core/SkAlphaType.h"
 #include "third_party/skia/include/core/SkData.h"
 #include "third_party/skia/include/core/SkImage.h"
@@ -212,19 +210,13 @@ sk_sp<SkImage> HibernationHandler::GetImage() {
     return image_;
   }
 
-  CHECK(encoded_);
-  CHECK(SkPngDecoder::IsPng(encoded_->data(), encoded_->size()));
+  DCHECK(encoded_);
   DCHECK(
       base::FeatureList::IsEnabled(features::kCanvasCompressHibernatedImage));
 
   base::TimeTicks before = base::TimeTicks::Now();
   // Note: not discarding the encoded image.
-  sk_sp<SkImage> image = nullptr;
-  std::unique_ptr<SkCodec> codec = SkPngDecoder::Decode(encoded_, nullptr);
-  if (codec) {
-    image = std::get<0>(codec->getImage());
-  }
-
+  auto image = SkImages::DeferredFromEncodedData(encoded_)->makeRasterImage();
   base::TimeTicks after = base::TimeTicks::Now();
   UMA_HISTOGRAM_TIMES(
       "Blink.Canvas.2DLayerBridge.Compression.DecompressionTime",
@@ -590,7 +582,8 @@ CanvasResourceProvider* Canvas2DLayerBridge::GetOrCreateResourceProvider() {
     layer_->SetBlendBackgroundColor(opacity_mode_ != kOpaque);
     layer_->SetNearestNeighbor(resource_host_->FilterQuality() ==
                                cc::PaintFlags::FilterQuality::kNone);
-    layer_->SetHdrMetadata(resource_host_->GetHDRMetadata());
+    layer_->SetHDRConfiguration(resource_host_->GetHDRMode(),
+                                resource_host_->GetHDRMetadata());
     layer_->SetFlipped(!resource_provider->IsOriginTopLeft());
   }
   // After the page becomes visible and successfully restored the canvas
@@ -647,9 +640,11 @@ void Canvas2DLayerBridge::SetFilterQuality(
                                cc::PaintFlags::FilterQuality::kNone);
 }
 
-void Canvas2DLayerBridge::SetHdrMetadata(const gfx::HDRMetadata& hdr_metadata) {
+void Canvas2DLayerBridge::SetHDRConfiguration(
+    gfx::HDRMode hdr_mode,
+    absl::optional<gfx::HDRMetadata> hdr_metadata) {
   if (layer_)
-    layer_->SetHdrMetadata(hdr_metadata);
+    layer_->SetHDRConfiguration(hdr_mode, hdr_metadata);
 }
 
 void Canvas2DLayerBridge::SetIsInHiddenPage(bool hidden) {

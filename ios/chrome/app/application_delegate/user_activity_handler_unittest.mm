@@ -37,10 +37,8 @@
 #import "ios/chrome/browser/shared/model/web_state_list/web_state_opener.h"
 #import "ios/chrome/browser/shared/public/features/features.h"
 #import "ios/chrome/browser/url_loading/url_loading_params.h"
-#import "ios/chrome/common/intents/OpenBookmarksIntent.h"
 #import "ios/chrome/common/intents/OpenInChromeIncognitoIntent.h"
 #import "ios/chrome/common/intents/OpenInChromeIntent.h"
-#import "ios/chrome/common/intents/OpenReadingListIntent.h"
 #import "ios/testing/scoped_block_swizzler.h"
 #import "ios/web/public/test/fakes/fake_web_state.h"
 #import "net/base/mac/url_conversions.h"
@@ -50,6 +48,10 @@
 #import "third_party/ocmock/gtest_support.h"
 #import "ui/base/page_transition_types.h"
 #import "url/gurl.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 #pragma mark - Test class.
 
@@ -777,19 +779,16 @@ TEST_F(UserActivityHandlerTest,
   FakeConnectionInformation* fakeConnectionInformation =
       [[FakeConnectionInformation alloc] init];
 
-  // Set a list of parameter to test, where each entry has a post open action
-  // name, whether or not it should open a new tab, whether or not to use
-  // incognito, and the post open action enum value.
   NSArray* parametersToTest = @[
-    @[ @"OpenNewSearch", @YES, @NO, @(FOCUS_OMNIBOX) ],
-    @[ @"OpenIncognitoSearch", @YES, @YES, @(FOCUS_OMNIBOX) ],
-    @[ @"OpenVoiceSearch", @YES, @NO, @(START_VOICE_SEARCH) ],
-    @[ @"OpenQRScanner", @YES, @NO, @(START_QR_CODE_SCANNER) ],
+    @[ @"OpenNewSearch", @NO, @(FOCUS_OMNIBOX) ],
+    @[ @"OpenIncognitoSearch", @YES, @(FOCUS_OMNIBOX) ],
+    @[ @"OpenVoiceSearch", @NO, @(START_VOICE_SEARCH) ],
+    @[ @"OpenQRScanner", @NO, @(START_QR_CODE_SCANNER) ],
     @[
-      @"OpenLensFromAppIconLongPress", @NO, @NO,
+      @"OpenLensFromAppIconLongPress", @NO,
       @(START_LENS_FROM_APP_ICON_LONG_PRESS)
     ],
-    @[ @"OpenLensFromSpotlight", @NO, @NO, @(START_LENS_FROM_SPOTLIGHT) ]
+    @[ @"OpenLensFromSpotlight", @NO, @(START_LENS_FROM_SPOTLIGHT) ]
   ];
 
   swizzleHandleStartupParameters();
@@ -814,19 +813,13 @@ TEST_F(UserActivityHandlerTest,
                                             initStage:InitStageFinal];
 
     // Tests.
-    if ([[parameters objectAtIndex:1] boolValue]) {
-      EXPECT_EQ(gurlNewTab,
-                [fakeConnectionInformation startupParameters].externalURL);
-    } else {
-      EXPECT_TRUE(
-          [fakeConnectionInformation startupParameters].externalURL.is_empty());
-    }
-
-    EXPECT_EQ([[parameters objectAtIndex:2] boolValue]
+    EXPECT_EQ(gurlNewTab,
+              [fakeConnectionInformation startupParameters].externalURL);
+    EXPECT_EQ([[parameters objectAtIndex:1] boolValue]
                   ? ApplicationModeForTabOpening::INCOGNITO
                   : ApplicationModeForTabOpening::NORMAL,
               [fakeConnectionInformation startupParameters].applicationMode);
-    EXPECT_EQ([[parameters objectAtIndex:3] intValue],
+    EXPECT_EQ([[parameters objectAtIndex:2] intValue],
               [fakeConnectionInformation startupParameters].postOpeningAction);
     EXPECT_TRUE(completionHandlerExecuted());
     EXPECT_TRUE(completionHandlerArgument());
@@ -867,64 +860,4 @@ TEST_F(UserActivityHandlerTest, PerformActionForShortcutItemWithFirstRunUI) {
   EXPECT_TRUE(completionHandlerExecuted());
   EXPECT_FALSE(completionHandlerArgument());
   EXPECT_FALSE(getHandleStartupParametersHasBeenCalled());
-}
-
-// Test that Chrome respond to open reading list intent.
-TEST_F(UserActivityHandlerTest, ContinueUserActivityIntentOpenReadingList) {
-  NSUserActivity* userActivity =
-      [[NSUserActivity alloc] initWithActivityType:@"OpenReadingListIntent"];
-
-  OpenReadingListIntent* intent = [[OpenReadingListIntent alloc] init];
-
-  INInteraction* interaction = [[INInteraction alloc] initWithIntent:intent
-                                                            response:nil];
-
-  id mock_user_activity = CreateMockNSUserActivity(userActivity, interaction);
-
-  FakeStartupInformation* fakeStartupInformation =
-      [[FakeStartupInformation alloc] init];
-  FakeConnectionInformation* connectionInformationMock =
-      [[FakeConnectionInformation alloc] init];
-  MockTabOpener* tabOpener = [[MockTabOpener alloc] init];
-
-  [UserActivityHandler continueUserActivity:mock_user_activity
-                        applicationIsActive:YES
-                                  tabOpener:tabOpener
-                      connectionInformation:connectionInformationMock
-                         startupInformation:fakeStartupInformation
-                               browserState:nullptr
-                                  initStage:InitStageFinal];
-
-  EXPECT_EQ(OPEN_READING_LIST,
-            [connectionInformationMock startupParameters].postOpeningAction);
-}
-
-// Test that Chrome respond to open bookmarks intent.
-TEST_F(UserActivityHandlerTest, ContinueUserActivityIntentOpenBookmarks) {
-  NSUserActivity* userActivity =
-      [[NSUserActivity alloc] initWithActivityType:@"OpenBookmarksIntent"];
-
-  OpenBookmarksIntent* intent = [[OpenBookmarksIntent alloc] init];
-
-  INInteraction* interaction = [[INInteraction alloc] initWithIntent:intent
-                                                            response:nil];
-
-  id mock_user_activity = CreateMockNSUserActivity(userActivity, interaction);
-
-  FakeStartupInformation* fakeStartupInformation =
-      [[FakeStartupInformation alloc] init];
-  FakeConnectionInformation* connectionInformationMock =
-      [[FakeConnectionInformation alloc] init];
-  MockTabOpener* tabOpener = [[MockTabOpener alloc] init];
-
-  [UserActivityHandler continueUserActivity:mock_user_activity
-                        applicationIsActive:YES
-                                  tabOpener:tabOpener
-                      connectionInformation:connectionInformationMock
-                         startupInformation:fakeStartupInformation
-                               browserState:nullptr
-                                  initStage:InitStageFinal];
-
-  EXPECT_EQ(OPEN_BOOKMARKS,
-            [connectionInformationMock startupParameters].postOpeningAction);
 }

@@ -67,6 +67,7 @@
 #include "content/browser/tracing/memory_instrumentation_util.h"
 #include "content/browser/utility_process_host.h"
 #include "content/child/field_trial.h"
+#include "content/common/android/cpu_time_metrics.h"
 #include "content/common/content_constants_internal.h"
 #include "content/common/mojo_core_library_support.h"
 #include "content/common/process_visibility_tracker.h"
@@ -190,7 +191,6 @@
 #include "base/system/sys_info.h"
 #include "content/browser/android/battery_metrics.h"
 #include "content/browser/android/browser_startup_controller.h"
-#include "content/common/android/cpu_time_metrics.h"
 #endif
 
 #if BUILDFLAG(IS_FUCHSIA)
@@ -319,7 +319,7 @@ pid_t LaunchZygoteHelper(base::CommandLine* cmd_line,
 #endif
   };
   cmd_line->CopySwitchesFrom(*base::CommandLine::ForCurrentProcess(),
-                             kForwardSwitches);
+                             kForwardSwitches, std::size(kForwardSwitches));
 
   GetContentClient()->browser()->AppendExtraCommandLineSwitches(cmd_line, -1);
 
@@ -463,7 +463,7 @@ mojo::ScopedMessagePipeHandle MaybeAcceptMojoInvitation() {
 
 #if BUILDFLAG(IS_WIN)
 void HandleConsoleControlEventOnBrowserUiThread(DWORD control_type) {
-  GetContentClient()->browser()->SessionEnding(control_type);
+  GetContentClient()->browser()->SessionEnding();
 }
 
 // A console control event handler for browser processes that initiates end

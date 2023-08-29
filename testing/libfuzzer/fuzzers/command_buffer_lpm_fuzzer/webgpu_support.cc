@@ -115,6 +115,7 @@ void CmdBufFuzz::WebGPUDestroyBuffer() {
   DVLOG(3) << "Destroying WebGPU buffer";
   for (wgpu::Buffer buff : wgpu_buffers_) {
     buff.Destroy();
+    buff.Release();
   }
   wgpu_buffers_.clear();
   DVLOG(3) << "Destroyed WebGPU buffer";

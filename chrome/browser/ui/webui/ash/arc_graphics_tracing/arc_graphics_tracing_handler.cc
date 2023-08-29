@@ -212,8 +212,10 @@ base::trace_event::TraceConfig GetTracingConfig() {
 
 }  // namespace
 
+// static
 base::FilePath ArcGraphicsTracingHandler::GetModelPathFromTitle(
-    std::string_view title) {
+    Profile* profile,
+    const std::string& title) {
   constexpr size_t kMaxNameSize = 32;
   char normalized_name[kMaxNameSize];
   size_t index = 0;
@@ -229,9 +231,10 @@ base::FilePath ArcGraphicsTracingHandler::GetModelPathFromTitle(
       normalized_name[index++] = c;
   }
   normalized_name[index] = 0;
-  return GetDownloadsFolder().AppendASCII(
+  return file_manager::util::GetDownloadsFolderForProfile(profile).AppendASCII(
       base::StringPrintf("overview_tracing_%s_%" PRId64 ".json",
-                         normalized_name, Now().since_origin().InSeconds()));
+                         normalized_name,
+                         (base::Time::Now() - base::Time()).InSeconds()));
 }
 
 ArcGraphicsTracingHandler::ArcGraphicsTracingHandler()
@@ -285,9 +288,11 @@ void ArcGraphicsTracingHandler::OnWindowActivated(ActivationReason reason,
   arc_active_window_->AddPreTargetHandler(this);
 
   // Limit tracing by newly activated window.
-  if (tracing_active_) {
-    tracing_time_min_ = SystemTicksNow();
-  }
+  tracing_time_min_ = TRACE_TIME_TICKS_NOW();
+}
+
+base::TimeDelta ArcGraphicsTracingHandler::GetMaxInterval() const {
+  return max_tracing_time_;
 }
 
 void ArcGraphicsTracingHandler::OnWindowPropertyChanged(aura::Window* window,
@@ -358,36 +363,7 @@ void ArcGraphicsTracingHandler::DiscardActiveArcWindow() {
   arc_active_window_ = nullptr;
 }
 
-base::Time ArcGraphicsTracingHandler::Now() {
-  return base::Time::Now();
-}
-
-void ArcGraphicsTracingHandler::StartTracingOnController(
-    const base::trace_event::TraceConfig& trace_config,
-    content::TracingController::StartTracingDoneCallback after_start) {
-  content::TracingController::GetInstance()->StartTracing(
-      trace_config, std::move(after_start));
-}
-
-void ArcGraphicsTracingHandler::StopTracingOnController(
-    content::TracingController::CompletionCallback after_stop) {
-  auto* const controller = content::TracingController::GetInstance();
-
-  if (!controller->IsTracing()) {
-    LOG(WARNING) << "TracingController has already stopped tracing";
-    return;
-  }
-
-  controller->StopTracing(
-      content::TracingController::CreateStringEndpoint(std::move(after_stop)));
-}
-
-base::FilePath ArcGraphicsTracingHandler::GetDownloadsFolder() {
-  return file_manager::util::GetDownloadsFolderForProfile(
-      Profile::FromWebUI(web_ui()));
-}
-
-void ArcGraphicsTracingHandler::ActivateWebUIWindow() {
+void ArcGraphicsTracingHandler::Activate() {
   aura::Window* const window =
       web_ui()->GetWebContents()->GetTopLevelNativeWindow();
   if (!window) {
@@ -405,14 +381,14 @@ void ArcGraphicsTracingHandler::StartTracing() {
   if (jank_detector_)
     jank_detector_->Reset();
   system_stat_collector_ = std::make_unique<arc::ArcSystemStatCollector>();
-  system_stat_collector_->Start(max_tracing_time_);
+  system_stat_collector_->Start(GetMaxInterval());
 
   // Timestamp and app information would be updated when |OnTracingStarted| is
   // called.
-  timestamp_ = Now();
+  timestamp_ = base::Time::Now();
   UpdateActiveArcWindowInfo();
 
-  StartTracingOnController(
+  content::TracingController::GetInstance()->StartTracing(
       GetTracingConfig(),
       base::BindOnce(&ArcGraphicsTracingHandler::OnTracingStarted,
                      weak_ptr_factory_.GetWeakPtr()));
@@ -424,19 +400,25 @@ void ArcGraphicsTracingHandler::StopTracing() {
   tracing_active_ = false;
   stop_tracing_timer_.Stop();
 
-  tracing_time_max_ = SystemTicksNow();
+  tracing_time_max_ = TRACE_TIME_TICKS_NOW();
 
   if (system_stat_collector_)
     system_stat_collector_->Stop();
 
-  StopTracingOnController(
+  content::TracingController* const controller =
+      content::TracingController::GetInstance();
+
+  if (!controller->IsTracing())
+    return;
+
+  controller->StopTracing(content::TracingController::CreateStringEndpoint(
       base::BindOnce(&ArcGraphicsTracingHandler::OnTracingStopped,
-                     weak_ptr_factory_.GetWeakPtr()));
+                     weak_ptr_factory_.GetWeakPtr())));
 }
 
 void ArcGraphicsTracingHandler::StopTracingAndActivate() {
   StopTracing();
-  ActivateWebUIWindow();
+  Activate();
 }
 
 void ArcGraphicsTracingHandler::SetStatus(const std::string& status) {
@@ -445,20 +427,16 @@ void ArcGraphicsTracingHandler::SetStatus(const std::string& status) {
                          base::Value(status.empty() ? "Idle" : status));
 }
 
-base::TimeTicks ArcGraphicsTracingHandler::SystemTicksNow() {
-  return TRACE_TIME_TICKS_NOW();
-}
-
 void ArcGraphicsTracingHandler::OnTracingStarted() {
   // This is an asynchronous call and it may arrive after tracing is actually
   // stopped.
   if (!tracing_active_)
     return;
 
-  timestamp_ = Now();
+  timestamp_ = base::Time::Now();
   UpdateActiveArcWindowInfo();
 
-  tracing_time_min_ = SystemTicksNow();
+  tracing_time_min_ = TRACE_TIME_TICKS_NOW();
   stop_tracing_timer_.Start(
       FROM_HERE, system_stat_collector_->max_interval(),
       base::BindOnce(&ArcGraphicsTracingHandler::StopTracingAndActivate,
@@ -470,7 +448,9 @@ void ArcGraphicsTracingHandler::OnTracingStopped(
   std::string string_data;
   string_data.swap(*trace_data);
 
-  const base::FilePath model_path = GetModelPathFromTitle(active_task_title_);
+  Profile* const profile = Profile::FromWebUI(web_ui());
+  const base::FilePath model_path =
+      GetModelPathFromTitle(profile, active_task_title_);
 
   base::ThreadPool::PostTaskAndReplyWithResult(
       FROM_HERE, {base::MayBlock(), base::TaskPriority::BEST_EFFORT},
@@ -495,18 +475,14 @@ void ArcGraphicsTracingHandler::OnGraphicsModelReady(
 
 void ArcGraphicsTracingHandler::HandleSetMaxTime(
     const base::Value::List& args) {
-  if (args.size() != 1) {
-    LOG(ERROR) << "Expect 1 numeric arg";
+  DCHECK_EQ(1U, args.size());
+
+  if (!args[0].is_int()) {
+    LOG(ERROR) << "Invalid input";
     return;
   }
-
-  auto new_time = args[0].GetIfDouble();
-  if (!new_time.has_value() || *new_time < 1.0) {
-    LOG(ERROR) << "Interval too small or not a number: " << args[0];
-    return;
-  }
-
-  max_tracing_time_ = base::Seconds(*new_time);
+  max_tracing_time_ = base::Seconds(args[0].GetInt());
+  DCHECK_GE(max_tracing_time_, base::Seconds(1));
 }
 
 void ArcGraphicsTracingHandler::HandleLoadFromText(

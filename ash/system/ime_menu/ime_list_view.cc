@@ -12,7 +12,6 @@
 #include "ash/keyboard/keyboard_controller_impl.h"
 #include "ash/keyboard/ui/keyboard_util.h"
 #include "ash/keyboard/virtual_keyboard_controller.h"
-#include "ash/public/cpp/ash_view_ids.h"
 #include "ash/public/cpp/ime_info.h"
 #include "ash/resources/vector_icons/vector_icons.h"
 #include "ash/shell.h"
@@ -47,7 +46,6 @@
 #include "ui/views/controls/button/toggle_button.h"
 #include "ui/views/controls/image_view.h"
 #include "ui/views/controls/label.h"
-#include "ui/views/controls/scroll_view.h"
 #include "ui/views/controls/separator.h"
 #include "ui/views/layout/fill_layout.h"
 #include "ui/views/painter.h"
@@ -263,8 +261,6 @@ void ImeListView::Init(bool show_keyboard_toggle,
   Update(ime_controller->current_ime().id, ime_controller->GetVisibleImes(),
          ime_controller->current_ime_menu_items(), show_keyboard_toggle,
          single_ime_behavior);
-
-  scroller()->SetID(VIEW_ID_IME_LIST_VIEW_SCROLLER);
 }
 
 void ImeListView::Update(const std::string& current_ime_id,

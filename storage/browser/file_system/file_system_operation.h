@@ -33,29 +33,6 @@ class FileSystemURL;
 class FileWriterDelegate;
 class ShareableFileReference;
 
-// Operation type called by FileSystemOperationRunner.
-enum class OperationType {
-  kNone,
-  kCreateFile,
-  kCreateDirectory,
-  kCreateSnapshotFile,
-  kCopy,
-  kCopyInForeignFile,
-  kMove,
-  kDirectoryExists,
-  kFileExists,
-  kGetMetadata,
-  kReadDirectory,
-  kRemove,
-  kWrite,
-  kTruncate,
-  kTouchFile,
-  kOpenFile,
-  kCloseFile,
-  kGetLocalPath,
-  kCancel,
-};
-
 // The interface class for FileSystemOperation implementations.
 //
 // This interface defines file system operations required to implement
@@ -81,7 +58,6 @@ class FileSystemOperation {
  public:
   COMPONENT_EXPORT(STORAGE_BROWSER)
   static std::unique_ptr<FileSystemOperation> Create(
-      OperationType type,
       const FileSystemURL& url,
       FileSystemContext* file_system_context,
       std::unique_ptr<FileSystemOperationContext> operation_context);
@@ -472,6 +448,29 @@ class FileSystemOperation {
       base::FilePath* platform_path) = 0;
 
  protected:
+  // Used only for internal assertions.
+  enum OperationType {
+    kOperationNone,
+    kOperationCreateFile,
+    kOperationCreateDirectory,
+    kOperationCreateSnapshotFile,
+    kOperationCopy,
+    kOperationCopyInForeignFile,
+    kOperationMove,
+    kOperationDirectoryExists,
+    kOperationFileExists,
+    kOperationGetMetadata,
+    kOperationReadDirectory,
+    kOperationRemove,
+    kOperationWrite,
+    kOperationTruncate,
+    kOperationTouchFile,
+    kOperationOpenFile,
+    kOperationCloseFile,
+    kOperationGetLocalPath,
+    kOperationCancel,
+  };
+
   FileSystemOperation() = default;
 
   // Allows subclasses to call the FileSystemOperationImpl constructor.

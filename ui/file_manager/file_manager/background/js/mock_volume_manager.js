@@ -290,11 +290,6 @@ export class MockVolumeManager {
   isDisabled(volume) {
     return false;
   }
-
-  /** @override */
-  isAllowedVolume(volumeInfo) {
-    return true;
-  }
 }
 
 /** @private {?VolumeManager} */

@@ -4,7 +4,7 @@
 
 #import "ios/chrome/browser/ui/infobars/modals/autofill_address_profile/legacy_infobar_edit_address_profile_table_view_controller.h"
 
-#import "base/apple/foundation_util.h"
+#import "base/mac/foundation_util.h"
 #import "base/metrics/user_metrics.h"
 #import "base/metrics/user_metrics_action.h"
 #import "components/autofill/core/common/autofill_features.h"
@@ -22,6 +22,10 @@
 #import "ios/chrome/common/ui/table_view/table_view_cells_constants.h"
 #import "ios/chrome/grit/ios_strings.h"
 #import "ui/base/l10n/l10n_util_mac.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace {
 using ::AutofillTypeFromAutofillUIType;
@@ -159,12 +163,12 @@ typedef NS_ENUM(NSInteger, ItemType) {
 
   if (itemType == ItemTypeTextField) {
     TableViewTextEditCell* editCell =
-        base::apple::ObjCCastStrict<TableViewTextEditCell>(cell);
+        base::mac::ObjCCastStrict<TableViewTextEditCell>(cell);
     editCell.textField.delegate = self;
     editCell.selectionStyle = UITableViewCellSelectionStyleNone;
   } else if (itemType == ItemTypeSaveButton) {
     TableViewTextButtonCell* tableViewTextButtonCell =
-        base::apple::ObjCCastStrict<TableViewTextButtonCell>(cell);
+        base::mac::ObjCCastStrict<TableViewTextButtonCell>(cell);
     [tableViewTextButtonCell.button addTarget:self
                                        action:@selector(didTapSaveButton)
                              forControlEvents:UIControlEventTouchUpInside];
@@ -228,7 +232,7 @@ typedef NS_ENUM(NSInteger, ItemType) {
   for (NSInteger itemIndex = 0; itemIndex < itemCount; ++itemIndex) {
     NSIndexPath* path = [NSIndexPath indexPathForItem:itemIndex
                                             inSection:section];
-    AutofillEditItem* item = base::apple::ObjCCastStrict<AutofillEditItem>(
+    AutofillEditItem* item = base::mac::ObjCCastStrict<AutofillEditItem>(
         [model itemAtIndexPath:path]);
     self.profileData[[NSNumber numberWithInt:item.autofillUIType]] =
         item.textFieldValue;

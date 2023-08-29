@@ -54,7 +54,6 @@ enum WebGLExtensionName {
   kWebGLMultiDrawInstancedBaseVertexBaseInstanceName,
   kWebGLMultiviewName,
   kWebGLProvokingVertexName,
-  kWebGLShaderPixelLocalStorageName,
   kWebGLVideoTextureName,
   kWebGLWebCodecsVideoFrameName,
   kWebGLExtensionNameCount,  // Must be the last entry

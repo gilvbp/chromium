@@ -23,7 +23,7 @@
 #endif
 
 #if BUILDFLAG(IS_MAC)
-#include "base/apple/scoped_nsautorelease_pool.h"
+#include "base/mac/scoped_nsautorelease_pool.h"
 #include "base/test/mock_chrome_application_mac.h"
 #endif
 
@@ -37,7 +37,7 @@ ContentTestSuite::~ContentTestSuite() = default;
 
 void ContentTestSuite::Initialize() {
 #if BUILDFLAG(IS_MAC)
-  base::apple::ScopedNSAutoreleasePool autorelease_pool;
+  base::mac::ScopedNSAutoreleasePool autorelease_pool;
   mock_cr_app::RegisterMockCrApp();
 #endif
 

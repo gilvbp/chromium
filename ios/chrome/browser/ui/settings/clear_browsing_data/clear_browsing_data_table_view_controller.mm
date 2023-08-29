@@ -4,7 +4,7 @@
 
 #import "ios/chrome/browser/ui/settings/clear_browsing_data/clear_browsing_data_table_view_controller.h"
 
-#import "base/apple/foundation_util.h"
+#import "base/mac/foundation_util.h"
 #import "base/metrics/histogram_functions.h"
 #import "base/metrics/user_metrics.h"
 #import "base/metrics/user_metrics_action.h"
@@ -45,7 +45,10 @@
 #import "ios/chrome/grit/ios_chromium_strings.h"
 #import "ios/chrome/grit/ios_strings.h"
 #import "ui/base/l10n/l10n_util.h"
-#import "ui/strings/grit/ui_strings.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 @interface ClearBrowsingDataTableViewController () <
     ClearBrowsingDataConsumer,
@@ -113,7 +116,6 @@
 }
 
 - (void)stop {
-  [self prepareForDismissal];
   _identityManagerObserverBridge.reset();
   [_dataManager disconnect];
   _dataManager.consumer = nil;
@@ -208,7 +210,7 @@
 - (void)dismiss {
   base::RecordAction(base::UserMetricsAction("MobileClearBrowsingDataClose"));
   [self prepareForDismissal];
-  [self.delegate clearBrowsingDataTableViewControllerWantsDismissal:self];
+  [self.delegate dismissClearBrowsingData];
 }
 
 #pragma mark - Public Methods
@@ -218,7 +220,10 @@
     [self.actionSheetCoordinator stop];
     self.actionSheetCoordinator = nil;
   }
-  [self dismissAlertCoordinator];
+  if (self.alertCoordinator) {
+    [self.alertCoordinator stop];
+    self.alertCoordinator = nil;
+  }
   if (self.overlayCoordinator.started) {
     [self.overlayCoordinator stop];
     self.navigationController.interactivePopGestureRecognizer.delegate = nil;
@@ -275,7 +280,7 @@
     case SectionIdentifierSavedSiteData:
     case SectionIdentifierGoogleAccount: {
       TableViewLinkHeaderFooterView* linkView =
-          base::apple::ObjCCastStrict<TableViewLinkHeaderFooterView>(view);
+          base::mac::ObjCCastStrict<TableViewLinkHeaderFooterView>(view);
       linkView.delegate = self;
     } break;
     default:
@@ -317,7 +322,7 @@
     case ItemTypeDataTypeAutofill: {
       DCHECK([item isKindOfClass:[TableViewClearBrowsingDataItem class]]);
       TableViewClearBrowsingDataItem* clearBrowsingDataItem =
-          base::apple::ObjCCastStrict<TableViewClearBrowsingDataItem>(item);
+          base::mac::ObjCCastStrict<TableViewClearBrowsingDataItem>(item);
 
       self.browserState->GetPrefs()->SetBoolean(clearBrowsingDataItem.prefName,
                                                 !clearBrowsingDataItem.checked);
@@ -371,16 +376,10 @@
     base::UmaHistogramEnumeration("Settings.ClearBrowsingData.OpenMyActivity",
                                   MyActivityNavigation::kTopLevel);
   }
-  [self.delegate clearBrowsingDataTableViewController:self
-                                       wantsToOpenURL:url.gurl];
+  [self.delegate openURL:url.gurl];
 }
 
 #pragma mark - ClearBrowsingDataConsumer
-
-- (void)dismissAlertCoordinator {
-  [self.alertCoordinator stop];
-  self.alertCoordinator = nil;
-}
 
 - (void)updateCellsForItem:(TableViewItem*)item reload:(BOOL)reload {
   if (self.suppressTableViewUpdates)
@@ -488,20 +487,14 @@
           l10n_util::GetNSString(
               IDS_IOS_CLEAR_BROWSING_DATA_HISTORY_NOTICE_OPEN_HISTORY_BUTTON)
                 action:^{
-                  [weakSelf.delegate
-                      clearBrowsingDataTableViewController:weakSelf
-                                            wantsToOpenURL:
-                                                GURL(kGoogleMyAccountURL)];
-                  [weakSelf dismissAlertCoordinator];
+                  [weakSelf.delegate openURL:GURL(kGoogleMyAccountURL)];
                 }
                  style:UIAlertActionStyleDefault];
 
   [self.alertCoordinator
       addItemWithTitle:l10n_util::GetNSString(
                            IDS_IOS_CLEAR_BROWSING_DATA_HISTORY_NOTICE_OK_BUTTON)
-                action:^{
-                  [weakSelf dismissAlertCoordinator];
-                }
+                action:nil
                  style:UIAlertActionStyleCancel];
 
   [self.alertCoordinator start];
@@ -513,10 +506,8 @@
     (UIPresentationController*)presentationController {
   base::RecordAction(
       base::UserMetricsAction("IOSClearBrowsingDataCloseWithSwipe"));
-  // Call prepareForDismissal to clean up state and stop the Coordinators the
-  // current class own.
+  // Call prepareForDismissal to clean up state and stop the Coordinator.
   [self prepareForDismissal];
-  [self.delegate clearBrowsingDataTableViewControllerWasRemoved:self];
 }
 
 - (BOOL)presentationControllerShouldDismiss:
@@ -554,13 +545,6 @@
                                baseViewController:self
                                           browser:_browser
                               sourceBarButtonItem:sender];
-  __weak ClearBrowsingDataTableViewController* weakSelf = self;
-  [self.actionSheetCoordinator
-      addItemWithTitle:l10n_util::GetNSString(IDS_APP_CANCEL)
-                action:^{
-                  [weakSelf dismissAlertCoordinator];
-                }
-                 style:UIAlertActionStyleCancel];
   [self.actionSheetCoordinator start];
 }
 

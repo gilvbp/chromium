@@ -9,6 +9,10 @@
 #import "ios/chrome/test/earl_grey/chrome_matchers_app_interface.h"
 #import "ios/testing/earl_grey/earl_grey_test.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace chrome_test_util {
 
 id<GREYMatcher> WindowWithNumber(int window_number) {
@@ -37,16 +41,6 @@ id<GREYMatcher> ButtonWithAccessibilityLabel(NSString* label) {
 
 id<GREYMatcher> ButtonWithAccessibilityLabelId(int message_id) {
   return [ChromeMatchersAppInterface buttonWithAccessibilityLabelID:message_id];
-}
-
-id<GREYMatcher> ContextMenuItemWithAccessibilityLabel(NSString* label) {
-  return
-      [ChromeMatchersAppInterface contextMenuItemWithAccessibilityLabel:label];
-}
-
-id<GREYMatcher> ContextMenuItemWithAccessibilityLabelId(int message_id) {
-  return [ChromeMatchersAppInterface
-      contextMenuItemWithAccessibilityLabelID:message_id];
 }
 
 id<GREYMatcher> ImageViewWithImageNamed(NSString* imageName) {
@@ -407,10 +401,6 @@ id<GREYMatcher> InactiveTabsSettingsButton() {
   return [ChromeMatchersAppInterface inactiveTabsSettingsButton];
 }
 
-id<GREYMatcher> TabPickupSettingsButton() {
-  return [ChromeMatchersAppInterface tabPickupSettingsButton];
-}
-
 id<GREYMatcher> TabsSettingsButton() {
   return [ChromeMatchersAppInterface tabsSettingsButton];
 }
@@ -699,10 +689,6 @@ id<GREYMatcher> SettingsBottomToolbarDeleteButton() {
 
 id<GREYMatcher> SettingsSearchEngineButton() {
   return [ChromeMatchersAppInterface settingsSearchEngineButton];
-}
-
-id<GREYMatcher> SettingsAddressBarButton() {
-  return [ChromeMatchersAppInterface settingsAddressBarButton];
 }
 
 id<GREYMatcher> AutofillSuggestionViewMatcher() {

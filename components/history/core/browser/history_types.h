@@ -15,6 +15,7 @@
 #include <vector>
 
 #include "base/containers/flat_map.h"
+#include "base/containers/stack_container.h"
 #include "base/functional/callback_forward.h"
 #include "base/time/time.h"
 #include "base/uuid.h"
@@ -26,7 +27,6 @@
 #include "components/query_parser/snippet.h"
 #include "components/sessions/core/session_id.h"
 #include "components/sync_device_info/device_info.h"
-#include "third_party/abseil-cpp/absl/container/inlined_vector.h"
 #include "third_party/abseil-cpp/absl/types/optional.h"
 #include "ui/base/page_transition_types.h"
 #include "url/gurl.h"
@@ -61,11 +61,6 @@ typedef int64_t VisitID;
 // `kInvalidVisitID` is 0 because SQL AUTOINCREMENT's very first row has
 // "id" == 1. Therefore any 0 VisitID is a sentinel null-like value.
 constexpr VisitID kInvalidVisitID = 0;
-// Corresponds to the "id" column of the "visited_links" SQL table.
-using VisitedLinkID = int64_t;
-// `kInvalidVisitedLinkID` is 0 because SQL AUTOINCREMENT's very first row has
-// "id" == 1. Therefore any 0 VisitedLinkID is a sentinel null-like value.
-constexpr VisitedLinkID kInvalidVisitedLinkID = 0;
 
 // Structure to hold the mapping between each visit's id and its source.
 typedef std::map<VisitID, VisitSource> VisitSourceMap;
@@ -111,14 +106,6 @@ class VisitRow {
   // one. 0 (kInvalidVisitId) indicates no referrer/redirect.
   // Note that this corresponds to the "from_visit" column in the visit DB.
   VisitID referring_visit = kInvalidVisitID;
-
-  // In some cases, a visit can have a referrer that is *not* an actual visit in
-  // the history DB. In those cases (and only those), this field contains the
-  // referrer URL.
-  // This can happen e.g. if a URL is opened from the side panel into the main
-  // frame, or for visits coming from outside of Chrome, e.g. from the Android
-  // Google app.
-  GURL external_referrer_url;
 
   // A combination of bits from PageTransition.
   ui::PageTransition transition = ui::PAGE_TRANSITION_LINK;
@@ -201,42 +188,6 @@ enum class VisitUpdateReason {
   kSetOnCloseContextAnnotations
 };
 
-// VisitedLinkRow --------------------------------------------------------------
-// Holds all information globally associated with one visited link (one row in
-// the VisitedLinkDatabase).
-//
-// The VisitedLinkDatabase contains the following fields:
-struct VisitedLinkRow {
-  // `id` - the unique int64 ID assigned to this row.
-  // This is immutable except when retrieving the row from the database or when
-  // determining if the visited link referenced by the VisitedLinkRow already
-  // exists in the database.
-  VisitedLinkID id = 0;
-
-  // `link_url_id` - the unique URLID assigned to the row where this link url is
-  // stored in the URLDatabase. ID is stored to avoid storing the URL twice.
-  // Immutable except when retrieving the row from the database. If clients want
-  // to change it, they must use the constructor to make a new one.
-  URLID link_url_id = 0;
-
-  // `top_level_url` - the GURL of the top-level frame where the link url was
-  // visited from.
-  // Immutable except when retrieving the row from the database. If clients want
-  // to change it, they must use the constructor to make a new one.
-  GURL top_level_url;
-
-  // `frame_url` - the GURL of the frame where the link was visited from.
-  // Immutable except when retrieving the row from the database. If clients want
-  // to change it, they must use the constructor to make a new one.
-  GURL frame_url;
-
-  // `visit_count` - the number of entries in the VisitDatabase corresponding to
-  // this row (must exactly match the <link_url, top_level_url, frame_url>
-  // partition key).
-  int visit_count = 0;
-};
-using VisitedLinkRows = std::vector<VisitedLinkRow>;
-
 // QueryResults ----------------------------------------------------------------
 
 // Encapsulates the results of a history query. It supports an ordered list of
@@ -305,7 +256,7 @@ class QueryResults {
   // time an entry with that URL appears. Normally, each URL will have one or
   // very few indices after it, so we optimize this to use statically allocated
   // memory when possible.
-  typedef std::map<GURL, absl::InlinedVector<size_t, 4>> URLToResultIndices;
+  typedef std::map<GURL, base::StackVector<size_t, 4>> URLToResultIndices;
 
   // Inserts an entry into the `url_to_results_` map saying that the given URL
   // is at the given index in the results_.
@@ -1184,7 +1135,7 @@ struct HistoryAddPageArgs {
   // The default constructor is equivalent to:
   //
   //   HistoryAddPageArgs(
-  //       GURL(), base::Time(), nullptr, 0, absl::nullopt, GURL(),
+  //       GURL(), base::Time(), nullptr, 0, GURL(),
   //       RedirectList(), ui::PAGE_TRANSITION_LINK,
   //       false, SOURCE_BROWSED, false, true,
   //       absl::nullopt, absl::nullopt, absl::nullopt)
@@ -1193,7 +1144,6 @@ struct HistoryAddPageArgs {
                      base::Time time,
                      ContextID context_id,
                      int nav_entry_id,
-                     absl::optional<int64_t> local_navigation_id,
                      const GURL& referrer,
                      const RedirectList& redirects,
                      ui::PageTransition transition,
@@ -1213,7 +1163,6 @@ struct HistoryAddPageArgs {
   base::Time time;
   ContextID context_id;
   int nav_entry_id;
-  absl::optional<int64_t> local_navigation_id;
   GURL referrer;
   RedirectList redirects;
   ui::PageTransition transition;

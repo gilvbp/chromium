@@ -7,6 +7,10 @@
 #import "ios/chrome/common/ui/colors/semantic_color_names.h"
 #import "ios/public/provider/chrome/browser/font/font_api.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace {
 // Horizontal spacing between the logo and the title label.
 const CGFloat kHorizontalSpacing = 9.0;

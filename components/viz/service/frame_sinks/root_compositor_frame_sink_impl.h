@@ -128,9 +128,6 @@ class VIZ_SERVICE_EXPORT RootCompositorFrameSinkImpl
 #endif
 
   base::ScopedClosureRunner GetCacheBackBufferCb();
-  ExternalBeginFrameSource* external_begin_frame_source() {
-    return external_begin_frame_source_.get();
-  }
 
  private:
   class StandaloneBeginFrameObserver;
@@ -146,7 +143,8 @@ class VIZ_SERVICE_EXPORT RootCompositorFrameSinkImpl
       std::unique_ptr<SyntheticBeginFrameSource> synthetic_begin_frame_source,
       std::unique_ptr<ExternalBeginFrameSource> external_begin_frame_source,
       std::unique_ptr<Display> display,
-      bool hw_support_for_multiple_refresh_rates);
+      bool hw_support_for_multiple_refresh_rates,
+      bool apply_simple_frame_rate_throttling);
 
   // DisplayClient:
   void DisplayOutputSurfaceLost() override;
@@ -165,9 +163,6 @@ class VIZ_SERVICE_EXPORT RootCompositorFrameSinkImpl
 
   void UpdateVSyncParameters();
   BeginFrameSource* begin_frame_source();
-
-  std::vector<base::TimeDelta> GetSupportedFrameIntervals(
-      base::TimeDelta interval);
 
   mojo::Remote<mojom::CompositorFrameSinkClient> compositor_frame_sink_client_;
   mojo::AssociatedReceiver<mojom::CompositorFrameSink>
@@ -202,6 +197,10 @@ class VIZ_SERVICE_EXPORT RootCompositorFrameSinkImpl
   base::TimeDelta display_frame_interval_ = BeginFrameArgs::DefaultInterval();
   base::TimeDelta preferred_frame_interval_ =
       FrameRateDecider::UnspecifiedFrameInterval();
+
+  // Determines whether to throttle frame rate by half.
+  // TODO(http://crbug.com/1153404): Remove this field when experiment is over.
+  bool apply_simple_frame_rate_throttling_ = false;
 
 // TODO(crbug.com/1052397): Revisit the macro expression once build flag switch
 // of lacros-chrome is complete.

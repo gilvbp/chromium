@@ -11,7 +11,6 @@
 #include "base/strings/stringprintf.h"
 #include "build/build_config.h"
 #include "build/chromeos_buildflags.h"
-#include "media/base/video_frame.h"
 
 namespace media {
 
@@ -73,7 +72,7 @@ VideoEncodeAccelerator::Config::Config(
     absl::optional<StorageType> storage_type,
     ContentType content_type,
     const std::vector<SpatialLayer>& spatial_layers,
-    SVCInterLayerPredMode inter_layer_pred)
+    InterLayerPredMode inter_layer_pred)
     : input_format(input_format),
       input_visible_size(input_visible_size),
       output_profile(output_profile),
@@ -151,13 +150,13 @@ std::string VideoEncodeAccelerator::Config::AsHumanReadableString() const {
 
   str += ", InterLayerPredMode::";
   switch (inter_layer_pred) {
-    case SVCInterLayerPredMode::kOff:
+    case Config::InterLayerPredMode::kOff:
       str += "kOff";
       break;
-    case SVCInterLayerPredMode::kOn:
+    case Config::InterLayerPredMode::kOn:
       str += "kOn";
       break;
-    case SVCInterLayerPredMode::kOnKeyPic:
+    case Config::InterLayerPredMode::kOnKeyPic:
       str += "kOnKeyPic";
       break;
   }
@@ -203,12 +202,6 @@ VideoEncodeAccelerator::SupportedProfile::SupportedProfile(
     const SupportedProfile& other) = default;
 
 VideoEncodeAccelerator::SupportedProfile::~SupportedProfile() = default;
-
-void VideoEncodeAccelerator::Encode(
-    scoped_refptr<VideoFrame> frame,
-    const VideoEncoder::EncodeOptions& options) {
-  Encode(std::move(frame), options.key_frame);
-}
 
 void VideoEncodeAccelerator::Flush(FlushCallback flush_callback) {
   // TODO(owenlin): implements this https://crbug.com/755889.

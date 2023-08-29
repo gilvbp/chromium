@@ -4,6 +4,10 @@
 
 #include "ui/base/cocoa/remote_accessibility_api.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace ui {
 
 // static

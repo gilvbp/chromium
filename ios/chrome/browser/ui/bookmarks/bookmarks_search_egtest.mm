@@ -6,7 +6,6 @@
 #import <XCTest/XCTest.h>
 
 #import "base/strings/sys_string_conversions.h"
-#import "components/bookmarks/common/storage_type.h"
 #import "components/strings/grit/components_strings.h"
 #import "components/url_formatter/elide_url.h"
 #import "ios/chrome/browser/ui/bookmarks/bookmark_earl_grey.h"
@@ -19,6 +18,10 @@
 #import "ios/chrome/test/earl_grey/web_http_server_chrome_test_case.h"
 #import "ios/testing/earl_grey/earl_grey_test.h"
 #import "ui/base/l10n/l10n_util.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 using chrome_test_util::BookmarksDeleteSwipeButton;
 using chrome_test_util::BookmarksNavigationBarBackButton;
@@ -41,14 +44,14 @@ using chrome_test_util::TappableBookmarkNodeWithLabel;
 - (void)setUp {
   [super setUp];
 
-  [BookmarkEarlGrey waitForBookmarkModelsLoaded];
-  [BookmarkEarlGrey clearBookmarks];
+  [ChromeEarlGrey waitForBookmarksToFinishLoading];
+  [ChromeEarlGrey clearBookmarks];
 }
 
 // Tear down called once per test.
 - (void)tearDown {
   [super tearDown];
-  [BookmarkEarlGrey clearBookmarks];
+  [ChromeEarlGrey clearBookmarks];
   [BookmarkEarlGrey clearBookmarksPositionCache];
 }
 
@@ -56,8 +59,7 @@ using chrome_test_util::TappableBookmarkNodeWithLabel;
 
 // Tests that the search bar is shown on root.
 - (void)testSearchBarShownOnRoot {
-  [BookmarkEarlGrey
-      setupStandardBookmarksInStorage:bookmarks::StorageType::kLocalOrSyncable];
+  [BookmarkEarlGrey setupStandardBookmarks];
   [BookmarkEarlGreyUI openBookmarks];
 
   // Verify the search bar is shown.
@@ -68,8 +70,7 @@ using chrome_test_util::TappableBookmarkNodeWithLabel;
 
 // Tests that the search bar is shown on mobile list.
 - (void)testSearchBarShownOnMobileBookmarks {
-  [BookmarkEarlGrey
-      setupStandardBookmarksInStorage:bookmarks::StorageType::kLocalOrSyncable];
+  [BookmarkEarlGrey setupStandardBookmarks];
   [BookmarkEarlGreyUI openBookmarks];
   [BookmarkEarlGreyUI openMobileBookmarks];
 
@@ -81,8 +82,7 @@ using chrome_test_util::TappableBookmarkNodeWithLabel;
 
 // Tests the search.
 - (void)testSearchResults {
-  [BookmarkEarlGrey
-      setupStandardBookmarksInStorage:bookmarks::StorageType::kLocalOrSyncable];
+  [BookmarkEarlGrey setupStandardBookmarks];
   [BookmarkEarlGreyUI openBookmarks];
   [BookmarkEarlGreyUI openMobileBookmarks];
 
@@ -146,8 +146,7 @@ using chrome_test_util::TappableBookmarkNodeWithLabel;
 
 // Tests that you get 'No Results' when no matching bookmarks are found.
 - (void)testSearchWithNoResults {
-  [BookmarkEarlGrey
-      setupStandardBookmarksInStorage:bookmarks::StorageType::kLocalOrSyncable];
+  [BookmarkEarlGrey setupStandardBookmarks];
   [BookmarkEarlGreyUI openBookmarks];
   [BookmarkEarlGreyUI openMobileBookmarks];
 
@@ -175,8 +174,7 @@ using chrome_test_util::TappableBookmarkNodeWithLabel;
 
 // Tests that scrim is shown while search box is enabled with no queries.
 - (void)testSearchScrimShownWhenSearchBoxEnabled {
-  [BookmarkEarlGrey
-      setupStandardBookmarksInStorage:bookmarks::StorageType::kLocalOrSyncable];
+  [BookmarkEarlGrey setupStandardBookmarks];
   [BookmarkEarlGreyUI openBookmarks];
   [BookmarkEarlGreyUI openMobileBookmarks];
 
@@ -220,8 +218,7 @@ using chrome_test_util::TappableBookmarkNodeWithLabel;
 // Tests that tapping scrim while search box is enabled dismisses the search
 // controller.
 - (void)testSearchTapOnScrimCancelsSearchController {
-  [BookmarkEarlGrey
-      setupStandardBookmarksInStorage:bookmarks::StorageType::kLocalOrSyncable];
+  [BookmarkEarlGrey setupStandardBookmarks];
   [BookmarkEarlGreyUI openBookmarks];
   [BookmarkEarlGreyUI openMobileBookmarks];
 
@@ -253,8 +250,7 @@ using chrome_test_util::TappableBookmarkNodeWithLabel;
 // Tests that long press on scrim while search box is enabled dismisses the
 // search controller.
 - (void)testSearchLongPressOnScrimCancelsSearchController {
-  [BookmarkEarlGrey
-      setupStandardBookmarksInStorage:bookmarks::StorageType::kLocalOrSyncable];
+  [BookmarkEarlGrey setupStandardBookmarks];
   [BookmarkEarlGreyUI openBookmarks];
   [BookmarkEarlGreyUI openMobileBookmarks];
 
@@ -290,8 +286,7 @@ using chrome_test_util::TappableBookmarkNodeWithLabel;
 
 // Tests cancelling search restores the node's bookmarks.
 - (void)testSearchCancelRestoresNodeBookmarks {
-  [BookmarkEarlGrey
-      setupStandardBookmarksInStorage:bookmarks::StorageType::kLocalOrSyncable];
+  [BookmarkEarlGrey setupStandardBookmarks];
   [BookmarkEarlGreyUI openBookmarks];
   [BookmarkEarlGreyUI openMobileBookmarks];
 
@@ -329,8 +324,7 @@ using chrome_test_util::TappableBookmarkNodeWithLabel;
 
 // Tests that the navigation bar isn't shown when search is focused and empty.
 - (void)testSearchHidesNavigationBar {
-  [BookmarkEarlGrey
-      setupStandardBookmarksInStorage:bookmarks::StorageType::kLocalOrSyncable];
+  [BookmarkEarlGrey setupStandardBookmarks];
   [BookmarkEarlGreyUI openBookmarks];
   [BookmarkEarlGreyUI openMobileBookmarks];
 
@@ -356,8 +350,7 @@ using chrome_test_util::TappableBookmarkNodeWithLabel;
 // Tests that you can long press and edit a bookmark and see edits when going
 // back to search.
 - (void)testSearchLongPressEditOnURL {
-  [BookmarkEarlGrey
-      setupStandardBookmarksInStorage:bookmarks::StorageType::kLocalOrSyncable];
+  [BookmarkEarlGrey setupStandardBookmarks];
   [BookmarkEarlGreyUI openBookmarks];
   [BookmarkEarlGreyUI openMobileBookmarks];
 
@@ -394,8 +387,7 @@ using chrome_test_util::TappableBookmarkNodeWithLabel;
 // Tests that you can long press and edit a bookmark folder and see edits
 // when going back to search.
 - (void)testSearchLongPressEditOnFolder {
-  [BookmarkEarlGrey
-      setupStandardBookmarksInStorage:bookmarks::StorageType::kLocalOrSyncable];
+  [BookmarkEarlGrey setupStandardBookmarks];
   [BookmarkEarlGreyUI openBookmarks];
   [BookmarkEarlGreyUI openMobileBookmarks];
 
@@ -442,8 +434,7 @@ using chrome_test_util::TappableBookmarkNodeWithLabel;
 
 // Tests that you can swipe URL items in search mode.
 - (void)testSearchUrlCanBeSwipedToDelete {
-  [BookmarkEarlGrey
-      setupStandardBookmarksInStorage:bookmarks::StorageType::kLocalOrSyncable];
+  [BookmarkEarlGrey setupStandardBookmarks];
   [BookmarkEarlGreyUI openBookmarks];
   [BookmarkEarlGreyUI openMobileBookmarks];
 
@@ -462,8 +453,7 @@ using chrome_test_util::TappableBookmarkNodeWithLabel;
 
 // Tests that you can swipe folders in search mode.
 - (void)testSearchFolderCanBeSwipedToDelete {
-  [BookmarkEarlGrey
-      setupStandardBookmarksInStorage:bookmarks::StorageType::kLocalOrSyncable];
+  [BookmarkEarlGrey setupStandardBookmarks];
   [BookmarkEarlGreyUI openBookmarks];
   [BookmarkEarlGreyUI openMobileBookmarks];
 
@@ -482,8 +472,7 @@ using chrome_test_util::TappableBookmarkNodeWithLabel;
 
 // Tests that you can't search while in edit mode.
 - (void)testDisablesSearchOnEditMode {
-  [BookmarkEarlGrey
-      setupStandardBookmarksInStorage:bookmarks::StorageType::kLocalOrSyncable];
+  [BookmarkEarlGrey setupStandardBookmarks];
   [BookmarkEarlGreyUI openBookmarks];
   [BookmarkEarlGreyUI openMobileBookmarks];
 
@@ -511,8 +500,7 @@ using chrome_test_util::TappableBookmarkNodeWithLabel;
 
 // Tests that new Folder is disabled when search results are shown.
 - (void)testSearchDisablesNewFolderButtonOnNavigationBar {
-  [BookmarkEarlGrey
-      setupStandardBookmarksInStorage:bookmarks::StorageType::kLocalOrSyncable];
+  [BookmarkEarlGrey setupStandardBookmarks];
   [BookmarkEarlGreyUI openBookmarks];
   [BookmarkEarlGreyUI openMobileBookmarks];
 
@@ -538,8 +526,7 @@ using chrome_test_util::TappableBookmarkNodeWithLabel;
 // Tests that a single edit is possible when searching and selecting a single
 // URL in edit mode.
 - (void)testSearchEditModeEditOnSingleURL {
-  [BookmarkEarlGrey
-      setupStandardBookmarksInStorage:bookmarks::StorageType::kLocalOrSyncable];
+  [BookmarkEarlGrey setupStandardBookmarks];
   [BookmarkEarlGreyUI openBookmarks];
   [BookmarkEarlGreyUI openMobileBookmarks];
 
@@ -593,8 +580,7 @@ using chrome_test_util::TappableBookmarkNodeWithLabel;
 
 // Tests that multiple deletes on search results works.
 - (void)testSearchEditModeDeleteOnMultipleURL {
-  [BookmarkEarlGrey
-      setupStandardBookmarksInStorage:bookmarks::StorageType::kLocalOrSyncable];
+  [BookmarkEarlGrey setupStandardBookmarks];
   [BookmarkEarlGreyUI openBookmarks];
   [BookmarkEarlGreyUI openMobileBookmarks];
 
@@ -656,8 +642,7 @@ using chrome_test_util::TappableBookmarkNodeWithLabel;
 
 // Tests that multiple moves on search results works.
 - (void)testMoveFunctionalityOnMultipleUrlSelection {
-  [BookmarkEarlGrey
-      setupStandardBookmarksInStorage:bookmarks::StorageType::kLocalOrSyncable];
+  [BookmarkEarlGrey setupStandardBookmarks];
   [BookmarkEarlGreyUI openBookmarks];
   [BookmarkEarlGreyUI openMobileBookmarks];
 
@@ -718,9 +703,7 @@ using chrome_test_util::TappableBookmarkNodeWithLabel;
   [[EarlGrey selectElementWithMatcher:CancelButton()] performAction:grey_tap()];
 
   // Verify Folder 1 has three bookmark nodes.
-  [BookmarkEarlGrey verifyChildCount:3
-                    inFolderWithName:@"Folder 1"
-                           inStorage:bookmarks::StorageType::kLocalOrSyncable];
+  [BookmarkEarlGrey verifyChildCount:3 inFolderWithName:@"Folder 1"];
 
   // Drill down to where "Second URL" and "First URL" have been moved and assert
   // it's presence.
@@ -735,8 +718,7 @@ using chrome_test_util::TappableBookmarkNodeWithLabel;
 
 // Tests that a search and single edit is possible when searching over root.
 - (void)testSearchEditPossibleOnRoot {
-  [BookmarkEarlGrey
-      setupStandardBookmarksInStorage:bookmarks::StorageType::kLocalOrSyncable];
+  [BookmarkEarlGrey setupStandardBookmarks];
   [BookmarkEarlGreyUI openBookmarks];
 
   // Search and hide keyboard.
@@ -799,8 +781,7 @@ using chrome_test_util::TappableBookmarkNodeWithLabel;
 
 // Tests that you can search folders.
 - (void)testSearchFolders {
-  [BookmarkEarlGrey
-      setupStandardBookmarksInStorage:bookmarks::StorageType::kLocalOrSyncable];
+  [BookmarkEarlGrey setupStandardBookmarks];
   [BookmarkEarlGreyUI openBookmarks];
   [BookmarkEarlGreyUI openMobileBookmarks];
 

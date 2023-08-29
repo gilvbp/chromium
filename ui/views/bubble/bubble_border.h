@@ -5,8 +5,6 @@
 #ifndef UI_VIEWS_BUBBLE_BUBBLE_BORDER_H_
 #define UI_VIEWS_BUBBLE_BUBBLE_BORDER_H_
 
-#include <utility>
-
 #include "base/gtest_prod_util.h"
 #include "base/memory/raw_ptr.h"
 #include "build/build_config.h"
@@ -94,8 +92,10 @@ class VIEWS_EXPORT BubbleBorder : public Border {
   // have to deal in dip coordinates, so round up to 1dip.
   static constexpr int kBorderThicknessDip = 1;
 
-  // Specific to MD bubbles: size of shadow blur (outside the bubble) in DIP.
+  // Specific to MD bubbles: size of shadow blur (outside the bubble) and
+  // vertical offset, both in DIP.
   static constexpr int kShadowBlur = 6;
+  static constexpr int kShadowVerticalOffset = 2;
 
   // Space between the anchor view and a visible arrow if one is present.
   static constexpr int kVisibleArrowGap = 4;
@@ -154,8 +154,7 @@ class VIEWS_EXPORT BubbleBorder : public Border {
   // |shadow_elevation|. This is only used for MD bubbles. A null
   // |shadow_elevation| will yield the default BubbleBorder MD insets.
   static gfx::Insets GetBorderAndShadowInsets(
-      const absl::optional<int>& shadow_elevation = absl::nullopt,
-      const absl::optional<bool>& draw_border_stroke = absl::nullopt,
+      absl::optional<int> shadow_elevation = absl::nullopt,
       Shadow shadow_type = Shadow::STANDARD_SHADOW);
 
   // Draws a border and shadow outside the |rect| on |canvas|. |color_provider|
@@ -181,12 +180,6 @@ class VIEWS_EXPORT BubbleBorder : public Border {
 
   void set_visible_arrow(bool visible_arrow) { visible_arrow_ = visible_arrow; }
   bool visible_arrow() const { return visible_arrow_; }
-
-  // Sets whether to draw the border stroke. Passing `nullopt` uses the default
-  // behavior (see comments on `ShouldDrawStroke()` below).
-  void set_draw_border_stroke(absl::optional<bool> draw_border_stroke) {
-    draw_border_stroke_ = std::move(draw_border_stroke);
-  }
 
   // Get the shadow type.
   Shadow shadow() const { return shadow_; }
@@ -291,10 +284,6 @@ class VIEWS_EXPORT BubbleBorder : public Border {
   // draw over the contents of the bubble.
   SkRRect GetClientRect(const View& view) const;
 
-  // Returns whether to draw the border stroke. By default the stroke is drawn
-  // iff there is a visible shadow and it does not have a custom elevation.
-  bool ShouldDrawStroke() const;
-
   // Sets `color_` appropriately, using `view` to obtain a ColorProvider.
   // `view` may be null if `requested_color_` is set.
   void UpdateColor(View* view);
@@ -322,7 +311,6 @@ class VIEWS_EXPORT BubbleBorder : public Border {
   // Cached arrow bounding box, calculated when bounds are calculated.
   mutable gfx::Rect visible_arrow_rect_;
 
-  absl::optional<bool> draw_border_stroke_;
   Shadow shadow_;
   absl::optional<int> md_shadow_elevation_;
   ui::ColorId color_id_;

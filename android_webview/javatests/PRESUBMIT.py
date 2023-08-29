@@ -31,27 +31,20 @@ def _CheckAwJUnitTestRunner(input_api, output_api):
     return input_api.FilterSourceFile(
         affected_file,
         files_to_skip=input_api.DEFAULT_FILES_TO_SKIP,
-        files_to_check=[r'.*Test\.java$'])
+        files_to_check=[r'.*\.java$'])
 
   for f in input_api.AffectedSourceFiles(_FilterFile):
-    run_with_matches = []
-    for line in f.NewContents():
+    for line_num, line in f.ChangedContents():
       match = run_with_pattern.search(line)
-      if match:
-        run_with_matches.append(line)
-        if match.group(1) != correct_runner:
-          errors.append("%s - %s" % (f.LocalPath(), line))
-    if not run_with_matches:
-      errors.append("%s - %s" % (f.LocalPath(), "Missing @RunWith annotation"))
+      if match and match.group(1) != correct_runner:
+        errors.append("%s:%d" % (f.LocalPath(), line_num))
 
   results = []
 
   if errors:
     results.append(output_api.PresubmitPromptWarning("""
-android_webview/javatests/ should use @RunWith(AwJUnit4ClassRunner.class), not
-any other test runner (e.g., BaseJUnit4ClassRunner). We assume this is supposed
-to be a test class because the filename ends with 'Test.java' (if this is
-actually a helper/utility class, please rename).
+android_webview/javatests/ should use the AwJUnit4ClassRunner test runner, not
+any other test runner (e.g., BaseJUnit4ClassRunner).
 """, errors))
 
   return results

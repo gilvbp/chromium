@@ -69,6 +69,8 @@
 #include "url/gurl.h"
 
 #if BUILDFLAG(ENABLE_SUPERVISED_USERS)
+// TODO(https://crbug.com/1060801): Here and elsewhere, possibly switch build
+// flag to #if BUILDFLAG(IS_CHROMEOS)
 #include "chrome/browser/supervised_user/supervised_user_browser_utils.h"
 #include "chrome/browser/supervised_user/supervised_user_service_factory.h"
 #include "components/supervised_user/core/browser/supervised_user_service.h"
@@ -221,9 +223,17 @@ const char kEphemeralAppLaunchingNotSupported[] =
     "Ephemeral launching of apps is no longer supported.";
 
 #if BUILDFLAG(ENABLE_SUPERVISED_USERS)
+// Note that the following error doesn't mean an incorrect password was entered,
+// nor that the parent permisison request was canceled by the user, but rather
+// that the Parent permission request after credential entry and acceptance
+// failed due to either a network connection error or some unsatisfied invariant
+// that prevented the request from completing.
+const char kWebstoreParentPermissionFailedError[] =
+    "Parent permission request failed";
+
 const char kParentBlockedExtensionInstallError[] =
     "Parent has blocked extension/app installation";
-#endif
+#endif  // BUILDFLAG(ENABLE_SUPERVISED_USERS)
 
 // The number of user gestures to trace back for the referrer chain.
 const int kExtensionReferrerUserGestureLimit = 2;
@@ -648,9 +658,7 @@ void WebstorePrivateBeginInstallWithManifest3Function::
     OnExtensionApprovalCanceled() {
   if (test_delegate) {
     test_delegate->OnExtensionInstallFailure(
-        dummy_extension_->id(),
-        l10n_util::GetStringUTF8(
-            IDS_EXTENSIONS_SUPERVISED_USER_PARENTAL_PERMISSION_FAILURE),
+        dummy_extension_->id(), kWebstoreParentPermissionFailedError,
         WebstoreInstaller::FailureReason::FAILURE_REASON_CANCELLED);
   }
 
@@ -661,16 +669,12 @@ void WebstorePrivateBeginInstallWithManifest3Function::
     OnExtensionApprovalFailed() {
   if (test_delegate) {
     test_delegate->OnExtensionInstallFailure(
-        dummy_extension_->id(),
-        l10n_util::GetStringUTF8(
-            IDS_EXTENSIONS_SUPERVISED_USER_PARENTAL_PERMISSION_FAILURE),
+        dummy_extension_->id(), kWebstoreParentPermissionFailedError,
         WebstoreInstaller::FailureReason::FAILURE_REASON_OTHER);
   }
 
-  Respond(BuildResponse(
-      api::webstore_private::RESULT_UNKNOWN_ERROR,
-      l10n_util::GetStringUTF8(
-          IDS_EXTENSIONS_SUPERVISED_USER_PARENTAL_PERMISSION_FAILURE)));
+  Respond(BuildResponse(api::webstore_private::RESULT_UNKNOWN_ERROR,
+                        kWebstoreParentPermissionFailedError));
 }
 
 void WebstorePrivateBeginInstallWithManifest3Function::
@@ -1260,11 +1264,11 @@ WebstorePrivateGetReferrerChainFunction::Run() {
     return RespondNow(ArgumentList(
         api::webstore_private::GetReferrerChain::Results::Create("")));
 
-  content::RenderFrameHost* outermost_render_frame_host =
-      render_frame_host() ? render_frame_host()->GetOutermostMainFrame()
-                          : nullptr;
+  content::RenderFrameHost* rfh = render_frame_host();
+  content::RenderFrameHost* outermost_rfh =
+      rfh ? rfh->GetOutermostMainFrame() : nullptr;
 
-  if (!outermost_render_frame_host) {
+  if (!outermost_rfh) {
     return RespondNow(ErrorWithArguments(
         api::webstore_private::GetReferrerChain::Results::Create(""),
         kWebstoreUserCancelledError));
@@ -1277,8 +1281,7 @@ WebstorePrivateGetReferrerChainFunction::Run() {
   safe_browsing::ReferrerChain referrer_chain;
   SafeBrowsingNavigationObserverManager::AttributionResult result =
       navigation_observer_manager->IdentifyReferrerChainByRenderFrameHost(
-          outermost_render_frame_host, kExtensionReferrerUserGestureLimit,
-          &referrer_chain);
+          outermost_rfh, kExtensionReferrerUserGestureLimit, &referrer_chain);
 
   // If the referrer chain is incomplete we'll append the most recent
   // navigations to referrer chain for diagnostic purposes. This only happens if

@@ -85,9 +85,9 @@ network::NetworkService* GetNetworkService() {
 
 void SetManagedProxy(Profile* profile) {
   // Configure a proxy via user policy.
-  auto proxy_config = base::Value::Dict()
-                          .Set("mode", ProxyPrefs::kFixedServersProxyModeName)
-                          .Set("server", kProxyAuthUrl);
+  base::Value::Dict proxy_config;
+  proxy_config.Set("mode", ProxyPrefs::kFixedServersProxyModeName);
+  proxy_config.Set("server", kProxyAuthUrl);
   profile->GetPrefs()->SetDict(proxy_config::prefs::kProxy,
                                std::move(proxy_config));
   base::RunLoop().RunUntilIdle();

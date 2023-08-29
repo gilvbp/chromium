@@ -26,6 +26,10 @@
 #import "ios/chrome/grit/ios_strings.h"
 #import "ui/base/l10n/l10n_util.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 using signin_metrics::AccessPoint;
 using signin_metrics::PromoAction;
 
@@ -69,7 +73,7 @@ using signin_metrics::PromoAction;
 
 #pragma mark - SigninCoordinator
 
-- (void)interruptWithAction:(SigninCoordinatorInterrupt)action
+- (void)interruptWithAction:(SigninCoordinatorInterruptAction)action
                  completion:(ProceduralBlock)completion {
   if (self.userSigninCoordinator) {
     DCHECK(!self.addAccountSigninManager);
@@ -83,8 +87,17 @@ using signin_metrics::PromoAction;
   }
 
   DCHECK(self.addAccountSigninManager);
-  [self.addAccountSigninManager interruptWithAction:action
-                                         completion:completion];
+  switch (action) {
+    case SigninCoordinatorInterruptActionNoDismiss:
+    case SigninCoordinatorInterruptActionDismissWithoutAnimation:
+      [self.addAccountSigninManager interruptAddAccountAnimated:NO
+                                                     completion:completion];
+      break;
+    case SigninCoordinatorInterruptActionDismissWithAnimation:
+      [self.addAccountSigninManager interruptAddAccountAnimated:YES
+                                                     completion:completion];
+      break;
+  }
 }
 
 #pragma mark - ChromeCoordinator
@@ -111,7 +124,7 @@ using signin_metrics::PromoAction;
           << base::SysNSStringToUTF8([self description]);
       userEmail = base::SysUTF8ToNSString(primaryAccount.email);
       break;
-    case AddAccountSigninIntent::kAddAccount:
+    case AddAccountSigninIntent::kAddNewAccount:
       // The user wants to add a new account, don't pre-fill any email.
       break;
     case AddAccountSigninIntent::kSigninAndSyncReauth:
@@ -203,7 +216,7 @@ using signin_metrics::PromoAction;
     case AddAccountSigninIntent::kSigninAndSyncReauth:
       [self presentUserConsentWithIdentity:identity];
       break;
-    case AddAccountSigninIntent::kAddAccount:
+    case AddAccountSigninIntent::kAddNewAccount:
     case AddAccountSigninIntent::kPrimaryAccountReauth:
       [self addAccountDoneWithSigninResult:signinResult identity:identity];
       break;
@@ -281,8 +294,7 @@ using signin_metrics::PromoAction;
                        @"userSigninCoordinator: %p, addAccountSigninManager: "
                        @"%p, alertCoordinator: %p>",
                        self.class.description, self,
-                       static_cast<int>(self.signinIntent),
-                       static_cast<int>(self.accessPoint),
+                       static_cast<int>(self.signinIntent), self.accessPoint,
                        self.userSigninCoordinator, self.addAccountSigninManager,
                        self.alertCoordinator];
 }

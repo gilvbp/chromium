@@ -24,7 +24,6 @@
 #include "dbus/object_path.h"
 #include "dbus/object_proxy.h"
 #include "services/device/geolocation/wifi_data_provider_handle.h"
-#include "services/device/public/mojom/geolocation_internals.mojom.h"
 
 namespace device {
 namespace {
@@ -101,7 +100,7 @@ int frquency_in_khz_to_channel(int frequency_khz) {
   if (frequency_khz > 5000000 && frequency_khz < 6000000)  // .11a bands.
     return (frequency_khz - 5000000) / 5000;
   // Ignore everything else.
-  return mojom::kInvalidChannel;
+  return AccessPointData().channel;  // invalid channel
 }
 
 NetworkManagerWlanApi::NetworkManagerWlanApi() {}
@@ -154,11 +153,8 @@ bool NetworkManagerWlanApi::GetAccessPointData(
     dbus::MessageWriter builder(&method_call);
     builder.AppendString("org.freedesktop.NetworkManager.Device");
     builder.AppendString("DeviceType");
-    std::unique_ptr<dbus::Response> response(
-        device_proxy
-            ->CallMethodAndBlock(&method_call,
-                                 dbus::ObjectProxy::TIMEOUT_USE_DEFAULT)
-            .value_or(nullptr));
+    std::unique_ptr<dbus::Response> response(device_proxy->CallMethodAndBlock(
+        &method_call, dbus::ObjectProxy::TIMEOUT_USE_DEFAULT));
     if (!response) {
       LOG(WARNING) << "Failed to get the device type for "
                    << device_path.value();
@@ -188,10 +184,8 @@ bool NetworkManagerWlanApi::GetAdapterDeviceList(
     std::vector<dbus::ObjectPath>* device_paths) {
   dbus::MethodCall method_call(kNetworkManagerInterface, "GetDevices");
   std::unique_ptr<dbus::Response> response(
-      network_manager_proxy_
-          ->CallMethodAndBlock(&method_call,
-                               dbus::ObjectProxy::TIMEOUT_USE_DEFAULT)
-          .value_or(nullptr));
+      network_manager_proxy_->CallMethodAndBlock(
+          &method_call, dbus::ObjectProxy::TIMEOUT_USE_DEFAULT));
   if (!response) {
     LOG(WARNING) << "Failed to get the device list";
     return false;
@@ -214,11 +208,8 @@ bool NetworkManagerWlanApi::GetAccessPointsForAdapter(
       system_bus_->GetObjectProxy(kNetworkManagerServiceName, adapter_path);
   dbus::MethodCall method_call("org.freedesktop.NetworkManager.Device.Wireless",
                                "GetAccessPoints");
-  std::unique_ptr<dbus::Response> response(
-      device_proxy
-          ->CallMethodAndBlock(&method_call,
-                               dbus::ObjectProxy::TIMEOUT_USE_DEFAULT)
-          .value_or(nullptr));
+  std::unique_ptr<dbus::Response> response(device_proxy->CallMethodAndBlock(
+      &method_call, dbus::ObjectProxy::TIMEOUT_USE_DEFAULT));
   if (!response) {
     LOG(WARNING) << "Failed to get access points data for "
                  << adapter_path.value();
@@ -241,7 +232,7 @@ bool NetworkManagerWlanApi::GetAccessPointsForAdapter(
     dbus::ObjectProxy* access_point_proxy = system_bus_->GetObjectProxy(
         kNetworkManagerServiceName, access_point_path);
 
-    mojom::AccessPointData access_point_data;
+    AccessPointData access_point_data;
     {  // Read the mac address
       std::unique_ptr<dbus::Response> mac_response(
           GetAccessPointProperty(access_point_proxy, "HwAddress"));
@@ -316,10 +307,8 @@ std::unique_ptr<dbus::Response> NetworkManagerWlanApi::GetAccessPointProperty(
   builder.AppendString("org.freedesktop.NetworkManager.AccessPoint");
   builder.AppendString(property_name);
   std::unique_ptr<dbus::Response> response =
-      access_point_proxy
-          ->CallMethodAndBlock(&method_call,
-                               dbus::ObjectProxy::TIMEOUT_USE_DEFAULT)
-          .value_or(nullptr);
+      access_point_proxy->CallMethodAndBlock(
+          &method_call, dbus::ObjectProxy::TIMEOUT_USE_DEFAULT);
   if (!response) {
     LOG(WARNING) << "Failed to get property for " << property_name;
   }

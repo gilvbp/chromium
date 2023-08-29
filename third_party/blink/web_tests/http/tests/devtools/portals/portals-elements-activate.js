@@ -5,9 +5,6 @@
 import {TestRunner} from 'test_runner';
 import {ElementsTestRunner} from 'elements_test_runner';
 
-import * as Host from 'devtools/core/host/host.js';
-import * as SDK from 'devtools/core/sdk/sdk.js';
-
 (async function() {
   TestRunner.addResult(
       `Tests that element tree is updated after activation.\n`);
@@ -21,7 +18,7 @@ import * as SDK from 'devtools/core/sdk/sdk.js';
 
   TestRunner.runTestSuite([
     function testSetUp(next) {
-      TestRunner.assertEquals(2, SDK.TargetManager.TargetManager.instance().targets().length);
+      TestRunner.assertEquals(2, SDK.targetManager.targets().length);
       ElementsTestRunner.expandElementsTree(() => {
         ElementsTestRunner.dumpElementsTree();
         next();
@@ -31,15 +28,15 @@ import * as SDK from 'devtools/core/sdk/sdk.js';
     async function testActivate(next) {
       TestRunner.evaluateInPage(
           'setTimeout(() => {document.querySelector(\'portal\').activate();})');
-      const rootTarget = SDK.TargetManager.TargetManager.instance().rootTarget();
+      const rootTarget = SDK.targetManager.rootTarget();
       await TestRunner.waitForEvent(
           Host.InspectorFrontendHostAPI.Events.ReattachRootTarget,
-          Host.InspectorFrontendHost.InspectorFrontendHostInstance.events);
+          Host.InspectorFrontendHost.events);
       next();
     },
 
     function testAfterActivate(next) {
-      TestRunner.assertEquals(1, SDK.TargetManager.TargetManager.instance().targets().length);
+      TestRunner.assertEquals(1, SDK.targetManager.targets().length);
       ElementsTestRunner.expandElementsTree(() => {
         ElementsTestRunner.dumpElementsTree();
         TestRunner.completeTest();

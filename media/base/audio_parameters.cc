@@ -152,7 +152,7 @@ AudioParameters::AudioParameters(Format format,
                                  ChannelLayoutConfig channel_layout_config,
                                  int sample_rate,
                                  int frames_per_buffer)
-    : latency_tag_(AudioLatency::Type::kUnknown) {
+    : latency_tag_(AudioLatency::LATENCY_COUNT) {
   Reset(format, channel_layout_config, sample_rate, frames_per_buffer);
 }
 
@@ -162,7 +162,7 @@ AudioParameters::AudioParameters(
     int sample_rate,
     int frames_per_buffer,
     const HardwareCapabilities& hardware_capabilities)
-    : latency_tag_(AudioLatency::Type::kUnknown),
+    : latency_tag_(AudioLatency::LATENCY_COUNT),
       hardware_capabilities_(hardware_capabilities) {
   Reset(format, channel_layout_config, sample_rate, frames_per_buffer);
 }

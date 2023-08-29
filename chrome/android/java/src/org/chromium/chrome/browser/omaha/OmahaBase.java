@@ -14,7 +14,6 @@ import androidx.annotation.VisibleForTesting;
 import org.chromium.base.ApiCompatibilityUtils;
 import org.chromium.base.ContextUtils;
 import org.chromium.base.Log;
-import org.chromium.base.ResettersForTesting;
 import org.chromium.base.StreamUtil;
 import org.chromium.base.ThreadUtils;
 import org.chromium.components.version_info.VersionInfo;
@@ -104,7 +103,7 @@ public class OmahaBase {
     private static final int UNKNOWN_DATE = -2;
 
     /** Whether or not the Omaha server should really be contacted. */
-    private static boolean sDisabledForTesting;
+    private static boolean sIsDisabled;
 
     // Results of {@link #handlePostRequest()}.
     @IntDef({PostResult.NO_REQUEST, PostResult.SENT, PostResult.FAILED, PostResult.SCHEDULED})
@@ -151,13 +150,14 @@ public class OmahaBase {
     // Request failure error code.
     private int mRequestErrorCode;
 
+    /** See {@link #sIsDisabled}. */
     public static void setIsDisabledForTesting(boolean state) {
-        sDisabledForTesting = state;
-        ResettersForTesting.register(() -> sDisabledForTesting = false);
+        sIsDisabled = state;
     }
 
+    /** See {@link #sIsDisabled}. */
     static boolean isDisabled() {
-        return sDisabledForTesting;
+        return sIsDisabled;
     }
 
     /**
@@ -468,7 +468,7 @@ public class OmahaBase {
 
     /**
      * Reads the data back from the file it was saved to.  Uses SharedPreferences to handle I/O.
-     * Validity checks are performed on the timestamps to guard against clock changing.
+     * Sanity checks are performed on the timestamps to guard against clock changing.
      */
     private void restoreState() {
         if (mStateHasBeenRestored) return;

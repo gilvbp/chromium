@@ -7,7 +7,6 @@
 
 #include "third_party/blink/renderer/core/view_transition/view_transition_style_tracker.h"
 #include "third_party/blink/renderer/platform/geometry/layout_size.h"
-#include "third_party/blink/renderer/platform/graphics/graphics_types.h"
 #include "third_party/blink/renderer/platform/text/writing_mode.h"
 #include "third_party/blink/renderer/platform/wtf/text/string_builder.h"
 #include "third_party/blink/renderer/platform/wtf/text/wtf_string.h"
@@ -23,16 +22,16 @@ class ViewTransitionStyleBuilder {
 
   void AddUAStyle(const String& style);
 
-  enum class AnimationType { kOldOnly, kNewOnly, kBoth };
-  void AddAnimations(AnimationType type,
-                     const String& tag,
-                     const ContainerProperties& source_properties);
+  void AddSelector(const String& name, const String& tag);
+  void AddPlusLighter(const String& tag);
 
+  void AddAnimationAndBlending(const String& tag,
+                               const ContainerProperties& source_properties);
+
+  void AddContainerStyles(const String& tag, const String& rules);
   void AddContainerStyles(const String& tag,
                           const ContainerProperties& properties,
-                          WritingMode writing_mode,
-                          BlendMode blend_mode,
-                          ETextOrientation text_orientation);
+                          WritingMode writing_mode);
 
   String Build();
 
@@ -41,7 +40,6 @@ class ViewTransitionStyleBuilder {
   String AddKeyframes(const String& tag,
                       const ContainerProperties& source_properties);
   void AddRules(const String& selector, const String& tag, const String& rules);
-  void AddSelector(const String& name, const String& tag);
 
   StringBuilder builder_;
 };

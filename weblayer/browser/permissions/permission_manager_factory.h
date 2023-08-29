@@ -30,7 +30,7 @@ class PermissionManagerFactory : public BrowserContextKeyedServiceFactory {
   ~PermissionManagerFactory() override;
 
   // BrowserContextKeyedServiceFactory methods:
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* profile) const override;
   content::BrowserContext* GetBrowserContextToUse(
       content::BrowserContext* context) const override;

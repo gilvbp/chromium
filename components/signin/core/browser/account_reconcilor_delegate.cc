@@ -33,7 +33,7 @@ bool AccountReconcilorDelegate::ShouldAbortReconcileIfPrimaryHasError() const {
 
 ConsentLevel AccountReconcilorDelegate::GetConsentLevelForPrimaryAccount()
     const {
-  return ConsentLevel::kSignin;
+  return ConsentLevel::kSync;
 }
 
 MultiloginParameters

@@ -386,17 +386,30 @@ namespace bindings {
 template <typename ElementIDLType, typename VectorType>
 inline v8::MaybeLocal<v8::Value> ToV8HelperSequence(ScriptState* script_state,
                                                     const VectorType& vector) {
-  Vector<v8::Local<v8::Value>> converted_vector(vector.size());
-  for (wtf_size_t i = 0; i < vector.size(); ++i) {
+  v8::Isolate* isolate = script_state->GetIsolate();
+  v8::Local<v8::Array> array;
+  {
+    v8::Context::Scope context_scope(script_state->GetContext());
+    array = v8::Array::New(isolate, base::checked_cast<int>(vector.size()));
+  }
+  v8::Local<v8::Context> context = script_state->GetContext();
+  uint32_t index = 0;
+  typename VectorType::const_iterator end = vector.end();
+  for (typename VectorType::const_iterator iter = vector.begin(); iter != end;
+       ++iter) {
     v8::Local<v8::Value> v8_value;
-    if (!ToV8Traits<ElementIDLType>::ToV8(script_state, vector[i])
+    if (!ToV8Traits<ElementIDLType>::ToV8(script_state, *iter)
              .ToLocal(&v8_value)) {
+      return v8::MaybeLocal<v8::Value>();
+    }
+    bool is_property_created;
+    if (!array->CreateDataProperty(context, index++, v8_value)
+             .To(&is_property_created) ||
+        !is_property_created) {
       return v8::Local<v8::Value>();
     }
-    converted_vector[i] = v8_value;
   }
-  return v8::Array::New(script_state->GetIsolate(), converted_vector.data(),
-                        base::checked_cast<int>(converted_vector.size()));
+  return array;
 }
 
 // Helper function for IDLSequence in the case using reinterpret_cast

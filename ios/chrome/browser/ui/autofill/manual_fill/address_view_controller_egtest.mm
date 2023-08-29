@@ -13,6 +13,10 @@
 #import "net/test/embedded_test_server/embedded_test_server.h"
 #import "url/gurl.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 using base::test::ios::kWaitForActionTimeout;
 using chrome_test_util::ManualFallbackFormSuggestionViewMatcher;
 using chrome_test_util::ManualFallbackKeyboardIconMatcher;
@@ -114,7 +118,7 @@ BOOL WaitForKeyboardToAppear() {
 
 // Tests that returning from "Manage Addresses..." leaves the icons and keyboard
 // in the right state.
-- (void)DISABLED_testAddressesStateAfterPresentingManageAddresses {
+- (void)testAddressesStateAfterPresentingManageAddresses {
   // Bring up the keyboard.
   [[EarlGrey selectElementWithMatcher:chrome_test_util::WebViewMatcher()]
       performAction:chrome_test_util::TapWebElementWithId(kFormElementName)];

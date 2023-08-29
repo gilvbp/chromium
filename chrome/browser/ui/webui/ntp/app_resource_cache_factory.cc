@@ -34,8 +34,7 @@ AppResourceCacheFactory::AppResourceCacheFactory()
 
 AppResourceCacheFactory::~AppResourceCacheFactory() = default;
 
-std::unique_ptr<KeyedService>
-AppResourceCacheFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* AppResourceCacheFactory::BuildServiceInstanceFor(
     content::BrowserContext* profile) const {
-  return std::make_unique<NTPResourceCache>(static_cast<Profile*>(profile));
+  return new NTPResourceCache(static_cast<Profile*>(profile));
 }

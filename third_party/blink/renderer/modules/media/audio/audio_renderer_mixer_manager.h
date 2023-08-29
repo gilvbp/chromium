@@ -69,7 +69,7 @@ class BLINK_MODULES_EXPORT AudioRendererMixerManager final
       const blink::LocalFrameToken& source_frame_token,
       const base::UnguessableToken& session_id,
       const std::string& device_id,
-      media::AudioLatency::Type latency);
+      media::AudioLatency::LatencyType latency);
 
   // media::AudioRendererMixerPool implementation. The rest of the
   // implementation is kept private (see comment below).
@@ -80,7 +80,7 @@ class BLINK_MODULES_EXPORT AudioRendererMixerManager final
   media::AudioRendererMixer* GetMixer(
       const blink::LocalFrameToken& source_frame_token,
       const media::AudioParameters& input_params,
-      media::AudioLatency::Type latency,
+      media::AudioLatency::LatencyType latency,
       const media::OutputDeviceInfo& sink_info,
       scoped_refptr<media::AudioRendererSink> sink);
   scoped_refptr<media::AudioRendererSink> GetSink(
@@ -96,7 +96,7 @@ class BLINK_MODULES_EXPORT AudioRendererMixerManager final
   media::AudioRendererMixer* GetMixer(
       const base::UnguessableToken& source_frame_token,
       const media::AudioParameters& input_params,
-      media::AudioLatency::Type latency,
+      media::AudioLatency::LatencyType latency,
       const media::OutputDeviceInfo& sink_info,
       scoped_refptr<media::AudioRendererSink> sink) final;
   scoped_refptr<media::AudioRendererSink> GetSink(
@@ -108,13 +108,13 @@ class BLINK_MODULES_EXPORT AudioRendererMixerManager final
   struct MixerKey {
     MixerKey(const blink::LocalFrameToken& source_frame_token,
              const media::AudioParameters& params,
-             media::AudioLatency::Type latency,
+             media::AudioLatency::LatencyType latency,
              const std::string& device_id);
     MixerKey(const MixerKey& other);
     ~MixerKey();
     blink::LocalFrameToken source_frame_token;
     media::AudioParameters params;
-    media::AudioLatency::Type latency;
+    media::AudioLatency::LatencyType latency;
     std::string device_id;
   };
 
@@ -130,9 +130,9 @@ class BLINK_MODULES_EXPORT AudioRendererMixerManager final
       if (a.latency != b.latency)
         return a.latency < b.latency;
 
-      // TODO(olka) add buffer duration comparison for kLatencyExactMS when
+      // TODO(olka) add buffer duration comparison for LATENCY_EXACT_MS when
       // adding support for it.
-      DCHECK_NE(media::AudioLatency::Type::kExactMS, a.latency);
+      DCHECK_NE(media::AudioLatency::LATENCY_EXACT_MS, a.latency);
 
       // Ignore format(), and frames_per_buffer(), these parameters do not
       // affect mixer reuse.  All AudioRendererMixer units disable FIFO, so

@@ -6,10 +6,8 @@
 
 #include <memory>
 #include <string>
-#include <string_view>
 #include <utility>
 
-#include "base/containers/contains.h"
 #include "base/functional/bind.h"
 #include "base/functional/callback.h"
 #include "base/functional/callback_helpers.h"
@@ -30,7 +28,6 @@
 #include "dbus/message.h"
 #include "dbus/object_proxy.h"
 #include "google_apis/google_api_keys.h"
-#include "third_party/cros_system_api/dbus/missive/dbus-constants.h"
 #include "third_party/cros_system_api/dbus/service_constants.h"
 
 namespace chromeos {
@@ -47,7 +44,7 @@ MissiveClient* g_instance = nullptr;
 
 // Returns `false` if the api_key is empty or known to be used for testing
 // purposes, or by devices that are running unofficial builds.
-bool IsApiKeyAccepted(std::string_view api_key) {
+bool IsApiKeyAccepted(base::StringPiece api_key) {
   static constexpr const char* kBlockListedKeys[] = {
       "dummykey", "dummytoken",
       // More keys or key fragments can be added.
@@ -58,7 +55,7 @@ bool IsApiKeyAccepted(std::string_view api_key) {
   }
   const std::string lowercase_api_key = base::ToLowerASCII(api_key);
   for (const auto* key : kBlockListedKeys) {
-    if (base::Contains(lowercase_api_key, key)) {
+    if (lowercase_api_key.find(key) != std::string::npos) {
       LOG(ERROR) << "API Key is block-listed: " << api_key;
       return false;
     }
@@ -115,17 +112,6 @@ class MissiveClientImpl : public MissiveClient {
     }
     auto delegate = std::make_unique<FlushDelegate>(
         priority, this, std::move(completion_callback));
-    client_.MaybeMakeCall(std::move(delegate));
-  }
-
-  void UpdateConfigInMissive(
-      const reporting::ListOfBlockedDestinations& destinations) override {
-    DCHECK_CALLED_ON_VALID_SEQUENCE(origin_checker_);
-    if (is_disabled()) {
-      return;
-    }
-    auto delegate =
-        std::make_unique<UpdateConfigInMissiveDelegate>(destinations, this);
     client_.MaybeMakeCall(std::move(delegate));
   }
 
@@ -306,25 +292,6 @@ class MissiveClientImpl : public MissiveClient {
 
    private:
     reporting::FlushPriorityRequest request_;
-  };
-
-  class UpdateConfigInMissiveDelegate : public DBusDelegate {
-   public:
-    UpdateConfigInMissiveDelegate(
-        const reporting::ListOfBlockedDestinations& destinations,
-        MissiveClientImpl* owner)
-        : DBusDelegate(missive::kUpdateConfigInMissive,
-                       owner,
-                       base::DoNothing()) {
-      *request_.mutable_list_of_blocked_destinations() = destinations;
-    }
-
-    bool WriteRequest(dbus::MessageWriter* writer) override {
-      return writer->AppendProtoAsArrayOfBytes(request_);
-    }
-
-   private:
-    reporting::UpdateConfigInMissiveRequest request_;
   };
 
   class UpdateEncryptionKeyDelegate : public DBusDelegate {

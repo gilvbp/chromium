@@ -7,7 +7,7 @@
             "builder_id": {
               "bucket": "ci",
               "builder": "fuchsia-official",
-              "project": "chromium"
+              "project": "chromium-m116"
             },
             "builder_spec": {
               "builder_group": "chromium",
@@ -35,7 +35,7 @@
         {
           "bucket": "ci",
           "builder": "fuchsia-official",
-          "project": "chromium"
+          "project": "chromium-m116"
         }
       ],
       "mirroring_builder_group_and_names": [
@@ -49,8 +49,7 @@
   "$build/reclient": {
     "instance": "rbe-chromium-trusted",
     "jobs": 500,
-    "metrics_project": "chromium-reclient-metrics",
-    "scandeps_server": true
+    "metrics_project": "chromium-reclient-metrics"
   },
   "$recipe_engine/resultdb/test_presentation": {
     "column_keys": [],
@@ -60,5 +59,8 @@
     ]
   },
   "builder_group": "chromium",
-  "recipe": "chromium"
+  "recipe": "chromium",
+  "sheriff_rotations": [
+    "chrome_browser_release"
+  ]
 }

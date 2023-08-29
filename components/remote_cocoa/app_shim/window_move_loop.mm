@@ -3,7 +3,6 @@
 // found in the LICENSE file.
 
 #include "components/remote_cocoa/app_shim/window_move_loop.h"
-
 #include <memory>
 
 #include "base/debug/stack_trace.h"
@@ -79,8 +78,8 @@ bool CocoaWindowMoveLoop::Run() {
 
   // Will be retained by the monitor handler block.
   WeakCocoaWindowMoveLoop* weak_cocoa_window_move_loop =
-      [[WeakCocoaWindowMoveLoop alloc]
-          initWithWeakPtr:weak_factory_.GetWeakPtr()];
+      [[[WeakCocoaWindowMoveLoop alloc]
+          initWithWeakPtr:weak_factory_.GetWeakPtr()] autorelease];
 
   __block BOOL has_moved = NO;
   screen_disabler_ = std::make_unique<gfx::ScopedCocoaDisableScreenUpdates>();
@@ -92,7 +91,7 @@ bool CocoaWindowMoveLoop::Run() {
   auto handler = ^NSEvent*(NSEvent* event) {
     // The docs say this always runs on the main thread, but if it didn't,
     // it would explain https://crbug.com/876493, so let's make sure.
-    CHECK(NSThread.isMainThread);
+    CHECK_EQ(CFRunLoopGetMain(), CFRunLoopGetCurrent());
 
     CocoaWindowMoveLoop* strong = [weak_cocoa_window_move_loop weak].get();
     if (!strong || !strong->exit_reason_ref_) {

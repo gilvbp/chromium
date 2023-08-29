@@ -108,6 +108,8 @@ class ExistingUserController : public content::NotificationObserver,
   void CompleteLogin(const UserContext& user_context);
   void OnGaiaScreenReady();
   void SetDisplayEmail(const std::string& email);
+  void SetDisplayAndGivenName(const std::string& display_name,
+                              const std::string& given_name);
   bool IsUserAllowlisted(
       const AccountId& account_id,
       const absl::optional<user_manager::UserType>& user_type);
@@ -190,7 +192,8 @@ class ExistingUserController : public content::NotificationObserver,
   // that the diversion to a resume flow did not occur, indicating either no
   // hibernation image was present, the resume was cancelled/aborted, or
   // hibernate is simply not supported.
-  void ContinueAuthSuccessAfterResumeAttempt(const UserContext& user_context);
+  void ContinueAuthSuccessAfterResumeAttempt(const UserContext& user_context,
+                                             bool resume_call_success);
 
   // UserSessionManagerDelegate implementation:
   void OnProfilePrepared(Profile* profile, bool browser_launched) override;
@@ -344,6 +347,13 @@ class ExistingUserController : public content::NotificationObserver,
 
   // The displayed email for the next login attempt set by `SetDisplayEmail`.
   std::string display_email_;
+
+  // The displayed name for the next login attempt set by
+  // `SetDisplayAndGivenName`.
+  std::u16string display_name_;
+
+  // The given name for the next login attempt set by `SetDisplayAndGivenName`.
+  std::u16string given_name_;
 
   // Whether login attempt is running.
   bool is_login_in_progress_ = false;

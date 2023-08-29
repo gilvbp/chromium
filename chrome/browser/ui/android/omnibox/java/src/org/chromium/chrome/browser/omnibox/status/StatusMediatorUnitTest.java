@@ -11,8 +11,6 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import static org.chromium.chrome.browser.omnibox.status.StatusMediator.COOKIE_CONTROLS_ICON;
-
 import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.drawable.Drawable;
@@ -39,7 +37,6 @@ import org.chromium.base.Promise;
 import org.chromium.base.supplier.ObservableSupplierImpl;
 import org.chromium.base.supplier.OneshotSupplierImpl;
 import org.chromium.base.test.BaseRobolectricTestRunner;
-import org.chromium.base.test.util.JniMocker;
 import org.chromium.chrome.browser.merchant_viewer.MerchantTrustSignalsCoordinator;
 import org.chromium.chrome.browser.omnibox.LocationBarDataProvider;
 import org.chromium.chrome.browser.omnibox.NewTabPageDelegate;
@@ -49,19 +46,13 @@ import org.chromium.chrome.browser.omnibox.status.StatusProperties.StatusIconRes
 import org.chromium.chrome.browser.omnibox.status.StatusView.IconTransitionType;
 import org.chromium.chrome.browser.omnibox.test.R;
 import org.chromium.chrome.browser.profiles.Profile;
-import org.chromium.chrome.browser.tab.Tab;
 import org.chromium.chrome.browser.ui.theme.BrandedColorScheme;
 import org.chromium.chrome.test.util.browser.Features;
-import org.chromium.components.content_settings.CookieControlsBreakageConfidenceLevel;
-import org.chromium.components.content_settings.CookieControlsBridge;
-import org.chromium.components.content_settings.CookieControlsBridgeJni;
 import org.chromium.components.permissions.PermissionDialogController;
 import org.chromium.components.search_engines.TemplateUrlService;
 import org.chromium.components.security_state.ConnectionSecurityLevel;
-import org.chromium.content_public.browser.WebContents;
 import org.chromium.ui.base.WindowAndroid;
 import org.chromium.ui.modelutil.PropertyModel;
-import org.chromium.url.JUnitTestGURLs;
 
 /**
  * Unit tests for {@link StatusMediator}.
@@ -74,7 +65,6 @@ public final class StatusMediatorUnitTest {
 
     public @Rule TestRule mProcessor = new Features.JUnitProcessor();
     public @Rule MockitoRule mMockitoRule = MockitoJUnit.rule();
-    public @Rule JniMocker mJniMocker = new JniMocker();
 
     private @Mock NewTabPageDelegate mNewTabPageDelegate;
     private @Mock LocationBarDataProvider mLocationBarDataProvider;
@@ -86,14 +76,6 @@ public final class StatusMediatorUnitTest {
     private @Mock PageInfoIPHController mPageInfoIPHController;
     private @Mock MerchantTrustSignalsCoordinator mMerchantTrustSignalsCoordinator;
     private @Mock Drawable mStoreIconDrawable;
-
-    private @Mock CookieControlsBridge mCookieControlsBridge;
-
-    private @Mock CookieControlsBridge.Natives mCookieControlsBridgeJniMock;
-
-    private @Mock Tab mTab;
-
-    private @Mock WebContents mWebContents;
 
     Context mContext;
     Resources mResources;
@@ -111,8 +93,6 @@ public final class StatusMediatorUnitTest {
         mWindowAndroid = new WindowAndroid(mContext);
 
         mModel = new PropertyModel(StatusProperties.ALL_KEYS);
-
-        mJniMocker.mock(CookieControlsBridgeJni.TEST_HOOKS, mCookieControlsBridgeJniMock);
 
         // By default return google g, but this behavior is overridden in some tests.
         Promise<StatusIconResource> logoPromise =
@@ -446,7 +426,7 @@ public final class StatusMediatorUnitTest {
     @Test
     @SmallTest
     public void testShowStoreIcon_DifferentUrl() {
-        setupStoreIconForTesting(false);
+        setupStoreIconForTesting("test1.com", false);
         // Show the default icon first.
         mMediator.setUrlHasFocus(true);
         mMediator.setShowIconsWhenUrlFocused(true);
@@ -460,28 +440,28 @@ public final class StatusMediatorUnitTest {
     @Test
     @SmallTest
     public void testShowStoreIcon_InIncognito() {
-        setupStoreIconForTesting(true);
+        setupStoreIconForTesting("test.com", true);
         // Show the default icon first.
         mMediator.setUrlHasFocus(true);
         mMediator.setShowIconsWhenUrlFocused(true);
         Assert.assertFalse(mMediator.isStoreIconShowing());
 
         // Try to show the store icon.
-        mMediator.showStoreIcon(mWindowAndroid, JUnitTestGURLs.BLUE_1, mStoreIconDrawable, 0, true);
+        mMediator.showStoreIcon(mWindowAndroid, "test.com", mStoreIconDrawable, 0, true);
         Assert.assertFalse(mMediator.isStoreIconShowing());
     }
 
     @Test
     @SmallTest
     public void testShowStoreIcon() {
-        setupStoreIconForTesting(false);
+        setupStoreIconForTesting("test.com", false);
         // Show the default icon first.
         mMediator.setUrlHasFocus(true);
         mMediator.setShowIconsWhenUrlFocused(true);
         Assert.assertFalse(mMediator.isStoreIconShowing());
 
         // Try to show the store icon.
-        mMediator.showStoreIcon(mWindowAndroid, JUnitTestGURLs.BLUE_1, mStoreIconDrawable, 0, true);
+        mMediator.showStoreIcon(mWindowAndroid, "test.com", mStoreIconDrawable, 0, true);
         Assert.assertTrue(mMediator.isStoreIconShowing());
         Assert.assertEquals(IconTransitionType.ROTATE,
                 mModel.get(StatusProperties.STATUS_ICON_RESOURCE).getTransitionType());
@@ -495,7 +475,7 @@ public final class StatusMediatorUnitTest {
         Assert.assertFalse(mMediator.isStoreIconShowing());
 
         // Show store icon again.
-        mMediator.showStoreIcon(mWindowAndroid, JUnitTestGURLs.BLUE_1, mStoreIconDrawable, 0, true);
+        mMediator.showStoreIcon(mWindowAndroid, "test.com", mStoreIconDrawable, 0, true);
         Assert.assertTrue(mMediator.isStoreIconShowing());
 
         // Simulate that we need to switch back to the default icon.
@@ -506,15 +486,14 @@ public final class StatusMediatorUnitTest {
     @Test
     @SmallTest
     public void testShowStoreIcon_NotEligibleToShowIph() {
-        setupStoreIconForTesting(false);
+        setupStoreIconForTesting("test.com", false);
         // Show the default icon first.
         mMediator.setUrlHasFocus(true);
         mMediator.setShowIconsWhenUrlFocused(true);
         Assert.assertFalse(mMediator.isStoreIconShowing());
 
         // Try to show the store icon.
-        mMediator.showStoreIcon(
-                mWindowAndroid, JUnitTestGURLs.BLUE_1, mStoreIconDrawable, 0, false);
+        mMediator.showStoreIcon(mWindowAndroid, "test.com", mStoreIconDrawable, 0, false);
         Assert.assertTrue(mMediator.isStoreIconShowing());
         Assert.assertEquals(IconTransitionType.ROTATE,
                 mModel.get(StatusProperties.STATUS_ICON_RESOURCE).getTransitionType());
@@ -539,71 +518,12 @@ public final class StatusMediatorUnitTest {
         Assert.assertTrue(mMediator.shouldDisplaySearchEngineIcon());
     }
 
-    @Test
-    @SmallTest
-    public void testCookieControlsIcon_animateOnPageStoppedLoading() {
-        mMediator.setUrlHasFocus(true);
-        mMediator.setCookieControlsBridge(mCookieControlsBridge);
-
-        Assert.assertNotEquals(COOKIE_CONTROLS_ICON, getIconIdentifierForTesting());
-
-        mMediator.onBreakageConfidenceLevelChanged(CookieControlsBreakageConfidenceLevel.HIGH);
-
-        Assert.assertNotEquals(COOKIE_CONTROLS_ICON, getIconIdentifierForTesting());
-
-        mMediator.onPageLoadStopped();
-        Assert.assertEquals(COOKIE_CONTROLS_ICON, getIconIdentifierForTesting());
-
-        mModel.get(StatusProperties.STATUS_ICON_RESOURCE).getAnimationFinishedCallback().run();
-        verify(mPageInfoIPHController, times(1)).showCookieControlsIPH(anyInt(), anyInt());
-        verify(mCookieControlsBridge, times(1)).onEntryPointAnimated();
-
-        mMediator.updateLocationBarIcon(IconTransitionType.CROSSFADE);
-
-        // CookieControlsIcon should not be set when no HIGH BreakageConfidenceLevel were
-        // explicitly reported.
-        mMediator.onPageLoadStopped();
-        Assert.assertNotEquals(COOKIE_CONTROLS_ICON, getIconIdentifierForTesting());
-    }
-
-    @Test
-    @SmallTest
-    public void onUrlChanged_whenExistingCookieControlsBridge_shouldUpdateWebContents() {
-        mMediator.setCookieControlsBridge(mCookieControlsBridge);
-        doReturn(mWebContents).when(mTab).getWebContents();
-        doReturn(mTab).when(mLocationBarDataProvider).getTab();
-
-        verify(mCookieControlsBridge, times(0)).updateWebContents(any(), any());
-
-        mMediator.onUrlChanged();
-
-        verify(mCookieControlsBridge, times(1)).updateWebContents(any(), any());
-    }
-
-    @Test
-    @SmallTest
-    public void onUrlChanged_whenNotExistingCookieControlsBridge_shouldCreateNewBridge() {
-        doReturn(mWebContents).when(mTab).getWebContents();
-        doReturn(mTab).when(mLocationBarDataProvider).getTab();
-
-        Assert.assertEquals(mMediator.getCookieControlsBridge(), null);
-
-        mMediator.onUrlChanged();
-
-        Assert.assertNotEquals(mMediator.getCookieControlsBridge(), null);
-    }
-
-    private String getIconIdentifierForTesting() {
-        return mModel.get(StatusProperties.STATUS_ICON_RESOURCE).getIconIdentifierForTesting();
-    }
-
     /**
+     * @param currentUrl Url of current page.
      * @param isIncognito Whether the current page is in an incognito mode.
      */
-    private void setupStoreIconForTesting(boolean isIncognito) {
-        doReturn(JUnitTestGURLs.getGURL(JUnitTestGURLs.BLUE_1))
-                .when(mLocationBarDataProvider)
-                .getCurrentGurl();
+    private void setupStoreIconForTesting(String currentUrl, boolean isIncognito) {
+        doReturn(currentUrl).when(mLocationBarDataProvider).getCurrentUrl();
         doReturn(isIncognito).when(mLocationBarDataProvider).isIncognito();
     }
 }

@@ -4,7 +4,6 @@
 
 #import "ios/chrome/browser/ui/settings/settings_app_interface.h"
 
-#import "base/containers/contains.h"
 #import "base/strings/sys_string_conversions.h"
 #import "components/browsing_data/core/pref_names.h"
 #import "components/metrics/metrics_pref_names.h"
@@ -24,6 +23,10 @@
 #import "ios/web/public/navigation/navigation_manager.h"
 #import "ios/web/public/web_state.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace {
 
 std::vector<std::string> listHosts;
@@ -31,9 +34,10 @@ std::string portForRewrite;
 
 bool HostToLocalHostRewrite(GURL* url, web::BrowserState* browser_state) {
   DCHECK(url);
-  for (const std::string& host : listHosts) {
-    if (base::Contains(url->host(), host)) {
-      *url = GURL("http://127.0.0.1:" + portForRewrite + "/" + host);
+  for (std::string host : listHosts) {
+    if (url->host().find(host) != std::string::npos) {
+      *url =
+          GURL(std::string("http://127.0.0.1:") + portForRewrite + "/" + host);
       return true;
     }
   }
@@ -119,13 +123,6 @@ bool HostToLocalHostRewrite(GURL* url, web::BrowserState* browser_state) {
   chrome_test_util::GetCurrentWebState()
       ->GetNavigationManager()
       ->AddTransientURLRewriter(&HostToLocalHostRewrite);
-}
-
-+ (void)resetAddressBarPreference {
-  ChromeBrowserState* browserState =
-      chrome_test_util::GetOriginalBrowserState();
-  PrefService* preferences = browserState->GetPrefs();
-  preferences->SetBoolean(prefs::kBottomOmnibox, false);
 }
 
 @end

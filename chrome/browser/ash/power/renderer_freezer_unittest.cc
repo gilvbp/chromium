@@ -28,6 +28,7 @@
 #include "content/public/browser/site_instance.h"
 #include "content/public/test/browser_task_environment.h"
 #include "content/public/test/mock_render_process_host.h"
+#include "extensions/browser/notification_types.h"
 #include "extensions/browser/process_manager.h"
 #include "extensions/browser/process_map.h"
 #include "extensions/common/extension_builder.h"
@@ -158,7 +159,7 @@ class RendererFreezerTest : public testing::Test {
   }
 
   // Owned by |renderer_freezer_|.
-  raw_ptr<TestDelegate, DanglingUntriaged | ExperimentalAsh> test_delegate_;
+  raw_ptr<TestDelegate, ExperimentalAsh> test_delegate_;
   std::unique_ptr<RendererFreezer> renderer_freezer_;
 
  private:

@@ -4,6 +4,10 @@
 
 #import "ios/chrome/common/ui/colors/semantic_color_names.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 #pragma mark - Element Colors
 NSString* const kBackgroundColor = @"background_color";
 NSString* const kCloseButtonColor = @"close_button_color";
@@ -45,7 +49,6 @@ NSString* const kSolidBlackColor = @"solid_black_color";
 NSString* const kSolidWhiteColor = @"solid_white_color";
 NSString* const kBlueColor = @"blue_color";
 NSString* const kBlueHaloColor = @"blue_halo_color";
-NSString* const kBlue300Color = @"blue_300_color";
 NSString* const kBlue400Color = @"blue_400_color";
 NSString* const kBlue500Color = @"blue_500_color";
 NSString* const kBlue600Color = @"blue_600_color";

@@ -32,10 +32,6 @@ UkmDatabase* DummyUkmDataManager::GetUkmDatabase() {
   return nullptr;
 }
 
-bool DummyUkmDataManager::HasUkmDatabase() {
-  return false;
-}
-
 void DummyUkmDataManager::OnEntryAdded(ukm::mojom::UkmEntryPtr entry) {}
 
 void DummyUkmDataManager::OnUkmSourceUpdated(ukm::SourceId source_id,

@@ -16,7 +16,6 @@
 #include "base/functional/callback.h"
 #include "base/numerics/safe_conversions.h"
 #include "base/task/sequenced_task_runner.h"
-#include "base/types/expected_macros.h"
 #include "storage/browser/file_system/file_system_usage_cache.h"
 #include "storage/browser/file_system/file_system_util.h"
 #include "storage/browser/quota/quota_client_type.h"
@@ -78,10 +77,11 @@ void QuotaBackendImpl::CommitQuotaUsage(const url::Origin& origin,
   if (!delta)
     return;
   ReserveQuotaInternal(QuotaReservationInfo(origin, type, delta));
-  ASSIGN_OR_RETURN(base::FilePath path, GetUsageCachePath(origin, type),
-                   [](auto) {});
-  bool result = file_system_usage_cache_->AtomicUpdateUsageByDelta(
-      std::move(path), delta);
+  base::FileErrorOr<base::FilePath> path = GetUsageCachePath(origin, type);
+  if (!path.has_value())
+    return;
+  bool result =
+      file_system_usage_cache_->AtomicUpdateUsageByDelta(path.value(), delta);
   DCHECK(result);
 }
 
@@ -89,20 +89,22 @@ void QuotaBackendImpl::IncrementDirtyCount(const url::Origin& origin,
                                            FileSystemType type) {
   DCHECK(file_task_runner_->RunsTasksInCurrentSequence());
   DCHECK(!origin.opaque());
-  ASSIGN_OR_RETURN(base::FilePath path, GetUsageCachePath(origin, type),
-                   [](auto) {});
+  base::FileErrorOr<base::FilePath> path = GetUsageCachePath(origin, type);
+  if (!path.has_value())
+    return;
   DCHECK(file_system_usage_cache_);
-  file_system_usage_cache_->IncrementDirty(std::move(path));
+  file_system_usage_cache_->IncrementDirty(path.value());
 }
 
 void QuotaBackendImpl::DecrementDirtyCount(const url::Origin& origin,
                                            FileSystemType type) {
   DCHECK(file_task_runner_->RunsTasksInCurrentSequence());
   DCHECK(!origin.opaque());
-  ASSIGN_OR_RETURN(base::FilePath path, GetUsageCachePath(origin, type),
-                   [](auto) {});
+  base::FileErrorOr<base::FilePath> path = GetUsageCachePath(origin, type);
+  if (!path.has_value())
+    return;
   DCHECK(file_system_usage_cache_);
-  file_system_usage_cache_->DecrementDirty(std::move(path));
+  file_system_usage_cache_->DecrementDirty(path.value());
 }
 
 void QuotaBackendImpl::DidGetUsageAndQuotaForReserveQuota(

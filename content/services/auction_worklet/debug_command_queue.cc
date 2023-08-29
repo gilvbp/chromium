@@ -3,8 +3,6 @@
 // found in the LICENSE file.
 
 #include "content/services/auction_worklet/debug_command_queue.h"
-
-#include "base/containers/contains.h"
 #include "base/task/sequenced_task_runner.h"
 
 namespace auction_worklet {
@@ -24,7 +22,8 @@ void DebugCommandQueue::PauseForDebuggerAndRunCommands(
   base::AutoLock auto_lock(lock_);
   CHECK(!v8_thread_paused_);
   DCHECK(!pause_abort_helper_);
-  if (base::Contains(aborted_context_group_ids_, context_group_id)) {
+  if (aborted_context_group_ids_.find(context_group_id) !=
+      aborted_context_group_ids_.end()) {
     // Pauses disallowed since worklet is in process of being destroyed
     return;
   }

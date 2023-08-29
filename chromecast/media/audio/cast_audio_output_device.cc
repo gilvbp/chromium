@@ -16,7 +16,6 @@
 #include "base/memory/ref_counted.h"
 #include "base/task/bind_post_task.h"
 #include "base/task/sequenced_task_runner.h"
-#include "base/time/time.h"
 #include "base/timer/timer.h"
 #include "chromecast/media/audio/audio_io_thread.h"
 #include "chromecast/media/audio/audio_output_service/audio_output_service.pb.h"
@@ -33,15 +32,7 @@ namespace media {
 
 namespace {
 
-constexpr base::TimeDelta kNoBufferReadDelay = base::Milliseconds(50);
-
-// When to treat lack of audio data in buffer as a underflow.
-constexpr base::TimeDelta kBufferUnderflowThreshold = base::Milliseconds(400);
-
-// Initial renderer buffer size estimation. The value should be smaller than the
-// audio renderer start capacity.
-constexpr base::TimeDelta kPrefetchRendererBufferSize = base::Seconds(4);
-constexpr base::TimeDelta kDefaultRendererBufferSize = base::Milliseconds(160);
+constexpr base::TimeDelta kNoBufferReadDelay = base::Milliseconds(4);
 
 }  // namespace
 
@@ -86,14 +77,6 @@ class CastAudioOutputDevice::Internal
   void Start() {
     playback_started_ = true;
     media_pos_frames_ = 0;
-    renderer_buffer_size_estimate_ =
-        (audio_params_.effects() & ::media::AudioParameters::AUDIO_PREFETCH)
-            ? kPrefetchRendererBufferSize
-            : kDefaultRendererBufferSize;
-    DCHECK_GT(renderer_buffer_size_estimate_,
-              audio_params_.GetBufferDuration());
-
-    media_start_time_ = base::TimeTicks::Now();
     if (!backend_initialized_) {
       // Wait for initialization to complete before sending messages through
       // `output_connection_`.
@@ -104,7 +87,6 @@ class CastAudioOutputDevice::Internal
 
   void Pause() {
     paused_ = true;
-
     if (!backend_initialized_) {
       return;
     }
@@ -122,7 +104,6 @@ class CastAudioOutputDevice::Internal
       return;
     }
 
-    last_read_buffer_timestamp_ = base::TimeTicks();
     output_connection_->SetPlaybackRate(1.0f);
   }
 
@@ -131,7 +112,6 @@ class CastAudioOutputDevice::Internal
       return;
     }
     media_pos_frames_ = 0;
-    media_start_time_ = base::TimeTicks::Now();
     playback_started_ = false;
     paused_ = false;
     push_timer_.Stop();
@@ -173,7 +153,6 @@ class CastAudioOutputDevice::Internal
     }
     output_connection_->StartPlayingFrom(0);
     if (!paused_) {
-      last_read_buffer_timestamp_ = base::TimeTicks();
       output_connection_->SetPlaybackRate(1.0f);
     }
   }
@@ -223,34 +202,21 @@ class CastAudioOutputDevice::Internal
   }
 
   void PushBuffer() {
-    auto now = base::TimeTicks::Now();
-    if (last_read_buffer_timestamp_.is_null()) {
-      last_read_buffer_timestamp_ = now;
+    base::TimeDelta delay;
+    if (rendering_delay_ < base::TimeDelta() ||
+        rendering_delay_timestamp_us_ < 0) {
+      delay = base::TimeDelta();
+    } else {
+      delay =
+          rendering_delay_ + base::Microseconds(rendering_delay_timestamp_us_ -
+                                                MonotonicClockNow());
+      if (delay < base::TimeDelta()) {
+        delay = base::TimeDelta();
+      }
     }
 
-    base::TimeDelta elapsed_time = now - last_read_buffer_timestamp_;
-    base::TimeDelta time_before_underrun =
-        audio_params_.GetBufferDuration() -
-        (renderer_buffer_size_estimate_ + elapsed_time);
-    if (time_before_underrun > base::TimeDelta()) {
-      // Let renderer buffer more data.
-      push_timer_.Start(FROM_HERE, now + time_before_underrun, this,
-                        &Internal::TryPushBuffer,
-                        base::subtle::DelayPolicy::kPrecise);
-      return;
-    }
-
-    int frames_filled = ReadBuffer(GetDelay(), audio_bus_.get());
-    renderer_buffer_size_estimate_ += elapsed_time;
-    last_read_buffer_timestamp_ = now;
-    auto media_pos = ::media::AudioTimestampHelper::FramesToTime(
-        media_pos_frames_, audio_params_.sample_rate());
+    int frames_filled = ReadBuffer(delay, audio_bus_.get());
     if (frames_filled) {
-      renderer_buffer_size_estimate_ -=
-          ::media::AudioTimestampHelper::FramesToTime(
-              frames_filled, audio_params_.sample_rate());
-      DCHECK_GE(renderer_buffer_size_estimate_, base::TimeDelta());
-
       size_t filled_bytes = frames_filled * audio_params_.GetBytesPerFrame(
                                                 ::media::kSampleFormatS16);
       size_t io_buffer_size =
@@ -263,6 +229,8 @@ class CastAudioOutputDevice::Internal
               io_buffer->data() +
               audio_output_service::OutputSocket::kAudioMessageHeaderSize));
 
+      auto media_pos = ::media::AudioTimestampHelper::FramesToTime(
+          media_pos_frames_, audio_params_.sample_rate());
       DCHECK(output_connection_);
       output_connection_->SendAudioBuffer(std::move(io_buffer), filled_bytes,
                                           media_pos.InMicroseconds());
@@ -271,18 +239,6 @@ class CastAudioOutputDevice::Internal
       // No need to schedule buffer read here since
       // `OnNextBuffer` will be called once the current
       // buffer is pushed to media backend.
-      return;
-    }
-
-    // Avoid spam calling Render() since each call will advance the |AudioClock|
-    // a little bit if 0 frames are rendered.
-    // Wait until some rendered data is consumed before retrying Render().
-    base::TimeDelta time_left_in_buffer =
-        media_pos - (base::TimeTicks::Now() - media_start_time_);
-    if (time_left_in_buffer > kBufferUnderflowThreshold) {
-      push_timer_.Start(FROM_HERE, base::TimeTicks::Now() + time_left_in_buffer, this,
-                        &Internal::TryPushBuffer,
-                        base::subtle::DelayPolicy::kPrecise);
       return;
     }
 
@@ -302,22 +258,6 @@ class CastAudioOutputDevice::Internal
                                            /*glitch_info=*/{}, audio_bus);
   }
 
-  base::TimeDelta GetDelay() {
-    base::TimeDelta delay;
-    if (rendering_delay_ < base::TimeDelta() ||
-        rendering_delay_timestamp_us_ < 0) {
-      delay = base::TimeDelta();
-    } else {
-      delay =
-          rendering_delay_ + base::Microseconds(rendering_delay_timestamp_us_ -
-                                                MonotonicClockNow());
-      if (delay < base::TimeDelta()) {
-        delay = base::TimeDelta();
-      }
-    }
-    return delay;
-  }
-
   scoped_refptr<CastAudioOutputDevice> output_device_;
   std::unique_ptr<audio_output_service::OutputStreamConnection>
       output_connection_;
@@ -327,10 +267,7 @@ class CastAudioOutputDevice::Internal
       app_media_info_manager_;
   ::media::AudioParameters audio_params_;
   size_t media_pos_frames_ = 0;
-  // When we start playing media. Used to determine the current position in the track.
-  base::TimeTicks media_start_time_ = base::TimeTicks();
   base::TimeDelta rendering_delay_;
-
   int64_t rendering_delay_timestamp_us_ = INT64_MIN;
   double volume_ = 1.0;
   bool paused_ = false;
@@ -341,12 +278,6 @@ class CastAudioOutputDevice::Internal
 
   // Callback to get audio data.
   RenderCallback* const render_callback_;
-
-  // Estimation of the renderer buffer size. We should not pull too much buffer
-  // from renderer to avoid underrun.
-  base::TimeDelta renderer_buffer_size_estimate_;
-
-  base::TimeTicks last_read_buffer_timestamp_;
 
   base::Lock callback_lock_;
   // Nullable callback that is only available during StartRender/StopRender.

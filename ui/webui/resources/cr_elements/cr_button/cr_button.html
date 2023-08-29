@@ -88,9 +88,10 @@
         /* Disabled default button colors. */
         --disabled-bg: transparent;
         --disabled-border-color: var(--color-button-border-disabled,
-            var(--cr-fallback-color-disabled-background));
+            rgba(var(--cr-fallback-color-on-surface-rgb), .12));
         --disabled-text-color: var(--color-button-foreground-disabled,
-            var(--cr-fallback-color-disabled-foreground));
+            rgba(var(--cr-fallback-color-on-surface-rgb),
+                 var(--cr-disabled-opacity)));
 
         /* Action button colors. */
         --bg-action: var(--color-button-background-prominent,
@@ -104,11 +105,10 @@
 
         /* Disabled action button colors. */
         --disabled-bg-action: var(--color-button-background-prominent-disabled,
-            var(--cr-fallback-color-disabled-background));
+            rgba(var(--cr-fallback-color-on-surface-rgb), .12));
 
         background: transparent;
         border-radius: 100px;
-        isolation: isolate;
         line-height: 20px;
       }
 
@@ -149,14 +149,6 @@
           /* Use outline instead of box-shadow (which does not work) in Windows
              HCM. */
           outline: var(--cr-focus-outline-hcm);
-        }
-
-        :host-context([chrome-refresh-2023]):host {
-          /* Refresh styles either use color pipeline colors which automatically
-           * provide high-contrast colors in high-contrast mode, or use fallback
-           * vars that have high-contrast fallbacks for critically important
-           * states such as disabled state. */
-          forced-color-adjust: none;
         }
       }
 
@@ -224,7 +216,7 @@
       :host-context([chrome-refresh-2023]):host([disabled].floating-button)
           #background {
         background-color: var(--color-button-background-tonal-disabled,
-            var(--cr-fallback-color-disabled-background));
+            rgba(var(--cr-fallback-color-on-surface-rgb), .12));
       }
 
       #content {
@@ -252,11 +244,6 @@
       :host-context([chrome-refresh-2023]):host(:hover) #hoverBackground {
         background: var(--cr-hover-background-color);
         display: block;
-      }
-
-      :host-context([chrome-refresh-2023]):host(.action-button:hover)
-          #hoverBackground {
-        background: var(--cr-hover-on-prominent-background-color);
       }
 
       :host(.action-button) {

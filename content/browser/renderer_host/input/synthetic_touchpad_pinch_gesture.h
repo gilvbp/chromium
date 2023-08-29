@@ -15,8 +15,7 @@
 
 namespace content {
 
-class CONTENT_EXPORT SyntheticTouchpadPinchGesture
-    : public SyntheticGestureBase<SyntheticPinchGestureParams> {
+class CONTENT_EXPORT SyntheticTouchpadPinchGesture : public SyntheticGesture {
  public:
   explicit SyntheticTouchpadPinchGesture(
       const SyntheticPinchGestureParams& params);
@@ -46,6 +45,7 @@ class CONTENT_EXPORT SyntheticTouchpadPinchGesture
   base::TimeTicks ClampTimestamp(const base::TimeTicks& timestamp) const;
   bool HasReachedTarget(const base::TimeTicks& timestamp) const;
 
+  SyntheticPinchGestureParams params_;
   content::mojom::GestureSourceType gesture_source_type_;
   GestureState state_;
   base::TimeTicks start_time_;

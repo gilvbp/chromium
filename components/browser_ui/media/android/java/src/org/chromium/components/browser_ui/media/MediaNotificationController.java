@@ -55,8 +55,6 @@ public class MediaNotificationController {
     // The maximum number of actions in BigView media notification.
     private static final int BIG_VIEW_ACTIONS_COUNT = 5;
 
-    private final PendingIntentProvider mPendingIntentActionSwipe;
-
     public static final String ACTION_PLAY = "org.chromium.components.browser_ui.media.ACTION_PLAY";
     public static final String ACTION_PAUSE =
             "org.chromium.components.browser_ui.media.ACTION_PAUSE";
@@ -347,8 +345,6 @@ public class MediaNotificationController {
                         R.string.accessibility_seek_backward, ACTION_SEEK_BACKWARD,
                         MEDIA_ACTION_SEEK_BACKWARD));
 
-        mPendingIntentActionSwipe = createPendingIntent(ACTION_SWIPE);
-
         mThrottler = new Throttler(this);
     }
 
@@ -626,7 +622,9 @@ public class MediaNotificationController {
         mNotificationBuilder = mDelegate.createNotificationWrapperBuilder();
         setMediaStyleLayoutForNotificationBuilder(mNotificationBuilder);
 
-        mNotificationBuilder.setShowWhen(false);
+        // TODO(zqzhang): It's weird that setShowWhen() doesn't work on K. Calling setWhen() to
+        // force removing the time.
+        mNotificationBuilder.setShowWhen(false).setWhen(0);
         mNotificationBuilder.setSmallIcon(mMediaNotificationInfo.notificationSmallIcon);
         mNotificationBuilder.setAutoCancel(false);
         mNotificationBuilder.setLocalOnly(true);
@@ -635,8 +633,7 @@ public class MediaNotificationController {
 
         if (mMediaNotificationInfo.supportsSwipeAway()) {
             mNotificationBuilder.setOngoing(!mMediaNotificationInfo.isPaused);
-            assert (mPendingIntentActionSwipe != null);
-            mNotificationBuilder.setDeleteIntent(mPendingIntentActionSwipe);
+            mNotificationBuilder.setDeleteIntent(createPendingIntent(ACTION_SWIPE));
         }
 
         // The intent will currently only be null when using a custom tab.
@@ -914,7 +911,7 @@ public class MediaNotificationController {
             }
         }
 
-        return CollectionUtil.integerCollectionToIntArray(compactActions);
+        return CollectionUtil.integerListToIntArray(compactActions);
     }
 
     private static Context getContext() {
@@ -925,7 +922,7 @@ public class MediaNotificationController {
     // versions of Android.
     private String getSafeNotificationTitle() {
         String title = mMediaNotificationInfo.metadata.getTitle();
-        if (title != null && title.trim().length() > 0) {
+        if (title != null && title.toString().trim().length() > 0) {
             return title;
         }
         return getContext().getPackageName();

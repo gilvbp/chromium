@@ -44,6 +44,9 @@ class PasswordsPrivateDelegateProxy : public KeyedService {
 
   raw_ptr<content::BrowserContext> browser_context_ = nullptr;
   base::WeakPtr<PasswordsPrivateDelegate> weak_instance_;
+  // TODO(crbug.com/1412348): Remove this after the feature is enabled by
+  // default.
+  scoped_refptr<PasswordsPrivateDelegate> scoped_instance_;
 };
 
 // Factory for creating PasswordPrivateDelegates.
@@ -62,7 +65,7 @@ class PasswordsPrivateDelegateFactory : public ProfileKeyedServiceFactory {
   ~PasswordsPrivateDelegateFactory() override;
 
   // BrowserContextKeyedServiceFactory implementation.
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* profile) const override;
 };
 

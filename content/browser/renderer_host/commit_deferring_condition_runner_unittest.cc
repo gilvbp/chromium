@@ -52,8 +52,8 @@ class CommitDeferringConditionRunnerTest
 class MockHandleConditionWrapper : public MockNavigationHandle,
                                    public MockCommitDeferringConditionWrapper {
  public:
-  explicit MockHandleConditionWrapper(CommitDeferringCondition::Result result)
-      : MockCommitDeferringConditionWrapper(*this, result) {}
+  explicit MockHandleConditionWrapper(bool is_ready_to_commit)
+      : MockCommitDeferringConditionWrapper(*this, is_ready_to_commit) {}
 };
 
 // Check that the runner notifies the delegate synchronously when there are no
@@ -67,8 +67,7 @@ TEST_F(CommitDeferringConditionRunnerTest, NoRegisteredConditions) {
 // Test that when a condition defers asynchronously, the delegate isn't
 // notified until the condition signals completion.
 TEST_F(CommitDeferringConditionRunnerTest, BasicAsync) {
-  MockHandleConditionWrapper condition(
-      CommitDeferringCondition::Result::kDefer);
+  MockHandleConditionWrapper condition(/*is_ready_to_commit=*/false);
   runner()->AddConditionForTesting(condition.PassToDelegate());
   runner()->ProcessChecks();
   EXPECT_FALSE(was_delegate_notified());
@@ -81,22 +80,10 @@ TEST_F(CommitDeferringConditionRunnerTest, BasicAsync) {
 // Test that if a condition is already satisfied when ProcessChecks is
 // called, the delegate is notified synchronously.
 TEST_F(CommitDeferringConditionRunnerTest, BasicSync) {
-  MockHandleConditionWrapper condition(
-      CommitDeferringCondition::Result::kProceed);
+  MockHandleConditionWrapper condition(/*is_ready_to_commit=*/true);
   runner()->AddConditionForTesting(condition.PassToDelegate());
   runner()->ProcessChecks();
   EXPECT_TRUE(was_delegate_notified());
-  EXPECT_TRUE(condition.WasInvoked());
-}
-
-// Test that if a condition indicating the cancellation of the commit,
-// the delegate is not notified.
-TEST_F(CommitDeferringConditionRunnerTest, BasicCancelled) {
-  MockHandleConditionWrapper condition(
-      CommitDeferringCondition::Result::kCancelled);
-  runner()->AddConditionForTesting(condition.PassToDelegate());
-  runner()->ProcessChecks();
-  EXPECT_FALSE(was_delegate_notified());
   EXPECT_TRUE(condition.WasInvoked());
 }
 
@@ -107,20 +94,16 @@ TEST_F(CommitDeferringConditionRunnerTest, MultipleConditionsLastAsync) {
   // Add conditions, alternating between those that are already satisfied at
   // ProcessChecks time and those that complete asynchronously.
   // Complete -> Async -> Complete -> Async
-  MockHandleConditionWrapper condition1(
-      CommitDeferringCondition::Result::kProceed);
+  MockHandleConditionWrapper condition1(/*is_ready_to_commit=*/true);
   runner()->AddConditionForTesting(condition1.PassToDelegate());
 
-  MockHandleConditionWrapper condition2(
-      CommitDeferringCondition::Result::kDefer);
+  MockHandleConditionWrapper condition2(/*is_ready_to_commit=*/false);
   runner()->AddConditionForTesting(condition2.PassToDelegate());
 
-  MockHandleConditionWrapper condition3(
-      CommitDeferringCondition::Result::kProceed);
+  MockHandleConditionWrapper condition3(/*is_ready_to_commit=*/true);
   runner()->AddConditionForTesting(condition3.PassToDelegate());
 
-  MockHandleConditionWrapper condition4(
-      CommitDeferringCondition::Result::kDefer);
+  MockHandleConditionWrapper condition4(/*is_ready_to_commit=*/false);
   runner()->AddConditionForTesting(condition4.PassToDelegate());
 
   runner()->ProcessChecks();
@@ -155,20 +138,16 @@ TEST_F(CommitDeferringConditionRunnerTest, MultipleConditionsLastSync) {
   // Add conditions, alternating between those that are already satisfied at
   // ProcessChecks time and those that complete asynchronously.
   // Async -> Complete -> Async -> Complete
-  MockHandleConditionWrapper condition1(
-      CommitDeferringCondition::Result::kDefer);
+  MockHandleConditionWrapper condition1(/*is_ready_to_commit=*/false);
   runner()->AddConditionForTesting(condition1.PassToDelegate());
 
-  MockHandleConditionWrapper condition2(
-      CommitDeferringCondition::Result::kProceed);
+  MockHandleConditionWrapper condition2(/*is_ready_to_commit=*/true);
   runner()->AddConditionForTesting(condition2.PassToDelegate());
 
-  MockHandleConditionWrapper condition3(
-      CommitDeferringCondition::Result::kDefer);
+  MockHandleConditionWrapper condition3(/*is_ready_to_commit=*/false);
   runner()->AddConditionForTesting(condition3.PassToDelegate());
 
-  MockHandleConditionWrapper condition4(
-      CommitDeferringCondition::Result::kProceed);
+  MockHandleConditionWrapper condition4(/*is_ready_to_commit=*/true);
   runner()->AddConditionForTesting(condition4.PassToDelegate());
 
   runner()->ProcessChecks();
@@ -193,32 +172,6 @@ TEST_F(CommitDeferringConditionRunnerTest, MultipleConditionsLastSync) {
   condition3.CallResumeClosure();
   EXPECT_TRUE(condition4.WasInvoked());
   EXPECT_TRUE(was_delegate_notified());
-  EXPECT_FALSE(is_deferring());
-}
-
-// Test with multiple conditions, with one indicating that the commit is
-// cancelled invoked in the middle.
-TEST_F(CommitDeferringConditionRunnerTest, MultipleConditionsWithCancelled) {
-  MockHandleConditionWrapper condition1(
-      CommitDeferringCondition::Result::kProceed);
-  runner()->AddConditionForTesting(condition1.PassToDelegate());
-
-  MockHandleConditionWrapper condition2(
-      CommitDeferringCondition::Result::kCancelled);
-  runner()->AddConditionForTesting(condition2.PassToDelegate());
-
-  MockHandleConditionWrapper condition3(
-      CommitDeferringCondition::Result::kProceed);
-  runner()->AddConditionForTesting(condition3.PassToDelegate());
-
-  runner()->ProcessChecks();
-
-  // Only the first two conditions are invoked, as the commit is cancelled with
-  // the second condition.
-  EXPECT_FALSE(was_delegate_notified());
-  EXPECT_TRUE(condition1.WasInvoked());
-  EXPECT_TRUE(condition2.WasInvoked());
-  EXPECT_FALSE(condition3.WasInvoked());
   EXPECT_FALSE(is_deferring());
 }
 

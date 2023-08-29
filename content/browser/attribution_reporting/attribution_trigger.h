@@ -43,8 +43,7 @@ class CONTENT_EXPORT AttributionTrigger {
     kFalselyAttributedSource = 14,
     kReportWindowPassed = 15,
     kNotRegistered = 16,
-    kReportWindowNotStarted = 17,
-    kMaxValue = kReportWindowNotStarted,
+    kMaxValue = kNotRegistered,
   };
 
   // Represents the potential aggregatable outcomes from attempting to register

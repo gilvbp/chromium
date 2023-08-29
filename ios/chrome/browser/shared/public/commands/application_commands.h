@@ -24,8 +24,6 @@ class CreditCard;
 }  // namespace autofill
 namespace password_manager {
 struct CredentialUIEntry;
-enum class PasswordCheckReferrer;
-enum class WarningType;
 }  // namespace password_manager
 
 // This protocol groups commands that are part of ApplicationCommands, but
@@ -74,7 +72,7 @@ enum class WarningType;
             (password_manager::CredentialUIEntry)credential
                         showCancelButton:(BOOL)showCancelButton;
 
-// Shows the list of profiles (addresses) in the settings.
+// Shows the list of profiles (addresess) in the settings.
 - (void)showProfileSettingsFromViewController:
     (UIViewController*)baseViewController;
 
@@ -100,16 +98,6 @@ enum class WarningType;
 // Shows the Safe Browsing page.
 - (void)showSafeBrowsingSettings;
 
-// Shows the Password Manager's search page.
-- (void)showPasswordSearchPage;
-
-// Shows the Tab Pickup Settings screen.
-- (void)showTabPickupSettings;
-
-// Shows the Content Settings page in the settings on top of baseViewController.
-- (void)showContentsSettingsFromViewController:
-    (UIViewController*)baseViewController;
-
 @end
 
 // Protocol for commands that will generally be handled by the application,
@@ -124,17 +112,6 @@ enum class WarningType;
 // Dismisses all modal dialogs with a completion block that is called when
 // modals are dismissed (animations done).
 - (void)dismissModalDialogsWithCompletion:(ProceduralBlock)completion;
-
-// Shows the Password Checkup page for `referrer`.
-- (void)showPasswordCheckupPageForReferrer:
-    (password_manager::PasswordCheckReferrer)referrer;
-
-// Opens the Password Issues list displaying compromised, weak or reused
-// credentials for `referrer`.
-- (void)
-    showPasswordIssuesWithWarningType:(password_manager::WarningType)warningType
-                             referrer:(password_manager::PasswordCheckReferrer)
-                                          referrer;
 
 // TODO(crbug.com/779791) : Do not pass baseViewController through dispatcher.
 // Shows the Settings UI, presenting from `baseViewController`.
@@ -178,7 +155,8 @@ enum class WarningType;
 // Prepare to show the TabSwitcher UI.
 - (void)prepareTabSwitcher;
 
-// Shows the TabSwitcher UI.
+// Shows the TabSwitcher UI. When the thumb strip is enabled, shows the
+// TabSwitcher UI, specifically in its grid layout.
 - (void)displayTabSwitcherInGridLayout;
 
 // Same as displayTabSwitcherInGridLayout, but also force tab switcher to

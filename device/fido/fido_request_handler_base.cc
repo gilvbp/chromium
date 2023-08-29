@@ -433,7 +433,8 @@ void FidoRequestHandlerBase::OnHavePlatformCredentialStatus(
     }
   }
 
-  auto& out_creds = transport_availability_info_.recognized_credentials;
+  auto& out_creds = transport_availability_info_
+                        .recognized_platform_authenticator_credentials;
   if (out_creds.empty()) {
     out_creds = std::move(creds);
   } else if (!creds.empty()) {

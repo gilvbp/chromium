@@ -322,17 +322,10 @@ IN_PROC_BROWSER_TEST_F(TextFragmentAnchorBrowserTest,
   EXPECT_DID_SCROLL(false);
 }
 
-// crbug.com/1470712: Flaky on CrOS Debug
-#if BUILDFLAG(IS_CHROMEOS) && !defined(NDEBUG)
-#define MAYBE_SameDocumentBrowserNavigation \
-  DISABLED_SameDocumentBrowserNavigation
-#else
-#define MAYBE_SameDocumentBrowserNavigation SameDocumentBrowserNavigation
-#endif
 // Ensure a same-document navigation from browser UI scrolls to the text
 // fragment.
 IN_PROC_BROWSER_TEST_F(TextFragmentAnchorBrowserTest,
-                       MAYBE_SameDocumentBrowserNavigation) {
+                       SameDocumentBrowserNavigation) {
   ASSERT_TRUE(embedded_test_server()->Start());
   GURL url(embedded_test_server()->GetURL(
       "/scrollable_page_with_content.html#:~:text=text"));
@@ -363,17 +356,8 @@ IN_PROC_BROWSER_TEST_F(TextFragmentAnchorBrowserTest,
   EXPECT_DID_SCROLL(true);
 }
 
-// crbug.com/1470712: Flaky on CrOS Debug
-#if BUILDFLAG(IS_CHROMEOS) && !defined(NDEBUG)
-#define MAYBE_SameDocumentBrowserNavigationOnScriptNavigatedDocument \
-  DISABLED_SameDocumentBrowserNavigationOnScriptNavigatedDocument
-#else
-#define MAYBE_SameDocumentBrowserNavigationOnScriptNavigatedDocument \
-  SameDocumentBrowserNavigationOnScriptNavigatedDocument
-#endif
-IN_PROC_BROWSER_TEST_F(
-    TextFragmentAnchorBrowserTest,
-    MAYBE_SameDocumentBrowserNavigationOnScriptNavigatedDocument) {
+IN_PROC_BROWSER_TEST_F(TextFragmentAnchorBrowserTest,
+                       SameDocumentBrowserNavigationOnScriptNavigatedDocument) {
   ASSERT_TRUE(embedded_test_server()->Start());
   WebContents* main_contents = shell()->web_contents();
   // The test assumes the RenderWidgetHost stays the same after navigation,

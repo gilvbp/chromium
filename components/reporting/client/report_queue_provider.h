@@ -42,8 +42,7 @@ BASE_DECLARE_FEATURE(kEncryptedReportingPipeline);
 // void SendMessage(google::protobuf::ImportantMessage important_message,
 //                  reporting::ReportQueue::EnqueueCallback done_cb) {
 //   // Create configuration.
-//   StatusOr<reporting::ReportQueueConfiguration> config_result =
-//      reporting::ReportQueueConfiguration::Create({...}).Set...().Build();
+//   auto config_result = reporting::ReportQueueConfiguration::Create(...);
 //   // Bail out if configuration failed to create.
 //   if (!config_result.ok()) {
 //     std::move(done_cb).Run(config_result.status());
@@ -60,7 +59,7 @@ BASE_DECLARE_FEATURE(kEncryptedReportingPipeline);
 //             reporting::ReportQueueProvider::CreateQueue(
 //                 std::move(config),
 //                 base::BindOnce(
-//                     [](std::string_view data,
+//                     [](base::StringPiece data,
 //                        reporting::ReportQueue::EnqueueCallback
 //                        done_cb, reporting::StatusOr<std::unique_ptr<
 //                            reporting::ReportQueue>>

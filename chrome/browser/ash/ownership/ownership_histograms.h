@@ -40,15 +40,6 @@ enum class OwnerKeyEvent {
   kSignedPolicy,
   // Finished storing policies.
   kStoredPolicy,
-  // A user was categorized as not an owner based on the user type.
-  kUserNotAnOwnerBasedOnUserType,
-  // A user was categorized as not an owner because the user name was empty,
-  // this is not expected to happen.
-  kUserNotAnOwnerBasedOnEmptyUsername,
-  // ChromeOS decided to establish consumer ownership when there was no
-  // indication that it's the first user, but also no public key, no policies
-  // and no local state entry.
-  kUnsureTakeOwnership,
 };
 
 // Combines `event` and `success` to produce a more specific UMA event and
@@ -139,23 +130,7 @@ enum class OwnerKeyUmaEvent {
   kStoredPolicySuccess = 25,
   // Failed to store policies.
   kStoredPolicyFail = 26,
-  // A user was categorized as not an owner based on the user type, the public
-  // key was successfully loaded.
-  kUserNotAnOwnerBasedOnUserTypeSuccess = 27,
-  // A user was categorized as not an owner based on the user type, the public
-  // key failed to load.
-  kUserNotAnOwnerBasedOnUserTypeFail = 28,
-  // A user was categorized as not an owner because the user name was empty,
-  // this is not expected to happen, the public key was successfully loaded.
-  kUserNotAnOwnerBasedOnEmptyUsernameSuccess = 29,
-  // A user was categorized as not an owner because the user name was empty,
-  // this is not expected to happen, the public key failed to load.
-  kUserNotAnOwnerBasedOnEmptyUsernameFail = 30,
-  // ChromeOS decided to establish consumer ownership when there was no
-  // indication that it's the first user, but also no public key, no policies
-  // and no local state entry.
-  kUnsureTakeOwnership = 31,
-  kMaxValue = kUnsureTakeOwnership,
+  kMaxValue = kStoredPolicyFail,
 };
 
 }  // namespace ash

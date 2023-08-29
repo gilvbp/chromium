@@ -14,7 +14,7 @@ struct Config;
 
 // Segmentation tablet productivity user model provider. Provides a default
 // model and metadata for the tablet productivity user optimization target.
-class TabletProductivityUserModel : public DefaultModelProvider {
+class TabletProductivityUserModel : public ModelProvider {
  public:
   TabletProductivityUserModel();
   ~TabletProductivityUserModel() override = default;
@@ -27,10 +27,11 @@ class TabletProductivityUserModel : public DefaultModelProvider {
   static std::unique_ptr<Config> GetConfig();
 
   // ModelProvider implementation.
-  std::unique_ptr<ModelConfig> GetModelConfig() override;
-
+  void InitAndFetchModel(
+      const ModelUpdatedCallback& model_updated_callback) override;
   void ExecuteModelWithInput(const ModelProvider::Request& inputs,
                              ExecutionCallback callback) override;
+  bool ModelAvailable() override;
 };
 
 }  // namespace segmentation_platform

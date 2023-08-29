@@ -86,7 +86,8 @@ class CreditCardCvcAuthenticatorTest : public testing::Test {
                                 /*history_service=*/nullptr,
                                 /*sync_service=*/nullptr,
                                 /*strike_database=*/nullptr,
-                                /*image_fetcher=*/nullptr);
+                                /*image_fetcher=*/nullptr,
+                                /*is_off_the_record=*/false);
     personal_data_manager_.SetPrefService(autofill_client_.GetPrefs());
 
     requester_ = std::make_unique<TestAuthenticationRequester>();
@@ -118,8 +119,7 @@ class CreditCardCvcAuthenticatorTest : public testing::Test {
                             number.c_str(), test::NextMonth().c_str(),
                             test::NextYear().c_str(), "1");
     masked_server_card.set_guid(guid);
-    masked_server_card.set_record_type(
-        CreditCard::RecordType::kMaskedServerCard);
+    masked_server_card.set_record_type(CreditCard::MASKED_SERVER_CARD);
 
     personal_data_manager_.ClearCreditCards();
     personal_data_manager_.AddServerCreditCard(masked_server_card);
@@ -186,7 +186,7 @@ TEST_F(CreditCardCvcAuthenticatorTest, AuthenticateServerCardSuccess) {
 TEST_F(CreditCardCvcAuthenticatorTest, AuthenticateVirtualCardSuccess) {
   base::HistogramTester histogram_tester;
   CreditCard card = CreateServerCard(kTestGUID, kTestNumber);
-  card.set_record_type(CreditCard::RecordType::kVirtualCard);
+  card.set_record_type(CreditCard::RecordType::VIRTUAL_CARD);
   autofill_client_.set_last_committed_primary_main_frame_url(
       GURL("https://vcncvcretrievaltest.com/"));
   CardUnmaskChallengeOption cvc_challenge_option =
@@ -225,7 +225,7 @@ TEST_F(CreditCardCvcAuthenticatorTest, AuthenticateVirtualCardSuccess) {
 TEST_F(CreditCardCvcAuthenticatorTest, AuthenticateVirtualCard_InvalidURL) {
   base::HistogramTester histogram_tester;
   CreditCard card = CreateServerCard(kTestGUID, kTestNumber);
-  card.set_record_type(CreditCard::RecordType::kVirtualCard);
+  card.set_record_type(CreditCard::RecordType::VIRTUAL_CARD);
   autofill_client_.set_last_committed_primary_main_frame_url(GURL());
   CardUnmaskChallengeOption cvc_challenge_option =
       test::GetCardUnmaskChallengeOptions(
@@ -334,7 +334,7 @@ TEST_F(CreditCardCvcAuthenticatorTest, AuthenticatePromptClosed) {
 TEST_F(CreditCardCvcAuthenticatorTest, VirtualCardAuthenticatePromptClosed) {
   base::HistogramTester histogram_tester;
   CreditCard card = CreateServerCard(kTestGUID, kTestNumber);
-  card.set_record_type(CreditCard::RecordType::kVirtualCard);
+  card.set_record_type(CreditCard::VIRTUAL_CARD);
   autofill_client_.set_last_committed_primary_main_frame_url(
       GURL("https://vcncvcretrievaltest.com/"));
 

@@ -7,6 +7,7 @@ package org.chromium.chrome.browser.download.settings;
 import android.os.Bundle;
 
 import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
 
@@ -115,6 +116,7 @@ public class DownloadSettings extends PreferenceFragmentCompat
         return true;
     }
 
+    @VisibleForTesting
     public ManagedPreferenceDelegate getLocationPromptEnabledPrefDelegateForTesting() {
         return mLocationPromptEnabledPrefDelegate;
     }

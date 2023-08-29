@@ -36,7 +36,7 @@ class MediaRouterFactory : public media_router::MediaRouterFactory {
   // MediaRouterFactory:
   content::BrowserContext* GetBrowserContextToUse(
       content::BrowserContext* context) const override;
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* context) const override;
 };
 

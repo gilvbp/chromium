@@ -141,10 +141,9 @@ ServiceWorkerLifetimeManagerFactory::ServiceWorkerLifetimeManagerFactory()
 ServiceWorkerLifetimeManagerFactory::~ServiceWorkerLifetimeManagerFactory() =
     default;
 
-std::unique_ptr<KeyedService>
-ServiceWorkerLifetimeManagerFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* ServiceWorkerLifetimeManagerFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
-  return std::make_unique<ServiceWorkerLifetimeManager>(context);
+  return new ServiceWorkerLifetimeManager(context);
 }
 
 }  // namespace extensions::file_system_provider

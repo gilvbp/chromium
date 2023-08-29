@@ -26,8 +26,6 @@ enum class CSSMathOperator {
   kMod,
   kRem,
   kHypot,
-  kAbs,
-  kSign,
   kInvalid
 };
 

@@ -12,11 +12,8 @@ export class TestOsResetBrowserProxy extends TestBrowserProxy {
     ]);
   }
 
+  /** @override */
   onPowerwashDialogShow() {
     this.methodCalled('onPowerwashDialogShow');
-  }
-
-  requestFactoryResetRestart() {
-    this.methodCalled('requestFactoryResetRestart');
   }
 }

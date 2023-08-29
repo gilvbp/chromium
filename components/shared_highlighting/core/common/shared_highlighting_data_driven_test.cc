@@ -20,7 +20,7 @@
 #include "testing/gtest/include/gtest/gtest.h"
 
 #if BUILDFLAG(IS_MAC)
-#include "base/apple/foundation_util.h"
+#include "base/mac/foundation_util.h"
 #endif
 
 namespace shared_highlighting {
@@ -100,7 +100,7 @@ SharedHighlightingDataDrivenTest::GetTestFiles() {
   std::sort(files.begin(), files.end());
 
 #if BUILDFLAG(IS_MAC)
-  base::apple::ClearAmIBundledCache();
+  base::mac::ClearAmIBundledCache();
 #endif  // BUILDFLAG(IS_MAC)
 
   return files;

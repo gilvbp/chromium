@@ -204,9 +204,6 @@ function transition_test(options, description) {
     });
 
     target.style.transition = `${options.transitionProperty} 1s -500ms linear`;
-    if (options.behavior) {
-      target.style.transitionBehavior = options.behavior;
-    }
     target.style.setProperty(customProperty, options.to);
 
     const animations = target.getAnimations();

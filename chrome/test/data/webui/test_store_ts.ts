@@ -10,22 +10,22 @@ import {assertTrue} from './chai_assert.js';
  * This is a generic test store, designed to replace a real Store instance
  * during testing.
  */
-export class TestStore<S, A extends Action = Action> extends Store<S, A> {
+export class TestStore<T> extends Store<T> {
   private initPromise_: PromiseResolver<void>|null = null;
   private enableReducers_: boolean = false;
-  private resolverMap_: Map<string, PromiseResolver<A>> = new Map();
-  private lastAction_: A|null = null;
+  private resolverMap_: Map<string, PromiseResolver<Action>> = new Map();
+  private lastAction_: Action|null = null;
 
   constructor(
-      initialData: Partial<S>, storeImplEmptyState: S,
-      storeImplReducer: (state: S, action: A) => S) {
+      initialData: T, storeImplEmptyState: T,
+      storeImplReducer: (state: T, action: Action) => T) {
     super(storeImplEmptyState, storeImplReducer);
 
-    this.data = Object.assign({}, this.data, initialData as S);
+    this.data = Object.assign(this.data as object, initialData);
     this.initialized_ = true;
   }
 
-  override init(state: S) {
+  override init(state: T) {
     if (this.initPromise_) {
       super.init(state);
       this.initPromise_.resolve();
@@ -51,7 +51,7 @@ export class TestStore<S, A extends Action = Action> extends Store<S, A> {
     this.enableReducers_ = enabled;
   }
 
-  override reduce(action: A) {
+  override reduce(action: Action) {
     this.lastAction_ = action;
     if (this.enableReducers_) {
       super.reduce(action);
@@ -86,7 +86,7 @@ export class TestStore<S, A extends Action = Action> extends Store<S, A> {
    * for with `waitForAction`.
    */
   expectAction(name: string) {
-    this.resolverMap_.set(name, new PromiseResolver<A>());
+    this.resolverMap_.set(name, new PromiseResolver<Action>());
   }
 
   /**
@@ -94,7 +94,7 @@ export class TestStore<S, A extends Action = Action> extends Store<S, A> {
    * dispatched. The promise must be prepared by calling
    * `expectAction(name)` before the action is dispatched.
    */
-  async waitForAction(name: string): Promise<A> {
+  async waitForAction(name: string): Promise<Action> {
     assertTrue(
         this.resolverMap_.has(name),
         'Must call expectAction before each call to waitForAction');

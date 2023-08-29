@@ -48,9 +48,8 @@ void PartitionAllocGlobalInit(OomFunction on_out_of_memory);
 PA_COMPONENT_EXPORT(PARTITION_ALLOC)
 void PartitionAllocGlobalUninitForTesting();
 
+namespace internal {
 struct PA_COMPONENT_EXPORT(PARTITION_ALLOC) PartitionAllocator {
-  PartitionAllocator();
-  explicit PartitionAllocator(PartitionOptions opts) { init(opts); }
   ~PartitionAllocator();
 
   void init(PartitionOptions);
@@ -63,6 +62,10 @@ struct PA_COMPONENT_EXPORT(PARTITION_ALLOC) PartitionAllocator {
  private:
   PartitionRoot partition_root_;
 };
+
+}  // namespace internal
+
+using PartitionAllocator = internal::PartitionAllocator;
 
 }  // namespace partition_alloc
 

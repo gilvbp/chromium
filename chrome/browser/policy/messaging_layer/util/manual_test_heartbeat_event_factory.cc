@@ -26,10 +26,9 @@ ManualTestHeartbeatEventFactory::ManualTestHeartbeatEventFactory()
 
 ManualTestHeartbeatEventFactory::~ManualTestHeartbeatEventFactory() = default;
 
-std::unique_ptr<KeyedService>
-ManualTestHeartbeatEventFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* ManualTestHeartbeatEventFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
-  return std::make_unique<ManualTestHeartbeatEvent>();
+  return new ManualTestHeartbeatEvent();
 }
 
 bool ManualTestHeartbeatEventFactory::ServiceIsCreatedWithBrowserContext()

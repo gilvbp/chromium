@@ -34,7 +34,6 @@ import org.chromium.base.test.util.CloseableOnMainThread;
 import org.chromium.base.test.util.CommandLineFlags;
 import org.chromium.base.test.util.Criteria;
 import org.chromium.base.test.util.CriteriaHelper;
-import org.chromium.base.test.util.DisabledTest;
 import org.chromium.base.test.util.Feature;
 import org.chromium.chrome.browser.flags.ChromeFeatureList;
 import org.chromium.chrome.browser.flags.ChromeSwitches;
@@ -414,7 +413,7 @@ public class FindTest {
     @Test
     @MediumTest
     @Feature({"FindInPage"})
-    @DisableFeatures(ChromeFeatureList.BACK_GESTURE_REFACTOR)
+    @DisableFeatures({ChromeFeatureList.BACK_GESTURE_REFACTOR})
     public void testBackKeyDoesNotDismissFindWhenImeIsPresent() {
         sActivityTestRule.loadUrl(sActivityTestRule.getTestServer().getURL(FILEPATH));
         findInPageFromMenu();
@@ -437,7 +436,7 @@ public class FindTest {
     @Test
     @MediumTest
     @Feature({"FindInPage"})
-    @EnableFeatures(ChromeFeatureList.BACK_GESTURE_REFACTOR)
+    @EnableFeatures({ChromeFeatureList.BACK_GESTURE_REFACTOR})
     public void testBackKeyDoesNotDismissFindWhenImeIsPresent_BackRefactored() {
         sActivityTestRule.loadUrl(sActivityTestRule.getTestServer().getURL(FILEPATH));
         findInPageFromMenu();
@@ -460,7 +459,7 @@ public class FindTest {
     @Test
     @MediumTest
     @Feature({"FindInPage"})
-    @DisableFeatures(ChromeFeatureList.BACK_GESTURE_REFACTOR)
+    @DisableFeatures({ChromeFeatureList.BACK_GESTURE_REFACTOR})
     public void testBackKeyDismissesFind() {
         loadTestAndVerifyFindInPage("pitts", "1/7");
         waitForIME(true);
@@ -478,8 +477,7 @@ public class FindTest {
     @Test
     @MediumTest
     @Feature({"FindInPage"})
-    @EnableFeatures(ChromeFeatureList.BACK_GESTURE_REFACTOR)
-    @DisabledTest(message = "https://crbug.com/1458344")
+    @EnableFeatures({ChromeFeatureList.BACK_GESTURE_REFACTOR})
     public void testBackKeyDismissesFind_BackRefactored() {
         loadTestAndVerifyFindInPage("pitts", "1/7");
         waitForIME(true);

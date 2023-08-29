@@ -81,8 +81,7 @@ class Virtualenv:
             if IS_WIN:
                 site_packages = os.path.join(base, "Lib", "site-packages")
             else:
-                version = f"{sys.version_info.major}.{sys.version_info.minor}"
-                site_packages = os.path.join(base, "lib", f"python{version}", "site-packages")
+                site_packages = os.path.join(base, "lib", f"python{sys.version[:3]}", "site-packages")
 
         return site_packages
 

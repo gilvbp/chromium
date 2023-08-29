@@ -26,10 +26,11 @@ namespace {
 Color SelectionWebkitTextFillColor(const Document& document,
                                    Node* node,
                                    const ComputedStyle& originating_style) {
-  const ComputedStyle* pseudo_style = HighlightStyleUtils::HighlightPseudoStyle(
-      node, originating_style, kPseudoIdSelection);
+  scoped_refptr<const ComputedStyle> pseudo_style =
+      HighlightStyleUtils::HighlightPseudoStyle(node, originating_style,
+                                                kPseudoIdSelection);
   return HighlightStyleUtils::ResolveColor(
-      document, originating_style, pseudo_style, kPseudoIdSelection,
+      document, originating_style, pseudo_style.get(), kPseudoIdSelection,
       GetCSSPropertyWebkitTextFillColor(), Color::kBlack);
 }
 
@@ -176,10 +177,9 @@ TEST_F(HighlightStyleUtilsTest, SelectedTextInputShadow) {
 
   Compositor().BeginFrame();
 
-  auto* text_node =
-      To<HTMLInputElement>(GetDocument().QuerySelector(AtomicString("input")))
-          ->InnerEditorElement()
-          ->firstChild();
+  auto* text_node = To<HTMLInputElement>(GetDocument().QuerySelector("input"))
+                        ->InnerEditorElement()
+                        ->firstChild();
   const ComputedStyle& text_style = text_node->ComputedStyleRef();
 
   std::unique_ptr<PaintController> controller{

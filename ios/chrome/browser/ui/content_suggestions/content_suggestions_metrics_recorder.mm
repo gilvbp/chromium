@@ -4,7 +4,7 @@
 
 #import "ios/chrome/browser/ui/content_suggestions/content_suggestions_metrics_recorder.h"
 
-#import "base/apple/foundation_util.h"
+#import "base/mac/foundation_util.h"
 #import "base/metrics/histogram_macros.h"
 #import "base/metrics/user_metrics.h"
 #import "base/metrics/user_metrics_action.h"
@@ -23,6 +23,10 @@
 #import "ios/chrome/browser/ui/content_suggestions/content_suggestions_metrics_constants.h"
 #import "ios/chrome/browser/ui/content_suggestions/set_up_list/utils.h"
 #import "ios/chrome/browser/ui/favicon/favicon_attributes_with_payload.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 @implementation ContentSuggestionsMetricsRecorder {
   PrefService* _localState;
@@ -56,42 +60,12 @@
       }
       break;
     }
-    case ContentSuggestionsModuleType::kShortcuts: {
-      if (_localState) {
-        // Increment freshness pref since it is an impression of
-        // the latest Most Visited Sites as the top module.
-        int freshness_impression_count = _localState->GetInteger(
-            prefs::
-                kIosMagicStackSegmentationShortcutsImpressionsSinceFreshness);
-        _localState->SetInteger(
-            prefs::kIosMagicStackSegmentationShortcutsImpressionsSinceFreshness,
-            freshness_impression_count + 1);
-      }
-      break;
-    }
-
-    case ContentSuggestionsModuleType::kSafetyCheck:
-    case ContentSuggestionsModuleType::kSafetyCheckMultiRow:
-    case ContentSuggestionsModuleType::kSafetyCheckMultiRowOverflow: {
-      if (_localState) {
-        // Increment freshness pref since it is an impression of
-        // the latest Safety Check results as the top module.
-        int freshness_impression_count = _localState->GetInteger(
-            prefs::
-                kIosMagicStackSegmentationSafetyCheckImpressionsSinceFreshness);
-        _localState->SetInteger(
-            prefs::
-                kIosMagicStackSegmentationSafetyCheckImpressionsSinceFreshness,
-            freshness_impression_count + 1);
-      }
-      break;
-    }
+    case ContentSuggestionsModuleType::kShortcuts:
     case ContentSuggestionsModuleType::kSetUpListSync:
     case ContentSuggestionsModuleType::kSetUpListDefaultBrowser:
     case ContentSuggestionsModuleType::kSetUpListAutofill:
     case ContentSuggestionsModuleType::kCompactedSetUpList:
     case ContentSuggestionsModuleType::kSetUpListAllSet:
-    case ContentSuggestionsModuleType::kTabResumption:
       break;
   }
   UMA_HISTOGRAM_ENUMERATION(kMagicStackTopModuleImpressionHistogram, type);
@@ -219,7 +193,7 @@
   favicon_base::IconType icon_type = favicon_base::IconType::kInvalid;
   if (attributes.faviconImage) {
     FaviconAttributesWithPayload* favicon_attributes =
-        base::apple::ObjCCastStrict<FaviconAttributesWithPayload>(attributes);
+        base::mac::ObjCCastStrict<FaviconAttributesWithPayload>(attributes);
     icon_type = favicon_attributes.iconType;
   }
   return icon_type;

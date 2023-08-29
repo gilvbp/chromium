@@ -158,7 +158,6 @@ class MockInputController : public ui::InputController {
   void SetHapticTouchpadEffectForNextButtonRelease(
       ui::HapticTouchpadEffect effect_type,
       ui::HapticTouchpadEffectStrength strength) override {}
-  bool AreAnyKeysPressed() override { return false; }
 };
 }  // namespace
 

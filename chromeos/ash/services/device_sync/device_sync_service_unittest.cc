@@ -12,7 +12,6 @@
 #include "base/functional/callback.h"
 #include "base/memory/ptr_util.h"
 #include "base/memory/raw_ptr.h"
-#include "base/memory/raw_ptr_exclusion.h"
 #include "base/memory/raw_ref.h"
 #include "base/memory/scoped_refptr.h"
 #include "base/no_destructor.h"
@@ -221,12 +220,10 @@ class FakeCryptAuthGCMManagerFactory : public CryptAuthGCMManagerImpl::Factory {
     return instance;
   }
 
-  raw_ptr<gcm::FakeGCMDriver, DanglingUntriaged | ExperimentalAsh>
-      fake_gcm_driver_;
+  raw_ptr<gcm::FakeGCMDriver, ExperimentalAsh> fake_gcm_driver_;
   raw_ptr<TestingPrefServiceSimple, ExperimentalAsh> test_pref_service_;
   std::string initial_registration_id_;
-  raw_ptr<FakeCryptAuthGCMManager, DanglingUntriaged | ExperimentalAsh>
-      instance_ = nullptr;
+  raw_ptr<FakeCryptAuthGCMManager, ExperimentalAsh> instance_ = nullptr;
 };
 
 class FakeCryptAuthDeviceManagerFactory
@@ -270,8 +267,7 @@ class FakeCryptAuthDeviceManagerFactory
       fake_cryptauth_gcm_manager_factory_;
   raw_ptr<TestingPrefServiceSimple, ExperimentalAsh> test_pref_service_;
 
-  raw_ptr<FakeCryptAuthDeviceManager, DanglingUntriaged | ExperimentalAsh>
-      instance_ = nullptr;
+  raw_ptr<FakeCryptAuthDeviceManager, ExperimentalAsh> instance_ = nullptr;
 };
 
 class FakeCryptAuthDeviceRegistry : public CryptAuthDeviceRegistry {
@@ -310,8 +306,7 @@ class FakeCryptAuthDeviceRegistryFactory
   }
 
   raw_ptr<TestingPrefServiceSimple, ExperimentalAsh> test_pref_service_;
-  raw_ptr<FakeCryptAuthDeviceRegistry, DanglingUntriaged | ExperimentalAsh>
-      instance_ = nullptr;
+  raw_ptr<FakeCryptAuthDeviceRegistry, ExperimentalAsh> instance_ = nullptr;
 };
 
 class FakeCryptAuthKeyRegistry : public CryptAuthKeyRegistry {
@@ -350,8 +345,7 @@ class FakeCryptAuthKeyRegistryFactory
   }
 
   raw_ptr<TestingPrefServiceSimple, ExperimentalAsh> test_pref_service_;
-  raw_ptr<FakeCryptAuthKeyRegistry, DanglingUntriaged | ExperimentalAsh>
-      instance_ = nullptr;
+  raw_ptr<FakeCryptAuthKeyRegistry, ExperimentalAsh> instance_ = nullptr;
 };
 
 class FakeCryptAuthSchedulerFactory : public CryptAuthSchedulerImpl::Factory {
@@ -385,8 +379,7 @@ class FakeCryptAuthSchedulerFactory : public CryptAuthSchedulerImpl::Factory {
   }
 
   raw_ptr<TestingPrefServiceSimple, ExperimentalAsh> test_pref_service_;
-  raw_ptr<FakeCryptAuthScheduler, DanglingUntriaged | ExperimentalAsh>
-      instance_ = nullptr;
+  raw_ptr<FakeCryptAuthScheduler, ExperimentalAsh> instance_ = nullptr;
 };
 
 class FakeCryptAuthV2DeviceManagerFactory
@@ -451,8 +444,7 @@ class FakeCryptAuthV2DeviceManagerFactory
       fake_scheduler_factory_ = nullptr;
   raw_ptr<TestingPrefServiceSimple, ExperimentalAsh> test_pref_service_ =
       nullptr;
-  raw_ptr<FakeCryptAuthV2DeviceManager, DanglingUntriaged | ExperimentalAsh>
-      instance_ = nullptr;
+  raw_ptr<FakeCryptAuthV2DeviceManager, ExperimentalAsh> instance_ = nullptr;
 };
 
 class FakeCryptAuthEnrollmentManagerFactory
@@ -509,8 +501,7 @@ class FakeCryptAuthEnrollmentManagerFactory
       fake_cryptauth_gcm_manager_factory_;
   raw_ptr<TestingPrefServiceSimple, ExperimentalAsh> test_pref_service_;
   bool device_already_enrolled_in_cryptauth_ = false;
-  raw_ptr<FakeCryptAuthEnrollmentManager, DanglingUntriaged | ExperimentalAsh>
-      instance_ = nullptr;
+  raw_ptr<FakeCryptAuthEnrollmentManager, ExperimentalAsh> instance_ = nullptr;
 };
 
 class FakeCryptAuthV2EnrollmentManagerFactory
@@ -581,8 +572,7 @@ class FakeCryptAuthV2EnrollmentManagerFactory
   raw_ptr<TestingPrefServiceSimple, ExperimentalAsh> test_pref_service_;
   raw_ptr<base::SimpleTestClock, ExperimentalAsh> simple_test_clock_;
   bool device_already_enrolled_in_cryptauth_ = false;
-  raw_ptr<FakeCryptAuthEnrollmentManager, DanglingUntriaged | ExperimentalAsh>
-      instance_ = nullptr;
+  raw_ptr<FakeCryptAuthEnrollmentManager, ExperimentalAsh> instance_ = nullptr;
 };
 
 class FakeRemoteDeviceProviderFactory
@@ -651,8 +641,7 @@ class FakeRemoteDeviceProviderFactory
   const raw_ref<const multidevice::RemoteDeviceList, ExperimentalAsh>
       initial_devices_;
 
-  raw_ptr<signin::IdentityManager, DanglingUntriaged | ExperimentalAsh>
-      identity_manager_;
+  raw_ptr<signin::IdentityManager, ExperimentalAsh> identity_manager_;
   raw_ptr<FakeCryptAuthDeviceManagerFactory, ExperimentalAsh>
       fake_cryptauth_device_manager_factory_;
   raw_ptr<FakeCryptAuthV2DeviceManagerFactory, ExperimentalAsh>
@@ -662,8 +651,7 @@ class FakeRemoteDeviceProviderFactory
   raw_ptr<FakeCryptAuthV2EnrollmentManagerFactory, ExperimentalAsh>
       fake_cryptauth_v2_enrollment_manager_factory_;
 
-  raw_ptr<FakeRemoteDeviceProvider, DanglingUntriaged | ExperimentalAsh>
-      instance_ = nullptr;
+  raw_ptr<FakeRemoteDeviceProvider, ExperimentalAsh> instance_ = nullptr;
 };
 
 class FakeSoftwareFeatureManagerFactory
@@ -690,9 +678,7 @@ class FakeSoftwareFeatureManagerFactory
   }
 
  private:
-  // This field is not a raw_ptr<> because it was filtered by the rewriter
-  // for: #constexpr-ctor-field-initializer
-  RAW_PTR_EXCLUSION FakeSoftwareFeatureManager* instance_ = nullptr;
+  FakeSoftwareFeatureManager* instance_ = nullptr;
 };
 
 }  // namespace
@@ -1657,8 +1643,7 @@ class DeviceSyncServiceTest
 
   std::unique_ptr<NetworkHandlerTestHelper> network_handler_test_helper_;
   std::unique_ptr<TestingPrefServiceSimple> test_pref_service_;
-  raw_ptr<base::MockOneShotTimer, DanglingUntriaged | ExperimentalAsh>
-      mock_timer_;
+  raw_ptr<base::MockOneShotTimer, ExperimentalAsh> mock_timer_;
   std::unique_ptr<base::SimpleTestClock> simple_test_clock_;
   std::unique_ptr<FakeDeviceSyncImplFactory> fake_device_sync_impl_factory_;
   std::unique_ptr<FakeCryptAuthGCMManagerFactory>

@@ -103,7 +103,7 @@ void BluetoothDevice::Trace(Visitor* visitor) const {
   visitor->Trace(watch_advertisements_resolver_);
   visitor->Trace(client_receiver_);
   visitor->Trace(abort_handle_map_);
-  EventTarget::Trace(visitor);
+  EventTargetWithInlineData::Trace(visitor);
   ExecutionContextClient::Trace(visitor);
 }
 
@@ -235,7 +235,8 @@ bool BluetoothDevice::HasPendingActivity() const {
 void BluetoothDevice::AddedEventListener(
     const AtomicString& event_type,
     RegisteredEventListener& registered_listener) {
-  EventTarget::AddedEventListener(event_type, registered_listener);
+  EventTargetWithInlineData::AddedEventListener(event_type,
+                                                registered_listener);
   if (event_type == event_type_names::kGattserverdisconnected) {
     UseCounter::Count(GetExecutionContext(),
                       WebFeature::kGATTServerDisconnectedEvent);

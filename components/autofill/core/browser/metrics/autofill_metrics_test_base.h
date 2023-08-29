@@ -11,7 +11,6 @@
 #include "components/autofill/core/browser/autofill_form_test_utils.h"
 #include "components/autofill/core/browser/autofill_suggestion_generator.h"
 #include "components/autofill/core/browser/autofill_test_utils.h"
-#include "components/autofill/core/browser/browser_autofill_manager_test_api.h"
 #include "components/autofill/core/browser/payments/test_credit_card_save_manager.h"
 #include "components/autofill/core/browser/payments/test_payments_client.h"
 #include "components/autofill/core/browser/test_autofill_client.h"
@@ -172,17 +171,10 @@ class AutofillMetricsBaseTest {
     return form;
   }
 
-  void DidShowAutofillSuggestions(const FormData& form,
-                                  size_t field_index = 0) {
-    autofill_manager().DidShowSuggestions(
-        /*has_autofill_suggestions=*/true, form, form.fields[field_index]);
-  }
-
   void FillTestProfile(const FormData& form) {
     autofill_manager().FillOrPreviewForm(
-        mojom::AutofillActionPersistence::kFill, form, form.fields.front(),
-        Suggestion::BackendId(kTestProfileId),
-        {.trigger_source = AutofillTriggerSource::kPopup});
+        mojom::RendererFormDataAction::kFill, form, form.fields.front(),
+        Suggestion::BackendId(kTestProfileId), AutofillTriggerSource::kPopup);
   }
 
   [[nodiscard]] FormData CreateEmptyForm() {
@@ -203,35 +195,39 @@ class AutofillMetricsBaseTest {
     return form;
   }
 
+  // Forwards to test::CreateTestFormField(). This is a hack meant as an
+  // intermediate step towards removing the out-parameters from
+  // autofill_form_util.h.
+  template <typename... Args>
+  [[nodiscard]] FormFieldData CreateField(Args... args) {
+    FormFieldData field;
+    test::CreateTestFormField(args..., &field);
+    return field;
+  }
+
   TestBrowserAutofillManager& autofill_manager() {
     return static_cast<TestBrowserAutofillManager&>(
         *autofill_driver_->autofill_manager());
-  }
-
-  AutofillExternalDelegate& external_delegate() {
-    return *test_api(autofill_manager()).external_delegate();
   }
 
   TestPersonalDataManager& personal_data() {
     return *autofill_client_->GetPersonalDataManager();
   }
 
-  ukm::TestUkmRecorder& test_ukm_recorder() {
-    return *autofill_client_->GetTestUkmRecorder();
-  }
-
   const bool is_in_any_main_frame_ = true;
   base::test::TaskEnvironment task_environment_;
   test::AutofillUnitTestEnvironment autofill_test_environment_;
   std::unique_ptr<MockAutofillClient> autofill_client_;
+  raw_ptr<ukm::TestUkmRecorder, DanglingUntriaged> test_ukm_recorder_;
   syncer::TestSyncService sync_service_;
   std::unique_ptr<TestAutofillDriver> autofill_driver_;
+  raw_ptr<AutofillExternalDelegate, DanglingUntriaged> external_delegate_;
 
  private:
   void CreateTestAutofillProfiles();
 
   base::test::ScopedFeatureList scoped_feature_list_async_parse_form_;
-  CreditCard credit_card_ = test::GetMaskedServerCardWithCvc();
+  CreditCard credit_card_ = test::GetMaskedServerCard();
 };
 
 }  // namespace autofill::autofill_metrics

@@ -50,7 +50,7 @@ suite('appTestSuiteForInputHiding', function() {
   });
 
   setup(() => {
-    document.body.innerHTML = window.trustedTypes.emptyHTML;
+    document.body.innerHTML = '';
 
     loadTimeData.overrideValues(
         {isTouchpadEnabled: false, isTouchscreenEnabled: false});

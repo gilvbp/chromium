@@ -12,9 +12,9 @@ namespace identity {
   };
 
   enum AccountStatus {
-    // Specifies that Sync is enabled for the primary account.
+    // Sync is enabled for the primary account.
     SYNC,
-    // Specifies the existence of a primary account, if any.
+    // Any primary account, if exists.
     ANY
   };
 

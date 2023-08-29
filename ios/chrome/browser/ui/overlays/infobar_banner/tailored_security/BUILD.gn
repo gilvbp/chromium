@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 source_set("tailored_security") {
+  configs += [ "//build/config/compiler:enable_arc" ]
   sources = [
     "tailored_security_infobar_banner_overlay_mediator.h",
     "tailored_security_infobar_banner_overlay_mediator.mm",
@@ -23,6 +24,7 @@ source_set("tailored_security") {
 }
 
 source_set("unit_tests") {
+  configs += [ "//build/config/compiler:enable_arc" ]
   testonly = true
   sources = [ "tailored_security_infobar_banner_overlay_mediator_unittest.mm" ]
   deps = [

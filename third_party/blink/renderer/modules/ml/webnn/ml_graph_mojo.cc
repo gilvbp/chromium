@@ -6,7 +6,6 @@
 
 #include "mojo/public/cpp/bindings/pending_remote.h"
 #include "third_party/blink/renderer/bindings/core/v8/script_promise_resolver.h"
-#include "third_party/blink/renderer/bindings/modules/v8/v8_ml_compute_result.h"
 #include "third_party/blink/renderer/core/dom/dom_exception.h"
 #include "third_party/blink/renderer/core/execution_context/execution_context.h"
 #include "third_party/blink/renderer/modules/ml/ml.h"
@@ -18,7 +17,7 @@ namespace blink {
 
 namespace {
 
-base::expected<webnn::mojom::blink::GraphInfoPtr, String> BuildWebNNGraphInfo(
+webnn::mojom::blink::GraphInfoPtr BuildWebNNGraphInfo(
     const MLNamedOperands& named_outputs) {
   // The `GraphInfo` represents an entire information of WebNN graph.
   auto graph_info = webnn::mojom::blink::GraphInfo::New();
@@ -93,11 +92,11 @@ base::expected<webnn::mojom::blink::GraphInfoPtr, String> BuildWebNNGraphInfo(
     // Create `mojo::Operator` with the id of the input and output operands.
     auto operation =
         ConvertToMojoOperator(operand_to_id_map, current_operator.Get());
-    if (!operation.has_value()) {
+    if (!operation) {
       // Return here if the operator is not implemented.
-      return base::unexpected(operation.error());
+      return nullptr;
     }
-    graph_info->operators.emplace_back(std::move(operation.value()));
+    graph_info->operators.emplace_back(std::move(operation));
   }
 
   return graph_info;
@@ -127,16 +126,15 @@ void MLGraphMojo::Trace(Visitor* visitor) const {
 void MLGraphMojo::BuildAsyncImpl(const MLNamedOperands& outputs,
                                  ScriptPromiseResolver* resolver) {
   auto graph_info = BuildWebNNGraphInfo(outputs);
-  if (!graph_info.has_value()) {
+  if (!graph_info) {
     resolver->Reject(MakeGarbageCollected<DOMException>(
-        DOMExceptionCode::kDataError,
-        "Failed to build graph: " + graph_info.error()));
+        DOMExceptionCode::kDataError, "Failed to build graph."));
     return;
   }
   // Create `WebNNGraph` message pipe with `WebNNContext` mojo interface.
   auto* script_state = resolver->GetScriptState();
   ml_context_->CreateWebNNGraph(
-      script_state, std::move(graph_info.value()),
+      script_state, std::move(graph_info),
       WTF::BindOnce(&MLGraphMojo::OnCreateWebNNGraph, WrapPersistent(this),
                     WrapPersistent(resolver)));
 }
@@ -155,82 +153,10 @@ void MLGraphMojo::ComputeAsyncImpl(const MLNamedArrayBufferViews& inputs,
                                    const MLNamedArrayBufferViews& outputs,
                                    ScriptPromiseResolver* resolver,
                                    ExceptionState& exception_state) {
-  // TransferNamedArrayBufferViews deteches input and output array buffers, so
-  // JavaScript can't modify them during Compute().
-  auto inputs_info = TransferNamedArrayBufferViews(
-      resolver->GetScriptState()->GetIsolate(), inputs, exception_state);
-  if (!inputs_info) {
-    resolver->Reject(MakeGarbageCollected<DOMException>(
-        DOMExceptionCode::kDataError,
-        "Invalid inputs: " + exception_state.Message()));
-    return;
-  }
-  auto outputs_info = TransferNamedArrayBufferViews(
-      resolver->GetScriptState()->GetIsolate(), outputs, exception_state);
-  if (!outputs_info) {
-    resolver->Reject(MakeGarbageCollected<DOMException>(
-        DOMExceptionCode::kDataError,
-        "Invalid outputs: " + exception_state.Message()));
-    return;
-  }
-
-  // The inputs were already verified in the base class so we can fill the
-  // buffer directly with the input tensors.
-  HashMap<String, mojo_base::BigBuffer> name_to_buffer_map;
-  for (const auto& [name, input_info] : *inputs_info) {
-    name_to_buffer_map.insert(
-        name,
-        base::make_span(static_cast<const uint8_t*>(input_info.contents.Data()),
-                        input_info.contents.DataLength()));
-  }
-  remote_graph_->Compute(
-      std::move(name_to_buffer_map),
-      WTF::BindOnce(&MLGraphMojo::OnDidCompute, WrapPersistent(this),
-                    WrapPersistent(resolver), std::move(inputs_info),
-                    std::move(outputs_info)));
-}
-
-void MLGraphMojo::OnDidCompute(
-    ScriptPromiseResolver* resolver,
-    std::unique_ptr<Vector<std::pair<String, ArrayBufferViewInfo>>> inputs_info,
-    std::unique_ptr<Vector<std::pair<String, ArrayBufferViewInfo>>>
-        outputs_info,
-    webnn::mojom::blink::ComputeResult mojo_result,
-    const absl::optional<HashMap<String, mojo_base::BigBuffer>> mojo_outputs) {
-  if (mojo_result != webnn::mojom::blink::ComputeResult::kOk ||
-      !mojo_outputs.has_value()) {
-    resolver->Reject(MakeGarbageCollected<DOMException>(
-        DOMExceptionCode::kOperationError,
-        "Failed to obtain the computation result."));
-    return;
-  }
-  for (const auto& [output_name, output_view_info] : *outputs_info) {
-    // The verification before computing ensures the `ml_outputs` match graph's
-    // expectation, so we only need to verify the result `mojo_outputs` from
-    // WebNN Service here.
-    auto output_buffer_iter = mojo_outputs->find(output_name);
-    if (output_buffer_iter == mojo_outputs->end()) {
-      resolver->Reject(MakeGarbageCollected<DOMException>(
-          DOMExceptionCode::kOperationError,
-          "There is an unknown output tensor in the computation result: " +
-              output_name));
-      return;
-    }
-    const auto output_byte_length = output_view_info.contents.DataLength();
-    if (output_buffer_iter->value.size() != output_byte_length) {
-      resolver->Reject(MakeGarbageCollected<DOMException>(
-          DOMExceptionCode::kUnknownError,
-          "The output tensor size does not match graph's expectation: " +
-              output_name));
-      return;
-    }
-    memcpy(output_view_info.contents.Data(), output_buffer_iter->value.data(),
-           output_byte_length);
-  }
-  auto* result = MLComputeResult::Create();
-  result->setInputs(*CreateNamedArrayBufferViews(std::move(inputs_info)));
-  result->setOutputs(*CreateNamedArrayBufferViews(std::move(outputs_info)));
-  resolver->Resolve(result);
+  // TODO(crbug.com/1273291): Support async compute.
+  NOTIMPLEMENTED();
+  resolver->Reject(MakeGarbageCollected<DOMException>(
+      DOMExceptionCode::kNotSupportedError, "Async compute not implemented."));
 }
 
 void MLGraphMojo::ComputeSyncImpl(const MLNamedArrayBufferViews& inputs,

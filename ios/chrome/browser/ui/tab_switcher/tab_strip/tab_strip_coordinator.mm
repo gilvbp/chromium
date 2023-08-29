@@ -11,6 +11,10 @@
 #import "ios/chrome/browser/ui/tab_switcher/tab_strip/tab_strip_mediator.h"
 #import "ios/chrome/browser/ui/tab_switcher/tab_strip/tab_strip_view_controller.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 @protocol TabStripContaining;
 
 @interface TabStripCoordinator ()
@@ -35,19 +39,17 @@
   if (self.tabStripViewController)
     return;
 
-  ChromeBrowserState* browserState = self.browser->GetBrowserState();
-  CHECK(browserState);
-
   self.tabStripViewController = [[TabStripViewController alloc] init];
   self.tabStripViewController.overrideUserInterfaceStyle =
-      browserState->IsOffTheRecord() ? UIUserInterfaceStyleDark
-                                     : UIUserInterfaceStyleUnspecified;
-  self.tabStripViewController.isOffTheRecord = browserState->IsOffTheRecord();
+      self.browser->GetBrowserState()->IsOffTheRecord()
+          ? UIUserInterfaceStyleDark
+          : UIUserInterfaceStyleUnspecified;
+  self.tabStripViewController.isOffTheRecord =
+      self.browser->GetBrowserState()->IsOffTheRecord();
 
   self.mediator =
       [[TabStripMediator alloc] initWithConsumer:self.tabStripViewController];
   self.mediator.webStateList = self.browser->GetWebStateList();
-  self.mediator.browserState = browserState;
 
   self.tabStripViewController.delegate = self.mediator;
 }

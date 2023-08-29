@@ -132,6 +132,8 @@ public class TabAttributeCacheUnitTest {
     @After
     public void tearDown() {
         mCache.destroy();
+        TabAttributeCache.setLastSearchTermMockForTesting(null);
+        TabAttributeCache.clearAllForTesting();
     }
 
     @Test

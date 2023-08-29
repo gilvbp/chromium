@@ -11,10 +11,7 @@ declare namespace chrome {
       ACCESS_KEY_CHANGED = 'accessKeyChanged',
       ACTIVE_DESCENDANT_CHANGED = 'activeDescendantChanged',
       ALERT = 'alert',
-      // TODO(crbug.com/1464633) Fully remove ARIA_ATTRIBUTE_CHANGED_DEPRECATED
-      // starting in 122, because although it was removed in 118, it is still
-      // present in earlier versions of LaCros.
-      ARIA_ATTRIBUTE_CHANGED_DEPRECATED = 'ariaAttributeChangedDeprecated',
+      ARIA_ATTRIBUTE_CHANGED = 'ariaAttributeChanged',
       ARIA_CURRENT_CHANGED = 'ariaCurrentChanged',
       ATOMIC_CHANGED = 'atomicChanged',
       AUTO_COMPLETE_CHANGED = 'autoCompleteChanged',
@@ -645,6 +642,13 @@ declare namespace chrome {
       id: number;
     }
 
+    export interface LanguageSpan {
+      endIndex: number;
+      language: string;
+      probability: number;
+      startIndex: number;
+    }
+
     export interface Marker {
       endOffset: number;
       flags: {[key in MarkerType]: boolean;};
@@ -879,6 +883,7 @@ declare namespace chrome {
       createPosition(type: PositionType, offset: number, isUpstream?: boolean):
           AutomationPosition;
       doDefault(): void;
+      domQuerySelector(selector: string, callback: QueryCallback): void;
       find(params: FindParams): AutomationNode|undefined;
       findAll(params: FindParams): AutomationNode[];
       focus(): void;
@@ -887,6 +892,7 @@ declare namespace chrome {
       hitTest(x: number, y: number, eventToFire: EventType): void;
       hitTestWithReply(
           x: number, y: number, callback: PerformActionCallbackWithNode): void;
+      languageAnnotationForStringAttribute(attribute: string): LanguageSpan[];
       longClick(): void;
       makeVisible(): void;
       matches(params: FindParams): boolean;
@@ -923,6 +929,7 @@ declare namespace chrome {
     type FocusCallback = (focusedNode: AutomationNode) => void;
     type PerformActionCallback = (result: boolean) => void;
     type PerformActionCallbackWithNode = (node: AutomationNode) => void;
+    type QueryCallback = (node: AutomationNode) => void;
     type RootCallback = (rootNode: AutomationNode) => void;
     type TreeChangeObserver = (change: TreeChange) => void;
 
@@ -931,6 +938,8 @@ declare namespace chrome {
     export function getAccessibilityFocus(callback: FocusCallback): void;
     export function getDesktop(callback: RootCallback): void;
     export function getFocus(callback: FocusCallback): void;
+    export function getTree(tabId: number|undefined, callback: RootCallback):
+        void;
     export function removeTreeChangeObserver(observer: TreeChangeObserver):
         void;
     export function setDocumentSelection(params: SetDocumentSelectionParams):

@@ -286,7 +286,7 @@ ExtensionFunction::ResponseAction MetricsPrivateGetHistogramFunction::Run() {
 void MetricsPrivateGetHistogramFunction::RespondOnHistogramsFetched(
     const std::string& name) {
   // Incorporate the data collected by content::FetchHistogramsAsynchronously().
-  base::StatisticsRecorder::ImportProvidedHistogramsSync();
+  base::StatisticsRecorder::ImportProvidedHistograms();
   Respond(GetHistogram(name));
 }
 

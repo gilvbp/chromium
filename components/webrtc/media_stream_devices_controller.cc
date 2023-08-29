@@ -162,9 +162,7 @@ void MediaStreamDevicesController::RequestPermissions(
   rfh->GetBrowserContext()
       ->GetPermissionController()
       ->RequestPermissionsFromCurrentDocument(
-          rfh,
-          content::PermissionRequestDescription(permission_types,
-                                                request.user_gesture),
+          permission_types, rfh, request.user_gesture,
           base::BindOnce(
               &MediaStreamDevicesController::PromptAnsweredGroupedRequest,
               std::move(controller)));

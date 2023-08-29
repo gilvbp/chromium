@@ -307,9 +307,9 @@ void NetworkingPrivateEventRouterImpl::PortalStateChanged(
   event_router->BroadcastEvent(std::move(extension_event));
 }
 
-std::unique_ptr<NetworkingPrivateEventRouter>
-NetworkingPrivateEventRouter::Create(content::BrowserContext* context) {
-  return std::make_unique<NetworkingPrivateEventRouterImpl>(context);
+NetworkingPrivateEventRouter* NetworkingPrivateEventRouter::Create(
+    content::BrowserContext* context) {
+  return new NetworkingPrivateEventRouterImpl(context);
 }
 
 }  // namespace extensions

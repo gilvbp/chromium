@@ -2083,6 +2083,7 @@ int main(int argc, char **argv) {
 
     }
     xmlNanoFTPClose(ctxt);
+    xmlMemoryDump();
     exit(0);
 }
 #endif /* STANDALONE */

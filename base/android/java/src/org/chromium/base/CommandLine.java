@@ -246,6 +246,7 @@ public abstract class CommandLine {
      * Set {@link CommandLine} for testing.
      * @param commandLine The {@link CommandLine} to use.
      */
+    @VisibleForTesting
     public static void setInstanceForTesting(CommandLine commandLine) {
         setInstance(commandLine);
     }

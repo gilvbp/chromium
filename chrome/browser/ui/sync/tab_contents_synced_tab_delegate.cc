@@ -52,6 +52,11 @@ NavigationEntry* GetPossiblyPendingEntryAtIndex(
 
 }  // namespace
 
+TabContentsSyncedTabDelegate::TabContentsSyncedTabDelegate()
+    : web_contents_(nullptr) {}
+
+TabContentsSyncedTabDelegate::~TabContentsSyncedTabDelegate() = default;
+
 bool TabContentsSyncedTabDelegate::IsBeingDestroyed() const {
   return web_contents_->IsBeingDestroyed();
 }

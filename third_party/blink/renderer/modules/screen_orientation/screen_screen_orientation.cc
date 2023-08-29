@@ -16,7 +16,7 @@ ScreenScreenOrientation& ScreenScreenOrientation::From(Screen& screen) {
   ScreenScreenOrientation* supplement =
       Supplement<Screen>::From<ScreenScreenOrientation>(screen);
   if (!supplement) {
-    supplement = MakeGarbageCollected<ScreenScreenOrientation>(screen);
+    supplement = MakeGarbageCollected<ScreenScreenOrientation>();
     ProvideTo(screen, supplement);
   }
   return *supplement;
@@ -38,8 +38,7 @@ ScreenOrientation* ScreenScreenOrientation::orientation(Screen& screen) {
 const char ScreenScreenOrientation::kSupplementName[] =
     "ScreenScreenOrientation";
 
-ScreenScreenOrientation::ScreenScreenOrientation(Screen& screen)
-    : Supplement(screen) {}
+ScreenScreenOrientation::ScreenScreenOrientation() : Supplement(nullptr) {}
 
 void ScreenScreenOrientation::Trace(Visitor* visitor) const {
   visitor->Trace(orientation_);

@@ -68,6 +68,7 @@ class FCMInvalidationListener
 
   // AckHandler implementation.
   void Acknowledge(const Topic& topic, const AckHandle& handle) override;
+  void Drop(const Topic& topic, const AckHandle& handle) override;
 
   // FCMSyncNetworkChannel::Observer implementation.
   void OnFCMChannelStateChanged(FcmChannelState state) override;
@@ -75,8 +76,6 @@ class FCMInvalidationListener
   // PerUserTopicSubscriptionManager::Observer implementation.
   void OnSubscriptionChannelStateChanged(
       SubscriptionChannelState state) override;
-  void OnSubscriptionRequestStarted(Topic topic) override;
-  void OnSubscriptionRequestFinished(Topic topic, Status code) override;
 
   virtual void RequestDetailedStatus(
       const base::RepeatingCallback<void(base::Value::Dict)>& callback) const;

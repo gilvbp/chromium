@@ -14,13 +14,11 @@
 // the source of truth for reauth state.
 @interface IncognitoReauthMediator : NSObject
 
-- (instancetype)initWithReauthAgent:(IncognitoReauthSceneAgent*)reauthAgent
+- (instancetype)initWithConsumer:(id<IncognitoReauthConsumer>)consumer
+                     reauthAgent:(IncognitoReauthSceneAgent*)reauthAgent
     NS_DESIGNATED_INITIALIZER;
 
 - (instancetype)init NS_UNAVAILABLE;
-
-// Consumer for this mediator.
-@property(nonatomic, weak) id<IncognitoReauthConsumer> consumer;
 
 @end
 

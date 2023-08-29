@@ -61,7 +61,7 @@ class TestMetadataChangeList : public MetadataChangeList {
   }
 
  private:
-  const raw_ptr<FakeModelTypeSyncBridge::Store> db_;
+  raw_ptr<FakeModelTypeSyncBridge::Store> db_;
 };
 
 }  // namespace

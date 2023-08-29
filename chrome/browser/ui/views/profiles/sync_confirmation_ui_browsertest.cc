@@ -23,7 +23,7 @@
 #include "ui/compositor/scoped_animation_duration_scale_mode.h"
 #include "ui/views/widget/any_widget_observer.h"
 
-#if !BUILDFLAG(ENABLE_DICE_SUPPORT) && !BUILDFLAG(IS_CHROMEOS_LACROS)
+#if !BUILDFLAG(ENABLE_DICE_SUPPORT)
 #error Platform not supported
 #endif
 
@@ -66,11 +66,8 @@ const SyncConfirmationTestParam kWindowTestParams[] = {
 const SyncConfirmationTestParam kDialogTestParams[] = {
     {.pixel_test_param = {.test_suffix = "Regular"},
      .sync_style = SyncConfirmationStyle::kDefaultModal},
-// The sign-in intercept feature isn't enabled on Lacros.
-#if !BUILDFLAG(IS_CHROMEOS_LACROS)
     {.pixel_test_param = {.test_suffix = "SigninInterceptStyle"},
      .sync_style = SyncConfirmationStyle::kSigninInterceptModal},
-#endif  // !BUILDFLAG(IS_CHROMEOS_LACROS)
     {.pixel_test_param = {.test_suffix = "DarkTheme", .use_dark_theme = true},
      .sync_style = SyncConfirmationStyle::kDefaultModal},
     {.pixel_test_param = {.test_suffix = "Rtl",
@@ -130,6 +127,15 @@ class SyncConfirmationStepControllerForTest
   base::WeakPtrFactory<SyncConfirmationStepControllerForTest> weak_ptr_factory_{
       this};
 };
+
+void InitFeatures(const SyncConfirmationTestParam& params,
+                  base::test::ScopedFeatureList& feature_list) {
+  if (params.sync_style == SyncConfirmationStyle::kSigninInterceptModal) {
+    feature_list.InitAndEnableFeature(kSyncPromoAfterSigninIntercept);
+  } else {
+    feature_list.Init();
+  }
+}
 }  // namespace
 
 class SyncConfirmationUIWindowPixelTest
@@ -139,6 +145,7 @@ class SyncConfirmationUIWindowPixelTest
   SyncConfirmationUIWindowPixelTest()
       : ProfilesPixelTestBaseT<UiBrowserTest>(GetParam().pixel_test_param) {
     DCHECK(GetParam().sync_style == SyncConfirmationStyle::kWindow);
+    InitFeatures(GetParam(), scoped_feature_list_);
   }
 
   void ShowUi(const std::string& name) override {
@@ -183,6 +190,7 @@ class SyncConfirmationUIWindowPixelTest
     return profile_picker_view_->GetWidget();
   }
 
+  base::test::ScopedFeatureList scoped_feature_list_;
   raw_ptr<ProfileManagementStepTestView, DanglingUntriaged>
       profile_picker_view_;
 };
@@ -203,6 +211,7 @@ class SyncConfirmationUIDialogPixelTest
   SyncConfirmationUIDialogPixelTest()
       : ProfilesPixelTestBaseT<DialogBrowserTest>(GetParam().pixel_test_param) {
     DCHECK(GetParam().sync_style != SyncConfirmationStyle::kWindow);
+    InitFeatures(GetParam(), scoped_feature_list_);
   }
 
   ~SyncConfirmationUIDialogPixelTest() override = default;
@@ -232,6 +241,8 @@ class SyncConfirmationUIDialogPixelTest
     widget_waiter.WaitIfNeededAndGet();
     observer.Wait();
   }
+
+  base::test::ScopedFeatureList scoped_feature_list_;
 };
 
 IN_PROC_BROWSER_TEST_P(SyncConfirmationUIDialogPixelTest, InvokeUi_default) {

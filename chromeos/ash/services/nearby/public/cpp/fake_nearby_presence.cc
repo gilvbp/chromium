@@ -35,43 +35,28 @@ void FakeNearbyPresence::StartScan(
   scan_session_remote_ = std::move(scan_session_remote);
   scan_session_.set_disconnect_handler(base::BindOnce(
       &FakeNearbyPresence::OnDisconnect, weak_ptr_factory_.GetWeakPtr()));
+}
 
+void FakeNearbyPresence::RunStartScanCallback() {
+  // Run the callback to pass the |scan_session_remote| back to the client to
+  // hold on to.
   std::move(start_scan_callback_)
       .Run(std::move(scan_session_remote_),
-           /*status=*/mojo_base::mojom::AbslStatusCode::kOk);
+           /*status=*/ash::nearby::presence::mojom::StatusCode::kOk);
 }
 
 void FakeNearbyPresence::OnDisconnect() {
-  std::move(on_disconnect_callback_).Run();
+  on_disconnect_called_ = true;
 }
 
 void FakeNearbyPresence::UpdateLocalDeviceMetadata(
-    mojom::MetadataPtr metadata) {
-  local_device_metadata_ = std::move(metadata);
-  std::move(update_local_device_metadata_callback_).Run();
-}
+    mojom::MetadataPtr metadata) {}
 
 void FakeNearbyPresence::UpdateLocalDeviceMetadataAndGenerateCredentials(
     mojom::MetadataPtr metadata,
     FakeNearbyPresence::UpdateLocalDeviceMetadataAndGenerateCredentialsCallback
         callback) {
-  local_device_metadata_ = std::move(metadata);
-  std::move(callback).Run(std::move(generated_shared_credentials_response_),
-                          generate_credentials_response_status_);
-}
-
-void FakeNearbyPresence::UpdateRemoteSharedCredentials(
-    std::vector<mojom::SharedCredentialPtr> shared_credentials,
-    const std::string& account_name,
-    FakeNearbyPresence::UpdateRemoteSharedCredentialsCallback callback) {
-  std::move(callback).Run(update_remote_shared_credentials_status_);
-}
-
-void FakeNearbyPresence::GetLocalSharedCredentials(
-    const std::string& account_name,
-    FakeNearbyPresence::GetLocalSharedCredentialsCallback callback) {
-  std::move(callback).Run(std::move(local_shared_credentials_response_),
-                          get_local_shared_credential_status_);
+  std::move(callback).Run(std::move(shared_credentials_), status_);
 }
 
 }  // namespace ash::nearby::presence

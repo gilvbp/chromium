@@ -187,9 +187,8 @@ ash::SearchResultType OmniboxResult::GetSearchResultType() const {
       return ash::OMNIBOX_SEARCH_SUGGEST_ENTITY;
     case CrosApiSearchResult::MetricsType::kNavSuggest:
       return ash::OMNIBOX_NAVSUGGEST;
-    case CrosApiSearchResult::MetricsType::kCalculator:
-      return ash::OMNIBOX_CALCULATOR;
-    case CrosApiSearchResult::MetricsType::kUnset:
+
+    default:
       return ash::SEARCH_RESULT_TYPE_BOUNDARY;
   }
 }

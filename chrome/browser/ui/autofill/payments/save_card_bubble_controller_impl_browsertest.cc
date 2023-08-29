@@ -78,35 +78,20 @@ class SaveCardBubbleControllerImplTest : public DialogBrowserTest {
             .with_show_prompt(true);
 
     BubbleType bubble_type = BubbleType::INACTIVE;
-    if (name.find("LocalSave") != std::string::npos) {
+    if (name.find("Local") != std::string::npos)
       bubble_type = BubbleType::LOCAL_SAVE;
-    }
-    if (name.find("LocalCvcSave") != std::string::npos) {
-      bubble_type = BubbleType::LOCAL_CVC_SAVE;
-    }
-    if (name.find("ServerSave") != std::string::npos) {
+    if (name.find("Server") != std::string::npos)
       bubble_type = BubbleType::UPLOAD_SAVE;
-    }
-    if (name.find("Manage") != std::string::npos) {
+    if (name.find("Manage") != std::string::npos)
       bubble_type = BubbleType::MANAGE_CARDS;
-    }
-    if (name.find("Failure") != std::string::npos) {
+    if (name.find("Failure") != std::string::npos)
       bubble_type = BubbleType::FAILURE;
-    }
 
     switch (bubble_type) {
       case BubbleType::LOCAL_SAVE:
         controller_->OfferLocalSave(
             test::GetCreditCard(),
             AutofillClient::SaveCreditCardOptions().with_show_prompt(true),
-            base::DoNothing());
-        break;
-      case BubbleType::LOCAL_CVC_SAVE:
-        controller_->OfferLocalSave(
-            test::GetCreditCard(),
-            AutofillClient::SaveCreditCardOptions()
-                .with_card_save_type(AutofillClient::CardSaveType::kCvcSaveOnly)
-                .with_show_prompt(true),
             base::DoNothing());
         break;
       case BubbleType::UPLOAD_SAVE:
@@ -138,34 +123,27 @@ class SaveCardBubbleControllerImplTest : public DialogBrowserTest {
 };
 
 // Invokes a bubble asking the user if they want to save a credit card locally.
-IN_PROC_BROWSER_TEST_F(SaveCardBubbleControllerImplTest, InvokeUi_LocalSave) {
-  ShowAndVerifyUi();
-}
-
-// Invokes a bubble asking the user if they want to save the CVC for a credit
-// card locally.
-IN_PROC_BROWSER_TEST_F(SaveCardBubbleControllerImplTest,
-                       InvokeUi_LocalCvcSave) {
+IN_PROC_BROWSER_TEST_F(SaveCardBubbleControllerImplTest, InvokeUi_Local) {
   ShowAndVerifyUi();
 }
 
 // Invokes a bubble asking the user if they want to save a credit card to the
 // server.
-IN_PROC_BROWSER_TEST_F(SaveCardBubbleControllerImplTest, InvokeUi_ServerSave) {
+IN_PROC_BROWSER_TEST_F(SaveCardBubbleControllerImplTest, InvokeUi_Server) {
   ShowAndVerifyUi();
 }
 
 // Invokes a bubble asking the user if they want to save a credit card to the
 // server, with an added textfield for entering/confirming cardholder name.
 IN_PROC_BROWSER_TEST_F(SaveCardBubbleControllerImplTest,
-                       InvokeUi_ServerSave_WithCardholderNameTextfield) {
+                       InvokeUi_Server_WithCardholderNameTextfield) {
   ShowAndVerifyUi();
 }
 
 // Invokes a bubble asking the user if they want to save a credit card to the
 // server, with a pair of dropdowns for entering expiration date.
 IN_PROC_BROWSER_TEST_F(SaveCardBubbleControllerImplTest,
-                       InvokeUi_ServerSave_WithCardExpirationDateDropDownBox) {
+                       InvokeUi_Server_WithCardExpirationDateDropDownBox) {
   ShowAndVerifyUi();
 }
 
@@ -191,7 +169,7 @@ IN_PROC_BROWSER_TEST_F(SaveCardBubbleControllerImplTest, InvokeUi_Failure) {
 
 // Tests that opening a new tab will hide the save card bubble.
 IN_PROC_BROWSER_TEST_F(SaveCardBubbleControllerImplTest, NewTabHidesDialog) {
-  ShowUi("LocalSave");
+  ShowUi("Local");
   EXPECT_NE(nullptr, controller()->GetPaymentBubbleView());
   // Open a new tab page in the foreground.
   ui_test_utils::NavigateToURLWithDisposition(

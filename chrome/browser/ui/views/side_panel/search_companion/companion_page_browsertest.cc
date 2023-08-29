@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "base/base64url.h"
+#include "base/base64.h"
 #include "base/base_paths.h"
 #include "base/feature_list.h"
 #include "base/files/file_path.h"
@@ -46,7 +46,6 @@
 #include "chrome/test/base/in_process_browser_test.h"
 #include "chrome/test/base/ui_test_utils.h"
 #include "components/feature_engagement/public/feature_constants.h"
-#include "components/lens/lens_features.h"
 #include "components/optimization_guide/core/test_model_info_builder.h"
 #include "components/optimization_guide/core/test_optimization_guide_model_provider.h"
 #include "components/optimization_guide/proto/visual_search_model_metadata.pb.h"
@@ -434,12 +433,10 @@ class CompanionPageBrowserTest : public InProcessBrowserTest {
 
   companion::proto::CompanionUrlParams DeserializeCompanionRequest(
       const std::string& companion_url_param) {
-    std::string serialized_proto;
-    EXPECT_TRUE(base::Base64UrlDecode(
-        companion_url_param, base::Base64UrlDecodePolicy::DISALLOW_PADDING,
-        &serialized_proto));
-
     companion::proto::CompanionUrlParams proto;
+    auto base64_decoded = base::Base64Decode(companion_url_param);
+    auto serialized_proto = std::string(base64_decoded.value().begin(),
+                                        base64_decoded.value().end());
     EXPECT_TRUE(proto.ParseFromString(serialized_proto));
     return proto;
   }
@@ -515,14 +512,6 @@ class CompanionPageBrowserTest : public InProcessBrowserTest {
         companion_server_.GetURL("/upload").spec();
 
     std::vector<base::test::FeatureRefAndParams> enabled_features;
-    std::vector<base::test::FeatureRef> disabled_features;
-    if (enable_feature_lens_standalone_) {
-      enabled_features.emplace_back(base::test::FeatureRefAndParams(
-          lens::features::kLensStandalone, /*params*/ {}));
-    } else {
-      disabled_features.emplace_back(lens::features::kLensStandalone);
-    }
-
     if (enable_feature_side_panel_companion_) {
       enabled_features.emplace_back(
           companion::features::internal::kSidePanelCompanion, params);
@@ -539,7 +528,7 @@ class CompanionPageBrowserTest : public InProcessBrowserTest {
         params2);
 
     feature_list_.InitWithFeaturesAndParameters(enabled_features,
-                                                disabled_features);
+                                                /*disabled_features=*/{});
   }
 
   virtual std::string ShouldOpenLinkInCurrentTab() { return "false"; }
@@ -621,7 +610,6 @@ class CompanionPageBrowserTest : public InProcessBrowserTest {
   std::string last_targetlang_;
   bool enable_feature_side_panel_companion_ = true;
   bool enable_feature_visual_search_ = true;
-  bool enable_feature_lens_standalone_ = true;
 };
 
 IN_PROC_BROWSER_TEST_F(CompanionPageBrowserTest, InitialNavigationWithoutMsbb) {
@@ -1719,29 +1707,6 @@ IN_PROC_BROWSER_TEST_F(CompanionPageBrowserTest,
       static_cast<int>(SidePanelOpenTrigger::kPinnedEntryToolbarButton));
 }
 
-IN_PROC_BROWSER_TEST_F(CompanionPageBrowserTest,
-                       RefreshCompanionPageMessageDoesReload) {
-  EnableSignInMsbbExps(/*signed_in=*/true, /*msbb=*/true, /*exps=*/true);
-
-  // Load a page on the active tab and open companion side panel
-  ASSERT_TRUE(
-      ui_test_utils::NavigateToURL(browser(), CreateUrl(kHost, kRelativeUrl1)));
-  side_panel_coordinator()->Show(SidePanelEntry::Id::kSearchCompanion);
-  WaitForCompanionToBeLoaded();
-  auto proto = GetLastCompanionProtoFromUrlLoad();
-  EXPECT_TRUE(proto.has_value());
-  EXPECT_EQ(proto->page_url(), CreateUrl(kHost, kRelativeUrl1));
-
-  // Simulate a message to refresh companion page.
-  CompanionScriptBuilder builder(MethodType::kRefreshCompanionPage);
-  EXPECT_TRUE(ExecJs(builder.Build()));
-
-  WaitForCompanionIframeReload();
-  proto = GetLastCompanionProtoFromUrlLoad();
-  EXPECT_TRUE(proto.has_value());
-  EXPECT_EQ(proto->page_url(), CreateUrl(kHost, kRelativeUrl1));
-}
-
 class CompanionPageDisabledBrowserTest : public CompanionPageBrowserTest {
  public:
   CompanionPageDisabledBrowserTest() : CompanionPageBrowserTest() {
@@ -1948,23 +1913,13 @@ class SidePanelCompanion2BrowserEnabledTest : public CompanionPageBrowserTest {
 
     std::vector<base::test::FeatureRefAndParams> enabled_features;
     std::vector<base::test::FeatureRef> disabled_features;
-    if (enable_feature_lens_standalone_) {
-      enabled_features.emplace_back(base::test::FeatureRefAndParams(
-          lens::features::kLensStandalone, /*params*/ {}));
-    } else {
-      disabled_features.emplace_back(lens::features::kLensStandalone);
-    }
 
     if (enable_feature_side_panel_companion_) {
       enabled_features.emplace_back(
           companion::features::internal::kSidePanelCompanion2, enabled_params);
       feature_list_.InitWithFeaturesAndParameters(enabled_features,
                                                   disabled_features);
-      if (enable_feature_lens_standalone_) {
-        EXPECT_TRUE(companion::IsCompanionFeatureEnabled());
-      } else {
-        EXPECT_FALSE(companion::IsCompanionFeatureEnabled());
-      }
+      EXPECT_TRUE(companion::IsCompanionFeatureEnabled());
     } else {
       disabled_features.emplace_back(
           companion::features::internal::kSidePanelCompanion);
@@ -2013,21 +1968,4 @@ IN_PROC_BROWSER_TEST_F(SidePanelCompanion2BrowserEnabledTest, FeatureEnabled) {
   EXPECT_EQ(side_panel_coordinator()->GetCurrentEntryId(),
             SidePanelEntry::Id::kSearchCompanion);
   EXPECT_EQ(1u, requests_received_on_server());
-}
-
-class LensStandaloneDisabledBrowserTest : public CompanionPageBrowserTest {
- public:
-  LensStandaloneDisabledBrowserTest() : CompanionPageBrowserTest() {
-    enable_feature_lens_standalone_ = false;
-  }
-};
-
-// Verifies the behavior when Lens standalone feature is disabled but the side
-// panel Companion flag is enabled.
-IN_PROC_BROWSER_TEST_F(
-    LensStandaloneDisabledBrowserTest,
-    CompanionFeatureStatusWhenLensStandaloneFeatureDisabled) {
-  EXPECT_TRUE(base::FeatureList::IsEnabled(
-      companion::features::internal::kSidePanelCompanion));
-  EXPECT_FALSE(companion::IsCompanionFeatureEnabled());
 }

@@ -202,9 +202,10 @@ export class XfCloudPanel extends XfBase {
           </div>
         </div>
         <div class="static" id="progress-finished">
-          <xf-icon type="${constants.ICON_TYPES.CLOUD}" size="large"></xf-icon>
+          <xf-icon type="${
+        constants.ICON_TYPES.BULK_PINNING_DONE}" size="large"></xf-icon>
           <div class="status-description">
-            ${str('BULK_PINNING_FILE_SYNC_ON')}
+            ${str('DRIVE_ALL_FILES_SYNCED')}
           </div>
         </div>
         <div class="static" id="progress-offline">
@@ -252,6 +253,7 @@ function getCSS() {
 
     :host(:not([items][percentage])) #progress-state,
     :host([percentage="100"]) #progress-state,
+    :host([percentage="0"]) #progress-state,
     :host([type]) #progress-state {
       display: none;
     }
@@ -261,7 +263,7 @@ function getCSS() {
       display: none;
     }
 
-    :host([percentage][items]) #progress-preparing,
+    :host(:not([items][percentage="0"])) #progress-preparing,
     :host([type]) #progress-preparing {
       display: none;
     }

@@ -42,8 +42,7 @@ import org.chromium.chrome.browser.feed.FeedReliabilityLoggingBridge;
 import org.chromium.chrome.browser.feed.FeedServiceBridge;
 import org.chromium.chrome.browser.feed.FeedServiceBridgeJni;
 import org.chromium.chrome.browser.feed.FeedStream;
-import org.chromium.chrome.browser.feed.FeedSurfaceRendererBridge;
-import org.chromium.chrome.browser.feed.FeedSurfaceRendererBridgeJni;
+import org.chromium.chrome.browser.feed.FeedStreamJni;
 import org.chromium.chrome.browser.feed.SingleWebFeedEntryPoint;
 import org.chromium.chrome.browser.feed.webfeed.WebFeedBridge;
 import org.chromium.chrome.browser.feedback.HelpAndFeedbackLauncher;
@@ -73,7 +72,7 @@ public class CreatorCoordinatorTest {
     @Mock
     private FeedServiceBridge.Natives mFeedServiceBridgeJniMock;
     @Mock
-    private FeedSurfaceRendererBridge.Natives mFeedSurfaceRendererBridgeJniMock;
+    private FeedStream.Natives mFeedStreamJniMock;
     @Mock
     private FeedReliabilityLoggingBridge.Natives mFeedReliabilityLoggingBridgeJniMock;
     @Mock
@@ -116,7 +115,7 @@ public class CreatorCoordinatorTest {
     public void setUpTest() {
         MockitoAnnotations.initMocks(this);
         mJniMocker.mock(FeedServiceBridgeJni.TEST_HOOKS, mFeedServiceBridgeJniMock);
-        mJniMocker.mock(FeedSurfaceRendererBridgeJni.TEST_HOOKS, mFeedSurfaceRendererBridgeJniMock);
+        mJniMocker.mock(FeedStreamJni.TEST_HOOKS, mFeedStreamJniMock);
         mJniMocker.mock(WebFeedBridge.getTestHooksForTesting(), mWebFeedBridgeJniMock);
         mJniMocker.mock(FeedReliabilityLoggingBridge.getTestHooksForTesting(),
                 mFeedReliabilityLoggingBridgeJniMock);

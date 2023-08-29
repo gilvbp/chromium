@@ -2,18 +2,14 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import {getTrustedHTML} from 'chrome://resources/js/static_types.js';
 import {assertEquals, assertFalse, assertNotEquals, assertTrue} from 'chrome://webui-test/chai_assert.js';
 
 import {waitForElementUpdate} from '../common/js/unittest_util.js';
-import {constants} from '../foreground/js/constants.js';
 
 import {XfIcon} from './xf_icon.js';
 
 export function setUp() {
-  document.body.innerHTML = getTrustedHTML`
-    <xf-icon></xf-icon>
-  `;
+  document.body.innerHTML = '<xf-icon></xf-icon>';
 }
 
 async function getIcon(): Promise<XfIcon> {
@@ -97,17 +93,6 @@ export async function testIconSetWithBothDPI(done: () => void) {
       window.getComputedStyle(span).backgroundImage.includes('image-set'));
   assertTrue(window.getComputedStyle(span).backgroundImage.includes('1dppx'));
   assertTrue(window.getComputedStyle(span).backgroundImage.includes('2dppx'));
-
-  done();
-}
-
-
-export async function testBlankRendersNoIconAtAll(done: () => void) {
-  const icon = await getIcon();
-  icon.type = constants.ICON_TYPES.BLANK;
-  await waitForElementUpdate(icon);
-
-  assertEquals(null, getSpanFromIcon(icon));
 
   done();
 }

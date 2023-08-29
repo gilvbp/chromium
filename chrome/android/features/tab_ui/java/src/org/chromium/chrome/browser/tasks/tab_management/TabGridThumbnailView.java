@@ -26,6 +26,7 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.content.res.AppCompatResources;
 import androidx.core.view.ViewCompat;
 
+import org.chromium.chrome.browser.tab.TabUtils;
 import org.chromium.chrome.tab_ui.R;
 
 /**
@@ -119,6 +120,19 @@ public class TabGridThumbnailView extends ImageView {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
         if (!mInitialized) return;
 
+        int measuredWidth = getMeasuredWidth();
+        int measureHeight = getMeasuredHeight();
+
+        // TODO(crbug/1434775): Consider fixing the aspect ratio and cropping/resizing the Drawable
+        // to fit.
+        // Don't force a size if the placeholder drawable is in use.
+        if (isPlaceholder()) {
+            final int expectedHeight =
+                    (int) (measuredWidth * 1.0 / TabUtils.getTabThumbnailAspectRatio(getContext()));
+            measureHeight = expectedHeight;
+        }
+
+        setMeasuredDimension(measuredWidth, measureHeight);
         mRectF.set(0, 0, getMeasuredWidth(), getMeasuredHeight());
         if (TabUiFeatureUtilities.sThumbnailPlaceholder.isEnabled()) {
             resizeIconDrawable();
@@ -209,7 +223,7 @@ public class TabGridThumbnailView extends ImageView {
     /**
      * @return whether the image drawable is a placeholder.
      */
-    public boolean isPlaceholder() {
+    boolean isPlaceholder() {
         if (TabUiFeatureUtilities.sThumbnailPlaceholder.isEnabled()) {
             // The drawable can only be null if we just removed the drawable and need to set the
             // mIconDrawable.
@@ -229,7 +243,7 @@ public class TabGridThumbnailView extends ImageView {
      * @param isIncognito Whether the thumbnail is on an incognito tab.
      * @param isSelected Whether the thumbnail is on a selected tab.
      */
-    public void updateThumbnailPlaceholder(boolean isIncognito, boolean isSelected) {
+    void updateThumbnailPlaceholder(boolean isIncognito, boolean isSelected) {
         // Step 1: Background color.
         mBackgroundDrawable.setColor(TabUiThemeProvider.getMiniThumbnailPlaceholderColor(
                 getContext(), isIncognito, isSelected));
@@ -241,7 +255,8 @@ public class TabGridThumbnailView extends ImageView {
         // Step 2: Placeholder icon.
         // Make property changes outside the flag intentionally in the event the flag flips status
         // these will have no material effect on the UI and are safe.
-        mIconColor = newColor;
+        mIconColor = TabUiThemeProvider.getThumbnailPlaceholderIconColor(
+                getContext(), isIncognito, isSelected);
         if (TabUiFeatureUtilities.sThumbnailPlaceholder.isEnabled() && mIconDrawable != null) {
             setColorFilter(mIconColor, PorterDuff.Mode.SRC_IN);
         }

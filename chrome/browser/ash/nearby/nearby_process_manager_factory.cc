@@ -30,9 +30,9 @@ NearbyProcessManager* NearbyProcessManagerFactory::GetForProfile(
 // static
 bool NearbyProcessManagerFactory::CanBeLaunchedForProfile(Profile* profile) {
   // We allow NearbyProcessManager to be used with the signin profile since it
-  // is required for OOBE Quick Start. See class documentation for more detail.
+  // is required for OOBE Quick Start.
   if (ProfileHelper::IsSigninProfile(profile) &&
-      profile->IsPrimaryOTRProfile()) {
+      features::IsOobeQuickStartEnabled()) {
     return true;
   }
 
@@ -77,8 +77,7 @@ NearbyProcessManagerFactory::NearbyProcessManagerFactory()
 
 NearbyProcessManagerFactory::~NearbyProcessManagerFactory() = default;
 
-std::unique_ptr<KeyedService>
-NearbyProcessManagerFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* NearbyProcessManagerFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   Profile* profile = Profile::FromBrowserContext(context);
 
@@ -88,7 +87,8 @@ NearbyProcessManagerFactory::BuildServiceInstanceForBrowserContext(
   if (CanBeLaunchedForProfile(profile) ||
       g_bypass_primary_user_check_for_testing) {
     return NearbyProcessManagerImpl::Factory::Create(
-        NearbyDependenciesProviderFactory::GetForProfile(profile));
+               NearbyDependenciesProviderFactory::GetForProfile(profile))
+        .release();
   }
 
   return nullptr;

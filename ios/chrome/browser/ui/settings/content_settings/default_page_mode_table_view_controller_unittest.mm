@@ -4,11 +4,15 @@
 
 #import "ios/chrome/browser/ui/settings/content_settings/default_page_mode_table_view_controller.h"
 
-#import "base/apple/foundation_util.h"
+#import "base/mac/foundation_util.h"
 #import "ios/chrome/browser/shared/ui/table_view/chrome_table_view_controller_test.h"
 #import "ios/chrome/grit/ios_strings.h"
 #import "testing/gtest_mac.h"
 #import "ui/base/l10n/l10n_util.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 class DefaultPageModeTableViewControllerTest
     : public ChromeTableViewControllerTest {
@@ -65,7 +69,7 @@ TEST_F(DefaultPageModeTableViewControllerTest, TestCheckmarkAtLoad) {
 TEST_F(DefaultPageModeTableViewControllerTest, TestCheckmark) {
   ChromeTableViewController* chrome_controller = controller();
   DefaultPageModeTableViewController* controller =
-      base::apple::ObjCCastStrict<DefaultPageModeTableViewController>(
+      base::mac::ObjCCastStrict<DefaultPageModeTableViewController>(
           chrome_controller);
 
   CheckAccessoryType(UITableViewCellAccessoryNone, 0, 0);

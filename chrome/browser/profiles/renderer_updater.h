@@ -78,10 +78,9 @@ class RendererUpdater : public KeyedService,
   void UpdateAllRenderers();
 
 #if BUILDFLAG(ENABLE_BOUND_SESSION_CREDENTIALS)
-  // Creates bound session throttler parameters that are subset of the dynamic
+  // Creates bound session parameters that are subset of the dynamic
   // renderer parameters.
-  chrome::mojom::BoundSessionThrottlerParamsPtr GetBoundSessionThrottlerParams()
-      const;
+  chrome::mojom::BoundSessionParamsPtr GetBoundSessionParams() const;
 #endif
 
   // Create renderer configuration that changes at runtime.

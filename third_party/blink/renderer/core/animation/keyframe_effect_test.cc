@@ -46,7 +46,7 @@ class KeyframeEffectTest : public PageTestBase {
  protected:
   void SetUp() override {
     PageTestBase::SetUp(gfx::Size());
-    element = GetDocument().CreateElementForBinding(AtomicString("foo"));
+    element = GetDocument().CreateElementForBinding("foo");
     GetDocument().documentElement()->AppendChild(element.Get());
   }
 

@@ -33,7 +33,7 @@ class AcceptLanguagesServiceFactory : public BrowserContextKeyedServiceFactory {
   ~AcceptLanguagesServiceFactory() override;
 
   // BrowserContextKeyedServiceFactory:
-  std::unique_ptr<KeyedServi> e* BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* profile) const override;
   content::BrowserContext* GetBrowserContextToUse(
       content::BrowserContext* context) const override;

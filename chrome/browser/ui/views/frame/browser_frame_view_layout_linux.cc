@@ -9,7 +9,6 @@
 #include "chrome/browser/ui/views/frame/browser_frame_view_linux.h"
 #include "chrome/browser/ui/views/frame/browser_frame_view_paint_utils_linux.h"
 #include "chrome/browser/ui/views/frame/opaque_browser_frame_view_layout.h"
-#include "ui/base/ui_base_features.h"
 
 namespace {
 
@@ -56,7 +55,7 @@ gfx::Insets BrowserFrameViewLayoutLinux::RestoredFrameBorderInsets() const {
   return GetRestoredFrameBorderInsetsLinux(
       delegate_->ShouldDrawRestoredFrameShadow(),
       OpaqueBrowserFrameViewLayout::RestoredFrameBorderInsets(),
-      delegate_->GetTiledEdges(), view_->GetShadowValues(true), kResizeBorder);
+      delegate_->GetTiledEdges(), view_->GetShadowValues(), kResizeBorder);
 }
 
 gfx::Insets BrowserFrameViewLayoutLinux::RestoredFrameEdgeInsets() const {
@@ -66,7 +65,5 @@ gfx::Insets BrowserFrameViewLayoutLinux::RestoredFrameEdgeInsets() const {
 }
 
 int BrowserFrameViewLayoutLinux::NonClientExtraTopThickness() const {
-  return (features::IsChromeRefresh2023() && delegate_->IsTabStripVisible())
-             ? 0
-             : kExtraTopBorder;
+  return kExtraTopBorder;
 }

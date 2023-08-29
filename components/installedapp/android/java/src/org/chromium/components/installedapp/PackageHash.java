@@ -9,7 +9,6 @@ import android.util.SparseArray;
 import androidx.annotation.VisibleForTesting;
 
 import org.chromium.base.ApiCompatibilityUtils;
-import org.chromium.base.ResettersForTesting;
 import org.chromium.base.annotations.CalledByNative;
 import org.chromium.content_public.browser.BrowserContextHandle;
 
@@ -66,7 +65,6 @@ class PackageHash {
 
     static void setGlobalSaltForTesting(byte[] salt) {
         sGlobalSaltForTesting = salt;
-        ResettersForTesting.register(() -> sGlobalSaltForTesting = null);
     }
 
     /**

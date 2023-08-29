@@ -53,7 +53,7 @@ import java.util.concurrent.TimeoutException;
  */
 @RunWith(BaseRobolectricTestRunner.class)
 @Config(manifest = Config.NONE)
-@EnableFeatures(ChromeFeatureList.CONTEXTUAL_PAGE_ACTIONS)
+@EnableFeatures({ChromeFeatureList.CONTEXTUAL_PAGE_ACTIONS})
 public class ReaderModeActionProviderTest {
     @Rule
     public final TestRule mFeatureProcessor = new Features.JUnitProcessor();
@@ -69,6 +69,7 @@ public class ReaderModeActionProviderTest {
     public void setUp() {
         MockitoAnnotations.initMocks(this);
         initializeReaderModeBackend();
+        DomDistillerTabUtils.setDistillerHeuristicsForTesting(null);
 
         mMockTab.getUserDataHost().setUserData(
                 ReaderModeManager.USER_DATA_KEY, mMockReaderModeManager);
@@ -85,7 +86,7 @@ public class ReaderModeActionProviderTest {
     private void setReaderModeBackendSignal(boolean isDistillable) {
         TabDistillabilityProvider tabDistillabilityProvider =
                 TabDistillabilityProvider.get(mMockTab);
-        tabDistillabilityProvider.onIsPageDistillableResult(isDistillable, true, false, false);
+        tabDistillabilityProvider.onIsPageDistillableResult(isDistillable, true, false);
     }
 
     @Test

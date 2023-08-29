@@ -338,7 +338,7 @@ PassthroughTouchEventQueue::FilterBeforeForwardingImpl(
   if (event.GetType() == WebInputEvent::Type::kTouchScrollStarted)
     return PreFilterResult::kUnfiltered;
 
-  if (event.IsTouchSequenceStart()) {
+  if (WebTouchEventTraits::IsTouchSequenceStart(event)) {
     // We don't know if we have a handler until we get the ACK back so
     // assume it is true.
     maybe_has_handler_for_current_sequence_ = true;
@@ -421,14 +421,14 @@ void PassthroughTouchEventQueue::UpdateTouchConsumerStates(
     // Once we have the ack back for the sequence we know if there
     // is a handler or not. Other touch-starts sent can upgrade
     // whether we have a handler or not as well.
-    if (event.IsTouchSequenceStart()) {
+    if (WebTouchEventTraits::IsTouchSequenceStart(event)) {
       maybe_has_handler_for_current_sequence_ =
           ack_result != blink::mojom::InputEventResultState::kNoConsumerExists;
     } else {
       maybe_has_handler_for_current_sequence_ |=
           ack_result != blink::mojom::InputEventResultState::kNoConsumerExists;
     }
-  } else if (event.IsTouchSequenceEnd()) {
+  } else if (WebTouchEventTraits::IsTouchSequenceEnd(event)) {
     maybe_has_handler_for_current_sequence_ = false;
   }
 }

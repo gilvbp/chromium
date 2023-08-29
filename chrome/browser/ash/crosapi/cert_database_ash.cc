@@ -21,7 +21,6 @@
 #include "components/account_id/account_id.h"
 #include "components/user_manager/user.h"
 #include "components/user_manager/user_manager.h"
-#include "components/user_manager/user_names.h"
 #include "content/public/browser/browser_task_traits.h"
 #include "content/public/browser/browser_thread.h"
 #include "crypto/nss_util_internal.h"
@@ -120,7 +119,8 @@ void CertDatabaseAsh::GetCertDatabaseInfo(
   }
 
   // Guest users should not have access to certs.
-  const bool is_guest = user->GetAccountId() == user_manager::GuestAccountId();
+  const bool is_guest =
+      user_manager::UserManager::Get()->IsGuestAccountId(user->GetAccountId());
 
   // Otherwise, if the TPM was already loaded previously, let the
   // caller know.

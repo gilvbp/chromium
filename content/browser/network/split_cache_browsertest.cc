@@ -420,22 +420,13 @@ class SplitCacheRegistrableDomainContentBrowserTestP
 
     switch (GetParam()) {
       case net::NetworkIsolationKey::Mode::kFrameSiteEnabled:
-        disabled_features.push_back(
+        enabled_features.push_back(
             net::features::kEnableCrossSiteFlagNetworkIsolationKey);
-        disabled_features.push_back(
-            net::features::kEnableFrameSiteSharedOpaqueNetworkIsolationKey);
         break;
       case net::NetworkIsolationKey::Mode::kCrossSiteFlagEnabled:
-        enabled_features.push_back(
-            net::features::kEnableCrossSiteFlagNetworkIsolationKey);
         disabled_features.push_back(
-            net::features::kEnableFrameSiteSharedOpaqueNetworkIsolationKey);
+            net::features::kEnableCrossSiteFlagNetworkIsolationKey);
         break;
-      case net::NetworkIsolationKey::Mode::kFrameSiteWithSharedOpaqueEnabled:
-        enabled_features.push_back(
-            net::features::kEnableFrameSiteSharedOpaqueNetworkIsolationKey);
-        disabled_features.push_back(
-            net::features::kEnableCrossSiteFlagNetworkIsolationKey);
     }
     feature_list_.InitWithFeatures(enabled_features, disabled_features);
   }
@@ -571,7 +562,6 @@ IN_PROC_BROWSER_TEST_P(SplitCacheRegistrableDomainContentBrowserTestP,
   // is triple-keyed.
   switch (net::NetworkIsolationKey::GetMode()) {
     case net::NetworkIsolationKey::Mode::kFrameSiteEnabled:
-    case net::NetworkIsolationKey::Mode::kFrameSiteWithSharedOpaqueEnabled:
       EXPECT_FALSE(TestResourceLoad(GenURL("a.com", "/title1.html"),
                                     GenURL("e.com", "/title1.html")));
       EXPECT_TRUE(TestResourceLoad(GenURL("a.com", "/title1.html"),
@@ -615,7 +605,6 @@ IN_PROC_BROWSER_TEST_P(SplitCacheRegistrableDomainContentBrowserTestP,
       EXPECT_FALSE(TestResourceLoad(GenURL("a.com", "/title1.html"), data_url));
       break;
     case net::NetworkIsolationKey::Mode::kCrossSiteFlagEnabled:
-    case net::NetworkIsolationKey::Mode::kFrameSiteWithSharedOpaqueEnabled:
       EXPECT_TRUE(TestResourceLoad(GenURL("a.com", "/title1.html"), data_url));
       break;
   }
@@ -1046,19 +1035,12 @@ INSTANTIATE_TEST_SUITE_P(All,
 INSTANTIATE_TEST_SUITE_P(
     All,
     SplitCacheRegistrableDomainContentBrowserTestP,
-    testing::ValuesIn(
-        {net::NetworkIsolationKey::Mode::kFrameSiteEnabled,
-         net::NetworkIsolationKey::Mode::kCrossSiteFlagEnabled,
-         net::NetworkIsolationKey::Mode::kFrameSiteWithSharedOpaqueEnabled}),
+    testing::ValuesIn({net::NetworkIsolationKey::Mode::kFrameSiteEnabled,
+                       net::NetworkIsolationKey::Mode::kCrossSiteFlagEnabled}),
     [](const testing::TestParamInfo<net::NetworkIsolationKey::Mode>& info) {
-      switch (info.param) {
-        case net::NetworkIsolationKey::Mode::kFrameSiteEnabled:
-          return "FrameSiteEnabled";
-        case net::NetworkIsolationKey::Mode::kCrossSiteFlagEnabled:
-          return "CrossSiteFlagEnabled";
-        case net::NetworkIsolationKey::Mode::kFrameSiteWithSharedOpaqueEnabled:
-          return "FrameSiteSharedOpaqueEnabled";
-      }
+      return info.param == net::NetworkIsolationKey::Mode::kFrameSiteEnabled
+                 ? "FrameSiteEnabled"
+                 : "CrossSiteFlagEnabled";
     });
 
 class ScopeBlinkMemoryCachePerContext : public SplitCacheContentBrowserTest {

@@ -60,6 +60,7 @@ public class ChromeMessageAutodismissDurationProvider
                         (int) mAutodismissDurationWithA11yMs, (int) nonA11yDuration);
     }
 
+    @VisibleForTesting
     public void setDefaultAutodismissDurationMsForTesting(long duration) {
         mAutodismissDurationMs = duration;
     }

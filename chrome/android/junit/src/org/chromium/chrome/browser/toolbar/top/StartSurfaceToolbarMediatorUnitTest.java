@@ -16,7 +16,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import static org.chromium.chrome.browser.toolbar.top.StartSurfaceToolbarProperties.BACKGROUND_COLOR;
 import static org.chromium.chrome.browser.toolbar.top.StartSurfaceToolbarProperties.BUTTONS_CLICKABLE;
 import static org.chromium.chrome.browser.toolbar.top.StartSurfaceToolbarProperties.IDENTITY_DISC_AT_START;
 import static org.chromium.chrome.browser.toolbar.top.StartSurfaceToolbarProperties.IDENTITY_DISC_CLICK_HANDLER;
@@ -29,13 +28,10 @@ import static org.chromium.chrome.browser.toolbar.top.StartSurfaceToolbarPropert
 import static org.chromium.chrome.browser.toolbar.top.StartSurfaceToolbarProperties.NEW_TAB_VIEW_TEXT_IS_VISIBLE;
 import static org.chromium.chrome.browser.toolbar.top.StartSurfaceToolbarProperties.TRANSLATION_Y;
 
-import android.app.Activity;
+import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.drawable.Drawable;
 import android.view.View;
-
-import androidx.annotation.ColorInt;
-import androidx.test.ext.junit.rules.ActivityScenarioRule;
 
 import org.junit.After;
 import org.junit.Before;
@@ -75,15 +71,12 @@ import org.chromium.chrome.browser.toolbar.adaptive.AdaptiveToolbarButtonVariant
 import org.chromium.chrome.browser.toolbar.menu_button.MenuButtonCoordinator;
 import org.chromium.chrome.browser.user_education.IPHCommandBuilder;
 import org.chromium.chrome.browser.util.ChromeAccessibilityUtil;
-import org.chromium.chrome.features.start_surface.StartSurfaceConfiguration;
 import org.chromium.chrome.features.start_surface.StartSurfaceState;
 import org.chromium.chrome.test.util.browser.Features;
 import org.chromium.chrome.test.util.browser.Features.DisableFeatures;
 import org.chromium.chrome.test.util.browser.Features.EnableFeatures;
-import org.chromium.components.browser_ui.styles.ChromeColors;
 import org.chromium.components.feature_engagement.Tracker;
 import org.chromium.components.search_engines.TemplateUrlService;
-import org.chromium.ui.base.TestActivity;
 import org.chromium.ui.modelutil.PropertyModel;
 
 /** Tests for {@link StartSurfaceToolbarMediator}. */
@@ -126,6 +119,8 @@ public class StartSurfaceToolbarMediatorUnitTest {
     @Mock
     private TemplateUrlService mTemplateUrlService;
     @Mock
+    private Context mContext;
+    @Mock
     private LogoView mLogoView;
     @Mock
     LogoBridge.Natives mLogoBridge;
@@ -138,15 +133,8 @@ public class StartSurfaceToolbarMediatorUnitTest {
 
     private ButtonDataImpl mButtonData;
 
-    private Activity mActivity;
-
-    @Rule
-    public ActivityScenarioRule<TestActivity> mActivityScenarioRule =
-            new ActivityScenarioRule<>(TestActivity.class);
-
     @Before
     public void setUp() {
-        mActivityScenarioRule.getScenario().onActivity((activity) -> mActivity = activity);
         MockitoAnnotations.initMocks(this);
 
         mPropertyModel =
@@ -561,67 +549,6 @@ public class StartSurfaceToolbarMediatorUnitTest {
         assertFalse(mMediator.isLogoVisibleForTesting());
     }
 
-    @Test
-    @EnableFeatures(ChromeFeatureList.SURFACE_POLISH)
-    public void testLogoLoadOrDestroy_SurfacePolishMoveDownLogoDisabled() {
-        StartSurfaceConfiguration.SURFACE_POLISH_MOVE_DOWN_LOGO.setForTesting(false);
-        createMediator(false);
-        assertFalse(mMediator.isLogoVisibleForTesting());
-
-        mMediator.onStartSurfaceStateChanged(
-                StartSurfaceState.SHOWN_HOMEPAGE, true, LayoutType.START_SURFACE);
-        assertTrue(mMediator.isLogoVisibleForTesting());
-
-        mMediator.onStartSurfaceStateChanged(
-                StartSurfaceState.SHOWN_TABSWITCHER, true, LayoutType.TAB_SWITCHER);
-        assertFalse(mMediator.isLogoVisibleForTesting());
-        verify(mLogoBridge).destroy(eq(1L), any());
-
-        mMediator.onStartSurfaceStateChanged(
-                StartSurfaceState.SHOWN_HOMEPAGE, true, LayoutType.START_SURFACE);
-        assertTrue(mMediator.isLogoVisibleForTesting());
-    }
-
-    @Test
-    @EnableFeatures(ChromeFeatureList.SURFACE_POLISH)
-    public void testNotShowLogo_SurfacePolishMoveDownLogoEnabled() {
-        StartSurfaceConfiguration.SURFACE_POLISH_MOVE_DOWN_LOGO.setForTesting(true);
-        createMediator(false);
-        assertFalse(mMediator.isLogoVisibleForTesting());
-
-        mMediator.onStartSurfaceStateChanged(
-                StartSurfaceState.SHOWN_HOMEPAGE, true, LayoutType.START_SURFACE);
-        assertFalse(mMediator.isLogoVisibleForTesting());
-
-        mMediator.onStartSurfaceStateChanged(
-                StartSurfaceState.SHOWN_TABSWITCHER, true, LayoutType.TAB_SWITCHER);
-        assertFalse(mMediator.isLogoVisibleForTesting());
-        verify(mLogoBridge, times(0)).destroy(eq(1L), any());
-
-        mMediator.onStartSurfaceStateChanged(
-                StartSurfaceState.SHOWN_HOMEPAGE, true, LayoutType.START_SURFACE);
-        assertFalse(mMediator.isLogoVisibleForTesting());
-    }
-
-    @Test
-    @EnableFeatures({ChromeFeatureList.SURFACE_POLISH})
-    public void testUpdateStartSurfaceToolbarBackgroundColor() {
-        assertTrue(ChromeFeatureList.sSurfacePolish.isEnabled());
-        createMediator(/*hideIncognitoSwitchWhenNoTabs =*/
-                false, /*isTabGroupsAndroidContinuationEnabled= */ false);
-        @ColorInt
-        int backgroundColor = ChromeColors.getPrimaryBackgroundColor(mActivity, false);
-        assertEquals(backgroundColor, mPropertyModel.get(BACKGROUND_COLOR));
-
-        mMediator.onStartSurfaceStateChanged(
-                StartSurfaceState.SHOWN_HOMEPAGE, true, LayoutType.START_SURFACE);
-        @ColorInt
-        int newBackgroundColor = ChromeColors.getSurfaceColor(mActivity,
-                org.chromium.chrome.browser.toolbar.R.dimen
-                        .home_surface_background_color_elevation);
-        assertEquals(newBackgroundColor, mPropertyModel.get(BACKGROUND_COLOR));
-    }
-
     private void createMediator(boolean hideIncognitoSwitchWhenNoTabs) {
         createMediator(hideIncognitoSwitchWhenNoTabs, false);
     }
@@ -629,12 +556,10 @@ public class StartSurfaceToolbarMediatorUnitTest {
     private void createMediator(
             boolean hideIncognitoSwitchWhenNoTabs, boolean isTabGroupsAndroidContinuationEnabled) {
         boolean shouldCreateLogoInToolbar =
-                (!ChromeFeatureList.sStartSurfaceDisabledFeedImprovement.isEnabled()
-                        || SharedPreferencesManager.getInstance().readBoolean(
-                                ChromePreferenceKeys.FEED_ARTICLES_LIST_VISIBLE, true))
-                && !(ChromeFeatureList.sSurfacePolish.isEnabled()
-                        && StartSurfaceConfiguration.SURFACE_POLISH_MOVE_DOWN_LOGO.getValue());
-        mMediator = new StartSurfaceToolbarMediator(mActivity, mPropertyModel,
+                !ChromeFeatureList.sStartSurfaceDisabledFeedImprovement.isEnabled()
+                || SharedPreferencesManager.getInstance().readBoolean(
+                        ChromePreferenceKeys.FEED_ARTICLES_LIST_VISIBLE, true);
+        mMediator = new StartSurfaceToolbarMediator(mContext, mPropertyModel,
                 mMockIdentityIPHCallback, hideIncognitoSwitchWhenNoTabs, mMenuButtonCoordinator,
                 mIdentityDiscController,
                 ()

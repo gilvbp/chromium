@@ -6,8 +6,6 @@ import {TestRunner} from 'test_runner';
 import {ConsoleTestRunner} from 'console_test_runner';
 import {NetworkTestRunner} from 'network_test_runner';
 
-import * as Common from 'devtools/core/common/common.js';
-
 (async function() {
   TestRunner.addResult(`Tests that XMLHttpRequest Logging works when Enabled and doesn't show logs when Disabled.\n`);
   await TestRunner.loadLegacyModule('console');
@@ -19,8 +17,8 @@ import * as Common from 'devtools/core/common/common.js';
           makeSimpleXHR(method, url, false);
       }
   `);
-  Common.Settings.settingForTest('consoleGroupSimilar').set(false);
-  Common.Settings.settingForTest('monitoringXHREnabled').set(true);
+  Common.settingForTest('consoleGroupSimilar').set(false);
+  Common.settingForTest('monitoringXHREnabled').set(true);
 
   TestRunner.evaluateInPage(`requestHelper('GET', 'resources/xhr-exists.html')`);
   await ConsoleTestRunner.waitForConsoleMessagesPromise(2);
@@ -46,7 +44,7 @@ import * as Common from 'devtools/core/common/common.js';
   SDK.ConsoleModel.requestClearMessages();
   TestRunner.addResult('');
 
-  Common.Settings.settingForTest('monitoringXHREnabled').set(false);
+  Common.settingForTest('monitoringXHREnabled').set(false);
 
   TestRunner.evaluateInPageAsync(`requestHelper('GET', 'resources/xhr-exists.html')`);
   await ConsoleTestRunner.waitForConsoleMessagesPromise(1);

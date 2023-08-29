@@ -12,7 +12,6 @@
 
 #include "base/memory/raw_ptr.h"
 #include "components/cbor/cbor_export.h"
-#include "components/cbor/float_conversions.h"
 #include "components/cbor/values.h"
 #include "third_party/abseil-cpp/absl/types/optional.h"
 
@@ -32,6 +31,7 @@
 //     * 7: Simple values.
 //
 // Unsupported:
+//  * Floating-point numbers.
 //  * Indefinite-length encodings.
 //  * Parsing.
 //

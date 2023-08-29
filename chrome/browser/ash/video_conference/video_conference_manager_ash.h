@@ -21,8 +21,6 @@ namespace base {
 class UnguessableToken;
 }  // namespace base
 
-class CaptureModeVideoConferenceBrowserTests;
-
 namespace ash {
 
 class VideoConferenceClientWrapper;
@@ -52,7 +50,6 @@ class VideoConferenceManagerAsh
   void SetSystemMediaDeviceStatus(
       crosapi::mojom::VideoConferenceMediaDevice device,
       bool disabled) override;
-  void StopAllScreenShare() override;
 
   // Registers an ash-browser client. Non-mojo clients need to manually call
   // |UnregisterClient|, e.g. inside their destructor.
@@ -100,7 +97,6 @@ class VideoConferenceManagerAsh
  private:
   friend class VideoConferenceAshfeatureClientTest;
   friend class VideoConferenceAppServiceClientTest;
-  friend class ::CaptureModeVideoConferenceBrowserTests;
 
   // A (client_id, client_wrapper) entry is inserted into this map
   // whenever a new client is registered on the manager and deleted

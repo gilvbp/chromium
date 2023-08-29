@@ -22,45 +22,46 @@ export class WebviewManager {
     /**
      * Tracks the current function used to filter destinations
      * to which we send access tokens.
-     * @private {?function(Object):BlockingResponse}
+     * @private {?function(string):boolean}
      */
-    this.shouldSendTokenToUrlListener_ = null;
+    this.shouldSendTokenToUrlFn_ = null;
 
     /**
      * Tracks the current function used to filter destinations
      * to which we send allow requests.
-     * @private {?function(Object):BlockingResponse}
+     * @private {?function(string):boolean}
      */
-    this.allowedRequestListener_ = null;
+    this.allowedRequestFn_ = null;
   }
 
   /**
    * Configures the webview to use the specified token to authenticate the user.
-   * Sets the token as part of the Authorization: Bearer HTTP header.
+   * Sets the token as part of the Auhtorization: Bearer HTTP header.
    * @param {string} accessToken the access token
    * @param {!function(string):boolean} shouldSendTokenToUrlFn function that
    *     returns true if the access token should be sent to the specified host.
    */
   setAccessToken(accessToken, shouldSendTokenToUrlFn) {
-    if (this.shouldSendTokenToUrlListener_) {
+    if (this.shouldSendTokenToUrlFn_) {
       this.webview_.request.onBeforeSendHeaders.removeListener(
-          this.shouldSendTokenToUrlListener_);
-      this.shouldSendTokenToUrlListener_ = null;
+          this.shouldSendTokenToUrlFn_);
+      this.shouldSendTokenToUrlFn_ = null;
     }
-    this.shouldSendTokenToUrlListener_ = (details) => {
-      if (shouldSendTokenToUrlFn(details.url)) {
-        details.requestHeaders.push({
-          name: 'Authorization',
-          value: 'Bearer ' + accessToken,
-        });
-      }
-
-      return {requestHeaders: details.requestHeaders};
-    };
+    this.shouldSendTokenToUrlFn_ = shouldSendTokenToUrlFn;
 
     this.webview_.request.onBeforeSendHeaders.addListener(
-        this.shouldSendTokenToUrlListener_, {urls: ['<all_urls>']},
-        ['blocking', 'requestHeaders']);
+        (details) => {
+          if (this.shouldSendTokenToUrlFn_(details.url)) {
+            details.requestHeaders.push({
+              name: 'Authorization',
+              value: 'Bearer ' + accessToken,
+            });
+          }
+
+          return {requestHeaders: details.requestHeaders};
+        },
+
+        {urls: ['<all_urls>']}, ['blocking', 'requestHeaders']);
   }
 
   /**
@@ -70,16 +71,15 @@ export class WebviewManager {
    *     true if the request to the specified URL is allowed.
    */
   setAllowRequestFn(allowedRequestFn) {
-    if (this.allowedRequestListener_) {
+    if (this.allowedRequestFn_) {
       this.webview_.request.onBeforeSendHeaders.removeListener(
-          this.allowedRequestListener_);
-      this.allowedRequestListener_ = null;
+          this.allowedRequestFn_);
+      this.allowedRequestFn_ = null;
     }
-    this.allowedRequestListener_ = (details) => {
-      return {cancel: !allowedRequestFn(details.url)};
-    };
+    this.allowedRequestFn_ = allowedRequestFn;
 
-    this.webview_.request.onBeforeRequest.addListener(
-        this.allowedRequestListener_, {urls: ['<all_urls>']}, ['blocking']);
+    this.webview_.request.onBeforeRequest.addListener((details) => {
+      return {cancel: !this.allowedRequestFn_(details.url)};
+    }, {urls: ['<all_urls>']}, ['blocking']);
   }
 }

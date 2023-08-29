@@ -169,6 +169,8 @@ public class WarmupManager {
 
         mSpareTab.destroy();
         mSpareTab = null;
+        // mSpareTabObserver is removed in mSpareTab.destroy().
+        mSpareTabObserver = null;
     }
 
     /**
@@ -298,6 +300,7 @@ public class WarmupManager {
     /**
      * Removes the singleton instance for the WarmupManager for testing.
      */
+    @VisibleForTesting
     public static void deInitForTesting() {
         sWarmupManager = null;
     }

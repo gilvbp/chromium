@@ -204,7 +204,8 @@ Color DefaultHighlightColor(const Document& document,
 
 // Returns highlight styles for the given node, inheriting from the originating
 // element only, like most impls did before highlights were added to css-pseudo.
-const ComputedStyle* HighlightPseudoStyleWithOriginatingInheritance(
+scoped_refptr<const ComputedStyle>
+HighlightPseudoStyleWithOriginatingInheritance(
     Node* node,
     PseudoId pseudo,
     const AtomicString& pseudo_argument = g_null_atom) {
@@ -316,7 +317,7 @@ Color HighlightStyleUtils::ResolveColor(
 // Returns highlight styles for the given node, inheriting through the “tree” of
 // highlight pseudo styles mirroring the originating element tree. None of the
 // returned styles are influenced by originating elements or pseudo-elements.
-const ComputedStyle* HighlightStyleUtils::HighlightPseudoStyle(
+scoped_refptr<const ComputedStyle> HighlightStyleUtils::HighlightPseudoStyle(
     Node* node,
     const ComputedStyle& style,
     PseudoId pseudo,
@@ -326,17 +327,21 @@ const ComputedStyle* HighlightStyleUtils::HighlightPseudoStyle(
                                                           pseudo_argument);
   }
 
+  if (!style.HighlightData()) {
+    return nullptr;
+  }
+
   switch (pseudo) {
     case kPseudoIdSelection:
-      return style.HighlightData().Selection();
+      return style.HighlightData()->Selection();
     case kPseudoIdTargetText:
-      return style.HighlightData().TargetText();
+      return style.HighlightData()->TargetText();
     case kPseudoIdSpellingError:
-      return style.HighlightData().SpellingError();
+      return style.HighlightData()->SpellingError();
     case kPseudoIdGrammarError:
-      return style.HighlightData().GrammarError();
+      return style.HighlightData()->GrammarError();
     case kPseudoIdHighlight:
-      return style.HighlightData().CustomHighlight(pseudo_argument);
+      return style.HighlightData()->CustomHighlight(pseudo_argument);
     default:
       NOTREACHED();
       return nullptr;
@@ -356,10 +361,10 @@ Color HighlightStyleUtils::HighlightBackgroundColor(
     }
   }
 
-  const ComputedStyle* pseudo_style =
+  scoped_refptr<const ComputedStyle> pseudo_style =
       HighlightPseudoStyle(node, style, pseudo, pseudo_argument);
   Color result =
-      ResolveColor(document, style, pseudo_style, pseudo,
+      ResolveColor(document, style, pseudo_style.get(), pseudo,
                    GetCSSPropertyBackgroundColor(), previous_layer_color);
   if (pseudo == kPseudoIdSelection && NodeIsReplaced(node)) {
     // Avoid that ::selection full obscures selected replaced elements like
@@ -412,24 +417,24 @@ TextPaintStyle HighlightStyleUtils::HighlightPaintingStyle(
   // specified on the originating element (or the other highlight overlays).
   highlight_style.shadow = nullptr;
 
-  const ComputedStyle* pseudo_style =
+  scoped_refptr<const ComputedStyle> pseudo_style =
       HighlightPseudoStyle(node, style, pseudo, pseudo_argument);
   Color previous_layer_current_color = previous_layer_text_style.current_color;
 
   if (!uses_text_as_clip && !ignored_selection) {
     highlight_style.current_color =
-        ResolveColor(document, style, pseudo_style, pseudo,
+        ResolveColor(document, style, pseudo_style.get(), pseudo,
                      GetCSSPropertyColor(), previous_layer_current_color);
     highlight_style.fill_color = ResolveColor(
-        document, style, pseudo_style, pseudo,
+        document, style, pseudo_style.get(), pseudo,
         GetCSSPropertyWebkitTextFillColor(), previous_layer_current_color);
     // TODO(crbug.com/1147859) ignore highlight ‘text-emphasis-color’
     // https://github.com/w3c/csswg-drafts/issues/7101
     highlight_style.emphasis_mark_color = ResolveColor(
-        document, style, pseudo_style, pseudo,
+        document, style, pseudo_style.get(), pseudo,
         GetCSSPropertyTextEmphasisColor(), previous_layer_current_color);
     highlight_style.stroke_color = ResolveColor(
-        document, style, pseudo_style, pseudo,
+        document, style, pseudo_style.get(), pseudo,
         GetCSSPropertyWebkitTextStrokeColor(), previous_layer_current_color);
   }
 
@@ -467,9 +472,9 @@ absl::optional<Color> HighlightStyleUtils::HighlightTextDecorationColor(
     return absl::nullopt;
   }
 
-  if (const ComputedStyle* pseudo_style =
+  if (scoped_refptr<const ComputedStyle> pseudo_style =
           HighlightPseudoStyle(node, style, pseudo)) {
-    return ResolveColor(document, style, pseudo_style, pseudo,
+    return ResolveColor(document, style, pseudo_style.get(), pseudo,
                         GetCSSPropertyTextDecorationColor(),
                         previous_layer_color);
   }
@@ -485,14 +490,14 @@ bool HighlightStyleUtils::ShouldInvalidateVisualOverflow(
   // RuntimeEnabledFeatures::HighlightInheritanceEnabled() is true to avoid
   // needing a non-const node.
   const ComputedStyle* style = node.GetComputedStyle();
-  if (!style) {
+  if (!style || !style->HighlightData()) {
     return false;
   }
   const ComputedStyle* pseudo_style = nullptr;
   switch (type) {
     case DocumentMarker::kTextFragment:
       if (RuntimeEnabledFeatures::HighlightOverlayPaintingEnabled()) {
-        pseudo_style = style->HighlightData().TargetText();
+        pseudo_style = style->HighlightData()->TargetText();
       }
       break;
 
@@ -500,7 +505,7 @@ bool HighlightStyleUtils::ShouldInvalidateVisualOverflow(
       if (RuntimeEnabledFeatures::CSSSpellingGrammarErrorsEnabled() ||
           RuntimeEnabledFeatures::
               CSSPaintingForSpellingGrammarErrorsEnabled()) {
-        pseudo_style = style->HighlightData().SpellingError();
+        pseudo_style = style->HighlightData()->SpellingError();
       }
       break;
 
@@ -508,7 +513,7 @@ bool HighlightStyleUtils::ShouldInvalidateVisualOverflow(
       if (RuntimeEnabledFeatures::CSSSpellingGrammarErrorsEnabled() ||
           RuntimeEnabledFeatures::
               CSSPaintingForSpellingGrammarErrorsEnabled()) {
-        pseudo_style = style->HighlightData().GrammarError();
+        pseudo_style = style->HighlightData()->GrammarError();
       }
       break;
 
@@ -526,11 +531,11 @@ bool HighlightStyleUtils::CustomHighlightHasVisualOverflow(
     const Node* node,
     const AtomicString& pseudo_argument) {
   const ComputedStyle* style = node->GetComputedStyle();
-  if (!style) {
+  if (!style || !style->HighlightData()) {
     return false;
   }
   const ComputedStyle* pseudo_style =
-      style->HighlightData().CustomHighlight(pseudo_argument);
+      style->HighlightData()->CustomHighlight(pseudo_argument);
   if (!pseudo_style) {
     return false;
   }

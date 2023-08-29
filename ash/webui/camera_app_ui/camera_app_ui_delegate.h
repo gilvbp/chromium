@@ -11,14 +11,9 @@
 #include "base/functional/callback.h"
 
 namespace content {
-class BrowserContext;
 class WebContents;
 class WebUIDataSource;
 }  // namespace content
-
-namespace media_device_salt {
-class MediaDeviceSaltService;
-}  // namespace media_device_salt
 
 namespace ash {
 class HoldingSpaceClient;
@@ -107,11 +102,6 @@ class CameraAppUIDelegate {
 
   // Gets the file path by given file |name|.
   virtual base::FilePath GetFilePathByName(const std::string& name) = 0;
-
-  // Returns a service that provides persistent salts for generating media
-  // device IDs. Can be null if the embedder does not support persistent salts.
-  virtual media_device_salt::MediaDeviceSaltService* GetMediaDeviceSaltService(
-      content::BrowserContext* context) = 0;
 };
 
 }  // namespace ash

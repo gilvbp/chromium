@@ -150,7 +150,7 @@ class HighEfficiencyInteractiveTest : public InteractiveBrowserTest {
           base::BindLambdaForTesting([](performance_manager::Graph* graph) {
             auto* metrics_decorator = graph->GetRegisteredObjectAs<
                 performance_manager::ProcessMetricsDecorator>();
-            metrics_decorator->RequestImmediateMetrics();
+            metrics_decorator->RefreshMetricsForTesting();
           }));
 
       run_loop.Run();
@@ -363,7 +363,7 @@ class HighEfficiencyChipInteractiveTest : public HighEfficiencyInteractiveTest {
       size_t non_discard_tab_index,
       const ui::ElementIdentifier& contents_id) {
     MultiStep result;
-    for (int i = 0; i < HighEfficiencyChipTabHelper::kChipAnimationCount; i++) {
+    for (int i = 0; i < HighEfficiencyChipView::kChipAnimationCount; i++) {
       MultiStep temp = std::move(result);
       result = Steps(std::move(temp),
                      SelectTab(kTabStripElementId, non_discard_tab_index),
@@ -735,7 +735,16 @@ IN_PROC_BROWSER_TEST_P(HighEfficiencyFaviconTreatmentTest,
       NameView(kFirstTabFavicon, base::BindLambdaForTesting([&]() {
                  return views::AsViewClass<views::View>(GetTabIcon(0));
                })),
-      WaitForEvent(kFirstTabFavicon, kDiscardAnimationFinishes), FlushEvents(),
+      Check(base::BindLambdaForTesting([&]() {
+        return GetTabIcon(0)
+            ->GetTabDiscardAnimationForTesting()
+            ->is_animating();
+      })),
+      Do(base::BindLambdaForTesting([&]() {
+        // Force animation to end as it may not have finished progressing
+        // before taking a screenshot
+        GetTabIcon(0)->GetTabDiscardAnimationForTesting()->End();
+      })),
       Screenshot(kFirstTabFavicon, GetParam().screenshot_name,
                  GetParam().cl_number));
 }
@@ -743,10 +752,10 @@ IN_PROC_BROWSER_TEST_P(HighEfficiencyFaviconTreatmentTest,
 std::vector<FaviconScreenShotTestConfig> HighEfficiencyTestConfig() {
   return {{performance_manager::features::DiscardTabTreatmentOptions::
                kFadeFullsizedFavicon,
-           "FadeFullSizedFaviconOnDiscard", "4786929"},
+           "FadeFullSizedFaviconOnDiscard", "4492205"},
           {performance_manager::features::DiscardTabTreatmentOptions::
                kFadeSmallFaviconWithRing,
-           "FadeSmallFaviconOnDiscard", "4786929"}};
+           "FadeSmallFaviconOnDiscard", "4633624"}};
 }
 
 INSTANTIATE_TEST_SUITE_P(All,

@@ -46,9 +46,6 @@ class TestColorPaletteController : public ash::ColorPaletteController {
                       const AccountId& account_id,
                       base::OnceClosure on_complete) override {}
   void SelectLocalAccount(const AccountId& account_id) override {}
-  SkColor GetUserWallpaperColorOrDefault(SkColor default_color) const override {
-    return SK_ColorGREEN;
-  }
   absl::optional<ash::ColorPaletteSeed> GetColorPaletteSeed(
       const AccountId& account_id) const override {
     return seed_;
@@ -65,9 +62,6 @@ class TestColorPaletteController : public ash::ColorPaletteController {
   absl::optional<SkColor> GetStaticColor(
       const AccountId& account_id) const override {
     return seed_.seed_color;
-  }
-  bool GetUseKMeansPref(const AccountId& account_id) const override {
-    return false;
   }
   void GenerateSampleColorSchemes(
       base::span<const ash::ColorScheme> color_scheme_buttons,
@@ -139,14 +133,14 @@ TEST_F(ArcSystemUIBridgeTest, DestroyColorPaletteControllerFirst) {
 TEST_F(ArcSystemUIBridgeTest, OnColorModeChanged) {
   EXPECT_FALSE(system_ui_instance_.dark_theme_status());
   ash::ColorPaletteSeed seed;
-  seed.color_mode = ui::ColorProviderKey::ColorMode::kDark;
+  seed.color_mode = ui::ColorProviderManager::ColorMode::kDark;
   bridge_->OnColorPaletteChanging(seed);
   EXPECT_TRUE(system_ui_instance_.dark_theme_status());
   ArcServiceManager::Get()->arc_bridge_service()->system_ui()->CloseInstance(
       &system_ui_instance_);
   EXPECT_ERROR_LOG(testing::HasSubstr("Failed to send theme status"));
   log_.StartCapturingLogs();
-  seed.color_mode = ui::ColorProviderKey::ColorMode::kLight;
+  seed.color_mode = ui::ColorProviderManager::ColorMode::kLight;
   bridge_->OnColorPaletteChanging(seed);
 }
 
@@ -155,7 +149,7 @@ TEST_F(ArcSystemUIBridgeTest, OnConnectionReady) {
 
   EXPECT_FALSE(system_ui_instance_.dark_theme_status());
   ash::ColorPaletteSeed seed;
-  seed.color_mode = ui::ColorProviderKey::ColorMode::kDark;
+  seed.color_mode = ui::ColorProviderManager::ColorMode::kDark;
   seed.scheme = ash::ColorScheme::kVibrant;
   seed.seed_color = SK_ColorMAGENTA;
   test_palette_->SetSeed(seed);
@@ -199,7 +193,7 @@ TEST_F(ArcSystemUIBridgeTest, OnConnectionReady_NeutralToSpritzConversion) {
 
   EXPECT_FALSE(system_ui_instance_.dark_theme_status());
   ash::ColorPaletteSeed seed;
-  seed.color_mode = ui::ColorProviderKey::ColorMode::kLight;
+  seed.color_mode = ui::ColorProviderManager::ColorMode::kLight;
   seed.scheme = ash::ColorScheme::kNeutral;
   seed.seed_color = SK_ColorCYAN;
   test_palette_->SetSeed(seed);

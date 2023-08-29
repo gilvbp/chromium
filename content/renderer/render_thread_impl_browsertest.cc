@@ -10,7 +10,6 @@
 #include <memory>
 #include <utility>
 
-#include "base/base_switches.h"
 #include "base/command_line.h"
 #include "base/debug/leak_annotations.h"
 #include "base/functional/bind.h"
@@ -195,9 +194,7 @@ class RenderThreadImplBrowserTest : public testing::Test,
     scoped_refptr<base::SingleThreadTaskRunner> test_task_counter(
         test_task_counter_.get());
 
-    // This handles the --force-fieldtrials flag passed to content_browsertests.
-    base::FieldTrialList::CreateTrialsFromString(
-        cmd->GetSwitchValueASCII(::switches::kForceFieldTrials));
+    base::FieldTrialList::CreateTrialsFromCommandLine(*cmd, -1);
     thread_ = new RenderThreadImpl(
         InProcessChildThreadParams(io_task_runner,
                                    &process_host_->GetMojoInvitation().value()),

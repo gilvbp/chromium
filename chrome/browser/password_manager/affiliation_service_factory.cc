@@ -34,8 +34,7 @@ password_manager::AffiliationService* AffiliationServiceFactory::GetForProfile(
       GetInstance()->GetServiceForBrowserContext(profile, true));
 }
 
-std::unique_ptr<KeyedService>
-AffiliationServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* AffiliationServiceFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   Profile* profile = Profile::FromBrowserContext(context);
   scoped_refptr<network::SharedURLLoaderFactory> url_loader_factory =
@@ -43,9 +42,8 @@ AffiliationServiceFactory::BuildServiceInstanceForBrowserContext(
           ->GetURLLoaderFactoryForBrowserProcess();
   auto backend_task_runner = base::ThreadPool::CreateSequencedTaskRunner(
       {base::MayBlock(), base::TaskPriority::USER_VISIBLE});
-  auto affiliation_service =
-          std::make_unique<password_manager::AffiliationServiceImpl>(
-              url_loader_factory, backend_task_runner);
+  auto* affiliation_service = new password_manager::AffiliationServiceImpl(
+      url_loader_factory, backend_task_runner, profile->GetPrefs());
 
   base::FilePath database_path =
       profile->GetPath().Append(password_manager::kAffiliationDatabaseFileName);

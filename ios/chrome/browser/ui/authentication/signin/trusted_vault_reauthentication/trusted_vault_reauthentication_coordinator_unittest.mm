@@ -25,6 +25,10 @@
 #import "third_party/ocmock/gtest_support.h"
 #import "third_party/ocmock/ocmock_extensions.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 class TrustedVaultReauthenticationCoordinatorTest : public PlatformTest {
  public:
   TrustedVaultReauthenticationCoordinatorTest() {}
@@ -121,11 +125,10 @@ TEST_F(TrustedVaultReauthenticationCoordinatorTest, TestCancel) {
       base::test::ios::kWaitForUIElementTimeout, ^bool() {
         return signin_completion_called;
       }));
-  [signinCoordinator stop];
 }
 
 // Opens the trusted vault reauth dialog, and simulate a user cancel.
-TEST_F(TrustedVaultReauthenticationCoordinatorTest, TestInterruptWithDismiss) {
+TEST_F(TrustedVaultReauthenticationCoordinatorTest, TestInterrupt) {
   // Create sign-in coordinator.
   syncer::TrustedVaultUserActionTriggerForUMA trigger =
       syncer::TrustedVaultUserActionTriggerForUMA::kSettings;
@@ -153,63 +156,15 @@ TEST_F(TrustedVaultReauthenticationCoordinatorTest, TestInterruptWithDismiss) {
       }));
   // Interrupt the coordinator.
   __block bool interrupt_completion_called = false;
-  [signinCoordinator
-      interruptWithAction:SigninCoordinatorInterrupt::DismissWithoutAnimation
-               completion:^() {
-                 EXPECT_TRUE(signin_completion_called);
-                 interrupt_completion_called = true;
-               }];
-  // The sign-in and interrupt completion blocks should be called
-  // asynchronously, after the UI is dismissed.
-  EXPECT_FALSE(signin_completion_called);
-  EXPECT_FALSE(interrupt_completion_called);
+  [signinCoordinator interruptWithAction:
+                         SigninCoordinatorInterruptActionDismissWithoutAnimation
+                              completion:^() {
+                                EXPECT_TRUE(signin_completion_called);
+                                interrupt_completion_called = true;
+                              }];
   // Test the completion block.
   EXPECT_TRUE(base::test::ios::WaitUntilConditionOrTimeout(
       base::test::ios::kWaitForUIElementTimeout, ^bool() {
         return interrupt_completion_called;
       }));
-  [signinCoordinator stop];
-}
-
-// Opens the trusted vault reauth dialog, and interrupt it with
-// `UIShutdownNoDismiss`.
-TEST_F(TrustedVaultReauthenticationCoordinatorTest,
-       TestInterruptUIShutdownNoDismiss) {
-  // Create sign-in coordinator.
-  syncer::TrustedVaultUserActionTriggerForUMA trigger =
-      syncer::TrustedVaultUserActionTriggerForUMA::kSettings;
-  SigninCoordinator* signinCoordinator = [SigninCoordinator
-      trustedVaultReAuthenticationCoordinatorWithBaseViewController:
-          base_view_controller_
-                                                            browser:browser()
-                                                             intent:
-                                                                 SigninTrustedVaultDialogIntentFetchKeys
-                                                            trigger:trigger];
-  // Open and cancel the web sign-in dialog.
-  __block bool signin_completion_called = false;
-  signinCoordinator.signinCompletion =
-      ^(SigninCoordinatorResult result, SigninCompletionInfo* info) {
-        signin_completion_called = true;
-        EXPECT_EQ(SigninCoordinatorResultInterrupted, result);
-        EXPECT_EQ(nil, info.identity);
-      };
-  [signinCoordinator start];
-  // Wait until the view controllre is presented.
-  EXPECT_NE(nil, base_view_controller_.presentedViewController);
-  EXPECT_TRUE(base::test::ios::WaitUntilConditionOrTimeout(
-      base::test::ios::kWaitForUIElementTimeout, ^bool() {
-        return !base_view_controller_.presentedViewController.beingPresented;
-      }));
-  // Interrupt the coordinator.
-  __block bool interrupt_completion_called = false;
-  [signinCoordinator
-      interruptWithAction:SigninCoordinatorInterrupt::UIShutdownNoDismiss
-               completion:^() {
-                 EXPECT_TRUE(signin_completion_called);
-                 interrupt_completion_called = true;
-               }];
-  // Sign-in and interrupt completion blocks should be called synchronously.
-  EXPECT_TRUE(signin_completion_called);
-  EXPECT_TRUE(interrupt_completion_called);
-  [signinCoordinator stop];
 }

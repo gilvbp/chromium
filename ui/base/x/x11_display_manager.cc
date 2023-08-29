@@ -8,13 +8,11 @@
 
 #include "base/functional/bind.h"
 #include "base/task/single_thread_task_runner.h"
-#include "components/device_event_log/device_event_log.h"
 #include "ui/base/x/x11_display_util.h"
 #include "ui/gfx/x/future.h"
 #include "ui/gfx/x/randr.h"
 #include "ui/gfx/x/x11_atom_cache.h"
 #include "ui/gfx/x/xproto.h"
-#include "ui/linux/linux_ui.h"
 
 namespace ui {
 
@@ -80,21 +78,13 @@ void XDisplayManager::SetDisplayList(std::vector<display::Display> displays) {
 // 1.3.
 void XDisplayManager::FetchDisplayList() {
   std::vector<display::Display> displays;
-  auto& display_config = delegate_->GetDisplayConfig();
+  float scale = delegate_->GetXDisplayScaleFactor();
   if (IsXrandrAvailable()) {
-    displays = BuildDisplaysFromXRandRInfo(xrandr_version_, display_config,
+    displays = BuildDisplaysFromXRandRInfo(xrandr_version_, scale,
                                            &primary_display_index_);
   } else {
-    displays = GetFallbackDisplayList(display_config.primary_scale);
+    displays = GetFallbackDisplayList(scale);
   }
-
-  if (displays != displays_) {
-    DISPLAY_LOG(EVENT) << "Displays updated, count: " << displays.size();
-    for (const auto& display : displays) {
-      DISPLAY_LOG(EVENT) << display.ToString();
-    }
-  }
-
   SetDisplayList(std::move(displays));
 }
 

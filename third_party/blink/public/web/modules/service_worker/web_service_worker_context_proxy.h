@@ -74,8 +74,6 @@ class WebServiceWorkerContextProxy {
   virtual void PauseEvaluation() = 0;
   virtual void ResumeEvaluation() = 0;
   virtual mojom::ServiceWorkerFetchHandlerType FetchHandlerType() = 0;
-  virtual bool HasHidEventHandlers() = 0;
-  virtual bool HasUsbEventHandlers() = 0;
 };
 
 }  // namespace blink

@@ -12,6 +12,7 @@ import android.view.autofill.AutofillId;
 import android.view.contentcapture.ContentCaptureSession;
 
 import androidx.annotation.RequiresApi;
+import androidx.annotation.VisibleForTesting;
 
 import org.chromium.base.Log;
 import org.chromium.base.task.AsyncTask;
@@ -104,6 +105,7 @@ abstract class NotificationTask extends AsyncTask<Boolean> {
         return platformSessionData;
     }
 
+    @VisibleForTesting
     public boolean hasPlatformExceptionForTesting() {
         return mHasPlatformExceptionForTesting;
     }

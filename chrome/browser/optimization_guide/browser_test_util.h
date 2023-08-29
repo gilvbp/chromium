@@ -32,8 +32,7 @@ BuildGetModelsResponse();
 class ModelFileObserver : public OptimizationTargetModelObserver {
  public:
   using ModelFileReceivedCallback =
-      base::OnceCallback<void(proto::OptimizationTarget,
-                              base::optional_ref<const ModelInfo>)>;
+      base::OnceCallback<void(proto::OptimizationTarget, const ModelInfo&)>;
 
   ModelFileObserver();
   ~ModelFileObserver() override;
@@ -50,7 +49,7 @@ class ModelFileObserver : public OptimizationTargetModelObserver {
 
   // OptimizationTargetModelObserver implementation:
   void OnModelUpdated(proto::OptimizationTarget optimization_target,
-                      base::optional_ref<const ModelInfo> model_info) override;
+                      const ModelInfo& model_info) override;
 
  private:
   ModelFileReceivedCallback file_received_callback_;

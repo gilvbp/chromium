@@ -17,6 +17,10 @@
 #include "ui/accessibility/ax_tree_id.h"
 #include "ui/gfx/geometry/rect_f.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace autofill {
 
 // static
@@ -79,12 +83,17 @@ bool AutofillDriverIOS::CanShowAutofillUi() const {
   return true;
 }
 
+ui::AXTreeID AutofillDriverIOS::GetAxTreeId() const {
+  NOTIMPLEMENTED() << "See https://crbug.com/985933";
+  return ui::AXTreeIDUnknown();
+}
+
 bool AutofillDriverIOS::RendererIsAvailable() {
   return true;
 }
 
 std::vector<FieldGlobalId> AutofillDriverIOS::FillOrPreviewForm(
-    mojom::AutofillActionPersistence action_persistence,
+    mojom::RendererFormDataAction action,
     const FormData& data,
     const url::Origin& triggered_origin,
     const base::flat_map<FieldGlobalId, ServerFieldType>& field_type_map) {
@@ -97,12 +106,6 @@ std::vector<FieldGlobalId> AutofillDriverIOS::FillOrPreviewForm(
     safe_fields.push_back(field.global_id());
   return safe_fields;
 }
-
-void AutofillDriverIOS::UndoAutofill(
-    mojom::AutofillActionPersistence action_persistence,
-    const FormData& data,
-    const url::Origin& triggered_origin,
-    const base::flat_map<FieldGlobalId, ServerFieldType>& field_type_map) {}
 
 void AutofillDriverIOS::HandleParsedForms(const std::vector<FormData>& forms) {
   const std::map<FormGlobalId, std::unique_ptr<FormStructure>>& map =
@@ -138,6 +141,10 @@ void AutofillDriverIOS::RendererShouldAcceptDataListSuggestion(
 
 void AutofillDriverIOS::SendFieldsEligibleForManualFillingToRenderer(
     const std::vector<FieldGlobalId>& fields) {}
+
+void AutofillDriverIOS::SetShouldSuppressKeyboard(bool suppress) {
+  NOTIMPLEMENTED();
+}
 
 void AutofillDriverIOS::TriggerFormExtraction() {
   NOTIMPLEMENTED();  // TODO(crbug.com/1441921) implement.

@@ -21,28 +21,26 @@ namespace {
 static const char kAnnexBHeaderBytes[4] = {0, 0, 0, 1};
 }  // anonymous namespace
 
-base::apple::ScopedCFTypeRef<CFDictionaryRef>
+base::ScopedCFTypeRef<CFDictionaryRef>
 DictionaryWithKeysAndValues(CFTypeRef* keys, CFTypeRef* values, size_t size) {
-  return base::apple::ScopedCFTypeRef<CFDictionaryRef>(CFDictionaryCreate(
+  return base::ScopedCFTypeRef<CFDictionaryRef>(CFDictionaryCreate(
       kCFAllocatorDefault, keys, values, size, &kCFTypeDictionaryKeyCallBacks,
       &kCFTypeDictionaryValueCallBacks));
 }
 
-base::apple::ScopedCFTypeRef<CFDictionaryRef> DictionaryWithKeyValue(
-    CFTypeRef key,
-    CFTypeRef value) {
+base::ScopedCFTypeRef<CFDictionaryRef> DictionaryWithKeyValue(CFTypeRef key,
+                                                              CFTypeRef value) {
   CFTypeRef keys[1] = {key};
   CFTypeRef values[1] = {value};
   return DictionaryWithKeysAndValues(keys, values, 1);
 }
 
-base::apple::ScopedCFTypeRef<CFArrayRef> ArrayWithIntegers(const int* v,
-                                                           size_t size) {
+base::ScopedCFTypeRef<CFArrayRef> ArrayWithIntegers(const int* v, size_t size) {
   std::vector<CFNumberRef> numbers;
   numbers.reserve(size);
   for (const int* end = v + size; v < end; ++v)
     numbers.push_back(CFNumberCreate(nullptr, kCFNumberSInt32Type, v));
-  base::apple::ScopedCFTypeRef<CFArrayRef> array(CFArrayCreate(
+  base::ScopedCFTypeRef<CFArrayRef> array(CFArrayCreate(
       kCFAllocatorDefault, reinterpret_cast<const void**>(&numbers[0]),
       numbers.size(), &kCFTypeArrayCallBacks));
   for (auto* number : numbers) {
@@ -51,13 +49,12 @@ base::apple::ScopedCFTypeRef<CFArrayRef> ArrayWithIntegers(const int* v,
   return array;
 }
 
-base::apple::ScopedCFTypeRef<CFArrayRef> ArrayWithIntegerAndFloat(
-    int int_val,
-    float float_val) {
+base::ScopedCFTypeRef<CFArrayRef> ArrayWithIntegerAndFloat(int int_val,
+                                                           float float_val) {
   std::array<CFNumberRef, 2> numbers = {
       {CFNumberCreate(nullptr, kCFNumberSInt32Type, &int_val),
        CFNumberCreate(nullptr, kCFNumberFloat32Type, &float_val)}};
-  base::apple::ScopedCFTypeRef<CFArrayRef> array(CFArrayCreate(
+  base::ScopedCFTypeRef<CFArrayRef> array(CFArrayCreate(
       kCFAllocatorDefault, reinterpret_cast<const void**>(numbers.data()),
       numbers.size(), &kCFTypeArrayCallBacks));
   for (auto* number : numbers)
@@ -241,7 +238,7 @@ bool CopySampleBufferToAnnexBBuffer(VideoCodec codec,
 
   // Block buffers can be composed of non-contiguous chunks. For the sake of
   // keeping this code simple, flatten non-contiguous block buffers.
-  base::apple::ScopedCFTypeRef<CMBlockBufferRef> contiguous_bb(
+  base::ScopedCFTypeRef<CMBlockBufferRef> contiguous_bb(
       bb, base::scoped_policy::RETAIN);
   if (!CMBlockBufferIsRangeContiguous(bb, 0, 0)) {
     contiguous_bb.reset();
@@ -298,7 +295,7 @@ bool CopySampleBufferToAnnexBBuffer(VideoCodec codec,
 }
 
 SessionPropertySetter::SessionPropertySetter(
-    base::apple::ScopedCFTypeRef<VTCompressionSessionRef> session)
+    base::ScopedCFTypeRef<VTCompressionSessionRef> session)
     : session_(session) {}
 
 SessionPropertySetter::~SessionPropertySetter() {}
@@ -315,7 +312,7 @@ bool SessionPropertySetter::IsSupported(CFStringRef key) {
 
 bool SessionPropertySetter::Set(CFStringRef key, int32_t value) {
   DCHECK(session_);
-  base::apple::ScopedCFTypeRef<CFNumberRef> cfvalue(
+  base::ScopedCFTypeRef<CFNumberRef> cfvalue(
       CFNumberCreate(nullptr, kCFNumberSInt32Type, &value));
   return VTSessionSetProperty(session_, key, cfvalue) == noErr;
 }
@@ -328,7 +325,7 @@ bool SessionPropertySetter::Set(CFStringRef key, bool value) {
 
 bool SessionPropertySetter::Set(CFStringRef key, double value) {
   DCHECK(session_);
-  base::apple::ScopedCFTypeRef<CFNumberRef> cfvalue(
+  base::ScopedCFTypeRef<CFNumberRef> cfvalue(
       CFNumberCreate(nullptr, kCFNumberDoubleType, &value));
   return VTSessionSetProperty(session_, key, cfvalue) == noErr;
 }

@@ -288,8 +288,9 @@ INSTANTIATE_TEST_SUITE_P(All,
                          testing::ValuesIn(SectionTestCases()));
 
 TEST_F(AutofillTypeTraitsTestImpl, PassFormFieldData) {
-  FormFieldData input = test::CreateTestSelectField(
-      "TestLabel", "TestName", "TestValue", kOptions, kOptions);
+  FormFieldData input;
+  test::CreateTestSelectField("TestLabel", "TestName", "TestValue", kOptions,
+                              kOptions, &input);
   // Set other attributes to check if they are passed correctly.
   input.host_frame = test::MakeLocalFrameToken();
   input.unique_renderer_id = FieldRendererId(1234);
@@ -327,8 +328,9 @@ TEST_F(AutofillTypeTraitsTestImpl, PassFormFieldData) {
 
 TEST_F(AutofillTypeTraitsTestImpl, PassDataListFormFieldData) {
   // Basically copied from PassFormFieldData and replaced Select with Datalist.
-  FormFieldData input = test::CreateTestDatalistField(
-      "DatalistLabel", "DatalistName", "DatalistValue", kOptions, kOptions);
+  FormFieldData input;
+  test::CreateTestDatalistField("DatalistLabel", "DatalistName",
+                                "DatalistValue", kOptions, kOptions, &input);
   // Set other attributes to check if they are passed correctly.
   input.host_frame = test::MakeLocalFrameToken();
   input.unique_renderer_id = FieldRendererId(1234);

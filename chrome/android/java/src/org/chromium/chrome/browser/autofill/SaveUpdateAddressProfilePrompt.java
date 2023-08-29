@@ -20,7 +20,6 @@ import androidx.annotation.VisibleForTesting;
 
 import com.google.android.material.textfield.TextInputLayout;
 
-import org.chromium.base.ResettersForTesting;
 import org.chromium.base.annotations.CalledByNative;
 import org.chromium.base.annotations.JNINamespace;
 import org.chromium.chrome.R;
@@ -30,7 +29,6 @@ import org.chromium.chrome.browser.autofill.editors.AddressEditorCoordinator.Use
 import org.chromium.chrome.browser.feedback.HelpAndFeedbackLauncherImpl;
 import org.chromium.chrome.browser.flags.ChromeFeatureList;
 import org.chromium.chrome.browser.profiles.Profile;
-import org.chromium.components.autofill.AutofillProfile;
 import org.chromium.ui.KeyboardVisibilityDelegate;
 import org.chromium.ui.base.WindowAndroid;
 import org.chromium.ui.modaldialog.DialogDismissalCause;
@@ -57,7 +55,8 @@ public class SaveUpdateAddressProfilePrompt {
      */
     public SaveUpdateAddressProfilePrompt(SaveUpdateAddressProfilePromptController controller,
             ModalDialogManager modalDialogManager, Activity activity, Profile browserProfile,
-            AutofillProfile autofillProfile, boolean isUpdate, boolean isMigrationToAccount) {
+            PersonalDataManager.AutofillProfile autofillProfile, boolean isUpdate,
+            boolean isMigrationToAccount) {
         mController = controller;
         mModalDialogManager = modalDialogManager;
 
@@ -126,7 +125,8 @@ public class SaveUpdateAddressProfilePrompt {
     @CalledByNative
     private static @Nullable SaveUpdateAddressProfilePrompt create(WindowAndroid windowAndroid,
             SaveUpdateAddressProfilePromptController controller, Profile browserProfile,
-            AutofillProfile autofillProfile, boolean isUpdate, boolean isMigrationToAccount) {
+            PersonalDataManager.AutofillProfile autofillProfile, boolean isUpdate,
+            boolean isMigrationToAccount) {
         Activity activity = windowAndroid.getActivity().get();
         ModalDialogManager modalDialogManager = windowAndroid.getModalDialogManager();
         if (activity == null || modalDialogManager == null) return null;
@@ -270,9 +270,7 @@ public class SaveUpdateAddressProfilePrompt {
     }
 
     void setAddressEditorForTesting(AddressEditorCoordinator addressEditor) {
-        var oldValue = mAddressEditor;
         mAddressEditor = addressEditor;
-        ResettersForTesting.register(() -> mAddressEditor = oldValue);
     }
 
     View getDialogViewForTesting() {

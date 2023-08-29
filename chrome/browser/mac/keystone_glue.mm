@@ -13,13 +13,13 @@
 
 #include "base/apple/bridging.h"
 #include "base/apple/bundle_locations.h"
-#include "base/apple/foundation_util.h"
-#include "base/apple/osstatus_logging.h"
 #include "base/file_version_info.h"
 #include "base/functional/bind.h"
 #include "base/location.h"
 #include "base/logging.h"
 #include "base/mac/authorization_util.h"
+#include "base/mac/foundation_util.h"
+#include "base/mac/mac_logging.h"
 #include "base/memory/ref_counted.h"
 #include "base/no_destructor.h"
 #include "base/strings/string_number_conversions.h"
@@ -36,6 +36,10 @@
 #include "components/version_info/version_info.h"
 #include "ui/base/l10n/l10n_util.h"
 #include "ui/base/l10n/l10n_util_mac.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace ksr = keystone_registration;
 
@@ -302,16 +306,15 @@ NSString* const kVersionKey = @"KSVersion";
   NSDictionary* infoDictionary = self.infoDictionary;
 
   NSString* productID =
-      base::apple::ObjCCast<NSString>(infoDictionary[@"KSProductID"]);
+      base::mac::ObjCCast<NSString>(infoDictionary[@"KSProductID"]);
   if (productID == nil) {
     productID = appBundle.bundleIdentifier;
   }
 
   NSString* appPath = appBundle.bundlePath;
-  NSString* url =
-      base::apple::ObjCCast<NSString>(infoDictionary[@"KSUpdateURL"]);
+  NSString* url = base::mac::ObjCCast<NSString>(infoDictionary[@"KSUpdateURL"]);
   NSString* version =
-      base::apple::ObjCCast<NSString>(infoDictionary[kVersionKey]);
+      base::mac::ObjCCast<NSString>(infoDictionary[kVersionKey]);
 
   if (!productID || !appPath || !url || !version) {
     // If parameters required for Keystone are missing, don't use it.
@@ -387,14 +390,14 @@ NSString* const kVersionKey = @"KSVersion";
 
       NSDictionary* infoDictionary = [self infoDictionary];
       NSString* appBundleBrandID =
-          base::apple::ObjCCast<NSString>(infoDictionary[kBrandKey]);
+          base::mac::ObjCCast<NSString>(infoDictionary[kBrandKey]);
 
       NSString* storedBrandID = nil;
       if ([fm fileExistsAtPath:userBrandFile]) {
         NSDictionary* storedBrandDict =
             [NSDictionary dictionaryWithContentsOfFile:userBrandFile];
         storedBrandID =
-            base::apple::ObjCCast<NSString>(storedBrandDict[kBrandKey]);
+            base::mac::ObjCCast<NSString>(storedBrandDict[kBrandKey]);
       }
 
       if ((appBundleBrandID != nil) &&
@@ -544,8 +547,8 @@ NSString* const kVersionKey = @"KSVersion";
 - (void)registrationComplete:(NSNotification*)notification {
   NSDictionary* userInfo = notification.userInfo;
   NSNumber* status =
-      base::apple::ObjCCast<NSNumber>(userInfo[ksr::KSRegistrationStatusKey]);
-  NSString* errorMessages = base::apple::ObjCCast<NSString>(
+      base::mac::ObjCCast<NSNumber>(userInfo[ksr::KSRegistrationStatusKey]);
+  NSString* errorMessages = base::mac::ObjCCast<NSString>(
       userInfo[ksr::KSRegistrationUpdateCheckRawErrorMessagesKey]);
 
   if (status.boolValue) {
@@ -597,11 +600,11 @@ NSString* const kVersionKey = @"KSVersion";
 
 - (void)checkForUpdateComplete:(NSNotification*)notification {
   NSDictionary* userInfo = notification.userInfo;
-  NSNumber* error = base::apple::ObjCCast<NSNumber>(
+  NSNumber* error = base::mac::ObjCCast<NSNumber>(
       userInfo[ksr::KSRegistrationUpdateCheckErrorKey]);
   NSNumber* status =
-      base::apple::ObjCCast<NSNumber>(userInfo[ksr::KSRegistrationStatusKey]);
-  NSString* errorMessages = base::apple::ObjCCast<NSString>(
+      base::mac::ObjCCast<NSNumber>(userInfo[ksr::KSRegistrationStatusKey]);
+  NSString* errorMessages = base::mac::ObjCCast<NSString>(
       userInfo[ksr::KSRegistrationUpdateCheckRawErrorMessagesKey]);
 
   if (error.boolValue) {
@@ -611,8 +614,8 @@ NSString* const kVersionKey = @"KSVersion";
   } else if (status.boolValue) {
     // If an update is known to be available, go straight to
     // -updateStatus:version:.  It doesn't matter what's currently on disk.
-    NSString* version = base::apple::ObjCCast<NSString>(
-        userInfo[ksr::KSRegistrationVersionKey]);
+    NSString* version =
+        base::mac::ObjCCast<NSString>(userInfo[ksr::KSRegistrationVersionKey]);
     [self updateStatus:kAutoupdateAvailable
                version:version
                  error:errorMessages];
@@ -642,9 +645,9 @@ NSString* const kVersionKey = @"KSVersion";
 
 - (void)installUpdateComplete:(NSNotification*)notification {
   NSDictionary* userInfo = notification.userInfo;
-  NSNumber* successfulInstall = base::apple::ObjCCast<NSNumber>(
+  NSNumber* successfulInstall = base::mac::ObjCCast<NSNumber>(
       userInfo[ksr::KSUpdateCheckSuccessfullyInstalledKey]);
-  NSString* errorMessages = base::apple::ObjCCast<NSString>(
+  NSString* errorMessages = base::mac::ObjCCast<NSString>(
       userInfo[ksr::KSRegistrationUpdateCheckRawErrorMessagesKey]);
 
   // http://crbug.com/160308 and b/7517358: when using system Keystone and on
@@ -668,7 +671,7 @@ NSString* const kVersionKey = @"KSVersion";
   NSString* appInfoPlistPath = [self appInfoPlistPath];
   NSDictionary* infoPlist =
       [NSDictionary dictionaryWithContentsOfFile:appInfoPlistPath];
-  return base::apple::ObjCCast<NSString>(
+  return base::mac::ObjCCast<NSString>(
       infoPlist[@"CFBundleShortVersionString"]);
 }
 
@@ -753,8 +756,8 @@ NSString* const kVersionKey = @"KSVersion";
 
 - (AutoupdateStatus)recentStatus {
   NSDictionary* dictionary = _recentNotification.userInfo;
-  NSNumber* status = base::apple::ObjCCastStrict<NSNumber>(
-      dictionary[kAutoupdateStatusStatus]);
+  NSNumber* status =
+      base::mac::ObjCCastStrict<NSNumber>(dictionary[kAutoupdateStatusStatus]);
   return static_cast<AutoupdateStatus>(status.intValue);
 }
 
@@ -819,7 +822,7 @@ NSString* const kVersionKey = @"KSVersion";
 
   // If the bundled version is missing or broken, this question is irrelevant.
   NSString* bundledKeystoneVersionString =
-      base::apple::ObjCCast<NSString>(bundledKeystonePlistContents[versionKey]);
+      base::mac::ObjCCast<NSString>(bundledKeystonePlistContents[versionKey]);
   if (!bundledKeystoneVersionString.length)
     return YES;
   base::Version bundled_version(
@@ -828,7 +831,7 @@ NSString* const kVersionKey = @"KSVersion";
     return YES;
 
   NSString* systemKeystoneVersionString =
-      base::apple::ObjCCast<NSString>(systemKeystonePlistContents[versionKey]);
+      base::mac::ObjCCast<NSString>(systemKeystonePlistContents[versionKey]);
   if (!systemKeystoneVersionString.length)
     return NO;
 
@@ -1041,7 +1044,7 @@ NSString* const kVersionKey = @"KSVersion";
 - (void)promotionComplete:(NSNotification*)notification {
   NSDictionary* userInfo = notification.userInfo;
   NSNumber* status =
-      base::apple::ObjCCast<NSNumber>(userInfo[ksr::KSRegistrationStatusKey]);
+      base::mac::ObjCCast<NSNumber>(userInfo[ksr::KSRegistrationStatusKey]);
 
   if (status.boolValue) {
     if (_synchronousPromotion) {
@@ -1174,7 +1177,7 @@ std::string BrandCodeInternal() {
 
   NSDictionary* dict =
       [NSDictionary dictionaryWithContentsOfFile:brand_path];
-  NSString* brand_code = base::apple::ObjCCast<NSString>(dict[kBrandKey]);
+  NSString* brand_code = base::mac::ObjCCast<NSString>(dict[kBrandKey]);
   if (brand_code)
     return base::SysNSStringToUTF8(brand_code);
 

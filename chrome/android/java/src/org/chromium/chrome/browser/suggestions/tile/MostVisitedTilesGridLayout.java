@@ -19,7 +19,6 @@ import androidx.annotation.VisibleForTesting;
 import org.chromium.base.MathUtils;
 import org.chromium.base.library_loader.LibraryLoader;
 import org.chromium.chrome.R;
-import org.chromium.chrome.browser.flags.ChromeFeatureList;
 import org.chromium.chrome.browser.ntp.FeedPositionUtils;
 import org.chromium.chrome.browser.suggestions.SiteSuggestion;
 
@@ -35,11 +34,10 @@ public class MostVisitedTilesGridLayout extends FrameLayout implements MostVisit
     private int mMaxRows;
     private int mMaxColumns;
     private boolean mSearchProviderHasLogo = true;
-    private boolean mIsNtpAsHomeSurfaceEnabled;
+    private boolean mIsMultiColumnFeedOnTabletEnabled;
     private final int mMvtContainer2SidesMarginTablet;
     private final int mTileViewLandscapeEdgePaddingTablet;
     private final int mTileViewPortraitEdgePaddingTablet;
-    private boolean mIsSurfacePolishEnabled;
 
     /**
      * Constructor for inflating from XML.
@@ -51,7 +49,6 @@ public class MostVisitedTilesGridLayout extends FrameLayout implements MostVisit
         super(context, attrs);
 
         Resources res = getResources();
-        mIsSurfacePolishEnabled = ChromeFeatureList.sSurfacePolish.isEnabled();
         mVerticalSpacing =
                 getResources().getDimensionPixelOffset(getGridMVTVerticalSpacingResourcesId());
         TypedArray styledAttrs =
@@ -89,7 +86,7 @@ public class MostVisitedTilesGridLayout extends FrameLayout implements MostVisit
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         int totalWidth = Math.min(MeasureSpec.getSize(widthMeasureSpec), mMaxWidth);
-        if (mIsNtpAsHomeSurfaceEnabled) {
+        if (mIsMultiColumnFeedOnTabletEnabled) {
             totalWidth = totalWidth - mMvtContainer2SidesMarginTablet;
         }
         int childCount = getChildCount();
@@ -161,7 +158,7 @@ public class MostVisitedTilesGridLayout extends FrameLayout implements MostVisit
     Pair<Integer, Integer> computeHorizontalDimensions(int availableWidth, int numColumns) {
         int gridStart;
         float horizontalSpacing;
-        if (mIsNtpAsHomeSurfaceEnabled) {
+        if (mIsMultiColumnFeedOnTabletEnabled) {
             gridStart = getResources().getConfiguration().orientation
                             == Configuration.ORIENTATION_LANDSCAPE
                     ? mTileViewLandscapeEdgePaddingTablet
@@ -213,14 +210,16 @@ public class MostVisitedTilesGridLayout extends FrameLayout implements MostVisit
     }
 
     @Override
-    public void setIsNtpAsHomeSurfaceEnabled(boolean isNtpAsHomeSurfaceEnabled) {
-        mIsNtpAsHomeSurfaceEnabled = isNtpAsHomeSurfaceEnabled;
+    public void setIsMultiColumnFeedOnTabletEnabled(boolean isMultiColumnFeedOnTabletEnabled) {
+        mIsMultiColumnFeedOnTabletEnabled = isMultiColumnFeedOnTabletEnabled;
     }
 
+    @VisibleForTesting
     public int getMinHorizontalSpacingForTesting() {
         return mMinHorizontalSpacing;
     }
 
+    @VisibleForTesting
     public int getMaxHorizontalSpacingForTesting() {
         return mMaxHorizontalSpacing;
     }
@@ -228,8 +227,7 @@ public class MostVisitedTilesGridLayout extends FrameLayout implements MostVisit
     // TODO(crbug.com/1329288): Remove this method when the Feed position experiment is cleaned up.
     private int getGridMVTVerticalSpacingResourcesId() {
         if (!LibraryLoader.getInstance().isInitialized() || !mSearchProviderHasLogo) {
-            return mIsSurfacePolishEnabled ? R.dimen.tile_grid_layout_vertical_spacing_polish
-                                           : R.dimen.tile_grid_layout_vertical_spacing;
+            return R.dimen.tile_grid_layout_vertical_spacing;
         }
 
         if (FeedPositionUtils.isFeedPushDownLargeEnabled()) {
@@ -240,7 +238,6 @@ public class MostVisitedTilesGridLayout extends FrameLayout implements MostVisit
             return R.dimen.tile_grid_layout_vertical_spacing_push_down_small;
         }
 
-        return mIsSurfacePolishEnabled ? R.dimen.tile_grid_layout_vertical_spacing_polish
-                                       : R.dimen.tile_grid_layout_vertical_spacing;
+        return R.dimen.tile_grid_layout_vertical_spacing;
     }
 }

@@ -5,15 +5,10 @@
 #ifndef CHROME_BROWSER_ASH_ARC_INPUT_OVERLAY_UI_MESSAGE_VIEW_H_
 #define CHROME_BROWSER_ASH_ARC_INPUT_OVERLAY_UI_MESSAGE_VIEW_H_
 
-#include <memory>
-
+#include "ash/public/cpp/view_shadow.h"
 #include "base/memory/raw_ptr.h"
-#include "chrome/browser/ash/arc/input_overlay/constants.h"
-#include "ui/views/controls/button/label_button.h"
-
-namespace ash {
-class ViewShadow;
-}  // namespace ash
+#include "chrome/browser/ash/arc/input_overlay/ui/action_view.h"
+#include "ui/views/controls/label.h"
 
 namespace arc::input_overlay {
 

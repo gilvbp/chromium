@@ -37,10 +37,9 @@ AuthTokenValidatorFactory::AuthTokenValidatorFactory()
 
 AuthTokenValidatorFactory::~AuthTokenValidatorFactory() = default;
 
-std::unique_ptr<KeyedService>
-AuthTokenValidatorFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* AuthTokenValidatorFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
-  return std::make_unique<AuthTokenValidatorImpl>(
+  return new AuthTokenValidatorImpl(
       quick_unlock::QuickUnlockFactory::GetForProfile(
           Profile::FromBrowserContext(context)));
 }

@@ -268,6 +268,7 @@ public class LongScreenshotsMediator implements LongScreenshotsEntry.EntryListen
         return mDialog;
     }
 
+    @VisibleForTesting
     boolean getDidScaleForTesting() {
         return mDidScaleForTesting;
     }

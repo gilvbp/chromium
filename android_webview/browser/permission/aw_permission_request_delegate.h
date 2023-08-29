@@ -12,7 +12,6 @@
 namespace android_webview {
 
 // The delegate interface to be implemented for a specific permission request.
-// Lifetime: Temporary
 class AwPermissionRequestDelegate {
  public:
   AwPermissionRequestDelegate();

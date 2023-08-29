@@ -23,8 +23,8 @@
 #include "base/unguessable_token.h"
 #include "build/build_config.h"
 #include "components/viz/common/gpu/vulkan_context_provider.h"
+#include "gpu/command_buffer/common/activity_flags.h"
 #include "gpu/command_buffer/common/constants.h"
-#include "gpu/command_buffer/common/shm_count.h"
 #include "gpu/command_buffer/service/gr_cache_controller.h"
 #include "gpu/command_buffer/service/gr_shader_cache.h"
 #include "gpu/command_buffer/service/memory_tracking.h"
@@ -45,9 +45,11 @@
 #include "ui/gl/gl_surface.h"
 #include "url/gurl.h"
 
-namespace base::trace_event {
+namespace base {
+namespace trace_event {
 class TracedValue;
-}  // namespace base::trace_event
+}  // namespace trace_event
+}  // namespace base
 
 namespace gl {
 class GLShareGroup;
@@ -56,16 +58,15 @@ class GLShareGroup;
 namespace gpu {
 
 class BuiltInShaderCacheWriter;
-class DawnContextProvider;
-class ImageDecodeAcceleratorWorker;
+class SharedImageManager;
 struct GpuPreferences;
 class GpuChannel;
 class GpuChannelManagerDelegate;
 class GpuMemoryBufferFactory;
 class GpuWatchdogThread;
+class ImageDecodeAcceleratorWorker;
 class MailboxManager;
 class Scheduler;
-class SharedImageManager;
 class SyncPointManager;
 struct VideoMemoryUsageStats;
 
@@ -101,14 +102,12 @@ class GPU_IPC_SERVICE_EXPORT GpuChannelManager
       SharedImageManager* shared_image_manager,
       GpuMemoryBufferFactory* gpu_memory_buffer_factory,
       const GpuFeatureInfo& gpu_feature_info,
-      GpuProcessShmCount use_shader_cache_shm_count,
+      GpuProcessActivityFlags activity_flags,
       scoped_refptr<gl::GLSurface> default_offscreen_surface,
       ImageDecodeAcceleratorWorker* image_decode_accelerator_worker,
       viz::VulkanContextProvider* vulkan_context_provider = nullptr,
       viz::MetalContextProvider* metal_context_provider = nullptr,
-      DawnContextProvider* dawn_context_provider = nullptr,
-      webgpu::DawnCachingInterfaceFactory* dawn_caching_interface_factory =
-          nullptr);
+      DawnContextProvider* dawn_context_provider = nullptr);
 
   GpuChannelManager(const GpuChannelManager&) = delete;
   GpuChannelManager& operator=(const GpuChannelManager&) = delete;
@@ -178,9 +177,7 @@ class GPU_IPC_SERVICE_EXPORT GpuChannelManager
     return &peak_memory_monitor_;
   }
 
-  GpuProcessShmCount* use_shader_cache_shm_count() {
-    return &use_shader_cache_shm_count_;
-  }
+  GpuProcessActivityFlags* activity_flags() { return &activity_flags_; }
 
 #if BUILDFLAG(IS_ANDROID)
   void DidAccessGpu();
@@ -229,9 +226,15 @@ class GPU_IPC_SERVICE_EXPORT GpuChannelManager
     return gr_shader_cache_ ? &*gr_shader_cache_ : nullptr;
   }
 
+#if BUILDFLAG(USE_DAWN)
   webgpu::DawnCachingInterfaceFactory* dawn_caching_interface_factory() {
     return dawn_caching_interface_factory_.get();
   }
+#else
+  webgpu::DawnCachingInterfaceFactory* dawn_caching_interface_factory() {
+    return nullptr;
+  }
+#endif
 
   // raster::GrShaderCache::Client implementation.
   void StoreShader(const std::string& key, const std::string& shader) override;
@@ -364,9 +367,9 @@ class GPU_IPC_SERVICE_EXPORT GpuChannelManager
   raw_ptr<ImageDecodeAcceleratorWorker> image_decode_accelerator_worker_ =
       nullptr;
 
-  // A count in shared memory that's non-zero for the duration of loading
-  // shaders. Read by the browser process on GPU process crash.
-  GpuProcessShmCount use_shader_cache_shm_count_;
+  // Flags which indicate GPU process activity. Read by the browser process
+  // on GPU process crash.
+  GpuProcessActivityFlags activity_flags_;
 
   base::MemoryPressureListener memory_pressure_listener_;
 
@@ -383,7 +386,10 @@ class GPU_IPC_SERVICE_EXPORT GpuChannelManager
   absl::optional<raster::GrShaderCache> gr_shader_cache_;
   scoped_refptr<SharedContextState> shared_context_state_;
 
-  raw_ptr<webgpu::DawnCachingInterfaceFactory> dawn_caching_interface_factory_;
+#if BUILDFLAG(USE_DAWN)
+  std::unique_ptr<webgpu::DawnCachingInterfaceFactory>
+      dawn_caching_interface_factory_;
+#endif
 
   // With --enable-vulkan, |vulkan_context_provider_| will be set from
   // viz::GpuServiceImpl. The raster decoders will use it for rasterization if

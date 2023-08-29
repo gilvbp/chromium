@@ -132,10 +132,9 @@ TEST(SVGSMILElementTest, RepeatNEventListenerUseCounted) {
   WebFeature feature = WebFeature::kSMILElementHasRepeatNEventListener;
   EXPECT_FALSE(document.IsUseCounted(feature));
   document.documentElement()->setInnerHTML("<svg><set/></svg>");
-  Element* set = document.QuerySelector(AtomicString("set"));
+  Element* set = document.QuerySelector("set");
   ASSERT_TRUE(set);
-  set->addEventListener(AtomicString("repeatn"),
-                        MakeGarbageCollected<EmptyEventListener>());
+  set->addEventListener("repeatn", MakeGarbageCollected<EmptyEventListener>());
   EXPECT_TRUE(document.IsUseCounted(feature));
 }
 

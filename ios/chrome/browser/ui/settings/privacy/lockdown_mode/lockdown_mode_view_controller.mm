@@ -4,7 +4,7 @@
 
 #import "ios/chrome/browser/ui/settings/privacy/lockdown_mode/lockdown_mode_view_controller.h"
 
-#import "base/apple/foundation_util.h"
+#import "base/mac/foundation_util.h"
 #import "base/metrics/user_metrics.h"
 #import "base/metrics/user_metrics_action.h"
 #import "ios/chrome/browser/net/crurl.h"
@@ -12,18 +12,23 @@
 #import "ios/chrome/browser/shared/ui/table_view/cells/table_view_info_button_item.h"
 #import "ios/chrome/browser/shared/ui/table_view/cells/table_view_switch_cell.h"
 #import "ios/chrome/browser/shared/ui/table_view/cells/table_view_switch_item.h"
+
 #import "ios/chrome/browser/ui/settings/elements/info_popover_view_controller.h"
 #import "ios/chrome/common/string_util.h"
 #import "ios/chrome/common/ui/colors/semantic_color_names.h"
 #import "ios/chrome/grit/ios_strings.h"
-#import "ui/base/device_form_factor.h"
 #import "ui/base/l10n/l10n_util_mac.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace {
 
 // List of sections.
 typedef NS_ENUM(NSInteger, SectionIdentifier) {
   SectionIdentifierLockdownMode = kSectionIdentifierEnumZero,
+  SectionIdentifierFooter,
 };
 
 typedef NS_ENUM(NSInteger, ItemType) {
@@ -65,10 +70,11 @@ NSString* const kLockdownModeCellId = @"kLockdownModeCellId";
   [super loadModel];
   TableViewModel* model = self.tableViewModel;
   [model addSectionWithIdentifier:SectionIdentifierLockdownMode];
+  [model addSectionWithIdentifier:SectionIdentifierFooter];
   [model addItem:self.lockdownModeItem
       toSectionWithIdentifier:SectionIdentifierLockdownMode];
   [model setFooter:[self showLockdownModeFooter]
-      forSectionWithIdentifier:SectionIdentifierLockdownMode];
+      forSectionWithIdentifier:SectionIdentifierFooter];
 }
 
 #pragma mark - LockdownModeConsumer
@@ -85,7 +91,7 @@ NSString* const kLockdownModeCellId = @"kLockdownModeCellId";
 - (void)setBrowserLockdownModeEnabled:(BOOL)enabled {
   if (!_osLockdownModeEnabled) {
     TableViewSwitchItem* lockdownModeSwitchItem =
-        base::apple::ObjCCastStrict<TableViewSwitchItem>(self.lockdownModeItem);
+        base::mac::ObjCCastStrict<TableViewSwitchItem>(self.lockdownModeItem);
     lockdownModeSwitchItem.on = enabled;
   }
   [self reloadCellsForItems];
@@ -134,13 +140,7 @@ NSString* const kLockdownModeCellId = @"kLockdownModeCellId";
   };
 
   NSString* message;
-  if (ui::GetDeviceFormFactor() == ui::DEVICE_FORM_FACTOR_TABLET) {
-    message = l10n_util::GetNSString(
-        IDS_IOS_LOCKDOWN_MODE_INFO_BUTTON_SUMMARY_FOR_IPAD);
-  } else {
-    message = l10n_util::GetNSString(
-        IDS_IOS_LOCKDOWN_MODE_INFO_BUTTON_SUMMARY_FOR_IPHONE);
-  }
+  message = l10n_util::GetNSString(IDS_IOS_LOCKDOWN_MODE_INFO_BUTTON_SUMMARY);
   NSAttributedString* attributedString =
       [[NSAttributedString alloc] initWithString:message
                                       attributes:textAttributes];
@@ -185,7 +185,7 @@ NSString* const kLockdownModeCellId = @"kLockdownModeCellId";
     switch ([self.tableViewModel itemTypeForIndexPath:indexPath]) {
       case ItemTypeLockdownModeSwitch: {
         TableViewSwitchCell* switchCell =
-            base::apple::ObjCCastStrict<TableViewSwitchCell>(cell);
+            base::mac::ObjCCastStrict<TableViewSwitchCell>(cell);
         [switchCell.switchView addTarget:self
                                   action:@selector(lockdownModeSwitchChanged:)
                         forControlEvents:UIControlEventValueChanged];
@@ -194,7 +194,7 @@ NSString* const kLockdownModeCellId = @"kLockdownModeCellId";
     }
   } else if ([cell isKindOfClass:[TableViewInfoButtonCell class]]) {
     TableViewInfoButtonCell* infoCell =
-        base::apple::ObjCCastStrict<TableViewInfoButtonCell>(cell);
+        base::mac::ObjCCastStrict<TableViewInfoButtonCell>(cell);
     [infoCell.trailingButton addTarget:self
                                 action:@selector(didTapUIInfoButton:)
                       forControlEvents:UIControlEventTouchUpInside];

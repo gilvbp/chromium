@@ -4,7 +4,6 @@
 
 #include "content/public/test/fake_file_system_access_permission_context.h"
 
-#include "base/containers/contains.h"
 #include "base/files/file_path.h"
 #include "content/browser/file_system_access/fixed_file_system_access_permission_grant.h"
 
@@ -78,8 +77,9 @@ FakeFileSystemAccessPermissionContext::PathInfo
 FakeFileSystemAccessPermissionContext::GetLastPickedDirectory(
     const url::Origin& origin,
     const std::string& id) {
-  return base::Contains(id_pathinfo_map_, id) ? id_pathinfo_map_[id]
-                                              : PathInfo();
+  return id_pathinfo_map_.find(id) != id_pathinfo_map_.end()
+             ? id_pathinfo_map_[id]
+             : PathInfo();
 }
 
 void FakeFileSystemAccessPermissionContext::SetWellKnownDirectoryPath(
@@ -91,7 +91,8 @@ void FakeFileSystemAccessPermissionContext::SetWellKnownDirectoryPath(
 base::FilePath FakeFileSystemAccessPermissionContext::GetWellKnownDirectoryPath(
     blink::mojom::WellKnownDirectory directory,
     const url::Origin& origin) {
-  return base::Contains(well_known_directory_map_, directory)
+  return well_known_directory_map_.find(directory) !=
+                 well_known_directory_map_.end()
              ? well_known_directory_map_[directory]
              : base::FilePath();
 }

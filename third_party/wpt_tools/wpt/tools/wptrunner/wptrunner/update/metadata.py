@@ -11,7 +11,7 @@ class GetUpdatePropertyList(Step):
     provides = ["update_properties"]
 
     def create(self, state):
-        state.update_properties = products.load_product_update(state.config, state.product.name)
+        state.update_properties = products.load_product_update(state.config, state.product)
 
 
 class UpdateExpected(Step):

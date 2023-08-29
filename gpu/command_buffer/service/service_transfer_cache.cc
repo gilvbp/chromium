@@ -20,8 +20,6 @@
 #include "third_party/skia/include/core/SkImage.h"
 #include "third_party/skia/include/gpu/GrBackendSurface.h"
 #include "third_party/skia/include/gpu/ganesh/SkImageGanesh.h"
-#include "third_party/skia/include/gpu/ganesh/gl/GrGLBackendSurface.h"
-#include "third_party/skia/include/gpu/gl/GrGLTypes.h"
 #include "ui/gl/trace_util.h"
 
 namespace gpu {
@@ -54,7 +52,7 @@ void DumpMemoryForImageTransferCacheEntry(
     return;
   }
   GrGLTextureInfo info;
-  if (GrBackendTextures::GetGLTextureInfo(image_backend_texture, &info)) {
+  if (image_backend_texture.getGLTextureInfo(&info)) {
     auto guid = gl::GetGLTextureRasterGUIDForTracing(info.fID);
     pmd->CreateSharedGlobalAllocatorDump(guid);
     // Importance of 3 gives this dump priority over the dump made by Skia
@@ -113,7 +111,7 @@ void DumpMemoryForYUVImageTransferCacheEntry(
       return;
     }
     GrGLTextureInfo info;
-    if (GrBackendTextures::GetGLTextureInfo(image_backend_texture, &info)) {
+    if (image_backend_texture.getGLTextureInfo(&info)) {
       auto guid = gl::GetGLTextureRasterGUIDForTracing(info.fID);
       pmd->CreateSharedGlobalAllocatorDump(guid);
       // Importance of 3 gives this dump priority over the dump made by Skia

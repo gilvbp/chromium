@@ -297,8 +297,10 @@ bool AnnotationAgentContainerImpl::ShouldPreemptivelyGenerate() {
   }
 
   // Only generate for iframe urls if they are supported
-  return shared_highlighting::SupportsLinkGenerationInIframe(
-      GURL(GetFrame().GetDocument()->Url()));
+  return base::FeatureList::IsEnabled(
+             shared_highlighting::kSharedHighlightingAmp) &&
+         shared_highlighting::SupportsLinkGenerationInIframe(
+             GURL(GetDocument().Url()));
 }
 
 void AnnotationAgentContainerImpl::ScheduleBeginMainFrame() {

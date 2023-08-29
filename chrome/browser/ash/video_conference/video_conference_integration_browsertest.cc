@@ -3,7 +3,6 @@
 // found in the LICENSE file.
 
 #include "ash/constants/ash_features.h"
-#include "ash/constants/ash_pref_names.h"
 #include "ash/constants/ash_switches.h"
 #include "ash/shell.h"
 #include "ash/strings/grit/ash_strings.h"
@@ -34,7 +33,6 @@
 #include "components/content_settings/core/browser/host_content_settings_map.h"
 #include "components/content_settings/core/common/content_settings.h"
 #include "components/content_settings/core/common/content_settings_types.h"
-#include "components/prefs/pref_service.h"
 #include "components/user_manager/user_names.h"
 #include "content/public/browser/navigation_entry.h"
 #include "content/public/browser/visibility.h"
@@ -123,9 +121,7 @@ class VideoConferenceIntegrationTest
     // kOnDeviceSpeechRecognition is to support live caption.
     scoped_feature_list_.InitWithFeatures(
         {ash::features::kVideoConference,
-         ash::features::kOnDeviceSpeechRecognition,
-         ash::features::kCameraEffectsSupportedByHardware,
-         ash::features::kShowLiveCaptionInVideoConferenceTray},
+         ash::features::kOnDeviceSpeechRecognition},
         {});
   }
 
@@ -219,16 +215,10 @@ class VideoConferenceIntegrationTest
   }
 
   void SetUpCommandLine(base::CommandLine* command_line) override {
-    // Flags use to automatically select the right desktop source and get
-    // around security restrictions.
-    // TODO(crbug.com/1459164): Use a less error-prone flag.
-#if BUILDFLAG(IS_CHROMEOS_ASH)
-    command_line->AppendSwitchASCII(::switches::kAutoSelectDesktopCaptureSource,
-                                    "Display");
-#else
-    command_line->AppendSwitchASCII(::switches::kAutoSelectDesktopCaptureSource,
-                                    "Entire screen");
-#endif  // BUILDFLAG(IS_CHROMEOS_ASH)
+    command_line->AppendSwitch(
+        ::ash::switches::kCameraEffectsSupportedByHardware);
+    // Used for bypassing tab capturing selection.
+    command_line->AppendSwitch(::switches::kThisTabCaptureAutoAccept);
 
     // If in guest mode.
     if (std::get<1>(GetParam())) {
@@ -303,20 +293,17 @@ class VideoConferenceIntegrationTest
   }
 
  protected:
-  raw_ptr<VideoConferenceTrayButton, DanglingUntriaged | ExperimentalAsh>
-      camera_bt_ = nullptr;
-  raw_ptr<VideoConferenceTrayButton, DanglingUntriaged | ExperimentalAsh>
-      mic_bt_ = nullptr;
-  raw_ptr<VideoConferenceTrayButton, DanglingUntriaged | ExperimentalAsh>
-      share_bt_ = nullptr;
+  raw_ptr<VideoConferenceTrayButton, ExperimentalAsh> camera_bt_ = nullptr;
+  raw_ptr<VideoConferenceTrayButton, ExperimentalAsh> mic_bt_ = nullptr;
+  raw_ptr<VideoConferenceTrayButton, ExperimentalAsh> share_bt_ = nullptr;
 
-  raw_ptr<Browser, DanglingUntriaged | ExperimentalAsh> browser_ = nullptr;
+  raw_ptr<Browser, ExperimentalAsh> browser_ = nullptr;
 
   base::test::ScopedFeatureList scoped_feature_list_;
 };
 
 INSTANTIATE_TEST_SUITE_P(
-    ,  // Empty to simplify gtest output
+    All,
     VideoConferenceIntegrationTest,
     ::testing::Values(std::make_tuple<bool, bool>(false, false),
                       std::make_tuple<bool, bool>(true, false),
@@ -654,11 +641,6 @@ IN_PROC_BROWSER_TEST_P(VideoConferenceIntegrationTest, UseWhileDisabled) {
   base::AddFeatureIdTagToTestResult(
       "screenplay-3042cdd9-978d-432c-8488-77684b09a9e4");
 
-  // Prevent "Speak-on-mute opt-in" nudge from showing so it doesn't cancel
-  // other shown nudges.
-  Shell::Get()->session_controller()->GetActivePrefService()->SetBoolean(
-      prefs::kShouldShowSpeakOnMuteOptInNudge, false);
-
   // Trigger the VcTray with microphone.
   content::WebContents* web_contents =
       TriggeringTray(/*use_camera=*/false,
@@ -684,7 +666,7 @@ IN_PROC_BROWSER_TEST_P(VideoConferenceIntegrationTest, UseWhileDisabled) {
   EXPECT_EQ(
       GetNudgeText(microphone_nudge_id),
       l10n_util::GetStringFUTF16(
-          IDS_ASH_VIDEO_CONFERENCE_TOAST_USE_WHILE_DISABLED, kTitle1,
+          IDS_ASH_VIDEO_CONFERENCE_TOAST_USE_WHILE_SOFTWARE_DISABLED, kTitle1,
           l10n_util::GetStringUTF16(IDS_ASH_VIDEO_CONFERENCE_MICROPHONE_NAME)));
   EXPECT_EQ(GetNudgeAnchorView(microphone_nudge_id), GetVcTray()->audio_icon());
 
@@ -706,7 +688,7 @@ IN_PROC_BROWSER_TEST_P(VideoConferenceIntegrationTest, UseWhileDisabled) {
   EXPECT_EQ(
       GetNudgeText(camera_nudge_id),
       l10n_util::GetStringFUTF16(
-          IDS_ASH_VIDEO_CONFERENCE_TOAST_USE_WHILE_DISABLED, kTitle1,
+          IDS_ASH_VIDEO_CONFERENCE_TOAST_USE_WHILE_SOFTWARE_DISABLED, kTitle1,
           l10n_util::GetStringUTF16(IDS_ASH_VIDEO_CONFERENCE_CAMERA_NAME)));
   EXPECT_EQ(GetNudgeAnchorView(camera_nudge_id), GetVcTray()->camera_icon());
 }
@@ -891,40 +873,6 @@ IN_PROC_BROWSER_TEST_P(VideoConferenceIntegrationTest,
 
   EXPECT_TRUE(found_live_caption_button);
   EXPECT_TRUE(found_noise_cancellation_buttion);
-}
-
-IN_PROC_BROWSER_TEST_P(VideoConferenceIntegrationTest, StopAllScreenShare) {
-  // Open a tab.
-  content::WebContents* web_contents_1 =
-      NavigateTo("/video_conference_demo.html");
-
-  // Start the screen sharing.
-  StartScreenSharing(web_contents_1);
-  WAIT_FOR_CONDITION(GetVcTray()->GetVisible());
-
-  // Get the ReturnToApp Panel.
-  ClickButton(GetVcTray()->toggle_bubble_button());
-  WAIT_FOR_CONDITION(GetVcTray()->GetBubbleView()->GetVisible());
-
-  // Check that web_contents_1 is sharing screen.
-  auto buttons = GetReturnToAppButtons();
-  EXPECT_EQ(buttons.size(), 1u);
-  EXPECT_FALSE(buttons[0]->is_capturing_camera());
-  EXPECT_FALSE(buttons[0]->is_capturing_microphone());
-  EXPECT_TRUE(buttons[0]->is_capturing_screen());
-
-  // Hide the ReturnToApp Panel.
-  ClickButton(GetVcTray()->toggle_bubble_button());
-
-  // Click on the screen share button.
-  EXPECT_TRUE(share_bt_->is_capturing());
-  ClickButton(share_bt_);
-  WAIT_FOR_CONDITION(!share_bt_->is_capturing());
-
-  // Check that web_contents_1 has stopped sharing screen.
-  ClickButton(GetVcTray()->toggle_bubble_button());
-  WAIT_FOR_CONDITION(GetVcTray()->GetBubbleView()->GetVisible());
-  EXPECT_FALSE(GetReturnToAppButtons()[0]->is_capturing_screen());
 }
 
 }  // namespace ash::video_conference

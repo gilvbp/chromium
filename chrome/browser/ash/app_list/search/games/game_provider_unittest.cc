@@ -37,7 +37,8 @@ apps::Result MakeAppsResult(const std::u16string& title,
   return apps::Result(
       apps::AppSource::kGames, "12345", title,
       std::make_unique<apps::GameExtras>(
-          source, base::FilePath("/icons/test.png"),
+          absl::make_optional(std::vector<std::u16string>({u"A", u"B", u"C"})),
+          source, u"TestGamePublisher", base::FilePath("/icons/test.png"),
           /*is_icon_masking_allowed=*/false, GURL("https://game.com/game")));
 }
 

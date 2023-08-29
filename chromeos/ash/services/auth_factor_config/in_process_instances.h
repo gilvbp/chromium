@@ -37,10 +37,6 @@ void BindToPinFactorEditor(
     QuickUnlockStorageDelegate&,
     PinBackendDelegate&);
 
-void BindToPasswordFactorEditor(
-    mojo::PendingReceiver<mojom::PasswordFactorEditor> receiver,
-    QuickUnlockStorageDelegate&);
-
 }  // namespace ash::auth
 
 #endif  // CHROMEOS_ASH_SERVICES_AUTH_FACTOR_CONFIG_IN_PROCESS_INSTANCES_H_

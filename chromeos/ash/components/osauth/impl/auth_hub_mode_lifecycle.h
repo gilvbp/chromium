@@ -93,16 +93,16 @@ class COMPONENT_EXPORT(CHROMEOS_ASH_COMPONENTS_OSAUTH) AuthHubModeLifecycle {
   // If there is a new `target_mode_`, would trigger `InitializeEnginesForMode`.
   void CheckShutdownStatus();
 
-  AuthHubMode mode_ = AuthHubMode::kNone;
-  AuthHubMode initializing_for_mode_ = AuthHubMode::kNone;
-  AuthHubMode target_mode_ = AuthHubMode::kNone;
+  AuthHubMode mode_ = kNone;
+  AuthHubMode initializing_for_mode_ = kNone;
+  AuthHubMode target_mode_ = kNone;
 
   Stage stage_ = Stage::kUninitialized;
 
   base::flat_map<AshAuthFactor, EngineState> engines_;
 
   base::OneShotTimer watchdog_;
-  raw_ptr<Owner> owner_;
+  base::raw_ptr<Owner> owner_;
   base::WeakPtrFactory<AuthHubModeLifecycle> weak_factory_{this};
 };
 

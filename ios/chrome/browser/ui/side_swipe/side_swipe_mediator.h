@@ -55,9 +55,13 @@ extern NSString* const kSideSwipeDidStopNotification;
 @property(nonatomic, weak) id<SideSwipeMediatorDelegate> swipeDelegate;
 @property(nonatomic, weak) id<SideSwipeToolbarInteracting>
     toolbarInteractionHandler;
-// Snapshot provider for top and bottom toolbars.
+// Handler for the interaction with the primary toolbar, including providing
+// snapshot.
 @property(nonatomic, weak) id<SideSwipeToolbarSnapshotProviding>
-    toolbarSnapshotProvider;
+    primaryToolbarSnapshotProvider;
+// Provider for the bottom toolbar's snapshot.
+@property(nonatomic, weak) id<SideSwipeToolbarSnapshotProviding>
+    secondaryToolbarSnapshotProvider;
 
 @property(nonatomic, weak) id<SnapshotGeneratorDelegate> snapshotDelegate;
 @property(nonatomic, weak) id<TabStripHighlighting> tabStripDelegate;
@@ -69,9 +73,6 @@ extern NSString* const kSideSwipeDidStopNotification;
     initWithFullscreenController:(FullscreenController*)fullscreenController
             snapshotBrowserAgent:(SnapshotBrowserAgent*)snapshotBrowserAgent
                     webStateList:(WebStateList*)webStateList;
-
-// Disconnects the mediator.
-- (void)disconnect;
 
 // Set up swipe gesture recognizers.
 - (void)addHorizontalGesturesToView:(UIView*)view;

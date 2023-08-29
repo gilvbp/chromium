@@ -55,7 +55,6 @@ class COMPONENT_EXPORT(VR_CARDBOARD) CardboardDevice : public VRDeviceBase {
                              int32_t pointer_id,
                              const gfx::PointF& location);
   void OnDrawingSurfaceDestroyed();
-  void OnXrSessionButtonTouched();
 
   void OnSessionEnded();
   void OnCreateSessionResult(mojom::XRRuntimeSessionResultPtr result);

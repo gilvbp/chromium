@@ -6,7 +6,6 @@
 
 #include <memory>
 
-#include "ash/ash_element_identifiers.h"
 #include "ash/login/ui/animated_rounded_image_view.h"
 #include "ash/login/ui/hover_notifier.h"
 #include "ash/login/ui/image_parser.h"
@@ -379,6 +378,11 @@ views::View* LoginUserView::TestApi::dropdown() const {
   return view_->dropdown_;
 }
 
+LoginRemoveAccountDialog* LoginUserView::TestApi::remove_account_dialog()
+    const {
+  return view_->remove_account_dialog_;
+}
+
 views::View* LoginUserView::TestApi::enterprise_icon_container() const {
   return LoginUserView::UserImage::TestApi(view_->user_image_)
       .enterprise_icon_container();
@@ -404,20 +408,23 @@ int LoginUserView::WidthForLayoutStyle(LoginDisplayStyle style) {
   }
 }
 
-LoginUserView::LoginUserView(LoginDisplayStyle style,
-                             bool show_dropdown,
-                             const OnTap& on_tap,
-                             const OnDropdownPressed& on_dropdown_pressed)
+LoginUserView::LoginUserView(
+    LoginDisplayStyle style,
+    bool show_dropdown,
+    const OnTap& on_tap,
+    const OnRemoveWarningShown& on_remove_warning_shown,
+    const OnRemove& on_remove)
     : on_tap_(on_tap),
-      on_dropdown_pressed_(on_dropdown_pressed),
+      on_remove_warning_shown_(on_remove_warning_shown),
+      on_remove_(on_remove),
       display_style_(style) {
   // show_dropdown can only be true when the user view is rendering in large
   // mode.
   DCHECK(!show_dropdown || style == LoginDisplayStyle::kLarge);
-  // `on_dropdown_pressed` is only available iff `show_dropdown` is true.
-  DCHECK(show_dropdown == !!on_dropdown_pressed);
-
-  SetProperty(views::kElementIdentifierKey, kLoginUserViewElementId);
+  // |on_remove_warning_shown| and |on_remove| is only available iff
+  // |show_dropdown| is true.
+  DCHECK(show_dropdown == !!on_remove_warning_shown);
+  DCHECK(show_dropdown == !!on_remove);
 
   user_image_ = new UserImage(style);
   int label_width =
@@ -481,10 +488,20 @@ LoginUserView::LoginUserView(LoginDisplayStyle style,
   }
 }
 
-LoginUserView::~LoginUserView() {}
+LoginUserView::~LoginUserView() {
+  DeleteDialog();
+}
 
 void LoginUserView::UpdateForUser(const LoginUserInfo& user, bool animate) {
   current_user_ = user;
+
+  DeleteDialog();
+
+  remove_account_dialog_ = new LoginRemoveAccountDialog(
+      current_user_,
+      dropdown_ != nullptr ? dropdown_->AsWeakPtr() : nullptr /*anchor_view*/,
+      dropdown_ /*bubble_opener*/, on_remove_warning_shown_, on_remove_);
+  remove_account_dialog_->SetVisible(false);
 
   if (animate) {
     // Stop any existing animation.
@@ -550,14 +567,6 @@ void LoginUserView::OnPowerStateChanged(
   user_image_->SetAnimationEnabled(is_display_on && is_opaque_);
 }
 
-base::WeakPtr<views::View> LoginUserView::GetDropdownAnchorView() {
-  return dropdown_ ? dropdown_->AsWeakPtr() : nullptr;
-}
-
-LoginButton* LoginUserView::GetDropdownButton() {
-  return dropdown_;
-}
-
 const char* LoginUserView::GetClassName() const {
   return kUserViewClassName;
 }
@@ -602,7 +611,32 @@ void LoginUserView::OnHover(bool has_hover) {
 
 void LoginUserView::DropdownButtonPressed() {
   DCHECK(dropdown_);
-  on_dropdown_pressed_.Run();
+  DCHECK(remove_account_dialog_);
+
+  // If the remove account dialog is showing, just close it.
+  if (remove_account_dialog_->GetVisible()) {
+    remove_account_dialog_->Hide();
+    return;
+  }
+
+  bool opener_focused = remove_account_dialog_->GetBubbleOpener() &&
+                        remove_account_dialog_->GetBubbleOpener()->HasFocus();
+
+  if (!remove_account_dialog_->parent()) {
+    login_views_utils::GetBubbleContainer(this)->AddChildView(
+        remove_account_dialog_.get());
+  }
+
+  // Reset state in case the remove-user button was clicked once previously.
+  remove_account_dialog_->ResetState();
+  remove_account_dialog_->Show();
+
+  // If the remove account dialog was opened by pressing Enter on the focused
+  // dropdown, focus should automatically go to the remove-user button (for
+  // keyboard accessibility).
+  if (opener_focused) {
+    remove_account_dialog_->RequestFocus();
+  }
 }
 
 void LoginUserView::UpdateCurrentUserState() {
@@ -722,6 +756,16 @@ void LoginUserView::SetSmallishLayout() {
 
   AddChildView(user_image_.get());
   AddChildView(user_label_.get());
+}
+
+void LoginUserView::DeleteDialog() {
+  if (remove_account_dialog_) {
+    if (remove_account_dialog_->parent()) {
+      remove_account_dialog_->parent()->RemoveChildView(remove_account_dialog_);
+    }
+    delete remove_account_dialog_;
+    remove_account_dialog_ = nullptr;
+  }
 }
 
 }  // namespace ash

@@ -15,7 +15,6 @@
 #include "components/content_settings/core/browser/host_content_settings_map.h"
 #include "components/content_settings/core/common/content_settings.h"
 #include "components/content_settings/core/common/content_settings_types.h"
-#include "components/permissions/permission_util.h"
 #include "content/public/browser/web_contents.h"
 #include "content/public/test/web_contents_tester.h"
 #include "testing/gtest/include/gtest/gtest.h"
@@ -97,8 +96,7 @@ class PeriodicBackgroundSyncPermissionContextTest
     auto permission_result = permission_context_->GetPermissionStatus(
         render_frame_host, /* requesting_origin= */ url,
         /* embedding_origin= */ url);
-    return permissions::PermissionUtil::PermissionStatusToContentSetting(
-        permission_result.status);
+    return permission_result.content_setting;
   }
 
   void SetBackgroundSyncContentSetting(const GURL& url,

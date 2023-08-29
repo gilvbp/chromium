@@ -465,8 +465,8 @@ void LayoutTheme::AdjustSliderContainerStyle(
     ComputedStyleBuilder& builder) const {
   DCHECK(IsSliderContainer(element));
 
-  if (RuntimeEnabledFeatures::
-          NonStandardAppearanceValueSliderVerticalEnabled() &&
+  if (!RuntimeEnabledFeatures::
+          RemoveNonStandardAppearanceValueSliderVerticalEnabled() &&
       builder.EffectiveAppearance() == kSliderVerticalPart) {
     builder.SetTouchAction(TouchAction::kPanX);
     builder.SetWritingMode(WritingMode::kVerticalRl);
@@ -669,9 +669,11 @@ Color LayoutTheme::DefaultSystemColor(
     case CSSValueID::kInactivecaptiontext:
       return Color::FromRGBA32(0xFF808080);
     case CSSValueID::kHighlight:
-      return ActiveSelectionBackgroundColor(color_scheme);
+      return Color::FromRGBA32(0xFFB5D5FF);
     case CSSValueID::kHighlighttext:
-      return ActiveSelectionForegroundColor(color_scheme);
+      return color_scheme == mojom::blink::ColorScheme::kDark
+                 ? Color::FromRGBA32(0xFFFFFFFF)
+                 : Color::FromRGBA32(0xFF000000);
     case CSSValueID::kLinktext:
       return Color::FromRGBA32(0xFF0000EE);
     case CSSValueID::kMark:

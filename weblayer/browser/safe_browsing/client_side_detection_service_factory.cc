@@ -44,10 +44,9 @@ ClientSideDetectionServiceFactory::ClientSideDetectionServiceFactory()
 ClientSideDetectionServiceFactory::~ClientSideDetectionServiceFactory() =
     default;
 
-std::unique_ptr<KeyedService>
-ClientSideDetectionServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* ClientSideDetectionServiceFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
-  return std::make_unique<safe_browsing::ClientSideDetectionService>(
+  return new safe_browsing::ClientSideDetectionService(
       std::make_unique<WebLayerClientSideDetectionServiceDelegate>(
           static_cast<BrowserContextImpl*>(context)),
       /*opt_guide=*/nullptr,

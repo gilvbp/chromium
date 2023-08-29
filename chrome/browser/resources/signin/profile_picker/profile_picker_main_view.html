@@ -152,10 +152,8 @@
   <div id="wrapper">
     <div id="profilesContainer" class="custom-scrollbar"
         hidden$="[[!profilesListLoaded_]]">
-      <template id="profiles" is="dom-repeat" items="[[profilesList_]]"
-          index-as="idx">
+      <template is="dom-repeat" items="[[profilesList_]]">
         <profile-card
-            id="profile-[[idx]]"
             class="profile-item" profile-state="[[item]]">
         </profile-card>
       </template>

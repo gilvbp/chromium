@@ -12,6 +12,7 @@
 #include "base/functional/bind.h"
 #include "base/memory/ref_counted.h"
 #include "base/run_loop.h"
+#include "base/test/repeating_test_future.h"
 #include "base/test/scoped_feature_list.h"
 #include "base/test/test_future.h"
 #include "base/values.h"
@@ -63,7 +64,9 @@ class ExtensionInstallPromptUnitTest : public testing::Test {
 
   // testing::Test:
   void SetUp() override { profile_ = std::make_unique<TestingProfile>(); }
-  void TearDown() override { profile_.reset(); }
+  void TearDown() override {
+    profile_.reset();
+  }
 
   Profile* profile() { return profile_.get(); }
 
@@ -72,10 +75,10 @@ class ExtensionInstallPromptUnitTest : public testing::Test {
   std::unique_ptr<TestingProfile> profile_;
 };
 
-using ShowDialogTestFuture =
-    base::test::TestFuture<std::unique_ptr<ExtensionInstallPromptShowParams>,
-                           ExtensionInstallPrompt::DoneCallback,
-                           std::unique_ptr<ExtensionInstallPrompt::Prompt>>;
+using ShowDialogRepeatingTestFuture = base::test::RepeatingTestFuture<
+    std::unique_ptr<ExtensionInstallPromptShowParams>,
+    ExtensionInstallPrompt::DoneCallback,
+    std::unique_ptr<ExtensionInstallPrompt::Prompt>>;
 
 }  // namespace
 
@@ -96,13 +99,13 @@ TEST_F(ExtensionInstallPromptUnitTest, PromptShowsPermissionWarnings) {
 
   content::TestWebContentsFactory factory;
   ExtensionInstallPrompt prompt(factory.CreateWebContents(profile()));
-  ShowDialogTestFuture show_dialog_future;
+  ShowDialogRepeatingTestFuture show_dialog_future;
 
   prompt.ShowDialog(
       ExtensionInstallPrompt::DoneCallback(), extension.get(), nullptr,
       std::make_unique<ExtensionInstallPrompt::Prompt>(
           ExtensionInstallPrompt::PERMISSIONS_PROMPT),
-      std::move(permission_set), show_dialog_future.GetRepeatingCallback());
+      std::move(permission_set), show_dialog_future.GetCallback());
 
   auto [params, done_callback, install_prompt] = show_dialog_future.Take();
   ASSERT_TRUE(install_prompt.get());
@@ -126,7 +129,7 @@ TEST_F(ExtensionInstallPromptUnitTest,
 
   content::TestWebContentsFactory factory;
   ExtensionInstallPrompt prompt(factory.CreateWebContents(profile()));
-  ShowDialogTestFuture show_dialog_future;
+  ShowDialogRepeatingTestFuture show_dialog_future;
 
   std::unique_ptr<ExtensionInstallPrompt::Prompt> sub_prompt(
       new ExtensionInstallPrompt::Prompt(
@@ -134,7 +137,7 @@ TEST_F(ExtensionInstallPromptUnitTest,
   sub_prompt->set_delegated_username("Username");
   prompt.ShowDialog(ExtensionInstallPrompt::DoneCallback(), extension.get(),
                     nullptr, std::move(sub_prompt),
-                    show_dialog_future.GetRepeatingCallback());
+                    show_dialog_future.GetCallback());
 
   auto [params, done_callback, install_prompt] = show_dialog_future.Take();
   ASSERT_TRUE(install_prompt.get());
@@ -171,11 +174,11 @@ TEST_F(ExtensionInstallPromptTestWithService, ExtensionInstallPromptIconsTest) {
                                                         nullptr));
   {
     ExtensionInstallPrompt prompt(web_contents.get());
-    ShowDialogTestFuture show_dialog_future;
+    ShowDialogRepeatingTestFuture show_dialog_future;
 
     prompt.ShowDialog(ExtensionInstallPrompt::DoneCallback(), extension,
                       nullptr,  // Force an icon fetch.
-                      show_dialog_future.GetRepeatingCallback());
+                      show_dialog_future.GetCallback());
 
     auto [params, done_callback, install_prompt] = show_dialog_future.Take();
     EXPECT_TRUE(gfx::BitmapsAreEqual(install_prompt->icon().AsBitmap(),
@@ -184,12 +187,12 @@ TEST_F(ExtensionInstallPromptTestWithService, ExtensionInstallPromptIconsTest) {
 
   {
     ExtensionInstallPrompt prompt(web_contents.get());
-    ShowDialogTestFuture show_dialog_future;
+    ShowDialogRepeatingTestFuture show_dialog_future;
 
     gfx::ImageSkia app_icon = util::GetDefaultAppIcon();
     prompt.ShowDialog(ExtensionInstallPrompt::DoneCallback(), extension,
                       app_icon.bitmap(),  // Use a different icon.
-                      show_dialog_future.GetRepeatingCallback());
+                      show_dialog_future.GetCallback());
 
     auto [params, done_callback, install_prompt] = show_dialog_future.Take();
     EXPECT_TRUE(gfx::BitmapsAreEqual(install_prompt->icon().AsBitmap(),
@@ -215,10 +218,10 @@ TEST_F(ExtensionInstallPromptTestWithholdingAllowed,
       ExtensionBuilder("test").AddPermission("<all_urls>").Build();
   content::TestWebContentsFactory factory;
   ExtensionInstallPrompt prompt(factory.CreateWebContents(profile()));
-  ShowDialogTestFuture show_dialog_future;
+  ShowDialogRepeatingTestFuture show_dialog_future;
 
   prompt.ShowDialog(ExtensionInstallPrompt::DoneCallback(), extension.get(),
-                    nullptr, show_dialog_future.GetRepeatingCallback());
+                    nullptr, show_dialog_future.GetCallback());
 
   auto [params, done_callback, install_prompt] = show_dialog_future.Take();
   EXPECT_EQ(install_prompt->ShouldWithheldPermissionsOnDialogAccept(), true);
@@ -230,10 +233,10 @@ TEST_F(ExtensionInstallPromptTestWithholdingAllowed,
       ExtensionBuilder("no_host").AddPermission("tabs").Build();
   content::TestWebContentsFactory factory;
   ExtensionInstallPrompt prompt(factory.CreateWebContents(profile()));
-  ShowDialogTestFuture show_dialog_future;
+  ShowDialogRepeatingTestFuture show_dialog_future;
 
   prompt.ShowDialog(ExtensionInstallPrompt::DoneCallback(), extension.get(),
-                    nullptr, show_dialog_future.GetRepeatingCallback());
+                    nullptr, show_dialog_future.GetCallback());
 
   auto [params, done_callback, install_prompt] = show_dialog_future.Take();
   EXPECT_EQ(install_prompt->ShouldWithheldPermissionsOnDialogAccept(), false);
@@ -248,10 +251,10 @@ TEST_F(ExtensionInstallPromptTestWithholdingAllowed,
           .Build();
   content::TestWebContentsFactory factory;
   ExtensionInstallPrompt prompt(factory.CreateWebContents(profile()));
-  ShowDialogTestFuture show_dialog_future;
+  ShowDialogRepeatingTestFuture show_dialog_future;
 
   prompt.ShowDialog(ExtensionInstallPrompt::DoneCallback(), extension.get(),
-                    nullptr, show_dialog_future.GetRepeatingCallback());
+                    nullptr, show_dialog_future.GetCallback());
 
   auto [params, done_callback, install_prompt] = show_dialog_future.Take();
   EXPECT_EQ(install_prompt->ShouldWithheldPermissionsOnDialogAccept(), false);

@@ -93,14 +93,12 @@ class ChromeMetricsServicesManagerClient
   void UpdateRunningServices(bool may_record, bool may_upload) override;
 #endif  // BUILDFLAG(IS_WIN)
 
-  // EnabledStateProvider to communicate if the client has consented to metrics
-  // reporting, and if it's enabled.
-  // Dangling Pointer Prevention: enabled_state_provider_ must be listed before
-  // metrics_state_manager_ to avoid a dangling pointer.
-  std::unique_ptr<metrics::EnabledStateProvider> enabled_state_provider_;
-
   // MetricsStateManager which is passed as a parameter to service constructors.
   std::unique_ptr<metrics::MetricsStateManager> metrics_state_manager_;
+
+  // EnabledStateProvider to communicate if the client has consented to metrics
+  // reporting, and if it's enabled.
+  std::unique_ptr<metrics::EnabledStateProvider> enabled_state_provider_;
 
   // Ensures that all functions are called from the same thread.
   THREAD_CHECKER(thread_checker_);

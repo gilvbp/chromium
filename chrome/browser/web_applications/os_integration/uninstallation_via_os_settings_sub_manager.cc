@@ -12,7 +12,6 @@
 #include "chrome/browser/web_applications/os_integration/web_app_uninstallation_via_os_settings_registration.h"
 #include "chrome/browser/web_applications/proto/web_app_os_integration_state.pb.h"
 #include "chrome/browser/web_applications/web_app.h"
-#include "chrome/browser/web_applications/web_app_provider.h"
 #include "chrome/browser/web_applications/web_app_registrar.h"
 #include "chrome/browser/web_applications/web_app_utils.h"
 #include "chrome/browser/win/uninstallation_via_os_settings.h"
@@ -41,8 +40,8 @@ bool g_skip_execute_os_settings_sub_manager_for_testing = false;
 
 UninstallationViaOsSettingsSubManager::UninstallationViaOsSettingsSubManager(
     const base::FilePath& profile_path,
-    WebAppProvider& provider)
-    : profile_path_(profile_path), provider_(provider) {}
+    WebAppRegistrar& registrar)
+    : profile_path_(profile_path), registrar_(registrar) {}
 
 UninstallationViaOsSettingsSubManager::
     ~UninstallationViaOsSettingsSubManager() = default;
@@ -53,7 +52,7 @@ void UninstallationViaOsSettingsSubManager::Configure(
     base::OnceClosure configure_done) {
   DCHECK(!desired_state.has_uninstall_registration());
 
-  const WebApp* web_app = provider_->registrar_unsafe().GetAppById(app_id);
+  const WebApp* web_app = registrar_->GetAppById(app_id);
   if (!web_app) {
     std::move(configure_done).Run();
     return;
@@ -62,13 +61,12 @@ void UninstallationViaOsSettingsSubManager::Configure(
   proto::OsUninstallRegistration* os_uninstall_registration =
       desired_state.mutable_uninstall_registration();
 
-  bool should_register =
-      IsOsUninstallationSupported() &&
-      provider_->registrar_unsafe().IsLocallyInstalled(app_id) &&
-      web_app->CanUserUninstallWebApp();
+  bool should_register = IsOsUninstallationSupported() &&
+                         registrar_->IsLocallyInstalled(app_id) &&
+                         web_app->CanUserUninstallWebApp();
   os_uninstall_registration->set_registered_with_os(should_register);
   os_uninstall_registration->set_display_name(
-      provider_->registrar_unsafe().GetAppShortName(app_id));
+      registrar_->GetAppShortName(app_id));
 
   std::move(configure_done).Run();
 }

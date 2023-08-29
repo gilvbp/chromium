@@ -42,31 +42,34 @@
 
 namespace blink {
 
-// This class is deprecated.  Use PhysicalSize, gfx::Size, gfx::SizeF or
-// LogicalSize instead.
-class PLATFORM_EXPORT DeprecatedLayoutSize {
+class PLATFORM_EXPORT LayoutSize {
   DISALLOW_NEW();
 
  public:
-  constexpr DeprecatedLayoutSize() = default;
-  constexpr explicit DeprecatedLayoutSize(const gfx::Size& size)
+  constexpr LayoutSize() = default;
+  constexpr explicit LayoutSize(const gfx::Size& size)
       : width_(size.width()), height_(size.height()) {}
-  constexpr DeprecatedLayoutSize(LayoutUnit width, LayoutUnit height)
+  constexpr LayoutSize(LayoutUnit width, LayoutUnit height)
       : width_(width), height_(height) {}
-  constexpr DeprecatedLayoutSize(int width, int height)
+  constexpr LayoutSize(int width, int height)
       : width_(LayoutUnit(width)), height_(LayoutUnit(height)) {}
 
-  constexpr explicit DeprecatedLayoutSize(const gfx::SizeF& size)
+  constexpr explicit LayoutSize(const gfx::SizeF& size)
       : width_(size.width()), height_(size.height()) {}
+  constexpr explicit LayoutSize(const gfx::Vector2dF& vector)
+      : width_(vector.x()), height_(vector.y()) {}
 
   constexpr explicit operator gfx::SizeF() const {
     return gfx::SizeF(width_.ToFloat(), height_.ToFloat());
+  }
+  constexpr explicit operator gfx::Vector2dF() const {
+    return gfx::Vector2dF(width_.ToFloat(), height_.ToFloat());
   }
 
   // This is deleted to avoid unwanted lossy conversion from float or double to
   // LayoutUnit or int. Use explicit LayoutUnit constructor for each parameter
   // instead.
-  DeprecatedLayoutSize(double, double) = delete;
+  LayoutSize(double, double) = delete;
 
   constexpr LayoutUnit Width() const { return width_; }
   constexpr LayoutUnit Height() const { return height_; }
@@ -77,6 +80,7 @@ class PLATFORM_EXPORT DeprecatedLayoutSize {
   constexpr bool IsEmpty() const {
     return width_.RawValue() <= 0 || height_.RawValue() <= 0;
   }
+  constexpr bool IsZero() const { return !width_ && !height_; }
 
   void Expand(LayoutUnit width, LayoutUnit height) {
     width_ += width;
@@ -85,6 +89,10 @@ class PLATFORM_EXPORT DeprecatedLayoutSize {
 
   void Expand(int width, int height) {
     Expand(LayoutUnit(width), LayoutUnit(height));
+  }
+
+  void Shrink(int width, int height) {
+    Shrink(LayoutUnit(width), LayoutUnit(height));
   }
 
   void Shrink(LayoutUnit width, LayoutUnit height) {
@@ -102,8 +110,29 @@ class PLATFORM_EXPORT DeprecatedLayoutSize {
     height_ *= height_scale;
   }
 
-  DeprecatedLayoutSize TransposedSize() const {
-    return DeprecatedLayoutSize(height_, width_);
+  LayoutSize ExpandedTo(const LayoutSize& other) const {
+    return LayoutSize(width_ > other.width_ ? width_ : other.width_,
+                      height_ > other.height_ ? height_ : other.height_);
+  }
+
+  LayoutSize ShrunkTo(const LayoutSize& other) const {
+    return LayoutSize(width_ < other.width_ ? width_ : other.width_,
+                      height_ < other.height_ ? height_ : other.height_);
+  }
+
+  void ClampNegativeToZero() { *this = ExpandedTo(LayoutSize()); }
+
+  void ClampToMinimumSize(const LayoutSize& minimum_size) {
+    if (width_ < minimum_size.Width())
+      width_ = minimum_size.Width();
+    if (height_ < minimum_size.Height())
+      height_ = minimum_size.Height();
+  }
+
+  LayoutSize TransposedSize() const { return LayoutSize(height_, width_); }
+
+  LayoutSize Fraction() const {
+    return LayoutSize(width_.Fraction(), height_.Fraction());
   }
 
   String ToString() const;
@@ -112,29 +141,72 @@ class PLATFORM_EXPORT DeprecatedLayoutSize {
   LayoutUnit width_, height_;
 };
 
-inline DeprecatedLayoutSize& operator+=(DeprecatedLayoutSize& a,
-                                        const DeprecatedLayoutSize& b) {
+inline LayoutSize& operator+=(LayoutSize& a, const LayoutSize& b) {
   a.SetWidth(a.Width() + b.Width());
   a.SetHeight(a.Height() + b.Height());
   return a;
 }
 
-inline DeprecatedLayoutSize operator-(const DeprecatedLayoutSize& a,
-                                      const DeprecatedLayoutSize& b) {
-  return DeprecatedLayoutSize(a.Width() - b.Width(), a.Height() - b.Height());
+inline LayoutSize& operator-=(LayoutSize& a, const LayoutSize& b) {
+  a.SetWidth(a.Width() - b.Width());
+  a.SetHeight(a.Height() - b.Height());
+  return a;
 }
 
-constexpr bool operator==(const DeprecatedLayoutSize& a,
-                          const DeprecatedLayoutSize& b) {
+inline LayoutSize& operator-=(LayoutSize& a, const gfx::Size& b) {
+  a.SetWidth(a.Width() - b.width());
+  a.SetHeight(a.Height() - b.height());
+  return a;
+}
+
+inline LayoutSize operator+(const LayoutSize& a, const LayoutSize& b) {
+  return LayoutSize(a.Width() + b.Width(), a.Height() + b.Height());
+}
+
+inline LayoutSize operator+(const LayoutSize& a, const gfx::Size& b) {
+  return LayoutSize(a.Width() + b.width(), a.Height() + b.height());
+}
+
+inline LayoutSize operator-(const LayoutSize& a, const LayoutSize& b) {
+  return LayoutSize(a.Width() - b.Width(), a.Height() - b.Height());
+}
+
+inline LayoutSize operator-(const LayoutSize& size) {
+  return LayoutSize(-size.Width(), -size.Height());
+}
+
+inline LayoutSize operator*(const LayoutSize& a, const float scale) {
+  return LayoutSize(LayoutUnit(a.Width() * scale),
+                    LayoutUnit(a.Height() * scale));
+}
+
+constexpr bool operator==(const LayoutSize& a, const LayoutSize& b) {
   return a.Width() == b.Width() && a.Height() == b.Height();
 }
 
-inline DeprecatedLayoutSize RoundedLayoutSize(const gfx::SizeF& s) {
-  return DeprecatedLayoutSize(s);
+constexpr bool operator!=(const LayoutSize& a, const LayoutSize& b) {
+  return !(a == b);
 }
 
-PLATFORM_EXPORT std::ostream& operator<<(std::ostream&,
-                                         const DeprecatedLayoutSize&);
+constexpr gfx::PointF operator+(const gfx::PointF& a, const LayoutSize& b) {
+  return gfx::PointF(a.x() + b.Width(), a.y() + b.Height());
+}
+
+inline gfx::Size ToFlooredSize(const LayoutSize& s) {
+  return gfx::Size(s.Width().Floor(), s.Height().Floor());
+}
+
+inline gfx::Size ToRoundedSize(const LayoutSize& s) {
+  return gfx::Size(s.Width().Round(), s.Height().Round());
+}
+
+inline LayoutSize RoundedLayoutSize(const gfx::SizeF& s) {
+  return LayoutSize(s);
+}
+
+PLATFORM_EXPORT std::ostream& operator<<(std::ostream&, const LayoutSize&);
+PLATFORM_EXPORT WTF::TextStream& operator<<(WTF::TextStream&,
+                                            const LayoutSize&);
 
 }  // namespace blink
 

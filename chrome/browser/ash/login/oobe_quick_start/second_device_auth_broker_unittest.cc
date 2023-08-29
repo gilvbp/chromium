@@ -4,17 +4,13 @@
 
 #include "chrome/browser/ash/login/oobe_quick_start/second_device_auth_broker.h"
 
-#include <cstdint>
 #include <memory>
 #include <string>
 #include <utility>
-#include <vector>
 
-#include "base/base64.h"
 #include "base/json/json_reader.h"
 #include "base/memory/scoped_refptr.h"
 #include "base/test/bind.h"
-#include "base/test/gmock_expected_support.h"
 #include "base/test/gtest_util.h"
 #include "base/test/task_environment.h"
 #include "base/test/test_future.h"
@@ -24,7 +20,6 @@
 #include "chromeos/ash/components/attestation/attestation_flow.h"
 #include "chromeos/ash/components/attestation/mock_attestation_flow.h"
 #include "chromeos/ash/components/dbus/constants/attestation_constants.h"
-#include "chromeos/ash/components/quick_start/types.h"
 #include "components/account_id/account_id.h"
 #include "google_apis/gaia/gaia_urls.h"
 #include "google_apis/gaia/google_service_auth_error.h"
@@ -43,8 +38,6 @@
 
 namespace ash::quick_start {
 
-using base::test::ErrorIs;
-using base::test::ValueIs;
 using ::testing::_;
 using ::testing::AllOf;
 using ::testing::Eq;
@@ -95,31 +88,10 @@ constexpr char kOAuthRefreshTokenSuccessBody[] = R"({
       "access_token": "fake-access-token",
       "expires_in": 99999
     })";
-constexpr char kPemCertificateString[] = R"({
------BEGIN CERTIFICATE-----
-MIICUTCCAfugAwIBAgIBADANBgkqhkiG9w0BAQQFADBXMQswCQYDVQQGEwJDTjEL
-MAkGA1UECBMCUE4xCzAJBgNVBAcTAkNOMQswCQYDVQQKEwJPTjELMAkGA1UECxMC
-VU4xFDASBgNVBAMTC0hlcm9uZyBZYW5nMB4XDTA1MDcxNTIxMTk0N1oXDTA1MDgx
-NDIxMTk0N1owVzELMAkGA1UEBhMCQ04xCzAJBgNVBAgTAlBOMQswCQYDVQQHEwJD
-TjELMAkGA1UEChMCT04xCzAJBgNVBAsTAlVOMRQwEgYDVQQDEwtIZXJvbmcgWWFu
-ZzBcMA0GCSqGSIb3DQEBAQUAA0sAMEgCQQCp5hnG7ogBhtlynpOS21cBewKE/B7j
-V14qeyslnr26xZUsSVko36ZnhiaO/zbMOoRcKK9vEcgMtcLFuQTWDl3RAgMBAAGj
-gbEwga4wHQYDVR0OBBYEFFXI70krXeQDxZgbaCQoR4jUDncEMH8GA1UdIwR4MHaA
-FFXI70krXeQDxZgbaCQoR4jUDncEoVukWTBXMQswCQYDVQQGEwJDTjELMAkGA1UE
-CBMCUE4xCzAJBgNVBAcTAkNOMQswCQYDVQQKEwJPTjELMAkGA1UECxMCVU4xFDAS
-BgNVBAMTC0hlcm9uZyBZYW5nggEAMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEE
-BQADQQA/ugzBrjjK9jcWnDVfGHlk3icNRq0oV7Ri32z/+HQX67aRfgZu7KWdI+Ju
-Wm7DCfrPNGVwFWUQOmsPue9rZBgO
------END CERTIFICATE-----
-    })";
-
-constexpr char kFidoCredentialId[] = "fake-fido-credential-id";
-constexpr char kFakeDeviceId[] = "fake-device-id";
-constexpr char kTargetDeviceType[] = "targetDeviceType";
-constexpr char kTargetDeviceInfoKey[] = "targetDeviceInfo";
-constexpr char kChromeOsDeviceInfoKey[] = "chromeOsDeviceInfo";
-constexpr char kDeviceAttestationCertificateKey[] =
-    "deviceAttestationCertificate";
+constexpr char kFidoCredentialId[] = "fido_credential_id";
+constexpr char kCertificate[] = "fake_certificate";
+constexpr char kFakeDeviceId[] = "fake_device_id";
+constexpr char kTargetDeviceType[] = "target_device_type";
 constexpr char kChromeOS[] = "CHROME_OS";
 
 MATCHER_P(ProtoBufContentBindingEq, expected, "") {
@@ -219,19 +191,18 @@ class SecondDeviceAuthBrokerTest : public ::testing::Test {
   ~SecondDeviceAuthBrokerTest() override = default;
 
  protected:
-  base::expected<Base64UrlString, GoogleServiceAuthError>
-  FetchChallengeBytes() {
+  base::expected<std::string, GoogleServiceAuthError> GetChallengeBytes() {
     base::test::TestFuture<
-        const base::expected<Base64UrlString, GoogleServiceAuthError>&>
+        const base::expected<std::string, GoogleServiceAuthError>&>
         future;
-    second_device_auth_broker_.FetchChallengeBytes(future.GetCallback());
+    second_device_auth_broker_.GetChallengeBytes(future.GetCallback());
     return future.Get();
   }
 
-  base::expected<PEMCertChain, SecondDeviceAuthBroker::AttestationErrorType>
+  base::expected<std::string, SecondDeviceAuthBroker::AttestationErrorType>
   FetchAttestationCertificate(const std::string& fido_credential_id) {
-    base::test::TestFuture<
-        SecondDeviceAuthBroker::AttestationCertificateOrError>
+    base::test::TestFuture<const base::expected<
+        std::string, SecondDeviceAuthBroker::AttestationErrorType>&>
         future;
     second_device_auth_broker_.FetchAttestationCertificate(
         fido_credential_id, future.GetCallback());
@@ -240,7 +211,7 @@ class SecondDeviceAuthBrokerTest : public ::testing::Test {
 
   SecondDeviceAuthBroker::RefreshTokenResponse FetchRefreshToken(
       const FidoAssertionInfo& fido_assertion_info,
-      const PEMCertChain& certificate) {
+      const std::string& certificate) {
     base::test::TestFuture<const SecondDeviceAuthBroker::RefreshTokenResponse&>
         future;
     second_device_auth_broker_.FetchRefreshToken(
@@ -291,13 +262,9 @@ class SecondDeviceAuthBrokerTest : public ::testing::Test {
     return test_factory_.GetSafeWeakWrapper();
   }
 
-  const PEMCertChain& GetCertificate() const { return certificate_; }
-
  private:
   // `task_environment_` must be the first member.
   base::test::TaskEnvironment task_environment_;
-
-  PEMCertChain certificate_ = PEMCertChain(kPemCertificateString);
 
   data_decoder::test::InProcessDataDecoder in_process_data_decoder_;
   network::TestURLLoaderFactory test_factory_;
@@ -325,40 +292,52 @@ TEST_F(SecondDeviceAuthBrokerDeathTest,
 }
 
 TEST_F(SecondDeviceAuthBrokerTest,
-       FetchChallengeBytesReturnsAnErrorForAuthErrors) {
+       GetChallengeBytesReturnsAnErrorForAuthErrors) {
   SimulateAuthError(kGetChallengeDataUrl);
-  EXPECT_THAT(FetchChallengeBytes(),
-              ErrorIs(Property(&GoogleServiceAuthError::state,
-                               Eq(State::SERVICE_ERROR))));
+  base::expected<std::string, GoogleServiceAuthError> response =
+      GetChallengeBytes();
+  ASSERT_FALSE(response.has_value());
+  EXPECT_THAT(response.error(), Property(&GoogleServiceAuthError::state,
+                                         Eq(State::SERVICE_ERROR)));
 }
 
 TEST_F(SecondDeviceAuthBrokerTest,
-       FetchChallengeBytesReturnsAnErrorForMalformedResponse) {
+       GetChallengeBytesReturnsAnErrorForMalformedResponse) {
   AddFakeResponse(kGetChallengeDataUrl, "");
-  EXPECT_THAT(FetchChallengeBytes(),
-              ErrorIs(Property(&GoogleServiceAuthError::state,
-                               Eq(State::UNEXPECTED_SERVICE_RESPONSE))));
+  base::expected<std::string, GoogleServiceAuthError> response =
+      GetChallengeBytes();
+  ASSERT_FALSE(response.has_value());
+  EXPECT_THAT(response.error(),
+              Property(&GoogleServiceAuthError::state,
+                       Eq(State::UNEXPECTED_SERVICE_RESPONSE)));
 
   AddFakeResponse(kGetChallengeDataUrl, "{}");
-  EXPECT_THAT(FetchChallengeBytes(),
-              ErrorIs(Property(&GoogleServiceAuthError::state,
-                               Eq(State::UNEXPECTED_SERVICE_RESPONSE))));
+  response = GetChallengeBytes();
+  ASSERT_FALSE(response.has_value());
+  EXPECT_THAT(response.error(),
+              Property(&GoogleServiceAuthError::state,
+                       Eq(State::UNEXPECTED_SERVICE_RESPONSE)));
 
   AddFakeResponse(kGetChallengeDataUrl, "{\"challengeData\": \"\"}");
-  EXPECT_THAT(FetchChallengeBytes(),
-              ErrorIs(Property(&GoogleServiceAuthError::state,
-                               Eq(State::UNEXPECTED_SERVICE_RESPONSE))));
+  response = GetChallengeBytes();
+  ASSERT_FALSE(response.has_value());
+  EXPECT_THAT(response.error(),
+              Property(&GoogleServiceAuthError::state,
+                       Eq(State::UNEXPECTED_SERVICE_RESPONSE)));
 }
 
 TEST_F(SecondDeviceAuthBrokerTest,
-       FetchChallengeBytesReturnsAnErrorForBase64ParsingError) {
+       GetChallengeBytesReturnsAnErrorForBase64ParsingError) {
   AddFakeResponse(kGetChallengeDataUrl, kInvalidBase64ChallengeDataResponse);
-  EXPECT_THAT(FetchChallengeBytes(),
-              ErrorIs(Property(&GoogleServiceAuthError::state,
-                               Eq(State::UNEXPECTED_SERVICE_RESPONSE))));
+  base::expected<std::string, GoogleServiceAuthError> response =
+      GetChallengeBytes();
+  ASSERT_FALSE(response.has_value());
+  EXPECT_THAT(response.error(),
+              Property(&GoogleServiceAuthError::state,
+                       Eq(State::UNEXPECTED_SERVICE_RESPONSE)));
 }
 
-TEST_F(SecondDeviceAuthBrokerTest, FetchChallengeBytesReturnsChallengeBytes) {
+TEST_F(SecondDeviceAuthBrokerTest, GetChallengeBytesReturnsChallengeBytes) {
   // Set an interceptor that checks the validity of the incoming request for
   // challenge bytes.
   SetInterceptor(
@@ -394,9 +373,10 @@ TEST_F(SecondDeviceAuthBrokerTest, FetchChallengeBytesReturnsChallengeBytes) {
         AddFakeResponse(kGetChallengeDataUrl, kFakeChallengeDataResponse);
       }));
 
-  EXPECT_THAT(FetchChallengeBytes(),
-              ValueIs(Property(&Base64UrlString::value,
-                               Property(&std::string::size, Gt(0UL)))));
+  base::expected<std::string, GoogleServiceAuthError> response =
+      GetChallengeBytes();
+  ASSERT_TRUE(response.has_value());
+  EXPECT_THAT(response.value(), Property(&std::string::size, Gt(0UL)));
 }
 
 TEST_F(
@@ -420,10 +400,12 @@ TEST_F(
                 /*pem_certificate_chain=*/std::string());
           })));
 
+  base::expected<std::string, SecondDeviceAuthBroker::AttestationErrorType>
+      response = FetchAttestationCertificate(kFidoCredentialId);
+  ASSERT_FALSE(response.has_value());
   EXPECT_THAT(
-      FetchAttestationCertificate(kFidoCredentialId),
-      ErrorIs(
-          Eq(SecondDeviceAuthBroker::AttestationErrorType::kTransientError)));
+      response.error(),
+      Eq(SecondDeviceAuthBroker::AttestationErrorType::kTransientError));
 }
 
 TEST_F(SecondDeviceAuthBrokerTest,
@@ -446,10 +428,12 @@ TEST_F(SecondDeviceAuthBrokerTest,
                 /*pem_certificate_chain=*/std::string());
           })));
 
+  base::expected<std::string, SecondDeviceAuthBroker::AttestationErrorType>
+      response = FetchAttestationCertificate(kFidoCredentialId);
+  ASSERT_FALSE(response.has_value());
   EXPECT_THAT(
-      FetchAttestationCertificate(kFidoCredentialId),
-      ErrorIs(
-          Eq(SecondDeviceAuthBroker::AttestationErrorType::kPermanentError)));
+      response.error(),
+      Eq(SecondDeviceAuthBroker::AttestationErrorType::kPermanentError));
 }
 
 TEST_F(SecondDeviceAuthBrokerTest,
@@ -467,28 +451,29 @@ TEST_F(SecondDeviceAuthBrokerTest,
               VariantWith<::attestation::DeviceSetupCertificateRequestMetadata>(
                   ProtoBufContentBindingEq(kFidoCredentialId))),
           /*callback*/ _))
-      .WillOnce(WithArg<7>(Invoke([this](attestation::AttestationFlow::
-                                             CertificateCallback callback)
-                                      -> void {
+      .WillOnce(WithArg<7>(Invoke([](attestation::AttestationFlow::
+                                         CertificateCallback callback) -> void {
         std::move(callback).Run(
             /*status=*/ash::attestation::AttestationStatus::ATTESTATION_SUCCESS,
-            /*pem_certificate_chain=*/*GetCertificate());
+            /*pem_certificate_chain=*/kCertificate);
       })));
 
-  EXPECT_THAT(FetchAttestationCertificate(kFidoCredentialId),
-              ValueIs(Eq(GetCertificate())));
+  base::expected<std::string, SecondDeviceAuthBroker::AttestationErrorType>
+      response = FetchAttestationCertificate(kFidoCredentialId);
+  ASSERT_TRUE(response.has_value());
+  EXPECT_THAT(response.value(), Eq(kCertificate));
 }
 
 TEST_F(SecondDeviceAuthBrokerTest,
        FetchRefreshTokenReturnsUnknownErrorResponseForUnknownErrors) {
   AddFakeResponse(kStartSessionUrl, std::string(R"(
       {
-        "sessionStatus": "UNKNOWN_SESSION_STATUS"
+        "session_status": "UNKNOWN_SESSION_STATUS"
       }
     )"));
   SecondDeviceAuthBroker::RefreshTokenResponse response =
       FetchRefreshToken(/*fido_assertion_info=*/FidoAssertionInfo{},
-                        /*certificate=*/GetCertificate());
+                        /*certificate=*/kCertificate);
   EXPECT_THAT(response, VariantWith<RefreshTokenUnknownErrorResponse>(_));
 }
 
@@ -497,7 +482,7 @@ TEST_F(SecondDeviceAuthBrokerTest,
   SimulateAuthError(kStartSessionUrl);
   SecondDeviceAuthBroker::RefreshTokenResponse response =
       FetchRefreshToken(/*fido_assertion_info=*/FidoAssertionInfo{},
-                        /*certificate=*/GetCertificate());
+                        /*certificate=*/kCertificate);
   EXPECT_THAT(response, VariantWith<RefreshTokenRejectionResponse>(_));
 }
 
@@ -506,9 +491,9 @@ TEST_F(
     FetchRefreshTokenReturnsAdditionalChallengesOnSourceResponseForSourceChallenges) {
   AddFakeResponse(kStartSessionUrl, std::string(R"(
       {
-        "sessionStatus": "PENDING",
-        "targetSessionIdentifier": "fake-target-session",
-        "sourceDeviceFallbackUrl": "https://example.com",
+        "session_status": "PENDING",
+        "target_session_identifier": "fake-target-session",
+        "source_device_fallback_url": "https://example.com",
         "email": "fake-user@example.com"
       }
     )"));
@@ -519,7 +504,7 @@ TEST_F(
   expected_response.target_session_identifier = "fake-target-session";
   SecondDeviceAuthBroker::RefreshTokenResponse response =
       FetchRefreshToken(/*fido_assertion_info=*/FidoAssertionInfo{},
-                        /*certificate=*/GetCertificate());
+                        /*certificate=*/kCertificate);
   EXPECT_THAT(response,
               VariantWith<RefreshTokenAdditionalChallengesOnSourceResponse>(
                   RefreshTokenAdditionalChallengesOnSourceResponseEq(
@@ -531,8 +516,8 @@ TEST_F(
     FetchRefreshTokenReturnsAdditionalChallengesOnTargetResponseForTargetChallenges) {
   AddFakeResponse(kStartSessionUrl, std::string(R"(
       {
-        "sessionStatus": "CONTINUE_ON_TARGET",
-        "targetFallbackUrl": "https://example.com",
+        "session_status": "CONTINUE_ON_TARGET",
+        "target_fallback_url": "https://example.com",
         "email": "fake-user@example.com"
       }
     )"));
@@ -542,7 +527,7 @@ TEST_F(
   expected_response.fallback_url = "https://example.com";
   SecondDeviceAuthBroker::RefreshTokenResponse response =
       FetchRefreshToken(/*fido_assertion_info=*/FidoAssertionInfo{},
-                        /*certificate=*/GetCertificate());
+                        /*certificate=*/kCertificate);
   EXPECT_THAT(response,
               VariantWith<RefreshTokenAdditionalChallengesOnTargetResponse>(
                   RefreshTokenAdditionalChallengesOnTargetResponseEq(
@@ -552,9 +537,9 @@ TEST_F(
 TEST_F(SecondDeviceAuthBrokerTest, FetchRefreshTokenReturnsARefreshToken) {
   AddFakeResponse(kStartSessionUrl, std::string(R"(
       {
-        "sessionStatus": "AUTHENTICATED",
-        "credentialData": {
-            "oauthToken": "fake-auth-code"
+        "session_status": "AUTHENTICATED",
+        "credential_data": {
+            "oauth_token": "fake-auth-code"
         },
         "email": "fake-user@example.com"
       }
@@ -566,7 +551,7 @@ TEST_F(SecondDeviceAuthBrokerTest, FetchRefreshTokenReturnsARefreshToken) {
   expected_response.refresh_token = "fake-refresh-token";
   SecondDeviceAuthBroker::RefreshTokenResponse response =
       FetchRefreshToken(/*fido_assertion_info=*/FidoAssertionInfo{},
-                        /*certificate=*/GetCertificate());
+                        /*certificate=*/kCertificate);
   EXPECT_THAT(response, VariantWith<RefreshTokenSuccessResponse>(
                             RefreshTokenSuccessResponseEq(expected_response)));
 }
@@ -575,9 +560,9 @@ TEST_F(SecondDeviceAuthBrokerTest,
        FetchRefreshTokenReturnsAnErrorForInvalidAuthorizationCode) {
   AddFakeResponse(kStartSessionUrl, std::string(R"(
       {
-        "sessionStatus": "AUTHENTICATED",
-        "credentialData": {
-            "oauthToken": "fake-auth-code"
+        "session_status": "AUTHENTICATED",
+        "credential_data": {
+            "oauth_token": "fake-auth-code"
         },
         "email": "fake-user@example.com"
       }
@@ -590,84 +575,10 @@ TEST_F(SecondDeviceAuthBrokerTest,
       RefreshTokenRejectionResponse::Reason::kInvalidAuthorizationCode;
   SecondDeviceAuthBroker::RefreshTokenResponse response =
       FetchRefreshToken(/*fido_assertion_info=*/FidoAssertionInfo{},
-                        /*certificate=*/GetCertificate());
+                        /*certificate=*/kCertificate);
   EXPECT_THAT(response,
               VariantWith<RefreshTokenRejectionResponse>(
                   RefreshTokenRejectionResponseEq(expected_response)));
-}
-
-TEST_F(SecondDeviceAuthBrokerTest,
-       FetchRefreshTokenSendsABase64EncodedCertChainToGaia) {
-  // Set an interceptor that checks the validity of the incoming request for
-  // refresh token.
-  SetInterceptor(
-      base::BindLambdaForTesting([&](const network::ResourceRequest& request) {
-        if (request.url != GURL(kStartSessionUrl)) {
-          return;
-        }
-
-        if (!request.request_body || !request.request_body->elements() ||
-            request.request_body->elements()->empty()) {
-          SimulateBadRequest(kStartSessionUrl);
-          return;
-        }
-
-        absl::optional<base::Value> request_body =
-            base::JSONReader::Read(request.request_body->elements()
-                                       ->at(0)
-                                       .As<network::DataElementBytes>()
-                                       .AsStringPiece());
-        if (!request_body || !request_body->is_dict()) {
-          SimulateBadRequest(kStartSessionUrl);
-          return;
-        }
-
-        const base::Value::Dict& request_dict = request_body->GetDict();
-        const base::Value::Dict* target_device_info =
-            request_dict.FindDict(kTargetDeviceInfoKey);
-        if (!target_device_info) {
-          SimulateBadRequest(kStartSessionUrl);
-          return;
-        }
-
-        const base::Value::Dict* chromeos_device_info =
-            target_device_info->FindDict(kChromeOsDeviceInfoKey);
-        if (!chromeos_device_info) {
-          SimulateBadRequest(kStartSessionUrl);
-          return;
-        }
-
-        const std::string* device_attestation_certificate =
-            chromeos_device_info->FindString(kDeviceAttestationCertificateKey);
-        if (!device_attestation_certificate) {
-          SimulateBadRequest(kStartSessionUrl);
-          return;
-        }
-
-        absl::optional<std::vector<uint8_t>> decoded =
-            base::Base64Decode(*device_attestation_certificate);
-        // The certificate must be Base64 encoded. If not, it is a bad request.
-        if (!decoded) {
-          SimulateBadRequest(kStartSessionUrl);
-          return;
-        }
-
-        AddFakeResponse(kStartSessionUrl, std::string(R"(
-          {
-            "sessionStatus": "AUTHENTICATED",
-            "credentialData": {
-                "oauthToken": "fake-auth-code"
-            },
-            "email": "fake-user@example.com"
-          }
-        )"));
-        SimulateOAuthTokenFetchSuccess();
-      }));
-
-  SecondDeviceAuthBroker::RefreshTokenResponse response =
-      FetchRefreshToken(/*fido_assertion_info=*/FidoAssertionInfo{},
-                        /*certificate=*/GetCertificate());
-  EXPECT_THAT(response, VariantWith<RefreshTokenSuccessResponse>(_));
 }
 
 }  //  namespace ash::quick_start

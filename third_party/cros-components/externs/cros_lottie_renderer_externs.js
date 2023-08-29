@@ -15,4 +15,3 @@ function LottieRenderer() {}
 
 LottieRenderer.prototype.play = function() {};
 LottieRenderer.prototype.pause = function() {};
-LottieRenderer.prototype.refreshAnimationColors = function() {};

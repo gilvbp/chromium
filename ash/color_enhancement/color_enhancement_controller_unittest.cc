@@ -68,10 +68,10 @@ TEST_F(ColorEnhancementControllerTest, HighContrast) {
 
 TEST_F(ColorEnhancementControllerTest, Greyscale) {
   PrefService* prefs = GetPrefs();
-  prefs->SetBoolean(prefs::kAccessibilityColorCorrectionEnabled, true);
+  prefs->SetBoolean(prefs::kAccessibilityColorFiltering, true);
   prefs->SetInteger(prefs::kAccessibilityColorVisionCorrectionAmount, 0);
-  prefs->SetInteger(prefs::kAccessibilityColorVisionCorrectionType,
-                    ColorVisionCorrectionType::kGrayscale);
+  prefs->SetInteger(prefs::kAccessibilityColorVisionDeficiencyType,
+                    ColorVisionDeficiencyType::kGrayscale);
   EXPECT_FALSE(IsCursorCompositingEnabled());
   for (auto* root_window : Shell::GetAllRootWindows()) {
     EXPECT_FLOAT_EQ(0.f, root_window->layer()->layer_grayscale());
@@ -110,13 +110,13 @@ TEST_F(ColorEnhancementControllerTest, Greyscale) {
   }
 }
 
-TEST_F(ColorEnhancementControllerTest, ColorVisionCorrectionFilters) {
+TEST_F(ColorEnhancementControllerTest, ColorVisionDeficiencyFilters) {
   PrefService* prefs = GetPrefs();
-  prefs->SetBoolean(prefs::kAccessibilityColorCorrectionEnabled, true);
+  prefs->SetBoolean(prefs::kAccessibilityColorFiltering, true);
 
-  // Try for each of the color correction types.
+  // Try for each of the color deficiency types.
   for (int i = 0; i < 3; i++) {
-    prefs->SetInteger(prefs::kAccessibilityColorVisionCorrectionType, i);
+    prefs->SetInteger(prefs::kAccessibilityColorVisionDeficiencyType, i);
 
     // With severity at 0, no matrix should be applied.
     prefs->SetInteger(prefs::kAccessibilityColorVisionCorrectionAmount, 0);
@@ -152,13 +152,13 @@ TEST_F(ColorEnhancementControllerTest, ColorVisionCorrectionFilters) {
   }
 }
 
-TEST_F(ColorEnhancementControllerTest, GrayscaleBehindColorCorrectionOption) {
+TEST_F(ColorEnhancementControllerTest, GrayscaleBehindColorFilteringOption) {
   PrefService* prefs = GetPrefs();
   // Color filtering off.
-  prefs->SetBoolean(prefs::kAccessibilityColorCorrectionEnabled, false);
+  prefs->SetBoolean(prefs::kAccessibilityColorFiltering, false);
   prefs->SetInteger(prefs::kAccessibilityColorVisionCorrectionAmount, 50);
-  prefs->SetInteger(prefs::kAccessibilityColorVisionCorrectionType,
-                    ColorVisionCorrectionType::kGrayscale);
+  prefs->SetInteger(prefs::kAccessibilityColorVisionDeficiencyType,
+                    ColorVisionDeficiencyType::kGrayscale);
 
   // Default values.
   for (auto* root_window : Shell::GetAllRootWindows()) {
@@ -167,22 +167,22 @@ TEST_F(ColorEnhancementControllerTest, GrayscaleBehindColorCorrectionOption) {
   }
 
   // Turn on color filtering, values should now be from prefs.
-  prefs->SetBoolean(prefs::kAccessibilityColorCorrectionEnabled, true);
+  prefs->SetBoolean(prefs::kAccessibilityColorFiltering, true);
   for (auto* root_window : Shell::GetAllRootWindows()) {
     EXPECT_FLOAT_EQ(0.5f, root_window->layer()->layer_grayscale());
     EXPECT_FALSE(root_window->layer()->LayerHasCustomColorMatrix());
   }
 
-  prefs->SetInteger(prefs::kAccessibilityColorVisionCorrectionType,
-                    ColorVisionCorrectionType::kDeuteranomaly);
-  prefs->SetBoolean(prefs::kAccessibilityColorCorrectionEnabled, true);
+  prefs->SetInteger(prefs::kAccessibilityColorVisionDeficiencyType,
+                    ColorVisionDeficiencyType::kDeuteranomaly);
+  prefs->SetBoolean(prefs::kAccessibilityColorFiltering, true);
   for (auto* root_window : Shell::GetAllRootWindows()) {
     EXPECT_FLOAT_EQ(0.0f, root_window->layer()->layer_grayscale());
     EXPECT_TRUE(root_window->layer()->LayerHasCustomColorMatrix());
   }
 
   // Turn it off again, expect defaults to be restored.
-  prefs->SetBoolean(prefs::kAccessibilityColorCorrectionEnabled, false);
+  prefs->SetBoolean(prefs::kAccessibilityColorFiltering, false);
   for (auto* root_window : Shell::GetAllRootWindows()) {
     EXPECT_FLOAT_EQ(0.0f, root_window->layer()->layer_grayscale());
     EXPECT_FALSE(root_window->layer()->LayerHasCustomColorMatrix());

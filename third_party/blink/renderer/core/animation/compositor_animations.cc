@@ -656,8 +656,7 @@ void CompositorAnimations::StartAnimationOnCompositor(
     const EffectModel& effect,
     Vector<int>& started_keyframe_model_ids,
     double animation_playback_rate,
-    bool is_monotonic_timeline,
-    bool is_boundary_aligned) {
+    bool is_monotonic_timeline) {
   DCHECK(started_keyframe_model_ids.empty());
   // TODO(petermayo): Pass the PaintArtifactCompositor before
   // BlinkGenPropertyTrees is always on.
@@ -672,7 +671,7 @@ void CompositorAnimations::StartAnimationOnCompositor(
   GetAnimationOnCompositor(element, timing, normalized_timing, group,
                            start_time, time_offset, keyframe_effect,
                            keyframe_models, animation_playback_rate,
-                           is_monotonic_timeline, is_boundary_aligned);
+                           is_monotonic_timeline);
   DCHECK(!keyframe_models.empty());
   for (auto& keyframe_model : keyframe_models) {
     int id = keyframe_model->id();
@@ -736,8 +735,7 @@ bool CompositorAnimations::ConvertTimingForCompositor(
     base::TimeDelta time_offset,
     CompositorTiming& out,
     double animation_playback_rate,
-    bool is_monotonic_timeline,
-    bool is_boundary_aligned) {
+    bool is_monotonic_timeline) {
   timing.AssertValid();
 
   if (animation_playback_rate == 0)
@@ -789,9 +787,8 @@ bool CompositorAnimations::ConvertTimingForCompositor(
   // after finishing until it is removed by a subsequent main thread commit.
   // This allows developers to apply a post animation style or start a
   // subsequent animation without flicker.
-  if ((base::FeatureList::IsEnabled(features::kNoPreserveLastMutation) &&
-       is_monotonic_timeline) ||
-      is_boundary_aligned) {
+  if (base::FeatureList::IsEnabled(features::kNoPreserveLastMutation) &&
+      is_monotonic_timeline) {
     if (animation_playback_rate >= 0) {
       switch (out.fill_mode) {
         case Timing::FillMode::BOTH:
@@ -960,13 +957,12 @@ void CompositorAnimations::GetAnimationOnCompositor(
     const KeyframeEffectModelBase& effect,
     Vector<std::unique_ptr<cc::KeyframeModel>>& keyframe_models,
     double animation_playback_rate,
-    bool is_monotonic_timeline,
-    bool is_boundary_aligned) {
+    bool is_monotonic_timeline) {
   DCHECK(keyframe_models.empty());
   CompositorTiming compositor_timing;
   [[maybe_unused]] bool timing_valid = ConvertTimingForCompositor(
       timing, normalized_timing, time_offset, compositor_timing,
-      animation_playback_rate, is_monotonic_timeline, is_boundary_aligned);
+      animation_playback_rate, is_monotonic_timeline);
 
   PropertyHandleSet properties = effect.Properties();
   DCHECK(!properties.empty());

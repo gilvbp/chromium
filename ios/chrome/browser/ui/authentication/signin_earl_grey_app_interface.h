@@ -17,10 +17,6 @@ namespace signin {
 enum class ConsentLevel;
 }
 
-namespace syncer {
-enum class UserSelectableType;
-}
-
 // SigninEarlGreyAppInterface contains the app-side implementation for
 // helpers that primarily work via direct model access. These helpers are
 // compiled into the app binary and can be called from either app or test code.
@@ -35,6 +31,11 @@ enum class UserSelectableType;
 // `kFakeAuthAddAccountButtonIdentifier` to trigger the add account flow.
 + (void)addFakeIdentityForSSOAuthAddAccountFlow:
     (FakeSystemIdentity*)fakeIdentity;
+
+// Maps `capabilities` to the `fakeIdentity`.
+// Must be called after `addFakeIdentity`.
++ (void)setCapabilities:(ios::CapabilitiesDict*)capabilities
+            forIdentity:(FakeSystemIdentity*)fakeIdentity;
 
 // Removes `fakeIdentity` from the fake chrome identity service asynchronously
 // to simulate identity removal from the device.
@@ -71,21 +72,6 @@ enum class UserSelectableType;
 
 // Presents the signed-in accounts view controller if it needs to be presented.
 + (void)presentSignInAccountsViewControllerIfNecessary;
-
-// Capability setters for `fakeIdentity`.
-// Capabilities can only be set after the identity has been added to storage.
-// Must be called after `addFakeIdentity`.
-+ (void)setIsSubjectToParentalControls:(BOOL)value
-                           forIdentity:(FakeSystemIdentity*)fakeIdentity;
-+ (void)setCanHaveEmailAddressDisplayed:(BOOL)value
-                            forIdentity:(FakeSystemIdentity*)fakeIdentity;
-+ (void)setCanOfferExtendedChromeSyncPromos:(BOOL)value
-                                forIdentity:(FakeSystemIdentity*)fakeIdentity;
-
-+ (void)setSelectedType:(syncer::UserSelectableType)type enabled:(BOOL)enabled;
-
-// Returns if the data type is enabled for the sync service.
-+ (BOOL)isSelectedTypeEnabled:(syncer::UserSelectableType)type;
 
 @end
 

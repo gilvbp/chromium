@@ -31,10 +31,9 @@ HeavyAdServiceFactory::HeavyAdServiceFactory()
 
 HeavyAdServiceFactory::~HeavyAdServiceFactory() = default;
 
-std::unique_ptr<KeyedService>
-HeavyAdServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* HeavyAdServiceFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
-  return std::make_unique<heavy_ad_intervention::HeavyAdService>();
+  return new heavy_ad_intervention::HeavyAdService();
 }
 
 content::BrowserContext* HeavyAdServiceFactory::GetBrowserContextToUse(

@@ -79,7 +79,6 @@ class OpenXrRenderLoop : public XRCompositorCommon,
       device::mojom::XRSessionMode session_mode) override;
   bool CanEnableAntiAliasing() const override;
   std::vector<mojom::XRViewPtr> GetDefaultViews() const override;
-  void OnLayerBoundsChanged(const gfx::Size& source_size) override;
 
   // viz::ContextLostObserver Implementation
   void OnContextLost() override;

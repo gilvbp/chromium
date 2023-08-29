@@ -122,11 +122,6 @@ enum FieldTypeGroupForMetrics {
   GROUP_ADDRESS_HOME_LANDMARK,
   GROUP_ADDRESS_HOME_BETWEEN_STREETS,
   GROUP_ADDRESS_HOME_ADMIN_LEVEL2,
-  GROUP_ADDRESS_HOME_STREET_LOCATION,
-  GROUP_ADDRESS_HOME_OVERFLOW,
-  GROUP_DELIVERY_INSTRUCTIONS,
-  GROUP_ADDRESS_HOME_OVERFLOW_AND_LANDMARK,
-  GROUP_ADDRESS_HOME_BETWEEN_STREETS_OR_LANDMARK,
   // Add new entries here and update enums.xml.
   NUM_FIELD_TYPE_GROUPS_FOR_METRICS
 };
@@ -252,27 +247,10 @@ int GetFieldTypeGroupPredictionQualityMetric(
           group = GROUP_ADDRESS_HOME_LANDMARK;
           break;
         case ADDRESS_HOME_BETWEEN_STREETS:
-        case ADDRESS_HOME_BETWEEN_STREETS_1:
-        case ADDRESS_HOME_BETWEEN_STREETS_2:
           group = GROUP_ADDRESS_HOME_BETWEEN_STREETS;
           break;
         case ADDRESS_HOME_ADMIN_LEVEL2:
           group = GROUP_ADDRESS_HOME_ADMIN_LEVEL2;
-          break;
-        case ADDRESS_HOME_OVERFLOW:
-          group = GROUP_ADDRESS_HOME_OVERFLOW;
-          break;
-        case ADDRESS_HOME_OVERFLOW_AND_LANDMARK:
-          group = GROUP_ADDRESS_HOME_OVERFLOW_AND_LANDMARK;
-          break;
-        case ADDRESS_HOME_BETWEEN_STREETS_OR_LANDMARK:
-          group = GROUP_ADDRESS_HOME_BETWEEN_STREETS_OR_LANDMARK;
-          break;
-        case ADDRESS_HOME_STREET_LOCATION:
-          group = GROUP_ADDRESS_HOME_STREET_LOCATION;
-          break;
-        case DELIVERY_INSTRUCTIONS:
-          group = GROUP_DELIVERY_INSTRUCTIONS;
           break;
         case UNKNOWN_TYPE:
           group = GROUP_UNKNOWN_TYPE;
@@ -340,7 +318,6 @@ int GetFieldTypeGroupPredictionQualityMetric(
         case IBAN_VALUE:
         case MAX_VALID_FIELD_TYPE:
         case CREDIT_CARD_STANDALONE_VERIFICATION_CODE:
-        case SINGLE_USERNAME_FORGOT_PASSWORD:
           NOTREACHED() << field_type << " type is not in that group.";
           group = GROUP_AMBIGUOUS;
           break;
@@ -381,7 +358,6 @@ int GetFieldTypeGroupPredictionQualityMetric(
           group = GROUP_CREDIT_CARD_DATE;
           break;
         case CREDIT_CARD_VERIFICATION_CODE:
-        case CREDIT_CARD_STANDALONE_VERIFICATION_CODE:
           group = GROUP_CREDIT_CARD_VERIFICATION;
           break;
         default:
@@ -906,34 +882,39 @@ void AutofillMetrics::LogScanCreditCardCompleted(
 void AutofillMetrics::LogProgressDialogResultMetric(
     bool is_canceled_by_user,
     AutofillProgressDialogType autofill_progress_dialog_type) {
-  base::UmaHistogramBoolean(base::StrCat({"Autofill.ProgressDialog.",
-                                          GetDialogTypeStringForLogging(
-                                              autofill_progress_dialog_type),
-                                          ".Result"}),
-                            is_canceled_by_user);
+  std::string dialog_type;
+  switch (autofill_progress_dialog_type) {
+    case AutofillProgressDialogType::kAndroidFIDOProgressDialog:
+      dialog_type = "AndroidFIDO";
+      break;
+    case AutofillProgressDialogType::kVirtualCardUnmaskProgressDialog:
+      dialog_type = "CardUnmask";
+      break;
+    case AutofillProgressDialogType::kUnspecified:
+      NOTREACHED();
+      return;
+  }
+  base::UmaHistogramBoolean(
+      "Autofill.ProgressDialog." + dialog_type + ".Result",
+      is_canceled_by_user);
 }
 
 void AutofillMetrics::LogProgressDialogShown(
     AutofillProgressDialogType autofill_progress_dialog_type) {
-  base::UmaHistogramBoolean(base::StrCat({"Autofill.ProgressDialog.",
-                                          GetDialogTypeStringForLogging(
-                                              autofill_progress_dialog_type),
-                                          ".Shown"}),
-                            true);
-}
-
-std::string_view AutofillMetrics::GetDialogTypeStringForLogging(
-    AutofillProgressDialogType autofill_progress_dialog_type) {
+  std::string dialog_type;
   switch (autofill_progress_dialog_type) {
     case AutofillProgressDialogType::kAndroidFIDOProgressDialog:
-      return "AndroidFIDO";
+      dialog_type = "AndroidFIDO";
+      break;
     case AutofillProgressDialogType::kVirtualCardUnmaskProgressDialog:
-      return "VirtualCardUnmask";
-    case AutofillProgressDialogType::kServerCardUnmaskProgressDialog:
-      return "ServerCardUnmask";
-    default:
-      NOTREACHED_NORETURN();
+      dialog_type = "CardUnmask";
+      break;
+    case AutofillProgressDialogType::kUnspecified:
+      NOTREACHED();
+      return;
   }
+  base::UmaHistogramBoolean("Autofill.ProgressDialog." + dialog_type + ".Shown",
+                            true);
 }
 
 // static
@@ -1487,7 +1468,7 @@ void AutofillMetrics::LogIsAutofillCreditCardEnabledAtStartup(bool enabled) {
 // static
 void AutofillMetrics::LogIsAutofillEnabledAtPageLoad(
     bool enabled,
-    PaymentsSigninState sync_state) {
+    AutofillSyncSigninState sync_state) {
   std::string name("Autofill.IsEnabled.PageLoad");
   UMA_HISTOGRAM_BOOLEAN(name, enabled);
   base::UmaHistogramBoolean(name + GetMetricsSyncStateSuffix(sync_state),
@@ -1497,7 +1478,7 @@ void AutofillMetrics::LogIsAutofillEnabledAtPageLoad(
 // static
 void AutofillMetrics::LogIsAutofillProfileEnabledAtPageLoad(
     bool enabled,
-    PaymentsSigninState sync_state) {
+    AutofillSyncSigninState sync_state) {
   std::string name("Autofill.Address.IsEnabled.PageLoad");
   UMA_HISTOGRAM_BOOLEAN(name, enabled);
   base::UmaHistogramBoolean(name + GetMetricsSyncStateSuffix(sync_state),
@@ -1507,7 +1488,7 @@ void AutofillMetrics::LogIsAutofillProfileEnabledAtPageLoad(
 // static
 void AutofillMetrics::LogIsAutofillCreditCardEnabledAtPageLoad(
     bool enabled,
-    PaymentsSigninState sync_state) {
+    AutofillSyncSigninState sync_state) {
   std::string name("Autofill.CreditCard.IsEnabled.PageLoad");
   UMA_HISTOGRAM_BOOLEAN(name, enabled);
   base::UmaHistogramBoolean(name + GetMetricsSyncStateSuffix(sync_state),
@@ -1549,7 +1530,7 @@ void AutofillMetrics::LogStoredCreditCardMetrics(
     UMA_HISTOGRAM_COUNTS_1000("Autofill.DaysSinceLastUse.StoredCreditCard",
                               days_since_last_use);
     switch (card->record_type()) {
-      case CreditCard::RecordType::kLocalCard:
+      case CreditCard::LOCAL_CARD:
         UMA_HISTOGRAM_COUNTS_1000(
             "Autofill.DaysSinceLastUse.StoredCreditCard.Local",
             days_since_last_use);
@@ -1558,7 +1539,7 @@ void AutofillMetrics::LogStoredCreditCardMetrics(
         if (card->HasNonEmptyValidNickname())
           num_local_cards_with_nickname += 1;
         break;
-      case CreditCard::RecordType::kMaskedServerCard:
+      case CreditCard::MASKED_SERVER_CARD:
         UMA_HISTOGRAM_COUNTS_1000(
             "Autofill.DaysSinceLastUse.StoredCreditCard.Server",
             days_since_last_use);
@@ -1570,7 +1551,7 @@ void AutofillMetrics::LogStoredCreditCardMetrics(
         if (card->HasNonEmptyValidNickname())
           num_masked_cards_with_nickname += 1;
         break;
-      case CreditCard::RecordType::kFullServerCard:
+      case CreditCard::FULL_SERVER_CARD:
         UMA_HISTOGRAM_COUNTS_1000(
             "Autofill.DaysSinceLastUse.StoredCreditCard.Server",
             days_since_last_use);
@@ -1580,7 +1561,7 @@ void AutofillMetrics::LogStoredCreditCardMetrics(
         num_unmasked_cards += 1;
         num_disused_unmasked_cards += disused_delta;
         break;
-      case CreditCard::RecordType::kVirtualCard:
+      case CreditCard::VIRTUAL_CARD:
         // This card type is not persisted in Chrome.
         NOTREACHED();
         break;
@@ -1639,7 +1620,7 @@ void AutofillMetrics::LogStoredCreditCardMetrics(
   size_t virtual_card_enabled_card_count = base::ranges::count_if(
       server_cards, [](const std::unique_ptr<CreditCard>& card) {
         return card->virtual_card_enrollment_state() ==
-               CreditCard::VirtualCardEnrollmentState::kEnrolled;
+               CreditCard::VirtualCardEnrollmentState::ENROLLED;
       });
   base::UmaHistogramCounts1000(
       "Autofill.StoredCreditCardCount.Server.WithVirtualCardMetadata",
@@ -1702,11 +1683,6 @@ void AutofillMetrics::LogAutofillPopupHidingReason(PopupHidingReason reason) {
 // static
 void AutofillMetrics::LogAutofillFormCleared() {
   base::RecordAction(base::UserMetricsAction("Autofill_ClearedForm"));
-}
-
-// static
-void AutofillMetrics::LogAutofillUndo() {
-  base::RecordAction(base::UserMetricsAction("Autofill_UndoFilling"));
 }
 
 // static
@@ -2314,21 +2290,15 @@ void AutofillMetrics::FormInteractionsUkmLogger::LogSuggestionsShown(
 }
 
 void AutofillMetrics::FormInteractionsUkmLogger::LogDidFillSuggestion(
-    absl::variant<AutofillProfile::RecordType, CreditCard::RecordType>
-        record_type,
+    int record_type,
+    bool is_for_credit_card,
     const FormStructure& form,
     const AutofillField& field) {
   if (!CanLog())
     return;
 
-  bool is_for_credit_card =
-      absl::holds_alternative<CreditCard::RecordType>(record_type);
-
   ukm::builders::Autofill_SuggestionFilled(source_id_)
-      .SetRecordType(is_for_credit_card
-                         ? base::to_underlying(
-                               absl::get<CreditCard::RecordType>(record_type))
-                         : absl::get<AutofillProfile::RecordType>(record_type))
+      .SetRecordType(record_type)
       .SetIsForCreditCard(is_for_credit_card)
       .SetMillisecondsSinceFormParsed(
           MillisecondsSinceFormParsed(form.form_parsed_timestamp()))
@@ -2724,6 +2694,7 @@ void AutofillMetrics::FormInteractionsUkmLogger::
     LogAutofillFormSummaryAtFormRemove(
         const FormStructure& form_structure,
         FormEventSet form_events,
+        bool is_in_any_main_frame,
         const base::TimeTicks& initial_interaction_timestamp,
         const base::TimeTicks& form_submitted_timestamp) {
   if (!CanLog()) {
@@ -2740,6 +2711,7 @@ void AutofillMetrics::FormInteractionsUkmLogger::
       .SetFormSignature(HashFormSignature(form_structure.form_signature()))
       .SetAutofillFormEvents(form_events.data()[0])
       .SetAutofillFormEvents2(form_events.data()[1])
+      .SetIsInMainframe(is_in_any_main_frame)
       .SetWasSubmitted(!form_submitted_timestamp.is_null())
       .SetSampleRate(1);
 
@@ -2823,25 +2795,27 @@ int64_t AutofillMetrics::FormTypesToBitVector(
   return form_type_bv;
 }
 
-void AutofillMetrics::LogServerCardLinkClicked(PaymentsSigninState sync_state) {
-  base::UmaHistogramEnumeration("Autofill.ServerCardLinkClicked", sync_state);
+void AutofillMetrics::LogServerCardLinkClicked(
+    AutofillSyncSigninState sync_state) {
+  UMA_HISTOGRAM_ENUMERATION("Autofill.ServerCardLinkClicked", sync_state,
+                            AutofillSyncSigninState::kNumSyncStates);
 }
 
 // static
 const char* AutofillMetrics::GetMetricsSyncStateSuffix(
-    PaymentsSigninState sync_state) {
+    AutofillSyncSigninState sync_state) {
   switch (sync_state) {
-    case PaymentsSigninState::kSignedOut:
+    case AutofillSyncSigninState::kSignedOut:
       return ".SignedOut";
-    case PaymentsSigninState::kSignedIn:
+    case AutofillSyncSigninState::kSignedIn:
       return ".SignedIn";
-    case PaymentsSigninState::kSignedInAndWalletSyncTransportEnabled:
+    case AutofillSyncSigninState::kSignedInAndWalletSyncTransportEnabled:
       return ".SignedInAndWalletSyncTransportEnabled";
-    case PaymentsSigninState::kSignedInAndSyncFeatureEnabled:
+    case AutofillSyncSigninState::kSignedInAndSyncFeatureEnabled:
       return ".SignedInAndSyncFeatureEnabled";
-    case PaymentsSigninState::kSyncPaused:
+    case AutofillSyncSigninState::kSyncPaused:
       return ".SyncPaused";
-    case PaymentsSigninState::kUnknown:
+    case AutofillSyncSigninState::kNumSyncStates:
       return ".Unknown";
   }
 }
@@ -3238,13 +3212,15 @@ std::string AutofillMetrics::GetHistogramStringForCardType(
     }
   } else if (absl::holds_alternative<CreditCard::RecordType>(card_type)) {
     switch (absl::get<CreditCard::RecordType>(card_type)) {
-      case CreditCard::RecordType::kFullServerCard:
-      case CreditCard::RecordType::kMaskedServerCard:
+      case CreditCard::FULL_SERVER_CARD:
+      case CreditCard::MASKED_SERVER_CARD:
         return ".ServerCard";
-      case CreditCard::RecordType::kVirtualCard:
+      case CreditCard::VIRTUAL_CARD:
         return ".VirtualCard";
-      case CreditCard::RecordType::kLocalCard:
-        return ".LocalCard";
+      case CreditCard::LOCAL_CARD:
+        // We do not offer CVC auth for local cards.
+        NOTREACHED();
+        break;
     }
   }
 

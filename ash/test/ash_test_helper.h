@@ -121,11 +121,11 @@ class AshTestHelper : public aura::test::AuraTestHelper {
 
   // Simulates a user sign-in. It creates a new user session, adds it to
   // existing user sessions and makes it the active user session.
-  // `is_new_profile` indicates whether the logged-in account is new.
+  // NOTE: call `StabilizeUIForPixelTest()` after calling this function in a
+  // pixel test.
   void SimulateUserLogin(
       const AccountId& account_id,
-      user_manager::UserType user_type = user_manager::USER_TYPE_REGULAR,
-      bool is_new_profile = false);
+      user_manager::UserType user_type = user_manager::USER_TYPE_REGULAR);
 
   // Stabilizes the variable UI components (such as the battery view).
   void StabilizeUIForPixelTest();

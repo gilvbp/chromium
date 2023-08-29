@@ -7,7 +7,6 @@
 #include "base/run_loop.h"
 #include "base/task/single_thread_task_runner.h"
 #include "base/test/bind.h"
-#include "base/test/gmock_expected_support.h"
 #include "base/test/task_environment.h"
 #include "base/threading/thread.h"
 #include "components/services/storage/public/cpp/buckets/bucket_info.h"
@@ -117,26 +116,25 @@ TEST_F(CacheStorageContextTest, DefaultBucketCreatedOnAddReceiver) {
   loop.Run();
 
   // Check default bucket exists for https://example.com.
-  ASSERT_OK_AND_ASSIGN(
-      storage::BucketInfo result,
+  storage::QuotaErrorOr<storage::BucketInfo> result =
       quota_manager_proxy_sync.GetBucket(
           blink::StorageKey::CreateFromStringForTesting(kExampleStorageKey),
-          storage::kDefaultBucketName, blink::mojom::StorageType::kTemporary));
-  EXPECT_EQ(result.name, storage::kDefaultBucketName);
-  EXPECT_EQ(result.storage_key,
+          storage::kDefaultBucketName, blink::mojom::StorageType::kTemporary);
+  ASSERT_TRUE(result.has_value());
+  EXPECT_EQ(result->name, storage::kDefaultBucketName);
+  EXPECT_EQ(result->storage_key,
             blink::StorageKey::CreateFromStringForTesting(kExampleStorageKey));
-  EXPECT_GT(result.id.value(), 0);
+  EXPECT_GT(result->id.value(), 0);
 
   // Check default bucket exists for https://google.com.
-  ASSERT_OK_AND_ASSIGN(
-      result,
-      quota_manager_proxy_sync.GetBucket(
-          blink::StorageKey::CreateFromStringForTesting(kGoogleStorageKey),
-          storage::kDefaultBucketName, blink::mojom::StorageType::kTemporary));
-  EXPECT_EQ(result.name, storage::kDefaultBucketName);
-  EXPECT_EQ(result.storage_key,
+  result = quota_manager_proxy_sync.GetBucket(
+      blink::StorageKey::CreateFromStringForTesting(kGoogleStorageKey),
+      storage::kDefaultBucketName, blink::mojom::StorageType::kTemporary);
+  ASSERT_TRUE(result.has_value());
+  EXPECT_EQ(result->name, storage::kDefaultBucketName);
+  EXPECT_EQ(result->storage_key,
             blink::StorageKey::CreateFromStringForTesting(kGoogleStorageKey));
-  EXPECT_GT(result.id.value(), 0);
+  EXPECT_GT(result->id.value(), 0);
 }
 
 TEST_F(CacheStorageContextTest, GetDefaultBucketError) {

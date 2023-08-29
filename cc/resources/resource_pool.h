@@ -23,6 +23,7 @@
 #include "base/trace_event/memory_allocator_dump_guid.h"
 #include "base/trace_event/memory_dump_provider.h"
 #include "cc/cc_export.h"
+#include "components/viz/common/resources/resource_format.h"
 #include "components/viz/common/resources/resource_id.h"
 #include "components/viz/common/resources/resource_sizes.h"
 #include "components/viz/common/resources/shared_bitmap.h"
@@ -35,6 +36,10 @@
 
 namespace base {
 class SingleThreadTaskRunner;
+}
+
+namespace gpu {
+struct Capabilities;
 }
 
 namespace viz {
@@ -70,6 +75,11 @@ class CC_EXPORT ResourcePool : public base::trace_event::MemoryDumpProvider {
         const base::trace_event::MemoryAllocatorDumpGuid& buffer_dump_guid,
         uint64_t tracing_process_id,
         int importance) const = 0;
+
+    void InitOverlayCandidateAndTextureTarget(
+        const viz::SharedImageFormat format,
+        const gpu::Capabilities& caps,
+        bool use_gpu_memory_buffer_resources);
 
     gpu::Mailbox mailbox;
     gpu::SyncToken mailbox_sync_token;
@@ -281,7 +291,6 @@ class CC_EXPORT ResourcePool : public base::trace_event::MemoryDumpProvider {
 
   // Overrides internal clock for testing purposes.
   void SetClockForTesting(const base::TickClock* clock) { clock_ = clock; }
-  int tracing_id() const { return tracing_id_; }
 
  private:
   FRIEND_TEST_ALL_PREFIXES(ResourcePoolTest, ReuseResource);

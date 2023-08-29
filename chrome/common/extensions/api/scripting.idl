@@ -17,11 +17,9 @@ namespace scripting {
 
   // The JavaScript world for a script to execute within.
   enum ExecutionWorld {
-    // Specifies the isolated world, which is the execution environment unique
-    // to this extension.
+    // The isolated world, unique to this extension.
     ISOLATED,
-    // Specifies the main world of the DOM, which is the execution environment
-    // shared with the host page's JavaScript.
+    // The main world of the DOM, shared with the page's JavaScript.
     MAIN
   };
 

@@ -6,7 +6,7 @@
 
 #import <string>
 
-#import "base/apple/foundation_util.h"
+#import "base/mac/foundation_util.h"
 #import "base/test/ios/wait_util.h"
 #import "base/test/scoped_feature_list.h"
 #import "base/time/time.h"
@@ -33,6 +33,10 @@
 #import "testing/gtest/include/gtest/gtest.h"
 #import "testing/platform_test.h"
 #import "third_party/ocmock/gtest_support.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 class FakeResultDelegate
     : public autofill::payments::FullCardRequest::ResultDelegate {
@@ -173,7 +177,7 @@ TEST_F(PaymentRequestFullCardRequesterTest, PresentAndDismissNewPrompt) {
   EXPECT_TRUE([base_view_controller.presentedViewController
       isMemberOfClass:[UINavigationController class]]);
   UINavigationController* navigation_controller =
-      base::apple::ObjCCast<UINavigationController>(
+      base::mac::ObjCCast<UINavigationController>(
           base_view_controller.presentedViewController);
 
   EXPECT_TRUE([navigation_controller.topViewController
@@ -184,9 +188,10 @@ TEST_F(PaymentRequestFullCardRequesterTest, PresentAndDismissNewPrompt) {
 
   // Wait until the view controller is ordered to be dismissed and the animation
   // completes.
-  ASSERT_TRUE(base::test::ios::WaitUntilConditionOrTimeout(
-      base::Seconds(10), true, ^bool {
+  base::test::ios::WaitUntilCondition(
+      ^bool {
         return !base_view_controller.presentedViewController;
-      }));
+      },
+      true, base::Seconds(10));
   EXPECT_EQ(nil, base_view_controller.presentedViewController);
 }

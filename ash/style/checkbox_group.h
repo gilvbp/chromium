@@ -30,8 +30,7 @@ class ASH_EXPORT CheckboxGroup : public OptionButtonGroup,
   CheckboxGroup(int group_width,
                 const gfx::Insets& inside_border_insets,
                 int between_child_spacing,
-                const gfx::Insets& checkbox_padding,
-                int image_label_spacing);
+                const gfx::Insets& checkbox_padding);
   CheckboxGroup(const CheckboxGroup&) = delete;
   CheckboxGroup& operator=(const CheckboxGroup&) = delete;
   ~CheckboxGroup() override;

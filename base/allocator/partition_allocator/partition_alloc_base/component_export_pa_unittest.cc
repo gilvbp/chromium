@@ -8,7 +8,7 @@
 namespace partition_alloc::internal::base {
 namespace {
 
-using ComponentExportTestPA = testing::Test;
+using ComponentExportTest = testing::Test;
 
 #define IS_TEST_COMPONENT_A_IMPL 1
 #define IS_TEST_COMPONENT_B_IMPL
@@ -16,7 +16,7 @@ using ComponentExportTestPA = testing::Test;
 #define IS_TEST_COMPONENT_D_IMPL 2
 #define IS_TEST_COMPONENT_E_IMPL xyz
 
-TEST(ComponentExportTestPA, ImportExport) {
+TEST(ComponentExportTest, ImportExport) {
   // Defined as 1. Treat as export.
   EXPECT_EQ(1, PA_INSIDE_COMPONENT_IMPL(TEST_COMPONENT_A));
 

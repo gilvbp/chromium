@@ -13,4 +13,5 @@ source_set("user_policy_prompt") {
     "//ios/showcase/common",
   ]
   frameworks = [ "UIKit.framework" ]
+  configs += [ "//build/config/compiler:enable_arc" ]
 }

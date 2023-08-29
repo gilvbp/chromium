@@ -15,7 +15,6 @@
 @protocol LocationBarAnimatee;
 @protocol OmniboxPopupPresenterDelegate;
 @protocol OmniboxFocusDelegate;
-@protocol ToolbarOmniboxConsumer;
 
 // Location bar coordinator.
 @interface LocationBarCoordinator
@@ -55,9 +54,6 @@
 
 // Target to forward omnibox-related scribble events to.
 - (UIResponder<UITextInput>*)omniboxScribbleForwardingTarget;
-
-// Returns the toolbar omnibox consumer.
-- (id<ToolbarOmniboxConsumer>)toolbarOmniboxConsumer;
 
 @end
 

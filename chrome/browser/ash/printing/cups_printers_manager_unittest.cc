@@ -456,16 +456,14 @@ class CupsPrintersManagerTest : public testing::Test,
 
   // Backend fakes driving the CupsPrintersManager.
   FakeSyncedPrintersManager synced_printers_manager_;
-  raw_ptr<FakeEnterprisePrintersProvider, DanglingUntriaged | ExperimentalAsh>
-      enterprise_printers_provider_;  // Not owned.
-  raw_ptr<FakePrinterDetector, DanglingUntriaged | ExperimentalAsh>
-      usb_detector_;  // Not owned.
-  raw_ptr<FakePrinterDetector, DanglingUntriaged | ExperimentalAsh>
+  raw_ptr<FakeEnterprisePrintersProvider, ExperimentalAsh>
+      enterprise_printers_provider_;                            // Not owned.
+  raw_ptr<FakePrinterDetector, ExperimentalAsh> usb_detector_;  // Not owned.
+  raw_ptr<FakePrinterDetector, ExperimentalAsh>
       zeroconf_detector_;  // Not owned.
-  raw_ptr<FakeUsbPrinterNotificationController,
-          DanglingUntriaged | ExperimentalAsh>
+  raw_ptr<FakeUsbPrinterNotificationController, ExperimentalAsh>
       usb_notif_controller_;  // Not owned.
-  raw_ptr<FakePrintServersManager, DanglingUntriaged | ExperimentalAsh>
+  raw_ptr<FakePrintServersManager, ExperimentalAsh>
       print_servers_manager_;  // Not owned.
   scoped_refptr<FakePpdProvider> ppd_provider_;
 
@@ -498,7 +496,7 @@ PrinterDetector::DetectedPrinter MakeDiscoveredPrinter(const std::string& id,
 
 // Calls MakeDiscoveredPrinter with empty uri.
 PrinterDetector::DetectedPrinter MakeDiscoveredPrinter(const std::string& id) {
-  return MakeDiscoveredPrinter(id, /*uri=*/"ipp://discovered.printer/" + id);
+  return MakeDiscoveredPrinter(id, "" /* uri */);
 }
 
 // Calls MakeDiscoveredPrinter with the USB protocol as the uri.
@@ -513,13 +511,13 @@ PrinterDetector::DetectedPrinter MakeUsbDiscoveredPrinter(
 PrinterDetector::DetectedPrinter MakeAutomaticPrinter(const std::string& id) {
   PrinterDetector::DetectedPrinter ret;
   ret.printer.set_id(id);
-  ret.printer.SetUri("ipp://automatic.printer/" + id);
   ret.ppd_search_data.make_and_model.push_back("make and model string");
   return ret;
 }
 
 PrinterSetupCallback CallQuitOnRunLoop(base::RunLoop* run_loop) {
-  return base::IgnoreArgs<PrinterSetupResult>(run_loop->QuitClosure());
+  return base::BindLambdaForTesting(
+      [run_loop](PrinterSetupResult result) { run_loop->Quit(); });
 }
 
 // Test that Enterprise printers from SyncedPrinterManager are
@@ -561,32 +559,14 @@ TEST_F(CupsPrintersManagerTest, GetZeroconfPrinters) {
   ExpectPrintersInClassAre(PrinterClass::kAutomatic, {"AutomaticPrinter"});
 }
 
-// Test that USB printers that prefer IPP-USB end up in the automatic class
-// instead of the discovered class.
-TEST_F(CupsPrintersManagerTest, GetIppUsbPrinters) {
-  PrinterDetector::DetectedPrinter printer;
-  printer.printer.set_id("IppUsbPrinter");
-  printer.printer.SetUri("usb://1234/5678");
-  printer.printer.set_make_and_model("EPSON WF-110 Series");
-
-  usb_detector_->AddDetections({printer});
-  task_environment_.RunUntilIdle();
-  ExpectPrintersInClassAre(PrinterClass::kDiscovered, {});
-  ExpectPrintersInClassAre(PrinterClass::kAutomatic, {"IppUsbPrinter"});
-}
-
 // Test that printers that appear in either a Saved or Enterprise set do
 // *not* appear in Discovered or Automatic, even if they are detected as such.
 TEST_F(CupsPrintersManagerTest, SyncedPrintersTrumpDetections) {
-  PrinterDetector::DetectedPrinter disc0 =
-      MakeDiscoveredPrinter("DiscoveredPrinter0");
-  PrinterDetector::DetectedPrinter disc1 =
-      MakeDiscoveredPrinter("DiscoveredPrinter1");
-  PrinterDetector::DetectedPrinter auto0 =
-      MakeAutomaticPrinter("AutomaticPrinter0");
-  PrinterDetector::DetectedPrinter auto1 =
-      MakeAutomaticPrinter("AutomaticPrinter1");
-  zeroconf_detector_->AddDetections({disc0, disc1, auto0, auto1});
+  zeroconf_detector_->AddDetections(
+      {MakeDiscoveredPrinter("DiscoveredPrinter0"),
+       MakeDiscoveredPrinter("DiscoveredPrinter1"),
+       MakeAutomaticPrinter("AutomaticPrinter0"),
+       MakeAutomaticPrinter("AutomaticPrinter1")});
   task_environment_.RunUntilIdle();
   // Before we muck with anything else, check that automatic and discovered
   // classes are what we intended to set up.
@@ -598,20 +578,12 @@ TEST_F(CupsPrintersManagerTest, SyncedPrintersTrumpDetections) {
   // Save both the Discovered and Automatic printers.  This should put them
   // into the Saved class and thus *remove* them from their previous
   // classes.
-  base::RunLoop run_loop_1;
-  manager_->SetUpPrinter(disc0.printer,
-                         /*is_automatic_installation=*/true,
-                         CallQuitOnRunLoop(&run_loop_1));
-  run_loop_1.Run();
-  manager_->SavePrinter(disc0.printer);
-
-  base::RunLoop run_loop_2;
-  manager_->SetUpPrinter(auto0.printer,
-                         /*is_automatic_installation=*/true,
-                         CallQuitOnRunLoop(&run_loop_2));
-  run_loop_2.Run();
-  manager_->SavePrinter(auto0.printer);
-
+  manager_->PrinterInstalled(Printer("DiscoveredPrinter0"),
+                             /*is_automatic=*/true);
+  manager_->SavePrinter(Printer("DiscoveredPrinter0"));
+  manager_->PrinterInstalled(Printer("AutomaticPrinter0"),
+                             /*is_automatic=*/true);
+  manager_->SavePrinter(Printer("AutomaticPrinter0"));
   task_environment_.RunUntilIdle();
   ExpectPrintersInClassAre(PrinterClass::kDiscovered, {"DiscoveredPrinter1"});
   ExpectPrintersInClassAre(PrinterClass::kAutomatic, {"AutomaticPrinter1"});
@@ -830,8 +802,7 @@ TEST_F(CupsPrintersManagerTest, PrinterIsInstalled) {
   Printer printer(kPrinterId);
   printer.SetUri("ipp://manual.uri");
   base::RunLoop run_loop;
-  manager_->SetUpPrinter(printer, /*is_automatic_installation=*/true,
-                         CallQuitOnRunLoop(&run_loop));
+  manager_->SetUpPrinter(printer, CallQuitOnRunLoop(&run_loop));
   run_loop.Run();
   EXPECT_TRUE(manager_->IsPrinterInstalled(printer));
 }
@@ -842,8 +813,7 @@ TEST_F(CupsPrintersManagerTest, UpdatedPrinterConfiguration) {
   Printer printer(kPrinterId);
   printer.SetUri("ipp://manual.uri");
   base::RunLoop run_loop;
-  manager_->SetUpPrinter(printer, /*is_automatic_installation=*/true,
-                         CallQuitOnRunLoop(&run_loop));
+  manager_->SetUpPrinter(printer, CallQuitOnRunLoop(&run_loop));
   run_loop.Run();
 
   Printer updated(printer);
@@ -885,11 +855,7 @@ TEST_F(CupsPrintersManagerTest, SavePrinterSucceedsOnManualPrinter) {
 // Test that installing a printer does not put it in the saved class.
 TEST_F(CupsPrintersManagerTest, PrinterInstalledDoesNotSavePrinter) {
   Printer printer(kPrinterId);
-  EXPECT_TRUE(printer.SetUri("ipp://abcde/ipp/print"));
-  base::RunLoop run_loop;
-  manager_->SetUpPrinter(printer, /*is_automatic_installation=*/true,
-                         CallQuitOnRunLoop(&run_loop));
-  run_loop.Run();
+  manager_->PrinterInstalled(printer, /*is_automatic=*/false);
 
   auto saved_printers = manager_->GetPrinters(PrinterClass::kSaved);
   EXPECT_EQ(0u, saved_printers.size());
@@ -901,8 +867,7 @@ TEST_F(CupsPrintersManagerTest, SavePrinterUpdatesPreviouslyInstalledPrinter) {
   Printer printer(kPrinterId);
   printer.SetUri("http://ble");
   base::RunLoop run_loop;
-  manager_->SetUpPrinter(printer, /*is_automatic_installation=*/true,
-                         CallQuitOnRunLoop(&run_loop));
+  manager_->SetUpPrinter(printer, CallQuitOnRunLoop(&run_loop));
   run_loop.Run();
 
   manager_->SavePrinter(printer);

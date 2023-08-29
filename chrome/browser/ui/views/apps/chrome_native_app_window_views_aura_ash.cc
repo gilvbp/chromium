@@ -16,7 +16,6 @@
 #include "ash/public/cpp/window_properties.h"
 #include "base/functional/bind.h"
 #include "base/logging.h"
-#include "base/trace_event/trace_event.h"
 #include "chrome/browser/apps/app_service/app_service_proxy.h"
 #include "chrome/browser/apps/app_service/app_service_proxy_factory.h"
 #include "chrome/browser/apps/icon_standardizer.h"
@@ -148,7 +147,6 @@ ChromeNativeAppWindowViewsAuraAsh::CreateNonStandardAppFrame() {
 }
 
 ui::ImageModel ChromeNativeAppWindowViewsAuraAsh::GetWindowIcon() {
-  TRACE_EVENT0("ui", "ChromeNativeAppWindowViewsAuraAsh::GetWindowIcon");
   const ui::ImageModel& image = ChromeNativeAppWindowViews::GetWindowIcon();
   if (image.IsEmpty())
     return ui::ImageModel();
@@ -167,7 +165,6 @@ bool ChromeNativeAppWindowViewsAuraAsh::ShouldRemoveStandardFrame() {
 }
 
 void ChromeNativeAppWindowViewsAuraAsh::EnsureAppIconCreated() {
-  TRACE_EVENT0("ui", "ChromeNativeAppWindowViewsAuraAsh::EnsureAppIconCreated");
   LoadAppIcon(true /* allow_placeholder_icon */);
 }
 
@@ -281,9 +278,9 @@ void ChromeNativeAppWindowViewsAuraAsh::SetFullscreen(int fullscreen_types) {
   ChromeNativeAppWindowViewsAura::SetFullscreen(fullscreen_types);
   UpdateImmersiveMode();
 
-  // In a managed guest session, display a toast with instructions on exiting
+  // In a public session, display a toast with instructions on exiting
   // fullscreen.
-  if (profiles::IsManagedGuestSession()) {
+  if (profiles::IsPublicSession()) {
     UpdateExclusiveAccessExitBubbleContent(
         GURL(),
         fullscreen_types & (AppWindow::FULLSCREEN_TYPE_HTML_API |
@@ -295,8 +292,10 @@ void ChromeNativeAppWindowViewsAuraAsh::SetFullscreen(int fullscreen_types) {
         /*force_update=*/false);
   }
 
-  // Autohide the shelf instead of hiding it completely for OS fullscreen.
+  // Autohide the shelf instead of hiding the shelf completely when only in
+  // OS fullscreen or when in a public session.
   const bool should_hide_shelf =
+      !profiles::IsPublicSession() &&
       fullscreen_types != AppWindow::FULLSCREEN_TYPE_OS;
   widget()->GetNativeWindow()->SetProperty(
       chromeos::kHideShelfWhenFullscreenKey, should_hide_shelf);
@@ -381,8 +380,7 @@ void ChromeNativeAppWindowViewsAuraAsh::UpdateExclusiveAccessExitBubbleContent(
   }
 
   exclusive_access_bubble_ = std::make_unique<ExclusiveAccessBubbleViews>(
-      this, url, bubble_type, notify_download,
-      std::move(bubble_first_hide_callback));
+      this, url, bubble_type, std::move(bubble_first_hide_callback));
 }
 
 bool ChromeNativeAppWindowViewsAuraAsh::IsExclusiveAccessBubbleDisplayed()
@@ -551,7 +549,6 @@ void ChromeNativeAppWindowViewsAuraAsh::UpdateImmersiveMode() {
 }
 
 gfx::Image ChromeNativeAppWindowViewsAuraAsh::GetCustomImage() {
-  TRACE_EVENT0("ui", "ChromeNativeAppWindowViewsAuraAsh::GetCustomImage");
   gfx::Image image = ChromeNativeAppWindowViews::GetCustomImage();
   return !image.IsEmpty()
              ? gfx::Image(apps::CreateStandardIconImage(image.AsImageSkia()))
@@ -559,7 +556,6 @@ gfx::Image ChromeNativeAppWindowViewsAuraAsh::GetCustomImage() {
 }
 
 gfx::Image ChromeNativeAppWindowViewsAuraAsh::GetAppIconImage() {
-  TRACE_EVENT0("ui", "ChromeNativeAppWindowViewsAuraAsh::GetAppIconImage");
   if (!app_icon_image_skia_.isNull())
     return gfx::Image(app_icon_image_skia_);
 
@@ -568,7 +564,6 @@ gfx::Image ChromeNativeAppWindowViewsAuraAsh::GetAppIconImage() {
 
 void ChromeNativeAppWindowViewsAuraAsh::LoadAppIcon(
     bool allow_placeholder_icon) {
-  TRACE_EVENT0("ui", "ChromeNativeAppWindowViewsAuraAsh::LoadAppIcon");
   if (apps::AppServiceProxyFactory::IsAppServiceAvailableForProfile(
           Profile::FromBrowserContext(app_window()->browser_context()))) {
     apps::AppServiceProxy* proxy = apps::AppServiceProxyFactory::GetForProfile(
@@ -594,7 +589,6 @@ void ChromeNativeAppWindowViewsAuraAsh::LoadAppIcon(
 
 void ChromeNativeAppWindowViewsAuraAsh::OnLoadIcon(
     apps::IconValuePtr icon_value) {
-  TRACE_EVENT0("ui", "ChromeNativeAppWindowViewsAuraAsh::OnLoadIcon");
   if (!icon_value || icon_value->icon_type != apps::IconType::kStandard)
     return;
 

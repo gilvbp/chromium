@@ -5,8 +5,6 @@
 import {TestRunner} from 'test_runner';
 import {SourcesTestRunner} from 'sources_test_runner';
 
-import * as Common from 'devtools/core/common/common.js';
-
 (async function() {
   TestRunner.addResult(`Verify that CSS sourcemap enabling and disabling adds/removes sourcemap sources.\n`);
   await TestRunner.loadLegacyModule('sources');
@@ -15,7 +13,7 @@ import * as Common from 'devtools/core/common/common.js';
   var sourcesNavigator = new Sources.NetworkNavigatorView();
   sourcesNavigator.show(UI.inspectorView.element);
 
-  Common.Settings.moduleSetting('cssSourceMapsEnabled').set(true);
+  Common.moduleSetting('cssSourceMapsEnabled').set(true);
   await TestRunner.addStylesheetTag('resources/sourcemap-style-1.css');
   await TestRunner.addStylesheetTag('resources/sourcemap-style-2.css');
 
@@ -27,11 +25,11 @@ import * as Common from 'devtools/core/common/common.js';
   SourcesTestRunner.dumpNavigatorView(sourcesNavigator, false);
 
   TestRunner.markStep('disableCSSSourceMaps');
-  Common.Settings.moduleSetting('cssSourceMapsEnabled').set(false);
+  Common.moduleSetting('cssSourceMapsEnabled').set(false);
   SourcesTestRunner.dumpNavigatorView(sourcesNavigator, false);
 
   TestRunner.markStep('enableCSSSourceMaps');
-  Common.Settings.moduleSetting('cssSourceMapsEnabled').set(true);
+  Common.moduleSetting('cssSourceMapsEnabled').set(true);
   await Promise.all([
     TestRunner.waitForUISourceCode('sourcemap-style-1.scss'), TestRunner.waitForUISourceCode('sourcemap-style-2.scss')
   ]);

@@ -118,6 +118,7 @@ public class TabbedModeTabModelOrchestrator extends TabModelOrchestrator {
         mTabPersistentStore.cleanupStateFile(instanceId);
     }
 
+    @VisibleForTesting
     public TabPersistentStore getTabPersistentStoreForTesting() {
         return mTabPersistentStore;
     }

@@ -67,7 +67,28 @@ void LocatePhoneQuickActionController::OnPhoneRingingStateChanged() {
 }
 
 void LocatePhoneQuickActionController::UpdateState() {
-  UpdateQuickActionItemUi();
+  // Disable Locate Phone if Silence Phone is on, otherwise change accordingly
+  // based on status from FindMyDeviceController.
+  switch (find_my_device_controller_->GetPhoneRingingStatus()) {
+    case Status::kRingingOff:
+      state_ = ActionState::kOff;
+      break;
+    case Status::kRingingOn:
+      state_ = ActionState::kOn;
+      break;
+    case Status::kRingingNotAvailable:
+      state_ = ActionState::kNotAvailable;
+      break;
+  }
+
+  SetItemState(state_);
+
+  // If |requested_state_| correctly resembles the current state, reset it and
+  // the timer.
+  if (state_ == requested_state_) {
+    check_requested_state_timer_.reset();
+    requested_state_.reset();
+  }
 }
 
 void LocatePhoneQuickActionController::SetItemState(ActionState state) {
@@ -118,31 +139,6 @@ void LocatePhoneQuickActionController::CheckRequestedState() {
 
   check_requested_state_timer_.reset();
   requested_state_.reset();
-}
-
-void LocatePhoneQuickActionController::UpdateQuickActionItemUi() {
-  // Disable Locate Phone if Silence Phone is on, otherwise change accordingly
-  // based on status from FindMyDeviceController.
-  switch (find_my_device_controller_->GetPhoneRingingStatus()) {
-    case Status::kRingingOff:
-      state_ = ActionState::kOff;
-      break;
-    case Status::kRingingOn:
-      state_ = ActionState::kOn;
-      break;
-    case Status::kRingingNotAvailable:
-      state_ = ActionState::kNotAvailable;
-      break;
-  }
-
-  SetItemState(state_);
-
-  // If |requested_state_| correctly resembles the current state, reset it and
-  // the timer.
-  if (state_ == requested_state_) {
-    check_requested_state_timer_.reset();
-    requested_state_.reset();
-  }
 }
 
 }  // namespace ash

@@ -16,9 +16,6 @@
 // The button text displayed by this InfobarBanner.
 - (void)setButtonText:(NSString*)buttonText;
 
-// The favicon displayed by this InfobarBanner.
-- (void)setFaviconImage:(UIImage*)faviconImage;
-
 // The icon displayed by this InfobarBanner.
 - (void)setIconImage:(UIImage*)iconImage;
 
@@ -47,17 +44,9 @@
 // The subtitle displayed by this InfobarBanner.
 - (void)setSubtitleText:(NSString*)subtitleText;
 
-// Sets the number of maximum lines in title. Default value is 0 (no maximum
-// limit).
-- (void)setTitleNumberOfLines:(NSInteger)titleNumberOfLines;
-
-// Sets the number of maximum lines in subtitle. Default value is 0 (no maximum
-// limit).
-- (void)setSubtitleNumberOfLines:(NSInteger)subtitleNumberOfLines;
-
-// Sets the lineBreakMode of the subtitle text. Default value is
-// NSLineBreakByTruncatingTail.
-- (void)setSubtitleLineBreakMode:(NSLineBreakMode)linebreakMode;
+// If YES, restricts the number of lines in subtitle to 1.
+- (void)setRestrictSubtitleTextToSingleLine:
+    (BOOL)restrictSubtitleTextToSingleLine;
 
 @end
 

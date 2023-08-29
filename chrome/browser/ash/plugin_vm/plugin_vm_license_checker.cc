@@ -154,8 +154,7 @@ void PluginVmLicenseChecker::FetchAccessToken() {
       "ChromePluginVm", identity_manager, validation_scope,
       base::BindOnce(&PluginVmLicenseChecker::CallEndpointWithAccessToken,
                      weak_ptr_factory_.GetWeakPtr()),
-      signin::PrimaryAccountAccessTokenFetcher::Mode::kImmediate,
-      signin::ConsentLevel::kSync);
+      signin::PrimaryAccountAccessTokenFetcher::Mode::kImmediate);
 }
 
 void PluginVmLicenseChecker::CallEndpointWithAccessToken(

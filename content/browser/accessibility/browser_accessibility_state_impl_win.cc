@@ -13,6 +13,7 @@
 
 #include "base/files/file_path.h"
 #include "base/metrics/histogram_macros.h"
+#include "base/no_destructor.h"
 #include "base/strings/string_util.h"
 #include "content/browser/web_contents/web_contents_impl.h"
 #include "ui/accessibility/accessibility_features.h"
@@ -154,6 +155,7 @@ void OnWndProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam) {
 class BrowserAccessibilityStateImplWin : public BrowserAccessibilityStateImpl {
  public:
   BrowserAccessibilityStateImplWin();
+  ~BrowserAccessibilityStateImplWin() override {}
 
  protected:
   void UpdateHistogramsOnOtherThread() override;
@@ -266,10 +268,15 @@ void BrowserAccessibilityStateImplWin::UpdateUniqueUserHistograms() {
   UMA_HISTOGRAM_BOOLEAN("Accessibility.WinZoomText.EveryReport", g_zoomtext);
 }
 
+//
+// BrowserAccessibilityStateImpl::GetInstance implementation that constructs
+// this class instead of the base class.
+//
+
 // static
-std::unique_ptr<BrowserAccessibilityStateImpl>
-BrowserAccessibilityStateImpl::Create() {
-  return std::make_unique<BrowserAccessibilityStateImplWin>();
+BrowserAccessibilityStateImpl* BrowserAccessibilityStateImpl::GetInstance() {
+  static base::NoDestructor<BrowserAccessibilityStateImplWin> instance;
+  return &*instance;
 }
 
 }  // namespace content

@@ -4,8 +4,8 @@
 
 #import "ios/chrome/browser/ui/settings/content_settings/block_popups_table_view_controller.h"
 
-#import "base/apple/foundation_util.h"
 #import "base/logging.h"
+#import "base/mac/foundation_util.h"
 #import "base/strings/sys_string_conversions.h"
 #import "base/values.h"
 #import "components/content_settings/core/browser/host_content_settings_map.h"
@@ -31,6 +31,10 @@
 #import "net/base/mac/url_conversions.h"
 #import "ui/base/l10n/l10n_util.h"
 #import "ui/base/l10n/l10n_util_mac.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace {
 
@@ -178,7 +182,7 @@ typedef NS_ENUM(NSInteger, ItemType) {
       break;
     case ItemTypeMainSwitch: {
       TableViewSwitchCell* switchCell =
-          base::apple::ObjCCastStrict<TableViewSwitchCell>(cell);
+          base::mac::ObjCCastStrict<TableViewSwitchCell>(cell);
       [switchCell.switchView addTarget:self
                                 action:@selector(blockPopupsSwitchChanged:)
                       forControlEvents:UIControlEventValueChanged];
@@ -186,7 +190,7 @@ typedef NS_ENUM(NSInteger, ItemType) {
     }
     case ItemTypeManaged: {
       TableViewInfoButtonCell* managedCell =
-          base::apple::ObjCCastStrict<TableViewInfoButtonCell>(cell);
+          base::mac::ObjCCastStrict<TableViewInfoButtonCell>(cell);
       [managedCell.trailingButton
                  addTarget:self
                     action:@selector(didTapManagedUIInfoButton:)
@@ -341,9 +345,9 @@ typedef NS_ENUM(NSInteger, ItemType) {
   // The body of this method was mostly copied from
   // chrome/browser/ui/webui/options/content_settings_handler.cc and simplified
   // to only deal with urls/patterns that allow popups.
-  ContentSettingsForOneType entries =
-      ios::HostContentSettingsMapFactory::GetForBrowserState(_browserState)
-          ->GetSettingsForOneType(ContentSettingsType::POPUPS);
+  ContentSettingsForOneType entries;
+  ios::HostContentSettingsMapFactory::GetForBrowserState(_browserState)
+      ->GetSettingsForOneType(ContentSettingsType::POPUPS, &entries);
   for (size_t i = 0; i < entries.size(); ++i) {
     // Skip default settings from extensions and policy, and the default content
     // settings; all of them will affect the default setting UI.

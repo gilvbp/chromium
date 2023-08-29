@@ -216,8 +216,7 @@ std::unique_ptr<ScriptInjection> UserScriptSet::GetInjectionForScript(
   // injected into a frame.
   bool is_extension_dynamic_script =
       (host_id_.type == mojom::HostID::HostType::kExtensions) &&
-      (script->GetSource() == UserScript::Source::kDynamicContentScript ||
-       script->GetSource() == UserScript::Source::kDynamicUserScript);
+      !script->IsIDGenerated();
   std::unique_ptr<ScriptInjector> injector(new UserScriptInjector(
       script, this, is_declarative || is_extension_dynamic_script));
 

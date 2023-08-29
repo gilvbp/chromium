@@ -12,6 +12,7 @@
 #include "base/sequence_checker.h"
 #include "base/task/sequenced_task_runner.h"
 #include "components/favicon/core/core_favicon_service.h"
+#include "components/favicon/core/large_favicon_provider.h"
 
 namespace base {
 class FilePath;
@@ -24,7 +25,8 @@ class FaviconServiceImplObserver;
 
 // FaviconServiceImpl provides the front end (ui side) access to the favicon
 // database. Most functions are processed async on the backend task-runner.
-class FaviconServiceImpl : public favicon::CoreFaviconService {
+class FaviconServiceImpl : public favicon::CoreFaviconService,
+                           public favicon::LargeFaviconProvider {
  public:
   FaviconServiceImpl();
   FaviconServiceImpl(const FaviconServiceImpl&) = delete;
@@ -46,14 +48,14 @@ class FaviconServiceImpl : public favicon::CoreFaviconService {
       const GURL& page_url,
       base::OnceCallback<void(gfx::Image)> callback,
       base::CancelableTaskTracker* tracker);
+
+  // favicon::CoreFaviconService:
   base::CancelableTaskTracker::TaskId GetLargestRawFaviconForPageURL(
       const GURL& page_url,
       const std::vector<favicon_base::IconTypeSet>& icon_types,
       int minimum_size_in_pixels,
       favicon_base::FaviconRawBitmapCallback callback,
-      base::CancelableTaskTracker* tracker);
-
-  // favicon::CoreFaviconService:
+      base::CancelableTaskTracker* tracker) override;
   base::CancelableTaskTracker::TaskId GetFaviconForPageURL(
       const GURL& page_url,
       const favicon_base::IconTypeSet& icon_types,

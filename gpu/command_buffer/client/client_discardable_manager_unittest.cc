@@ -3,7 +3,6 @@
 // found in the LICENSE file.
 
 #include "gpu/command_buffer/client/client_discardable_manager.h"
-
 #include "gpu/command_buffer/client/client_discardable_texture_manager.h"
 #include "testing/gtest/include/gtest/gtest.h"
 
@@ -43,8 +42,9 @@ class FakeCommandBuffer : public CommandBuffer {
     return MakeMemoryBuffer(size, alignment);
   }
   void DestroyTransferBuffer(int32_t id) override {
-    size_t erased_elements = active_ids_.erase(id);
-    EXPECT_TRUE(erased_elements > 0);
+    auto found = active_ids_.find(id);
+    EXPECT_TRUE(found != active_ids_.end());
+    active_ids_.erase(found);
   }
   void ForceLostContext(error::ContextLostReason reason) override {
     // No-op; doesn't need to be exercised here.

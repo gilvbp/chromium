@@ -7,7 +7,6 @@
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
 
-#import "base/containers/contains.h"
 #import "base/functional/bind.h"
 #import "base/run_loop.h"
 #import "base/strings/stringprintf.h"
@@ -19,6 +18,10 @@
 #import "ios/web/public/web_state.h"
 #import "net/base/mac/url_conversions.h"
 #import "url/gurl.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 using base::test::ios::kWaitForDownloadTimeout;
 using base::test::ios::WaitUntilConditionOrTimeout;
@@ -104,7 +107,7 @@ bool IsWebViewContainingText(web::WebState* web_state,
       web::test::ExecuteJavaScript(web_state, kGetDocumentBodyJavaScript);
   std::string body;
   if (value && value->is_string()) {
-    return base::Contains(value->GetString(), text);
+    return value->GetString().find(text) != std::string::npos;
   }
   return false;
 }

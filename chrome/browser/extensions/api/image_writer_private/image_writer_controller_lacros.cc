@@ -13,7 +13,6 @@
 #include "chromeos/lacros/lacros_service.h"
 #include "content/public/browser/browser_context.h"
 #include "extensions/browser/event_router.h"
-#include "extensions/common/extension_id.h"
 
 namespace image_writer_api = extensions::api::image_writer_private;
 
@@ -114,7 +113,7 @@ class ImageWriterControllerLacros::ImageWriterClientLacros
     // Note: |this| is deleted at this point.
   }
 
-  const ExtensionId extension_id_;
+  const std::string extension_id_;
   // Both pointers of |browser_context_| and |controller_| are guaranteed
   // to be valid for the lifetime of this class, as destruction of either
   // BrowserContext or ImageWriterControllerLacros will result in synchronous

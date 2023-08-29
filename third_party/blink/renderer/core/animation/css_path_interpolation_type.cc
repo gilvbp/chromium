@@ -13,7 +13,6 @@
 #include "third_party/blink/renderer/core/css/css_value_list.h"
 #include "third_party/blink/renderer/core/css/resolver/style_resolver_state.h"
 #include "third_party/blink/renderer/core/style/computed_style.h"
-#include "third_party/blink/renderer/core/style/computed_style_constants.h"
 #include "third_party/blink/renderer/core/style/shape_clip_path_operation.h"
 #include "third_party/blink/renderer/core/style/shape_offset_path_operation.h"
 
@@ -61,9 +60,7 @@ void SetPath(const CSSProperty& property,
           std::move(path), CoordBox::kBorderBox));
       return;
     case CSSPropertyID::kClipPath:
-      // TODO(pdr): Handle geometry box.
-      builder.SetClipPath(ShapeClipPathOperation::Create(
-          std::move(path), GeometryBox::kBorderBox));
+      builder.SetClipPath(ShapeClipPathOperation::Create(std::move(path)));
       return;
     default:
       NOTREACHED();

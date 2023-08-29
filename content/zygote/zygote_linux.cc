@@ -18,7 +18,6 @@
 #include <utility>
 
 #include "base/command_line.h"
-#include "base/containers/contains.h"
 #include "base/files/file_util.h"
 #include "base/files/platform_file.h"
 #include "base/linux_util.h"
@@ -529,7 +528,7 @@ int Zygote::ForkWithRealPid(const std::string& process_type,
   }
 
   // Now set-up this process to be tracked by the Zygote.
-  if (base::Contains(process_info_map_, real_pid)) {
+  if (process_info_map_.find(real_pid) != process_info_map_.end()) {
     LOG(ERROR) << "Already tracking PID " << real_pid;
     NOTREACHED();
   }

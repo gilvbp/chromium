@@ -4,13 +4,12 @@
 
 #include "device/fido/mac/icloud_keychain.h"
 
+#import <AuthenticationServices/ASFoundation.h>
 #import <AuthenticationServices/AuthenticationServices.h>
-#import <Foundation/Foundation.h>
 
 #include "base/functional/bind.h"
 #include "base/functional/callback.h"
 #include "base/memory/scoped_refptr.h"
-#include "base/notreached.h"
 #include "base/ranges/algorithm.h"
 #include "base/strings/string_number_conversions.h"
 #include "base/strings/sys_string_conversions.h"
@@ -31,6 +30,10 @@
 #include "device/fido/fido_transport_protocol.h"
 #include "device/fido/mac/icloud_keychain_sys.h"
 #include "third_party/abseil-cpp/absl/types/optional.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace device::fido::icloud_keychain {
 
@@ -139,7 +142,7 @@ class API_AVAILABLE(macos(13.3)) Authenticator : public FidoAuthenticator {
             << "iCKC: cannot query credentials because of lack of permission";
         std::move(callback).Run(
             {}, FidoRequestHandlerBase::RecognizedCredential::kUnknown);
-        return;
+        break;
       case SystemInterface::kAuthAuthorized:
         break;
     }
@@ -147,8 +150,6 @@ class API_AVAILABLE(macos(13.3)) Authenticator : public FidoAuthenticator {
     scoped_refptr<base::SequencedTaskRunner> origin_task_runner =
         base::SequencedTaskRunner::GetCurrentDefault();
     __block auto internal_callback = std::move(callback);
-    const std::vector<PublicKeyCredentialDescriptor> allow_list =
-        request.allow_list;
     const std::string rp_id = request.rp_id;
     auto handler = ^(
         NSArray<ASAuthorizationWebBrowserPlatformPublicKeyCredential*>*
@@ -156,16 +157,8 @@ class API_AVAILABLE(macos(13.3)) Authenticator : public FidoAuthenticator {
       std::vector<DiscoverableCredentialMetadata> ret;
       for (NSUInteger i = 0; i < credentials.count; i++) {
         const auto& cred = credentials[i];
-        std::vector<uint8_t> cred_id = ToVector(cred.credentialID);
-        if (!allow_list.empty() &&
-            base::ranges::none_of(
-                allow_list,
-                [&cred_id](const PublicKeyCredentialDescriptor& allow_list_cred)
-                    -> bool { return allow_list_cred.id == cred_id; })) {
-          continue;
-        }
         ret.emplace_back(AuthenticatorType::kICloudKeychain, rp_id,
-                         std::move(cred_id),
+                         ToVector(cred.credentialID),
                          PublicKeyCredentialUserEntity(
                              ToVector(cred.userHandle), cred.name.UTF8String,
                              /* iCloud Keychain does not store
@@ -184,12 +177,7 @@ class API_AVAILABLE(macos(13.3)) Authenticator : public FidoAuthenticator {
     sys_interface->GetPlatformCredentials(rp_id, handler);
   }
 
-  void Cancel() override {
-    cancelled_ = true;
-    GetSystemInterface()->Cancel();
-    // If a request was outstanding, `OnMakeCredentialComplete` or
-    // `OnGetAssertionComplete` will be called with a generic error.
-  }
+  void Cancel() override {}
 
   AuthenticatorType GetType() const override {
     return AuthenticatorType::kICloudKeychain;
@@ -207,7 +195,10 @@ class API_AVAILABLE(macos(13.3)) Authenticator : public FidoAuthenticator {
     return FidoTransportProtocol::kInternal;
   }
 
-  void GetTouch(base::OnceClosure callback) override { NOTREACHED_NORETURN(); }
+  void GetTouch(base::OnceClosure callback) override {
+    NOTREACHED();
+    std::move(callback).Run();
+  }
 
   base::WeakPtr<FidoAuthenticator> GetWeakPtr() override {
     return weak_factory_.GetWeakPtr();
@@ -215,15 +206,8 @@ class API_AVAILABLE(macos(13.3)) Authenticator : public FidoAuthenticator {
 
  private:
   void OnMakeCredentialComplete(MakeCredentialCallback callback,
-                                ASAuthorization* authorization,
-                                NSError* error) {
-    if (cancelled_) {
-      cancelled_ = false;
-      std::move(callback).Run(CtapDeviceResponseCode::kCtap2ErrKeepAliveCancel,
-                              {});
-      return;
-    }
-
+                                ASAuthorization* __strong authorization,
+                                NSError* __strong error) {
     if (error) {
       const std::string domain = base::SysNSStringToUTF8(error.domain);
       FIDO_LOG(ERROR) << "iCKC: makeCredential failed, domain: " << domain
@@ -295,15 +279,8 @@ class API_AVAILABLE(macos(13.3)) Authenticator : public FidoAuthenticator {
   }
 
   void OnGetAssertionComplete(GetAssertionCallback callback,
-                              ASAuthorization* authorization,
-                              NSError* error) {
-    if (cancelled_) {
-      cancelled_ = false;
-      std::move(callback).Run(CtapDeviceResponseCode::kCtap2ErrKeepAliveCancel,
-                              {});
-      return;
-    }
-
+                              ASAuthorization* __strong authorization,
+                              NSError* __strong error) {
     if (error) {
       FIDO_LOG(ERROR) << "iCKC: getAssertion failed, domain: "
                       << base::SysNSStringToUTF8(error.domain)
@@ -334,22 +311,20 @@ class API_AVAILABLE(macos(13.3)) Authenticator : public FidoAuthenticator {
       return;
     }
 
-    // The hybrid flow can be offered in the macOS UI, so this may be
-    // incorrect, but we've no way of knowing. It's not clear that we can
-    // do much about this with the macOS API at the time of writing, short of
-    // replacing the system UI completely.
-    constexpr auto transport_used = FidoTransportProtocol::kInternal;
-
     AuthenticatorGetAssertionResponse response(
         std::move(*authenticator_data),
-        fido_parsing_utils::Materialize(ToSpan(result.signature)),
-        transport_used);
+        fido_parsing_utils::Materialize(ToSpan(result.signature)));
     response.user_entity = PublicKeyCredentialUserEntity(
         fido_parsing_utils::Materialize(ToSpan(result.userID)));
     response.credential = PublicKeyCredentialDescriptor(
         CredentialType::kPublicKey,
         fido_parsing_utils::Materialize(ToSpan(result.credentialID)));
     response.user_selected = true;
+    // The hybrid flow can be offered in the macOS UI, so this may be
+    // incorrect, but we've no way of knowing. It's not clear that we can
+    // do much about this with the macOS API at the time of writing, short of
+    // replacing the system UI completely.
+    response.transport_used = FidoTransportProtocol::kInternal;
 
     std::vector<AuthenticatorGetAssertionResponse> responses;
     responses.emplace_back(std::move(response));
@@ -357,8 +332,7 @@ class API_AVAILABLE(macos(13.3)) Authenticator : public FidoAuthenticator {
                             std::move(responses));
   }
 
-  NSWindow* __strong window_;
-  bool cancelled_ = false;
+  NSWindow* const window_;
   base::WeakPtrFactory<Authenticator> weak_factory_{this};
 };
 
@@ -385,7 +359,7 @@ class API_AVAILABLE(macos(13.3)) Discovery : public FidoDiscoveryBase {
                                  {authenticator_.get()});
   }
 
-  NSWindow* __strong window_;
+  NSWindow* const window_;
   std::unique_ptr<Authenticator> authenticator_;
   base::WeakPtrFactory<Discovery> weak_factory_{this};
 };
@@ -393,26 +367,28 @@ class API_AVAILABLE(macos(13.3)) Discovery : public FidoDiscoveryBase {
 }  // namespace
 
 bool IsSupported() {
-  // Here, and in `NewDiscovery`, macOS 13.5 is required. But the rest of the
-  // version tests in this code are only for 13.3. That's because the
-  // functions used are available in 13.3 but we don't want to launch for
-  // 13.3 and 13.4 so that we can updated to require 13.5 in the future without
-  // removing functionality for anyone.
-  if (@available(macOS 13.5, *)) {
+  if (@available(macOS 13.3, *)) {
     return GetSystemInterface()->IsAvailable();
   }
   return false;
 }
 
 std::unique_ptr<FidoDiscoveryBase> NewDiscovery(uintptr_t ns_window) {
-  if (@available(macOS 13.5, *)) {
-    NSWindow* window = (__bridge NSWindow*)(void*)ns_window;
+  if (@available(macOS 13.3, *)) {
+    NSWindow* window;
     static_assert(sizeof(window) == sizeof(ns_window));
+    memcpy((void*)&window, &ns_window, sizeof(ns_window));
 
-    return std::make_unique<Discovery>(window);
+    auto discovery = std::make_unique<Discovery>(window);
+
+    // Clear pointer so that ObjC doesn't try to release it.
+    memset((void*)&window, 0, sizeof(window));
+
+    return discovery;
   }
 
-  NOTREACHED_NORETURN();
+  NOTREACHED();
+  return nullptr;
 }
 
 }  // namespace device::fido::icloud_keychain

@@ -9,8 +9,6 @@
 #include "gpu/command_buffer/service/shared_image/shared_image_format_service_utils.h"
 #include "skia/ext/legacy_display_globals.h"
 #include "third_party/skia/include/gpu/GrBackendSurface.h"
-#include "third_party/skia/include/gpu/ganesh/gl/GrGLBackendSurface.h"
-#include "third_party/skia/include/gpu/gl/GrGLTypes.h"
 #include "third_party/skia/include/gpu/mock/GrMockTypes.h"
 #include "third_party/skia/include/private/chromium/GrPromiseImageTexture.h"
 
@@ -78,7 +76,7 @@ class TestSkiaImageRepresentation : public SkiaGaneshImageRepresentation {
       const gfx::Rect& update_rect,
       std::vector<GrBackendSemaphore>* begin_semaphores,
       std::vector<GrBackendSemaphore>* end_semaphores,
-      std::unique_ptr<skgpu::MutableTextureState>* end_state) override {
+      std::unique_ptr<GrBackendSurfaceMutableState>* end_state) override {
     if (!static_cast<TestImageBacking*>(backing())->can_access()) {
       return {};
     }
@@ -92,7 +90,7 @@ class TestSkiaImageRepresentation : public SkiaGaneshImageRepresentation {
   std::vector<sk_sp<GrPromiseImageTexture>> BeginWriteAccess(
       std::vector<GrBackendSemaphore>* begin_semaphores,
       std::vector<GrBackendSemaphore>* end_semaphores,
-      std::unique_ptr<skgpu::MutableTextureState>* end_state) override {
+      std::unique_ptr<GrBackendSurfaceMutableState>* end_state) override {
     if (!static_cast<TestImageBacking*>(backing())->can_access()) {
       return {};
     }
@@ -106,7 +104,7 @@ class TestSkiaImageRepresentation : public SkiaGaneshImageRepresentation {
   std::vector<sk_sp<GrPromiseImageTexture>> BeginReadAccess(
       std::vector<GrBackendSemaphore>* begin_semaphores,
       std::vector<GrBackendSemaphore>* end_semaphores,
-      std::unique_ptr<skgpu::MutableTextureState>* end_state) override {
+      std::unique_ptr<GrBackendSurfaceMutableState>* end_state) override {
     if (!static_cast<TestImageBacking*>(backing())->can_access()) {
       return {};
     }
@@ -120,14 +118,12 @@ class TestSkiaImageRepresentation : public SkiaGaneshImageRepresentation {
 
  private:
   GrBackendTexture backend_tex() {
-    auto format_desc = ToGLFormatDesc(format(), /*plane_index=*/0,
-                                      /*use_angle_rgbx_format=*/false);
-    return GrBackendTextures::MakeGL(
-        size().width(), size().height(), skgpu::Mipmapped::kNo,
-        GrGLTextureInfo{
-            GL_TEXTURE_EXTERNAL_OES,
-            static_cast<TestImageBacking*>(backing())->service_id(),
-            static_cast<GrGLenum>(format_desc.storage_internal_format)});
+    return GrBackendTexture(
+        size().width(), size().height(), GrMipMapped::kNo,
+        GrGLTextureInfo{GL_TEXTURE_EXTERNAL_OES,
+                        static_cast<TestImageBacking*>(backing())->service_id(),
+                        static_cast<GrGLenum>(TextureStorageFormat(
+                            format(), /*use_angle_rgbx_format=*/false))});
   }
 };
 
@@ -138,12 +134,13 @@ class TestDawnImageRepresentation : public DawnImageRepresentation {
                               MemoryTypeTracker* tracker)
       : DawnImageRepresentation(manager, backing, tracker) {}
 
-  wgpu::Texture BeginAccess(wgpu::TextureUsage usage) override {
+  WGPUTexture BeginAccess(WGPUTextureUsage usage) override {
     if (!static_cast<TestImageBacking*>(backing())->can_access()) {
       return nullptr;
     }
 
-    return wgpu::Texture(reinterpret_cast<WGPUTexture>(203));
+    // Return a dummy value.
+    return reinterpret_cast<WGPUTexture>(203);
   }
 
   void EndAccess() override {}
@@ -197,12 +194,9 @@ TestImageBacking::TestImageBacking(const Mailbox& mailbox,
   texture_->set_mag_filter(GL_LINEAR);
   texture_->set_wrap_t(GL_CLAMP_TO_EDGE);
   texture_->set_wrap_s(GL_CLAMP_TO_EDGE);
-  GLFormatDesc format_desc = ToGLFormatDesc(format, /*plane_index=*/0,
-                                            /*use_angle_rgbx_format=*/false);
-  texture_->SetLevelInfo(GL_TEXTURE_2D, 0, format_desc.image_internal_format,
+  texture_->SetLevelInfo(GL_TEXTURE_2D, 0, GLInternalFormat(format),
                          size.width(), size.height(), 1, 0,
-                         format_desc.data_format, format_desc.data_type,
-                         gfx::Rect());
+                         GLDataFormat(format), GLDataType(format), gfx::Rect());
   texture_->SetImmutable(true, true);
   texture_passthrough_ = base::MakeRefCounted<gles2::TexturePassthrough>(
       service_id_, GL_TEXTURE_2D);
@@ -310,9 +304,9 @@ TestImageBacking::ProduceSkiaGanesh(
 std::unique_ptr<DawnImageRepresentation> TestImageBacking::ProduceDawn(
     SharedImageManager* manager,
     MemoryTypeTracker* tracker,
-    const wgpu::Device& device,
-    wgpu::BackendType backend_type,
-    std::vector<wgpu::TextureFormat> view_formats) {
+    WGPUDevice device,
+    WGPUBackendType backend_type,
+    std::vector<WGPUTextureFormat> view_formats) {
   return std::make_unique<TestDawnImageRepresentation>(manager, this, tracker);
 }
 

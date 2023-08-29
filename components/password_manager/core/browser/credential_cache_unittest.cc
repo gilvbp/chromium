@@ -59,33 +59,19 @@ TEST_F(CredentialCacheTest, ReturnsSameStoreForSameOriginOnly) {
 TEST_F(CredentialCacheTest, StoresCredentialsSortedByAplhabetAndOrigins) {
   Origin origin = Origin::Create(GURL(kExampleSite));
   cache()->SaveCredentialsAndBlocklistedForOrigin(
-      {CreateEntry("Berta", "30948", GURL(kExampleSite),
-                   PasswordForm::MatchType::kExact)
-           .get(),
-       CreateEntry("Adam", "Pas83B", GURL(kExampleSite),
-                   PasswordForm::MatchType::kExact)
-           .get(),
-       CreateEntry("Dora", "PakudC", GURL(kExampleSite),
-                   PasswordForm::MatchType::kExact)
-           .get(),
-       CreateEntry("Carl", "P1238C", GURL(kExampleSite),
-                   PasswordForm::MatchType::kExact)
-           .get(),
+      {CreateEntry("Berta", "30948", GURL(kExampleSite), false, false).get(),
+       CreateEntry("Adam", "Pas83B", GURL(kExampleSite), false, false).get(),
+       CreateEntry("Dora", "PakudC", GURL(kExampleSite), false, false).get(),
+       CreateEntry("Carl", "P1238C", GURL(kExampleSite), false, false).get(),
        // These entries need to be ordered but come after the examples above.
-       CreateEntry("Cesar", "V3V1V", GURL(kExampleSite),
-                   PasswordForm::MatchType::kAffiliated)
+       CreateEntry("Cesar", "V3V1V", GURL(kExampleSite), false, true).get(),
+       CreateEntry("Rolf", "A4nd0m", GURL(kExampleSiteMobile), true, false)
            .get(),
-       CreateEntry("Rolf", "A4nd0m", GURL(kExampleSiteMobile),
-                   PasswordForm::MatchType::kPSL)
+       CreateEntry("Greg", "5fnd1m", GURL(kExampleSiteSubdomain), true, false)
            .get(),
-       CreateEntry("Greg", "5fnd1m", GURL(kExampleSiteSubdomain),
-                   PasswordForm::MatchType::kPSL)
+       CreateEntry("Elfi", "a65ddm", GURL(kExampleSiteSubdomain), true, false)
            .get(),
-       CreateEntry("Elfi", "a65ddm", GURL(kExampleSiteSubdomain),
-                   PasswordForm::MatchType::kPSL)
-           .get(),
-       CreateEntry("Alf", "R4nd50m", GURL(kExampleSiteMobile),
-                   PasswordForm::MatchType::kPSL)
+       CreateEntry("Alf", "R4nd50m", GURL(kExampleSiteMobile), true, false)
            .get()},
       IsOriginBlocklisted(false), origin);
 
@@ -122,14 +108,10 @@ TEST_F(CredentialCacheTest, StoredCredentialsForIndependentOrigins) {
   Origin origin2 = Origin::Create(GURL(kExampleSite2));
 
   cache()->SaveCredentialsAndBlocklistedForOrigin(
-      {CreateEntry("Ben", "S3cur3", GURL(kExampleSite),
-                   PasswordForm::MatchType::kExact)
-           .get()},
+      {CreateEntry("Ben", "S3cur3", GURL(kExampleSite), false, false).get()},
       IsOriginBlocklisted(false), origin);
   cache()->SaveCredentialsAndBlocklistedForOrigin(
-      {CreateEntry("Abe", "B4dPW", GURL(kExampleSite2),
-                   PasswordForm::MatchType::kExact)
-           .get()},
+      {CreateEntry("Abe", "B4dPW", GURL(kExampleSite2), false, false).get()},
       IsOriginBlocklisted(false), origin2);
 
   EXPECT_THAT(cache()->GetCredentialStore(origin).GetCredentials(),
@@ -142,9 +124,7 @@ TEST_F(CredentialCacheTest, StoredCredentialsForIndependentOrigins) {
 TEST_F(CredentialCacheTest, ClearsCredentials) {
   Origin origin = Origin::Create(GURL(kExampleSite));
   cache()->SaveCredentialsAndBlocklistedForOrigin(
-      {CreateEntry("Ben", "S3cur3", GURL(kExampleSite),
-                   PasswordForm::MatchType::kExact)
-           .get()},
+      {CreateEntry("Ben", "S3cur3", GURL(kExampleSite), false, false).get()},
       IsOriginBlocklisted(false), Origin::Create(GURL(kExampleSite)));
   ASSERT_THAT(cache()->GetCredentialStore(origin).GetCredentials(),
               testing::ElementsAre(MakeUiCredential("Ben", "S3cur3")));
@@ -156,9 +136,7 @@ TEST_F(CredentialCacheTest, ClearsCredentials) {
 TEST_F(CredentialCacheTest, StoresBlocklistedWithCredentials) {
   Origin origin = Origin::Create(GURL(kExampleSite));
   cache()->SaveCredentialsAndBlocklistedForOrigin(
-      {CreateEntry("Ben", "S3cur3", GURL(kExampleSite),
-                   PasswordForm::MatchType::kExact)
-           .get()},
+      {CreateEntry("Ben", "S3cur3", GURL(kExampleSite), false, false).get()},
       IsOriginBlocklisted(true), Origin::Create(GURL(kExampleSite)));
   EXPECT_EQ(OriginCredentialStore::BlocklistedStatus::kIsBlocklisted,
             cache()->GetCredentialStore(origin).GetBlocklistedStatus());

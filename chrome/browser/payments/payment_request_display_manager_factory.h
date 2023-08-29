@@ -28,7 +28,7 @@ class PaymentRequestDisplayManagerFactory : public ProfileKeyedServiceFactory {
   ~PaymentRequestDisplayManagerFactory() override;
   friend base::NoDestructor<PaymentRequestDisplayManagerFactory>;
 
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* context) const override;
 };
 

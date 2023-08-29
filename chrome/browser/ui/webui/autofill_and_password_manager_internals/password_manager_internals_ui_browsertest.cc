@@ -33,8 +33,7 @@ class PasswordManagerInternalsWebUIBrowserTest : public WebUIBrowserTest {
                                     WindowOpenDisposition disposition);
 
  private:
-  raw_ptr<PasswordManagerInternalsUI, AcrossTasksDanglingUntriaged>
-      controller_ = nullptr;
+  raw_ptr<PasswordManagerInternalsUI, DanglingUntriaged> controller_ = nullptr;
 };
 
 PasswordManagerInternalsWebUIBrowserTest::

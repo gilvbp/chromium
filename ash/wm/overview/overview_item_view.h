@@ -74,9 +74,6 @@ class ASH_EXPORT OverviewItemView : public WindowMiniView,
   gfx::Rect GetHeaderBounds() const override;
   gfx::Size GetPreviewViewSize() const override;
 
-  // WindowMiniViewBase:
-  void RefreshItemVisuals() override;
-
   // OverviewHighlightableView:
   views::View* GetView() override;
   void MaybeActivateHighlightedView() override;

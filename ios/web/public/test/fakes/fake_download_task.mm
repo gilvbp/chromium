@@ -7,6 +7,10 @@
 #import "base/functional/callback.h"
 #import "ios/web/public/download/download_task_observer.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace web {
 
 FakeDownloadTask::FakeDownloadTask(const GURL& original_url,

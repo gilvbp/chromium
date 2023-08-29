@@ -8,7 +8,7 @@ import logging
 import os
 import sys
 import time
-from typing import Any, List, Set, Tuple
+from typing import Any, List, Tuple
 import unittest
 
 from gpu_tests import common_browser_args as cba
@@ -57,17 +57,58 @@ harness_script = r"""
 
 feature_query_script = """
   function GetFeatureStatus(feature_name, for_hardware_gpu) {
-    return getGPUInfo(for_hardware_gpu
-        ? 'feature-status-for-hardware-gpu-list'
-        : 'feature-status-list', feature_name);
+    let query_result;
+    const infoView = document.querySelector('info-view');
+    if (for_hardware_gpu) {
+      query_result = infoView.shadowRoot.querySelector(
+          '.feature-status-for-hardware-gpu-list');
+    } else {
+      query_result = infoView.shadowRoot.querySelector('.feature-status-list');
+    }
+    for (let i = 0; i < query_result.childElementCount; i++) {
+      let feature_status = query_result.children[i].textContent.split(': ');
+      if (feature_status.length == 2 && feature_status[0] == feature_name)
+        return feature_status[1];
+    }
+    return "";
   }
 """
 
 vendor_id_query_script = """
   function GetActiveVendorId(for_hardware_gpu) {
-    return getGPUInfo(for_hardware_gpu
-        ? 'active-gpu-for-hardware'
-        : 'active-gpu');
+    let div;
+    const infoView = document.querySelector('info-view');
+    if (for_hardware_gpu) {
+      div = infoView.shadowRoot.querySelector(
+          '.basic-info-for-hardware-gpu-div');
+    } else {
+      div = infoView.shadowRoot.querySelector('#basic-info');
+    }
+    const table = div.querySelector('info-view-table');
+    let trs = table.shadowRoot.querySelectorAll('info-view-table-row');
+    let vendor_id = 0;
+    // The first four rows are "Initialization time", "In-process GPU",
+    // "Passthrough Command Decoder", and "Sandboxed".
+    for (let i = 4; i < trs.length; i++) {
+      let tds = trs[i].shadowRoot.querySelectorAll('div');
+      let token = tds[0].textContent.trim();
+      if (!token.startsWith('GPU'))
+        break;
+      if (i == 4 && token != 'GPU0')
+        break;
+      let gpu_string = tds[1].textContent.trim();
+      let vendor_info = gpu_string.split(', ')[0].split('= ');
+      if (vendor_info.length != 2 || vendor_info[0] != 'VENDOR')
+        break;
+      let id = parseInt(vendor_info[1]);
+      if (vendor_id == 0)
+        vendor_id = id;
+      if (gpu_string.endsWith('*ACTIVE*')) {
+        vendor_id = id;
+        break;
+      }
+    }
+    return vendor_id;
   }
 """
 
@@ -77,21 +118,6 @@ class ContextLostIntegrationTest(gpu_integration_test.GpuIntegrationTest):
   @classmethod
   def Name(cls) -> str:
     return 'context_lost'
-
-  @classmethod
-  def _SuiteSupportsParallelTests(cls) -> bool:
-    return True
-
-  def _GetSerialTests(self) -> Set[str]:
-    serial_tests = {
-        # High/low power tests don't work properly with multiple browsers
-        # active.
-        'ContextLost_MacWebGLMultisamplingHighPowerSwitchLosesContext',
-        'ContextLost_MacWebGLMultisamplingHighPowerSwitchDoesNotCrash',
-        'ContextLost_MacWebGLCopyTexSubImage2DHighPowerSwitchDoesNotCrash',
-        'ContextLost_MacWebGLPreserveDBHighPowerSwitchLosesContext',
-    }
-    return serial_tests
 
   @classmethod
   def GenerateBrowserArgs(cls, additional_args: List[str]) -> List[str]:
@@ -281,7 +307,7 @@ class ContextLostIntegrationTest(gpu_integration_test.GpuIntegrationTest):
     tab.Navigate('chrome:gpu',
                  script_to_evaluate_on_commit=feature_query_script)
     tab.WaitForJavaScriptCondition('window.gpuPagePopulated', timeout=10)
-    status = (tab.EvaluateJavaScript('GetFeatureStatus("webgl", %s)' %
+    status = (tab.EvaluateJavaScript('GetFeatureStatus("WebGL", %s)' %
                                      ('true' if for_hardware_gpu else 'false')))
     tab.Close()
     return status
@@ -630,7 +656,7 @@ class ContextLostIntegrationTest(gpu_integration_test.GpuIntegrationTest):
     self._NavigateAndWaitForLoad(test_path)
     # Check WebGL status at browser startup.
     webgl_status = self._GetWebGLFeatureStatus(False)
-    if webgl_status != 'enabled':
+    if webgl_status != 'Hardware accelerated':
       self.fail('WebGL should be hardware accelerated initially, but got %s' %
                 webgl_status)
     webgl_status_for_hardware_gpu = self._GetWebGLFeatureStatus(True)
@@ -640,12 +666,12 @@ class ContextLostIntegrationTest(gpu_integration_test.GpuIntegrationTest):
     # Check WebGL status after three GPU crashes - fallback to SwiftShader.
     self._KillGPUProcess(3, True)
     webgl_status = self._GetWebGLFeatureStatus(False)
-    if webgl_status != 'unavailable_software':
+    if webgl_status != 'Software only, hardware acceleration unavailable':
       self.fail('WebGL should be software only with SwiftShader, but got %s' %
                 webgl_status)
     webgl_status_for_hardware_gpu = self._GetWebGLFeatureStatus(True)
-    if webgl_status_for_hardware_gpu != 'enabled':
-      self.fail('WebGL status for hardware gpu should be "enabled", '
+    if webgl_status_for_hardware_gpu != 'Hardware accelerated':
+      self.fail('WebGL status for hardware gpu should be "accelerated", '
                 'but got %s' % webgl_status_for_hardware_gpu)
     self._RestartBrowser('must restart after tests that kill the GPU process')
 

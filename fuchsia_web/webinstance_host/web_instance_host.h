@@ -79,8 +79,7 @@ class WebInstanceHost {
   // TODO(crbug.com/1327587): Remove `outgoing_directory` if and when it is
   // possible for tests to serve a test-specific outgoing directory via
   // base::TestComponentContextForProcess on a separate thread.
-  WebInstanceHost(sys::OutgoingDirectory& outgoing_directory,
-                  bool is_web_instance_component_in_same_package);
+  explicit WebInstanceHost(sys::OutgoingDirectory& outgoing_directory);
 
   // Creates a new web_instance Component using `instance_component_url` and
   // connects |services_request| to it. Returns ZX_OK if `params` were valid,
@@ -135,11 +134,6 @@ class WebInstanceHost {
   // directory.
   fidl::InterfaceHandle<fuchsia::io::Directory> tmp_dir_;
 
-  // Whether `web_instance.cm` is in the same Package as this host Component.
-  // TODO(crbug.com/1255292): Determine this based on a static Structured
-  // Configuration value once Structured Configuration is supported.
-  const bool is_web_instance_component_in_same_package_;
-
   SEQUENCE_CHECKER(sequence_checker_);
 };
 
@@ -147,9 +141,8 @@ class WebInstanceHost {
 // provided to each `WebInstance`.
 class WebInstanceHostWithServicesFromThisComponent : public WebInstanceHost {
  public:
-  WebInstanceHostWithServicesFromThisComponent(
-      sys::OutgoingDirectory& outgoing_directory,
-      bool is_web_instance_component_in_same_package);
+  explicit WebInstanceHostWithServicesFromThisComponent(
+      sys::OutgoingDirectory& outgoing_directory);
 
   zx_status_t CreateInstanceForContextWithCopiedArgs(
       fuchsia::web::CreateContextParams params,
@@ -162,9 +155,8 @@ class WebInstanceHostWithServicesFromThisComponent : public WebInstanceHost {
 // `CreateInstanceForContextWithCopiedArgs()`.
 class WebInstanceHostWithoutServices : public WebInstanceHost {
  public:
-  WebInstanceHostWithoutServices(
-      sys::OutgoingDirectory& outgoing_directory,
-      bool is_web_instance_component_in_same_package);
+  explicit WebInstanceHostWithoutServices(
+      sys::OutgoingDirectory& outgoing_directory);
 
   zx_status_t CreateInstanceForContextWithCopiedArgs(
       fuchsia::web::CreateContextParams params,

@@ -6,7 +6,7 @@
 
 #import <Foundation/Foundation.h>
 
-#import "base/apple/foundation_util.h"
+#import "base/mac/foundation_util.h"
 #import "ios/chrome/app/main_controller.h"
 #import "ios/chrome/browser/metrics/tab_usage_recorder_browser_agent.h"
 #import "ios/chrome/browser/sessions/session_restoration_browser_agent.h"
@@ -29,9 +29,9 @@
 #import "ios/chrome/test/app/chrome_test_util.h"
 #import "ios/testing/open_url_context.h"
 
-// To get access to UseSessionSerializationOptimizations().
-// TODO(crbug.com/1383087): remove once the feature is fully launched.
-#import "ios/web/common/features.h"
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace chrome_test_util {
 
@@ -91,7 +91,7 @@ void SimulateAddAccountFromWeb() {
   id<ApplicationCommands, BrowserCommands> handler =
       chrome_test_util::HandlerForActiveBrowser();
   ShowSigninCommand* command = [[ShowSigninCommand alloc]
-      initWithOperation:AuthenticationOperation::kAddAccount
+      initWithOperation:AuthenticationOperationAddAccount
             accessPoint:signin_metrics::AccessPoint::ACCESS_POINT_UNKNOWN];
   UIViewController* baseViewController =
       GetForegroundActiveScene()
@@ -157,16 +157,6 @@ void CloseCurrentTab() {
                                   WebStateList::CLOSE_USER_ACTION);
 }
 
-void PinCurrentTab() {
-  WebStateList* web_state_list = GetCurrentWebStateList();
-  if (!web_state_list ||
-      web_state_list->active_index() == WebStateList::kInvalidIndex) {
-    return;
-  }
-  web_state_list->SetWebStatePinnedAt(web_state_list->active_index(),
-                                      /*pinned =*/true);
-}
-
 void CloseTabAtIndex(NSUInteger index) {
   @autoreleasepool {  // Make sure that all internals are deallocated.
     DCHECK_LE(index, static_cast<NSUInteger>(INT_MAX));
@@ -193,10 +183,8 @@ void CloseAllTabs() {
     DCHECK(browser);
     browser->GetWebStateList()->CloseAllWebStates(
         WebStateList::CLOSE_USER_ACTION);
-    if (!web::features::UseSessionSerializationOptimizations()) {
-      SessionRestorationBrowserAgent::FromBrowser(browser)->SaveSession(
-          /*immediately=*/true);
-    }
+    SessionRestorationBrowserAgent::FromBrowser(browser)->SaveSession(
+        /*immediately=*/true);
   }
   if (GetMainTabCount() && GetForegroundActiveScene()) {
     Browser* browser =
@@ -205,10 +193,8 @@ void CloseAllTabs() {
     DCHECK(browser);
     browser->GetWebStateList()->CloseAllWebStates(
         WebStateList::CLOSE_USER_ACTION);
-    if (!web::features::UseSessionSerializationOptimizations()) {
-      SessionRestorationBrowserAgent::FromBrowser(browser)->SaveSession(
-          /*immediately=*/true);
-    }
+    SessionRestorationBrowserAgent::FromBrowser(browser)->SaveSession(
+        /*immediately=*/true);
   }
   if (GetInactiveTabCount() && GetForegroundActiveScene()) {
     Browser* browser =
@@ -217,10 +203,8 @@ void CloseAllTabs() {
     DCHECK(browser);
     browser->GetWebStateList()->CloseAllWebStates(
         WebStateList::CLOSE_USER_ACTION);
-    if (!web::features::UseSessionSerializationOptimizations()) {
-      SessionRestorationBrowserAgent::FromBrowser(browser)->SaveSession(
-          /*immediately=*/true);
-    }
+    SessionRestorationBrowserAgent::FromBrowser(browser)->SaveSession(
+        /*immediately=*/true);
   }
 }
 

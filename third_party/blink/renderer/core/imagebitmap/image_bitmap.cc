@@ -35,7 +35,6 @@
 #include "third_party/blink/renderer/platform/graphics/skia/skia_utils.h"
 #include "third_party/blink/renderer/platform/graphics/unaccelerated_static_bitmap_image.h"
 #include "third_party/blink/renderer/platform/graphics/video_frame_image_util.h"
-#include "third_party/blink/renderer/platform/heap/cross_thread_handle.h"
 #include "third_party/blink/renderer/platform/heap/garbage_collected.h"
 #include "third_party/blink/renderer/platform/image-decoders/image_decoder.h"
 #include "third_party/blink/renderer/platform/scheduler/public/main_thread.h"
@@ -181,27 +180,26 @@ std::unique_ptr<CanvasResourceProvider> CreateProvider(
     const SkImageInfo& info,
     const scoped_refptr<StaticBitmapImage>& source_image,
     bool fallback_to_software) {
-  constexpr auto kFilterQuality = cc::PaintFlags::FilterQuality::kLow;
-  constexpr auto kShouldInitialize =
-      CanvasResourceProvider::ShouldInitialize::kNo;
+  const cc::PaintFlags::FilterQuality filter_quality =
+      cc::PaintFlags::FilterQuality::kLow;
   if (context_provider) {
-    const uint32_t usage_flags =
+    uint32_t usage_flags =
         context_provider->ContextProvider()
             ->SharedImageInterface()
             ->UsageForMailbox(source_image->GetMailboxHolder().mailbox);
     auto resource_provider = CanvasResourceProvider::CreateSharedImageProvider(
-        info, kFilterQuality, kShouldInitialize, context_provider,
-        RasterMode::kGPU, usage_flags);
-    if (resource_provider) {
+        info, filter_quality, CanvasResourceProvider::ShouldInitialize::kNo,
+        context_provider, RasterMode::kGPU, source_image->IsOriginTopLeft(),
+        usage_flags);
+    if (resource_provider)
       return resource_provider;
-    }
-    if (!fallback_to_software) {
+
+    if (!fallback_to_software)
       return nullptr;
-    }
   }
 
-  return CanvasResourceProvider::CreateBitmapProvider(info, kFilterQuality,
-                                                      kShouldInitialize);
+  return CanvasResourceProvider::CreateBitmapProvider(
+      info, filter_quality, CanvasResourceProvider::ShouldInitialize::kNo);
 }
 
 scoped_refptr<StaticBitmapImage> FlipImageVertically(
@@ -354,22 +352,13 @@ scoped_refptr<StaticBitmapImage> ScaleImage(
 scoped_refptr<StaticBitmapImage> ApplyColorSpaceConversion(
     scoped_refptr<StaticBitmapImage>&& image,
     ImageBitmap::ParsedOptions& options) {
+  sk_sp<SkColorSpace> color_space = SkColorSpace::MakeSRGB();
+  SkColorType color_type =
+      image->IsTextureBacked() ? kRGBA_8888_SkColorType : kN32_SkColorType;
   SkImageInfo src_image_info =
       image->PaintImageForCurrentFrame().GetSkImageInfo();
   if (src_image_info.isEmpty())
     return nullptr;
-
-  // TODO(crbug.com/1154589): This path has historically performed a copy
-  // that converts to 8-bit sRGB. Remove this copy.
-  sk_sp<SkColorSpace> color_space = src_image_info.refColorSpace();
-  if (!color_space) {
-    color_space = SkColorSpace::MakeSRGB();
-  }
-  SkColorType color_type = src_image_info.colorType();
-  if (color_type != kRGBA_F16_SkColorType) {
-    color_type =
-        image->IsTextureBacked() ? kRGBA_8888_SkColorType : kN32_SkColorType;
-  }
 
   // This will always convert to 8-bit sRGB.
   return image->ConvertToColorSpace(color_space, color_type);
@@ -582,11 +571,9 @@ ImageBitmap::ImageBitmap(ImageElementBase* image,
         input->Data(), data_complete,
         parsed_options.premultiply_alpha ? ImageDecoder::kAlphaPremultiplied
                                          : ImageDecoder::kAlphaNotPremultiplied,
-        paint_image.GetColorType() == kRGBA_F16_SkColorType
-            ? ImageDecoder::kHighBitDepthToHalfFloat
-            : ImageDecoder::kDefaultBitDepth,
-        parsed_options.has_color_space_conversion ? ColorBehavior::kTag
-                                                  : ColorBehavior::kIgnore));
+        ImageDecoder::kDefaultBitDepth,
+        parsed_options.has_color_space_conversion ? ColorBehavior::Tag()
+                                                  : ColorBehavior::Ignore()));
     auto skia_image = ImageBitmap::GetSkImageFromDecoder(std::move(decoder));
     if (!skia_image)
       return;
@@ -1060,14 +1047,13 @@ ScriptPromise ImageBitmap::CreateAsync(
   ScriptPromise promise = resolver->Promise();
 
   worker_pool::PostTask(
-      FROM_HERE,
-      CrossThreadBindOnce(
-          &RasterizeImageOnBackgroundThread, std::move(paint_record),
-          draw_dst_rect, std::move(task_runner),
-          CrossThreadBindOnce(&ResolvePromiseOnOriginalThread,
-                              MakeUnwrappingCrossThreadHandle(resolver),
-                              !image->WouldTaintOrigin(),
-                              std::move(passed_parsed_options))));
+      FROM_HERE, CrossThreadBindOnce(
+                     &RasterizeImageOnBackgroundThread, std::move(paint_record),
+                     draw_dst_rect, std::move(task_runner),
+                     CrossThreadBindOnce(&ResolvePromiseOnOriginalThread,
+                                         WrapCrossThreadPersistent(resolver),
+                                         !image->WouldTaintOrigin(),
+                                         std::move(passed_parsed_options))));
   return promise;
 }
 

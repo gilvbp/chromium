@@ -12,7 +12,6 @@ import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
 import org.chromium.base.ObserverList;
-import org.chromium.base.ResettersForTesting;
 import org.chromium.base.metrics.RecordHistogram;
 import org.chromium.base.metrics.RecordUserAction;
 import org.chromium.chrome.browser.homepage.settings.HomepageMetricsEnums.HomepageLocationType;
@@ -353,10 +352,9 @@ public class HomepageManager implements HomepagePolicyManager.HomepagePolicyStat
         notifyHomepageUpdated();
     }
 
+    @VisibleForTesting
     public void setSettingsLauncherForTesting(SettingsLauncher launcher) {
-        var oldValue = mSettingsLauncher;
         mSettingsLauncher = launcher;
-        ResettersForTesting.register(() -> mSettingsLauncher = oldValue);
     }
 
     /**

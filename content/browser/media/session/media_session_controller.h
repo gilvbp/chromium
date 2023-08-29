@@ -63,6 +63,7 @@ class CONTENT_EXPORT MediaSessionController
   void OnSeekTo(int player_id, base::TimeDelta seek_time) override;
   void OnSetVolumeMultiplier(int player_id, double volume_multiplier) override;
   void OnEnterPictureInPicture(int player_id) override;
+  void OnExitPictureInPicture(int player_id) override;
   void OnSetAudioSinkId(int player_id,
                         const std::string& raw_device_id) override;
   void OnSetMute(int player_id, bool mute) override;
@@ -113,7 +114,9 @@ class CONTENT_EXPORT MediaSessionController
   // accordingly.
   bool AddOrRemovePlayer();
 
-  void OnHashedSinkIdReceived(const std::string& hashed_sink_id);
+  void OnMediaDeviceSaltReceived(
+      const std::string& raw_device_id,
+      const MediaDeviceSaltAndOrigin& salt_and_origin);
 
   const MediaPlayerId id_;
 
@@ -139,7 +142,7 @@ class CONTENT_EXPORT MediaSessionController
       media::AudioDeviceDescription::kDefaultDeviceId;
   bool supports_audio_output_device_switching_ = true;
   media::MediaContentType media_content_type_ =
-      media::MediaContentType::kPersistent;
+      media::MediaContentType::Persistent;
 
   base::WeakPtrFactory<MediaSessionController> weak_factory_{this};
 };

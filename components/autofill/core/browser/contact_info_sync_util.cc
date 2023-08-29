@@ -9,7 +9,6 @@
 #include "base/time/time.h"
 #include "base/uuid.h"
 #include "components/autofill/core/browser/field_types.h"
-#include "components/autofill/core/browser/profile_token_quality.h"
 #include "components/autofill/core/common/autofill_features.h"
 
 namespace autofill {
@@ -19,7 +18,7 @@ namespace {
 using sync_pb::ContactInfoSpecifics;
 
 // Converts the verification status representation used in AutofillProfile to
-// the one used in ContactInfoSpecifics.
+// the one used in ContactInfoSpeicifics.
 ContactInfoSpecifics::VerificationStatus
 ConvertProfileToSpecificsVerificationStatus(VerificationStatus status) {
   switch (status) {
@@ -58,6 +57,35 @@ VerificationStatus ConvertSpecificsToProfileVerificationStatus(
   }
 }
 
+// Helper class to simplify setting the value and metadata of
+// ContactInfoSpecifics String- and IntegerTokens from an AutofillProfile.
+class EntryDataSetter {
+ public:
+  explicit EntryDataSetter(const AutofillProfile& profile)
+      : profile_(profile) {}
+
+  void Set(ContactInfoSpecifics::StringToken* token,
+           ServerFieldType type) const {
+    token->set_value(base::UTF16ToUTF8(profile_->GetRawInfo(type)));
+    SetMetadata(token->mutable_metadata(), type);
+  }
+
+  void Set(ContactInfoSpecifics::IntegerToken* token,
+           ServerFieldType type) const {
+    token->set_value(profile_->GetRawInfoAsInt(type));
+    SetMetadata(token->mutable_metadata(), type);
+  }
+
+ private:
+  void SetMetadata(ContactInfoSpecifics::TokenMetadata* metadata,
+                   ServerFieldType type) const {
+    metadata->set_status(ConvertProfileToSpecificsVerificationStatus(
+        profile_->GetVerificationStatus(type)));
+  }
+
+  const raw_ref<const AutofillProfile> profile_;
+};
+
 class EntryTokenDeleter {
  public:
   bool Delete(ContactInfoSpecifics::StringToken* token) {
@@ -85,71 +113,21 @@ class EntryTokenDeleter {
  private:
   bool DeleteMetadata(ContactInfoSpecifics::TokenMetadata* metadata) {
     metadata->clear_status();
-    metadata->clear_observations();
     return metadata->ByteSize() == 0;
   }
 };
 
-}  // namespace
-
-// Helper class to simplify setting the value and metadata of
-// ContactInfoSpecifics String- and IntegerTokens from an AutofillProfile.
-// Outside of the anonymous namespace to be befriended by `ProfileTokenQuality`.
-class ContactInfoEntryDataSetter {
- public:
-  explicit ContactInfoEntryDataSetter(const AutofillProfile& profile)
-      : profile_(profile) {}
-
-  void Set(ContactInfoSpecifics::StringToken* token,
-           ServerFieldType type) const {
-    token->set_value(base::UTF16ToUTF8(profile_->GetRawInfo(type)));
-    SetMetadata(token->mutable_metadata(), type);
-  }
-
-  void Set(ContactInfoSpecifics::IntegerToken* token,
-           ServerFieldType type) const {
-    token->set_value(profile_->GetRawInfoAsInt(type));
-    SetMetadata(token->mutable_metadata(), type);
-  }
-
- private:
-  void SetMetadata(ContactInfoSpecifics::TokenMetadata* metadata,
-                   ServerFieldType type) const {
-    metadata->set_status(ConvertProfileToSpecificsVerificationStatus(
-        profile_->GetVerificationStatus(type)));
-    if (!base::FeatureList::IsEnabled(
-            features::kAutofillTrackProfileTokenQuality)) {
-      return;
-    }
-    if (auto observations = profile_->token_quality().observations_.find(type);
-        observations != profile_->token_quality().observations_.end()) {
-      for (const ProfileTokenQuality::Observation& observation :
-           observations->second) {
-        sync_pb::ContactInfoSpecifics::Observation* proto_observation =
-            metadata->add_observations();
-        proto_observation->set_type(observation.type);
-        proto_observation->set_form_hash(observation.form_hash.value());
-      }
-    }
-  }
-
-  const raw_ref<const AutofillProfile> profile_;
-};
-
 // Helper class to set the info and verification status of an AutofillProfile
 // from ContactInfoSpecifics String- and Integer tokens.
-// Outside of the anonymous namespace to be befriended by `ProfileTokenQuality`.
-class ContactInfoProfileSetter {
+class ProfileSetter {
  public:
-  explicit ContactInfoProfileSetter(AutofillProfile& profile)
-      : profile_(profile) {}
+  explicit ProfileSetter(AutofillProfile& profile) : profile_(profile) {}
 
   void Set(const ContactInfoSpecifics::StringToken& token,
            ServerFieldType type) {
     profile_->SetRawInfoWithVerificationStatus(
         type, base::UTF8ToUTF16(token.value()),
         ConvertSpecificsToProfileVerificationStatus(token.metadata().status()));
-    SetObservations(token.metadata().observations(), type);
   }
 
   void Set(const ContactInfoSpecifics::IntegerToken& token,
@@ -157,31 +135,13 @@ class ContactInfoProfileSetter {
     profile_->SetRawInfoAsIntWithVerificationStatus(
         type, token.value(),
         ConvertSpecificsToProfileVerificationStatus(token.metadata().status()));
-    SetObservations(token.metadata().observations(), type);
   }
 
  private:
-  void SetObservations(
-      const google::protobuf::RepeatedPtrField<
-          ContactInfoSpecifics::Observation>& proto_observations,
-      ServerFieldType type) const {
-    if (proto_observations.empty() ||
-        !base::FeatureList::IsEnabled(
-            features::kAutofillTrackProfileTokenQuality)) {
-      return;
-    }
-    auto& observations = profile_->token_quality().observations_[type];
-    CHECK(observations.empty());
-    for (const sync_pb::ContactInfoSpecifics::Observation& proto_observation :
-         proto_observations) {
-      observations.emplace_back(proto_observation.type(),
-                                ProfileTokenQuality::FormSignatureHash(
-                                    proto_observation.form_hash()));
-    }
-  }
-
   const raw_ref<AutofillProfile> profile_;
 };
+
+}  // namespace
 
 sync_pb::ContactInfoSpecifics ContactInfoSpecificsFromAutofillProfile(
     const AutofillProfile& profile,
@@ -199,7 +159,7 @@ sync_pb::ContactInfoSpecifics ContactInfoSpecificsFromAutofillProfile(
   specifics.set_initial_creator_id(profile.initial_creator_id());
   specifics.set_last_modifier_id(profile.last_modifier_id());
 
-  ContactInfoEntryDataSetter s(profile);
+  EntryDataSetter s(profile);
   // Set name-related values and statuses.
   s.Set(specifics.mutable_name_honorific(), NAME_HONORIFIC_PREFIX);
   s.Set(specifics.mutable_name_first(), NAME_FIRST);
@@ -315,7 +275,7 @@ std::unique_ptr<AutofillProfile> CreateAutofillProfileFromContactInfoSpecifics(
   profile->set_initial_creator_id(specifics.initial_creator_id());
   profile->set_last_modifier_id(specifics.last_modifier_id());
 
-  ContactInfoProfileSetter s(*profile);
+  ProfileSetter s(*profile);
   // Set name-related values and statuses.
   s.Set(specifics.name_honorific(), NAME_HONORIFIC_PREFIX);
   s.Set(specifics.name_first(), NAME_FIRST);

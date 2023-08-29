@@ -8,7 +8,6 @@
 
 #include "ash/constants/ash_features.h"
 #include "ash/public/cpp/login_accelerators.h"
-#include "ash/public/cpp/wallpaper/wallpaper_controller.h"
 #include "base/check_deref.h"
 #include "base/containers/contains.h"
 #include "base/functional/bind.h"
@@ -17,13 +16,13 @@
 #include "base/notreached.h"
 #include "base/task/single_thread_task_runner.h"
 #include "chrome/browser/ash/app_mode/kiosk_app_types.h"
-#include "chrome/browser/ash/attestation/attestation_ca_client.h"
 #include "chrome/browser/ash/language_preferences.h"
 #include "chrome/browser/ash/login/app_mode/kiosk_launch_controller.h"
 #include "chrome/browser/ash/login/choobe_flow_controller.h"
 #include "chrome/browser/ash/login/existing_user_controller.h"
 #include "chrome/browser/ash/login/lock_screen_utils.h"
-#include "chrome/browser/ash/login/oobe_quick_start/second_device_auth_broker.h"
+#include "chrome/browser/ash/login/oobe_quick_start/connectivity/target_device_connection_broker_factory.h"
+#include "chrome/browser/ash/login/oobe_quick_start/oobe_quick_start_pref_names.h"
 #include "chrome/browser/ash/login/oobe_quick_start/target_device_bootstrap_controller.h"
 #include "chrome/browser/ash/login/screens/encryption_migration_screen.h"
 #include "chrome/browser/ash/login/screens/gaia_screen.h"
@@ -44,10 +43,8 @@
 #include "chrome/browser/browser_process.h"
 #include "chrome/browser/browser_process_platform_part.h"
 #include "chrome/browser/lifetime/termination_notification.h"
-#include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/profiles/profile_manager.h"
-#include "chrome/browser/signin/chrome_device_id_helper.h"
-#include "chrome/browser/ui/ash/auth/cryptohome_pin_engine.h"
+#include "chrome/browser/ui/ash/wallpaper_controller_client_impl.h"
 #include "chrome/browser/ui/browser_list.h"
 #include "chrome/browser/ui/webui/ash/diagnostics_dialog.h"
 #include "chrome/browser/ui/webui/ash/login/family_link_notice_screen_handler.h"
@@ -62,10 +59,8 @@
 #include "chrome/browser/ui/webui/ash/login/user_creation_screen_handler.h"
 #include "chrome/common/pref_names.h"
 #include "chrome/grit/generated_resources.h"
-#include "chromeos/ash/components/attestation/attestation_flow_adaptive.h"
 #include "chromeos/ash/components/dbus/userdataauth/userdataauth_client.h"
 #include "chromeos/ash/components/login/auth/auth_performer.h"
-#include "chromeos/ash/components/osauth/public/auth_session_storage.h"
 #include "components/keep_alive_registry/keep_alive_types.h"
 #include "components/strings/grit/components_strings.h"
 #include "extensions/common/features/feature_session_type.h"
@@ -193,37 +188,6 @@ bool IsAuthError(SigninError error) {
          error == SigninError::kNewUserFailedNetworkNotConnected ||
          error == SigninError::kNewUserFailedNetworkConnected ||
          error == SigninError::kKnownUserFailedNetworkConnected;
-}
-
-class AccessibilityManagerWrapper
-    : public quick_start::TargetDeviceBootstrapController::
-          AccessibilityManagerWrapper {
- public:
-  AccessibilityManagerWrapper() = default;
-  AccessibilityManagerWrapper(AccessibilityManagerWrapper&) = delete;
-  AccessibilityManagerWrapper& operator=(AccessibilityManagerWrapper&) = delete;
-  ~AccessibilityManagerWrapper() override = default;
-
-  bool IsSpokenFeedbackEnabled() const override {
-    return ash::AccessibilityManager::Get()->IsSpokenFeedbackEnabled();
-  }
-};
-
-std::unique_ptr<quick_start::SecondDeviceAuthBroker>
-CreateSecondDeviceAuthBroker() {
-  std::unique_ptr<attestation::ServerProxy> server_proxy(
-      new attestation::AttestationCAClient());
-  std::unique_ptr<attestation::AttestationFlow> attestation_flow =
-      std::make_unique<attestation::AttestationFlowAdaptive>(
-          std::move(server_proxy));
-
-  // TODO(b:286850431) - Fix device id generation.
-  const std::string device_id =
-      GenerateSigninScopedDeviceId(/*for_ephemeral=*/false);
-  auto* signin_profile = ProfileHelper::GetSigninProfile();
-  return std::make_unique<quick_start::SecondDeviceAuthBroker>(
-      device_id, signin_profile->GetURLLoaderFactory(),
-      std::move(attestation_flow));
 }
 
 }  // namespace
@@ -426,6 +390,15 @@ void LoginDisplayHostCommon::SetDisplayEmail(const std::string& email) {
   }
 }
 
+void LoginDisplayHostCommon::SetDisplayAndGivenName(
+    const std::string& display_name,
+    const std::string& given_name) {
+  if (GetExistingUserController()) {
+    GetExistingUserController()->SetDisplayAndGivenName(display_name,
+                                                        given_name);
+  }
+}
+
 void LoginDisplayHostCommon::ShowAllowlistCheckFailedError() {
   StartWizard(GaiaView::kScreenId);
 
@@ -433,14 +406,12 @@ void LoginDisplayHostCommon::ShowAllowlistCheckFailedError() {
   gaia_screen->ShowAllowlistCheckFailedError();
 }
 
-void LoginDisplayHostCommon::UpdateWallpaper(
-    const AccountId& prefilled_account) {
-  auto* wallpaper_controller = ash::WallpaperController::Get();
-  if (prefilled_account.is_valid()) {
-    wallpaper_controller->ShowUserWallpaper(prefilled_account);
-    return;
-  }
-  wallpaper_controller->ShowSigninWallpaper();
+void LoginDisplayHostCommon::LoadWallpaper(const AccountId& account_id) {
+  WallpaperControllerClientImpl::Get()->ShowUserWallpaper(account_id);
+}
+
+void LoginDisplayHostCommon::LoadSigninWallpaper() {
+  WallpaperControllerClientImpl::Get()->ShowSigninWallpaper();
 }
 
 bool LoginDisplayHostCommon::IsUserAllowlisted(
@@ -514,8 +485,7 @@ bool LoginDisplayHostCommon::HandleAccelerator(LoginAcceleratorAction action) {
   }
 
   if (action == LoginAcceleratorAction::kCancelScreenAction) {
-    if (!GetOobeUI() || !GetLoginWindowWidget() ||
-        !GetLoginWindowWidget()->IsVisible()) {
+    if (!GetOobeUI()) {
       return false;
     }
     GetOobeUI()->GetCoreOobe()->ForwardCancel();
@@ -587,32 +557,20 @@ void LoginDisplayHostCommon::ShowNewTermsForFlexUsers() {
 void LoginDisplayHostCommon::SetAuthSessionForOnboarding(
     const UserContext& user_context) {
   AuthPerformer auth_performer(UserDataAuthClient::Get());
-  legacy::CryptohomePinEngine cryptohome_pin_engine(&auth_performer);
+  CryptohomePinEngine cryptohome_pin_engine(&auth_performer);
   if (cryptohome_pin_engine.ShouldSkipSetupBecauseOfPolicy(
           user_context.GetAccountId()) &&
       !features::IsCryptohomeRecoveryEnabled() &&
       RecoveryEligibilityScreen::ShouldSkipRecoverySetupBecauseOfPolicy()) {
     return;
   }
-  if (ash::features::ShouldUseAuthSessionStorage()) {
-    wizard_context_->extra_factors_token = AuthSessionStorage::Get()->Store(
-        std::make_unique<UserContext>(user_context));
-  } else {
-    wizard_context_->extra_factors_auth_session =
-        std::make_unique<UserContext>(user_context);
-  }
+
+  wizard_context_->extra_factors_auth_session =
+      std::make_unique<UserContext>(user_context);
 }
 
 void LoginDisplayHostCommon::ClearOnboardingAuthSession() {
-  if (ash::features::ShouldUseAuthSessionStorage()) {
-    if (wizard_context_->extra_factors_token.has_value()) {
-      AuthSessionStorage::Get()->Invalidate(
-          wizard_context_->extra_factors_token.value(), base::DoNothing());
-      wizard_context_->extra_factors_token = absl::nullopt;
-    }
-  } else {
-    wizard_context_->extra_factors_auth_session.reset();
-  }
+  wizard_context_->extra_factors_auth_session.reset();
 }
 
 void LoginDisplayHostCommon::StartEncryptionMigration(
@@ -738,9 +696,15 @@ void LoginDisplayHostCommon::OnStartSignInScreenCommon() {
 
 void LoginDisplayHostCommon::ShowGaiaDialogCommon(
     const AccountId& prefilled_account) {
-  if (GetExistingUserController()->IsSigninInProgress()) {
-    return;
+  if (prefilled_account.is_valid()) {
+    LoadWallpaper(prefilled_account);
+    if (GetExistingUserController()->IsSigninInProgress()) {
+      return;
+    }
+  } else {
+    LoadSigninWallpaper();
   }
+
   SetGaiaInputMethods(prefilled_account);
 
   if (!prefilled_account.is_valid()) {
@@ -763,17 +727,20 @@ LoginDisplayHostCommon::GetQuickStartBootstrapController() {
   CHECK(wizard_context_->quick_start_enabled);
   if (!bootstrap_controller_) {
     Profile* profile = ProfileManager::GetActiveUserProfile();
-    CHECK(profile);
+    DCHECK(profile);
 
     quick_start::QuickStartConnectivityService* service =
         quick_start::QuickStartConnectivityServiceFactory::GetForProfile(
             profile);
-    CHECK(service);
+    DCHECK(service);
 
+    bool is_resume_after_update = g_browser_process->local_state()->GetBoolean(
+        quick_start::prefs::kShouldResumeQuickStartAfterReboot);
     bootstrap_controller_ =
         std::make_unique<ash::quick_start::TargetDeviceBootstrapController>(
-            CreateSecondDeviceAuthBroker(),
-            std::make_unique<AccessibilityManagerWrapper>(), service);
+            quick_start::TargetDeviceConnectionBrokerFactory::Create(
+                service->GetNearbyConnectionsManager(),
+                service->GetQuickStartDecoder(), is_resume_after_update));
   }
   return bootstrap_controller_->GetAsWeakPtrForClient();
 }

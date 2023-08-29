@@ -28,6 +28,10 @@
 #import "ios/chrome/browser/ui/authentication/signin/signin_utils.h"
 #import "ios/chrome/browser/ui/scoped_ui_blocker/scoped_ui_blocker.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 @interface SigninPolicySceneAgent () <AppStateObserver,
                                       AuthenticationServiceObserving,
                                       IdentityManagerObserverBridgeDelegate> {
@@ -235,7 +239,7 @@
 // Shows the forced sign-in prompt using the application command.
 - (void)showForcedSigninPrompt {
   ShowSigninCommand* command = [[ShowSigninCommand alloc]
-      initWithOperation:AuthenticationOperation::kForcedSigninAndSync
+      initWithOperation:AuthenticationOperationForcedSigninAndSync
                identity:nil
             accessPoint:signin_metrics::AccessPoint::ACCESS_POINT_FORCED_SIGNIN
             promoAction:signin_metrics::PromoAction::

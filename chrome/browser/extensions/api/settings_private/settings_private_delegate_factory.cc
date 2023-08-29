@@ -38,11 +38,9 @@ SettingsPrivateDelegateFactory::SettingsPrivateDelegateFactory()
 
 SettingsPrivateDelegateFactory::~SettingsPrivateDelegateFactory() = default;
 
-std::unique_ptr<KeyedService>
-SettingsPrivateDelegateFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* SettingsPrivateDelegateFactory::BuildServiceInstanceFor(
     content::BrowserContext* profile) const {
-  return std::make_unique<SettingsPrivateDelegate>(
-      static_cast<Profile*>(profile));
+  return new SettingsPrivateDelegate(static_cast<Profile*>(profile));
 }
 
 }  // namespace extensions

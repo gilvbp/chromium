@@ -17,6 +17,7 @@ import android.view.View;
 
 import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
+import androidx.annotation.VisibleForTesting;
 
 import org.chromium.base.Callback;
 import org.chromium.base.metrics.RecordHistogram;
@@ -209,10 +210,12 @@ public class ScrollCaptureCallbackDelegate {
                 "Sharing.ScrollCapture.BitmapGeneratorStatus", status, BitmapGeneratorStatus.COUNT);
     }
 
+    @VisibleForTesting
     Rect getContentAreaForTesting() {
         return mContentArea;
     }
 
+    @VisibleForTesting
     int getInitialYOffsetForTesting() {
         return mInitialYOffset;
     }

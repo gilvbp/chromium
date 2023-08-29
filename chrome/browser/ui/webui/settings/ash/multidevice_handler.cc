@@ -25,7 +25,6 @@
 #include "chrome/browser/ui/ash/session_controller_client_impl.h"
 #include "chrome/browser/ui/webui/ash/multidevice_setup/multidevice_setup_dialog.h"
 #include "chromeos/ash/components/multidevice/logging/logging.h"
-#include "chromeos/ash/components/osauth/public/auth_session_storage.h"
 #include "chromeos/ash/components/phonehub/browser_tabs_model_provider.h"
 #include "chromeos/ash/components/phonehub/pref_names.h"
 #include "chromeos/ash/components/phonehub/screen_lock_manager.h"
@@ -395,8 +394,6 @@ void MultideviceHandler::HandleShowMultiDeviceSetupDialog(
     const base::Value::List& args) {
   DCHECK(args.empty());
   multidevice_setup::MultiDeviceSetupDialog::Show();
-  ash::phonehub::util::LogMultiDeviceSetupDialogEntryPoint(
-      ash::phonehub::util::MultiDeviceSetupDialogEntrypoint::kSettingsPage);
 }
 
 void MultideviceHandler::HandleGetPageContent(const base::Value::List& args) {
@@ -870,15 +867,11 @@ base::Value::Dict MultideviceHandler::GeneratePageContentDataDictionary() {
 }
 
 bool MultideviceHandler::IsAuthTokenValid(const std::string& auth_token) {
-  if (ash::features::ShouldUseAuthSessionStorage()) {
-    return ash::AuthSessionStorage::Get()->IsValid(auth_token);
-  } else {
-    Profile* profile = Profile::FromWebUI(web_ui());
-    quick_unlock::QuickUnlockStorage* quick_unlock_storage =
-        quick_unlock::QuickUnlockFactory::GetForProfile(profile);
-    return quick_unlock_storage->GetAuthToken() &&
-           auth_token == quick_unlock_storage->GetAuthToken()->Identifier();
-  }
+  Profile* profile = Profile::FromWebUI(web_ui());
+  quick_unlock::QuickUnlockStorage* quick_unlock_storage =
+      quick_unlock::QuickUnlockFactory::GetForProfile(profile);
+  return quick_unlock_storage->GetAuthToken() &&
+         auth_token == quick_unlock_storage->GetAuthToken()->Identifier();
 }
 
 multidevice_setup::MultiDeviceSetupClient::HostStatusWithDevice

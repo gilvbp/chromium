@@ -33,14 +33,12 @@ const char kProtoMessageParsingFailure[] =
 // will return an appropriate error message.
 const char* DeserializeProto(dbus::Response* response,
                              google::protobuf::MessageLite* proto) {
-  if (!response) {
+  if (!response)
     return kDbusCallFailure;
-  }
 
   dbus::MessageReader reader(response);
-  if (!reader.PopArrayOfBytesAsProto(proto)) {
+  if (!reader.PopArrayOfBytesAsProto(proto))
     return kProtoMessageParsingFailure;
-  }
 
   return nullptr;
 }
@@ -97,10 +95,10 @@ class DlpClientImpl : public DlpClient {
       return;
     }
 
-    proxy_->CallMethod(&method_call, dbus::ObjectProxy::TIMEOUT_USE_DEFAULT,
-                       base::BindOnce(&DlpClientImpl::HandleAddFilesResponse,
-                                      weak_factory_.GetWeakPtr(),
-                                      std::move(request), std::move(callback)));
+    proxy_->CallMethod(
+        &method_call, dbus::ObjectProxy::TIMEOUT_USE_DEFAULT,
+        base::BindOnce(&DlpClientImpl::HandleAddFilesResponse,
+                       weak_factory_.GetWeakPtr(), std::move(callback)));
   }
 
   void GetFilesSources(const dlp::GetFilesSourcesRequest request,
@@ -140,7 +138,7 @@ class DlpClientImpl : public DlpClient {
     }
 
     proxy_->CallMethod(
-        &method_call, base::Minutes(6).InMilliseconds(),
+        &method_call, /*5 minutes*/ 300000,
         base::BindOnce(&DlpClientImpl::HandleCheckFilesTransferResponse,
                        weak_factory_.GetWeakPtr(), std::move(callback)));
   }
@@ -197,21 +195,12 @@ class DlpClientImpl : public DlpClient {
     std::move(callback).Run(response_proto);
   }
 
-  void HandleAddFilesResponse(const dlp::AddFilesRequest request,
-                              AddFilesCallback callback,
+  void HandleAddFilesResponse(AddFilesCallback callback,
                               dbus::Response* response) {
     dlp::AddFilesResponse response_proto;
     const char* error_message = DeserializeProto(response, &response_proto);
     if (error_message) {
       response_proto.set_error_message(error_message);
-    } else {
-      std::vector<base::FilePath> added_files;
-      for (const auto& add_file_request : request.add_file_requests()) {
-        added_files.emplace_back(add_file_request.file_path());
-      }
-      for (auto& observer : observers_) {
-        observer.OnFilesAddedToDlpDaemon(added_files);
-      }
     }
     std::move(callback).Run(response_proto);
   }

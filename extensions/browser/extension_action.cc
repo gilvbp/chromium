@@ -10,7 +10,6 @@
 
 #include "base/base64.h"
 #include "base/check_op.h"
-#include "base/containers/contains.h"
 #include "base/strings/string_number_conversions.h"
 #include "extensions/browser/extension_icon_image.h"
 #include "extensions/browser/extension_icon_placeholder.h"
@@ -67,7 +66,7 @@ struct IconRepresentationInfo {
 
 template <class T>
 bool HasValue(const std::map<int, T>& map, int tab_id) {
-  return base::Contains(map, tab_id);
+  return map.find(tab_id) != map.end();
 }
 
 }  // namespace

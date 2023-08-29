@@ -18,7 +18,6 @@
 #include "extensions/browser/browser_context_keyed_api_factory.h"
 #include "extensions/browser/event_router.h"
 #include "extensions/browser/extension_function.h"
-#include "extensions/common/api/types.h"
 
 #if BUILDFLAG(IS_CHROMEOS_LACROS)
 #include "chromeos/crosapi/mojom/prefs.mojom-shared.h"
@@ -97,7 +96,6 @@ class PreferenceAPI : public BrowserContextKeyedAPI,
                       public EventRouter::Observer,
                       public ContentSettingsStore::Observer {
  public:
-  using ChromeSettingScope = extensions::api::types::ChromeSettingScope;
   explicit PreferenceAPI(content::BrowserContext* context);
 
   PreferenceAPI(const PreferenceAPI&) = delete;

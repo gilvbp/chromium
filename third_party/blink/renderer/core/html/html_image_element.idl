@@ -66,4 +66,3 @@
 };
 
 HTMLImageElement includes HTMLAttributionSrcElementUtils;
-HTMLImageElement includes HTMLSharedStorageWritableElementUtils;

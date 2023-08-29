@@ -8,9 +8,15 @@
 // Protocol for handling link to text and presenting related UI.
 @protocol PartialTranslateDelegate
 
-// Will be called by `BrowserContainerViewController buildMenuWithBuilder:`
-// to customize its edit menu.
-- (void)buildMenuWithBuilder:(id<UIMenuBuilder>)builder;
+// Handles the link to text menu item selection.
+- (void)handlePartialTranslateSelection;
+
+// Returns whether a partial translate can be handled.
+- (BOOL)canHandlePartialTranslateSelection;
+
+// Whether partial translate action should be proposed (independently of the
+// current selection).
+- (BOOL)shouldInstallPartialTranslate;
 
 @end
 

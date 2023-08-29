@@ -2,8 +2,6 @@
 import {TestRunner} from 'test_runner';
 import {ApplicationTestRunner} from 'application_test_runner';
 import {NetworkTestRunner} from 'network_test_runner';
-
-import * as SDK from 'devtools/core/sdk/sdk.js';
 (async function() {
   TestRunner.addResult(
       `Verifies that the main page request repeated by a service worker appears in the network log.`);
@@ -22,7 +20,7 @@ import * as SDK from 'devtools/core/sdk/sdk.js';
 
   const requests = NetworkTestRunner.networkRequests();
   for (const request of requests) {
-    const networkManager = SDK.NetworkManager.NetworkManager.forRequest(request);
+    const networkManager = SDK.NetworkManager.forRequest(request);
     TestRunner.addResult('request.url(): ' + request.url());
     TestRunner.addResult(
         'request.target.type(): ' + networkManager ?

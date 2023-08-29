@@ -42,8 +42,7 @@ class FedCmAccountSelectionView : public AccountSelectionView,
     VERIFYING = 1,
     AUTO_REAUTHN = 2,
     SIGN_IN_TO_IDP_STATIC = 3,
-    SIGN_IN_ERROR = 4,
-    COUNT = 5
+    COUNT = 4
   };
 
   explicit FedCmAccountSelectionView(AccountSelectionView::Delegate* delegate);
@@ -60,13 +59,6 @@ class FedCmAccountSelectionView : public AccountSelectionView,
       const std::string& top_frame_etld_plus_one,
       const absl::optional<std::string>& iframe_etld_plus_one,
       const std::string& idp_etld_plus_one,
-      const blink::mojom::RpContext& rp_context,
-      const content::IdentityProviderMetadata& idp_metadata) override;
-  void ShowErrorDialog(
-      const std::string& top_frame_etld_plus_one,
-      const absl::optional<std::string>& iframe_etld_plus_one,
-      const std::string& idp_etld_plus_one,
-      const blink::mojom::RpContext& rp_context,
       const content::IdentityProviderMetadata& idp_metadata) override;
   std::string GetTitle() const override;
   absl::optional<std::string> GetSubtitle() const override;
@@ -96,8 +88,7 @@ class FedCmAccountSelectionView : public AccountSelectionView,
   friend class FedCmAccountSelectionViewBrowserTest;
 
   // Creates the bubble. Sets the bubble's accessible title. Registers any
-  // observers. May fail and return nullptr if there is no browser or tab strip
-  // model.
+  // observers.
   virtual views::Widget* CreateBubbleWithAccessibleTitle(
       const std::u16string& top_frame_etld_plus_one,
       const absl::optional<std::u16string>& iframe_etld_plus_one,
@@ -153,11 +144,7 @@ class FedCmAccountSelectionView : public AccountSelectionView,
 
     // Shown when the user is being shown a dialog that auto re-authn is
     // happening.
-    AUTO_REAUTHN,
-
-    // Shown when an error has occurred during the user's sign-in attempt and
-    // IDP has not provided any details on the failure.
-    SIGN_IN_ERROR
+    AUTO_REAUTHN
   };
 
   // This enum describes the outcome of the mismatch dialog and is used for
@@ -266,6 +253,12 @@ class FedCmAccountSelectionView : public AccountSelectionView,
 
   // Time when IdentityProvider.close() was called for metrics purposes.
   base::TimeTicks idp_close_popup_time_;
+
+  // Time when the accounts dialog is last shown for metrics purposes.
+  absl::optional<base::TimeTicks> accounts_dialog_shown_time_;
+
+  // Time when the mismatch dialog is last shown for metrics purposes.
+  absl::optional<base::TimeTicks> mismatch_dialog_shown_time_;
 
   // The current state of the IDP sign-in pop-up window, if initiated by user.
   PopupWindowResult popup_window_state_;

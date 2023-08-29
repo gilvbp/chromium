@@ -5,7 +5,6 @@
 #include "chrome/browser/ui/views/side_panel/side_panel_entry.h"
 
 #include "base/observer_list.h"
-#include "base/time/time.h"
 #include "chrome/browser/ui/views/side_panel/side_panel_entry_observer.h"
 #include "chrome/browser/ui/views/side_panel/side_panel_util.h"
 
@@ -40,7 +39,6 @@ SidePanelEntry::~SidePanelEntry() = default;
 std::unique_ptr<views::View> SidePanelEntry::GetContent() {
   if (content_view_)
     return std::move(content_view_);
-  entry_show_triggered_timestamp_ = base::TimeTicks::Now();
   return create_content_callback_.Run();
 }
 
@@ -60,8 +58,7 @@ void SidePanelEntry::ResetIcon(ui::ImageModel icon) {
 
 void SidePanelEntry::OnEntryShown() {
   entry_shown_timestamp_ = base::TimeTicks::Now();
-  SidePanelUtil::RecordEntryShownMetrics(key_.id(),
-                                         entry_show_triggered_timestamp_);
+  SidePanelUtil::RecordEntryShownMetrics(key_.id());
   for (SidePanelEntryObserver& observer : observers_)
     observer.OnEntryShown(this);
 }
@@ -89,8 +86,4 @@ GURL SidePanelEntry::GetOpenInNewTabURL() const {
 
 bool SidePanelEntry::SupportsNewTabButton() {
   return !open_in_new_tab_url_callback_.is_null();
-}
-
-void SidePanelEntry::ResetLoadTimestamp() {
-  entry_show_triggered_timestamp_ = base::TimeTicks();
 }

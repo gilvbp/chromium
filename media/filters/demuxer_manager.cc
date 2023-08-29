@@ -107,7 +107,9 @@ HlsFallbackImplementation SelectHlsFallbackImplementation() {
   // Android build with both builtin & media player implementations.
   // Prefer builtin if it is enabled.
   if (base::FeatureList::IsEnabled(kBuiltInHlsPlayer)) {
-    return HlsFallbackImplementation::kBuiltinHlsPlayer;
+    // TODO(crbug/1266991): This should return kBuiltinHlsPlayer when the
+    // HlsDemuxer is able to be created.
+    return HlsFallbackImplementation::kNone;
   }
   if (base::FeatureList::IsEnabled(kHlsPlayer)) {
     return HlsFallbackImplementation::kMediaPlayer;
@@ -321,7 +323,7 @@ absl::optional<double> DemuxerManager::GetDemuxerDuration() {
   return static_cast<ChunkDemuxer*>(demuxer_.get())->GetDuration();
 }
 
-absl::optional<DemuxerType> DemuxerManager::GetDemuxerType() const {
+absl::optional<DemuxerType> DemuxerManager::GetDemuxerType() {
   if (!demuxer_) {
     return absl::nullopt;
   }
@@ -547,16 +549,6 @@ bool DemuxerManager::PassedDataSourceTimingAllowOriginCheck() const {
   return data_source_ ? data_source_->PassedTimingAllowOriginCheck() : true;
 }
 
-bool DemuxerManager::IsLiveContent() const {
-  // Manifest demuxer reports true live content accurately, while all other
-  // demuxers do not. TODO(crbug/1266991): Consider making IsSeekable return
-  // an enum class with vod/semi-live/true-live states.
-  if (GetDemuxerType() == DemuxerType::kManifestDemuxer) {
-    return !demuxer_->IsSeekable();
-  }
-  return false;
-}
-
 std::unique_ptr<Demuxer> DemuxerManager::CreateChunkDemuxer() {
   if (base::FeatureList::IsEnabled(kMemoryPressureBasedSourceBufferGC)) {
     memory_pressure_listener_ = std::make_unique<base::MemoryPressureListener>(
@@ -595,11 +587,8 @@ std::unique_ptr<Demuxer> DemuxerManager::CreateHlsDemuxer() {
   auto engine = std::make_unique<HlsManifestDemuxerEngine>(
       client_->GetHlsDataSourceProvider(), media_task_runner_, loaded_url_,
       media_log_.get());
-  return std::make_unique<ManifestDemuxer>(
-      media_task_runner_,
-      base::BindPostTaskToCurrentDefault(base::BindRepeating(
-          &DemuxerManager::DemuxerRequestsSeek, weak_factory_.GetWeakPtr())),
-      std::move(engine), media_log_.get());
+  return std::make_unique<ManifestDemuxer>(media_task_runner_,
+                                           std::move(engine), media_log_.get());
 }
 #endif
 
@@ -705,11 +694,11 @@ void DemuxerManager::OnFFmpegMediaTracksUpdated(
   bool is_first_audio_track = true;
   bool is_first_video_track = true;
   for (const auto& track : tracks->tracks()) {
-    if (track->type() == MediaTrack::Type::kAudio) {
+    if (track->type() == MediaTrack::Audio) {
       client_->AddAudioTrack(track->id().value(), track->label().value(),
                              track->language().value(), is_first_audio_track);
       is_first_audio_track = false;
-    } else if (track->type() == MediaTrack::Type::kVideo) {
+    } else if (track->type() == MediaTrack::Video) {
       client_->AddVideoTrack(track->id().value(), track->label().value(),
                              track->language().value(), is_first_video_track);
       is_first_video_track = false;
@@ -720,12 +709,5 @@ void DemuxerManager::OnFFmpegMediaTracksUpdated(
   }
 }
 #endif  // BUILDFLAG(ENABLE_FFMPEG)
-
-void DemuxerManager::DemuxerRequestsSeek(base::TimeDelta time) {
-  if (!client_) {
-    return;
-  }
-  client_->DemuxerRequestsSeek(time);
-}
 
 }  // namespace media

@@ -44,6 +44,7 @@ import org.chromium.chrome.browser.customtabs.CustomTabTabPersistencePolicy;
 import org.chromium.chrome.browser.customtabs.CustomTabsConnection;
 import org.chromium.chrome.browser.customtabs.DefaultBrowserProviderImpl;
 import org.chromium.chrome.browser.customtabs.ReparentingTaskProvider;
+import org.chromium.chrome.browser.customtabs.features.sessionrestore.SessionRestoreMessageController;
 import org.chromium.chrome.browser.customtabs.shadows.ShadowExternalNavigationDelegateImpl;
 import org.chromium.chrome.browser.flags.ActivityType;
 import org.chromium.chrome.browser.init.ChromeBrowserInitializer;
@@ -102,6 +103,7 @@ public class CustomTabActivityContentTestEnvironment extends TestWatcher {
     @Mock public ChromeBrowserInitializer browserInitializer;
     @Mock public CustomTabIncognitoManager customTabIncognitoManager;
     @Mock public TabModelInitializer tabModelInitializer;
+    @Mock public SessionRestoreMessageController sessionRestoreMessageController;
     // clang-format on
     public AsyncTabParamsManager realAsyncTabParamsManager =
             AsyncTabParamsManagerFactory.createAsyncTabParamsManager();
@@ -174,7 +176,7 @@ public class CustomTabActivityContentTestEnvironment extends TestWatcher {
                 navigationEventObserver, tabProvider, reparentingTaskProvider,
                 () -> customTabIncognitoManager, () -> realAsyncTabParamsManager,
                 () -> activity.getSavedInstanceState(), activity.getWindowAndroid(),
-                tabModelInitializer);
+                tabModelInitializer, sessionRestoreMessageController);
     }
     // clang-format on
 
@@ -256,7 +258,8 @@ public class CustomTabActivityContentTestEnvironment extends TestWatcher {
     public TabImpl prepareTab() {
         TabImpl tab = mock(TabImpl.class);
         when(tab.getView()).thenReturn(mock(View.class));
-        when(tab.getUserDataHost()).thenReturn(new UserDataHost());
+        UserDataHost host = new UserDataHost();
+        when(tab.getUserDataHost()).thenReturn(host);
         WebContents webContents = mock(WebContents.class);
         when(tab.getWebContents()).thenReturn(webContents);
         NavigationController navigationController = mock(NavigationController.class);

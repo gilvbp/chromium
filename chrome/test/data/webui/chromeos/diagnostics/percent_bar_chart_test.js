@@ -16,7 +16,7 @@ suite('percentBarChartTestSuite', function() {
   let percentBarChartElement = null;
 
   setup(() => {
-    document.body.innerHTML = window.trustedTypes.emptyHTML;
+    document.body.innerHTML = '';
   });
 
   teardown(() => {

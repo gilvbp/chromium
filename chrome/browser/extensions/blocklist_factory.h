@@ -28,7 +28,7 @@ class BlocklistFactory : public ProfileKeyedServiceFactory {
   ~BlocklistFactory() override;
 
   // BrowserContextKeyedServiceFactory
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* context) const override;
 };
 

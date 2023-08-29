@@ -16,6 +16,7 @@ import android.view.ViewGroup.LayoutParams;
 
 import androidx.test.ext.junit.rules.ActivityScenarioRule;
 
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -28,6 +29,7 @@ import org.chromium.base.test.BaseRobolectricTestRunner;
 import org.chromium.chrome.browser.logo.LogoBridge.Logo;
 import org.chromium.chrome.browser.search_engines.TemplateUrlServiceFactory;
 import org.chromium.components.search_engines.TemplateUrlService;
+import org.chromium.content_public.browser.test.util.TestThreadUtils;
 import org.chromium.ui.base.TestActivity;
 import org.chromium.ui.modelutil.PropertyModel;
 import org.chromium.ui.modelutil.PropertyModelChangeProcessor;
@@ -69,6 +71,12 @@ public class LogoViewTest {
             mPropertyModelChangeProcessor =
                     PropertyModelChangeProcessor.create(mModel, mView, new LogoViewBinder());
         });
+    }
+
+    @After
+    public void tearDown() {
+        TestThreadUtils.runOnUiThreadBlocking(
+                () -> { TemplateUrlServiceFactory.setInstanceForTesting(null); });
     }
 
     @Test

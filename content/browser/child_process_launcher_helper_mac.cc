@@ -243,11 +243,12 @@ void ChildProcessLauncherHelper::ForceNormalProcessTerminationSync(
   base::EnsureProcessTerminated(std::move(process.process));
 }
 
-void ChildProcessLauncherHelper::SetProcessPriorityOnLauncherThread(
+void ChildProcessLauncherHelper::SetProcessBackgroundedOnLauncherThread(
     base::Process process,
-    base::Process::Priority priority) {
-  if (process.CanSetPriority()) {
-    process.SetPriority(ChildProcessTaskPortProvider::GetInstance(), priority);
+    bool is_background) {
+  if (process.CanBackgroundProcesses()) {
+    process.SetProcessBackgrounded(ChildProcessTaskPortProvider::GetInstance(),
+                                   is_background);
   }
 }
 

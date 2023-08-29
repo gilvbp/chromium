@@ -55,28 +55,29 @@ bool MultipartDataPipeGetter::InternalMemoryMappedFile::DoInitialize() {
     DPLOG(ERROR) << "fstat " << file_.GetPlatformFile();
     return false;
   }
-  if (!base::IsValueInRangeForNumericType<size_t>(file_len)) {
+  if (!base::IsValueInRangeForNumericType<size_t>(file_len))
     return false;
-  }
-  void* mapped = mmap(nullptr, static_cast<size_t>(file_len), PROT_READ,
-                      MAP_SHARED, file_.GetPlatformFile(), 0);
-  if (mapped == MAP_FAILED) {
+  length_ = static_cast<size_t>(file_len);
+
+  data_ = static_cast<uint8_t*>(mmap(nullptr, length_, PROT_READ, MAP_SHARED,
+                                     file_.GetPlatformFile(), 0));
+  if (data_ == MAP_FAILED) {
     // Retry with MAP_PRIVATE mode.
     // Some file systems do not support MAP_SHARED. Here, it is acceptable to
     // use MAP_PRIVATE instead. Note: For MAP_PRIVATE, it is unspecified whether
     // changes to the underlying file are carried through to the mapped region
     // after the mmap call.
-    mapped = mmap(nullptr, static_cast<size_t>(file_len), PROT_READ,
-                  MAP_PRIVATE, file_.GetPlatformFile(), 0);
+    data_ = static_cast<uint8_t*>(mmap(nullptr, length_, PROT_READ, MAP_PRIVATE,
+                                       file_.GetPlatformFile(), 0));
   }
-  if (mapped == MAP_FAILED) {
+
+  if (data_ == MAP_FAILED) {
     DPLOG(ERROR) << "Upload failure: The creation of a memory mapped file "
                     "failed for file "
                  << file_.GetPlatformFile();
     return false;
   }
-  length_ = static_cast<size_t>(file_len);
-  data_ = static_cast<uint8_t*>(mapped);
+
   return true;
 }
 
@@ -84,12 +85,12 @@ void MultipartDataPipeGetter::InternalMemoryMappedFile::CloseHandles() {
   base::ScopedBlockingCall scoped_blocking_call(FROM_HERE,
                                                 base::BlockingType::MAY_BLOCK);
 
-  if (data_) {
-    munmap(data_.ExtractAsDangling(), length_);
-  }
+  if (data_ != nullptr)
+    munmap(data_, length_);
+  file_.Close();
+
   data_ = nullptr;
   length_ = 0;
-  file_.Close();
 }
 
 #endif  // BUILDFLAG(IS_POSIX)

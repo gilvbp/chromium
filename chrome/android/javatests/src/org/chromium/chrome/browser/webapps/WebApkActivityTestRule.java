@@ -36,8 +36,11 @@ public class WebApkActivityTestRule extends ChromeActivityTestRule<WebappActivit
         Statement webApkUpdateManagerStatement = new Statement() {
             @Override
             public void evaluate() throws Throwable {
-                WebApkUpdateManager.setUpdatesDisabledForTesting(true);
+                WebApkUpdateManager.setUpdatesEnabledForTesting(false);
+
                 base.evaluate();
+
+                WebApkUpdateManager.setUpdatesEnabledForTesting(true);
             }
         };
         return super.apply(webApkUpdateManagerStatement, description);

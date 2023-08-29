@@ -6,8 +6,6 @@ import {TestRunner} from 'test_runner';
 import {SourcesTestRunner} from 'sources_test_runner';
 import {BindingsTestRunner} from 'bindings_test_runner';
 
-import * as SDK from 'devtools/core/sdk/sdk.js';
-
 (async function() {
   TestRunner.addResult(`Verify that navigator is rendered properly when targets are suspended and resumed.\n`);
   await TestRunner.loadLegacyModule('sources');
@@ -32,7 +30,7 @@ import * as SDK from 'devtools/core/sdk/sdk.js';
   SourcesTestRunner.dumpNavigatorView(sourcesNavigator, false);
 
   TestRunner.markStep('Suspending targets.');
-  await SDK.TargetManager.TargetManager.instance().suspendAllTargets();
+  await SDK.targetManager.suspendAllTargets();
   SourcesTestRunner.dumpNavigatorView(sourcesNavigator, false);
 
   TestRunner.markStep('detachFrame');
@@ -42,7 +40,7 @@ import * as SDK from 'devtools/core/sdk/sdk.js';
 
   TestRunner.markStep('Resuming targets.');
   await Promise.all([
-    SDK.TargetManager.TargetManager.instance().resumeAllTargets(),
+    SDK.targetManager.resumeAllTargets(),
     BindingsTestRunner.waitForSourceMap('sourcemap-script.js.map'),
     BindingsTestRunner.waitForSourceMap('sourcemap-style.css.map'),
   ]);

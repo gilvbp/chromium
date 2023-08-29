@@ -4,7 +4,11 @@
 
 #import "ios/chrome/browser/signin/fake_refresh_access_token_error.h"
 
-#import "base/apple/foundation_util.h"
+#import "base/mac/foundation_util.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 @implementation FakeRefreshAccessTokenError
 

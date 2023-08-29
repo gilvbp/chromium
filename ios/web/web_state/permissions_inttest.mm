@@ -20,6 +20,10 @@
 #import "testing/gtest/include/gtest/gtest.h"
 #import "testing/gtest_mac.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 using base::test::ios::kWaitForPageLoadTimeout;
 using base::test::ios::SpinRunLoopWithMinDelay;
 using base::test::ios::WaitUntilConditionOrTimeout;
@@ -226,10 +230,6 @@ TEST_F(PermissionsInttest,
 // granted by WKUIDelegate in the first place.
 TEST_F(PermissionsInttest,
        TestsThatWebStateShouldNotAlterPermissionIfNotAccessible) {
-  if (@available(iOS 17.0, *)) {
-    // TODO(crbug.com/1462372): This crashes on iOS17, waiting for Apple fix.
-    GTEST_SKIP() << "This crashes on iOS17, waiting for Apple fix.";
-  }
   if (@available(iOS 15.0, *)) {
     delegate_.SetPermissionDecision(PermissionDecisionDeny);
     test::LoadUrl(web_state(), test_server_->GetURL("/camera_only.html"));
@@ -262,10 +262,6 @@ TEST_F(PermissionsInttest,
 
 // Tests that page reload resets permission states.
 TEST_F(PermissionsInttest, TestsThatPageReloadResetsPermissionState) {
-  if (@available(iOS 17.0, *)) {
-    // TODO(crbug.com/1462372): This crashes on iOS17, waiting for Apple fix.
-    GTEST_SKIP() << "This crashes on iOS17, waiting for Apple fix.";
-  }
   if (@available(iOS 15.0, *)) {
     // Initial load should allow permission.
     delegate_.SetPermissionDecision(PermissionDecisionGrant);
@@ -295,10 +291,6 @@ TEST_F(PermissionsInttest, TestsThatPageReloadResetsPermissionState) {
 // Tests that the web state does not preserve permission states between
 // navigations.
 TEST_F(PermissionsInttest, TestsThatWebStateDoesNotPreservePermissionState) {
-  if (@available(iOS 17.0, *)) {
-    // TODO(crbug.com/1462372): This crashes on iOS17, waiting for Apple fix.
-    GTEST_SKIP() << "This crashes on iOS17, waiting for Apple fix.";
-  }
   if (@available(iOS 15.0, *)) {
     // Initial load should allow permission.
     delegate_.SetPermissionDecision(PermissionDecisionGrant);
@@ -333,10 +325,6 @@ TEST_F(PermissionsInttest, TestsThatWebStateDoesNotPreservePermissionState) {
 // pages with existing accessible permission states.
 TEST_F(PermissionsInttest,
        TestsThatMovingBackwardOrForwardResetsPermissionState) {
-  if (@available(iOS 17.0, *)) {
-    // TODO(crbug.com/1462372): This crashes on iOS17, waiting for Apple fix.
-    GTEST_SKIP() << "This crashes on iOS17, waiting for Apple fix.";
-  }
   if (@available(iOS 15.0, *)) {
     // Initial load for both pages should allow permission.
     delegate_.SetPermissionDecision(PermissionDecisionGrant);

@@ -60,10 +60,6 @@ saveMethods(Document, SafeMethods.$Document, [
   'webkitCancelFullScreen',
 ]);
 
-saveAccessors(Document, SafeMethods.$Document, [
-  'defaultView',
-]);
-
 saveMethods(Element, SafeMethods.$Element, [
   'attachShadow',
   'getAttribute',
@@ -105,7 +101,6 @@ saveMethods(Node, SafeMethods.$Node, [
 
 saveAccessors(Node, SafeMethods.$Node, [
   'parentNode',
-  'ownerDocument',
 ]);
 
 exports.$set('SafeMethods', SafeMethods);

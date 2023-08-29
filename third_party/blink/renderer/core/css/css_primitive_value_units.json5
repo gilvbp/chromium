@@ -247,14 +247,6 @@
       unit_type: "kRlhs",
     },
     {
-      name: "cap",
-      unit_type: "kCaps",
-    },
-    {
-      name: "rcap",
-      unit_type: "kRcaps",
-    },
-    {
       name: "__qem",
       unit_type: "kQuirkyEms",
     },

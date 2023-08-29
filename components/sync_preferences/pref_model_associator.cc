@@ -18,7 +18,6 @@
 #include "base/logging.h"
 #include "base/metrics/histogram_functions.h"
 #include "base/observer_list.h"
-#include "base/types/expected_macros.h"
 #include "base/values.h"
 #include "build/chromeos_buildflags.h"
 #include "components/sync/base/features.h"
@@ -143,13 +142,14 @@ void PrefModelAssociator::InitPrefAndAssociate(
   if (sync_pref.IsValid()) {
     const sync_pb::PreferenceSpecifics& preference = GetSpecifics(sync_pref);
     CHECK_EQ(pref_name, preference.name());
-    ASSIGN_OR_RETURN(
-        base::Value sync_value,
-        base::JSONReader::ReadAndReturnValueWithError(preference.value()),
-        [&](base::JSONReader::Error error) {
-          LOG(ERROR) << "Failed to deserialize value of preference '"
-                     << pref_name << "': " << std::move(error).message;
-        });
+    base::JSONReader::Result parsed_json =
+        base::JSONReader::ReadAndReturnValueWithError(preference.value());
+    if (!parsed_json.has_value()) {
+      LOG(ERROR) << "Failed to deserialize value of preference '" << pref_name
+                 << "': " << parsed_json.error().message;
+      return;
+    }
+    base::Value sync_value = std::move(*parsed_json);
 
     if (user_pref_value) {
       DVLOG(1) << "Found user pref value for " << pref_name;
@@ -395,6 +395,7 @@ bool PrefModelAssociator::IsPrefSyncedForTesting(
 void PrefModelAssociator::RegisterPref(const std::string& name) {
   DCHECK(!base::Contains(registered_preferences_, name));
   DCHECK(
+      !base::FeatureList::IsEnabled(syncer::kSyncEnforcePreferencesAllowlist) ||
       !client_ ||
       (client_->GetSyncablePrefsDatabase().IsPreferenceSyncable(name) &&
        client_->GetSyncablePrefsDatabase()
@@ -495,16 +496,6 @@ bool PrefModelAssociator::SetPrefWithTypeCheck(const std::string& pref_name,
                   << new_value.type() << " which doesn't match the registered "
                   << "pref type: " << registered_type;
     return false;
-  }
-  if (base::FeatureList::IsEnabled(syncer::kEnablePreferencesAccountStorage)) {
-    CHECK(dual_layer_user_prefs_);
-    // `dual_layer_user_prefs_->SetValueInAccountStoreOnly()` is almost
-    // equivalent to `user_prefs_->SetValue()` except that if the effective
-    // value of the pref for the `dual_layer_user_prefs_` is unchanged, no
-    // notifications are sent out to its observers.
-    dual_layer_user_prefs_->SetValueInAccountStoreOnly(
-        pref_name, new_value.Clone(), pref_service_->GetWriteFlags(pref_name));
-    return true;
   }
   // Write directly to the user controlled value store, which is ignored if the
   // preference is controlled by a higher-priority layer (e.g. policy).

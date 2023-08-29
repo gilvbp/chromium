@@ -36,8 +36,6 @@ export class NativeLayerCrosStub extends TestBrowserProxy implements
   private printServersConfig_: PrintServersConfig|
       null = {printServers: [], isSingleServerFetchingMode: false};
 
-  private showManagePrinters: boolean = true;
-
   /** When true, all printer status retry requests return NO_ERROR. */
   private simulateStatusRetrySuccesful_: boolean = false;
 
@@ -49,7 +47,6 @@ export class NativeLayerCrosStub extends TestBrowserProxy implements
       'choosePrintServers',
       'getPrintServersConfig',
       'recordPrinterStatusRetrySuccessHistogram',
-      'getShowManagePrinters',
     ]);
   }
 
@@ -155,14 +152,5 @@ export class NativeLayerCrosStub extends TestBrowserProxy implements
 
   simulateStatusRetrySuccesful() {
     this.simulateStatusRetrySuccesful_ = true;
-  }
-
-  getShowManagePrinters(): Promise<boolean> {
-    this.methodCalled('getShowManagePrinters');
-    return Promise.resolve(this.showManagePrinters);
-  }
-
-  setShowManagePrinters(show: boolean): void {
-    this.showManagePrinters = show;
   }
 }

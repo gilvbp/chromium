@@ -25,7 +25,6 @@
 #include "components/omnibox/browser/actions/omnibox_action.h"
 #include "components/omnibox/browser/actions/omnibox_action_concepts.h"
 #include "components/omnibox/browser/actions/omnibox_action_in_suggest.h"
-#include "components/omnibox/browser/autocomplete_match_type.h"
 #include "components/omnibox/browser/autocomplete_provider.h"
 #include "components/omnibox/browser/document_provider.h"
 #include "components/omnibox/browser/omnibox_field_trial.h"
@@ -258,6 +257,7 @@ AutocompleteMatch::AutocompleteMatch(const AutocompleteMatch& match)
     : provider(match.provider),
       relevance(match.relevance),
       typed_count(match.typed_count),
+      fuzzy_match_penalty(match.fuzzy_match_penalty),
       deletable(match.deletable),
       fill_into_edit(match.fill_into_edit),
       additional_text(match.additional_text),
@@ -306,8 +306,7 @@ AutocompleteMatch::AutocompleteMatch(const AutocompleteMatch& match)
       query_tiles(match.query_tiles),
       suggest_tiles(match.suggest_tiles),
       scoring_signals(match.scoring_signals),
-      culled_by_provider(match.culled_by_provider),
-      shortcut_boosted(match.shortcut_boosted) {}
+      culled_by_provider(match.culled_by_provider) {}
 
 AutocompleteMatch::AutocompleteMatch(AutocompleteMatch&& match) noexcept {
   *this = std::move(match);
@@ -318,6 +317,7 @@ AutocompleteMatch& AutocompleteMatch::operator=(
   provider = std::move(match.provider);
   relevance = std::move(match.relevance);
   typed_count = std::move(match.typed_count);
+  fuzzy_match_penalty = std::move(match.fuzzy_match_penalty);
   deletable = std::move(match.deletable);
   fill_into_edit = std::move(match.fill_into_edit);
   additional_text = std::move(match.additional_text);
@@ -363,7 +363,6 @@ AutocompleteMatch& AutocompleteMatch::operator=(
   suggest_tiles = std::move(match.suggest_tiles);
   scoring_signals = std::move(match.scoring_signals);
   culled_by_provider = std::move(match.culled_by_provider);
-  shortcut_boosted = std::move(match.shortcut_boosted);
 #if BUILDFLAG(IS_ANDROID)
   DestroyJavaObject();
   std::swap(java_match_, match.java_match_);
@@ -387,6 +386,7 @@ AutocompleteMatch& AutocompleteMatch::operator=(
   provider = match.provider;
   relevance = match.relevance;
   typed_count = match.typed_count;
+  fuzzy_match_penalty = match.fuzzy_match_penalty;
   deletable = match.deletable;
   fill_into_edit = match.fill_into_edit;
   additional_text = match.additional_text;
@@ -437,7 +437,6 @@ AutocompleteMatch& AutocompleteMatch::operator=(
   suggest_tiles = match.suggest_tiles;
   scoring_signals = match.scoring_signals;
   culled_by_provider = match.culled_by_provider;
-  shortcut_boosted = match.shortcut_boosted;
 
 #if BUILDFLAG(IS_ANDROID)
   // In case the target element previously held a java object, release it.
@@ -499,7 +498,6 @@ const gfx::VectorIcon& AutocompleteMatch::GetVectorIcon(
                                     : omnibox::kBookmarkIcon;
   if (answer.has_value())
     return AnswerTypeToAnswerIcon(answer->type());
-
   switch (type) {
     case Type::URL_WHAT_YOU_TYPED:
     case Type::HISTORY_URL:
@@ -526,18 +524,13 @@ const gfx::VectorIcon& AutocompleteMatch::GetVectorIcon(
                                       : vector_icons::kSearchIcon;
     }
 
-    case Type::PEDAL: {
-      if (takeover_action) {
-        return takeover_action->GetVectorIcon();
-      }
-      ABSL_FALLTHROUGH_INTENDED;
-    }
     case Type::SEARCH_WHAT_YOU_TYPED:
     case Type::SEARCH_SUGGEST_ENTITY:
     case Type::SEARCH_SUGGEST_PROFILE:
     case Type::SEARCH_OTHER_ENGINE:
     case Type::CONTACT_DEPRECATED:
     case Type::VOICE_SUGGEST:
+    case Type::PEDAL_DEPRECATED:
     case Type::CLIPBOARD_TEXT:
     case Type::CLIPBOARD_IMAGE:
     case Type::TILE_SUGGESTION:
@@ -547,8 +540,8 @@ const gfx::VectorIcon& AutocompleteMatch::GetVectorIcon(
     case Type::SEARCH_HISTORY:
     case Type::SEARCH_SUGGEST_PERSONALIZED: {
       DCHECK(IsSearchHistoryType(type));
-      return use_chrome_refresh_icons ? vector_icons::kHistoryChromeRefreshIcon
-                                      : vector_icons::kHistoryIcon;
+      return use_chrome_refresh_icons ? omnibox::kClockChromeRefreshIcon
+                                      : omnibox::kClockIcon;
     }
 
     case Type::EXTENSION_APP_DEPRECATED:
@@ -796,11 +789,6 @@ bool AutocompleteMatch::IsSearchType(Type type) {
          type == AutocompleteMatchType::SEARCH_OTHER_ENGINE ||
          type == AutocompleteMatchType::CALCULATOR ||
          type == AutocompleteMatchType::VOICE_SUGGEST ||
-#if BUILDFLAG(IS_ANDROID)
-         // iOS tests fail if Clipboard searches are annotated as searches.
-         type == AutocompleteMatchType::CLIPBOARD_TEXT ||
-         type == AutocompleteMatchType::CLIPBOARD_IMAGE ||
-#endif
          IsSpecializedSearchType(type);
 }
 
@@ -1033,11 +1021,6 @@ void AutocompleteMatch::LogSearchEngineUsed(
             : SEARCH_ENGINE_OTHER;
     UMA_HISTOGRAM_ENUMERATION("Omnibox.SearchEngineType", search_engine_type,
                               SEARCH_ENGINE_MAX);
-    if (template_url->created_by_policy()) {
-      UMA_HISTOGRAM_ENUMERATION(
-          "Omnibox.SearchEngineType.SetByEnterprisePolicy", search_engine_type,
-          SEARCH_ENGINE_MAX);
-    }
   }
 }
 
@@ -1249,12 +1232,11 @@ AutocompleteMatch::GetOmniboxEventResultType(int action_index) const {
       return OmniboxEventProto::Suggestion::STARTER_PACK;
     case AutocompleteMatchType::VOICE_SUGGEST:
       return OmniboxEventProto::Suggestion::SEARCH_SUGGEST;
-    case AutocompleteMatchType::PEDAL:
-      return OmniboxEventProto::Suggestion::PEDAL;
     case AutocompleteMatchType::CONTACT_DEPRECATED:
     case AutocompleteMatchType::PHYSICAL_WEB_DEPRECATED:
     case AutocompleteMatchType::PHYSICAL_WEB_OVERFLOW_DEPRECATED:
     case AutocompleteMatchType::TAB_SEARCH_DEPRECATED:
+    case AutocompleteMatchType::PEDAL_DEPRECATED:
     // NULL_RESULT_MESSAGE suggestions cannot be acted upon, so no need to
     // log.
     case AutocompleteMatchType::NULL_RESULT_MESSAGE:
@@ -1287,11 +1269,6 @@ bool AutocompleteMatch::IsOnDeviceSearchSuggestion() const {
       (provider &&
        provider->type() == AutocompleteProvider::TYPE_ON_DEVICE_HEAD);
   return from_on_device_provider && subtypes.contains(271);
-}
-
-bool AutocompleteMatch::IsUrlScoringEligible() const {
-  return scoring_signals.has_value() &&
-         type != AutocompleteMatchType::URL_WHAT_YOU_TYPED;
 }
 
 void AutocompleteMatch::FilterOmniboxActions(
@@ -1524,15 +1501,6 @@ void AutocompleteMatch::MergeScoringSignals(const AutocompleteMatch& other) {
   if (!other.scoring_signals.has_value()) {
     return;
   }
-
-  // Records the ACMatch type of the duplicate match when two or more matches
-  // with different ml scoring signals are merged.
-  const char kACMatchPropertyScoringSignalsMerged[] = "Scoring signals merged";
-  RecordAdditionalInfo(
-      kACMatchPropertyScoringSignalsMerged,
-      GetAdditionalInfo(kACMatchPropertyScoringSignalsMerged) +
-          AutocompleteMatchType::ToString(other.type) + ", " +
-          other.GetAdditionalInfo(kACMatchPropertyScoringSignalsMerged));
 
   if (!scoring_signals.has_value()) {
     scoring_signals = absl::make_optional<ScoringSignals>();
@@ -1889,27 +1857,6 @@ void AutocompleteMatch::WriteIntoTrace(perfetto::TracedValue context) const {
 
 OmniboxAction* AutocompleteMatch::GetActionAt(size_t index) const {
   return index >= actions.size() ? nullptr : actions[index].get();
-}
-
-void AutocompleteMatch::ConvertFromTakeoverAction() {
-  CHECK(takeover_action);
-  CHECK(takeover_action->ActionId() == OmniboxActionId::PEDAL);
-
-  swap_contents_and_description = false;
-  transition = ui::PAGE_TRANSITION_GENERATED;
-  type = AutocompleteMatchType::PEDAL;
-  suggest_type = omnibox::SuggestType::TYPE_NATIVE_CHROME;
-
-  // Use the pedal text as primary match `contents`.
-  contents = takeover_action->GetLabelStrings().hint;
-  contents_class = {{0, ACMatchClassification::NONE}};
-
-  // TODO(crbug.com/1473162): May use a shorter description here, like
-  //  a new grit string for "Chrome action", or maybe no string at all.
-  //  Consider also providing a tooltip with `suggestion_contents`, as
-  //  pedals did support this detailed educational string in the past.
-  description = takeover_action->GetLabelStrings().suggestion_contents;
-  description_class = {{0, ACMatchClassification::DIM}};
 }
 
 #if DCHECK_IS_ON()

@@ -34,7 +34,7 @@ extern const char kForceDisableVariationIds[];
 COMPONENT_EXPORT(VARIATIONS)
 extern const char kVariationsOverrideCountry[];
 COMPONENT_EXPORT(VARIATIONS)
-extern const char kVariationsTestSeedJsonPath[];
+extern const char kVariationsTestSeedPath[];
 COMPONENT_EXPORT(VARIATIONS)
 extern const char kVariationsServerURL[];
 COMPONENT_EXPORT(VARIATIONS)

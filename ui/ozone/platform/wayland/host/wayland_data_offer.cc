@@ -16,9 +16,7 @@ WaylandDataOffer::WaylandDataOffer(wl_data_offer* data_offer)
       source_actions_(WL_DATA_DEVICE_MANAGER_DND_ACTION_NONE),
       dnd_action_(WL_DATA_DEVICE_MANAGER_DND_ACTION_NONE) {
   static constexpr wl_data_offer_listener kDataOfferListener = {
-      .offer = &OnOffer,
-      .source_actions = &OnSourceActions,
-      .action = &OnAction};
+      &OnOffer, &OnSourceAction, &OnAction};
   wl_data_offer_add_listener(data_offer, &kDataOfferListener, this);
 }
 
@@ -87,9 +85,9 @@ void WaylandDataOffer::OnOffer(void* data,
   self->AddMimeType(mime_type);
 }
 
-void WaylandDataOffer::OnSourceActions(void* data,
-                                       wl_data_offer* offer,
-                                       uint32_t source_actions) {
+void WaylandDataOffer::OnSourceAction(void* data,
+                                      wl_data_offer* offer,
+                                      uint32_t source_actions) {
   auto* self = static_cast<WaylandDataOffer*>(data);
   self->source_actions_ = source_actions;
 }

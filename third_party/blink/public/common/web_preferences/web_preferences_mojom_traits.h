@@ -284,17 +284,13 @@ struct BLINK_COMMON_EXPORT StructTraits<blink::mojom::WebPreferencesDataView,
     return r.enable_scroll_animator;
   }
 
+  static bool threaded_scrolling_enabled(
+      const blink::web_pref::WebPreferences& r) {
+    return r.threaded_scrolling_enabled;
+  }
+
   static bool prefers_reduced_motion(const blink::web_pref::WebPreferences& r) {
     return r.prefers_reduced_motion;
-  }
-
-  static bool prefers_reduced_transparency(
-      const blink::web_pref::WebPreferences& r) {
-    return r.prefers_reduced_transparency;
-  }
-
-  static bool inverted_colors(const blink::web_pref::WebPreferences& r) {
-    return r.inverted_colors;
   }
 
   static bool touch_event_feature_detection_enabled(
@@ -418,6 +414,10 @@ struct BLINK_COMMON_EXPORT StructTraits<blink::mojom::WebPreferencesDataView,
   static bool spatial_navigation_enabled(
       const blink::web_pref::WebPreferences& r) {
     return r.spatial_navigation_enabled;
+  }
+
+  static bool navigate_on_drag_drop(const blink::web_pref::WebPreferences& r) {
+    return r.navigate_on_drag_drop;
   }
 
   static bool fake_no_alloc_direct_call_for_testing_enabled(

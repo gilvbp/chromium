@@ -92,13 +92,9 @@
                     android:text="@string/bookmark_folder"
                     android:textAppearance="@style/TextAppearance.TextSmall.Secondary" />
 
-                <!-- Negative margin required because the row is meant for a recycler view. -->
-                <FrameLayout
-                    android:id="@+id/improved_folder_row_container"
-                    android:layout_marginTop="6dp"
-                    android:layout_marginStart="@dimen/improved_bookmark_row_start_negative_margin"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"/>
+                <include
+                    android:id="@+id/improved_folder_row"
+                    layout="@layout/improved_bookmark_folder_select_layout" />
 
             </LinearLayout>
         </LinearLayout>

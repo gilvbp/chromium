@@ -6,7 +6,6 @@
 #define CONTENT_BROWSER_RENDERER_HOST_CURSOR_MANAGER_H_
 
 #include <map>
-#include <vector>
 
 #include "base/functional/callback_helpers.h"
 #include "base/memory/raw_ptr.h"
@@ -46,10 +45,7 @@ class CONTENT_EXPORT CursorManager {
   // cursor. This is only used for cursor triggered tooltips.
   bool IsViewUnderCursor(RenderWidgetHostViewBase*) const;
 
-  // Disallows custom cursors whose height or width are larger or equal to
-  // `max_dimension` DIPs.
-  [[nodiscard]] base::ScopedClosureRunner CreateDisallowCustomCursorScope(
-      int max_dimension_dips);
+  [[nodiscard]] base::ScopedClosureRunner CreateDisallowCustomCursorScope();
 
   // Accessor for browser tests, enabling verification of the cursor_map_.
   // Returns false if the provided View is not in the map, and outputs
@@ -61,8 +57,8 @@ class CONTENT_EXPORT CursorManager {
   }
 
  private:
-  bool IsCursorAllowed(const ui::Cursor&) const;
-  void DisallowCustomCursorScopeExpired(int max_dimension_dips);
+  bool AreCustomCursorsAllowed() const;
+  void DisallowCustomCursorScopeExpired();
   void UpdateCursor();
 
   // Stores the last received cursor from each RenderWidgetHostView.
@@ -70,17 +66,13 @@ class CONTENT_EXPORT CursorManager {
 
   // The view currently underneath the cursor, which corresponds to the cursor
   // currently displayed.
-  raw_ptr<RenderWidgetHostViewBase, AcrossTasksDanglingUntriaged>
-      view_under_cursor_;
+  raw_ptr<RenderWidgetHostViewBase, DanglingUntriaged> view_under_cursor_;
 
   // The root view is the target for DisplayCursor calls whenever the active
   // cursor needs to change.
-  const raw_ptr<RenderWidgetHostViewBase> root_view_;
+  raw_ptr<RenderWidgetHostViewBase> root_view_;
 
-  // Restrictions on the maximum dimension (either width or height) imposed
-  // on custom cursors.
-  // Restrictions can be created by `CreateDisallowCustomCursorScope`.
-  std::vector<int> dimension_restrictions_;
+  int disallow_custom_cursor_scope_count_ = 0;
 
   ui::mojom::CursorType last_set_cursor_type_for_testing_;
 

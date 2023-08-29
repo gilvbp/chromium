@@ -32,16 +32,8 @@
 
 namespace views {
 
-namespace {
-
-bool HasCallback(
-    const absl::variant<base::OnceClosure, base::RepeatingCallback<bool()>>&
-        callback) {
-  return absl::visit(
-      [](const auto& variant) { return static_cast<bool>(variant); }, callback);
-}
-
-}  // namespace
+// Debug information for https://crbug.com/1215247.
+int g_instance_count = 0;
 
 ////////////////////////////////////////////////////////////////////////////////
 // DialogDelegate::Params:
@@ -52,6 +44,8 @@ DialogDelegate::Params::~Params() = default;
 // DialogDelegate:
 
 DialogDelegate::DialogDelegate() {
+  ++g_instance_count;
+
   WidgetDelegate::RegisterWindowWillCloseCallback(
       base::BindOnce(&DialogDelegate::WindowWillClose, base::Unretained(this)));
 }
@@ -175,33 +169,22 @@ bool DialogDelegate::ShouldIgnoreButtonPressedEventHandling(
 
 bool DialogDelegate::Cancel() {
   DCHECK(!already_started_close_);
-  if (HasCallback(cancel_callback_)) {
-    return RunCloseCallback(cancel_callback_);
-  }
+  if (cancel_callback_)
+    RunCloseCallback(std::move(cancel_callback_));
   return true;
 }
 
 bool DialogDelegate::Accept() {
   DCHECK(!already_started_close_);
-  if (HasCallback(accept_callback_)) {
-    return RunCloseCallback(accept_callback_);
-  }
+  if (accept_callback_)
+    RunCloseCallback(std::move(accept_callback_));
   return true;
 }
 
-bool DialogDelegate::RunCloseCallback(
-    absl::variant<base::OnceClosure, base::RepeatingCallback<bool()>>&
-        callback) {
+void DialogDelegate::RunCloseCallback(base::OnceClosure callback) {
   DCHECK(!already_started_close_);
-  if (absl::holds_alternative<base::OnceClosure>(callback)) {
-    already_started_close_ = true;
-    absl::get<base::OnceClosure>(std::move(callback)).Run();
-  } else {
-    already_started_close_ =
-        absl::get<base::RepeatingCallback<bool()>>(callback).Run();
-  }
-
-  return already_started_close_;
+  already_started_close_ = true;
+  std::move(callback).Run();
 }
 
 View* DialogDelegate::GetInitiallyFocusedView() {
@@ -244,18 +227,11 @@ void DialogDelegate::WindowWillClose() {
   if (already_started_close_)
     return;
 
-  const bool new_callback_present = close_callback_ ||
-                                    HasCallback(cancel_callback_) ||
-                                    HasCallback(accept_callback_);
+  bool new_callback_present =
+      close_callback_ || cancel_callback_ || accept_callback_;
 
-  if (close_callback_) {
-    // `RunCloseCallback` takes a non-const reference to this variant to support
-    // the accept and cancel callbacks. It doesn't make sense to be storing a
-    // variant for close callbacks, so we construct the variant here instead.
-    absl::variant<base::OnceClosure, base::RepeatingCallback<bool()>>
-        close_callback_wrapped(std::move(close_callback_));
-    RunCloseCallback(close_callback_wrapped);
-  }
+  if (close_callback_)
+    RunCloseCallback(std::move(close_callback_));
 
   if (new_callback_present)
     return;
@@ -412,17 +388,7 @@ void DialogDelegate::SetAcceptCallback(base::OnceClosure callback) {
   accept_callback_ = std::move(callback);
 }
 
-void DialogDelegate::SetAcceptCallbackWithClose(
-    base::RepeatingCallback<bool()> callback) {
-  accept_callback_ = std::move(callback);
-}
-
 void DialogDelegate::SetCancelCallback(base::OnceClosure callback) {
-  cancel_callback_ = std::move(callback);
-}
-
-void DialogDelegate::SetCancelCallbackWithClose(
-    base::RepeatingCallback<bool()> callback) {
   cancel_callback_ = std::move(callback);
 }
 
@@ -455,6 +421,15 @@ void DialogDelegate::AcceptDialog() {
   if (already_started_close_ || !Accept())
     return;
 
+  // Check for Accept() deleting `this` but returning false. Empirically the
+  // steady state instance count with no dialogs open is zero, so if it's back
+  // to zero `this` is deleted https://crbug.com/1215247
+  if (g_instance_count <= 0) {
+    // LOG(FATAL) instead of CHECK() to put the widget name into a crash key.
+    // See "Product Data" in the crash tool if a crash report shows this line.
+    LOG(FATAL) << last_widget_name;
+  }
+
   already_started_close_ = true;
   GetWidget()->CloseWithReason(
       views::Widget::ClosedReason::kAcceptButtonClicked);
@@ -475,7 +450,9 @@ void DialogDelegate::CancelDialog() {
       views::Widget::ClosedReason::kCancelButtonClicked);
 }
 
-DialogDelegate::~DialogDelegate() = default;
+DialogDelegate::~DialogDelegate() {
+  --g_instance_count;
+}
 
 ax::mojom::Role DialogDelegate::GetAccessibleWindowRole() {
   return ax::mojom::Role::kDialog;

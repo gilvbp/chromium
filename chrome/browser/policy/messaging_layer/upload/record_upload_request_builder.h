@@ -5,11 +5,8 @@
 #ifndef CHROME_BROWSER_POLICY_MESSAGING_LAYER_UPLOAD_RECORD_UPLOAD_REQUEST_BUILDER_H_
 #define CHROME_BROWSER_POLICY_MESSAGING_LAYER_UPLOAD_RECORD_UPLOAD_REQUEST_BUILDER_H_
 
-#include <string_view>
-
-#include "base/feature_list.h"
+#include "base/strings/string_piece.h"
 #include "base/values.h"
-
 #include "components/reporting/proto/synced/record.pb.h"
 #include "components/reporting/resources/resource_manager.h"
 #include "third_party/abseil-cpp/absl/types/optional.h"
@@ -33,11 +30,6 @@ namespace reporting {
 //         "sequencingId": 1,
 //         "generationId": 123456789,
 //         "priority": 1
-//         // The string value of the `generation_guid` may be empty for managed
-//         // devices, but will always have a value for unmanaged devices. It's
-//         // value, if present, must be a string of base::Uuid. See base/uuid.h
-//         // for format information.
-//         "generation_guid": "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx"
 //       },
 //       "compressionInformation": {
 //         "compressionAlgorithm": 1
@@ -52,8 +44,7 @@ namespace reporting {
 //       "sequenceInformation": {
 //         "sequencingId": 2,
 //         "generationId": 123456789,
-//         "priority": 1,
-//         "generation_guid": "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx"
+//         "priority": 1
 //       },
 //       "compressionInformation": {
 //         "compressionAlgorithm": 1
@@ -63,15 +54,7 @@ namespace reporting {
 //   // optional field, corresponding to |need_encryption_keys| in
 //   // components/reporting/proto/interface.proto
 //   "attachEncryptionSettings": true,
-//   "requestId": "SomeString",
-//   // optional field, corresponding to the configuration file that the
-//   // server provides to the client.
-//   "attachConfigurationFile": true
-//   // optional field, only used by the client tast tests to signal to the
-//   // server that this is an automated test from the lab. In production, this
-//   // should always be absent. Even if it is erroneously present in production
-//   // code, server ignores it.
-//   "clientAutomatedTest": true
+//   "requestId": "SomeString"
 // }
 //
 // This payload is added to the common payload of all reporting jobs, which
@@ -84,24 +67,15 @@ namespace reporting {
 //   ...
 //   builder.AddRecord(recordN);
 //   auto payload_result = builder.Build();
-//   CHECK(payload_result.has_value());
+//   DCHECK(payload_result.has_value());
 //   job_payload_.Merge(payload_result.value());
 //
 // The value of an "encryptedRecord" must be a list, in which each element is a
 // dictionary that represents a record. The details of each record is documented
 // in record.proto.
 
-BASE_DECLARE_FEATURE(kShouldRequestConfigurationFile);
-BASE_DECLARE_FEATURE(kClientAutomatedTest);
-
 class UploadEncryptedReportingRequestBuilder {
  public:
-  // SequenceInformationDictionaryBuilder strings
-  static constexpr char kSequencingId[] = "sequencingId";
-  static constexpr char kGenerationId[] = "generationId";
-  static constexpr char kPriority[] = "priority";
-  static constexpr char kGenerationGuid[] = "generationGuid";
-
   // RequestId key used to build UploadEncryptedReportingRequest
   static constexpr char kRequestId[] = "requestId";
 
@@ -117,16 +91,14 @@ class UploadEncryptedReportingRequestBuilder {
 
   // Sets the requestId field.
   UploadEncryptedReportingRequestBuilder& SetRequestId(
-      std::string_view request_id);
+      base::StringPiece request_id);
 
   // Return the built dictionary. Also set requestId to a random string if it
   // hasn't been set yet.
   absl::optional<base::Value::Dict> Build();
 
-  static std::string_view GetEncryptedRecordListPath();
-  static std::string_view GetAttachEncryptionSettingsPath();
-  static std::string_view GetAttachConfigurationFilePath();
-  static std::string_view GetClientAutomatedTestPath();
+  static base::StringPiece GetEncryptedRecordListPath();
+  static base::StringPiece GetAttachEncryptionSettingsPath();
 
   absl::optional<base::Value::Dict> result_;
 };
@@ -141,10 +113,10 @@ class EncryptedRecordDictionaryBuilder {
 
   absl::optional<base::Value::Dict> Build();
 
-  static std::string_view GetEncryptedWrappedRecordPath();
-  static std::string_view GetSequenceInformationKeyPath();
-  static std::string_view GetEncryptionInfoPath();
-  static std::string_view GetCompressionInformationPath();
+  static base::StringPiece GetEncryptedWrappedRecordPath();
+  static base::StringPiece GetSequenceInformationKeyPath();
+  static base::StringPiece GetEncryptionInfoPath();
+  static base::StringPiece GetCompressionInformationPath();
 
  private:
   absl::optional<base::Value::Dict> result_;
@@ -159,10 +131,9 @@ class SequenceInformationDictionaryBuilder {
 
   absl::optional<base::Value::Dict> Build();
 
-  static std::string_view GetSequencingIdPath();
-  static std::string_view GetGenerationIdPath();
-  static std::string_view GetPriorityPath();
-  static std::string_view GetGenerationGuidPath();
+  static base::StringPiece GetSequencingIdPath();
+  static base::StringPiece GetGenerationIdPath();
+  static base::StringPiece GetPriorityPath();
 
  private:
   absl::optional<base::Value::Dict> result_;
@@ -177,8 +148,8 @@ class EncryptionInfoDictionaryBuilder {
 
   absl::optional<base::Value::Dict> Build();
 
-  static std::string_view GetEncryptionKeyPath();
-  static std::string_view GetPublicKeyIdPath();
+  static base::StringPiece GetEncryptionKeyPath();
+  static base::StringPiece GetPublicKeyIdPath();
 
  private:
   absl::optional<base::Value::Dict> result_;
@@ -193,7 +164,7 @@ class CompressionInformationDictionaryBuilder {
 
   absl::optional<base::Value::Dict> Build();
 
-  static std::string_view GetCompressionAlgorithmPath();
+  static base::StringPiece GetCompressionAlgorithmPath();
 
  private:
   absl::optional<base::Value::Dict> result_;

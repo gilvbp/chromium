@@ -11,10 +11,12 @@
 #include <vector>
 
 #include "base/containers/span.h"
-#include "base/memory/raw_ref.h"
+#include "base/memory/raw_ptr.h"
 #include "base/run_loop.h"
 #include "mojo/public/cpp/bindings/remote.h"
 #include "net/base/ip_endpoint.h"
+#include "net/base/net_errors.h"
+#include "services/network/public/mojom/udp_socket.mojom-test-utils.h"
 #include "services/network/public/mojom/udp_socket.mojom.h"
 #include "third_party/abseil-cpp/absl/types/optional.h"
 
@@ -42,7 +44,7 @@ class UDPSocketTestHelper {
   int LeaveGroupSync(const net::IPAddress& group_address);
 
  private:
-  const raw_ref<mojom::UDPSocket> socket_;
+  std::unique_ptr<mojom::UDPSocketAsyncWaiter> socket_;
 };
 
 // An implementation of mojom::UDPSocketListener that records received results.

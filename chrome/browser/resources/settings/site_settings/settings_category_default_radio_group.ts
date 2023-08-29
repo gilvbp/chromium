@@ -138,7 +138,6 @@ export class SettingsCategoryDefaultRadioGroupElement extends
         // "Allowed" vs "Blocked".
         return ContentSetting.ALLOW;
       case ContentSettingsTypes.AR:
-      case ContentSettingsTypes.AUTO_PICTURE_IN_PICTURE:
       case ContentSettingsTypes.AUTOMATIC_DOWNLOADS:
       case ContentSettingsTypes.BLUETOOTH_DEVICES:
       case ContentSettingsTypes.BLUETOOTH_SCANNING:

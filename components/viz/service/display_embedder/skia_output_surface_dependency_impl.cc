@@ -173,7 +173,7 @@ SkiaOutputSurfaceDependencyImpl::GetClientTaskRunner() {
 }
 
 void SkiaOutputSurfaceDependencyImpl::ScheduleGrContextCleanup() {
-  GetSharedContextState()->ScheduleSkiaCleanup();
+  GetSharedContextState()->ScheduleGrContextCleanup();
 }
 
 void SkiaOutputSurfaceDependencyImpl::ScheduleDelayedGPUTaskFromGPUThread(

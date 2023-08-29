@@ -17,6 +17,7 @@ import android.graphics.drawable.Drawable;
 import android.view.View;
 
 import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 import androidx.appcompat.widget.AppCompatTextView;
 
 import com.google.android.material.shape.MaterialShapeDrawable;
@@ -254,10 +255,12 @@ public class SectionHeaderBadgeDrawable extends Drawable {
         mAnimator.start();
     }
 
+    @VisibleForTesting
     boolean getHasPendingAnimationForTest() {
         return mHasPendingAnimation;
     }
 
+    @VisibleForTesting
     ValueAnimator getAnimatorForTest() {
         return mAnimator;
     }

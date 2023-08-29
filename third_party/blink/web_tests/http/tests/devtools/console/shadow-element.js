@@ -6,8 +6,6 @@ import {TestRunner} from 'test_runner';
 import {ConsoleTestRunner} from 'console_test_runner';
 import {ElementsTestRunner} from 'elements_test_runner';
 
-import * as Common from 'devtools/core/common/common.js';
-
 (async function() {
   TestRunner.addResult(`Tests that $0 works with shadow dom.\n`);
   await TestRunner.loadLegacyModule('console');
@@ -22,7 +20,7 @@ import * as Common from 'devtools/core/common/common.js';
         sr.innerHTML = "<div><div><div id='shadow'><input id='user-agent-host' type='range'></div></div></div>";
     `);
 
-  Common.Settings.settingForTest('showUAShadowDOM').set(true);
+  Common.settingForTest('showUAShadowDOM').set(true);
   ElementsTestRunner.selectNodeWithId('shadow', step1);
 
   function step1() {

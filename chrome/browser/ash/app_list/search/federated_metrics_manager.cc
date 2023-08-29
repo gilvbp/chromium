@@ -66,21 +66,12 @@ ExamplePtr CreateExamplePtr(const std::string& query,
   return example;
 }
 
-bool AreFeatureFlagsEnabled() {
-  return ash::features::IsFederatedServiceEnabled() &&
-         search_features::IsLauncherQueryFederatedAnalyticsPHHEnabled();
-}
-
 }  // namespace
 
 FederatedMetricsManager::FederatedMetricsManager(
     ash::AppListNotifier* notifier,
     ash::federated::FederatedServiceController* controller)
     : controller_(controller) {
-  if (!AreFeatureFlagsEnabled()) {
-    // Don't log InitStatus metrics if the feature is disabled.
-    return;
-  }
   if (!notifier) {
     LogInitStatus(InitStatus::kMissingNotifier);
     return;
@@ -155,7 +146,9 @@ bool FederatedMetricsManager::IsFederatedServiceAvailable() {
 bool FederatedMetricsManager::IsLoggingEnabled() {
   CHECK(is_default_search_engine_google_.has_value());
   return ChromeMetricsServiceAccessor::IsMetricsAndCrashReportingEnabled() &&
-         AreFeatureFlagsEnabled() && is_default_search_engine_google_.value();
+         ash::features::IsFederatedServiceEnabled() &&
+         search_features::IsLauncherQueryFederatedAnalyticsPHHEnabled() &&
+         is_default_search_engine_google_.value();
 }
 
 void FederatedMetricsManager::TryToBindFederatedServiceIfNecessary() {

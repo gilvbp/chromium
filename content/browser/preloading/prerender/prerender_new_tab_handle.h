@@ -9,7 +9,6 @@
 
 #include "content/browser/preloading/prerender/prerender_attributes.h"
 #include "content/common/frame.mojom-forward.h"
-#include "content/public/browser/prerender_web_contents_delegate.h"
 #include "content/public/browser/render_frame_host.h"
 
 namespace content {
@@ -81,7 +80,8 @@ class PrerenderNewTabHandle {
   // for `web_contents_`. This is because WebContentsDelegate can be specific to
   // a tab, and `web_contents_` will be placed in a different tab from the
   // initiator's tab.
-  std::unique_ptr<PrerenderWebContentsDelegate> web_contents_delegate_;
+  class WebContentsDelegateImpl;
+  std::unique_ptr<WebContentsDelegateImpl> web_contents_delegate_;
 
   int prerender_host_id_ = RenderFrameHost::kNoFrameTreeNodeId;
 };

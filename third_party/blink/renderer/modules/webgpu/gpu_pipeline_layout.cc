@@ -18,7 +18,8 @@ GPUPipelineLayout* GPUPipelineLayout::Create(
   DCHECK(device);
   DCHECK(webgpu_desc);
 
-  size_t bind_group_layout_count = webgpu_desc->bindGroupLayouts().size();
+  uint32_t bind_group_layout_count =
+      static_cast<uint32_t>(webgpu_desc->bindGroupLayouts().size());
 
   std::unique_ptr<WGPUBindGroupLayout[]> bind_group_layouts =
       bind_group_layout_count != 0 ? AsDawnType(webgpu_desc->bindGroupLayouts())

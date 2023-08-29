@@ -11,9 +11,7 @@
 #include "base/files/file_path.h"
 #include "base/path_service.h"
 #include "base/task/bind_post_task.h"
-#include "chrome/browser/chromeos/policy/dlp/dlp_files_utils.h"
 #include "chrome/browser/chromeos/policy/dlp/dlp_scoped_file_access_delegate.h"
-#include "chrome/browser/enterprise/data_controls/component.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/profiles/profile_manager.h"
 #include "chromeos/dbus/dlp/dlp_client.h"
@@ -61,8 +59,6 @@ void GotFilesSourcesOfCopy(
   ::dlp::AddFileRequest* add_request = request.add_add_file_requests();
   add_request->set_file_path(destination.path().value());
   add_request->set_source_url(response.files_metadata().Get(0).source_url());
-  add_request->set_referrer_url(
-      response.files_metadata().Get(0).referrer_url());
 
   // The callback will be invoked with the destruction of the
   // ScopedFileAccessCopy object
@@ -105,31 +101,31 @@ bool IsInLocalFileSystem(const base::FilePath& file_path) {
   return false;
 }
 
+absl::optional<ino64_t> GetInodeValue(const base::FilePath& path) {
+  if (!IsInLocalFileSystem(path)) {
+    return absl::nullopt;
+  }
+
+  struct stat file_stats;
+  if (stat(path.value().c_str(), &file_stats) != 0) {
+    return absl::nullopt;
+  }
+  return file_stats.st_ino;
+}
+
 }  // namespace
-
-DlpFilesController::FileDaemonInfo::FileDaemonInfo(
-    ino64_t inode,
-    time_t crtime,
-    const base::FilePath& path,
-    const std::string& source_url,
-    const std::string& referrer_url)
-    : inode(inode),
-      crtime(crtime),
-      path(path),
-      source_url(source_url),
-      referrer_url(referrer_url) {}
-
-DlpFilesController::FileDaemonInfo::FileDaemonInfo(const FileDaemonInfo& o)
-    : inode(o.inode),
-      crtime(o.crtime),
-      path(o.path),
-      source_url(o.source_url),
-      referrer_url(o.referrer_url) {}
 
 DlpFilesController::DlpFilesController(const DlpRulesManager& rules_manager)
     : rules_manager_(rules_manager) {}
 
 DlpFilesController::~DlpFilesController() = default;
+
+bool DlpFilesController::kNewFilesPolicyUXEnabled = false;
+
+// static
+void DlpFilesController::SetNewFilesPolicyUXEnabledForTesting(bool is_enabled) {
+  kNewFilesPolicyUXEnabled = is_enabled;
+}
 
 void DlpFilesController::RequestCopyAccess(
     const storage::FileSystemURL& source_file,
@@ -157,20 +153,17 @@ void DlpFilesController::RequestCopyAccess(
     return;
   }
 
-  ::dlp::DlpComponent proto =
-      dst_component ? dlp::MapPolicyComponentToProto(*dst_component)
-                    : ::dlp::DlpComponent::SYSTEM;
-
   ::dlp::RequestFileAccessRequest file_access_request;
   file_access_request.add_files_paths(source_file.path().value());
-  file_access_request.set_destination_component(proto);
+  file_access_request.set_destination_url(destination.path().DirName().value());
 
   if (!dst_component.has_value()) {
     // We allow internal copy, we still have to get the scopedFS
     // and we might need to copy the source URL information.
-    if (IsInLocalFileSystem(source_file.path())) {
+    auto inode = GetInodeValue(source_file.path());
+    if (inode) {
       ::dlp::GetFilesSourcesRequest request;
-      request.add_files_paths(source_file.path().value());
+      request.add_files_inodes(inode.value());
       chromeos::DlpClient::Get()->GetFilesSources(
           request,
           base::BindOnce(&GotFilesSourcesOfCopy, destination,

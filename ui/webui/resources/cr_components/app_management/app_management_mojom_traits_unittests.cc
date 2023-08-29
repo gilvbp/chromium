@@ -45,7 +45,8 @@ TEST(AppManagementMojomTraitsTest, RoundTripAppType) {
 TEST(AppManagementMojomTraitsTest, RoundTripPermissions) {
   {
     auto permission = std::make_unique<apps::Permission>(
-        apps::PermissionType::kUnknown, /*value=*/true,
+        apps::PermissionType::kUnknown,
+        std::make_unique<apps::PermissionValue>(true),
         /*is_managed=*/false);
     apps::PermissionPtr output;
     ASSERT_TRUE(
@@ -55,7 +56,8 @@ TEST(AppManagementMojomTraitsTest, RoundTripPermissions) {
   }
   {
     auto permission = std::make_unique<apps::Permission>(
-        apps::PermissionType::kCamera, /*value=*/true,
+        apps::PermissionType::kCamera,
+        std::make_unique<apps::PermissionValue>(true),
         /*is_managed=*/true);
     apps::PermissionPtr output;
     ASSERT_TRUE(
@@ -65,7 +67,8 @@ TEST(AppManagementMojomTraitsTest, RoundTripPermissions) {
   }
   {
     auto permission = std::make_unique<apps::Permission>(
-        apps::PermissionType::kLocation, /*value=*/apps::TriState::kAllow,
+        apps::PermissionType::kLocation,
+        std::make_unique<apps::PermissionValue>(apps::TriState::kAllow),
         /*is_managed=*/false);
     apps::PermissionPtr output;
     ASSERT_TRUE(
@@ -75,7 +78,8 @@ TEST(AppManagementMojomTraitsTest, RoundTripPermissions) {
   }
   {
     auto permission = std::make_unique<apps::Permission>(
-        apps::PermissionType::kMicrophone, /*value=*/apps::TriState::kBlock,
+        apps::PermissionType::kMicrophone,
+        std::make_unique<apps::PermissionValue>(apps::TriState::kBlock),
         /*is_managed=*/true);
     apps::PermissionPtr output;
     ASSERT_TRUE(
@@ -85,7 +89,8 @@ TEST(AppManagementMojomTraitsTest, RoundTripPermissions) {
   }
   {
     auto permission = std::make_unique<apps::Permission>(
-        apps::PermissionType::kNotifications, /*value=*/apps::TriState::kAsk,
+        apps::PermissionType::kNotifications,
+        std::make_unique<apps::PermissionValue>(apps::TriState::kAsk),
         /*is_managed=*/false);
     apps::PermissionPtr output;
     ASSERT_TRUE(
@@ -95,7 +100,8 @@ TEST(AppManagementMojomTraitsTest, RoundTripPermissions) {
   }
   {
     auto permission = std::make_unique<apps::Permission>(
-        apps::PermissionType::kContacts, /*value=*/apps::TriState::kAllow,
+        apps::PermissionType::kContacts,
+        std::make_unique<apps::PermissionValue>(apps::TriState::kAllow),
         /*is_managed=*/true);
     apps::PermissionPtr output;
     ASSERT_TRUE(
@@ -105,7 +111,8 @@ TEST(AppManagementMojomTraitsTest, RoundTripPermissions) {
   }
   {
     auto permission = std::make_unique<apps::Permission>(
-        apps::PermissionType::kStorage, /*value=*/apps::TriState::kBlock,
+        apps::PermissionType::kStorage,
+        std::make_unique<apps::PermissionValue>(apps::TriState::kBlock),
         /*is_managed=*/false);
     apps::PermissionPtr output;
     ASSERT_TRUE(
@@ -115,7 +122,8 @@ TEST(AppManagementMojomTraitsTest, RoundTripPermissions) {
   }
   {
     auto permission = std::make_unique<apps::Permission>(
-        apps::PermissionType::kPrinting, /*value=*/apps::TriState::kBlock,
+        apps::PermissionType::kPrinting,
+        std::make_unique<apps::PermissionValue>(apps::TriState::kBlock),
         /*is_managed=*/false);
     apps::PermissionPtr output;
     ASSERT_TRUE(
@@ -125,7 +133,8 @@ TEST(AppManagementMojomTraitsTest, RoundTripPermissions) {
   }
   {
     auto permission = std::make_unique<apps::Permission>(
-        apps::PermissionType::kLocation, /*value=*/true,
+        apps::PermissionType::kLocation,
+        std::make_unique<apps::PermissionValue>(true),
         /*is_managed=*/false, /*details=*/"While in use");
     apps::PermissionPtr output;
     ASSERT_TRUE(

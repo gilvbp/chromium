@@ -24,6 +24,7 @@ import androidx.appcompat.app.AlertDialog;
 import org.chromium.base.Callback;
 import org.chromium.chrome.R;
 import org.chromium.chrome.browser.profiles.Profile;
+import org.chromium.chrome.browser.util.ChromeAccessibilityUtil;
 import org.chromium.components.browser_ui.widget.ContextMenuDialog;
 import org.chromium.components.embedder_support.contextmenu.ContextMenuParams;
 import org.chromium.content_public.browser.ContentFeatureMap;
@@ -202,8 +203,8 @@ public class ContextMenuCoordinator implements ContextMenuUi {
                 activity, params, Profile.fromWebContents(mWebContents), mNativeDelegate);
 
         // The Integer here specifies the {@link ListItemType}.
-        ModelList listItems =
-                getItemList(activity, items, onItemClicked, !params.getOpenedFromHighlight());
+        ModelList listItems = getItemList(
+                activity, items, onItemClicked, params.getOpenedFromHighlight() ? false : true);
 
         ModelListAdapter adapter = new ModelListAdapter(listItems) {
             @Override
@@ -317,10 +318,10 @@ public class ContextMenuCoordinator implements ContextMenuUi {
             Rect rect) {
         // TODO(sinansahin): Refactor ContextMenuDialog as well.
         boolean shouldRemoveScrim = ContextMenuUtils.usePopupContextMenuForContext(activity);
-        final ContextMenuDialog dialog =
-                new ContextMenuDialog(activity, R.style.ThemeOverlay_BrowserUI_AlertDialog,
-                        topMarginPx, bottomMarginPx, layout, menuView, isPopup, shouldRemoveScrim,
-                        popupMargin, desiredPopupContentWidth, dragDispatchingTargetView, rect);
+        final ContextMenuDialog dialog = new ContextMenuDialog(activity,
+                R.style.ThemeOverlay_BrowserUI_AlertDialog, topMarginPx, bottomMarginPx, layout,
+                menuView, isPopup, shouldRemoveScrim, popupMargin, desiredPopupContentWidth,
+                dragDispatchingTargetView, rect, ChromeAccessibilityUtil.get());
         dialog.setContentView(layout);
 
         return dialog;
@@ -386,6 +387,7 @@ public class ContextMenuCoordinator implements ContextMenuUi {
         mDialog.dismiss();
     }
 
+    @VisibleForTesting
     Callback<ChipRenderParams> getChipRenderParamsCallbackForTesting(ChipDelegate chipDelegate) {
         return (chipRenderParams) -> {
             if (chipDelegate.isValidChipRenderParams(chipRenderParams) && mDialog.isShowing()) {
@@ -394,12 +396,14 @@ public class ContextMenuCoordinator implements ContextMenuUi {
         };
     }
 
+    @VisibleForTesting
     void initializeHeaderCoordinatorForTesting(Activity activity, ContextMenuParams params,
             Profile profile, ContextMenuNativeDelegate nativeDelegate) {
         mHeaderCoordinator =
                 new ContextMenuHeaderCoordinator(activity, params, profile, nativeDelegate);
     }
 
+    @VisibleForTesting
     void simulateShoppyImageClassificationForTesting() {
         // Don't need to initialize controller because that should be triggered by
         // forcing feature flags.
@@ -411,6 +415,7 @@ public class ContextMenuCoordinator implements ContextMenuUi {
         mChipController.showChip(chipRenderParamsForTesting);
     }
 
+    @VisibleForTesting
     void simulateTranslateImageClassificationForTesting() {
         // Don't need to initialize controller because that should be triggered by
         // forcing feature flags.
@@ -422,6 +427,7 @@ public class ContextMenuCoordinator implements ContextMenuUi {
         mChipController.showChip(chipRenderParamsForTesting);
     }
 
+    @VisibleForTesting
     ChipRenderParams simulateImageClassificationForTesting() {
         // Don't need to initialize controller because that should be triggered by
         // forcing feature flags.
@@ -469,10 +475,12 @@ public class ContextMenuCoordinator implements ContextMenuUi {
         return null;
     }
 
+    @VisibleForTesting
     public ContextMenuDialog getDialogForTest() {
         return mDialog;
     }
 
+    @VisibleForTesting
     public ContextMenuListView getListViewForTest() {
         return mListView;
     }

@@ -26,13 +26,10 @@ gfx::Rect GetControlBoundsInRoot(content::WebContents* web_contents,
       var bounds = element.getBoundingClientRect();
     )",
                                                  field_id.c_str()));
-  // At non-integer device scale factors, bounds are floating point numbers,
-  // which much be extracted as doubles in EvalJs to avoid errors and can
-  // then be cast to integers.
-  int top = content::EvalJs(web_contents, "bounds.top").ExtractDouble();
-  int left = content::EvalJs(web_contents, "bounds.left").ExtractDouble();
-  int width = content::EvalJs(web_contents, "bounds.width").ExtractDouble();
-  int height = content::EvalJs(web_contents, "bounds.height").ExtractDouble();
+  int top = content::EvalJs(web_contents, "bounds.top").ExtractInt();
+  int left = content::EvalJs(web_contents, "bounds.left").ExtractInt();
+  int width = content::EvalJs(web_contents, "bounds.width").ExtractInt();
+  int height = content::EvalJs(web_contents, "bounds.height").ExtractInt();
   gfx::Rect rect(left, top, width, height);
 
   content::RenderWidgetHostView* view = web_contents->GetRenderWidgetHostView();

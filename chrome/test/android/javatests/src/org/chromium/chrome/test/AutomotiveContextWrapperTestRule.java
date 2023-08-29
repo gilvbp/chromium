@@ -12,6 +12,7 @@ import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 
+import org.chromium.base.BuildInfo;
 import org.chromium.base.ContextUtils;
 import org.chromium.base.test.util.PackageManagerWrapper;
 
@@ -19,17 +20,20 @@ import org.chromium.base.test.util.PackageManagerWrapper;
  * JUnit test rule that takes care of setup and teardown for automotive-specific tests.
  */
 public class AutomotiveContextWrapperTestRule implements TestRule {
+    private Context mContextToRestore;
     private AutomotiveTestContext mContext;
 
     private class AutomotiveTestContext extends ContextWrapper {
-        private Boolean mIsAutomotive;
+        private boolean mIsAutomotive;
 
         public AutomotiveTestContext(Context baseContext) {
             super(baseContext);
+            mIsAutomotive = BuildInfo.getInstance().isAutomotive;
         }
 
         public void setIsAutomotive(boolean isAutomotive) {
             this.mIsAutomotive = isAutomotive;
+            BuildInfo.resetForTesting();
         }
 
         @Override
@@ -37,7 +41,7 @@ public class AutomotiveContextWrapperTestRule implements TestRule {
             return new PackageManagerWrapper(super.getPackageManager()) {
                 @Override
                 public boolean hasSystemFeature(String name) {
-                    if (mIsAutomotive != null && PackageManager.FEATURE_AUTOMOTIVE.equals(name)) {
+                    if (PackageManager.FEATURE_AUTOMOTIVE.equals(name)) {
                         return mIsAutomotive;
                     }
                     return super.hasSystemFeature(name);
@@ -56,8 +60,8 @@ public class AutomotiveContextWrapperTestRule implements TestRule {
             @Override
             public void evaluate() throws Throwable {
                 // Before
-                Context contextToRestore = ContextUtils.getApplicationContext();
-                mContext = new AutomotiveTestContext(contextToRestore);
+                mContextToRestore = ContextUtils.getApplicationContext();
+                mContext = new AutomotiveTestContext(mContextToRestore);
                 ContextUtils.initApplicationContextForTests(mContext);
 
                 base.evaluate();
@@ -65,9 +69,10 @@ public class AutomotiveContextWrapperTestRule implements TestRule {
                 // After
                 // DisableAnimationTestRule requires an initialized context to do proper teardown.
                 // This resets to the original context rather than nulling out.
-                if (contextToRestore != null) {
-                    ContextUtils.initApplicationContextForTests(contextToRestore);
+                if (mContextToRestore != null) {
+                    ContextUtils.initApplicationContextForTests(mContextToRestore);
                 }
+                BuildInfo.resetForTesting();
             }
         };
     }

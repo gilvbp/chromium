@@ -43,7 +43,7 @@ class ElementInternals;
 class ExceptionState;
 class FormAssociated;
 class HTMLFormElement;
-class HTMLSelectListElement;
+class HTMLSelectMenuElement;
 class KeyboardEvent;
 class V8UnionStringLegacyNullToEmptyStringOrTrustedScript;
 
@@ -254,9 +254,7 @@ class CORE_EXPORT HTMLElement : public Element {
                            HidePopoverTransitionBehavior event_firing,
                            ExceptionState* exception_state);
   void PopoverHideFinishIfNeeded(bool immediate);
-  static const HTMLElement* FindTopmostPopoverAncestor(
-      HTMLElement& new_popover,
-      Element* new_popovers_invoker);
+  static const HTMLElement* FindTopmostPopoverAncestor(HTMLElement&);
 
   // Retrieves the element pointed to by this element's 'anchor' content
   // attribute, if that element exists.
@@ -277,8 +275,8 @@ class CORE_EXPORT HTMLElement : public Element {
   void MaybeQueuePopoverHideEvent();
   static void HoveredElementChanged(Element* old_element, Element* new_element);
 
-  void SetPopoverOwnerSelectListElement(HTMLSelectListElement* element);
-  HTMLSelectListElement* popoverOwnerSelectListElement() const;
+  void SetOwnerSelectMenuElement(HTMLSelectMenuElement* element);
+  HTMLSelectMenuElement* ownerSelectMenuElement() const;
 
   bool DispatchFocusEvent(
       Element* old_focused_element,
@@ -336,6 +334,7 @@ class CORE_EXPORT HTMLElement : public Element {
   void FinishParsingChildren() override;
 
  private:
+  String DebugNodeName() const final;
   String nodeName() const final;
 
   bool IsHTMLElement() const =

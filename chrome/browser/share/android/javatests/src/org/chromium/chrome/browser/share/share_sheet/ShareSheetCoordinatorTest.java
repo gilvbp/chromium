@@ -37,6 +37,7 @@ import org.robolectric.annotation.Implements;
 import org.robolectric.annotation.LooperMode;
 import org.robolectric.shadows.ShadowPackageManager;
 
+import org.chromium.base.BuildInfo;
 import org.chromium.base.ContextUtils;
 import org.chromium.base.supplier.Supplier;
 import org.chromium.base.test.BaseRobolectricTestRunner;
@@ -51,12 +52,12 @@ import org.chromium.chrome.browser.share.share_sheet.ShareSheetCoordinatorTest.S
 import org.chromium.chrome.browser.share.share_sheet.ShareSheetLinkToggleMetricsHelper.LinkToggleMetricsDetails;
 import org.chromium.chrome.browser.tab.Tab;
 import org.chromium.chrome.test.util.browser.Features;
-import org.chromium.chrome.test.util.browser.Features.EnableFeatures;
 import org.chromium.components.browser_ui.bottomsheet.BottomSheetController;
 import org.chromium.components.browser_ui.share.ShareParams;
 import org.chromium.components.dom_distiller.core.DomDistillerUrlUtils;
 import org.chromium.components.dom_distiller.core.DomDistillerUrlUtilsJni;
 import org.chromium.components.feature_engagement.Tracker;
+import org.chromium.content_public.browser.test.util.TestThreadUtils;
 import org.chromium.ui.base.WindowAndroid;
 import org.chromium.ui.modelutil.PropertyModel;
 import org.chromium.url.JUnitTestGURLs;
@@ -71,7 +72,7 @@ import java.util.Set;
  * Tests {@link ShareSheetCoordinator}.
  */
 @RunWith(BaseRobolectricTestRunner.class)
-@EnableFeatures({ChromeFeatureList.PREEMPTIVE_LINK_TO_TEXT_GENERATION})
+@Features.EnableFeatures({ChromeFeatureList.PREEMPTIVE_LINK_TO_TEXT_GENERATION})
 @LooperMode(LooperMode.Mode.LEGACY)
 @Config(shadows = ShadowPropertyModelBuilder.class)
 public final class ShareSheetCoordinatorTest {
@@ -160,6 +161,7 @@ public final class ShareSheetCoordinatorTest {
     public void showShareSheet_avoidThirdPartyShareOptionsOnAutomotive() {
         mShadowPackageManager.setSystemFeature(
                 PackageManager.FEATURE_AUTOMOTIVE, /* supported= */ true);
+        TestThreadUtils.runOnUiThreadBlocking(BuildInfo::resetForTesting);
         mShareSheetCoordinator.disableFirstPartyFeaturesForTesting();
 
         ShareSheetCoordinator spyShareSheet = spy(mShareSheetCoordinator);
@@ -177,6 +179,7 @@ public final class ShareSheetCoordinatorTest {
     public void showShareSheet_createThirdPartyShareOptions() {
         mShadowPackageManager.setSystemFeature(
                 PackageManager.FEATURE_AUTOMOTIVE, /* supported= */ false);
+        TestThreadUtils.runOnUiThreadBlocking(BuildInfo::resetForTesting);
         mShareSheetCoordinator.disableFirstPartyFeaturesForTesting();
 
         ShareSheetCoordinator spyShareSheet = spy(mShareSheetCoordinator);

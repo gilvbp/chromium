@@ -23,6 +23,10 @@
 #import "ios/web/web_state/web_state_impl.h"
 #import "url/url_constants.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 using base::test::ios::WaitUntilConditionOrTimeout;
 using base::test::ios::kWaitForActionTimeout;
 using base::test::ios::kWaitForJSCompletionTimeout;
@@ -63,7 +67,6 @@ void WebTestWithWebState::AddPendingItem(const GURL& url,
       .AddPendingItem(url, Referrer(), transition,
                       web::NavigationInitiationType::BROWSER_INITIATED,
                       /*is_post_navigation=*/false,
-                      /*is_error_navigation=*/false,
                       web::HttpsUpgradeType::kNone);
 }
 
@@ -107,9 +110,7 @@ void WebTestWithWebState::WaitForBackgroundTasks() {
 }
 
 void WebTestWithWebState::WaitForCondition(ConditionBlock condition) {
-  // TODO(crbug.com/1462320): Propagate the bool up instead of CHECK-ing.
-  CHECK(base::test::ios::WaitUntilConditionOrTimeout(base::Seconds(1000), true,
-                                                     condition));
+  base::test::ios::WaitUntilCondition(condition, true, base::Seconds(1000));
 }
 
 bool WebTestWithWebState::WaitUntilLoaded() {

@@ -820,7 +820,7 @@ void DecoderTemplate<Traits>::Trace(Visitor* visitor) const {
   visitor->Trace(requests_);
   visitor->Trace(pending_request_);
   visitor->Trace(pending_decodes_);
-  EventTarget::Trace(visitor);
+  EventTargetWithInlineData::Trace(visitor);
   ExecutionContextLifecycleObserver::Trace(visitor);
   ReclaimableCodec::Trace(visitor);
 }

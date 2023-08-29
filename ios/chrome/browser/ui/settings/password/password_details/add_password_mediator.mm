@@ -5,7 +5,6 @@
 #import "ios/chrome/browser/ui/settings/password/password_details/add_password_mediator.h"
 
 #import "base/check.h"
-#import "base/containers/contains.h"
 #import "base/containers/flat_set.h"
 #import "base/functional/bind.h"
 #import "base/memory/raw_ptr.h"
@@ -14,7 +13,7 @@
 #import "base/task/cancelable_task_tracker.h"
 #import "base/task/sequenced_task_runner.h"
 #import "base/task/thread_pool.h"
-#import "components/password_manager/core/browser/form_parsing/form_data_parser.h"
+#import "components/password_manager/core/browser/form_parsing/form_parser.h"
 #import "components/password_manager/core/browser/password_form.h"
 #import "components/password_manager/core/browser/password_manager_features_util.h"
 #import "components/password_manager/core/browser/password_manager_util.h"
@@ -27,6 +26,10 @@
 #import "ios/chrome/browser/ui/settings/password/password_details/add_password_mediator_delegate.h"
 #import "ios/chrome/browser/ui/settings/password/password_details/add_password_view_controller_delegate.h"
 #import "net/base/mac/url_conversions.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 using base::SysNSStringToUTF8;
 using base::SysNSStringToUTF16;
@@ -205,7 +208,7 @@ bool CheckForDuplicates(
 
 - (BOOL)isTLDMissing {
   std::string hostname = self.URL.host();
-  return !base::Contains(hostname, '.');
+  return hostname.find('.') == std::string::npos;
 }
 
 @end

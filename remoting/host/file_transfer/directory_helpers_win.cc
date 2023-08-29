@@ -7,13 +7,10 @@
 #include <shlobj.h>
 #include <windows.h>
 
-#include "base/check_is_test.h"
 #include "base/logging.h"
 #include "base/win/scoped_handle.h"
 
 namespace remoting {
-
-static base::FilePath* g_upload_directory_for_testing = nullptr;
 
 // We can't use PathService on Windows because it doesn't play nicely with
 // impersonation. Even if we disable PathService's own cache, the Windows API
@@ -21,11 +18,6 @@ static base::FilePath* g_upload_directory_for_testing = nullptr;
 // thread. As such, we have to call the relevant API directly and be explicit
 // about wanting impersonation handling.
 protocol::FileTransferResult<base::FilePath> GetFileUploadDirectory() {
-  if (g_upload_directory_for_testing) {
-    CHECK_IS_TEST();
-    return *g_upload_directory_for_testing;
-  }
-
   // SHGetFolderPath on Windows 7 doesn't seem to like the pseudo handle
   // returned by GetCurrentThreadToken(), so call OpenThreadToken to get a real
   // handle.
@@ -56,13 +48,6 @@ protocol::FileTransferResult<base::FilePath> GetFileUploadDirectory() {
   }
 
   return {kSuccessTag, buffer};
-}
-
-void SetFileUploadDirectoryForTesting(base::FilePath dir) {
-  if (g_upload_directory_for_testing) {
-    delete g_upload_directory_for_testing;
-  }
-  g_upload_directory_for_testing = new base::FilePath(dir);
 }
 
 }  // namespace remoting

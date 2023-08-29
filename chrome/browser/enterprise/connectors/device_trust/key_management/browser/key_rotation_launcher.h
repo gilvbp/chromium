@@ -23,6 +23,8 @@ class DeviceManagementService;
 
 namespace enterprise_connectors {
 
+class SigningKeyPair;
+
 class KeyRotationLauncher {
  public:
   using SynchronizationCallback = base::OnceCallback<void(absl::optional<int>)>;
@@ -38,6 +40,11 @@ class KeyRotationLauncher {
   // rotation command.
   virtual void LaunchKeyRotation(const std::string& nonce,
                                  KeyRotationCommand::Callback callback) = 0;
+
+  // Verifies if `key_pair`'s public key is known by the management server.
+  // Invokes `callback` with the upload code if a request was made.
+  virtual void SynchronizePublicKey(scoped_refptr<SigningKeyPair> key_pair,
+                                    SynchronizationCallback callback) = 0;
 };
 
 }  // namespace enterprise_connectors

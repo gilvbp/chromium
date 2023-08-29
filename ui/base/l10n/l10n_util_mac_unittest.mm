@@ -13,6 +13,10 @@
 
 using L10nUtilMacTest = PlatformTest;
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 TEST_F(L10nUtilMacTest, FixUpWindowsStyleLabel) {
   struct TestData {
     NSString* input;

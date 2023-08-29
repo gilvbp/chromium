@@ -265,20 +265,20 @@ public class PictureInPictureActivity extends AsyncInitializationActivity {
                 actions.add(mHangUp);
             }
 
-            // Insert a disabled placeholder remote action with transparent icon if action list is
-            // empty. This is a workaround of the issue that android picture-in-picture will
-            // fallback to default MediaSession when action list given is empty.
+            // Insert a disabled dummy remote action with transparent icon if action list is empty.
+            // This is a workaround of the issue that android picture-in-picture will fallback to
+            // default MediaSession when action list given is empty.
             // TODO (jazzhsu): Remove this when android picture-in-picture can accept empty list and
             // not fallback to default MediaSession.
             if (actions.isEmpty()) {
-                RemoteAction placeholderAction = new RemoteAction(
+                RemoteAction dummyAction = new RemoteAction(
                         Icon.createWithBitmap(Bitmap.createBitmap(
                                 new int[] {Color.TRANSPARENT}, 1, 1, Bitmap.Config.ARGB_8888)),
                         "", "",
                         PendingIntent.getBroadcast(getApplicationContext(), -1,
                                 new Intent(MEDIA_ACTION), PendingIntent.FLAG_IMMUTABLE));
-                placeholderAction.setEnabled(false);
-                actions.add(placeholderAction);
+                dummyAction.setEnabled(false);
+                actions.add(dummyAction);
             }
 
             return actions;
@@ -736,6 +736,7 @@ public class PictureInPictureActivity extends AsyncInitializationActivity {
         return original;
     }
 
+    @VisibleForTesting
     /* package */ View getViewForTesting() {
         return mCompositorView.getView();
     }

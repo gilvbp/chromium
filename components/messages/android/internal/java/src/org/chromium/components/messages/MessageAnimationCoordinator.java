@@ -163,7 +163,6 @@ public class MessageAnimationCoordinator implements SwipeAnimationHandler {
      */
     public void updateWithStacking(
             @NonNull List<MessageState> candidates, boolean isSuspended, Runnable onFinished) {
-        if (mMessageQueueDelegate.isDestroyed()) return;
         // Wait until the current animation is done, unless we need to hide them immediately.
         if (mAnimatorSet.isStarted()) {
             if (isSuspended) {
@@ -184,12 +183,9 @@ public class MessageAnimationCoordinator implements SwipeAnimationHandler {
         assert !(currentFront == null && currentBack != null);
         assert !isSuspended || nextFront == null : "when suspending, all messages should be hidden";
         if (currentFront == nextFront && currentBack == nextBack) {
-            if (currentFront == null && mMessageQueueDelegate.isReadyForShowing()) {
-                mMessageQueueDelegate.onFinishHiding();
-            } else if (currentFront != null && !mMessageQueueDelegate.isSwitchingScope()) {
-                assert mMessageQueueDelegate.isReadyForShowing()
-                    : "onRequestShowing should have been called";
-            }
+            assert currentFront != null
+                    || !mMessageQueueDelegate.isReadyForShowing()
+                : "onFinishHiding should have been executed if no message is showing.";
             return;
         }
 

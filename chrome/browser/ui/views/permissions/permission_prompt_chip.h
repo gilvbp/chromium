@@ -38,7 +38,6 @@ class PermissionPromptChip : public PermissionPromptDesktop {
   bool UpdateAnchor() override;
   permissions::PermissionPromptDisposition GetPromptDisposition()
       const override;
-  absl::optional<gfx::Rect> GetViewBoundsInScreen() const override;
 
   // PermissionPromptDesktop:
   views::Widget* GetPromptBubbleWidgetForTesting() override;

@@ -1064,11 +1064,6 @@ void MetricsReporter::OnImageFetched(const GURL& url,
                            net_error_or_http_status);
 }
 
-void MetricsReporter::OnResourceFetched(int net_error_or_http_status) {
-  base::UmaHistogramSparse("ContentSuggestions.Feed.ResourceFetchStatus",
-                           net_error_or_http_status);
-}
-
 void MetricsReporter::OnUploadActionsBatch(UploadActionsBatchStatus status) {
   VVLOG << "UploadActionsBatchStatus: " << status;
   base::UmaHistogramEnumeration(

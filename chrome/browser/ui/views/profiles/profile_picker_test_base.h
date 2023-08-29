@@ -38,16 +38,7 @@ class WithProfilePickerTestHelpers {
   // provided, it checks for the current `web_contents()` to stop loading `url`.
   // This also works if `web_contents()` changes throughout the waiting as it is
   // technically observing all web contents.
-  //
-  // DEPRECATED: Ambiguous call, prefer `content::WaitForLoadStop()` when
-  // waiting for a specific WebContents instance to finish loading or
-  // `profiles::testing::WaitForPickerUrl()` when waiting for a specific URL to
-  // be loaded by the profile picker.
-  void WaitForLoadStop(const GURL& url, content::WebContents* target);
-
-  // DEPRECATED: Ambiguous call, prefer `profiles::testing::WaitForPickerUrl()`
-  // instead.
-  void WaitForLoadStop(const GURL& url);
+  void WaitForLoadStop(const GURL& url, content::WebContents* target = nullptr);
 
   // Waits until the picker gets closed.
   void WaitForPickerClosed();

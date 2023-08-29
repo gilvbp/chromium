@@ -1145,8 +1145,7 @@ TEST_P(BrowserControlsViewportUnitTest, MAYBE(DontAffectStaticUnits)) {
 
   // The size used for viewport units should not be reduced by the top
   // controls.
-  EXPECT_EQ(400,
-            GetFrame()->View()->LargeViewportSizeForViewportUnits().height());
+  EXPECT_EQ(400, GetFrame()->View()->ViewportSizeForViewportUnits().height());
 
   // Hide the browser controls.
   VerticalScroll(-100.f);
@@ -1164,8 +1163,7 @@ TEST_P(BrowserControlsViewportUnitTest, MAYBE(DontAffectStaticUnits)) {
 
   // The viewport size used for static *vh units should not change as a result
   // of top controls hiding.
-  EXPECT_EQ(400,
-            GetFrame()->View()->LargeViewportSizeForViewportUnits().height());
+  EXPECT_EQ(400, GetFrame()->View()->ViewportSizeForViewportUnits().height());
 
   // Static *vw units should not change when scrollbar disappears.
   EXPECT_FLOAT_EQ(param.width, abs_pos->getBoundingClientRect()->width());
@@ -1285,8 +1283,7 @@ TEST_F(BrowserControlsTest, MAYBE(DontAffectVHUnitsWithScale)) {
 
   // The size used for viewport units should not be reduced by the top
   // controls.
-  EXPECT_EQ(800,
-            GetFrame()->View()->LargeViewportSizeForViewportUnits().height());
+  EXPECT_EQ(800, GetFrame()->View()->ViewportSizeForViewportUnits().height());
 
   // Hide the browser controls.
   VerticalScroll(-100.f);
@@ -1302,8 +1299,7 @@ TEST_F(BrowserControlsTest, MAYBE(DontAffectVHUnitsWithScale)) {
 
   // The viewport size used for vh units should not change as a result of top
   // controls hiding.
-  EXPECT_EQ(800,
-            GetFrame()->View()->LargeViewportSizeForViewportUnits().height());
+  EXPECT_EQ(800, GetFrame()->View()->ViewportSizeForViewportUnits().height());
 }
 
 // Ensure that on a legacy page (there's a non-1 minimum scale) whose viewport
@@ -1328,8 +1324,7 @@ TEST_F(BrowserControlsTest, MAYBE(DontAffectVHUnitsUseLayoutSize)) {
   // The viewport will match the layout width at scale=0.5 so the height used
   // for vh should be (300 / 0.5) for the layout height + (100 / 0.5) for top
   // controls = 800.
-  EXPECT_EQ(800,
-            GetFrame()->View()->LargeViewportSizeForViewportUnits().height());
+  EXPECT_EQ(800, GetFrame()->View()->ViewportSizeForViewportUnits().height());
 }
 
 // Ensure that vh units are correctly calculated when a top controls min-height
@@ -1358,8 +1353,7 @@ TEST_F(BrowserControlsTest, MAYBE(VHUnitsWithTopMinHeight)) {
 
   // The size used for viewport units should be reduced by the top controls
   // min-height.
-  EXPECT_EQ(380,
-            GetFrame()->View()->LargeViewportSizeForViewportUnits().height());
+  EXPECT_EQ(380, GetFrame()->View()->ViewportSizeForViewportUnits().height());
 
   // Scroll the top controls to hide. They won't scroll past the min-height.
   VerticalScroll(-100.f);
@@ -1376,8 +1370,7 @@ TEST_F(BrowserControlsTest, MAYBE(VHUnitsWithTopMinHeight)) {
 
   // The viewport size used for vh units should not change as a result of top
   // controls hiding.
-  ASSERT_EQ(380,
-            GetFrame()->View()->LargeViewportSizeForViewportUnits().height());
+  ASSERT_EQ(380, GetFrame()->View()->ViewportSizeForViewportUnits().height());
 }
 
 // Ensure that vh units are correctly calculated when a bottom controls
@@ -1407,8 +1400,7 @@ TEST_F(BrowserControlsTest, MAYBE(VHUnitsWithBottomMinHeight)) {
 
   // The size used for viewport units should be reduced by the top/bottom
   // controls min-height.
-  EXPECT_EQ(370,
-            GetFrame()->View()->LargeViewportSizeForViewportUnits().height());
+  EXPECT_EQ(370, GetFrame()->View()->ViewportSizeForViewportUnits().height());
 
   // Scroll the controls to hide. They won't scroll past the min-height.
   VerticalScroll(-100.f);
@@ -1426,8 +1418,7 @@ TEST_F(BrowserControlsTest, MAYBE(VHUnitsWithBottomMinHeight)) {
 
   // The viewport size used for vh units should not change as a result of the
   // controls hiding.
-  ASSERT_EQ(370,
-            GetFrame()->View()->LargeViewportSizeForViewportUnits().height());
+  ASSERT_EQ(370, GetFrame()->View()->ViewportSizeForViewportUnits().height());
 }
 
 // Ensure that vh units are correctly calculated with changing min-heights.
@@ -1456,8 +1447,7 @@ TEST_F(BrowserControlsTest, MAYBE(VHUnitsWithMinHeightsChanging)) {
 
   // The size used for viewport units should be reduced by the top/bottom
   // controls min-height.
-  EXPECT_EQ(370,
-            GetFrame()->View()->LargeViewportSizeForViewportUnits().height());
+  EXPECT_EQ(370, GetFrame()->View()->ViewportSizeForViewportUnits().height());
 
   // Make the min-heights 0.
   web_view->ResizeWithBrowserControls(gfx::Size(400, 250), gfx::Size(400, 250),
@@ -1468,7 +1458,7 @@ TEST_F(BrowserControlsTest, MAYBE(VHUnitsWithMinHeightsChanging)) {
   // to the min-heights.
   float height = 250 + (100 - 0) + (50 - 0);
   ASSERT_EQ(height,
-            GetFrame()->View()->LargeViewportSizeForViewportUnits().height());
+            GetFrame()->View()->ViewportSizeForViewportUnits().height());
 }
 
 // This tests that the viewport remains anchored when browser controls are
@@ -1613,8 +1603,8 @@ TEST_F(BrowserControlsSimTest, MAYBE(ViewportUnitsWhenControlsLocked)) {
   ASSERT_EQ(100.f, WebView().GetBrowserControls().ContentOffset());
   ASSERT_EQ(300, GetDocument().View()->GetLayoutSize().height());
 
-  Element* abs_pos = GetDocument().getElementById(AtomicString("abs"));
-  Element* fixed_pos = GetDocument().getElementById(AtomicString("fixed"));
+  Element* abs_pos = GetDocument().getElementById("abs");
+  Element* fixed_pos = GetDocument().getElementById("fixed");
 
   // Lock the browser controls to hidden.
   {
@@ -1632,9 +1622,8 @@ TEST_F(BrowserControlsSimTest, MAYBE(ViewportUnitsWhenControlsLocked)) {
     // already.
     EXPECT_FLOAT_EQ(200.f, abs_pos->getBoundingClientRect()->height());
     EXPECT_FLOAT_EQ(200.f, fixed_pos->getBoundingClientRect()->height());
-    EXPECT_EQ(
-        400,
-        GetDocument().View()->LargeViewportSizeForViewportUnits().height());
+    EXPECT_EQ(400,
+              GetDocument().View()->ViewportSizeForViewportUnits().height());
   }
 
   // Lock the browser controls to shown. This should cause the vh units to
@@ -1653,9 +1642,8 @@ TEST_F(BrowserControlsSimTest, MAYBE(ViewportUnitsWhenControlsLocked)) {
     // when they're locked to shown, the ICB fills the entire viewport already.
     EXPECT_FLOAT_EQ(150.f, abs_pos->getBoundingClientRect()->height());
     EXPECT_FLOAT_EQ(150.f, fixed_pos->getBoundingClientRect()->height());
-    EXPECT_EQ(
-        400,
-        GetDocument().View()->LargeViewportSizeForViewportUnits().height());
+    EXPECT_EQ(400,
+              GetDocument().View()->ViewportSizeForViewportUnits().height());
   }
 }
 

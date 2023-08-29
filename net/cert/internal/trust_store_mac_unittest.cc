@@ -191,7 +191,7 @@ TEST_P(TrustStoreMacImplTest, MultiRootNotTrusted) {
   // SecKeychainOpen does not fail if the file doesn't exist, so assert it here
   // for easier debugging.
   ASSERT_TRUE(base::PathExists(keychain_path));
-  base::apple::ScopedCFTypeRef<SecKeychainRef> keychain;
+  base::ScopedCFTypeRef<SecKeychainRef> keychain;
   OSStatus status = SecKeychainOpen(keychain_path.MaybeAsASCII().c_str(),
                                     keychain.InitializeInto());
   ASSERT_EQ(errSecSuccess, status);
@@ -309,8 +309,7 @@ TEST_P(TrustStoreMacImplTest, SystemCerts) {
   base::HistogramTester histogram_tester;
   TrustStoreMac trust_store(kSecPolicyAppleX509Basic, trust_impl);
 
-  base::apple::ScopedCFTypeRef<SecPolicyRef> sec_policy(
-      SecPolicyCreateBasicX509());
+  base::ScopedCFTypeRef<SecPolicyRef> sec_policy(SecPolicyCreateBasicX509());
   ASSERT_TRUE(sec_policy);
   std::vector<std::string> all_certs;
   std::set_union(find_certificate_default_search_list_certs.begin(),
@@ -340,7 +339,7 @@ TEST_P(TrustStoreMacImplTest, SystemCerts) {
       continue;
     }
 
-    base::apple::ScopedCFTypeRef<SecCertificateRef> cert_handle(
+    base::ScopedCFTypeRef<SecCertificateRef> cert_handle(
         x509_util::CreateSecCertificateFromBytes(cert->der_cert().UnsafeData(),
                                                  cert->der_cert().Length()));
     if (!cert_handle) {
@@ -358,7 +357,7 @@ TEST_P(TrustStoreMacImplTest, SystemCerts) {
     }
 
     // Check if this cert is considered a trust anchor by the OS.
-    base::apple::ScopedCFTypeRef<SecTrustRef> trust;
+    base::ScopedCFTypeRef<SecTrustRef> trust;
     {
       base::AutoLock lock(crypto::GetMacSecurityServicesLock());
       ASSERT_EQ(noErr,
@@ -380,7 +379,16 @@ TEST_P(TrustStoreMacImplTest, SystemCerts) {
         // Cert is only in the system domain. It should be untrusted.
         EXPECT_FALSE(is_trusted);
       } else {
-        bool trusted = SecTrustEvaluateWithError(trust, nullptr);
+        bool trusted;
+        if (__builtin_available(macOS 10.14, *)) {
+          trusted = SecTrustEvaluateWithError(trust, nullptr);
+        } else {
+          SecTrustResultType trust_result;
+          ASSERT_EQ(noErr, SecTrustEvaluate(trust, &trust_result));
+          trusted = (trust_result == kSecTrustResultProceed) ||
+                    (trust_result == kSecTrustResultUnspecified);
+        }
+
         bool expected_trust_anchor =
             trusted && (SecTrustGetCertificateCount(trust) == 1);
         EXPECT_EQ(expected_trust_anchor, is_trusted);

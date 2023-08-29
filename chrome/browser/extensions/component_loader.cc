@@ -91,12 +91,7 @@ namespace extensions {
 
 namespace {
 
-bool g_enable_background_extensions_during_testing = false;
-
-#if BUILDFLAG(IS_CHROMEOS_ASH) && BUILDFLAG(GOOGLE_CHROME_BRANDING)
-// Whether HelpApp is enabled.
-bool g_enable_help_app = true;
-#endif
+static bool enable_background_extensions_during_testing = false;
 
 std::string GenerateId(const base::Value::Dict& manifest,
                        const base::FilePath& path) {
@@ -443,15 +438,8 @@ scoped_refptr<const Extension> ComponentLoader::CreateExtension(
 
 // static
 void ComponentLoader::EnableBackgroundExtensionsForTesting() {
-  g_enable_background_extensions_during_testing = true;
+  enable_background_extensions_during_testing = true;
 }
-
-#if BUILDFLAG(IS_CHROMEOS_ASH) && BUILDFLAG(GOOGLE_CHROME_BRANDING)
-// static
-void ComponentLoader::DisableHelpAppForTesting() {
-  g_enable_help_app = false;
-}
-#endif
 
 void ComponentLoader::AddDefaultComponentExtensions(
     bool skip_session_components) {
@@ -460,7 +448,7 @@ void ComponentLoader::AddDefaultComponentExtensions(
 #if BUILDFLAG(IS_CHROMEOS_ASH)
 
 #if BUILDFLAG(GOOGLE_CHROME_BRANDING)
-  if (g_enable_help_app) {
+  if (browser_defaults::enable_help_app) {
     Add(IDR_HELP_MANIFEST, base::FilePath(FILE_PATH_LITERAL(
                                "/usr/share/chromeos-assets/helpapp")));
   }
@@ -519,7 +507,7 @@ void ComponentLoader::AddDefaultComponentExtensionsWithBackgroundPages(
   // Component extensions with background pages are not enabled during tests
   // because they generate a lot of background behavior that can interfere.
   const bool should_disable_background_extensions =
-      !g_enable_background_extensions_during_testing &&
+      !enable_background_extensions_during_testing &&
       (command_line->HasSwitch(::switches::kTestType) ||
        command_line->HasSwitch(
            ::switches::kDisableComponentExtensionsWithBackgroundPages));
@@ -590,7 +578,7 @@ void ComponentLoader::
 
   // Component extensions with background pages are not enabled during tests
   // because they generate a lot of background behavior that can interfere.
-  if (!g_enable_background_extensions_during_testing &&
+  if (!enable_background_extensions_during_testing &&
       (command_line->HasSwitch(::switches::kTestType) ||
        command_line->HasSwitch(
            ::switches::kDisableComponentExtensionsWithBackgroundPages))) {

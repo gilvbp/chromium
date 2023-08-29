@@ -420,6 +420,11 @@ void PrerenderHost::DidFinishNavigation(NavigationHandle* navigation_handle) {
     status = PrerenderFinalStatus::kBlockedByClient;
   } else if (is_prerender_main_frame && net_error != net::Error::OK) {
     status = PrerenderFinalStatus::kNavigationRequestNetworkError;
+    if (!final_status_) {
+      // Only tracks the first error this instance encountered.
+      RecordPrerenderNavigationErrorCode(net_error, trigger_type(),
+                                         embedder_histogram_suffix());
+    }
   } else if (is_prerender_main_frame && !navigation_request->HasCommitted()) {
     status = PrerenderFinalStatus::kNavigationNotCommitted;
   }
@@ -894,7 +899,7 @@ void PrerenderHost::RecordFailedFinalStatusImpl(
 
   // Set failure reason for this PreloadingAttempt specific to the
   // FinalStatus.
-  SetFailureReason(reason);
+  SetFailureReason(reason.final_status());
 }
 
 void PrerenderHost::RecordActivation(NavigationRequest& navigation_request) {
@@ -965,9 +970,8 @@ void PrerenderHost::SetTriggeringOutcome(PreloadingTriggeringOutcome outcome) {
   }
 }
 
-void PrerenderHost::SetFailureReason(
-    const PrerenderCancellationReason& reason) {
-  switch (reason.final_status()) {
+void PrerenderHost::SetFailureReason(PrerenderFinalStatus status) {
+  switch (status) {
     // When adding a new failure reason, consider whether it should be
     // propagated to `attempt_`. Most values should be propagated, but we
     // explicitly do not propagate failure reasons if:
@@ -979,7 +983,6 @@ void PrerenderHost::SetFailureReason(
     case PrerenderFinalStatus::kActivatedBeforeStarted:
     case PrerenderFinalStatus::kTabClosedByUserGesture:
     case PrerenderFinalStatus::kTabClosedWithoutUserGesture:
-    case PrerenderFinalStatus::kSpeculationRuleRemoved:
       return;
     case PrerenderFinalStatus::kDestroyed:
     case PrerenderFinalStatus::kLowEndDevice:
@@ -1006,6 +1009,7 @@ void PrerenderHost::SetFailureReason(
     case PrerenderFinalStatus::kBlockedByClient:
     case PrerenderFinalStatus::kMixedContent:
     case PrerenderFinalStatus::kTriggerBackgrounded:
+    case PrerenderFinalStatus::kEmbedderTriggeredAndCrossOriginRedirected:
     case PrerenderFinalStatus::kMemoryLimitExceeded:
     case PrerenderFinalStatus::kFailToGetMemoryUsage:
     case PrerenderFinalStatus::kDataSaverEnabled:
@@ -1040,10 +1044,8 @@ void PrerenderHost::SetFailureReason(
     case PrerenderFinalStatus::kMemoryPressureAfterTriggered:
     case PrerenderFinalStatus::kPrerenderingDisabledByDevTools:
     case PrerenderFinalStatus::kResourceLoadBlockedByClient:
-    case PrerenderFinalStatus::kActivatedWithAuxiliaryBrowsingContexts:
       if (attempt_) {
-        attempt_->SetFailureReason(
-            ToPreloadingFailureReason(reason.final_status()));
+        attempt_->SetFailureReason(ToPreloadingFailureReason(status));
         // We reset the attempt to ensure we don't update once we have reported
         // it as failure or accidentally use it for any other prerender attempts
         // as PrerenderHost deletion is async.
@@ -1051,7 +1053,7 @@ void PrerenderHost::SetFailureReason(
       }
 
       if (devtools_attempt_) {
-        devtools_attempt_->SetFailureReason(attributes_, reason);
+        devtools_attempt_->SetFailureReason(attributes_, status);
         devtools_attempt_.reset();
       }
 

@@ -162,7 +162,6 @@ class ScreenRotationAnimatorSlowAnimationTest : public AshTestBase {
 
   // AshTestBase:
   void SetUp() override;
-  void TearDown() override;
 
  protected:
   int64_t display_id() const { return display_.id(); }
@@ -197,11 +196,6 @@ void ScreenRotationAnimatorSlowAnimationTest::SetUp() {
           ui::ScopedAnimationDurationScaleMode::SLOW_DURATION);
 }
 
-void ScreenRotationAnimatorSlowAnimationTest::TearDown() {
-  animator_.reset();
-  AshTestBase::TearDown();
-}
-
 class ScreenRotationAnimatorSmoothAnimationTest
     : public AshTestBase,
       public testing::WithParamInterface<bool> {
@@ -217,7 +211,6 @@ class ScreenRotationAnimatorSmoothAnimationTest
 
   // AshTestBase:
   void SetUp() override;
-  void TearDown() override;
 
   void RemoveSecondaryDisplay(const std::string& specs);
   void QuitWaitForCopyCallback();
@@ -282,11 +275,6 @@ void ScreenRotationAnimatorSmoothAnimationTest::SetUp() {
   non_zero_duration_mode_ =
       std::make_unique<ui::ScopedAnimationDurationScaleMode>(
           ui::ScopedAnimationDurationScaleMode::SLOW_DURATION);
-}
-
-void ScreenRotationAnimatorSmoothAnimationTest::TearDown() {
-  animator_.reset();
-  AshTestBase::TearDown();
 }
 
 void ScreenRotationAnimatorSmoothAnimationTest::SetScreenRotationAnimator(

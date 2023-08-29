@@ -249,8 +249,7 @@ crosapi::mojom::PrefPath PrefMapping::GetPrefPathForPrefName(
        {chromeos::prefs::kAccessibilityVirtualKeyboardEnabled,
         crosapi::mojom::PrefPath::kAccessibilityVirtualKeyboardEnabled},
        {prefs::kProtectedContentDefault,
-        crosapi::mojom::PrefPath::kProtectedContentDefault},
-       {proxy_config::prefs::kProxy, crosapi::mojom::PrefPath::kProxy}});
+        crosapi::mojom::PrefPath::kProtectedContentDefault}});
   auto* pref_iter = name_to_extension_prefpath.find(pref_name);
   return pref_iter == name_to_extension_prefpath.end()
              ? crosapi::mojom::PrefPath::kUnknown

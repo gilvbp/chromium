@@ -435,7 +435,7 @@ void ThreadCache::SetLargestCachedSize(size_t size) {
     size = ThreadCache::kLargeSizeThreshold;
   }
   largest_active_bucket_index_ = PartitionRoot::SizeToBucketIndex(
-      size, PartitionRoot::BucketDistribution::kNeutral);
+      size, PartitionRoot::BucketDistribution::kDefault);
   PA_CHECK(largest_active_bucket_index_ < kBucketCount);
   ThreadCacheRegistry::Instance().SetLargestActiveBucketIndex(
       largest_active_bucket_index_);
@@ -691,7 +691,7 @@ void ThreadCache::ClearBucketHelper(Bucket& bucket, size_t limit) {
 }
 
 template <bool crash_on_corruption>
-void ThreadCache::FreeAfter(internal::EncodedNextFreelistEntry* head,
+void ThreadCache::FreeAfter(internal::PartitionFreelistEntry* head,
                             size_t slot_size) {
   // Acquire the lock once. Deallocation from the same bucket are likely to be
   // hitting the same cache lines in the central allocator, and lock

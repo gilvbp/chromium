@@ -3,9 +3,8 @@ Short Name: markupsafe
 URL: https://github.com/mitsuhiko/markupsafe
 Version: 0.18
 License: BSD 3-clause License
-License File: LICENSE
+License File: NOT_SHIPPED
 Security Critical: no
-Shipped: no
 
 Description:
 Safe string class, used by Jinja2 template engine.

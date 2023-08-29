@@ -27,6 +27,7 @@
 #include "content/browser/indexed_db/indexed_db_external_object_storage.h"
 #include "content/browser/indexed_db/indexed_db_task_helper.h"
 #include "content/common/content_export.h"
+#include "third_party/blink/public/common/indexeddb/web_idb_types.h"
 #include "third_party/blink/public/mojom/indexeddb/indexeddb.mojom-forward.h"
 
 namespace content {
@@ -98,6 +99,8 @@ class CONTENT_EXPORT IndexedDBTransaction {
     pending_preemptive_events_--;
     DCHECK_GE(pending_preemptive_events_, 0);
   }
+
+  void EnsureBackingStoreTransactionBegun();
 
   enum class RunTasksResult { kError, kNotFinished, kCommitted, kAborted };
   std::tuple<RunTasksResult, leveldb::Status> RunTasks();
@@ -203,6 +206,7 @@ class CONTENT_EXPORT IndexedDBTransaction {
   leveldb::Status BlobWriteComplete(
       BlobWriteResult result,
       storage::mojom::WriteBlobToFileResult error);
+  void CloseOpenCursorBindings();
   void CloseOpenCursors();
   leveldb::Status CommitPhaseTwo();
   void Timeout();

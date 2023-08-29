@@ -70,7 +70,6 @@ extern NSString* const kBlueColor;
 extern NSString* const kBlueHaloColor;
 
 // Blue palette.
-extern NSString* const kBlue300Color;
 extern NSString* const kBlue400Color;
 extern NSString* const kBlue500Color;
 extern NSString* const kBlue600Color;

@@ -8,10 +8,13 @@
 #include <stddef.h>
 
 #include "base/check_op.h"
-#import "base/containers/contains.h"
 #include "base/strings/sys_string_conversions.h"
 #include "base/time/time.h"
 #include "ios/net/ios_net_buildflags.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 // Key holding the creation-time in NSHTTPCookie properties.
 // This key is undocumented, and its value has type NSNumber.
@@ -62,7 +65,7 @@ void CookieCreationTimeManager::SetCreationTime(
     NSHTTPCookie* cookie,
     const base::Time& creation_time) {
   DCHECK(thread_checker_.CalledOnValidThread());
-  DCHECK(!base::Contains(unique_times_, creation_time));
+  DCHECK(unique_times_.find(creation_time) == unique_times_.end());
 
   // If the cookie overrides an existing cookie, remove its creation time.
   auto it = creation_times_.find(GetCookieUniqueID(cookie));

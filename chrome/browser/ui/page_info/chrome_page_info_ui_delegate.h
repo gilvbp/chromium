@@ -69,15 +69,15 @@ class ChromePageInfoUiDelegate : public PageInfoUiDelegate {
   bool IsBlockAutoPlayEnabled() override;
   bool IsMultipleTabsOpen() override;
 #endif  // !BUILDFLAG(IS_ANDROID)
-  content::PermissionResult GetPermissionResult(
+  permissions::PermissionResult GetPermissionResult(
       blink::PermissionType permission) override;
-  absl::optional<content::PermissionResult> GetEmbargoResult(
+  absl::optional<permissions::PermissionResult> GetEmbargoResult(
       ContentSettingsType type) override;
 
  private:
   Profile* GetProfile() const;
 
-  raw_ptr<content::WebContents, AcrossTasksDanglingUntriaged> web_contents_;
+  raw_ptr<content::WebContents, DanglingUntriaged> web_contents_;
   GURL site_url_;
 };
 

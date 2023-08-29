@@ -152,6 +152,7 @@ OneCopyRasterBufferProvider::OneCopyRasterBufferProvider(
     gpu::GpuMemoryBufferManager* gpu_memory_buffer_manager,
     int max_copy_texture_chromium_size,
     bool use_partial_raster,
+    bool use_gpu_memory_buffer_resources,
     int max_staging_buffer_usage_in_bytes,
     const RasterCapabilities& raster_caps)
     : compositor_context_provider_(compositor_context_provider),
@@ -163,10 +164,9 @@ OneCopyRasterBufferProvider::OneCopyRasterBufferProvider(
                          max_copy_texture_chromium_size)
               : kMaxBytesPerCopyOperation),
       use_partial_raster_(use_partial_raster),
+      use_gpu_memory_buffer_resources_(use_gpu_memory_buffer_resources),
       bytes_scheduled_since_last_flush_(0),
       tile_format_(raster_caps.tile_format),
-      tile_overlay_candidate_(raster_caps.tile_overlay_candidate),
-      tile_texture_target_(raster_caps.tile_texture_target),
       staging_pool_(std::move(task_runner),
                     worker_context_provider,
                     use_partial_raster,
@@ -176,7 +176,7 @@ OneCopyRasterBufferProvider::OneCopyRasterBufferProvider(
   DCHECK(!tile_format_.IsCompressed());
 }
 
-OneCopyRasterBufferProvider::~OneCopyRasterBufferProvider() = default;
+OneCopyRasterBufferProvider::~OneCopyRasterBufferProvider() {}
 
 std::unique_ptr<RasterBuffer>
 OneCopyRasterBufferProvider::AcquireBufferForRaster(
@@ -189,8 +189,9 @@ OneCopyRasterBufferProvider::AcquireBufferForRaster(
   if (!resource.gpu_backing()) {
     auto backing = std::make_unique<OneCopyGpuBacking>();
     backing->worker_context_provider = worker_context_provider_;
-    backing->overlay_candidate = tile_overlay_candidate_;
-    backing->texture_target = tile_texture_target_;
+    backing->InitOverlayCandidateAndTextureTarget(
+        resource.format(), compositor_context_provider_->ContextCapabilities(),
+        use_gpu_memory_buffer_resources_);
     resource.set_gpu_backing(std::move(backing));
   }
   OneCopyGpuBacking* backing =
@@ -228,8 +229,7 @@ bool OneCopyRasterBufferProvider::CanPartialRasterIntoProvidedResource() const {
 }
 
 bool OneCopyRasterBufferProvider::IsResourceReadyToDraw(
-    const ResourcePool::InUsePoolResource& resource) {
-  FlushIfNeeded();
+    const ResourcePool::InUsePoolResource& resource) const {
   const gpu::SyncToken& sync_token = resource.gpu_backing()->mailbox_sync_token;
   // This SyncToken() should have been set by calling OrderingBarrier() before
   // calling this.
@@ -243,8 +243,7 @@ bool OneCopyRasterBufferProvider::IsResourceReadyToDraw(
 uint64_t OneCopyRasterBufferProvider::SetReadyToDrawCallback(
     const std::vector<const ResourcePool::InUsePoolResource*>& resources,
     base::OnceClosure callback,
-    uint64_t pending_callback_id) {
-  FlushIfNeeded();
+    uint64_t pending_callback_id) const {
   gpu::SyncToken latest_sync_token;
   for (const auto* in_use : resources) {
     const gpu::SyncToken& sync_token =
@@ -450,7 +449,8 @@ gpu::SyncToken OneCopyRasterBufferProvider::CopyOnWorkerThread(
   query_target = GL_COMMANDS_ISSUED_CHROMIUM;
 #endif
 
-  // COMMANDS_ISSUED is sufficient for shared memory GpuMemoryBuffers.
+  // COMMANDS_ISSUED is sufficient for shared memory GpuMemoryBuffers because
+  // they're uploaded using glTexImage2D (see gl::GLImageMemory::CopyTexImage).
   const auto* buffer = staging_buffer->gpu_memory_buffer.get();
   if (buffer &&
       buffer->GetType() == gfx::GpuMemoryBufferType::SHARED_MEMORY_BUFFER) {

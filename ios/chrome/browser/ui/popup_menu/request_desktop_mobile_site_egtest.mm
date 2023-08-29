@@ -2,7 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#import "base/containers/contains.h"
 #import "base/strings/sys_string_conversions.h"
 #import "base/test/ios/wait_util.h"
 #import "base/time/time.h"
@@ -23,6 +22,10 @@
 #import "ios/web/public/test/http_server/http_server.h"
 #import "ios/web/public/test/http_server/http_server_util.h"
 #import "ui/base/l10n/l10n_util.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace {
 
@@ -100,7 +103,7 @@ class UserAgentResponseProvider : public web::DataResponseProvider {
     }
 
     std::string purge_additions = "";
-    if (base::Contains(request.url.path(), kPurgeURL)) {
+    if (request.url.path().find(kPurgeURL) != std::string::npos) {
       purge_additions = kJavaScriptReload;
     }
 

@@ -83,7 +83,8 @@ String FontFamily::ToString() const {
           family_name == font_family_names::kSansSerif ||
           family_name == font_family_names::kSerif ||
           family_name == font_family_names::kSystemUi ||
-          family_name == font_family_names::kMath)
+          (RuntimeEnabledFeatures::CSSFontFamilyMathEnabled() &&
+           family_name == font_family_names::kMath))
              ? Type::kGenericFamily
              : Type::kFamilyName;
 }

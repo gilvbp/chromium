@@ -200,15 +200,17 @@ bool ChromePageInfoUiDelegate::IsBlockAutoPlayEnabled() {
 }
 #endif
 
-content::PermissionResult ChromePageInfoUiDelegate::GetPermissionResult(
+permissions::PermissionResult ChromePageInfoUiDelegate::GetPermissionResult(
     blink::PermissionType permission) {
-  return GetProfile()
-      ->GetPermissionController()
-      ->GetPermissionResultForOriginWithoutContext(
-          permission, url::Origin::Create(site_url_));
+  content::PermissionResult permission_result =
+      GetProfile()
+          ->GetPermissionController()
+          ->GetPermissionResultForOriginWithoutContext(
+              permission, url::Origin::Create(site_url_));
+  return permissions::PermissionUtil::ToPermissionResult(permission_result);
 }
 
-absl::optional<content::PermissionResult>
+absl::optional<permissions::PermissionResult>
 ChromePageInfoUiDelegate::GetEmbargoResult(ContentSettingsType type) {
   return permissions::PermissionsClient::Get()
       ->GetPermissionDecisionAutoBlocker(GetProfile())

@@ -92,7 +92,7 @@ public class ExternalNavigationParams {
     private final String mNativeClientPackageName;
     private final boolean mHasUserGesture;
     private final boolean mIsInitialNavigationInFrame;
-    private final boolean mIsHiddenCrossFrameNavigation;
+    private final boolean mIsCrossFrameNavigation;
     private final boolean mIsSandboxedMainFrame;
     private final Callback<AsyncActionTakenParams> mAsyncActionTakenCallback;
     private boolean mIsRendererInitiated;
@@ -108,7 +108,7 @@ public class ExternalNavigationParams {
             boolean isMainFrame, String nativeClientPackageName, boolean hasUserGesture,
             Callback<AsyncActionTakenParams> asyncActionTakenCallback, boolean isRendererInitiated,
             @Nullable Origin initiatorOrigin, boolean isInitialNavigationInFrame,
-            boolean isHiddenCrossFrameNavigation, boolean isSandboxedMainFrame) {
+            boolean isCrossFrameNavigation, boolean isSandboxedMainFrame) {
         mUrl = url;
         mIsIncognito = isIncognito;
         mPageTransition = pageTransition;
@@ -126,7 +126,7 @@ public class ExternalNavigationParams {
         mIsRendererInitiated = isRendererInitiated;
         mInitiatorOrigin = initiatorOrigin;
         mIsInitialNavigationInFrame = isInitialNavigationInFrame;
-        mIsHiddenCrossFrameNavigation = isHiddenCrossFrameNavigation;
+        mIsCrossFrameNavigation = isCrossFrameNavigation;
         mIsSandboxedMainFrame = isSandboxedMainFrame;
     }
 
@@ -246,8 +246,8 @@ public class ExternalNavigationParams {
     /**
      * @return Whether the navigation is a cross-frame (non-browser-initiated) navigation.
      */
-    public boolean isHiddenCrossFrameNavigation() {
-        return mIsHiddenCrossFrameNavigation;
+    public boolean isCrossFrameNavigation() {
+        return mIsCrossFrameNavigation;
     }
 
     /**
@@ -276,7 +276,7 @@ public class ExternalNavigationParams {
         private boolean mIsRendererInitiated;
         private Origin mInitiatorOrigin;
         private boolean mIsInitialNavigationInFrame;
-        private boolean mIsHiddenCrossFrameNavigation;
+        private boolean mIsCrossFrameNavigation;
         private boolean mIsSandboxedMainFrame;
 
         public Builder(GURL url, boolean isIncognito) {
@@ -376,8 +376,8 @@ public class ExternalNavigationParams {
         /**
          * Sets whether the navigation is a cross-frame (non-browser-initiated) navigation.
          */
-        public Builder setIsHiddenCrossFrameNavigation(boolean v) {
-            mIsHiddenCrossFrameNavigation = v;
+        public Builder setIsCrossFrameNavigation(boolean v) {
+            mIsCrossFrameNavigation = v;
             return this;
         }
 
@@ -396,8 +396,7 @@ public class ExternalNavigationParams {
                     mIsBackgroundTabNavigation, mIntentLaunchesAllowedInBackgroundTabs,
                     mIsMainFrame, mNativeClientPackageName, mHasUserGesture,
                     mAsyncActionTakenCallback, mIsRendererInitiated, mInitiatorOrigin,
-                    mIsInitialNavigationInFrame, mIsHiddenCrossFrameNavigation,
-                    mIsSandboxedMainFrame);
+                    mIsInitialNavigationInFrame, mIsCrossFrameNavigation, mIsSandboxedMainFrame);
         }
     }
 }

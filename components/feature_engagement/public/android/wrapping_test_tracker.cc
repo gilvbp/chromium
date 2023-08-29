@@ -124,9 +124,4 @@ const Configuration* WrappingTestTracker::GetConfigurationForTesting() const {
   return nullptr;
 }
 
-void WrappingTestTracker::SetClockForTesting(const base::Clock& clock,
-                                             base::Time& initial_time) {
-  NOTIMPLEMENTED();
-}
-
 }  // namespace feature_engagement

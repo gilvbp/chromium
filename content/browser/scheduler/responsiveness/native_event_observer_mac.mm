@@ -8,7 +8,8 @@
 
 #import "content/public/browser/native_event_processor_mac.h"
 
-namespace content::responsiveness {
+namespace content {
+namespace responsiveness {
 
 void NativeEventObserver::RegisterObserver() {
   DCHECK([NSApp conformsToProtocol:@protocol(NativeEventProcessor)]);
@@ -30,4 +31,5 @@ void NativeEventObserver::DidRunNativeEvent(const void* opaque_identifier) {
   did_run_event_callback_.Run(opaque_identifier);
 }
 
-}  // namespace content::responsiveness
+}  // namespace responsiveness
+}  // namespace content

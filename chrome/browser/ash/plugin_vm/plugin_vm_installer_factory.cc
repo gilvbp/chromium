@@ -27,9 +27,9 @@ PluginVmInstallerFactory::PluginVmInstallerFactory()
           "PluginVmInstaller",
           ProfileSelections::Builder()
               .WithRegular(ProfileSelection::kRedirectedToOriginal)
-              .WithGuest(ProfileSelection::kNone)
-              .WithAshInternals(ProfileSelection::kNone)
-              .WithSystem(ProfileSelection::kNone)
+              // TODO(crbug.com/1418376): Check if this service is needed in
+              // Guest mode.
+              .WithGuest(ProfileSelection::kRedirectedToOriginal)
               .Build()) {
   DependsOn(BackgroundDownloadServiceFactory::GetInstance());
 }

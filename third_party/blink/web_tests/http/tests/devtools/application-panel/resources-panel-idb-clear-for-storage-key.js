@@ -6,8 +6,6 @@ import {TestRunner} from 'test_runner';
 import {ApplicationTestRunner} from 'application_test_runner';
 import {ConsoleTestRunner} from 'console_test_runner';
 
-import * as Common from 'devtools/core/common/common.js';
-
 (async function() {
   TestRunner.addResult(`Validate IndexeddbModel clearForStorageKey\n`);
   await TestRunner.loadLegacyModule('console');

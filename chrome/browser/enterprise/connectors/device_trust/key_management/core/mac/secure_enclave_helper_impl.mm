@@ -11,48 +11,39 @@
 #include <memory>
 
 #include "base/apple/bridging.h"
-#include "base/apple/scoped_cftyperef.h"
+#include "base/mac/scoped_cftyperef.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace enterprise_connectors {
 
 SecureEnclaveHelperImpl::~SecureEnclaveHelperImpl() = default;
 
-base::apple::ScopedCFTypeRef<SecKeyRef>
-SecureEnclaveHelperImpl::CreateSecureKey(CFDictionaryRef attributes,
-                                         OSStatus* error) {
-  base::apple::ScopedCFTypeRef<CFErrorRef> error_ref;
-  base::apple::ScopedCFTypeRef<SecKeyRef> key(
-      SecKeyCreateRandomKey(attributes, error_ref.InitializeInto()));
-
-  if (error && error_ref) {
-    *error = CFErrorGetCode(error_ref);
-  }
-
+base::ScopedCFTypeRef<SecKeyRef> SecureEnclaveHelperImpl::CreateSecureKey(
+    CFDictionaryRef attributes) {
+  base::ScopedCFTypeRef<SecKeyRef> key(
+      SecKeyCreateRandomKey(attributes, nullptr));
   return key;
 }
 
-base::apple::ScopedCFTypeRef<SecKeyRef> SecureEnclaveHelperImpl::CopyKey(
-    CFDictionaryRef query,
-    OSStatus* error) {
-  base::apple::ScopedCFTypeRef<SecKeyRef> key;
-  OSStatus status = SecItemCopyMatching(
+bool SecureEnclaveHelperImpl::Update(CFDictionaryRef query,
+                                     CFDictionaryRef attributes_to_update) {
+  return SecItemUpdate(query, attributes_to_update) == errSecSuccess;
+}
+
+bool SecureEnclaveHelperImpl::Delete(CFDictionaryRef query) {
+  return SecItemDelete(query) == errSecSuccess;
+}
+
+base::ScopedCFTypeRef<SecKeyRef> SecureEnclaveHelperImpl::CopyKey(
+    CFDictionaryRef query) {
+  base::ScopedCFTypeRef<SecKeyRef> key;
+  SecItemCopyMatching(
       query, const_cast<CFTypeRef*>(
                  reinterpret_cast<const CFTypeRef*>(key.InitializeInto())));
-
-  if (error) {
-    *error = status;
-  }
-
   return key;
-}
-
-OSStatus SecureEnclaveHelperImpl::Update(CFDictionaryRef query,
-                                         CFDictionaryRef attributes_to_update) {
-  return SecItemUpdate(query, attributes_to_update);
-}
-
-OSStatus SecureEnclaveHelperImpl::Delete(CFDictionaryRef query) {
-  return SecItemDelete(query);
 }
 
 bool SecureEnclaveHelperImpl::IsSecureEnclaveSupported() {

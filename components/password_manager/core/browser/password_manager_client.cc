@@ -5,8 +5,8 @@
 #include <utility>
 
 #include "components/autofill/core/common/password_generation_util.h"
+#include "components/autofill/core/common/unique_ids.h"
 #include "components/device_reauth/device_authenticator.h"
-#include "components/password_manager/core/browser/field_info_manager.h"
 #include "components/password_manager/core/browser/http_auth_manager.h"
 #include "components/password_manager/core/browser/password_form_manager_for_ui.h"
 #include "components/password_manager/core/browser/password_manager_client.h"
@@ -35,7 +35,7 @@ void PasswordManagerClient::ShowPasswordManagerErrorMessage(
 
 void PasswordManagerClient::ShowKeyboardReplacingSurface(
     PasswordManagerDriver* driver,
-    const SubmissionReadinessParams& submission_readiness_params,
+    autofill::mojom::SubmissionReadinessState submission_readiness,
     bool is_webauthn_form) {}
 #endif
 
@@ -151,11 +151,6 @@ PasswordManagerClient::GetPasswordRequirementsService() {
 }
 
 favicon::FaviconService* PasswordManagerClient::GetFaviconService() {
-  return nullptr;
-}
-
-password_manager::FieldInfoManager* PasswordManagerClient::GetFieldInfoManager()
-    const {
   return nullptr;
 }
 

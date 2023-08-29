@@ -68,6 +68,7 @@ class BindingTestSupportingGC : public testing::Test {
  public:
   void SetIsolate(v8::Isolate* isolate) {
     CHECK(isolate);
+    CHECK_EQ(isolate, ThreadState::Current()->GetIsolate());
     isolate_ = isolate;
   }
   v8::Isolate* GetIsolate() const { return isolate_; }

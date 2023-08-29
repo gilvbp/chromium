@@ -34,10 +34,9 @@ ExtensionRegistryFactory::ExtensionRegistryFactory()
 
 ExtensionRegistryFactory::~ExtensionRegistryFactory() = default;
 
-std::unique_ptr<KeyedService>
-ExtensionRegistryFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* ExtensionRegistryFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
-  return std::make_unique<ExtensionRegistry>(context);
+  return new ExtensionRegistry(context);
 }
 
 BrowserContext* ExtensionRegistryFactory::GetBrowserContextToUse(
@@ -45,8 +44,8 @@ BrowserContext* ExtensionRegistryFactory::GetBrowserContextToUse(
   // Redirected in incognito.
   auto* extension_browser_client = ExtensionsBrowserClient::Get();
   DCHECK(extension_browser_client);
-  return extension_browser_client->GetContextRedirectedToOriginal(
-      context, /*force_guest_profile=*/true);
+  return extension_browser_client->GetRedirectedContextInIncognito(
+      context, /*force_guest_profile=*/true, /*force_system_profile=*/false);
 }
 
 }  // namespace extensions

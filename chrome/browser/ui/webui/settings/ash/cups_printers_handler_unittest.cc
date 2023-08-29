@@ -274,8 +274,7 @@ class CupsPrintersHandlerTest : public testing::Test {
   base::RunLoop run_loop_;
   scoped_refptr<printing::TestPrintBackend> print_backend_ =
       base::MakeRefCounted<printing::TestPrintBackend>();
-  raw_ptr<MockNewWindowDelegate, DanglingUntriaged | ExperimentalAsh>
-      new_window_delegate_primary_;
+  raw_ptr<MockNewWindowDelegate, ExperimentalAsh> new_window_delegate_primary_;
   std::unique_ptr<TestNewWindowDelegateProvider> new_window_provider_;
   base::ScopedTempDir download_dir_;
   base::HistogramTester histogram_tester_;
@@ -298,8 +297,8 @@ TEST_F(CupsPrintersHandlerTest, RemoveCorrectPrinter) {
 
   Printer printer("id");
   printers_manager_.SavePrinter(printer);
-  printers_manager_.SetUpPrinter(printer, /*is_automatic_installation=*/true,
-                                 base::DoNothing());
+  printers_manager_.SetUpPrinter(printer, base::DoNothing());
+  printers_manager_.PrinterInstalled(printer, /*is_automatic=*/true);
 
   const std::string remove_list = R"(
     [")" + printer.id() + R"(", "Test Printer 1"]

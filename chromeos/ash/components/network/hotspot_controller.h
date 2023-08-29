@@ -30,8 +30,7 @@ class HotspotFeatureUsageMetrics;
 // Enable or disable requests executed as they come in but are ignored if there
 // is already a pending request.
 class COMPONENT_EXPORT(CHROMEOS_NETWORK) HotspotController
-    : public TechnologyStateController::HotspotOperationDelegate,
-      public HotspotStateHandler::Observer {
+    : public TechnologyStateController::HotspotOperationDelegate {
  public:
   class Observer : public base::CheckedObserver {
    public:
@@ -45,7 +44,7 @@ class COMPONENT_EXPORT(CHROMEOS_NETWORK) HotspotController
   HotspotController();
   HotspotController(const HotspotController&) = delete;
   HotspotController& operator=(const HotspotController&) = delete;
-  ~HotspotController() override;
+  virtual ~HotspotController();
 
   void Init(HotspotCapabilitiesProvider* hotspot_capabilities_provider,
             HotspotFeatureUsageMetrics* hotspot_feature_usage_metrics,
@@ -88,7 +87,7 @@ class COMPONENT_EXPORT(CHROMEOS_NETWORK) HotspotController
     ~HotspotControlRequest();
 
     bool enabled;
-    bool abort = false;
+    bool wifi_turned_off = false;
     // Set for disable requests and will be nullopt for enable requests.
     absl::optional<hotspot_config::mojom::DisableReason> disable_reason;
     // Tracks the latency of enable hotspot operation and will be nullopt for
@@ -100,9 +99,6 @@ class COMPONENT_EXPORT(CHROMEOS_NETWORK) HotspotController
   // TechnologyStateController::HotspotOperationDelegate:
   void PrepareEnableWifi(
       base::OnceCallback<void(bool prepare_success)> callback) override;
-
-  // HotspotStateHandler::Observer:
-  void OnHotspotStatusChanged() override;
 
   void CheckTetheringReadiness();
   void OnCheckTetheringReadiness(
@@ -135,10 +131,6 @@ class COMPONENT_EXPORT(CHROMEOS_NETWORK) HotspotController
   std::unique_ptr<HotspotControlRequest> current_disable_request_;
 
   bool allow_hotspot_ = true;
-  // Store whether the WiFi was turned off due to the start of hotspot. Need to
-  // restore the WiFi status once hotspot is turned off.
-  bool wifi_turned_off_ = false;
-
   raw_ptr<HotspotCapabilitiesProvider, ExperimentalAsh>
       hotspot_capabilities_provider_ = nullptr;
   raw_ptr<HotspotFeatureUsageMetrics, ExperimentalAsh>

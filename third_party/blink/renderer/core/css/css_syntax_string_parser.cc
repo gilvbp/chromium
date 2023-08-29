@@ -101,7 +101,7 @@ absl::optional<CSSSyntaxDefinition> CSSSyntaxStringParser::Parse() {
     return absl::nullopt;
   }
 
-  return CSSSyntaxDefinition(std::move(components), string_);
+  return CSSSyntaxDefinition(std::move(components));
 }
 
 bool CSSSyntaxStringParser::ConsumeSyntaxComponent(

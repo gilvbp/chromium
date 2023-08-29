@@ -168,10 +168,11 @@ TEST(MimeUtilTest, CommonMediaMimeType) {
   EXPECT_TRUE(IsSupportedMediaMimeType("audio/aac"));
   EXPECT_TRUE(IsSupportedMediaMimeType("video/3gpp"));
 
-  // Always an unsupported mime type, even when the parsers are compiled in
-  // MediaSource handles reporting support separately in order to not taint
-  // the src= support response.
+#if BUILDFLAG(ENABLE_MSE_MPEG2TS_STREAM_PARSER)
+  EXPECT_TRUE(IsSupportedMediaMimeType("video/mp2t"));
+#else
   EXPECT_FALSE(IsSupportedMediaMimeType("video/mp2t"));
+#endif  // BUILDFLAG(ENABLE_MSE_MPEG2TS_STREAM_PARSER)
 
 #else
   EXPECT_FALSE(IsSupportedMediaMimeType("audio/x-m4a"));

@@ -24,6 +24,9 @@ class BookmarkModelTypeController : public syncer::ModelTypeController {
       delete;
 
   ~BookmarkModelTypeController() override;
+
+  // DataTypeController overrides.
+  bool ShouldRunInTransportOnlyMode() const override;
 };
 
 }  // namespace sync_bookmarks

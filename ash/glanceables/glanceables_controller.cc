@@ -13,8 +13,11 @@
 #include "ash/public/cpp/style/color_provider.h"
 #include "ash/root_window_controller.h"
 #include "ash/shell.h"
+#include "ash/system/model/system_tray_model.h"
+#include "ash/system/time/calendar_utils.h"
 #include "ash/wm/desks/desks_util.h"
 #include "ash/wm/tablet_mode/tablet_mode_controller.h"
+#include "base/time/time.h"
 #include "third_party/skia/include/core/SkColor.h"
 #include "ui/base/ui_base_types.h"
 #include "ui/compositor/layer.h"
@@ -41,7 +44,9 @@ bool IsWindowOnAnyDesk(aura::Window* window) {
 
 }  // namespace
 
-GlanceablesController::GlanceablesController() {
+GlanceablesController::GlanceablesController()
+    : start_of_month_utc_(
+          calendar_utils::GetStartOfMonthUTC(base::Time::Now())) {
   Shell::Get()->activation_client()->AddObserver(this);
   Shell::Get()->tablet_mode_controller()->AddObserver(this);
 }
@@ -58,6 +63,15 @@ void GlanceablesController::Init(
 }
 
 void GlanceablesController::ShowOnLogin() {
+  // Adding current month to the set of *non-prunable* months will trigger
+  // another fetch and `OnEventsFetched` call. Otherwise, the default behavior
+  // is that *prunable* months are cached and do not trigger another fetch.
+  // TODO(crbug.com/1360403): Move this somewhere else if `ShowOnLogin` won't be
+  // a guranteed single entry point for glanceables (ideally in a method of
+  // `SessionObserver`).
+  Shell::Get()->system_tray_model()->calendar_model()->AddNonPrunableMonth(
+      start_of_month_utc_);
+
   if (Shell::Get()->IsInTabletMode()) {
     // TODO(crbug.com/1360528): Implement tablet mode support.
     return;
@@ -129,6 +143,9 @@ void GlanceablesController::FetchData() {
                            ->ambient_controller()
                            ->ambient_weather_controller()
                            ->CreateScopedRefresher();
+
+  Shell::Get()->system_tray_model()->calendar_model()->FetchEvents(
+      start_of_month_utc_);
 }
 
 void GlanceablesController::ApplyBackdrop() const {

@@ -30,7 +30,8 @@ class ASH_EXPORT WorkspaceController : public aura::WindowObserver {
 
   ~WorkspaceController() override;
 
-  WorkspaceLayoutManager* layout_manager() { return layout_manager_; }
+  WorkspaceEventHandler* event_handler() const { return event_handler_.get(); }
+  WorkspaceLayoutManager* layout_manager() const { return layout_manager_; }
 
   // Returns the current window state.
   WorkspaceWindowState GetWindowState() const;

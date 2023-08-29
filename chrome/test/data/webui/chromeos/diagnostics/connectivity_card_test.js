@@ -42,7 +42,7 @@ suite('connectivityCardTestSuite', function() {
   });
 
   setup(() => {
-    document.body.innerHTML = window.trustedTypes.emptyHTML;
+    document.body.innerHTML = '';
     // Setup a fake routine controller.
     routineController = new FakeSystemRoutineController();
     routineController.setDelayTimeInMillisecondsForTesting(-1);

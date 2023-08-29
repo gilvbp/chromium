@@ -32,11 +32,9 @@ void RecordLocalMatchResult(
   std::string frame_suffix = is_mainframe ? ".Mainframe" : ".NonMainframe";
   base::UmaHistogramEnumeration(kMatchResultHistogramName + frame_suffix,
                                 match_result);
-  if (!url_lookup_service_metric_suffix.empty()) {
-    base::UmaHistogramEnumeration(kMatchResultHistogramName + frame_suffix +
-                                      url_lookup_service_metric_suffix,
-                                  match_result);
-  }
+  base::UmaHistogramEnumeration(kMatchResultHistogramName + frame_suffix +
+                                    url_lookup_service_metric_suffix,
+                                match_result);
 }
 
 }  // namespace
@@ -151,10 +149,10 @@ void UrlRealTimeMechanism::StartLookupOnUIThread(
   }
 
   RTLookupRequestCallback request_callback =
-      base::BindOnce(&UrlRealTimeMechanism::OnLookupRequest, weak_ptr_on_io);
+      base::BindOnce(&UrlRealTimeMechanism::OnRTLookupRequest, weak_ptr_on_io);
 
   RTLookupResponseCallback response_callback =
-      base::BindOnce(&UrlRealTimeMechanism::OnLookupResponse, weak_ptr_on_io);
+      base::BindOnce(&UrlRealTimeMechanism::OnRTLookupResponse, weak_ptr_on_io);
 
   url_lookup_service_on_ui->StartLookup(
       url, last_committed_url, is_mainframe, std::move(request_callback),
@@ -178,34 +176,34 @@ void UrlRealTimeMechanism::MaybeSendSampleRequest(
   bool is_lookup_service_available =
       !url_lookup_service_on_ui->IsInBackoffMode();
   if (is_lookup_service_available) {
-    RTLookupRequestCallback request_callback =
-        base::BindOnce(&UrlRealTimeMechanism::OnLookupRequest, weak_ptr_on_io);
+    RTLookupRequestCallback request_callback = base::BindOnce(
+        &UrlRealTimeMechanism::OnRTLookupRequest, weak_ptr_on_io);
     url_lookup_service_on_ui->SendSampledRequest(
         url, last_committed_url, is_mainframe, std::move(request_callback),
         std::move(io_task_runner));
   }
 }
 
-void UrlRealTimeMechanism::OnLookupRequest(
+void UrlRealTimeMechanism::OnRTLookupRequest(
     std::unique_ptr<RTLookupRequest> request,
     std::string oauth_token) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
 
-  LogLookupRequest(*request, oauth_token);
+  LogRTLookupRequest(*request, oauth_token);
 }
 
-void UrlRealTimeMechanism::OnLookupResponse(
-    bool is_lookup_successful,
+void UrlRealTimeMechanism::OnRTLookupResponse(
+    bool is_rt_lookup_successful,
     bool is_cached_response,
     std::unique_ptr<RTLookupResponse> response) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
 
-  if (!is_lookup_successful) {
+  if (!is_rt_lookup_successful) {
     PerformHashBasedCheck(url_, /*real_time_request_failed=*/true);
     return;
   }
 
-  LogLookupResponse(*response);
+  LogRTLookupResponse(*response);
 
   // Filter the response to remove enterprise verdicts if experiment is not
   // enabled for Managed Policy UrlFiltering
@@ -242,25 +240,26 @@ void UrlRealTimeMechanism::OnLookupResponse(
   }
 }
 
-void UrlRealTimeMechanism::LogLookupRequest(const RTLookupRequest& request,
-                                            const std::string& oauth_token) {
+void UrlRealTimeMechanism::LogRTLookupRequest(const RTLookupRequest& request,
+                                              const std::string& oauth_token) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
 
   if (!webui_delegate_) {
     return;
   }
 
-  // The following is to log this lookup request on any open
+  // The following is to log this RTLookupRequest on any open
   // chrome://safe-browsing pages.
   ui_task_runner_->PostTaskAndReplyWithResult(
       FROM_HERE,
-      base::BindOnce(&WebUIDelegate::AddToURTLookupPings,
+      base::BindOnce(&WebUIDelegate::AddToRTLookupPings,
                      base::Unretained(webui_delegate_), request, oauth_token),
       base::BindOnce(&UrlRealTimeMechanism::SetWebUIToken,
                      weak_factory_.GetWeakPtr()));
 }
 
-void UrlRealTimeMechanism::LogLookupResponse(const RTLookupResponse& response) {
+void UrlRealTimeMechanism::LogRTLookupResponse(
+    const RTLookupResponse& response) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
 
   if (!webui_delegate_) {
@@ -268,10 +267,10 @@ void UrlRealTimeMechanism::LogLookupResponse(const RTLookupResponse& response) {
   }
 
   if (url_web_ui_token_ != -1) {
-    // The following is to log this lookup response on any open
+    // The following is to log this RTLookupResponse on any open
     // chrome://safe-browsing pages.
     ui_task_runner_->PostTask(
-        FROM_HERE, base::BindOnce(&WebUIDelegate::AddToURTLookupResponses,
+        FROM_HERE, base::BindOnce(&WebUIDelegate::AddToRTLookupResponses,
                                   base::Unretained(webui_delegate_),
                                   url_web_ui_token_, response));
   }
@@ -287,9 +286,8 @@ void UrlRealTimeMechanism::PerformHashBasedCheck(
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   bool is_safe_synchronously = false;
   if (can_check_db_) {
-    hash_database_mechanism_ = std::make_unique<DatabaseManagerMechanism>(
-        url, threat_types_, database_manager_, experiment_cache_selection_,
-        CheckBrowseUrlType::kHashDatabase);
+    hash_database_mechanism_ = std::make_unique<HashDatabaseMechanism>(
+        url, threat_types_, database_manager_, experiment_cache_selection_);
     is_safe_synchronously =
         hash_database_mechanism_
             ->StartCheck(base::BindOnce(

@@ -20,6 +20,10 @@
 #include "content/public/test/web_contents_tester.h"
 #include "testing/gtest_mac.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 constexpr int kStaticItemCount = 4;
 
 class TabStripModelUiHelperDelegate : public TestTabStripModelDelegate {

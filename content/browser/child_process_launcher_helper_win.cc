@@ -118,13 +118,14 @@ void ChildProcessLauncherHelper::ForceNormalProcessTerminationSync(
   process.process.Terminate(RESULT_CODE_NORMAL_EXIT, false);
 }
 
-void ChildProcessLauncherHelper::SetProcessPriorityOnLauncherThread(
+void ChildProcessLauncherHelper::SetProcessBackgroundedOnLauncherThread(
     base::Process process,
-    base::Process::Priority priority) {
+    bool is_background) {
   DCHECK(CurrentlyOnProcessLauncherTaskRunner());
-  if (process.CanSetPriority() && priority_ != priority) {
-    priority_ = priority;
-    process.SetPriority(priority_);
+  if (process.CanBackgroundProcesses() &&
+      is_process_backgrounded_ != is_background) {
+    is_process_backgrounded_ = is_background;
+    process.SetProcessBackgrounded(is_process_backgrounded_);
   }
 }
 

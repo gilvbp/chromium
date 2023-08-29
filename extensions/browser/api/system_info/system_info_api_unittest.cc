@@ -52,7 +52,7 @@ class FakeExtensionsBrowserClient : public TestExtensionsBrowserClient {
   };
 
   // TestExtensionsBrowserClient:
-  bool IsValidContext(void* context) override {
+  bool IsValidContext(content::BrowserContext* context) override {
     return TestExtensionsBrowserClient::IsValidContext(context) ||
            context == second_context_;
   }

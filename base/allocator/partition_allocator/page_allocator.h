@@ -69,29 +69,20 @@ enum class PageAccessibilityDisposition {
   kAllowKeepForPerf,
 };
 
-// Some platforms (including macOS and some Linux-based ones) support tagged
-// memory regions, to help in debugging. On Android, these tags are used to name
-// anonymous mappings.
-//
-// kChromium is the default value, used to distinguish general
-// Chromium-originated allocations from other ones (e.g. from platform
-// libraries).
+// macOS supports tagged memory regions, to help in debugging. On Android,
+// these tags are used to name anonymous mappings.
 enum class PageTag {
+  kFirst = 240,           // Minimum tag value.
   kSimulation = 251,      // Memory simulator tool.
   kBlinkGC = 252,         // Blink GC pages.
   kPartitionAlloc = 253,  // PartitionAlloc, no matter the partition.
   kChromium = 254,        // Chromium page.
   kV8 = 255,              // V8 heap pages.
-
-  kFirst = kSimulation,  // Minimum tag value.
-  kLast = kV8            // Maximum tag value.
+  kLast = kV8             // Maximum tag value.
 };
 
 // See
 // https://github.com/apple-oss-distributions/xnu/blob/5c2921b07a2480ab43ec66f5b9e41cb872bc554f/osfmk/mach/vm_statistics.h#L687
-static_assert(static_cast<int>(PageTag::kLast) >= 240,
-              "The first application-reserved tag on macOS is 240, see "
-              "vm_statistics.h in XNU.");
 static_assert(
     static_cast<int>(PageTag::kLast) < 256,
     "Tags are only 1 byte long on macOS, see vm_statistics.h in XNU.");
@@ -118,7 +109,7 @@ uintptr_t NextAlignedWithOffset(uintptr_t ptr,
 // PageAccessibilityConfiguration::kInaccessible means uncommitted.
 //
 // |page_tag| is used on some platforms to identify the source of the
-// allocation.
+// allocation. Use PageTag::kChromium as a catch-all category.
 //
 // |file_descriptor_for_shared_alloc| is only used in mapping the shadow
 // pools to the same physical address as the real one in
@@ -129,20 +120,20 @@ PA_COMPONENT_EXPORT(PARTITION_ALLOC)
 uintptr_t AllocPages(size_t length,
                      size_t align,
                      PageAccessibilityConfiguration accessibility,
-                     PageTag page_tag = PageTag::kChromium,
+                     PageTag page_tag,
                      int file_descriptor_for_shared_alloc = -1);
 PA_COMPONENT_EXPORT(PARTITION_ALLOC)
 uintptr_t AllocPages(uintptr_t address,
                      size_t length,
                      size_t align,
                      PageAccessibilityConfiguration accessibility,
-                     PageTag page_tag = PageTag::kChromium);
+                     PageTag page_tag);
 PA_COMPONENT_EXPORT(PARTITION_ALLOC)
 void* AllocPages(void* address,
                  size_t length,
                  size_t align,
                  PageAccessibilityConfiguration accessibility,
-                 PageTag page_tag = PageTag::kChromium);
+                 PageTag page_tag);
 PA_COMPONENT_EXPORT(PARTITION_ALLOC)
 uintptr_t AllocPagesWithAlignOffset(
     uintptr_t address,
@@ -150,7 +141,7 @@ uintptr_t AllocPagesWithAlignOffset(
     size_t align,
     size_t align_offset,
     PageAccessibilityConfiguration page_accessibility,
-    PageTag page_tag = PageTag::kChromium,
+    PageTag page_tag,
     int file_descriptor_for_shared_alloc = -1);
 
 // Frees one or more pages starting at |address| and continuing for |length|
@@ -246,13 +237,9 @@ void DecommitSystemPages(
 //
 // This API will crash if the operation cannot be performed.
 PA_COMPONENT_EXPORT(PARTITION_ALLOC)
-void DecommitAndZeroSystemPages(uintptr_t address,
-                                size_t length,
-                                PageTag page_tag = PageTag::kChromium);
+void DecommitAndZeroSystemPages(uintptr_t address, size_t length);
 PA_COMPONENT_EXPORT(PARTITION_ALLOC)
-void DecommitAndZeroSystemPages(void* address,
-                                size_t length,
-                                PageTag page_tag = PageTag::kChromium);
+void DecommitAndZeroSystemPages(void* address, size_t length);
 
 // Whether decommitted memory is guaranteed to be zeroed when it is
 // recommitted. Do not assume that this will not change over time.

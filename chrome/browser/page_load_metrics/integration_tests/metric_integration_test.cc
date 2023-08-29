@@ -156,14 +156,13 @@ const ukm::mojom::UkmEntryPtr MetricIntegrationTest::GetEntry() {
 
 void MetricIntegrationTest::ExpectUKMPageLoadMetric(StringPiece metric_name,
                                                     int64_t expected_value) {
-  ukm::mojom::UkmEntryPtr entry = GetEntry();
-  TestUkmRecorder::ExpectEntryMetric(entry.get(), metric_name, expected_value);
+  TestUkmRecorder::ExpectEntryMetric(GetEntry().get(), metric_name,
+                                     expected_value);
 }
 
 void MetricIntegrationTest::ExpectUKMPageLoadMetricNonExistence(
     StringPiece metric_name) {
-  ukm::mojom::UkmEntryPtr entry = GetEntry();
-  EXPECT_FALSE(TestUkmRecorder::EntryHasMetric(entry.get(), metric_name));
+  EXPECT_FALSE(TestUkmRecorder::EntryHasMetric(GetEntry().get(), metric_name));
 }
 
 void MetricIntegrationTest::
@@ -181,38 +180,51 @@ void MetricIntegrationTest::
 void MetricIntegrationTest::ExpectUKMPageLoadMetricGreaterThan(
     base::StringPiece metric_name,
     int64_t expected_value) {
-  ukm::mojom::UkmEntryPtr entry = GetEntry();
+  // TODO(yoav): figure out why GetEntry fails on the bots.
+  auto merged_entries =
+      ukm_recorder().GetMergedEntriesByName(PageLoad::kEntryName);
+  EXPECT_EQ(1ul, merged_entries.size());
+  const auto& kv = merged_entries.begin();
   const int64_t* value =
-      TestUkmRecorder::GetEntryMetric(entry.get(), metric_name);
+      TestUkmRecorder::GetEntryMetric(kv->second.get(), metric_name);
   EXPECT_GT(*value, expected_value);
 }
 void MetricIntegrationTest::ExpectUKMPageLoadMetricLowerThan(
     base::StringPiece metric_name,
     int64_t expected_value) {
-  ukm::mojom::UkmEntryPtr entry = GetEntry();
+  auto merged_entries =
+      ukm_recorder().GetMergedEntriesByName(PageLoad::kEntryName);
+  EXPECT_EQ(1ul, merged_entries.size());
+  const auto& kv = merged_entries.begin();
   const int64_t* value =
-      TestUkmRecorder::GetEntryMetric(entry.get(), metric_name);
+      TestUkmRecorder::GetEntryMetric(kv->second.get(), metric_name);
   EXPECT_LT(*value, expected_value);
 }
 
 void MetricIntegrationTest::ExpectUKMPageLoadMetricsInAscendingOrder(
     base::StringPiece metric_name1,
     base::StringPiece metric_name2) {
-  ukm::mojom::UkmEntryPtr entry = GetEntry();
+  auto merged_entries =
+      ukm_recorder().GetMergedEntriesByName(PageLoad::kEntryName);
+  EXPECT_EQ(1ul, merged_entries.size());
+  const auto& kv = merged_entries.begin();
   const int64_t* value1 =
-      TestUkmRecorder::GetEntryMetric(entry.get(), metric_name1);
+      TestUkmRecorder::GetEntryMetric(kv->second.get(), metric_name1);
   EXPECT_TRUE(value1 != nullptr);
   const int64_t* value2 =
-      TestUkmRecorder::GetEntryMetric(entry.get(), metric_name2);
+      TestUkmRecorder::GetEntryMetric(kv->second.get(), metric_name2);
   EXPECT_TRUE(value2 != nullptr);
   EXPECT_LE(*value1, *value2);
 }
 
 int64_t MetricIntegrationTest::GetUKMPageLoadMetricFlagSet(
     base::StringPiece metric_name) {
-  ukm::mojom::UkmEntryPtr entry = GetEntry();
+  std::map<ukm::SourceId, ukm::mojom::UkmEntryPtr> merged_entries =
+      ukm_recorder().GetMergedEntriesByName(PageLoad::kEntryName);
+  EXPECT_EQ(1ul, merged_entries.size());
+  const auto& kv = merged_entries.begin();
   const int64_t* flag_set =
-      TestUkmRecorder::GetEntryMetric(entry.get(), metric_name);
+      TestUkmRecorder::GetEntryMetric(kv->second.get(), metric_name);
   EXPECT_TRUE(flag_set != nullptr);
   return *flag_set;
 }
@@ -241,9 +253,13 @@ void MetricIntegrationTest::ExpectUKMPageLoadMetricFlagSetExactMatch(
 void MetricIntegrationTest::ExpectUKMPageLoadMetricNear(StringPiece metric_name,
                                                         double expected_value,
                                                         double epsilon) {
-  ukm::mojom::UkmEntryPtr entry = GetEntry();
+  std::map<ukm::SourceId, ukm::mojom::UkmEntryPtr> merged_entries =
+      ukm_recorder().GetMergedEntriesByName(PageLoad::kEntryName);
+
+  EXPECT_EQ(1ul, merged_entries.size());
+  const auto& kv = merged_entries.begin();
   const int64_t* recorded =
-      TestUkmRecorder::GetEntryMetric(entry.get(), metric_name);
+      TestUkmRecorder::GetEntryMetric(kv->second.get(), metric_name);
   EXPECT_NE(recorded, nullptr);
   EXPECT_NEAR(*recorded, expected_value, epsilon);
 }

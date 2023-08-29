@@ -18,7 +18,7 @@
 #include "net/base/load_flags.h"
 #include "net/base/net_errors.h"
 #include "net/cookies/cookie_setting_override.h"
-#include "net/url_request/clear_site_data.h"
+#include "net/first_party_sets/same_party_context.h"
 #include "net/url_request/referrer_policy.h"
 #include "net/url_request/url_request.h"
 #include "services/network/cookie_manager.h"
@@ -29,11 +29,17 @@
 #include "services/network/url_loader.h"
 #include "url/gurl.h"
 
-#if BUILDFLAG(ENABLE_WEBSOCKETS)
+#if !BUILDFLAG(IS_IOS)
 #include "services/network/websocket.h"
 #endif
 
 namespace network {
+
+namespace {
+
+const char kClearSiteDataHeader[] = "Clear-Site-Data";
+
+}  // anonymous namespace
 
 NetworkServiceNetworkDelegate::NetworkServiceNetworkDelegate(
     bool enable_referrers,
@@ -105,11 +111,11 @@ int NetworkServiceNetworkDelegate::OnBeforeStartTransaction(
   if (url_loader)
     return url_loader->OnBeforeStartTransaction(headers, std::move(callback));
 
-#if BUILDFLAG(ENABLE_WEBSOCKETS)
+#if !BUILDFLAG(IS_IOS)
   WebSocket* web_socket = WebSocket::ForRequest(*request);
   if (web_socket)
     return web_socket->OnBeforeStartTransaction(headers, std::move(callback));
-#endif  // BUILDFLAG(ENABLE_WEBSOCKETS)
+#endif  // !BUILDFLAG(IS_IOS)
 
   return net::OK;
 }
@@ -130,14 +136,14 @@ int NetworkServiceNetworkDelegate::OnHeadersReceived(
         preserve_fragment_on_redirect_url));
   }
 
-#if BUILDFLAG(ENABLE_WEBSOCKETS)
+#if !BUILDFLAG(IS_IOS)
   WebSocket* web_socket = WebSocket::ForRequest(*request);
   if (web_socket) {
     chain->AddResult(web_socket->OnHeadersReceived(
         chain->CreateCallback(), original_response_headers,
         override_response_headers, preserve_fragment_on_redirect_url));
   }
-#endif  // BUILDFLAG(ENABLE_WEBSOCKETS)
+#endif  // !BUILDFLAG(IS_IOS)
 
   chain->AddResult(HandleClearSiteDataHeader(request, chain->CreateCallback(),
                                              original_response_headers));
@@ -201,13 +207,13 @@ bool NetworkServiceNetworkDelegate::OnAnnotateAndMoveUserBlockedCookies(
   if (url_loader) {
     allowed =
         url_loader->AllowCookies(request.url(), request.site_for_cookies());
-#if BUILDFLAG(ENABLE_WEBSOCKETS)
+#if !BUILDFLAG(IS_IOS)
   } else {
     WebSocket* web_socket = WebSocket::ForRequest(request);
     if (web_socket) {
       allowed = web_socket->AllowCookies(request.url());
     }
-#endif  // BUILDFLAG(ENABLE_WEBSOCKETS)
+#endif  // !BUILDFLAG(IS_IOS)
   }
   if (!allowed)
     ExcludeAllCookies(net::CookieInclusionStatus::EXCLUDE_USER_PREFERENCES,
@@ -219,13 +225,12 @@ bool NetworkServiceNetworkDelegate::OnAnnotateAndMoveUserBlockedCookies(
 bool NetworkServiceNetworkDelegate::OnCanSetCookie(
     const net::URLRequest& request,
     const net::CanonicalCookie& cookie,
-    net::CookieOptions* options,
-    net::CookieInclusionStatus* inclusion_status) {
+    net::CookieOptions* options) {
   bool allowed =
       network_context_->cookie_manager()->cookie_settings().IsCookieAccessible(
           cookie, request.url(), request.site_for_cookies(),
           request.isolation_info().top_frame_origin(),
-          request.cookie_setting_overrides(), inclusion_status);
+          request.cookie_setting_overrides());
   if (!allowed)
     return false;
   // The remaining checks do not consider setting overrides since they enforce
@@ -233,11 +238,11 @@ bool NetworkServiceNetworkDelegate::OnCanSetCookie(
   URLLoader* url_loader = URLLoader::ForRequest(request);
   if (url_loader)
     return url_loader->AllowCookies(request.url(), request.site_for_cookies());
-#if BUILDFLAG(ENABLE_WEBSOCKETS)
+#if !BUILDFLAG(IS_IOS)
   WebSocket* web_socket = WebSocket::ForRequest(request);
   if (web_socket)
     return web_socket->AllowCookies(request.url());
-#endif  // BUILDFLAG(ENABLE_WEBSOCKETS)
+#endif  // !BUILDFLAG(IS_IOS)
   return true;
 }
 
@@ -356,7 +361,7 @@ int NetworkServiceNetworkDelegate::HandleClearSiteDataHeader(
     return net::OK;
 
   std::string header_value;
-  if (!original_response_headers->GetNormalizedHeader(net::kClearSiteDataHeader,
+  if (!original_response_headers->GetNormalizedHeader(kClearSiteDataHeader,
                                                       &header_value)) {
     return net::OK;
   }

@@ -12,7 +12,6 @@
 #include "base/functional/callback.h"
 #include "base/task/common/lazy_now.h"
 #include "base/task/sequence_manager/sequence_manager.h"
-#include "base/task/sequence_manager/task_queue.h"
 #include "base/task/sequence_manager/test/sequence_manager_for_test.h"
 #include "base/task/single_thread_task_runner.h"
 #include "base/test/bind.h"
@@ -43,11 +42,10 @@ void AddOneTask(size_t* count) {
   (*count)++;
 }
 
-void RunTenTimesTask(size_t* count, TaskQueue* timer_queue) {
+void RunTenTimesTask(size_t* count, scoped_refptr<TaskQueue> timer_queue) {
   if (++(*count) < 10) {
     timer_queue->task_runner()->PostDelayedTask(
-        FROM_HERE,
-        base::BindOnce(&RunTenTimesTask, count, base::Unretained(timer_queue)),
+        FROM_HERE, base::BindOnce(&RunTenTimesTask, count, timer_queue),
         base::Milliseconds(1));
   }
 }
@@ -96,7 +94,7 @@ class TaskQueueThrottlerTest : public testing::Test {
     timer_queue_->ShutdownTaskQueue();
   }
 
-  base::sequence_manager::TaskQueue::Handle CreateTaskQueue(
+  scoped_refptr<base::sequence_manager::TaskQueue> CreateTaskQueue(
       base::sequence_manager::QueueName name) {
     return sequence_manager_->CreateTaskQueue(
         base::sequence_manager::TaskQueue::Spec(name).SetDelayedFencesAllowed(
@@ -119,11 +117,10 @@ class TaskQueueThrottlerTest : public testing::Test {
     return throttler;
   }
 
-  void ExpectThrottled(TaskQueue* timer_queue) {
+  void ExpectThrottled(scoped_refptr<TaskQueue> timer_queue) {
     size_t count = 0;
     timer_task_runner_->PostDelayedTask(
-        FROM_HERE,
-        base::BindOnce(&RunTenTimesTask, &count, base::Unretained(timer_queue)),
+        FROM_HERE, base::BindOnce(&RunTenTimesTask, &count, timer_queue),
         base::Milliseconds(1));
 
     test_task_runner_->FastForwardBy(base::Milliseconds(11));
@@ -134,11 +131,10 @@ class TaskQueueThrottlerTest : public testing::Test {
     EXPECT_EQ(count, 10u);
   }
 
-  void ExpectUnthrottled(TaskQueue* timer_queue) {
+  void ExpectUnthrottled(scoped_refptr<TaskQueue> timer_queue) {
     size_t count = 0;
     timer_task_runner_->PostDelayedTask(
-        FROM_HERE,
-        base::BindOnce(&RunTenTimesTask, &count, base::Unretained(timer_queue)),
+        FROM_HERE, base::BindOnce(&RunTenTimesTask, &count, timer_queue),
         base::Milliseconds(1));
 
     test_task_runner_->FastForwardBy(base::Milliseconds(11));
@@ -169,7 +165,7 @@ class TaskQueueThrottlerTest : public testing::Test {
   std::unique_ptr<base::sequence_manager::SequenceManager> sequence_manager_;
 
   // A queue that is subject to |wake_up_budget_pool_|.
-  base::sequence_manager::TaskQueue::Handle timer_queue_;
+  scoped_refptr<base::sequence_manager::TaskQueue> timer_queue_;
   std::unique_ptr<TaskQueueThrottler> task_queue_throttler_;
 
   scoped_refptr<base::SingleThreadTaskRunner> timer_task_runner_;
@@ -627,7 +623,7 @@ TEST_P(TaskQueueThrottlerWithAutoAdvancingTimeTest,
        TwoQueuesTimeBudgetThrottling) {
   Vector<base::TimeTicks> run_times;
 
-  base::sequence_manager::TaskQueue::Handle second_queue =
+  scoped_refptr<base::sequence_manager::TaskQueue> second_queue =
       sequence_manager_->CreateTaskQueue(
           base::sequence_manager::TaskQueue::Spec(
               base::sequence_manager::QueueName::TEST2_TQ)
@@ -926,7 +922,7 @@ TEST_P(TaskQueueThrottlerWithAutoAdvancingTimeTest,
        DisabledQueueThenEnabledQueue) {
   Vector<base::TimeTicks> run_times;
 
-  base::sequence_manager::TaskQueue::Handle second_queue =
+  scoped_refptr<base::sequence_manager::TaskQueue> second_queue =
       sequence_manager_->CreateTaskQueue(
           base::sequence_manager::TaskQueue::Spec(
               base::sequence_manager::QueueName::TEST2_TQ)
@@ -981,7 +977,7 @@ TEST_F(TaskQueueThrottlerTest, TwoBudgetPools) {
       std::make_unique<CPUTimeBudgetPool>("test", &tracing_controller_,
                                           test_task_runner_->NowTicks());
 
-  base::sequence_manager::TaskQueue::Handle second_queue =
+  scoped_refptr<base::sequence_manager::TaskQueue> second_queue =
       sequence_manager_->CreateTaskQueue(
           base::sequence_manager::TaskQueue::Spec(
               base::sequence_manager::QueueName::TEST2_TQ)
@@ -1029,7 +1025,7 @@ TEST_F(TaskQueueThrottlerTest, TwoBudgetPools) {
 namespace {
 
 void RunChainedTask(Deque<base::TimeDelta> task_durations,
-                    TaskQueue* queue,
+                    scoped_refptr<TaskQueue> queue,
                     scoped_refptr<TestMockTimeTaskRunner> task_runner,
                     Vector<base::TimeTicks>* run_times,
                     base::TimeDelta delay) {
@@ -1044,8 +1040,8 @@ void RunChainedTask(Deque<base::TimeDelta> task_durations,
 
   queue->task_runner()->PostDelayedTask(
       FROM_HERE,
-      base::BindOnce(&RunChainedTask, std::move(task_durations),
-                     base::Unretained(queue), task_runner, run_times, delay),
+      base::BindOnce(&RunChainedTask, std::move(task_durations), queue,
+                     task_runner, run_times, delay),
       delay);
 }
 }  // namespace
@@ -1060,8 +1056,8 @@ TEST_P(TaskQueueThrottlerWithAutoAdvancingTimeTest,
   timer_task_runner_->PostDelayedTask(
       FROM_HERE,
       base::BindOnce(&RunChainedTask, MakeTaskDurations(10, base::TimeDelta()),
-                     base::Unretained(timer_queue_.get()), test_task_runner_,
-                     &run_times, base::TimeDelta()),
+                     timer_queue_, test_task_runner_, &run_times,
+                     base::TimeDelta()),
       base::Milliseconds(100));
 
   test_task_runner_->FastForwardUntilNoTasksRemain();
@@ -1088,9 +1084,8 @@ TEST_P(TaskQueueThrottlerWithAutoAdvancingTimeTest,
   timer_task_runner_->PostDelayedTask(
       FROM_HERE,
       base::BindOnce(&RunChainedTask,
-                     MakeTaskDurations(10, base::Milliseconds(3)),
-                     base::Unretained(timer_queue_.get()), test_task_runner_,
-                     &run_times, base::TimeDelta()),
+                     MakeTaskDurations(10, base::Milliseconds(3)), timer_queue_,
+                     test_task_runner_, &run_times, base::TimeDelta()),
       base::Milliseconds(100));
 
   test_task_runner_->FastForwardUntilNoTasksRemain();
@@ -1119,8 +1114,8 @@ TEST_P(TaskQueueThrottlerWithAutoAdvancingTimeTest,
   timer_task_runner_->PostDelayedTask(
       FROM_HERE,
       base::BindOnce(&RunChainedTask, MakeTaskDurations(10, base::TimeDelta()),
-                     base::Unretained(timer_queue_.get()), test_task_runner_,
-                     &run_times, base::Milliseconds(3)),
+                     timer_queue_, test_task_runner_, &run_times,
+                     base::Milliseconds(3)),
       base::Milliseconds(100));
 
   test_task_runner_->FastForwardUntilNoTasksRemain();
@@ -1156,7 +1151,7 @@ TEST_F(TaskQueueThrottlerTest,
   two_minutes_pool->SetWakeUpDuration(base::TimeDelta());
   two_minutes_pool->SetWakeUpInterval(test_task_runner_->NowTicks(),
                                       base::Minutes(2));
-  base::sequence_manager::TaskQueue::Handle two_minutes_queue =
+  scoped_refptr<base::sequence_manager::TaskQueue> two_minutes_queue =
       sequence_manager_->CreateTaskQueue(
           base::sequence_manager::TaskQueue::Spec(
               base::sequence_manager::QueueName::TEST2_TQ)
@@ -1226,7 +1221,7 @@ TEST_F(TaskQueueThrottlerTest,
   two_minutes_pool->SetWakeUpDuration(base::TimeDelta());
   two_minutes_pool->SetWakeUpInterval(test_task_runner_->NowTicks(),
                                       base::Minutes(2));
-  base::sequence_manager::TaskQueue::Handle two_minutes_queue =
+  scoped_refptr<base::sequence_manager::TaskQueue> two_minutes_queue =
       sequence_manager_->CreateTaskQueue(
           base::sequence_manager::TaskQueue::Spec(
               base::sequence_manager::QueueName::TEST2_TQ)
@@ -1303,7 +1298,7 @@ TEST_F(TaskQueueThrottlerTest,
   two_minutes_pool->SetWakeUpInterval(test_task_runner_->NowTicks(),
                                       base::Minutes(1));
   two_minutes_pool->AllowLowerAlignmentIfNoRecentWakeUp(base::Seconds(1));
-  base::sequence_manager::TaskQueue::Handle two_minutes_queue =
+  scoped_refptr<base::sequence_manager::TaskQueue> two_minutes_queue =
       sequence_manager_->CreateTaskQueue(
           base::sequence_manager::TaskQueue::Spec(
               base::sequence_manager::QueueName::TEST2_TQ)
@@ -1409,7 +1404,7 @@ TEST_F(TaskQueueThrottlerTest,
   unaligned_pool->SetWakeUpInterval(test_task_runner_->NowTicks(),
                                     base::Minutes(1));
   unaligned_pool->AllowLowerAlignmentIfNoRecentWakeUp(base::Seconds(1));
-  base::sequence_manager::TaskQueue::Handle unaligned_queue =
+  scoped_refptr<base::sequence_manager::TaskQueue> unaligned_queue =
       sequence_manager_->CreateTaskQueue(
           base::sequence_manager::TaskQueue::Spec(
               base::sequence_manager::QueueName::TEST2_TQ)
@@ -1508,8 +1503,7 @@ TEST_F(TaskQueueThrottlerTest, WakeUpBasedThrottling_EnableDisableThrottling) {
   timer_task_runner_->PostDelayedTask(
       FROM_HERE,
       base::BindOnce(&RunChainedTask, MakeTaskDurations(10, base::TimeDelta()),
-                     base::Unretained(timer_queue_.get()), test_task_runner_,
-                     &run_times, kDelay),
+                     timer_queue_, test_task_runner_, &run_times, kDelay),
       kDelay);
 
   // Throttling is enabled. Only 1 task runs per |kTimeBetweenWakeUps|.
@@ -1753,9 +1747,8 @@ TEST_F(TaskQueueThrottlerTest, WakeUpBasedThrottlingWithCPUBudgetThrottling) {
 
   timer_task_runner_->PostDelayedTask(
       FROM_HERE,
-      base::BindOnce(&RunChainedTask, std::move(task_durations),
-                     base::Unretained(timer_queue_.get()), test_task_runner_,
-                     &run_times, base::TimeDelta()),
+      base::BindOnce(&RunChainedTask, std::move(task_durations), timer_queue_,
+                     test_task_runner_, &run_times, base::TimeDelta()),
       base::Milliseconds(100));
 
   test_task_runner_->FastForwardUntilNoTasksRemain();
@@ -1844,9 +1837,8 @@ TEST_F(TaskQueueThrottlerTest,
   timer_task_runner_->PostDelayedTask(
       FROM_HERE,
       base::BindOnce(&RunChainedTask,
-                     MakeTaskDurations(10, base::Milliseconds(7)),
-                     base::Unretained(timer_queue_.get()), test_task_runner_,
-                     &run_times, base::TimeDelta()),
+                     MakeTaskDurations(10, base::Milliseconds(7)), timer_queue_,
+                     test_task_runner_, &run_times, base::TimeDelta()),
       base::Milliseconds(100));
 
   test_task_runner_->FastForwardUntilNoTasksRemain();

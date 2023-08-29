@@ -7,6 +7,10 @@
 #import "ios/chrome/browser/ui/authentication/unified_consent/identity_chooser/identity_chooser_animator.h"
 #import "ios/chrome/browser/ui/authentication/unified_consent/identity_chooser/identity_chooser_presentation_controller.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 @implementation IdentityChooserTransitionDelegate
 
 @synthesize origin = _origin;

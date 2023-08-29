@@ -178,8 +178,6 @@ IN_PROC_BROWSER_TEST_F(UserAddedRemovedReporterBrowserTest,
   test::WaitForPrimaryUserSessionStart();
 
   const Record& record = GetNextUserAddedRemovedRecord(&observer);
-  ASSERT_TRUE(record.has_source_info());
-  EXPECT_THAT(record.source_info().source(), Eq(::reporting::SourceInfo::ASH));
   ::reporting::UserAddedRemovedRecord record_data;
   ASSERT_TRUE(record_data.ParseFromString(record.data()));
   EXPECT_TRUE(record_data.has_user_added_event());
@@ -193,8 +191,6 @@ IN_PROC_BROWSER_TEST_F(UserAddedRemovedReporterBrowserTest,
       login_manager_mixin_.users()[0].account_id));
 
   const Record& record = GetNextUserAddedRemovedRecord(&observer);
-  ASSERT_TRUE(record.has_source_info());
-  EXPECT_THAT(record.source_info().source(), Eq(::reporting::SourceInfo::ASH));
   ::reporting::UserAddedRemovedRecord record_data;
   ASSERT_TRUE(record_data.ParseFromString(record.data()));
   ASSERT_TRUE(record_data.has_user_removed_event());
@@ -212,8 +208,6 @@ IN_PROC_BROWSER_TEST_F(UserAddedRemovedReporterBrowserTest,
   test::WaitForPrimaryUserSessionStart();
 
   const Record& record = GetNextUserAddedRemovedRecord(&observer);
-  ASSERT_TRUE(record.has_source_info());
-  EXPECT_THAT(record.source_info().source(), Eq(::reporting::SourceInfo::ASH));
   ::reporting::UserAddedRemovedRecord record_data;
   ASSERT_TRUE(record_data.ParseFromString(record.data()));
   EXPECT_TRUE(record_data.has_user_added_event());
@@ -240,8 +234,6 @@ IN_PROC_BROWSER_TEST_F(UserAddedRemovedReporterBrowserTest,
   ASSERT_TRUE(LoginScreenTestApi::RemoveUser(test_account_id_));
 
   const Record& record = GetNextUserAddedRemovedRecord(&observer);
-  ASSERT_TRUE(record.has_source_info());
-  EXPECT_THAT(record.source_info().source(), Eq(::reporting::SourceInfo::ASH));
   ::reporting::UserAddedRemovedRecord record_data;
   ASSERT_TRUE(record_data.ParseFromString(record.data()));
   ASSERT_TRUE(record_data.has_user_removed_event());
@@ -361,7 +353,7 @@ IN_PROC_BROWSER_TEST_F(UserAddedRemovedReporterPublicSessionBrowserTest,
 
   const user_manager::UserManager* const user_manager =
       user_manager::UserManager::Get();
-  ASSERT_TRUE(user_manager->IsLoggedInAsManagedGuestSession());
+  ASSERT_TRUE(user_manager->IsLoggedInAsPublicAccount());
 
   const absl::optional<Record> record =
       MaybeGetEnqueuedUserAddedRemovedRecord();

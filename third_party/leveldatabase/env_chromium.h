@@ -99,11 +99,13 @@ struct LEVELDB_EXPORT Options : public leveldb::Options {
 
 LEVELDB_EXPORT const char* MethodIDToString(MethodID method);
 
-leveldb::Status LEVELDB_EXPORT
-MakeIOError(leveldb::Slice filename,
-            const std::string& message,
-            MethodID method,
-            base::File::Error error = base::File::FILE_OK);
+leveldb::Status LEVELDB_EXPORT MakeIOError(leveldb::Slice filename,
+                                           const std::string& message,
+                                           MethodID method,
+                                           base::File::Error error);
+leveldb::Status LEVELDB_EXPORT MakeIOError(leveldb::Slice filename,
+                                           const std::string& message,
+                                           MethodID method);
 
 enum ErrorParsingResult {
   METHOD_ONLY,

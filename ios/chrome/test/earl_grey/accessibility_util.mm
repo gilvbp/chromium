@@ -5,8 +5,12 @@
 
 #import <GTXiLib/GTXiLib.h>
 
-#import "base/apple/foundation_util.h"
+#import "base/mac/foundation_util.h"
 #import "ios/chrome/test/earl_grey/accessibility_util.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace chrome_test_util {
 
@@ -20,7 +24,7 @@ BOOL VerifyAccessibilityForCurrentScreen(NSError* __strong* error) {
 
   for (UIScene* scene in UIApplication.sharedApplication.connectedScenes) {
     UIWindowScene* windowScene =
-        base::apple::ObjCCastStrict<UIWindowScene>(scene);
+        base::mac::ObjCCastStrict<UIWindowScene>(scene);
     if (windowScene) {
       for (UIWindow* window in windowScene.windows) {
         // Run the checks on all elements on the screen.

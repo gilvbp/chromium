@@ -4,6 +4,7 @@
 
 #include <string>
 
+#include "base/metrics/histogram_functions.h"
 #include "chromeos/ash/components/language_packs/language_packs_impl.h"
 
 #include "base/no_destructor.h"
@@ -12,7 +13,6 @@
 namespace ash::language_packs {
 
 using ::ash::language::mojom::BasePackInfo;
-using ::ash::language::mojom::ErrorCode;
 using ::ash::language::mojom::FeatureId;
 using ::ash::language::mojom::LanguagePackInfo;
 using ::ash::language::mojom::LanguagePacks;
@@ -36,33 +36,15 @@ absl::optional<std::string> ConvertMojoFeatureToPackId(FeatureId mojo_id) {
 
 PackState GetPackStateFromStatusCode(const PackResult::StatusCode status_code) {
   switch (status_code) {
-    case PackResult::StatusCode::kNotInstalled:
+    case PackResult::NOT_INSTALLED:
       return PackState::NOT_INSTALLED;
-    case PackResult::StatusCode::kInProgress:
+    case PackResult::IN_PROGRESS:
       return PackState::INSTALLING;
-    case PackResult::StatusCode::kInstalled:
+    case PackResult::INSTALLED:
       return PackState::INSTALLED;
     // Catch all remaining cases as error.
     default:
-      // TODO: b/294162606 - Deprecate this value and use UNKNOWN instead.
       return PackState::ERROR;
-  }
-}
-
-ErrorCode GetMojoErrorFromPackError(const PackResult::ErrorCode pack_error) {
-  // This conversion is exhaustive. We don't use a default: case so that we can
-  // catch missing values at compile time.
-  switch (pack_error) {
-    case PackResult::ErrorCode::kNone:
-      return ErrorCode::kNone;
-    case PackResult::ErrorCode::kOther:
-      return ErrorCode::kOther;
-    case PackResult::ErrorCode::kWrongId:
-      return ErrorCode::kWrongId;
-    case PackResult::ErrorCode::kNeedReboot:
-      return ErrorCode::kNeedReboot;
-    case PackResult::ErrorCode::kAllocation:
-      return ErrorCode::kAllocation;
   }
 }
 
@@ -72,10 +54,12 @@ void OnOperationComplete(LanguagePacksImpl::GetPackInfoCallback mojo_callback,
                          const PackResult& pack_result) {
   auto info = LanguagePackInfo::New();
   info->pack_state = GetPackStateFromStatusCode(pack_result.pack_state);
-  info->error = GetMojoErrorFromPackError(pack_result.operation_error);
-  if (pack_result.pack_state == PackResult::StatusCode::kInstalled) {
+  if (pack_result.pack_state == PackResult::INSTALLED) {
     info->path = pack_result.path;
   }
+
+  base::UmaHistogramEnumeration("ChromeOS.LanguagePacks.Mojo.PackStateResponse",
+                                info->pack_state);
 
   std::move(mojo_callback).Run(std::move(info));
 }
@@ -86,10 +70,12 @@ void OnInstallBasePackComplete(
     const PackResult& pack_result) {
   auto info = BasePackInfo::New();
   info->pack_state = GetPackStateFromStatusCode(pack_result.pack_state);
-  info->error = GetMojoErrorFromPackError(pack_result.operation_error);
-  if (pack_result.pack_state == PackResult::StatusCode::kInstalled) {
+  if (pack_result.pack_state == PackResult::INSTALLED) {
     info->path = pack_result.path;
   }
+
+  base::UmaHistogramEnumeration(
+      "ChromeOS.LanguagePacks.Mojo.BasePackStateResponse", info->pack_state);
 
   std::move(mojo_callback).Run(std::move(info));
 }
@@ -112,6 +98,8 @@ void LanguagePacksImpl::BindReceiver(
 void LanguagePacksImpl::GetPackInfo(FeatureId feature_id,
                                     const std::string& language,
                                     GetPackInfoCallback mojo_callback) {
+  base::UmaHistogramEnumeration(
+      "ChromeOS.LanguagePacks.Mojo.GetPackInfo.Feature", feature_id);
 
   LanguagePackManager* lp = LanguagePackManager::GetInstance();
   const absl::optional<std::string> pack_id =
@@ -131,6 +119,9 @@ void LanguagePacksImpl::GetPackInfo(FeatureId feature_id,
 void LanguagePacksImpl::InstallPack(FeatureId feature_id,
                                     const std::string& language,
                                     InstallPackCallback mojo_callback) {
+  base::UmaHistogramEnumeration(
+      "ChromeOS.LanguagePacks.Mojo.InstallPack.Feature", feature_id);
+
   LanguagePackManager* lp = LanguagePackManager::GetInstance();
   const absl::optional<std::string> pack_id =
       ConvertMojoFeatureToPackId(feature_id);
@@ -148,6 +139,9 @@ void LanguagePacksImpl::InstallPack(FeatureId feature_id,
 
 void LanguagePacksImpl::InstallBasePack(FeatureId feature_id,
                                         InstallBasePackCallback mojo_callback) {
+  base::UmaHistogramEnumeration(
+      "ChromeOS.LanguagePacks.Mojo.InstallBasePack.Feature", feature_id);
+
   LanguagePackManager* lp = LanguagePackManager::GetInstance();
   const absl::optional<std::string> pack_id =
       ConvertMojoFeatureToPackId(feature_id);

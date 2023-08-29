@@ -19,7 +19,7 @@ suite('routineResultListTestSuite', function() {
   let routineResultListElement = null;
 
   setup(function() {
-    document.body.innerHTML = window.trustedTypes.emptyHTML;
+    document.body.innerHTML = '';
   });
 
   teardown(function() {

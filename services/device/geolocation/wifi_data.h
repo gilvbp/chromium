@@ -8,15 +8,26 @@
 #include <set>
 #include <string>
 
-#include "services/device/public/mojom/geolocation_internals.mojom.h"
 
 namespace device {
+
+// Wifi data relating to a single access point.
+struct AccessPointData {
+  AccessPointData();
+  ~AccessPointData();
+
+  // MAC address, formatted as per MacAddressAsString.
+  std::string mac_address;
+  int radio_signal_strength;  // Measured in dBm
+  int channel;
+  int signal_to_noise;  // Ratio in dB
+};
 
 // This is to allow AccessPointData to be used in std::set. We order
 // lexicographically by MAC address.
 struct AccessPointDataLess {
-  bool operator()(const mojom::AccessPointData& data1,
-                  const mojom::AccessPointData& data2) const {
+  bool operator()(const AccessPointData& data1,
+                  const AccessPointData& data2) const {
     return data1.mac_address < data2.mac_address;
   }
 };
@@ -25,7 +36,6 @@ struct AccessPointDataLess {
 struct WifiData {
   WifiData();
   WifiData(const WifiData& other);
-  WifiData& operator=(const WifiData& other);
   ~WifiData();
 
   // Determines whether a new set of WiFi data differs significantly from this.
@@ -33,8 +43,7 @@ struct WifiData {
 
   // Store access points as a set, sorted by MAC address. This allows quick
   // comparison of sets for detecting changes and for caching.
-  typedef std::set<mojom::AccessPointData, AccessPointDataLess>
-      AccessPointDataSet;
+  typedef std::set<AccessPointData, AccessPointDataLess> AccessPointDataSet;
   AccessPointDataSet access_point_data;
 };
 

@@ -12,10 +12,12 @@
 
 namespace optimization_guide {
 
-TextEmbeddingModelExecutor::TextEmbeddingModelExecutor()
-    : num_threads_(features::OverrideNumThreadsForOptTarget(
-                       proto::OPTIMIZATION_TARGET_TEXT_EMBEDDER)
+TextEmbeddingModelExecutor::TextEmbeddingModelExecutor(
+    proto::OptimizationTarget optimization_target)
+    : optimization_target_(optimization_target),
+      num_threads_(features::OverrideNumThreadsForOptTarget(optimization_target)
                        .value_or(-1)) {}
+
 TextEmbeddingModelExecutor::~TextEmbeddingModelExecutor() = default;
 
 absl::optional<tflite::task::processor::EmbeddingResult>
@@ -28,8 +30,7 @@ TextEmbeddingModelExecutor::Execute(ModelExecutionTask* execution_task,
   }
   TRACE_EVENT2("browser", "TextEmbeddingModelExecutor::Execute",
                "optimization_target",
-               GetStringNameForOptimizationTarget(
-                   proto::OPTIMIZATION_TARGET_TEXT_EMBEDDER),
+               GetStringNameForOptimizationTarget(optimization_target_),
                "input_length", input.size());
 
   auto status_or_result =

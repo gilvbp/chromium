@@ -35,17 +35,15 @@ WarningServiceFactory::WarningServiceFactory()
 WarningServiceFactory::~WarningServiceFactory() {
 }
 
-std::unique_ptr<KeyedService>
-WarningServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* WarningServiceFactory::BuildServiceInstanceFor(
     BrowserContext* context) const {
-  return std::make_unique<WarningService>(context);
+  return new WarningService(context);
 }
 
 BrowserContext* WarningServiceFactory::GetBrowserContextToUse(
     BrowserContext* context) const {
   // Redirected in incognito.
-  return ExtensionsBrowserClient::Get()->GetContextRedirectedToOriginal(
-      context, /*force_guest_profile=*/true);
+  return ExtensionsBrowserClient::Get()->GetOriginalContext(context);
 }
 
 }  // namespace extensions

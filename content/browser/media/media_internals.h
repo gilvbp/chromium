@@ -15,7 +15,6 @@
 #include "base/functional/callback_forward.h"
 #include "base/scoped_multi_source_observation.h"
 #include "base/synchronization/lock.h"
-#include "base/types/cxx23_to_underlying.h"
 #include "base/values.h"
 #include "content/browser/media/media_internals_audio_focus_helper.h"
 #include "content/browser/media/media_internals_cdm_helper.h"
@@ -193,8 +192,7 @@ class CONTENT_EXPORT MediaInternals : public media::AudioLogFactory,
   base::Lock lock_;
   bool can_update_ = false;
   base::Value::Dict audio_streams_cached_data_;
-  int owner_ids_[base::to_underlying(
-      media::AudioLogFactory::AudioComponent::kAudiocomponentMax)] = {};
+  int owner_ids_[media::AudioLogFactory::AUDIO_COMPONENT_MAX] = {};
 };
 
 }  // namespace content

@@ -105,7 +105,7 @@
 #include "third_party/blink/renderer/core/html/forms/form_controller.h"
 #include "third_party/blink/renderer/core/html/forms/html_input_element.h"
 #include "third_party/blink/renderer/core/html/forms/html_select_element.h"
-#include "third_party/blink/renderer/core/html/forms/html_select_list_element.h"
+#include "third_party/blink/renderer/core/html/forms/html_select_menu_element.h"
 #include "third_party/blink/renderer/core/html/forms/html_text_area_element.h"
 #include "third_party/blink/renderer/core/html/forms/text_control_inner_elements.h"
 #include "third_party/blink/renderer/core/html/html_iframe_element.h"
@@ -905,26 +905,19 @@ bool Internals::isLoadingFromMemoryCache(const String& url) {
 
 ScriptPromise Internals::getInitialResourcePriority(ScriptState* script_state,
                                                     const String& url,
-                                                    Document* document,
-                                                    bool new_load_only) {
+                                                    Document* document) {
   ScriptPromiseResolver* resolver =
       MakeGarbageCollected<ScriptPromiseResolver>(script_state);
   ScriptPromise promise = resolver->Promise();
   KURL resource_url = url_test_helpers::ToKURL(url.Utf8());
+  DCHECK(document);
 
   auto callback = WTF::BindOnce(&Internals::ResolveResourcePriority,
                                 WrapPersistent(this), WrapPersistent(resolver));
-  document->Fetcher()->AddPriorityObserverForTesting(
-      resource_url, std::move(callback), new_load_only);
+  ResourceFetcher::AddPriorityObserverForTesting(resource_url,
+                                                 std::move(callback));
 
   return promise;
-}
-
-ScriptPromise Internals::getInitialResourcePriorityOfNewLoad(
-    ScriptState* script_state,
-    const String& url,
-    Document* document) {
-  return getInitialResourcePriority(script_state, url, document, true);
 }
 
 bool Internals::doesWindowHaveUrlFragment(DOMWindow* window) {
@@ -2545,12 +2538,7 @@ unsigned Internals::numberOfScrollableAreas(Document* document) {
 
 bool Internals::isPageBoxVisible(Document* document, int page_number) {
   DCHECK(document);
-  // Named pages aren't supported here, because this function may be called
-  // without laying out first.
-  const ComputedStyle* style =
-      document->StyleForPage(page_number, /* page_name */ AtomicString());
-  return style->Visibility() !=
-         EVisibility::kHidden;  // display property doesn't apply to @page.
+  return document->IsPageBoxVisible(page_number);
 }
 
 String Internals::layerTreeAsText(Document* document,
@@ -3392,10 +3380,10 @@ void Internals::resetTypeAheadSession(HTMLSelectElement* select) {
   select->ResetTypeAheadSessionForTesting();
 }
 
-void Internals::resetSelectListTypeAheadSession(
-    HTMLSelectListElement* selectlist) {
-  DCHECK(selectlist);
-  selectlist->ResetTypeAheadSessionForTesting();
+void Internals::resetSelectMenuTypeAheadSession(
+    HTMLSelectMenuElement* selectmenu) {
+  DCHECK(selectmenu);
+  selectmenu->ResetTypeAheadSessionForTesting();
 }
 
 void Internals::forceCompositingUpdate(Document* document,
@@ -3416,8 +3404,6 @@ void Internals::setForcedColorsAndDarkPreferredColorScheme(Document* document) {
   color_scheme_helper.SetPreferredColorScheme(
       mojom::blink::PreferredColorScheme::kDark);
   color_scheme_helper.SetForcedColors(*document, ForcedColors::kActive);
-  color_scheme_helper.SetEmulatedForcedColors(*document,
-                                              /*is_dark_theme=*/false);
   document->GetFrame()->View()->UpdateAllLifecyclePhasesForTest();
 }
 

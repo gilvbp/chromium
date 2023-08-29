@@ -114,7 +114,7 @@ namespace ash {
 //       base::MakeRefCounted<message_center::HandleNotificationClickDelegate>(
 //           base::BindRepeating(&OnClicked,
 //           some_arg)))
-//     .Build(false);
+//     .Build();
 // }
 //
 // void Foo::ShowNotification2() {
@@ -124,7 +124,7 @@ namespace ash {
 //       base::MakeRefCounted<message_center::HandleNotificationClickDelegate>(
 //           base::BindRepeating(&OnClicked,
 //           other_arg)))
-//     .Build(false);
+//     .Build();
 // }
 //
 // The builder can also be used when putting together the information for a
@@ -159,7 +159,7 @@ namespace ash {
 //   }
 //
 //   AddNotification(
-//     builder.SetId(kNotificationId).SetTitle(IDS_TITLE).BuildPtr(false));
+//     builder.SetId(kNotificationId).SetTitle(IDS_TITLE).BuildPtr());
 // }
 class ASH_PUBLIC_EXPORT SystemNotificationBuilder {
  public:
@@ -248,18 +248,10 @@ class ASH_PUBLIC_EXPORT SystemNotificationBuilder {
       message_center::SystemNotificationWarningLevel warning_level);
 
   // Create the notification from the currently stored fields.
-  // Unless `keep_timestamp` is true, the `timestamp` field in the
-  // `RichNotificationData` instance `optional_fields_` will be updated to the
-  // current time inside `Build()`. Keeping the previous `timestamp` is useful
-  // when `Build()` is used to update an existing notification.
-  message_center::Notification Build(bool keep_timestamp);
+  message_center::Notification Build() const;
 
   // Create a owning pointer of a notification from the currently stored fields.
-  // Unless `keep_timestamp` is true, the `timestamp` field in the
-  // `RichNotificationData` instance `optional_fields_` will be updated to the
-  // current time inside `BuildPtr()`. Keeping the previous `timestamp` is
-  // useful when `BuildPtr()` is used to update an existing notification.
-  std::unique_ptr<message_center::Notification> BuildPtr(bool keep_timestamp);
+  std::unique_ptr<message_center::Notification> BuildPtr() const;
 
   // Get a NotifierId by combining `catalog_name_` and `id_` if `notifier_id_`
   // is `absl::nullopt`, otherwise returns the value of `notifier_id_`.

@@ -461,7 +461,7 @@ std::ostream& operator<<(std::ostream& out, const AppUpdate& app) {
 
   out << "Permissions:" << std::endl;
   for (const auto& permission : app.Permissions()) {
-    out << permission->ToString() << std::endl;
+    out << permission->ToString();
   }
 
   out << "InstallReason: " << EnumToString(app.InstallReason()) << std::endl;

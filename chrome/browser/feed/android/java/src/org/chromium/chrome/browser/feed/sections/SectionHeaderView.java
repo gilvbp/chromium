@@ -27,7 +27,6 @@ import com.google.android.material.tabs.TabLayout;
 
 import org.chromium.chrome.browser.feed.FeedUma;
 import org.chromium.chrome.browser.feed.R;
-import org.chromium.chrome.browser.flags.ChromeFeatureList;
 import org.chromium.chrome.browser.user_education.IPHCommandBuilder;
 import org.chromium.chrome.browser.user_education.UserEducationHelper;
 import org.chromium.components.browser_ui.widget.highlight.PulseDrawable;
@@ -38,7 +37,6 @@ import org.chromium.components.browser_ui.widget.listmenu.ListMenu;
 import org.chromium.components.browser_ui.widget.listmenu.ListMenuButton;
 import org.chromium.components.browser_ui.widget.listmenu.ListMenuButtonDelegate;
 import org.chromium.components.feature_engagement.FeatureConstants;
-import org.chromium.ui.base.DeviceFormFactor;
 import org.chromium.ui.modelutil.MVCListAdapter.ModelList;
 import org.chromium.ui.widget.RectProvider;
 import org.chromium.ui.widget.ViewRectProvider;
@@ -56,10 +54,8 @@ public class SectionHeaderView extends LinearLayout {
 
         @Override
         public void onTabSelected(TabLayout.Tab tab) {
-            if (!mIsSurfacePolishEnabled) {
-                tab.view.setBackground(ResourcesCompat.getDrawable(getResources(),
-                        R.drawable.header_title_tab_selected_background, getContext().getTheme()));
-            }
+            tab.view.setBackground(ResourcesCompat.getDrawable(getResources(),
+                    R.drawable.header_title_tab_selected_background, getContext().getTheme()));
             if (mListener != null) {
                 mListener.onSectionHeaderSelected(tab.getPosition());
             }
@@ -67,10 +63,7 @@ public class SectionHeaderView extends LinearLayout {
 
         @Override
         public void onTabUnselected(TabLayout.Tab tab) {
-            if (!mIsSurfacePolishEnabled) {
-                tab.view.setBackground(null);
-            }
-
+            tab.view.setBackground(null);
             if (mListener != null) {
                 mListener.onSectionHeaderUnselected(tab.getPosition());
             }
@@ -123,8 +116,6 @@ public class SectionHeaderView extends LinearLayout {
         public boolean shouldAnimateIndicator;
     }
 
-    private final boolean mIsSurfacePolishEnabled;
-
     // Views in the header layout that are set during inflate.
     private @Nullable ImageView mLeadingStatusIndicator;
     private @Nullable TabLayout mTabLayout;
@@ -138,13 +129,11 @@ public class SectionHeaderView extends LinearLayout {
     private boolean mTextsEnabled;
     private @Px int mToolbarHeight;
     private @Px int mTouchSize;
-    private boolean mIsTablet;
+    // Action ID for accessibility.
 
     public SectionHeaderView(Context context, @Nullable AttributeSet attrs) {
         super(context, attrs);
         mTouchSize = getResources().getDimensionPixelSize(R.dimen.feed_v2_header_menu_touch_size);
-        mIsSurfacePolishEnabled = ChromeFeatureList.sSurfacePolish.isEnabled();
-        mIsTablet = DeviceFormFactor.isNonMultiDisplayContextOnTablet(getContext());
     }
 
     public void setToolbarHeight(@Px int toolbarHeight) {
@@ -199,41 +188,6 @@ public class SectionHeaderView extends LinearLayout {
         if (mTabLayout != null) {
             mTabListener = new SectionHeaderTabListener();
             mTabLayout.addOnTabSelectedListener(mTabListener);
-            if (mIsSurfacePolishEnabled) {
-                ViewGroup.LayoutParams layoutParams = mTabLayout.getLayoutParams();
-                layoutParams.height = getResources().getDimensionPixelSize(
-                        R.dimen.feed_header_tab_layout_height_polished);
-                if (!mIsTablet) {
-                    layoutParams.width = LayoutParams.MATCH_PARENT;
-                } else {
-                    layoutParams.width = getResources().getDimensionPixelSize(
-                                                 R.dimen.feed_header_tab_layout_width_max)
-                            * 2;
-                }
-                mTabLayout.setTabGravity(TabLayout.GRAVITY_FILL);
-                mTabLayout.setBackground(null);
-            }
-        }
-
-        if (mIsSurfacePolishEnabled) {
-            // Add 20dp padding at each sides for the SectionHeaderView.
-            int lateralPadding =
-                    getResources().getDimensionPixelSize(R.dimen.feed_header_menu_end_margin);
-            mContent.setPadding(lateralPadding, 0, lateralPadding, 0);
-            MarginLayoutParams contentMarginLayoutParams =
-                    (MarginLayoutParams) mContent.getLayoutParams();
-            contentMarginLayoutParams.topMargin =
-                    getResources().getDimensionPixelSize(R.dimen.feed_header_top_margin);
-
-            MarginLayoutParams marginLayoutParams =
-                    (MarginLayoutParams) mMenuView.getLayoutParams();
-            marginLayoutParams.width =
-                    getResources().getDimensionPixelSize(R.dimen.feed_header_menu_width_polished);
-            marginLayoutParams.setMarginStart(
-                    getResources().getDimensionPixelSize(R.dimen.feed_header_tab_end_margin));
-            if (!mIsTablet && mTitleView != null) {
-                marginLayoutParams.setMarginEnd(lateralPadding);
-            }
         }
 
         // #getHitRect() will not be valid until the first layout pass completes. Additionally, if
@@ -262,17 +216,6 @@ public class SectionHeaderView extends LinearLayout {
             mTabLayout.addTab(tab);
             tab.view.setClipToPadding(false);
             tab.view.setClipChildren(false);
-            if (mIsSurfacePolishEnabled) {
-                ViewGroup.MarginLayoutParams marginLayoutParams =
-                        (ViewGroup.MarginLayoutParams) tab.view.getLayoutParams();
-                marginLayoutParams.setMargins(0, 0,
-                        getResources().getDimensionPixelSize(R.dimen.feed_header_tab_end_margin),
-                        0);
-
-                tab.view.setBackground(ResourcesCompat.getDrawable(getResources(),
-                        R.drawable.header_title_tab_selected_background_polished,
-                        getContext().getTheme()));
-            }
         }
     }
 

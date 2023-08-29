@@ -543,8 +543,8 @@ EnumTraits<crosapi::mojom::ConditionType, apps::ConditionType>::ToMojom(
   switch (input) {
     case apps::ConditionType::kScheme:
       return crosapi::mojom::ConditionType::kScheme;
-    case apps::ConditionType::kAuthority:
-      return crosapi::mojom::ConditionType::kAuthority;
+    case apps::ConditionType::kHost:
+      return crosapi::mojom::ConditionType::kHost;
     case apps::ConditionType::kPath:
       return crosapi::mojom::ConditionType::kPath;
     case apps::ConditionType::kAction:
@@ -580,8 +580,8 @@ bool EnumTraits<crosapi::mojom::ConditionType, apps::ConditionType>::FromMojom(
     case crosapi::mojom::ConditionType::kScheme:
       *output = apps::ConditionType::kScheme;
       return true;
-    case crosapi::mojom::ConditionType::kAuthority:
-      *output = apps::ConditionType::kAuthority;
+    case crosapi::mojom::ConditionType::kHost:
+      *output = apps::ConditionType::kHost;
       return true;
     case crosapi::mojom::ConditionType::kPath:
       *output = apps::ConditionType::kPath;
@@ -1030,7 +1030,7 @@ bool StructTraits<crosapi::mojom::PermissionDataView, apps::PermissionPtr>::
   if (!data.ReadPermissionType(&permission_type))
     return false;
 
-  apps::Permission::PermissionValue value;
+  apps::PermissionValuePtr value;
   if (!data.ReadValue(&value))
     return false;
 
@@ -1134,14 +1134,13 @@ bool EnumTraits<crosapi::mojom::TriState, apps::TriState>::FromMojom(
   return false;
 }
 
-crosapi::mojom::PermissionValueDataView::Tag
-UnionTraits<crosapi::mojom::PermissionValueDataView,
-            apps::Permission::PermissionValue>::
-    GetTag(const apps::Permission::PermissionValue& r) {
-  if (absl::holds_alternative<bool>(r)) {
+crosapi::mojom::PermissionValueDataView::Tag UnionTraits<
+    crosapi::mojom::PermissionValueDataView,
+    apps::PermissionValuePtr>::GetTag(const apps::PermissionValuePtr& r) {
+  if (absl::holds_alternative<bool>(r->value)) {
     return crosapi::mojom::PermissionValueDataView::Tag::kBoolValue;
   }
-  if (absl::holds_alternative<apps::TriState>(r)) {
+  if (absl::holds_alternative<apps::TriState>(r->value)) {
     return crosapi::mojom::PermissionValueDataView::Tag::kTristateValue;
   }
   NOTREACHED();
@@ -1149,19 +1148,19 @@ UnionTraits<crosapi::mojom::PermissionValueDataView,
 }
 
 bool UnionTraits<crosapi::mojom::PermissionValueDataView,
-                 apps::Permission::PermissionValue>::
+                 apps::PermissionValuePtr>::
     Read(crosapi::mojom::PermissionValueDataView data,
-         apps::Permission::PermissionValue* out) {
+         apps::PermissionValuePtr* out) {
   switch (data.tag()) {
     case crosapi::mojom::PermissionValueDataView::Tag::kBoolValue: {
-      *out = data.bool_value();
+      *out = std::make_unique<apps::PermissionValue>(data.bool_value());
       return true;
     }
     case crosapi::mojom::PermissionValueDataView::Tag::kTristateValue: {
       apps::TriState tristate_value;
       if (!data.ReadTristateValue(&tristate_value))
         return false;
-      *out = tristate_value;
+      *out = std::make_unique<apps::PermissionValue>(tristate_value);
       return true;
     }
   }

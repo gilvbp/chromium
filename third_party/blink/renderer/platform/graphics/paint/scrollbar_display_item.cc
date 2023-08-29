@@ -77,10 +77,8 @@ scoped_refptr<cc::ScrollbarLayerBase> ScrollbarDisplayItem::CreateOrReuseLayer(
   auto layer = cc::ScrollbarLayerBase::CreateOrReuse(scrollbar, existing_layer);
   layer->SetIsDrawable(true);
   layer->SetContentsOpaque(IsOpaque());
-  // Android scrollbars can't be interacted with by user input.
-  layer->SetHitTestOpaqueness(scrollbar->IsSolidColor()
-                                  ? cc::HitTestOpaqueness::kTransparent
-                                  : cc::HitTestOpaqueness::kOpaque);
+  if (!scrollbar->IsSolidColor())
+    layer->SetHitTestable(true);
   layer->SetElementId(data_->element_id_);
   layer->SetScrollElementId(
       data_->scroll_translation_
@@ -142,6 +140,7 @@ void ScrollbarDisplayItem::Record(
       std::move(scroll_translation), element_id,
       client.VisualRectOutsetForRasterEffects(),
       client.GetPaintInvalidationReason());
+  paint_controller.RecordDebugInfo(client);
 }
 
 }  // namespace blink

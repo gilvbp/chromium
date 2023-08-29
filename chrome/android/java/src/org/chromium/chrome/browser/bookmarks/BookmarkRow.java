@@ -18,6 +18,7 @@ import android.widget.TextView;
 
 import androidx.annotation.IntDef;
 import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 
 import org.chromium.base.metrics.RecordUserAction;
 import org.chromium.chrome.R;
@@ -215,7 +216,7 @@ public abstract class BookmarkRow
             if (bookmarkItem != null) {
                 // Reading list items can sometimes be movable (for type swapping purposes), but for
                 // UI purposes they shouldn't be movable.
-                canMove = BookmarkUtils.isMovable(mDelegate.getModel(), bookmarkItem);
+                canMove = BookmarkUtils.isMovable(bookmarkItem);
                 canReorder = bookmarkItem.isReorderable() && !mFromFilterView;
             }
         }
@@ -405,6 +406,7 @@ public abstract class BookmarkRow
         }
     }
 
+    @VisibleForTesting
     public View getDragHandleViewForTesting() {
         return mDragHandle;
     }

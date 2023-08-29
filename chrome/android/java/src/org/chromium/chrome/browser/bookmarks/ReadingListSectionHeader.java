@@ -80,11 +80,11 @@ class ReadingListSectionHeader {
 
             // Sort by read status first.
             if (lhsItem.isRead() != rhsItem.isRead()) {
-                return Boolean.compare(lhsItem.isRead(), rhsItem.isRead());
+                return lhsItem.isRead() ? 1 : -1;
             }
 
             // Sort by creation timestamp descending for items with the same read status.
-            return Long.compare(rhsItem.getDateAdded(), lhsItem.getDateAdded());
+            return lhsItem.getDateAdded() <= rhsItem.getDateAdded() ? 1 : -1;
         });
     }
 

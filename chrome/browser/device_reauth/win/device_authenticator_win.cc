@@ -52,11 +52,6 @@ bool DeviceAuthenticatorWin::CanAuthenticateWithBiometrics() {
       password_manager::prefs::kIsBiometricAvailable);
 }
 
-bool DeviceAuthenticatorWin::CanAuthenticateWithBiometricOrScreenLock() {
-  return CanAuthenticateWithBiometrics() ||
-         authenticator_->CanAuthenticateWithScreenLock();
-}
-
 void DeviceAuthenticatorWin::Authenticate(
     device_reauth::DeviceAuthRequester requester,
     AuthenticateCallback callback,

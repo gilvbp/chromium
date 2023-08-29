@@ -39,7 +39,7 @@ namespace {
 // art is only supported for Capital One virtual cards. For other cards, we show
 // the default network icon.
 GURL GetCardArtUrl(const CreditCard& card) {
-  return card.record_type() == CreditCard::RecordType::kVirtualCard &&
+  return card.record_type() == CreditCard::VIRTUAL_CARD &&
                  card.card_art_url().spec() == kCapitalOneCardArtUrl
              ? card.card_art_url()
              : GURL();
@@ -113,8 +113,7 @@ UserInfo TranslateCachedCard(const CachedServerCardInfo* data, bool enabled) {
 }
 
 bool ShouldCreateVirtualCard(const CreditCard* card) {
-  return card->virtual_card_enrollment_state() ==
-         CreditCard::VirtualCardEnrollmentState::kEnrolled;
+  return card->virtual_card_enrollment_state() == CreditCard::ENROLLED;
 }
 
 const CreditCard* UnwrapCardOrVirtualCard(
@@ -197,8 +196,11 @@ CreditCardAccessoryControllerImpl::GetSheetData() const {
       AccessoryTabType::CREDIT_CARDS, GetTitle(has_suggestions),
       std::move(info_to_add), std::move(footer_commands));
 
-  for (auto* offer : GetPromoCodeOffers()) {
-    data.add_promo_code_info(TranslateOffer(offer));
+  if (base::FeatureList::IsEnabled(
+          features::kAutofillFillMerchantPromoCodeFields)) {
+    for (auto* offer : GetPromoCodeOffers()) {
+      data.add_promo_code_info(TranslateOffer(offer));
+    }
   }
 
   if (has_suggestions && !allow_filling && autofill_manager) {
@@ -272,13 +274,14 @@ bool CreditCardAccessoryController::AllowedForWebContents(
     Profile* profile =
         Profile::FromBrowserContext(web_contents->GetBrowserContext());
     PersonalDataManager* personal_data_manager =
-        PersonalDataManagerFactory::GetForProfile(profile);
+        PersonalDataManagerFactory::GetForProfile(
+            profile->GetOriginalProfile());
     if (personal_data_manager) {
       std::vector<CreditCard*> cards =
           personal_data_manager->GetCreditCardsToSuggest();
       bool has_virtual_card = base::ranges::any_of(cards, [](const auto& card) {
         return card->virtual_card_enrollment_state() ==
-               CreditCard::VirtualCardEnrollmentState::kEnrolled;
+               CreditCard::VirtualCardEnrollmentState::ENROLLED;
       });
       if (has_virtual_card) {
         // Virtual cards are available. We should always show manual fallback
@@ -288,7 +291,9 @@ bool CreditCardAccessoryController::AllowedForWebContents(
     }
   }
 
-  return true;
+  // For non-virtual cards show the credit card accessory sheet only
+  // when both keyboard accessory and manual fallback flags are enabled.
+  return features::IsAutofillManualFallbackEnabled();
 }
 
 // static
@@ -328,7 +333,8 @@ void CreditCardAccessoryControllerImpl::OnPersonalDataChanged() {
 
 void CreditCardAccessoryControllerImpl::OnCreditCardFetched(
     CreditCardFetchResult result,
-    const CreditCard* credit_card) {
+    const CreditCard* credit_card,
+    const std::u16string& cvc) {
   if (result != CreditCardFetchResult::kSuccess)
     return;
   content::RenderFrameHost* rfh = GetWebContents().GetFocusedFrame();
@@ -416,11 +422,16 @@ CreditCardAccessoryControllerImpl::GetUnmaskedCreditCards() const {
     return std::vector<const CachedServerCardInfo*>();
   std::vector<const CachedServerCardInfo*> unmasked_cards =
       autofill_manager->GetCreditCardAccessManager()->GetCachedUnmaskedCards();
-  // Show unmasked virtual cards in the manual filling view if they exist. All
-  // other cards are dropped.
+  // If the feature to show unmasked cards in manual filling view is
+  // enabled, show all cards in the view. Even if not, still show
+  // virtual cards in the manual filling view if they exist. All other cards
+  // are dropped.
+  if (base::FeatureList::IsEnabled(
+          features::kAutofillShowUnmaskedCachedCardInManualFillingView)) {
+    return unmasked_cards;
+  }
   auto not_virtual_card = [](const CachedServerCardInfo* card_info) {
-    return card_info->card.record_type() !=
-           CreditCard::RecordType::kVirtualCard;
+    return card_info->card.record_type() != CreditCard::VIRTUAL_CARD;
   };
   base::EraseIf(unmasked_cards, not_virtual_card);
   return unmasked_cards;
@@ -435,7 +446,7 @@ CreditCardAccessoryControllerImpl::GetPromoCodeOffers() const {
 
   return personal_data_manager_->GetActiveAutofillPromoCodeOffersForOrigin(
       autofill_manager->client()
-          .GetLastCommittedPrimaryMainFrameURL()
+          ->GetLastCommittedPrimaryMainFrameURL()
           .DeprecatedGetOriginAsURL());
 }
 

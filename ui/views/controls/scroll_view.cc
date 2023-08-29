@@ -64,16 +64,11 @@ class ScrollCornerView : public View {
   ScrollCornerView& operator=(const ScrollCornerView&) = delete;
 
   void OnPaint(gfx::Canvas* canvas) override {
-#if BUILDFLAG(IS_APPLE)
-    ui::NativeTheme::ExtraParams params(
-        absl::in_place_type<ui::NativeTheme::ScrollbarExtraParams>);
-#else
-    ui::NativeTheme::ExtraParams params(
-        absl::in_place_type<ui::NativeTheme::ScrollbarTrackExtraParams>);
-#endif
+    ui::NativeTheme::ExtraParams ignored;
     GetNativeTheme()->Paint(canvas->sk_canvas(), GetColorProvider(),
                             ui::NativeTheme::kScrollbarCorner,
-                            ui::NativeTheme::kNormal, GetLocalBounds(), params);
+                            ui::NativeTheme::kNormal, GetLocalBounds(),
+                            ignored);
   }
 };
 
@@ -153,14 +148,6 @@ class ScrollView::Viewport : public View {
   void ScrollRectToVisible(const gfx::Rect& rect) override {
     if (children().empty() || !parent())
       return;
-
-    // If scrolling is disabled, it may have been handled by a parent View class
-    // so fall back to it.
-    if (!scroll_view_->IsHorizontalScrollEnabled() &&
-        !scroll_view_->IsVerticalScrollEnabled()) {
-      View::ScrollRectToVisible(rect);
-      return;
-    }
 
     View* contents = children().front();
     gfx::Rect scroll_rect(rect);
@@ -1034,7 +1021,8 @@ void ScrollView::SetHeaderOrContents(View* parent,
 }
 
 void ScrollView::ScrollContentsRegionToBeVisible(const gfx::Rect& rect) {
-  if (!contents_) {
+  if (!contents_ ||
+      (!IsHorizontalScrollEnabled() && !IsVerticalScrollEnabled())) {
     return;
   }
 

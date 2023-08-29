@@ -5,7 +5,6 @@
 #include "chrome/browser/autocomplete/remote_suggestions_service_factory.h"
 
 #include "base/no_destructor.h"
-#include "chrome/browser/autocomplete/document_suggestions_service_factory.h"
 #include "chrome/browser/profiles/profile.h"
 #include "components/omnibox/browser/remote_suggestions_service.h"
 #include "content/public/browser/storage_partition.h"
@@ -25,13 +24,10 @@ RemoteSuggestionsServiceFactory::GetInstance() {
   return instance.get();
 }
 
-std::unique_ptr<KeyedService>
-RemoteSuggestionsServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* RemoteSuggestionsServiceFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   Profile* profile = Profile::FromBrowserContext(context);
-  return std::make_unique<RemoteSuggestionsService>(
-      DocumentSuggestionsServiceFactory::GetForProfile(
-          profile, /*create_if_necessary=*/true),
+  return new RemoteSuggestionsService(
       profile->GetDefaultStoragePartition()
           ->GetURLLoaderFactoryForBrowserProcess());
 }
@@ -44,8 +40,6 @@ RemoteSuggestionsServiceFactory::RemoteSuggestionsServiceFactory()
               // TODO(crbug.com/1418376): Check if this service is needed in
               // Guest mode.
               .WithGuest(ProfileSelection::kOriginalOnly)
-              .Build()) {
-  DependsOn(DocumentSuggestionsServiceFactory::GetInstance());
-}
+              .Build()) {}
 
 RemoteSuggestionsServiceFactory::~RemoteSuggestionsServiceFactory() = default;

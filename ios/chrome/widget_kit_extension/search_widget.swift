@@ -19,8 +19,6 @@ struct SearchWidget: Widget {
     )
     .description(Text("IDS_IOS_WIDGET_KIT_EXTENSION_SEARCH_DESCRIPTION"))
     .supportedFamilies([.systemSmall])
-    .crDisfavoredLocations()
-    .crContentMarginsDisabled()
   }
 }
 
@@ -28,33 +26,20 @@ struct SearchWidgetEntryView: View {
   var entry: Provider.Entry
 
   var body: some View {
-    SearchWidgetEntryViewTemplate(
-      destinationURL: WidgetConstants.SearchWidget.url, imageName: "widget_chrome_logo",
-      title: "IDS_IOS_WIDGET_KIT_EXTENSION_SEARCH_TITLE",
-      accessibilityLabel: "IDS_IOS_WIDGET_KIT_EXTENSION_SEARCH_A11Y_LABEL", entry: entry)
-  }
-}
-
-struct SearchWidgetEntryViewTemplate: View {
-  let destinationURL: URL
-  let imageName: String
-  let title: LocalizedStringKey
-  let accessibilityLabel: LocalizedStringKey
-  var entry: Provider.Entry
-
-  var body: some View {
     // We wrap this widget in a link on top of using `widgetUrl` so that the voice over will treat
     // the widget as one tap target. Without the wrapping, voice over treats the content within
     // the widget as multiple tap targets.
-    Link(destination: destinationURL) {
+    Link(destination: WidgetConstants.SearchWidget.url) {
       ZStack {
+        Color("widget_background_color")
+          .unredacted()
         VStack(alignment: .leading, spacing: 0) {
           ZStack {
             RoundedRectangle(cornerRadius: 26)
               .frame(height: 52)
               .foregroundColor(Color("widget_search_bar_color"))
             HStack(spacing: 0) {
-              Image(imageName)
+              Image("widget_chrome_logo")
                 .clipShape(Circle())
                 .padding(.leading, 8)
                 .unredacted()
@@ -65,7 +50,7 @@ struct SearchWidgetEntryViewTemplate: View {
           .padding([.leading, .trailing], 11)
           .padding(.top, 16)
           Spacer()
-          Text(title)
+          Text("IDS_IOS_WIDGET_KIT_EXTENSION_SEARCH_TITLE")
             .foregroundColor(Color("widget_text_color"))
             .fontWeight(.semibold)
             .font(.subheadline)
@@ -73,12 +58,8 @@ struct SearchWidgetEntryViewTemplate: View {
         }
       }
     }
-    .widgetURL(destinationURL)
+    .widgetURL(WidgetConstants.SearchWidget.url)
     .accessibility(
-      label: Text(accessibilityLabel)
-    )
-    .crContainerBackground(
-      Color("widget_background_color")
-        .unredacted())
+      label: Text("IDS_IOS_WIDGET_KIT_EXTENSION_SEARCH_A11Y_LABEL"))
   }
 }

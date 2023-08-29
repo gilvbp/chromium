@@ -54,15 +54,15 @@ class AudioLog {
 // behavior.
 class AudioLogFactory {
  public:
-  enum class AudioComponent {
+  enum AudioComponent {
     // Input controllers have a 1:1 mapping with streams, so there's no need to
     // track both controllers and streams.
-    kAudioInputController,
+    AUDIO_INPUT_CONTROLLER,
     // Output controllers may or may not be backed by an active stream, so we
     // need to track both controllers and streams.
-    kAudioOuputController,
-    kAudioOutputStream,
-    kAudiocomponentMax,
+    AUDIO_OUTPUT_CONTROLLER,
+    AUDIO_OUTPUT_STREAM,
+    AUDIO_COMPONENT_MAX
   };
 
   // Create a new AudioLog object for tracking the behavior for one instance of

@@ -4,6 +4,7 @@
 
 #import "ios/chrome/browser/safe_browsing/tailored_security/tailored_security_tab_helper.h"
 
+#import "base/test/task_environment.h"
 #import "components/safe_browsing/core/browser/tailored_security_service/tailored_security_service.h"
 #import "components/safe_browsing/core/browser/tailored_security_service/tailored_security_service_observer_util.h"
 #import "components/safe_browsing/core/common/safe_browsing_prefs.h"
@@ -17,11 +18,14 @@
 #import "ios/web/public/test/fakes/fake_navigation_context.h"
 #import "ios/web/public/test/fakes/fake_navigation_manager.h"
 #import "ios/web/public/test/fakes/fake_web_state.h"
-#import "ios/web/public/test/web_task_environment.h"
 #import "services/network/public/cpp/shared_url_loader_factory.h"
 #import "testing/gmock/include/gmock/gmock.h"
 #import "testing/gtest/include/gtest/gtest.h"
 #import "testing/platform_test.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace safe_browsing {
 
@@ -31,14 +35,10 @@ namespace {
 class MockTailoredSecurityService : public ChromeTailoredSecurityService {
  public:
   MockTailoredSecurityService()
-      : ChromeTailoredSecurityService(/*state=*/nullptr,
-                                      /*identity_manager=*/nullptr,
-                                      /*sync_service=*/nullptr) {}
+      : ChromeTailoredSecurityService(nullptr, nullptr) {}
   MockTailoredSecurityService(ChromeBrowserState* browser_state,
                               signin::IdentityManager* identity_manager)
-      : ChromeTailoredSecurityService(browser_state,
-                                      identity_manager,
-                                      /*sync_service=*/nullptr) {}
+      : ChromeTailoredSecurityService(browser_state, identity_manager) {}
   MOCK_METHOD0(RemoveQueryRequest, void());
   MOCK_METHOD2(MaybeNotifySyncUser, void(bool, base::Time));
 
@@ -101,7 +101,7 @@ class TailoredSecurityTabHelperTest : public PlatformTest {
     return mock_service_.get()->saved_callback_.is_null();
   }
 
-  web::WebTaskEnvironment task_environment_;
+  base::test::TaskEnvironment task_environment_;
   std::unique_ptr<TestChromeBrowserState> chrome_browser_state_;
   web::FakeWebState web_state_;
   std::unique_ptr<MockTailoredSecurityService> mock_service_;

@@ -101,7 +101,7 @@ DOMWindow* DocumentPictureInPicture::window(ScriptState* script_state) const {
 }
 
 void DocumentPictureInPicture::Trace(Visitor* visitor) const {
-  EventTarget::Trace(visitor);
+  EventTargetWithInlineData::Trace(visitor);
   Supplement<LocalDOMWindow>::Trace(visitor);
 }
 

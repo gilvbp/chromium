@@ -60,20 +60,16 @@ void IntersectionObserverController::DeliverNotifications(
   }
 }
 
-IntersectionUpdateResult IntersectionObserverController::ComputeIntersections(
+bool IntersectionObserverController::ComputeIntersections(
     unsigned flags,
     LocalFrameUkmAggregator* metrics_aggregator,
     absl::optional<base::TimeTicks>& monotonic_time) {
   needs_occlusion_tracking_ = false;
-  if (!GetExecutionContext()) {
-    return IntersectionUpdateResult();
-  }
+  if (!GetExecutionContext())
+    return false;
   TRACE_EVENT0("blink,devtools.timeline",
                "IntersectionObserverController::"
                "computeIntersections");
-  bool has_implicit_root_observer_with_margin = false;
-  gfx::Vector2dF min_scroll_delta_to_update =
-      IntersectionGeometry::kInfiniteScrollDelta;
   HeapVector<Member<IntersectionObserver>> observers_to_process(
       tracked_explicit_root_observers_);
   HeapVector<Member<IntersectionObservation>> observations_to_process(
@@ -85,7 +81,6 @@ IntersectionUpdateResult IntersectionObserverController::ComputeIntersections(
     if (metrics_aggregator)
       metrics_timer.emplace(*metrics_aggregator);
     for (auto& observer : observers_to_process) {
-      DCHECK(!observer->RootIsImplicit());
       if (observer->HasObservations()) {
         if (metrics_timer)
           metrics_timer->StartInterval(observer->GetUkmMetricId());
@@ -95,7 +90,6 @@ IntersectionUpdateResult IntersectionObserverController::ComputeIntersections(
         else
           javascript_observation_count += count;
         needs_occlusion_tracking_ |= observer->trackVisibility();
-        min_scroll_delta_to_update.SetToMin(observer->MinScrollDeltaToUpdate());
       } else {
         tracked_explicit_root_observers_.erase(observer);
       }
@@ -109,11 +103,6 @@ IntersectionUpdateResult IntersectionObserverController::ComputeIntersections(
       else
         javascript_observation_count += count;
       needs_occlusion_tracking_ |= observation->Observer()->trackVisibility();
-      has_implicit_root_observer_with_margin |=
-          observation->Observer()->RootIsImplicit() &&
-          observation->Observer()->HasRootMargin();
-      min_scroll_delta_to_update.SetToMin(
-          observation->MinScrollDeltaToUpdate());
     }
   }
 
@@ -126,9 +115,20 @@ IntersectionUpdateResult IntersectionObserverController::ComputeIntersections(
         javascript_observation_count);
   }
 
-  return IntersectionUpdateResult{needs_occlusion_tracking_,
-                                  has_implicit_root_observer_with_margin,
-                                  min_scroll_delta_to_update};
+  return needs_occlusion_tracking_;
+}
+
+gfx::Vector2dF IntersectionObserverController::MinScrollDeltaToUpdate() const {
+  DCHECK(RuntimeEnabledFeatures::IntersectionOptimizationEnabled());
+  gfx::Vector2dF result(std::numeric_limits<float>::max(),
+                        std::numeric_limits<float>::max());
+  for (const auto& observer : tracked_explicit_root_observers_) {
+    result.SetToMin(observer->MinScrollDeltaToUpdate());
+  }
+  for (const auto& observation : tracked_implicit_root_observations_) {
+    result.SetToMin(observation->MinScrollDeltaToUpdate());
+  }
+  return result;
 }
 
 void IntersectionObserverController::AddTrackedObserver(

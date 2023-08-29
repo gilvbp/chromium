@@ -37,31 +37,13 @@
 #include "third_party/blink/renderer/core/layout/ng/inline/layout_ng_text_combine.h"
 #include "third_party/blink/renderer/core/loader/document_loader.h"
 #include "third_party/blink/renderer/core/loader/frame_loader.h"
-#include "third_party/blink/renderer/core/loader/render_blocking_resource_manager.h"
 #include "third_party/blink/renderer/core/style/computed_style.h"
 #include "third_party/blink/renderer/platform/heap/garbage_collected.h"
 
 namespace blink {
 
 HTMLHtmlElement::HTMLHtmlElement(Document& document)
-    : HTMLElement(html_names::kHTMLTag, document),
-      blocking_attribute_(MakeGarbageCollected<BlockingAttribute>(this)) {}
-
-void HTMLHtmlElement::ParseAttribute(
-    const AttributeModificationParams& params) {
-  if (params.name == html_names::kBlockingAttr &&
-      RuntimeEnabledFeatures::DocumentRenderBlockingEnabled()) {
-    blocking_attribute_->OnAttributeValueChanged(params.old_value,
-                                                 params.new_value);
-    if (auto* render_blocking_resource_manager =
-            GetDocument().GetRenderBlockingResourceManager()) {
-      render_blocking_resource_manager->SetMainDocumentParsingIsRenderBlocking(
-          blocking_attribute_->HasRenderToken());
-    }
-  } else {
-    HTMLElement::ParseAttribute(params);
-  }
-}
+    : HTMLElement(html_names::kHTMLTag, document) {}
 
 bool HTMLHtmlElement::IsURLAttribute(const Attribute& attribute) const {
   return attribute.GetName() == html_names::kManifestAttr ||
@@ -82,11 +64,6 @@ void HTMLHtmlElement::InsertedByParser() {
   }
 }
 
-void HTMLHtmlElement::Trace(Visitor* visitor) const {
-  visitor->Trace(blocking_attribute_);
-  HTMLElement::Trace(visitor);
-}
-
 namespace {
 
 bool NeedsLayoutStylePropagation(const ComputedStyle& layout_style,
@@ -95,8 +72,9 @@ bool NeedsLayoutStylePropagation(const ComputedStyle& layout_style,
          layout_style.Direction() != propagated_style.Direction();
 }
 
-const ComputedStyle* CreateLayoutStyle(const ComputedStyle& style,
-                                       const ComputedStyle& propagated_style) {
+scoped_refptr<const ComputedStyle> CreateLayoutStyle(
+    const ComputedStyle& style,
+    const ComputedStyle& propagated_style) {
   ComputedStyleBuilder builder(style);
   builder.SetDirection(propagated_style.Direction());
   builder.SetWritingMode(propagated_style.GetWritingMode());
@@ -106,8 +84,8 @@ const ComputedStyle* CreateLayoutStyle(const ComputedStyle& style,
 
 }  // namespace
 
-const ComputedStyle* HTMLHtmlElement::LayoutStyleForElement(
-    const ComputedStyle* style) {
+scoped_refptr<const ComputedStyle> HTMLHtmlElement::LayoutStyleForElement(
+    scoped_refptr<const ComputedStyle> style) {
   DCHECK(style);
   DCHECK(GetDocument().InStyleRecalc());
   DCHECK(GetLayoutObject());
@@ -143,7 +121,7 @@ void HTMLHtmlElement::PropagateWritingModeAndDirectionFromBody() {
     return;
 
   const ComputedStyle* const old_style = layout_object->Style();
-  const ComputedStyle* new_style =
+  scoped_refptr<const ComputedStyle> new_style =
       LayoutStyleForElement(layout_object->Style());
 
   if (old_style == new_style)

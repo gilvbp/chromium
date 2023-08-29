@@ -231,31 +231,21 @@ ScriptPromise USB::requestDevice(ScriptState* script_state,
   auto* resolver = MakeGarbageCollected<ScriptPromiseResolver>(
       script_state, exception_state.GetContext());
   ScriptPromise promise = resolver->Promise();
-  auto mojo_options = mojom::blink::WebUsbRequestDeviceOptions::New();
+  Vector<UsbDeviceFilterPtr> filters;
   if (options->hasFilters()) {
-    mojo_options->filters.reserve(options->filters().size());
+    filters.reserve(options->filters().size());
     for (const auto& filter : options->filters()) {
       UsbDeviceFilterPtr converted_filter =
           ConvertDeviceFilter(filter, resolver);
       if (!converted_filter)
         return promise;
-      mojo_options->filters.push_back(std::move(converted_filter));
+      filters.push_back(std::move(converted_filter));
     }
-  }
-  mojo_options->exclusion_filters.reserve(options->exclusionFilters().size());
-  for (const auto& filter : options->exclusionFilters()) {
-    UsbDeviceFilterPtr converted_filter = ConvertDeviceFilter(filter, resolver);
-    if (!converted_filter) {
-      return promise;
-    }
-    mojo_options->exclusion_filters.push_back(std::move(converted_filter));
   }
 
-  DCHECK(options->filters().size() == mojo_options->filters.size());
-  DCHECK(options->exclusionFilters().size() ==
-         mojo_options->exclusion_filters.size());
+  DCHECK(options->filters().size() == filters.size());
   get_permission_requests_.insert(resolver);
-  service_->GetPermission(std::move(mojo_options),
+  service_->GetPermission(std::move(filters),
                           resolver->WrapCallbackInScriptScope(WTF::BindOnce(
                               &USB::OnGetPermission, WrapPersistent(this))));
   return promise;
@@ -374,7 +364,7 @@ void USB::OnServiceConnectionError() {
 
 void USB::AddedEventListener(const AtomicString& event_type,
                              RegisteredEventListener& listener) {
-  EventTarget::AddedEventListener(event_type, listener);
+  EventTargetWithInlineData::AddedEventListener(event_type, listener);
   if (event_type != event_type_names::kConnect &&
       event_type != event_type_names::kDisconnect) {
     return;
@@ -419,7 +409,7 @@ void USB::Trace(Visitor* visitor) const {
   visitor->Trace(get_permission_requests_);
   visitor->Trace(client_receiver_);
   visitor->Trace(device_cache_);
-  EventTarget::Trace(visitor);
+  EventTargetWithInlineData::Trace(visitor);
   Supplement<NavigatorBase>::Trace(visitor);
   ExecutionContextLifecycleObserver::Trace(visitor);
 }

@@ -258,9 +258,8 @@ void SystemStateDataCollector::OnFilesWritten(
     DataCollectorDoneCallback on_exported_callback,
     bool success) {
   if (!success) {
-    SupportToolError error = {
-        SupportToolErrorCode::kDataCollectorError,
-        "SystemStateDataCollector failed on exporting system reports."};
+    SupportToolError error = {SupportToolErrorCode::kDataCollectorError,
+                              "Failed on exporting system reports."};
     std::move(on_exported_callback).Run(error);
     return;
   }

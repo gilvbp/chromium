@@ -80,7 +80,8 @@ LayerDebugInfo::LayerDebugInfo(const LayerDebugInfo&) = default;
 LayerDebugInfo::~LayerDebugInfo() = default;
 
 Layer::Inputs::Inputs()
-    : contents_opaque(false),
+    : hit_testable(false),
+      contents_opaque(false),
       contents_opaque_for_text(false),
       is_drawable(false),
       double_sided(true),
@@ -856,20 +857,18 @@ void Layer::SetBlendMode(SkBlendMode blend_mode) {
   SetPropertyTreesNeedRebuild();
 }
 
-void Layer::SetHitTestOpaqueness(HitTestOpaqueness opaqueness) {
+void Layer::SetHitTestable(bool should_hit_test) {
   DCHECK(IsPropertyChangeAllowed());
   auto& inputs = inputs_.Write(*this);
-  if (inputs.hit_test_opaqueness == opaqueness) {
+  if (inputs.hit_testable == should_hit_test)
     return;
-  }
-  inputs.hit_test_opaqueness = opaqueness;
+  inputs.hit_testable = should_hit_test;
   SetPropertyTreesNeedRebuild();
   SetNeedsCommit();
 }
 
-void Layer::SetHitTestable(bool hit_testable) {
-  SetHitTestOpaqueness(hit_testable ? HitTestOpaqueness::kMixed
-                                    : HitTestOpaqueness::kTransparent);
+bool Layer::HitTestable() const {
+  return inputs_.Read(*this).hit_testable;
 }
 
 void Layer::SetContentsOpaque(bool opaque) {
@@ -1395,15 +1394,14 @@ std::string Layer::ToString() const {
       "  name: %s\n"
       "  Bounds: %s\n"
       "  ElementId: %s\n"
-      "  HitTestOpaqueness: %s\n"
+      "  HitTestable: %d\n"
       "  OffsetToTransformParent: %s\n"
       "  clip_tree_index: %d\n"
       "  effect_tree_index: %d\n"
       "  scroll_tree_index: %d\n"
       "  transform_tree_index: %d\n",
       id(), DebugName().c_str(), bounds().ToString().c_str(),
-      element_id().ToString().c_str(),
-      HitTestOpaquenessToString(hit_test_opaqueness()),
+      element_id().ToString().c_str(), HitTestable(),
       offset_to_transform_parent().ToString().c_str(), clip_tree_index(),
       effect_tree_index(), scroll_tree_index(), transform_tree_index());
 }
@@ -1473,7 +1471,7 @@ void Layer::PushPropertiesTo(LayerImpl* layer,
   layer->SetScrollTreeIndex(scroll_tree_index(property_trees));
   layer->SetOffsetToTransformParent(offset_to_transform_parent_.Read(*this));
   layer->SetDrawsContent(draws_content());
-  layer->SetHitTestOpaqueness(inputs.hit_test_opaqueness);
+  layer->SetHitTestable(HitTestable());
   // subtree_property_changed_ is propagated to all descendants while building
   // property trees. So, it is enough to check it only for the current layer.
   if (subtree_property_changed_.Read(*this))

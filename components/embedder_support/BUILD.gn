@@ -4,6 +4,7 @@
 
 static_library("embedder_support") {
   sources = [
+    "pref_names.cc",
     "pref_names.h",
     "switches.cc",
     "switches.h",

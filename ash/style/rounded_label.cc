@@ -5,7 +5,6 @@
 #include "ash/style/rounded_label.h"
 
 #include "ash/public/cpp/style/color_provider.h"
-#include "ash/style/ash_color_id.h"
 #include "chromeos/constants/chromeos_features.h"
 #include "ui/compositor/layer.h"
 #include "ui/views/background.h"
@@ -24,15 +23,14 @@ RoundedLabel::RoundedLabel(int horizontal_padding,
       preferred_height_(preferred_height) {
   SetBorder(views::CreateEmptyBorder(
       gfx::Insets::VH(vertical_padding, horizontal_padding)));
-  SetBackground(views::CreateThemedSolidBackground(kColorAshShieldAndBase80));
-  SetEnabledColorId(kColorAshTextColorPrimary);
-  SetHorizontalAlignment(gfx::ALIGN_CENTER);
 
+  SetBackground(views::CreateSolidBackground(SK_ColorTRANSPARENT));
+  SetHorizontalAlignment(gfx::ALIGN_CENTER);
   SetPaintToLayer();
   layer()->SetFillsBoundsOpaquely(false);
   layer()->SetBackgroundBlur(ColorProvider::kBackgroundBlurSigma);
-  layer()->SetBackdropFilterQuality(ColorProvider::kBackgroundBlurQuality);
-  layer()->SetRoundedCornerRadius(gfx::RoundedCornersF(rounding_dp));
+  const gfx::RoundedCornersF radii(rounding_dp);
+  layer()->SetRoundedCornerRadius(radii);
   layer()->SetIsFastRoundedCorner(true);
 }
 
@@ -45,6 +43,17 @@ gfx::Size RoundedLabel::CalculatePreferredSize() const {
 
 int RoundedLabel::GetHeightForWidth(int width) const {
   return preferred_height_;
+}
+
+void RoundedLabel::OnThemeChanged() {
+  views::Label::OnThemeChanged();
+  auto* color_provider = ColorProvider::Get();
+  const SkColor background_color = color_provider->GetBaseLayerColor(
+      ColorProvider::BaseLayerType::kTransparent80);
+  background()->SetNativeControlColor(background_color);
+  SetBackgroundColor(background_color);
+  SetEnabledColor(color_provider->GetContentLayerColor(
+      ColorProvider::ContentLayerType::kTextColorPrimary));
 }
 
 void RoundedLabel::OnPaintBorder(gfx::Canvas* canvas) {

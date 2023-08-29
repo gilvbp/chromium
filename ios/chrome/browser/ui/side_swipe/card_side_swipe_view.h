@@ -16,9 +16,12 @@ class WebStateList;
 @interface CardSideSwipeView : UIView
 
 @property(nonatomic, weak) id<SideSwipeMediatorDelegate> delegate;
-// Snapshot provider for top and bottom toolbars.
+// Snapshot provider for the top toolbar.
 @property(nonatomic, weak) id<SideSwipeToolbarSnapshotProviding>
-    toolbarSnapshotProvider;
+    topToolbarSnapshotProvider;
+// Snapshot provider for the bottom toolbar.
+@property(nonatomic, weak) id<SideSwipeToolbarSnapshotProviding>
+    bottomToolbarSnapshotProvider;
 // Space reserved at the top for the toolbar.
 @property(nonatomic, assign) CGFloat topMargin;
 

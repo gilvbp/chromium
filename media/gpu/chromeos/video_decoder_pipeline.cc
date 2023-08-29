@@ -18,7 +18,6 @@
 #include "base/task/task_traits.h"
 #include "base/task/thread_pool.h"
 #include "base/threading/thread.h"
-#include "base/trace_event/trace_event.h"
 #include "build/build_config.h"
 #include "media/base/async_destroy_video_decoder.h"
 #include "media/base/media_log.h"
@@ -179,13 +178,6 @@ VideoDecoderMixin::~VideoDecoderMixin() = default;
 bool VideoDecoderMixin::NeedsTranscryption() {
   return false;
 }
-
-CroStatus VideoDecoderMixin::AttachSecureBuffer(
-    scoped_refptr<DecoderBuffer>& buffer) {
-  return CroStatus::Codes::kOk;
-}
-
-void VideoDecoderMixin::ReleaseSecureBuffer(uint64_t secure_handle) {}
 
 size_t VideoDecoderMixin::GetMaxOutputFramePoolSize() const {
   return std::numeric_limits<size_t>::max();
@@ -421,12 +413,10 @@ VideoDecoderPipeline::~VideoDecoderPipeline() {
   // instead.
   frame_converter_.reset();
   main_frame_pool_.reset();
+  decoder_.reset();
 #if BUILDFLAG(IS_CHROMEOS)
-  // We must release |buffer_transcryptor_| before the decoder because it holds
-  // a raw pointer to |decoder_|.
   buffer_transcryptor_.reset();
 #endif  // BUILDFLAG(IS_CHROMEOS)
-  decoder_.reset();
 }
 
 // static
@@ -659,12 +649,7 @@ void VideoDecoderPipeline::OnInitializeDone(InitCB init_cb,
     if (frame_converter_) {
       frame_converter_->set_unwrap_frame_cb(base::NullCallback());
     }
-#if BUILDFLAG(IS_CHROMEOS)
-    // We always need to destroy |buffer_transcryptor_| if it exists before
-    // |decoder_|.
-    buffer_transcryptor_.reset();
-#endif  // BUILDFLAG(IS_CHROMEOS)
-    decoder_.reset();
+    decoder_ = nullptr;
   }
   MEDIA_LOG(INFO, media_log_)
       << "VideoDecoderPipeline |decoder_| Initialize() successful";
@@ -676,15 +661,12 @@ void VideoDecoderPipeline::OnInitializeDone(InitCB init_cb,
       if (frame_converter_) {
         frame_converter_->set_unwrap_frame_cb(base::NullCallback());
       }
-      // We always need to destroy |buffer_transcryptor_| if it exists before
-      // |decoder_|.
-      buffer_transcryptor_.reset();
-      decoder_.reset();
+      decoder_ = nullptr;
       status = DecoderStatus::Codes::kUnsupportedEncryptionMode;
     } else {
       // We need to enable transcryption for protected content.
       buffer_transcryptor_ = std::make_unique<DecoderBufferTranscryptor>(
-          cdm_context, *decoder_,
+          cdm_context,
           base::BindRepeating(&VideoDecoderPipeline::OnBufferTranscrypted,
                               decoder_weak_this_),
           base::BindRepeating(&VideoDecoderPipeline::OnDecoderWaiting,
@@ -748,11 +730,8 @@ void VideoDecoderPipeline::OnResetDone(base::OnceClosure reset_cb) {
 void VideoDecoderPipeline::Decode(scoped_refptr<DecoderBuffer> buffer,
                                   DecodeCB decode_cb) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(client_sequence_checker_);
-  CHECK(buffer);
   DVLOGF(4);
-  TRACE_EVENT1(
-      "media,gpu", "VideoDecoderPipeline::Decode", "timestamp",
-      (buffer->end_of_stream() ? 0 : buffer->timestamp().InMicroseconds()));
+
   decoder_task_runner_->PostTask(
       FROM_HERE,
       base::BindOnce(&VideoDecoderPipeline::DecodeTask, decoder_weak_this_,
@@ -763,11 +742,8 @@ void VideoDecoderPipeline::DecodeTask(scoped_refptr<DecoderBuffer> buffer,
                                       DecodeCB decode_cb) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(decoder_sequence_checker_);
   DCHECK(decoder_);
-  CHECK(buffer);
   DVLOGF(4);
-  TRACE_EVENT1(
-      "media,gpu", "VideoDecoderPipeline::DecodeTask", "timestamp",
-      (buffer->end_of_stream() ? 0 : buffer->timestamp().InMicroseconds()));
+
   if (has_error_) {
     client_task_runner_->PostTask(
         FROM_HERE,
@@ -816,14 +792,6 @@ void VideoDecoderPipeline::OnDecodeDone(bool is_flush,
 void VideoDecoderPipeline::OnFrameDecoded(scoped_refptr<VideoFrame> frame) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(decoder_sequence_checker_);
   DVLOGF(4);
-  TRACE_EVENT1("media,gpu", "VideoDecoderPipeline::OnFrameDecoded", "timestamp",
-               (frame ? frame->timestamp().InMicroseconds() : 0));
-
-#if BUILDFLAG(IS_CHROMEOS)
-  if (buffer_transcryptor_) {
-    buffer_transcryptor_->SecureBuffersMayBeAvailable();
-  }
-#endif  // BUILDFLAG(IS_CHROMEOS)
 
   if (uses_oop_video_decoder_) {
     oop_decoder_can_read_without_stalling_.store(
@@ -846,8 +814,7 @@ void VideoDecoderPipeline::OnFrameDecoded(scoped_refptr<VideoFrame> frame) {
 void VideoDecoderPipeline::OnFrameProcessed(scoped_refptr<VideoFrame> frame) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(decoder_sequence_checker_);
   DVLOGF(4);
-  TRACE_EVENT1("media,gpu", "VideoDecoderPipeline::OnFrameProcessed",
-               "timestamp", (frame ? frame->timestamp().InMicroseconds() : 0));
+
   if (frame_converter_)
     frame_converter_->ConvertFrame(std::move(frame));
   else
@@ -857,8 +824,7 @@ void VideoDecoderPipeline::OnFrameProcessed(scoped_refptr<VideoFrame> frame) {
 void VideoDecoderPipeline::OnFrameConverted(scoped_refptr<VideoFrame> frame) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(decoder_sequence_checker_);
   DVLOGF(4);
-  TRACE_EVENT1("media,gpu", "VideoDecoderPipeline::OnFrameConverted",
-               "timestamp", (frame ? frame->timestamp().InMicroseconds() : 0));
+
   if (!frame)
     return OnError("Frame converter returns null frame.");
   if (has_error_) {
@@ -892,18 +858,11 @@ void VideoDecoderPipeline::OnDecoderWaiting(WaitingReason reason) {
 }
 
 bool VideoDecoderPipeline::HasPendingFrames() const {
+  DVLOGF(3);
   DCHECK_CALLED_ON_VALID_SEQUENCE(decoder_sequence_checker_);
-  const bool frame_converter_has_pending_frames_ =
-      frame_converter_ && frame_converter_->HasPendingFrames();
-  const bool image_processor_has_pending_frames_ =
-      image_processor_ && image_processor_->HasPendingFrames();
 
-  DVLOGF(3) << "|frame_converter_|: "
-            << (frame_converter_has_pending_frames_ ? "yes" : "no")
-            << ", |image_processor_|: "
-            << (image_processor_has_pending_frames_ ? "yes" : "no");
-  return frame_converter_has_pending_frames_ ||
-         image_processor_has_pending_frames_;
+  return (frame_converter_ && frame_converter_->HasPendingFrames()) ||
+         (image_processor_ && image_processor_->HasPendingFrames());
 }
 
 void VideoDecoderPipeline::OnError(const std::string& msg) {
@@ -965,7 +924,7 @@ void VideoDecoderPipeline::PrepareChangeResolution() {
 
 void VideoDecoderPipeline::CallApplyResolutionChangeIfNeeded() {
   DCHECK_CALLED_ON_VALID_SEQUENCE(decoder_sequence_checker_);
-  DVLOGF(4);
+  DVLOGF(3);
 
   if (need_apply_new_resolution && !HasPendingFrames()) {
     need_apply_new_resolution = false;
@@ -974,6 +933,7 @@ void VideoDecoderPipeline::CallApplyResolutionChangeIfNeeded() {
 }
 
 DmabufVideoFramePool* VideoDecoderPipeline::GetVideoFramePool() const {
+  DVLOGF(3);
   DCHECK_CALLED_ON_VALID_SEQUENCE(decoder_sequence_checker_);
 
   // TODO(andrescj): consider returning a WeakPtr instead. That way, if callers

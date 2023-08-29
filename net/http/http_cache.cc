@@ -39,6 +39,7 @@
 #include "net/base/network_isolation_key.h"
 #include "net/base/upload_data_stream.h"
 #include "net/disk_cache/disk_cache.h"
+#include "net/http/http_cache_lookup_manager.h"
 #include "net/http/http_cache_transaction.h"
 #include "net/http/http_cache_writers.h"
 #include "net/http/http_network_layer.h"
@@ -69,6 +70,8 @@ bool g_enable_split_cache = false;
 const char HttpCache::kDoubleKeyPrefix[] = "_dk_";
 const char HttpCache::kDoubleKeySeparator[] = " ";
 const char HttpCache::kSubframeDocumentResourcePrefix[] = "s_";
+const char HttpCache::kSingleKeyPrefix[] = "_sk_";
+const char HttpCache::kSingleKeySeparator[] = " ";
 
 HttpCache::DefaultBackend::DefaultBackend(
     CacheType type,
@@ -154,7 +157,7 @@ struct HttpCache::PendingOp {
   PendingOp() = default;
   ~PendingOp() = default;
 
-  raw_ptr<disk_cache::Entry, AcrossTasksDanglingUntriaged> entry = nullptr;
+  raw_ptr<disk_cache::Entry, DanglingUntriaged> entry = nullptr;
   bool entry_opened = false;  // rather than created.
 
   std::unique_ptr<disk_cache::Backend> backend;
@@ -240,6 +243,9 @@ HttpCache::HttpCache(std::unique_ptr<HttpTransactionFactory> network_layer,
     return;
 
   net_log_ = session->net_log();
+
+  session->SetServerPushDelegate(
+      std::make_unique<HttpCacheLookupManager>(this));
 }
 
 HttpCache::~HttpCache() {
@@ -364,7 +370,8 @@ void HttpCache::OnExternalCacheHit(
       request_info.load_flags |= ~LOAD_DO_NOT_SAVE_COOKIES;
   }
 
-  std::string key = *GenerateCacheKeyForRequest(&request_info);
+  std::string key = *GenerateCacheKeyForRequest(
+      &request_info, /*use_single_keyed_cache=*/false);
   disk_cache_->OnExternalCacheHit(key);
 }
 
@@ -436,6 +443,11 @@ std::string HttpCache::GetResourceURLFromHttpCacheKey(const std::string& key) {
     DCHECK_NE(pos, std::string::npos);
     pos += strlen(kDoubleKeySeparator);
     DCHECK_LE(pos, key.size() - 1);
+  } else if (pos == key.find(kSingleKeyPrefix, pos)) {
+    pos = key.rfind(kSingleKeySeparator);
+    DCHECK_NE(pos, std::string::npos);
+    pos += strlen(kSingleKeySeparator);
+    DCHECK_LE(pos, key.size() - 1);
   }
   return key.substr(pos);
 }
@@ -447,18 +459,32 @@ absl::optional<std::string> HttpCache::GenerateCacheKey(
     int load_flags,
     const NetworkIsolationKey& network_isolation_key,
     int64_t upload_data_identifier,
-    bool is_subframe_document_resource) {
+    bool is_subframe_document_resource,
+    bool use_single_keyed_cache,
+    const std::string& single_key_checksum) {
   // The first character of the key may vary depending on whether or not sending
   // credentials is permitted for this request. This only happens if the
-  // SplitCacheByIncludeCredentials feature is enabled.
-  const char credential_key = (base::FeatureList::IsEnabled(
-                                   features::kSplitCacheByIncludeCredentials) &&
-                               (load_flags & LOAD_DO_NOT_SAVE_COOKIES))
-                                  ? '0'
-                                  : '1';
+  // SplitCacheByIncludeCredentials feature is enabled, or if the single-keyed
+  // cache is enabled. The single-keyed cache must always be split by
+  // credentials in order to make coep:credentialless work safely.
+  const char credential_key =
+      ((base::FeatureList::IsEnabled(
+            features::kSplitCacheByIncludeCredentials) ||
+        use_single_keyed_cache) &&
+       (load_flags & LOAD_DO_NOT_SAVE_COOKIES))
+          ? '0'
+          : '1';
 
   std::string isolation_key;
-  if (IsSplitCacheEnabled()) {
+  if (use_single_keyed_cache) {
+    DCHECK(IsSplitCacheEnabled());
+    DCHECK(!(load_flags &
+             (net::LOAD_VALIDATE_CACHE | net::LOAD_BYPASS_CACHE |
+              net::LOAD_SKIP_CACHE_VALIDATION | net::LOAD_ONLY_FROM_CACHE |
+              net::LOAD_DISABLE_CACHE | net::LOAD_SKIP_VARY_CHECK)));
+    isolation_key = base::StrCat(
+        {kSingleKeyPrefix, single_key_checksum, kSingleKeySeparator});
+  } else if (IsSplitCacheEnabled()) {
     // Prepend the key with |kDoubleKeyPrefix| = "_dk_" to mark it as
     // double-keyed (and makes it an invalid url so that it doesn't get
     // confused with a single-keyed entry). Separate the origin and url
@@ -485,14 +511,16 @@ absl::optional<std::string> HttpCache::GenerateCacheKey(
 
 // static
 absl::optional<std::string> HttpCache::GenerateCacheKeyForRequest(
-    const HttpRequestInfo* request) {
+    const HttpRequestInfo* request,
+    bool use_single_keyed_cache) {
   DCHECK(request);
   const int64_t upload_data_identifier =
       request->upload_data_stream ? request->upload_data_stream->identifier()
                                   : int64_t(0);
   return GenerateCacheKey(
       request->url, request->load_flags, request->network_isolation_key,
-      upload_data_identifier, request->is_subframe_document_resource);
+      upload_data_identifier, request->is_subframe_document_resource,
+      use_single_keyed_cache, request->checksum);
 }
 
 // static
@@ -670,7 +698,11 @@ void HttpCache::DoomMainEntryForUrl(const GURL& url,
       net::NetworkAnonymizationKey::CreateFromNetworkIsolationKey(
           isolation_key);
   temp_info.is_subframe_document_resource = is_subframe_document_resource;
-  std::string key = *GenerateCacheKeyForRequest(&temp_info);
+  // This method is always used for "POST" requests, which never use the
+  // single-keyed cache, so therefore it is correct that use_single_keyed_cache
+  // be false.
+  std::string key =
+      *GenerateCacheKeyForRequest(&temp_info, /*use_single_keyed_cache=*/false);
 
   // Defer to DoomEntry if there is an active entry, otherwise call
   // AsyncDoomEntry without triggering a callback.

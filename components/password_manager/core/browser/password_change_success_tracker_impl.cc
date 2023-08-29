@@ -313,7 +313,6 @@ void PasswordChangeSuccessTrackerImpl::OnChangePasswordFlowCompleted(
   // username, we take the last entry. The underlying assumption is that
   // the first flow was abandoned but has not timed out yet.
   std::string target_etld_plus_1 = ExtractEtldPlus1(url);
-  absl::optional<size_t> flow_to_erase;
   for (size_t i = flows.size(); i-- > 0;) {
     FlowView view(&flows[i].GetDict());
     if (view.GetEtldPlus1() == target_etld_plus_1 &&
@@ -321,15 +320,12 @@ void PasswordChangeSuccessTrackerImpl::OnChangePasswordFlowCompleted(
       RecordMetrics(view.GetEtldPlus1(), view.GetStartEvent(), event_type,
                     view.GetEntryPoint(),
                     base::Time::Now() - view.GetStartTime());
+      flows.erase(flows.begin() + i);
       if (phished) {
         RecordUserActionOnPhishedCredentialforUma(event_type);
       }
-      flow_to_erase = i;
-      break;
+      return;
     }
-  }
-  if (flow_to_erase.has_value()) {
-    flows.erase(flows.begin() + flow_to_erase.value());
   }
 }
 

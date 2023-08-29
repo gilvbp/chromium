@@ -48,7 +48,7 @@ class TestExtensionNotificationHandler : public ExtensionNotificationHandler {
   }
 
  private:
-  ExtensionId extension_id_;
+  std::string extension_id_;
   std::string event_name_;
   size_t param_count_;
 };

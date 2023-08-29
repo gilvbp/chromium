@@ -179,9 +179,7 @@ class SpeechRecognitionRecognizerClientImplTest : public InProcessBrowserTest {
   std::unique_ptr<SpeechRecognitionRecognizerClientImpl> recognizer_;
 
   // Unowned.
-  raw_ptr<speech::FakeSpeechRecognitionService,
-          DanglingUntriaged | ExperimentalAsh>
-      fake_service_;
+  raw_ptr<speech::FakeSpeechRecognitionService, ExperimentalAsh> fake_service_;
 
   base::test::ScopedFeatureList scoped_feature_list_;
 };

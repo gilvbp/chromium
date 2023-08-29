@@ -6,11 +6,15 @@
 
 #include <iostream>
 
-#include "base/apple/foundation_util.h"
 #include "base/command_line.h"
 #include "base/files/file_path.h"
+#include "base/mac/foundation_util.h"
 #include "base/strings/sys_string_conversions.h"
 #import "chrome/updater/mac/setup/ks_tickets.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 @interface KSTicket (TestingTool)
 @end
@@ -36,7 +40,7 @@
     version_ = version;
     if (ecp.length) {
       existenceChecker_ = [[KSPathExistenceChecker alloc]
-          initWithFilePath:base::apple::NSStringToFilePath(ecp)];
+          initWithFilePath:base::mac::NSStringToFilePath(ecp)];
     }
     tag_ = tag;
     if (tagPath.length) {
@@ -89,7 +93,7 @@ void Usage() {
 int ReadTicketStore(const base::FilePath& path) {
   @autoreleasepool {
     NSDictionary<NSString*, KSTicket*>* store =
-        [KSTicketStore readStoreWithPath:base::apple::FilePathToNSString(path)];
+        [KSTicketStore readStoreWithPath:base::mac::FilePathToNSString(path)];
     for (NSString* key in store) {
       std::cout << "------ Key " << base::SysNSStringToUTF8(key) << std::endl
                 << base::SysNSStringToUTF8(
@@ -106,7 +110,7 @@ NSDictionary<NSString*, KSTicket*>* ReadPlistTicketStore(
   NSError* error = nil;
   NSDictionary<NSString*, NSDictionary<NSString*, id>*>* tickets_data =
       [NSDictionary
-          dictionaryWithContentsOfURL:base::apple::FilePathToNSURL(input)
+          dictionaryWithContentsOfURL:base::mac::FilePathToNSURL(input)
                                 error:&error];
   if (error) {
     std::cerr << "Error read store: "
@@ -157,7 +161,7 @@ int ConvertTicketStore(const base::FilePath& input,
       return 1;
     }
 
-    if (![storeData writeToFile:base::apple::FilePathToNSString(output)
+    if (![storeData writeToFile:base::mac::FilePathToNSString(output)
                         options:NSDataWritingAtomic
                           error:&error]) {
       std::cerr << "Failed to write output: "

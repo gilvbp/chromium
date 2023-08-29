@@ -233,10 +233,9 @@ AppWindowRegistry::Factory::Factory()
 
 AppWindowRegistry::Factory::~Factory() = default;
 
-std::unique_ptr<KeyedService>
-AppWindowRegistry::Factory::BuildServiceInstanceForBrowserContext(
+KeyedService* AppWindowRegistry::Factory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
-  return std::make_unique<AppWindowRegistry>(context);
+  return new AppWindowRegistry(context);
 }
 
 bool AppWindowRegistry::Factory::ServiceIsCreatedWithBrowserContext() const {
@@ -245,8 +244,8 @@ bool AppWindowRegistry::Factory::ServiceIsCreatedWithBrowserContext() const {
 
 content::BrowserContext* AppWindowRegistry::Factory::GetBrowserContextToUse(
     content::BrowserContext* context) const {
-  return ExtensionsBrowserClient::Get()->GetContextRedirectedToOriginal(
-      context, /*force_guest_profile=*/true);
+  return ExtensionsBrowserClient::Get()->GetRedirectedContextInIncognito(
+      context, /*force_guest_profile=*/true, /*force_system_profile=*/false);
 }
 
 }  // namespace extensions

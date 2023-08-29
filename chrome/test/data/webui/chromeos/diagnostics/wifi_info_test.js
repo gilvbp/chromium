@@ -19,7 +19,7 @@ suite('wifiInfoTestSuite', function() {
   let wifiInfoElement = null;
 
   setup(() => {
-    document.body.innerHTML = window.trustedTypes.emptyHTML;
+    document.body.innerHTML = '';
   });
 
   teardown(() => {

@@ -272,7 +272,8 @@ void WorkerMainScriptLoader::NotifyCompletionIfAppropriate() {
     resource_load_observer_->DidFinishLoading(
         initial_request_.InspectorId(), base::TimeTicks::Now(),
         resource_response_.EncodedDataLength(),
-        resource_response_.DecodedBodyLength());
+        resource_response_.DecodedBodyLength(),
+        /*should_report_corb_blocking=*/false);
   } else {
     client->OnFailedLoadingWorkerMainScript();
     resource_load_observer_->DidFailLoading(

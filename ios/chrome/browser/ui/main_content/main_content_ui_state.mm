@@ -8,6 +8,10 @@
 
 #import "base/check_op.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 @interface MainContentUIState ()
 // Redefine broadcast properties as readwrite.
 @property(nonatomic, assign) CGSize scrollViewSize;

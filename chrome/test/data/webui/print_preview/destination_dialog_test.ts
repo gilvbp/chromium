@@ -110,7 +110,7 @@ suite(destination_dialog_test.suiteName, function() {
     // as native.
     let whenPrinterListReady = nativeLayer.waitForGetPrinters(1);
     destinationStore.init(
-        false /* pdfPrinterDisabled */, false /* saveToDriveDisabled */,
+        false /* pdfPrinterDisabled */, true /* isDriveMounted */,
         'FooDevice' /* printerName */,
         '' /* serializedDefaultDestinationSelectionRulesStr */,
         [makeRecentDestination(destinations[4]!)] /* recentDestinations */);
@@ -132,7 +132,7 @@ suite(destination_dialog_test.suiteName, function() {
         // printers are recent.
         const whenAllPreloaded = nativeLayer.waitForGetPrinters(2);
         destinationStore.init(
-            false /* pdfPrinterDisabled */, false /* saveToDriveDisabled */,
+            false /* pdfPrinterDisabled */, true /* isDriveMounted */,
             'FooDevice' /* printerName */,
             '' /* serializedDefaultDestinationSelectionRulesStr */, [
               makeRecentDestination(destinations[4]!),

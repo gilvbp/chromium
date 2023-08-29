@@ -10,6 +10,7 @@
 #include "base/cancelable_callback.h"
 #include "base/functional/callback_helpers.h"
 #include "base/memory/raw_ptr.h"
+#include "base/memory/ref_counted.h"
 #include "base/time/clock.h"
 #include "base/time/tick_clock.h"
 #include "base/time/time.h"
@@ -183,7 +184,8 @@ class POLICY_EXPORT CloudPolicyRefreshScheduler
   // The delayed refresh callback.
   base::CancelableOnceClosure refresh_callback_;
 
-  // Whether the refresh is scheduled for soon (using |RefreshSoon|).
+  // Whether the refresh is scheduled for soon (using |RefreshSoon| or
+  // |RefreshNow|).
   bool is_scheduled_for_soon_ = false;
 
   // The last time a policy fetch was attempted or completed.

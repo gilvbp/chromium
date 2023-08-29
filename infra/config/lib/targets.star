@@ -265,6 +265,7 @@ def _resultdb(
 
 def _swarming(
         *,
+        dimension_sets = None,
         dimensions = None,
         optional_dimensions = None,
         containment_type = None,
@@ -281,6 +282,11 @@ def _swarming(
     unless otherwise indicated.
 
     Args:
+        dimension_sets: A list of dicts with dimensions to set for
+            swarming tasks for the test. When specified on a mixin, the
+            dimension sets in the mixin will be added to those present
+            on the test. At build-time, a separate test is created for
+            each dimension set.
         dimensions: A dict of dimensions to apply to all dimension sets
             for the test. This can only be specified in a mixin. After
             any dimension sets from the mixin are added to the test, the
@@ -307,6 +313,7 @@ def _swarming(
             caches that should be mounted for the test's tasks.
     """
     return struct(
+        dimension_sets = dimension_sets,
         dimensions = dimensions,
         optional_dimensions = optional_dimensions,
         containment_type = containment_type,
@@ -323,7 +330,6 @@ def _skylab(
         *,
         cros_board,
         cros_img,
-        cros_model = None,
         autotest_name = None,
         bucket = None,
         dut_pool = None,
@@ -333,7 +339,6 @@ def _skylab(
     return struct(
         cros_board = cros_board,
         cros_img = cros_img,
-        cros_model = cros_model,
         autotest_name = autotest_name,
         bucket = bucket,
         dut_pool = dut_pool,
@@ -655,13 +660,23 @@ def _generate_mixin_values(formatter, mixin, generate_skylab_container = False):
             for dim, value in swarming.dimensions.items():
                 formatter.add_line("'{}': {},".format(dim, dimension_value(value)))
             formatter.close_scope("},")
-        if swarming.optional_dimensions:
-            formatter.open_scope("'optional_dimensions': {")
-            for timeout, dimensions in swarming.optional_dimensions.items():
-                formatter.open_scope("'{}': {{".format(timeout))
+        if swarming.dimension_sets:
+            formatter.open_scope("'dimension_sets': [")
+            for dimensions in swarming.dimension_sets:
+                formatter.open_scope("{")
                 for dim, value in dimensions.items():
                     formatter.add_line("'{}': {},".format(dim, dimension_value(value)))
                 formatter.close_scope("},")
+            formatter.close_scope("],")
+        if swarming.optional_dimensions:
+            formatter.open_scope("'optional_dimensions': {")
+            for timeout, dimensions in swarming.optional_dimensions.items():
+                formatter.open_scope("'{}': [".format(timeout))
+                formatter.open_scope("{")
+                for dim, value in dimensions.items():
+                    formatter.add_line("'{}': {},".format(dim, dimension_value(value)))
+                formatter.close_scope("},")
+                formatter.close_scope("],")
             formatter.close_scope("},")
         if swarming.containment_type:
             formatter.add_line("'containment_type': '{}',".format(swarming.containment_type))
@@ -697,8 +712,6 @@ def _generate_mixin_values(formatter, mixin, generate_skylab_container = False):
         if generate_skylab_container:
             formatter.open_scope("'skylab': {")
         formatter.add_line("'cros_board': '{}',".format(skylab.cros_board))
-        if skylab.cros_model:
-            formatter.add_line("'cros_model': '{}',".format(skylab.cros_model))
         formatter.add_line("'cros_img': '{}',".format(skylab.cros_img))
         if skylab.autotest_name:
             formatter.add_line("'autotest_name': '{}',".format(skylab.autotest_name))

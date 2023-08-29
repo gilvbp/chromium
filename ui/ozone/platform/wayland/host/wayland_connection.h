@@ -19,8 +19,6 @@
 #include "ui/display/tablet_state.h"
 #include "ui/events/event.h"
 #include "ui/ozone/platform/wayland/common/wayland_object.h"
-#include "ui/ozone/platform/wayland/host/single_pixel_buffer.h"
-#include "ui/ozone/platform/wayland/host/wayland_buffer_manager_host.h"
 #include "ui/ozone/platform/wayland/host/wayland_clipboard.h"
 #include "ui/ozone/platform/wayland/host/wayland_data_drag_controller.h"
 #include "ui/ozone/platform/wayland/host/wayland_data_source.h"
@@ -271,10 +269,6 @@ class WaylandConnection {
     return surface_augmenter_.get();
   }
 
-  SinglePixelBuffer* single_pixel_buffer() const {
-    return single_pixel_buffer_.get();
-  }
-
   // Returns whether protocols that support setting window geometry are
   // available.
   bool SupportsSetWindowGeometry() const;
@@ -348,11 +342,6 @@ class WaylandConnection {
 
   void DumpState(std::ostream& out) const;
 
-  bool UseImplicitSyncInterop() const {
-    return !linux_explicit_synchronization_v1() &&
-           WaylandBufferManagerHost::SupportsImplicitSyncInterop();
-  }
-
  private:
   friend class WaylandConnectionTestApi;
 
@@ -367,7 +356,6 @@ class WaylandConnection {
   friend class GtkShell1;
   friend class OrgKdeKwinIdle;
   friend class OverlayPrioritizer;
-  friend class SinglePixelBuffer;
   friend class SurfaceAugmenter;
   friend class WaylandDataDeviceManager;
   friend class WaylandOutput;
@@ -480,7 +468,6 @@ class WaylandConnection {
   std::unique_ptr<ZwpIdleInhibitManager> zwp_idle_inhibit_manager_;
   std::unique_ptr<OverlayPrioritizer> overlay_prioritizer_;
   std::unique_ptr<SurfaceAugmenter> surface_augmenter_;
-  std::unique_ptr<SinglePixelBuffer> single_pixel_buffer_;
 
   // Clipboard-related objects. |clipboard_| must be declared after all
   // DeviceManager instances it depends on, otherwise tests may crash with

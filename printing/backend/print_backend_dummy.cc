@@ -40,9 +40,8 @@ class DummyPrintBackend : public PrintBackend {
     return mojom::ResultCode::kFailed;
   }
 
-  std::vector<std::string> GetPrinterDriverInfo(
-      const std::string& printer_name) override {
-    return std::vector<std::string>();
+  std::string GetPrinterDriverInfo(const std::string& printer_name) override {
+    return std::string();
   }
 
   bool IsValidPrinter(const std::string& printer_name) override {

@@ -50,10 +50,10 @@ void InstallableAmbientBadgeMessageController::EnqueueMessage(
       messages::MessageIdentifier::INSTALLABLE_AMBIENT_BADGE,
       base::BindOnce(
           &InstallableAmbientBadgeMessageController::HandleInstallButtonClicked,
-          weak_factory_.GetWeakPtr()),
+          base::Unretained(this)),
       base::BindOnce(
           &InstallableAmbientBadgeMessageController::HandleMessageDismissed,
-          weak_factory_.GetWeakPtr()));
+          base::Unretained(this)));
 
   message_->SetTitle(l10n_util::GetStringFUTF16(
       IDS_AMBIENT_BADGE_INSTALL_ALTERNATIVE, app_name));

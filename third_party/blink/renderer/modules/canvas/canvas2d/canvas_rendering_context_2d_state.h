@@ -7,8 +7,6 @@
 
 #include "base/types/pass_key.h"
 #include "cc/paint/paint_flags.h"
-#include "third_party/blink/renderer/bindings/modules/v8/v8_canvas_font_stretch.h"
-#include "third_party/blink/renderer/bindings/modules/v8/v8_canvas_text_rendering.h"
 #include "third_party/blink/renderer/core/css/css_primitive_value.h"
 #include "third_party/blink/renderer/core/css/css_value.h"
 #include "third_party/blink/renderer/modules/canvas/canvas2d/canvas_style.h"
@@ -208,18 +206,16 @@ class MODULES_EXPORT CanvasRenderingContext2DState final
   void SetWordSpacing(const String& word_spacing);
   String GetWordSpacing() const { return parsed_word_spacing_; }
 
-  void SetTextRendering(V8CanvasTextRendering text_rendering,
+  void SetTextRendering(TextRenderingMode text_rendering,
                         FontSelector* selector);
-  V8CanvasTextRendering GetTextRendering() const {
-    return text_rendering_mode_;
-  }
+  TextRenderingMode GetTextRendering() const { return text_rendering_mode_; }
 
   void SetFontKerning(FontDescription::Kerning font_kerning,
                       FontSelector* selector);
   FontDescription::Kerning GetFontKerning() const { return font_kerning_; }
 
-  void SetFontStretch(V8CanvasFontStretch font_stretch, FontSelector* selector);
-  V8CanvasFontStretch GetFontStretch() const { return font_stretch_; }
+  void SetFontStretch(FontSelectionValue font_stretch, FontSelector* selector);
+  FontSelectionValue GetFontStretch() const { return font_stretch_; }
 
   void SetFontVariantCaps(FontDescription::FontVariantCaps font_kerning,
                           FontSelector* selector);
@@ -361,10 +357,9 @@ class MODULES_EXPORT CanvasRenderingContext2DState final
   CSSPrimitiveValue::UnitType word_spacing_unit_{
       CSSPrimitiveValue::UnitType::kPixels};
   String parsed_word_spacing_;
-  V8CanvasTextRendering text_rendering_mode_{
-      V8CanvasTextRendering::Enum::kAuto};
+  TextRenderingMode text_rendering_mode_{TextRenderingMode::kAutoTextRendering};
   FontDescription::Kerning font_kerning_{FontDescription::kAutoKerning};
-  V8CanvasFontStretch font_stretch_{V8CanvasFontStretch::Enum::kNormal};
+  FontSelectionValue font_stretch_{NormalWidthValue()};
   FontDescription::FontVariantCaps font_variant_caps_{
       FontDescription::kCapsNormal};
 

@@ -25,8 +25,14 @@
 #include "base/test/task_environment.h"
 #include "base/test/test_timeouts.h"
 #include "base/time/time.h"
+#include "build/build_config.h"
+#include "components/invalidation/impl/invalidation_logger.h"
+#include "components/invalidation/public/invalidation_service.h"
+#include "components/invalidation/public/invalidation_util.h"
+#include "components/invalidation/public/invalidator_state.h"
 #include "components/prefs/testing_pref_service.h"
 #include "components/sync/base/features.h"
+#include "components/sync/base/invalidation_helper.h"
 #include "components/sync/base/model_type.h"
 #include "components/sync/engine/cycle/sync_cycle_snapshot.h"
 #include "components/sync/engine/net/http_bridge.h"
@@ -121,7 +127,43 @@ class FakeSyncManagerFactory : public SyncManagerFactory {
   ModelTypeSet initial_sync_ended_types_;
   ModelTypeSet progress_marker_types_;
   ModelTypeSet configure_fail_types_;
-  const raw_ptr<FakeSyncManager*> fake_manager_;
+  raw_ptr<FakeSyncManager*> fake_manager_;
+};
+
+class MockInvalidationService : public invalidation::InvalidationService {
+ public:
+  MockInvalidationService() = default;
+  ~MockInvalidationService() override = default;
+  MOCK_METHOD(void,
+              RegisterInvalidationHandler,
+              (invalidation::InvalidationHandler * handler),
+              (override));
+  MOCK_METHOD(bool,
+              UpdateInterestedTopics,
+              (invalidation::InvalidationHandler * handler,
+               const invalidation::TopicSet& topics),
+              (override));
+  MOCK_METHOD(void,
+              UnsubscribeFromUnregisteredTopics,
+              (invalidation::InvalidationHandler * handler),
+              (override));
+  MOCK_METHOD(void,
+              UnregisterInvalidationHandler,
+              (invalidation::InvalidationHandler * handler),
+              (override));
+  MOCK_METHOD(invalidation::InvalidatorState,
+              GetInvalidatorState,
+              (),
+              (const override));
+  MOCK_METHOD(std::string, GetInvalidatorClientId, (), (const override));
+  MOCK_METHOD(invalidation::InvalidationLogger*,
+              GetInvalidationLogger,
+              (),
+              (override));
+  MOCK_METHOD(void,
+              RequestDetailedStatus,
+              (base::RepeatingCallback<void(base::Value::Dict)> post_caller),
+              (const override));
 };
 
 class MockActiveDevicesProvider : public ActiveDevicesProvider {
@@ -155,6 +197,8 @@ class SyncEngineImplTest : public testing::Test {
 
     SyncTransportDataPrefs::RegisterProfilePrefs(pref_service_.registry());
 
+    ON_CALL(invalidator_, UpdateInterestedTopics)
+        .WillByDefault(testing::Return(true));
     scoped_refptr<base::SequencedTaskRunner> sync_task_runner =
         base::ThreadPool::CreateSequencedTaskRunner(
             {base::MayBlock(), base::TaskPriority::USER_VISIBLE,
@@ -165,7 +209,7 @@ class SyncEngineImplTest : public testing::Test {
         .WillByDefault(Return(
             ByMove(ActiveDevicesInvalidationInfo::CreateUninitialized())));
     backend_ = std::make_unique<SyncEngineImpl>(
-        "dummyDebugName", &mock_sync_invalidations_service_,
+        "dummyDebugName", &invalidator_, &mock_sync_invalidations_service_,
         std::move(mock_active_devices_provider),
         std::make_unique<SyncTransportDataPrefs>(&pref_service_),
         temp_dir_.GetPath().Append(base::FilePath(kTestSyncDir)),
@@ -217,8 +261,6 @@ class SyncEngineImplTest : public testing::Test {
     if (expect_success) {
       EXPECT_TRUE(engine_types_.Empty());
       engine_types_ = fake_manager_->GetConnectedTypes();
-      ON_CALL(mock_sync_invalidations_service_, GetInterestedDataTypes)
-          .WillByDefault(Return(engine_types_));
     }
   }
 
@@ -288,9 +330,23 @@ class SyncEngineImplTest : public testing::Test {
   ModelTypeSet engine_types_;
   ModelTypeSet enabled_types_;
   base::OnceClosure quit_loop_;
+  NiceMock<MockInvalidationService> invalidator_;
   NiceMock<MockSyncInvalidationsService> mock_sync_invalidations_service_;
 
   base::WeakPtrFactory<SyncEngineImplTest> weak_ptr_factory_{this};
+};
+
+// TODO(crbug.com/1404927): remove the test once feature toogles are cleaned up.
+class SyncEngineImplWithSyncInvalidationsTest : public SyncEngineImplTest {
+ public:
+  SyncEngineImplWithSyncInvalidationsTest() {
+    override_features_.InitWithFeatures(
+        /*enabled_features=*/{kUseSyncInvalidations},
+        /*disabled_features=*/{});
+  }
+
+ protected:
+  base::test::ScopedFeatureList override_features_;
 };
 
 // Test basic initialization with no initial types (first time initialization).
@@ -532,7 +588,99 @@ TEST_F(SyncEngineImplTest, ModelTypeConnectorValidDuringShutdown) {
   backend_.reset();
 }
 
-TEST_F(SyncEngineImplTest, ShouldInvalidateDataTypesOnIncomingInvalidation) {
+// TODO(crbug.com/1404927): remove the test once old invalidations are not used
+// in sync anymore.
+TEST_F(SyncEngineImplTest,
+       NoisyDataTypesInvalidationAreDiscardedByDefaultOnAndroid) {
+  base::test::ScopedFeatureList feature_overrides;
+  feature_overrides.InitAndDisableFeature(syncer::kUseSyncInvalidations);
+
+  // Making sure that the noisy types we're interested in are in the
+  // |enabled_types_|.
+  enabled_types_.Put(SESSIONS);
+
+  ModelTypeSet invalidation_enabled_types(
+      Difference(enabled_types_, CommitOnlyTypes()));
+
+#if BUILDFLAG(IS_ANDROID)
+  // SESSIONS is a noisy data type whose invalidations aren't enabled by default
+  // on Android.
+  invalidation_enabled_types.Remove(SESSIONS);
+#endif
+
+  InitializeBackend();
+  EXPECT_CALL(
+      invalidator_,
+      UpdateInterestedTopics(
+          backend_.get(), ModelTypeSetToTopicSet(invalidation_enabled_types)));
+  ConfigureDataTypes();
+
+  // When Sync is stopped, we clear the registered invalidation ids.
+  EXPECT_CALL(invalidator_,
+              UpdateInterestedTopics(backend_.get(), invalidation::TopicSet()));
+  ShutdownBackend(ShutdownReason::STOP_SYNC_AND_KEEP_DATA);
+}
+
+// TODO(crbug.com/1404927): remove the test once old invalidations are not used
+// in sync anymore.
+TEST_F(SyncEngineImplTest, WhenEnabledTypesStayDisabled) {
+  base::test::ScopedFeatureList feature_overrides;
+  feature_overrides.InitAndDisableFeature(syncer::kUseSyncInvalidations);
+
+  // Tests that noisy types aren't used for registration if they're disabled,
+  // hence removing noisy datatypes from |enabled_types_|.
+  enabled_types_.Remove(SESSIONS);
+
+  InitializeBackend();
+  EXPECT_CALL(invalidator_,
+              UpdateInterestedTopics(backend_.get(),
+                                     ModelTypeSetToTopicSet(Difference(
+                                         enabled_types_, CommitOnlyTypes()))));
+  ConfigureDataTypes();
+
+  // When Sync is stopped, we clear the registered invalidation ids.
+  EXPECT_CALL(invalidator_,
+              UpdateInterestedTopics(backend_.get(), invalidation::TopicSet()));
+  ShutdownBackend(ShutdownReason::STOP_SYNC_AND_KEEP_DATA);
+}
+
+// TODO(crbug.com/1404927): remove the test once old invalidations are not used
+// in sync anymore.
+TEST_F(SyncEngineImplTest,
+       EnabledTypesChangesWhenSetInvalidationsForSessionsCalled) {
+  base::test::ScopedFeatureList feature_overrides;
+  feature_overrides.InitAndDisableFeature(syncer::kUseSyncInvalidations);
+
+  // Making sure that the noisy types we're interested in are in the
+  // |enabled_types_|.
+  enabled_types_.Put(SESSIONS);
+
+  InitializeBackend();
+  ConfigureDataTypes();
+
+  EXPECT_CALL(invalidator_,
+              UpdateInterestedTopics(backend_.get(),
+                                     ModelTypeSetToTopicSet(Difference(
+                                         enabled_types_, CommitOnlyTypes()))));
+  backend_->SetInvalidationsForSessionsEnabled(true);
+
+  ModelTypeSet enabled_types(enabled_types_);
+  enabled_types.Remove(SESSIONS);
+
+  EXPECT_CALL(invalidator_,
+              UpdateInterestedTopics(backend_.get(),
+                                     ModelTypeSetToTopicSet(Difference(
+                                         enabled_types, CommitOnlyTypes()))));
+  backend_->SetInvalidationsForSessionsEnabled(false);
+
+  // When Sync is stopped, we clear the registered invalidation ids.
+  EXPECT_CALL(invalidator_,
+              UpdateInterestedTopics(backend_.get(), invalidation::TopicSet()));
+  ShutdownBackend(ShutdownReason::STOP_SYNC_AND_KEEP_DATA);
+}
+
+TEST_F(SyncEngineImplWithSyncInvalidationsTest,
+       ShouldInvalidateDataTypesOnIncomingInvalidation) {
   enabled_types_.PutAll({syncer::BOOKMARKS, syncer::PREFERENCES});
 
   InitializeBackend(/*expect_success=*/true);
@@ -557,7 +705,8 @@ TEST_F(SyncEngineImplTest, ShouldInvalidateDataTypesOnIncomingInvalidation) {
   EXPECT_EQ(1, fake_manager_->GetInvalidationCount(ModelType::PREFERENCES));
 }
 
-TEST_F(SyncEngineImplTest, ShouldInvalidateOnlyEnabledDataTypes) {
+TEST_F(SyncEngineImplWithSyncInvalidationsTest,
+       ShouldInvalidateOnlyEnabledDataTypes) {
   enabled_types_.Remove(syncer::BOOKMARKS);
   enabled_types_.Put(syncer::PREFERENCES);
 
@@ -583,44 +732,46 @@ TEST_F(SyncEngineImplTest, ShouldInvalidateOnlyEnabledDataTypes) {
   EXPECT_EQ(1, fake_manager_->GetInvalidationCount(ModelType::PREFERENCES));
 }
 
-TEST_F(SyncEngineImplTest, ShouldStartHandlingInvalidations) {
-  InitializeBackend(/*expect_success=*/true);
-
+TEST_F(SyncEngineImplWithSyncInvalidationsTest,
+       ShouldStartHandlingInvalidations) {
+  ON_CALL(mock_sync_invalidations_service_, GetInterestedDataTypes())
+      .WillByDefault(Return(enabled_types_));
   EXPECT_CALL(mock_sync_invalidations_service_, AddListener(backend_.get()));
   backend_->StartHandlingInvalidations();
 }
 
-TEST_F(SyncEngineImplTest, DoNotUseOldInvalidationsAtAll) {
+TEST_F(SyncEngineImplWithSyncInvalidationsTest, DoNotUseOldInvalidationsAtAll) {
   enabled_types_.PutAll({AUTOFILL_WALLET_DATA, AUTOFILL_WALLET_OFFER});
 
+  // Since the old invalidations system is not being used anymore (based on the
+  // enabled feature flags), SyncEngine should call the (old) invalidator with
+  // an empty TopicSet upon initialization.
+  EXPECT_CALL(invalidator_,
+              UpdateInterestedTopics(_, invalidation::TopicSet()));
+  EXPECT_CALL(invalidator_, UnsubscribeFromUnregisteredTopics);
   EXPECT_CALL(mock_sync_invalidations_service_, GetInterestedDataTypes())
       .WillRepeatedly(Return(enabled_types_));
   InitializeBackend(/*expect_success=*/true);
 
+  EXPECT_CALL(invalidator_, UpdateInterestedTopics).Times(0);
   ConfigureDataTypes();
 }
 
-TEST_F(SyncEngineImplTest, ShouldEnableInvalidationsWhenStartedHandling) {
-  EXPECT_CALL(mock_sync_invalidations_service_, HasListener)
-      .WillRepeatedly(Return(true));
+TEST_F(SyncEngineImplWithSyncInvalidationsTest,
+       ShouldEnableInvalidationsWhenInitialized) {
   EXPECT_CALL(mock_sync_invalidations_service_, GetFCMRegistrationToken)
       .WillRepeatedly(Return("fcm_token"));
   InitializeBackend(/*expect_success=*/true);
-  backend_->StartHandlingInvalidations();
   fake_manager_->WaitForSyncThread();
   EXPECT_TRUE(fake_manager_->IsInvalidatorEnabled());
 }
 
-TEST_F(SyncEngineImplTest, ShouldEnableInvalidationsOnTokenUpdate) {
+TEST_F(SyncEngineImplWithSyncInvalidationsTest,
+       ShouldEnableInvalidationsOnTokenUpdate) {
   EXPECT_CALL(mock_sync_invalidations_service_, GetFCMRegistrationToken)
       .WillRepeatedly(Return(absl::nullopt));
   InitializeBackend(/*expect_success=*/true);
   fake_manager_->WaitForSyncThread();
-
-  // Simulate listening for invalidations but since an FCM token hasn't been
-  // obtained, the invalidator is still disabled.
-  ON_CALL(mock_sync_invalidations_service_, HasListener)
-      .WillByDefault(Return(true));
   EXPECT_FALSE(fake_manager_->IsInvalidatorEnabled());
 
   EXPECT_CALL(mock_sync_invalidations_service_, GetFCMRegistrationToken)

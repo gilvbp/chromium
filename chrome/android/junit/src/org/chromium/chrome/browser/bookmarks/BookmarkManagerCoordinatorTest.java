@@ -36,7 +36,6 @@ import org.chromium.chrome.browser.signin.services.SigninManager;
 import org.chromium.chrome.browser.sync.SyncServiceFactory;
 import org.chromium.chrome.browser.ui.messages.snackbar.SnackbarManager;
 import org.chromium.chrome.test.util.browser.Features;
-import org.chromium.chrome.test.util.browser.Features.EnableFeatures;
 import org.chromium.components.commerce.core.ShoppingService;
 import org.chromium.components.favicon.LargeIconBridge;
 import org.chromium.components.favicon.LargeIconBridgeJni;
@@ -52,7 +51,7 @@ import org.chromium.ui.base.TestActivity;
 @Config(manifest = Config.NONE)
 @CommandLineFlags.
 Add({ChromeSwitches.DISABLE_FIRST_RUN_EXPERIENCE, ChromeSwitches.DISABLE_NATIVE_INITIALIZATION})
-@EnableFeatures({ChromeFeatureList.BOOKMARKS_REFRESH, ChromeFeatureList.EMPTY_STATES})
+@Features.EnableFeatures({ChromeFeatureList.BOOKMARKS_REFRESH, ChromeFeatureList.EMPTY_STATES})
 public class BookmarkManagerCoordinatorTest {
     @Rule
     public MockitoRule mMockitoRule = MockitoJUnit.rule();
@@ -96,7 +95,7 @@ public class BookmarkManagerCoordinatorTest {
         mJniMocker.mock(LargeIconBridgeJni.TEST_HOOKS, mMockLargeIconBridgeJni);
 
         // Setup service mocks.
-        SyncServiceFactory.setInstanceForTesting(mSyncService);
+        SyncServiceFactory.overrideForTests(mSyncService);
         IdentityServicesProvider.setInstanceForTests(mIdentityServicesProvider);
         Mockito.doReturn(mSigninManager).when(mIdentityServicesProvider).getSigninManager(mProfile);
         Mockito.doReturn(mIdentityManager).when(mSigninManager).getIdentityManager();

@@ -104,11 +104,11 @@ Status BrowserInfo::ParseBrowserString(bool has_android_package,
       base::StartsWith(browser_string, kHeadlessVersionPrefix,
                        base::CompareCase::SENSITIVE)) {
     std::string version = browser_string.substr(kVersionPrefix.length());
-    bool headless_shell = false;
+    bool headless = false;
     if (base::StartsWith(browser_string, kHeadlessVersionPrefix,
                          base::CompareCase::SENSITIVE)) {
       version = browser_string.substr(kHeadlessVersionPrefix.length());
-      headless_shell = true;
+      headless = true;
     }
 
     Status status = ParseBrowserVersionString(
@@ -117,10 +117,10 @@ Status BrowserInfo::ParseBrowserString(bool has_android_package,
       return status;
 
     if (build_no != 0) {
-      if (headless_shell) {
+      if (headless) {
         browser_info->browser_name =
             base::StringPrintf("headless %s", kBrowserCapabilityName);
-        browser_info->is_headless_shell = true;
+        browser_info->is_headless = true;
       } else {
         browser_info->browser_name = kBrowserCapabilityName;
       }

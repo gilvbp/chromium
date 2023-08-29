@@ -9,7 +9,6 @@
 #import "base/strings/sys_string_conversions.h"
 #import "base/test/ios/wait_util.h"
 #import "base/test/scoped_feature_list.h"
-#import "base/test/test_timeouts.h"
 #import "components/autofill/core/common/autofill_constants.h"
 #import "components/autofill/core/common/autofill_features.h"
 #import "components/autofill/ios/form_util/form_util_java_script_feature.h"
@@ -24,6 +23,10 @@
 #import "ios/web/public/web_state.h"
 #import "testing/gtest_mac.h"
 #import "testing/platform_test.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 using autofill::FieldRendererId;
 using autofill::FormRendererId;
@@ -129,10 +132,9 @@ class AutofillJavaScriptFeatureTest : public PlatformTest {
                           base::BindOnce(^(NSString* actualResult) {
                             block_was_called = YES;
                           }));
-    ASSERT_TRUE(base::test::ios::WaitUntilConditionOrTimeout(
-        TestTimeouts::action_timeout(), ^bool() {
-          return block_was_called;
-        }));
+    base::test::ios::WaitUntilCondition(^bool() {
+      return block_was_called;
+    });
   }
 
   id ExecuteJavaScript(NSString* java_script) {
@@ -235,10 +237,9 @@ TEST_F(AutofillJavaScriptFeatureTest, ExtractForms) {
                           block_was_called = YES;
                           result = [actualResult copy];
                         }));
-  ASSERT_TRUE(base::test::ios::WaitUntilConditionOrTimeout(
-      TestTimeouts::action_timeout(), ^bool() {
-        return block_was_called;
-      }));
+  base::test::ios::WaitUntilCondition(^bool() {
+    return block_was_called;
+  });
 
   NSArray* resultArray = [NSJSONSerialization
       JSONObjectWithData:[result dataUsingEncoding:NSUTF8StringEncoding]
@@ -329,10 +330,9 @@ TEST_F(AutofillJavaScriptFeatureTest, ExtractForms2) {
                           block_was_called = YES;
                           result = [actualResult copy];
                         }));
-  ASSERT_TRUE(base::test::ios::WaitUntilConditionOrTimeout(
-      TestTimeouts::action_timeout(), ^bool() {
-        return block_was_called;
-      }));
+  base::test::ios::WaitUntilCondition(^bool() {
+    return block_was_called;
+  });
 
   NSArray* resultArray = [NSJSONSerialization
       JSONObjectWithData:[result dataUsingEncoding:NSUTF8StringEncoding]
@@ -363,10 +363,9 @@ TEST_F(AutofillJavaScriptFeatureTest, ExtractFormlessForms_AllFormlessForms) {
                           block_was_called = YES;
                           result = [actualResult copy];
                         }));
-  ASSERT_TRUE(base::test::ios::WaitUntilConditionOrTimeout(
-      TestTimeouts::action_timeout(), ^bool() {
-        return block_was_called;
-      }));
+  base::test::ios::WaitUntilCondition(^bool() {
+    return block_was_called;
+  });
 
   // Verify that the form is non-empty.
   NSArray* resultArray = [NSJSONSerialization
@@ -427,10 +426,9 @@ TEST_F(AutofillJavaScriptFeatureTest, TestExtractedFieldsNames) {
                           block_was_called = YES;
                           result = [actualResult copy];
                         }));
-  ASSERT_TRUE(base::test::ios::WaitUntilConditionOrTimeout(
-      TestTimeouts::action_timeout(), ^bool() {
-        return block_was_called;
-      }));
+  base::test::ios::WaitUntilCondition(^bool() {
+    return block_was_called;
+  });
 
   NSArray* resultArray = [NSJSONSerialization
       JSONObjectWithData:[result dataUsingEncoding:NSUTF8StringEncoding]
@@ -492,10 +490,9 @@ TEST_F(AutofillJavaScriptFeatureTest, TestExtractedFieldsIDs) {
                           block_was_called = YES;
                           result = [actualResult copy];
                         }));
-  ASSERT_TRUE(base::test::ios::WaitUntilConditionOrTimeout(
-      TestTimeouts::action_timeout(), ^bool() {
-        return block_was_called;
-      }));
+  base::test::ios::WaitUntilCondition(^bool() {
+    return block_was_called;
+  });
 
   NSArray* resultArray = [NSJSONSerialization
       JSONObjectWithData:[result dataUsingEncoding:NSUTF8StringEncoding]

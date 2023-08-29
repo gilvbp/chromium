@@ -189,6 +189,11 @@ class NET_EXPORT_PRIVATE BackendImpl : public Backend {
   // Returns true if this instance seems to be under heavy load.
   bool IsLoaded() const;
 
+  // Returns the full histogram name, for the given base |name| and experiment,
+  // and the current cache type. The name will be "DiskCache.t.name_e" where n
+  // is the cache type and e the provided |experiment|.
+  std::string HistogramName(const char* name, int experiment) const;
+
   bool read_only() const {
     return read_only_;
   }
@@ -196,12 +201,12 @@ class NET_EXPORT_PRIVATE BackendImpl : public Backend {
   // Returns a weak pointer to this object.
   base::WeakPtr<BackendImpl> GetWeakPtr();
 
-  // Returns true if we should perform a periodic stat update. The caller must
-  // call this function only once per run (because it returns always the same
-  // thing on a given run).
-  bool ShouldUpdateStats();
+  // Returns true if we should send histograms for this user again. The caller
+  // must call this function only once per run (because it returns always the
+  // same thing on a given run).
+  bool ShouldReportAgain();
 
-  // Reset stat ratios on first eviction.
+  // Reports some data when we filled up the cache.
   void FirstEviction();
 
   // Reports a critical error (and disables the cache).
@@ -367,8 +372,8 @@ class NET_EXPORT_PRIVATE BackendImpl : public Backend {
   // Dumps current cache statistics to the log.
   void LogStats();
 
-  // Perform some periodic upkeep tasks on the stats.
-  void UpdateStats();
+  // Send UMA stats.
+  void ReportStats();
 
   // Upgrades the index file to version 2.1 (from 2.0)
   void UpgradeTo2_1();
@@ -387,7 +392,7 @@ class NET_EXPORT_PRIVATE BackendImpl : public Backend {
   bool CheckEntry(EntryImpl* cache_entry);
 
   // Returns the maximum total memory for the memory buffers.
-  static int MaxBuffersSize();
+  int MaxBuffersSize();
 
   // We want this destroyed after every other field.
   scoped_refptr<BackendCleanupTracker> cleanup_tracker_;
@@ -413,7 +418,7 @@ class NET_EXPORT_PRIVATE BackendImpl : public Backend {
   int byte_count_;  // Number of bytes read/written lately.
   int buffer_bytes_;  // Total size of the temporary entries' buffers.
   int up_ticks_ = 0;  // The number of timer ticks received (OnStatsTimer).
-  int should_update_ = 0;  // Used to determine when to reset statistics.
+  int uma_report_ = 0;   // Controls transmission of UMA data.
   uint32_t user_flags_;  // Flags set by the user.
   bool init_ = false;    // controls the initialization of the system.
   bool restarted_ = false;

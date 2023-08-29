@@ -111,7 +111,7 @@ class SigninPartitionManager : public KeyedService {
     ~Factory() override;
 
     // BrowserContextKeyedServiceFactory:
-    std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+    KeyedService* BuildServiceInstanceFor(
         content::BrowserContext* context) const override;
   };
 

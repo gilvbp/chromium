@@ -13,7 +13,7 @@ struct Config;
 
 // Segmentation Chrome Start model provider. Provides a default model and
 // metadata for the chrome start optimization target.
-class ChromeStartModel : public DefaultModelProvider {
+class ChromeStartModel : public ModelProvider {
  public:
   ChromeStartModel();
   ~ChromeStartModel() override = default;
@@ -25,10 +25,11 @@ class ChromeStartModel : public DefaultModelProvider {
   static std::unique_ptr<Config> GetConfig();
 
   // ModelProvider implementation.
-  std::unique_ptr<ModelConfig> GetModelConfig() override;
-
+  void InitAndFetchModel(
+      const ModelUpdatedCallback& model_updated_callback) override;
   void ExecuteModelWithInput(const ModelProvider::Request& inputs,
                              ExecutionCallback callback) override;
+  bool ModelAvailable() override;
 };
 
 }  // namespace segmentation_platform

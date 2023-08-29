@@ -5,8 +5,6 @@
 import {TestRunner} from 'test_runner';
 import {SecurityTestRunner} from 'security_test_runner';
 
-import * as SDK from 'devtools/core/sdk/sdk.js';
-
 (async function() {
   TestRunner.addResult(`Tests active mixed content blocking in the security panel.\n`);
   await TestRunner.showPanel('security');
@@ -18,7 +16,7 @@ import * as SDK from 'devtools/core/sdk/sdk.js';
           Protocol.Security.SecurityState.Neutral, /* certificateSecurityState= */ null,
           /* safetyTipInfo= */ null, /* securityStateIssueIds= */ ['scheme-is-not-cryptographic']));
 
-  var request = SDK.NetworkRequest.NetworkRequest.create(
+  var request = SDK.NetworkRequest.create(
       0, 'http://foo.test', 'https://foo.test', 0, 0, null);
   request.setBlockedReason(Protocol.Network.BlockedReason.MixedContent);
   request.mixedContentType = 'blockable';

@@ -8,9 +8,9 @@
 #import <functional>
 #import <memory>
 
-#import "base/apple/foundation_util.h"
 #import "base/functional/bind.h"
 #import "base/ios/ios_util.h"
+#import "base/mac/foundation_util.h"
 #import "base/notreached.h"
 #import "base/strings/string_number_conversions.h"
 #import "base/strings/string_util.h"
@@ -22,7 +22,7 @@
 #import "ios/chrome/browser/ui/popup_menu/popup_menu_constants.h"
 #import "ios/chrome/browser/ui/reading_list/reading_list_app_interface.h"
 #import "ios/chrome/browser/ui/reading_list/reading_list_constants.h"
-#import "ios/chrome/browser/ui/reading_list/reading_list_egtest_utils.h"
+#import "ios/chrome/browser/ui/reading_list/reading_list_earl_grey_ui.h"
 #import "ios/chrome/common/ui/table_view/table_view_cells_constants.h"
 #import "ios/chrome/grit/ios_strings.h"
 #import "ios/chrome/test/earl_grey/chrome_actions_app_interface.h"
@@ -46,13 +46,14 @@
 #import "ui/base/l10n/l10n_util.h"
 #import "ui/base/test/ios/ui_image_test_utils.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 using base::test::ios::kWaitForUIElementTimeout;
 using chrome_test_util::DeleteButton;
 using chrome_test_util::ReadingListMarkAsReadButton;
 using chrome_test_util::ReadingListMarkAsUnreadButton;
-using reading_list_test_utils::AddedToLocalReadingListSnackbar;
-using reading_list_test_utils::OpenReadingList;
-using reading_list_test_utils::VisibleReadingListItem;
 
 namespace {
 const char kContentToRemove[] = "Text that distillation should remove.";
@@ -148,16 +149,21 @@ void TapToolbarButtonWithID(NSString* button_id) {
 
 // Taps the context menu button with the a11y label of `a11y_label_id`.
 void TapContextMenuButtonWithA11yLabelID(int a11y_label_id) {
-  [[EarlGrey selectElementWithMatcher:
-                 chrome_test_util::ContextMenuItemWithAccessibilityLabelId(
-                     a11y_label_id)] performAction:grey_tap()];
+  [[EarlGrey
+      selectElementWithMatcher:chrome_test_util::ButtonWithAccessibilityLabelId(
+                                   a11y_label_id)] performAction:grey_tap()];
 }
 
 // Performs `action` on the entry with the title `entryTitle`. The view can be
 // scrolled down to find the entry.
 void PerformActionOnEntry(NSString* entryTitle, id<GREYAction> action) {
   ScrollToTop();
-  [[[EarlGrey selectElementWithMatcher:VisibleReadingListItem(entryTitle)]
+  id<GREYMatcher> matcher = grey_allOf(
+      grey_descendant(
+          chrome_test_util::StaticTextWithAccessibilityLabel(entryTitle)),
+      grey_kindOfClassName(@"TableViewURLCell"), grey_sufficientlyVisible(),
+      nil);
+  [[[EarlGrey selectElementWithMatcher:matcher]
          usingSearchAction:grey_scrollInDirection(kGREYDirectionDown, 100)
       onElementWithMatcher:grey_accessibilityID(kReadingListViewID)]
       performAction:action];
@@ -177,7 +183,12 @@ void LongPressEntry(NSString* entryTitle) {
 // Asserts that the entry with the title `entryTitle` is visible.
 void AssertEntryVisible(NSString* entryTitle) {
   ScrollToTop();
-  [[[EarlGrey selectElementWithMatcher:VisibleReadingListItem(entryTitle)]
+  [[[EarlGrey
+      selectElementWithMatcher:
+          grey_allOf(
+              chrome_test_util::StaticTextWithAccessibilityLabel(entryTitle),
+              grey_ancestor(grey_kindOfClassName(@"TableViewURLCell")),
+              grey_sufficientlyVisible(), nil)]
          usingSearchAction:grey_scrollInDirection(kGREYDirectionDown, 100)
       onElementWithMatcher:grey_accessibilityID(kReadingListViewID)]
       assertWithMatcher:grey_notNil()];
@@ -203,7 +214,11 @@ void AssertEntryNotVisible(NSString* title) {
   ScrollToTop();
   NSError* error;
 
-  [[[EarlGrey selectElementWithMatcher:VisibleReadingListItem(title)]
+  [[[EarlGrey
+      selectElementWithMatcher:
+          grey_allOf(chrome_test_util::StaticTextWithAccessibilityLabel(title),
+                     grey_ancestor(grey_kindOfClassName(@"TableViewURLCell")),
+                     grey_sufficientlyVisible(), nil)]
          usingSearchAction:grey_scrollInDirection(kGREYDirectionDown, 100)
       onElementWithMatcher:grey_accessibilityID(kReadingListViewID)]
       assertWithMatcher:grey_notNil()
@@ -241,7 +256,7 @@ void AddLotOfEntriesAndEnterEdit() {
                                  read:NO],
                   @"Unable to add Reading List item");
   }
-  OpenReadingList();
+  [ReadingListEarlGreyUI openReadingList];
 
   TapToolbarButtonWithID(kReadingListToolbarEditButtonID);
 }
@@ -269,7 +284,7 @@ void AddEntriesAndOpenReadingList() {
                                           read:NO],
       @"Unable to add Reading List item");
 
-  OpenReadingList();
+  [ReadingListEarlGreyUI openReadingList];
 }
 
 void AddEntriesAndEnterEdit() {
@@ -286,15 +301,30 @@ void AddCurrentPageToReadingList() {
                              IDS_IOS_SHARE_MENU_READING_LIST_ACTION)];
 
   // Wait for the snackbar to appear.
-  [ChromeEarlGrey
-      waitForUIElementToAppearWithMatcher:AddedToLocalReadingListSnackbar()
-                                  timeout:kSnackbarAppearanceTimeout];
+  id<GREYMatcher> snackbar_matcher =
+      grey_accessibilityID(@"MDCSnackbarMessageTitleAutomationIdentifier");
+  ConditionBlock wait_for_appearance = ^{
+    NSError* error = nil;
+    [[EarlGrey selectElementWithMatcher:snackbar_matcher]
+        assertWithMatcher:grey_notNil()
+                    error:&error];
+    return error == nil;
+  };
+  GREYAssert(base::test::ios::WaitUntilConditionOrTimeout(
+                 kSnackbarAppearanceTimeout, wait_for_appearance),
+             @"Snackbar did not appear.");
 
   // Wait for the snackbar to disappear.
-  [ChromeEarlGrey
-      waitForUIElementToDisappearWithMatcher:AddedToLocalReadingListSnackbar()
-                                     timeout:kSnackbarDisappearanceTimeout];
-
+  ConditionBlock wait_for_disappearance = ^{
+    NSError* error = nil;
+    [[EarlGrey selectElementWithMatcher:snackbar_matcher]
+        assertWithMatcher:grey_nil()
+                    error:&error];
+    return error == nil;
+  };
+  GREYAssert(base::test::ios::WaitUntilConditionOrTimeout(
+                 kSnackbarDisappearanceTimeout, wait_for_disappearance),
+             @"Snackbar did not disappear.");
   [ReadingListAppInterface notifyWifiConnection];
 }
 
@@ -512,7 +542,7 @@ void AssertIsShowingDistillablePage(bool online, const GURL& distillable_url) {
   AddCurrentPageToReadingList();
 
   // Verify that an entry with the correct title is present in the reading list.
-  OpenReadingList();
+  [ReadingListEarlGreyUI openReadingList];
   AssertEntryVisible(kDistillableTitle);
 
   WaitForDistillation();
@@ -575,7 +605,7 @@ void AssertIsShowingDistillablePage(bool online, const GURL& distillable_url) {
   [ChromeEarlGrey waitForPageToFinishLoading];
 
   // Verify that an entry with the correct title is present in the reading list.
-  OpenReadingList();
+  [ReadingListEarlGreyUI openReadingList];
   AssertEntryVisible(kDistillableTitle);
 
   WaitForDistillation();
@@ -630,7 +660,7 @@ void AssertIsShowingDistillablePage(bool online, const GURL& distillable_url) {
   [ChromeEarlGrey waitForPageToFinishLoading];
 
   // Verify that an entry with the correct title is present in the reading list.
-  OpenReadingList();
+  [ReadingListEarlGreyUI openReadingList];
   AssertEntryVisible(kDistillableTitle);
 
   WaitForDistillation();
@@ -674,7 +704,7 @@ void AssertIsShowingDistillablePage(bool online, const GURL& distillable_url) {
   [ChromeEarlGrey waitForPageToFinishLoading];
 
   // Verify that an entry with the correct title is present in the reading list.
-  OpenReadingList();
+  [ReadingListEarlGreyUI openReadingList];
   AssertEntryVisible(kDistillableTitle);
   WaitForDistillation();
 
@@ -708,7 +738,7 @@ void AssertIsShowingDistillablePage(bool online, const GURL& distillable_url) {
   [ChromeEarlGrey waitForPageToFinishLoading];
 
   // Verify that an entry with the correct title is present in the reading list.
-  OpenReadingList();
+  [ReadingListEarlGreyUI openReadingList];
   AssertEntryVisible(kDistillableTitle);
   WaitForDistillation();
 
@@ -752,7 +782,7 @@ void AssertIsShowingDistillablePage(bool online, const GURL& distillable_url) {
   [ChromeEarlGrey waitForPageToFinishLoading];
 
   // Verify that an entry with the correct title is present in the reading
-  OpenReadingList();
+  [ReadingListEarlGreyUI openReadingList];
   AssertEntryVisible(kDistillableTitle);
   WaitForDistillation();
 
@@ -782,7 +812,7 @@ void AssertIsShowingDistillablePage(bool online, const GURL& distillable_url) {
                                          title:kUnreadTitle
                                           read:NO],
       @"Unable to add Reading List entry.");
-  OpenReadingList();
+  [ReadingListEarlGreyUI openReadingList];
 
   AssertToolbarButtonNotVisibleWithID(kReadingListToolbarDeleteButtonID);
   AssertToolbarButtonNotVisibleWithID(kReadingListToolbarDeleteAllReadButtonID);
@@ -821,7 +851,12 @@ void AssertIsShowingDistillablePage(bool online, const GURL& distillable_url) {
 - (void)testVisibleButtonsAfterSwipeDeletion {
   AddEntriesAndOpenReadingList();
 
-  [[[EarlGrey selectElementWithMatcher:VisibleReadingListItem(kReadTitle)]
+  [[[EarlGrey
+      selectElementWithMatcher:
+          grey_allOf(
+              chrome_test_util::StaticTextWithAccessibilityLabel(kReadTitle),
+              grey_ancestor(grey_kindOfClassName(@"TableViewURLCell")),
+              grey_sufficientlyVisible(), nil)]
          usingSearchAction:grey_scrollInDirection(kGREYDirectionDown, 100)
       onElementWithMatcher:grey_accessibilityID(kReadingListViewID)]
       performAction:grey_swipeFastInDirection(kGREYDirectionLeft)];
@@ -1078,7 +1113,7 @@ void AssertIsShowingDistillablePage(bool online, const GURL& distillable_url) {
                   @"Unable to add Reading List entry.");
   }
 
-  OpenReadingList();
+  [ReadingListEarlGreyUI openReadingList];
 
   // Make sure the Reading List view is not empty. Therefore, the illustration,
   // title and subtitles shoud not be present.
@@ -1119,7 +1154,7 @@ void AssertIsShowingDistillablePage(bool online, const GURL& distillable_url) {
                                          title:kUnreadTitle
                                           read:NO],
       @"Unable to add Reading List entry.");
-  OpenReadingList();
+  [ReadingListEarlGreyUI openReadingList];
 
   // Check that the TableView is presented.
   [[EarlGrey selectElementWithMatcher:grey_accessibilityID(kReadingListViewID)]
@@ -1268,7 +1303,7 @@ void AssertIsShowingDistillablePage(bool online, const GURL& distillable_url) {
 
   [ChromeEarlGrey closeCurrentTab];
   [ChromeEarlGrey openNewTab];
-  OpenReadingList();
+  [ReadingListEarlGreyUI openReadingList];
 }
 
 @end

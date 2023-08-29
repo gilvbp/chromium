@@ -49,8 +49,8 @@ class GuestView : public GuestViewBase {
   }
 
  protected:
-  explicit GuestView(content::RenderFrameHost* owner_rfh)
-      : GuestViewBase(owner_rfh) {}
+  explicit GuestView(content::WebContents* owner_web_contents)
+      : GuestViewBase(owner_web_contents) {}
   ~GuestView() override = default;
 
   T* GetOpener() const { return AsDerivedGuest(GuestViewBase::GetOpener()); }

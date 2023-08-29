@@ -61,12 +61,7 @@ bool DllEntryContainsLspFeature(
 
 }  // namespace
 
-#ifndef NDEBUG
-#define MAYBE_CollectDlls DISABLED_CollectDlls
-#else
-#define MAYBE_CollectDlls CollectDlls
-#endif
-TEST(SafeBrowsingEnvironmentDataCollectionWinTest, MAYBE_CollectDlls) {
+TEST(SafeBrowsingEnvironmentDataCollectionWinTest, CollectDlls) {
   // This test will check if the CollectDlls method works by loading
   // a dll and then checking if we can find it within the process report.
   // Pick msvidc32.dll as it is present from WinXP to Win8 and yet rarely used.

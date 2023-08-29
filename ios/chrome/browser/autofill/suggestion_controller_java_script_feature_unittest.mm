@@ -8,7 +8,6 @@
 
 #import "base/strings/sys_string_conversions.h"
 #import "base/test/ios/wait_util.h"
-#import "base/test/test_timeouts.h"
 #import "ios/chrome/browser/shared/model/browser_state/test_chrome_browser_state.h"
 #import "ios/chrome/browser/web/chrome_web_client.h"
 #import "ios/web/public/js_messaging/web_frame.h"
@@ -20,6 +19,10 @@
 #import "ios/web/public/web_state.h"
 #import "testing/gtest_mac.h"
 #import "testing/platform_test.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace {
 
@@ -260,10 +263,9 @@ TEST_F(SuggestionControllerJavaScriptFeatureTest, SequentialNavigation) {
             EXPECT_TRUE(has_previous_element);
             EXPECT_TRUE(has_next_element);
           }));
-  ASSERT_TRUE(base::test::ios::WaitUntilConditionOrTimeout(
-      TestTimeouts::action_timeout(), ^bool() {
-        return block_was_called;
-      }));
+  base::test::ios::WaitUntilCondition(^bool() {
+    return block_was_called;
+  });
   autofill::SuggestionControllerJavaScriptFeature::GetInstance()
       ->SelectNextElementInFrame(GetMainFrame());
   EXPECT_TRUE(WaitUntilElementSelected(@"email"));
@@ -380,11 +382,10 @@ class FetchPreviousAndNextExceptionTest
               EXPECT_FALSE(hasNextElement);
               block_was_called = YES;
             }));
-    ASSERT_TRUE(base::test::ios::WaitUntilConditionOrTimeout(
-        TestTimeouts::action_timeout(), ^bool() {
-          base::RunLoop().RunUntilIdle();
-          return block_was_called;
-        }));
+    base::test::ios::WaitUntilCondition(^bool() {
+      base::RunLoop().RunUntilIdle();
+      return block_was_called;
+    });
   }
 };
 

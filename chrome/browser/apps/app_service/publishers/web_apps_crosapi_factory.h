@@ -33,8 +33,8 @@ class WebAppsCrosapiFactory : public ProfileKeyedServiceFactory {
   ~WebAppsCrosapiFactory() override = default;
 
   // BrowserContextKeyedServiceFactory overrides.
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
-    content::BrowserContext* context) const override;
+  KeyedService* BuildServiceInstanceFor(
+      content::BrowserContext* context) const override;
 };
 
 }  // namespace apps

@@ -90,7 +90,6 @@ PermissionPromptChipModel::PermissionPromptChipModel(
   if (delegate_->ShouldCurrentRequestUseQuietUI()) {
     prompt_style_ = PermissionPromptStyle::kQuietChip;
     should_bubble_start_open_ = false;
-    should_display_blocked_icon_ = true;
     should_expand_ =
         ShouldPermissionBubbleExpand(delegate_.get(), prompt_style_) &&
         (should_bubble_start_open_ ||
@@ -101,7 +100,7 @@ PermissionPromptChipModel::PermissionPromptChipModel(
   } else {
     prompt_style_ = PermissionPromptStyle::kChip;
     should_bubble_start_open_ = true;
-    should_display_blocked_icon_ = false;
+
     should_expand_ = true;
 
     chip_text_ = GetLoudPermissionMessage(delegate_.get());
@@ -128,10 +127,9 @@ void PermissionPromptChipModel::UpdateWithUserDecision(
     permissions::PermissionAction user_decision) {
   permissions::PermissionRequest::ChipTextType chip_text_type;
   permissions::PermissionRequest::ChipTextType accessibility_text_type;
-  user_decision_ = user_decision;
-
   int cam_mic_combo_accessibility_text_id;
-  switch (user_decision_) {
+
+  switch (user_decision) {
     case permissions::PermissionAction::GRANTED:
       should_display_blocked_icon_ = false;
       chip_theme_ = OmniboxChipTheme::kNormalVisibility;

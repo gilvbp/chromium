@@ -66,11 +66,10 @@ ShoppingServiceFactory::ShoppingServiceFactory()
   DependsOn(SyncServiceFactory::GetInstance());
 }
 
-std::unique_ptr<KeyedService>
-ShoppingServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* ShoppingServiceFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   Profile* profile = Profile::FromBrowserContext(context);
-  return std::make_unique<ShoppingService>(
+  return new ShoppingService(
       GetCurrentCountryCode(g_browser_process->variations_service()),
       g_browser_process->GetApplicationLocale(),
       BookmarkModelFactory::GetInstance()->GetForBrowserContext(context),
@@ -92,4 +91,27 @@ bool ShoppingServiceFactory::ServiceIsCreatedWithBrowserContext() const {
 bool ShoppingServiceFactory::ServiceIsNULLWhileTesting() const {
   return true;
 }
+
+KeyedService* ShoppingServiceFactory::SetTestingFactoryAndUse(
+    content::BrowserContext* context,
+    TestingFactory testing_factory) {
+  KeyedService* mock_shopping_service =
+      ProfileKeyedServiceFactory::SetTestingFactoryAndUse(
+          context, std::move(testing_factory));
+#if !BUILDFLAG(IS_ANDROID)
+  Profile* profile = Profile::FromBrowserContext(context);
+  Browser* browser = chrome::FindBrowserWithProfile(profile);
+  for (int i = 0; i < browser->tab_strip_model()->GetTabCount(); i++) {
+    CommerceTabHelper::FromWebContents(
+        browser->tab_strip_model()->GetWebContentsAt(i))
+        ->SetShoppingServiceForTesting(mock_shopping_service);  // IN-TEST
+  }
+#else
+  // TODO(crbug.com/1356028): Update the ShoppingService in CommerceTabHelper.
+  NOTIMPLEMENTED() << "No implementation for Android yet.";
+#endif
+
+  return mock_shopping_service;
+}
+
 }  // namespace commerce

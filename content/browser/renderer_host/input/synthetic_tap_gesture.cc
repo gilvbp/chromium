@@ -12,18 +12,15 @@
 namespace content {
 
 SyntheticTapGesture::SyntheticTapGesture(
-    const SyntheticTapGestureParams& gesture_params)
-    : SyntheticGestureBase(gesture_params),
+    const SyntheticTapGestureParams& params)
+    : params_(params),
       gesture_source_type_(content::mojom::GestureSourceType::kDefaultInput),
       state_(SETUP) {
-  CHECK_EQ(SyntheticGestureParams::TAP_GESTURE,
-           gesture_params.GetGestureType());
-  DCHECK_GE(params().duration_ms, 0);
-  if (params().gesture_source_type ==
-      content::mojom::GestureSourceType::kDefaultInput) {
-    params().gesture_source_type =
+  DCHECK_GE(params_.duration_ms, 0);
+  if (params_.gesture_source_type ==
+      content::mojom::GestureSourceType::kDefaultInput)
+    params_.gesture_source_type =
         content::mojom::GestureSourceType::kTouchInput;
-  }
 }
 
 SyntheticTapGesture::~SyntheticTapGesture() {}
@@ -37,7 +34,7 @@ SyntheticGesture::Result SyntheticTapGesture::ForwardInputEvents(
       dispatching_controller_;
 
   if (state_ == SETUP) {
-    gesture_source_type_ = params().gesture_source_type;
+    gesture_source_type_ = params_.gesture_source_type;
     if (gesture_source_type_ ==
         content::mojom::GestureSourceType::kDefaultInput)
       gesture_source_type_ = target->GetDefaultSyntheticGestureSourceType();
@@ -50,7 +47,7 @@ SyntheticGesture::Result SyntheticTapGesture::ForwardInputEvents(
 
   if (!synthetic_pointer_driver_)
     synthetic_pointer_driver_ = SyntheticPointerDriver::Create(
-        gesture_source_type_, params().from_devtools_debugger);
+        gesture_source_type_, params_.from_devtools_debugger);
 
   if (gesture_source_type_ == content::mojom::GestureSourceType::kTouchInput ||
       gesture_source_type_ == content::mojom::GestureSourceType::kMouseInput) {
@@ -73,7 +70,7 @@ SyntheticGesture::Result SyntheticTapGesture::ForwardInputEvents(
 void SyntheticTapGesture::WaitForTargetAck(
     base::OnceClosure callback,
     SyntheticGestureTarget* target) const {
-  target->WaitForTargetAck(params().GetGestureType(), gesture_source_type_,
+  target->WaitForTargetAck(params_.GetGestureType(), gesture_source_type_,
                            std::move(callback));
 }
 
@@ -90,14 +87,14 @@ void SyntheticTapGesture::ForwardTouchOrMouseInputEvents(
       dispatching_controller_;
   switch (state_) {
     case PRESS:
-      synthetic_pointer_driver_->Press(params().position.x(),
-                                       params().position.y());
+      synthetic_pointer_driver_->Press(params_.position.x(),
+                                       params_.position.y());
       synthetic_pointer_driver_->DispatchEvent(target, timestamp);
       if (!weak_controller) {
         return;
       }
       // Release immediately if duration is 0.
-      if (params().duration_ms == 0) {
+      if (params_.duration_ms == 0) {
         synthetic_pointer_driver_->Release();
         synthetic_pointer_driver_->DispatchEvent(target, timestamp);
         if (!weak_controller) {
@@ -130,7 +127,7 @@ void SyntheticTapGesture::ForwardTouchOrMouseInputEvents(
 }
 
 base::TimeDelta SyntheticTapGesture::GetDuration() const {
-  return base::Milliseconds(params().duration_ms);
+  return base::Milliseconds(params_.duration_ms);
 }
 
 }  // namespace content

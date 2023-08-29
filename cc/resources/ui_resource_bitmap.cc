@@ -18,8 +18,6 @@
 #include "third_party/skia/include/core/SkImageInfo.h"
 #include "third_party/skia/include/core/SkMallocPixelRef.h"
 #include "third_party/skia/include/core/SkPixelRef.h"
-#include "third_party/skia/include/gpu/GrDirectContext.h"
-#include "third_party/skia/include/gpu/GrRecordingContext.h"
 
 namespace cc {
 namespace {
@@ -62,10 +60,7 @@ void UIResourceBitmap::DrawToCanvas(SkCanvas* canvas, SkPaint* paint) {
   bitmap.setInfo(info_, pixel_ref_.get()->rowBytes());
   bitmap.setPixelRef(pixel_ref_, 0, 0);
   canvas->drawImage(bitmap.asImage(), 0, 0, SkSamplingOptions(), paint);
-  if (GrDirectContext* direct_context =
-          GrAsDirectContext(canvas->recordingContext())) {
-    direct_context->flushAndSubmit();
-  }
+  canvas->flush();
 }
 
 size_t UIResourceBitmap::SizeInBytes() const {

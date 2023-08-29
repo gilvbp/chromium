@@ -20,7 +20,7 @@ namespace blink {
 
 class Navigator;
 
-class BatteryManager final : public EventTarget,
+class BatteryManager final : public EventTargetWithInlineData,
                              public ActiveScriptWrappable<BatteryManager>,
                              public Supplement<Navigator>,
                              public ExecutionContextLifecycleStateObserver,

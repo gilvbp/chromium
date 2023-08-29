@@ -34,8 +34,6 @@ const NGPhysicalBoxFragment* NGBaseLayoutAlgorithmTest::RunBlockLayoutAlgorithm(
     NGBlockNode node,
     const NGConstraintSpace& space,
     const NGBreakToken* break_token) {
-  AdvanceToLayoutPhase();
-
   NGFragmentGeometry fragment_geometry =
       CalculateInitialFragmentGeometry(space, node, /* break_token */ nullptr);
 
@@ -52,8 +50,6 @@ NGBaseLayoutAlgorithmTest::RunFieldsetLayoutAlgorithm(
     NGBlockNode node,
     const NGConstraintSpace& space,
     const NGBreakToken* break_token) {
-  AdvanceToLayoutPhase();
-
   NGFragmentGeometry fragment_geometry =
       CalculateInitialFragmentGeometry(space, node, /* break_token */ nullptr);
 

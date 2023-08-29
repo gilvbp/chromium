@@ -82,7 +82,7 @@ void SVGGradientElement::BuildPendingResource() {
   if (auto* gradient = DynamicTo<SVGGradientElement>(target))
     AddReferenceTo(gradient);
 
-  InvalidateGradient();
+  InvalidateGradient(layout_invalidation_reason::kSvgResourceInvalidated);
 }
 
 void SVGGradientElement::ClearResourceReferences() {
@@ -116,7 +116,7 @@ void SVGGradientElement::SvgAttributeChanged(
       attr_name == svg_names::kGradientTransformAttr ||
       attr_name == svg_names::kSpreadMethodAttr) {
     SVGElement::InvalidationGuard invalidation_guard(this);
-    InvalidateGradient();
+    InvalidateGradient(layout_invalidation_reason::kAttributeChanged);
     return;
   }
 
@@ -147,18 +147,20 @@ void SVGGradientElement::ChildrenChanged(const ChildrenChange& change) {
   SVGElement::ChildrenChanged(change);
 
   if (!change.ByParser())
-    InvalidateGradient();
+    InvalidateGradient(layout_invalidation_reason::kChildChanged);
 }
 
-void SVGGradientElement::InvalidateGradient() {
+void SVGGradientElement::InvalidateGradient(
+    LayoutInvalidationReasonForTracing reason) {
   if (auto* layout_object = To<LayoutSVGResourceContainer>(GetLayoutObject()))
-    layout_object->InvalidateCache();
+    layout_object->InvalidateCacheAndMarkForLayout(reason);
 }
 
 void SVGGradientElement::InvalidateDependentGradients() {
   NotifyIncomingReferences([](SVGElement& element) {
     if (auto* gradient = DynamicTo<SVGGradientElement>(element)) {
-      gradient->InvalidateGradient();
+      gradient->InvalidateGradient(
+          layout_invalidation_reason::kSvgResourceInvalidated);
     }
   });
 }

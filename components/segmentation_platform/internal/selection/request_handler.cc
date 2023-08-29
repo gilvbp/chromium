@@ -72,7 +72,7 @@ class RequestHandlerImpl : public RequestHandler {
   std::unique_ptr<SegmentResultProvider> result_provider_;
 
   // Pointer to the execution service.
-  const raw_ptr<ExecutionService> execution_service_ = nullptr;
+  const raw_ptr<ExecutionService> execution_service_{};
 
   base::WeakPtrFactory<RequestHandlerImpl> weak_ptr_factory_{this};
 };

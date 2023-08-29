@@ -39,7 +39,7 @@ public class OmniboxPedal extends OmniboxAction {
                 delegate.openSettingsPage(SettingsFragment.MAIN);
                 break;
             case OmniboxPedalId.CLEAR_BROWSING_DATA:
-                delegate.handleClearBrowsingData();
+                delegate.openSettingsPage(SettingsFragment.CLEAR_BROWSING_DATA);
                 break;
             case OmniboxPedalId.UPDATE_CREDIT_CARD:
                 delegate.openSettingsPage(SettingsFragment.PAYMENT_METHODS);

@@ -47,7 +47,6 @@ export class EmojiSearch extends PolymerElement {
       searchQuery: {type: String, value: ''},
       nextGifPos: {type: String, value: ''},
       errorMessage: {type: String, value: NO_INTERNET_SEARCH_ERROR_MSG},
-      closeGifNudgeOverlay: {type: Object},
     };
   }
   categoriesData: EmojiGroupData;
@@ -57,8 +56,6 @@ export class EmojiSearch extends PolymerElement {
   private needIndexing: boolean;
   private gifSupport: boolean;
   private status: Status|null;
-  private closeGifNudgeOverlay: () => void;
-
   // TODO(b/235419647): Update the config to use extended search.
   private fuseConfig: Fuse.IFuseOptions<EmojiVariants> = {
     threshold: 0.0,        // Exact match only.
@@ -144,10 +141,6 @@ export class EmojiSearch extends PolymerElement {
    * results list on down arrow or enter key presses.
    */
   onSearchKeyDown(ev: KeyboardEvent): void {
-    // If GIF support is enabled, we may have an overlay for the GIF nudge. Need
-    // to ensure the overlay is closed before searching for anything.
-    this.closeGifNudgeOverlay();
-
     const resultsCount = this.getNumSearchResults();
     // if not searching or no results, do nothing.
     if (!this.$.search.getValue() || resultsCount === 0) {

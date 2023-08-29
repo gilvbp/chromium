@@ -16,7 +16,6 @@
 #include "ui/gfx/geometry/rrect_f.h"
 #include "ui/gfx/geometry/size_conversions.h"
 #include "ui/gfx/overlay_priority_hint.h"
-#include "ui/ozone/platform/wayland/host/surface_augmenter.h"
 #include "ui/ozone/platform/wayland/host/wayland_buffer_backing.h"
 #include "ui/ozone/platform/wayland/host/wayland_buffer_factory.h"
 #include "ui/ozone/platform/wayland/host/wayland_buffer_handle.h"
@@ -257,12 +256,9 @@ void WaylandFrameManager::PlayBackFrame(std::unique_ptr<WaylandFrame> frame) {
         }
       }
     } else {
-      // TODO(crbug.com/1457446): Remove clip_rect when
-      // augmented_surface_set_clip_rect become supported widely enough.
       subsurface->ConfigureAndShowSurface(
           config.bounds_rect, root_config.bounds_rect, config.clip_rect,
-          config.transform, root_config.surface_scale_factor, nullptr,
-          reference_above);
+          root_config.surface_scale_factor, nullptr, reference_above);
       ApplySurfaceConfigure(frame.get(), surface, config, true);
       // A fatal error happened. Must stop the playback and terminate the gpu
       // process as it might have been compromised.
@@ -347,15 +343,14 @@ void WaylandFrameManager::ApplySurfaceConfigure(
       &WaylandFrameManager::FeedbackPresented,
       &WaylandFrameManager::FeedbackDiscarded};
 
-  surface->set_buffer_transform(
-      absl::holds_alternative<gfx::OverlayTransform>(config.transform)
-          ? absl::get<gfx::OverlayTransform>(config.transform)
-          : gfx::OverlayTransform::OVERLAY_TRANSFORM_NONE);
+  surface->set_buffer_transform(config.transform);
   surface->set_surface_buffer_scale(config.surface_scale_factor);
   surface->set_buffer_crop(config.crop_rect);
   surface->set_viewport_destination(config.bounds_rect.size());
   surface->set_opacity(config.opacity);
   surface->set_blending(config.enable_blend);
+  surface->set_rounded_clip_bounds(
+      config.rounded_clip_bounds.value_or(gfx::RRectF()));
   surface->set_overlay_priority(config.priority_hint);
   surface->set_background_color(config.background_color);
   surface->set_contains_video(
@@ -364,12 +359,9 @@ void WaylandFrameManager::ApplySurfaceConfigure(
   surface->set_color_space(
       config.color_space.value_or(gfx::ColorSpace::CreateSRGB()));
   if (set_opaque_region) {
-    auto region_px =
-        config.enable_blend
-            ? absl::nullopt
-            : absl::optional<std::vector<gfx::Rect>>(
-                  {gfx::Rect(gfx::ToRoundedSize(config.bounds_rect.size()))});
-    surface->set_opaque_region(region_px);
+    std::vector<gfx::Rect> region_px = {
+        gfx::Rect(gfx::ToRoundedSize(config.bounds_rect.size()))};
+    surface->set_opaque_region(config.enable_blend ? nullptr : &region_px);
   }
 
   WaylandBufferHandle* buffer_handle =
@@ -380,44 +372,14 @@ void WaylandFrameManager::ApplySurfaceConfigure(
   // If we don't attach a released buffer, graphics freeze will occur.
   DCHECK(will_attach || !buffer_handle->released(surface));
 
-  // `damage_region`, `clip_rect` and `rounded_clip_bounds` are specified in
-  // the root surface coordinates space, the same as `bounds_rect`. To get
-  // these rect values in local surface space we need to offset the origin by
-  // the root surface's position.
-  // Note: The damage and clip rect may be enlarged if bounds_rect is sub-pixel
-  // positioned because `damage_region` and `clip_rect` is a Rect, and
-  // `bounds_rect` is a RectF. `rounded_clip_bounds` is RRectF so no need for
-  // conversion.
-  // Note: There is no rotation nor scale of the coordinates compared to the
-  // root window coordinates, and also, we assume that the surface is a direct
-  // children of the root surface, so we can adjust the position by
-  // `bounds_rect` origin.
+  // |damage_region| is specified in viz::Display space, the same as
+  // |bounds_rect|. To get the damage in surface space we need to offset the
+  // origin by the surface's position.
+  // Note: The damage may be enlarged if bounds_rect is sub-pixel positioned
+  // because |damage_region| is a Rect, and |bounds_rect| is a RectF.
   gfx::RectF surface_damage = gfx::RectF(config.damage_region);
   surface_damage -= config.bounds_rect.OffsetFromOrigin();
   surface->UpdateBufferDamageRegion(ToEnclosingRect(surface_damage));
-  if (config.rounded_clip_bounds) {
-    // The deprecated implementation uses root surface coordinates, so do not
-    // offset if the local coordinates rounded corners is not supported.
-    auto rounded_corners_offset =
-        (connection_->surface_augmenter() &&
-         connection_->surface_augmenter()
-             ->NeedsRoundedClipBoundsInLocalSurfaceCoordinates())
-            ? config.bounds_rect.OffsetFromOrigin()
-            : gfx::Vector2d();
-    surface->set_rounded_clip_bounds(*config.rounded_clip_bounds -
-                                     rounded_corners_offset);
-  } else {
-    surface->set_rounded_clip_bounds(gfx::RRectF());
-  }
-  if (config.clip_rect) {
-    gfx::RectF clip_rect = gfx::RectF(*config.clip_rect);
-    clip_rect -= config.bounds_rect.OffsetFromOrigin();
-    surface->set_clip_rect(clip_rect);
-  } else {
-    // Reset clip rect value when `config.clip_rect` is not set.
-    surface->set_clip_rect(absl::nullopt);
-  }
-
   if (!config.access_fence_handle.is_null())
     surface->set_acquire_fence(std::move(config.access_fence_handle));
 
@@ -668,22 +630,6 @@ void WaylandFrameManager::OnWlBufferRelease(WaylandSurface* surface,
     auto result = frame->submitted_buffers.find(surface);
     if (result != frame->submitted_buffers.end() &&
         result->second->wl_buffer() == wl_buffer) {
-      if (connection_->UseImplicitSyncInterop()) {
-        base::ScopedFD fence =
-            connection_->buffer_manager_host()->ExtractReleaseFence(
-                result->second->id());
-
-        if (fence.is_valid()) {
-          if (frame->merged_release_fence_fd.is_valid()) {
-            frame->merged_release_fence_fd.reset(sync_merge(
-                "", frame->merged_release_fence_fd.get(), fence.get()));
-          } else {
-            frame->merged_release_fence_fd = std::move(fence);
-          }
-          DCHECK(frame->merged_release_fence_fd.is_valid());
-        }
-      }
-
       frame->submitted_buffers.erase(result);
       break;
     }

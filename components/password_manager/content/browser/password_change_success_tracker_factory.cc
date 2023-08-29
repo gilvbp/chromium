@@ -35,10 +35,9 @@ PasswordChangeSuccessTrackerFactory::GetForBrowserContext(
       GetInstance()->GetServiceForBrowserContext(browser_context, true));
 }
 
-std::unique_ptr<KeyedService>
-PasswordChangeSuccessTrackerFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* PasswordChangeSuccessTrackerFactory::BuildServiceInstanceFor(
     content::BrowserContext* browser_context) const {
-  auto tracker = std::make_unique<PasswordChangeSuccessTrackerImpl>(
+  auto* tracker = new PasswordChangeSuccessTrackerImpl(
       user_prefs::UserPrefs::Get(browser_context));
   tracker->AddMetricsRecorder(
       std::make_unique<PasswordChangeMetricsRecorderUma>());

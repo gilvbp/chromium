@@ -8,6 +8,7 @@ import android.content.ContentResolver;
 import android.net.Uri;
 
 import androidx.activity.OnBackPressedCallback;
+import androidx.annotation.VisibleForTesting;
 
 import org.chromium.components.browser_ui.widget.FullscreenAlertDialog;
 import org.chromium.ui.base.PhotoPicker;
@@ -136,6 +137,7 @@ public class PhotoPickerDialog extends FullscreenAlertDialog
         dismiss();
     }
 
+    @VisibleForTesting
     public PickerCategoryView getCategoryViewForTesting() {
         return mCategoryView;
     }

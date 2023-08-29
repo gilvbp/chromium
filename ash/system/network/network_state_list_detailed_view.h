@@ -8,7 +8,6 @@
 #include <string>
 
 #include "ash/login_status.h"
-#include "ash/system/network/network_utils.h"
 #include "ash/system/network/tray_network_state_observer.h"
 #include "ash/system/tray/tray_detailed_view.h"
 #include "base/memory/raw_ptr.h"
@@ -50,8 +49,10 @@ class ASH_EXPORT NetworkStateListDetailedView
   const char* GetClassName() const override;
 
  protected:
+  enum ListType { LIST_TYPE_NETWORK, LIST_TYPE_VPN };
+
   NetworkStateListDetailedView(DetailedViewDelegate* delegate,
-                               NetworkDetailedViewListType list_type,
+                               ListType list_type,
                                LoginStatus login);
 
   // Refreshes the network list.
@@ -106,7 +107,7 @@ class ASH_EXPORT NetworkStateListDetailedView
   bool IsWifiEnabled();
 
   // Type of list (all networks or vpn)
-  NetworkDetailedViewListType list_type_;
+  ListType list_type_;
 
   // Track login state.
   LoginStatus login_;

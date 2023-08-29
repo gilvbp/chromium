@@ -53,7 +53,7 @@ TEST_F(CachedTextInputInfoTest, InlineElementEditable) {
             GetInputMethodController().GetSelectionOffsets());
   EXPECT_EQ(String(u"\uFFFCa"), GetCachedTextInputInfo().GetText());
 
-  auto& span = *GetDocument().QuerySelector(AtomicString("span"));
+  auto& span = *GetDocument().QuerySelector("span");
   span.replaceChild(Text::Create(GetDocument(), "12345"), span.firstChild());
 
   EXPECT_EQ(PlainTextRange(5, 5),

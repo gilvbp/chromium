@@ -40,7 +40,7 @@ class AppPreloadServiceFactory : public ProfileKeyedServiceFactory {
   ~AppPreloadServiceFactory() override;
 
   // ProfileKeyedServiceFactory:
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* context) const override;
   bool ServiceIsCreatedWithBrowserContext() const override;
 };

@@ -6,6 +6,7 @@ package org.chromium.chrome.browser.webapps;
 
 import android.content.Context;
 
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -55,6 +56,11 @@ public class WebappDirectoryManagerTest {
         ThreadUtils.setThreadAssertsDisabledForTesting(true);
         PathUtils.setPrivateDataDirectorySuffix("chrome");
         WebappDirectoryManager.resetForTesting();
+    }
+
+    @After
+    public void tearDown() {
+        ThreadUtils.setThreadAssertsDisabledForTesting(false);
     }
 
     public void registerWebapp(String webappId) {

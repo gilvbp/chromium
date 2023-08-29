@@ -297,6 +297,21 @@ void VRUiHostImpl::StopUiRendering() {
   ui_rendering_thread_ = nullptr;
 }
 
+void VRUiHostImpl::SetLocationInfoOnUi() {
+  GURL gurl;
+  if (web_contents_) {
+    content::NavigationEntry* entry =
+        web_contents_->GetController().GetVisibleEntry();
+    if (entry) {
+      gurl = entry->GetVirtualURL();
+    }
+  }
+  // TODO(https://crbug.com/905375): The below call should eventually be
+  // rewritten to take a LocationBarState and not just GURL. See
+  // VRBrowserRendererThreadWin::StartOverlay() also.
+  ui_rendering_thread_->SetLocationInfo(gurl);
+}
+
 void VRUiHostImpl::OnPromptAdded() {
   ShowExternalNotificationPrompt();
 }
@@ -318,6 +333,8 @@ void VRUiHostImpl::ShowExternalNotificationPrompt() {
     DVLOG(1) << __func__ << ": no ui_rendering_thread_";
     return;
   }
+
+  SetLocationInfoOnUi();
 
   if (indicators_visible_) {
     indicators_visible_ = false;
@@ -404,18 +421,17 @@ void VRUiHostImpl::PollCapturingState() {
           settings->IsContentAllowed(ContentSettingsType::GEOLOCATION);
 
       active_capturing.audio_capture_enabled =
-          settings->GetMicrophoneCameraState().Has(
-              content_settings::PageSpecificContentSettings::
-                  kMicrophoneAccessed) &&
-          !settings->GetMicrophoneCameraState().Has(
-              content_settings::PageSpecificContentSettings::
-                  kMicrophoneBlocked);
+          (settings->GetMicrophoneCameraState() &
+           content_settings::PageSpecificContentSettings::
+               MICROPHONE_ACCESSED) &&
+          !(settings->GetMicrophoneCameraState() &
+            content_settings::PageSpecificContentSettings::MICROPHONE_BLOCKED);
 
       active_capturing.video_capture_enabled =
-          settings->GetMicrophoneCameraState().Has(
-              content_settings::PageSpecificContentSettings::kCameraAccessed) &&
-          !settings->GetMicrophoneCameraState().Has(
-              content_settings::PageSpecificContentSettings::kCameraBlocked);
+          (settings->GetMicrophoneCameraState() &
+           content_settings::PageSpecificContentSettings::CAMERA_ACCESSED) &
+          !(settings->GetMicrophoneCameraState() &
+            content_settings::PageSpecificContentSettings::CAMERA_BLOCKED);
 
       active_capturing.midi_connected =
           settings->IsContentAllowed(ContentSettingsType::MIDI_SYSEX);

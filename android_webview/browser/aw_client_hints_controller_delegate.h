@@ -50,10 +50,7 @@ class AwClientHintsControllerDelegate
 
   // Add an unique brand to the brand list to allow users distinguish Android
   // and Android WebView using user-agent client hints.
-  // `only_low_entropy_ch` indicates whether components should only populate the
-  // low entropy client hints.
-  static blink::UserAgentMetadata GetUserAgentMetadataOverrideBrand(
-      bool only_low_entropy_ch = false);
+  static blink::UserAgentMetadata GetUserAgentMetadataOverrideBrand();
 
   network::NetworkQualityTracker* GetNetworkQualityTracker() override;
 

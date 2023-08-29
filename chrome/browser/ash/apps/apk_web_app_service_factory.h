@@ -39,7 +39,7 @@ class ApkWebAppServiceFactory : public ProfileKeyedServiceFactory {
   ~ApkWebAppServiceFactory() override;
 
   // BrowserContextKeyedServiceFactory:
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* context) const override;
 };
 

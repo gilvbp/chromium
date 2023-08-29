@@ -53,8 +53,4 @@ void MediaItemUIObserverSet::OnMediaItemUIDestroyed(const std::string& id) {
   StopObserving(id);
 }
 
-void MediaItemUIObserverSet::OnMediaItemUIShowDevices(const std::string& id) {
-  owner_->OnMediaItemUIShowDevices(id);
-}
-
 }  // namespace global_media_controls

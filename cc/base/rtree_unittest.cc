@@ -224,8 +224,9 @@ TEST(RTreeTest, Payload) {
 
   RTree<float> rtree;
   rtree.Build(
-      data.size(), [&data](size_t index) { return data[index].first; },
-      [&data](size_t index) { return data[index].second; });
+      data,
+      [](const Container& items, size_t index) { return items[index].first; },
+      [](const Container& items, size_t index) { return items[index].second; });
 
   std::vector<float> results;
   SearchAndVerifyRefs(rtree, gfx::Rect(0, 0, 1, 1), &results);

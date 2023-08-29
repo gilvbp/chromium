@@ -36,10 +36,9 @@ ChromeAppIconServiceFactory::ChromeAppIconServiceFactory()
 
 ChromeAppIconServiceFactory::~ChromeAppIconServiceFactory() = default;
 
-std::unique_ptr<KeyedService>
-ChromeAppIconServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* ChromeAppIconServiceFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
-  return std::make_unique<ChromeAppIconService>(context);
+  return new ChromeAppIconService(context);
 }
 
 }  // namespace extensions

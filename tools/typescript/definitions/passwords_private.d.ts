@@ -76,31 +76,6 @@ declare global {
         VALID = 'VALID',
       }
 
-      export enum FamilyFetchStatus {
-        UNKNOWN_ERROR = 'UNKNOWN_ERROR',
-        NO_MEMBERS = 'NO_MEMBERS',
-        SUCCESS = 'SUCCESS',
-      }
-
-      export interface PublicKey {
-        value: string;
-        version: number;
-      }
-
-      export interface RecipientInfo {
-        userId: string;
-        email: string;
-        displayName: string;
-        profileImageUrl: string;
-        isEligible: boolean;
-        publicKey?: PublicKey;
-      }
-
-      export interface FamilyFetchResults {
-        status: FamilyFetchStatus;
-        members: RecipientInfo[];
-      }
-
       export interface ImportEntry {
         status: ImportEntryStatus;
         url: string;
@@ -137,13 +112,15 @@ declare global {
 
       export interface PasswordUiEntry {
         isPasskey: boolean;
-        affiliatedDomains: DomainInfo[];
+        urls: UrlCollection;
+        affiliatedDomains?: DomainInfo[];
         username: string;
         displayName?: string;
         password?: string;
         federationText?: string;
         id: number;
         storedIn: PasswordStoreSet;
+        isAndroidCredential: boolean;
         note?: string;
         changePasswordUrl?: string;
         compromisedInfo?: CompromisedInfo;
@@ -182,11 +159,19 @@ declare global {
         useAccountStore: boolean;
       }
 
+      export interface ChangeSavedPasswordParams {
+        username: string;
+        password: string;
+        note?: string;
+      }
+
       export interface PasswordUiEntryList {
         entries: PasswordUiEntry[];
       }
 
       export function recordPasswordsPageAccessInSettings(): void;
+      export function changeSavedPassword(
+          id: number, params: ChangeSavedPasswordParams): Promise<number>;
       export function changeCredential(credential: PasswordUiEntry):
           Promise<void>;
       export function removeCredential(
@@ -201,9 +186,6 @@ declare global {
       export function getCredentialGroups(): Promise<CredentialGroup[]>;
       export function getPasswordExceptionList(): Promise<ExceptionEntry[]>;
       export function movePasswordsToAccount(ids: number[]): void;
-      export function fetchFamilyMembers(): Promise<FamilyFetchResults>;
-      export function sharePassword(id: number, recipients: RecipientInfo[]):
-          Promise<void>;
       export function importPasswords(toStore: PasswordStoreSet):
           Promise<ImportResults>;
       export function continueImport(selectedIds: number[]):
@@ -212,6 +194,7 @@ declare global {
       export function exportPasswords(): Promise<void>;
       export function requestExportProgressStatus():
           Promise<ExportProgressStatus>;
+      export function cancelExportPasswords(): void;
       export function isOptedInForAccountStorage(): Promise<boolean>;
       export function optInForAccountStorage(optIn: boolean): void;
       export function getInsecureCredentials(): Promise<PasswordUiEntry[]>;
@@ -221,7 +204,10 @@ declare global {
           Promise<void>;
       export function unmuteInsecureCredential(credential: PasswordUiEntry):
           Promise<void>;
+      export function recordChangePasswordFlowStarted(
+          credential: PasswordUiEntry): void;
       export function startPasswordCheck(): Promise<void>;
+      export function stopPasswordCheck(): Promise<void>;
       export function getPasswordCheckStatus(): Promise<PasswordCheckStatus>;
       export function isAccountStoreDefault(): Promise<boolean>;
       export function getUrlCollection(url: string):

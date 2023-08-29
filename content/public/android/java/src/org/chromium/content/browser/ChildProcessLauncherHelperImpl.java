@@ -534,6 +534,7 @@ public final class ChildProcessLauncherHelperImpl {
         });
     }
 
+    @VisibleForTesting
     public static void setSandboxServicesSettingsForTesting(
             ChildConnectionAllocator.ConnectionFactory factory, int serviceCount,
             String serviceName) {
@@ -542,6 +543,7 @@ public final class ChildProcessLauncherHelperImpl {
         sSandboxedServicesNameForTesting = serviceName;
     }
 
+    @VisibleForTesting
     public static void setSkipDelayForReducePriorityOnBackgroundForTesting() {
         sSkipDelayForReducePriorityOnBackgroundForTesting = true;
     }
@@ -869,15 +871,18 @@ public final class ChildProcessLauncherHelperImpl {
 
     // Testing only related methods.
 
+    @VisibleForTesting
     int getPidForTesting() {
         assert LauncherThread.runningOnLauncherThread();
         return mLauncher.getPid();
     }
 
+    @VisibleForTesting
     public static Map<Integer, ChildProcessLauncherHelperImpl> getAllProcessesForTesting() {
         return sLauncherByPid;
     }
 
+    @VisibleForTesting
     public static ChildProcessLauncherHelperImpl createAndStartForTesting(String[] commandLine,
             FileDescriptorInfo[] filesToBeMapped, boolean sandboxed,
             boolean reducePriorityOnBackground, boolean canUseWarmUpConnection,
@@ -890,6 +895,7 @@ public final class ChildProcessLauncherHelperImpl {
     }
 
     /** @return the count of services set-up and working. */
+    @VisibleForTesting
     static int getConnectedServicesCountForTesting() {
         int count = sPrivilegedChildConnectionAllocator == null
                 ? 0
@@ -897,6 +903,7 @@ public final class ChildProcessLauncherHelperImpl {
         return count + getConnectedSandboxedServicesCountForTesting();
     }
 
+    @VisibleForTesting
     public static int getConnectedSandboxedServicesCountForTesting() {
         return sSandboxedChildConnectionAllocator == null
                 ? 0
@@ -908,10 +915,12 @@ public final class ChildProcessLauncherHelperImpl {
         return mLauncher.getConnection();
     }
 
+    @VisibleForTesting
     public ChildConnectionAllocator getChildConnectionAllocatorForTesting() {
         return mLauncher.getConnectionAllocator();
     }
 
+    @VisibleForTesting
     public static ChildProcessConnection getWarmUpConnectionForTesting(boolean sandboxed) {
         SpareChildConnection connection =
                 sandboxed ? sSpareSandboxedConnection : sSparePrivilegedConntection;

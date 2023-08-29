@@ -10,6 +10,7 @@ import android.graphics.Rect;
 import android.util.Size;
 
 import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 
 import org.chromium.base.Callback;
 import org.chromium.chrome.browser.tab.Tab;
@@ -77,6 +78,7 @@ public class BitmapGenerator implements LongScreenshotsTabService.CaptureProcess
     /**
      * @param compositorFactory The compositor factory to use.
      */
+    @VisibleForTesting
     public void setCompositorFactoryForTesting(CompositorFactory compositorFactory) {
         mCompositorFactory = compositorFactory;
     }
@@ -158,6 +160,7 @@ public class BitmapGenerator implements LongScreenshotsTabService.CaptureProcess
         return mCompositor.getScrollOffset();
     }
 
+    @VisibleForTesting
     public void setTabServiceAndCompositorForTest(
             LongScreenshotsTabService tabService, LongScreenshotsCompositor compositor) {
         mTabService = tabService;

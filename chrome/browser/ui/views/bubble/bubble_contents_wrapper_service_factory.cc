@@ -33,11 +33,9 @@ BubbleContentsWrapperServiceFactory::BubbleContentsWrapperServiceFactory()
               .WithGuest(ProfileSelection::kOriginalOnly)
               .Build()) {}
 
-std::unique_ptr<KeyedService>
-BubbleContentsWrapperServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* BubbleContentsWrapperServiceFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
-  return std::make_unique<BubbleContentsWrapperService>(
-      Profile::FromBrowserContext(context));
+  return new BubbleContentsWrapperService(Profile::FromBrowserContext(context));
 }
 
 BubbleContentsWrapperServiceFactory::~BubbleContentsWrapperServiceFactory() =

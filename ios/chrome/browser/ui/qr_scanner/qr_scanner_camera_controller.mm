@@ -4,7 +4,11 @@
 
 #import "ios/chrome/browser/ui/qr_scanner/qr_scanner_camera_controller.h"
 
-#import "base/apple/foundation_util.h"
+#import "base/mac/foundation_util.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 @interface QRScannerCameraController () <AVCaptureMetadataOutputObjectsDelegate>
 
@@ -62,7 +66,7 @@
     return;
   }
   NSString* resultString =
-      [base::apple::ObjCCastStrict<AVMetadataMachineReadableCodeObject>(
+      [base::mac::ObjCCastStrict<AVMetadataMachineReadableCodeObject>(
           metadataResult) stringValue];
   if (resultString.length == 0) {
     return;

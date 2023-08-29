@@ -4,5 +4,9 @@
 
 #import "ios/chrome/browser/ui/badges/badges_histograms.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 const char kInfobarOverflowMenuTappedHistogram[] =
     "Mobile.Messages.OverflowRow.Tapped";

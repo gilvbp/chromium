@@ -159,6 +159,7 @@ _EXTENSIBLE_ENUMS_MISSING_DEFAULT = (
     'x:arc.mojom.SegmentStyle',
     'x:arc.mojom.SelectFilesActionType',
     'x:arc.mojom.SetNativeChromeVoxResponse',
+    'x:arc.mojom.ShareFiles',
     'x:arc.mojom.ShowPackageInfoPage',
     'x:arc.mojom.SpanType',
     'x:arc.mojom.SupportedLinkChangeSource',

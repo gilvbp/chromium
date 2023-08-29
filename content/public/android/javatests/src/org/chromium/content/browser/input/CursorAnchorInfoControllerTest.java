@@ -6,7 +6,6 @@ package org.chromium.content.browser.input;
 
 import android.graphics.Matrix;
 import android.graphics.RectF;
-import android.os.Build;
 import android.text.TextUtils;
 import android.view.View;
 import android.view.inputmethod.CursorAnchorInfo;
@@ -143,7 +142,7 @@ public class CursorAnchorInfoControllerTest {
                         false /* immediate request */, true /* monitor request */, view));
 
         // Make sure that the focused node is considered to be non-editable by default.
-        controller.setBounds(new float[] {0.0f, 1.0f, 2.0f, 3.0f}, null, view);
+        controller.setCompositionCharacterBounds(new float[] {0.0f, 1.0f, 2.0f, 3.0f}, view);
         composingTextDelegate.updateTextAndSelection(controller, "0", 0, 1, 0, 1);
         controller.onUpdateFrameInfo(1.0f, 0.0f, true, true, 2.0f, 0.0f, 3.0f, view);
         Assert.assertEquals(0, immw.getUpdateCursorAnchorInfoCounter());
@@ -153,7 +152,7 @@ public class CursorAnchorInfoControllerTest {
 
         // Make sure that the controller does not crash even if it is called while the focused node
         // is not editable.
-        controller.setBounds(new float[] {30.0f, 1.0f, 32.0f, 3.0f}, null, view);
+        controller.setCompositionCharacterBounds(new float[] {30.0f, 1.0f, 32.0f, 3.0f}, view);
         composingTextDelegate.updateTextAndSelection(controller, "1", 0, 1, 0, 1);
         controller.onUpdateFrameInfo(1.0f, 100.0f, true, true, 2.0f, 0.0f, 3.0f, view);
         Assert.assertEquals(0, immw.getUpdateCursorAnchorInfoCounter());
@@ -179,7 +178,7 @@ public class CursorAnchorInfoControllerTest {
         // available with #onUpdateFrameInfo().
         Assert.assertTrue(controller.onRequestCursorUpdates(
                 true /* immediate request */, false /* monitor request */, view));
-        controller.setBounds(new float[] {0.0f, 1.0f, 2.0f, 3.0f}, null, view);
+        controller.setCompositionCharacterBounds(new float[] {0.0f, 1.0f, 2.0f, 3.0f}, view);
         composingTextDelegate.updateTextAndSelection(controller, "0", 0, 1, 0, 1);
         Assert.assertEquals(0, immw.getUpdateCursorAnchorInfoCounter());
         controller.onUpdateFrameInfo(1.0f, 0.0f, true, true, 2.0f, 0.0f, 3.0f, view);
@@ -284,7 +283,7 @@ public class CursorAnchorInfoControllerTest {
         // available with #onUpdateFrameInfo().
         Assert.assertTrue(controller.onRequestCursorUpdates(
                 false /* immediate request */, true /* monitor request */, view));
-        controller.setBounds(new float[] {0.0f, 1.0f, 2.0f, 3.0f}, null, view);
+        controller.setCompositionCharacterBounds(new float[] {0.0f, 1.0f, 2.0f, 3.0f}, view);
         composingTextDelegate.updateTextAndSelection(controller, "0", 0, 1, 0, 1);
         Assert.assertEquals(0, immw.getUpdateCursorAnchorInfoCounter());
         controller.onUpdateFrameInfo(1.0f, 0.0f, true, true, 2.0f, 0.0f, 3.0f, view);
@@ -302,13 +301,13 @@ public class CursorAnchorInfoControllerTest {
 
         // Make sure that #updateCursorAnchorInfo() is not be called if any coordinate parameter is
         // changed for better performance.
-        controller.setBounds(new float[] {0.0f, 1.0f, 2.0f, 3.0f}, null, view);
+        controller.setCompositionCharacterBounds(new float[] {0.0f, 1.0f, 2.0f, 3.0f}, view);
         controller.onUpdateFrameInfo(1.0f, 0.0f, true, true, 2.0f, 0.0f, 3.0f, view);
         Assert.assertEquals(1, immw.getUpdateCursorAnchorInfoCounter());
 
-        // Make sure that #updateCursorAnchorInfo() is called if #setBounds()
+        // Make sure that #updateCursorAnchorInfo() is called if #setCompositionCharacterBounds()
         // is called with a different parameter.
-        controller.setBounds(new float[] {30.0f, 1.0f, 32.0f, 3.0f}, null, view);
+        controller.setCompositionCharacterBounds(new float[] {30.0f, 1.0f, 32.0f, 3.0f}, view);
         Assert.assertEquals(2, immw.getUpdateCursorAnchorInfoCounter());
         controller.onUpdateFrameInfo(1.0f, 0.0f, true, true, 2.0f, 0.0f, 3.0f, view);
         Assert.assertEquals(2, immw.getUpdateCursorAnchorInfoCounter());
@@ -380,7 +379,7 @@ public class CursorAnchorInfoControllerTest {
                 false /* immediate request */, true /* monitor request */, view));
         controller.focusedNodeChanged(false);
         composingTextDelegate.clearTextAndSelection(controller);
-        controller.setBounds(new float[] {0.0f, 1.0f, 2.0f, 3.0f}, null, view);
+        controller.setCompositionCharacterBounds(new float[] {0.0f, 1.0f, 2.0f, 3.0f}, view);
         composingTextDelegate.updateTextAndSelection(controller, "0", 0, 1, 0, 1);
         controller.onUpdateFrameInfo(1.0f, 0.0f, true, true, 2.0f, 0.0f, 3.0f, view);
         Assert.assertEquals(5, immw.getUpdateCursorAnchorInfoCounter());
@@ -390,7 +389,7 @@ public class CursorAnchorInfoControllerTest {
         composingTextDelegate.clearTextAndSelection(controller);
         Assert.assertTrue(controller.onRequestCursorUpdates(
                 false /* immediate request */, true /* monitor request */, view));
-        controller.setBounds(new float[] {0.0f, 1.0f, 2.0f, 3.0f}, null, view);
+        controller.setCompositionCharacterBounds(new float[] {0.0f, 1.0f, 2.0f, 3.0f}, view);
         composingTextDelegate.updateTextAndSelection(controller, "0", 0, 1, 0, 1);
         Assert.assertEquals(5, immw.getUpdateCursorAnchorInfoCounter());
         viewDelegate.locationX = 0;
@@ -412,7 +411,7 @@ public class CursorAnchorInfoControllerTest {
     @Test
     @SmallTest
     @Feature({"Input-Text-IME"})
-    public void testSetBounds() {
+    public void testSetCompositionCharacterBounds() {
         TestInputMethodManagerWrapper immw = new TestInputMethodManagerWrapper(null);
         TestViewDelegate viewDelegate = new TestViewDelegate();
         TestComposingTextDelegate composingTextDelegate = new TestComposingTextDelegate();
@@ -429,8 +428,8 @@ public class CursorAnchorInfoControllerTest {
                 false /* immediate request */, true /* monitor request */, view));
 
         composingTextDelegate.updateTextAndSelection(controller, "01234", 1, 3, 1, 1);
-        controller.setBounds(new float[] {0.0f, 1.0f, 2.0f, 3.0f, 4.0f, 1.1f, 6.0f, 2.9f},
-                new float[] {0.0f, 1.0f, 6.0f, 2.9f}, view);
+        controller.setCompositionCharacterBounds(new float[] {0.0f, 1.0f, 2.0f, 3.0f,
+                4.0f, 1.1f, 6.0f, 2.9f}, view);
         controller.onUpdateFrameInfo(
                 1.0f, 0.0f, false, false, Float.NaN, Float.NaN, Float.NaN, view);
         Assert.assertEquals(1, immw.getUpdateCursorAnchorInfoCounter());
@@ -446,11 +445,6 @@ public class CursorAnchorInfoControllerTest {
                 immw.getLastCursorAnchorInfo().getCharacterBoundsFlags(2));
         Assert.assertEquals(null, immw.getLastCursorAnchorInfo().getCharacterBounds(3));
         Assert.assertEquals(0, immw.getLastCursorAnchorInfo().getCharacterBoundsFlags(3));
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            Assert.assertEquals(1, immw.getLastCursorAnchorInfo().getVisibleLineBounds().size());
-            Assert.assertEquals(new RectF(0.0f, 1.0f, 6.0f, 2.9f),
-                    immw.getLastCursorAnchorInfo().getVisibleLineBounds().get(0));
-        }
         AssertionHelper.assertComposingText("12", 1, immw.getLastCursorAnchorInfo());
         AssertionHelper.assertSelection(1, 1, immw.getLastCursorAnchorInfo());
     }

@@ -14,7 +14,6 @@
 #include "base/functional/bind.h"
 #include "base/notreached.h"
 #include "base/ranges/algorithm.h"
-#include "base/strings/strcat.h"
 #include "base/strings/string_split.h"
 #include "base/strings/string_util.h"
 #include "base/values.h"
@@ -26,7 +25,6 @@ namespace {
 const char kWildCardAny[] = "*";
 const char kMimeTypeSeparator[] = "/";
 constexpr size_t kMimeTypeComponentSize = 2;
-const char kAuthorityHostPortSeparator[] = ":";
 
 const char kActionKey[] = "action";
 const char kUrlKey[] = "url";
@@ -105,7 +103,6 @@ apps::IntentPtr MakeShareIntent(const GURL& filesystem_url,
     intent->mime_type = mime_type;
     intent->files = std::vector<apps::IntentFilePtr>{};
     auto file = std::make_unique<apps::IntentFile>(filesystem_url);
-    file->mime_type = mime_type;
     intent->files.push_back(std::move(file));
   }
   if (!drive_share_url.is_empty()) {
@@ -167,29 +164,22 @@ apps::IntentPtr CreateStartOnLockScreenIntent() {
   return std::make_unique<apps::Intent>(kIntentActionStartOnLockScreen);
 }
 
-bool ConditionValueMatches(std::string_view value,
+bool ConditionValueMatches(const std::string& value,
                            const apps::ConditionValuePtr& condition_value) {
-  return PatternMatchValue(value, condition_value->match_type,
-                           condition_value->value);
-}
-
-bool PatternMatchValue(std::string_view test_value,
-                       apps::PatternMatchType match_type,
-                       std::string_view match_value) {
-  switch (match_type) {
+  switch (condition_value->match_type) {
     case apps::PatternMatchType::kLiteral:
-      return test_value == match_value;
+      return value == condition_value->value;
     case apps::PatternMatchType::kPrefix:
-      return base::StartsWith(test_value, match_value,
+      return base::StartsWith(value, condition_value->value,
                               base::CompareCase::INSENSITIVE_ASCII);
     case apps::PatternMatchType::kSuffix:
-      return base::EndsWith(test_value, match_value,
+      return base::EndsWith(value, condition_value->value,
                             base::CompareCase::INSENSITIVE_ASCII);
     case apps::PatternMatchType::kGlob:
-      return MatchGlob(test_value, match_value);
+      return MatchGlob(value, condition_value->value);
     case apps::PatternMatchType::kMimeType:
       // kMimeType as a match for kFile is handled in FileMatchesConditionValue.
-      return MimeTypeMatched(test_value, match_value);
+      return MimeTypeMatched(value, condition_value->value);
     case apps::PatternMatchType::kFileExtension:
     case apps::PatternMatchType::kIsDirectory: {
       // Handled in FileMatchesConditionValue.
@@ -236,7 +226,7 @@ bool IsGenericFileHandler(const apps::IntentPtr& intent,
   return false;
 }
 
-bool MatchGlob(std::string_view value, std::string_view pattern) {
+bool MatchGlob(const std::string& value, const std::string& pattern) {
 #define GET_CHAR(s, i) ((UNLIKELY(i >= s.length())) ? '\0' : s[i])
 
   const size_t NP = pattern.length();
@@ -317,8 +307,8 @@ bool MatchGlob(std::string_view value, std::string_view pattern) {
 #undef GET_CHAR
 }
 
-bool MimeTypeMatched(std::string_view intent_mime_type,
-                     std::string_view filter_mime_type) {
+bool MimeTypeMatched(const std::string& intent_mime_type,
+                     const std::string& filter_mime_type) {
   std::vector<std::string> intent_components =
       base::SplitString(intent_mime_type, kMimeTypeSeparator,
                         base::TRIM_WHITESPACE, base::SPLIT_WANT_NONEMPTY);
@@ -610,54 +600,6 @@ SharedText ExtractSharedText(const std::string& share_text) {
     shared_text.url = extracted_url;
 
   return shared_text;
-}
-
-// static
-absl::optional<std::string> AuthorityView::PortToString(const GURL& url) {
-  int port_number = url.EffectiveIntPort();
-  if (port_number == url::PORT_UNSPECIFIED) {
-    return absl::nullopt;
-  }
-  return base::ToString(port_number);
-}
-
-// static
-absl::optional<std::string> AuthorityView::PortToString(
-    const url::Origin& origin) {
-  if (origin.port() == 0) {
-    return absl::nullopt;
-  }
-  return base::ToString(origin.port());
-}
-
-// static
-AuthorityView AuthorityView::Decode(std::string_view encoded_string) {
-  size_t i = encoded_string.find_last_of(kAuthorityHostPortSeparator);
-  if (i == std::string_view::npos) {
-    return {.host = encoded_string};
-  }
-  return {.host = encoded_string.substr(0, i),
-          .port = encoded_string.substr(i + 1)};
-}
-
-// static
-std::string AuthorityView::Encode(const GURL& url) {
-  CHECK(url.is_valid());
-  return AuthorityView{.host = url.host(), .port = PortToString(url)}.Encode();
-}
-
-// static
-std::string AuthorityView::Encode(const url::Origin& origin) {
-  CHECK(!origin.opaque());
-  return AuthorityView{.host = origin.host(), .port = PortToString(origin)}
-      .Encode();
-}
-
-std::string AuthorityView::Encode() {
-  if (!port) {
-    return std::string(host);
-  }
-  return base::StrCat({host, kAuthorityHostPortSeparator, *port});
 }
 
 }  // namespace apps_util

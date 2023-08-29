@@ -4,8 +4,8 @@
 
 #import "ios/chrome/browser/ui/settings/clear_browsing_data/clear_browsing_data_manager.h"
 
-#import "base/apple/foundation_util.h"
 #import "base/functional/bind.h"
+#import "base/mac/foundation_util.h"
 #import "base/strings/utf_string_conversions.h"
 #import "components/browsing_data/core/pref_names.h"
 #import "components/pref_registry/pref_registry_syncable.h"
@@ -47,6 +47,10 @@
 #import "testing/gtest_mac.h"
 #import "testing/platform_test.h"
 #import "ui/base/l10n/l10n_util_mac.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 using TemplateURLPrepopulateData::GetAllPrepopulatedEngines;
 using TemplateURLPrepopulateData::PrepopulatedEngine;
@@ -321,7 +325,7 @@ TEST_F(ClearBrowsingDataManagerTest, TestGoogleDSETextSignedIn) {
   ListItem* googleAccount =
       [model_ footerForSectionWithIdentifier:SectionIdentifierGoogleAccount];
   TableViewLinkHeaderFooterItem* accountFooterTextItem =
-      base::apple::ObjCCastStrict<TableViewLinkHeaderFooterItem>(googleAccount);
+      base::mac::ObjCCastStrict<TableViewLinkHeaderFooterItem>(googleAccount);
   ASSERT_TRUE(([accountFooterTextItem.text rangeOfString:@"Google"].location !=
                NSNotFound));
   ASSERT_EQ(2u, [accountFooterTextItem.urls count]);
@@ -360,7 +364,7 @@ TEST_F(ClearBrowsingDataManagerTest, TestPrepopulatedTextSignedIn) {
   ListItem* googleAccount =
       [model_ footerForSectionWithIdentifier:SectionIdentifierGoogleAccount];
   TableViewLinkHeaderFooterItem* accountFooterTextItem =
-      base::apple::ObjCCastStrict<TableViewLinkHeaderFooterItem>(googleAccount);
+      base::mac::ObjCCastStrict<TableViewLinkHeaderFooterItem>(googleAccount);
   ASSERT_TRUE(
       ([accountFooterTextItem.text
            rangeOfString:[NSString
@@ -394,7 +398,7 @@ TEST_F(ClearBrowsingDataManagerTest, TestPrepopulatedTextSignedOut) {
   ListItem* googleAccount =
       [model_ footerForSectionWithIdentifier:SectionIdentifierGoogleAccount];
   TableViewLinkHeaderFooterItem* accountFooterTextItem =
-      base::apple::ObjCCastStrict<TableViewLinkHeaderFooterItem>(googleAccount);
+      base::mac::ObjCCastStrict<TableViewLinkHeaderFooterItem>(googleAccount);
   ASSERT_TRUE(
       ([accountFooterTextItem.text
            rangeOfString:[NSString
@@ -429,7 +433,7 @@ TEST_F(ClearBrowsingDataManagerTest, TestCustomTextSignedIn) {
   ListItem* googleAccount =
       [model_ footerForSectionWithIdentifier:SectionIdentifierGoogleAccount];
   TableViewLinkHeaderFooterItem* accountFooterTextItem =
-      base::apple::ObjCCastStrict<TableViewLinkHeaderFooterItem>(googleAccount);
+      base::mac::ObjCCastStrict<TableViewLinkHeaderFooterItem>(googleAccount);
   ASSERT_FALSE(
       ([accountFooterTextItem.text
            rangeOfString:[NSString
@@ -464,7 +468,7 @@ TEST_F(ClearBrowsingDataManagerTest, TestCustomeTextSignedOut) {
   ListItem* googleAccount =
       [model_ footerForSectionWithIdentifier:SectionIdentifierGoogleAccount];
   TableViewLinkHeaderFooterItem* accountFooterTextItem =
-      base::apple::ObjCCastStrict<TableViewLinkHeaderFooterItem>(googleAccount);
+      base::mac::ObjCCastStrict<TableViewLinkHeaderFooterItem>(googleAccount);
   ASSERT_FALSE(
       ([accountFooterTextItem.text
            rangeOfString:[NSString

@@ -36,8 +36,7 @@ class OutputGlitchCounterTest : public ::testing::Test {
   base::HistogramTester histogram_tester_;
 
   std::unique_ptr<OutputGlitchCounter> output_glitch_counter_ =
-      std::make_unique<OutputGlitchCounter>(
-          media::AudioLatency::Type::kRtc);
+      std::make_unique<OutputGlitchCounter>(media::AudioLatency::LATENCY_RTC);
 };
 
 TEST_F(OutputGlitchCounterTest, IntervalHistograms) {
@@ -180,7 +179,7 @@ TEST_F(OutputGlitchCounterTest, GetLogStats) {
 
 class OutputGlitchCounterNamesTest
     : public ::testing::TestWithParam<
-          std::tuple<media::AudioLatency::Type, std::string>> {
+          std::tuple<media::AudioLatency::LatencyType, std::string>> {
  public:
   OutputGlitchCounterNamesTest() = default;
   ~OutputGlitchCounterNamesTest() override = default;
@@ -191,7 +190,7 @@ class OutputGlitchCounterNamesTest
 };
 
 TEST_P(OutputGlitchCounterNamesTest, MetricNames) {
-  media::AudioLatency::Type latency_type = std::get<0>(GetParam());
+  media::AudioLatency::LatencyType latency_type = std::get<0>(GetParam());
   std::string suffix = std::get<1>(GetParam());
 
   // Test the short statistics.
@@ -227,15 +226,14 @@ INSTANTIATE_TEST_SUITE_P(
     All,
     OutputGlitchCounterNamesTest,
     ::testing::Values(
-        std::make_tuple(media::AudioLatency::Type::kExactMS,
+        std::make_tuple(media::AudioLatency::LATENCY_EXACT_MS,
                         "LatencyExactMs"),
-        std::make_tuple(media::AudioLatency::Type::kInteractive,
+        std::make_tuple(media::AudioLatency::LATENCY_INTERACTIVE,
                         "LatencyInteractive"),
-        std::make_tuple(media::AudioLatency::Type::kRtc, "LatencyRtc"),
-        std::make_tuple(media::AudioLatency::Type::kPlayback,
+        std::make_tuple(media::AudioLatency::LATENCY_RTC, "LatencyRtc"),
+        std::make_tuple(media::AudioLatency::LATENCY_PLAYBACK,
                         "LatencyPlayback"),
-        std::make_tuple(media::AudioLatency::Type::kUnknown,
-                        "LatencyUnknown")));
+        std::make_tuple(media::AudioLatency::LATENCY_COUNT, "LatencyUnknown")));
 
 }  // namespace
 }  // namespace audio

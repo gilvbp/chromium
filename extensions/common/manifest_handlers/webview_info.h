@@ -42,7 +42,7 @@ class WebviewInfo : public Extension::ManifestData {
   void AddPartitionItem(std::unique_ptr<PartitionItem> item);
 
  private:
-  ExtensionId extension_id_;
+  std::string extension_id_;
   std::vector<std::unique_ptr<PartitionItem>> partition_items_;
 };
 

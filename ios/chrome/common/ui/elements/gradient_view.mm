@@ -4,8 +4,12 @@
 
 #import "ios/chrome/common/ui/elements/gradient_view.h"
 
-#import "base/apple/foundation_util.h"
+#import "base/mac/foundation_util.h"
 #import "ios/chrome/common/ui/colors/semantic_color_names.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 @interface GradientView ()
 
@@ -49,7 +53,7 @@
 }
 
 - (CAGradientLayer*)gradientLayer {
-  return base::apple::ObjCCastStrict<CAGradientLayer>(self.layer);
+  return base::mac::ObjCCastStrict<CAGradientLayer>(self.layer);
 }
 
 - (void)traitCollectionDidChange:(UITraitCollection*)previousTraitCollection {

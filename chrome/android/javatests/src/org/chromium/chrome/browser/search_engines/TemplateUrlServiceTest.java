@@ -61,12 +61,6 @@ public class TemplateUrlServiceTest {
     private static final String PLAY_API_SEARCH_URL = "https://play.search.engine?q={searchTerms}";
     private static final String PLAY_API_SUGGEST_URL = "https://suggest.engine?q={searchTerms}";
     private static final String PLAY_API_FAVICON_URL = "https://fav.icon";
-    private static final String PLAY_API_NEW_TAB_URL = "https://search.engine/newtab";
-    private static final String PLAY_API_IMAGE_URL = "https://search.engine/img";
-    private static final String PLAY_API_IMAGE_POST_PARAM = "img";
-    private static final String PLAY_API_IMAGE_TRANSLATE_URL = "https://search.engine/imgtransl";
-    private static final String PLAY_API_IMAGE_TRANSLATE_SOURCE_KEY = "source";
-    private static final String PLAY_API_IMAGE_TRANSLATE_DEST_KEY = "dest";
 
     private TemplateUrlService mTemplateUrlService;
 
@@ -191,21 +185,17 @@ public class TemplateUrlServiceTest {
     @Test
     @SmallTest
     @Feature({"SearchEngines"})
-    public void testSetPlayAPISearchEngine_CreateNew_AllProvided() {
+    public void testSetPlayAPISearchEngine_CreateNew() {
         waitForTemplateUrlServiceToLoad();
 
         // Adding Play API search engine should succeed.
         Assert.assertTrue(setPlayAPISearchEngine(mTemplateUrlService, "SearchEngine1", "keyword1",
-                PLAY_API_SEARCH_URL, PLAY_API_SUGGEST_URL, PLAY_API_FAVICON_URL,
-                PLAY_API_NEW_TAB_URL, PLAY_API_IMAGE_URL, PLAY_API_IMAGE_POST_PARAM,
-                PLAY_API_IMAGE_TRANSLATE_URL, PLAY_API_IMAGE_TRANSLATE_SOURCE_KEY,
-                PLAY_API_IMAGE_TRANSLATE_DEST_KEY, true));
+                PLAY_API_SEARCH_URL, PLAY_API_SUGGEST_URL, PLAY_API_FAVICON_URL, true));
 
         TemplateUrl defaultSearchEngine = getDefaultSearchEngine(mTemplateUrlService);
         Assert.assertEquals("keyword1", defaultSearchEngine.getKeyword());
         Assert.assertTrue(defaultSearchEngine.getIsPrepopulated());
         Assert.assertEquals(PLAY_API_SEARCH_URL, defaultSearchEngine.getURL());
-        Assert.assertEquals(PLAY_API_NEW_TAB_URL, defaultSearchEngine.getNewTabURL());
     }
 
     @Test
@@ -220,10 +210,9 @@ public class TemplateUrlServiceTest {
         int searchEnginesCountBefore = getSearchEngineCount(mTemplateUrlService);
 
         // Adding Play API search engine with the same keyword should succeed.
-        Assert.assertTrue(
-                setPlayAPISearchEngine(mTemplateUrlService, defaultSearchEngine.getShortName(),
-                        originalKeyword, PLAY_API_SEARCH_URL, PLAY_API_SUGGEST_URL,
-                        PLAY_API_FAVICON_URL, null, null, null, null, null, null, true));
+        Assert.assertTrue(setPlayAPISearchEngine(mTemplateUrlService,
+                defaultSearchEngine.getShortName(), originalKeyword, PLAY_API_SEARCH_URL,
+                PLAY_API_SUGGEST_URL, PLAY_API_FAVICON_URL, true));
 
         defaultSearchEngine = getDefaultSearchEngine(mTemplateUrlService);
         Assert.assertEquals(originalKeyword, defaultSearchEngine.getKeyword());
@@ -249,8 +238,7 @@ public class TemplateUrlServiceTest {
 
         // Adding Play API search engine with the same keyword should succeed.
         Assert.assertTrue(setPlayAPISearchEngine(mTemplateUrlService, "SearchEngine1", "keyword1",
-                PLAY_API_SEARCH_URL, PLAY_API_SUGGEST_URL, PLAY_API_FAVICON_URL, null, null, null,
-                null, null, null, true));
+                PLAY_API_SEARCH_URL, PLAY_API_SUGGEST_URL, PLAY_API_FAVICON_URL, true));
 
         TemplateUrl defaultSearchEngine = getDefaultSearchEngine(mTemplateUrlService);
         Assert.assertEquals("keyword1", defaultSearchEngine.getKeyword());
@@ -259,8 +247,7 @@ public class TemplateUrlServiceTest {
 
         // Adding Play API search engine again should fail.
         Assert.assertFalse(setPlayAPISearchEngine(mTemplateUrlService, "SearchEngine2", "keyword2",
-                PLAY_API_SEARCH_URL, PLAY_API_SUGGEST_URL, PLAY_API_FAVICON_URL, null, null, null,
-                null, null, null, true));
+                PLAY_API_SEARCH_URL, PLAY_API_SUGGEST_URL, PLAY_API_FAVICON_URL, true));
 
         defaultSearchEngine = getDefaultSearchEngine(mTemplateUrlService);
         Assert.assertEquals("keyword1", defaultSearchEngine.getKeyword());
@@ -289,14 +276,10 @@ public class TemplateUrlServiceTest {
 
     private boolean setPlayAPISearchEngine(TemplateUrlService templateUrlService, String name,
             String keyword, String searchUrl, String suggestUrl, String faviconUrl,
-            String newTabUrl, String imageUrl, String imageUrlPostParams, String imageTranslateUrl,
-            String imageTranslateSourceLanguageParamKey,
-            String imageTranslateTargetLanguageParamKey, boolean setAsDefault) {
+            boolean setAsDefault) {
         return TestThreadUtils.runOnUiThreadBlockingNoException(() -> {
-            return templateUrlService.setPlayAPISearchEngine(name, keyword, searchUrl, suggestUrl,
-                    faviconUrl, newTabUrl, imageUrl, imageUrlPostParams, imageTranslateUrl,
-                    imageTranslateSourceLanguageParamKey, imageTranslateTargetLanguageParamKey,
-                    setAsDefault);
+            return templateUrlService.setPlayAPISearchEngine(
+                    name, keyword, searchUrl, suggestUrl, faviconUrl, setAsDefault);
         });
     }
 

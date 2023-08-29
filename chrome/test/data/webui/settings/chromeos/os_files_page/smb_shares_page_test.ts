@@ -2,10 +2,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import 'chrome://os-settings/lazy_load.js';
-
 import {AddSmbShareDialogElement, SettingsSmbSharesPageElement, SmbBrowserProxy, SmbBrowserProxyImpl, SmbMountResult} from 'chrome://os-settings/lazy_load.js';
-import {CrButtonElement, CrInputElement} from 'chrome://os-settings/os_settings.js';
+import {CrButtonElement} from 'chrome://resources/cr_elements/cr_button/cr_button.js';
+import {CrInputElement} from 'chrome://resources/cr_elements/cr_input/cr_input.js';
 import {assert} from 'chrome://resources/js/assert_ts.js';
 import {webUIListenerCallback} from 'chrome://resources/js/cr.js';
 import {flush} from 'chrome://resources/polymer/v3_0/polymer/polymer_bundled.min.js';
@@ -47,7 +46,7 @@ suite('<settings-smb-shares-page>', () => {
 
   setup(() => {
     smbBrowserProxy = new TestSmbBrowserProxy();
-    SmbBrowserProxyImpl.setInstance(smbBrowserProxy);
+    SmbBrowserProxyImpl.setInstanceForTesting(smbBrowserProxy);
 
     page = document.createElement('settings-smb-shares-page');
     document.body.appendChild(page);

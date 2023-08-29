@@ -75,8 +75,6 @@ std::ostream& operator<<(std::ostream& out,
       return out << "kProfileStatistics";
     case ProfileKeepAliveOrigin::kIsolatedWebAppInstall:
       return out << "kIsolatedWebAppInstall";
-    case ProfileKeepAliveOrigin::kIsolatedWebAppUpdate:
-      return out << "kIsolatedWebAppUpdate";
   }
   NOTREACHED();
   return out << static_cast<int>(origin);

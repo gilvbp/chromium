@@ -17,18 +17,15 @@
 #include "ui/gfx/geometry/size.h"
 
 namespace media {
-class VideoEncoderMetricsProvider;
 class VideoFrame;
-}  // namespace media
+}
 
 namespace media {
 namespace cast {
 
 class Av1Encoder final : public SoftwareVideoEncoder {
  public:
-  explicit Av1Encoder(
-      const FrameSenderConfig& video_config,
-      std::unique_ptr<VideoEncoderMetricsProvider> metrics_provider);
+  explicit Av1Encoder(const FrameSenderConfig& video_config);
 
   ~Av1Encoder() final;
 
@@ -56,8 +53,6 @@ class Av1Encoder final : public SoftwareVideoEncoder {
   const FrameSenderConfig cast_config_;
 
   const double target_encoder_utilization_;
-
-  const std::unique_ptr<VideoEncoderMetricsProvider> metrics_provider_;
 
   // AV1 internal objects.  These are valid for use only while is_initialized()
   // returns true.

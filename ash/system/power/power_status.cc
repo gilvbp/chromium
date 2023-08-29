@@ -10,7 +10,6 @@
 #include "ash/public/cpp/power_utils.h"
 #include "ash/resources/vector_icons/vector_icons.h"
 #include "ash/strings/grit/ash_strings.h"
-#include "ash/style/ash_color_provider.h"
 #include "ash/system/power/battery_image_source.h"
 #include "base/i18n/number_formatting.h"
 #include "base/i18n/time_formatting.h"
@@ -18,12 +17,9 @@
 #include "base/memory/ptr_util.h"
 #include "base/strings/string_number_conversions.h"
 #include "base/strings/utf_string_conversions.h"
-#include "chromeos/constants/chromeos_features.h"
 #include "chromeos/dbus/power/power_manager_client.h"
 #include "ui/base/l10n/l10n_util.h"
 #include "ui/base/l10n/time_format.h"
-#include "ui/chromeos/styles/cros_tokens_color_mappings.h"
-#include "ui/color/color_provider.h"
 #include "ui/display/display.h"
 #include "ui/display/screen.h"
 #include "ui/gfx/color_palette.h"
@@ -84,50 +80,7 @@ int PowerSourceToMessageID(
   return 0;
 }
 
-SkColor GetDefaultBatteryBadgeColor(const ui::ColorProvider* color_provider) {
-  bool use_color_provider =
-      chromeos::features::IsJellyrollEnabled() && color_provider;
-
-  if (use_color_provider) {
-    return color_provider->GetColor(cros_tokens::kButtonLabelColorPrimary);
-  } else {
-    return ash::AshColorProvider::Get()->GetContentLayerColor(
-        ash::AshColorProvider::ContentLayerType::kBatteryBadgeColor);
-  }
-}
-
-SkColor GetDefaultAlertColor(const ui::ColorProvider* color_provider) {
-  bool use_color_provider =
-      chromeos::features::IsJellyrollEnabled() && color_provider;
-
-  if (use_color_provider) {
-    return color_provider->GetColor(cros_tokens::kColorAlert);
-  } else {
-    return ash::AshColorProvider::Get()->GetContentLayerColor(
-        ash::AshColorProvider::ContentLayerType::kIconColorAlert);
-  }
-}
-
 }  // namespace
-
-BatteryColors PowerStatus::BatteryImageInfo::ResolveColors(
-    const PowerStatus::BatteryImageInfo& info,
-    const ui::ColorProvider* color_provider) {
-  BatteryColors resolved_colors;
-
-  resolved_colors.foreground_color =
-      info.battery_color_preferences.foreground_color;
-
-  resolved_colors.badge_color =
-      info.battery_color_preferences.badge_color.value_or(
-          (info.charge_percent > 50)
-              ? GetDefaultBatteryBadgeColor(color_provider)
-              : info.battery_color_preferences.foreground_color);
-
-  resolved_colors.alert_color = GetDefaultAlertColor(color_provider);
-
-  return resolved_colors;
-}
 
 bool PowerStatus::BatteryImageInfo::ApproximatelyEqual(
     const BatteryImageInfo& o) const {
@@ -283,10 +236,8 @@ std::string PowerStatus::GetCurrentPowerSourceID() const {
   return proto_.external_power_source_id();
 }
 
-PowerStatus::BatteryImageInfo PowerStatus::GenerateBatteryImageInfo(
-    const SkColor foreground_color,
-    absl::optional<SkColor> badge_color) const {
-  BatteryImageInfo info(foreground_color, badge_color);
+PowerStatus::BatteryImageInfo PowerStatus::GetBatteryImageInfo() const {
+  BatteryImageInfo info;
   CalculateBatteryImageInfo(&info);
   return info;
 }
@@ -307,9 +258,6 @@ void PowerStatus::CalculateBatteryImageInfo(BatteryImageInfo* info) const {
   } else if (IsLinePowerConnected()) {
     info->icon_badge = &kUnifiedMenuBatteryBoltIcon;
     info->badge_outline = &kUnifiedMenuBatteryBoltOutlineMaskIcon;
-  } else if (IsBatterySaverActive()) {
-    info->icon_badge = &kBatterySaverPlusIcon;
-    info->badge_outline = &kBatterySaverPlusOutlineIcon;
   } else {
     info->icon_badge = nullptr;
     info->badge_outline = nullptr;
@@ -330,10 +278,10 @@ void PowerStatus::CalculateBatteryImageInfo(BatteryImageInfo* info) const {
 gfx::ImageSkia PowerStatus::GetBatteryImage(
     const BatteryImageInfo& info,
     int height,
-    const ui::ColorProvider* color_provider) {
-  BatteryColors colors =
-      PowerStatus::BatteryImageInfo::ResolveColors(info, color_provider);
-  auto* source = new BatteryImageSource(info, height, colors);
+    SkColor fg_color,
+    absl::optional<SkColor> badge_color) {
+  auto* source =
+      new BatteryImageSource(info, height, fg_color, std::move(badge_color));
   return gfx::ImageSkia(base::WrapUnique(source), source->size());
 }
 

@@ -3,8 +3,12 @@
 // found in the LICENSE file.
 
 #import "ios/chrome/browser/metrics/ios_feed_activity_metrics_provider.h"
-#import "base/apple/foundation_util.h"
+#import "base/mac/foundation_util.h"
 #import "base/metrics/histogram_functions.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 IOSFeedActivityMetricsProvider::IOSFeedActivityMetricsProvider() {}
 

@@ -84,12 +84,14 @@ class ConstrainedWindowViewsTest : public views::ViewsTestBase {
   ~ConstrainedWindowViewsTest() override = default;
 
   void SetUp() override {
+    auto views_delegate = std::make_unique<TestViewsDelegateWithContext>();
+
     // set_views_delegate() must be called before SetUp(), and GetContext() is
-    // null before that.
-    auto* views_delegate =
-        set_views_delegate(std::make_unique<TestViewsDelegateWithContext>());
+    // null before that, so take a reference.
+    TestViewsDelegateWithContext* views_delegate_weak = views_delegate.get();
+    set_views_delegate(std::move(views_delegate));
     views::ViewsTestBase::SetUp();
-    views_delegate->set_context(GetContext());
+    views_delegate_weak->set_context(GetContext());
 
     delegate_ = std::make_unique<views::DialogDelegate>();
     auto contents = std::make_unique<views::StaticSizedView>();

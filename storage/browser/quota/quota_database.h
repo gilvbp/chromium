@@ -213,11 +213,9 @@ class COMPONENT_EXPORT(STORAGE_BROWSER) QuotaDatabase {
   bool IsBootstrapped();
   QuotaError SetIsBootstrapped(bool bootstrap_flag);
 
-  // If the database has failed to open, this will attempt to reopen it.
-  // Otherwise, it will attempt to recover the database. If recovery is
-  // attempted but fails, the database will be razed. In all cases, this will
-  // attempt to reopen the database and return true on success.
-  bool RecoverOrRaze(int error_code);
+  // Razes and re-opens the database. Will try to open a database again if
+  // one doesn't exist.
+  QuotaError RazeAndReopen();
 
   // Flushes previously scheduled commits.
   void CommitNow();

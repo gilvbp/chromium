@@ -22,7 +22,6 @@ import org.chromium.base.ApplicationStatus;
 import org.chromium.base.CallbackController;
 import org.chromium.base.Log;
 import org.chromium.base.ObserverList;
-import org.chromium.base.ResettersForTesting;
 import org.chromium.base.ThreadUtils;
 import org.chromium.base.metrics.RecordHistogram;
 import org.chromium.base.supplier.ObservableSupplier;
@@ -835,10 +834,10 @@ public class VoiceRecognitionHandler {
         return VoiceRecognitionUtil.isRecognitionIntentPresent(useCachedValue);
     }
 
+    @VisibleForTesting
     /*package*/ static void setIsRecognitionIntentPresentForTesting(
             Boolean isRecognitionIntentPresent) {
         sIsRecognitionIntentPresentForTesting = isRecognitionIntentPresent;
-        ResettersForTesting.register(() -> sIsRecognitionIntentPresentForTesting = null);
     }
 
     /** Sets the start time for testing. */

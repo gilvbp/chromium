@@ -124,8 +124,6 @@ public abstract class SyncService {
 
     public abstract boolean isTypeManagedByPolicy(@UserSelectableType int type);
 
-    public abstract boolean isTypeManagedByCustodian(@UserSelectableType int type);
-
     /**
      * Enables syncing for the passed types.
      *

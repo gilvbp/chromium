@@ -18,7 +18,6 @@
 #include "chromeos/crosapi/mojom/download_controller.mojom.h"
 #include "chromeos/crosapi/mojom/download_status_updater.mojom.h"
 #include "chromeos/lacros/lacros_service.h"
-#include "components/download/content/public/all_download_item_notifier.h"
 #include "components/download/public/common/download_item_utils.h"
 #include "content/public/browser/download_item_utils.h"
 #include "mojo/public/cpp/bindings/receiver.h"
@@ -102,12 +101,7 @@ crosapi::mojom::DownloadStatusPtr ConvertToMojoDownloadStatus(
 class DownloadStatusUpdater::Delegate
     : public crosapi::mojom::DownloadStatusUpdaterClient {
  public:
-  using GetDownloadItemCallback =
-      base::RepeatingCallback<download::DownloadItem*(const std::string&)>;
-
-  explicit Delegate(GetDownloadItemCallback get_download_item_callback)
-      : get_download_item_callback_(std::move(get_download_item_callback)) {
-    CHECK(!get_download_item_callback_.is_null());
+  Delegate() {
     using crosapi::mojom::DownloadStatusUpdater;
     if (auto* remote =
             GetRemote(DownloadStatusUpdater::kBindClientMinVersion)) {
@@ -120,40 +114,23 @@ class DownloadStatusUpdater::Delegate
   ~Delegate() override = default;
 
  private:
-  download::DownloadItem* GetDownloadItem(const std::string& guid) {
-    return get_download_item_callback_.Run(guid);
-  }
-
   // crosapi::mojom::DownloadStatusUpdaterClient:
   void Cancel(const std::string& guid, CancelCallback callback) override {
-    bool handled = false;
-    if (download::DownloadItem* item = GetDownloadItem(guid); item) {
-      handled = true;
-      item->Cancel(/*user_cancel=*/true);
-    }
-    std::move(callback).Run(handled);
+    // TODO(http://b/279794441): Implement.
+    NOTIMPLEMENTED();
+    std::move(callback).Run(/*handled=*/false);
   }
 
   void Pause(const std::string& guid, PauseCallback callback) override {
-    bool handled = false;
-    if (download::DownloadItem* item = GetDownloadItem(guid); item) {
-      handled = true;
-      if (!item->IsPaused()) {
-        item->Pause();
-      }
-    }
-    std::move(callback).Run(handled);
+    // TODO(http://b/279794441): Implement.
+    NOTIMPLEMENTED();
+    std::move(callback).Run(/*handled=*/false);
   }
 
   void Resume(const std::string& guid, ResumeCallback callback) override {
-    bool handled = false;
-    if (download::DownloadItem* item = GetDownloadItem(guid); item) {
-      handled = true;
-      if (item->CanResume()) {
-        item->Resume(/*user_resume=*/true);
-      }
-    }
-    std::move(callback).Run(handled);
+    // TODO(http://b/279794441): Implement.
+    NOTIMPLEMENTED();
+    std::move(callback).Run(/*handled=*/false);
   }
 
   void ShowInBrowser(const std::string& guid,
@@ -165,17 +142,12 @@ class DownloadStatusUpdater::Delegate
 
   // The receiver bound to `this` for use by crosapi.
   mojo::Receiver<crosapi::mojom::DownloadStatusUpdaterClient> receiver_{this};
-
-  // Callback allowing the lookup of DownloadItem*s from guids.
-  GetDownloadItemCallback get_download_item_callback_;
 };
 
 // DownloadStatusUpdater -------------------------------------------------------
 
 DownloadStatusUpdater::DownloadStatusUpdater()
-    : delegate_(std::make_unique<Delegate>(
-          base::BindRepeating(&DownloadStatusUpdater::GetDownloadItemFromGuid,
-                              base::Unretained(this)))) {}
+    : delegate_(std::make_unique<Delegate>()) {}
 
 DownloadStatusUpdater::~DownloadStatusUpdater() = default;
 
@@ -184,19 +156,4 @@ void DownloadStatusUpdater::UpdateAppIconDownloadProgress(
   if (auto* remote = GetRemote()) {
     remote->Update(ConvertToMojoDownloadStatus(download));
   }
-}
-
-download::DownloadItem* DownloadStatusUpdater::GetDownloadItemFromGuid(
-    const std::string& guid) {
-  for (const auto& notifier : notifiers_) {
-    content::DownloadManager* manager = notifier->GetManager();
-    if (!manager) {
-      continue;
-    }
-    download::DownloadItem* item = manager->GetDownloadByGuid(guid);
-    if (item) {
-      return item;
-    }
-  }
-  return nullptr;
 }

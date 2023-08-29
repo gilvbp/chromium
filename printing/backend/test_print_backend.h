@@ -44,8 +44,7 @@ class TestPrintBackend : public PrintBackend {
       const std::string& paper_vendor_id,
       const gfx::Size& paper_size_um) override;
 #endif
-  std::vector<std::string> GetPrinterDriverInfo(
-      const std::string& printer_name) override;
+  std::string GetPrinterDriverInfo(const std::string& printer_name) override;
   bool IsValidPrinter(const std::string& printer_name) override;
 #if BUILDFLAG(IS_WIN)
   base::expected<std::string, mojom::ResultCode>

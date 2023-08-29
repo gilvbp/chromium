@@ -60,14 +60,6 @@ void ManagementContextMixinBrowser::SetUpOnMainThread() {
   }
 }
 
-void ManagementContextMixinBrowser::SetUpInProcessBrowserTestFixture() {
-  browser_dm_token_storage_ =
-      std::make_unique<policy::FakeBrowserDMTokenStorage>();
-
-  policy::BrowserDMTokenStorage::SetForTesting(browser_dm_token_storage_.get());
-  ManagementContextMixin::SetUpInProcessBrowserTestFixture();
-}
-
 #if !BUILDFLAG(GOOGLE_CHROME_BRANDING)
 void ManagementContextMixinBrowser::SetUpDefaultCommandLine(
     base::CommandLine* command_line) {
@@ -78,11 +70,13 @@ void ManagementContextMixinBrowser::SetUpDefaultCommandLine(
 
 void ManagementContextMixinBrowser::ManageCloudMachine() {
   ManagementContextMixin::ManageCloudMachine();
-  CHECK(browser_dm_token_storage_);
+  browser_dm_token_storage_ =
+      std::make_unique<policy::FakeBrowserDMTokenStorage>();
   browser_dm_token_storage_->SetEnrollmentToken(kEnrollmentToken);
   browser_dm_token_storage_->SetClientId(kBrowserClientId);
   browser_dm_token_storage_->EnableStorage(true);
   browser_dm_token_storage_->SetDMToken(kBrowserDmToken);
+  policy::BrowserDMTokenStorage::SetForTesting(browser_dm_token_storage_.get());
 }
 
 void ManagementContextMixinBrowser::SetCloudMachinePolicies(

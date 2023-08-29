@@ -39,8 +39,7 @@ String RemoteInvocationErrorToString(
     case mojom::blink::RemoteInvocationError::NON_ASSIGNABLE_TYPES:
       return "an incompatible object type passed to method parameter";
     default:
-      return String::Format("unknown RemoteInvocationError value: %d",
-                            static_cast<int>(value));
+      return String::Format("unknown RemoteInvocationError value: %d", value);
   }
 }
 

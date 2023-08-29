@@ -141,9 +141,6 @@ class DevicePermissions {
 // Manages saved device permissions for all extensions.
 class DevicePermissionsManager : public KeyedService {
  public:
-  explicit DevicePermissionsManager(content::BrowserContext* context);
-  ~DevicePermissionsManager() override;
-
   DevicePermissionsManager(const DevicePermissionsManager&) = delete;
   DevicePermissionsManager& operator=(const DevicePermissionsManager&) = delete;
 
@@ -190,6 +187,9 @@ class DevicePermissionsManager : public KeyedService {
   friend class DevicePermissionsManagerFactory;
   FRIEND_TEST_ALL_PREFIXES(DevicePermissionsManagerTest, SuspendExtension);
 
+  explicit DevicePermissionsManager(content::BrowserContext* context);
+  ~DevicePermissionsManager() override;
+
   DevicePermissions* GetInternal(const std::string& extension_id) const;
 
   base::ThreadChecker thread_checker_;
@@ -216,7 +216,7 @@ class DevicePermissionsManagerFactory
   ~DevicePermissionsManagerFactory() override;
 
   // BrowserContextKeyedServiceFactory implementation
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* context) const override;
   content::BrowserContext* GetBrowserContextToUse(
       content::BrowserContext* context) const override;

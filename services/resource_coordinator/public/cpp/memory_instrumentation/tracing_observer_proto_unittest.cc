@@ -13,7 +13,6 @@
 #include "base/files/file_path.h"
 #include "base/format_macros.h"
 #include "base/task/single_thread_task_runner.h"
-#include "base/test/bind.h"
 #include "base/test/task_environment.h"
 #include "base/test/trace_test_utils.h"
 #include "base/trace_event/memory_dump_manager.h"
@@ -39,20 +38,10 @@ namespace {
 class TracingObserverProtoTest : public testing::Test {
  public:
   void SetUp() override {
-    base::trace_event::MemoryDumpManager::GetInstance()->Initialize(
-        base::BindLambdaForTesting(
-            [](base::trace_event::MemoryDumpType,
-               base::trace_event::MemoryDumpLevelOfDetail) {}),
-        false);
-    memory_instrumentation::TracingObserverProto::GetInstance()
-        ->ResetForTesting();
+    memory_instrumentation::TracingObserverProto::RegisterForTesting();
     tracing::PerfettoTracedProcess::SetSystemProducerEnabledForTesting(false);
     PerfettoTracedProcess::GetTaskRunner()->ResetTaskRunnerForTesting(
         base::SingleThreadTaskRunner::GetCurrentDefault());
-  }
-
-  void TearDown() override {
-    base::trace_event::MemoryDumpManager::GetInstance()->ResetForTesting();
   }
 
   static base::trace_event::TraceConfig GetTraceConfig() {
@@ -152,9 +141,10 @@ memory_instrumentation::mojom::OSMemDump GetFakeOSMemDump(
 #endif
 TEST_F(TracingObserverProtoTest,
        MAYBE_AddChromeDumpToTraceIfEnabled_When_TraceLog_Disabled) {
-  auto* tracing_observer =
-      memory_instrumentation::TracingObserverProto::GetInstance();
-  tracing::DataSourceTester data_source_tester(tracing_observer);
+  auto tracing_observer =
+      std::make_unique<memory_instrumentation::TracingObserverProto>(
+          base::trace_event::TraceLog::GetInstance(), nullptr);
+  tracing::DataSourceTester data_source_tester(tracing_observer.get());
 
   base::trace_event::MemoryDumpRequestArgs args = FillMemoryDumpRequestArgs();
 
@@ -173,9 +163,10 @@ TEST_F(TracingObserverProtoTest,
 
 TEST_F(TracingObserverProtoTest,
        AddOsDumpToTraceIfEnabled_When_TraceLog_Disabled) {
-  auto* tracing_observer =
-      memory_instrumentation::TracingObserverProto::GetInstance();
-  tracing::DataSourceTester data_source_tester(tracing_observer);
+  auto tracing_observer =
+      std::make_unique<memory_instrumentation::TracingObserverProto>(
+          base::trace_event::TraceLog::GetInstance(), nullptr);
+  tracing::DataSourceTester data_source_tester(tracing_observer.get());
 
   perfetto::DataSourceConfig config;
 
@@ -197,10 +188,12 @@ TEST_F(TracingObserverProtoTest,
 }
 
 TEST_F(TracingObserverProtoTest, AddChromeDumpToTraceIfEnabled) {
-  auto* tracing_observer =
-      memory_instrumentation::TracingObserverProto::GetInstance();
-  tracing::DataSourceTester data_source_tester(tracing_observer);
+  auto tracing_observer =
+      std::make_unique<memory_instrumentation::TracingObserverProto>(
+          base::trace_event::TraceLog::GetInstance(), nullptr);
+  tracing::DataSourceTester data_source_tester(tracing_observer.get());
   data_source_tester.BeginTrace(GetTraceConfig());
+
   base::trace_event::MemoryDumpRequestArgs args = FillMemoryDumpRequestArgs();
 
   base::trace_event::ProcessMemoryDump pmd = FillSamplePmd();
@@ -266,9 +259,10 @@ TEST_F(TracingObserverProtoTest, AddChromeDumpToTraceIfEnabled) {
 }
 
 TEST_F(TracingObserverProtoTest, AddOsDumpToTraceIfEnabled) {
-  auto* tracing_observer =
-      memory_instrumentation::TracingObserverProto::GetInstance();
-  tracing::DataSourceTester data_source_tester(tracing_observer);
+  auto tracing_observer =
+      std::make_unique<memory_instrumentation::TracingObserverProto>(
+          base::trace_event::TraceLog::GetInstance(), nullptr);
+  tracing::DataSourceTester data_source_tester(tracing_observer.get());
   data_source_tester.BeginTrace(GetTraceConfig());
 
   base::trace_event::MemoryDumpRequestArgs args = FillMemoryDumpRequestArgs();
@@ -344,9 +338,10 @@ TEST_F(TracingObserverProtoTest, AddOsDumpToTraceIfEnabled) {
 }
 
 TEST_F(TracingObserverProtoTest, AsProtoInto) {
-  auto* tracing_observer =
-      memory_instrumentation::TracingObserverProto::GetInstance();
-  tracing::DataSourceTester data_source_tester(tracing_observer);
+  auto tracing_observer =
+      std::make_unique<memory_instrumentation::TracingObserverProto>(
+          base::trace_event::TraceLog::GetInstance(), nullptr);
+  tracing::DataSourceTester data_source_tester(tracing_observer.get());
   data_source_tester.BeginTrace(GetTraceConfig());
 
   base::trace_event::MemoryDumpArgs dump_args = {

@@ -41,12 +41,19 @@ bool FakeHibermanClient::IsEnabled() const {
   return true;
 }
 
-bool FakeHibermanClient::IsHibernateToS4Enabled() const {
-  return true;
+void FakeHibermanClient::ResumeFromHibernate(
+    const std::string& account_id,
+    ResumeFromHibernateCallback callback) {
+  base::SingleThreadTaskRunner::GetCurrentDefault()->PostTask(
+      FROM_HERE, base::BindOnce(std::move(callback), true));
 }
 
-void FakeHibermanClient::ResumeFromHibernate(
-    const std::string& auth_session_id) {}
+void FakeHibermanClient::ResumeFromHibernateAS(
+    const std::string& auth_session_id,
+    ResumeFromHibernateCallback callback) {
+  base::SingleThreadTaskRunner::GetCurrentDefault()->PostTask(
+      FROM_HERE, base::BindOnce(std::move(callback), true));
+}
 
 void FakeHibermanClient::WaitForServiceToBeAvailable(
     chromeos::WaitForServiceToBeAvailableCallback callback) {

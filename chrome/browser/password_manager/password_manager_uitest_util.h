@@ -11,6 +11,7 @@
 #include "chrome/browser/ui/autofill/chrome_autofill_client.h"
 #include "chrome/browser/ui/passwords/password_generation_popup_controller.h"
 #include "chrome/browser/ui/passwords/password_generation_popup_observer.h"
+#include "components/autofill/core/browser/test_autofill_client.h"
 
 using GenerationUIState = PasswordGenerationPopupController::GenerationUIState;
 
@@ -50,10 +51,14 @@ class TestGenerationPopupObserver : public PasswordGenerationPopupObserver {
       PasswordGenerationPopupController::kOfferGeneration;
 };
 
-// An Autofill client that can block until ShowAutofillPopup() is called.
-class ObservingAutofillClient : public autofill::ChromeAutofillClient {
+// A test AutofillClient client that can block until
+// the ShowAutofillPopup() is called.
+class ObservingAutofillClient
+    : public autofill::TestAutofillClient,
+      public content::WebContentsUserData<ObservingAutofillClient> {
  public:
-  explicit ObservingAutofillClient(content::WebContents* web_contents);
+  ObservingAutofillClient(const ObservingAutofillClient&) = delete;
+  ObservingAutofillClient& operator=(const ObservingAutofillClient&) = delete;
 
   // Blocks the current thread until ShowAutofillPopup() is called.
   void WaitForAutofillPopup();
@@ -63,7 +68,13 @@ class ObservingAutofillClient : public autofill::ChromeAutofillClient {
       base::WeakPtr<autofill::AutofillPopupDelegate> delegate) override;
 
  private:
+  explicit ObservingAutofillClient(content::WebContents* web_contents)
+      : content::WebContentsUserData<ObservingAutofillClient>(*web_contents) {}
+  friend class content::WebContentsUserData<ObservingAutofillClient>;
+
   raw_ptr<base::RunLoop> run_loop_ = nullptr;
+
+  WEB_CONTENTS_USER_DATA_KEY_DECL();
 };
 
 #endif  // CHROME_BROWSER_PASSWORD_MANAGER_PASSWORD_MANAGER_UITEST_UTIL_H_

@@ -85,6 +85,7 @@ public class ChromeFeedbackCollector
         return sources;
     }
 
+    @VisibleForTesting
     List<AsyncFeedbackSource> getAsyncFeedbackSourcesForTesting() {
         return mAsynchronousSources;
     }

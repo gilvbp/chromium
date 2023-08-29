@@ -123,7 +123,7 @@ class MediaFoundationRendererTest : public testing::Test {
         .WillRepeatedly(
             Invoke(this, &MediaFoundationRendererTest::GetAllStreams));
     EXPECT_CALL(media_resource_, GetType())
-        .WillRepeatedly(Return(MediaResource::Type::kStream));
+        .WillRepeatedly(Return(MediaResource::STREAM));
   }
 
   ~MediaFoundationRendererTest() override { mf_renderer_.reset(); }

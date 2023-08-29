@@ -22,7 +22,8 @@ TEST(ActionsParserTest, ParseMousePointerActionSequence) {
   ActionsParser actions_parser(std::move(value.value()));
   EXPECT_TRUE(actions_parser.Parse());
   SyntheticPointerActionListParams action_list_params =
-      actions_parser.pointer_action_params();
+      static_cast<const SyntheticPointerActionListParams&>(
+          actions_parser.gesture_params());
   EXPECT_EQ(content::mojom::GestureSourceType::kMouseInput,
             action_list_params.gesture_source_type);
   EXPECT_EQ(2U, action_list_params.params.size());
@@ -50,7 +51,8 @@ TEST(ActionsParserTest, ParseTouchPointerActionSequence1) {
   ActionsParser actions_parser(std::move(value.value()));
   EXPECT_TRUE(actions_parser.Parse());
   SyntheticPointerActionListParams action_list_params =
-      actions_parser.pointer_action_params();
+      static_cast<const SyntheticPointerActionListParams&>(
+          actions_parser.gesture_params());
   EXPECT_EQ(content::mojom::GestureSourceType::kTouchInput,
             action_list_params.gesture_source_type);
   EXPECT_EQ(3U, action_list_params.params.size());
@@ -79,7 +81,8 @@ TEST(ActionsParserTest, ParseTouchPointerActionSequenceWithoutId) {
   ActionsParser actions_parser(std::move(value.value()));
   EXPECT_TRUE(actions_parser.Parse());
   SyntheticPointerActionListParams action_list_params =
-      actions_parser.pointer_action_params();
+      static_cast<const SyntheticPointerActionListParams&>(
+          actions_parser.gesture_params());
   EXPECT_EQ(content::mojom::GestureSourceType::kTouchInput,
             action_list_params.gesture_source_type);
   EXPECT_EQ(3U, action_list_params.params.size());

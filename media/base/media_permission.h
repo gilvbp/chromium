@@ -19,10 +19,10 @@ class MEDIA_EXPORT MediaPermission {
   using IsHardwareSecureDecryptionAllowedCB = base::OnceCallback<void(bool)>;
 #endif  // BUILDFLAG(IS_WIN)
 
-  enum class Type {
-    kProtectedMediaIdentifier,
-    kAudioCapture,
-    kVideoCapture,
+  enum Type {
+    PROTECTED_MEDIA_IDENTIFIER,
+    AUDIO_CAPTURE,
+    VIDEO_CAPTURE,
   };
 
   MediaPermission();

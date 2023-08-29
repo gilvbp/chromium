@@ -117,8 +117,6 @@ void VideoConferenceAshFeatureClient::SetSystemMediaDeviceStatus(
   }
 }
 
-void VideoConferenceAshFeatureClient::StopAllScreenShare() {}
-
 void VideoConferenceAshFeatureClient::OnVmDeviceUpdated(
     VmCameraMicManager::VmType vm_type,
     VmCameraMicManager::DeviceType device_type,

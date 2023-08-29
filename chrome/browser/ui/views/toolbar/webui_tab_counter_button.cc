@@ -499,7 +499,7 @@ WebUITabCounterButton::WebUITabCounterButton(PressedCallback pressed_callback,
   ConfigureInkDropForToolbar(this);
   // Not focusable by default, only for accessibility.
   SetFocusBehavior(FocusBehavior::ACCESSIBLE_ONLY);
-  SetProperty(views::kElementIdentifierKey, kToolbarTabCounterButtonElementId);
+  SetProperty(views::kElementIdentifierKey, kTabCounterButtonElementId);
 }
 
 WebUITabCounterButton::~WebUITabCounterButton() {

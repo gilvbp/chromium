@@ -75,17 +75,16 @@ TEST_P(FontBuilderAdditiveTest, OnlySetValueIsModified) {
   ComputedStyleBuilder builder =
       GetDocument().GetStyleResolver().CreateComputedStyleBuilder();
   builder.SetFontDescription(parent_description);
-  const ComputedStyle* parent_style = builder.TakeStyle();
+  scoped_refptr<const ComputedStyle> parent_style = builder.TakeStyle();
 
-  builder =
-      GetDocument().GetStyleResolver().CreateComputedStyleBuilderInheritingFrom(
-          *parent_style);
+  builder = GetDocument().GetStyleResolver().CreateComputedStyleBuilder();
+  builder.InheritFrom(*parent_style);
 
   FontBuilder font_builder(&GetDocument());
   funcs.set_value(font_builder);
-  font_builder.CreateFont(builder, parent_style);
+  font_builder.CreateFont(builder, parent_style.get());
 
-  const ComputedStyle* style = builder.TakeStyle();
+  scoped_refptr<const ComputedStyle> style = builder.TakeStyle();
   FontDescription output_description = style->GetFontDescription();
 
   // FontBuilder should have overwritten our base value set in the parent,
@@ -222,10 +221,10 @@ static void FontSizeValue(FontBuilder& b) {
 }
 
 static void FontScriptBase(FontDescription& d) {
-  d.SetLocale(LayoutLocale::Get(AtomicString("no")));
+  d.SetLocale(LayoutLocale::Get("no"));
 }
 static void FontScriptValue(FontBuilder& b) {
-  b.SetLocale(LayoutLocale::Get(AtomicString("se")));
+  b.SetLocale(LayoutLocale::Get("se"));
 }
 
 INSTANTIATE_TEST_SUITE_P(

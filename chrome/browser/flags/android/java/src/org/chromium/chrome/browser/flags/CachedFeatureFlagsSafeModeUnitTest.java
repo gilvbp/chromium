@@ -71,13 +71,13 @@ public class CachedFeatureFlagsSafeModeUnitTest {
 
     @Before
     public void setUp() {
-        CachedFlagsSafeMode.getInstance().setExperimentEnabledForTesting(true);
+        CachedFeatureFlags.setSafeModeExperimentEnabledForTesting(true);
         CachedFeatureFlags.resetFlagsForTesting();
     }
 
     @After
     public void tearDown() {
-        CachedFlagsSafeMode.getInstance().setExperimentEnabledForTesting(null);
+        CachedFeatureFlags.setSafeModeExperimentEnabledForTesting(null);
         CachedFeatureFlags.resetFlagsForTesting();
 
         FeatureList.setTestFeatures(null);

@@ -378,10 +378,6 @@ void QueryManager::RemoveQuery(GLuint client_id) {
   generated_query_ids_.erase(client_id);
 }
 
-void QueryManager::RemoveAllQueries() {
-  queries_.clear();
-}
-
 void QueryManager::StartTracking(QueryManager::Query* /* query */) {
   ++query_count_;
 }

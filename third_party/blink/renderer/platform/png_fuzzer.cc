@@ -35,7 +35,7 @@ std::unique_ptr<ImageDecoder> CreateDecoder(
     ImageDecoder::AlphaOption alpha_option) {
   return std::make_unique<PNGImageDecoder>(
       alpha_option, ImageDecoder::kDefaultBitDepth,
-      ColorBehavior::kTransformToSRGB, ImageDecoder::kNoDecodedImageByteLimit);
+      ColorBehavior::TransformToSRGB(), ImageDecoder::kNoDecodedImageByteLimit);
 }
 
 int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {

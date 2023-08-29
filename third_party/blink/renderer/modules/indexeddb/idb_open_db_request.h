@@ -33,7 +33,6 @@
 #include "third_party/blink/public/mojom/feature_observer/feature_observer.mojom-blink.h"
 #include "third_party/blink/public/mojom/indexeddb/indexeddb.mojom-blink.h"
 #include "third_party/blink/renderer/modules/indexeddb/idb_request.h"
-#include "third_party/blink/renderer/modules/indexeddb/idb_transaction.h"
 #include "third_party/blink/renderer/modules/indexeddb/web_idb_database.h"
 #include "third_party/blink/renderer/modules/modules_export.h"
 
@@ -47,7 +46,7 @@ class MODULES_EXPORT IDBOpenDBRequest final : public IDBRequest {
       ScriptState*,
       mojo::PendingAssociatedReceiver<mojom::blink::IDBDatabaseCallbacks>
           callbacks_receiver,
-      IDBTransaction::TransactionMojoRemote transaction_remote,
+      std::unique_ptr<WebIDBTransaction> transaction_backend,
       int64_t transaction_id,
       int64_t version,
       IDBRequest::AsyncTraceState metrics,
@@ -56,25 +55,14 @@ class MODULES_EXPORT IDBOpenDBRequest final : public IDBRequest {
 
   void Trace(Visitor*) const override;
 
-  // Returns a new IDBFactoryClient for this request.
-  //
-  // Each call must be paired with a FactoryClientDestroyed() call.
-  std::unique_ptr<IDBFactoryClient> CreateFactoryClient();
-  void FactoryClientDestroyed(IDBFactoryClient*);
-
-  // These methods dispatch results directly, skipping the transaction's result
-  // queue (see IDBRequest::HandleResponse()). This is safe because the open
-  // request cannot be issued after a request that needs processing.
-  void OnBlocked(int64_t existing_version);
-  void OnUpgradeNeeded(int64_t old_version,
-                       std::unique_ptr<WebIDBDatabase>,
-                       const IDBDatabaseMetadata&,
-                       mojom::blink::IDBDataLoss,
-                       String data_loss_message);
-  void OnOpenDBSuccess(std::unique_ptr<WebIDBDatabase>,
-                       const IDBDatabaseMetadata&);
-  void OnDeleteDBSuccess(int64_t old_version);
-  void OnDBFactoryError(DOMException*);
+  void EnqueueBlocked(int64_t existing_version) override;
+  void EnqueueUpgradeNeeded(int64_t old_version,
+                            std::unique_ptr<WebIDBDatabase>,
+                            const IDBDatabaseMetadata&,
+                            mojom::IDBDataLoss,
+                            String data_loss_message) override;
+  void EnqueueResponse(std::unique_ptr<WebIDBDatabase>,
+                       const IDBDatabaseMetadata&) override;
 
   // ExecutionContextLifecycleObserver
   void ContextDestroyed() final;
@@ -86,7 +74,9 @@ class MODULES_EXPORT IDBOpenDBRequest final : public IDBRequest {
   DEFINE_ATTRIBUTE_EVENT_LISTENER(upgradeneeded, kUpgradeneeded)
 
  protected:
-  bool CanStillSendResult() const override;
+  void EnqueueResponse(int64_t old_version) override;
+
+  bool ShouldEnqueueEvent() const override;
 
   // EventTarget
   DispatchEventResult DispatchEventInternal(Event&) override;
@@ -94,7 +84,7 @@ class MODULES_EXPORT IDBOpenDBRequest final : public IDBRequest {
  private:
   mojo::PendingAssociatedReceiver<mojom::blink::IDBDatabaseCallbacks>
       callbacks_receiver_;
-  IDBTransaction::TransactionMojoRemote transaction_remote_;
+  std::unique_ptr<WebIDBTransaction> transaction_backend_;
   const int64_t transaction_id_;
   int64_t version_;
 
@@ -103,10 +93,6 @@ class MODULES_EXPORT IDBOpenDBRequest final : public IDBRequest {
 
   base::Time start_time_;
   bool open_time_recorded_ = false;
-
-  // Pointer back to the IDBFactoryClient that holds a persistent reference
-  // to this object.
-  IDBFactoryClient* factory_client_ = nullptr;
 };
 
 }  // namespace blink

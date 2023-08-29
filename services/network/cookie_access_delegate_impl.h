@@ -5,7 +5,10 @@
 #ifndef SERVICES_NETWORK_COOKIE_ACCESS_DELEGATE_IMPL_H_
 #define SERVICES_NETWORK_COOKIE_ACCESS_DELEGATE_IMPL_H_
 
+#include <set>
+
 #include "base/component_export.h"
+#include "base/containers/flat_map.h"
 #include "base/containers/flat_set.h"
 #include "base/functional/callback_forward.h"
 #include "base/memory/raw_ptr.h"
@@ -56,6 +59,7 @@ class COMPONENT_EXPORT(NETWORK_SERVICE) CookieAccessDelegateImpl
   ComputeFirstPartySetMetadataMaybeAsync(
       const net::SchemefulSite& site,
       const net::SchemefulSite* top_frame_site,
+      const std::set<net::SchemefulSite>& party_context,
       base::OnceCallback<void(net::FirstPartySetMetadata)> callback)
       const override;
   [[nodiscard]] absl::optional<FirstPartySetsAccessDelegate::EntriesResult>

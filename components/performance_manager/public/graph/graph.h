@@ -10,7 +10,6 @@
 #include <vector>
 
 #include "base/dcheck_is_on.h"
-#include "base/functional/function_ref.h"
 #include "base/memory/ptr_util.h"
 
 namespace ukm {
@@ -44,11 +43,6 @@ class GraphRegisteredImpl;
 class Graph {
  public:
   using Observer = GraphObserver;
-
-  using FrameNodeVisitor = base::FunctionRef<bool(const FrameNode*)>;
-  using PageNodeVisitor = base::FunctionRef<bool(const PageNode*)>;
-  using ProcessNodeVisitor = base::FunctionRef<bool(const ProcessNode*)>;
-  using WorkerNodeVisitor = base::FunctionRef<bool(const WorkerNode*)>;
 
   Graph();
 
@@ -119,25 +113,12 @@ class Graph {
     return static_cast<DerivedType*>(object);
   }
 
-  // Returns the single system node.
+  // Returns a collection of all known nodes of the given type.
   virtual const SystemNode* GetSystemNode() const = 0;
-
-  // Returns a collection of all known nodes of the given type. Note that this
-  // incurs a full container copy of all returned nodes. Please use
-  // VisitAll*Nodes() when that makes sense.
   virtual std::vector<const ProcessNode*> GetAllProcessNodes() const = 0;
   virtual std::vector<const FrameNode*> GetAllFrameNodes() const = 0;
   virtual std::vector<const PageNode*> GetAllPageNodes() const = 0;
   virtual std::vector<const WorkerNode*> GetAllWorkerNodes() const = 0;
-
-  // Visits all nodes in the graph of the given type, invoking the provided
-  // `visitor` for each. If the visitor returns false then then the iteration is
-  // halted. The visitor must not modify the graph. Returns true if all calls to
-  // the visitor returned true, false otherwise.
-  virtual bool VisitAllProcessNodes(ProcessNodeVisitor visitor) const = 0;
-  virtual bool VisitAllFrameNodes(FrameNodeVisitor visitor) const = 0;
-  virtual bool VisitAllPageNodes(PageNodeVisitor visitor) const = 0;
-  virtual bool VisitAllWorkerNodes(WorkerNodeVisitor visitor) const = 0;
 
   // Returns true if the graph only contains the default nodes.
   virtual bool HasOnlySystemNode() const = 0;

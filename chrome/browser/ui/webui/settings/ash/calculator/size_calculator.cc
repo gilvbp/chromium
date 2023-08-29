@@ -234,30 +234,26 @@ DriveOfflineSizeCalculator::DriveOfflineSizeCalculator(Profile* profile)
 DriveOfflineSizeCalculator::~DriveOfflineSizeCalculator() = default;
 
 void DriveOfflineSizeCalculator::PerformCalculation() {
-  if (!drive::util::IsDriveFsBulkPinningEnabled(profile_) &&
-      !base::FeatureList::IsEnabled(
-          ash::features::kFilesGoogleDriveSettingsPage)) {
+  if (!drive::util::IsDriveFsBulkPinningEnabled(profile_)) {
     NotifySizeCalculated(0);
     return;
   }
 
-  drive::DriveIntegrationService* const service =
-      drive::util::GetIntegrationServiceByProfile(profile_);
-  if (!service) {
-    NotifySizeCalculated(0);
+  drive::DriveIntegrationService* integration_service =
+      drive::DriveIntegrationServiceFactory::FindForProfile(profile_);
+
+  if (!integration_service) {
+    NotifySizeCalculated(-1);
     return;
   }
 
-  base::ThreadPool::PostTaskAndReplyWithResult(
-      FROM_HERE, {base::MayBlock(), base::TaskPriority::USER_VISIBLE},
-      base::BindOnce(&drive::util::ComputeDriveFsContentCacheSize,
-                     service->GetDriveFsContentCachePath()),
+  integration_service->GetTotalPinnedSize(
       base::BindOnce(&DriveOfflineSizeCalculator::OnGetOfflineItemsSize,
                      weak_ptr_factory_.GetWeakPtr()));
 }
 
 void DriveOfflineSizeCalculator::OnGetOfflineItemsSize(int64_t offline_bytes) {
-  NotifySizeCalculated(offline_bytes > 0 ? offline_bytes : 0);
+  NotifySizeCalculated(offline_bytes);
 }
 
 MyFilesSizeCalculator::MyFilesSizeCalculator(Profile* profile)

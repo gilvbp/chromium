@@ -4,7 +4,6 @@
 
 package org.chromium.chrome.browser.ntp.search;
 
-import android.os.Build;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewGroup.MarginLayoutParams;
@@ -62,12 +61,6 @@ class SearchBoxViewBinder
         } else if (SearchBoxProperties.SEARCH_BOX_CLICK_CALLBACK == propertyKey) {
             searchBoxTextView.setOnClickListener(
                     model.get(SearchBoxProperties.SEARCH_BOX_CLICK_CALLBACK));
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                searchBoxTextView.setHandwritingDelegatorCallback(
-                        ()
-                                -> model.get(SearchBoxProperties.SEARCH_BOX_CLICK_CALLBACK)
-                                           .onClick(searchBoxTextView));
-            }
         } else if (SearchBoxProperties.SEARCH_BOX_TEXT_WATCHER == propertyKey) {
             searchBoxTextView.addTextChangedListener(
                     model.get(SearchBoxProperties.SEARCH_BOX_TEXT_WATCHER));
@@ -75,9 +68,10 @@ class SearchBoxViewBinder
             searchBoxTextView.setText(model.get(SearchBoxProperties.SEARCH_TEXT));
         } else if (SearchBoxProperties.SEARCH_HINT_VISIBILITY == propertyKey) {
             boolean isHintVisible = model.get(SearchBoxProperties.SEARCH_HINT_VISIBILITY);
-            searchBoxTextView.setHint(isHintVisible ? view.getContext().getString(
-                                              org.chromium.chrome.R.string.omnibox_empty_hint)
-                                                    : null);
+            searchBoxTextView.setHint(isHintVisible
+                            ? view.getContext().getString(
+                                    org.chromium.chrome.R.string.search_or_type_web_address)
+                            : null);
         } else if (SearchBoxProperties.VOICE_SEARCH_CLICK_CALLBACK == propertyKey) {
             voiceSearchButton.setOnClickListener(
                     model.get(SearchBoxProperties.VOICE_SEARCH_CLICK_CALLBACK));

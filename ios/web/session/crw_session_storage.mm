@@ -4,7 +4,7 @@
 
 #import "ios/web/public/session/crw_session_storage.h"
 
-#import "base/apple/foundation_util.h"
+#import "base/mac/foundation_util.h"
 #import "base/memory/ptr_util.h"
 #import "base/metrics/histogram_functions.h"
 #import "base/strings/utf_string_conversions.h"
@@ -18,6 +18,10 @@
 #import "ios/web/public/session/proto/navigation.pb.h"
 #import "ios/web/public/session/proto/proto_util.h"
 #import "ios/web/public/session/proto/storage.pb.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace {
 // Serialization keys used in NSCoding functions.
@@ -55,11 +59,6 @@ NSString* const kTabIdKey = @"TabId";
 
 - (instancetype)initWithProto:(const web::proto::WebStateStorage&)storage {
   if ((self = [super init])) {
-    // As the protobuf message does not contain the unique or stable
-    // identifiers, generate new random values.
-    _uniqueIdentifier = SessionID::NewUnique().id();
-    _stableIdentifier = [[NSUUID UUID] UUIDString];
-
     _hasOpener = storage.has_opener();
     _userAgentType = web::UserAgentTypeFromProto(storage.user_agent());
     _certPolicyCacheStorage = [[CRWSessionCertificatePolicyCacheStorage alloc]
@@ -98,15 +97,13 @@ NSString* const kTabIdKey = @"TabId";
     [itemStorage serializeToProto:*navigationStorage->add_items()];
   }
 
-  [self serializeMetadataToProto:*storage.mutable_metadata()];
-}
-
-- (void)serializeMetadataToProto:
-    (web::proto::WebStateMetadataStorage&)metadata {
-  web::SerializeTimeToProto(_creationTime, *metadata.mutable_creation_time());
+  web::proto::WebStateMetadataStorage* metadataStorage =
+      storage.mutable_metadata();
+  web::SerializeTimeToProto(_creationTime,
+                            *metadataStorage->mutable_creation_time());
   web::SerializeTimeToProto(_lastActiveTime,
-                            *metadata.mutable_last_active_time());
-  metadata.set_navigation_item_count(_itemStorages.count);
+                            *metadataStorage->mutable_last_active_time());
+  metadataStorage->set_navigation_item_count(_itemStorages.count);
 
   if (_lastCommittedItemIndex >= 0) {
     NSUInteger const activePageIndex =
@@ -115,14 +112,10 @@ NSString* const kTabIdKey = @"TabId";
       CRWNavigationItemStorage* const activePageItem =
           _itemStorages[activePageIndex];
       web::proto::PageMetadataStorage* pageMetadataStorage =
-          metadata.mutable_active_page();
+          metadataStorage->mutable_active_page();
       pageMetadataStorage->set_page_title(
           base::UTF16ToUTF8(activePageItem.title));
-      GURL pageURL = activePageItem.virtualURL;
-      if (!pageURL.is_valid()) {
-        pageURL = activePageItem.URL;
-      }
-      pageMetadataStorage->set_page_url(pageURL.spec());
+      pageMetadataStorage->set_page_url(activePageItem.URL.spec());
     }
   }
 }
@@ -162,14 +155,14 @@ NSString* const kTabIdKey = @"TabId";
     id<NSCoding, NSObject> userData =
         [decoder decodeObjectForKey:kSerializedUserDataKey];
     if ([userData isKindOfClass:[CRWSessionUserData class]]) {
-      _userData = base::apple::ObjCCastStrict<CRWSessionUserData>(userData);
+      _userData = base::mac::ObjCCastStrict<CRWSessionUserData>(userData);
     } else if ([userData isKindOfClass:[NSDictionary class]]) {
       // Before M99, the user data was serialized by a C++ class that did
       // serialize a NSDictionary<NSString*, id<NSCoding>>* directly.
       // TODO(crbug.com/1278308): Remove this deprecated logic when we remove
       // support for loading legacy sessions.
       NSDictionary<NSString*, id<NSCoding>>* dictionary =
-          base::apple::ObjCCastStrict<NSDictionary>(userData);
+          base::mac::ObjCCastStrict<NSDictionary>(userData);
 
       _userData = [[CRWSessionUserData alloc] init];
       for (NSString* key in dictionary) {
@@ -204,7 +197,7 @@ NSString* const kTabIdKey = @"TabId";
 
         // If the value is not an NSString or is empty, a random identifier
         // will be generated below.
-        _stableIdentifier = base::apple::ObjCCast<NSString>(tabIdValue);
+        _stableIdentifier = base::mac::ObjCCast<NSString>(tabIdValue);
       }
     }
 

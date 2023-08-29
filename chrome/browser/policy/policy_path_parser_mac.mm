@@ -10,13 +10,17 @@
 
 #include <string>
 
-#include "base/apple/foundation_util.h"
-#include "base/apple/scoped_cftyperef.h"
 #include "base/files/file_path.h"
 #include "base/logging.h"
+#include "base/mac/foundation_util.h"
+#include "base/mac/scoped_cftyperef.h"
 #include "base/strings/sys_string_conversions.h"
 #include "build/branding_buildflags.h"
 #include "components/policy/policy_constants.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace policy::path_parser {
 
@@ -76,9 +80,9 @@ base::FilePath::StringType ExpandPathVariables(
   position = result.find(kMachineNamePolicyVarName);
   if (position != std::string::npos) {
     SCDynamicStoreContext context = {0, nullptr, nullptr, nullptr};
-    base::apple::ScopedCFTypeRef<SCDynamicStoreRef> store(SCDynamicStoreCreate(
+    base::ScopedCFTypeRef<SCDynamicStoreRef> store(SCDynamicStoreCreate(
         kCFAllocatorDefault, CFSTR("policy_subsystem"), nullptr, &context));
-    base::apple::ScopedCFTypeRef<CFStringRef> machine_name(
+    base::ScopedCFTypeRef<CFStringRef> machine_name(
         SCDynamicStoreCopyLocalHostName(store));
     if (machine_name) {
       result.replace(position, strlen(kMachineNamePolicyVarName),
@@ -103,18 +107,18 @@ void CheckUserDataDirPolicy(base::FilePath* user_data_dir) {
   // policies.
   CFStringRef bundle_id = CFSTR("com.google.Chrome");
 #else
-  base::apple::ScopedCFTypeRef<CFStringRef> bundle_id(
-      base::SysUTF8ToCFStringRef(base::apple::BaseBundleID()));
+  base::ScopedCFTypeRef<CFStringRef> bundle_id(
+      base::SysUTF8ToCFStringRef(base::mac::BaseBundleID()));
 #endif
 
-  base::apple::ScopedCFTypeRef<CFStringRef> key(
+  base::ScopedCFTypeRef<CFStringRef> key(
       base::SysUTF8ToCFStringRef(policy::key::kUserDataDir));
-  base::apple::ScopedCFTypeRef<CFPropertyListRef> value(
+  base::ScopedCFTypeRef<CFPropertyListRef> value(
       CFPreferencesCopyAppValue(key, bundle_id));
 
   if (!value || !CFPreferencesAppValueIsForced(key, bundle_id))
     return;
-  CFStringRef value_string = base::apple::CFCast<CFStringRef>(value);
+  CFStringRef value_string = base::mac::CFCast<CFStringRef>(value);
   if (!value_string)
     return;
 

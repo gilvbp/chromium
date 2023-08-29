@@ -55,7 +55,7 @@ class MODULES_EXPORT MediaStreamObserver : public GarbageCollectedMixin {
 };
 
 class MODULES_EXPORT MediaStream final
-    : public EventTarget,
+    : public EventTargetWithInlineData,
       public ExecutionContextClient,
       public ActiveScriptWrappable<MediaStream>,
       public MediaStreamDescriptorClient {

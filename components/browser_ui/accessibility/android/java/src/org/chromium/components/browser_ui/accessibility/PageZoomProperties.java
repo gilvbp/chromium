@@ -18,8 +18,6 @@ class PageZoomProperties {
             new WritableObjectPropertyKey<Callback<Void>>();
     static final WritableObjectPropertyKey<Callback<Void>> INCREASE_ZOOM_CALLBACK =
             new WritableObjectPropertyKey<Callback<Void>>();
-    static final WritableObjectPropertyKey<Callback<Void>> RESET_ZOOM_CALLBACK =
-            new WritableObjectPropertyKey<Callback<Void>>();
     static final WritableObjectPropertyKey<Callback<Integer>> SEEKBAR_CHANGE_CALLBACK =
             new WritableObjectPropertyKey<Callback<Integer>>();
     static final WritableObjectPropertyKey<Callback<Void>> USER_INTERACTION_CALLBACK =
@@ -29,7 +27,6 @@ class PageZoomProperties {
             new WritableBooleanPropertyKey();
     static final WritableBooleanPropertyKey INCREASE_ZOOM_ENABLED =
             new WritableBooleanPropertyKey();
-    static final WritableBooleanPropertyKey RESET_ZOOM_VISIBLE = new WritableBooleanPropertyKey();
 
     static final WritableIntPropertyKey MAXIMUM_SEEK_VALUE = new WritableIntPropertyKey();
     static final WritableIntPropertyKey CURRENT_SEEK_VALUE = new WritableIntPropertyKey();
@@ -38,7 +35,6 @@ class PageZoomProperties {
             new WritableObjectPropertyKey<Double>();
 
     static final PropertyKey[] ALL_KEYS = {DECREASE_ZOOM_CALLBACK, INCREASE_ZOOM_CALLBACK,
-            RESET_ZOOM_CALLBACK, SEEKBAR_CHANGE_CALLBACK, USER_INTERACTION_CALLBACK,
-            DECREASE_ZOOM_ENABLED, INCREASE_ZOOM_ENABLED, RESET_ZOOM_VISIBLE, MAXIMUM_SEEK_VALUE,
-            CURRENT_SEEK_VALUE, DEFAULT_ZOOM_FACTOR};
+            SEEKBAR_CHANGE_CALLBACK, USER_INTERACTION_CALLBACK, DECREASE_ZOOM_ENABLED,
+            INCREASE_ZOOM_ENABLED, MAXIMUM_SEEK_VALUE, CURRENT_SEEK_VALUE, DEFAULT_ZOOM_FACTOR};
 }

@@ -9,6 +9,7 @@
 #include "base/command_line.h"
 #include "cc/test/pixel_comparator.h"
 #include "cc/test/pixel_test_utils.h"
+#include "components/viz/common/resources/resource_format_utils.h"
 #include "components/viz/common/resources/shared_image_format_utils.h"
 #include "gpu/command_buffer/service/service_utils.h"
 #include "gpu/command_buffer/service/shared_image/shared_image_representation.h"
@@ -36,11 +37,6 @@
 
 #if BUILDFLAG(SKIA_USE_METAL)
 #include "components/viz/common/gpu/metal_context_provider.h"
-#endif
-
-#if BUILDFLAG(SKIA_USE_DAWN) || BUILDFLAG(USE_DAWN)
-#include "third_party/dawn/include/dawn/dawn_proc.h"          // nogncheck
-#include "third_party/dawn/include/dawn/native/DawnNative.h"  // nogncheck
 #endif
 
 namespace {
@@ -145,14 +141,10 @@ GrContextType SharedImageTestBase::gr_context_type() {
 
 void SharedImageTestBase::InitializeContext(GrContextType context_type) {
   gpu_preferences_.gr_context_type = context_type;
-#if BUILDFLAG(SKIA_USE_DAWN) || BUILDFLAG(USE_DAWN)
-  dawnProcSetProcs(&dawn::native::GetProcs());
-#endif
 
   if (context_type == GrContextType::kGraphiteDawn) {
 #if BUILDFLAG(SKIA_USE_DAWN)
-    dawn_context_provider_ =
-        DawnContextProvider::CreateWithBackend(GetDawnBackendType());
+    dawn_context_provider_ = DawnContextProvider::Create();
     ASSERT_TRUE(dawn_context_provider_);
 #else
     FAIL() << "Graphite-Dawn not available";
@@ -307,10 +299,11 @@ void SharedImageTestBase::VerifyPixelsWithReadbackGraphite(
 
     ASSERT_TRUE(context_state_->graphite_context());
     ReadPixelsContext context;
-    const SkIRect src_rect = dst_info.bounds();
-    context_state_->graphite_context()->asyncRescaleAndReadPixels(
-        sk_image.get(), dst_info, src_rect, SkImage::RescaleGamma::kSrc,
-        SkImage::RescaleMode::kRepeatedLinear, &OnReadPixelsDone, &context);
+    context_state_->graphite_context()->asyncReadPixels(
+        sk_image.get(), dst_info.colorInfo(),
+        SkIRect::MakeXYWH(/*src_x=*/0, /*src_y=*/0, dst_info.width(),
+                          dst_info.height()),
+        &OnReadPixelsDone, &context);
     InsertRecordingAndSubmit(context_state_.get(), /*sync_cpu=*/true);
     ASSERT_TRUE(context.finished) << "plane_index=" << plane;
     if (context.async_result) {
@@ -325,11 +318,5 @@ void SharedImageTestBase::VerifyPixelsWithReadbackGraphite(
     }
   }
 }
-
-#if BUILDFLAG(SKIA_USE_DAWN)
-wgpu::BackendType SharedImageTestBase::GetDawnBackendType() const {
-  return DawnContextProvider::GetDefaultBackendType();
-}
-#endif
 
 }  // namespace gpu

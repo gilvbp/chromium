@@ -134,14 +134,17 @@ public class RadioButtonGroupThemePreference
         return mSetting;
     }
 
+    @VisibleForTesting
     ArrayList getButtonsForTesting() {
         return mButtons;
     }
 
+    @VisibleForTesting
     public RadioButtonWithDescriptionLayout getGroupForTesting() {
         return mGroup;
     }
 
+    @VisibleForTesting
     public LinearLayout getCheckboxContainerForTesting() {
         return mCheckboxContainer;
     }

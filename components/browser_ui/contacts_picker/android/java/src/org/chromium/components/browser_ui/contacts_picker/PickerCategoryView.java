@@ -12,6 +12,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 
+import androidx.annotation.VisibleForTesting;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -464,10 +465,12 @@ public class PickerCategoryView extends OptimizedFrameLayout
                 propertiesRequested, ContactsPickerPropertiesRequested.PROPERTIES_BOUNDARY);
     }
 
+    @VisibleForTesting
     public SelectionDelegate<ContactDetails> getSelectionDelegateForTesting() {
         return mSelectionDelegate;
     }
 
+    @VisibleForTesting
     public TopView getTopViewForTesting() {
         return mTopView;
     }

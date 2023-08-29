@@ -5,13 +5,10 @@
 #include "chrome/updater/device_management/dm_policy_builder_for_testing.h"
 
 #include <stdint.h>
-#include <memory>
-#include <string>
 #include <utility>
 
-#include "base/time/time.h"
 #include "chrome/updater/protos/omaha_settings.pb.h"
-#include "chrome/updater/util/unit_test_util.h"
+#include "chrome/updater/util/unittest_util.h"
 #include "components/policy/proto/device_management_backend.pb.h"
 #include "crypto/rsa_private_key.h"
 #include "crypto/signature_creator.h"
@@ -190,29 +187,17 @@ GetDefaultTestingOmahaPolicyProto() {
 }
 
 std::unique_ptr<::enterprise_management::DeviceManagementResponse>
-GetDMResponseForOmahaPolicy(
-    bool first_request,
-    bool rotate_to_new_key,
-    DMPolicyBuilderForTesting::SigningOption signing_option,
-    const std::string& dm_token,
-    const std::string& device_id,
-    const ::wireless_android_enterprise_devicemanagement::
-        OmahaSettingsClientProto& omaha_settings) {
-  return DMPolicyBuilderForTesting::CreateInstanceWithOptions(
-             first_request, rotate_to_new_key, signing_option, dm_token,
-             device_id)
-      ->BuildDMResponseForPolicies(
-          {{"google/machine-level-omaha", omaha_settings.SerializeAsString()}});
-}
-
-std::unique_ptr<::enterprise_management::DeviceManagementResponse>
 GetDefaultTestingPolicyFetchDMResponse(
     bool first_request,
     bool rotate_to_new_key,
     DMPolicyBuilderForTesting::SigningOption signing_option) {
-  return GetDMResponseForOmahaPolicy(
-      first_request, rotate_to_new_key, signing_option, "test-dm-token",
-      "test-device-id", *GetDefaultTestingOmahaPolicyProto());
+  std::unique_ptr<DMPolicyBuilderForTesting> policy_builder =
+      DMPolicyBuilderForTesting::CreateInstanceWithOptions(
+          first_request, rotate_to_new_key, signing_option);
+  DMPolicyMap policy_map;
+  policy_map.emplace("google/machine-level-omaha",
+                     GetDefaultTestingOmahaPolicyProto()->SerializeAsString());
+  return policy_builder->BuildDMResponseForPolicies(policy_map);
 }
 
 DMSigningKeyForTesting::DMSigningKeyForTesting(const uint8_t key_data[],
@@ -275,9 +260,7 @@ std::unique_ptr<DMPolicyBuilderForTesting>
 DMPolicyBuilderForTesting::CreateInstanceWithOptions(
     bool first_request,
     bool rotate_to_new_key,
-    SigningOption signing_option,
-    const std::string& dm_token,
-    const std::string& device_id) {
+    SigningOption signing_option) {
   std::unique_ptr<DMSigningKeyForTesting> signing_key;
   std::unique_ptr<DMSigningKeyForTesting> new_signing_key;
 
@@ -291,8 +274,8 @@ DMPolicyBuilderForTesting::CreateInstanceWithOptions(
   }
 
   return std::make_unique<DMPolicyBuilderForTesting>(
-      dm_token, "username@example.com", device_id, std::move(signing_key),
-      std::move(new_signing_key), signing_option);
+      "test-dm-token", "username@example.com", "test-device-id",
+      std::move(signing_key), std::move(new_signing_key), signing_option);
 }
 
 void DMPolicyBuilderForTesting::FillPolicyFetchResponseWithPayload(
@@ -336,8 +319,7 @@ void DMPolicyBuilderForTesting::FillPolicyFetchResponseWithPayload(
 
   enterprise_management::PolicyData policy_data;
   policy_data.set_policy_type(policy_type);
-  policy_data.set_timestamp(
-      (base::Time::Now() - base::Time::UnixEpoch()).InMilliseconds());
+  policy_data.set_timestamp(time(nullptr));
   policy_data.set_request_token(dm_token_);
   if (signing_key->has_key_version()) {
     policy_data.set_public_key_version(signing_key->key_version());

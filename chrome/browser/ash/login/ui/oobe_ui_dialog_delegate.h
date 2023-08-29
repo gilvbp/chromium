@@ -118,7 +118,6 @@ class OobeUIDialogDelegate : public ui::WebDialogDelegate,
                          const content::ContextMenuParams& params) override;
   std::vector<ui::Accelerator> GetAccelerators() override;
   bool AcceleratorPressed(const ui::Accelerator& accelerator) override;
-  WebDialogDelegate::FrameKind GetWebDialogFrameKind() const override;
 
   // views::ViewObserver:
   void OnViewBoundsChanged(views::View* observed_view) override;

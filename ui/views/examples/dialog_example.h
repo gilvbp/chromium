@@ -60,7 +60,6 @@ class VIEWS_EXAMPLES_EXPORT DialogExample : public ExampleBase,
   ui::ModalType GetModalType() const;
   int GetDialogButtons() const;
 
-  void OnCloseCallback();
   // Invoked when the dialog is closing.
   bool AllowDialogClose(bool accept);
 

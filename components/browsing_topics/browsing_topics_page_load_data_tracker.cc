@@ -47,9 +47,9 @@ BrowsingTopicsPageLoadDataTracker::BrowsingTopicsPageLoadDataTracker(
     content::Page& page)
     : content::PageUserData<BrowsingTopicsPageLoadDataTracker>(page),
       hashed_main_frame_host_(HashMainFrameHostForStorage(
-          page.GetMainDocument().GetLastCommittedOrigin().host())) {
-  CHECK(page.IsPrimary());
-  source_id_ = page.GetMainDocument().GetPageUkmSourceId();
+          page.GetMainDocument().GetLastCommittedOrigin().host())),
+      source_id_(page.GetMainDocument().GetPageUkmSourceId()) {
+  DCHECK(page.IsPrimary());
 
   // TODO(yaoxia): consider dropping the permissions policy checks. We require
   // that the API is used in the page, and that already implies that the
@@ -70,7 +70,6 @@ BrowsingTopicsPageLoadDataTracker::BrowsingTopicsPageLoadDataTracker(
 
 void BrowsingTopicsPageLoadDataTracker::OnBrowsingTopicsApiUsed(
     const HashedDomain& hashed_context_domain,
-    const std::string& context_domain,
     history::HistoryService* history_service) {
   if (!eligible_to_commit_)
     return;
@@ -86,7 +85,7 @@ void BrowsingTopicsPageLoadDataTracker::OnBrowsingTopicsApiUsed(
         web_contents->GetLastCommittedURL());
   }
 
-  CHECK_LE(
+  DCHECK_LE(
       blink::features::
           kBrowsingTopicsMaxNumberOfApiUsageContextDomainsToStorePerPageLoad
               .Get(),
@@ -123,8 +122,8 @@ void BrowsingTopicsPageLoadDataTracker::OnBrowsingTopicsApiUsed(
       .GetBrowserContext()
       ->GetDefaultStoragePartition()
       ->GetBrowsingTopicsSiteDataManager()
-      ->OnBrowsingTopicsApiUsed(hashed_main_frame_host_, hashed_context_domain,
-                                context_domain, base::Time::Now());
+      ->OnBrowsingTopicsApiUsed(hashed_main_frame_host_,
+                                {hashed_context_domain}, base::Time::Now());
 }
 
 PAGE_USER_DATA_KEY_IMPL(BrowsingTopicsPageLoadDataTracker);

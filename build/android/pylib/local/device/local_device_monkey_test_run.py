@@ -5,6 +5,7 @@
 
 import logging
 
+from six.moves import range  # pylint: disable=redefined-builtin
 from devil.android import device_errors
 from devil.android.sdk import intent
 from pylib import constants

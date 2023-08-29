@@ -13,7 +13,6 @@
 #include "ui/base/x/x11_display_manager.h"
 #include "ui/gfx/geometry/point.h"
 #include "ui/gfx/x/event.h"
-#include "ui/linux/linux_ui.h"
 #include "ui/ozone/public/platform_screen.h"
 
 namespace ui {
@@ -61,9 +60,7 @@ class X11ScreenOzone : public PlatformScreen,
   std::string GetCurrentWorkspace() override;
   base::Value::List GetGpuExtraInfo(
       const gfx::GpuExtraInfo& gpu_extra_info) override;
-#if BUILDFLAG(IS_LINUX)
-  void SetDisplayConfig(const DisplayConfig& display_config) override;
-#endif
+  void SetDeviceScaleFactor(float scale) override;
 
   // Overridden from x11::EventObserver:
   void OnEvent(const x11::Event& event) override;
@@ -89,7 +86,7 @@ class X11ScreenOzone : public PlatformScreen,
 
   // Overridden from ui::XDisplayManager::Delegate:
   void OnXDisplayListUpdated() override;
-  const DisplayConfig& GetDisplayConfig() const override;
+  float GetXDisplayScaleFactor() const override;
 
   gfx::Point GetCursorLocation() const;
 
@@ -97,12 +94,9 @@ class X11ScreenOzone : public PlatformScreen,
   const raw_ptr<X11WindowManager> window_manager_;
   std::unique_ptr<ui::XDisplayManager> x11_display_manager_;
 
-  // Display config that DesktopScreenOzoneLinux sets by listening to
+  // Scale value that DesktopScreenOzoneLinux sets by listening to
   // DeviceScaleFactorObserver.
-  raw_ptr<const DisplayConfig> display_config_ = nullptr;
-  const DisplayConfig empty_display_config_;
-  // The scale factor of the primary display.
-  float primary_scale_ = 1.0f;
+  float device_scale_factor_ = 1.0f;
 
   // Indicates that |this| is initialized.
   bool initialized_ = false;

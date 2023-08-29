@@ -24,8 +24,7 @@ AccessTokenFetcher::AccessTokenFetcher(
     PrimaryAccountManager* primary_account_manager,
     const ScopeSet& scopes,
     TokenCallback callback,
-    Mode mode,
-    bool should_verify_scope_access)
+    Mode mode)
     : AccessTokenFetcher(account_id,
                          oauth_consumer_name,
                          token_service,
@@ -33,8 +32,7 @@ AccessTokenFetcher::AccessTokenFetcher(
                          /*url_loader_factory=*/nullptr,
                          scopes,
                          std::move(callback),
-                         mode,
-                         should_verify_scope_access) {}
+                         mode) {}
 
 AccessTokenFetcher::AccessTokenFetcher(
     const CoreAccountId& account_id,
@@ -44,17 +42,15 @@ AccessTokenFetcher::AccessTokenFetcher(
     scoped_refptr<network::SharedURLLoaderFactory> url_loader_factory,
     const ScopeSet& scopes,
     TokenCallback callback,
-    Mode mode,
-    bool should_verify_scope_access)
+    Mode mode)
     : OAuth2AccessTokenManager::Consumer(oauth_consumer_name),
       account_id_(account_id),
       token_service_(token_service),
       primary_account_manager_(primary_account_manager),
       url_loader_factory_(std::move(url_loader_factory)),
       scopes_(scopes),
-      callback_(std::move(callback)),
       mode_(mode),
-      should_verify_scope_access_(should_verify_scope_access) {
+      callback_(std::move(callback)) {
   if (mode_ == Mode::kImmediate || IsRefreshTokenAvailable()) {
     StartAccessTokenRequest();
     return;
@@ -129,9 +125,7 @@ void AccessTokenFetcher::StartAccessTokenRequest() {
 
   // Ensure that the client has the appropriate user consent for accessing the
   // OAuth API scopes in this request.
-  if (should_verify_scope_access_) {
-    VerifyScopeAccess();
-  }
+  VerifyScopeAccess();
 
   if (url_loader_factory_) {
     access_token_request_ = token_service_->StartRequestWithContext(

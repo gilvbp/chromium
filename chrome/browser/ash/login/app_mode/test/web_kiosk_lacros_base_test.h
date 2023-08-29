@@ -15,7 +15,7 @@ class WebKioskLacrosBaseTest : public WebKioskBaseTest {
  public:
   void SetUpInProcessBrowserTestFixture() override;
 
-  void PreRunTestOnMainThread() override;
+  void SetUpOnMainThread() override;
 
  protected:
   KioskAshBrowserTestStarter kiosk_ash_starter_;

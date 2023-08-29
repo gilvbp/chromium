@@ -11,6 +11,7 @@
 #include <tuple>
 #include <utility>
 
+#include "base/feature_list.h"
 #include "base/functional/bind.h"
 #include "base/functional/callback.h"
 #include "base/functional/callback_helpers.h"
@@ -23,6 +24,7 @@
 #include "storage/browser/file_system/file_observers.h"
 #include "storage/browser/file_system/file_system_backend.h"
 #include "storage/browser/file_system/file_system_context.h"
+#include "storage/browser/file_system/file_system_features.h"
 #include "storage/browser/file_system/file_system_file_util.h"
 #include "storage/browser/file_system/file_system_util.h"
 #include "storage/browser/file_system/remove_operation_delegate.h"
@@ -54,12 +56,11 @@ void DidOpenFile(scoped_refptr<FileSystemContext> context,
 }  // namespace
 
 std::unique_ptr<FileSystemOperation> FileSystemOperation::Create(
-    OperationType type,
     const FileSystemURL& url,
     FileSystemContext* file_system_context,
     std::unique_ptr<FileSystemOperationContext> operation_context) {
   return std::make_unique<FileSystemOperationImpl>(
-      type, url, file_system_context, std::move(operation_context),
+      url, file_system_context, std::move(operation_context),
       base::PassKey<FileSystemOperation>());
 }
 
@@ -68,7 +69,7 @@ FileSystemOperationImpl::~FileSystemOperationImpl() = default;
 void FileSystemOperationImpl::CreateFile(const FileSystemURL& url,
                                          bool exclusive,
                                          StatusCallback callback) {
-  CheckOperationType(OperationType::kCreateFile);
+  DCHECK(SetPendingOperationType(kOperationCreateFile));
 
   auto split_callback = base::SplitOnceCallback(std::move(callback));
   GetBucketSpaceRemainingAndRunTask(
@@ -84,7 +85,7 @@ void FileSystemOperationImpl::CreateDirectory(const FileSystemURL& url,
                                               bool exclusive,
                                               bool recursive,
                                               StatusCallback callback) {
-  CheckOperationType(OperationType::kCreateDirectory);
+  DCHECK(SetPendingOperationType(kOperationCreateDirectory));
 
   auto split_callback = base::SplitOnceCallback(std::move(callback));
   GetBucketSpaceRemainingAndRunTask(
@@ -104,7 +105,7 @@ void FileSystemOperationImpl::Copy(
     std::unique_ptr<CopyOrMoveHookDelegate> copy_or_move_hook_delegate,
     StatusCallback callback) {
   DCHECK(copy_or_move_hook_delegate);
-  CheckOperationType(OperationType::kCopy);
+  DCHECK(SetPendingOperationType(kOperationCopy));
   DCHECK(!recursive_operation_delegate_);
 
   recursive_operation_delegate_ = std::make_unique<CopyOrMoveOperationDelegate>(
@@ -124,7 +125,7 @@ void FileSystemOperationImpl::Move(
     std::unique_ptr<CopyOrMoveHookDelegate> copy_or_move_hook_delegate,
     StatusCallback callback) {
   DCHECK(copy_or_move_hook_delegate);
-  CheckOperationType(OperationType::kMove);
+  DCHECK(SetPendingOperationType(kOperationMove));
   DCHECK(!recursive_operation_delegate_);
   recursive_operation_delegate_ = std::make_unique<CopyOrMoveOperationDelegate>(
       file_system_context(), src_url, dest_url,
@@ -137,7 +138,7 @@ void FileSystemOperationImpl::Move(
 
 void FileSystemOperationImpl::DirectoryExists(const FileSystemURL& url,
                                               StatusCallback callback) {
-  CheckOperationType(OperationType::kDirectoryExists);
+  DCHECK(SetPendingOperationType(kOperationDirectoryExists));
   async_file_util_->GetFileInfo(
       std::move(operation_context_), url, GET_METADATA_FIELD_IS_DIRECTORY,
       base::BindOnce(&FileSystemOperationImpl::DidDirectoryExists,
@@ -146,7 +147,7 @@ void FileSystemOperationImpl::DirectoryExists(const FileSystemURL& url,
 
 void FileSystemOperationImpl::FileExists(const FileSystemURL& url,
                                          StatusCallback callback) {
-  CheckOperationType(OperationType::kFileExists);
+  DCHECK(SetPendingOperationType(kOperationFileExists));
   async_file_util_->GetFileInfo(
       std::move(operation_context_), url, GET_METADATA_FIELD_IS_DIRECTORY,
       base::BindOnce(&FileSystemOperationImpl::DidFileExists,
@@ -156,7 +157,7 @@ void FileSystemOperationImpl::FileExists(const FileSystemURL& url,
 void FileSystemOperationImpl::GetMetadata(const FileSystemURL& url,
                                           int fields,
                                           GetMetadataCallback callback) {
-  CheckOperationType(OperationType::kGetMetadata);
+  DCHECK(SetPendingOperationType(kOperationGetMetadata));
   async_file_util_->GetFileInfo(std::move(operation_context_), url, fields,
                                 std::move(callback));
 }
@@ -164,14 +165,14 @@ void FileSystemOperationImpl::GetMetadata(const FileSystemURL& url,
 void FileSystemOperationImpl::ReadDirectory(
     const FileSystemURL& url,
     const ReadDirectoryCallback& callback) {
-  CheckOperationType(OperationType::kReadDirectory);
+  DCHECK(SetPendingOperationType(kOperationReadDirectory));
   async_file_util_->ReadDirectory(std::move(operation_context_), url, callback);
 }
 
 void FileSystemOperationImpl::Remove(const FileSystemURL& url,
                                      bool recursive,
                                      StatusCallback callback) {
-  CheckOperationType(OperationType::kRemove);
+  DCHECK(SetPendingOperationType(kOperationRemove));
   DCHECK(!recursive_operation_delegate_);
 
   if (recursive) {
@@ -197,7 +198,7 @@ void FileSystemOperationImpl::WriteBlob(
     std::unique_ptr<FileWriterDelegate> writer_delegate,
     std::unique_ptr<BlobReader> blob_reader,
     const WriteCallback& callback) {
-  CheckOperationType(OperationType::kWrite);
+  DCHECK(SetPendingOperationType(kOperationWrite));
   file_writer_delegate_ = std::move(writer_delegate);
   file_writer_delegate_->Start(
       std::move(blob_reader),
@@ -210,7 +211,7 @@ void FileSystemOperationImpl::Write(
     std::unique_ptr<FileWriterDelegate> writer_delegate,
     mojo::ScopedDataPipeConsumerHandle data_pipe,
     const WriteCallback& callback) {
-  CheckOperationType(OperationType::kWrite);
+  DCHECK(SetPendingOperationType(kOperationWrite));
   file_writer_delegate_ = std::move(writer_delegate);
   file_writer_delegate_->Start(
       std::move(data_pipe),
@@ -221,7 +222,7 @@ void FileSystemOperationImpl::Write(
 void FileSystemOperationImpl::Truncate(const FileSystemURL& url,
                                        int64_t length,
                                        StatusCallback callback) {
-  CheckOperationType(OperationType::kTruncate);
+  DCHECK(SetPendingOperationType(kOperationTruncate));
 
   auto split_callback = base::SplitOnceCallback(std::move(callback));
   GetBucketSpaceRemainingAndRunTask(
@@ -237,7 +238,7 @@ void FileSystemOperationImpl::TouchFile(const FileSystemURL& url,
                                         const base::Time& last_access_time,
                                         const base::Time& last_modified_time,
                                         StatusCallback callback) {
-  CheckOperationType(OperationType::kTouchFile);
+  DCHECK(SetPendingOperationType(kOperationTouchFile));
 
   async_file_util_->Touch(
       std::move(operation_context_), url, last_access_time, last_modified_time,
@@ -248,7 +249,7 @@ void FileSystemOperationImpl::TouchFile(const FileSystemURL& url,
 void FileSystemOperationImpl::OpenFile(const FileSystemURL& url,
                                        uint32_t file_flags,
                                        OpenFileCallback callback) {
-  CheckOperationType(OperationType::kOpenFile);
+  DCHECK(SetPendingOperationType(kOperationOpenFile));
 
   if (file_flags &
       (base::File::FLAG_WIN_TEMPORARY | base::File::FLAG_WIN_HIDDEN)) {
@@ -275,7 +276,7 @@ void FileSystemOperationImpl::Cancel(StatusCallback cancel_callback) {
   cancel_callback_ = std::move(cancel_callback);
 
   if (file_writer_delegate_.get()) {
-    CHECK_EQ(OperationType::kWrite, type_);
+    DCHECK_EQ(kOperationWrite, pending_operation_);
     // This will call DidWrite() with ABORT status code.
     file_writer_delegate_->Cancel();
   } else if (recursive_operation_delegate_) {
@@ -284,14 +285,14 @@ void FileSystemOperationImpl::Cancel(StatusCallback cancel_callback) {
   } else {
     // For truncate we have no way to cancel the inflight operation (for now).
     // Let it just run and dispatch cancel callback later.
-    CHECK_EQ(OperationType::kTruncate, type_);
+    DCHECK_EQ(kOperationTruncate, pending_operation_);
   }
 }
 
 void FileSystemOperationImpl::CreateSnapshotFile(
     const FileSystemURL& url,
     SnapshotFileCallback callback) {
-  CheckOperationType(OperationType::kCreateSnapshotFile);
+  DCHECK(SetPendingOperationType(kOperationCreateSnapshotFile));
   async_file_util_->CreateSnapshotFile(std::move(operation_context_), url,
                                        std::move(callback));
 }
@@ -300,7 +301,7 @@ void FileSystemOperationImpl::CopyInForeignFile(
     const base::FilePath& src_local_disk_file_path,
     const FileSystemURL& dest_url,
     StatusCallback callback) {
-  CheckOperationType(OperationType::kCopyInForeignFile);
+  DCHECK(SetPendingOperationType(kOperationCopyInForeignFile));
 
   auto split_callback = base::SplitOnceCallback(std::move(callback));
   GetBucketSpaceRemainingAndRunTask(
@@ -314,7 +315,7 @@ void FileSystemOperationImpl::CopyInForeignFile(
 
 void FileSystemOperationImpl::RemoveFile(const FileSystemURL& url,
                                          StatusCallback callback) {
-  CheckOperationType(OperationType::kRemove);
+  DCHECK(SetPendingOperationType(kOperationRemove));
   async_file_util_->DeleteFile(
       std::move(operation_context_), url,
       base::BindOnce(&FileSystemOperationImpl::DidFinishOperation,
@@ -323,7 +324,7 @@ void FileSystemOperationImpl::RemoveFile(const FileSystemURL& url,
 
 void FileSystemOperationImpl::RemoveDirectory(const FileSystemURL& url,
                                               StatusCallback callback) {
-  CheckOperationType(OperationType::kRemove);
+  DCHECK(SetPendingOperationType(kOperationRemove));
   async_file_util_->DeleteDirectory(
       std::move(operation_context_), url,
       base::BindOnce(&FileSystemOperationImpl::DidFinishOperation,
@@ -336,13 +337,18 @@ void FileSystemOperationImpl::CopyFileLocal(
     CopyOrMoveOptionSet options,
     const CopyFileProgressCallback& progress_callback,
     StatusCallback callback) {
-  CheckOperationType(OperationType::kCopy);
+  DCHECK(SetPendingOperationType(kOperationCopy));
   // Don't just DCHECK src_url.IsInSameFileSystem(dest_url). We don't care if
   // the two URLs are mounted in two different isolated file systems. As long
   // as their origin and type are the same, they are part of the same file
   // system, and local operations are allowed. See https://crbug.com/1396116.
-  DCHECK(src_url.origin() == dest_url.origin() ||
-         (src_url.origin().opaque() && dest_url.origin().opaque()));
+  if (base::FeatureList::IsEnabled(
+          features::kFileSystemURLComparatorsTreatOpaqueOriginAsNoOrigin)) {
+    DCHECK(src_url.origin() == dest_url.origin() ||
+           (src_url.origin().opaque() && dest_url.origin().opaque()));
+  } else {
+    DCHECK_EQ(src_url.origin(), dest_url.origin());
+  }
   DCHECK_EQ(src_url.type(), dest_url.type());
 
   auto split_callback = base::SplitOnceCallback(std::move(callback));
@@ -359,13 +365,18 @@ void FileSystemOperationImpl::MoveFileLocal(const FileSystemURL& src_url,
                                             const FileSystemURL& dest_url,
                                             CopyOrMoveOptionSet options,
                                             StatusCallback callback) {
-  CheckOperationType(OperationType::kMove);
+  DCHECK(SetPendingOperationType(kOperationMove));
   // Don't just DCHECK src_url.IsInSameFileSystem(dest_url). We don't care if
   // the two URLs are mounted in two different isolated file systems. As long
   // as their origin and type are the same, they are part of the same file
   // system, and local operations are allowed. See https://crbug.com/1396116.
-  DCHECK(src_url.origin() == dest_url.origin() ||
-         (src_url.origin().opaque() && dest_url.origin().opaque()));
+  if (base::FeatureList::IsEnabled(
+          features::kFileSystemURLComparatorsTreatOpaqueOriginAsNoOrigin)) {
+    DCHECK(src_url.origin() == dest_url.origin() ||
+           (src_url.origin().opaque() && dest_url.origin().opaque()));
+  } else {
+    DCHECK_EQ(src_url.origin(), dest_url.origin());
+  }
   DCHECK_EQ(src_url.type(), dest_url.type());
 
   auto split_callback = base::SplitOnceCallback(std::move(callback));
@@ -381,7 +392,7 @@ void FileSystemOperationImpl::MoveFileLocal(const FileSystemURL& src_url,
 base::File::Error FileSystemOperationImpl::SyncGetPlatformPath(
     const FileSystemURL& url,
     base::FilePath* platform_path) {
-  CheckOperationType(OperationType::kGetLocalPath);
+  DCHECK(SetPendingOperationType(kOperationGetLocalPath));
   if (!file_system_context()->IsSandboxFileSystem(url.type()))
     return base::File::FILE_ERROR_INVALID_OPERATION;
   FileSystemFileUtil* file_util =
@@ -391,15 +402,14 @@ base::File::Error FileSystemOperationImpl::SyncGetPlatformPath(
 }
 
 FileSystemOperationImpl::FileSystemOperationImpl(
-    OperationType type,
     const FileSystemURL& url,
     FileSystemContext* file_system_context,
     std::unique_ptr<FileSystemOperationContext> operation_context,
     base::PassKey<FileSystemOperation>)
-    : type_(type),
-      file_system_context_(file_system_context),
+    : file_system_context_(file_system_context),
       operation_context_(std::move(operation_context)),
-      async_file_util_(nullptr) {
+      async_file_util_(nullptr),
+      pending_operation_(kOperationNone) {
   weak_ptr_ = weak_factory_.GetWeakPtr();
 
   DCHECK(operation_context_.get());
@@ -608,10 +618,11 @@ void FileSystemOperationImpl::DidWrite(
     std::move(cancel_callback).Run(base::File::FILE_OK);
 }
 
-void FileSystemOperationImpl::CheckOperationType(OperationType type) {
-  CHECK_EQ(type, type_);
-  CHECK(!operation_called_);
-  operation_called_ = true;
+bool FileSystemOperationImpl::SetPendingOperationType(OperationType type) {
+  if (pending_operation_ != kOperationNone)
+    return false;
+  pending_operation_ = type;
+  return true;
 }
 
 }  // namespace storage

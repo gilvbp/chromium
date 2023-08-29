@@ -55,11 +55,10 @@ bool ConsecutiveSimilarFieldType(ServerFieldType current_type,
 // Sectionable fields are all the fields that are in a non-default section.
 // Generally, only focusable fields are assigned a section. As an exception,
 // unfocusable <select> elements get a section, as hidden <select> elements are
-// common in custom select elements. To confine the impact of hidden <select>
-// elements, this exception only applies if their type is actually autofillable.
+// common in custom select elements. <selectmenu> elements behave the same as
+// <select> elements for the sake of simplicity.
 bool IsSectionable(const AutofillField& field) {
-  return field.IsFocusable() ||
-         (field.IsSelectElement() && field.IsFieldFillable());
+  return field.IsFocusable() || field.IsSelectOrSelectMenuElement();
 }
 
 // Assign all credit card fields without a valid autocomplete attribute section
@@ -107,7 +106,8 @@ void AssignFieldIdentifierSections(
   }
 }
 
-void ExpandSections(base::span<const std::unique_ptr<AutofillField>> fields) {
+void ExpandSections(base::span<const std::unique_ptr<AutofillField>> fields,
+                    bool overwrite_non_sectionable_fields) {
   auto HasSection = [](auto& field) {
     return IsSectionable(*field) && field->section;
   };
@@ -116,7 +116,7 @@ void ExpandSections(base::span<const std::unique_ptr<AutofillField>> fields) {
     auto end = base::ranges::find_if(it + 1, fields.end(), HasSection);
     if (end != fields.end() && (*it)->section == (*end)->section) {
       for (auto& field : base::make_span(it + 1, end)) {
-        if (IsSectionable(*field)) {
+        if (overwrite_non_sectionable_fields || IsSectionable(*field)) {
           field->section = (*it)->section;
         }
       }
@@ -207,7 +207,7 @@ void AssignSections(base::span<const std::unique_ptr<AutofillField>> fields) {
     AssignAutocompleteSections(fields);
   AssignCreditCardSections(fields, frame_token_ids);
   if (features::kAutofillSectioningModeExpand.Get()) {
-    ExpandSections(fields);
+    ExpandSections(fields, /*overwrite_non_sectionable_fields=*/false);
   }
 
   auto begin = fields.begin();
@@ -218,6 +218,10 @@ void AssignSections(base::span<const std::unique_ptr<AutofillField>> fields) {
     AssignFieldIdentifierSections({begin, end}, frame_token_ids);
     begin = end;
   }
+
+  if (features::kAutofillSectioningModeExpandOverUnfocusableFields.Get()) {
+    ExpandSections(fields, /*overwrite_non_sectionable_fields=*/true);
+  }
 }
 
 void LogSectioningMetrics(
@@ -226,12 +230,8 @@ void LogSectioningMetrics(
     AutofillMetrics::FormInteractionsUkmLogger* form_interactions_ukm_logger) {
   // UMA:
   base::flat_map<Section, size_t> fields_per_section;
-  for (auto& field : fields) {
-    if (!IsSectionable(*field) || !field->IsFieldFillable()) {
-      continue;
-    }
+  for (auto& field : fields)
     ++fields_per_section[field->section];
-  }
   AutofillMetrics::LogSectioningMetrics(fields_per_section);
   // UKM:
   if (form_interactions_ukm_logger) {
@@ -247,9 +247,6 @@ uint32_t ComputeSectioningSignature(
   std::stringstream signature;
   base::flat_map<Section, size_t> section_ids;
   for (auto& field : fields) {
-    if (!IsSectionable(*field) || !field->IsFieldFillable()) {
-      continue;
-    }
     size_t section_id =
         section_ids.emplace(field->section, section_ids.size()).first->second;
     signature << section_id;

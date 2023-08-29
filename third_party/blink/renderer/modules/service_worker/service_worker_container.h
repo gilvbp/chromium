@@ -61,7 +61,7 @@ class LocalDOMWindow;
 class ServiceWorkerErrorForUpdate;
 
 class MODULES_EXPORT ServiceWorkerContainer final
-    : public EventTarget,
+    : public EventTargetWithInlineData,
       public Supplement<LocalDOMWindow>,
       public ExecutionContextLifecycleObserver,
       public WebServiceWorkerProviderClient {

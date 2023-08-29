@@ -214,9 +214,12 @@ namespace ash {
 // - Instead of taking a screenshot of the starting desk, we replace it by a
 //   black solid color layer, to indicate the desk is being removed.
 // - The layer tree of the active-desk container is recreated, and the old
-// layers are detached.
-// - That old layer tree stays still on screen while the desks screenshots are
-// animating horizontally.
+//   layers are detached and animated vertically by
+//   `kRemovedDeskWindowYTranslation`.
+// - That old layer tree is then translated back down by the same amount while
+//   the desks screenshots are animating horizontally.
+// This gives the effect that the removed desk windows are jumping from their
+// desk to the target desk.
 
 // The types of animations, see detailed comments above for `Quick Animation`
 // and `Continuous Animation` animation types.
@@ -332,8 +335,9 @@ class ASH_EXPORT RootWindowDeskSwitchAnimator
   // animation layer, which will be setup with its initial transform according
   // to |starting_desk_index_| and |ending_desk_index_|. If |for_remove_| is
   // true, the detached old layer tree of the soon-to-be-removed-desk's windows
-  // will stay still on screen until the target desk moves in.
-  // `Delegate::OnStartingDeskScreenshotTaken()` will be called at the end.
+  // will be translated up vertically to simulate a jump from the removed desk
+  // to the target desk. |Delegate::OnStartingDeskScreenshotTaken()| will be
+  // called at the end.
   void CompleteAnimationPhase1WithLayer(std::unique_ptr<ui::Layer> layer);
 
   void OnStartingDeskScreenshotTaken(
@@ -351,7 +355,7 @@ class ASH_EXPORT RootWindowDeskSwitchAnimator
   int GetXPositionOfScreenshot(int index);
 
   // The root window that this animator is associated with.
-  const raw_ptr<aura::Window, DanglingUntriaged | ExperimentalAsh> root_window_;
+  const raw_ptr<aura::Window, ExperimentalAsh> root_window_;
 
   // The type of animator, this will determine what type of animation is
   // created.
@@ -367,7 +371,8 @@ class ASH_EXPORT RootWindowDeskSwitchAnimator
 
   // The owner of the layer tree of the old detached layers of the removed
   // desk's windows. This is only valid if |for_remove_| is true. This layer
-  // tree will stay still on screen during the period of desk switch animation.
+  // tree is animated to simulate that the windows are jumping from the removed
+  // desk to the target desk.
   std::unique_ptr<ui::LayerTreeOwner> old_windows_layer_tree_owner_;
 
   // The owner of the layer tree that contains the parent "animation layer" and

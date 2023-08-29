@@ -317,6 +317,17 @@ TEST_F(FieldTrialTest, ActiveGroups) {
   }
 }
 
+TEST_F(FieldTrialTest, GetActiveFieldTrialGroupsFromString) {
+  FieldTrial::ActiveGroups active_groups;
+  FieldTrialList::GetActiveFieldTrialGroupsFromString("*A/X/B/Y/*C/Z",
+                                                      &active_groups);
+  ASSERT_EQ(2U, active_groups.size());
+  EXPECT_EQ("A", active_groups[0].trial_name);
+  EXPECT_EQ("X", active_groups[0].group_name);
+  EXPECT_EQ("C", active_groups[1].trial_name);
+  EXPECT_EQ("Z", active_groups[1].group_name);
+}
+
 TEST_F(FieldTrialTest, ActiveGroupsNotFinalized) {
   const char kTrialName[] = "TestTrial";
   const char kSecondaryGroupName[] = "SecondaryGroup";
@@ -1156,7 +1167,7 @@ TEST_F(FieldTrialListTest, DumpAndFetchFromSharedMemory) {
   EXPECT_EQ("value2", shm_params["key2"]);
 }
 
-#if BUILDFLAG(USE_BLINK)
+#if !BUILDFLAG(IS_NACL) && !BUILDFLAG(IS_IOS)
 MULTIPROCESS_TEST_MAIN(SerializeSharedMemoryRegionMetadata) {
   std::string serialized =
       CommandLine::ForCurrentProcess()->GetSwitchValueASCII("field_trials");
@@ -1187,7 +1198,7 @@ TEST_F(FieldTrialListTest, SerializeSharedMemoryRegionMetadata) {
   std::string serialized =
       FieldTrialList::SerializeSharedMemoryRegionMetadata(shm.region, &options);
 
-#if BUILDFLAG(IS_POSIX) && !BUILDFLAG(IS_APPLE)
+#if BUILDFLAG(IS_POSIX) && !BUILDFLAG(IS_MAC)
 #if BUILDFLAG(IS_ANDROID)
   int shm_fd = shm.region.GetPlatformHandle();
 #else
@@ -1195,7 +1206,7 @@ TEST_F(FieldTrialListTest, SerializeSharedMemoryRegionMetadata) {
 #endif  // BUILDFLAG(IS_ANDROID)
   // Pick an arbitrary FD number to use for the shmem FD in the child.
   options.fds_to_remap.emplace_back(std::make_pair(shm_fd, 42));
-#endif  // BUILDFLAG(IS_POSIX) && !BUILDFLAG(IS_APPLE)
+#endif  // BUILDFLAG(IS_POSIX) && !BUILDFLAG(IS_MAC)
 
   CommandLine cmd_line = GetMultiProcessTestChildBaseCommandLine();
   cmd_line.AppendSwitchASCII("field_trials", serialized);
@@ -1209,11 +1220,12 @@ TEST_F(FieldTrialListTest, SerializeSharedMemoryRegionMetadata) {
       process, TestTimeouts::action_timeout(), &exit_code));
   EXPECT_EQ(0, exit_code);
 }
-#endif  // BUILDFLAG(USE_BLINK)
+#endif  // !BUILDFLAG(IS_NACL) && !BUILDFLAG(IS_IOS)
 
 // Verify that the field trial shared memory handle is really read-only, and
-// does not allow writable mappings.
-#if BUILDFLAG(USE_BLINK)
+// does not allow writable mappings. Test disabled on NaCl, Fuchsia, and Mac,
+// which don't support/implement shared memory configuration.
+#if !BUILDFLAG(IS_NACL) && !BUILDFLAG(IS_MAC)
 TEST_F(FieldTrialListTest, CheckReadOnlySharedMemoryRegion) {
   test::ScopedFeatureList scoped_feature_list;
   scoped_feature_list.InitWithEmptyFeatureAndFieldTrialLists();
@@ -1230,7 +1242,7 @@ TEST_F(FieldTrialListTest, CheckReadOnlySharedMemoryRegion) {
       base::ReadOnlySharedMemoryRegion::TakeHandleForSerialization(
           std::move(region))));
 }
-#endif  // BUILDFLAG(USE_BLINK)
+#endif  // !BUILDFLAG(IS_NACL) && !BUILDFLAG(IS_MAC)
 
 TEST_F(FieldTrialListTest, TestGetRandomizedFieldTrialCount) {
   EXPECT_EQ(0u, FieldTrialList::GetFieldTrialCount());

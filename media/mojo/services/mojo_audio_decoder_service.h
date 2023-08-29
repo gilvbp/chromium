@@ -10,7 +10,6 @@
 #include <memory>
 
 #include "base/memory/raw_ptr.h"
-#include "base/memory/scoped_refptr.h"
 #include "base/memory/weak_ptr.h"
 #include "media/base/audio_decoder.h"
 #include "media/base/cdm_context.h"
@@ -21,10 +20,6 @@
 #include "mojo/public/cpp/bindings/pending_associated_remote.h"
 #include "third_party/abseil-cpp/absl/types/optional.h"
 
-namespace base {
-class SingleThreadTaskRunner;
-}  // namespace base
-
 namespace media {
 
 class MojoCdmServiceContext;
@@ -34,10 +29,8 @@ class MojoMediaClient;
 class MEDIA_MOJO_EXPORT MojoAudioDecoderService final
     : public mojom::AudioDecoder {
  public:
-  MojoAudioDecoderService(
-      MojoMediaClient* mojo_media_client,
-      MojoCdmServiceContext* mojo_cdm_service_context,
-      scoped_refptr<base::SingleThreadTaskRunner> task_runner);
+  MojoAudioDecoderService(MojoMediaClient* mojo_media_client,
+                          MojoCdmServiceContext* mojo_cdm_service_context);
 
   MojoAudioDecoderService(const MojoAudioDecoderService&) = delete;
   MojoAudioDecoderService& operator=(const MojoAudioDecoderService&) = delete;
@@ -101,8 +94,6 @@ class MEDIA_MOJO_EXPORT MojoAudioDecoderService final
   // The |decoder_| may need to access the CDM to do some clean up work in its
   // own destructor.
   std::unique_ptr<media::AudioDecoder> decoder_;
-
-  scoped_refptr<base::SingleThreadTaskRunner> task_runner_;
 
   base::WeakPtr<MojoAudioDecoderService> weak_this_;
   base::WeakPtrFactory<MojoAudioDecoderService> weak_factory_{this};

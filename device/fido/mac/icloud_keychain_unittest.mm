@@ -3,7 +3,6 @@
 // found in the LICENSE file.
 
 #include "device/fido/mac/icloud_keychain.h"
-
 #include "base/logging.h"
 #include "base/memory/raw_ptr.h"
 #include "base/ranges/algorithm.h"
@@ -16,6 +15,10 @@
 #include "device/fido/test_callback_receiver.h"
 #include "testing/gtest/include/gtest/gtest.h"
 #include "third_party/abseil-cpp/absl/types/optional.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace device::fido::icloud_keychain {
 
@@ -124,16 +127,13 @@ static const uint8_t kCredentialID[] = {
 class iCloudKeychainTest : public testing::Test, FidoDiscoveryBase::Observer {
  public:
   void SetUp() override {
-    if (@available(macOS 13.5, *)) {
-      NSWindow* window = [[NSWindow alloc] init];
-      window.releasedWhenClosed = NO;  // Required by ARC.
-
+    if (@available(macOS 13.3, *)) {
       fake_ = base::MakeRefCounted<FakeSystemInterface>();
       SetSystemInterfaceForTesting(fake_);
-
-      uintptr_t ns_window = (uintptr_t)(__bridge void*)window;
+      NSWindow* window = [[NSWindow alloc] init];
+      uintptr_t ns_window;
       static_assert(sizeof(window) == sizeof(ns_window));
-
+      memcpy(&ns_window, (void*)&window, sizeof(ns_window));
       discovery_ = NewDiscovery(ns_window);
       discovery_->set_observer(this);
       discovery_->Start();
@@ -143,7 +143,7 @@ class iCloudKeychainTest : public testing::Test, FidoDiscoveryBase::Observer {
   }
 
   void TearDown() override {
-    if (@available(macOS 13.5, *)) {
+    if (@available(macOS 13.3, *)) {
       SetSystemInterfaceForTesting(nullptr);
     }
   }
@@ -178,7 +178,7 @@ class iCloudKeychainTest : public testing::Test, FidoDiscoveryBase::Observer {
 };
 
 TEST_F(iCloudKeychainTest, RequestAuthorization) {
-  if (@available(macOS 13.5, *)) {
+  if (@available(macOS 13.3, *)) {
     PublicKeyCredentialParams public_key_params(
         {PublicKeyCredentialParams::CredentialInfo()});
     CtapMakeCredentialRequest make_credential_request(
@@ -233,7 +233,7 @@ TEST_F(iCloudKeychainTest, RequestAuthorization) {
 }
 
 TEST_F(iCloudKeychainTest, MakeCredential) {
-  if (@available(macOS 13.5, *)) {
+  if (@available(macOS 13.3, *)) {
     PublicKeyCredentialParams public_key_params(
         {PublicKeyCredentialParams::CredentialInfo()});
     CtapMakeCredentialRequest request("{}", {{1, 2, 3, 4}, "rp.id"},
@@ -266,20 +266,6 @@ TEST_F(iCloudKeychainTest, MakeCredential) {
       auto result = make_credential();
       EXPECT_EQ(std::get<0>(result),
                 CtapDeviceResponseCode::kCtap2ErrCredentialExcluded);
-      EXPECT_FALSE(std::get<1>(result).has_value());
-    }
-
-    {
-      // This is a little odd because we call `Cancel` before `MakeCredential`
-      // rather than during it, but our fake doesn't support blocking
-      // operations.
-      fake_->SetMakeCredentialError(1001 /* generic error */);
-      EXPECT_EQ(fake_->cancel_count(), 0u);
-      authenticator_->Cancel();
-      EXPECT_EQ(fake_->cancel_count(), 1u);
-      auto result = make_credential();
-      EXPECT_EQ(std::get<0>(result),
-                CtapDeviceResponseCode::kCtap2ErrKeepAliveCancel);
       EXPECT_FALSE(std::get<1>(result).has_value());
     }
 
@@ -345,7 +331,7 @@ TEST_F(iCloudKeychainTest, GetAssertion) {
   static const uint8_t kSignature[] = {1, 2, 3, 4};
   static const uint8_t kUserID[] = {5, 6, 7, 8};
 
-  if (@available(macOS 13.5, *)) {
+  if (@available(macOS 13.3, *)) {
     CtapGetAssertionRequest request("rp.id", "{}");
     CtapGetAssertionOptions options;
 
@@ -365,20 +351,6 @@ TEST_F(iCloudKeychainTest, GetAssertion) {
       auto result = get_assertion();
       EXPECT_EQ(std::get<0>(result),
                 CtapDeviceResponseCode::kCtap2ErrOperationDenied);
-      EXPECT_TRUE(std::get<1>(result).empty());
-    }
-
-    {
-      // This is a little odd because we call `Cancel` before `GetAssertion`
-      // rather than during it, but our fake doesn't support blocking
-      // operations.
-      fake_->SetMakeCredentialError(1001 /* generic error */);
-      EXPECT_EQ(fake_->cancel_count(), 0u);
-      authenticator_->Cancel();
-      EXPECT_EQ(fake_->cancel_count(), 1u);
-      auto result = get_assertion();
-      EXPECT_EQ(std::get<0>(result),
-                CtapDeviceResponseCode::kCtap2ErrKeepAliveCancel);
       EXPECT_TRUE(std::get<1>(result).empty());
     }
 
@@ -410,7 +382,7 @@ TEST_F(iCloudKeychainTest, GetAssertion) {
 }
 
 TEST_F(iCloudKeychainTest, FetchCredentialMetadata) {
-  if (@available(macOS 13.5, *)) {
+  if (@available(macOS 13.3, *)) {
     const std::vector<DiscoverableCredentialMetadata> creds = {
         {AuthenticatorType::kICloudKeychain,
          "example.com",
@@ -433,60 +405,6 @@ TEST_F(iCloudKeychainTest, FetchCredentialMetadata) {
 
     ASSERT_EQ(creds_out.size(), 1u);
     EXPECT_EQ(creds[0], creds_out[0]);
-  }
-}
-
-TEST_F(iCloudKeychainTest, FetchCredentialMetadataWithAllowlist) {
-  if (@available(macOS 13.5, *)) {
-    const std::vector<DiscoverableCredentialMetadata> creds = {
-        {AuthenticatorType::kICloudKeychain,
-         "example.com",
-         {1, 2, 3, 4},
-         {{4, 3, 2, 1}, "name", absl::nullopt}},
-        {AuthenticatorType::kICloudKeychain,
-         "example.com",
-         {1, 2, 3, 5},
-         {{4, 3, 2, 2}, "name", absl::nullopt}},
-    };
-    fake_->SetCredentials(creds);
-    test::TestCallbackReceiver<std::vector<DiscoverableCredentialMetadata>,
-                               FidoRequestHandlerBase::RecognizedCredential>
-        callback;
-    CtapGetAssertionRequest request("example.com", "{}");
-    request.allow_list = {{CredentialType::kPublicKey, {1, 2, 3, 4}}};
-    CtapGetAssertionOptions options;
-
-    CHECK(authenticator_);
-    authenticator_->GetPlatformCredentialInfoForRequest(request, options,
-                                                        callback.callback());
-    callback.WaitForCallback();
-    auto result = callback.TakeResult();
-    std::vector<DiscoverableCredentialMetadata> creds_out =
-        std::move(std::get<0>(result));
-
-    // The second credential should have been filtered out by the allow list.
-    ASSERT_EQ(creds_out.size(), 1u);
-    EXPECT_EQ(creds[0], creds_out[0]);
-  }
-}
-
-TEST_F(iCloudKeychainTest, FetchCredentialMetadataNoPermission) {
-  if (@available(macOS 13.5, *)) {
-    fake_->set_auth_state(FakeSystemInterface::kAuthNotAuthorized);
-
-    test::TestCallbackReceiver<std::vector<DiscoverableCredentialMetadata>,
-                               FidoRequestHandlerBase::RecognizedCredential>
-        callback;
-    CtapGetAssertionRequest request("example.com", "{}");
-    CtapGetAssertionOptions options;
-
-    CHECK(authenticator_);
-    authenticator_->GetPlatformCredentialInfoForRequest(request, options,
-                                                        callback.callback());
-    callback.WaitForCallback();
-    auto result = callback.TakeResult();
-    EXPECT_EQ(std::get<1>(result),
-              FidoRequestHandlerBase::RecognizedCredential::kUnknown);
   }
 }
 

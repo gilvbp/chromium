@@ -11,8 +11,6 @@
 #include "content/public/browser/web_contents_observer.h"
 
 namespace android_webview {
-
-// Lifetime: WebView
 class AwDarkMode : public content::WebContentsObserver,
                    public base::SupportsUserData::Data {
  public:

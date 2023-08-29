@@ -70,6 +70,18 @@ export class SettingsPaymentsListElement extends PolymerElement {
       },
 
       /**
+       * Whether the removal of Expiration and Type titles on settings page is
+       * enabled.
+       */
+      removeCardExpirationAndTypeTitlesEnabled_: {
+        type: Boolean,
+        value() {
+          return loadTimeData.getBoolean('removeCardExpirationAndTypeTitles');
+        },
+        readOnly: true,
+      },
+
+      /**
        * True iff both credit cards and IBANs will be shown.
        */
       showCreditCardIbanSeparator_: {
@@ -107,6 +119,7 @@ export class SettingsPaymentsListElement extends PolymerElement {
   upiIds: string[];
   private enableIbans_: boolean;
   private enableUpiIds_: boolean;
+  private removeCardExpirationAndTypeTitlesEnabled_: boolean;
   private showCreditCardIbanSeparator_: boolean;
   private showSeparatorBeforeUpiSection_: boolean;
   private showAnyPaymentMethods_: boolean;
@@ -188,6 +201,14 @@ export class SettingsPaymentsListElement extends PolymerElement {
    */
   private showCreditCards_(): boolean {
     return this.hasSome_(this.creditCards);
+  }
+
+  /**
+   * @return true if expiration and type titles should be removed.
+   */
+  private shouldHideExpirationAndTypeTitles_(): boolean {
+    return this.removeCardExpirationAndTypeTitlesEnabled_ ||
+        !(this.showCreditCards_() || this.showUpiIds_());
   }
 
   /**

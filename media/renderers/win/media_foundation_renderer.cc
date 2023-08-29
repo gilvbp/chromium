@@ -310,7 +310,7 @@ HRESULT MediaFoundationRenderer::CreateMediaEngine(
                                                  &mf_media_engine_));
 
   auto media_resource_type_ = media_resource->GetType();
-  if (media_resource_type_ != MediaResource::Type::kStream) {
+  if (media_resource_type_ != MediaResource::Type::STREAM) {
     DLOG(ERROR) << "MediaResource is not of STREAM";
     return E_INVALIDARG;
   }

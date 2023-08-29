@@ -80,11 +80,9 @@
 #include "chromeos/ui/base/display_util.h"
 #include "chromeos/ui/base/window_properties.h"
 #include "chromeos/ui/frame/caption_buttons/frame_size_button.h"
-#include "chromeos/ui/frame/frame_utils.h"
 #include "chromeos/ui/wm/desks/chromeos_desks_histogram_enums.h"
 #include "chromeos/ui/wm/window_util.h"
 #include "components/prefs/pref_service.h"
-#include "ui/accessibility/accessibility_features.h"
 #include "ui/aura/client/aura_constants.h"
 #include "ui/base/emoji/emoji_panel_helper.h"
 #include "ui/base/l10n/l10n_util.h"
@@ -97,8 +95,8 @@
 #include "ui/display/screen.h"
 #include "ui/display/util/display_util.h"
 #include "ui/gfx/geometry/point.h"
-#include "ui/strings/grit/ui_strings.h"
 #include "ui/views/widget/widget.h"
+#include "ui/views/window/frame_caption_button.h"
 #include "ui/wm/core/window_animations.h"
 #include "ui/wm/core/window_util.h"
 
@@ -496,7 +494,7 @@ bool CanLock() {
 
 bool CanGroupOrUngroupWindows() {
   aura::Window::Windows window_pair = GetTargetWindowPairForSnapGroup();
-  if (!SnapGroupController::Get() || window_pair.size() != 2) {
+  if (!Shell::Get()->snap_group_controller() || window_pair.size() != 2) {
     return false;
   }
 
@@ -513,7 +511,8 @@ bool CanGroupOrUngroupWindows() {
 }
 
 void GroupOrUngroupWindowsInSnapGroup() {
-  SnapGroupController* snap_group_controller = SnapGroupController::Get();
+  SnapGroupController* snap_group_controller =
+      Shell::Get()->snap_group_controller();
   CHECK(snap_group_controller);
   aura::Window::Windows window_pair = GetTargetWindowPairForSnapGroup();
   if (window_pair.size() != 2) {
@@ -532,6 +531,7 @@ void GroupOrUngroupWindowsInSnapGroup() {
          window2_state_type == WindowStateType::kPrimarySnapped));
 
   // TODO(michelefan): Trigger a11y alert if there are no eligible windows.
+
   if (!snap_group_controller->AreWindowsInSnapGroup(window1, window2)) {
     snap_group_controller->AddSnapGroup(window1, window2);
     CHECK(snap_group_controller->AreWindowsInSnapGroup(window1, window2));
@@ -542,7 +542,24 @@ void GroupOrUngroupWindowsInSnapGroup() {
 }
 
 bool CanMinimizeSnapGroupWindows() {
-  return SnapGroupController::Get();
+  return Shell::Get()->snap_group_controller();
+}
+
+void MinimizeWindowsInSnapGroup() {
+  aura::Window* top_window = GetTargetWindow();
+  SnapGroupController* snap_group_controller =
+      Shell::Get()->snap_group_controller();
+  if (!top_window || !snap_group_controller) {
+    return;
+  }
+
+  SnapGroup* snap_group =
+      snap_group_controller->GetSnapGroupForGivenWindow(top_window);
+  if (!snap_group) {
+    return;
+  }
+
+  snap_group->MinimizeWindows();
 }
 
 bool CanMinimizeTopWindowOnBack() {
@@ -577,11 +594,7 @@ bool CanSwapPrimaryDisplay() {
   return display::Screen::GetScreen()->GetNumDisplays() > 1;
 }
 
-bool CanEnableOrToggleDictation() {
-  if (::features::IsAccessibilityDictationKeyboardImprovementsEnabled()) {
-    return true;
-  }
-
+bool CanToggleDictation() {
   return Shell::Get()->accessibility_controller()->dictation().enabled();
 }
 
@@ -597,7 +610,7 @@ bool CanToggleGameDashboard() {
     return false;
   }
   aura::Window* window = GetTargetWindow();
-  return window && GameDashboardController::ReadyForAccelerator(window);
+  return window && GameDashboardController::IsGameWindow(window);
 }
 
 bool CanToggleMultitaskMenu() {
@@ -636,7 +649,6 @@ bool CanToggleOverview() {
 }
 
 bool CanTogglePrivacyScreen() {
-  CHECK(Shell::HasInstance());
   return Shell::Get()->privacy_screen_controller()->IsSupported();
 }
 
@@ -1072,7 +1084,6 @@ void RotateScreen() {
     Shell::Get()->accessibility_controller()->ShowConfirmationDialog(
         l10n_util::GetStringUTF16(IDS_ASH_ROTATE_SCREEN_TITLE),
         l10n_util::GetStringUTF16(IDS_ASH_ROTATE_SCREEN_BODY),
-        l10n_util::GetStringUTF16(IDS_APP_CANCEL),
         base::BindOnce(&OnRotationDialogAccepted),
         base::BindOnce(&OnRotationDialogCancelled),
         /*on_close_callback=*/base::DoNothing());
@@ -1300,8 +1311,8 @@ void ToggleClipboardHistory(bool is_plain_text_paste) {
       is_plain_text_paste);
 }
 
-void EnableOrToggleDictation() {
-  Shell::Get()->accessibility_controller()->EnableOrToggleDictationFromSource(
+void ToggleDictation() {
+  Shell::Get()->accessibility_controller()->ToggleDictationFromSource(
       DictationToggleSource::kKeyboard);
 }
 
@@ -1331,7 +1342,7 @@ void ToggleDockedMagnifier() {
     accessibility_controller->ShowConfirmationDialog(
         l10n_util::GetStringUTF16(IDS_ASH_DOCKED_MAGNIFIER_TITLE),
         l10n_util::GetStringUTF16(IDS_ASH_DOCKED_MAGNIFIER_BODY),
-        l10n_util::GetStringUTF16(IDS_APP_CANCEL), base::BindOnce([]() {
+        base::BindOnce([]() {
           Shell::Get()
               ->accessibility_controller()
               ->docked_magnifier()
@@ -1400,7 +1411,7 @@ void ToggleFullscreenMagnifier() {
     accessibility_controller->ShowConfirmationDialog(
         l10n_util::GetStringUTF16(IDS_ASH_SCREEN_MAGNIFIER_TITLE),
         l10n_util::GetStringUTF16(IDS_ASH_SCREEN_MAGNIFIER_BODY),
-        l10n_util::GetStringUTF16(IDS_APP_CANCEL), base::BindOnce([]() {
+        base::BindOnce([]() {
           Shell::Get()
               ->accessibility_controller()
               ->fullscreen_magnifier()
@@ -1446,7 +1457,7 @@ void ToggleHighContrast() {
     controller->ShowConfirmationDialog(
         l10n_util::GetStringUTF16(IDS_ASH_HIGH_CONTRAST_TITLE),
         l10n_util::GetStringUTF16(IDS_ASH_HIGH_CONTRAST_BODY),
-        l10n_util::GetStringUTF16(IDS_APP_CANCEL), base::BindOnce([]() {
+        base::BindOnce([]() {
           Shell::Get()
               ->accessibility_controller()
               ->high_contrast()
@@ -1535,21 +1546,6 @@ bool ToggleMinimized() {
   return true;
 }
 
-void ToggleSnapGroupsMinimize() {
-  SnapGroupController* snap_group_controller = SnapGroupController::Get();
-  if (!snap_group_controller) {
-    return;
-  }
-
-  SnapGroup* topmost_snap_group = snap_group_controller->GetTopmostSnapGroup();
-  if (!topmost_snap_group) {
-    snap_group_controller->RestoreTopmostSnapGroup();
-    return;
-  }
-
-  snap_group_controller->MinimizeTopMostSnapGroup();
-}
-
 void ToggleResizeLockMenu() {
   aura::Window* window = GetTargetWindow();
   auto* frame_view = NonClientFrameViewAsh::Get(window);
@@ -1626,7 +1622,9 @@ void ToggleOverview() {
 void TogglePrivacyScreen() {
   PrivacyScreenController* controller =
       Shell::Get()->privacy_screen_controller();
-  controller->SetEnabled(!controller->GetEnabled());
+  controller->SetEnabled(
+      !controller->GetEnabled(),
+      PrivacyScreenController::kToggleUISurfaceKeyboardShortcut);
 }
 
 void ToggleProjectorMarker() {
@@ -1672,22 +1670,6 @@ void UnpinWindow() {
 
 void VolumeDown() {
   auto* audio_handler = CrasAudioHandler::Get();
-  if (features::IsQsRevampEnabled()) {
-    if (audio_handler->IsOutputMuted() &&
-        !audio_handler->IsOutputVolumeBelowDefaultMuteLevel()) {
-      // The output node can be muted while the previous level is preserved.
-      // First update the mute state to update the slider style if the level is
-      // greater than `kMuteThresholdPercent`, and then adjust the volume level.
-      audio_handler->SetOutputMute(false);
-    }
-    // Only plays the audio if unmuted.
-    if (!audio_handler->IsOutputMuted()) {
-      AcceleratorController::PlayVolumeAdjustmentSound();
-    }
-    audio_handler->DecreaseOutputVolumeByOneStep(kStepPercentage);
-    return;
-  }
-
   if (audio_handler->IsOutputMuted()) {
     audio_handler->SetOutputVolumePercent(0);
   } else {
@@ -1695,7 +1677,10 @@ void VolumeDown() {
       audio_handler->SetOutputMute(true);
     else
       AcceleratorController::PlayVolumeAdjustmentSound();
-    audio_handler->DecreaseOutputVolumeByOneStep(kStepPercentage);
+    if (features::IsAudioPeripheralVolumeGranularityEnabled())
+      audio_handler->DecreaseOutputVolumeByOneStep(kStepPercentage);
+    else
+      audio_handler->AdjustOutputVolumeByPercent(-kStepPercentage);
   }
 }
 
@@ -1707,31 +1692,20 @@ void VolumeMute() {
 void VolumeUp() {
   auto* audio_handler = CrasAudioHandler::Get();
   bool play_sound = false;
-  if (features::IsQsRevampEnabled()) {
-    if (audio_handler->IsOutputMuted()) {
-      audio_handler->SetOutputMute(false);
-    }
-    play_sound = audio_handler->GetOutputVolumePercent() != 100;
-    audio_handler->IncreaseOutputVolumeByOneStep(kStepPercentage);
-
-    if (play_sound) {
-      AcceleratorController::PlayVolumeAdjustmentSound();
-    }
-    return;
-  }
-
   if (audio_handler->IsOutputMuted()) {
     audio_handler->SetOutputMute(false);
     audio_handler->AdjustOutputVolumeToAudibleLevel();
     play_sound = true;
   } else {
     play_sound = audio_handler->GetOutputVolumePercent() != 100;
-    audio_handler->IncreaseOutputVolumeByOneStep(kStepPercentage);
+    if (features::IsAudioPeripheralVolumeGranularityEnabled())
+      audio_handler->IncreaseOutputVolumeByOneStep(kStepPercentage);
+    else
+      audio_handler->AdjustOutputVolumeByPercent(kStepPercentage);
   }
 
-  if (play_sound) {
+  if (play_sound)
     AcceleratorController::PlayVolumeAdjustmentSound();
-  }
 }
 
 void WindowMinimize() {
@@ -1765,23 +1739,14 @@ void WindowSnap(AcceleratorAction action) {
           WindowSnapAcceleratorAction::kCycleRightSnapInClamshellNoOverview);
     }
   }
-
-  aura::Window* window = GetTargetWindow();
-  DCHECK(window);
-
-  // For displays rotated 90 or 180 degrees, they are considered upside down.
-  // Here, primary snap does not match physical left or top. The accelerators
-  // should always match the physical left or top.
-  const bool physical_left_or_top =
-      (action == AcceleratorAction::kWindowCycleSnapLeft);
-  chromeos::SnapDirection snap_direction =
-      chromeos::GetSnapDirectionForWindow(window, physical_left_or_top);
-
   const WindowSnapWMEvent event(
-      snap_direction == chromeos::SnapDirection::kPrimary
+      action == AcceleratorAction::kWindowCycleSnapLeft
           ? WM_EVENT_CYCLE_SNAP_PRIMARY
           : WM_EVENT_CYCLE_SNAP_SECONDARY,
       WindowSnapActionSource::kKeyboardShortcutToSnap);
+  aura::Window* window = GetTargetWindow();
+  DCHECK(window);
+
   WindowState::Get(window)->OnWMEvent(&event);
 }
 

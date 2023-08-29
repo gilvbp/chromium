@@ -197,7 +197,6 @@ public class PartialCustomTabTestRule implements TestRule {
         when(mContentFrame.getLayoutParams()).thenReturn(mLayoutParams);
         when(mContentFrame.getHeight()).thenReturn(DEVICE_HEIGHT - NAVBAR_HEIGHT);
         when(mCoordinatorLayout.getLayoutParams()).thenReturn(mCoordinatorLayoutParams);
-        when(mCoordinatorLayout.getBackground()).thenReturn(mDragBarBackground);
         when(mHandleView.getLayoutParams()).thenReturn(mLayoutParams);
         when(mHandleView.getBackground()).thenReturn(mDragBarBackground);
         when(mHandleView.findViewById(R.id.drag_bar)).thenReturn(mDragBar);

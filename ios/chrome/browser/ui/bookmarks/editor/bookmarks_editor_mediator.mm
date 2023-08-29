@@ -10,10 +10,9 @@
 #import "components/bookmarks/browser/bookmark_node.h"
 #import "components/bookmarks/common/bookmark_features.h"
 #import "components/prefs/pref_service.h"
-#import "components/sync/base/features.h"
 #import "components/url_formatter/url_fixer.h"
-#import "ios/chrome/browser/bookmarks/model/bookmark_model_bridge_observer.h"
-#import "ios/chrome/browser/bookmarks/model/bookmarks_utils.h"
+#import "ios/chrome/browser/bookmarks/bookmark_model_bridge_observer.h"
+#import "ios/chrome/browser/bookmarks/bookmarks_utils.h"
 #import "ios/chrome/browser/shared/model/prefs/pref_names.h"
 #import "ios/chrome/browser/sync/sync_observer_bridge.h"
 #import "ios/chrome/browser/ui/bookmarks/bookmark_mediator.h"
@@ -21,6 +20,10 @@
 #import "ios/chrome/browser/ui/bookmarks/editor/bookmarks_editor_consumer.h"
 #import "ios/chrome/browser/ui/bookmarks/editor/bookmarks_editor_mediator_delegate.h"
 #import "url/gurl.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 @interface BookmarksEditorMediator () <BookmarkModelBridgeObserver,
                                        SyncObserverModelBridge> {
@@ -41,26 +44,24 @@
 @end
 
 @implementation BookmarksEditorMediator {
-  base::WeakPtr<bookmarks::BookmarkModel> _localOrSyncableBookmarkModel;
+  base::WeakPtr<bookmarks::BookmarkModel> _profileBookmarkModel;
   base::WeakPtr<bookmarks::BookmarkModel> _accountBookmarkModel;
   syncer::SyncService* _syncService;
 }
 
 - (instancetype)
-    initWithLocalOrSyncableBookmarkModel:
-        (bookmarks::BookmarkModel*)localOrSyncableBookmarkModel
-                    accountBookmarkModel:
-                        (bookmarks::BookmarkModel*)accountBookmarkModel
-                            bookmarkNode:
-                                (const bookmarks::BookmarkNode*)bookmarkNode
-                                   prefs:(PrefService*)prefs
-                             syncService:(syncer::SyncService*)syncService
-                            browserState:(ChromeBrowserState*)browserState {
+    initWithProfileBookmarkModel:(bookmarks::BookmarkModel*)profileBookmarkModel
+            accountBookmarkModel:(bookmarks::BookmarkModel*)accountBookmarkModel
+                    bookmarkNode:(const bookmarks::BookmarkNode*)bookmarkNode
+                           prefs:(PrefService*)prefs
+                     syncService:(syncer::SyncService*)syncService
+                    browserState:(ChromeBrowserState*)browserState {
   self = [super init];
   if (self) {
-    DCHECK(localOrSyncableBookmarkModel);
-    DCHECK(localOrSyncableBookmarkModel->loaded());
-    if (base::FeatureList::IsEnabled(syncer::kEnableBookmarksAccountStorage)) {
+    DCHECK(profileBookmarkModel);
+    DCHECK(profileBookmarkModel->loaded());
+    if (base::FeatureList::IsEnabled(
+            bookmarks::kEnableBookmarksAccountStorage)) {
       DCHECK(accountBookmarkModel);
       DCHECK(accountBookmarkModel->loaded());
     } else {
@@ -68,7 +69,7 @@
     }
     DCHECK(bookmarkNode);
     DCHECK(bookmarkNode->is_url()) << "Type: " << bookmarkNode->type();
-    _localOrSyncableBookmarkModel = localOrSyncableBookmarkModel->AsWeakPtr();
+    _profileBookmarkModel = profileBookmarkModel->AsWeakPtr();
     if (accountBookmarkModel) {
       _accountBookmarkModel = accountBookmarkModel->AsWeakPtr();
     }
@@ -85,7 +86,7 @@
 }
 
 - (void)disconnect {
-  _localOrSyncableBookmarkModel = nullptr;
+  _profileBookmarkModel = nullptr;
   _accountBookmarkModel = nullptr;
   _bookmark = nullptr;
   _folder = nullptr;
@@ -97,7 +98,7 @@
 }
 
 - (void)dealloc {
-  DCHECK(!_localOrSyncableBookmarkModel);
+  DCHECK(!_profileBookmarkModel);
 }
 
 #pragma mark - Public
@@ -111,16 +112,14 @@
 
 - (bookmarks::BookmarkModel*)bookmarkModel {
   return bookmark_utils_ios::GetBookmarkModelForNode(
-      self.bookmark, _localOrSyncableBookmarkModel.get(),
-      _accountBookmarkModel.get());
+      self.bookmark, _profileBookmarkModel.get(), _accountBookmarkModel.get());
 }
 
 #pragma mark - BookmarksEditorMutator
 
 - (BOOL)shouldDisplayCloudSlashSymbolForParentFolder {
   bookmarks::StorageType type = bookmark_utils_ios::GetBookmarkModelType(
-      self.folder, _localOrSyncableBookmarkModel.get(),
-      _accountBookmarkModel.get());
+      self.folder, _profileBookmarkModel.get(), _accountBookmarkModel.get());
   switch (type) {
     case bookmarks::StorageType::kLocalOrSyncable:
       return bookmark_utils_ios::IsAccountBookmarkStorageOptedIn(_syncService);
@@ -137,7 +136,7 @@
   DCHECK(folder);
   DCHECK(folder->is_folder());
   [self setFolder:folder];
-  [self updateFolderLabel];
+  [self.consumer updateFolderLabel];
 }
 
 #pragma mark - BookmarkModelBridgeObserver
@@ -151,14 +150,10 @@
   if (self.ignoresBookmarkModelChanges) {
     return;
   }
-  // If the changed bookmark is not the current one.
+
   if (self.bookmark == bookmarkNode) {
-    return;
+    [self.consumer updateUIFromBookmark];
   }
-  [self.consumer
-      updateUIWithName:bookmark_utils_ios::TitleForBookmarkNode(_bookmark)
-                   URL:base::SysUTF8ToNSString(_bookmark->url().spec())
-            folderName:bookmark_utils_ios::TitleForBookmarkNode(_folder)];
 }
 
 - (void)bookmarkModel:(bookmarks::BookmarkModel*)model
@@ -167,7 +162,7 @@
     return;
   }
 
-  [self updateFolderLabel];
+  [self.consumer updateFolderLabel];
 }
 
 - (void)bookmarkModel:(bookmarks::BookmarkModel*)model
@@ -237,12 +232,11 @@
   [self.delegate showSnackbarMessage:
                      bookmark_utils_ios::CreateOrUpdateBookmarkWithUndoToast(
                          [self bookmark], name, url, [self folder],
-                         _localOrSyncableBookmarkModel.get(),
+                         _profileBookmarkModel.get(),
                          _accountBookmarkModel.get(), _browserState)];
   if (_manuallyChangedTheFolder) {
     bookmarks::StorageType type = bookmark_utils_ios::GetBookmarkModelType(
-        _folder, _localOrSyncableBookmarkModel.get(),
-        _accountBookmarkModel.get());
+        _folder, _profileBookmarkModel.get(), _accountBookmarkModel.get());
     SetLastUsedBookmarkFolder(_prefs, _folder, type);
   }
 }
@@ -276,17 +270,6 @@
 
 - (void)onSyncStateChanged {
   [_consumer updateSync];
-}
-
-#pragma mark - Private
-
-// Tells the consumer to update the name of the bookmark’s folder.
-- (void)updateFolderLabel {
-  NSString* folderName = @"";
-  if (_bookmark) {
-    folderName = bookmark_utils_ios::TitleForBookmarkNode(_folder);
-  }
-  [_consumer updateFolderLabel:folderName];
 }
 
 @end

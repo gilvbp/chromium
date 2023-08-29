@@ -23,7 +23,6 @@ DEVICE_FEATURES_EXPORT BASE_DECLARE_FEATURE(
     kCrOSGeolocationReducedWifiPollingInterval);
 DEVICE_FEATURES_EXPORT BASE_DECLARE_FEATURE(
     kEnableBluetoothSerialPortProfileInSerialApi);
-DEVICE_FEATURES_EXPORT BASE_DECLARE_FEATURE(kGeolocationDiagnosticsObserver);
 
 }  // namespace features
 

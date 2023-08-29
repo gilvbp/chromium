@@ -60,10 +60,10 @@ PersonalDataManagerFactory::PersonalDataManagerFactory()
     : ProfileKeyedServiceFactory(
           "PersonalDataManager",
           ProfileSelections::Builder()
-              .WithRegular(ProfileSelection::kRedirectedToOriginal)
+              .WithRegular(ProfileSelection::kOwnInstance)
               // TODO(crbug.com/1418376): Check if this service is needed in
               // Guest mode.
-              .WithGuest(ProfileSelection::kRedirectedToOriginal)
+              .WithGuest(ProfileSelection::kOwnInstance)
               .Build()) {
   DependsOn(IdentityManagerFactory::GetInstance());
   DependsOn(HistoryServiceFactory::GetInstance());
@@ -92,18 +92,21 @@ KeyedService* PersonalDataManagerFactory::BuildPersonalDataManager(
   auto* history_service = HistoryServiceFactory::GetForProfile(
       profile, ServiceAccessType::EXPLICIT_ACCESS);
 
+  // This is null for OTR profiles.
   auto* strike_database = StrikeDatabaseFactory::GetForProfile(profile);
 
   // The AutofillImageFetcherFactory redirects to the original profile.
   auto* image_fetcher = AutofillImageFetcherFactory::GetForProfile(profile);
 
+  // This is null for OTR profiles.
   auto* identity_manager = IdentityManagerFactory::GetForProfile(profile);
 
   auto* sync_service = SyncServiceFactory::GetForProfile(profile);
 
   service->Init(local_storage, account_storage, profile->GetPrefs(),
                 g_browser_process->local_state(), identity_manager,
-                history_service, sync_service, strike_database, image_fetcher);
+                history_service, sync_service, strike_database, image_fetcher,
+                profile->IsOffTheRecord());
 
   return service;
 }

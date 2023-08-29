@@ -7,6 +7,8 @@ import json
 import logging
 import os
 
+import six
+
 import requests  # pylint: disable=import-error
 from lib.results import result_types
 
@@ -83,8 +85,7 @@ class ResultSinkClient(object):
            variant=None,
            artifacts=None,
            failure_reason=None,
-           html_artifact=None,
-           tags=None):
+           html_artifact=None):
     """Uploads the test result to the ResultSink server.
 
     This assumes that the rdb stream has been called already and that
@@ -105,8 +106,6 @@ class ResultSinkClient(object):
       html_artifact: An optional html-formatted string to prepend to the test's
           log. Useful to encode click-able URL links in the test log, since that
           won't be formatted in the test_log.
-      tags: An optional list of tuple of key name and value to prepend to the
-          test's tags.
 
     Returns:
       N/A
@@ -138,12 +137,6 @@ class ResultSinkClient(object):
         }
     }
 
-    if tags:
-      tr['tags'].extend({
-          'key': key_name,
-          'value': value
-      } for (key_name, value) in tags)
-
     if variant:
       tr['variant'] = {'def': variant}
 
@@ -155,13 +148,14 @@ class ResultSinkClient(object):
     if (test_log
         and len(tr['summaryHtml']) + len(_TEST_LOG_ARTIFACT) > HTML_SUMMARY_MAX
         or len(tr['summaryHtml']) > HTML_SUMMARY_MAX):
-      b64_summary = base64.b64encode(tr['summaryHtml'].encode()).decode()
+      b64_summary = six.ensure_str(
+          base64.b64encode(six.ensure_binary(tr['summaryHtml'])))
       artifacts.update({'HTML Summary': {'contents': b64_summary}})
       tr['summaryHtml'] = _HTML_SUMMARY_ARTIFACT
 
     if test_log:
       # Upload the original log without any modifications.
-      b64_log = base64.b64encode(test_log.encode()).decode()
+      b64_log = six.ensure_str(base64.b64encode(six.ensure_binary(test_log)))
       artifacts.update({'Test Log': {'contents': b64_log}})
       tr['summaryHtml'] += _TEST_LOG_ARTIFACT
 

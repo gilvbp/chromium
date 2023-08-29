@@ -82,13 +82,9 @@ void AccessibilityNotificationWaiter::ListenToAllFrames(
     VLOG(1) << "Waiting for AccessibilityEvent " << *event_to_wait_for_;
   WebContentsImpl* web_contents_impl =
       static_cast<WebContentsImpl*>(web_contents);
-
-  FrameTree::NodeRange nodes =
-      web_contents_impl->GetPrimaryFrameTree().NodesIncludingInnerTreeNodes();
-  for (FrameTreeNode* node : nodes) {
-    frame_count_++;
+  for (FrameTreeNode* node : web_contents_impl->GetPrimaryFrameTree().Nodes())
     ListenToFrame(node->current_frame_host());
-  }
+
   BrowserPluginGuestManager* guest_manager =
       web_contents_impl->GetBrowserContext()->GetGuestManager();
   if (guest_manager) {
@@ -119,14 +115,7 @@ void AccessibilityNotificationWaiter::ListenToFrame(
   }
 }
 
-bool AccessibilityNotificationWaiter::WaitForNotification(bool all_frames) {
-  if (all_frames) {
-    notification_count_ = 0;
-  } else {
-    // Pretend we've heard all the notifications but one, so that the first
-    // notification allows us to stop waiting.
-    notification_count_ = frame_count_ - 1;
-  }
+bool AccessibilityNotificationWaiter::WaitForNotification() {
   loop_runner_->Run();
 
   bool notification_received = notification_received_;
@@ -178,11 +167,9 @@ void AccessibilityNotificationWaiter::OnAccessibilityEvent(
     event_target_id_ = event_target_id;
     event_browser_accessibility_manager_ =
         rfhi ? rfhi->GetOrCreateBrowserAccessibilityManager() : nullptr;
-    notification_count_++;
-    if (notification_count_ == frame_count_) {
-      notification_received_ = true;
-      loop_runner_quit_closure_.Run();
-    }
+    notification_received_ = true;
+
+    loop_runner_quit_closure_.Run();
   }
 }
 
@@ -221,11 +208,8 @@ void AccessibilityNotificationWaiter::OnGeneratedEvent(
     event_target_id_ = event_target_id;
     event_browser_accessibility_manager_ =
         render_frame_host->GetOrCreateBrowserAccessibilityManager();
-    notification_count_++;
-    if (notification_count_ == frame_count_) {
-      notification_received_ = true;
-      loop_runner_quit_closure_.Run();
-    }
+    notification_received_ = true;
+    loop_runner_quit_closure_.Run();
   }
 }
 

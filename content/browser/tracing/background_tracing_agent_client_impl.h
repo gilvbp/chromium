@@ -5,6 +5,8 @@
 #ifndef CONTENT_BROWSER_TRACING_BACKGROUND_TRACING_AGENT_CLIENT_IMPL_H_
 #define CONTENT_BROWSER_TRACING_BACKGROUND_TRACING_AGENT_CLIENT_IMPL_H_
 
+#include <string>
+
 #include "mojo/public/cpp/bindings/remote.h"
 #include "services/tracing/public/mojom/background_tracing_agent.mojom.h"
 
@@ -26,8 +28,7 @@ class BackgroundTracingAgentClientImpl
 
   // tracing::mojom::BackgroundTracingAgentClient methods:
   void OnInitialized() override;
-  void OnTriggerBackgroundTrace(
-      tracing::mojom::BackgroundTracingRulePtr rule) override;
+  void OnTriggerBackgroundTrace(const std::string& histogram_name) override;
 
  private:
   explicit BackgroundTracingAgentClientImpl(

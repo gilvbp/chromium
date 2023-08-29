@@ -1639,6 +1639,15 @@ EVENT_TYPE(HTTP2_SESSION_SEND_DATA)
 //   }
 EVENT_TYPE(HTTP2_SESSION_RECV_DATA)
 
+// This event is sent for receiving an HTTP/2 PUSH_PROMISE frame.
+// The following parameters are attached:
+//   {
+//     "headers": <The list of header:value pairs>,
+//     "id": <The stream id>,
+//     "promised_stream_id": <The stream id>,
+//   }
+EVENT_TYPE(HTTP2_SESSION_RECV_PUSH_PROMISE)
+
 // A stream is stalled by the session send window being closed.
 EVENT_TYPE(HTTP2_SESSION_STREAM_STALLED_BY_SESSION_SEND_WINDOW)
 
@@ -1729,6 +1738,13 @@ EVENT_TYPE(HTTP2_SESSION_POOL_REMOVE_SESSION)
 
 // The begin and end of an HTTP/2 STREAM.
 EVENT_TYPE(HTTP2_STREAM)
+
+// A stream is attached to a pushed stream.
+//   {
+//     "stream_id":  <The stream id>,
+//     "url":        <The url of the pushed resource>,
+//   }
+EVENT_TYPE(HTTP2_STREAM_ADOPTED_PUSH_STREAM)
 
 // A stream is unstalled by flow control.
 EVENT_TYPE(HTTP2_STREAM_FLOW_CONTROL_UNSTALLED)
@@ -2158,16 +2174,17 @@ EVENT_TYPE(QUIC_SESSION_WEBTRANSPORT_CLIENT_ALIVE)
 //   }
 EVENT_TYPE(QUIC_SESSION_WEBTRANSPORT_CLIENT_STATE_CHANGED)
 
-// A WebTransport session is ready.
-//   {
-//     "http_datagram_version": <Negotiated HTTP Datagram version>,
-//     "webtransport_http3_version": <Negotiated WebTransport over HTTP/3
-//      version>
-//   }
-EVENT_TYPE(QUIC_SESSION_WEBTRANSPORT_SESSION_READY)
-
 // QUIC with TLS gets 0-RTT rejected.
 EVENT_TYPE(QUIC_SESSION_ZERO_RTT_REJECTED)
+
+// A QUIC connection received a PUSH_PROMISE frame.  The following
+// parameters are attached:
+//   {
+//     "headers": <The list of header:value pairs>,
+//     "id": <The stream id>,
+//     "promised_stream_id": <The stream id>,
+//   }
+EVENT_TYPE(QUIC_SESSION_PUSH_PROMISE_RECEIVED)
 
 // Session was closed, either remotely or by the peer.
 //   {
@@ -2383,6 +2400,23 @@ EVENT_TYPE(QUIC_SESSION_KEY_UPDATE)
 // ------------------------------------------------------------------------
 // QuicHttpStream
 // ------------------------------------------------------------------------
+
+// A stream request's url matches a received push promise.  The
+// promised stream can be adopted for this request once vary header
+// validation is complete (as part of response header processing).
+//   {
+//     "stream_id":  <The stream id>,
+//     "url":        <The url of the pushed resource>,
+//   }
+EVENT_TYPE(QUIC_HTTP_STREAM_PUSH_PROMISE_RENDEZVOUS)
+
+// Vary validation has succeeded, a http stream is attached to
+// a pushed QUIC stream.
+//   {
+//     "stream_id":  <The stream id>,
+//     "url":        <The url of the pushed resource>,
+//   }
+EVENT_TYPE(QUIC_HTTP_STREAM_ADOPTED_PUSH_STREAM)
 
 // Identifies the NetLogSource() for the QuicSession that handled the stream.
 // The event parameters are:
@@ -2969,19 +3003,6 @@ EVENT_TYPE(SPECIFIC_NETWORK_MADE_DEFAULT)
 // database has changed.
 EVENT_TYPE(CERTIFICATE_DATABASE_TRUST_STORE_CHANGED)
 EVENT_TYPE(CERTIFICATE_DATABASE_CLIENT_CERT_STORE_CHANGED)
-
-// This event is logged when a request to conditionally clear the cached client
-// certificate for a specific host has been received. It contains the following
-// parameters:
-// {
-//    "host": <Serialized scheme/host/port of the request>,
-//    "certificates": <A list of PEM encoded certificates, the first one
-//                    being the new client certificate and the remaining
-//                    being intermediate certificates. May be an empty
-//                    list if no client certificate should be cached.>,
-//    "is_cleared": <boolean>,
-// }
-EVENT_TYPE(CLEAR_CACHED_CLIENT_CERT)
 
 // ------------------------------------------------------------------------
 // Exponential back-off throttling events
@@ -4175,11 +4196,11 @@ EVENT_TYPE(CORS_PREFLIGHT_URL_REQUEST)
 EVENT_TYPE(CORS_PREFLIGHT_CACHED_RESULT)
 
 // ------------------------------------------------------------------------
-// Private Network Access
+// Local Network Access
 // ------------------------------------------------------------------------
 
-// This event is logged when a new connection is checked against Private
-// Network Access rules.
+// This event is logged when a new connection is checked against Local Network
+// Access rules.
 //
 // It contains the following parameters:
 //  {
@@ -4188,11 +4209,11 @@ EVENT_TYPE(CORS_PREFLIGHT_CACHED_RESULT)
 //    "result": <the result of the check>,
 //  }
 //
-// If the result is "unexpected-private-network", then the request is
+// If the result is "blocked-by-policy-preflight-block", then the request is
 // interrupted and a preflight request is retried, this time with PNA headers
 // attached. If this second connection fails the check again, the request is
 // failed.
-EVENT_TYPE(PRIVATE_NETWORK_ACCESS_CHECK)
+EVENT_TYPE(LOCAL_NETWORK_ACCESS_CHECK)
 
 // ------------------------------------------------------------------------
 // Initiator
@@ -4310,19 +4331,3 @@ EVENT_TYPE(OBLIVIOUS_HTTP_RESPONSE_DATA)
 // OBLIVIOUS_HTTP_RESPONSE_HEADERS logs headers of the response, after
 // decryption.
 EVENT_TYPE(OBLIVIOUS_HTTP_RESPONSE_HEADERS)
-
-// This event is logged when First-Party Sets metadata is requested. The
-// following parameters are attached:
-//   {
-//     "request_url": <request URL>,
-//   }
-EVENT_TYPE(FIRST_PARTY_SETS_METADATA_REQUESTED)
-
-// This event is logged when First-Party Sets metadata is received. The
-// following parameters are attached:
-//   {
-//     "request_url": <request URL>,
-//     "frame_entry": <string>,
-//     "top_frame_entry": <string>,
-//   }
-EVENT_TYPE(FIRST_PARTY_SETS_METADATA_RECEIVED)

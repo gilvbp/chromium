@@ -122,8 +122,6 @@ struct Capabilities {
   base::TimeDelta script_timeout = Session::kDefaultScriptTimeout;
   base::TimeDelta page_load_timeout = Session::kDefaultPageLoadTimeout;
   base::TimeDelta implicit_wait_timeout = Session::kDefaultImplicitWaitTimeout;
-  base::TimeDelta browser_startup_timeout =
-      Session::kDefaultBrowserStartupTimeout;
 
   bool strict_file_interactability;
 

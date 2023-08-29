@@ -119,9 +119,8 @@ struct ArcNotificationData {
   string message;
   // Title of notification
   string title;
-  // The app name of the notification. Displayed when the notification is
-  // rendered in ChromeOS and is expanded.
-  string? app_display_name;
+  // DEPRECATED: Mimetype of |icon_data|
+  string? deprecated_icon_mimetype;
   // DEPRECATED: Binary data of the icon
   array<uint8>? deprecated_icon_data;
   // Priority of notification
@@ -129,10 +128,9 @@ struct ArcNotificationData {
   // Timestamp related to the notification
   int64 time;
   // The current value of progress. If in progress, the value must be in
-  // [0, progress_max]. Set to -1 for indeterminate progress.
+  // [0, progress_max]. Otherwise set to -1.
   int32 progress_current;
-  // The maximum value of progress. Set to -1 when the progress does not exist
-  // or ended.
+  // The maximum value of progress.
   int32 progress_max;
   // Action buttons, provided when the notification is action enabled and
   // rendered on Chrome.
@@ -143,10 +141,9 @@ struct ArcNotificationData {
   // Flag if the notification has FLAG_ONGOING_EVENT.
   [MinVersion=1]
   bool ongoing_event;
-  // Subtexts for list notifications. Provided when the notification style is
-  // inbox.
+  // DEPRECATED: Subtexts for list notifications.
   [MinVersion=3]
-  array<string>? texts;
+  array<string>? deprecated_texts;
   // Image for image notifications.
   [MinVersion=3]
   ArcBitmap? big_picture;
@@ -182,9 +179,8 @@ struct ArcNotificationData {
   string? package_name;
   [MinVersion=17]
   ArcNotificationFlags? flags;
-  // Flag if a notification progress is indeterminate.
   [MinVersion=21]
-  bool indeterminate_progress;
+  bool hidden_on_lock_screen;
   [MinVersion=21]
   ArcBitmap? snapshot_image_public;
   [MinVersion=23]

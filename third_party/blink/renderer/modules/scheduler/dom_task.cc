@@ -83,22 +83,21 @@ void AbortPostTaskCallbackTraceEventData(perfetto::TracedValue trace_context,
 
 DOMTask::DOMTask(ScriptPromiseResolver* resolver,
                  V8SchedulerPostTaskCallback* callback,
-                 AbortSignal* abort_source,
-                 DOMTaskSignal* priority_source,
+                 DOMTaskSignal* signal,
                  DOMScheduler::DOMTaskQueue* task_queue,
                  base::TimeDelta delay)
     : callback_(callback),
       resolver_(resolver),
-      abort_source_(abort_source),
-      priority_source_(priority_source),
+      signal_(signal),
       task_queue_(task_queue),
       delay_(delay),
       task_id_for_tracing_(NextIdForTracing()) {
   CHECK(task_queue_);
   CHECK(callback_);
+  CHECK(signal_);
 
-  if (abort_source_ && abort_source_->CanAbort()) {
-    abort_handle_ = abort_source_->AddAlgorithm(
+  if (signal_->CanAbort()) {
+    abort_handle_ = signal_->AddAlgorithm(
         WTF::BindOnce(&DOMTask::OnAbort, WrapWeakPersistent(this)));
   }
 
@@ -129,8 +128,7 @@ DOMTask::DOMTask(ScriptPromiseResolver* resolver,
 void DOMTask::Trace(Visitor* visitor) const {
   visitor->Trace(callback_);
   visitor->Trace(resolver_);
-  visitor->Trace(abort_source_);
-  visitor->Trace(priority_source_);
+  visitor->Trace(signal_);
   visitor->Trace(abort_handle_);
   visitor->Trace(task_queue_);
 }
@@ -143,10 +141,8 @@ void DOMTask::Invoke() {
   // ExecutionContext is detached. Note that this context can be different
   // from the the callback's relevant context.
   ExecutionContext* scheduler_context = resolver_->GetExecutionContext();
-  if (!scheduler_context || scheduler_context->IsContextDestroyed()) {
-    RemoveAbortAlgorithm();
+  if (!scheduler_context || scheduler_context->IsContextDestroyed())
     return;
-  }
 
   ScriptState* script_state =
       callback_->CallbackRelevantScriptStateOrReportError("DOMTask", "Invoke");
@@ -162,12 +158,10 @@ void DOMTask::Invoke() {
     // up the ScriptPromiseResolver since it is associated with a different
     // context.
     resolver_->Detach();
-    RemoveAbortAlgorithm();
     return;
   }
 
   InvokeInternal(script_state);
-  RemoveAbortAlgorithm();
   callback_.Release();
 }
 
@@ -194,13 +188,12 @@ void DOMTask::InvokeInternal(ScriptState* script_state) {
     task_attribution_scope = tracker->CreateTaskScope(
         script_state, parent_task_id_,
         scheduler::TaskAttributionTracker::TaskScopeType::kSchedulerPostTask,
-        abort_source_, priority_source_);
+        signal_);
   } else if (RuntimeEnabledFeatures::SchedulerYieldEnabled(
                  ExecutionContext::From(script_state))) {
     ScriptWrappableTaskState::SetCurrent(
-        script_state,
-        MakeGarbageCollected<ScriptWrappableTaskState>(
-            scheduler::TaskAttributionId(), abort_source_, priority_source_));
+        script_state, MakeGarbageCollected<ScriptWrappableTaskState>(
+                          scheduler::TaskAttributionId(), signal_));
   }
 
   ScriptValue result;
@@ -242,16 +235,8 @@ void DOMTask::OnAbort() {
   // TODO(crbug.com/1293949): Add an error message.
   resolver_->Reject(
       ToV8Traits<IDLAny>::ToV8(resolver_script_state,
-                               abort_source_->reason(resolver_script_state))
+                               signal_->reason(resolver_script_state))
           .ToLocalChecked());
-}
-
-void DOMTask::RemoveAbortAlgorithm() {
-  if (abort_handle_) {
-    CHECK(abort_source_);
-    abort_source_->RemoveAlgorithm(abort_handle_);
-    abort_handle_ = nullptr;
-  }
 }
 
 }  // namespace blink

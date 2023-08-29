@@ -51,10 +51,10 @@ constexpr std::array<const char*, 2> kContextualPageActionModelLabels = {
 }  // namespace
 
 ContextualPageActionsModel::ContextualPageActionsModel()
-    : DefaultModelProvider(kSegmentId) {}
+    : ModelProvider(kSegmentId) {}
 
-std::unique_ptr<DefaultModelProvider::ModelConfig>
-ContextualPageActionsModel::GetModelConfig() {
+void ContextualPageActionsModel::InitAndFetchModel(
+    const ModelUpdatedCallback& model_updated_callback) {
   proto::SegmentationModelMetadata metadata;
   MetadataWriter writer(&metadata);
   writer.SetSegmentationMetadataConfig(
@@ -103,7 +103,9 @@ ContextualPageActionsModel::GetModelConfig() {
       /*top_k_outputs=*/1, threshold);
 
   constexpr int kModelVersion = 1;
-  return std::make_unique<ModelConfig>(std::move(metadata), kModelVersion);
+  base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
+      FROM_HERE, base::BindRepeating(model_updated_callback, kSegmentId,
+                                     std::move(metadata), kModelVersion));
 }
 
 void ContextualPageActionsModel::ExecuteModelWithInput(
@@ -141,6 +143,10 @@ void ContextualPageActionsModel::ExecuteModelWithInput(
 
   base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
       FROM_HERE, base::BindOnce(std::move(callback), response));
+}
+
+bool ContextualPageActionsModel::ModelAvailable() {
+  return true;
 }
 
 }  // namespace segmentation_platform

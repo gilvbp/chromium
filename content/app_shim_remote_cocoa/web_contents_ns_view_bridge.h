@@ -9,6 +9,7 @@
 
 #include <memory>
 
+#import "base/mac/scoped_nsobject.h"
 #include "base/task/sequenced_task_runner.h"
 #include "components/remote_cocoa/app_shim/ns_view_ids.h"
 #include "content/common/content_export.h"
@@ -48,7 +49,7 @@ class CONTENT_EXPORT WebContentsNSViewBridge : public mojom::WebContentsNSView {
   void Bind(mojo::PendingAssociatedReceiver<mojom::WebContentsNSView> receiver,
             scoped_refptr<base::SequencedTaskRunner> task_runner);
 
-  WebContentsViewCocoa* GetNSView() const { return ns_view_; }
+  WebContentsViewCocoa* GetNSView() const { return ns_view_.get(); }
 
   // mojom::WebContentsNSViewBridge:
   void SetParentNSView(uint64_t parent_ns_view_id) override;
@@ -66,7 +67,7 @@ class CONTENT_EXPORT WebContentsNSViewBridge : public mojom::WebContentsNSView {
   void Destroy() override;
 
  private:
-  WebContentsViewCocoa* __strong ns_view_;
+  base::scoped_nsobject<WebContentsViewCocoa> ns_view_;
   mojo::AssociatedReceiver<mojom::WebContentsNSView> receiver_{this};
   mojo::AssociatedRemote<mojom::WebContentsNSViewHost> host_;
 

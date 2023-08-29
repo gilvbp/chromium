@@ -26,7 +26,6 @@
 #include "components/signin/public/identity_manager/identity_test_utils.h"
 #include "components/supervised_user/core/browser/supervised_user_service.h"
 #include "components/user_manager/scoped_user_manager.h"
-#include "google_apis/gaia/google_service_auth_error.h"
 #include "testing/gtest/include/gtest/gtest.h"
 #include "ui/base/l10n/l10n_util.h"
 #include "ui/message_center/public/cpp/notification.h"
@@ -222,7 +221,6 @@ TEST_F(SigninErrorNotifierTest, AuthStatusEnumerateAllErrors) {
       GoogleServiceAuthError::UNEXPECTED_SERVICE_RESPONSE,
       GoogleServiceAuthError::SERVICE_ERROR,
       GoogleServiceAuthError::SCOPE_LIMITED_UNRECOVERABLE_ERROR,
-      GoogleServiceAuthError::CHALLENGE_RESPONSE_REQUIRED,
   };
   static_assert(
       std::size(table) == GoogleServiceAuthError::NUM_STATES -
@@ -311,7 +309,7 @@ TEST_F(SigninErrorNotifierTest, TokenHandleTest) {
   TokenHandleUtil::SetInvalidTokenForTesting(kTokenHandle);
   SigninErrorNotifier* signin_error_notifier =
       SigninErrorNotifierFactory::GetForProfile(GetProfile());
-  signin_error_notifier->OnTokenHandleCheck(account_id, kTokenHandle,
+  signin_error_notifier->OnTokenHandleCheck(account_id,
                                             TokenHandleUtil::INVALID);
 
   // Test.
@@ -343,7 +341,7 @@ TEST_F(SigninErrorNotifierTest,
   TokenHandleUtil::SetInvalidTokenForTesting(kTokenHandle);
   SigninErrorNotifier* signin_error_notifier =
       SigninErrorNotifierFactory::GetForProfile(GetProfile());
-  signin_error_notifier->OnTokenHandleCheck(account_id, kTokenHandle,
+  signin_error_notifier->OnTokenHandleCheck(account_id,
                                             TokenHandleUtil::INVALID);
 
   // Test.

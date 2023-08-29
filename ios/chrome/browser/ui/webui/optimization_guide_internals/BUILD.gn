@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 source_set("optimization_guide_internals") {
+  configs += [ "//build/config/compiler:enable_arc" ]
   sources = [
     "optimization_guide_internals_ui.h",
     "optimization_guide_internals_ui.mm",
@@ -22,7 +23,10 @@ source_set("optimization_guide_internals") {
 }
 
 source_set("eg2_tests") {
-  configs += [ "//build/config/ios:xctest_config" ]
+  configs += [
+    "//build/config/compiler:enable_arc",
+    "//build/config/ios:xctest_config",
+  ]
   sources = [ "optimization_guide_internals_page_egtest.mm" ]
   testonly = true
   deps = [

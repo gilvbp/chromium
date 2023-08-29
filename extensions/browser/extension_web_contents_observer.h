@@ -72,7 +72,7 @@ class ExtensionWebContentsObserver
   // with the RenderFrameHost.
   static void BindLocalFrameHost(
       mojo::PendingAssociatedReceiver<mojom::LocalFrameHost> receiver,
-      content::RenderFrameHost* render_frame_host);
+      content::RenderFrameHost* rfh);
 
   // This must be called by clients directly after the EWCO has been created.
   void Initialize();

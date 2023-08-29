@@ -48,7 +48,8 @@ class LocalDataContainer {
       std::list<browsing_data::FileSystemHelper::FileSystemInfo>;
   using QuotaInfoList = std::list<BrowsingDataQuotaHelper::QuotaInfo>;
   using ServiceWorkerUsageInfoList = std::list<content::StorageUsageInfo>;
-  using SharedWorkerInfoList = std::list<browsing_data::SharedWorkerInfo>;
+  using SharedWorkerInfoList =
+      std::list<browsing_data::SharedWorkerHelper::SharedWorkerInfo>;
   using CacheStorageUsageInfoList = std::list<content::StorageUsageInfo>;
 
   static std::unique_ptr<LocalDataContainer>

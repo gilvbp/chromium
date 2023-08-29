@@ -7,11 +7,13 @@
 
 #import <UIKit/UIKit.h>
 
+#import "ios/chrome/browser/ui/gestures/layout_switcher.h"
 #import "ios/chrome/browser/ui/incognito_reauth/incognito_reauth_consumer.h"
 #import "ios/chrome/browser/ui/tab_switcher/tab_collection_consumer.h"
 #import "ios/chrome/browser/ui/tab_switcher/tab_grid/grid/grid_theme.h"
 #import "ios/chrome/browser/ui/tab_switcher/tab_grid/inactive_tabs/inactive_tabs_info_consumer.h"
 #import "ios/chrome/browser/ui/tab_switcher/tab_grid/tab_grid_paging.h"
+#import "ios/chrome/browser/ui/thumb_strip/thumb_strip_supporting.h"
 
 @protocol TabContextMenuProvider;
 @protocol TabCollectionDragDropHandler;
@@ -21,6 +23,7 @@
 @class GridViewController;
 @protocol IncognitoReauthCommands;
 @protocol PriceCardDataSource;
+@protocol ThumbStripCommands;
 @protocol SuggestedActionsDelegate;
 
 // Protocol used to relay relevant user interactions from a grid UI.
@@ -34,6 +37,10 @@
 // `gridViewController`.
 - (void)gridViewController:(GridViewController*)gridViewController
         didCloseItemWithID:(NSString*)itemID;
+// Tells the delegate that the plus sign was tapped in `gridViewController`,
+// i.e., there was an intention to create a new item.
+- (void)didTapPlusSignInGridViewController:
+    (GridViewController*)gridViewController;
 // Tells the delegate that the item with `itemID` was moved to
 // `destinationIndex`.
 - (void)gridViewController:(GridViewController*)gridViewController
@@ -94,7 +101,9 @@
 // A view controller that contains a grid of items.
 @interface GridViewController : UIViewController <InactiveTabsInfoConsumer,
                                                   IncognitoReauthConsumer,
-                                                  TabCollectionConsumer>
+                                                  LayoutSwitcher,
+                                                  TabCollectionConsumer,
+                                                  ThumbStripSupporting>
 // The gridView is accessible to manage the content inset behavior.
 @property(nonatomic, readonly) UIScrollView* gridView;
 // The view that is shown when there are no items.
@@ -113,6 +122,8 @@
 @property(nonatomic, copy) NSString* searchText;
 // Handler for reauth commands.
 @property(nonatomic, weak) id<IncognitoReauthCommands> reauthHandler;
+// Handler for thumbstrip commands.
+@property(nonatomic, weak) id<ThumbStripCommands> thumbStripHandler;
 // Delegate for search results suggested actions.
 @property(nonatomic, weak) id<SuggestedActionsDelegate>
     suggestedActionsDelegate;
@@ -127,6 +138,8 @@
 // YES if the selected cell is visible in the grid.
 @property(nonatomic, readonly, getter=isSelectedCellVisible)
     BOOL selectedCellVisible;
+// The fraction of the last item of the grid that is visible.
+@property(nonatomic, assign, readonly) CGFloat fractionVisibleOfLastItem;
 // YES when the current contents are hidden from the user before a successful
 // biometric authentication.
 @property(nonatomic, assign) BOOL contentNeedsAuthentication;
@@ -171,6 +184,18 @@
 // Deselects all items in the grid for editing. No-op if `mode` is not
 // TabGridModeSelection.
 - (void)deselectAllItemsForEditing;
+
+// Notifies the grid that all items will be closed.
+- (void)willCloseAll;
+
+// Notifies the grid that all items have been closed.
+- (void)didCloseAll;
+
+// Notifies the grid that all closed items will be restored.
+- (void)willUndoCloseAll;
+
+// Notifies the grid that all closed items have been restored.
+- (void)didUndoCloseAll;
 
 @end
 

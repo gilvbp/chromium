@@ -7,7 +7,6 @@
 
 #include <memory>
 
-#include "base/functional/callback.h"
 #include "components/metrics/call_stack_profile_params.h"
 #include "components/version_info/version_info.h"
 #include "third_party/abseil-cpp/absl/types/optional.h"
@@ -39,15 +38,19 @@ class ThreadProfilerPlatformConfiguration {
   struct RelativePopulations {
     int enabled;
     int experiment;
+
+    // TODO(crbug.com/1430519): Remove this field when the DAU shift is
+    // explained.
+    // Add a third group periodic_only to the experiment. |experiment| must be
+    // divisible by 3 when this flag is true.
+    bool add_periodic_only_group = false;
   };
 
   virtual ~ThreadProfilerPlatformConfiguration() = default;
 
   // Create the platform configuration.
   static std::unique_ptr<ThreadProfilerPlatformConfiguration> Create(
-      bool browser_test_mode_enabled,
-      base::RepeatingCallback<bool(double)> is_enabled_on_dev_callback =
-          base::BindRepeating(IsEnabled));
+      bool browser_test_mode_enabled);
 
   // True if the platform supports the StackSamplingProfiler and the profiler is
   // to be run for the released Chrome channel or development/CQ build.
@@ -74,8 +77,7 @@ class ThreadProfilerPlatformConfiguration {
   // Returns whether the profiler is enabled for |thread| in |process|.
   virtual bool IsEnabledForThread(
       metrics::CallStackProfileParams::Process process,
-      metrics::CallStackProfileParams::Thread thread,
-      absl::optional<version_info::Channel> release_channel) const = 0;
+      metrics::CallStackProfileParams::Thread thread) const = 0;
 
  protected:
   // True if the profiler is to be run for the released Chrome channel or
@@ -84,11 +86,6 @@ class ThreadProfilerPlatformConfiguration {
   // IsSupported().
   virtual bool IsSupportedForChannel(
       absl::optional<version_info::Channel> release_channel) const = 0;
-
- private:
-  // Returns `true` with given `enabled_probability`, where
-  // 0 <= `enabled_probability` <= 1.
-  static bool IsEnabled(double enabled_probability);
 };
 
 #endif  // CHROME_COMMON_PROFILER_THREAD_PROFILER_PLATFORM_CONFIGURATION_H_

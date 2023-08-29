@@ -57,10 +57,6 @@
             "nodoc": true
           },
           {
-            "type": "integer",
-            "name": "ownerRoutingId"
-          },
-          {
             "type": "object",
             "name": "createParams",
             "additionalProperties": {"type": "any"}
@@ -70,21 +66,12 @@
           "name": "callback",
           "parameters": [
             {
-              "type": "integer",
-              "name": "instanceId"
+              "type": "object",
+              "name": "returnParams",
+              "additionalProperties": {"type": "any"}
             }
           ]
         }
-      },
-      {
-        "name": "destroyUnattachedGuest",
-        "type": "function",
-        "parameters": [
-          {
-            "type": "integer",
-            "name": "instanceId"
-          }
-        ]
       },
       {
         "name": "setSize",

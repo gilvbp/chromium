@@ -17,6 +17,10 @@
 #import "third_party/ocmock/OCMock/OCMock.h"
 #import "third_party/ocmock/gtest_support.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 using base::test::ios::WaitUntilConditionOrTimeout;
 using base::test::ios::kWaitForCookiesTimeout;
 
@@ -24,9 +28,7 @@ class CRWWKHTTPCookieStoreTest : public PlatformTest {
  public:
   CRWWKHTTPCookieStoreTest()
       : crw_cookie_store_([[CRWWKHTTPCookieStore alloc] init]) {
-    wk_website_data_store_ = CreateDataStore();
-    mock_http_cookie_store_ =
-        OCMPartialMock(wk_website_data_store_.httpCookieStore);
+    mock_http_cookie_store_ = OCMPartialMock(CreateDataStore().httpCookieStore);
     crw_cookie_store_.HTTPCookieStore = mock_http_cookie_store_;
     NSURL* test_cookie_url = [NSURL URLWithString:@"http://foo.google.com/bar"];
     test_cookie_1_ = [NSHTTPCookie cookieWithProperties:@{
@@ -100,7 +102,6 @@ class CRWWKHTTPCookieStoreTest : public PlatformTest {
  protected:
   web::WebTaskEnvironment task_environment_;
   CRWWKHTTPCookieStore* crw_cookie_store_;
-  WKWebsiteDataStore* wk_website_data_store_ = nil;
   id mock_http_cookie_store_ = nil;
   NSHTTPCookie* test_cookie_1_ = nil;
   NSHTTPCookie* test_cookie_2_ = nil;
@@ -190,9 +191,8 @@ TEST_F(CRWWKHTTPCookieStoreTest, ChangeCookieStore) {
   EXPECT_OCMOCK_VERIFY(mock_http_cookie_store_);
 
   // Change the internal cookie store.
-  wk_website_data_store_ = CreateDataStore();
-  mock_http_cookie_store_ =
-      OCMPartialMock(wk_website_data_store_.httpCookieStore);
+  [mock_http_cookie_store_ stopMocking];
+  mock_http_cookie_store_ = OCMPartialMock(CreateDataStore().httpCookieStore);
   crw_cookie_store_.HTTPCookieStore = mock_http_cookie_store_;
 
   // Verify that internal getAllCookies is called.
@@ -215,6 +215,7 @@ TEST_F(CRWWKHTTPCookieStoreTest, ChangeCookieStore) {
 // Tests that if the internal cookie store is nil, getAllCookie will still run
 // its callback.
 TEST_F(CRWWKHTTPCookieStoreTest, NilCookieStore) {
+  [mock_http_cookie_store_ stopMocking];
   crw_cookie_store_.HTTPCookieStore = nil;
   // GetCookies should return empty array when there is no cookie store.
   NSArray<NSHTTPCookie*>* result = GetCookies();

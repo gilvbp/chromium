@@ -104,7 +104,7 @@ void BackgroundFetchServiceImpl::CreateForFrame(
                          ->GetBackgroundFetchContext());
   mojo::MakeSelfOwnedReceiver(
       std::make_unique<BackgroundFetchServiceImpl>(
-          std::move(context), rfhi->GetStorageKey(),
+          std::move(context), rfhi->storage_key(),
           rfhi->GetIsolationInfoForSubresources(), rfhi->GetProcess(), rfhi),
       std::move(receiver));
 }

@@ -11,10 +11,10 @@
 namespace cc {
 
 struct CC_EXPORT RasterCapabilities {
-  RasterCapabilities();
-  RasterCapabilities(const RasterCapabilities& other);
-  RasterCapabilities& operator=(const RasterCapabilities& other);
-  ~RasterCapabilities();
+  RasterCapabilities() = default;
+  RasterCapabilities(const RasterCapabilities& other) = default;
+  RasterCapabilities& operator=(const RasterCapabilities& other) = default;
+  ~RasterCapabilities() = default;
 
   bool use_gpu_rasterization = false;
 
@@ -24,12 +24,8 @@ struct CC_EXPORT RasterCapabilities {
   // holds a reasonable value for software compositing bitmaps.
   int max_texture_size = 0;
 
-  // Format and texture target used to allocate tiles.
+  // Format used to allocate tiles.
   viz::SharedImageFormat tile_format = viz::SinglePlaneFormat::kRGBA_8888;
-  uint32_t tile_texture_target = 0;
-
-  // If tile textures are overlay candidates.
-  bool tile_overlay_candidate = false;
 
   // Format used to allocate RGBA8 UI resources.
   viz::SharedImageFormat ui_rgba_format = viz::SinglePlaneFormat::kRGBA_8888;

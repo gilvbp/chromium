@@ -441,8 +441,6 @@ class ServiceWorkerDatabase {
                            NoCrossOriginEmbedderPolicyValue);
   FRIEND_TEST_ALL_PREFIXES(ServiceWorkerDatabaseTest, NoFetchHandlerType);
   FRIEND_TEST_ALL_PREFIXES(ServiceWorkerDatabaseTest, FetchHandlerType);
-  FRIEND_TEST_ALL_PREFIXES(ServiceWorkerDatabaseTest,
-                           RouterRulesLegacyPathname);
 };
 
 }  // namespace storage

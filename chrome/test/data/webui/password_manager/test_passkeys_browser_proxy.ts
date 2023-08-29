@@ -14,16 +14,11 @@ export class TestPasskeysBrowserProxy extends TestBrowserProxy implements
   constructor() {
     super([
       'passkeysHasPasskeys',
-      'passkeysManagePasskeys',
     ]);
   }
 
   hasPasskeys(): Promise<boolean> {
     this.methodCalled('passkeysHasPasskeys');
     return Promise.resolve(this.passkeysPresent);
-  }
-
-  managePasskeys(): void {
-    this.methodCalled('passkeysManagePasskeys');
   }
 }

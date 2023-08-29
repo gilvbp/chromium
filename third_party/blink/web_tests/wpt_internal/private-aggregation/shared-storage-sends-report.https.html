@@ -8,7 +8,7 @@
 <script>
 'use strict';
 
-private_aggregation_promise_test(async () => {
+promise_test(async () => {
   await addModuleOnce("resources/shared-storage-module.js");
 
   const data = {enableDebugMode: true, contributions: [{bucket: 1n, value: 2}]};
@@ -19,8 +19,7 @@ private_aggregation_promise_test(async () => {
   assert_equals(reports.length, 1);
 
   const report = JSON.parse(reports[0]);
-  verifyReport(report, /*api=*/'shared-storage', /*is_debug_enabled=*/true,
-               /*debug_key=*/undefined,
+  verifyReport(report, /*is_debug_enabled=*/true, /*debug_key=*/undefined,
                /*expected_cleartext_payload=*/ONE_CONTRIBUTION_EXAMPLE_PAYLOAD);
 
   const debug_reports = await pollReports(
@@ -31,7 +30,7 @@ private_aggregation_promise_test(async () => {
 
 }, 'run() that calls Private Aggregation with one contribution');
 
-private_aggregation_promise_test(async () => {
+promise_test(async () => {
   await addModuleOnce("resources/shared-storage-module.js");
 
   const data = {enableDebugMode: true,
@@ -44,8 +43,7 @@ private_aggregation_promise_test(async () => {
   assert_equals(reports.length, 1);
 
   const report = JSON.parse(reports[0]);
-  verifyReport(report, /*api=*/'shared-storage', /*is_debug_enabled=*/true,
-               /*debug_key=*/undefined,
+  verifyReport(report, /*is_debug_enabled=*/true, /*debug_key=*/undefined,
                /*expected_cleartext_payload=*/MULTIPLE_CONTRIBUTIONS_EXAMPLE_PAYLOAD);
 
   const debug_reports = await pollReports(
@@ -55,7 +53,7 @@ private_aggregation_promise_test(async () => {
   verifyReportsIdenticalExceptPayload(report, JSON.parse(debug_reports[0]));
 }, 'run() that calls Private Aggregation with multiple contributions');
 
-private_aggregation_promise_test(async () => {
+promise_test(async () => {
   await addModuleOnce("resources/shared-storage-module.js");
 
   const data = {enableDebugMode: true,
@@ -69,8 +67,7 @@ private_aggregation_promise_test(async () => {
   assert_equals(reports.length, 1);
 
   const report = JSON.parse(reports[0]);
-  verifyReport(report, /*api=*/'shared-storage', /*is_debug_enabled=*/true,
-               /*debug_key=*/"1234",
+  verifyReport(report, /*is_debug_enabled=*/true, /*debug_key=*/"1234",
                /*expected_cleartext_payload=*/ONE_CONTRIBUTION_EXAMPLE_PAYLOAD);
 
   const debug_reports = await pollReports(
@@ -81,7 +78,7 @@ private_aggregation_promise_test(async () => {
 }, 'run() that calls Private Aggregation with debug key');
 
 
-private_aggregation_promise_test(async () => {
+promise_test(async () => {
   await addModuleOnce("resources/shared-storage-module.js");
 
   const data = {enableDebugMode: true,
@@ -95,8 +92,7 @@ private_aggregation_promise_test(async () => {
   assert_equals(reports.length, 1);
 
   const report = JSON.parse(reports[0]);
-  verifyReport(report, /*api=*/'shared-storage', /*is_debug_enabled=*/true,
-               /*debug_key=*/"1234",
+  verifyReport(report, /*is_debug_enabled=*/true, /*debug_key=*/"1234",
                /*expected_cleartext_payload=*/MULTIPLE_CONTRIBUTIONS_EXAMPLE_PAYLOAD);
 
   const debug_reports = await pollReports(
@@ -106,7 +102,7 @@ private_aggregation_promise_test(async () => {
   verifyReportsIdenticalExceptPayload(report, JSON.parse(debug_reports[0]));
 }, 'run() that calls Private Aggregation with multiple contributions and a debug key');
 
-private_aggregation_promise_test(async () => {
+promise_test(async () => {
   await addModuleOnce("resources/shared-storage-module.js");
 
   const data = {enableDebugMode: false,
@@ -121,18 +117,17 @@ private_aggregation_promise_test(async () => {
   const report = JSON.parse(reports[0]);
 
   // Note that the payload cannot be tested as debug mode is disabled.
-  verifyReport(report, /*api=*/'shared-storage', /*is_debug_enabled=*/false,
-               /*debug_key=*/undefined,
+  verifyReport(report, /*is_debug_enabled=*/false, /*debug_key=*/undefined,
                /*expected_cleartext_payload=*/undefined);
 
   // We use a short timeout as the previous poll should've waited long enough.
   const debug_reports = await pollReports(
       "/.well-known/private-aggregation/debug/report-shared-storage",
-      /*wait_for=*/1, /*timeout=*/50)
+      location.origin, /*timeout=*/50)
   assert_equals(debug_reports, null);
 }, 'run() that calls Private Aggregation without debug mode');
 
-private_aggregation_promise_test(async () => {
+promise_test(async () => {
   await addModuleOnce("resources/shared-storage-module.js");
 
   const data = {enableDebugModeAfterOp: true,
@@ -146,8 +141,7 @@ private_aggregation_promise_test(async () => {
   assert_equals(reports.length, 1);
 
   const report = JSON.parse(reports[0]);
-  verifyReport(report, /*api=*/'shared-storage', /*is_debug_enabled=*/true,
-               /*debug_key=*/"1234",
+  verifyReport(report, /*is_debug_enabled=*/true, /*debug_key=*/"1234",
                /*expected_cleartext_payload=*/ONE_CONTRIBUTION_EXAMPLE_PAYLOAD);
 
   const debug_reports = await pollReports(
@@ -158,7 +152,7 @@ private_aggregation_promise_test(async () => {
 }, 'run() that calls enableDebugMode() after contributeToHistogram()');
 
 
-private_aggregation_promise_test(async () => {
+promise_test(async () => {
   await addModuleOnce("resources/shared-storage-module.js");
 
   const data_1 = {enableDebugMode: true,
@@ -173,19 +167,18 @@ private_aggregation_promise_test(async () => {
   assert_equals(reports.length, 1);
 
   const report = JSON.parse(reports[0]);
-  verifyReport(report, /*api=*/'shared-storage', /*is_debug_enabled=*/false,
-               /*debug_key=*/undefined,
+  verifyReport(report, /*is_debug_enabled=*/false, /*debug_key=*/undefined,
                /*expected_cleartext_payload=*/undefined);
 
   // We use a short timeout as the previous poll should've waited long enough.
   const debug_reports = await pollReports(
       "/.well-known/private-aggregation/debug/report-shared-storage",
-      /*wait_for=*/1, /*timeout=*/50)
+      location.origin, /*timeout=*/50)
   assert_equals(debug_reports, null);
 }, 'calling enableDebugMode() in a different operation doesn\'t apply');
 
 
-private_aggregation_promise_test(async () => {
+promise_test(async () => {
   await addModuleOnce("resources/shared-storage-module.js");
 
   const data_1 = {enableDebugMode: true,
@@ -198,12 +191,11 @@ private_aggregation_promise_test(async () => {
 
   // We don't verify the reports as they could arrive in a different order.
   const reports = await pollReports(
-      "/.well-known/private-aggregation/report-shared-storage", /*wait_for=*/2);
+      "/.well-known/private-aggregation/report-shared-storage")
   assert_equals(reports.length, 2);
 
   const debug_reports = await pollReports(
-      "/.well-known/private-aggregation/debug/report-shared-storage",
-      /*wait_for=*/2);
+      "/.well-known/private-aggregation/debug/report-shared-storage")
   assert_equals(debug_reports.length, 2);
 }, 'reports from multiple operations aren\'t batched');
 

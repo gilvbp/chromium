@@ -163,14 +163,13 @@ void AwSafeBrowsingBlockingPage::FinishThreatDetails(
 
   // Finish computing threat details. TriggerManager will decide if it is safe
   // to send the report.
-  auto result = AwBrowserProcess::GetInstance()
-                    ->GetSafeBrowsingTriggerManager()
-                    ->FinishCollectingThreatDetails(
-                        safe_browsing::TriggerType::SECURITY_INTERSTITIAL,
-                        safe_browsing::GetWebContentsKey(web_contents()), delay,
-                        did_proceed, num_visits,
-                        sb_error_ui()->get_error_display_options());
-  bool report_sent = result.IsReportSent();
+  bool report_sent = AwBrowserProcess::GetInstance()
+                         ->GetSafeBrowsingTriggerManager()
+                         ->FinishCollectingThreatDetails(
+                             safe_browsing::TriggerType::SECURITY_INTERSTITIAL,
+                             safe_browsing::GetWebContentsKey(web_contents()),
+                             delay, did_proceed, num_visits,
+                             sb_error_ui()->get_error_display_options());
 
   if (report_sent) {
     controller()->metrics_helper()->RecordUserInteraction(

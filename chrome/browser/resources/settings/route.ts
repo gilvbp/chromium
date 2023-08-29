@@ -17,10 +17,10 @@ function addPrivacyChildRoutes(r: Partial<SettingsRoutes>) {
   r.CLEAR_BROWSER_DATA = r.PRIVACY.createChild('/clearBrowserData');
   r.CLEAR_BROWSER_DATA.isNavigableDialog = true;
 
+  r.SAFETY_CHECK = r.PRIVACY.createSection('/safetyCheck', 'safetyCheck');
+
   if (loadTimeData.getBoolean('enableSafetyHub')) {
     r.SAFETY_HUB = r.PRIVACY.createChild('/safetyHub');
-  } else {
-    r.SAFETY_CHECK = r.PRIVACY.createSection('/safetyCheck', 'safetyCheck');
   }
 
   if (loadTimeData.getBoolean('showPrivacyGuide')) {
@@ -62,8 +62,7 @@ function addPrivacyChildRoutes(r: Partial<SettingsRoutes>) {
     // </if>
   }
 
-  if (!loadTimeData.getBoolean(
-          'isPerformanceSettingsPreloadingSubpageEnabled')) {
+  if (loadTimeData.getBoolean('showPreloadingSubPage')) {
     r.PRELOADING = r.COOKIES.createChild('/preloading');
   }
 
@@ -79,10 +78,6 @@ function addPrivacyChildRoutes(r: Partial<SettingsRoutes>) {
   r.SITE_SETTINGS_AR = r.SITE_SETTINGS.createChild('ar');
   r.SITE_SETTINGS_AUTOMATIC_DOWNLOADS =
       r.SITE_SETTINGS.createChild('automaticDownloads');
-  if (loadTimeData.getBoolean('autoPictureInPictureEnabled')) {
-    r.SITE_SETTINGS_AUTO_PICTURE_IN_PICTURE =
-        r.SITE_SETTINGS.createChild('autoPictureInPicture');
-  }
   if (loadTimeData.getBoolean('privateStateTokensEnabled')) {
     r.SITE_SETTINGS_AUTO_VERIFY = r.SITE_SETTINGS.createChild('autoVerify');
   }
@@ -186,6 +181,16 @@ function createBrowserSettingsRoutes(): SettingsRoutes {
   if (visibility.autofill !== false) {
     r.AUTOFILL = r.BASIC.createSection(
         '/autofill', 'autofill', loadTimeData.getString('autofillPageTitle'));
+    if (!loadTimeData.getBoolean('enableNewPasswordManagerPage')) {
+      r.PASSWORDS = r.AUTOFILL.createChild('/passwords');
+      if (loadTimeData.getBoolean('enablePasswordViewPage')) {
+        r.PASSWORD_VIEW = r.PASSWORDS.createChild('view');
+      }
+      r.CHECK_PASSWORDS = r.PASSWORDS.createChild('check');
+
+      r.DEVICE_PASSWORDS = r.PASSWORDS.createChild('device');
+    }
+
     r.PAYMENTS = r.AUTOFILL.createChild('/payments');
     r.ADDRESSES = r.AUTOFILL.createChild('/addresses');
 
@@ -272,10 +277,6 @@ function createBrowserSettingsRoutes(): SettingsRoutes {
       r.PERFORMANCE = r.BASIC.createSection(
           '/performance', 'performance',
           loadTimeData.getString('performancePageTitle'));
-      if (loadTimeData.getBoolean(
-              'isPerformanceSettingsPreloadingSubpageEnabled')) {
-        r.PRELOADING = r.PERFORMANCE.createChild('/preloading');
-      }
     }
 
     // <if expr="_google_chrome">

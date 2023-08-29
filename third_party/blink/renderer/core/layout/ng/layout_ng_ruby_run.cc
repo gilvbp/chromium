@@ -173,20 +173,11 @@ LayoutNGRubyBase& LayoutNGRubyRun::CreateRubyBase() const {
   ComputedStyleBuilder new_style_builder =
       GetDocument().GetStyleResolver().CreateAnonymousStyleBuilderWithDisplay(
           StyleRef(), EDisplay::kBlock);
-  UpdateAnonymousChildStyle(layout_object, new_style_builder);
+  new_style_builder.SetTextAlign(
+      ETextAlign::kCenter);  // FIXME: use WEBKIT_CENTER?
+  new_style_builder.SetHasLineIfEmpty(true);
   layout_object->SetStyle(new_style_builder.TakeStyle());
   return *layout_object;
-}
-
-void LayoutNGRubyRun::UpdateAnonymousChildStyle(
-    const LayoutObject* child,
-    ComputedStyleBuilder& builder) const {
-  NOT_DESTROYED();
-  if (child->IsRubyBase()) {
-    // FIXME: use WEBKIT_CENTER?
-    builder.SetTextAlign(ETextAlign::kCenter);
-    builder.SetHasLineIfEmpty(true);
-  }
 }
 
 // static
@@ -196,12 +187,12 @@ LayoutNGRubyRun& LayoutNGRubyRun::Create(const LayoutObject* parent_ruby,
   DCHECK(parent_ruby->IsRuby());
   LayoutNGRubyRun* rr = MakeGarbageCollected<LayoutNGRubyRun>();
   rr->SetDocumentForAnonymous(&parent_ruby->GetDocument());
-  const ComputedStyle* new_style =
+  scoped_refptr<const ComputedStyle> new_style =
       parent_ruby->GetDocument()
           .GetStyleResolver()
           .CreateAnonymousStyleWithDisplay(parent_ruby->StyleRef(),
                                            EDisplay::kInlineBlock);
-  rr->SetStyle(new_style);
+  rr->SetStyle(std::move(new_style));
   return *rr;
 }
 

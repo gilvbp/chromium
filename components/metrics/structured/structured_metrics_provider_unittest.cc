@@ -73,9 +73,6 @@ class StructuredMetricsProviderTest : public testing::Test {
     // Move the mock date forward from day 0, because KeyData assumes that day 0
     // is a bug.
     task_environment_.AdvanceClock(base::Days(1000));
-
-    scoped_feature_list_.InitAndDisableFeature(
-        kEnabledStructuredMetricsService);
   }
 
   void TearDown() override { StructuredMetricsClient::Get()->UnsetDelegate(); }
@@ -131,7 +128,6 @@ class StructuredMetricsProviderTest : public testing::Test {
     ChromeUserMetricsExtension uma_proto;
     if (provider_->HasIndependentMetrics()) {
       provider_->ProvideIndependentMetrics(
-          base::DoNothing(),
           base::BindOnce([](bool success) { CHECK(success); }), &uma_proto,
           nullptr);
       Wait();
@@ -172,8 +168,7 @@ class StructuredMetricsProviderTest : public testing::Test {
 // Ensure that disabling independent upload of non-client_id metrics via feature
 // flag instead uploads them in the main UMA upload.
 TEST_F(StructuredMetricsProviderTest, DisableIndependentUploads) {
-  base::test::ScopedFeatureList scoped_feature_list;
-  scoped_feature_list.InitAndEnableFeatureWithParameters(
+  scoped_feature_list_.InitAndEnableFeatureWithParameters(
       features::kStructuredMetrics,
       {{"enable_independent_metrics_upload", "false"}});
 

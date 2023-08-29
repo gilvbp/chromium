@@ -41,20 +41,18 @@ InMemoryURLIndexFactory::InMemoryURLIndexFactory()
 
 InMemoryURLIndexFactory::~InMemoryURLIndexFactory() = default;
 
-std::unique_ptr<KeyedService>
-InMemoryURLIndexFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* InMemoryURLIndexFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   // Do not force creation of the HistoryService if saving history is disabled.
   Profile* profile = Profile::FromBrowserContext(context);
   SchemeSet chrome_schemes_to_whitelist;
   chrome_schemes_to_whitelist.insert(content::kChromeUIScheme);
-  std::unique_ptr<InMemoryURLIndex> in_memory_url_index = 
-    std::make_unique<InMemoryURLIndex>(
-      BookmarkModelFactory::GetForBrowserContext(profile),
-      HistoryServiceFactory::GetForProfile(profile,
-                                           ServiceAccessType::IMPLICIT_ACCESS),
-      TemplateURLServiceFactory::GetForProfile(profile), profile->GetPath(),
-      chrome_schemes_to_whitelist);
+  InMemoryURLIndex* in_memory_url_index =
+      new InMemoryURLIndex(BookmarkModelFactory::GetForBrowserContext(profile),
+                           HistoryServiceFactory::GetForProfile(
+                               profile, ServiceAccessType::IMPLICIT_ACCESS),
+                           TemplateURLServiceFactory::GetForProfile(profile),
+                           profile->GetPath(), chrome_schemes_to_whitelist);
   in_memory_url_index->Init();
   return in_memory_url_index;
 }

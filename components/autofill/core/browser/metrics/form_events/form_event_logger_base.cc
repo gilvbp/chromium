@@ -56,8 +56,8 @@ FormEventLoggerBase::~FormEventLoggerBase() {
 
 void FormEventLoggerBase::OnDidInteractWithAutofillableForm(
     const FormStructure& form,
-    AutofillMetrics::PaymentsSigninState signin_state_for_metrics) {
-  signin_state_for_metrics_ = signin_state_for_metrics;
+    AutofillSyncSigninState sync_state) {
+  sync_state_ = sync_state;
   if (!has_logged_interacted_) {
     has_logged_interacted_ = true;
     LogUkmInteractedWithForm(form.form_signature());
@@ -67,8 +67,8 @@ void FormEventLoggerBase::OnDidInteractWithAutofillableForm(
 
 void FormEventLoggerBase::OnDidPollSuggestions(
     const FormFieldData& field,
-    AutofillMetrics::PaymentsSigninState signin_state_for_metrics) {
-  signin_state_for_metrics_ = signin_state_for_metrics;
+    AutofillSyncSigninState sync_state) {
+  sync_state_ = sync_state;
   // Record only one poll user action for consecutive polls of the same field.
   // This is to avoid recording too many poll actions (for example when a user
   // types in a field, triggering multiple queries) to make the analysis more
@@ -107,9 +107,9 @@ void FormEventLoggerBase::OnDidShowSuggestions(
     const FormStructure& form,
     const AutofillField& field,
     const base::TimeTicks& form_parsed_timestamp,
-    AutofillMetrics::PaymentsSigninState signin_state_for_metrics,
+    AutofillSyncSigninState sync_state,
     bool off_the_record) {
-  signin_state_for_metrics_ = signin_state_for_metrics;
+  sync_state_ = sync_state;
   form_interactions_ukm_logger_->LogSuggestionsShown(
       form, field, form_parsed_timestamp, off_the_record);
 
@@ -144,10 +144,9 @@ void FormEventLoggerBase::SetTimeFromInteractionToSubmission(
   time_from_interaction_to_submission_ = time_from_interaction_to_submission;
 }
 
-void FormEventLoggerBase::OnWillSubmitForm(
-    AutofillMetrics::PaymentsSigninState signin_state_for_metrics,
-    const FormStructure& form) {
-  signin_state_for_metrics_ = signin_state_for_metrics;
+void FormEventLoggerBase::OnWillSubmitForm(AutofillSyncSigninState sync_state,
+                                           const FormStructure& form) {
+  sync_state_ = sync_state;
   // Not logging this kind of form if we haven't logged a user interaction.
   if (!has_logged_interacted_)
     return;
@@ -167,10 +166,9 @@ void FormEventLoggerBase::OnWillSubmitForm(
   base::RecordAction(base::UserMetricsAction("Autofill_OnWillSubmitForm"));
 }
 
-void FormEventLoggerBase::OnFormSubmitted(
-    AutofillMetrics::PaymentsSigninState signin_state_for_metrics,
-    const FormStructure& form) {
-  signin_state_for_metrics_ = signin_state_for_metrics;
+void FormEventLoggerBase::OnFormSubmitted(AutofillSyncSigninState sync_state,
+                                          const FormStructure& form) {
+  sync_state_ = sync_state;
   // Not logging this kind of form if we haven't logged a user interaction.
   if (!has_logged_interacted_)
     return;
@@ -250,9 +248,8 @@ void FormEventLoggerBase::Log(FormEvent event, const FormStructure& form) {
     name += ".WithBothServerAndLocalData";
   base::UmaHistogramEnumeration(name, event, NUM_FORM_EVENTS);
   base::UmaHistogramEnumeration(
-      name +
-          AutofillMetrics::GetMetricsSyncStateSuffix(signin_state_for_metrics_),
-      event, NUM_FORM_EVENTS);
+      name + AutofillMetrics::GetMetricsSyncStateSuffix(sync_state_), event,
+      NUM_FORM_EVENTS);
 }
 
 void FormEventLoggerBase::LogWillSubmitForm(const FormStructure& form) {
@@ -283,60 +280,43 @@ void FormEventLoggerBase::LogUkmInteractedWithForm(
 }
 
 void FormEventLoggerBase::RecordFunnelMetrics() const {
+  LogBuffer logs(IsLoggingActive(client_->GetLogManager()));
+  LOG_AF(logs) << Tr{} << "Form Type: " << form_type_name_;
   UmaHistogramBoolean("Autofill.Funnel.ParsedAsType." + form_type_name_,
                       has_parsed_form_);
   if (!has_parsed_form_) {
     return;
   }
-  LogBuffer logs(IsLoggingActive(client_->GetLogManager()));
-  LOG_AF(logs) << Tr{} << "Form Type: " << form_type_name_;
-
-  RecordInteractionAfterParsedAsType(logs);
-  if (has_logged_interacted_) {
-    RecordSuggestionAfterInteraction(logs);
-  }
-  if (has_logged_interacted_ && has_logged_suggestions_shown_) {
-    RecordFillAfterSuggestion(logs);
-  }
-  if (has_logged_interacted_ && has_logged_suggestions_shown_ &&
-      has_logged_suggestion_filled_) {
-    RecordSubmissionAfterFill(logs);
-  }
-
-  LOG_AF(client_->GetLogManager())
-      << LoggingScope::kMetrics << LogMessage::kFunnelMetrics << Tag{"table"}
-      << std::move(logs) << CTag{"table"};
-}
-
-void FormEventLoggerBase::RecordInteractionAfterParsedAsType(
-    LogBuffer& logs) const {
   UmaHistogramBoolean(
       "Autofill.Funnel.InteractionAfterParsedAsType." + form_type_name_,
       has_logged_interacted_);
   LOG_AF(logs) << Tr{} << "InteractionAfterParsedAsType"
                << has_logged_interacted_;
-}
+  if (has_logged_interacted_) {
+    UmaHistogramBoolean(
+        "Autofill.Funnel.SuggestionAfterInteraction." + form_type_name_,
+        has_logged_suggestions_shown_);
+    LOG_AF(logs) << Tr{} << "SuggestionAfterInteraction"
+                 << has_logged_suggestions_shown_;
+  }
+  if (has_logged_interacted_ && has_logged_suggestions_shown_) {
+    UmaHistogramBoolean(
+        "Autofill.Funnel.FillAfterSuggestion." + form_type_name_,
+        has_logged_suggestion_filled_);
+    LOG_AF(logs) << Tr{} << "FillAfterSuggestion"
+                 << has_logged_suggestion_filled_;
+  }
+  if (has_logged_interacted_ && has_logged_suggestions_shown_ &&
+      has_logged_suggestion_filled_) {
+    UmaHistogramBoolean(
+        "Autofill.Funnel.SubmissionAfterFill." + form_type_name_,
+        has_logged_will_submit_);
+    LOG_AF(logs) << Tr{} << "SubmissionAfterFill" << has_logged_will_submit_;
+  }
 
-void FormEventLoggerBase::RecordSuggestionAfterInteraction(
-    LogBuffer& logs) const {
-  UmaHistogramBoolean(
-      "Autofill.Funnel.SuggestionAfterInteraction." + form_type_name_,
-      has_logged_suggestions_shown_);
-  LOG_AF(logs) << Tr{} << "SuggestionAfterInteraction"
-               << has_logged_suggestions_shown_;
-}
-
-void FormEventLoggerBase::RecordFillAfterSuggestion(LogBuffer& logs) const {
-  UmaHistogramBoolean("Autofill.Funnel.FillAfterSuggestion." + form_type_name_,
-                      has_logged_suggestion_filled_);
-  LOG_AF(logs) << Tr{} << "FillAfterSuggestion"
-               << has_logged_suggestion_filled_;
-}
-
-void FormEventLoggerBase::RecordSubmissionAfterFill(LogBuffer& logs) const {
-  UmaHistogramBoolean("Autofill.Funnel.SubmissionAfterFill." + form_type_name_,
-                      has_logged_will_submit_);
-  LOG_AF(logs) << Tr{} << "SubmissionAfterFill" << has_logged_will_submit_;
+  LOG_AF(client_->GetLogManager())
+      << LoggingScope::kMetrics << LogMessage::kFunnelMetrics << Tag{"table"}
+      << std::move(logs) << CTag{"table"};
 }
 
 void FormEventLoggerBase::RecordKeyMetrics() const {

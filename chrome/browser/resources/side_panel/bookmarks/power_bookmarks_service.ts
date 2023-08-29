@@ -58,17 +58,12 @@ export function editingDisabledByPolicy(
 }
 
 // Return an array that includes folder and all its descendants.
-export function getFolderDescendants(
-    folder: chrome.bookmarks.BookmarkTreeNode,
-    excludeFolder: chrome.bookmarks.BookmarkTreeNode|undefined =
-        undefined): chrome.bookmarks.BookmarkTreeNode[] {
-  if (folder === excludeFolder) {
-    return [];
-  }
+export function getFolderDescendants(folder: chrome.bookmarks.BookmarkTreeNode):
+    chrome.bookmarks.BookmarkTreeNode[] {
   let expanded: chrome.bookmarks.BookmarkTreeNode[] = [folder];
   if (folder.children) {
     folder.children.forEach((child: chrome.bookmarks.BookmarkTreeNode) => {
-      expanded = expanded.concat(getFolderDescendants(child, excludeFolder));
+      expanded = expanded.concat(getFolderDescendants(child));
     });
   }
   return expanded;
@@ -233,12 +228,11 @@ export class PowerBookmarksService {
    */
   filterBookmarks(
       activeFolder: chrome.bookmarks.BookmarkTreeNode|undefined,
-      activeSortIndex: number, searchQuery: string|undefined, labels: Label[],
-      excludeFolder: chrome.bookmarks.BookmarkTreeNode|
-      undefined = undefined): chrome.bookmarks.BookmarkTreeNode[] {
-    let bookmarks: chrome.bookmarks.BookmarkTreeNode[] = [];
+      activeSortIndex: number, searchQuery: string|undefined,
+      labels: Label[]): chrome.bookmarks.BookmarkTreeNode[] {
+    let shownBookmarks;
     if (activeFolder) {
-      bookmarks = activeFolder.children!.slice();
+      shownBookmarks = activeFolder.children!.slice();
     } else {
       let topLevelBookmarks: chrome.bookmarks.BookmarkTreeNode[] = [];
       this.folders_.forEach(
@@ -246,14 +240,19 @@ export class PowerBookmarksService {
               (folder.id === loadTimeData.getString('bookmarksBarId')) ?
                   [folder] :
                   folder.children!));
-      bookmarks = topLevelBookmarks;
+      shownBookmarks = topLevelBookmarks;
     }
     if (searchQuery || labels.find((label) => label.active)) {
-      bookmarks = this.applySearchQueryAndLabels_(
-          labels, searchQuery, bookmarks, excludeFolder);
+      shownBookmarks =
+          this.applySearchQueryAndLabels(labels, searchQuery, shownBookmarks);
     }
-    const sortChangedPosition = this.sortBookmarks(bookmarks, activeSortIndex);
-    return sortChangedPosition ? bookmarks.slice() : bookmarks;
+    const sortChangedPosition =
+        this.sortBookmarks(shownBookmarks, activeSortIndex);
+    if (sortChangedPosition) {
+      return shownBookmarks.slice();
+    } else {
+      return shownBookmarks;
+    }
   }
 
   /**
@@ -338,39 +337,27 @@ export class PowerBookmarksService {
     return folder.children!.findIndex(b => b.url === url) === -1;
   }
 
-  bookmarkMatchesSearchQueryAndLabels(
-      bookmark: chrome.bookmarks.BookmarkTreeNode, labels: Label[],
-      searchQuery: string|undefined): boolean {
-    return this.nodeMatchesContentFilters_(bookmark, labels) &&
-        (!searchQuery ||
-         (!!bookmark.title &&
-          bookmark.title.toLocaleLowerCase().includes(searchQuery!)) ||
-         (!!bookmark.url &&
-          bookmark.url.toLocaleLowerCase().includes(searchQuery!)));
+  applySearchQueryAndLabels(
+      labels: Label[], searchQuery: string|undefined,
+      shownBookmarks: chrome.bookmarks.BookmarkTreeNode[]) {
+    let searchSpace: chrome.bookmarks.BookmarkTreeNode[] = [];
+    // Search space should include all descendants of the shown bookmarks, in
+    // addition to the shown bookmarks themselves.
+    shownBookmarks.forEach((bookmark: chrome.bookmarks.BookmarkTreeNode) => {
+      searchSpace = searchSpace.concat(getFolderDescendants(bookmark));
+    });
+    return searchSpace.filter(
+        (bookmark: chrome.bookmarks.BookmarkTreeNode) =>
+            this.nodeMatchesContentFilters_(bookmark, labels) &&
+            (!searchQuery ||
+             (bookmark.title &&
+              bookmark.title.toLocaleLowerCase().includes(searchQuery!)) ||
+             (bookmark.url &&
+              bookmark.url.toLocaleLowerCase().includes(searchQuery!))));
   }
 
   setMaxImageServiceRequestsForTesting(max: number) {
     this.maxImageServiceRequests_ = max;
-  }
-
-
-  private applySearchQueryAndLabels_(
-      labels: Label[], searchQuery: string|undefined,
-      shownBookmarks: chrome.bookmarks.BookmarkTreeNode[],
-      excludeFolder: chrome.bookmarks.BookmarkTreeNode|
-      undefined): chrome.bookmarks.BookmarkTreeNode[] {
-    let searchSpace: chrome.bookmarks.BookmarkTreeNode[] = [];
-    // Search space should include all descendants of the shown bookmarks, in
-    // addition to the shown bookmarks themselves, excluding the excludeFolder
-    // and its descendants.
-    shownBookmarks.forEach((bookmark: chrome.bookmarks.BookmarkTreeNode) => {
-      searchSpace =
-          searchSpace.concat(getFolderDescendants(bookmark, excludeFolder));
-    });
-    return searchSpace.filter(
-        (bookmark: chrome.bookmarks.BookmarkTreeNode) =>
-            this.bookmarkMatchesSearchQueryAndLabels(
-                bookmark, labels, searchQuery));
   }
 
   private nodeMatchesContentFilters_(

@@ -22,11 +22,9 @@ SerialChooserContextFactory::SerialChooserContextFactory()
 
 SerialChooserContextFactory::~SerialChooserContextFactory() = default;
 
-std::unique_ptr<KeyedService>
-SerialChooserContextFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* SerialChooserContextFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
-  return std::make_unique<SerialChooserContext>(
-      Profile::FromBrowserContext(context));
+  return new SerialChooserContext(Profile::FromBrowserContext(context));
 }
 
 // static

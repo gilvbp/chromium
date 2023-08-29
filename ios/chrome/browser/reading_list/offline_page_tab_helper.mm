@@ -31,6 +31,10 @@
 #import "net/base/mac/url_conversions.h"
 #import "ui/base/page_transition_types.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace {
 // Gets the offline data at `offline_path`. The result is a single std::string
 // with all resources inlined.

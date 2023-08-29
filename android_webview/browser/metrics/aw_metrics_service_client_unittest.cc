@@ -50,17 +50,12 @@ class AwMetricsServiceTestClient : public AwMetricsServiceClient {
   explicit AwMetricsServiceTestClient(std::unique_ptr<Delegate> delegate)
       : AwMetricsServiceClient(std::move(delegate)) {}
   void SetInSample(bool in_sample) { in_sample_ = in_sample; }
-  void SetSampleBucketValue(int sample_bucket_value) {
-    sample_bucket_value_ = sample_bucket_value;
-  }
 
  protected:
   bool IsInSample() const override { return in_sample_; }
-  int GetSampleBucketValue() const override { return sample_bucket_value_; }
 
  private:
   bool in_sample_ = false;
-  int sample_bucket_value_ = 0;
 };
 
 class AwMetricsServiceClientTest : public testing::Test {
@@ -68,6 +63,16 @@ class AwMetricsServiceClientTest : public testing::Test {
       delete;
   AwMetricsServiceClientTest(AwMetricsServiceClientTest&&) = delete;
   AwMetricsServiceClientTest& operator=(AwMetricsServiceClientTest&&) = delete;
+
+ public:
+  void SetUp() override {
+    // Since the server-side allowlist is now enabled by default,
+    // the simplest thing to do in order to preserve the same testing logic
+    // is to disable it.
+    base::test::ScopedFeatureList scoped_list;
+    scoped_list.InitAndDisableFeature(
+        android_webview::features::kWebViewAppsPackageNamesServerSideAllowlist);
+  }
 
  protected:
   AwMetricsServiceClientTest()
@@ -445,44 +450,26 @@ TEST_F(AwMetricsServiceClientTest,
       "Android.WebView.AppDataDirectory.TimeToComputeSize", 0);
 }
 
-TEST_F(AwMetricsServiceClientTest, TestShouldApplyMetricsFilteringFeatureOff) {
+TEST_F(AwMetricsServiceClientTest, TestClientSideSamplingOn) {
   base::test::ScopedFeatureList feature_list;
   feature_list.InitAndDisableFeature(
-      android_webview::features::kWebViewMetricsFiltering);
+      android_webview::features::kWebViewServerSideSampling);
 
   // Both metrics consent and app consent true;
   GetClient()->SetHaveMetricsConsent(true, true);
 
   EXPECT_EQ(GetClient()->GetSampleRatePerMille(), 20);
-  EXPECT_EQ(GetClient()->ShouldApplyMetricsFiltering(), false);
 }
 
-TEST_F(AwMetricsServiceClientTest,
-       TestShouldApplyMetricsFilteringFeatureOn_AllMetrics) {
+TEST_F(AwMetricsServiceClientTest, TestClientSideSamplingOff) {
   base::test::ScopedFeatureList feature_list;
   feature_list.InitAndEnableFeature(
-      android_webview::features::kWebViewMetricsFiltering);
+      android_webview::features::kWebViewServerSideSampling);
 
   // Both metrics consent and app consent true;
   GetClient()->SetHaveMetricsConsent(true, true);
-  GetClient()->SetSampleBucketValue(19);
 
   EXPECT_EQ(GetClient()->GetSampleRatePerMille(), 1000);
-  EXPECT_FALSE(GetClient()->ShouldApplyMetricsFiltering());
-}
-
-TEST_F(AwMetricsServiceClientTest,
-       TestShouldApplyMetricsFilteringFeatureOn_OnlyCriticalMetrics) {
-  base::test::ScopedFeatureList feature_list;
-  feature_list.InitAndEnableFeature(
-      android_webview::features::kWebViewMetricsFiltering);
-
-  // Both metrics consent and app consent true;
-  GetClient()->SetHaveMetricsConsent(true, true);
-  GetClient()->SetSampleBucketValue(20);
-
-  EXPECT_EQ(GetClient()->GetSampleRatePerMille(), 1000);
-  EXPECT_TRUE(GetClient()->ShouldApplyMetricsFiltering());
 }
 
 }  // namespace android_webview

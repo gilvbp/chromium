@@ -27,29 +27,26 @@
 #include "ui/native_theme/native_theme_aura.h"
 #include "ui/native_theme/native_theme_features.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace {
 
 bool IsDarkMode() {
-  NSAppearanceName appearance =
-      [NSApp.effectiveAppearance bestMatchFromAppearancesWithNames:@[
-        NSAppearanceNameAqua, NSAppearanceNameDarkAqua
-      ]];
-  return [appearance isEqual:NSAppearanceNameDarkAqua];
-}
-
-bool PrefersReducedTransparency() {
-  return NSWorkspace.sharedWorkspace
-      .accessibilityDisplayShouldReduceTransparency;
+  if (@available(macOS 10.14, *)) {
+    NSAppearanceName appearance =
+        [NSApp.effectiveAppearance bestMatchFromAppearancesWithNames:@[
+          NSAppearanceNameAqua, NSAppearanceNameDarkAqua
+        ]];
+    return [appearance isEqual:NSAppearanceNameDarkAqua];
+  }
+  return false;
 }
 
 bool IsHighContrast() {
   return NSWorkspace.sharedWorkspace.accessibilityDisplayShouldIncreaseContrast;
 }
-
-bool InvertedColors() {
-  return NSWorkspace.sharedWorkspace.accessibilityDisplayShouldInvertColors;
-}
-
 }  // namespace
 
 // Helper object to respond to light mode/dark mode changeovers.
@@ -64,16 +61,20 @@ bool InvertedColors() {
   self = [super init];
   if (self) {
     _handler = handler;
-    [NSApp addObserver:self
-            forKeyPath:@"effectiveAppearance"
-               options:0
-               context:nullptr];
+    if (@available(macOS 10.14, *)) {
+      [NSApp addObserver:self
+              forKeyPath:@"effectiveAppearance"
+                 options:0
+                 context:nullptr];
+    }
   }
   return self;
 }
 
 - (void)dealloc {
-  [NSApp removeObserver:self forKeyPath:@"effectiveAppearance"];
+  if (@available(macOS 10.14, *)) {
+    [NSApp removeObserver:self forKeyPath:@"effectiveAppearance"];
+  }
 }
 
 - (void)observeValueForKeyPath:(NSString*)forKeyPath
@@ -116,7 +117,10 @@ NativeTheme* NativeTheme::GetInstanceForDarkUI() {
 
 // static
 bool NativeTheme::SystemDarkModeSupported() {
-  return true;
+  if (@available(macOS 10.14, *)) {
+    return true;
+  }
+  return false;
 }
 
 // static
@@ -150,19 +154,16 @@ void NativeThemeMac::Paint(cc::PaintCanvas* canvas,
   switch (part) {
     case kScrollbarHorizontalThumb:
     case kScrollbarVerticalThumb:
-      PaintMacScrollbarThumb(canvas, part, state, rect,
-                             absl::get<ScrollbarExtraParams>(extra),
+      PaintMacScrollbarThumb(canvas, part, state, rect, extra.scrollbar_extra,
                              color_scheme_updated);
       break;
     case kScrollbarHorizontalTrack:
     case kScrollbarVerticalTrack:
-      PaintMacScrollBarTrackOrCorner(canvas, part, state,
-                                     absl::get<ScrollbarExtraParams>(extra),
+      PaintMacScrollBarTrackOrCorner(canvas, part, state, extra.scrollbar_extra,
                                      rect, color_scheme_updated, false);
       break;
     case kScrollbarCorner:
-      PaintMacScrollBarTrackOrCorner(canvas, part, state,
-                                     absl::get<ScrollbarExtraParams>(extra),
+      PaintMacScrollBarTrackOrCorner(canvas, part, state, extra.scrollbar_extra,
                                      rect, color_scheme_updated, true);
       break;
     default:
@@ -279,19 +280,11 @@ void NativeThemeMac::PaintScrollBarTrackGradient(
   }
 
   // And draw.
-  cc::PaintFlags flags;
-  absl::optional<SkColor> track_color =
-      GetScrollbarColor(ScrollbarPart::kTrack, color_scheme, extra_params);
-  if (track_color.has_value()) {
-    flags.setAntiAlias(true);
-    flags.setStyle(cc::PaintFlags::kFill_Style);
-    flags.setColor(track_color.value());
-  } else {
-    flags.setShader(cc::PaintShader::MakeLinearGradient(
-        gradient_bounds.data(), gradient_colors.data(), nullptr,
-        gradient_colors.size(), SkTileMode::kClamp));
-  }
-  paint_canvas.DrawRect(rect, flags);
+  cc::PaintFlags gradient;
+  gradient.setShader(cc::PaintShader::MakeLinearGradient(
+      gradient_bounds.data(), gradient_colors.data(), nullptr,
+      gradient_colors.size(), SkTileMode::kClamp));
+  paint_canvas.DrawRect(rect, gradient);
 }
 
 void NativeThemeMac::PaintScrollbarTrackInnerBorder(
@@ -427,9 +420,6 @@ absl::optional<SkColor> NativeThemeMac::GetScrollbarColor(
   // colors.
   bool dark_mode = color_scheme == ColorScheme::kDark;
   if (part == ScrollbarPart::kThumb) {
-    if (extra_params.thumb_color.has_value()) {
-      return extra_params.thumb_color.value();
-    }
     if (extra_params.is_overlay)
       return dark_mode ? SkColorSetARGB(0x80, 0xFF, 0xFF, 0xFF)
                        : SkColorSetARGB(0x80, 0, 0, 0);
@@ -441,10 +431,6 @@ absl::optional<SkColor> NativeThemeMac::GetScrollbarColor(
     return extra_params.is_hovering ? SkColorSetARGB(0x80, 0, 0, 0)
                                     : SkColorSetARGB(0x3A, 0, 0, 0);
   } else if (part == ScrollbarPart::kTrackInnerBorder) {
-    if (extra_params.track_color.has_value()) {
-      return extra_params.track_color.value();
-    }
-
     if (extra_params.is_overlay)
       return dark_mode ? SkColorSetARGB(0x33, 0xE5, 0xE5, 0xE5)
                        : SkColorSetARGB(0xF9, 0xDF, 0xDF, 0xDF);
@@ -452,19 +438,12 @@ absl::optional<SkColor> NativeThemeMac::GetScrollbarColor(
     return dark_mode ? SkColorSetRGB(0x3D, 0x3D, 0x3D)
                      : SkColorSetRGB(0xE8, 0xE8, 0xE8);
   } else if (part == ScrollbarPart::kTrackOuterBorder) {
-    if (extra_params.track_color.has_value()) {
-      return extra_params.track_color.value();
-    }
     if (extra_params.is_overlay)
       return dark_mode ? SkColorSetARGB(0x28, 0xD8, 0xD8, 0xD8)
                        : SkColorSetARGB(0xC6, 0xE8, 0xE8, 0xE8);
 
     return dark_mode ? SkColorSetRGB(0x51, 0x51, 0x51)
                      : SkColorSetRGB(0xED, 0xED, 0xED);
-  } else if (part == ScrollbarPart::kTrack) {
-    if (extra_params.track_color.has_value()) {
-      return extra_params.track_color.value();
-    }
   }
 
   return absl::nullopt;
@@ -530,27 +509,20 @@ NativeThemeMac::NativeThemeMac(bool configure_web_instance,
   if (!should_only_use_dark_colors)
     InitializeDarkModeStateAndObserver();
 
-  set_prefers_reduced_transparency(PrefersReducedTransparency());
-  set_inverted_colors(InvertedColors());
   if (!IsForcedHighContrast()) {
     SetPreferredContrast(CalculatePreferredContrast());
-  }
-  __block auto theme = this;
-  display_accessibility_notification_token_ =
-      [NSWorkspace.sharedWorkspace.notificationCenter
-          addObserverForName:
-              NSWorkspaceAccessibilityDisplayOptionsDidChangeNotification
-                      object:nil
-                       queue:nil
-                  usingBlock:^(NSNotification* notification) {
-                    if (!IsForcedHighContrast()) {
+    __block auto theme = this;
+    high_contrast_notification_token_.reset(
+        [NSWorkspace.sharedWorkspace.notificationCenter
+            addObserverForName:
+                NSWorkspaceAccessibilityDisplayOptionsDidChangeNotification
+                        object:nil
+                         queue:nil
+                    usingBlock:^(NSNotification* notification) {
                       theme->SetPreferredContrast(CalculatePreferredContrast());
-                    }
-                    theme->set_prefers_reduced_transparency(
-                        PrefersReducedTransparency());
-                    theme->set_inverted_colors(InvertedColors());
-                    theme->NotifyOnNativeThemeUpdated();
-                  }];
+                      theme->NotifyOnNativeThemeUpdated();
+                    }]);
+  }
 
   if (configure_web_instance)
     ConfigureWebInstance();
@@ -558,7 +530,7 @@ NativeThemeMac::NativeThemeMac(bool configure_web_instance,
 
 NativeThemeMac::~NativeThemeMac() {
   [NSNotificationCenter.defaultCenter
-      removeObserver:display_accessibility_notification_token_];
+      removeObserver:high_contrast_notification_token_];
 }
 
 void NativeThemeMac::PaintSelectedMenuItem(
@@ -579,12 +551,12 @@ void NativeThemeMac::InitializeDarkModeStateAndObserver() {
   __block auto theme = this;
   set_use_dark_colors(IsDarkMode());
   set_preferred_color_scheme(CalculatePreferredColorScheme());
-  appearance_observer_ =
+  appearance_observer_.reset(
       [[NativeThemeEffectiveAppearanceObserver alloc] initWithHandler:^{
         theme->set_use_dark_colors(IsDarkMode());
         theme->set_preferred_color_scheme(CalculatePreferredColorScheme());
         theme->NotifyOnNativeThemeUpdated();
-      }];
+      }]);
 }
 
 void NativeThemeMac::ConfigureWebInstance() {
@@ -593,8 +565,6 @@ void NativeThemeMac::ConfigureWebInstance() {
   web_instance->set_use_dark_colors(IsDarkMode());
   web_instance->set_preferred_color_scheme(CalculatePreferredColorScheme());
   web_instance->SetPreferredContrast(CalculatePreferredContrast());
-  web_instance->set_prefers_reduced_transparency(PrefersReducedTransparency());
-  web_instance->set_inverted_colors(InvertedColors());
 
   // Add the web native theme as an observer to stay in sync with color scheme
   // changes.

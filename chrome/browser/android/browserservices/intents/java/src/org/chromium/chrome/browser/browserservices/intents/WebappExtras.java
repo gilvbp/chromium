@@ -62,11 +62,6 @@ public class WebappExtras {
     public final Integer backgroundColor;
 
     /**
-     * Dark background color for webapp's splash screen.
-     */
-    public final Integer darkBackgroundColor;
-
-    /**
      * Background color to use if the Web Manifest does not provide a background color.
      */
     public final int defaultBackgroundColor;
@@ -88,9 +83,8 @@ public class WebappExtras {
 
     public WebappExtras(String id, String url, String scopeUrl, @NonNull WebappIcon icon,
             String name, String shortName, @DisplayMode.EnumType int displayMode, int orientation,
-            int source, Integer backgroundColor, Integer darkBackgroundColor,
-            int defaultBackgroundColor, boolean isIconGenerated, boolean isIconAdaptive,
-            boolean shouldForceNavigation) {
+            int source, Integer backgroundColor, int defaultBackgroundColor,
+            boolean isIconGenerated, boolean isIconAdaptive, boolean shouldForceNavigation) {
         this.id = id;
         this.url = url;
         this.scopeUrl = scopeUrl;
@@ -101,7 +95,6 @@ public class WebappExtras {
         this.orientation = orientation;
         this.source = source;
         this.backgroundColor = backgroundColor;
-        this.darkBackgroundColor = darkBackgroundColor;
         this.defaultBackgroundColor = defaultBackgroundColor;
         this.isIconGenerated = isIconGenerated;
         this.isIconAdaptive = isIconAdaptive;

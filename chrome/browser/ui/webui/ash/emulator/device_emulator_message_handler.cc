@@ -12,7 +12,6 @@
 
 #include "base/functional/bind.h"
 #include "base/functional/callback_helpers.h"
-#include "base/memory/raw_ptr.h"
 #include "base/strings/string_number_conversions.h"
 #include "base/strings/string_piece.h"
 #include "base/values.h"
@@ -103,7 +102,7 @@ class DeviceEmulatorMessageHandler::BluetoothObserver
   void DeviceRemoved(const dbus::ObjectPath& object_path) override;
 
  private:
-  raw_ptr<DeviceEmulatorMessageHandler, ExperimentalAsh> owner_;
+  DeviceEmulatorMessageHandler* owner_;
 };
 
 void DeviceEmulatorMessageHandler::BluetoothObserver::DeviceAdded(
@@ -153,7 +152,7 @@ class DeviceEmulatorMessageHandler::CrasAudioObserver
   }
 
  private:
-  raw_ptr<DeviceEmulatorMessageHandler, ExperimentalAsh> owner_;
+  DeviceEmulatorMessageHandler* owner_;
 };
 
 class DeviceEmulatorMessageHandler::PowerObserver
@@ -173,7 +172,7 @@ class DeviceEmulatorMessageHandler::PowerObserver
   void PowerChanged(const power_manager::PowerSupplyProperties& proto) override;
 
  private:
-  raw_ptr<DeviceEmulatorMessageHandler, ExperimentalAsh> owner_;
+  DeviceEmulatorMessageHandler* owner_;
 };
 
 void DeviceEmulatorMessageHandler::PowerObserver::PowerChanged(

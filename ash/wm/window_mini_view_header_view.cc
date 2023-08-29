@@ -4,19 +4,14 @@
 
 #include "ash/wm/window_mini_view_header_view.h"
 
-#include "ash/shell.h"
 #include "ash/style/ash_color_id.h"
-#include "ash/wm/snap_group/snap_group.h"
-#include "ash/wm/snap_group/snap_group_controller.h"
 #include "ash/wm/window_mini_view.h"
 #include "chromeos/constants/chromeos_features.h"
 #include "chromeos/ui/base/window_properties.h"
 #include "ui/aura/client/aura_constants.h"
 #include "ui/base/metadata/metadata_impl_macros.h"
 #include "ui/color/color_id.h"
-#include "ui/compositor/layer.h"
 #include "ui/gfx/geometry/insets.h"
-#include "ui/gfx/geometry/rounded_corners_f.h"
 #include "ui/gfx/image/image_skia_operations.h"
 #include "ui/views/background.h"
 #include "ui/views/controls/image_view.h"
@@ -85,7 +80,12 @@ WindowMiniViewHeaderView::WindowMiniViewHeaderView(
   icon_label_view_->SetFlexForView(title_label_, 1);
 
   if (is_jellyroll_enabled) {
-    RefreshHeaderViewRoundedCorners();
+    SetBackground(views::CreateThemedRoundedRectBackground(
+        chromeos::features::IsJellyrollEnabled()
+            ? cros_tokens::kCrosSysHeader
+            : static_cast<ui::ColorId>(kColorAshShieldAndBase80),
+        /*top_radius=*/kHeaderTopCornerRadius,
+        /*bottom_radius=*/0, /*for_border_thickness=*/0));
 
     views::Separator* separator =
         AddChildView(std::make_unique<views::Separator>());
@@ -117,39 +117,6 @@ void WindowMiniViewHeaderView::UpdateIconView(aura::Window* window) {
 
 void WindowMiniViewHeaderView::UpdateTitleLabel(aura::Window* window) {
   title_label_->SetText(GetWindowTitle(window));
-}
-
-void WindowMiniViewHeaderView::RefreshHeaderViewRoundedCorners() {
-  SetBackground(views::CreateThemedRoundedRectBackground(
-      chromeos::features::IsJellyrollEnabled()
-          ? cros_tokens::kCrosSysHeader
-          : static_cast<ui::ColorId>(kColorAshShieldAndBase80),
-      GetHeaderRoundedCorners(window_mini_view_->source_window()),
-      /*for_border_thickness=*/0));
-}
-
-gfx::RoundedCornersF WindowMiniViewHeaderView::GetHeaderRoundedCorners(
-    aura::Window* window) const {
-  const float scale = window->layer()->GetTargetTransform().To2dScale().x();
-  const float scaled_corner_radius = kHeaderTopCornerRadius / scale;
-  SnapGroupController* snap_group_controller =
-      Shell::Get()->snap_group_controller();
-  if (snap_group_controller) {
-    SnapGroup* snap_group =
-        snap_group_controller->GetSnapGroupForGivenWindow(window);
-    if (snap_group) {
-      auto* window1 = snap_group->window1();
-      auto* window2 = snap_group->window2();
-      CHECK(window == window1 || window == window2);
-      // `window1` is guaranteed to be the primary snapped window in a snap
-      // group and `window2` is guaranteed to be the secondary snapped window in
-      // a snap group.
-      return window == window1
-                 ? gfx::RoundedCornersF(scaled_corner_radius, 0, 0, 0)
-                 : gfx::RoundedCornersF(0, scaled_corner_radius, 0, 0);
-    }
-  }
-  return gfx::RoundedCornersF(scaled_corner_radius, scaled_corner_radius, 0, 0);
 }
 
 BEGIN_METADATA(WindowMiniViewHeaderView, views::View)

@@ -30,9 +30,8 @@ class GPURenderPassEncoder : public DawnObject<WGPURenderPassEncoder>,
 
   // gpu_render_pass_encoder.idl
   void setBindGroup(uint32_t index, DawnObject<WGPUBindGroup>* bindGroup) {
-    WGPUBindGroupImpl* bgImpl = bindGroup ? bindGroup->GetHandle() : nullptr;
-    GetProcs().renderPassEncoderSetBindGroup(GetHandle(), index, bgImpl, 0,
-                                             nullptr);
+    GetProcs().renderPassEncoderSetBindGroup(
+        GetHandle(), index, bindGroup->GetHandle(), 0, nullptr);
   }
   void setBindGroup(uint32_t index,
                     GPUBindGroup* bindGroup,
@@ -93,17 +92,15 @@ class GPURenderPassEncoder : public DawnObject<WGPURenderPassEncoder>,
   void setVertexBuffer(uint32_t slot,
                        const DawnObject<WGPUBuffer>* buffer,
                        uint64_t offset) {
-    WGPUBufferImpl* bufferImpl = buffer ? buffer->GetHandle() : nullptr;
-    GetProcs().renderPassEncoderSetVertexBuffer(GetHandle(), slot, bufferImpl,
-                                                offset, WGPU_WHOLE_SIZE);
+    GetProcs().renderPassEncoderSetVertexBuffer(
+        GetHandle(), slot, buffer->GetHandle(), offset, WGPU_WHOLE_SIZE);
   }
   void setVertexBuffer(uint32_t slot,
                        const DawnObject<WGPUBuffer>* buffer,
                        uint64_t offset,
                        uint64_t size) {
-    WGPUBufferImpl* bufferImpl = buffer ? buffer->GetHandle() : nullptr;
-    GetProcs().renderPassEncoderSetVertexBuffer(GetHandle(), slot, bufferImpl,
-                                                offset, size);
+    GetProcs().renderPassEncoderSetVertexBuffer(
+        GetHandle(), slot, buffer->GetHandle(), offset, size);
   }
   void draw(uint32_t vertexCount,
             uint32_t instanceCount,

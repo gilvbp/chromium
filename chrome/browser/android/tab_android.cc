@@ -143,9 +143,8 @@ void TabAndroid::AttachTabHelpers(content::WebContents* web_contents) {
   TabHelpers::AttachTabHelpers(web_contents);
 }
 
-TabAndroid::TabAndroid(JNIEnv* env, const JavaRef<jobject>& obj, int tab_id)
+TabAndroid::TabAndroid(JNIEnv* env, const JavaRef<jobject>& obj)
     : weak_java_tab_(env, obj),
-      tab_id_(tab_id),
       session_window_id_(SessionID::InvalidValue()),
       content_layer_(cc::slim::Layer::Create()),
       synced_tab_delegate_(new browser_sync::SyncedTabDelegateAndroid(this)) {
@@ -168,7 +167,8 @@ scoped_refptr<cc::slim::Layer> TabAndroid::GetContentLayer() const {
 }
 
 int TabAndroid::GetAndroidId() const {
-  return tab_id_;
+  JNIEnv* env = base::android::AttachCurrentThread();
+  return Java_TabImpl_getId(env, weak_java_tab_.get(env));
 }
 
 int TabAndroid::GetLaunchType() const {
@@ -499,10 +499,8 @@ static jboolean JNI_TabImpl_HandleNonNavigationAboutURL(
   return HandleNonNavigationAboutURL(*url);
 }
 
-static void JNI_TabImpl_Init(JNIEnv* env,
-                             const JavaParamRef<jobject>& obj,
-                             jint id) {
+static void JNI_TabImpl_Init(JNIEnv* env, const JavaParamRef<jobject>& obj) {
   TRACE_EVENT0("native", "TabAndroid::Init");
   // This will automatically bind to the Java object and pass ownership there.
-  new TabAndroid(env, obj, id);
+  new TabAndroid(env, obj);
 }

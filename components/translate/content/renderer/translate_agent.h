@@ -28,6 +28,9 @@ namespace translate {
 
 // This class deals with page translation.
 // There is one TranslateAgent per RenderView.
+//
+// Note: this class only supports translation of the main frame. See
+// PerFrameTranslateAgent for sub frame translation support.
 class TranslateAgent : public content::RenderFrameObserver,
                        public mojom::TranslateAgent {
  public:
@@ -55,6 +58,8 @@ class TranslateAgent : public content::RenderFrameObserver,
   bool WasPageContentCapturedForUrl() { return page_contents_length_; }
 
   // mojom::TranslateAgent implementation.
+  void GetWebLanguageDetectionDetails(
+      GetWebLanguageDetectionDetailsCallback callback) override;
   void TranslateFrame(const std::string& translate_script,
                       const std::string& source_lang,
                       const std::string& target_lang,

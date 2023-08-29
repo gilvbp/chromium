@@ -5,16 +5,11 @@
 package org.chromium.chrome.browser.auxiliary_search;
 
 import android.text.TextUtils;
+import android.util.Pair;
 
-import androidx.annotation.Nullable;
-
-import org.chromium.base.Callback;
 import org.chromium.chrome.browser.auxiliary_search.AuxiliarySearchGroupProto.AuxiliarySearchBookmarkGroup;
-import org.chromium.chrome.browser.auxiliary_search.AuxiliarySearchGroupProto.AuxiliarySearchEntry;
-import org.chromium.chrome.browser.auxiliary_search.AuxiliarySearchGroupProto.AuxiliarySearchTabGroup;
 import org.chromium.chrome.browser.profiles.Profile;
 import org.chromium.chrome.browser.tab.Tab;
-import org.chromium.chrome.browser.tab.state.CriticalPersistedTabData;
 import org.chromium.chrome.browser.tabmodel.TabList;
 import org.chromium.chrome.browser.tabmodel.TabModelSelector;
 import org.chromium.url.GURL;
@@ -37,78 +32,41 @@ public class AuxiliarySearchProvider {
     }
 
     /**
-     * @return AuxiliarySearchGroup for bookmarks.
+     * @return A list of titles and urls as pairs from tabs for the auxiliary search.
      */
-    public AuxiliarySearchBookmarkGroup getBookmarksSearchableDataProto() {
-        return mAuxiliarySearchBridge.getBookmarksSearchableData();
-    }
+    public List<Pair<String, String>> getTabsSearchableData() {
+        List<Pair<String, String>> tabsList = new ArrayList<>();
 
-    /**
-     * @return AuxiliarySearchGroup for {@link Tab}s.
-     */
-    public AuxiliarySearchTabGroup getTabsSearchableDataProto() {
         TabList tabList = mTabModelSelector.getModel(false).getComprehensiveModel();
-
+        int firstTabIndex = Math.max(tabList.getCount() - kNumTabsToSend, 0);
+        int end = tabList.getCount() - 1;
         // Find the the bottom of tabs in the tab switcher view if the number of the tabs more than
         // 'kNumTabsToSend'. In the multiwindow mode, the order of the 'tabList' is one window's
         // tabs, and then another's.
-        int firstTabIndex = Math.max(tabList.getCount() - kNumTabsToSend, 0);
-        int end = tabList.getCount() - 1;
-        List<Tab> listTab = new ArrayList<>();
         for (int i = firstTabIndex; i <= end; i++) {
-            listTab.add(tabList.getTabAt(i));
-        }
+            Tab tab = tabList.getTabAt(i);
+            String title = tab.getTitle();
+            GURL url = tab.getUrl();
+            if (TextUtils.isEmpty(title) || url == null || !url.isValid()) continue;
 
-        // Send tabs to native to filter the tabs.
-        List<Tab> filteredTabs = mAuxiliarySearchBridge.getSearchableTabs(listTab);
-        var tabGroupBuilder = AuxiliarySearchTabGroup.newBuilder();
-        for (Tab tab : filteredTabs) {
-            AuxiliarySearchEntry entry = tabToAuxiliarySearchEntry(tab);
-            if (entry != null) {
-                tabGroupBuilder.addTab(entry);
-            }
+            tabsList.add(new Pair<>(title, url.getSpec()));
         }
-        return tabGroupBuilder.build();
+        return tabsList;
     }
 
     /**
-     * @param callback {@link Callback} to pass back the AuxiliarySearchGroup for {@link Tab}s.
+     * @return A list of titles and urls as pairs from bookmarks for the auxiliary search.
      */
-    public void getTabsSearchableDataProtoAsync(Callback<AuxiliarySearchTabGroup> callback) {
-        TabList tabList = mTabModelSelector.getModel(false).getComprehensiveModel();
-        List<Tab> listTab = new ArrayList<>();
+    public List<Pair<String, String>> getBookmarksSearchableData() {
+        AuxiliarySearchBookmarkGroup group = mAuxiliarySearchBridge.getBookmarksSearchableData();
 
-        for (int i = 0; i < tabList.getCount(); i++) {
-            listTab.add(tabList.getTabAt(i));
-        }
-        mAuxiliarySearchBridge.getNonSensitiveTabs(listTab, new Callback<List<Tab>>() {
-            @Override
-            public void onResult(List<Tab> tabs) {
-                var tabGroupBuilder = AuxiliarySearchTabGroup.newBuilder();
-
-                for (Tab tab : tabs) {
-                    AuxiliarySearchEntry entry = tabToAuxiliarySearchEntry(tab);
-                    if (entry != null) {
-                        tabGroupBuilder.addTab(entry);
-                    }
-                }
-
-                callback.onResult(tabGroupBuilder.build());
+        List<Pair<String, String>> bookmarksList = new ArrayList<>();
+        if (group != null) {
+            for (int i = 0; i < group.getBookmarkCount(); i++) {
+                AuxiliarySearchBookmarkGroup.Bookmark bookmark = group.getBookmark(i);
+                bookmarksList.add(new Pair<>(bookmark.getTitle(), bookmark.getUrl()));
             }
-        });
-    }
-
-    private static @Nullable AuxiliarySearchEntry tabToAuxiliarySearchEntry(Tab tab) {
-        String title = tab.getTitle();
-        GURL url = tab.getUrl();
-        if (TextUtils.isEmpty(title) || url == null || !url.isValid()) return null;
-
-        var tabBuilder = AuxiliarySearchEntry.newBuilder().setTitle(title).setUrl(url.getSpec());
-        final long lastAccessTime = CriticalPersistedTabData.from(tab).getTimestampMillis();
-        if (lastAccessTime != CriticalPersistedTabData.INVALID_TIMESTAMP) {
-            tabBuilder.setLastAccessTimestamp(lastAccessTime);
         }
-
-        return tabBuilder.build();
+        return bookmarksList;
     }
 }

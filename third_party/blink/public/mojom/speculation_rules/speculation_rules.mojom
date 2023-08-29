@@ -24,10 +24,6 @@ interface SpeculationHost {
   UpdateSpeculationCandidates(array<SpeculationCandidate> candidates);
   // Enables matching prefetches according to No-Vary-Search response headers.
   EnableNoVarySearchSupport();
-  // Initiates previewing the given `url`.
-  // TODO(https://b/292184832): Give more hints, such as gfx.mjom.PointF
-  // screen_position.
-  InitiatePreview(url.mojom.Url url);
 };
 
 // The action that is proposed.
@@ -45,12 +41,10 @@ enum SpeculationTargetHint {
 };
 
 // Shows how eager the developer is to perform the speculation action.
-// NOTE: These values are persisted to logs. Entries should not be renumbered
-// and numeric values should never be reused.
 enum SpeculationEagerness {
-  kConservative = 0,
-  kModerate = 1,
-  kEager = 2,
+  kConservative,
+  kModerate,
+  kEager,
 };
 
 // Specifies the v8 world where the JavaScript runs if the JavaScript injects

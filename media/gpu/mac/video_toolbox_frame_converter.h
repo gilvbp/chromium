@@ -9,8 +9,8 @@
 
 #include <memory>
 
-#include "base/apple/scoped_cftyperef.h"
 #include "base/functional/callback.h"
+#include "base/mac/scoped_cftyperef.h"
 #include "base/memory/raw_ptr.h"
 #include "base/memory/ref_counted_delete_on_sequence.h"
 #include "base/memory/scoped_refptr.h"
@@ -28,7 +28,6 @@ struct SyncToken;
 namespace media {
 
 class MediaLog;
-struct VideoToolboxDecodeMetadata;
 
 // Converts IOSurface-backed CVImageBuffers to VideoFrames.
 class VideoToolboxFrameConverter
@@ -37,9 +36,7 @@ class VideoToolboxFrameConverter
  public:
   using GetCommandBufferStubCB =
       base::RepeatingCallback<gpu::CommandBufferStub*()>;
-  using OutputCB =
-      base::OnceCallback<void(scoped_refptr<VideoFrame>,
-                              std::unique_ptr<VideoToolboxDecodeMetadata>)>;
+  using OutputCB = base::OnceCallback<void(scoped_refptr<VideoFrame>, void*)>;
 
   // `gpu_task_runner` is the task runner on which |this| operates, which must
   // match the task runner used by the stub returned from |get_stub_cb|
@@ -50,8 +47,9 @@ class VideoToolboxFrameConverter
       std::unique_ptr<MediaLog> media_log,
       GetCommandBufferStubCB get_stub_cb);
 
-  void Convert(base::apple::ScopedCFTypeRef<CVImageBufferRef> image,
-               std::unique_ptr<VideoToolboxDecodeMetadata> metadata,
+  void Convert(base::ScopedCFTypeRef<CVImageBufferRef> image,
+               base::TimeDelta timestamp,
+               void* context,
                OutputCB output_cb);
 
  private:
@@ -68,7 +66,7 @@ class VideoToolboxFrameConverter
 
   void OnVideoFrameReleased(
       base::OnceCallback<void(const gpu::SyncToken&)> destroy_shared_image_cb,
-      base::apple::ScopedCFTypeRef<CVImageBufferRef> image,
+      base::ScopedCFTypeRef<CVImageBufferRef> image,
       const gpu::SyncToken& sync_token);
 
   scoped_refptr<base::SequencedTaskRunner> gpu_task_runner_;

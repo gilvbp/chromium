@@ -10,7 +10,6 @@
 #include "ash/login/ui/non_accessible_view.h"
 #include "base/memory/raw_ptr.h"
 #include "base/memory/weak_ptr.h"
-#include "ui/compositor/layer_animation_observer.h"
 #include "ui/views/view.h"
 
 namespace ash {
@@ -34,7 +33,6 @@ class LoginPinInput;
 //
 class ASH_EXPORT LoginPinInputView
     : public views::View,
-      public ui::ImplicitAnimationObserver,
       public base::SupportsWeakPtr<LoginPinInputView> {
  public:
   using OnPinSubmit = base::RepeatingCallback<void(const std::u16string& pin)>;
@@ -59,9 +57,6 @@ class ASH_EXPORT LoginPinInputView
   LoginPinInputView& operator=(const LoginPinInputView&) = delete;
   LoginPinInputView(const LoginPinInputView&) = delete;
   ~LoginPinInputView() override;
-
-  // ui::ImplicitAnimationObserver:
-  void OnImplicitAnimationsCompleted() override;
 
   // Checks whether PIN auto submit is supported for the given length.
   static bool IsAutosubmitSupported(int length);
@@ -106,8 +101,7 @@ class ASH_EXPORT LoginPinInputView
   bool is_read_only_ = false;
 
   // The input field owned by this view.
-  raw_ptr<LoginPinInput, DanglingUntriaged | ExperimentalAsh> code_input_ =
-      nullptr;
+  raw_ptr<LoginPinInput, ExperimentalAsh> code_input_ = nullptr;
 
   // Whether the 'Return' key should trigger an unlock with an empty PIN.
   bool authenticate_with_empty_pin_on_return_key_ = false;

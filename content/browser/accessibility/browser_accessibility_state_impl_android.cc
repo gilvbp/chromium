@@ -4,11 +4,10 @@
 
 #include "content/browser/accessibility/browser_accessibility_state_impl_android.h"
 
-#include <memory>
-
 #include "base/containers/contains.h"
 #include "base/metrics/histogram_functions.h"
 #include "base/metrics/histogram_macros.h"
+#include "base/no_destructor.h"
 #include "content/browser/web_contents/web_contents_impl.h"
 #include "content/public/browser/browser_thread.h"
 #include "ui/accessibility/android/accessibility_state.h"
@@ -250,11 +249,11 @@ enum {
 }  // namespace
 
 BrowserAccessibilityStateImplAndroid::BrowserAccessibilityStateImplAndroid() {
-  ui::AccessibilityState::RegisterAccessibilityStateDelegate(this);
+  ui::AccessibilityState::RegisterAnimatorDurationScaleDelegate(this);
 }
 
 BrowserAccessibilityStateImplAndroid::~BrowserAccessibilityStateImplAndroid() {
-  ui::AccessibilityState::UnregisterAccessibilityStateDelegate(this);
+  ui::AccessibilityState::UnregisterAnimatorDurationScaleDelegate(this);
 }
 
 void BrowserAccessibilityStateImplAndroid::
@@ -407,28 +406,6 @@ void BrowserAccessibilityStateImplAndroid::OnAnimatorDurationScaleChanged() {
   }
 }
 
-void BrowserAccessibilityStateImplAndroid::OnDisplayInversionEnabledChanged(
-    bool enabled) {
-  // We need to call into GetInstanceForWeb on the UI thread,
-  // so ensure that we setup the notification on the correct thread.
-  DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
-  ui::NativeTheme* native_theme = ui::NativeTheme::GetInstanceForWeb();
-  native_theme->set_inverted_colors(enabled);
-  native_theme->NotifyOnNativeThemeUpdated();
-}
-
-void BrowserAccessibilityStateImplAndroid::OnContrastLevelChanged(
-    bool highContrastEnabled) {
-  // We need to call into GetInstanceForWeb on the UI thread,
-  // so ensure that we setup the notification on the correct thread.
-  DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
-  ui::NativeTheme* native_theme = ui::NativeTheme::GetInstanceForWeb();
-  native_theme->SetPreferredContrast(
-      highContrastEnabled ? ui::NativeTheme::PreferredContrast::kMore
-                          : ui::NativeTheme::PreferredContrast::kNoPreference);
-  native_theme->NotifyOnNativeThemeUpdated();
-}
-
 void BrowserAccessibilityStateImplAndroid::UpdateHistogramsOnOtherThread() {
   BrowserAccessibilityStateImpl::UpdateHistogramsOnOtherThread();
 
@@ -468,10 +445,15 @@ void BrowserAccessibilityStateImplAndroid::SetImageLabelsModeForProfile(
   }
 }
 
+//
+// BrowserAccessibilityStateImpl::GetInstance implementation that constructs
+// this class instead of the base class.
+//
+
 // static
-std::unique_ptr<BrowserAccessibilityStateImpl>
-BrowserAccessibilityStateImpl::Create() {
-  return std::make_unique<BrowserAccessibilityStateImplAndroid>();
+BrowserAccessibilityStateImpl* BrowserAccessibilityStateImpl::GetInstance() {
+  static base::NoDestructor<BrowserAccessibilityStateImplAndroid> instance;
+  return &*instance;
 }
 
 }  // namespace content

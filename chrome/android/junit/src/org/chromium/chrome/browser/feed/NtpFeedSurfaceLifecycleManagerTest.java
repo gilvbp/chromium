@@ -22,6 +22,7 @@ import android.app.Activity;
 
 import androidx.test.filters.SmallTest;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -74,6 +75,11 @@ public class NtpFeedSurfaceLifecycleManagerTest {
         mNtpStreamLifecycleManager =
                 new NtpFeedSurfaceLifecycleManager(mActivity, mTab, mCoordinator);
         verify(mStream, times(1)).onCreate(or(any(String.class), isNull()));
+    }
+
+    @After
+    public void tearDown() {
+        NtpFeedSurfaceLifecycleManager.setPrefServiceForTesting(null);
     }
 
     @Test

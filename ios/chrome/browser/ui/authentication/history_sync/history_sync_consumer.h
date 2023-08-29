@@ -7,18 +7,10 @@
 
 #import <UIKit/UIKit.h>
 
-// Handles history sync UI updates
+// Handles history sync UI updates.
 @protocol HistorySyncConsumer
 
-// Set the avatar image for the primary identity
-- (void)setPrimaryIdentityAvatarImage:(UIImage*)primaryIdentityAvatarImage;
-
-// Set the avatar label for the primary identity
-- (void)setPrimaryIdentityAvatarAccessibilityLabel:
-    (NSString*)primaryIdentityAvatarAccessibilityLabel;
-
-// Set the text for the disclaimer footer.
-- (void)setFooterText:(NSString*)footerText;
+// TODO(crbug.com/1442218): Needs implementation.
 
 @end
 

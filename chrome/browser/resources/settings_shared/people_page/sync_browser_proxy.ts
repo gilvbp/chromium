@@ -62,48 +62,32 @@ export enum StatusAction {
  * PeopleHandler::PushSyncPrefs() for more details.
  */
 export interface SyncPrefs {
-  appsManaged: boolean;
   appsRegistered: boolean;
   appsSynced: boolean;
-  autofillManaged: boolean;
   autofillRegistered: boolean;
   autofillSynced: boolean;
-  bookmarksManaged: boolean;
   bookmarksRegistered: boolean;
   bookmarksSynced: boolean;
   customPassphraseAllowed: boolean;
   encryptAllData: boolean;
-  extensionsManaged: boolean;
   extensionsRegistered: boolean;
   extensionsSynced: boolean;
   passphraseRequired: boolean;
-  passwordsManaged: boolean;
   passwordsRegistered: boolean;
   passwordsSynced: boolean;
-  paymentsManaged: boolean;
-  paymentsRegistered: boolean;
-  paymentsSynced: boolean;
-  preferencesManaged: boolean;
+  paymentsIntegrationEnabled: boolean;
   preferencesRegistered: boolean;
   preferencesSynced: boolean;
-  readingListManaged: boolean;
   readingListRegistered: boolean;
   readingListSynced: boolean;
-  savedTabGroupsManaged: boolean;
-  savedTabGroupsRegistered: boolean;
-  savedTabGroupsSynced: boolean;
   syncAllDataTypes: boolean;
-  tabsManaged: boolean;
   tabsRegistered: boolean;
   tabsSynced: boolean;
-  themesManaged: boolean;
   themesRegistered: boolean;
   themesSynced: boolean;
   trustedVaultKeysRequired: boolean;
-  typedUrlsManaged: boolean;
   typedUrlsRegistered: boolean;
   typedUrlsSynced: boolean;
-  wifiConfigurationsManaged: boolean;
   wifiConfigurationsRegistered: boolean;
   wifiConfigurationsSynced: boolean;
   explicitPassphraseTime?: string;
@@ -120,7 +104,7 @@ export const syncPrefsIndividualDataTypes: string[] = [
   'extensionsSynced',
   'readingListSynced',
   'passwordsSynced',
-  'paymentsSynced',
+  'paymentsIntegrationEnabled',
   'preferencesSynced',
   'savedTabGroupsSynced',
   'tabsSynced',

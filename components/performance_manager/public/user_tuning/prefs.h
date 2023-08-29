@@ -17,8 +17,7 @@ class PrefRegistrySyncable;
 namespace performance_manager::user_tuning::prefs {
 
 // DEPRECATED: being replaced by kHighEfficiencyModeState
-inline constexpr char kHighEfficiencyModeEnabled[] =
-    "performance_tuning.high_efficiency_mode.enabled";
+extern const char kHighEfficiencyModeEnabled[];
 
 enum class HighEfficiencyModeState {
   kDisabled = 0,
@@ -26,13 +25,11 @@ enum class HighEfficiencyModeState {
   kEnabledOnTimer = 2,
 };
 
-inline constexpr char kHighEfficiencyModeState[] =
-    "performance_tuning.high_efficiency_mode.state";
+extern const char kHighEfficiencyModeState[];
 
-inline constexpr char kHighEfficiencyModeTimeBeforeDiscardInMinutes[] =
-    "performance_tuning.high_efficiency_mode.time_before_discard_in_minutes";
+extern const char kHighEfficiencyModeTimeBeforeDiscardInMinutes[];
 
-constexpr int kDefaultHighEfficiencyModeTimeBeforeDiscardInMinutes = 120;
+extern const int kDefaultHighEfficiencyModeTimeBeforeDiscardInMinutes;
 
 enum class BatterySaverModeState {
   kDisabled = 0,
@@ -41,23 +38,19 @@ enum class BatterySaverModeState {
   kEnabled = 3,
 };
 
-inline constexpr char kBatterySaverModeState[] =
-    "performance_tuning.battery_saver_mode.state";
+extern const char kBatterySaverModeState[];
 
 // Stores the timestamp of the last battery usage while unplugged.
-inline constexpr char kLastBatteryUseTimestamp[] =
-    "performance_tuning.last_battery_use.timestamp";
+extern const char kLastBatteryUseTimestamp[];
 
 // The pref storing the list of URL patterns that prevent a tab from being
 // discarded.
-inline constexpr char kTabDiscardingExceptions[] =
-    "performance_tuning.tab_discarding.exceptions";
+extern const char kTabDiscardingExceptions[];
 
 // The pref storing the enterprise-managed list of URL patterns that prevent a
 // tab from being discarded. This list is merged with
 // `kTabDiscardingExceptions`.
-inline constexpr char kManagedTabDiscardingExceptions[] =
-    "performance_tuning.tab_discarding.exceptions_managed";
+extern const char kManagedTabDiscardingExceptions[];
 
 void RegisterLocalStatePrefs(PrefRegistrySimple* registry);
 

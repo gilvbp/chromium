@@ -6,18 +6,18 @@
 
 #import <WebKit/WebKit.h>
 
-#import "base/apple/foundation_util.h"
-#import "base/containers/contains.h"
 #import "base/functional/bind.h"
 #import "base/ios/block_types.h"
 #import "base/ios/ios_util.h"
 #import "base/json/string_escape.h"
+#import "base/mac/foundation_util.h"
 #import "base/metrics/histogram_functions.h"
 #import "base/metrics/histogram_macros.h"
 #import "base/metrics/user_metrics.h"
 #import "base/metrics/user_metrics_action.h"
 #import "base/strings/sys_string_conversions.h"
 #import "build/branding_buildflags.h"
+#import "ios/web/browsing_data/browsing_data_remover.h"
 #import "ios/web/common/annotations_utils.h"
 #import "ios/web/common/crw_input_view_provider.h"
 #import "ios/web/common/crw_web_view_content_view.h"
@@ -68,6 +68,10 @@
 #import "net/base/mac/url_conversions.h"
 #import "services/metrics/public/cpp/ukm_builders.h"
 #import "url/gurl.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 using web::NavigationManager;
 using web::NavigationManagerImpl;
@@ -403,7 +407,7 @@ typedef void (^ViewportStateCompletion)(const web::PageViewportState*);
         @"microphoneCaptureState" : @"webViewMicrophoneCaptureStateDidChange",
       }];
 
-  if (web::GetWebClient()->EnableFullscreenAPI()) {
+  if (web::features::IsFullscreenAPIEnabled()) {
     [observers addEntriesFromDictionary:@{
       @"fullscreenState" : @"fullscreenStateDidChange"
     }];
@@ -1330,7 +1334,7 @@ typedef void (^ViewportStateCompletion)(const web::PageViewportState*);
           web::NavigationItem* item = [weakSelf currentNavItem];
           if (item && item->GetUniqueID() == itemID) {
             web::PageViewportState viewportState(
-                base::apple::ObjCCast<NSString>(viewportContent));
+                base::mac::ObjCCast<NSString>(viewportContent));
             completion(&viewportState);
           } else {
             completion(nullptr);
@@ -1434,7 +1438,7 @@ CrFullscreenState CrFullscreenStateFromWKFullscreenState(
   }
   NSString* host = base::SysUTF8ToNSString(_documentURL.host());
   BOOL hasOnlySecureContent = [self.webView hasOnlySecureContent];
-  base::apple::ScopedCFTypeRef<SecTrustRef> trust;
+  base::ScopedCFTypeRef<SecTrustRef> trust;
   trust.reset([self.webView serverTrust], base::scoped_policy::RETAIN);
 
   [_SSLStatusUpdater updateSSLStatusForNavigationItem:currentNavItem
@@ -1623,7 +1627,7 @@ CrFullscreenState CrFullscreenStateFromWKFullscreenState(
 #pragma mark - CRWSSLStatusUpdaterDataSource
 
 - (void)SSLStatusUpdater:(CRWSSLStatusUpdater*)SSLStatusUpdater
-    querySSLStatusForTrust:(base::apple::ScopedCFTypeRef<SecTrustRef>)trust
+    querySSLStatusForTrust:(base::ScopedCFTypeRef<SecTrustRef>)trust
                       host:(NSString*)host
          completionHandler:(StatusQueryHandler)completionHandler {
   [_certVerificationController querySSLStatusForTrust:std::move(trust)
@@ -1817,8 +1821,8 @@ CrFullscreenState CrFullscreenStateFromWKFullscreenState(
     if (_documentURL.DeprecatedGetOriginAsURL() !=
         newURL.DeprecatedGetOriginAsURL()) {
       if (!_documentURL.host().empty() &&
-          (base::Contains(newURL.username(), _documentURL.host()) ||
-           base::Contains(newURL.password(), _documentURL.host()))) {
+          (newURL.username().find(_documentURL.host()) != std::string::npos ||
+           newURL.password().find(_documentURL.host()) != std::string::npos)) {
         CHECK(false);
       }
     }
@@ -1966,6 +1970,14 @@ CrFullscreenState CrFullscreenStateFromWKFullscreenState(
 - (void)webRequestControllerDidStartLoading:
     (CRWWebRequestController*)requestController {
   [self didStartLoading];
+}
+
+- (void)webRequestControllerDisableNavigationGesturesUntilFinishNavigation:
+    (CRWWebRequestController*)requestController {
+  // Disable `allowsBackForwardNavigationGestures` during restore. Otherwise,
+  // WebKit will trigger a snapshot for each (blank) page, and quickly
+  // overload system memory.
+  self.webView.allowsBackForwardNavigationGestures = NO;
 }
 
 - (CRWWKNavigationHandler*)webRequestControllerNavigationHandler:

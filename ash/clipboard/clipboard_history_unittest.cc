@@ -18,14 +18,13 @@
 #include "base/pickle.h"
 #include "base/strings/utf_string_conversions.h"
 #include "base/test/metrics/histogram_tester.h"
+#include "base/test/repeating_test_future.h"
 #include "base/test/task_environment.h"
-#include "base/test/test_future.h"
 #include "base/time/time.h"
 #include "chromeos/crosapi/mojom/clipboard_history.mojom.h"
 #include "third_party/skia/include/core/SkBitmap.h"
 #include "ui/base/clipboard/clipboard.h"
 #include "ui/base/clipboard/clipboard_buffer.h"
-#include "ui/base/clipboard/clipboard_non_backed.h"
 #include "ui/base/clipboard/clipboard_util.h"
 #include "ui/base/clipboard/custom_data_helper.h"
 #include "ui/base/clipboard/scoped_clipboard_writer.h"
@@ -74,13 +73,11 @@ class ClipboardHistoryTest : public AshTestBase {
         ui::ScopedClipboardWriter scw(ui::ClipboardBuffer::kCopyPaste);
         scw.WriteText(input_string);
       }
-      if (!in_same_sequence) {
+      if (!in_same_sequence)
         base::RunLoop().RunUntilIdle();
-      }
     }
-    if (in_same_sequence) {
+    if (in_same_sequence)
       base::RunLoop().RunUntilIdle();
-    }
     EnsureTextHistory(expected_strings);
   }
 
@@ -142,9 +139,8 @@ class ClipboardHistoryTest : public AshTestBase {
     const std::list<ClipboardHistoryItem> items = GetClipboardHistoryItems();
     EXPECT_EQ(expected_data.empty() ? 0u : 1u, items.size());
 
-    if (expected_data.empty()) {
+    if (expected_data.empty())
       return;
-    }
 
     std::unordered_map<std::u16string, std::u16string> actual_data;
     ui::ReadCustomDataIntoMap(items.front().data().custom_data_data().c_str(),
@@ -159,8 +155,7 @@ class ClipboardHistoryTest : public AshTestBase {
  private:
   std::unique_ptr<ui::test::EventGenerator> event_generator_;
   // Owned by ClipboardHistoryControllerImpl.
-  raw_ptr<ClipboardHistory, DanglingUntriaged | ExperimentalAsh>
-      clipboard_history_ = nullptr;
+  raw_ptr<ClipboardHistory, ExperimentalAsh> clipboard_history_ = nullptr;
 };
 
 // Tests that with nothing copied, nothing is shown.
@@ -215,7 +210,7 @@ TEST_F(ClipboardHistoryTest, HistoryIsReverseChronological) {
 // Tests that when a duplicate is copied, the existing duplicate item moves up
 // to the front of the clipboard history.
 TEST_F(ClipboardHistoryTest, DuplicatePrecedesPreviousRecord) {
-  // Input holds four strings, two of which are the same.
+  // Input holds a unique string sandwiched by a copy.
   std::vector<std::u16string> input_strings{u"test1", u"test2", u"test1",
                                             u"test3"};
   // The result should be a reversal of the copied elements. When a duplicate
@@ -227,9 +222,11 @@ TEST_F(ClipboardHistoryTest, DuplicatePrecedesPreviousRecord) {
 }
 
 // Tests that nothing is saved after history is cleared.
-TEST_F(ClipboardHistoryTest, ClearingClipboardHistoryClearsClipboard) {
+TEST_F(ClipboardHistoryTest, ClearHistoryBasic) {
+  // Input holds a unique string sandwhiched by a copy.
   std::vector<std::u16string> input_strings{u"test1", u"test2", u"test1"};
-  // The result should be empty due to history being cleared.
+  // The result should be a reversal of the last two elements. When a duplicate
+  // is copied, history will show the most recent version of that duplicate.
   std::vector<std::u16string> expected_strings{};
 
   for (const auto& input_string : input_strings) {
@@ -239,16 +236,16 @@ TEST_F(ClipboardHistoryTest, ClearingClipboardHistoryClearsClipboard) {
 
   clipboard_history()->Clear();
   EnsureTextHistory(expected_strings);
+}
 
-  // The clipboard should also be empty after the clipboard history is cleared.
-  auto* const clipboard = ui::ClipboardNonBacked::GetForCurrentThread();
-  ASSERT_TRUE(clipboard);
-  ui::DataTransferEndpoint data_dst(ui::EndpointType::kClipboardHistory);
-  ASSERT_FALSE(clipboard->GetClipboardData(&data_dst));
+// Tests that there is no crash when an empty clipboard is cleared with empty
+// clipboard history.
+TEST_F(ClipboardHistoryTest, ClearHistoryFromClipboardNoHistory) {
+  ui::Clipboard::GetForCurrentThread()->Clear(ui::ClipboardBuffer::kCopyPaste);
 }
 
 // Tests that clipboard history is cleared when the clipboard is cleared.
-TEST_F(ClipboardHistoryTest, ClearingClipboardClearsClipboardHistory) {
+TEST_F(ClipboardHistoryTest, ClearHistoryFromClipboardWithHistory) {
   std::vector<std::u16string> input_strings{u"test1", u"test2"};
 
   std::vector<std::u16string> expected_strings_before_clear{u"test2", u"test1"};
@@ -266,26 +263,7 @@ TEST_F(ClipboardHistoryTest, ClearingClipboardClearsClipboardHistory) {
 
   ui::Clipboard::GetForCurrentThread()->Clear(ui::ClipboardBuffer::kCopyPaste);
 
-  // The clipboard should be empty after being cleared.
-  auto* const clipboard = ui::ClipboardNonBacked::GetForCurrentThread();
-  ASSERT_TRUE(clipboard);
-  ui::DataTransferEndpoint data_dst(ui::EndpointType::kClipboardHistory);
-  ASSERT_FALSE(clipboard->GetClipboardData(&data_dst));
-
-  // The clipboard history should also be empty when the clipboard is cleared.
   EnsureTextHistory(expected_strings_after_clear);
-}
-
-// Tests that there is no crash when an empty clipboard is cleared with empty
-// clipboard history.
-TEST_F(ClipboardHistoryTest, ClearEmptyClipboard) {
-  ui::Clipboard::GetForCurrentThread()->Clear(ui::ClipboardBuffer::kCopyPaste);
-}
-
-// Tests that there is no crash when an empty clipboard history is cleared with
-// empty clipboard.
-TEST_F(ClipboardHistoryTest, ClearEmptyClipboardHistory) {
-  clipboard_history()->Clear();
 }
 
 // Tests that the limit of clipboard history is respected.
@@ -434,11 +412,11 @@ TEST_F(ClipboardHistoryTest, PauseHistoryResumeOutOfOrder) {
 
   // Verify that when all pauses are destroyed, clipboard history is modified as
   // usual.
-  base::test::TestFuture<bool> operation_confirmed_future;
+  base::test::RepeatingTestFuture<bool> operation_confirmed_future;
   Shell::Get()
       ->clipboard_history_controller()
       ->set_confirmed_operation_callback_for_test(
-          operation_confirmed_future.GetRepeatingCallback());
+          operation_confirmed_future.GetCallback());
   scoped_pause_allow_reorders.reset();
   WriteAndEnsureTextHistory(input_string3, expected_strings_new_item);
   // Since clipboard history is not paused in any way, data being written to the

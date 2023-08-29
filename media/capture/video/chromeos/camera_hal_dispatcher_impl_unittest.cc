@@ -174,7 +174,7 @@ class CameraHalDispatcherImplTest : public ::testing::Test {
     dispatcher_->initial_effects_ = GetDefaultCameraEffectsConfigForTesting();
   }
 
-  void TearDown() override { delete dispatcher_.ExtractAsDangling(); }
+  void TearDown() override { delete dispatcher_; }
 
   scoped_refptr<base::SingleThreadTaskRunner> GetProxyTaskRunner() {
     return dispatcher_->proxy_task_runner_;

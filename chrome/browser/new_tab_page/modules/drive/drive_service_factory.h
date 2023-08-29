@@ -23,7 +23,7 @@ class DriveServiceFactory : ProfileKeyedServiceFactory {
   ~DriveServiceFactory() override;
 
   // Uses BrowserContextKeyedServiceFactory to build a DriveService.
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* context) const override;
 };
 

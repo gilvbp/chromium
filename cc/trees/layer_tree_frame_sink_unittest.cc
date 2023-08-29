@@ -71,8 +71,6 @@ TEST(LayerTreeFrameSinkTest, ContextLossInformsClient) {
                             GL_INNOCENT_CONTEXT_RESET_ARB);
   layer_tree_frame_sink.context_provider()->RasterInterface()->Flush();
   EXPECT_TRUE(client.did_lose_layer_tree_frame_sink_called());
-
-  layer_tree_frame_sink.DetachFromClient();
 }
 
 TEST(LayerTreeFrameSinkTest, ContextLossFailsBind) {
@@ -92,8 +90,6 @@ TEST(LayerTreeFrameSinkTest, ContextLossFailsBind) {
   FakeLayerTreeFrameSinkClient client;
   EXPECT_FALSE(layer_tree_frame_sink.BindToClient(&client));
   EXPECT_FALSE(layer_tree_frame_sink.HasClient());
-
-  layer_tree_frame_sink.DetachFromClient();
 }
 
 TEST(LayerTreeFrameSinkTest, WorkerContextLossInformsClient) {
@@ -121,8 +117,6 @@ TEST(LayerTreeFrameSinkTest, WorkerContextLossInformsClient) {
   }
   task_runner->RunPendingTasks();
   EXPECT_TRUE(client.did_lose_layer_tree_frame_sink_called());
-
-  layer_tree_frame_sink.DetachFromClient();
 }
 
 TEST(LayerTreeFrameSinkTest, WorkerContextLossFailsBind) {
@@ -142,8 +136,6 @@ TEST(LayerTreeFrameSinkTest, WorkerContextLossFailsBind) {
   FakeLayerTreeFrameSinkClient client;
   EXPECT_FALSE(layer_tree_frame_sink.BindToClient(&client));
   EXPECT_FALSE(layer_tree_frame_sink.HasClient());
-
-  layer_tree_frame_sink.DetachFromClient();
 }
 
 }  // namespace

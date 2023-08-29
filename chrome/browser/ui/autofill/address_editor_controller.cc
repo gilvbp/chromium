@@ -75,7 +75,7 @@ void AddressEditorController::UpdateEditorFields() {
   if (chosen_country_index_ < countries_.size())
     chosen_country_code = countries_[chosen_country_index_].first;
 
-  std::vector<std::vector<autofill::AutofillAddressUIComponent>> components;
+  std::vector<std::vector<autofill::ExtendedAddressUiComponent>> components;
   autofill::GetAddressComponents(chosen_country_code, locale_,
                                  /*include_literals=*/false, &components,
                                  &language_code_);
@@ -88,21 +88,23 @@ void AddressEditorController::UpdateEditorFields() {
       EditorField::LengthHint::HINT_LONG, /*is_required=*/false,
       EditorField::ControlType::COMBOBOX);
 
-  for (const std::vector<autofill::AutofillAddressUIComponent>& line :
+  for (const std::vector<autofill::ExtendedAddressUiComponent>& line :
        components) {
-    for (const autofill::AutofillAddressUIComponent& component : line) {
+    for (const autofill::ExtendedAddressUiComponent& component : line) {
       EditorField::LengthHint length_hint =
           component.length_hint ==
-                  autofill::AutofillAddressUIComponent::HINT_LONG
+                  i18n::addressinput::AddressUiComponent::HINT_LONG
               ? EditorField::LengthHint::HINT_LONG
               : EditorField::LengthHint::HINT_SHORT;
+      autofill::ServerFieldType server_field_type =
+          autofill::i18n::TypeForField(component.field);
       EditorField::ControlType control_type =
-          component.field == autofill::ADDRESS_HOME_COUNTRY
+          server_field_type == autofill::ADDRESS_HOME_COUNTRY
               ? EditorField::ControlType::COMBOBOX
               : EditorField::ControlType::TEXTFIELD;
 
       editor_fields_.emplace_back(
-          component.field, base::UTF8ToUTF16(component.name), length_hint,
+          server_field_type, base::UTF8ToUTF16(component.name), length_hint,
           component.is_required, control_type);
     }
   }

@@ -48,6 +48,7 @@
 #include "third_party/blink/renderer/core/frame/web_local_frame_impl.h"
 #include "third_party/blink/renderer/core/html_names.h"
 #include "third_party/blink/renderer/core/input/keyboard_event_manager.h"
+#include "third_party/blink/renderer/core/layout/layout_object.h"
 #include "third_party/blink/renderer/core/layout/layout_view.h"
 #include "third_party/blink/renderer/core/page/page.h"
 #include "third_party/blink/renderer/core/style/computed_style.h"
@@ -227,8 +228,7 @@ void WebAXObject::MarkAXObjectDirtyWithDetails(
 void WebAXObject::OnLoadInlineTextBoxes() const {
   if (IsDetached())
     return;
-
-  private_->LoadInlineTextBoxes();
+  private_->AXObjectCache().OnLoadInlineTextBoxes(*private_);
 }
 
 BLINK_EXPORT void WebAXObject::SetImageAsDataNodeId(
@@ -417,15 +417,14 @@ WebAXObject WebAXObject::HitTest(const gfx::Point& point) const {
     return WebAXObject(hit);
 
   if (private_->GetBoundsInFrameCoordinates().Contains(
-          PhysicalOffset(contents_point))) {
+          LayoutPoint(contents_point)))
     return *this;
-  }
 
   return WebAXObject();
 }
 
 gfx::Rect WebAXObject::GetBoundsInFrameCoordinates() const {
-  PhysicalRect rect = private_->GetBoundsInFrameCoordinates();
+  LayoutRect rect = private_->GetBoundsInFrameCoordinates();
   return ToEnclosingRect(rect);
 }
 

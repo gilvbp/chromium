@@ -48,10 +48,12 @@ class BorealisInstallerImpl::Installation
  public:
   Installation(
       Profile* profile,
+      base::TimeDelta main_app_timeout,
       base::RepeatingCallback<void(double)> update_progress_callback,
       base::RepeatingCallback<void(InstallingState)> update_state_callback)
       : profile_(profile),
         installation_start_tick_(base::TimeTicks::Now()),
+        main_app_timeout_(main_app_timeout),
         update_progress_callback_(std::move(update_progress_callback)),
         update_state_callback_(std::move(update_state_callback)),
         apps_observation_(this),
@@ -197,7 +199,7 @@ class BorealisInstallerImpl::Installation
         FROM_HERE,
         base::BindOnce(&Installation::MainAppFound, weak_factory_.GetWeakPtr(),
                        false),
-        kWaitForMainAppTimeout);
+        main_app_timeout_);
   }
 
   void OnRegistryUpdated(
@@ -235,6 +237,7 @@ class BorealisInstallerImpl::Installation
 
   const raw_ptr<Profile, ExperimentalAsh> profile_;
   base::TimeTicks installation_start_tick_;
+  base::TimeDelta main_app_timeout_;
   InstallingState installing_state_;
   base::RepeatingCallback<void(double)> update_progress_callback_;
   base::RepeatingCallback<void(InstallingState)> update_state_callback_;
@@ -332,7 +335,9 @@ class BorealisInstallerImpl::Uninstallation
 };
 
 BorealisInstallerImpl::BorealisInstallerImpl(Profile* profile)
-    : profile_(profile), weak_ptr_factory_(this) {}
+    : profile_(profile),
+      main_app_timeout_(kWaitForMainAppTimeout),
+      weak_ptr_factory_(this) {}
 
 BorealisInstallerImpl::~BorealisInstallerImpl() = default;
 
@@ -364,7 +369,7 @@ void BorealisInstallerImpl::Start() {
   install_info->vm_name = "borealis";
   install_info->container_name = "penguin";
   in_progress_installation_ = std::make_unique<Installation>(
-      profile_,
+      profile_, main_app_timeout_,
       base::BindRepeating(&BorealisInstallerImpl::UpdateProgress,
                           weak_ptr_factory_.GetWeakPtr()),
       base::BindRepeating(&BorealisInstallerImpl::UpdateInstallingState,
@@ -416,6 +421,11 @@ void BorealisInstallerImpl::RemoveObserver(Observer* observer) {
   DCHECK(observers_.HasObserver(observer));
   observers_.RemoveObserver(observer);
   DCHECK(observers_.empty());
+}
+
+void BorealisInstallerImpl::SetMainAppTimeoutForTesting(
+    base::TimeDelta timeout) {
+  main_app_timeout_ = timeout;
 }
 
 void BorealisInstallerImpl::UpdateProgress(double state_progress) {

@@ -13,7 +13,6 @@
 #include "base/functional/callback.h"
 #include "base/functional/callback_helpers.h"
 #include "base/task/sequenced_task_runner.h"
-#include "base/test/gmock_expected_support.h"
 #include "base/test/metrics/histogram_tester.h"
 #include "base/test/repeating_test_future.h"
 #include "base/test/scoped_feature_list.h"
@@ -42,13 +41,10 @@ namespace web_app {
 
 namespace {
 
-using base::test::ErrorIs;
-using base::test::HasValue;
 using testing::ElementsAre;
 using testing::Eq;
 using testing::IsFalse;
 using testing::IsTrue;
-using testing::Property;
 using testing::StartsWith;
 
 using VerifierError = web_package::SignedWebBundleSignatureVerifier::Error;
@@ -62,19 +58,12 @@ constexpr uint8_t kEd25519Signature[64] = {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 0, 7, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 7, 7, 0, 0};
 
-// This class needs to be a IsolatedWebAppVaidator, but also must provide
-// a TestingPrefServiceSimple that outlives it. So rather than making
-// TestingPrefServiceSimple a member, make it the leftmost base class.
-class FakeIsolatedWebAppValidator : public TestingPrefServiceSimple,
-                                    public IsolatedWebAppValidator {
+class FakeIsolatedWebAppValidator : public IsolatedWebAppValidator {
  public:
   explicit FakeIsolatedWebAppValidator(
       absl::optional<std::string> integrity_block_error)
       : IsolatedWebAppValidator(std::make_unique<IsolatedWebAppTrustChecker>(
-            // Disambiguate the constructor using the form that takes the
-            // already-initialized leftmost base class, rather than the copy
-            // constructor for the uninitialized rightmost base class.
-            *static_cast<TestingPrefServiceSimple*>(this))),
+            TestingPrefServiceSimple())),
         integrity_block_error_(integrity_block_error) {}
 
   void ValidateIntegrityBlock(
@@ -97,7 +86,7 @@ class FakeSignatureVerifier
       : error_(error), on_verify_signatures_(on_verify_signatures) {}
 
   void VerifySignatures(
-      base::File file,
+      scoped_refptr<web_package::SharedFile> file,
       web_package::SignedWebBundleIntegrityBlock integrity_block,
       SignatureVerificationCallback callback) override {
     on_verify_signatures_.Run();
@@ -233,7 +222,11 @@ TEST_P(IsolatedWebAppResponseReaderFactoryIntegrityBlockParserErrorTest,
   error->message = "test error";
   parser_factory_->RunIntegrityBlockCallback(nullptr, error->Clone());
 
-  EXPECT_THAT(reader_future.Take(), ErrorIs(UnusableSwbnFileError(error)));
+  ReaderResult result = reader_future.Take();
+
+  ASSERT_FALSE(result.has_value());
+  auto actual_error = result.error();
+  EXPECT_EQ(actual_error, UnusableSwbnFileError(error));
 
   histogram_tester.ExpectBucketCount(
       ToErrorHistogramName("WebApp.Isolated.SwbnFileUsability"),
@@ -273,9 +266,9 @@ TEST_F(IsolatedWebAppResponseReaderFactoryTest,
 
   FulfillIntegrityBlock();
 
-  ASSERT_THAT(
-      reader_future.Take(),
-      ErrorIs(Property(&UnusableSwbnFileError::message, Eq("test error"))));
+  ReaderResult result = reader_future.Take();
+  ASSERT_FALSE(result.has_value());
+  EXPECT_THAT(result.error().message(), Eq("test error"));
 
   histogram_tester.ExpectBucketCount(
       ToErrorHistogramName("WebApp.Isolated.SwbnFileUsability"),
@@ -322,15 +315,15 @@ TEST_P(IsolatedWebAppResponseReaderFactorySignatureVerificationErrorTest,
   if (skip_signature_verification_) {
     FulfillMetadata();
 
-    EXPECT_THAT(reader_future.Take(), HasValue());
+    EXPECT_TRUE(reader_future.Take().has_value());
 
     histogram_tester.ExpectBucketCount(
         ToErrorHistogramName("WebApp.Isolated.SwbnFileUsability"),
         UnusableSwbnFileError::Error::kSignatureVerificationError, 0);
   } else {
-    ASSERT_THAT(
-        reader_future.Take(),
-        ErrorIs(Property(&UnusableSwbnFileError::message, Eq(error_.message))));
+    ReaderResult result = reader_future.Take();
+    ASSERT_FALSE(result.has_value());
+    EXPECT_THAT(result.error().message(), Eq(error_.message));
 
     histogram_tester.ExpectBucketCount(
         ToErrorHistogramName("WebApp.Isolated.SwbnFileUsability"),
@@ -370,7 +363,11 @@ TEST_P(IsolatedWebAppResponseReaderFactoryMetadataParserErrorTest,
   parser_factory_->RunMetadataCallback(integrity_block_->size, nullptr,
                                        error->Clone());
 
-  EXPECT_THAT(reader_future.Take(), ErrorIs(Eq(UnusableSwbnFileError(error))));
+  ReaderResult result = reader_future.Take();
+
+  ASSERT_FALSE(result.has_value());
+  auto actual_error = result.error();
+  EXPECT_THAT(actual_error, Eq(UnusableSwbnFileError(error)));
 
   histogram_tester.ExpectBucketCount(
       ToErrorHistogramName("WebApp.Isolated.SwbnFileUsability"),
@@ -405,9 +402,10 @@ TEST_F(IsolatedWebAppResponseReaderFactoryTest, TestInvalidMetadataPrimaryUrl) {
   parser_factory_->RunMetadataCallback(integrity_block_->size,
                                        std::move(metadata));
 
-  EXPECT_THAT(reader_future.Take(),
-              ErrorIs(Property(&UnusableSwbnFileError::message,
-                               StartsWith("Primary URL must not be present"))));
+  ReaderResult result = reader_future.Take();
+  ASSERT_FALSE(result.has_value());
+  EXPECT_THAT(result.error().message(),
+              StartsWith("Primary URL must not be present"));
 
   histogram_tester.ExpectBucketCount(
       ToErrorHistogramName("WebApp.Isolated.SwbnFileUsability"),
@@ -429,10 +427,10 @@ TEST_F(IsolatedWebAppResponseReaderFactoryTest,
   parser_factory_->RunMetadataCallback(integrity_block_->size,
                                        std::move(metadata));
 
-  EXPECT_THAT(
-      reader_future.Take(),
-      ErrorIs(Property(&UnusableSwbnFileError::message,
-                       StartsWith("The URL of an exchange is invalid"))));
+  ReaderResult result = reader_future.Take();
+  ASSERT_FALSE(result.has_value());
+  EXPECT_THAT(result.error().message(),
+              StartsWith("The URL of an exchange is invalid"));
 }
 
 }  // namespace

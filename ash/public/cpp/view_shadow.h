@@ -37,11 +37,10 @@ class ASH_PUBLIC_EXPORT ViewShadow : public views::ViewObserver,
   void OnLayerRecreated(ui::Layer* old_layer) override;
 
   ui::Shadow* shadow() { return shadow_.get(); }
-  const ui::Shadow* shadow() const { return shadow_.get(); }
 
  private:
   // views::ViewObserver:
-  void OnViewLayerBoundsSet(views::View* view) override;
+  void OnLayerTargetBoundsChanged(views::View* view) override;
   void OnViewIsDeleting(views::View* view) override;
 
   raw_ptr<views::View, ExperimentalAsh> view_;

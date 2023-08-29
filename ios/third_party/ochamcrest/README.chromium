@@ -3,9 +3,8 @@ Short Name: OCHamcrest
 URL: https://github.com/hamcrest/OCHamcrest
 Version: 5.2.0
 License: BSD
-License File: LICENSE
+License File: NOT_SHIPPED
 Security Critical: no
-Shipped: no
 
 Description:
 OCHamcrest is the Objective-C implementation of Hamcrest, which

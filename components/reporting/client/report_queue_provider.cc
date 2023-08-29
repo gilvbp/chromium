@@ -38,7 +38,8 @@ class ReportQueueProvider::CreateReportQueueRequest {
   static void New(std::unique_ptr<ReportQueueConfiguration> config,
                   CreateReportQueueCallback create_cb) {
     auto* const provider = GetInstance();
-    CHECK(provider) << "Provider must exist, otherwise it is an internal error";
+    DCHECK(provider)
+        << "Provider must exist, otherwise it is an internal error";
     auto request = base::WrapUnique(
         new CreateReportQueueRequest(std::move(config), std::move(create_cb)));
     provider->sequenced_task_runner_->PostTask(
@@ -65,12 +66,12 @@ class ReportQueueProvider::CreateReportQueueRequest {
   ~CreateReportQueueRequest() = default;
 
   std::unique_ptr<ReportQueueConfiguration> release_config() {
-    CHECK(config_) << "Can only be released once";
+    DCHECK(config_) << "Can only be released once";
     return std::move(config_);
   }
 
   ReportQueueProvider::CreateReportQueueCallback release_create_cb() {
-    CHECK(create_cb_) << "Can only be released once";
+    DCHECK(create_cb_) << "Can only be released once";
     return std::move(create_cb_);
   }
 
@@ -219,7 +220,7 @@ void ReportQueueProvider::CheckInitializationState() {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   if (!storage_) {
     // Provider not ready.
-    CHECK(!create_request_queue_.empty()) << "Request queue cannot be empty";
+    DCHECK(!create_request_queue_.empty()) << "Request queue cannot be empty";
     if (create_request_queue_.size() > 1) {
       // More than one request in the queue - it means Storage creation has
       // already been started.
@@ -268,7 +269,7 @@ void ReportQueueProvider::OnStorageModuleConfigured(
 
   // Storage ready, create all report queues that were submitted.
   // Note that `CreateNewQueue` call offsets heavy work to arbitrary threads.
-  CHECK(!storage_) << "Storage module already recorded";
+  DCHECK(!storage_) << "Storage module already recorded";
   OnInitCompleted();
   storage_ = storage_result.ValueOrDie();
   while (!create_request_queue_.empty()) {

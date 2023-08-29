@@ -12,7 +12,6 @@ pub struct Point<T> {
 
 impl<T> Point<T> {
     /// Creates a new point with the given x and y coordinates.
-    #[inline(always)]
     pub const fn new(x: T, y: T) -> Self {
         Self { x, y }
     }
@@ -26,7 +25,6 @@ impl<T> Point<T> {
     }
 
     /// Maps `Point<T>` to `Point<U>` by applying a function to each coordinate.
-    #[inline(always)]
     pub fn map<U>(self, mut f: impl FnMut(T) -> U) -> Point<U> {
         Point {
             x: f(self.x),
@@ -41,7 +39,6 @@ where
 {
     type Output = Self;
 
-    #[inline(always)]
     fn add(self, rhs: Self) -> Self::Output {
         Self {
             x: self.x + rhs.x,
@@ -54,7 +51,6 @@ impl<T> AddAssign for Point<T>
 where
     T: AddAssign,
 {
-    #[inline(always)]
     fn add_assign(&mut self, rhs: Self) {
         self.x += rhs.x;
         self.y += rhs.y;
@@ -67,7 +63,6 @@ where
 {
     type Output = Self;
 
-    #[inline(always)]
     fn sub(self, rhs: Self) -> Self::Output {
         Self {
             x: self.x - rhs.x,
@@ -80,7 +75,6 @@ impl<T> SubAssign for Point<T>
 where
     T: SubAssign,
 {
-    #[inline(always)]
     fn sub_assign(&mut self, rhs: Self) {
         self.x -= rhs.x;
         self.y -= rhs.y;
@@ -93,7 +87,6 @@ where
 {
     type Output = Self;
 
-    #[inline(always)]
     fn mul(self, rhs: Self) -> Self::Output {
         Self {
             x: self.x * rhs.x,
@@ -108,7 +101,6 @@ where
 {
     type Output = Self;
 
-    #[inline(always)]
     fn mul(self, rhs: T) -> Self::Output {
         Self {
             x: self.x * rhs,
@@ -121,7 +113,6 @@ impl<T> MulAssign for Point<T>
 where
     T: MulAssign,
 {
-    #[inline(always)]
     fn mul_assign(&mut self, rhs: Self) {
         self.x *= rhs.x;
         self.y *= rhs.y;
@@ -132,7 +123,6 @@ impl<T> MulAssign<T> for Point<T>
 where
     T: MulAssign + Copy,
 {
-    #[inline(always)]
     fn mul_assign(&mut self, rhs: T) {
         self.x *= rhs;
         self.y *= rhs;
@@ -145,7 +135,6 @@ where
 {
     type Output = Self;
 
-    #[inline(always)]
     fn div(self, rhs: Self) -> Self::Output {
         Self {
             x: self.x / rhs.x,
@@ -160,7 +149,6 @@ where
 {
     type Output = Self;
 
-    #[inline(always)]
     fn div(self, rhs: T) -> Self::Output {
         Self {
             x: self.x / rhs,
@@ -173,7 +161,6 @@ impl<T> DivAssign for Point<T>
 where
     T: DivAssign,
 {
-    #[inline(always)]
     fn div_assign(&mut self, rhs: Self) {
         self.x /= rhs.x;
         self.y /= rhs.y;
@@ -184,7 +171,6 @@ impl<T> DivAssign<T> for Point<T>
 where
     T: DivAssign + Copy,
 {
-    #[inline(always)]
     fn div_assign(&mut self, rhs: T) {
         self.x /= rhs;
         self.y /= rhs;
@@ -197,7 +183,6 @@ where
 {
     type Output = Self;
 
-    #[inline(always)]
     fn neg(self) -> Self::Output {
         Self {
             x: -self.x,

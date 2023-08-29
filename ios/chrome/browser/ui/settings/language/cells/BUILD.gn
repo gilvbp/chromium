@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 source_set("cells") {
+  configs += [ "//build/config/compiler:enable_arc" ]
   sources = [
     "language_item.h",
     "language_item.mm",

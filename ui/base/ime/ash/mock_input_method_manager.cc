@@ -76,7 +76,7 @@ size_t MockInputMethodManager::State::GetNumEnabledInputMethods() const {
 }
 
 void MockInputMethodManager::State::SetEnabledExtensionImes(
-    base::span<const std::string> ids) {}
+    std::vector<std::string>* ids) {}
 
 void MockInputMethodManager::State::SetInputMethodLoginDefault() {}
 

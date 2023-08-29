@@ -21,7 +21,6 @@
 #include "third_party/blink/renderer/bindings/core/v8/v8_binding_for_testing.h"
 #include "third_party/blink/renderer/bindings/core/v8/v8_image_bitmap_options.h"
 #include "third_party/blink/renderer/bindings/core/v8/v8_union_float32array_uint16array_uint8clampedarray.h"
-#include "third_party/blink/renderer/bindings/modules/v8/v8_begin_layer_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_canvas_will_read_frequently.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_union_canvasfilter_string.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_union_cssimagevalue_htmlcanvaselement_htmlimageelement_htmlvideoelement_imagebitmap_offscreencanvas_svgimageelement_videoframe.h"
@@ -158,8 +157,7 @@ class CanvasRenderingContext2DTest : public ::testing::Test,
 
   enum LatencyMode { kNormalLatency, kLowLatency };
 
-  static constexpr size_t kMaxPinnedImageKB = 1;
-  static constexpr size_t kMaxRecordedOpKB = 10;
+  static constexpr size_t kMaxPinnedImageBytes = 1000;
 
   void CreateContext(
       OpacityMode,
@@ -228,9 +226,6 @@ class CanvasRenderingContext2DTest : public ::testing::Test,
   Member<CanvasGradient>& AlphaGradient() {
     return wrap_gradients_->alpha_gradient_;
   }
-
- private:
-  base::test::ScopedFeatureList feature_list_;
 };
 
 INSTANTIATE_PAINT_TEST_SUITE_P(CanvasRenderingContext2DTest);
@@ -258,14 +253,8 @@ void CanvasRenderingContext2DTest::CreateContext(
 }
 
 void CanvasRenderingContext2DTest::SetUp() {
-  base::FieldTrialParams auto_flush_params;
-  auto_flush_params["max_pinned_image_kb"] =
-      base::NumberToString(kMaxPinnedImageKB);
-  auto_flush_params["max_recorded_op_kb"] =
-      base::NumberToString(kMaxRecordedOpKB);
-  feature_list_.InitAndEnableFeatureWithParameters(kCanvas2DAutoFlushParams,
-                                                   auto_flush_params);
-
+  CanvasResourceProvider::SetMaxPinnedImageBytesForTesting(
+      kMaxPinnedImageBytes);
   test_context_provider_ = CreateContextProvider();
   InitializeSharedGpuContext(test_context_provider_.get());
   allow_accelerated_ =
@@ -281,8 +270,7 @@ void CanvasRenderingContext2DTest::SetUp() {
   // LayoutHTMLCanvas.
   GetDocument().GetPage()->GetSettings().SetScriptEnabled(true);
 
-  canvas_element_ =
-      To<HTMLCanvasElement>(GetDocument().getElementById(AtomicString("c")));
+  canvas_element_ = To<HTMLCanvasElement>(GetDocument().getElementById("c"));
 
   ImageDataSettings* settings = ImageDataSettings::Create();
   full_image_data_ = ImageData::Create(10, 10, settings, ASSERT_NO_EXCEPTION);
@@ -312,7 +300,8 @@ void CanvasRenderingContext2DTest::SetUp() {
 }
 
 void CanvasRenderingContext2DTest::TearDown() {
-  feature_list_.Reset();
+  CanvasResourceProvider::ResetMaxPinnedImageBytesForTesting();
+
   ThreadState::Current()->CollectAllGarbageForTesting(
       ThreadState::StackState::kNoHeapPointers);
 
@@ -846,7 +835,7 @@ TEST_P(CanvasRenderingContext2DTest, GPUMemoryUpdateForAcceleratedCanvas) {
 
   // Creating a different accelerated image buffer
   auto* anotherCanvas =
-      To<HTMLCanvasElement>(GetDocument().getElementById(AtomicString("d")));
+      To<HTMLCanvasElement>(GetDocument().getElementById("d"));
   CanvasContextCreationAttributesCore attributes;
   anotherCanvas->GetCanvasRenderingContext("2d", attributes);
   gfx::Size size2(10, 5);
@@ -1010,7 +999,6 @@ static void TestDrawSingleHighBitDepthPNGOnCanvas(
       resource_content->GetImage()->PaintImageForCurrentFrame().GetSwSkImage();
   ASSERT_EQ(kRGBA_F16_SkColorType, decoded_image->colorType());
   sk_sp<SkImage> color_converted_image = decoded_image->makeColorSpace(
-      static_cast<GrDirectContext*>(nullptr),
       PredefinedColorSpaceToSkColorSpace(context_color_space));
   float expected_pixels[16];
   SkImageInfo expected_info_no_color_space = SkImageInfo::Make(
@@ -1340,7 +1328,7 @@ TEST_P(CanvasRenderingContext2DTest, AutoFlush) {
       CanvasElement().ResourceProvider()->TotalOpCount();
 
   while (CanvasElement().ResourceProvider()->TotalOpBytesUsed() <=
-         kMaxRecordedOpKB * 1024) {
+         CanvasResourceProvider::kMaxRecordedOpBytes) {
     Context2D()->fillRect(0, 0, 1, 1);
     // Verify that auto-flush did not happen
     ASSERT_GT(CanvasElement().ResourceProvider()->TotalOpCount(),
@@ -1372,7 +1360,7 @@ TEST_P(CanvasRenderingContext2DTest, AutoFlushPinnedImages) {
   // reset by the Flush.
   for (int repeat = 0; repeat < 2; ++repeat) {
     size_t expected_op_count = initial_op_count;
-    for (size_t pinned_bytes = 0; pinned_bytes <= kMaxPinnedImageKB * 1024;
+    for (size_t pinned_bytes = 0; pinned_bytes <= kMaxPinnedImageBytes;
          pinned_bytes += kBytesPerImage) {
       FakeImageSource unique_image(gfx::Size(kImageSize, kImageSize),
                                    kOpaqueBitmap);
@@ -1432,7 +1420,7 @@ TEST_P(CanvasRenderingContext2DTest, AutoFlushSameImage) {
 
   FakeImageSource image(gfx::Size(kImageSize, kImageSize), kOpaqueBitmap);
 
-  for (size_t pinned_bytes = 0; pinned_bytes <= 2 * kMaxPinnedImageKB * 1024;
+  for (size_t pinned_bytes = 0; pinned_bytes <= 2 * kMaxPinnedImageBytes;
        pinned_bytes += kBytesPerImage) {
     NonThrowableExceptionState exception_state;
     Context2D()->drawImage(&image, 0, 0, 1, 1, 0, 0, 1, 1, exception_state);
@@ -1453,11 +1441,11 @@ TEST_P(CanvasRenderingContext2DTest, AutoFlushDelayedByLayer) {
       nullptr, std::move(fake_accelerate_surface), size);
   NonThrowableExceptionState exception_state;
   Context2D()->beginLayer(ToScriptStateForMainWorld(GetDocument().GetFrame()),
-                          BeginLayerOptions::Create(), exception_state);
+                          /*filter_init=*/nullptr, exception_state);
   const size_t initial_op_count =
       CanvasElement().ResourceProvider()->TotalOpCount();
   while (CanvasElement().ResourceProvider()->TotalOpBytesUsed() <=
-         kMaxRecordedOpKB * 1024 * 2) {
+         CanvasResourceProvider::kMaxRecordedOpBytes + 1024) {
     Context2D()->fillRect(0, 0, 1, 1);
     ASSERT_GT(CanvasElement().ResourceProvider()->TotalOpCount(),
               initial_op_count);

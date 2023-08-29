@@ -6,8 +6,6 @@ import {TestRunner} from 'test_runner';
 import {NetworkTestRunner} from 'network_test_runner';
 import {ConsoleTestRunner} from 'console_test_runner';
 
-import * as ProtocolClient from 'devtools/core/protocol_client/protocol_client.js';
-
 (async function() {
   TestRunner.addResult(
       `Tests that if iframe is loaded and then deleted, inspector could still show its content. Note that if iframe.src is changed to "javascript:'...some html...'" after loading, then we have different codepath, hence two tests;\n`);
@@ -48,7 +46,7 @@ import * as ProtocolClient from 'devtools/core/protocol_client/protocol_client.j
       }
   `);
 
-  ProtocolClient.InspectorBackend.test.suppressRequestErrors = true;
+  ProtocolClient.test.suppressRequestErrors = true;
   NetworkTestRunner.recordNetwork();
   ConsoleTestRunner.addConsoleSniffer(step2);
   TestRunner.evaluateInPage('loadIframe()');

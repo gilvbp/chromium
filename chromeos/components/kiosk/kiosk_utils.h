@@ -7,11 +7,8 @@
 
 namespace chromeos {
 
-// Returns true if a kiosk session is currently running.
+// Returns whether a kiosk session is being run currently.
 extern bool IsKioskSession();
-
-// Returns true if a web app (PWA) kiosk is currently running.
-extern bool IsWebKioskSession();
 
 }  // namespace chromeos
 

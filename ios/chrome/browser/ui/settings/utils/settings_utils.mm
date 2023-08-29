@@ -7,6 +7,10 @@
 #import "ios/chrome/browser/shared/public/commands/application_commands.h"
 #import "ios/chrome/browser/shared/public/commands/open_new_tab_command.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 ProceduralBlockWithURL BlockToOpenURL(UIResponder* responder,
                                       id<ApplicationCommands> handler) {
   __weak UIResponder* weakResponder = responder;

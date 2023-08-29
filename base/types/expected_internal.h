@@ -37,36 +37,34 @@ class expected;
 namespace internal {
 
 template <typename T>
-constexpr bool UnderlyingIsOk = false;
-template <typename T>
-constexpr bool UnderlyingIsOk<ok<T>> = true;
-template <typename T>
-constexpr bool IsOk = UnderlyingIsOk<remove_cvref_t<T>>;
+struct IsOk : std::false_type {};
 
 template <typename T>
-constexpr bool UnderlyingIsUnexpected = false;
+struct IsOk<ok<T>> : std::true_type {};
+
+template <typename T>
+struct IsUnexpected : std::false_type {};
+
 template <typename E>
-constexpr bool UnderlyingIsUnexpected<unexpected<E>> = true;
-template <typename T>
-constexpr bool IsUnexpected = UnderlyingIsUnexpected<remove_cvref_t<T>>;
+struct IsUnexpected<unexpected<E>> : std::true_type {};
 
 template <typename T>
-constexpr bool UnderlyingIsExpected = false;
+struct IsExpected : std::false_type {};
+
 template <typename T, typename E>
-constexpr bool UnderlyingIsExpected<expected<T, E>> = true;
-template <typename T>
-constexpr bool IsExpected = UnderlyingIsExpected<remove_cvref_t<T>>;
+struct IsExpected<expected<T, E>> : std::true_type {};
 
 template <typename T, typename U>
-constexpr bool IsConstructibleOrConvertible =
-    std::is_constructible_v<T, U> || std::is_convertible_v<U, T>;
+struct IsConstructibleOrConvertible
+    : std::disjunction<std::is_constructible<T, U>, std::is_convertible<U, T>> {
+};
 
 template <typename T, typename U>
-constexpr bool IsAnyConstructibleOrConvertible =
-    IsConstructibleOrConvertible<T, U&> ||
-    IsConstructibleOrConvertible<T, U&&> ||
-    IsConstructibleOrConvertible<T, const U&> ||
-    IsConstructibleOrConvertible<T, const U&&>;
+struct IsAnyConstructibleOrConvertible
+    : std::disjunction<IsConstructibleOrConvertible<T, U&>,
+                       IsConstructibleOrConvertible<T, U&&>,
+                       IsConstructibleOrConvertible<T, const U&>,
+                       IsConstructibleOrConvertible<T, const U&&>> {};
 
 // Checks whether a given expected<U, G> can be converted into another
 // expected<T, E>. Used inside expected's conversion constructors. UF and GF are
@@ -79,10 +77,13 @@ template <typename T,
           typename UF,
           typename GF,
           typename ExUG = expected<remove_cvref_t<UF>, remove_cvref_t<GF>>>
-constexpr bool IsValidConversion =
-    std::is_constructible_v<T, UF> && std::is_constructible_v<E, GF> &&
-    !IsAnyConstructibleOrConvertible<T, ExUG> &&
-    !IsAnyConstructibleOrConvertible<unexpected<E>, ExUG>;
+struct IsValidConversion
+    : std::conjunction<
+          std::is_constructible<T, UF>,
+          std::is_constructible<E, GF>,
+          std::negation<IsAnyConstructibleOrConvertible<T, ExUG>>,
+          std::negation<IsAnyConstructibleOrConvertible<unexpected<E>, ExUG>>> {
+};
 
 // Checks whether a given expected<U, G> can be converted into another
 // expected<T, E> when T is a void type. Used inside expected<void>'s conversion
@@ -94,97 +95,109 @@ template <typename E,
           typename U,
           typename GF,
           typename ExUG = expected<U, remove_cvref_t<GF>>>
-constexpr bool IsValidVoidConversion =
-    std::is_void_v<U> && std::is_constructible_v<E, GF> &&
-    !IsAnyConstructibleOrConvertible<unexpected<E>, ExUG>;
+struct IsValidVoidConversion
+    : std::conjunction<
+          std::is_void<U>,
+          std::is_constructible<E, GF>,
+          std::negation<IsAnyConstructibleOrConvertible<unexpected<E>, ExUG>>> {
+};
 
 // Checks whether expected<T, E> can be constructed from a value of type U.
 template <typename T, typename E, typename U>
-constexpr bool IsValidValueConstruction =
-    std::is_constructible_v<T, U> &&
-    !std::is_same_v<remove_cvref_t<U>, absl::in_place_t> &&
-    !std::is_same_v<remove_cvref_t<U>, expected<T, E>> && !IsOk<U> &&
-    !IsUnexpected<U>;
+struct IsValidValueConstruction
+    : std::conjunction<
+          std::is_constructible<T, U>,
+          std::negation<std::is_same<remove_cvref_t<U>, absl::in_place_t>>,
+          std::negation<std::is_same<remove_cvref_t<U>, expected<T, E>>>,
+          std::negation<IsOk<remove_cvref_t<U>>>,
+          std::negation<IsUnexpected<remove_cvref_t<U>>>> {};
 
 template <typename T, typename E, typename UF, typename GF>
-constexpr bool AreValueAndErrorConvertible =
-    std::is_convertible_v<UF, T> && std::is_convertible_v<GF, E>;
+struct AreValueAndErrorConvertible
+    : std::conjunction<std::is_convertible<UF, T>, std::is_convertible<GF, E>> {
+};
 
 template <typename T>
 using EnableIfDefaultConstruction =
     std::enable_if_t<std::is_default_constructible_v<T>, int>;
 
 template <typename T, typename E, typename UF, typename GF>
-using EnableIfExplicitConversion =
-    std::enable_if_t<IsValidConversion<T, E, UF, GF> &&
-                         !AreValueAndErrorConvertible<T, E, UF, GF>,
-                     int>;
+using EnableIfExplicitConversion = std::enable_if_t<
+    std::conjunction_v<
+        IsValidConversion<T, E, UF, GF>,
+        std::negation<AreValueAndErrorConvertible<T, E, UF, GF>>>,
+    int>;
 
 template <typename T, typename E, typename UF, typename GF>
-using EnableIfImplicitConversion =
-    std::enable_if_t<IsValidConversion<T, E, UF, GF> &&
-                         AreValueAndErrorConvertible<T, E, UF, GF>,
-                     int>;
+using EnableIfImplicitConversion = std::enable_if_t<
+    std::conjunction_v<IsValidConversion<T, E, UF, GF>,
+                       AreValueAndErrorConvertible<T, E, UF, GF>>,
+    int>;
 
 template <typename E, typename U, typename GF>
-using EnableIfExplicitVoidConversion =
-    std::enable_if_t<IsValidVoidConversion<E, U, GF> &&
-                         !std::is_convertible_v<GF, E>,
-                     int>;
+using EnableIfExplicitVoidConversion = std::enable_if_t<
+    std::conjunction_v<IsValidVoidConversion<E, U, GF>,
+                       std::negation<std::is_convertible<GF, E>>>,
+    int>;
 
 template <typename E, typename U, typename GF>
 using EnableIfImplicitVoidConversion =
-    std::enable_if_t<IsValidVoidConversion<E, U, GF> &&
-                         std::is_convertible_v<GF, E>,
+    std::enable_if_t<std::conjunction_v<IsValidVoidConversion<E, U, GF>,
+                                        std::is_convertible<GF, E>>,
                      int>;
 
 template <typename T, typename U>
-using EnableIfOkValueConstruction =
-    std::enable_if_t<!std::is_same_v<remove_cvref_t<U>, ok<T>> &&
-                         !std::is_same_v<remove_cvref_t<U>, absl::in_place_t> &&
-                         std::is_constructible_v<T, U>,
-                     int>;
+using EnableIfOkValueConstruction = std::enable_if_t<
+    std::conjunction_v<
+        std::negation<std::is_same<remove_cvref_t<U>, ok<T>>>,
+        std::negation<std::is_same<remove_cvref_t<U>, absl::in_place_t>>,
+        std::is_constructible<T, U>>,
+    int>;
 
 template <typename T, typename U>
-using EnableIfUnexpectedValueConstruction =
-    std::enable_if_t<!std::is_same_v<remove_cvref_t<U>, unexpected<T>> &&
-                         !std::is_same_v<remove_cvref_t<U>, absl::in_place_t> &&
-                         std::is_constructible_v<T, U>,
-                     int>;
+using EnableIfUnexpectedValueConstruction = std::enable_if_t<
+    std::conjunction_v<
+        std::negation<std::is_same<remove_cvref_t<U>, unexpected<T>>>,
+        std::negation<std::is_same<remove_cvref_t<U>, absl::in_place_t>>,
+        std::is_constructible<T, U>>,
+    int>;
 
 template <typename T, typename E, typename U>
-using EnableIfExplicitValueConstruction =
-    std::enable_if_t<IsValidValueConstruction<T, E, U> &&
-                         (!std::is_convertible_v<U, T> ||
-                          std::is_convertible_v<U, E>),
-                     int>;
+using EnableIfExplicitValueConstruction = std::enable_if_t<
+    std::conjunction_v<
+        IsValidValueConstruction<T, E, U>,
+        std::disjunction<std::negation<std::is_convertible<U, T>>,
+                         std::is_convertible<U, E>>>,
+    int>;
 
 template <typename T, typename E, typename U>
-using EnableIfImplicitValueConstruction =
-    std::enable_if_t<IsValidValueConstruction<T, E, U> &&
-                         std::is_convertible_v<U, T> &&
-                         !std::is_convertible_v<U, E>,
-                     int>;
+using EnableIfImplicitValueConstruction = std::enable_if_t<
+    std::conjunction_v<
+        IsValidValueConstruction<T, E, U>,
+        std::conjunction<std::is_convertible<U, T>,
+                         std::negation<std::is_convertible<U, E>>>>,
+    int>;
 
 template <typename T, typename U>
-using EnableIfExplicitConstruction =
-    std::enable_if_t<std::is_constructible_v<T, U> &&
-                         !std::is_convertible_v<U, T>,
-                     int>;
+using EnableIfExplicitConstruction = std::enable_if_t<
+    std::conjunction_v<std::is_constructible<T, U>,
+                       std::negation<std::is_convertible<U, T>>>,
+    int>;
 
 template <typename T, typename U>
-using EnableIfImplicitConstruction =
-    std::enable_if_t<std::is_constructible_v<T, U> &&
-                         std::is_convertible_v<U, T>,
-                     int>;
+using EnableIfImplicitConstruction = std::enable_if_t<
+    std::conjunction_v<std::is_constructible<T, U>, std::is_convertible<U, T>>,
+    int>;
 
 template <typename T, typename E, typename U>
-using EnableIfValueAssignment =
-    std::enable_if_t<!std::is_same_v<expected<T, E>, remove_cvref_t<U>> &&
-                         !IsOk<U> && !IsUnexpected<U> &&
-                         std::is_constructible_v<T, U> &&
-                         std::is_assignable_v<T&, U>,
-                     int>;
+using EnableIfValueAssignment = std::enable_if_t<
+    std::conjunction_v<
+        std::negation<std::is_same<expected<T, E>, remove_cvref_t<U>>>,
+        std::negation<IsOk<remove_cvref_t<U>>>,
+        std::negation<IsUnexpected<remove_cvref_t<U>>>,
+        std::is_constructible<T, U>,
+        std::is_assignable<T&, U>>,
+    int>;
 
 template <typename T>
 using EnableIfCopyConstructible =
@@ -345,8 +358,8 @@ constexpr auto AndThen(Exp&& exp, F&& f) noexcept {
     }
   };
 
-  using U = decltype(invoke_f());
-  static_assert(internal::IsExpected<U>,
+  using U = remove_cvref_t<decltype(invoke_f())>;
+  static_assert(internal::IsExpected<U>::value,
                 "expected<T, E>::and_then: Result of f() must be a "
                 "specialization of expected");
   static_assert(
@@ -360,9 +373,10 @@ constexpr auto AndThen(Exp&& exp, F&& f) noexcept {
 template <typename Exp, typename F>
 constexpr auto OrElse(Exp&& exp, F&& f) noexcept {
   using T = remove_cvref_t<decltype(exp.value())>;
-  using G = std::invoke_result_t<F, decltype(std::forward<Exp>(exp).error())>;
+  using G = remove_cvref_t<
+      std::invoke_result_t<F, decltype(std::forward<Exp>(exp).error())>>;
 
-  static_assert(internal::IsExpected<G>,
+  static_assert(internal::IsExpected<G>::value,
                 "expected<T, E>::or_else: Result of f() must be a "
                 "specialization of expected");
   static_assert(
@@ -404,10 +418,10 @@ constexpr auto Transform(Exp&& exp, F&& f) noexcept {
     static_assert(!std::is_same_v<U, unexpect_t>,
                   "expected<T, E>::transform: Result of f() should "
                   "not be unexpect_t");
-    static_assert(!internal::IsOk<U>,
+    static_assert(!internal::IsOk<U>::value,
                   "expected<T, E>::transform: Result of f() should "
                   "not be a specialization of ok");
-    static_assert(!internal::IsUnexpected<U>,
+    static_assert(!internal::IsUnexpected<U>::value,
                   "expected<T, E>::transform: Result of f() should "
                   "not be a specialization of unexpected");
     static_assert(std::is_object_v<U>,
@@ -442,10 +456,10 @@ constexpr auto TransformError(Exp&& exp, F&& f) noexcept {
   static_assert(!std::is_same_v<G, unexpect_t>,
                 "expected<T, E>::transform_error: Result of f() should not be "
                 "unexpect_t");
-  static_assert(!internal::IsOk<G>,
+  static_assert(!internal::IsOk<G>::value,
                 "expected<T, E>::transform_error: Result of f() should not be "
                 "a specialization of ok");
-  static_assert(!internal::IsUnexpected<G>,
+  static_assert(!internal::IsUnexpected<G>::value,
                 "expected<T, E>::transform_error: Result of f() should not be "
                 "a specialization of unexpected");
   static_assert(std::is_object_v<G>,

@@ -5,16 +5,13 @@
 #ifndef COMPONENTS_SYNC_NIGORI_CRYPTOGRAPHER_IMPL_H_
 #define COMPONENTS_SYNC_NIGORI_CRYPTOGRAPHER_IMPL_H_
 
-#include <cstdint>
 #include <memory>
 #include <string>
-#include <vector>
 
 #include "components/sync/engine/nigori/cross_user_sharing_public_private_key_pair.h"
 #include "components/sync/engine/nigori/cryptographer.h"
 #include "components/sync/engine/nigori/key_derivation_params.h"
 #include "components/sync/engine/nigori/nigori.h"
-#include "components/sync/nigori/cross_user_sharing_keys.h"
 #include "components/sync/nigori/nigori_key_bag.h"
 #include "components/sync/protocol/nigori_local_data.pb.h"
 
@@ -41,9 +38,7 @@ class CryptographerImpl : public Cryptographer {
           KeyDerivationParams::CreateForPbkdf2());
   // Returns null in case of error (e.g. default key not present in keybag).
   static std::unique_ptr<CryptographerImpl> FromProto(
-      const sync_pb::CryptographerData& proto,
-      absl::optional<uint32_t> cross_user_sharing_key_pair_version =
-          absl::nullopt);
+      const sync_pb::CryptographerData& proto);
 
   CryptographerImpl& operator=(const CryptographerImpl&) = delete;
 
@@ -64,9 +59,6 @@ class CryptographerImpl : public Cryptographer {
   //
   // Does NOT set or change the default encryption key.
   void EmplaceKeysFrom(const NigoriKeyBag& key_bag);
-
-  // Adds all keys from |keys| that weren't previously known.
-  void EmplaceCrossUserSharingKeysFrom(const CrossUserSharingKeys& keys);
 
   // Adds the given Public-private key-pair associated with |version|.
   void EmplaceKeyPair(CrossUserSharingPublicPrivateKeyPair key_pair,
@@ -107,22 +99,6 @@ class CryptographerImpl : public Cryptographer {
 
   size_t KeyBagSizeForTesting() const;
 
-  // Encrypts |plaintext| using Auth HPKE using |recipient_public_key|
-  // authentication is added with the current sender's authentication key.
-  // Empty optional is returned upon failure.
-  absl::optional<std::vector<uint8_t>> AuthEncryptForCrossUserSharing(
-      base::span<const uint8_t> plaintext,
-      base::span<const uint8_t> recipient_public_key) const override;
-
-  // Decrypts |encrypted_data| using Auth HPKE using the keys corresponding
-  // to |recipient_key_version| and authenticates that the sender actually used
-  // |sender_public_key| upon auth encryption.
-  //  Empty optional is returned upon failure.
-  absl::optional<std::vector<uint8_t>> AuthDecryptForCrossUserSharing(
-      base::span<const uint8_t> encrypted_data,
-      base::span<const uint8_t> sender_public_key,
-      const uint32_t recipient_key_version) const override;
-
   // Cryptographer overrides.
   bool CanEncrypt() const override;
   bool CanDecrypt(const sync_pb::EncryptedData& encrypted) const override;
@@ -131,13 +107,10 @@ class CryptographerImpl : public Cryptographer {
                      sync_pb::EncryptedData* encrypted) const override;
   bool DecryptToString(const sync_pb::EncryptedData& encrypted,
                        std::string* decrypted) const override;
-  const CrossUserSharingPublicPrivateKeyPair&
-  GetCrossUserSharingKeyPairForTesting(uint32_t version) const override;
 
  private:
   CryptographerImpl(NigoriKeyBag key_bag,
-                    std::string default_encryption_key_name,
-                    CrossUserSharingKeys cross_user_sharing_keys);
+                    std::string default_encryption_key_name);
 
   // The actual keys we know about.
   NigoriKeyBag key_bag_;
@@ -146,9 +119,6 @@ class CryptographerImpl : public Cryptographer {
   // must correspond to a key within |key_bag_|. May be empty even if |key_bag_|
   // is not.
   std::string default_encryption_key_name_;
-
-  // Cross user sharing keys we know about.
-  CrossUserSharingKeys cross_user_sharing_keys_;
 };
 
 }  // namespace syncer

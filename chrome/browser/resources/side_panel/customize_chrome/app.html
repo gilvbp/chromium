@@ -4,7 +4,6 @@
     color: var(--cr-primary-text-color);
     height: 100%;
     overflow: auto;
-    position: relative;
   }
 
   :host-context([chrome-refresh-2023]) #container {
@@ -59,13 +58,8 @@
     max-width: 320px;
     width: 100%;
   }
-
-  :host-context([chrome-refresh-2023]) customize-chrome-appearance {
-    margin-bottom: 0;
-  }
 </style>
-<iron-pages id="container"
-    class="sp-scroller sp-scroller-top-of-page sp-scroller-bottom-of-page"
+<iron-pages id="container" class="sp-scroller"
     selected="[[page_]]" attr-for-selected="page-name">
   <div page-name="overview" id="overviewPage">
     <div id="appearance" class="section sp-card">
@@ -90,14 +84,6 @@
           <h2 slot="heading">$i18n{cardsHeader}</h2>
         </sp-heading>
         <customize-chrome-cards></customize-chrome-cards>
-      </div>
-    </template>
-    <template is="dom-if" if="[[extensionsCardEnabled_]]" restamp>
-      <hr class="sp-cards-separator">
-      <div id="extensions" class="section sp-card">
-        <sp-heading hide-back-button>
-          <h2 slot="heading">Extensions</h2>
-        </sp-heading>
       </div>
     </template>
   </div>

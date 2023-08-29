@@ -8,20 +8,15 @@
 #include <memory>
 #include <string>
 
-#include "url/gurl.h"
-
 namespace message_center {
 class Notification;
 }  // namespace message_center
 
 namespace ash {
 
-// Creates a simple notification with the given id. If `has_image` is true, the
-// notification will contain a test image.
+// Creates a simple notification with the given id.
 std::unique_ptr<message_center::Notification> CreateSimpleNotification(
-    const std::string& id,
-    bool has_image = false,
-    const GURL& origin_url = GURL());
+    const std::string& id);
 
 }  // namespace ash
 

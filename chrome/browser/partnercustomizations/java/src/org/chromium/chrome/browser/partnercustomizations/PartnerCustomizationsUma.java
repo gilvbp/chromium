@@ -702,6 +702,7 @@ class PartnerCustomizationsUma {
         }
     }
 
+    @VisibleForTesting
     static void resetStaticsForTesting() {
         sWhichDelegate = CustomizationProviderDelegateType.NONE_VALID;
         sInitialTabOutcomeHasBeenLogged = false;

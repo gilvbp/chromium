@@ -144,7 +144,7 @@ class FakeDeviceInfoSyncServiceWithInvalidations
       override {}
 
  private:
-  const raw_ptr<syncer::SyncInvalidationsService> sync_invalidations_service_;
+  raw_ptr<syncer::SyncInvalidationsService> sync_invalidations_service_;
 };
 
 std::unique_ptr<KeyedService> BuildFakeDeviceInfoSyncService(
@@ -201,18 +201,22 @@ class SingleClientBookmarksSyncTestWithEnabledReuploadPreexistingBookmarks
   base::test::ScopedFeatureList features_override_;
 };
 
-class SingleClientBookmarksThrottlingSyncTest : public SyncTest {
+class SingleClientBookmarksSyncTestWithEnabledThrottling : public SyncTest {
  public:
-  SingleClientBookmarksThrottlingSyncTest() : SyncTest(SINGLE_CLIENT) {}
+  SingleClientBookmarksSyncTestWithEnabledThrottling()
+      : SyncTest(SINGLE_CLIENT) {
+    features_override_.InitAndEnableFeature(
+        syncer::kSyncExtensionTypesThrottling);
+  }
 
   void SetUpInProcessBrowserTestFixture() override {
     SyncTest::SetUpInProcessBrowserTestFixture();
     create_services_subscription_ =
         BrowserContextDependencyManager::GetInstance()
-            ->RegisterCreateServicesCallbackForTesting(
-                base::BindRepeating(&SingleClientBookmarksThrottlingSyncTest::
-                                        OnWillCreateBrowserContextServices,
-                                    base::Unretained(this)));
+            ->RegisterCreateServicesCallbackForTesting(base::BindRepeating(
+                &SingleClientBookmarksSyncTestWithEnabledThrottling::
+                    OnWillCreateBrowserContextServices,
+                base::Unretained(this)));
   }
 
   void OnWillCreateBrowserContextServices(content::BrowserContext* context) {
@@ -242,6 +246,7 @@ class SingleClientBookmarksThrottlingSyncTest : public SyncTest {
 
  private:
   base::CallbackListSubscription create_services_subscription_;
+  base::test::ScopedFeatureList features_override_;
 };
 
 class SingleClientBookmarksSyncTestWithEnforcedBookmarksCountLimit
@@ -1852,7 +1857,8 @@ IN_PROC_BROWSER_TEST_F(SingleClientBookmarksSyncTest,
                 .value());
 }
 
-IN_PROC_BROWSER_TEST_F(SingleClientBookmarksThrottlingSyncTest, DepleteQuota) {
+IN_PROC_BROWSER_TEST_F(SingleClientBookmarksSyncTestWithEnabledThrottling,
+                       DepleteQuota) {
   ASSERT_TRUE(SetupClients());
 
   // Setup custom quota params: to effectively never refill.
@@ -1885,7 +1891,7 @@ IN_PROC_BROWSER_TEST_F(SingleClientBookmarksThrottlingSyncTest, DepleteQuota) {
   // Recovering from depleted quota is tested by another test.
 }
 
-IN_PROC_BROWSER_TEST_F(SingleClientBookmarksThrottlingSyncTest,
+IN_PROC_BROWSER_TEST_F(SingleClientBookmarksSyncTestWithEnabledThrottling,
                        DepletedQuotaDoesNotStopCommitCycle) {
   ASSERT_TRUE(SetupClients());
 
@@ -1920,7 +1926,7 @@ IN_PROC_BROWSER_TEST_F(SingleClientBookmarksThrottlingSyncTest,
                        ModelTypeHistogramValue(syncer::BOOKMARKS)));
 }
 
-IN_PROC_BROWSER_TEST_F(SingleClientBookmarksThrottlingSyncTest,
+IN_PROC_BROWSER_TEST_F(SingleClientBookmarksSyncTestWithEnabledThrottling,
                        DoNotDepleteQuota) {
   ASSERT_TRUE(SetupClients());
 
@@ -1964,7 +1970,7 @@ IN_PROC_BROWSER_TEST_F(SingleClientBookmarksThrottlingSyncTest,
 }
 
 // TODO(crbug.com/1447535): Disabled due to flakiness.
-IN_PROC_BROWSER_TEST_F(SingleClientBookmarksThrottlingSyncTest,
+IN_PROC_BROWSER_TEST_F(SingleClientBookmarksSyncTestWithEnabledThrottling,
                        DISABLED_DepleteQuotaAndRecover) {
   ASSERT_TRUE(SetupClients());
 

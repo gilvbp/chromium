@@ -15,8 +15,8 @@ MediaContentType DurationToMediaContentType(base::TimeDelta duration) {
   // should be used in this case.
   return (duration.is_zero() ||
           duration > base::Seconds(kMinimumContentDurationSecs))
-             ? MediaContentType::kPersistent
-             : MediaContentType::kTransient;
+             ? MediaContentType::Persistent
+             : MediaContentType::Transient;
 }
 
 }  // namespace media

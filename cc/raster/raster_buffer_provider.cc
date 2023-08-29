@@ -119,13 +119,4 @@ void RasterBufferProvider::PlaybackToMemory(
   NOTREACHED();
 }
 
-void RasterBufferProvider::FlushIfNeeded() {
-  if (!needs_flush_) {
-    return;
-  }
-
-  Flush();
-  needs_flush_ = false;
-}
-
 }  // namespace cc

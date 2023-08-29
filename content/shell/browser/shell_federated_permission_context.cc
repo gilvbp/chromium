@@ -6,7 +6,6 @@
 
 #include <algorithm>
 
-#include "base/containers/contains.h"
 #include "base/feature_list.h"
 #include "content/public/common/content_features.h"
 #include "content/shell/common/shell_switches.h"
@@ -26,10 +25,6 @@ ShellFederatedPermissionContext::GetApiPermissionStatus(
 
   if (embargoed_origins_.count(relying_party_embedder)) {
     return PermissionStatus::BLOCKED_EMBARGO;
-  }
-
-  if (third_party_cookies_blocked_) {
-    return PermissionStatus::BLOCKED_THIRD_PARTY_COOKIES_BLOCKED;
   }
 
   return PermissionStatus::GRANTED;
@@ -87,24 +82,18 @@ void ShellFederatedPermissionContext::RemoveEmbargoForAutoReauthn(
     const url::Origin& relying_party_embedder) {}
 
 void ShellFederatedPermissionContext::AddIdpSigninStatusObserver(
-    IdpSigninStatusObserver* observer) {
-  idp_signin_status_observer_list_.AddObserver(observer);
-}
-
+    IdpSigninStatusObserver* observer) {}
 void ShellFederatedPermissionContext::RemoveIdpSigninStatusObserver(
-    IdpSigninStatusObserver* observer) {
-  idp_signin_status_observer_list_.RemoveObserver(observer);
-}
+    IdpSigninStatusObserver* observer) {}
 
 // FederatedIdentityActiveSessionPermissionContextDelegate
 bool ShellFederatedPermissionContext::HasActiveSession(
     const url::Origin& relying_party_requester,
     const url::Origin& identity_provider,
     const std::string& account_identifier) {
-  return base::Contains(
-      active_sessions_,
-      std::tuple(relying_party_requester.Serialize(),
-                 identity_provider.Serialize(), account_identifier));
+  return active_sessions_.find(std::tuple(
+             relying_party_requester.Serialize(), identity_provider.Serialize(),
+             account_identifier)) != active_sessions_.end();
 }
 
 void ShellFederatedPermissionContext::GrantActiveSession(
@@ -177,11 +166,8 @@ void ShellFederatedPermissionContext::SetIdpSigninStatus(
     const url::Origin& idp_origin,
     bool idp_signin_status) {
   idp_signin_status_[idp_origin.Serialize()] = idp_signin_status;
-  for (IdpSigninStatusObserver& observer : idp_signin_status_observer_list_) {
-    observer.OnIdpSigninStatusChanged(idp_origin, idp_signin_status);
-  }
-
-  // TODO(crbug.com/1382989): Replace this with AddIdpSigninStatusObserver.
+  // TODO(crbug.com/1382989): Find a better way to do this than adding
+  // explicit helper code to signal completion.
   if (idp_signin_status_closure_)
     idp_signin_status_closure_.Run();
 }

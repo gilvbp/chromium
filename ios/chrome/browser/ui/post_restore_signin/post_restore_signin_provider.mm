@@ -22,6 +22,10 @@
 #import "ui/base/device_form_factor.h"
 #import "ui/base/l10n/l10n_util_mac.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 @interface PostRestoreSignInProvider ()
 
 // Returns the email address of the last account that was signed in pre-restore.
@@ -140,7 +144,7 @@
   ClearPreRestoreIdentity(_localState);
 
   ShowSigninCommand* command = [[ShowSigninCommand alloc]
-      initWithOperation:AuthenticationOperation::kSigninAndSyncReauth
+      initWithOperation:AuthenticationOperationSigninAndSyncReauth
                identity:nil
             accessPoint:signin_metrics::AccessPoint::
                             ACCESS_POINT_POST_DEVICE_RESTORE_SIGNIN_PROMO

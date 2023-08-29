@@ -7,10 +7,14 @@
 #import <AppKit/AppKit.h>
 #import <CoreGraphics/CoreGraphics.h>
 
-#include "base/apple/scoped_cftyperef.h"
+#include "base/mac/scoped_cftyperef.h"
 #include "cc/paint/paint_canvas.h"
 #include "skia/ext/skia_utils_mac.h"
 #include "third_party/blink/renderer/platform/runtime_enabled_features.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace blink {
 
@@ -49,7 +53,7 @@ CGContextRef GraphicsContextCanvas::CgContext() {
 
   // Allocate an offscreen and draw into that, relying on the
   // compositing step to apply skia's clip.
-  base::apple::ScopedCFTypeRef<CGColorSpaceRef> color_space(
+  base::ScopedCFTypeRef<CGColorSpaceRef> color_space(
       CGColorSpaceCreateWithName(kCGColorSpaceSRGB));
 
   bool result = offscreen_.tryAllocN32Pixels(

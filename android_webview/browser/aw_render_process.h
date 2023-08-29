@@ -15,9 +15,6 @@
 
 namespace android_webview {
 
-// Native handle for the renderer process. The native object owns the Java peer.
-//
-// Lifetime: Renderer
 class AwRenderProcess : public content::RenderProcessHostObserver,
                         public base::SupportsUserData::Data {
  public:

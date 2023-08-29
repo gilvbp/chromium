@@ -6,6 +6,7 @@ package org.chromium.chrome.browser.ui.messages.snackbar;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
+import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
 import android.app.Activity;
 import android.graphics.Rect;
@@ -110,7 +111,7 @@ public class SnackbarView {
                 mContainerView.removeOnLayoutChangeListener(this);
                 mContainerView.setTranslationY(getYPositionForMoveAnimation());
                 Animator animator = ObjectAnimator.ofFloat(mContainerView, View.TRANSLATION_Y, 0);
-                animator.setInterpolator(Interpolators.STANDARD_INTERPOLATOR);
+                animator.setInterpolator(Interpolators.DECELERATE_INTERPOLATOR);
                 animator.setDuration(mAnimationDuration);
                 startAnimatorOnSurfaceView(animator);
             }
@@ -121,18 +122,23 @@ public class SnackbarView {
         // Prevent clicks during dismissal animations. Intentionally not using setEnabled(false) to
         // avoid unnecessary text color changes in this transitory state.
         mActionButtonView.setOnClickListener(null);
-        Animator moveAnimator = ObjectAnimator.ofFloat(
-                mContainerView, View.TRANSLATION_Y, getYPositionForMoveAnimation());
-        moveAnimator.setInterpolator(Interpolators.DECELERATE_INTERPOLATOR);
-        moveAnimator.setDuration(mAnimationDuration);
-        moveAnimator.addListener(new AnimatorListenerAdapter() {
+        AnimatorSet animatorSet = new AnimatorSet();
+        animatorSet.setDuration(mAnimationDuration);
+        animatorSet.addListener(new AnimatorListenerAdapter() {
             @Override
             public void onAnimationEnd(Animator animation) {
                 mRootContentView.removeOnLayoutChangeListener(mLayoutListener);
                 mParent.removeView(mContainerView);
             }
         });
-        startAnimatorOnSurfaceView(moveAnimator);
+        Animator moveAnimator = ObjectAnimator.ofFloat(
+                mContainerView, View.TRANSLATION_Y, getYPositionForMoveAnimation());
+        moveAnimator.setInterpolator(Interpolators.DECELERATE_INTERPOLATOR);
+        Animator fadeOut = ObjectAnimator.ofFloat(mContainerView, View.ALPHA, 0f);
+        fadeOut.setInterpolator(Interpolators.FAST_OUT_LINEAR_IN_INTERPOLATOR);
+
+        animatorSet.playTogether(fadeOut, moveAnimator);
+        startAnimatorOnSurfaceView(animatorSet);
     }
 
     /**

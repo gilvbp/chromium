@@ -156,9 +156,7 @@ SBOX_TESTS_COMMAND int IntegrationTestsTest_memory(int argc, wchar_t** argv) {
 
   volatile void* ptr = nullptr;
   do {
-    // Avoiding malloc as PA will throw an unrecoverable exception that races
-    // with job memory limit notification.
-    ptr = ::VirtualAlloc(nullptr, 32 * 1000 * 1000, MEM_COMMIT, PAGE_READWRITE);
+    ptr = malloc(32 * 1000 * 1000);
     base::debug::Alias(&ptr);
   } while (ptr);
 

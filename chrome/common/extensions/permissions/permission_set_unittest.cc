@@ -755,6 +755,7 @@ TEST(PermissionsTest, PermissionMessages) {
   skip.insert(APIPermissionID::kBrowsingData);
   skip.insert(APIPermissionID::kCommandsAccessibility);
   skip.insert(APIPermissionID::kContextMenus);
+  skip.insert(APIPermissionID::kDesktopCapturePrivate);
   skip.insert(APIPermissionID::kDiagnostics);
   skip.insert(APIPermissionID::kDns);
   skip.insert(APIPermissionID::kDownloadsShelf);
@@ -800,7 +801,6 @@ TEST(PermissionsTest, PermissionMessages) {
   skip.insert(APIPermissionID::kProxy);
   skip.insert(APIPermissionID::kScripting);
   skip.insert(APIPermissionID::kTabCapture);
-  skip.insert(APIPermissionID::kUserScripts);
   skip.insert(APIPermissionID::kWebRequest);
   skip.insert(APIPermissionID::kWebRequestBlocking);
   skip.insert(APIPermissionID::kWebRequestAuthProvider);
@@ -823,7 +823,6 @@ TEST(PermissionsTest, PermissionMessages) {
 
   // These are private.
   skip.insert(APIPermissionID::kAccessibilityPrivate);
-  skip.insert(APIPermissionID::kAccessibilityServicePrivate);
   skip.insert(APIPermissionID::kArcAppsPrivate);
   skip.insert(APIPermissionID::kAutoTestPrivate);
   skip.insert(APIPermissionID::kBrailleDisplayPrivate);
@@ -838,7 +837,7 @@ TEST(PermissionsTest, PermissionMessages) {
   skip.insert(APIPermissionID::kFileManagerPrivate);
   skip.insert(APIPermissionID::kFirstRunPrivate);
   skip.insert(APIPermissionID::kSharedStoragePrivate);
-  skip.insert(APIPermissionID::kImageLoaderPrivate);
+  skip.insert(APIPermissionID::kIdentityPrivate);
   skip.insert(APIPermissionID::kInputMethodPrivate);
   skip.insert(APIPermissionID::kLanguageSettingsPrivate);
   skip.insert(APIPermissionID::kLockWindowFullscreenPrivate);

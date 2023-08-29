@@ -4,11 +4,15 @@
 
 #import "ios/showcase/tab_grid/sc_grid_cell_view_controller.h"
 
-#import "base/apple/foundation_util.h"
+#import "base/mac/foundation_util.h"
 #import "base/numerics/safe_conversions.h"
 #import "ios/chrome/browser/ui/tab_switcher/tab_grid/grid/grid_cell.h"
 #import "ios/chrome/browser/ui/tab_switcher/tab_grid/grid/grid_theme.h"
 #import "ios/showcase/common/protocol_alerter.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace {
 NSString* const kCellIdentifier = @"GridCellIdentifier";
@@ -61,7 +65,7 @@ NSString* const kCellIdentifier = @"GridCellIdentifier";
 
 - (UICollectionViewCell*)collectionView:(UICollectionView*)collectionView
                  cellForItemAtIndexPath:(NSIndexPath*)indexPath {
-  GridCell* cell = base::apple::ObjCCastStrict<GridCell>([collectionView
+  GridCell* cell = base::mac::ObjCCastStrict<GridCell>([collectionView
       dequeueReusableCellWithReuseIdentifier:kCellIdentifier
                                 forIndexPath:indexPath]);
   cell.delegate = static_cast<id<GridCellDelegate>>(self.alerter);

@@ -17,7 +17,7 @@
 #include "chrome/browser/profiles/profile_observer.h"
 #include "chrome/browser/signin/signin_features.h"
 #include "chrome/browser/ui/browser.h"
-#include "chrome/browser/ui/profiles/profile_colors_util.h"
+#include "chrome/browser/ui/signin/profile_colors_util.h"
 #include "chrome/browser/ui/test/test_browser_dialog.h"
 #include "chrome/browser/ui/views/frame/browser_view.h"
 #include "chrome/browser/ui/views/frame/toolbar_button_provider.h"
@@ -143,7 +143,15 @@ class DiceWebSigninInterceptionBubblePixelTest
     : public DialogBrowserTest,
       public testing::WithParamInterface<TestParam> {
  public:
-  DiceWebSigninInterceptionBubblePixelTest() = default;
+  DiceWebSigninInterceptionBubblePixelTest() {
+    std::vector<base::test::FeatureRef> enabled_features = {};
+    // `kSigninInterceptBubbleV2` feature is tested in
+    // `DiceWebSigninInterceptionBubbleV2PixelTest`
+    std::vector<base::test::FeatureRef> disabled_features = {
+        kSigninInterceptBubbleV2, kSyncPromoAfterSigninIntercept};
+    base_scoped_feature_list_.InitWithFeatures(enabled_features,
+                                               disabled_features);
+  }
 
   // DialogBrowserTest:
   void SetUpCommandLine(base::CommandLine* command_line) override {
@@ -222,7 +230,9 @@ class DiceWebSigninInterceptionBubblePixelTest
     bool show_managed_disclaimer =
         (GetParam().is_intercepted_account_managed ||
          GetParam().management_authority !=
-             policy::EnterpriseManagementAuthority::NONE);
+             policy::EnterpriseManagementAuthority::NONE) &&
+        (base::FeatureList::IsEnabled(kSigninInterceptBubbleV2) ||
+         base::FeatureList::IsEnabled(kSyncPromoAfterSigninIntercept));
 
     return {GetParam().interception_type,
             intercepted_account,
@@ -234,6 +244,7 @@ class DiceWebSigninInterceptionBubblePixelTest
   }
 
   std::unique_ptr<ScopedWebSigninInterceptionBubbleHandle> bubble_handle_;
+  base::test::ScopedFeatureList base_scoped_feature_list_;
 };
 
 IN_PROC_BROWSER_TEST_P(DiceWebSigninInterceptionBubblePixelTest,
@@ -243,6 +254,43 @@ IN_PROC_BROWSER_TEST_P(DiceWebSigninInterceptionBubblePixelTest,
 
 INSTANTIATE_TEST_SUITE_P(All,
                          DiceWebSigninInterceptionBubblePixelTest,
+                         testing::ValuesIn(kTestParams),
+                         &ParamToTestSuffix);
+
+class DiceWebSigninInterceptionBubbleV2PixelTest
+    : public DiceWebSigninInterceptionBubblePixelTest {
+ public:
+  DiceWebSigninInterceptionBubbleV2PixelTest() = default;
+
+  base::test::ScopedFeatureList scoped_feature_list_{kSigninInterceptBubbleV2};
+};
+
+IN_PROC_BROWSER_TEST_P(DiceWebSigninInterceptionBubbleV2PixelTest,
+                       InvokeUi_default) {
+  ShowAndVerifyUi();
+}
+
+INSTANTIATE_TEST_SUITE_P(All,
+                         DiceWebSigninInterceptionBubbleV2PixelTest,
+                         testing::ValuesIn(kTestParams),
+                         &ParamToTestSuffix);
+
+class DiceWebSigninInterceptionBubbleV1SyncPromoPixelTest
+    : public DiceWebSigninInterceptionBubblePixelTest {
+ public:
+  DiceWebSigninInterceptionBubbleV1SyncPromoPixelTest() = default;
+
+  base::test::ScopedFeatureList scoped_feature_list_{
+      kSyncPromoAfterSigninIntercept};
+};
+
+IN_PROC_BROWSER_TEST_P(DiceWebSigninInterceptionBubbleV1SyncPromoPixelTest,
+                       InvokeUi_default) {
+  ShowAndVerifyUi();
+}
+
+INSTANTIATE_TEST_SUITE_P(All,
+                         DiceWebSigninInterceptionBubbleV1SyncPromoPixelTest,
                          testing::ValuesIn(kTestParams),
                          &ParamToTestSuffix);
 
@@ -267,14 +315,6 @@ class DiceWebSigninInterceptionBubbleBrowserTest : public InProcessBrowserTest {
     return WebSigninInterceptor::Delegate::BubbleParameters(
         WebSigninInterceptor::SigninInterceptionType::kMultiUser, account,
         primary_account);
-  }
-
-  WebSigninInterceptor::Delegate::BubbleParameters
-  GetTestBubbleParametersForManagedProfile() {
-    WebSigninInterceptor::Delegate::BubbleParameters bubble_parameters =
-        GetTestBubbleParameters();
-    bubble_parameters.show_managed_disclaimer = true;
-    return bubble_parameters;
   }
 
   absl::optional<SigninInterceptionResult> callback_result_;
@@ -442,9 +482,26 @@ IN_PROC_BROWSER_TEST_F(DiceWebSigninInterceptionBubbleBrowserTest,
   histogram_tester.ExpectTotalCount("Signin.InterceptResult.Switch", 0);
 }
 
+class DiceWebSigninInterceptionBubbleV2BrowserTest
+    : public DiceWebSigninInterceptionBubbleBrowserTest {
+ public:
+  DiceWebSigninInterceptionBubbleV2BrowserTest() = default;
+
+  WebSigninInterceptor::Delegate::BubbleParameters
+  GetTestBubbleParametersForManagedProfile() {
+    WebSigninInterceptor::Delegate::BubbleParameters bubble_parameters =
+        GetTestBubbleParameters();
+    bubble_parameters.show_managed_disclaimer = true;
+    return bubble_parameters;
+  }
+
+ private:
+  base::test::ScopedFeatureList scoped_feature_list_{kSigninInterceptBubbleV2};
+};
+
 // Tests that clicking the Learn More link in the bubble opens the page in a new
 // tab.
-IN_PROC_BROWSER_TEST_F(DiceWebSigninInterceptionBubbleBrowserTest,
+IN_PROC_BROWSER_TEST_F(DiceWebSigninInterceptionBubbleV2BrowserTest,
                        OpenLearnMoreLinkInNewTab) {
   const GURL bubble_url("chrome://signin-dice-web-intercept/");
   const GURL learn_more_url = google_util::AppendGoogleLocaleParam(

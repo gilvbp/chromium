@@ -105,7 +105,7 @@ class ShoppingServiceAndroid : public base::SupportsUserData::Data,
   void HandleProductInfoCallback(JNIEnv* env,
                                  const ScopedJavaGlobalRef<jobject>& callback,
                                  const GURL& url,
-                                 const absl::optional<const ProductInfo>& info);
+                                 const absl::optional<ProductInfo>& info);
 
   void HandleMerchantInfoCallback(JNIEnv* env,
                                   const ScopedJavaGlobalRef<jobject>& callback,

@@ -95,13 +95,13 @@ std::string CreateInteractivePayload(
     uint32_t progress_percent,
     absl::optional<std::string> output,
     ash::cros_healthd::mojom::DiagnosticRoutineUserMessageEnum user_message) {
-  auto root_dict = base::Value::Dict().Set(kProgressPercentFieldName,
-                                           static_cast<int>(progress_percent));
+  base::Value::Dict root_dict;
+  root_dict.Set(kProgressPercentFieldName, static_cast<int>(progress_percent));
   if (output.has_value()) {
     root_dict.Set(kOutputFieldName, std::move(output.value()));
   }
-  auto interactive_dict = base::Value::Dict().Set(
-      kUserMessageFieldName, static_cast<int>(user_message));
+  base::Value::Dict interactive_dict;
+  interactive_dict.Set(kUserMessageFieldName, static_cast<int>(user_message));
   root_dict.Set(kInteractiveUpdateFieldName, std::move(interactive_dict));
 
   std::string payload;
@@ -114,15 +114,14 @@ std::string CreateNonInteractivePayload(
     absl::optional<std::string> output,
     ash::cros_healthd::mojom::DiagnosticRoutineStatusEnum status,
     const std::string& status_message) {
-  auto root_dict = base::Value::Dict().Set(kProgressPercentFieldName,
-                                           static_cast<int>(progress_percent));
+  base::Value::Dict root_dict;
+  root_dict.Set(kProgressPercentFieldName, static_cast<int>(progress_percent));
   if (output.has_value()) {
     root_dict.Set(kOutputFieldName, std::move(output.value()));
   }
-  auto noninteractive_dict =
-      base::Value::Dict()
-          .Set(kStatusFieldName, static_cast<int>(status))
-          .Set(kStatusMessageFieldName, status_message);
+  base::Value::Dict noninteractive_dict;
+  noninteractive_dict.Set(kStatusFieldName, static_cast<int>(status));
+  noninteractive_dict.Set(kStatusMessageFieldName, status_message);
   root_dict.Set(kNonInteractiveUpdateFieldName, std::move(noninteractive_dict));
 
   std::string payload;

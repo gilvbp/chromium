@@ -141,12 +141,13 @@ std::unique_ptr<PageNodeImpl> PerformanceManagerImpl::CreatePageNode(
     const WebContentsProxy& contents_proxy,
     const std::string& browser_context_id,
     const GURL& visible_url,
-    PagePropertyFlags initial_property_flags,
+    bool is_visible,
+    bool is_audible,
     base::TimeTicks visibility_change_time,
     PageNode::PageState page_state) {
   return CreateNodeImpl<PageNodeImpl>(base::OnceCallback<void(PageNodeImpl*)>(),
                                       contents_proxy, browser_context_id,
-                                      visible_url, initial_property_flags,
+                                      visible_url, is_visible, is_audible,
                                       visibility_change_time, page_state);
 }
 

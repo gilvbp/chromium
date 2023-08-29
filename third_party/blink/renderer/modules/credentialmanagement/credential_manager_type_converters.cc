@@ -104,6 +104,24 @@ PublicKeyCredentialParametersPtr CreatePublicKeyCredentialParameter(int alg) {
   return mojo_parameter;
 }
 
+// HashPRFValue hashes a PRF evaluation point with a fixed prefix in order to
+// separate the set of points that a website can evaluate. See
+// https://w3c.github.io/webauthn/#prf-extension.
+Vector<uint8_t> HashPRFValue(const blink::DOMArrayPiece value) {
+  constexpr char kPrefix[] = "WebAuthn PRF";
+
+  SHA256_CTX ctx;
+  SHA256_Init(&ctx);
+  // This deliberately includes the terminating NUL.
+  SHA256_Update(&ctx, kPrefix, sizeof(kPrefix));
+  SHA256_Update(&ctx, value.Data(), value.ByteLength());
+
+  uint8_t digest[SHA256_DIGEST_LENGTH];
+  SHA256_Final(digest, &ctx);
+
+  return Vector<uint8_t>(base::span(digest));
+}
+
 // SortPRFValuesByCredentialId is a "less than" function that puts the single,
 // optional element without a credential ID at the beginning and otherwise
 // lexicographically sorts by credential ID. The browser requires that PRF
@@ -734,11 +752,11 @@ TypeConverter<IdentityProviderConfigPtr, blink::IdentityProviderConfig>::
   mojo_provider->config_url = blink::KURL(provider.configURL());
   mojo_provider->client_id = provider.clientId();
   mojo_provider->nonce = provider.getNonceOr("");
-  mojo_provider->login_hint = provider.getLoginHintOr("");
-  mojo_provider->hosted_domain =
-      blink::RuntimeEnabledFeatures::FedCmHostedDomainEnabled()
-          ? provider.getHostedDomainOr("")
-          : "";
+  if (blink::RuntimeEnabledFeatures::FedCmLoginHintEnabled()) {
+    mojo_provider->login_hint = provider.getLoginHintOr("");
+  } else {
+    mojo_provider->login_hint = "";
+  }
 
   if (blink::RuntimeEnabledFeatures::FedCmAuthzEnabled()) {
     if (provider.hasScope()) {
@@ -803,6 +821,7 @@ TypeConverter<RpContext, blink::V8IdentityCredentialRequestOptionsContext>::
 IdentityUserInfoPtr
 TypeConverter<IdentityUserInfoPtr, blink::IdentityUserInfo>::Convert(
     const blink::IdentityUserInfo& user_info) {
+  DCHECK(blink::RuntimeEnabledFeatures::FedCmUserInfoEnabled());
   auto mojo_user_info = IdentityUserInfo::New();
 
   mojo_user_info->email = user_info.email();
@@ -831,9 +850,9 @@ PRFValuesPtr
 TypeConverter<PRFValuesPtr, blink::AuthenticationExtensionsPRFValues>::Convert(
     const blink::AuthenticationExtensionsPRFValues& values) {
   PRFValuesPtr ret = PRFValues::New();
-  ret->first = ConvertTo<Vector<uint8_t>>(values.first());
+  ret->first = HashPRFValue(values.first());
   if (values.hasSecond()) {
-    ret->second = ConvertTo<Vector<uint8_t>>(values.second());
+    ret->second = HashPRFValue(values.second());
   }
   return ret;
 }

@@ -13,7 +13,7 @@
 #include "base/memory/raw_ptr.h"
 #include "base/run_loop.h"
 #include "base/time/time.h"
-#include "components/autofill/core/browser/autofill_trigger_details.h"
+#include "components/autofill/core/browser/autofill_trigger_source.h"
 #include "components/autofill/core/browser/browser_autofill_manager.h"
 #include "third_party/abseil-cpp/absl/types/optional.h"
 #include "ui/gfx/image/image_unittest_util.h"
@@ -77,7 +77,7 @@ class TestBrowserAutofillManager : public BrowserAutofillManager {
       bool observed_submission) override;
   // Immediately triggers the refill.
   void ScheduleRefill(const FormData& form,
-                      const AutofillTriggerDetails& trigger_details) override;
+                      const AutofillTriggerSource trigger_source) override;
 
   // Unique to TestBrowserAutofillManager:
 
@@ -131,7 +131,7 @@ class TestBrowserAutofillManager : public BrowserAutofillManager {
   bool autofill_profile_enabled_ = true;
   bool autofill_credit_card_enabled_ = true;
   absl::optional<bool> expected_observed_submission_;
-  const gfx::Image card_image_ = gfx::test::CreateImage(40, 24);
+  const gfx::Image card_image_ = gfx::test::CreateImage(32, 20);
 
   std::unique_ptr<base::RunLoop> run_loop_;
 

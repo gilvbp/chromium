@@ -219,8 +219,7 @@ bool SpatialNavigationController::HandleEnterKeyboardEvent(
         enter_key_down_seen_ && enter_key_press_seen_) {
       interest_element->Focus(
           FocusParams(SelectionBehaviorOnFocus::kReset,
-                      mojom::blink::FocusType::kSpatialNavigation, nullptr,
-                      FocusOptions::Create(), FocusTrigger::kUserGesture));
+                      mojom::blink::FocusType::kSpatialNavigation, nullptr));
       // We need enter to activate links, etc. The click should be after the
       // focus in case the site transfers focus upon clicking.
       interest_element->DispatchSimulatedClick(
@@ -501,8 +500,7 @@ void SpatialNavigationController::MoveInterestTo(Node* next_node) {
 
   element->Focus(FocusParams(SelectionBehaviorOnFocus::kReset,
                              mojom::blink::FocusType::kSpatialNavigation,
-                             nullptr, FocusOptions::Create(),
-                             FocusTrigger::kUserGesture));
+                             nullptr));
   // The focused element could be changed due to elm.focus() on focus handlers.
   // So we need to update the current focused element before DispatchMouseMove.
   // This is tested in snav-applies-hover-with-focused.html.
@@ -601,8 +599,7 @@ void SpatialNavigationController::FullscreenStateChanged(Element* element) {
   if (IsA<HTMLMediaElement>(element)) {
     element->Focus(FocusParams(SelectionBehaviorOnFocus::kReset,
                                mojom::blink::FocusType::kSpatialNavigation,
-                               nullptr, FocusOptions::Create(),
-                               FocusTrigger::kUserGesture));
+                               nullptr));
   }
 }
 

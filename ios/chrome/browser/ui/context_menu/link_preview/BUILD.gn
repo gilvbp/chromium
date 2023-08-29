@@ -23,6 +23,7 @@ source_set("link_preview") {
     "//ios/web/public",
     "//url",
   ]
+  configs += [ "//build/config/compiler:enable_arc" ]
 }
 
 source_set("link_preview_ui") {
@@ -38,6 +39,7 @@ source_set("link_preview_ui") {
     "//ios/third_party/material_components_ios",
     "//ui/gfx",
   ]
+  configs += [ "//build/config/compiler:enable_arc" ]
 }
 
 source_set("constants") {
@@ -45,4 +47,5 @@ source_set("constants") {
     "link_preview_constants.h",
     "link_preview_constants.mm",
   ]
+  configs += [ "//build/config/compiler:enable_arc" ]
 }

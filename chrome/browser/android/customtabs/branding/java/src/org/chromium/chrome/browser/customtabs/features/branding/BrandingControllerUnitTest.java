@@ -41,7 +41,6 @@ import org.chromium.base.metrics.RecordHistogram;
 import org.chromium.base.task.TaskTraits;
 import org.chromium.base.task.test.ShadowPostTask;
 import org.chromium.base.test.BaseRobolectricTestRunner;
-import org.chromium.ui.widget.Toast;
 import org.chromium.ui.widget.ToastManager;
 
 import java.util.Locale;
@@ -189,8 +188,8 @@ public class BrandingControllerUnitTest {
                 .assertShownRegularLocationBar(true);
 
         // BrandingController.TOTAL_BRANDING_DELAY_MS - TEST_MAX_TOOLBAR_BLANK_TIMEOUT = 800
-        assertEquals("Toast duration is different.", Toast.LENGTH_LONG,
-                ShadowToast.getLatestToast().getDuration());
+        assertEquals(
+                "Toast duration is different.", 800, ShadowToast.getLatestToast().getDuration());
     }
 
     @Test
@@ -215,7 +214,7 @@ public class BrandingControllerUnitTest {
                 .onToolbarInitialized()
                 .assertBrandingDecisionMade(BrandingDecision.TOOLBAR);
 
-        SharedPreferencesBrandingTimeStorage.resetInstance();
+        SharedPreferencesBrandingTimeStorage.resetInstanceForTesting();
 
         // After reset storage instance, decision should be in use again.
         new BrandingCheckTester()

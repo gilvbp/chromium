@@ -39,10 +39,7 @@ is meant to be either refactored to avoid dangling, or turned into
 
 # How to check for dangling pointers?
 
-On **Linux**, it is **enabled by default** on most configurations.
-To be precise: (`is_debug` or `dcheck_always_on`) and non `is_official` builds.
-
-For the other operating systems, this is gated by both build and runtime flags:
+It is gated behind both build and runtime flags:
 
 ## Build flags
 
@@ -96,7 +93,7 @@ Example usage:
 The logs can be filtered and transformed into a tab separated table:
 ```bash
 cat output \
- | grep "[DanglingSignature]" \
+ | grep "[DanglingRawPtrSignature]" \
  | cut -f2,3,4,5 \
  | sort \
  | uniq -c \

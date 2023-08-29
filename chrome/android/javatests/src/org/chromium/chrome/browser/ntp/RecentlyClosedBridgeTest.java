@@ -18,7 +18,10 @@ import org.junit.runner.RunWith;
 import org.chromium.base.test.util.Batch;
 import org.chromium.base.test.util.CommandLineFlags;
 import org.chromium.base.test.util.CriteriaHelper;
+import org.chromium.base.test.util.DisabledTest;
+import org.chromium.base.test.util.Restriction;
 import org.chromium.chrome.browser.ChromeTabbedActivity;
+import org.chromium.chrome.browser.flags.ChromeFeatureList;
 import org.chromium.chrome.browser.flags.ChromeSwitches;
 import org.chromium.chrome.browser.profiles.Profile;
 import org.chromium.chrome.browser.tab.Tab;
@@ -35,6 +38,7 @@ import org.chromium.chrome.test.ChromeJUnit4ClassRunner;
 import org.chromium.chrome.test.ChromeTabbedActivityTestRule;
 import org.chromium.chrome.test.batch.BlankCTATabInitialStateRule;
 import org.chromium.chrome.test.util.ChromeTabUtils;
+import org.chromium.chrome.test.util.browser.Features.EnableFeatures;
 import org.chromium.content_public.browser.test.util.TestThreadUtils;
 import org.chromium.ui.mojom.WindowOpenDisposition;
 
@@ -115,7 +119,7 @@ public class RecentlyClosedBridgeTest {
     @Test
     @MediumTest
     public void testOpenMostRecentlyClosedEntry_Tab_InBackground() {
-        final String[] urls = new String[] {getUrl(TEST_PAGE_A), getUrl(TEST_PAGE_B)};
+        final String urls[] = new String[] {getUrl(TEST_PAGE_A), getUrl(TEST_PAGE_B)};
         final Tab tabA = sActivityTestRule.loadUrlInNewTab(urls[0], /*incognito=*/false);
         final Tab tabB = sActivityTestRule.loadUrlInNewTab(urls[1], /*incognito=*/false);
 
@@ -160,7 +164,7 @@ public class RecentlyClosedBridgeTest {
     @Test
     @MediumTest
     public void testOpenRecentlyClosedTab_InCurrentTab() {
-        final String[] urls = new String[] {getUrl(TEST_PAGE_A), getUrl(TEST_PAGE_B)};
+        final String urls[] = new String[] {getUrl(TEST_PAGE_A), getUrl(TEST_PAGE_B)};
         final Tab tabA = sActivityTestRule.loadUrlInNewTab(urls[0], /*incognito=*/false);
         final Tab tabB = sActivityTestRule.loadUrlInNewTab(urls[1], /*incognito=*/false);
         final Tab tabC =
@@ -219,7 +223,7 @@ public class RecentlyClosedBridgeTest {
     @Test
     @MediumTest
     public void testOpenRecentlyClosedTab_Frozen_InBackground() {
-        final String[] urls = new String[] {getUrl(TEST_PAGE_A)};
+        final String urls[] = new String[] {getUrl(TEST_PAGE_A)};
         final Tab tabA = sActivityTestRule.loadUrlInNewTab(urls[0], /*incognito=*/false);
         final Tab tabB =
                 sActivityTestRule.loadUrlInNewTab(getUrl(TEST_PAGE_B), /*incognito=*/false);
@@ -268,7 +272,7 @@ public class RecentlyClosedBridgeTest {
     public void testOpenRecentlyClosedTab_FromBulkClosure_InNewTab() {
         // Tab order is inverted in RecentlyClosedEntry as most recent comes first so log data in
         // reverse.
-        final String[] urls = new String[] {getUrl(TEST_PAGE_B), getUrl(TEST_PAGE_A)};
+        final String urls[] = new String[] {getUrl(TEST_PAGE_B), getUrl(TEST_PAGE_A)};
         final Tab tabA = sActivityTestRule.loadUrlInNewTab(urls[1], /*incognito=*/false);
         final Tab tabB = sActivityTestRule.loadUrlInNewTab(urls[0], /*incognito=*/false);
 
@@ -306,12 +310,14 @@ public class RecentlyClosedBridgeTest {
      */
     @Test
     @MediumTest
+    @EnableFeatures({ChromeFeatureList.TAB_GROUPS_ANDROID})
+    @Restriction({Restriction.RESTRICTION_TYPE_NON_LOW_END_DEVICE})
     public void testOpenRecentlyClosedTab_FromGroupInBulkClosure_InBackgroundTab() {
         if (mTabGroupModelFilter == null) return;
 
         // Tab order is inverted in RecentlyClosedEntry as most recent comes first so log data in
         // reverse.
-        final String[] urls =
+        final String urls[] =
                 new String[] {getUrl(TEST_PAGE_C), getUrl(TEST_PAGE_B), getUrl(TEST_PAGE_A)};
         final Tab tabA = sActivityTestRule.loadUrlInNewTab(urls[2], /*incognito=*/false);
         final Tab tabB = sActivityTestRule.loadUrlInNewTab(urls[1], /*incognito=*/false);
@@ -359,11 +365,13 @@ public class RecentlyClosedBridgeTest {
      */
     @Test
     @MediumTest
+    @EnableFeatures({ChromeFeatureList.TAB_GROUPS_ANDROID})
+    @Restriction({Restriction.RESTRICTION_TYPE_NON_LOW_END_DEVICE})
     public void testOpenRecentlyClosedTab_FromGroupClosure_InCurrentTab() {
         if (mTabGroupModelFilter == null) return;
 
         // Tab order is inverted in when closing.
-        final String[] urls = new String[] {getUrl(TEST_PAGE_A), getUrl(TEST_PAGE_B)};
+        final String urls[] = new String[] {getUrl(TEST_PAGE_A), getUrl(TEST_PAGE_B)};
         final Tab tabA = sActivityTestRule.loadUrlInNewTab(urls[0], /*incognito=*/false);
         final Tab tabB = sActivityTestRule.loadUrlInNewTab(urls[1], /*incognito=*/false);
 
@@ -419,11 +427,13 @@ public class RecentlyClosedBridgeTest {
      */
     @Test
     @MediumTest
+    @EnableFeatures({ChromeFeatureList.TAB_GROUPS_ANDROID})
+    @Restriction({Restriction.RESTRICTION_TYPE_NON_LOW_END_DEVICE})
     public void testOpenRecentlyClosedEntry_Tab_FromMultipleTabs() {
         if (mTabGroupModelFilter == null) return;
 
-        final String[] urlA = new String[] {getUrl(TEST_PAGE_A)};
-        final String[] urlB = new String[] {getUrl(TEST_PAGE_B)};
+        final String urlA[] = new String[] {getUrl(TEST_PAGE_A)};
+        final String urlB[] = new String[] {getUrl(TEST_PAGE_B)};
         final Tab tabA = sActivityTestRule.loadUrlInNewTab(urlA[0], /*incognito=*/false);
         final Tab tabB = sActivityTestRule.loadUrlInNewTab(urlB[0], /*incognito=*/false);
 
@@ -481,12 +491,14 @@ public class RecentlyClosedBridgeTest {
      */
     @Test
     @MediumTest
+    @EnableFeatures({ChromeFeatureList.TAB_GROUPS_ANDROID})
+    @Restriction({Restriction.RESTRICTION_TYPE_NON_LOW_END_DEVICE})
     public void testOpenRecentlyClosedEntry_Tab_FromGroupClosure() {
         if (mTabGroupModelFilter == null) return;
 
         // Tab order is inverted in RecentlyClosedEntry as most recent comes first so log data in
         // reverse.
-        final String[] urls = new String[] {getUrl(TEST_PAGE_B), getUrl(TEST_PAGE_A)};
+        final String urls[] = new String[] {getUrl(TEST_PAGE_B), getUrl(TEST_PAGE_A)};
         final Tab tabA = sActivityTestRule.loadUrlInNewTab(urls[1], /*incognito=*/false);
         final Tab tabB = sActivityTestRule.loadUrlInNewTab(urls[0], /*incognito=*/false);
 
@@ -530,12 +542,14 @@ public class RecentlyClosedBridgeTest {
      */
     @Test
     @MediumTest
+    @EnableFeatures({ChromeFeatureList.TAB_GROUPS_ANDROID})
+    @Restriction({Restriction.RESTRICTION_TYPE_NON_LOW_END_DEVICE})
     public void testOpenRecentlyClosedEntry_Group_FromGroupClosure() {
         if (mTabGroupModelFilter == null) return;
 
         // Tab order is inverted in RecentlyClosedEntry as most recent comes first so log data in
         // reverse.
-        final String[] urls = new String[] {getUrl(TEST_PAGE_B), getUrl(TEST_PAGE_A)};
+        final String urls[] = new String[] {getUrl(TEST_PAGE_B), getUrl(TEST_PAGE_A)};
         final Tab tabA = sActivityTestRule.loadUrlInNewTab(urls[1], /*incognito=*/false);
         final Tab tabB = sActivityTestRule.loadUrlInNewTab(urls[0], /*incognito=*/false);
 
@@ -581,12 +595,15 @@ public class RecentlyClosedBridgeTest {
      */
     @Test
     @LargeTest
+    @EnableFeatures({ChromeFeatureList.TAB_GROUPS_ANDROID})
+    @Restriction({Restriction.RESTRICTION_TYPE_NON_LOW_END_DEVICE})
+    @DisabledTest(message = "https://crbug.com/1403661")
     public void testOpenRecentlyClosedEntry_Group_FromGroupClosure_WithRestart() {
         if (mTabGroupModelFilter == null) return;
 
         // Tab order is inverted in RecentlyClosedEntry as most recent comes first so log data in
         // reverse.
-        final String[] urls =
+        final String urls[] =
                 new String[] {getUrl(TEST_PAGE_C), getUrl(TEST_PAGE_B), getUrl(TEST_PAGE_A)};
         final Tab tabA = sActivityTestRule.loadUrlInNewTab(urls[2], /*incognito=*/false);
         final Tab tabB = sActivityTestRule.loadUrlInNewTab(urls[1], /*incognito=*/false);
@@ -626,7 +643,7 @@ public class RecentlyClosedBridgeTest {
         Assert.assertEquals(urls[1], ChromeTabUtils.getUrlOnUiThread(tabs.get(2)).getSpec());
         Assert.assertEquals(titles[0], ChromeTabUtils.getTitleOnUiThread(tabs.get(3)));
         Assert.assertEquals(urls[0], ChromeTabUtils.getUrlOnUiThread(tabs.get(3)).getSpec());
-        final int[] tabIds =
+        final int tabIds[] =
                 new int[] {tabs.get(1).getId(), tabs.get(2).getId(), tabs.get(3).getId()};
         TestThreadUtils.runOnUiThreadBlocking(() -> {
             Assert.assertEquals("Bar", TabGroupTitleUtils.getTabGroupTitle(tabs.get(1).getId()));
@@ -677,12 +694,14 @@ public class RecentlyClosedBridgeTest {
      */
     @Test
     @MediumTest
+    @EnableFeatures({ChromeFeatureList.TAB_GROUPS_ANDROID})
+    @Restriction({Restriction.RESTRICTION_TYPE_NON_LOW_END_DEVICE})
     public void testOpenRecentlyClosedEntry_Tab_FromBulkClosure() {
         if (mTabGroupModelFilter == null) return;
 
         // Tab order is inverted in RecentlyClosedEntry as most recent comes first so log data in
         // reverse.
-        final String[] urls =
+        final String urls[] =
                 new String[] {getUrl(TEST_PAGE_C), getUrl(TEST_PAGE_B), getUrl(TEST_PAGE_A)};
         final Tab tabA = sActivityTestRule.loadUrlInNewTab(urls[2], /*incognito=*/false);
         final Tab tabB = sActivityTestRule.loadUrlInNewTab(urls[1], /*incognito=*/false);
@@ -725,12 +744,14 @@ public class RecentlyClosedBridgeTest {
      */
     @Test
     @MediumTest
+    @EnableFeatures({ChromeFeatureList.TAB_GROUPS_ANDROID})
+    @Restriction({Restriction.RESTRICTION_TYPE_NON_LOW_END_DEVICE})
     public void testOpenRecentlyClosedEntry_Bulk_FromBulkClosure() {
         if (mTabGroupModelFilter == null) return;
 
         // Tab order is inverted in RecentlyClosedEntry as most recent comes first so log data in
         // reverse.
-        final String[] urls =
+        final String urls[] =
                 new String[] {getUrl(TEST_PAGE_C), getUrl(TEST_PAGE_B), getUrl(TEST_PAGE_A)};
         final Tab tabA = sActivityTestRule.loadUrlInNewTab(urls[2], /*incognito=*/false);
         final Tab tabB = sActivityTestRule.loadUrlInNewTab(urls[1], /*incognito=*/false);
@@ -783,13 +804,15 @@ public class RecentlyClosedBridgeTest {
      */
     @Test
     @MediumTest
+    @EnableFeatures({ChromeFeatureList.TAB_GROUPS_ANDROID})
+    @Restriction({Restriction.RESTRICTION_TYPE_NON_LOW_END_DEVICE})
     public void testOpenMostRecentlyClosedEntry_Group() {
         if (mTabGroupModelFilter == null) return;
 
         // Tab order is inverted in RecentlyClosedEntry as most recent comes first so log data in
         // reverse.
-        final String[] groupUrls = new String[] {getUrl(TEST_PAGE_C), getUrl(TEST_PAGE_B)};
-        final String[] url = new String[] {getUrl(TEST_PAGE_A)};
+        final String groupUrls[] = new String[] {getUrl(TEST_PAGE_C), getUrl(TEST_PAGE_B)};
+        final String url[] = new String[] {getUrl(TEST_PAGE_A)};
         final Tab tabA = sActivityTestRule.loadUrlInNewTab(url[0], /*incognito=*/false);
         final Tab tabB = sActivityTestRule.loadUrlInNewTab(groupUrls[1], /*incognito=*/false);
         final Tab tabC = sActivityTestRule.loadUrlInNewTab(groupUrls[0], /*incognito=*/false);
@@ -861,12 +884,14 @@ public class RecentlyClosedBridgeTest {
      */
     @Test
     @MediumTest
+    @EnableFeatures({ChromeFeatureList.TAB_GROUPS_ANDROID})
+    @Restriction({Restriction.RESTRICTION_TYPE_NON_LOW_END_DEVICE})
     public void testOpenMostRecentlyClosedEntry_Bulk() {
         if (mTabGroupModelFilter == null) return;
 
         // Tab order is inverted in RecentlyClosedEntry as most recent comes first so log data in
         // reverse.
-        final String[] urls =
+        final String urls[] =
                 new String[] {getUrl(TEST_PAGE_C), getUrl(TEST_PAGE_B), getUrl(TEST_PAGE_A)};
         final Tab tabA = sActivityTestRule.loadUrlInNewTab(urls[2], /*incognito=*/false);
         final Tab tabB = sActivityTestRule.loadUrlInNewTab(urls[1], /*incognito=*/false);

@@ -66,7 +66,7 @@ class TimeRanges;
 class VideoTrackList;
 class WebSourceBuffer;
 
-class SourceBuffer final : public EventTarget,
+class SourceBuffer final : public EventTargetWithInlineData,
                            public ActiveScriptWrappable<SourceBuffer>,
                            public ExecutionContextLifecycleObserver,
                            public WebSourceBufferClient {

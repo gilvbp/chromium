@@ -38,12 +38,10 @@ static_library("camera_app_ui") {
     ":window_managemet",
     "//ash",
     "//ash/public/cpp",
-    "//ash/webui/common:trusted_types_util",
     "//ash/webui/system_apps/public:system_web_app_config",
     "//ash/webui/web_applications",
     "//chromeos/utils",
     "//components/arc",
-    "//components/media_device_salt",
     "//content/public/browser",
     "//content/public/common",
     "//media/capture:capture_lib",
@@ -137,7 +135,7 @@ generate_grd("build_grd") {
   }
 
   # Image Files.
-  foreach(image, standalone_images) {
+  foreach(image, in_app_images) {
     input_files += [ "images/$image" ]
   }
   foreach(image, icon_images) {

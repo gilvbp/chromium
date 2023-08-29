@@ -6,6 +6,7 @@
 
 #include <utility>
 
+#include "base/mac/scoped_nsobject.h"
 #include "base/strings/sys_string_conversions.h"
 #include "third_party/blink/public/mojom/webshare/webshare.mojom.h"
 #include "url/gurl.h"
@@ -18,10 +19,10 @@
 @end
 
 @implementation SharingServicePicker {
-  NSSharingServicePicker* __strong picker_;
+  base::scoped_nsobject<NSSharingServicePicker> picker_;
   remote_cocoa::mojom::RenderWidgetHostNSView::ShowSharingServicePickerCallback
       callback_;
-  NSView* __strong view_;
+  NSView* view_;
 }
 
 - (instancetype)initWithItems:(NSArray*)items
@@ -29,8 +30,8 @@
                                    ShowSharingServicePickerCallback)cb
                          view:(NSView*)view {
   if ((self = [super init])) {
-    picker_ = [[NSSharingServicePicker alloc] initWithItems:items];
-    picker_.delegate = self;
+    picker_.reset([[NSSharingServicePicker alloc] initWithItems:items]);
+    picker_.get().delegate = self;
     callback_ = std::move(cb);
     view_ = view;
   }
@@ -48,7 +49,7 @@
 }
 
 - (void)show {
-  NSRect viewFrame = view_.frame;
+  NSRect viewFrame = [view_ frame];
   CGSize size = viewFrame.size;
   NSRect rect = NSMakeRect(size.width / 2, size.height, 1, 1);
   [picker_ showRelativeToRect:rect ofView:view_ preferredEdge:NSMaxXEdge];
@@ -76,7 +77,7 @@
 - (NSWindow*)sharingService:(NSSharingService*)sharingService
     sourceWindowForShareItems:(NSArray*)items
           sharingContentScope:(NSSharingContentScope*)sharingContentScope {
-  return view_.window;
+  return [view_ window];
 }
 
 @end
@@ -94,7 +95,8 @@ void ShowSharingServicePickerForView(
   NSString* ns_url = base::SysUTF8ToNSString(url);
   NSString* ns_text = base::SysUTF8ToNSString(text);
 
-  NSMutableArray* items = [@[ ns_title, ns_url, ns_text ] mutableCopy];
+  NSMutableArray* items =
+      [NSMutableArray arrayWithArray:@[ ns_title, ns_url, ns_text ]];
 
   for (const auto& file_path : file_paths) {
     NSString* ns_file_path = base::SysUTF8ToNSString(file_path);
@@ -102,11 +104,11 @@ void ShowSharingServicePickerForView(
     [items addObject:file_url];
   }
 
-  SharingServicePicker* picker =
+  base::scoped_nsobject<SharingServicePicker> picker(
       [[SharingServicePicker alloc] initWithItems:items
                                          callback:std::move(callback)
-                                             view:view];
-  [picker show];
+                                             view:view]);
+  [picker.get() show];
 }
 
 }  // namespace remote_cocoa

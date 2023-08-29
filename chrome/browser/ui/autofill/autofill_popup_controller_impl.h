@@ -14,15 +14,12 @@
 #include "base/i18n/rtl.h"
 #include "base/memory/raw_ptr.h"
 #include "base/memory/weak_ptr.h"
-#include "base/scoped_observation.h"
 #include "base/time/time.h"
-#include "chrome/browser/picture_in_picture/picture_in_picture_window_manager.h"
 #include "chrome/browser/ui/autofill/autofill_popup_controller.h"
 #include "chrome/browser/ui/autofill/popup_controller_common.h"
 #include "components/autofill/core/browser/ui/popup_types.h"
 #include "components/autofill/core/common/aliases.h"
 #include "components/password_manager/core/browser/password_manager_metrics_util.h"
-#include "content/public/browser/render_widget_host.h"
 #include "third_party/abseil-cpp/absl/types/optional.h"
 #include "third_party/abseil-cpp/absl/types/variant.h"
 
@@ -54,9 +51,7 @@ class ContentAutofillDriver;
 // This class is a controller for an AutofillPopupView. It implements
 // AutofillPopupController to allow calls from AutofillPopupView. The
 // other, public functions are available to its instantiator.
-class AutofillPopupControllerImpl
-    : public AutofillPopupController,
-      public PictureInPictureWindowManager::Observer {
+class AutofillPopupControllerImpl : public AutofillPopupController {
  public:
   AutofillPopupControllerImpl(const AutofillPopupControllerImpl&) = delete;
   AutofillPopupControllerImpl& operator=(const AutofillPopupControllerImpl&) =
@@ -76,7 +71,7 @@ class AutofillPopupControllerImpl
 
   // Shows the popup, or updates the existing popup with the given values.
   virtual void Show(std::vector<Suggestion> suggestions,
-                    AutofillSuggestionTriggerSource trigger_source);
+                    AutoselectFirstSuggestion autoselect_first_suggestion);
 
   // Updates the data list values currently shown with the popup.
   virtual void UpdateDataListValues(const std::vector<std::u16string>& values,
@@ -103,15 +98,11 @@ class AutofillPopupControllerImpl
 
   // AutofillPopupController:
   std::vector<Suggestion> GetSuggestions() const override;
-  bool ShouldIgnoreMouseObservedOutsideItemBoundsCheck() const override;
 
   // Disables show thresholds. See the documentation of the member for details.
   void DisableThresholdForTesting(bool disable_threshold) {
     disable_threshold_for_testing_ = disable_threshold;
   }
-
-  // PictureInPictureWindowManager::Observer
-  void OnEnterPictureInPicture() override;
 
  protected:
   FRIEND_TEST_ALL_PREFIXES(AutofillPopupControllerUnitTest,
@@ -139,7 +130,7 @@ class AutofillPopupControllerImpl
   // AutofillPopupController:
   void OnSuggestionsChanged() override;
   void SelectSuggestion(absl::optional<size_t> index) override;
-  void AcceptSuggestion(int index, base::TimeTicks event_time) override;
+  void AcceptSuggestion(int index) override;
   void AcceptSuggestionWithoutThreshold(int index) override;
   bool RemoveSuggestion(int list_index) override;
   int GetLineCount() const override;
@@ -152,8 +143,6 @@ class AutofillPopupControllerImpl
                                   std::u16string* title,
                                   std::u16string* body) override;
   PopupType GetPopupType() const override;
-  AutofillSuggestionTriggerSource GetAutofillSuggestionTriggerSource()
-      const override;
 
   // Returns true if the popup still has non-options entries to show the user.
   bool HasSuggestions() const;
@@ -236,15 +225,9 @@ class AutofillPopupControllerImpl
   void SetViewForTesting(base::WeakPtr<AutofillPopupView> view);
 
   PopupControllerCommon controller_common_;
-  raw_ptr<content::WebContents, AcrossTasksDanglingUntriaged> web_contents_;
+  raw_ptr<content::WebContents, DanglingUntriaged> web_contents_;
   AutofillPopupViewPtr view_;
   base::WeakPtr<AutofillPopupDelegate> delegate_;
-
-  struct {
-    content::RenderWidgetHost::KeyPressEventCallback handler;
-    int rwh_process_id = -1;
-    int rwh_routing_id = -1;
-  } key_press_observer_;
 
   // The time the view was shown the last time. It is used to safeguard against
   // accepting suggestions too quickly after a the popup view was shown (see the
@@ -263,20 +246,9 @@ class AutofillPopupControllerImpl
   // The current Autofill query values.
   std::vector<Suggestion> suggestions_;
 
-  // The trigger source of the `suggestions_`.
-  AutofillSuggestionTriggerSource trigger_source_;
-
   // If set to true, the popup will stay open regardless of external changes on
   // the machine that would normally cause the popup to be hidden.
   bool keep_popup_open_for_testing_ = false;
-
-  // Observer needed to check autofill popup overlap with picture-in-picture
-  // window. It is guaranteed that there can only be one
-  // PictureInPictureWindowManager per Chrome instance, therefore, it is also
-  // guaranteed that PictureInPictureWindowManager would outlive its observers.
-  base::ScopedObservation<PictureInPictureWindowManager,
-                          PictureInPictureWindowManager::Observer>
-      picture_in_picture_window_observation_{this};
 
   // Callback invoked to try to show the password migration warning on Android.
   // Used to facilitate testing.
@@ -286,9 +258,6 @@ class AutofillPopupControllerImpl
       Profile*,
       password_manager::metrics_util::PasswordMigrationWarningTriggers)>
       show_pwd_migration_warning_callback_;
-
-  // Whether the popup should ignore mouse observed outside check.
-  bool should_ignore_mouse_observed_outside_item_bounds_check_ = false;
 
   // AutofillPopupControllerImpl deletes itself. To simplify memory management,
   // we delete the object asynchronously.

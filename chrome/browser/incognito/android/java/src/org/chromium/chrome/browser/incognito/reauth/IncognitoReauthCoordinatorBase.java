@@ -132,6 +132,7 @@ abstract class IncognitoReauthCoordinatorBase implements IncognitoReauthCoordina
      *
      * @param incognitoReauthView The mock {@link View} to set instead of the actual re-auth view.
      */
+    @VisibleForTesting
     protected void setIncognitoReauthViewForTesting(View incognitoReauthView) {
         mIncognitoReauthView = incognitoReauthView;
     }
@@ -139,6 +140,7 @@ abstract class IncognitoReauthCoordinatorBase implements IncognitoReauthCoordina
     /**
      * Test-only method to set a mock {@link PropertyModel}.
      */
+    @VisibleForTesting
     protected void setPropertyModelForTesting(PropertyModel propertyModel) {
         mPropertyModel = propertyModel;
     }
@@ -146,6 +148,7 @@ abstract class IncognitoReauthCoordinatorBase implements IncognitoReauthCoordina
     /**
      * Test-only method to set a mock {@link PropertyModelChangeProcessor}.
      */
+    @VisibleForTesting
     protected void setModelChangeProcessorForTesting(
             PropertyModelChangeProcessor modelChangeProcessor) {
         mModelChangeProcessor = modelChangeProcessor;

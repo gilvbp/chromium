@@ -211,14 +211,6 @@ class GaiaDialog extends GaiaDialogBase {
         type: Boolean,
         computed: 'isSamlBackButtonHidden(isDefaultSsoProvider, isClosable)',
       },
-
-      /**
-       * Whether Quick start feature is enabled. If it's enabled the quick start
-       * button will be shown in the signin screen.
-       * @type {boolean}
-       * @private
-       */
-      isQuickStartEnabled_: Boolean,
     };
   }
 
@@ -237,8 +229,6 @@ class GaiaDialog extends GaiaDialogBase {
      * @private
      */
     this.authenticator_ = undefined;
-
-    this.isQuickStartEnabled_ = false;
   }
 
   getAuthenticator() {
@@ -424,15 +414,6 @@ class GaiaDialog extends GaiaDialogBase {
     }
     this.dispatchEvent(
         new CustomEvent('backcancel', {bubbles: true, composed: true}));
-  }
-
-  /**
-   * Handles clicks on Quick start button.
-   * @private
-   */
-  onQuickStartClicked_() {
-    this.dispatchEvent(new CustomEvent(
-        'quick-start-clicked', {bubbles: true, composed: true}));
   }
 
   /**

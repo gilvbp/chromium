@@ -36,7 +36,6 @@
 #include "ui/base/l10n/l10n_util.h"
 #include "ui/base/metadata/metadata_header_macros.h"
 #include "ui/base/metadata/metadata_impl_macros.h"
-#include "ui/base/ui_base_features.h"
 #include "ui/color/color_id.h"
 #include "ui/color/color_provider.h"
 #include "ui/compositor/layer.h"
@@ -74,14 +73,11 @@ constexpr auto kTitleMargins =
     gfx::Insets::VH(kVerticalMargin, kHorizontalMargin);
 constexpr auto kAlertMargins =
     gfx::Insets::VH(kFootnoteVerticalMargin, kHorizontalMargin);
-constexpr auto kTextAreaRefreshMargins = gfx::Insets::VH(12, 12);
 
 std::unique_ptr<views::Label> CreateAlertView(const TabAlertState& state) {
-  const int text_style = features::IsChromeRefresh2023()
-                             ? views::style::STYLE_BODY_4
-                             : views::style::STYLE_PRIMARY;
   auto alert_state_label = std::make_unique<views::Label>(
-      std::u16string(), views::style::CONTEXT_DIALOG_BODY_TEXT, text_style);
+      std::u16string(), views::style::CONTEXT_DIALOG_BODY_TEXT,
+      views::style::STYLE_PRIMARY);
   alert_state_label->SetHorizontalAlignment(gfx::ALIGN_LEFT);
   alert_state_label->SetMultiLine(true);
   alert_state_label->SetVisible(true);
@@ -353,11 +349,7 @@ TabHoverCardBubbleView::TabHoverCardBubbleView(Tab* tab)
     : BubbleDialogDelegateView(tab,
                                views::BubbleBorder::TOP_LEFT,
                                views::BubbleBorder::STANDARD_SHADOW),
-      tab_style_(TabStyle::Get()),
-      discard_tab_treatment_enabled_(base::FeatureList::IsEnabled(
-          performance_manager::features::kDiscardedTabTreatment)),
-      memory_usage_in_hovercards_enabled_(base::FeatureList::IsEnabled(
-          performance_manager::features::kMemoryUsageInHovercards)) {
+      tab_style_(TabStyle::Get()) {
   SetButtons(ui::DIALOG_BUTTON_NONE);
 
   // Remove the accessible role so that hover cards are not read when they
@@ -380,33 +372,16 @@ TabHoverCardBubbleView::TabHoverCardBubbleView(Tab* tab)
   // navigating through the tab strip.
   set_focus_traversable_from_anchor_view(false);
 
-  if (features::IsChromeRefresh2023()) {
-    title_label_ = AddChildView(std::make_unique<FadeLabelView>(
-        kHoverCardTitleMaxLines, CONTEXT_TAB_HOVER_CARD_TITLE,
-        views::style::STYLE_BODY_3_EMPHASIS));
-    domain_label_ = AddChildView(std::make_unique<FadeLabelView>(
-        1, views::style::CONTEXT_DIALOG_BODY_TEXT, views::style::STYLE_BODY_4));
-    domain_label_->SetEnabledColorId(kColorTabHoverCardSecondaryText);
-  } else {
-    title_label_ = AddChildView(std::make_unique<FadeLabelView>(
-        kHoverCardTitleMaxLines, CONTEXT_TAB_HOVER_CARD_TITLE));
-    domain_label_ = AddChildView(std::make_unique<FadeLabelView>(
-        1, views::style::CONTEXT_DIALOG_BODY_TEXT));
-  }
+  title_label_ = AddChildView(std::make_unique<FadeLabelView>(
+      CONTEXT_TAB_HOVER_CARD_TITLE, kHoverCardTitleMaxLines));
+  domain_label_ = AddChildView(std::make_unique<FadeLabelView>(
+      views::style::CONTEXT_DIALOG_BODY_TEXT, 1));
 
   if (TabHoverCardController::AreHoverCardImagesEnabled()) {
     thumbnail_view_ = AddChildView(std::make_unique<ThumbnailView>(this));
     thumbnail_view_->SetRoundedCorners(true, corner_radius_);
   }
-
-  if (discard_tab_treatment_enabled_ || memory_usage_in_hovercards_enabled_) {
-    footer_view_ = AddChildView(std::make_unique<FooterView>());
-    footer_view_->SetProperty(
-        views::kFlexBehaviorKey,
-        views::FlexSpecification(views::MinimumFlexSizeRule::kScaleToMinimum,
-                                 views::MaximumFlexSizeRule::kScaleToMaximum)
-            .WithOrder(2));
-  }
+  footer_view_ = AddChildView(std::make_unique<FooterView>());
 
   // Set up layout.
 
@@ -422,15 +397,14 @@ TabHoverCardBubbleView::TabHoverCardBubbleView(Tab* tab)
   // element because it is no longer above another text element and needs a
   // bottom margin.
   const bool show_domain = tab->controller()->ShowDomainInHoverCards();
-
-  gfx::Insets title_margins =
-      features::IsChromeRefresh2023() ? kTextAreaRefreshMargins : kTitleMargins;
+  gfx::Insets title_margins = kTitleMargins;
   domain_label_->SetVisible(show_domain);
   if (show_domain) {
-    const gfx::Insets domain_margins = gfx::Insets::TLBR(
-        0, title_margins.left(), title_margins.bottom(), title_margins.right());
-    domain_label_->SetProperty(views::kMarginsKey, domain_margins);
     title_margins.set_bottom(0);
+    domain_label_->SetProperty(
+        views::kMarginsKey,
+        gfx::Insets::TLBR(0, kHorizontalMargin, kVerticalMargin,
+                          kHorizontalMargin));
   }
 
   title_label_->SetProperty(views::kMarginsKey, title_margins);
@@ -451,9 +425,8 @@ TabHoverCardBubbleView::TabHoverCardBubbleView(Tab* tab)
 
   views::BubbleDialogDelegateView::CreateBubble(this);
   set_adjust_if_offscreen(true);
-  const gfx::Insets alert_margins =
-      features::IsChromeRefresh2023() ? kTextAreaRefreshMargins : kAlertMargins;
-  GetBubbleFrameView()->SetFootnoteMargins(alert_margins);
+
+  GetBubbleFrameView()->SetFootnoteMargins(kAlertMargins);
   GetBubbleFrameView()->SetPreferredArrowAdjustment(
       views::BubbleFrameView::PreferredArrowAdjustment::kOffset);
   GetBubbleFrameView()->set_hit_test_transparent(true);
@@ -546,9 +519,13 @@ void TabHoverCardBubbleView::UpdateCardContent(const Tab* tab) {
   domain_label_->SetData({domain, false});
 
   bool show_footer = alert_state_.has_value();
-  if (discard_tab_treatment_enabled_ || memory_usage_in_hovercards_enabled_) {
+  const bool discard_tab_treatment_enabled = base::FeatureList::IsEnabled(
+      performance_manager::features::kDiscardedTabTreatment);
+  const bool memory_usage_in_hovercards_enabled = base::FeatureList::IsEnabled(
+      performance_manager::features::kMemoryUsageInHovercards);
+  if (discard_tab_treatment_enabled || memory_usage_in_hovercards_enabled) {
     const bool show_discard_status =
-        tab_data.should_show_discard_status && discard_tab_treatment_enabled_;
+        tab_data.should_show_discard_status && discard_tab_treatment_enabled;
     const uint64_t tab_memory_usage_in_bytes =
         tab_data.tab_resource_usage
             ? tab_data.tab_resource_usage->memory_usage_in_bytes()
@@ -556,8 +533,8 @@ void TabHoverCardBubbleView::UpdateCardContent(const Tab* tab) {
     show_footer =
         show_footer || show_discard_status || tab_memory_usage_in_bytes > 0;
     const int hover_card_width = views::View::GetContentsBounds().width();
-    footer_view_->SetAlertData({alert_state_, hover_card_width});
-    footer_view_->SetPerformanceData(
+    footer_view_->GetAlertRow()->SetData({alert_state_, hover_card_width});
+    footer_view_->GetPerformanceRow()->SetData(
         {show_discard_status, tab_data.discarded_memory_savings_in_bytes,
          tab_memory_usage_in_bytes, hover_card_width});
   } else {
@@ -577,9 +554,8 @@ void TabHoverCardBubbleView::UpdateCardContent(const Tab* tab) {
 void TabHoverCardBubbleView::SetTextFade(double percent) {
   title_label_->SetFade(percent);
   domain_label_->SetFade(percent);
-  if (footer_view_) {
-    footer_view_->SetFade(percent);
-  }
+  footer_view_->GetAlertRow()->SetFade(percent);
+  footer_view_->GetPerformanceRow()->SetFade(percent);
 }
 
 void TabHoverCardBubbleView::SetTargetTabImage(gfx::ImageSkia preview_image) {

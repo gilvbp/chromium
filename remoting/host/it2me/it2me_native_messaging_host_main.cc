@@ -14,12 +14,12 @@
 #include "base/task/single_thread_task_executor.h"
 #include "base/task/thread_pool/thread_pool_instance.h"
 #include "build/build_config.h"
-#include "mojo/core/embedder/embedder.h"
 #include "net/base/network_change_notifier.h"
 #include "remoting/base/auto_thread_task_runner.h"
 #include "remoting/base/breakpad.h"
 #include "remoting/base/host_settings.h"
 #include "remoting/base/logging.h"
+#include "remoting/base/mojo_util.h"
 #include "remoting/host/base/host_exit_codes.h"
 #include "remoting/host/base/switches.h"
 #include "remoting/host/chromoting_host_context.h"
@@ -41,7 +41,8 @@
 #endif  // BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS) &&
 
 #if BUILDFLAG(IS_APPLE)
-#include "base/apple/scoped_nsautorelease_pool.h"
+#include "base/mac/mac_util.h"
+#include "base/mac/scoped_nsautorelease_pool.h"
 #include "remoting/host/desktop_capturer_checker.h"
 #include "remoting/host/mac/permission_utils.h"
 #endif  // BUILDFLAG(IS_APPLE)
@@ -96,7 +97,7 @@ int It2MeNativeMessagingHostMain(int argc, char** argv) {
 
 #if BUILDFLAG(IS_APPLE)
   // Needed so we don't leak objects when threads are created.
-  base::apple::ScopedNSAutoreleasePool pool;
+  base::mac::ScopedNSAutoreleasePool pool;
 #endif  // BUILDFLAG(IS_APPLE)
 
 #if defined(REMOTING_ENABLE_BREAKPAD)
@@ -119,7 +120,7 @@ int It2MeNativeMessagingHostMain(int argc, char** argv) {
   // Required to find the ICU data file, used by some file_util routines.
   base::i18n::InitializeICU();
 
-  mojo::core::Init();
+  InitializeMojo();
 
   base::ThreadPoolInstance::CreateAndStartWithDefaultParams("It2Me");
 
@@ -228,7 +229,9 @@ int It2MeNativeMessagingHostMain(int argc, char** argv) {
     // heuristic that might not be 100% reliable, but it is critically
     // important to add the host bundle to the list of apps under
     // Security & Privacy -> Screen Recording.
-    DesktopCapturerChecker().TriggerSingleCapture();
+    if (base::mac::IsAtLeastOS10_15()) {
+      DesktopCapturerChecker().TriggerSingleCapture();
+    }
     return mac::CanRecordScreen() ? EXIT_SUCCESS : EXIT_FAILURE;
   }
 #endif  // BUILDFLAG(IS_APPLE)

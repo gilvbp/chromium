@@ -15,7 +15,7 @@
 #include "third_party/blink/renderer/bindings/core/v8/v8_binding_for_core.h"
 #include "third_party/blink/renderer/bindings/core/v8/v8_throw_dom_exception.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_websocket_close_info.h"
-#include "third_party/blink/renderer/bindings/modules/v8/v8_websocket_open_info.h"
+#include "third_party/blink/renderer/bindings/modules/v8/v8_websocket_connection.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_websocket_stream_options.h"
 #include "third_party/blink/renderer/core/dom/abort_signal.h"
 #include "third_party/blink/renderer/core/execution_context/execution_context.h"
@@ -439,19 +439,20 @@ WebSocketStream::WebSocketStream(ExecutionContext* execution_context,
     : ActiveScriptWrappable<WebSocketStream>({}),
       ExecutionContextLifecycleObserver(execution_context),
       script_state_(script_state),
-      opened_resolver_(
+      connection_resolver_(
           MakeGarbageCollected<ScriptPromiseResolver>(script_state)),
       closed_resolver_(
           MakeGarbageCollected<ScriptPromiseResolver>(script_state)),
-      opened_(script_state->GetIsolate(),
-              opened_resolver_->Promise().V8Promise()),
+      connection_(script_state->GetIsolate(),
+                  connection_resolver_->Promise().V8Promise()),
       closed_(script_state->GetIsolate(),
               closed_resolver_->Promise().V8Promise()) {}
 
 WebSocketStream::~WebSocketStream() = default;
 
-ScriptPromise WebSocketStream::opened(ScriptState* script_state) const {
-  return ScriptPromise(script_state, opened_.Get(script_state->GetIsolate()));
+ScriptPromise WebSocketStream::connection(ScriptState* script_state) const {
+  return ScriptPromise(script_state,
+                       connection_.Get(script_state->GetIsolate()));
 }
 
 ScriptPromise WebSocketStream::closed(ScriptState* script_state) const {
@@ -485,18 +486,18 @@ void WebSocketStream::DidConnect(const String& subprotocol,
     return;
   common_.SetState(WebSocketCommon::kOpen);
   was_ever_connected_ = true;
-  auto* open_info = MakeGarbageCollected<WebSocketOpenInfo>();
-  open_info->setProtocol(subprotocol);
-  open_info->setExtensions(extensions);
+  auto* connection = MakeGarbageCollected<WebSocketConnection>();
+  connection->setProtocol(subprotocol);
+  connection->setExtensions(extensions);
   source_ = MakeGarbageCollected<UnderlyingSource>(script_state_, this);
   auto* readable = ReadableStream::CreateWithCountQueueingStrategy(
       script_state_, source_, 1);
   sink_ = MakeGarbageCollected<UnderlyingSink>(this);
   auto* writable =
       WritableStream::CreateWithCountQueueingStrategy(script_state_, sink_, 1);
-  open_info->setReadable(readable);
-  open_info->setWritable(writable);
-  opened_resolver_->Resolve(open_info);
+  connection->setReadable(readable);
+  connection->setWritable(writable);
+  connection_resolver_->Resolve(connection);
   abort_handle_.Clear();
 }
 
@@ -554,7 +555,7 @@ void WebSocketStream::DidClose(
 
   ScriptState::Scope scope(script_state_);
   if (!was_ever_connected_) {
-    opened_resolver_->Reject(CreateNetworkErrorDOMException());
+    connection_resolver_->Reject(CreateNetworkErrorDOMException());
   }
   bool all_data_was_consumed = sink_ ? sink_->AllDataHasBeenConsumed() : true;
   bool was_clean = common_.GetState() == WebSocketCommon::kClosing &&
@@ -594,9 +595,9 @@ bool WebSocketStream::HasPendingActivity() const {
 
 void WebSocketStream::Trace(Visitor* visitor) const {
   visitor->Trace(script_state_);
-  visitor->Trace(opened_resolver_);
+  visitor->Trace(connection_resolver_);
   visitor->Trace(closed_resolver_);
-  visitor->Trace(opened_);
+  visitor->Trace(connection_);
   visitor->Trace(closed_);
   visitor->Trace(channel_);
   visitor->Trace(source_);
@@ -623,7 +624,7 @@ void WebSocketStream::Connect(ScriptState* script_state,
       auto exception = V8ThrowDOMException::CreateOrEmpty(
           script_state->GetIsolate(), DOMExceptionCode::kAbortError,
           "WebSocket handshake was aborted");
-      opened_resolver_->Reject(exception);
+      connection_resolver_->Reject(exception);
       closed_resolver_->Reject(exception);
       return;
     }
@@ -647,7 +648,7 @@ void WebSocketStream::Connect(ScriptState* script_state,
       channel_ = nullptr;
       // These need to be resolved to stop ScriptPromiseResolver::Dispose() from
       // DCHECKing. It's not actually visible to JavaScript.
-      opened_resolver_->Resolve();
+      connection_resolver_->Resolve();
       closed_resolver_->Resolve();
       return;
 
@@ -658,7 +659,7 @@ void WebSocketStream::Connect(ScriptState* script_state,
           "An attempt was made to break through the security policy of the "
           "user agent.",
           "WebSocket mixed content check failed.");
-      opened_resolver_->Reject(exception);
+      connection_resolver_->Reject(exception);
       closed_resolver_->Reject(exception);
       return;
   }
@@ -724,7 +725,7 @@ void WebSocketStream::OnAbort() {
   auto exception = V8ThrowDOMException::CreateOrEmpty(
       script_state_->GetIsolate(), DOMExceptionCode::kAbortError,
       "WebSocket handshake was aborted");
-  opened_resolver_->Reject(exception);
+  connection_resolver_->Reject(exception);
   closed_resolver_->Reject(exception);
   abort_handle_.Clear();
 }

@@ -246,8 +246,4 @@ public class Features {
     // WebSettingsCompat.enableRestrictSensitiveWebContent
     @Deprecated()
     public static final String RESTRICT_SENSITIVE_WEB_CONTENT = "RESTRICT_SENSITIVE_WEB_CONTENT";
-
-    // WebSettingsCompat.setUserAgentMetadataFromMap
-    // WebSettingsCompat.getUserAgentMetadataMap
-    public static final String USER_AGENT_METADATA = "USER_AGENT_METADATA";
 }

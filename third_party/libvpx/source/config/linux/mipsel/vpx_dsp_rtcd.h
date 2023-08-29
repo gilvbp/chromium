@@ -718,21 +718,25 @@ void vpx_post_proc_down_and_across_mb_row_c(unsigned char* src,
 
 void vpx_quantize_b_c(const tran_low_t* coeff_ptr,
                       intptr_t n_coeffs,
-                      const struct macroblock_plane* const mb_plane,
+                      const int16_t* zbin_ptr,
+                      const int16_t* round_ptr,
+                      const int16_t* quant_ptr,
+                      const int16_t* quant_shift_ptr,
                       tran_low_t* qcoeff_ptr,
                       tran_low_t* dqcoeff_ptr,
                       const int16_t* dequant_ptr,
                       uint16_t* eob_ptr,
-                      const struct ScanOrder* const scan_order);
+                      const int16_t* scan,
+                      const int16_t* iscan);
 #define vpx_quantize_b vpx_quantize_b_c
 
 void vpx_quantize_b_32x32_c(const tran_low_t* coeff_ptr,
-                            const struct macroblock_plane* const mb_plane,
+                            const struct macroblock_plane* mb_plane,
                             tran_low_t* qcoeff_ptr,
                             tran_low_t* dqcoeff_ptr,
                             const int16_t* dequant_ptr,
                             uint16_t* eob_ptr,
-                            const struct ScanOrder* const scan_order);
+                            const struct ScanOrder* scan_order);
 #define vpx_quantize_b_32x32 vpx_quantize_b_32x32_c
 
 unsigned int vpx_sad16x16_c(const uint8_t* src_ptr,

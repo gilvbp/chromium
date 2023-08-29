@@ -23,9 +23,12 @@ source_set("util") {
     "//net",
     "//url",
   ]
+
+  configs += [ "//build/config/compiler:enable_arc" ]
 }
 
 source_set("unittests") {
+  configs += [ "//build/config/compiler:enable_arc" ]
   testonly = true
   deps = [
     ":util",

@@ -4,7 +4,11 @@
 
 #import "ios/web/public/session/crw_session_user_data.h"
 
-#import "base/apple/foundation_util.h"
+#import "base/mac/foundation_util.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 @implementation CRWSessionUserData {
   NSMutableDictionary<NSString*, id<NSCoding>>* _data;
@@ -54,7 +58,7 @@
     return NO;
 
   CRWSessionUserData* other =
-      base::apple::ObjCCastStrict<CRWSessionUserData>(object);
+      base::mac::ObjCCastStrict<CRWSessionUserData>(object);
 
   return [_data isEqual:other->_data];
 }

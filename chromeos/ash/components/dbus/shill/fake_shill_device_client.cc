@@ -373,16 +373,6 @@ void FakeShillDeviceClient::ClearDevices() {
   stub_devices_.clear();
 }
 
-base::Value* FakeShillDeviceClient::GetDeviceProperty(
-    const std::string& device_path,
-    const std::string& name) {
-  base::Value::Dict* device_properties = stub_devices_.FindDict(device_path);
-  if (!device_properties) {
-    return nullptr;
-  }
-  return device_properties->Find(name);
-}
-
 void FakeShillDeviceClient::SetDeviceProperty(const std::string& device_path,
                                               const std::string& name,
                                               const base::Value& value,
@@ -612,11 +602,9 @@ void FakeShillDeviceClient::NotifyObserversPropertyChanged(
     LOG(ERROR) << "Notify for unknown property: " << path << " : " << property;
     return;
   }
-  // Notify using a clone instead of a pointer to the property to avoid the
-  // situation where an observer invalidates our pointer when notified.
-  const base::Value value = device_properties->Find(property)->Clone();
+  const base::Value* value = device_properties->Find(property);
   for (auto& observer : GetObserverList(device_path)) {
-    observer.OnPropertyChanged(property, value);
+    observer.OnPropertyChanged(property, *value);
   }
 }
 

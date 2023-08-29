@@ -108,14 +108,15 @@ class StickyPrintSettingGtk {
   StickyPrintSettingGtk(const StickyPrintSettingGtk&) = delete;
   StickyPrintSettingGtk& operator=(const StickyPrintSettingGtk&) = delete;
 
-  // Intended to be used with base::NoDestructor.
-  ~StickyPrintSettingGtk() = delete;
+  ~StickyPrintSettingGtk() {
+    NOTREACHED();  // Intended to be used with base::NoDestructor.
+  }
 
   GtkPrintSettings* settings() { return last_used_settings_; }
 
   void SetLastUsedSettings(GtkPrintSettings* settings) {
     DCHECK(last_used_settings_);
-    g_object_unref(last_used_settings_.ExtractAsDangling());
+    g_object_unref(last_used_settings_);
     last_used_settings_ = gtk_print_settings_copy(settings);
   }
 
@@ -203,13 +204,16 @@ PrintDialogGtk::~PrintDialogGtk() {
     dialog_ = nullptr;
   }
   if (gtk_settings_) {
-    g_object_unref(gtk_settings_.ExtractAsDangling());
+    g_object_unref(gtk_settings_);
+    gtk_settings_ = nullptr;
   }
   if (page_setup_) {
-    g_object_unref(page_setup_.ExtractAsDangling());
+    g_object_unref(page_setup_);
+    page_setup_ = nullptr;
   }
   if (printer_) {
-    g_object_unref(printer_.ExtractAsDangling());
+    g_object_unref(printer_);
+    printer_ = nullptr;
   }
 }
 
@@ -391,9 +395,8 @@ void PrintDialogGtk::ShowDialog(
       gtk_print_settings_set_print_pages(gtk_settings_, GTK_PRINT_PAGES_ALL);
   }
 
-  // Disable input handling so the user cannot focus the same tab and press
-  // print again.
-  gtk::DisableHostInputHandling(dialog_, parent_view);
+  // Set modal so user cannot focus the same tab and press print again.
+  gtk_window_set_modal(GTK_WINDOW(dialog_), TRUE);
 
   // Since we only generate PDF, only show printers that support PDF.
   // TODO(thestig) Add more capabilities to support?
@@ -481,22 +484,19 @@ void PrintDialogGtk::OnResponse(GtkWidget* dialog, int response_id) {
         return;
       }
 
-      if (gtk_settings_) {
-        g_object_unref(gtk_settings_.ExtractAsDangling());
-      }
+      if (gtk_settings_)
+        g_object_unref(gtk_settings_);
       gtk_settings_ =
           gtk_print_unix_dialog_get_settings(GTK_PRINT_UNIX_DIALOG(dialog_));
 
-      if (printer_) {
-        g_object_unref(printer_.ExtractAsDangling());
-      }
+      if (printer_)
+        g_object_unref(printer_);
       printer_ = gtk_print_unix_dialog_get_selected_printer(
           GTK_PRINT_UNIX_DIALOG(dialog_));
       g_object_ref(printer_);
 
-      if (page_setup_) {
-        g_object_unref(page_setup_.ExtractAsDangling());
-      }
+      if (page_setup_)
+        g_object_unref(page_setup_);
       page_setup_ =
           gtk_print_unix_dialog_get_page_setup(GTK_PRINT_UNIX_DIALOG(dialog_));
       g_object_ref(page_setup_);

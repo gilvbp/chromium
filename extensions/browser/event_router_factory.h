@@ -27,11 +27,10 @@ class EventRouterFactory : public BrowserContextKeyedServiceFactory {
   ~EventRouterFactory() override;
 
   // BrowserContextKeyedServiceFactory implementation
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* context) const override;
   content::BrowserContext* GetBrowserContextToUse(
       content::BrowserContext* context) const override;
-  bool ServiceIsNULLWhileTesting() const override;
 };
 
 }  // namespace extensions

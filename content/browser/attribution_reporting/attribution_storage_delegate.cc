@@ -4,12 +4,9 @@
 
 #include "content/browser/attribution_reporting/attribution_storage_delegate.h"
 
-#include <stdint.h>
-
 #include "base/check.h"
 #include "base/notreached.h"
 #include "components/attribution_reporting/source_type.mojom.h"
-#include "content/browser/attribution_reporting/attribution_config.h"
 #include "content/browser/attribution_reporting/attribution_reporting.mojom.h"
 
 namespace content {
@@ -24,9 +21,7 @@ AttributionStorageDelegate::AttributionStorageDelegate(
   DCHECK(config_.Validate());
 }
 
-AttributionStorageDelegate::~AttributionStorageDelegate() = default;
-
-int AttributionStorageDelegate::GetDefaultAttributionsPerSource(
+int AttributionStorageDelegate::GetMaxAttributionsPerSource(
     SourceType source_type) const {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   switch (source_type) {
@@ -62,21 +57,10 @@ int AttributionStorageDelegate::GetMaxDestinationsPerSourceSiteReportingSite()
   return config_.max_destinations_per_source_site_reporting_site;
 }
 
-const AttributionConfig::RateLimitConfig&
-AttributionStorageDelegate::GetRateLimits() const {
+AttributionConfig::RateLimitConfig AttributionStorageDelegate::GetRateLimits()
+    const {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   return config_.rate_limit;
-}
-
-double AttributionStorageDelegate::GetMaxChannelCapacity(
-    SourceType source_type) const {
-  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
-  switch (source_type) {
-    case SourceType::kNavigation:
-      return config_.event_level_limit.max_navigation_info_gain;
-    case SourceType::kEvent:
-      return config_.event_level_limit.max_event_info_gain;
-  }
 }
 
 int64_t AttributionStorageDelegate::GetAggregatableBudgetPerSource() const {
@@ -89,10 +73,10 @@ int AttributionStorageDelegate::GetMaxAggregatableReportsPerSource() const {
   return config_.aggregate_limit.max_aggregatable_reports_per_source;
 }
 
-AttributionConfig::DestinationRateLimit
-AttributionStorageDelegate::GetDestinationRateLimit() const {
+DestinationThrottler::Policy
+AttributionStorageDelegate::GetDestinationThrottlerPolicy() const {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
-  return config_.destination_rate_limit;
+  return config_.throttler_policy;
 }
 
 uint64_t AttributionStorageDelegate::SanitizeTriggerData(

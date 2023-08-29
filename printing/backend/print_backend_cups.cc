@@ -273,14 +273,14 @@ std::string PrintBackendCUPS::GetPrinterCapabilities(
   return content;
 }
 
-std::vector<std::string> PrintBackendCUPS::GetPrinterDriverInfo(
+std::string PrintBackendCUPS::GetPrinterDriverInfo(
     const std::string& printer_name) {
-  std::vector<std::string> result;
+  std::string result;
 
   ScopedDestination dest = GetNamedDest(printer_name);
   if (dest) {
     DCHECK_EQ(printer_name, dest->name);
-    result.emplace_back(PrinterDriverInfoFromCUPS(*dest));
+    result = PrinterDriverInfoFromCUPS(*dest);
   }
 
   return result;

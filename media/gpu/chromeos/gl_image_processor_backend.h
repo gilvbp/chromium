@@ -34,6 +34,7 @@ class MEDIA_GPU_EXPORT GLImageProcessorBackend : public ImageProcessorBackend {
       const PortConfig& input_config,
       const PortConfig& output_config,
       OutputMode output_mode,
+      VideoRotation relative_rotation,
       ErrorCB error_cb);
 
   // ImageProcessorBackend implementation.
@@ -42,7 +43,8 @@ class MEDIA_GPU_EXPORT GLImageProcessorBackend : public ImageProcessorBackend {
                FrameReadyCB cb) override;
 
   static bool IsSupported(const PortConfig& input_config,
-                          const PortConfig& output_config);
+                          const PortConfig& output_config,
+                          VideoRotation relative_rotation);
   std::string type() const override;
 
  private:
@@ -52,6 +54,7 @@ class MEDIA_GPU_EXPORT GLImageProcessorBackend : public ImageProcessorBackend {
   GLImageProcessorBackend(const PortConfig& input_config,
                           const PortConfig& output_config,
                           OutputMode output_mode,
+                          VideoRotation relative_rotation,
                           ErrorCB error_cb);
   ~GLImageProcessorBackend() override;
 

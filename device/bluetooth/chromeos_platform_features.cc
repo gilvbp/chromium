@@ -14,7 +14,4 @@ BASE_FEATURE(kBluetoothFlossCoredump,
              "BluetoothFlossCoredump",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
-BASE_FEATURE(kBluetoothFlossTelephony,
-             "BluetoothFlossTelephony",
-             base::FEATURE_DISABLED_BY_DEFAULT);
 }  // namespace chromeos::bluetooth::features

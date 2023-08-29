@@ -63,6 +63,7 @@ export function createTheme(isDark: boolean = false): Theme {
   const mostVisited = {
     backgroundColor: {value: 0xff00ff00},
     isDark,
+    useTitlePill: false,
     useWhiteTileIcon: false,
   };
   return {

@@ -36,7 +36,6 @@
 #include "net/cert/x509_certificate.h"
 #include "net/cert/x509_util_nss.h"
 #include "net/log/net_log_with_source.h"
-#include "net/test/cert_builder.h"
 #include "net/test/cert_test_util.h"
 #include "net/test/gtest_util.h"
 #include "net/test/test_data_directory.h"
@@ -1034,11 +1033,9 @@ TEST_F(CertDatabaseNSSTest, ImportCaAndServerCert_DistrustServer) {
 }
 
 TEST_F(CertDatabaseNSSTest, TrustIntermediateCa) {
-  auto [leaf, intermediate, root] = CertBuilder::CreateSimpleChain3();
-
-  ScopedCERTCertificateList ca_certs =
-      x509_util::CreateCERTCertificateListFromX509Certificate(
-          root->GetX509Certificate().get());
+  ScopedCERTCertificateList ca_certs = CreateCERTCertificateListFromFile(
+      GetTestCertsDirectory(), "2048-rsa-root.pem",
+      X509Certificate::FORMAT_AUTO);
   ASSERT_EQ(1U, ca_certs.size());
 
   // Import Root CA cert and distrust it.
@@ -1052,8 +1049,9 @@ TEST_F(CertDatabaseNSSTest, TrustIntermediateCa) {
   EXPECT_EQ(1, observer_->trust_store_changes());
 
   ScopedCERTCertificateList intermediate_certs =
-      x509_util::CreateCERTCertificateListFromX509Certificate(
-          intermediate->GetX509Certificate().get());
+      CreateCERTCertificateListFromFile(GetTestCertsDirectory(),
+                                        "2048-rsa-intermediate.pem",
+                                        X509Certificate::FORMAT_AUTO);
   ASSERT_EQ(1U, intermediate_certs.size());
 
   // Import Intermediate CA cert and trust it.
@@ -1065,10 +1063,9 @@ TEST_F(CertDatabaseNSSTest, TrustIntermediateCa) {
   EXPECT_EQ(0, observer_->client_cert_store_changes());
   EXPECT_EQ(2, observer_->trust_store_changes());
 
-  scoped_refptr<X509Certificate> x509_server_cert = leaf->GetX509Certificate();
-  ScopedCERTCertificateList certs =
-      x509_util::CreateCERTCertificateListFromX509Certificate(
-          x509_server_cert.get());
+  ScopedCERTCertificateList certs = CreateCERTCertificateListFromFile(
+      GetTestCertsDirectory(), "2048-rsa-ee-by-2048-rsa-intermediate.pem",
+      X509Certificate::FORMAT_AUTO);
   ASSERT_EQ(1U, certs.size());
 
   // Import server cert with default trust.
@@ -1079,13 +1076,16 @@ TEST_F(CertDatabaseNSSTest, TrustIntermediateCa) {
             cert_db_->GetCertTrust(certs[0].get(), SERVER_CERT));
 
   // Server cert should verify.
+  scoped_refptr<X509Certificate> x509_server_cert =
+      x509_util::CreateX509CertificateFromCERTCertificate(certs[0].get());
+  ASSERT_TRUE(x509_server_cert);
   scoped_refptr<CertVerifyProc> verify_proc(
       CertVerifyProc::CreateBuiltinVerifyProc(/*cert_net_fetcher=*/nullptr,
                                               crl_set_));
   int flags = 0;
   CertVerifyResult verify_result;
   int error = verify_proc->Verify(
-      x509_server_cert.get(), "www.example.com",
+      x509_server_cert.get(), "127.0.0.1",
       /*ocsp_response=*/std::string(), /*sct_list=*/std::string(), flags,
       empty_cert_list_, &verify_result, NetLogWithSource());
   EXPECT_THAT(error, IsOk());
@@ -1111,7 +1111,7 @@ TEST_F(CertDatabaseNSSTest, TrustIntermediateCa) {
   // Server cert should fail to verify.
   CertVerifyResult verify_result2;
   error =
-      verify_proc->Verify(x509_server_cert.get(), "www.example.com",
+      verify_proc->Verify(x509_server_cert.get(), "127.0.0.1",
                           /*ocsp_response=*/std::string(),
                           /*sct_list=*/std::string(), flags, empty_cert_list_,
                           &verify_result2, NetLogWithSource());
@@ -1121,11 +1121,11 @@ TEST_F(CertDatabaseNSSTest, TrustIntermediateCa) {
 
 TEST_F(CertDatabaseNSSTest, TrustIntermediateCa2) {
   NSSCertDatabase::ImportCertFailureList failed;
-  auto [leaf, intermediate, root] = CertBuilder::CreateSimpleChain3();
 
   ScopedCERTCertificateList intermediate_certs =
-      x509_util::CreateCERTCertificateListFromX509Certificate(
-          intermediate->GetX509Certificate().get());
+      CreateCERTCertificateListFromFile(GetTestCertsDirectory(),
+                                        "2048-rsa-intermediate.pem",
+                                        X509Certificate::FORMAT_AUTO);
   ASSERT_EQ(1U, intermediate_certs.size());
 
   // Import Intermediate CA cert and trust it.
@@ -1133,74 +1133,9 @@ TEST_F(CertDatabaseNSSTest, TrustIntermediateCa2) {
                                       NSSCertDatabase::TRUSTED_SSL, &failed));
   EXPECT_EQ(0U, failed.size());
 
-  scoped_refptr<X509Certificate> x509_server_cert = leaf->GetX509Certificate();
-  ScopedCERTCertificateList certs =
-      x509_util::CreateCERTCertificateListFromX509Certificate(
-          x509_server_cert.get());
-
-  // Import server cert with default trust.
-  EXPECT_TRUE(cert_db_->ImportServerCert(certs, NSSCertDatabase::TRUST_DEFAULT,
-                                         &failed));
-  EXPECT_EQ(0U, failed.size());
-  EXPECT_EQ(NSSCertDatabase::TRUST_DEFAULT,
-            cert_db_->GetCertTrust(certs[0].get(), SERVER_CERT));
-
-  // Server cert should verify.
-  scoped_refptr<CertVerifyProc> verify_proc(
-      CertVerifyProc::CreateBuiltinVerifyProc(/*cert_net_fetcher=*/nullptr,
-                                              crl_set_));
-  int flags = 0;
-  CertVerifyResult verify_result;
-  int error = verify_proc->Verify(
-      x509_server_cert.get(), "www.example.com",
-      /*ocsp_response=*/std::string(), /*sct_list=*/std::string(), flags,
-      empty_cert_list_, &verify_result, NetLogWithSource());
-  EXPECT_THAT(error, IsOk());
-  EXPECT_EQ(0U, verify_result.cert_status);
-
-  // Without explicit trust of the intermediate, verification should fail.
-  EXPECT_TRUE(cert_db_->SetCertTrust(
-      intermediate_certs[0].get(), CA_CERT, NSSCertDatabase::TRUST_DEFAULT));
-
-  // Server cert should fail to verify.
-  CertVerifyResult verify_result2;
-  error =
-      verify_proc->Verify(x509_server_cert.get(), "www.example.com",
-                          /*ocsp_response=*/std::string(),
-                          /*sct_list=*/std::string(), flags, empty_cert_list_,
-                          &verify_result2, NetLogWithSource());
-  EXPECT_THAT(error, IsError(ERR_CERT_AUTHORITY_INVALID));
-  EXPECT_EQ(CERT_STATUS_AUTHORITY_INVALID, verify_result2.cert_status);
-}
-
-TEST_F(CertDatabaseNSSTest, TrustIntermediateCa3) {
-  NSSCertDatabase::ImportCertFailureList failed;
-  auto [leaf, intermediate, root] = CertBuilder::CreateSimpleChain3();
-
-  ScopedCERTCertificateList ca_certs =
-      x509_util::CreateCERTCertificateListFromX509Certificate(
-          root->GetX509Certificate().get());
-  ASSERT_EQ(1U, ca_certs.size());
-
-  // Import Root CA cert and default trust it.
-  EXPECT_TRUE(cert_db_->ImportCACerts(ca_certs, NSSCertDatabase::TRUST_DEFAULT,
-                                      &failed));
-  EXPECT_EQ(0U, failed.size());
-
-  ScopedCERTCertificateList intermediate_certs =
-      x509_util::CreateCERTCertificateListFromX509Certificate(
-          intermediate->GetX509Certificate().get());
-  ASSERT_EQ(1U, intermediate_certs.size());
-
-  // Import Intermediate CA cert and trust it.
-  EXPECT_TRUE(cert_db_->ImportCACerts(intermediate_certs,
-                                      NSSCertDatabase::TRUSTED_SSL, &failed));
-  EXPECT_EQ(0U, failed.size());
-
-  scoped_refptr<X509Certificate> x509_server_cert = leaf->GetX509Certificate();
-  ScopedCERTCertificateList certs =
-      x509_util::CreateCERTCertificateListFromX509Certificate(
-          x509_server_cert.get());
+  ScopedCERTCertificateList certs = CreateCERTCertificateListFromFile(
+      GetTestCertsDirectory(), "2048-rsa-ee-by-2048-rsa-intermediate.pem",
+      X509Certificate::FORMAT_AUTO);
   ASSERT_EQ(1U, certs.size());
 
   // Import server cert with default trust.
@@ -1211,13 +1146,16 @@ TEST_F(CertDatabaseNSSTest, TrustIntermediateCa3) {
             cert_db_->GetCertTrust(certs[0].get(), SERVER_CERT));
 
   // Server cert should verify.
+  scoped_refptr<X509Certificate> x509_server_cert =
+      x509_util::CreateX509CertificateFromCERTCertificate(certs[0].get());
+  ASSERT_TRUE(x509_server_cert);
   scoped_refptr<CertVerifyProc> verify_proc(
       CertVerifyProc::CreateBuiltinVerifyProc(/*cert_net_fetcher=*/nullptr,
                                               crl_set_));
   int flags = 0;
   CertVerifyResult verify_result;
   int error = verify_proc->Verify(
-      x509_server_cert.get(), "www.example.com",
+      x509_server_cert.get(), "127.0.0.1",
       /*ocsp_response=*/std::string(), /*sct_list=*/std::string(), flags,
       empty_cert_list_, &verify_result, NetLogWithSource());
   EXPECT_THAT(error, IsOk());
@@ -1230,7 +1168,74 @@ TEST_F(CertDatabaseNSSTest, TrustIntermediateCa3) {
   // Server cert should fail to verify.
   CertVerifyResult verify_result2;
   error =
-      verify_proc->Verify(x509_server_cert.get(), "www.example.com",
+      verify_proc->Verify(x509_server_cert.get(), "127.0.0.1",
+                          /*ocsp_response=*/std::string(),
+                          /*sct_list=*/std::string(), flags, empty_cert_list_,
+                          &verify_result2, NetLogWithSource());
+  EXPECT_THAT(error, IsError(ERR_CERT_AUTHORITY_INVALID));
+  EXPECT_EQ(CERT_STATUS_AUTHORITY_INVALID, verify_result2.cert_status);
+}
+
+TEST_F(CertDatabaseNSSTest, TrustIntermediateCa3) {
+  NSSCertDatabase::ImportCertFailureList failed;
+
+  ScopedCERTCertificateList ca_certs = CreateCERTCertificateListFromFile(
+      GetTestCertsDirectory(), "2048-rsa-root.pem",
+      X509Certificate::FORMAT_AUTO);
+  ASSERT_EQ(1U, ca_certs.size());
+
+  // Import Root CA cert and default trust it.
+  EXPECT_TRUE(cert_db_->ImportCACerts(ca_certs, NSSCertDatabase::TRUST_DEFAULT,
+                                      &failed));
+  EXPECT_EQ(0U, failed.size());
+
+  ScopedCERTCertificateList intermediate_certs =
+      CreateCERTCertificateListFromFile(GetTestCertsDirectory(),
+                                        "2048-rsa-intermediate.pem",
+                                        X509Certificate::FORMAT_AUTO);
+  ASSERT_EQ(1U, intermediate_certs.size());
+
+  // Import Intermediate CA cert and trust it.
+  EXPECT_TRUE(cert_db_->ImportCACerts(intermediate_certs,
+                                      NSSCertDatabase::TRUSTED_SSL, &failed));
+  EXPECT_EQ(0U, failed.size());
+
+  ScopedCERTCertificateList certs = CreateCERTCertificateListFromFile(
+      GetTestCertsDirectory(), "2048-rsa-ee-by-2048-rsa-intermediate.pem",
+      X509Certificate::FORMAT_AUTO);
+  ASSERT_EQ(1U, certs.size());
+
+  // Import server cert with default trust.
+  EXPECT_TRUE(cert_db_->ImportServerCert(certs, NSSCertDatabase::TRUST_DEFAULT,
+                                         &failed));
+  EXPECT_EQ(0U, failed.size());
+  EXPECT_EQ(NSSCertDatabase::TRUST_DEFAULT,
+            cert_db_->GetCertTrust(certs[0].get(), SERVER_CERT));
+
+  // Server cert should verify.
+  scoped_refptr<X509Certificate> x509_server_cert =
+      x509_util::CreateX509CertificateFromCERTCertificate(certs[0].get());
+  ASSERT_TRUE(x509_server_cert);
+  scoped_refptr<CertVerifyProc> verify_proc(
+      CertVerifyProc::CreateBuiltinVerifyProc(/*cert_net_fetcher=*/nullptr,
+                                              crl_set_));
+  int flags = 0;
+  CertVerifyResult verify_result;
+  int error = verify_proc->Verify(
+      x509_server_cert.get(), "127.0.0.1",
+      /*ocsp_response=*/std::string(), /*sct_list=*/std::string(), flags,
+      empty_cert_list_, &verify_result, NetLogWithSource());
+  EXPECT_THAT(error, IsOk());
+  EXPECT_EQ(0U, verify_result.cert_status);
+
+  // Without explicit trust of the intermediate, verification should fail.
+  EXPECT_TRUE(cert_db_->SetCertTrust(
+      intermediate_certs[0].get(), CA_CERT, NSSCertDatabase::TRUST_DEFAULT));
+
+  // Server cert should fail to verify.
+  CertVerifyResult verify_result2;
+  error =
+      verify_proc->Verify(x509_server_cert.get(), "127.0.0.1",
                           /*ocsp_response=*/std::string(),
                           /*sct_list=*/std::string(), flags, empty_cert_list_,
                           &verify_result2, NetLogWithSource());
@@ -1240,11 +1245,10 @@ TEST_F(CertDatabaseNSSTest, TrustIntermediateCa3) {
 
 TEST_F(CertDatabaseNSSTest, TrustIntermediateCa4) {
   NSSCertDatabase::ImportCertFailureList failed;
-  auto [leaf, intermediate, root] = CertBuilder::CreateSimpleChain3();
 
-  ScopedCERTCertificateList ca_certs =
-      x509_util::CreateCERTCertificateListFromX509Certificate(
-          root->GetX509Certificate().get());
+  ScopedCERTCertificateList ca_certs = CreateCERTCertificateListFromFile(
+      GetTestCertsDirectory(), "2048-rsa-root.pem",
+      X509Certificate::FORMAT_AUTO);
   ASSERT_EQ(1U, ca_certs.size());
 
   // Import Root CA cert and trust it.
@@ -1253,8 +1257,9 @@ TEST_F(CertDatabaseNSSTest, TrustIntermediateCa4) {
   EXPECT_EQ(0U, failed.size());
 
   ScopedCERTCertificateList intermediate_certs =
-      x509_util::CreateCERTCertificateListFromX509Certificate(
-          intermediate->GetX509Certificate().get());
+      CreateCERTCertificateListFromFile(GetTestCertsDirectory(),
+                                        "2048-rsa-intermediate.pem",
+                                        X509Certificate::FORMAT_AUTO);
   ASSERT_EQ(1U, intermediate_certs.size());
 
   // Import Intermediate CA cert and distrust it.
@@ -1262,10 +1267,9 @@ TEST_F(CertDatabaseNSSTest, TrustIntermediateCa4) {
       intermediate_certs, NSSCertDatabase::DISTRUSTED_SSL, &failed));
   EXPECT_EQ(0U, failed.size());
 
-  scoped_refptr<X509Certificate> x509_server_cert = leaf->GetX509Certificate();
-  ScopedCERTCertificateList certs =
-      x509_util::CreateCERTCertificateListFromX509Certificate(
-          x509_server_cert.get());
+  ScopedCERTCertificateList certs = CreateCERTCertificateListFromFile(
+      GetTestCertsDirectory(), "2048-rsa-ee-by-2048-rsa-intermediate.pem",
+      X509Certificate::FORMAT_AUTO);
   ASSERT_EQ(1U, certs.size());
 
   // Import server cert with default trust.
@@ -1276,13 +1280,16 @@ TEST_F(CertDatabaseNSSTest, TrustIntermediateCa4) {
             cert_db_->GetCertTrust(certs[0].get(), SERVER_CERT));
 
   // Server cert should not verify.
+  scoped_refptr<X509Certificate> x509_server_cert =
+      x509_util::CreateX509CertificateFromCERTCertificate(certs[0].get());
+  ASSERT_TRUE(x509_server_cert);
   scoped_refptr<CertVerifyProc> verify_proc(
       CertVerifyProc::CreateBuiltinVerifyProc(/*cert_net_fetcher=*/nullptr,
                                               crl_set_));
   int flags = 0;
   CertVerifyResult verify_result;
   int error = verify_proc->Verify(
-      x509_server_cert.get(), "www.example.com",
+      x509_server_cert.get(), "127.0.0.1",
       /*ocsp_response=*/std::string(), /*sct_list=*/std::string(), flags,
       empty_cert_list_, &verify_result, NetLogWithSource());
   EXPECT_THAT(error, IsError(ERR_CERT_AUTHORITY_INVALID));
@@ -1295,7 +1302,7 @@ TEST_F(CertDatabaseNSSTest, TrustIntermediateCa4) {
   // Server cert should verify.
   CertVerifyResult verify_result2;
   error =
-      verify_proc->Verify(x509_server_cert.get(), "www.example.com",
+      verify_proc->Verify(x509_server_cert.get(), "127.0.0.1",
                           /*ocsp_response=*/std::string(),
                           /*sct_list=*/std::string(), flags, empty_cert_list_,
                           &verify_result2, NetLogWithSource());

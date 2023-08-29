@@ -10,9 +10,10 @@
 
 #include "build/build_config.h"
 #include "printing/buildflags/buildflags.h"
+#include "printing/print_settings.h"
 #include "printing/printing_context.h"
 #include "printing/printing_context_factory_for_test.h"
-#include "printing/test_printing_context.h"
+#include "third_party/abseil-cpp/absl/types/optional.h"
 
 namespace printing {
 
@@ -40,8 +41,13 @@ class BrowserPrintingContextFactoryForTest
 #if BUILDFLAG(ENABLE_BASIC_PRINT_DIALOG)
   void SetCancelErrorOnAskUserForSettings();
 #endif
-  void SetOnNewDocumentCallback(
-      TestPrintingContext::OnNewDocumentCallback callback);
+  void OnNewDocument(const PrintSettings& settings);
+
+  int new_document_called_count() { return new_document_called_count_; }
+
+  const absl::optional<PrintSettings>& document_print_settings() const {
+    return document_print_settings_;
+  }
 
  private:
   std::string printer_name_;
@@ -58,7 +64,8 @@ class BrowserPrintingContextFactoryForTest
 #if BUILDFLAG(ENABLE_BASIC_PRINT_DIALOG)
   bool cancel_on_ask_user_for_settings_ = false;
 #endif
-  TestPrintingContext::OnNewDocumentCallback on_new_document_callback_;
+  int new_document_called_count_ = 0;
+  absl::optional<PrintSettings> document_print_settings_;
 };
 
 }  // namespace printing

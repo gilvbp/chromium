@@ -2,9 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "chrome/browser/web_applications/jobs/uninstall/web_app_uninstall_and_replace_job.h"
-
-#include <utility>
+#include "chrome/browser/web_applications/web_app_uninstall_and_replace_job.h"
 
 #include "base/functional/callback.h"
 #include "chrome/browser/apps/app_service/app_service_proxy.h"
@@ -65,7 +63,7 @@ mojom::UserDisplayMode GetExtensionUserDisplayMode(
 
 WebAppUninstallAndReplaceJob::WebAppUninstallAndReplaceJob(
     Profile* profile,
-    AppLock& to_app_lock,
+    base::WeakPtr<AppLock> to_app_lock,
     const std::vector<AppId>& from_apps_or_extensions,
     const AppId& to_app,
     base::OnceCallback<void(bool uninstall_triggered)> on_complete)
@@ -79,6 +77,7 @@ WebAppUninstallAndReplaceJob::WebAppUninstallAndReplaceJob(
 WebAppUninstallAndReplaceJob::~WebAppUninstallAndReplaceJob() = default;
 
 void WebAppUninstallAndReplaceJob::Start() {
+  DCHECK(to_app_lock_);
   DCHECK(to_app_lock_->registrar().IsInstalled(to_app_));
 
   std::vector<AppId> apps_to_replace;
@@ -107,20 +106,10 @@ void WebAppUninstallAndReplaceJob::Start() {
 void WebAppUninstallAndReplaceJob::MigrateUiAndUninstallApp(
     const AppId& from_app,
     base::OnceClosure on_complete) {
-#if BUILDFLAG(IS_CHROMEOS)
-  to_app_lock_->ui_manager().MigrateLauncherState(
-      from_app, to_app_,
-      base::BindOnce(&WebAppUninstallAndReplaceJob::OnMigrateLauncherState,
-                     weak_ptr_factory_.GetWeakPtr(), from_app,
-                     std::move(on_complete)));
-#else
-  OnMigrateLauncherState(from_app, std::move(on_complete));
-#endif
-}
+  DCHECK(to_app_lock_);
 
-void WebAppUninstallAndReplaceJob::OnMigrateLauncherState(
-    const AppId& from_app,
-    base::OnceClosure on_complete) {
+  to_app_lock_->ui_manager().MaybeTransferAppAttributes(from_app, to_app_);
+
   // If migration of user/UI data is required for other app types consider
   // generalising this operation to be part of app service.
   const extensions::Extension* from_extension =
@@ -162,7 +151,7 @@ void WebAppUninstallAndReplaceJob::
         const AppId& from_app,
         base::OnceClosure on_complete,
         std::unique_ptr<ShortcutInfo> shortcut_info) {
-  if (!shortcut_info) {
+  if (!shortcut_info || !to_app_lock_) {
     auto* proxy = apps::AppServiceProxyFactory::GetForProfile(profile_);
     // The shortcut info couldn't be found, simply uninstall.
     proxy->UninstallSilently(from_app, apps::UninstallSource::kMigration);
@@ -210,6 +199,10 @@ void WebAppUninstallAndReplaceJob::OnShortcutLocationGathered(
 void WebAppUninstallAndReplaceJob::InstallOsHooksForReplacementApp(
     base::OnceClosure on_complete,
     ShortcutLocations locations) {
+  if (!to_app_lock_) {
+    std::move(on_complete).Run();
+    return;
+  }
   // This ensures that the os integration matches the app that we are replacing.
   InstallOsHooksOptions options;
   options.os_hooks[OsHookType::kShortcuts] =
@@ -230,7 +223,7 @@ void WebAppUninstallAndReplaceJob::InstallOsHooksForReplacementApp(
                                     : RunOnOsLoginMode::kNotRun;
     if (new_mode != run_on_os_login.value) {
       {
-        ScopedRegistryUpdate update = to_app_lock_->sync_bridge().BeginUpdate();
+        ScopedRegistryUpdate update(&to_app_lock_->sync_bridge());
         update->UpdateApp(to_app_)->SetRunOnOsLoginMode(new_mode);
       }
     }

@@ -145,7 +145,7 @@ void DisplayLockContext::SetRequestedState(EContentVisibility state,
       element_.Get());
 }
 
-const ComputedStyle* DisplayLockContext::AdjustElementStyle(
+scoped_refptr<const ComputedStyle> DisplayLockContext::AdjustElementStyle(
     const ComputedStyle* style) const {
   if (IsAlwaysVisible())
     return style;

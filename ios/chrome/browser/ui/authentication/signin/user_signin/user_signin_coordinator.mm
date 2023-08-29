@@ -32,6 +32,10 @@
 #import "ios/chrome/browser/ui/authentication/unified_consent/unified_consent_coordinator.h"
 #import "ios/chrome/browser/unified_consent/unified_consent_service_factory.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 using signin_metrics::AccessPoint;
 using signin_metrics::PromoAction;
 
@@ -172,7 +176,7 @@ using signin_metrics::PromoAction;
 // be called before `completion()`.
 // `action` action describing how to interrupt the sign-in.
 // `completion` called once the sign-in is fully interrupted.
-- (void)interruptWithAction:(SigninCoordinatorInterrupt)action
+- (void)interruptWithAction:(SigninCoordinatorInterruptAction)action
                  completion:(ProceduralBlock)completion {
   if (self.mediator.isAuthenticationInProgress) {
     [self.logger
@@ -195,7 +199,7 @@ using signin_metrics::PromoAction;
     // The add account view should not be dismissed since the
     // `self.viewController` will take care of that according to `action`.
     [self.addAccountSigninCoordinator
-        interruptWithAction:SigninCoordinatorInterrupt::UIShutdownNoDismiss
+        interruptWithAction:SigninCoordinatorInterruptActionNoDismiss
                  completion:^{
                    // `self.addAccountSigninCoordinator.signinCompletion`
                    // is expected to be called before this block.
@@ -232,7 +236,6 @@ using signin_metrics::PromoAction;
   DCHECK(!self.advancedSettingsSigninCoordinator);
   [super stop];
   [self.logger disconnect];
-  _logger = nil;
 }
 
 #pragma mark - UnifiedConsentCoordinatorDelegate
@@ -473,9 +476,7 @@ using signin_metrics::PromoAction;
       // See crbug.com/1126170
       ProceduralBlock interruptCallback = weakSelf.interruptCallback;
       weakSelf.interruptCallback = nil;
-      if (interruptCallback) {
-        interruptCallback();
-      }
+      interruptCallback();
     }
   };
   [self.baseViewController presentViewController:self.viewController
@@ -488,7 +489,7 @@ using signin_metrics::PromoAction;
 // This method should not be called if `self.addAccountSigninCoordinator` has
 // not been stopped before. `signinCompletionInfo` is used for the signin
 // callback.
-- (void)interruptUserSigninUIWithAction:(SigninCoordinatorInterrupt)action
+- (void)interruptUserSigninUIWithAction:(SigninCoordinatorInterruptAction)action
                    signinCompletionInfo:
                        (SigninCompletionInfo*)signinCompletinInfo
                              completion:(ProceduralBlock)completion {
@@ -521,29 +522,32 @@ using signin_metrics::PromoAction;
     }
   };
   switch (action) {
-    case SigninCoordinatorInterrupt::UIShutdownNoDismiss: {
-      [self.mediator interruptWithAction:action
-                              completion:runCompletionCallback];
+    case SigninCoordinatorInterruptActionNoDismiss: {
+      [self.mediator
+          cancelAndDismissAuthenticationFlowAnimated:NO
+                                          completion:runCompletionCallback];
       break;
     }
-    case SigninCoordinatorInterrupt::DismissWithAnimation: {
+    case SigninCoordinatorInterruptActionDismissWithAnimation: {
       ProceduralBlock dismissViewController = ^() {
         [weakSelf.viewController.presentingViewController
             dismissViewControllerAnimated:YES
                                completion:runCompletionCallback];
       };
-      [self.mediator interruptWithAction:action
-                              completion:dismissViewController];
+      [self.mediator
+          cancelAndDismissAuthenticationFlowAnimated:YES
+                                          completion:dismissViewController];
       break;
     }
-    case SigninCoordinatorInterrupt::DismissWithoutAnimation: {
+    case SigninCoordinatorInterruptActionDismissWithoutAnimation: {
       ProceduralBlock dismissViewController = ^() {
         [weakSelf.viewController.presentingViewController
             dismissViewControllerAnimated:NO
                                completion:runCompletionCallback];
       };
-      [self.mediator interruptWithAction:action
-                              completion:dismissViewController];
+      [self.mediator
+          cancelAndDismissAuthenticationFlowAnimated:NO
+                                          completion:dismissViewController];
       break;
     }
   }
@@ -635,8 +639,7 @@ using signin_metrics::PromoAction;
                        self.class.description, self,
                        self.addAccountSigninCoordinator,
                        self.advancedSettingsSigninCoordinator,
-                       self.signinIntent,
-                       static_cast<int>(self.logger.accessPoint),
+                       self.signinIntent, self.logger.accessPoint,
                        self.viewController,
                        self.viewController.isBeingPresented,
                        NSStringFromClass([self.baseViewController class]),

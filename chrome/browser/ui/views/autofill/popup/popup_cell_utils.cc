@@ -10,6 +10,7 @@
 #include "base/feature_list.h"
 #include "build/branding_buildflags.h"
 #include "chrome/app/vector_icons/vector_icons.h"
+#include "chrome/browser/autofill/autofill_popup_controller_utils.h"
 #include "chrome/browser/ui/autofill/autofill_popup_controller.h"
 #include "chrome/browser/ui/passwords/ui_utils.h"
 #include "chrome/browser/ui/views/autofill/popup/popup_base_view.h"
@@ -17,7 +18,6 @@
 #include "chrome/browser/ui/views/chrome_layout_provider.h"
 #include "chrome/browser/ui/views/chrome_typography.h"
 #include "components/autofill/core/browser/data_model/credit_card.h"
-#include "components/autofill/core/browser/ui/autofill_resource_utils.h"
 #include "components/autofill/core/browser/ui/suggestion.h"
 #include "components/autofill/core/common/autofill_features.h"
 #include "components/autofill/core/common/autofill_payments_features.h"
@@ -143,29 +143,11 @@ std::unique_ptr<views::ImageView> GetIconImageViewByName(
     return ImageViewFromVectorIcon(kKeyIcon, kIconSize);
   }
 
-  if (icon_str == "editIcon") {
-    return ImageViewFromVectorIcon(vector_icons::kEditIcon, kIconSize);
-  }
-
-  if (icon_str == "deleteIcon") {
-    return ImageViewFromVectorIcon(kTrashCanLightIcon, kIconSize);
-  }
-
   if (icon_str == "clearIcon") {
     return ImageViewFromVectorIcon(kBackspaceIcon, kIconSize);
   }
 
-  if (icon_str == "undoIcon") {
-    return ImageViewFromVectorIcon(vector_icons::kUndoIcon, kIconSize);
-  }
-
   if (icon_str == "globeIcon") {
-    return ImageViewFromVectorIcon(kGlobeIcon, kIconSize);
-  }
-
-  // TODO(crbug.com/1459990): Use proper icon. The magic_button icon does not
-  // exist yet, I will introduce it in a follow up cl.
-  if (icon_str == "magicIcon") {
     return ImageViewFromVectorIcon(kGlobeIcon, kIconSize);
   }
 
@@ -375,10 +357,14 @@ void AddSuggestionContentToView(
     std::unique_ptr<views::Label> description_label,
     std::vector<std::unique_ptr<views::View>> subtext_views,
     PopupCellView& content_view) {
+  bool has_control_element =
+      suggestion.popup_item_id == PopupItemId::kAutocompleteEntry &&
+      base::FeatureList::IsEnabled(
+          features::kAutofillShowAutocompleteDeleteButton);
   views::BoxLayout& layout =
       *content_view.SetLayoutManager(std::make_unique<views::BoxLayout>(
           views::BoxLayout::Orientation::kHorizontal,
-          GetMarginsForContentCell(/*has_control_element=*/false)));
+          GetMarginsForContentCell(has_control_element)));
 
   layout.set_cross_axis_alignment(
       views::BoxLayout::CrossAxisAlignment::kCenter);

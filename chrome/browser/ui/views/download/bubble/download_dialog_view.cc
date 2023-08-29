@@ -9,14 +9,12 @@
 #include "base/logging.h"
 #include "chrome/app/vector_icons/vector_icons.h"
 #include "chrome/browser/ui/chrome_pages.h"
-#include "chrome/browser/ui/color/chrome_color_id.h"
 #include "chrome/browser/ui/layout_constants.h"
 #include "chrome/browser/ui/views/accessibility/non_accessible_image_view.h"
 #include "chrome/browser/ui/views/chrome_layout_provider.h"
 #include "chrome/browser/ui/views/controls/rich_hover_button.h"
 #include "chrome/browser/ui/views/download/bubble/download_bubble_row_list_view.h"
 #include "chrome/grit/generated_resources.h"
-#include "components/safe_browsing/core/common/features.h"
 #include "components/vector_icons/vector_icons.h"
 #include "ui/base/l10n/l10n_util.h"
 #include "ui/base/metadata/metadata_impl_macros.h"
@@ -58,22 +56,15 @@ class ShowAllDownloadsButton : public RichHoverButton {
       : RichHoverButton(
             std::move(show_all_downloads_callback),
             /*main_image_icon=*/ui::ImageModel(),
-            base::FeatureList::IsEnabled(
-                safe_browsing::kImprovedDownloadBubbleWarnings)
-                ? l10n_util::GetStringUTF16(IDS_DOWNLOAD_BUBBLE_FOOTER_LABEL)
-                : l10n_util::GetStringUTF16(IDS_DOWNLOAD_BUBBLE_FOOTER_LINK),
+            l10n_util::GetStringUTF16(IDS_DOWNLOAD_BUBBLE_FOOTER_LINK),
             /*secondary_text=*/std::u16string(),
-            base::FeatureList::IsEnabled(
-                safe_browsing::kImprovedDownloadBubbleWarnings)
-                ? l10n_util::GetStringUTF16(
-                      IDS_DOWNLOAD_BUBBLE_FOOTER_TOOLTIP_LABEL)
-                : l10n_util::GetStringUTF16(IDS_DOWNLOAD_BUBBLE_FOOTER_TOOLTIP),
+            l10n_util::GetStringUTF16(IDS_DOWNLOAD_BUBBLE_FOOTER_TOOLTIP),
             /*subtitle_text=*/std::u16string(),
             ui::ImageModel::FromVectorIcon(
                 features::IsChromeRefresh2023()
                     ? vector_icons::kLaunchChromeRefreshIcon
                     : vector_icons::kLaunchIcon,
-                kColorDownloadBubbleShowAllDownloadsIcon,
+                ui::kColorIconSecondary,
                 GetLayoutConstant(DOWNLOAD_ICON_SIZE))) {
     // Override the table layout from RichHoverButton, in order to control the
     // spacing/padding. Code below is copied from rich_hover_button.cc but with
@@ -99,12 +90,9 @@ class ShowAllDownloadsButton : public RichHoverButton {
         .AddColumn(views::LayoutAlignment::kCenter,
                    views::LayoutAlignment::kCenter,
                    views::TableLayout::kFixedSize,
-                   views::TableLayout::ColumnSize::kFixed,
-                   GetLayoutConstant(DOWNLOAD_ICON_SIZE), 0)
+                   views::TableLayout::ColumnSize::kFixed, 16, 0)
         .AddPaddingColumn(views::TableLayout::kFixedSize,
-                          features::IsChromeRefresh2023()
-                              ? 0
-                              : GetLayoutInsets(DOWNLOAD_ICON).right())
+                          GetLayoutInsets(DOWNLOAD_ICON).right())
         .AddRows(
             1, views::TableLayout::kFixedSize,
             // Force row to have sufficient height for full line-height of
@@ -142,10 +130,7 @@ void DownloadDialogView::AddHeader() {
   header->SetBorder(views::CreateEmptyBorder(GetLayoutInsets(DOWNLOAD_ROW)));
 
   auto* title = header->AddChildView(std::make_unique<views::Label>(
-      base::FeatureList::IsEnabled(
-          safe_browsing::kImprovedDownloadBubbleWarnings)
-          ? l10n_util::GetStringUTF16(IDS_DOWNLOAD_BUBBLE_HEADER_LABEL)
-          : l10n_util::GetStringUTF16(IDS_DOWNLOAD_BUBBLE_HEADER_TEXT),
+      l10n_util::GetStringUTF16(IDS_DOWNLOAD_BUBBLE_HEADER_TEXT),
       views::style::CONTEXT_DIALOG_TITLE, views::style::STYLE_PRIMARY));
   title->SetProperty(
       views::kFlexBehaviorKey,
@@ -169,11 +154,6 @@ void DownloadDialogView::AddHeader() {
   close_button->SetTooltipText(l10n_util::GetStringUTF16(IDS_APP_CLOSE));
   close_button->SetProperty(views::kCrossAxisAlignmentKey,
                             views::LayoutAlignment::kStart);
-  if (features::IsChromeRefresh2023()) {
-    // Remove the extra padding of ImageButton that causes the right padding of
-    // the title row to appear larger than the left padding.
-    close_button->SetBorder(nullptr);
-  }
 }
 
 void DownloadDialogView::AddFooter() {

@@ -62,8 +62,7 @@ RealTimeUrlLookupServiceFactory::RealTimeUrlLookupServiceFactory()
   DependsOn(NetworkContextServiceFactory::GetInstance());
 }
 
-std::unique_ptr<KeyedService>
-RealTimeUrlLookupServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* RealTimeUrlLookupServiceFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   if (!g_browser_process->safe_browsing_service()) {
     return nullptr;
@@ -73,7 +72,7 @@ RealTimeUrlLookupServiceFactory::BuildServiceInstanceForBrowserContext(
       std::make_unique<network::CrossThreadPendingSharedURLLoaderFactory>(
           g_browser_process->safe_browsing_service()->GetURLLoaderFactory(
               profile));
-  return std::make_unique<RealTimeUrlLookupService>(
+  return new RealTimeUrlLookupService(
       network::SharedURLLoaderFactory::Create(std::move(url_loader_factory)),
       VerdictCacheManagerFactory::GetForProfile(profile),
       base::BindRepeating(

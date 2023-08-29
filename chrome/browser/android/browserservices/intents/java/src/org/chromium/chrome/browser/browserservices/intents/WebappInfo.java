@@ -98,7 +98,7 @@ public class WebappInfo {
      * ColorUtils.INVALID_COLOR otherwise.
      */
     public long toolbarColor() {
-        return hasValidToolbarColor() ? mProvider.getLightColorProvider().getToolbarColor()
+        return hasValidToolbarColor() ? mProvider.getColorProvider().getToolbarColor()
                                       : ColorUtils.INVALID_COLOR;
     }
 
@@ -106,7 +106,7 @@ public class WebappInfo {
      * Returns whether the toolbar color specified in the Intent is valid.
      */
     public boolean hasValidToolbarColor() {
-        return mProvider.getLightColorProvider().hasCustomToolbarColor();
+        return mProvider.getColorProvider().hasCustomToolbarColor();
     }
 
     /**
@@ -123,38 +123,6 @@ public class WebappInfo {
      */
     public boolean hasValidBackgroundColor() {
         return getWebappExtras().backgroundColor != null;
-    }
-
-    /**
-     * Returns the dark toolbar color if it is valid, and
-     * ColorUtils.INVALID_COLOR otherwise.
-     */
-    public long darkToolbarColor() {
-        return hasValidDarkToolbarColor() ? mProvider.getDarkColorProvider().getToolbarColor()
-                                          : ColorUtils.INVALID_COLOR;
-    }
-
-    /**
-     * Returns whether the dark toolbar color specified in the Intent is valid.
-     */
-    public boolean hasValidDarkToolbarColor() {
-        return mProvider.getDarkColorProvider().hasCustomToolbarColor();
-    }
-
-    /**
-     * Dark background color is actually a 32 bit unsigned integer which encodes a color
-     * in ARGB format. Return value is a long because we also need to encode the
-     * error state of ColorUtils.INVALID_COLOR.
-     */
-    public long darkBackgroundColor() {
-        return WebappIntentUtils.colorFromIntegerColor(getWebappExtras().darkBackgroundColor);
-    }
-
-    /**
-     * Returns whether the dark background color specified in the Intent is valid.
-     */
-    public boolean hasValidDarkBackgroundColor() {
-        return getWebappExtras().darkBackgroundColor != null;
     }
 
     /**

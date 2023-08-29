@@ -68,7 +68,7 @@ enum class GPUSingletonWarning {
   kCount,  // Must be last
 };
 
-class GPUDevice final : public EventTarget,
+class GPUDevice final : public EventTargetWithInlineData,
                         public ExecutionContextClient,
                         public DawnObject<WGPUDevice> {
   DEFINE_WRAPPERTYPEINFO();
@@ -107,6 +107,7 @@ class GPUDevice final : public EventTarget,
   GPUSampler* createSampler(const GPUSamplerDescriptor* descriptor);
 
   GPUExternalTexture* importExternalTexture(
+      ScriptState* script_state,
       const GPUExternalTextureDescriptor* descriptor,
       ExceptionState& exception_state);
 

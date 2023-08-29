@@ -160,11 +160,14 @@ class CC_EXPORT ScrollbarController {
   PointerResultType HitTest(const gfx::PointF position_in_widget) const;
 
  private:
-  FRIEND_TEST_ALL_PREFIXES(LayerTreeHostImplTest, ThumbDragAfterJumpClick);
-  FRIEND_TEST_ALL_PREFIXES(LayerTreeHostImplTest,
+  FRIEND_TEST_ALL_PREFIXES(ScrollUnifiedLayerTreeHostImplTest,
+                           ThumbDragAfterJumpClick);
+  FRIEND_TEST_ALL_PREFIXES(ScrollUnifiedLayerTreeHostImplTest,
                            AbortAnimatedScrollBeforeStartingAutoscroll);
-  FRIEND_TEST_ALL_PREFIXES(LayerTreeHostImplTest, AutoscrollOnDeletedScrollbar);
-  FRIEND_TEST_ALL_PREFIXES(LayerTreeHostImplTest, ScrollOnLargeThumb);
+  FRIEND_TEST_ALL_PREFIXES(ScrollUnifiedLayerTreeHostImplTest,
+                           AutoscrollOnDeletedScrollbar);
+  FRIEND_TEST_ALL_PREFIXES(ScrollUnifiedLayerTreeHostImplTest,
+                           ScrollOnLargeThumb);
 
   // "Autoscroll" here means the continuous scrolling that occurs when the
   // pointer is held down on a hit-testable area of the scrollbar such as an

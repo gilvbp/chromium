@@ -7,6 +7,10 @@
 #import "components/variations/synthetic_trials.h"
 #import "ios/chrome/browser/metrics/ios_chrome_metrics_service_accessor.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 DiscoverFeedExperimentsTracker::DiscoverFeedExperimentsTracker(
     PrefService* pref_service)
     : pref_service_(pref_service) {

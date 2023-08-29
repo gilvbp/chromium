@@ -42,7 +42,6 @@
 #include "third_party/blink/renderer/core/css/container_query_evaluator.h"
 #include "third_party/blink/renderer/core/css/counter_style_map.h"
 #include "third_party/blink/renderer/core/css/css_default_style_sheets.h"
-#include "third_party/blink/renderer/core/css/css_font_family_value.h"
 #include "third_party/blink/renderer/core/css/css_font_selector.h"
 #include "third_party/blink/renderer/core/css/css_style_sheet.h"
 #include "third_party/blink/renderer/core/css/css_uri_value.h"
@@ -115,7 +114,6 @@
 #include "third_party/blink/renderer/platform/theme/web_theme_engine_helper.h"
 #include "third_party/blink/renderer/platform/weborigin/security_origin.h"
 #include "third_party/blink/renderer/platform/wtf/vector.h"
-#include "third_party/blink/renderer/platform/wtf/wtf_size_t.h"
 
 namespace blink {
 
@@ -175,27 +173,6 @@ unsigned GetRuleSetFlags(const HeapHashSet<Member<RuleSet>> rule_sets) {
     }
   }
   return flags;
-}
-
-const Vector<AtomicString> ConvertFontFamilyToVector(const CSSValue* value) {
-  const CSSValueList* family_list = DynamicTo<CSSValueList>(value);
-  if (!family_list) {
-    return Vector<AtomicString>();
-  }
-  wtf_size_t length = family_list->length();
-  if (!length) {
-    return Vector<AtomicString>();
-  }
-  Vector<AtomicString> families(length);
-  for (wtf_size_t i = 0; i < length; i++) {
-    const CSSFontFamilyValue* family_value =
-        DynamicTo<CSSFontFamilyValue>(family_list->Item(i));
-    if (!family_value) {
-      return Vector<AtomicString>();
-    }
-    families[i] = family_value->Value();
-  }
-  return families;
 }
 
 }  // namespace
@@ -910,6 +887,7 @@ void StyleEngine::UpdateGenericFontFamilySettings() {
   if (resolver_) {
     resolver_->InvalidateMatchedPropertiesCache();
   }
+  FontCache::Get().InvalidateNGShapeCache();
   FontCache::Get().InvalidateShapeCache();
 }
 
@@ -2229,11 +2207,32 @@ void StyleEngine::EnsureUAStyleForElement(const Element& element) {
 void StyleEngine::EnsureUAStyleForPseudoElement(PseudoId pseudo_id) {
   DCHECK(global_rule_set_);
 
+  if (IsTransitionPseudoElement(pseudo_id)) {
+    EnsureUAStyleForTransitionPseudos();
+    return;
+  }
+
   if (CSSDefaultStyleSheets::Instance()
           .EnsureDefaultStyleSheetsForPseudoElement(pseudo_id)) {
     global_rule_set_->MarkDirty();
     UpdateActiveStyle();
   }
+}
+
+void StyleEngine::EnsureUAStyleForTransitionPseudos() {
+  if (ua_view_transition_style_) {
+    return;
+  }
+
+  // Note that we don't need to mark any state dirty for style invalidation
+  // here. This is done externally by the code which invalidates this style
+  // sheet.
+  auto* transition = ViewTransitionUtils::GetActiveTransition(GetDocument());
+  auto* style_sheet_contents = CSSDefaultStyleSheets::ParseUASheet(
+      transition ? transition->UAStyleSheet() : "");
+  ua_view_transition_style_ = MakeGarbageCollected<RuleSet>();
+  ua_view_transition_style_->AddRulesFromSheet(
+      style_sheet_contents, CSSDefaultStyleSheets::ScreenEval());
 }
 
 void StyleEngine::EnsureUAStyleForForcedColors() {
@@ -2248,14 +2247,12 @@ void StyleEngine::EnsureUAStyleForForcedColors() {
 }
 
 RuleSet* StyleEngine::DefaultViewTransitionStyle() const {
-  auto* transition = ViewTransitionUtils::GetActiveTransition(GetDocument());
-  if (!transition) {
-    return nullptr;
-  }
+  DCHECK(ua_view_transition_style_);
+  return ua_view_transition_style_.Get();
+}
 
-  auto* css_style_sheet = transition->UAStyleSheet();
-  return &css_style_sheet->Contents()->EnsureRuleSet(
-      CSSDefaultStyleSheets::ScreenEval());
+void StyleEngine::InvalidateUAViewTransitionStyle() {
+  ua_view_transition_style_ = nullptr;
 }
 
 bool StyleEngine::HasRulesForId(const AtomicString& id) const {
@@ -2420,8 +2417,9 @@ void StyleEngine::ApplyUserRuleSetChanges(
   if (changed_rule_flags & kLayerRules) {
     // Rebuild cascade layer map in all cases, because a newly inserted
     // sub-layer can precede an original layer in the final ordering.
+    LayerMap mapping_unused;
     user_cascade_layer_map_ =
-        MakeGarbageCollected<CascadeLayerMap>(new_style_sheets);
+        MakeGarbageCollected<CascadeLayerMap>(new_style_sheets, mapping_unused);
 
     if (resolver_) {
       resolver_->InvalidateMatchedPropertiesCache();
@@ -2516,9 +2514,6 @@ void StyleEngine::ApplyUserRuleSetChanges(
     MarkPositionFallbackStylesDirty();
   }
 
-  // TODO(crbug.com/1463966): @view-transitions doesn't yet work from user
-  // stylesheets.
-
   InvalidateForRuleSetChanges(GetDocument(), changed_rule_sets,
                               changed_rule_flags, kInvalidateAllScopes);
 }
@@ -2580,6 +2575,33 @@ void StyleEngine::ApplyRuleSetChanges(
       rebuild_cascade_layer_map = (changed_rule_flags & kLayerRules) ||
                                   scoped_resolver->HasCascadeLayerMap();
       scoped_resolver->ResetStyle();
+    }
+  }
+
+  if (RuntimeEnabledFeatures::CSSSuperRulesetsEnabled()) {
+    if (new_style_sheets.size() <= 1) {
+      // Superrulesets are disabled, or we don't need one.
+      if (scoped_resolver) {
+        scoped_resolver->ClearSuperRuleset();
+      }
+    } else {
+      scoped_resolver = &tree_scope.EnsureScopedStyleResolver();
+      if (change == kActiveSheetsAppended &&
+          scoped_resolver->HasSuperRuleset()) {
+        // We can use the existing superruleset, just append the new ones.
+        for (wtf_size_t i = old_style_sheets.size();
+             i < new_style_sheets.size(); ++i) {
+          scoped_resolver->AppendToSuperRuleset(new_style_sheets[i]);
+        }
+      } else {
+        if (append_start_index > 0 && !scoped_resolver->HasSuperRuleset()) {
+          // The cascade layer map is built from a normal RuleSet,
+          // which is now being absorbed into (replaced by) the superruleset,
+          // so we can't just refresh the layer map; it needs a full update.
+          rebuild_cascade_layer_map = true;
+        }
+        scoped_resolver->RebuildSuperRuleset(new_style_sheets);
+      }
     }
   }
 
@@ -2899,10 +2921,10 @@ void StyleEngine::AddFontPaletteValuesRules(const RuleSet& rule_set) {
       font_palette_values_rules = rule_set.FontPaletteValuesRules();
   for (auto& rule : font_palette_values_rules) {
     // TODO(https://crbug.com/1170794): Handle cascade layer reordering here.
-    for (auto& family : ConvertFontFamilyToVector(rule->GetFontFamily())) {
-      font_palette_values_rule_map_.Set(
-          std::make_pair(rule->GetName(), String(family).FoldCase()), rule);
-    }
+    font_palette_values_rule_map_.Set(
+        std::make_pair(rule->GetName(),
+                       String(rule->GetFontFamilyAsString()).FoldCase()),
+        rule);
   }
 }
 
@@ -3744,11 +3766,12 @@ void StyleEngine::UpdateViewportStyle() {
     return;
   }
 
-  const ComputedStyle* viewport_style = resolver_->StyleForViewport();
+  scoped_refptr<const ComputedStyle> viewport_style =
+      resolver_->StyleForViewport();
   if (ComputedStyle::ComputeDifference(
-          viewport_style, GetDocument().GetLayoutView()->Style()) !=
+          viewport_style.get(), GetDocument().GetLayoutView()->Style()) !=
       ComputedStyle::Difference::kEqual) {
-    GetDocument().GetLayoutView()->SetStyle(viewport_style);
+    GetDocument().GetLayoutView()->SetStyle(std::move(viewport_style));
   }
 }
 
@@ -3854,6 +3877,7 @@ void StyleEngine::Trace(Visitor* visitor) const {
   visitor->Trace(text_tracks_);
   visitor->Trace(vtt_originating_element_);
   visitor->Trace(parent_for_detached_subtree_);
+  visitor->Trace(ua_view_transition_style_);
   visitor->Trace(style_image_cache_);
   visitor->Trace(fill_or_clip_path_uri_value_cache_);
   visitor->Trace(style_containment_scope_tree_);

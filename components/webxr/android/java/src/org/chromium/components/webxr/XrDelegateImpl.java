@@ -37,7 +37,7 @@ public class XrDelegateImpl implements XrDelegate {
 
     @Override
     public boolean onBackPressed() {
-        return XrSessionCoordinator.endActiveSession();
+        return XrSessionCoordinator.onBackPressed();
     }
 
     @Override

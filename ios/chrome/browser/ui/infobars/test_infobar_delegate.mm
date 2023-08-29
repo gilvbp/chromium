@@ -8,6 +8,10 @@
 #import "components/infobars/core/infobar.h"
 #import "ios/chrome/browser/infobars/infobar_utils.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 TestInfoBarDelegate::TestInfoBarDelegate(NSString* infobar_message)
     : infobar_message_(infobar_message) {}
 

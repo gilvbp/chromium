@@ -119,11 +119,10 @@ void ProfileInvalidationProviderFactory::RegisterTestingFactory(
   testing_factory_ = std::move(testing_factory);
 }
 
-std::unique_ptr<KeyedService>
-ProfileInvalidationProviderFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* ProfileInvalidationProviderFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   if (testing_factory_)
-    return testing_factory_.Run(context);
+    return testing_factory_.Run(context).release();
 
   std::unique_ptr<IdentityProvider> identity_provider;
 
@@ -144,10 +143,14 @@ ProfileInvalidationProviderFactory::BuildServiceInstanceForBrowserContext(
     identity_provider = std::make_unique<ProfileIdentityProvider>(
         IdentityManagerFactory::GetForProfile(profile));
   }
+  auto service =
+      CreateInvalidationServiceForSenderId(profile, identity_provider.get(),
+                                           /* sender_id = */ "");
   auto custom_sender_id_factory = base::BindRepeating(
       &CreateInvalidationServiceForSenderId, profile, identity_provider.get());
-  return std::make_unique<ProfileInvalidationProvider>(
-      std::move(identity_provider), std::move(custom_sender_id_factory));
+  return new ProfileInvalidationProvider(std::move(service),
+                                         std::move(identity_provider),
+                                         std::move(custom_sender_id_factory));
 }
 
 void ProfileInvalidationProviderFactory::RegisterProfilePrefs(

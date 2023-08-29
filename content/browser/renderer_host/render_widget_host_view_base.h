@@ -125,21 +125,6 @@ class CONTENT_EXPORT RenderWidgetHostViewBase : public RenderWidgetHostView {
   display::ScreenInfo GetScreenInfo() const override;
   display::ScreenInfos GetScreenInfos() const override;
 
-  // Identical to `CopyFromSurface()`, except that this method issues the
-  // `viz::CopyOutputRequest` against the exact `viz::Surface` currently
-  // embedded by this View, while `CopyFromSurface()` may return a copy of any
-  // Surface associated with this View, generated after the current Surface. The
-  // caller is responsible for making sure that the target Surface is embedded
-  // and available for copy when this API is called. This Surface can be removed
-  // from the UI after this call.
-  //
-  // TODO(https://crbug.com/1467314): merge this API into `CopyFromSurface()`,
-  // and enable it fully on Android.
-  virtual void CopyFromExactSurface(
-      const gfx::Rect& src_rect,
-      const gfx::Size& output_size,
-      base::OnceCallback<void(const SkBitmap&)> callback);
-
   // For HiDPI capture mode, allow applying a render scale multiplier
   // which modifies the effective device scale factor. Use a scale
   // of 1.0f (exactly) to disable the feature after it was used.
@@ -274,11 +259,6 @@ class CONTENT_EXPORT RenderWidgetHostViewBase : public RenderWidgetHostView {
       const gfx::Rect& focused_edit_bounds,
       const gfx::Rect& caret_bounds) {}
 
-  // Invalidates the `viz::SurfaceAllocationGroup` of this View. Also
-  // invalidates `viz::SurfaceId` of it. This should be used when no previous
-  // frame drawn by this view is preferred as a fallback.
-  virtual void InvalidateLocalSurfaceIdAndAllocationGroup() = 0;
-
   // This method will clear any cached fallback surface. For use in response to
   // a CommitPending where there is no content for TakeFallbackContentFrom.
   virtual void ClearFallbackSurfaceForCommitPending() {}
@@ -315,12 +295,8 @@ class CONTENT_EXPORT RenderWidgetHostViewBase : public RenderWidgetHostView {
       const viz::AggregatedHitTestRegion& region) {}
 
   // Indicates whether the widget has resized or moved within its embedding
-  // page during a feature-parameter-determined time interval.
+  // page during the 500 milliseconds prior to the event.
   virtual bool ScreenRectIsUnstableFor(const blink::WebInputEvent& event);
-
-  // See kTargetFrameMovedRecentlyForIOv2 in web_input_event.h.
-  virtual bool ScreenRectIsUnstableForIOv2For(
-      const blink::WebInputEvent& event);
 
   virtual void PreProcessMouseEvent(const blink::WebMouseEvent& event) {}
   virtual void PreProcessTouchEvent(const blink::WebTouchEvent& event) {}
@@ -432,12 +408,10 @@ class CONTENT_EXPORT RenderWidgetHostViewBase : public RenderWidgetHostView {
                                       const gfx::Rect& bounding_box,
                                       bool is_anchor_first);
 
-  // Updates the range of the marked text in an IME composition, the visible
-  // line bounds, or both.
+  // Updates the range of the marked text in an IME composition.
   virtual void ImeCompositionRangeChanged(
       const gfx::Range& range,
-      const absl::optional<std::vector<gfx::Rect>>& character_bounds,
-      const absl::optional<std::vector<gfx::Rect>>& line_bounds);
+      const std::vector<gfx::Rect>& character_bounds);
 
   //----------------------------------------------------------------------------
   // The following pure virtual methods are implemented by derived classes.
@@ -500,16 +474,9 @@ class CONTENT_EXPORT RenderWidgetHostViewBase : public RenderWidgetHostView {
   // Gets the bounds of the top-level window, in screen coordinates.
   virtual gfx::Rect GetBoundsInRootWindow() = 0;
 
-  // Dispatched when the main frame associated with a `RenderWidgetHostView` is
-  // being navigated to a different Document (won't be dispatched for
-  // same-document navigations).
-  //
-  // "PreCommit" means the new page hasn't been marked as visible yet.
-  virtual void DidNavigateMainFramePreCommit();
-
-  // Gives a chance to the caller to perform some task AFTER the page is
-  // unloaded and stored in the BFCache.
-  virtual void DidEnterBackForwardCache() {}
+  // Called by the WebContentsImpl when a user tries to navigate a new page on
+  // main frame.
+  virtual void OnDidNavigateMainFrameToNewPage();
 
   // Called by WebContentsImpl to notify the view about a change in visibility
   // of context menu. The view can then perform platform specific tasks and

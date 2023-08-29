@@ -21,9 +21,9 @@ class MockVideoCapturerSource : public VideoCapturerSource {
   MOCK_METHOD0(RequestRefreshFrame, void());
   MOCK_METHOD0(GetPreferredFormats, media::VideoCaptureFormats());
   MOCK_METHOD3(MockStartCapture,
-               RunState(const media::VideoCaptureParams& params,
-                        const VideoCaptureDeliverFrameCB& new_frame_callback,
-                        const RunningCallback& running_callback));
+               void(const media::VideoCaptureParams& params,
+                    const VideoCaptureDeliverFrameCB& new_frame_callback,
+                    const RunningCallback& running_callback));
   MOCK_METHOD0(MockStopCapture, void());
   void StartCapture(const media::VideoCaptureParams& params,
                     const VideoCaptureDeliverFrameCB& new_frame_callback,
@@ -31,13 +31,12 @@ class MockVideoCapturerSource : public VideoCapturerSource {
                     const RunningCallback& running_callback) override {
     running_cb_ = running_callback;
     capture_params_ = params;
-
-    RunState run_state =
-        MockStartCapture(params, new_frame_callback, running_callback);
-    SetRunning(run_state);
+    MockStartCapture(params, new_frame_callback, running_callback);
+    SetRunning(true);
   }
   void StopCapture() override { MockStopCapture(); }
-  void SetRunning(RunState run_state) {
+  void SetRunning(bool is_running) {
+    RunState run_state = is_running ? RunState::kRunning : RunState::kStopped;
     PostCrossThreadTask(*scheduler::GetSingleThreadTaskRunnerForTesting(),
                         FROM_HERE, CrossThreadBindOnce(running_cb_, run_state));
   }

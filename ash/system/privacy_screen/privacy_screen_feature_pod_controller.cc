@@ -69,7 +69,8 @@ void PrivacyScreenFeaturePodController::TogglePrivacyScreen() {
   DCHECK(privacy_screen_controller->IsSupported());
 
   privacy_screen_controller->SetEnabled(
-      !privacy_screen_controller->GetEnabled());
+      !privacy_screen_controller->GetEnabled(),
+      PrivacyScreenController::kToggleUISurfaceFeaturePod);
 }
 
 void PrivacyScreenFeaturePodController::UpdateButton() {

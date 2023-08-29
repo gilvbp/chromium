@@ -6,6 +6,10 @@
 
 #import "base/notreached.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 NSString* const kContentSuggestionsCollectionIdentifier =
     @"ContentSuggestionsCollectionIdentifier";
 
@@ -24,8 +28,17 @@ const CGFloat kMagicStackWideWidth = 430;
 
 const CGFloat kMostVisitedBottomMargin = 13;
 
-const CGFloat kMagicStackFaviconWidth = 28;
-
+const int kTileAblationImpressionThresholdMinutes = 5;
+const int kTileAblationMinimumUseThresholdInDays = 7;
+const int kTileAblationMaximumUseThresholdInDays = 14;
+const int kMinimumImpressionThresholdTileAblation = 10;
+const int kMaximumImpressionThresholdTileAblation = 20;
+NSString* const kLastNTPImpressionRecordedKey = @"LastNTPImpressionRecorded";
+NSString* const kNumberOfNTPImpressionsRecordedKey =
+    @"NumberOfNTPImpressionsRecorded";
+NSString* const kFirstImpressionRecordedTileAblationKey =
+    @"kFirstImpressionRecordedTileAblationKey";
+NSString* const kDoneWithTileAblationKey = @"DoneWithTileAblation";
 
 ContentSuggestionsModuleType SetUpListModuleTypeForSetUpListType(
     SetUpListItemType type) {

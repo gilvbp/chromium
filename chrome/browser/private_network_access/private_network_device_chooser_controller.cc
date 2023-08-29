@@ -13,6 +13,7 @@
 #include "build/build_config.h"
 #include "chrome/browser/chooser_controller/title_util.h"
 #include "chrome/browser/net/referrer.h"
+#include "chrome/browser/private_network_access/chrome_private_network_device_chooser.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/common/url_constants.h"
 #include "chrome/grit/generated_resources.h"
@@ -20,7 +21,6 @@
 #include "content/public/browser/global_routing_id.h"
 #include "content/public/browser/render_frame_host.h"
 #include "content/public/browser/web_contents.h"
-#include "services/network/public/mojom/url_loader_network_service_observer.mojom.h"
 #include "ui/base/l10n/l10n_util.h"
 #include "url/gurl.h"
 
@@ -29,25 +29,19 @@ using content::WebContents;
 
 PrivateNetworkDeviceChooserController::PrivateNetworkDeviceChooserController(
     content::RenderFrameHost* render_frame_host,
-    blink::mojom::PrivateNetworkDevicePtr device,
-    network::mojom::URLLoaderNetworkServiceObserver::
-        OnPrivateNetworkAccessPermissionRequiredCallback callback)
+    std::unique_ptr<blink::mojom::PrivateNetworkDevice> device,
+    ChromePrivateNetworkDeviceChooser::EventHandler event_handler)
     : ChooserController(
           CreateChooserTitle(render_frame_host,
                              IDS_PRIVATE_NETWORK_DEVICE_CHOOSER_PROMPT_ORIGIN)),
       device_(std::move(device)),
-      callback_(std::move(callback)) {
+      event_handler_(std::move(event_handler)) {
   RenderFrameHost* main_frame = render_frame_host->GetMainFrame();
   origin_ = main_frame->GetLastCommittedOrigin();
 }
 
 PrivateNetworkDeviceChooserController::
-    ~PrivateNetworkDeviceChooserController() {
-  if (callback_.is_null()) {
-    return;
-  }
-  std::move(callback_).Run(false);
-}
+    ~PrivateNetworkDeviceChooserController() = default;
 
 std::u16string PrivateNetworkDeviceChooserController::GetOkButtonLabel() const {
   return l10n_util::GetStringUTF16(
@@ -79,12 +73,10 @@ std::u16string PrivateNetworkDeviceChooserController::GetOption(
 }
 
 void PrivateNetworkDeviceChooserController::Select(
-    const std::vector<size_t>& indices) {
-  std::move(callback_).Run(true);
-}
+    const std::vector<size_t>& indices) {}
 
 void PrivateNetworkDeviceChooserController::ReplaceDeviceForTesting(
-    blink::mojom::PrivateNetworkDevicePtr device) {
+    std::unique_ptr<blink::mojom::PrivateNetworkDevice> device) {
   device_ = std::move(device);
   if (view()) {
     view()->OnOptionAdded(0);
@@ -93,10 +85,6 @@ void PrivateNetworkDeviceChooserController::ReplaceDeviceForTesting(
 
 void PrivateNetworkDeviceChooserController::OpenHelpCenterUrl() const {}
 
-void PrivateNetworkDeviceChooserController::Cancel() {
-  std::move(callback_).Run(false);
-}
+void PrivateNetworkDeviceChooserController::Cancel() {}
 
-void PrivateNetworkDeviceChooserController::Close() {
-  std::move(callback_).Run(false);
-}
+void PrivateNetworkDeviceChooserController::Close() {}

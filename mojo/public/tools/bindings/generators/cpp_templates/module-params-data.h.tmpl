@@ -2,10 +2,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-{%- from 'cpp_macros.tmpl' import
-  include_guard, namespace_begin, namespace_end %}
-
-{%- set header_guard = include_guard('PARAMS_DATA', module.path, variant) %}
+{%- set header_guard = "%s_PARAMS_DATA_H_"|format(
+        module.path|upper|replace("/","_")|replace(".","_")|
+            replace("-", "_")) %}
 
 #ifndef {{header_guard}}
 #define {{header_guard}}
@@ -22,7 +21,9 @@ namespace mojo::internal {
 class ValidationContext;
 }
 
-{{namespace_begin(namespaces_as_array)}}
+{%- for namespace in namespaces_as_array %}
+namespace {{namespace}} {
+{%- endfor %}
 namespace internal {
 
 {#--- Interface parameter definitions #}
@@ -62,7 +63,9 @@ namespace internal {
 {%-   endfor %}
 {%- endfor %}
 
-{{namespace_end(namespaces_as_array)}}
+{%- for namespace in namespaces_as_array|reverse %}
+}  // namespace {{namespace}}
+{%- endfor %}
 
 #if defined(__clang__)
 #pragma clang diagnostic pop

@@ -79,9 +79,8 @@ void InputTypeView::DispatchSimulatedClickIfActive(KeyboardEvent& event) const {
 }
 
 void InputTypeView::AccessKeyAction(SimulatedClickCreationScope) {
-  GetElement().Focus(FocusParams(
-      SelectionBehaviorOnFocus::kReset, mojom::blink::FocusType::kNone, nullptr,
-      FocusOptions::Create(), FocusTrigger::kUserGesture));
+  GetElement().Focus(FocusParams(SelectionBehaviorOnFocus::kReset,
+                                 mojom::blink::FocusType::kNone, nullptr));
 }
 
 bool InputTypeView::ShouldSubmitImplicitly(const Event& event) {

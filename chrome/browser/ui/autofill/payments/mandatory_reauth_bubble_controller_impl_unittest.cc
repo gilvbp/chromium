@@ -112,21 +112,7 @@ TEST_F(MandatoryReauthBubbleControllerImplTest,
   CloseBubble();
 }
 
-TEST_F(MandatoryReauthBubbleControllerImplTest,
-       Metrics_OptInConfirmationBubble_Shown) {
-  base::HistogramTester histogram_tester;
-  ShowBubble();
-  ClickAcceptButton();
-  // Reshow the bubble, which has now transitioned to the confirmation state.
-  ReshowBubble();
-
-  histogram_tester.ExpectBucketCount(
-      "Autofill.PaymentMethods.MandatoryReauth.OptInConfirmationBubble",
-      autofill_metrics::MandatoryReauthOptInConfirmationBubbleMetric::kShown,
-      1);
-}
-
-class MandatoryReauthBubbleControllerOptInBubbleMetricsTest
+class MandatoryReauthBubbleControllerImplMetricsTest
     : public MandatoryReauthBubbleControllerImplTest,
       public testing::WithParamInterface<bool> {
  public:
@@ -154,11 +140,11 @@ std::string GetResultMetricsPath(bool is_reshow) {
 }
 
 INSTANTIATE_TEST_SUITE_P(FirstShowAndReshow,
-                         MandatoryReauthBubbleControllerOptInBubbleMetricsTest,
+                         MandatoryReauthBubbleControllerImplMetricsTest,
                          testing::Bool());
 
-TEST_P(MandatoryReauthBubbleControllerOptInBubbleMetricsTest,
-       Metrics_OptInBubble_Shown) {
+TEST_P(MandatoryReauthBubbleControllerImplMetricsTest,
+       Metrics_MandatoryReauthOptInBubbleMetric_Shown) {
   base::HistogramTester histogram_tester;
   SetUpMetricsTest();
 
@@ -172,7 +158,7 @@ TEST_P(MandatoryReauthBubbleControllerOptInBubbleMetricsTest,
   }
 }
 
-TEST_P(MandatoryReauthBubbleControllerOptInBubbleMetricsTest,
+TEST_P(MandatoryReauthBubbleControllerImplMetricsTest,
        Metrics_MandatoryReauthOptInBubbleMetric_Accepted) {
   base::HistogramTester histogram_tester;
   SetUpMetricsTest();
@@ -183,8 +169,8 @@ TEST_P(MandatoryReauthBubbleControllerOptInBubbleMetricsTest,
       autofill_metrics::MandatoryReauthOptInBubbleResult::kAccepted, 1);
 }
 
-TEST_P(MandatoryReauthBubbleControllerOptInBubbleMetricsTest,
-       Metrics_OptInBubble_Cancelled) {
+TEST_P(MandatoryReauthBubbleControllerImplMetricsTest,
+       Metrics_MandatoryReauthOptInBubbleMetric_Cancelled) {
   base::HistogramTester histogram_tester;
   SetUpMetricsTest();
   ClickCancelButton();
@@ -194,8 +180,8 @@ TEST_P(MandatoryReauthBubbleControllerOptInBubbleMetricsTest,
       autofill_metrics::MandatoryReauthOptInBubbleResult::kCancelled, 1);
 }
 
-TEST_P(MandatoryReauthBubbleControllerOptInBubbleMetricsTest,
-       Metrics_OptInBubble_Closed) {
+TEST_P(MandatoryReauthBubbleControllerImplMetricsTest,
+       Metrics_MandatoryReauthOptInBubbleMetric_Closed) {
   base::HistogramTester histogram_tester;
   SetUpMetricsTest();
   CloseBubble();
@@ -205,8 +191,8 @@ TEST_P(MandatoryReauthBubbleControllerOptInBubbleMetricsTest,
       autofill_metrics::MandatoryReauthOptInBubbleResult::kClosed, 1);
 }
 
-TEST_P(MandatoryReauthBubbleControllerOptInBubbleMetricsTest,
-       Metrics_OptInBubble_LostFocus) {
+TEST_P(MandatoryReauthBubbleControllerImplMetricsTest,
+       Metrics_MandatoryReauthOptInBubbleMetric_LostFocus) {
   base::HistogramTester histogram_tester;
   SetUpMetricsTest();
   LoseFocus();
@@ -216,8 +202,8 @@ TEST_P(MandatoryReauthBubbleControllerOptInBubbleMetricsTest,
       autofill_metrics::MandatoryReauthOptInBubbleResult::kLostFocus, 1);
 }
 
-TEST_P(MandatoryReauthBubbleControllerOptInBubbleMetricsTest,
-       MetricsOptInBubble_NotInteracted) {
+TEST_P(MandatoryReauthBubbleControllerImplMetricsTest,
+       MetricsMandatoryReauthOptInBubbleMetric_NotInteracted) {
   base::HistogramTester histogram_tester;
   SetUpMetricsTest();
   FailToInteract();

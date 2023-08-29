@@ -5,15 +5,13 @@
 import {TestRunner} from 'test_runner';
 import {ConsoleTestRunner} from 'console_test_runner';
 
-import * as ProtocolClient from 'devtools/core/protocol_client/protocol_client.js';
-
 (async function() {
   TestRunner.addResult(`Test screen orientation override.\n`);
   await TestRunner.loadLegacyModule('console');
 
   await TestRunner.navigatePromise('resources/screen-orientation-resource.html');
 
-  ProtocolClient.InspectorBackend.test.suppressRequestErrors = false;
+  ProtocolClient.test.suppressRequestErrors = false;
   function addDumpResult(next) {
     TestRunner.evaluateInPage('dump()', dumpCallback);
 

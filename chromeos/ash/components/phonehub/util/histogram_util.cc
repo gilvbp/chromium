@@ -192,12 +192,6 @@ void LogPermissionOnboardingSetupResult(PermissionsOnboardingSetUpMode mode) {
       mode);
 }
 
-void LogMultiDeviceSetupDialogEntryPoint(
-    MultiDeviceSetupDialogEntrypoint entry_point) {
-  base::UmaHistogramEnumeration("MultiDeviceSetup.SetupDialogEntryPoint",
-                                entry_point);
-}
-
 }  // namespace util
 }  // namespace phonehub
 }  // namespace ash

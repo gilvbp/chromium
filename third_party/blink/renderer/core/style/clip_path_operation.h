@@ -40,7 +40,6 @@ class ClipPathOperation : public RefCounted<ClipPathOperation> {
   USING_FAST_MALLOC(ClipPathOperation);
 
  public:
-  // TODO(pdr): Support <geometry-box>.
   enum OperationType { kReference, kShape };
 
   virtual ~ClipPathOperation() = default;

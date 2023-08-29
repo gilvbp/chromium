@@ -43,7 +43,7 @@ class CSSToLengthConversionDataTest : public PageTestBase {
     root->SetInlineStyleProperty(CSSPropertyID::kLineHeight, "5");
     auto* div = MakeGarbageCollected<HTMLDivElement>(GetDocument());
     div->SetInlineStyleProperty(CSSPropertyID::kFontSize, "20px");
-    div->SetIdAttribute(AtomicString("div"));
+    div->SetIdAttribute("div");
     GetDocument().body()->AppendChild(div);
     GetDocument().body()->SetInlineStyleProperty(CSSPropertyID::kLineHeight,
                                                  "10");
@@ -106,8 +106,6 @@ TEST_F(CSSToLengthConversionDataTest, Normal) {
   EXPECT_FLOAT_EQ(36.0f, Convert(data, "calc(1em + 1ex)"));
   EXPECT_FLOAT_EQ(100.0f, Convert(data, "1lh"));
   EXPECT_FLOAT_EQ(50.0f, Convert(data, "1rlh"));
-  EXPECT_FLOAT_EQ(16.0f, Convert(data, "1cap"));
-  EXPECT_FLOAT_EQ(8.0f, Convert(data, "1rcap"));
 }
 
 TEST_F(CSSToLengthConversionDataTest, Zoomed) {
@@ -124,8 +122,6 @@ TEST_F(CSSToLengthConversionDataTest, Zoomed) {
   EXPECT_FLOAT_EQ(72.0f, Convert(data, "calc(1em + 1ex)"));
   EXPECT_FLOAT_EQ(200.0f, Convert(data, "1lh"));
   EXPECT_FLOAT_EQ(100.0f, Convert(data, "1rlh"));
-  EXPECT_FLOAT_EQ(32.0f, Convert(data, "1cap"));
-  EXPECT_FLOAT_EQ(16.0f, Convert(data, "1rcap"));
 }
 
 TEST_F(CSSToLengthConversionDataTest, AdjustedZoom) {
@@ -142,8 +138,6 @@ TEST_F(CSSToLengthConversionDataTest, AdjustedZoom) {
   EXPECT_FLOAT_EQ(72.0f, Convert(data, "calc(1em + 1ex)"));
   EXPECT_FLOAT_EQ(200.0f, Convert(data, "1lh"));
   EXPECT_FLOAT_EQ(100.0f, Convert(data, "1rlh"));
-  EXPECT_FLOAT_EQ(32.0f, Convert(data, "1cap"));
-  EXPECT_FLOAT_EQ(16.0f, Convert(data, "1rcap"));
 }
 
 TEST_F(CSSToLengthConversionDataTest, DifferentZoom) {
@@ -162,8 +156,6 @@ TEST_F(CSSToLengthConversionDataTest, DifferentZoom) {
   EXPECT_FLOAT_EQ(72.0f, Convert(data, "calc(1em + 1ex)"));
   EXPECT_FLOAT_EQ(200.0f, Convert(data, "1lh"));
   EXPECT_FLOAT_EQ(100.0f, Convert(data, "1rlh"));
-  EXPECT_FLOAT_EQ(32.0f, Convert(data, "1cap"));
-  EXPECT_FLOAT_EQ(16.0f, Convert(data, "1rcap"));
 }
 
 TEST_F(CSSToLengthConversionDataTest, Unzoomed) {
@@ -180,8 +172,6 @@ TEST_F(CSSToLengthConversionDataTest, Unzoomed) {
   EXPECT_FLOAT_EQ(36.0f, Convert(data, "calc(1em + 1ex)"));
   EXPECT_FLOAT_EQ(100.0f, Convert(data, "1lh"));
   EXPECT_FLOAT_EQ(50.0f, Convert(data, "1rlh"));
-  EXPECT_FLOAT_EQ(16.0f, Convert(data, "1cap"));
-  EXPECT_FLOAT_EQ(8.0f, Convert(data, "1rcap"));
 }
 
 TEST_F(CSSToLengthConversionDataTest, StyleLessContainerUnitConversion) {
@@ -196,7 +186,7 @@ TEST_F(CSSToLengthConversionDataTest, StyleLessContainerUnitConversion) {
 TEST_F(CSSToLengthConversionDataTest, SetLineHeightSize) {
   CSSToLengthConversionData data = ConversionData();
   EXPECT_FLOAT_EQ(100.0f, Convert(data, "1lh"));
-  Element* div = GetDocument().getElementById(AtomicString("div"));
+  Element* div = GetDocument().getElementById("div");
   ASSERT_TRUE(div);
   SetLineHeightSize(*div, data);
   EXPECT_FLOAT_EQ(200.0f, Convert(data, "1lh"));
@@ -212,8 +202,6 @@ TEST_F(CSSToLengthConversionDataTest, Flags) {
   Flags rex = rem | glyph;
   Flags rch = rem | glyph;
   Flags ric = rem | glyph;
-  Flags cap = glyph;
-  Flags rcap = glyph | rem;
   Flags lh = static_cast<Flags>(Flag::kLineHeightRelative);
   Flags rlh = glyph | rem | lh;
   Flags sv = static_cast<Flags>(Flag::kStaticViewport);
@@ -223,13 +211,11 @@ TEST_F(CSSToLengthConversionDataTest, Flags) {
   EXPECT_EQ(0u, ConversionFlags("1px"));
 
   EXPECT_EQ(em, ConversionFlags("1em"));
-  EXPECT_EQ(cap, ConversionFlags("1cap"));
 
   EXPECT_EQ(rem, ConversionFlags("1rem"));
   EXPECT_EQ(rex, ConversionFlags("1rex"));
   EXPECT_EQ(rch, ConversionFlags("1rch"));
   EXPECT_EQ(ric, ConversionFlags("1ric"));
-  EXPECT_EQ(rcap, ConversionFlags("1rcap"));
 
   EXPECT_EQ(glyph, ConversionFlags("1ex"));
   EXPECT_EQ(glyph, ConversionFlags("1ch"));

@@ -80,8 +80,7 @@ class ReadingListModelTest : public FakeReadingListModelStorage::Observer,
         storage->AsWeakPtr();
 
     model_ = std::make_unique<ReadingListModelImpl>(
-        std::move(storage), syncer::StorageType::kUnspecified,
-        syncer::WipeModelUponSyncDisabledBehavior::kNever, &clock_);
+        std::move(storage), syncer::StorageType::kUnspecified, &clock_);
     model_->AddObserver(&observer_);
 
     return storage_ptr;

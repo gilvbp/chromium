@@ -405,7 +405,7 @@ TEST_F(FirstPartySetsOverridesPolicyHandlerTest,
 }
 
 TEST_F(FirstPartySetsOverridesPolicyHandlerTest,
-       CheckPolicySettings_Handler_AcceptsSingletonSet) {
+       CheckPolicySettings_Handler_RejectsSingletonSet) {
   policy::PolicyErrorMap errors;
   std::string input = R"(
               {
@@ -419,10 +419,13 @@ TEST_F(FirstPartySetsOverridesPolicyHandlerTest,
               }
             )";
 
-  EXPECT_TRUE(
+  EXPECT_FALSE(
       handler()->CheckPolicySettings(MakePolicyWithInput(input), &errors));
   EXPECT_EQ(errors.GetErrorMessages(policy::key::kFirstPartySetsOverrides),
-            u"");
+            u"Error at "
+            u"FirstPartySetsOverrides.replacements[0].associatedSites: Schema "
+            u"validation error: This set doesn't contain any sites in its "
+            u"associatedSites list.");
 }
 
 TEST_F(FirstPartySetsOverridesPolicyHandlerTest,

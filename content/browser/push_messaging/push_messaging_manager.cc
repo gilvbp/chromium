@@ -26,7 +26,6 @@
 #include "content/public/browser/browser_thread.h"
 #include "content/public/browser/child_process_host.h"
 #include "content/public/browser/permission_controller.h"
-#include "content/public/browser/permission_request_description.h"
 #include "content/public/browser/render_process_host.h"
 #include "content/public/common/content_switches.h"
 #include "third_party/abseil-cpp/absl/types/optional.h"
@@ -340,14 +339,13 @@ void PushMessagingManager::Register(PushMessagingManager::RegisterData data) {
           bool user_gesture = data.user_gesture;
 
           DCHECK_EQ(data.requesting_storage_key,
-                    render_frame_host_impl->GetStorageKey());
+                    render_frame_host_impl->storage_key());
 
           render_frame_host_impl->GetBrowserContext()
               ->GetPermissionController()
               ->RequestPermissionFromCurrentDocument(
-                  render_frame_host_impl,
-                  PermissionRequestDescription(
-                      blink::PermissionType::NOTIFICATIONS, user_gesture),
+                  blink::PermissionType::NOTIFICATIONS, render_frame_host_impl,
+                  user_gesture,
                   base::BindOnce(
                       &PushMessagingManager::DidRequestPermissionInIncognito,
                       AsWeakPtr(), std::move(data)));

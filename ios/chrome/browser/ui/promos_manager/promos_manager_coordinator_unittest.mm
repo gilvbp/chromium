@@ -6,7 +6,7 @@
 
 #import <Foundation/Foundation.h>
 
-#import "base/apple/foundation_util.h"
+#import "base/mac/foundation_util.h"
 #import "base/test/scoped_feature_list.h"
 #import "base/test/task_environment.h"
 #import "components/prefs/pref_registry_simple.h"
@@ -15,7 +15,6 @@
 #import "ios/chrome/browser/shared/model/browser/test/test_browser.h"
 #import "ios/chrome/browser/shared/model/browser_state/test_chrome_browser_state.h"
 #import "ios/chrome/browser/shared/model/prefs/pref_names.h"
-#import "ios/chrome/browser/shared/public/commands/credential_provider_promo_commands.h"
 #import "ios/chrome/browser/ui/promos_manager/bannered_promo_view_provider.h"
 #import "ios/chrome/browser/ui/promos_manager/promos_manager_coordinator+internal.h"
 #import "ios/chrome/browser/ui/promos_manager/standard_promo_action_handler.h"
@@ -27,6 +26,10 @@
 #import "testing/platform_test.h"
 #import "third_party/ocmock/OCMock/OCMock.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 PromosManagerCoordinatorTest::PromosManagerCoordinatorTest() {
   browser_state_ = TestChromeBrowserState::Builder().Build();
   browser_ = std::make_unique<TestBrowser>(browser_state_.get());
@@ -37,10 +40,8 @@ PromosManagerCoordinatorTest::~PromosManagerCoordinatorTest() {}
 
 void PromosManagerCoordinatorTest::CreatePromosManagerCoordinator() {
   coordinator_ = [[PromosManagerCoordinator alloc]
-          initWithBaseViewController:view_controller_
-                             browser:browser_.get()
-      credentialProviderPromoHandler:OCMStrictProtocolMock(@protocol(
-                                         CredentialProviderPromoCommands))];
+      initWithBaseViewController:view_controller_
+                         browser:browser_.get()];
 }
 
 // Tests a provider's standardPromoDismissAction is called when a

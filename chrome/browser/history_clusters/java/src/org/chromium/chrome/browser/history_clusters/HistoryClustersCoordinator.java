@@ -38,6 +38,7 @@ import org.chromium.ui.modelutil.MVCListAdapter.ModelList;
 import org.chromium.ui.modelutil.PropertyModel;
 import org.chromium.ui.modelutil.PropertyModelChangeProcessor;
 import org.chromium.ui.modelutil.SimpleRecyclerViewAdapter;
+import org.chromium.ui.util.AccessibilityUtil;
 
 /**
  * Root component for the HistoryClusters UI component, which displays lists of related history
@@ -82,7 +83,8 @@ public class HistoryClustersCoordinator extends RecyclerView.OnScrollListener
     HistoryClustersCoordinator(@NonNull Profile profile, @NonNull Activity activity,
             TemplateUrlService templateUrlService, HistoryClustersDelegate historyClustersDelegate,
             HistoryClustersMetricsLogger metricsLogger,
-            SelectionDelegate<ClusterVisit> selectionDelegate, SnackbarManager snackbarManager) {
+            SelectionDelegate<ClusterVisit> selectionDelegate, AccessibilityUtil accessibilityUtil,
+            SnackbarManager snackbarManager) {
         mActivity = activity;
         mDelegate = historyClustersDelegate;
         mModelList = new ModelList();
@@ -97,7 +99,7 @@ public class HistoryClustersCoordinator extends RecyclerView.OnScrollListener
         mMediator = new HistoryClustersMediator(HistoryClustersBridge.getForProfile(profile),
                 new LargeIconBridge(profile), mActivity, mActivity.getResources(), mModelList,
                 mToolbarModel, mDelegate, System::currentTimeMillis, templateUrlService,
-                mSelectionDelegate, mMetricsLogger, (message) -> {
+                mSelectionDelegate, mMetricsLogger, accessibilityUtil, (message) -> {
                     if (mRecyclerView == null) return;
                     mRecyclerView.announceForAccessibility(message);
                 }, new Handler());
@@ -114,10 +116,10 @@ public class HistoryClustersCoordinator extends RecyclerView.OnScrollListener
      */
     public HistoryClustersCoordinator(@NonNull Profile profile, @NonNull Activity activity,
             TemplateUrlService templateUrlService, HistoryClustersDelegate historyClustersDelegate,
-            SnackbarManager snackbarManager) {
+            AccessibilityUtil accessibilityUtil, SnackbarManager snackbarManager) {
         this(profile, activity, templateUrlService, historyClustersDelegate,
                 new HistoryClustersMetricsLogger(templateUrlService), new SelectionDelegate<>(),
-                snackbarManager);
+                accessibilityUtil, snackbarManager);
     }
 
     public void destroy() {
@@ -222,6 +224,10 @@ public class HistoryClustersCoordinator extends RecyclerView.OnScrollListener
         mToolbar.setSearchEnabled(true);
         if (!mDelegate.isSeparateActivity()) {
             mToolbar.getMenu().removeItem(R.id.close_menu_id);
+        }
+
+        if (!mDelegate.areTabGroupsEnabled()) {
+            mToolbar.getMenu().removeItem(R.id.selection_mode_open_in_tab_group);
         }
 
         mToolbar.setInfoMenuItem(R.id.info_menu_id);
@@ -351,6 +357,7 @@ public class HistoryClustersCoordinator extends RecyclerView.OnScrollListener
         return mRecyclerView;
     }
 
+    @VisibleForTesting
     public SelectableListToolbar getToolbarForTesting() {
         return mToolbar;
     }

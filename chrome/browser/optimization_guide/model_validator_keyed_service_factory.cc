@@ -37,11 +37,9 @@ ModelValidatorKeyedServiceFactory::ModelValidatorKeyedServiceFactory()
 ModelValidatorKeyedServiceFactory::~ModelValidatorKeyedServiceFactory() =
     default;
 
-std::unique_ptr<KeyedService>
-  ModelValidatorKeyedServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* ModelValidatorKeyedServiceFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
-  return std::make_unique<ModelValidatorKeyedService>(
-      Profile::FromBrowserContext(context));
+  return new ModelValidatorKeyedService(Profile::FromBrowserContext(context));
 }
 
 bool ModelValidatorKeyedServiceFactory::ServiceIsCreatedWithBrowserContext()

@@ -17,6 +17,7 @@
 #include "base/bits.h"
 #include "base/command_line.h"
 #include "base/containers/circular_deque.h"
+#include "base/containers/stack_container.h"
 #include "base/functional/bind.h"
 #include "base/functional/callback_helpers.h"
 #include "base/location.h"

@@ -33,7 +33,6 @@ import org.chromium.chrome.browser.ui.android.webid.AccountSelectionProperties.A
 import org.chromium.chrome.browser.ui.android.webid.AccountSelectionProperties.ContinueButtonProperties;
 import org.chromium.chrome.browser.ui.android.webid.AccountSelectionProperties.DataSharingConsentProperties;
 import org.chromium.chrome.browser.ui.android.webid.AccountSelectionProperties.HeaderProperties;
-import org.chromium.chrome.browser.ui.android.webid.AccountSelectionProperties.IdpSignInProperties;
 import org.chromium.chrome.browser.ui.android.webid.AccountSelectionProperties.ItemProperties;
 import org.chromium.chrome.browser.ui.android.webid.data.Account;
 import org.chromium.chrome.browser.ui.android.webid.data.IdentityProviderMetadata;
@@ -205,24 +204,6 @@ class AccountSelectionViewBinder {
     }
 
     /**
-     * Called whenever IDP sign in is bound to this view.
-     * @param model The model containing the data for the view.
-     * @param view The view to be bound.
-     * @param key The key of the property to be bound.
-     */
-    static void bindIdpSignInView(PropertyModel model, View view, PropertyKey key) {
-        if (key != IdpSignInProperties.IDP_FOR_DISPLAY) {
-            assert false : "Unhandled update to property: " + key;
-            return;
-        }
-        String idpForDisplay = model.get(IdpSignInProperties.IDP_FOR_DISPLAY);
-        Context context = view.getContext();
-        TextView textView = view.findViewById(R.id.idp_signin);
-        textView.setText(String.format(
-                context.getString(R.string.idp_signin_status_mismatch_dialog_body, idpForDisplay)));
-    }
-
-    /**
      * Called whenever a continue button for a single account is bound to this view.
      * @param model The model containing the data for the view.
      * @param view The view to be bound.
@@ -253,21 +234,13 @@ class AccountSelectionViewBinder {
                 }
             }
         } else if (key == ContinueButtonProperties.ACCOUNT) {
-            String btnText;
             Account account = model.get(ContinueButtonProperties.ACCOUNT);
-            if (account != null) {
-                // Prefers to use given name if it is provided otherwise falls back to using the
-                // name.
-                String givenName = account.getGivenName();
-                String displayedName =
-                        givenName != null && !givenName.isEmpty() ? givenName : account.getName();
-                btnText = String.format(
-                        context.getString(R.string.account_selection_continue), displayedName);
-            } else {
-                btnText = String.format(
-                        context.getString(R.string.idp_signin_status_mismatch_dialog_continue));
-            }
-            assert btnText != null;
+            // Prefers to use given name if it is provided otherwise falls back to using the name.
+            String givenName = account.getGivenName();
+            String displayedName =
+                    givenName != null && !givenName.isEmpty() ? givenName : account.getName();
+            String btnText = String.format(
+                    context.getString(R.string.account_selection_continue), displayedName);
             button.setText(btnText);
         } else if (key == ContinueButtonProperties.ON_CLICK_LISTENER) {
             button.setOnClickListener(clickedView -> {
@@ -298,9 +271,6 @@ class AccountSelectionViewBinder {
         } else if (key == ItemProperties.DATA_SHARING_CONSENT) {
             itemView = view.findViewById(R.id.user_data_sharing_consent);
             itemBinder = AccountSelectionViewBinder::bindDataSharingConsentView;
-        } else if (key == ItemProperties.IDP_SIGNIN) {
-            itemView = view.findViewById(R.id.idp_signin);
-            itemBinder = AccountSelectionViewBinder::bindIdpSignInView;
         } else {
             assert false : "Unhandled update to property:" + key;
             return;

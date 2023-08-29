@@ -11,7 +11,6 @@
 #import "base/time/default_clock.h"
 #import "base/time/default_tick_clock.h"
 #import "components/network_time/network_time_tracker.h"
-#import "components/variations/service/variations_service.h"
 #import "ios/chrome/browser/policy/browser_policy_connector_ios.h"
 #import "ios/chrome/browser/policy/configuration_policy_handler_list_factory.h"
 #import "ios/chrome/browser/promos_manager/features.h"
@@ -25,6 +24,10 @@
 #import "services/network/test/test_network_connection_tracker.h"
 #import "services/network/test/test_url_loader_factory.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 TestingApplicationContext::TestingApplicationContext()
     : application_locale_("en"),
       application_country_("us"),
@@ -34,8 +37,7 @@ TestingApplicationContext::TestingApplicationContext()
       test_url_loader_factory_(
           std::make_unique<network::TestURLLoaderFactory>()),
       test_network_connection_tracker_(
-          network::TestNetworkConnectionTracker::CreateInstance()),
-      variations_service_(nullptr) {
+          network::TestNetworkConnectionTracker::CreateInstance()) {
   DCHECK(!GetApplicationContext());
   SetApplicationContext(this);
 }
@@ -76,12 +78,6 @@ void TestingApplicationContext::SetChromeBrowserStateManager(
     ios::ChromeBrowserStateManager* manager) {
   DCHECK(thread_checker_.CalledOnValidThread());
   chrome_browser_state_manager_ = manager;
-}
-
-void TestingApplicationContext::SetVariationsService(
-    variations::VariationsService* variations_service) {
-  DCHECK(thread_checker_.CalledOnValidThread());
-  variations_service_ = variations_service;
 }
 
 void TestingApplicationContext::OnAppEnterForeground() {
@@ -158,7 +154,7 @@ ukm::UkmRecorder* TestingApplicationContext::GetUkmRecorder() {
 variations::VariationsService*
 TestingApplicationContext::GetVariationsService() {
   DCHECK(thread_checker_.CalledOnValidThread());
-  return variations_service_;
+  return nullptr;
 }
 
 net::NetLog* TestingApplicationContext::GetNetLog() {

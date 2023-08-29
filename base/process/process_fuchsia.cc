@@ -117,7 +117,7 @@ Process Process::OpenWithExtraPrivileges(ProcessId pid) {
 }
 
 // static
-bool Process::CanSetPriority() {
+bool Process::CanBackgroundProcesses() {
   return false;
 }
 
@@ -269,19 +269,19 @@ bool Process::WaitForExitWithTimeout(TimeDelta timeout, int* exit_code) const {
 
 void Process::Exited(int exit_code) const {}
 
-Process::Priority Process::GetPriority() const {
-  // See SetPriority().
+bool Process::IsProcessBackgrounded() const {
+  // See SetProcessBackgrounded().
   DCHECK(IsValid());
-  return Priority::kUserBlocking;
+  return false;
 }
 
-bool Process::SetPriority(Priority priority) {
+bool Process::SetProcessBackgrounded(bool value) {
   // No process priorities on Fuchsia.
   // TODO(fxbug.dev/30735): Update this later if priorities are implemented.
   return false;
 }
 
-int Process::GetOSPriority() const {
+int Process::GetPriority() const {
   DCHECK(IsValid());
   // No process priorities on Fuchsia.
   return 0;

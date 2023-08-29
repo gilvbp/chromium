@@ -9,7 +9,6 @@
 
 #include "components/password_manager/core/browser/password_form.h"
 
-class ChromeBrowserState;
 class FaviconLoader;
 
 // Returns the equivalent of a unique record identifier. Built from the unique
@@ -28,8 +27,6 @@ void FetchFaviconForURLToPath(FaviconLoader* favicon_loader,
 NSString* GetFaviconFileKey(const GURL& url);
 
 // Update favicons in the Chrome app group storage.
-void UpdateFaviconsStorageForBrowserState(
-    base::WeakPtr<ChromeBrowserState> weak_browser_state,
-    bool sync_enabled);
+void UpdateFaviconsStorage(FaviconLoader* favicon_loader, bool sync_enabled);
 
 #endif  // IOS_CHROME_BROWSER_CREDENTIAL_PROVIDER_CREDENTIAL_PROVIDER_UTIL_H_

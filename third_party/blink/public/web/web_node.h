@@ -138,7 +138,7 @@ class BLINK_EXPORT WebNode {
 #endif
 
  protected:
-  WebPrivatePtrForGC<Node> private_;
+  WebPrivatePtr<Node> private_;
 };
 
 #define DECLARE_WEB_NODE_TYPE_CASTS(type)      \

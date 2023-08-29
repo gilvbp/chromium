@@ -85,6 +85,7 @@ public class TouchToFillCreditCardCoordinator implements TouchToFillCreditCardCo
                 .build();
     }
 
+    @VisibleForTesting
     PropertyModel getModelForTesting() {
         return mTouchToFillCreditCardModel;
     }

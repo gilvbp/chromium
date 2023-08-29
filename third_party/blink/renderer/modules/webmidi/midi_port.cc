@@ -179,7 +179,7 @@ void MIDIPort::ContextDestroyed() {
 
 void MIDIPort::Trace(Visitor* visitor) const {
   visitor->Trace(access_);
-  EventTarget::Trace(visitor);
+  EventTargetWithInlineData::Trace(visitor);
   ExecutionContextLifecycleObserver::Trace(visitor);
 }
 

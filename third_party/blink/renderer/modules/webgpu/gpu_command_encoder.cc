@@ -283,7 +283,8 @@ GPURenderPassEncoder* GPUCommandEncoder::beginRenderPass(
     }
 
     dawn_desc.timestampWrites = dawn_timestamp_writes.data();
-    dawn_desc.timestampWriteCount = dawn_timestamp_writes.size();
+    dawn_desc.timestampWriteCount =
+        static_cast<uint32_t>(dawn_timestamp_writes.size());
   }
 
   WGPURenderPassDescriptorMaxDrawCount max_draw_count = {};
@@ -382,7 +383,8 @@ GPUComputePassEncoder* GPUCommandEncoder::beginComputePass(
     }
 
     dawn_desc.timestampWrites = dawn_timestamp_writes.data();
-    dawn_desc.timestampWriteCount = dawn_timestamp_writes.size();
+    dawn_desc.timestampWriteCount =
+        static_cast<uint32_t>(dawn_timestamp_writes.size());
   }
 
   GPUComputePassEncoder* encoder = MakeGarbageCollected<GPUComputePassEncoder>(

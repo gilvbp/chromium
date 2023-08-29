@@ -9,6 +9,7 @@ import android.os.Handler;
 import android.view.View;
 
 import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 
 import org.chromium.base.Callback;
 import org.chromium.base.CallbackController;
@@ -147,7 +148,8 @@ public class TabGroupUiMediator implements BackPressHandler {
         mTabModelObserver = new TabModelObserver() {
             @Override
             public void didSelectTab(Tab tab, @TabSelectionType int type, int lastId) {
-                if (getTabsToShowForId(lastId).contains(tab)) {
+                if (TabUiFeatureUtilities.isTabGroupsAndroidEnabled(mContext)
+                        && getTabsToShowForId(lastId).contains(tab)) {
                     return;
                 }
 
@@ -170,8 +172,12 @@ public class TabGroupUiMediator implements BackPressHandler {
             public void didAddTab(Tab tab, int type, @TabCreationState int creationState,
                     boolean markedForSelection) {
                 if (type == TabLaunchType.FROM_CHROME_UI || type == TabLaunchType.FROM_RESTORE
-                        || type == TabLaunchType.FROM_STARTUP
-                        || type == TabLaunchType.FROM_LONGPRESS_BACKGROUND) {
+                        || type == TabLaunchType.FROM_STARTUP) {
+                    return;
+                }
+
+                if (type == TabLaunchType.FROM_LONGPRESS_BACKGROUND
+                        && !TabUiFeatureUtilities.ENABLE_TAB_GROUP_AUTO_CREATION.getValue()) {
                     return;
                 }
 
@@ -262,23 +268,25 @@ public class TabGroupUiMediator implements BackPressHandler {
             }
         };
 
-        mTabGroupModelFilterObserver = new EmptyTabGroupModelFilterObserver() {
-            @Override
-            public void didMoveTabOutOfGroup(Tab movedTab, int prevFilterIndex) {
-                if (mIsTabGroupUiVisible && movedTab == mTabModelSelector.getCurrentTab()) {
-                    resetTabStripWithRelatedTabsForId(movedTab.getId());
+        if (TabUiFeatureUtilities.isTabGroupsAndroidEnabled(mContext)) {
+            mTabGroupModelFilterObserver = new EmptyTabGroupModelFilterObserver() {
+                @Override
+                public void didMoveTabOutOfGroup(Tab movedTab, int prevFilterIndex) {
+                    if (mIsTabGroupUiVisible && movedTab == mTabModelSelector.getCurrentTab()) {
+                        resetTabStripWithRelatedTabsForId(movedTab.getId());
+                    }
                 }
-            }
-        };
+            };
 
-        // TODO(995951): Add observer similar to TabModelSelectorTabModelObserver for
-        // TabModelFilter.
-        ((TabGroupModelFilter) mTabModelSelector.getTabModelFilterProvider().getTabModelFilter(
-                 false))
-                .addTabGroupObserver(mTabGroupModelFilterObserver);
-        ((TabGroupModelFilter) mTabModelSelector.getTabModelFilterProvider().getTabModelFilter(
-                 true))
-                .addTabGroupObserver(mTabGroupModelFilterObserver);
+            // TODO(995951): Add observer similar to TabModelSelectorTabModelObserver for
+            // TabModelFilter.
+            ((TabGroupModelFilter) mTabModelSelector.getTabModelFilterProvider().getTabModelFilter(
+                     false))
+                    .addTabGroupObserver(mTabGroupModelFilterObserver);
+            ((TabGroupModelFilter) mTabModelSelector.getTabModelFilterProvider().getTabModelFilter(
+                     true))
+                    .addTabGroupObserver(mTabGroupModelFilterObserver);
+        }
 
         mOmniboxFocusObserver = isFocus -> {
             // Hide tab strip when omnibox gains focus and try to re-show it when omnibox loses
@@ -340,11 +348,13 @@ public class TabGroupUiMediator implements BackPressHandler {
         View.OnClickListener rightButtonOnClickListener = view -> {
             Tab parentTabToAttach = null;
             Tab currentTab = mTabModelSelector.getCurrentTab();
-            List<Tab> relatedTabs = getTabsToShowForId(currentTab.getId());
+            if (TabUiFeatureUtilities.isTabGroupsAndroidEnabled(mContext)) {
+                List<Tab> relatedTabs = getTabsToShowForId(currentTab.getId());
 
-            assert relatedTabs.size() > 0;
+                assert relatedTabs.size() > 0;
 
-            parentTabToAttach = relatedTabs.get(relatedTabs.size() - 1);
+                parentTabToAttach = relatedTabs.get(relatedTabs.size() - 1);
+            }
             mTabCreatorManager.getTabCreator(currentTab.isIncognito())
                     .createNewTab(new LoadUrlParams(UrlConstants.NTP_URL),
                             TabLaunchType.FROM_TAB_GROUP_UI, parentTabToAttach);
@@ -462,6 +472,7 @@ public class TabGroupUiMediator implements BackPressHandler {
         mIncognitoStateProvider.removeObserver(mIncognitoStateObserver);
     }
 
+    @VisibleForTesting
     boolean getIsShowingOverViewModeForTesting() {
         return mIsShowingOverViewMode;
     }

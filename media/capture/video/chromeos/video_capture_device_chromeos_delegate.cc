@@ -5,7 +5,6 @@
 #include "media/capture/video/chromeos/video_capture_device_chromeos_delegate.h"
 
 #include <memory>
-#include <queue>
 #include <string>
 #include <utility>
 
@@ -58,9 +57,6 @@ class VideoCaptureDeviceChromeOSDelegate::PowerManagerClientProxy
  private:
   friend class base::RefCountedThreadSafe<PowerManagerClientProxy>;
 
-  using PendingTask = std::pair<base::OnceCallback<void()>,
-                                absl::optional<base::UnguessableToken>>;
-
   ~PowerManagerClientProxy() override = default;
 
   void InitOnDBusThread() {
@@ -81,69 +77,25 @@ class VideoCaptureDeviceChromeOSDelegate::PowerManagerClientProxy
 
   // chromeos::PowerManagerClient::Observer:
   void SuspendImminent(power_manager::SuspendImminent::Reason reason) final {
-    absl::optional<base::UnguessableToken> token =
-        base::UnguessableToken::Create();
+    auto token = base::UnguessableToken::Create();
     chromeos::PowerManagerClient::Get()->BlockSuspend(
-        *token, "VideoCaptureDeviceChromeOSDelegate");
-    {
-      base::AutoLock lock(task_queue_lock_);
-      task_queue_.push(
-          {base::BindOnce(&VideoCaptureDeviceChromeOSDelegate::CloseDevice,
-                          device_, *token),
-           token});
-    }
+        token, "VideoCaptureDeviceChromeOSDelegate");
     device_task_runner_->PostTask(
         FROM_HERE,
-        base::BindOnce(&PowerManagerClientProxy::TryOpenOrCloseDevice,
-                       weak_ptr_factory_.GetWeakPtr()));
+        base::BindOnce(&VideoCaptureDeviceChromeOSDelegate::CloseDevice,
+                       device_, token));
   }
 
-  // chromeos::PowerManagerClient::Observer:
   void SuspendDone(base::TimeDelta sleep_duration) final {
-    {
-      base::AutoLock lock(task_queue_lock_);
-      task_queue_.push(
-          {base::BindOnce(&VideoCaptureDeviceChromeOSDelegate::OpenDevice,
-                          device_),
-           absl::nullopt});
-    }
     device_task_runner_->PostTask(
         FROM_HERE,
-        base::BindOnce(&PowerManagerClientProxy::TryOpenOrCloseDevice,
-                       weak_ptr_factory_.GetWeakPtr()));
+        base::BindOnce(&VideoCaptureDeviceChromeOSDelegate::OpenDevice,
+                       device_));
   }
-
-  void TryOpenOrCloseDevice() {
-    DCHECK(device_task_runner_->RunsTasksInCurrentSequence());
-
-    int remaining_task_count;
-    PendingTask task;
-    {
-      base::AutoLock lock(task_queue_lock_);
-      task = std::move(task_queue_.front());
-      task_queue_.pop();
-      remaining_task_count = task_queue_.size();
-    }
-    if (remaining_task_count) {
-      // Some other SuspendImminent/SuspendDone tasks are scheuled behind this
-      // task. This one can be ignored.
-      if (task.second.has_value()) {
-        UnblockSuspend(*(task.second));
-      }
-      LOG(WARNING) << "SuspendImminent/SuspendDone is skipped.";
-    } else {
-      std::move(task.first).Run();
-    }
-  }
-
-  base::Lock task_queue_lock_;
-  std::queue<PendingTask> task_queue_ GUARDED_BY(task_queue_lock_);
 
   base::WeakPtr<VideoCaptureDeviceChromeOSDelegate> device_;
   scoped_refptr<base::SingleThreadTaskRunner> device_task_runner_;
   scoped_refptr<base::SingleThreadTaskRunner> dbus_task_runner_;
-
-  base::WeakPtrFactory<PowerManagerClientProxy> weak_ptr_factory_{this};
 };
 
 VideoCaptureDeviceChromeOSDelegate::VideoCaptureDeviceChromeOSDelegate(

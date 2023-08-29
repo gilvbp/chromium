@@ -19,19 +19,17 @@ float Lerp(float start, float end, float progress) {
 }  // namespace
 
 SyntheticTouchpadPinchGesture::SyntheticTouchpadPinchGesture(
-    const SyntheticPinchGestureParams& gesture_params)
-    : SyntheticGestureBase(gesture_params),
+    const SyntheticPinchGestureParams& params)
+    : params_(params),
       gesture_source_type_(content::mojom::GestureSourceType::kDefaultInput),
       state_(SETUP),
       current_scale_(1.0f) {
-  CHECK_EQ(SyntheticGestureParams::PINCH_GESTURE,
-           gesture_params.GetGestureType());
-  DCHECK_GT(params().scale_factor, 0.0f);
-  if (params().gesture_source_type !=
+  DCHECK_GT(params_.scale_factor, 0.0f);
+  if (params_.gesture_source_type !=
       content::mojom::GestureSourceType::kTouchpadInput) {
-    DCHECK_EQ(params().gesture_source_type,
+    DCHECK_EQ(params_.gesture_source_type,
               content::mojom::GestureSourceType::kDefaultInput);
-    params().gesture_source_type =
+    params_.gesture_source_type =
         content::mojom::GestureSourceType::kTouchpadInput;
   }
 }
@@ -47,7 +45,7 @@ SyntheticGesture::Result SyntheticTouchpadPinchGesture::ForwardInputEvents(
   base::WeakPtr<SyntheticGestureController> weak_controller =
       dispatching_controller_;
   if (state_ == SETUP) {
-    gesture_source_type_ = params().gesture_source_type;
+    gesture_source_type_ = params_.gesture_source_type;
     if (gesture_source_type_ ==
         content::mojom::GestureSourceType::kDefaultInput)
       gesture_source_type_ = target->GetDefaultSyntheticGestureSourceType();
@@ -75,7 +73,7 @@ SyntheticGesture::Result SyntheticTouchpadPinchGesture::ForwardInputEvents(
 void SyntheticTouchpadPinchGesture::WaitForTargetAck(
     base::OnceClosure callback,
     SyntheticGestureTarget* target) const {
-  target->WaitForTargetAck(params().GetGestureType(), gesture_source_type_,
+  target->WaitForTargetAck(params_.GetGestureType(), gesture_source_type_,
                            std::move(callback));
 }
 
@@ -85,7 +83,7 @@ void SyntheticTouchpadPinchGesture::ForwardGestureEvents(
   switch (state_) {
     case STARTED:
       // Check for an early finish.
-      if (params().scale_factor == 1.0f) {
+      if (params_.scale_factor == 1.0f) {
         state_ = DONE;
         break;
       }
@@ -97,7 +95,7 @@ void SyntheticTouchpadPinchGesture::ForwardGestureEvents(
           blink::SyntheticWebGestureEventBuilder::Build(
               blink::WebGestureEvent::Type::kGesturePinchBegin,
               blink::WebGestureDevice::kTouchpad,
-              params().from_devtools_debugger
+              params_.from_devtools_debugger
                   ? blink::WebInputEvent::kFromDebugger
                   : blink::WebInputEvent::kNoModifiers));
       state_ = IN_PROGRESS;
@@ -112,8 +110,8 @@ void SyntheticTouchpadPinchGesture::ForwardGestureEvents(
       // Send the incremental scale event.
       target->DispatchInputEventToPlatform(
           blink::SyntheticWebGestureEventBuilder::BuildPinchUpdate(
-              incremental_scale, params().anchor.x(), params().anchor.y(),
-              params().from_devtools_debugger
+              incremental_scale, params_.anchor.x(), params_.anchor.y(),
+              params_.from_devtools_debugger
                   ? blink::WebInputEvent::kFromDebugger
                   : blink::WebInputEvent::kNoModifiers,
               blink::WebGestureDevice::kTouchpad));
@@ -123,7 +121,7 @@ void SyntheticTouchpadPinchGesture::ForwardGestureEvents(
             blink::SyntheticWebGestureEventBuilder::Build(
                 blink::WebGestureEvent::Type::kGesturePinchEnd,
                 blink::WebGestureDevice::kTouchpad,
-                params().from_devtools_debugger
+                params_.from_devtools_debugger
                     ? blink::WebInputEvent::kFromDebugger
                     : blink::WebInputEvent::kNoModifiers));
         state_ = DONE;
@@ -144,10 +142,10 @@ float SyntheticTouchpadPinchGesture::CalculateTargetScale(
   // Make sure the final delta is correct. Using the computation below can lead
   // to issues with floating point precision.
   if (HasReachedTarget(timestamp))
-    return params().scale_factor;
+    return params_.scale_factor;
 
   const float progress = (timestamp - start_time_) / (stop_time_ - start_time_);
-  return Lerp(1.0f, params().scale_factor, progress);
+  return Lerp(1.0f, params_.scale_factor, progress);
 }
 
 // Calculate an end time based on the amount of scaling to be done and the
@@ -161,7 +159,7 @@ void SyntheticTouchpadPinchGesture::CalculateEndTime(
     SyntheticGestureTarget* target) {
   const int kPixelsNeededToDoubleOrHalve = 200;
 
-  float scale_factor = params().scale_factor;
+  float scale_factor = params_.scale_factor;
   if (scale_factor < 1.0f) {
     // If we are scaling down, calculate the time based on the inverse so that
     // halving or doubling the scale takes the same amount of time.
@@ -171,7 +169,7 @@ void SyntheticTouchpadPinchGesture::CalculateEndTime(
       (scale_factor - 1.0f) * kPixelsNeededToDoubleOrHalve;
 
   const base::TimeDelta total_duration = base::Seconds(
-      scale_factor_delta / params().relative_pointer_speed_in_pixels_s);
+      scale_factor_delta / params_.relative_pointer_speed_in_pixels_s);
   DCHECK_GT(total_duration, base::TimeDelta());
   stop_time_ = start_time_ + total_duration;
 }

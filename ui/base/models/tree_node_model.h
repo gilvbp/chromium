@@ -263,7 +263,7 @@ class TreeNodeModel : public TreeModel {
     DCHECK(parent);
     DCHECK(node);
     NodeType* node_ptr = parent->Add(std::move(node), index);
-    NotifyObserverTreeNodeAdded(parent, index);
+    NotifyObserverTreeNodesAdded(parent, index, 1);
     return node_ptr;
   }
 
@@ -275,7 +275,7 @@ class TreeNodeModel : public TreeModel {
   std::unique_ptr<NodeType> Remove(NodeType* parent, size_t index) {
     DCHECK(parent);
     std::unique_ptr<NodeType> owned_node = parent->Remove(index);
-    NotifyObserverTreeNodeRemoved(parent, index);
+    NotifyObserverTreeNodesRemoved(parent, index, 1);
     return owned_node;
   }
 
@@ -284,14 +284,18 @@ class TreeNodeModel : public TreeModel {
     return Remove(parent, parent->GetIndexOf(node).value());
   }
 
-  void NotifyObserverTreeNodeAdded(NodeType* parent, size_t index) {
+  void NotifyObserverTreeNodesAdded(NodeType* parent,
+                                    size_t start,
+                                    size_t count) {
     for (TreeModelObserver& observer : observer_list_)
-      observer.TreeNodeAdded(this, parent, index);
+      observer.TreeNodesAdded(this, parent, start, count);
   }
 
-  void NotifyObserverTreeNodeRemoved(NodeType* parent, size_t index) {
+  void NotifyObserverTreeNodesRemoved(NodeType* parent,
+                                      size_t start,
+                                      size_t count) {
     for (TreeModelObserver& observer : observer_list_)
-      observer.TreeNodeRemoved(this, parent, index);
+      observer.TreeNodesRemoved(this, parent, start, count);
   }
 
   void NotifyObserverTreeNodeChanged(TreeModelNode* node) {

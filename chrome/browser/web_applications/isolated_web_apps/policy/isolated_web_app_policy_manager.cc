@@ -82,7 +82,7 @@ IsolatedWebAppPolicyManager::IsolatedWebAppPolicyManager(
 IsolatedWebAppPolicyManager::~IsolatedWebAppPolicyManager() = default;
 
 void IsolatedWebAppPolicyManager::InstallEphemeralApps() {
-  if (!profiles::IsManagedGuestSession()) {
+  if (!profiles::IsPublicSession()) {
     LOG(ERROR) << "The IWAs should be installed only in managed guest session.";
     SetResultForAllAndFinish(
         EphemeralAppInstallResult::kErrorNotEphemeralSession);

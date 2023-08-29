@@ -16,6 +16,7 @@ class TestAutofillExternalDelegate : public AutofillExternalDelegate {
  public:
   explicit TestAutofillExternalDelegate(
       BrowserAutofillManager* autofill_manager,
+      AutofillDriver* autofill_driver,
       bool call_parent_methods);
 
   TestAutofillExternalDelegate(const TestAutofillExternalDelegate&) = delete;

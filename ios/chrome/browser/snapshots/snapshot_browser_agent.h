@@ -7,12 +7,9 @@
 
 #import <Foundation/Foundation.h>
 
-#import <vector>
-
 #import "ios/chrome/browser/shared/model/browser/browser_observer.h"
 #import "ios/chrome/browser/shared/model/browser/browser_user_data.h"
 #import "ios/chrome/browser/shared/model/web_state_list/web_state_list_observer.h"
-#import "ios/chrome/browser/snapshots/snapshot_id.h"
 
 @class SnapshotCache;
 
@@ -50,9 +47,9 @@ class SnapshotBrowserAgent : public BrowserObserver,
   void BrowserDestroyed(Browser* browser) override;
 
   // WebStateListObserver methods
-  void WebStateListDidChange(WebStateList* web_state_list,
-                             const WebStateListChange& change,
-                             const WebStateListStatus& status) override;
+  void WebStateListChanged(WebStateList* web_state_list,
+                           const WebStateListChange& change,
+                           const WebStateSelection& selection) override;
   void WillBeginBatchOperation(WebStateList* web_state_list) override;
   void BatchOperationEnded(WebStateList* web_state_list) override;
 
@@ -68,7 +65,7 @@ class SnapshotBrowserAgent : public BrowserObserver,
   void PurgeUnusedSnapshots();
 
   // Returns the snapshot IDs of all the WebStates in the Browser.
-  std::vector<SnapshotID> GetSnapshotIDs();
+  NSSet<NSString*>* GetSnapshotIDs();
 
   __strong SnapshotCache* snapshot_cache_;
 

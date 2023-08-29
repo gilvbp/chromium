@@ -4,6 +4,10 @@
 
 #import "ios/chrome/browser/ui/infobars/modals/infobar_save_card_modal_consumer.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 NSString* const kCardholderNamePrefKey = @"cardholderName";
 NSString* const kCardIssuerIconNamePrefKey = @"cardIssuerIconName";
 NSString* const kCardNumberPrefKey = @"cardNumber";

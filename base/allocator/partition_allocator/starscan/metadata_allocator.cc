@@ -16,8 +16,9 @@ constexpr PartitionOptions kConfig{};
 }  // namespace
 
 PA_COMPONENT_EXPORT(PARTITION_ALLOC)
-PartitionRoot& PCScanMetadataAllocator() {
-  static internal::base::NoDestructor<PartitionRoot> allocator(kConfig);
+ThreadSafePartitionRoot& PCScanMetadataAllocator() {
+  static internal::base::NoDestructor<ThreadSafePartitionRoot> allocator(
+      kConfig);
   return *allocator;
 }
 

@@ -364,20 +364,6 @@ static void ConfigureRequest(
       html_image_element) {
     params.SetResourceWidth(html_image_element->GetResourceWidth());
   }
-
-  if (html_image_element) {
-    constexpr WebFeature kCountOrbBlockAs[2][2] = {
-        {WebFeature::kORBBlockWithoutAnyEventHandler,
-         WebFeature::kORBBlockWithOnErrorButWithoutOnLoadEventHandler},
-        {WebFeature::kORBBlockWithOnLoadButWithoutOnErrorEventHandler,
-         WebFeature::kORBBlockWithOnLoadAndOnErrorEventHandler}};
-
-    auto event_path = EventPath(element);
-    params.SetCountORBBlockAs(
-        kCountOrbBlockAs
-            [event_path.HasEventListenersInPath(event_type_names::kLoad)]
-            [event_path.HasEventListenersInPath(event_type_names::kError)]);
-  }
 }
 
 inline void ImageLoader::DispatchErrorEvent() {
@@ -514,22 +500,14 @@ void ImageLoader::DoUpdateFromElement(
     DCHECK(document.GetFrame());
     auto* frame = document.GetFrame();
 
-    if (IsA<HTMLImageElement>(GetElement())) {
-      if (GetElement()->FastHasAttribute(html_names::kAttributionsrcAttr) &&
-          frame->GetAttributionSrcLoader()->CanRegister(
-              url, To<HTMLImageElement>(GetElement()),
-              /*request_id=*/absl::nullopt)) {
-        resource_request.SetAttributionReportingEligibility(
-            network::mojom::AttributionReportingEligibility::
-                kEventSourceOrTrigger);
-      }
-      bool shared_storage_writable =
-          GetElement()->FastHasAttribute(
-              html_names::kSharedstoragewritableAttr) &&
-          RuntimeEnabledFeatures::SharedStorageAPIM118Enabled(
-              GetElement()->GetExecutionContext()) &&
-          GetElement()->GetExecutionContext()->IsSecureContext();
-      resource_request.SetSharedStorageWritable(shared_storage_writable);
+    if (IsA<HTMLImageElement>(GetElement()) &&
+        GetElement()->FastHasAttribute(html_names::kAttributionsrcAttr) &&
+        frame->GetAttributionSrcLoader()->CanRegister(
+            url, To<HTMLImageElement>(GetElement()),
+            /*request_id=*/absl::nullopt)) {
+      resource_request.SetAttributionReportingEligibility(
+          network::mojom::AttributionReportingEligibility::
+              kEventSourceOrTrigger);
     }
 
     bool page_is_being_dismissed =

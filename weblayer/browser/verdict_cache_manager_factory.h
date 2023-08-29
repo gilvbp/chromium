@@ -42,7 +42,7 @@ class VerdictCacheManagerFactory : public BrowserContextKeyedServiceFactory {
       delete;
 
   // BrowserContextKeyedServiceFactory:
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* context) const override;
 };
 

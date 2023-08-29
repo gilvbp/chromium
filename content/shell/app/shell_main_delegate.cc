@@ -364,10 +364,6 @@ absl::optional<int> ShellMainDelegate::PostEarlyInitialization(
     InitializeMojoCore();
   }
 
-  const std::string process_type =
-      base::CommandLine::ForCurrentProcess()->GetSwitchValueASCII(
-          switches::kProcessType);
-
   // ShellMainDelegate has GWP-ASan as well as Profiling Client disabled.
   // Consequently, we provide no parameters for these two. The memory_system
   // includes the PoissonAllocationSampler dynamically only if the Profiling
@@ -382,8 +378,7 @@ absl::optional<int> ShellMainDelegate::PostEarlyInitialization(
       .SetDispatcherParameters(memory_system::DispatcherParameters::
                                    PoissonAllocationSamplerInclusion::kEnforce,
                                memory_system::DispatcherParameters::
-                                   AllocationTraceRecorderInclusion::kIgnore,
-                               process_type)
+                                   AllocationTraceRecorderInclusion::kIgnore)
       .Initialize(memory_system_);
 
   return absl::nullopt;

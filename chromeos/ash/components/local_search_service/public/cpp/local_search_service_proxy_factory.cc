@@ -52,10 +52,9 @@ content::BrowserContext* LocalSearchServiceProxyFactory::GetBrowserContextToUse(
   return context;
 }
 
-std::unique_ptr<KeyedService>
-LocalSearchServiceProxyFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* LocalSearchServiceProxyFactory::BuildServiceInstanceFor(
     content::BrowserContext* /*context*/) const {
-  return std::make_unique<LocalSearchServiceProxy>();
+  return new LocalSearchServiceProxy();
 }
 
 }  // namespace ash::local_search_service

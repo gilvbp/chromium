@@ -12,8 +12,11 @@ import android.os.Build.VERSION_CODES;
 import androidx.test.filters.SmallTest;
 
 import org.hamcrest.Matchers;
+import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -67,10 +70,24 @@ public class MinimizeAppAndCloseTabBackPressHandlerUnitTest {
     private MinimizeAppAndCloseTabBackPressHandler mHandler;
     private ObservableSupplierImpl<Tab> mActivityTabSupplier;
 
+    @BeforeClass
+    public static void setUpClass() {
+        ObservableSupplierImpl.setIgnoreThreadChecksForTesting(true);
+    }
+
+    @AfterClass
+    public static void afterClass() {
+        ObservableSupplierImpl.setIgnoreThreadChecksForTesting(false);
+    }
+
     @Before
     public void setUp() {
-        ObservableSupplierImpl.setIgnoreThreadChecksForTesting(true);
         createBackPressHandler();
+    }
+
+    @After
+    public void tearDown() {
+        MinimizeAppAndCloseTabBackPressHandler.setVersionForTesting(null);
     }
 
     @Test
@@ -221,9 +238,9 @@ public class MinimizeAppAndCloseTabBackPressHandlerUnitTest {
         }
         TestThreadUtils.runOnUiThreadBlocking(
                 () -> { mActivityTabSupplier = new ObservableSupplierImpl<>(); });
-        mHandler = TestThreadUtils.runOnUiThreadBlockingNoException(() -> {
-            return new MinimizeAppAndCloseTabBackPressHandler(mActivityTabSupplier, mShouldCloseTab,
-                    mSendToBackground, mFinalCallback, () -> { return -1L; });
-        });
+        mHandler = TestThreadUtils.runOnUiThreadBlockingNoException(
+                ()
+                        -> new MinimizeAppAndCloseTabBackPressHandler(mActivityTabSupplier,
+                                mShouldCloseTab, mSendToBackground, mFinalCallback));
     }
 }

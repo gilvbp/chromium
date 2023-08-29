@@ -297,8 +297,7 @@ void AutocompleteControllerAndroid::ResetSession(JNIEnv* env) {
 
 void AutocompleteControllerAndroid::OnSuggestionSelected(
     JNIEnv* env,
-    uintptr_t match_ptr,
-    int suggestion_line,
+    jint match_index,
     const jint j_window_open_disposition,
     const JavaParamRef<jstring>& j_current_url,
     jint j_page_classification,
@@ -311,7 +310,7 @@ void AutocompleteControllerAndroid::OnSuggestionSelected(
   content::WebContents* web_contents =
       content::WebContents::FromJavaWebContents(j_web_contents);
 
-  const auto& match = *reinterpret_cast<AutocompleteMatch*>(match_ptr);
+  const auto& match = autocomplete_controller_->result().match_at(match_index);
   SuggestionAnswer::LogAnswerUsed(match.answer);
   TemplateURLService* template_url_service =
       TemplateURLServiceFactory::GetForProfile(profile_);
@@ -346,7 +345,7 @@ void AutocompleteControllerAndroid::OnSuggestionSelected(
           : input_.text(),
       false,                /* don't know */
       input_.type(), false, /* not keyword mode */
-      OmniboxEventProto::INVALID, true, OmniboxPopupSelection(suggestion_line),
+      OmniboxEventProto::INVALID, true, OmniboxPopupSelection(match_index),
       static_cast<WindowOpenDisposition>(j_window_open_disposition), false,
       sessions::SessionTabHelper::IdForTab(web_contents),
       OmniboxEventProto::PageClassification(j_page_classification),
@@ -379,47 +378,29 @@ void AutocompleteControllerAndroid::OnSuggestionSelected(
       ->OnOmniboxOpenedUrl(log);
 }
 
-jboolean AutocompleteControllerAndroid::OnSuggestionTouchDown(
-    JNIEnv* env,
-    uintptr_t match_ptr,
-    int match_index,
-    const base::android::JavaParamRef<jobject>& j_web_contents) {
-  const auto& match = *reinterpret_cast<AutocompleteMatch*>(match_ptr);
-
-  if (SearchPrefetchService* search_prefetch_service =
-          SearchPrefetchServiceFactory::GetForProfile(profile_)) {
-    return search_prefetch_service->OnNavigationLikely(
-        match_index, match, omnibox::mojom::NavigationPredictor::kTouchDown,
-        content::WebContents::FromJavaWebContents(j_web_contents));
-  }
-  return false;
-}
-
-void AutocompleteControllerAndroid::DeleteMatch(JNIEnv* env,
-                                                uintptr_t match_ptr) {
-  const auto* match = reinterpret_cast<AutocompleteMatch*>(match_ptr);
-  if (match->SupportsDeletion()) {
-    autocomplete_controller_->DeleteMatch(*match);
-  }
+void AutocompleteControllerAndroid::DeleteMatch(JNIEnv* env, jint match_index) {
+  const auto& match = autocomplete_controller_->result().match_at(match_index);
+  if (match.SupportsDeletion())
+    autocomplete_controller_->DeleteMatch(match);
 }
 
 void AutocompleteControllerAndroid::DeleteMatchElement(JNIEnv* env,
-                                                       uintptr_t match_ptr,
+                                                       jint match_index,
                                                        jint element_index) {
-  const auto* match = reinterpret_cast<AutocompleteMatch*>(match_ptr);
-  if (match->SupportsDeletion()) {
-    autocomplete_controller_->DeleteMatchElement(*match, element_index);
-  }
+  const auto& match = autocomplete_controller_->result().match_at(match_index);
+  if (match.SupportsDeletion())
+    autocomplete_controller_->DeleteMatchElement(match, element_index);
 }
 
 ScopedJavaLocalRef<jobject> AutocompleteControllerAndroid::
     UpdateMatchDestinationURLWithAdditionalAssistedQueryStats(
         JNIEnv* env,
-        uintptr_t match_ptr,
+        jint match_index,
         jlong elapsed_time_since_input_change,
         const JavaParamRef<jstring>& jnew_query_text,
         const JavaParamRef<jobjectArray>& jnew_query_params) {
-  AutocompleteMatch& match = *reinterpret_cast<AutocompleteMatch*>(match_ptr);
+  AutocompleteMatch match(
+      autocomplete_controller_->result().match_at(match_index));
 
   if (!jnew_query_text.is_null()) {
     std::u16string query = ConvertJavaStringToUTF16(env, jnew_query_text);
@@ -447,10 +428,10 @@ ScopedJavaLocalRef<jobject> AutocompleteControllerAndroid::
 }
 
 ScopedJavaLocalRef<jobject>
-AutocompleteControllerAndroid::GetMatchingTabForSuggestion(
-    JNIEnv* env,
-    uintptr_t match_ptr) {
-  const auto& match = *reinterpret_cast<AutocompleteMatch*>(match_ptr);
+AutocompleteControllerAndroid::GetMatchingTabForSuggestion(JNIEnv* env,
+                                                           jint match_index) {
+  const AutocompleteMatch& match =
+      autocomplete_controller_->result().match_at(match_index);
   return match.GetMatchingJavaTab().get(env);
 }
 

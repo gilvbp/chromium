@@ -104,8 +104,7 @@ class OnboardingMainView : public PhoneHubInterstitialView {
 
   void GetStartedButtonPressed() {
     LogInterstitialScreenEvent(InterstitialScreenEvent::kConfirm);
-    onboarding_ui_tracker_->HandleGetStarted(
-        parent_view_->IsOnboardingViewStartedFromNudge());
+    onboarding_ui_tracker_->HandleGetStarted();
   }
 
   void DismissButtonPressed() {
@@ -223,14 +222,6 @@ void OnboardingView::ShowDismissPrompt() {
   // We don't show status header view on top for the dismiss prompt.
   DCHECK(delegate_);
   delegate_->HideStatusHeaderView();
-}
-
-bool OnboardingView::IsOnboardingViewStartedFromNudge() {
-  if (!delegate_) {
-    return false;
-  }
-
-  return delegate_->IsPhoneHubIconClickedWhenNudgeVisible();
 }
 
 BEGIN_METADATA(OnboardingView, views::View)

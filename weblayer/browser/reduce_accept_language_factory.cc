@@ -34,10 +34,9 @@ ReduceAcceptLanguageFactory::ReduceAcceptLanguageFactory()
 
 ReduceAcceptLanguageFactory::~ReduceAcceptLanguageFactory() = default;
 
-std::unique_ptr<KeyedService>
-ReduceAcceptLanguageFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* ReduceAcceptLanguageFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
-  return std::make_unique<reduce_accept_language::ReduceAcceptLanguageService>(
+  return new reduce_accept_language::ReduceAcceptLanguageService(
       HostContentSettingsMapFactory::GetForBrowserContext(context),
       static_cast<BrowserContextImpl*>(context)->pref_service(),
       context->IsOffTheRecord());

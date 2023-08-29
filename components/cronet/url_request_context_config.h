@@ -109,6 +109,8 @@ struct URLRequestContextConfig {
 
   // Enable QUIC.
   const bool enable_quic;
+  // QUIC User Agent ID.
+  const std::string quic_user_agent_id;
   // Enable SPDY.
   const bool enable_spdy;
   // Enable Brotli.
@@ -186,6 +188,8 @@ struct URLRequestContextConfig {
   static std::unique_ptr<URLRequestContextConfig> CreateURLRequestContextConfig(
       // Enable QUIC.
       bool enable_quic,
+      // QUIC User Agent ID.
+      const std::string& quic_user_agent_id,
       // Enable SPDY.
       bool enable_spdy,
       // Enable Brotli.
@@ -221,6 +225,8 @@ struct URLRequestContextConfig {
   URLRequestContextConfig(
       // Enable QUIC.
       bool enable_quic,
+      // QUIC User Agent ID.
+      const std::string& quic_user_agent_id,
       // Enable SPDY.
       bool enable_spdy,
       // Enable Brotli.
@@ -289,6 +295,8 @@ struct URLRequestContextConfigBuilder {
 
   // Enable QUIC.
   bool enable_quic = true;
+  // QUIC User Agent ID.
+  std::string quic_user_agent_id = "";
   // Enable SPDY.
   bool enable_spdy = true;
   // Enable Brotli.

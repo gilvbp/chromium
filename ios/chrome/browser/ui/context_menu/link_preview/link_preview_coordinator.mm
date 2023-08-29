@@ -19,6 +19,10 @@
 #import "ios/web/public/web_state.h"
 #import "url/gurl.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 @interface LinkPreviewCoordinator () {
   // The WebState used for loading the preview.
   std::unique_ptr<web::WebState> _previewWebState;
@@ -93,14 +97,23 @@
 
 // Configures the web state that used to load the preview.
 - (void)configureWebState {
-  web::WebState* activeWebState =
+  // Make a copy of the active web state.
+  web::WebState* currentWebState =
       self.browser->GetWebStateList()->GetActiveWebState();
-  CHECK(activeWebState);
+  ChromeBrowserState* browserState =
+      ChromeBrowserState::FromBrowserState(currentWebState->GetBrowserState());
 
-  // To avoid losing the navigation history when the user navigates to
-  // the previewed tab, clone the tab that will be replaced, and start
-  // the navigation in the new tab.
-  _previewWebState = activeWebState->Clone();
+  // Use web::WebState::CreateWithStorageSession to clone the
+  // currentWebState navigation history. This may create an
+  // unrealized WebState, however, LinkPreview needs a realized
+  // one, so force the realization.
+  // TODO(crbug.com/1291626): remove when there is a way to
+  // clone a WebState navigation history.
+  web::WebState::CreateParams createParams(browserState);
+  createParams.last_active_time = base::Time::Now();
+  _previewWebState = web::WebState::CreateWithStorageSession(
+      createParams, currentWebState->BuildSessionStorage());
+  _previewWebState->ForceRealized();
 
   // Attach tab helpers to use _previewWebState as a browser tab. It ensures
   // _previewWebState has all the expected tab helpers, including the

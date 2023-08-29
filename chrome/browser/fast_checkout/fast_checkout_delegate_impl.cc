@@ -18,7 +18,7 @@
 
 FastCheckoutDelegateImpl::FastCheckoutDelegateImpl(
     content::WebContents* web_contents,
-    autofill::FastCheckoutClient* client,
+    FastCheckoutClient* client,
     autofill::BrowserAutofillManager* manager)
     : web_contents_(web_contents), client_(client), manager_(manager) {
   DCHECK(client_);

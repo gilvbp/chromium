@@ -243,16 +243,8 @@ export class ProgressCenterPanel {
         }
         return item.message;
       case ProgressItemState.PAUSED:
-        switch (item.type) {
-          case ProgressItemType.COPY:
-            return str('DLP_FILES_COPY_REVIEW_TITLE');
-          case ProgressItemType.MOVE:
-          case ProgressItemType.RESTORE_TO_DESTINATION:
-            return str('DLP_FILES_MOVE_REVIEW_TITLE');
-          default:
-            console.error('Unexpected operation type: ' + item.type);
-            return '';
-        }
+        // TODO(b/279435843): Replace with translation strings.
+        return 'Confirmation required';
       case ProgressItemState.ERROR:
         if (item.policyError) {
           return getStrForPolicyError(item);
@@ -281,43 +273,17 @@ export class ProgressCenterPanel {
 
     function getStrForPolicyError(item) {
       if (!item.policyError) {
-        console.warn('Policy error must be supplied');
+        console.warn('Policy error type must be supplied');
         return '';
       }
+      // TODO(b/279435843): Replace with translation strings.
       switch (item.policyError) {
         case PolicyErrorType.DLP:
         case PolicyErrorType.ENTERPRISE_CONNECTORS:
-          if (!item.policyFileCount) {
-            console.warn('Policy file count missing');
-            return '';
-          }
-          switch (item.type) {
-            case ProgressItemType.COPY:
-              return item.policyFileCount === 1 ?
-                  str('DLP_FILES_COPY_BLOCKED_TITLE_SINGLE') :
-                  strf(
-                      'DLP_FILES_COPY_BLOCKED_TITLE_MULTIPLE',
-                      item.policyFileCount);
-            case ProgressItemType.MOVE:
-              return item.policyFileCount === 1 ?
-                  str('DLP_FILES_MOVE_BLOCKED_TITLE_SINGLE') :
-                  strf(
-                      'DLP_FILES_MOVE_BLOCKED_TITLE_MULTIPLE',
-                      item.policyFileCount);
-            default:
-              console.warn(`Unexpected task type: ${item.type}`);
-              return '';
-          }
+          return (item.itemCount === 1) ? `${item.sourceMessage} was blocked` :
+                                          `${item.itemCount} files blocked`;
         case PolicyErrorType.DLP_WARNING_TIMEOUT:
-          switch (item.type) {
-            case ProgressItemType.COPY:
-              return str('DLP_FILES_COPY_TIMEOUT_TITLE');
-            case ProgressItemType.MOVE:
-              return str('DLP_FILES_MOVE_TIMEOUT_TITLE');
-            default:
-              console.warn(`Unexpected task type: ${item.type}`);
-              return '';
-          }
+          return `Action failed`;
         default:
           console.warn(`Unexpected security error type: ${item.policyError}`);
           return '';
@@ -345,19 +311,10 @@ export class ProgressCenterPanel {
    */
   generateSecondaryString_(item) {
     if (item.state === ProgressItemState.PAUSED) {
-      if (!item.policyFileCount) {
-        console.warn('Policy file count missing');
-        return '';
-      }
-      if (item.policyFileCount === 1) {
-        if (!item.policyFileName) {
-          console.warn('Policy file name missing');
-          return '';
-        }
-        return strf('DLP_FILES_WARN_MESSAGE_SINGLE', item.policyFileName);
-      } else {
-        return strf('DLP_FILES_WARN_MESSAGE_MULTIPLE', item.policyFileCount);
-      }
+      // TODO(b/279435843): Replace with translation strings.
+      return (item.itemCount === 1) ?
+          `${item.sourceMessage} may contain sensitive content` :
+          `${item.itemCount} files may contain sensitive content`;
     }
 
     if (item.state === ProgressItemState.ERROR) {
@@ -365,48 +322,16 @@ export class ProgressCenterPanel {
         // General error doesn't have secondary text.
         return '';
       }
+      // TODO(b/279435843): Replace with translation strings.
       switch (item.policyError) {
         case PolicyErrorType.DLP:
-          if (!item.policyFileCount) {
-            console.warn('Policy file count missing');
-            return '';
-          }
-          if (item.policyFileCount === 1) {
-            if (!item.policyFileName) {
-              console.warn('Policy file name missing');
-              return '';
-            }
-            return strf(
-                'DLP_FILES_BLOCKED_MESSAGE_POLICY_SINGLE', item.policyFileName);
-          } else {
-            return str('DLP_FILES_BLOCKED_MESSAGE_MULTIPLE');
-          }
         case PolicyErrorType.ENTERPRISE_CONNECTORS:
-          if (!item.policyFileCount) {
-            console.warn('Policy file count missing');
-            return '';
-          }
-          if (item.policyFileCount === 1) {
-            if (!item.policyFileName) {
-              console.warn('Policy file name missing');
-              return '';
-            }
-            return strf(
-                'DLP_FILES_BLOCKED_MESSAGE_CONTENT_SINGLE',
-                item.policyFileName);
-          } else {
-            return str('DLP_FILES_BLOCKED_MESSAGE_MULTIPLE');
-          }
+          return (item.itemCount === 1) ?
+              `This file doesn't meet your organization's security policies.` :
+              `Review for more details`;
         case PolicyErrorType.DLP_WARNING_TIMEOUT:
-          switch (item.type) {
-            case ProgressItemType.COPY:
-              return str('DLP_FILES_COPY_TIMEOUT_MESSAGE');
-            case ProgressItemType.MOVE:
-              return str('DLP_FILES_MOVE_TIMEOUT_MESSAGE');
-            default:
-              console.warn(`Unexpected task type: ${item.type}`);
-              return '';
-          }
+          return `Items you are trying to copy may have contained` +
+              `sensitive information, and required review. Please try again.`;
       }
     }
 
@@ -480,9 +405,6 @@ export class ProgressCenterPanel {
         if (signal === 'cancel' && item.cancelCallback) {
           item.cancelCallback();
         } else if (signal === 'dismiss') {
-          if (item.dismissCallback) {
-            item.dismissCallback();
-          }
           this.feedbackHost_.removePanelItem(panelItem);
           this.dismissErrorItemCallback(item.id);
         } else if (
@@ -490,10 +412,7 @@ export class ProgressCenterPanel {
           extraButton.callback();
           this.feedbackHost_.removePanelItem(panelItem);
           // The extra-button currently acts as a dismissal to invoke the
-          // dismiss and error item callbacks as well.
-          if (item.dismissCallback) {
-            item.dismissCallback();
-          }
+          // error item callback as well.
           this.dismissErrorItemCallback(item.id);
         }
       };

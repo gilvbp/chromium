@@ -58,11 +58,10 @@ class AutofillProgressDialogControllerImpl
 
   // AutofillProgressDialogController.
   void OnDismissed(bool is_canceled_by_user) override;
-  std::u16string GetLoadingTitle() const override;
-  std::u16string GetConfirmationTitle() const override;
-  std::u16string GetCancelButtonLabel() const override;
-  std::u16string GetLoadingMessage() const override;
-  std::u16string GetConfirmationMessage() const override;
+  const std::u16string GetTitle() override;
+  const std::u16string GetCancelButtonLabel() override;
+  const std::u16string GetLoadingMessage() override;
+  const std::u16string GetConfirmationMessage() override;
 
   content::WebContents* GetWebContents() override;
 
@@ -71,7 +70,7 @@ class AutofillProgressDialogControllerImpl
   }
 
  private:
-  const raw_ptr<content::WebContents> web_contents_;
+  const raw_ptr<content::WebContents, DanglingUntriaged> web_contents_;
 
   // View that displays the error dialog.
   raw_ptr<AutofillProgressDialogView> autofill_progress_dialog_view_ = nullptr;

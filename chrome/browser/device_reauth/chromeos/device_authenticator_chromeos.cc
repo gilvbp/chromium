@@ -22,15 +22,7 @@ DeviceAuthenticatorChromeOS::CreateForTesting(
 }
 
 bool DeviceAuthenticatorChromeOS::CanAuthenticateWithBiometrics() {
-  // TODO(crbug.com/1440090): Add implementation of the biometric
-  // authentication.
-  NOTIMPLEMENTED();
-  return false;
-}
-
-bool DeviceAuthenticatorChromeOS::CanAuthenticateWithBiometricOrScreenLock() {
-  // TODO(crbug.com/1440090): Add implementation of the biometric or screen lock
-  // authentication.
+  // TODO(crbug.com/1440090): Add implementation the biometric authentication.
   NOTIMPLEMENTED();
   return false;
 }
@@ -51,26 +43,20 @@ void DeviceAuthenticatorChromeOS::AuthenticateWithMessage(
     return;
   }
 
-  callback_ = std::move(callback);
-
   authenticator_->AuthenticateUser(
       base::BindOnce(&DeviceAuthenticatorChromeOS::OnAuthenticationCompleted,
-                     weak_ptr_factory_.GetWeakPtr()));
+                     weak_ptr_factory_.GetWeakPtr(), std::move(callback)));
 }
 
 void DeviceAuthenticatorChromeOS::Cancel(
     device_reauth::DeviceAuthRequester requester) {
-  // TODO(b/292097975): Cancel the in session auth dialog.
-  if (callback_) {
-    std::move(callback_).Run(false);
-  }
+  // TODO(crbug.com/1440090): Add implementation of the Cancel method.
+  NOTIMPLEMENTED();
 }
 
-void DeviceAuthenticatorChromeOS::OnAuthenticationCompleted(bool success) {
-  if (!callback_) {
-    return;
-  }
-
+void DeviceAuthenticatorChromeOS::OnAuthenticationCompleted(
+    base::OnceCallback<void(bool)> callback,
+    bool success) {
   RecordAuthenticationTimeIfSuccessful(success);
-  std::move(callback_).Run(success);
+  std::move(callback).Run(success);
 }

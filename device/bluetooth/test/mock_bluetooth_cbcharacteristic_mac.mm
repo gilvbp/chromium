@@ -4,11 +4,15 @@
 
 #include "device/bluetooth/test/mock_bluetooth_cbcharacteristic_mac.h"
 
-#include "base/apple/foundation_util.h"
+#include "base/mac/foundation_util.h"
 #include "device/bluetooth/bluetooth_gatt_characteristic.h"
 #include "device/bluetooth/test/mock_bluetooth_cbdescriptor_mac.h"
 
-using base::apple::ObjCCast;
+using base::mac::ObjCCast;
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace device {
 

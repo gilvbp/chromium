@@ -8,7 +8,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import static org.chromium.chrome.features.tasks.TasksSurfaceProperties.BACKGROUND_COLOR;
 import static org.chromium.chrome.features.tasks.TasksSurfaceProperties.FAKE_SEARCH_BOX_CLICK_LISTENER;
 import static org.chromium.chrome.features.tasks.TasksSurfaceProperties.FAKE_SEARCH_BOX_TEXT_WATCHER;
 import static org.chromium.chrome.features.tasks.TasksSurfaceProperties.INCOGNITO_COOKIE_CONTROLS_MANAGER;
@@ -235,10 +234,14 @@ public class TasksViewBinderUnitTest {
     @SmallTest
     public void testSetIncognitoMode() {
         mTasksViewPropertyModel.set(IS_INCOGNITO, true);
-        assertTrue(mTasksView.getSearchBoxCoordinator().getIncognitoModeForTesting());
+        int backgroundColor = ChromeColors.getPrimaryBackgroundColor(mActivity, true);
+        ColorDrawable viewColor = (ColorDrawable) mTasksView.getBackground();
+        assertEquals(backgroundColor, viewColor.getColor());
 
         mTasksViewPropertyModel.set(IS_INCOGNITO, false);
-        assertFalse(mTasksView.getSearchBoxCoordinator().getIncognitoModeForTesting());
+        backgroundColor = ChromeColors.getPrimaryBackgroundColor(mActivity, false);
+        viewColor = (ColorDrawable) mTasksView.getBackground();
+        assertEquals(backgroundColor, viewColor.getColor());
     }
 
     @Test
@@ -341,17 +344,5 @@ public class TasksViewBinderUnitTest {
         mTasksViewPropertyModel.set(TOP_TOOLBAR_PLACEHOLDER_HEIGHT, 16);
 
         assertEquals(16, params.height);
-    }
-
-    @Test
-    @SmallTest
-    public void testSetBackgroundColor() {
-        int backgroundColor = ChromeColors.getPrimaryBackgroundColor(mActivity, true);
-        mTasksViewPropertyModel.set(BACKGROUND_COLOR, backgroundColor);
-        assertEquals(backgroundColor, ((ColorDrawable) mTasksView.getBackground()).getColor());
-
-        int newBackgroundColor = ChromeColors.getPrimaryBackgroundColor(mActivity, false);
-        mTasksViewPropertyModel.set(BACKGROUND_COLOR, newBackgroundColor);
-        assertEquals(newBackgroundColor, ((ColorDrawable) mTasksView.getBackground()).getColor());
     }
 }

@@ -1,4 +1,4 @@
 monorail {
-  component: "Blink>Screen>MultiScreen"
+  component: "Blink>Storage"
 }
-team_email: "pwa-dev@chromium.org"
+team_email: "storage-dev@chromium.org"

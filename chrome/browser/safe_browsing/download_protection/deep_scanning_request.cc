@@ -13,13 +13,10 @@
 #include "base/observer_list.h"
 #include "base/strings/string_number_conversions.h"
 #include "chrome/browser/browser_process.h"
-#include "chrome/browser/download/bubble/download_bubble_ui_controller.h"
 #include "chrome/browser/download/chrome_download_manager_delegate.h"
 #include "chrome/browser/download/download_core_service.h"
 #include "chrome/browser/download/download_core_service_factory.h"
-#include "chrome/browser/download/download_item_warning_data.h"
 #include "chrome/browser/download/download_prefs.h"
-#include "chrome/browser/download/offline_item_utils.h"
 #include "chrome/browser/enterprise/connectors/common.h"
 #include "chrome/browser/enterprise/connectors/connectors_service.h"
 #include "chrome/browser/extensions/api/safe_browsing_private/safe_browsing_private_event_router.h"
@@ -33,10 +30,6 @@
 #include "chrome/browser/safe_browsing/download_protection/download_request_maker.h"
 #include "chrome/browser/ui/browser.h"
 #include "chrome/browser/ui/browser_finder.h"
-#include "chrome/browser/ui/browser_window.h"
-#include "chrome/browser/ui/views/download/bubble/download_toolbar_button_view.h"
-#include "chrome/browser/ui/views/frame/browser_view.h"
-#include "chrome/browser/ui/views/frame/toolbar_button_provider.h"
 #include "chrome/browser/ui/views/safe_browsing/deep_scanning_failure_modal_dialog.h"
 #include "chrome/common/pref_names.h"
 #include "components/download/public/common/download_item.h"
@@ -72,8 +65,6 @@ DownloadCheckResult GetHighestPrecedenceResult(DownloadCheckResult result_1,
       DownloadCheckResult::BLOCKED_UNSUPPORTED_FILE_TYPE,
       DownloadCheckResult::POTENTIALLY_UNWANTED,
       DownloadCheckResult::SENSITIVE_CONTENT_WARNING,
-      DownloadCheckResult::PROMPT_FOR_SCANNING,
-      DownloadCheckResult::DEEP_SCANNED_FAILED,
       DownloadCheckResult::UNKNOWN,
       DownloadCheckResult::DEEP_SCANNED_SAFE};
 
@@ -148,11 +139,7 @@ void ResponseToDownloadCheckResult(
   }
 
   if (dlp_scan_failure || malware_scan_failure) {
-    if (base::FeatureList::IsEnabled(kDeepScanningUpdatedUX)) {
-      *download_result = DownloadCheckResult::DEEP_SCANNED_FAILED;
-    } else {
-      *download_result = DownloadCheckResult::UNKNOWN;
-    }
+    *download_result = DownloadCheckResult::UNKNOWN;
     return;
   }
 
@@ -303,15 +290,6 @@ GetFinalAction(EventResult event_result) {
   return final_action;
 }
 
-void PromptForPassword(download::DownloadItem* item) {
-  if (DownloadBubbleUIController* controller =
-          DownloadBubbleUIController::GetForDownload(item);
-      controller) {
-    controller->GetDownloadDisplayController()->OpenSecuritySubpage(
-        OfflineItemUtils::GetContentIdForDownload(item));
-  }
-}
-
 }  // namespace
 
 /* static */
@@ -346,8 +324,7 @@ DeepScanningRequest::DeepScanningRequest(
     DownloadCheckResult pre_scan_download_check_result,
     CheckDownloadRepeatingCallback callback,
     DownloadProtectionService* download_service,
-    enterprise_connectors::AnalysisSettings settings,
-    const std::string& password)
+    enterprise_connectors::AnalysisSettings settings)
     : item_(item),
       trigger_(trigger),
       callback_(callback),
@@ -355,8 +332,6 @@ DeepScanningRequest::DeepScanningRequest(
       analysis_settings_(std::move(settings)),
       pending_scan_requests_(1),
       pre_scan_download_check_result_(pre_scan_download_check_result),
-      password_(password),
-      reason_(enterprise_connectors::ContentAnalysisRequest::NORMAL_DOWNLOAD),
       weak_ptr_factory_(this) {
   base::UmaHistogramEnumeration("SBClientDownload.DeepScanType",
                                 DeepScanType::NORMAL);
@@ -378,7 +353,6 @@ DeepScanningRequest::DeepScanningRequest(
       save_package_files_(std::move(save_package_files)),
       pending_scan_requests_(save_package_files_.size()),
       pre_scan_download_check_result_(pre_scan_download_check_result),
-      reason_(enterprise_connectors::ContentAnalysisRequest::SAVE_AS_DOWNLOAD),
       weak_ptr_factory_(this) {
   base::UmaHistogramEnumeration("SBClientDownload.DeepScanType",
                                 DeepScanType::SAVE_PACKAGE);
@@ -438,8 +412,6 @@ void DeepScanningRequest::StartSingleFileScan() {
   std::string sha256 =
       base::HexEncode(raw_digest_sha256.data(), raw_digest_sha256.size());
   request->set_digest(sha256);
-
-  request->set_password(password_);
 
   file_metadata_.insert({item_->GetFullPath(),
                          enterprise_connectors::FileMetadata(
@@ -501,10 +473,8 @@ void DeepScanningRequest::PopulateRequest(FileAnalysisRequest* request,
           analysis_settings_.cloud_or_local_settings.dm_token());
     }
     request->set_per_profile_request(analysis_settings_.per_profile);
-    if (analysis_settings_.client_metadata) {
+    if (analysis_settings_.client_metadata)
       request->set_client_metadata(*analysis_settings_.client_metadata);
-    }
-    request->set_reason(reason_);
   }
 
   request->set_analysis_connector(enterprise_connectors::FILE_DOWNLOADED);
@@ -597,12 +567,9 @@ void DeepScanningRequest::OnScanComplete(
     base::UmaHistogramEnumeration(
         "SBClientDownload.MalwareDeepScanResult." + GetTriggerName(trigger_),
         download_result);
-    if (trigger_ == DeepScanTrigger::TRIGGER_CONSUMER_PROMPT) {
-      base::UmaHistogramEnumeration("SBClientDownload.DeepScanEvent2",
-                                    DeepScanEvent::kScanCompleted);
-    }
-  } else if (!base::FeatureList::IsEnabled(kDeepScanningUpdatedUX) &&
-             trigger_ == DeepScanTrigger::TRIGGER_CONSUMER_PROMPT &&
+    base::UmaHistogramEnumeration("SBClientDownload.DeepScanEvent",
+                                  DeepScanEvent::kScanCompleted);
+  } else if (trigger_ == DeepScanTrigger::TRIGGER_CONSUMER_PROMPT &&
              ResultIsRetriable(result) &&
              MaybeShowDeepScanFailureModalDialog(
                  base::BindOnce(&DeepScanningRequest::Start,
@@ -615,20 +582,10 @@ void DeepScanningRequest::OnScanComplete(
                                 DownloadCheckResult::UNKNOWN),
                  base::BindOnce(&DeepScanningRequest::OpenDownload,
                                 weak_ptr_factory_.GetWeakPtr()))) {
-    return;
-  } else if (base::FeatureList::IsEnabled(kDeepScanningUpdatedUX) &&
-             trigger_ == DeepScanTrigger::TRIGGER_CONSUMER_PROMPT) {
-    download_result = DownloadCheckResult::DEEP_SCANNED_FAILED;
+    for (auto& observer : observers_)
+      observer.OnModalShown(this);
 
-    if (base::FeatureList::IsEnabled(kDeepScanningEncryptedArchives) &&
-        result == BinaryUploadService::Result::FILE_ENCRYPTED) {
-      // Since we now prompt the user for a password, FILE_ENCRYPTED indicates
-      // the password was not correct. Instead of failing, ask the user to
-      // correct the issue.
-      DownloadItemWarningData::SetHasIncorrectPassword(item_, true);
-      PromptForPassword(item_);
-      download_result = DownloadCheckResult::PROMPT_FOR_SCANNING;
-    }
+    return;
   } else if (result == BinaryUploadService::Result::FILE_TOO_LARGE &&
              analysis_settings_.block_large_files) {
     download_result = DownloadCheckResult::BLOCKED_TOO_LARGE;
@@ -725,12 +682,10 @@ void DeepScanningRequest::FinishRequest(DownloadCheckResult result) {
     } else {
       Profile* profile = Profile::FromBrowserContext(
           content::DownloadItemUtils::GetBrowserContext(item_));
-      // If FinishRequest is reached with an unknown `result` or an explicit
-      // failure, then it means no scanning request ever completed successfully,
-      // so `event_result` needs to reflect whatever danger type was known
-      // pre-deep scanning.
-      event_result = (result == DownloadCheckResult::DEEP_SCANNED_FAILED ||
-                      result == DownloadCheckResult::UNKNOWN)
+      // If FinishRequest is reached with an unknown `result`, then it means no
+      // scanning request ever completed successfully, so `event_result` needs
+      // to reflect whatever danger type was known pre-deep scanning.
+      event_result = result == DownloadCheckResult::UNKNOWN
                          ? GetEventResult(pre_scan_danger_type_, item_)
                          : GetEventResult(result, profile);
     }
@@ -740,8 +695,7 @@ void DeepScanningRequest::FinishRequest(DownloadCheckResult result) {
 
   // If the deep-scanning result is unknown for whatever reason, `callback_`
   // should be called with whatever SB result was known prior to deep scanning.
-  if ((result == DownloadCheckResult::UNKNOWN ||
-       result == DownloadCheckResult::DEEP_SCANNED_FAILED) &&
+  if (result == DownloadCheckResult::UNKNOWN &&
       trigger_ == DeepScanTrigger::TRIGGER_POLICY) {
     result = pre_scan_download_check_result_;
   }
@@ -756,6 +710,33 @@ void DeepScanningRequest::FinishRequest(DownloadCheckResult result) {
   weak_ptr_factory_.InvalidateWeakPtrs();
   item_->RemoveObserver(this);
   download_service_->RequestFinished(this);
+}
+
+bool DeepScanningRequest::MaybeShowDeepScanFailureModalDialog(
+    base::OnceClosure accept_callback,
+    base::OnceClosure cancel_callback,
+    base::OnceClosure close_callback,
+    base::OnceClosure open_now_callback) {
+  Profile* profile = Profile::FromBrowserContext(
+      content::DownloadItemUtils::GetBrowserContext(item_));
+  if (!profile)
+    return false;
+
+  Browser* browser =
+      chrome::FindTabbedBrowser(profile, /*match_original_profiles=*/false);
+  if (!browser)
+    return false;
+
+  DeepScanningFailureModalDialog::ShowForWebContents(
+      browser->tab_strip_model()->GetActiveWebContents(),
+      std::move(accept_callback), std::move(cancel_callback),
+      std::move(close_callback), std::move(open_now_callback));
+  return true;
+}
+
+void DeepScanningRequest::OpenDownload() {
+  item_->OpenDownload();
+  FinishRequest(DownloadCheckResult::UNKNOWN);
 }
 
 bool DeepScanningRequest::ReportOnlyScan() {
@@ -787,35 +768,6 @@ void DeepScanningRequest::AcknowledgeRequest(EventResult event_result) {
     ack->set_final_action(final_action);
     binary_upload_service->MaybeAcknowledge(std::move(ack));
   }
-}
-
-bool DeepScanningRequest::MaybeShowDeepScanFailureModalDialog(
-    base::OnceClosure accept_callback,
-    base::OnceClosure cancel_callback,
-    base::OnceClosure close_callback,
-    base::OnceClosure open_now_callback) {
-  Profile* profile = Profile::FromBrowserContext(
-      content::DownloadItemUtils::GetBrowserContext(item_));
-  if (!profile) {
-    return false;
-  }
-
-  Browser* browser =
-      chrome::FindTabbedBrowser(profile, /*match_original_profiles=*/false);
-  if (!browser) {
-    return false;
-  }
-
-  DeepScanningFailureModalDialog::ShowForWebContents(
-      browser->tab_strip_model()->GetActiveWebContents(),
-      std::move(accept_callback), std::move(cancel_callback),
-      std::move(close_callback), std::move(open_now_callback));
-  return true;
-}
-
-void DeepScanningRequest::OpenDownload() {
-  item_->OpenDownload();
-  FinishRequest(DownloadCheckResult::UNKNOWN);
 }
 
 }  // namespace safe_browsing

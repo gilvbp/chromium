@@ -60,12 +60,8 @@ class FakePageLoadMetricsObserverDelegate
   // returned.
   const NormalizedCLSData& GetNormalizedCLSData(
       BfcacheStrategy bfcache_strategy) const override;
-  const NormalizedCLSData& GetSoftNavigationIntervalNormalizedCLSData()
-      const override;
   const NormalizedResponsivenessMetrics& GetNormalizedResponsivenessMetrics()
       const override;
-  const NormalizedResponsivenessMetrics&
-  GetSoftNavigationIntervalNormalizedResponsivenessMetrics() const override;
   const mojom::InputTiming& GetPageInputTiming() const override;
   const absl::optional<blink::SubresourceLoadMetrics>&
   GetSubresourceLoadMetrics() const override;
@@ -77,9 +73,8 @@ class FakePageLoadMetricsObserverDelegate
   const LargestContentfulPaintHandler&
   GetExperimentalLargestContentfulPaintHandler() const override;
   ukm::SourceId GetPageUkmSourceId() const override;
-  mojom::SoftNavigationMetrics& GetSoftNavigationMetrics() const override;
+  uint32_t GetSoftNavigationCount() const override;
   ukm::SourceId GetUkmSourceIdForSoftNavigation() const override;
-  ukm::SourceId GetPreviousUkmSourceIdForSoftNavigation() const override;
   bool IsFirstNavigationInWebContents() const override;
 
   // Helpers to add a BackForwardCacheRestore to this fake.

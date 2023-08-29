@@ -11,12 +11,6 @@
     color: var(--cros-text-color-secondary);
   }
 
-  :host-context(body.jelly-enabled) #singleDeviceName,
-                                    .offline-device-name {
-    font: var(--cros-body-2-font);
-    font-family: var(--cros-font-family-google-sans);
-  }
-
   #animation-container {
     padding-top: 16px;
   }
@@ -70,11 +64,6 @@
     padding-top: 40px;
   }
 
-  :host-context(body.jelly-enabled) #feature-details-container {
-    font: var(--cros-body-1-font);
-    font-family: var(--cros-font-family-google-sans);
-  }
-
   .feature-detail:not(:last-child) {
     border-bottom: 1px solid rgba(0, 0, 0, 0.08);
   }
@@ -110,22 +99,19 @@
   </span>
   <span slot="message">
     <div id="animation-container">
-      <!-- TODO(b/279667779): Remove iron-media-query and dark mode check when
-                              Jelly is fully launched. -->
       <iron-media-query query="(prefers-color-scheme: dark)"
           query-matches="{{isDarkModeActive_}}">
       </iron-media-query>
-      <cros-lottie-renderer id="multideviceSetupAnimation"
-          asset-url="[[getAnimationUrl_(isDarkModeActive_, isJellyEnabled_)]]"
-          autoplay="true" dynamic="true" aria-hidden="true">
-      </cros-lottie-renderer>
+      <cr-lottie id="multideviceSetupAnimation"
+          animation-url="[[getAnimationUrl_(isDarkModeActive_)]]">
+      </cr-lottie>
     </div>
   </span>
   <div id="additional-content-container" slot="additional-content"
       class="flex">
     <div id="selector-and-details-container">
       <div id="deviceSelectionContainer" class="flex">
-        <div id="device-selection-header">
+        <div id="device-selection-header" aria-hidden="true">
           [[getDeviceSelectionHeader_(devices)]]
         </div>
         <div id="singleDeviceName"

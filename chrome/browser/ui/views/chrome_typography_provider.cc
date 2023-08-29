@@ -36,7 +36,6 @@ ui::ResourceBundle::FontDetails ChromeTypographyProvider::GetFontDetails(
   constexpr int kTitleSize = 15;
   constexpr int kTouchableLabelSize = 14;
   constexpr int kBodyTextLargeSize = 13;
-  constexpr int kCR23ButtonTextSize = 13;
   constexpr int kDefaultSize = 12;
   constexpr int kStatusSize = 10;
   constexpr int kBadgeSize = 9;
@@ -52,7 +51,7 @@ ui::ResourceBundle::FontDetails ChromeTypographyProvider::GetFontDetails(
     return details;
   }
 
-  details.size_delta = gfx::PlatformFont::GetFontSizeDelta(kDefaultSize);
+  details.size_delta = kDefaultSize - gfx::PlatformFont::kDefaultBaseFontSize;
 
 #if BUILDFLAG(IS_CHROMEOS_ASH)
   ash::ApplyAshFontStyles(context, style, details);
@@ -62,34 +61,35 @@ ui::ResourceBundle::FontDetails ChromeTypographyProvider::GetFontDetails(
 
   switch (context) {
     case views::style::CONTEXT_BADGE:
-      details.size_delta = gfx::PlatformFont::GetFontSizeDelta(kBadgeSize);
+      details.size_delta = kBadgeSize - gfx::PlatformFont::kDefaultBaseFontSize;
       details.weight = gfx::Font::Weight::BOLD;
       break;
     case views::style::CONTEXT_BUTTON_MD:
       details.weight = MediumWeightForUI();
-      details.size_delta =
-          features::IsChromeRefresh2023()
-              ? gfx::PlatformFont::GetFontSizeDelta(kCR23ButtonTextSize)
-              : ui::kLabelFontSizeDelta;
+      details.size_delta = features::IsChromeRefresh2023()
+                               ? ui::kLabelFontSizeDeltaChromeRefresh2023
+                               : ui::kLabelFontSizeDelta;
       break;
     case views::style::CONTEXT_DIALOG_TITLE:
-      details.size_delta = gfx::PlatformFont::GetFontSizeDelta(kTitleSize);
+      details.size_delta = kTitleSize - gfx::PlatformFont::kDefaultBaseFontSize;
       break;
     case views::style::CONTEXT_TOUCH_MENU:
       details.size_delta =
-          gfx::PlatformFont::GetFontSizeDelta(kTouchableLabelSize);
+          kTouchableLabelSize - gfx::PlatformFont::kDefaultBaseFontSize;
       break;
     case views::style::CONTEXT_DIALOG_BODY_TEXT:
     case CONTEXT_TAB_HOVER_CARD_TITLE:
     case CONTEXT_DOWNLOAD_SHELF:
       details.size_delta =
-          gfx::PlatformFont::GetFontSizeDelta(kBodyTextLargeSize);
+          kBodyTextLargeSize - gfx::PlatformFont::kDefaultBaseFontSize;
       break;
     case CONTEXT_HEADLINE:
-      details.size_delta = gfx::PlatformFont::GetFontSizeDelta(kHeadlineSize);
+      details.size_delta =
+          kHeadlineSize - gfx::PlatformFont::kDefaultBaseFontSize;
       break;
     case CONTEXT_DOWNLOAD_SHELF_STATUS:
-      details.size_delta = gfx::PlatformFont::GetFontSizeDelta(kStatusSize);
+      details.size_delta =
+          kStatusSize - gfx::PlatformFont::kDefaultBaseFontSize;
       break;
     default:
       break;
@@ -220,11 +220,6 @@ int ChromeTypographyProvider::GetLineHeight(int context, int style) const {
       GetFont(CONTEXT_DIALOG_BODY_TEXT_SMALL, kTemplateStyle).GetHeight() -
       kBodyTextSmallPlatformHeight + kBodyHeight;
 
-  if (style > views::style::STYLE_OVERRIDE_TYPOGRAPHY_START &&
-      style < views::style::STYLE_OVERRIDE_TYPOGRAPHY_END) {
-    return TypographyProvider::GetLineHeight(context, style);
-  }
-
   switch (context) {
     case views::style::CONTEXT_BUTTON:
     case views::style::CONTEXT_BUTTON_MD:
@@ -247,10 +242,8 @@ int ChromeTypographyProvider::GetLineHeight(int context, int style) const {
 
 bool ChromeTypographyProvider::StyleAllowedForContext(int context,
                                                       int style) const {
-  if (context == CONTEXT_TAB_HOVER_CARD_TITLE) {
-    return style == views::style::STYLE_PRIMARY ||
-           style == views::style::STYLE_BODY_3_EMPHASIS;
-  }
+  if (context == CONTEXT_TAB_HOVER_CARD_TITLE)
+    return style == views::style::STYLE_PRIMARY;
 
   if (style == views::style::STYLE_EMPHASIZED ||
       style == views::style::STYLE_EMPHASIZED_SECONDARY) {

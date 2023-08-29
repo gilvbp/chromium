@@ -11,14 +11,13 @@
 #include "base/functional/callback.h"
 #include "base/run_loop.h"
 #include "base/test/bind.h"
-#include "base/test/metrics/histogram_tester.h"
+#include "base/test/task_environment.h"
 #include "base/time/time.h"
 #include "content/browser/attribution_reporting/attribution_input_event.h"
 #include "content/browser/attribution_reporting/attribution_os_level_manager.h"
 #include "content/browser/attribution_reporting/os_registration.h"
 #include "content/browser/attribution_reporting/test/mock_content_browser_client.h"
 #include "content/public/browser/browsing_data_filter_builder.h"
-#include "content/public/test/browser_task_environment.h"
 #include "content/public/test/test_utils.h"
 #include "testing/gmock/include/gmock/gmock.h"
 #include "testing/gtest/include/gtest/gtest.h"
@@ -36,15 +35,9 @@ class AttributionOsLevelManagerAndroidTest : public ::testing::Test {
   }
 
  protected:
-  BrowserTaskEnvironment task_environment_;
-  base::HistogramTester histogram_tester_;
+  base::test::SingleThreadTaskEnvironment task_environment_;
   std::unique_ptr<AttributionOsLevelManager> manager_;
 };
-
-TEST_F(AttributionOsLevelManagerAndroidTest, GetMeasurementStatusTimeMetric) {
-  task_environment_.RunUntilIdle();
-  histogram_tester_.ExpectTotalCount("Conversions.GetMeasurementStatusTime", 1);
-}
 
 // Simple test to ensure that JNI calls work properly.
 TEST_F(AttributionOsLevelManagerAndroidTest, Register) {

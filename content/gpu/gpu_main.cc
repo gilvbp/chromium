@@ -97,7 +97,7 @@
 #endif
 
 #if BUILDFLAG(IS_MAC)
-#include "base/message_loop/message_pump_apple.h"
+#include "base/message_loop/message_pump_mac.h"
 #include "components/metal_util/device_removal.h"
 #include "gpu/ipc/service/built_in_shader_cache_loader.h"
 #include "media/gpu/mac/vt_video_decode_accelerator_mac.h"
@@ -480,7 +480,9 @@ bool StartSandboxLinux(gpu::GpuWatchdogThread* watchdog_thread,
       base::BindOnce(GpuProcessPreSandboxHook), sandbox_options);
 
   if (watchdog_thread) {
-    watchdog_thread->Start();
+    base::Thread::Options thread_options;
+    thread_options.timer_slack = base::TIMER_SLACK_MAXIMUM;
+    watchdog_thread->StartWithOptions(std::move(thread_options));
   }
 
   return res;

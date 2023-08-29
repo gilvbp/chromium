@@ -35,12 +35,11 @@ PredictionServiceFactory::PredictionServiceFactory()
 
 PredictionServiceFactory::~PredictionServiceFactory() = default;
 
-std::unique_ptr<KeyedService>
-PredictionServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* PredictionServiceFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   auto url_loader_factory =
       std::make_unique<network::CrossThreadPendingSharedURLLoaderFactory>(
           g_browser_process->shared_url_loader_factory());
-  return std::make_unique<permissions::PredictionService>(
+  return new permissions::PredictionService(
       network::SharedURLLoaderFactory::Create(std::move(url_loader_factory)));
 }

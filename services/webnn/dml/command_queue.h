@@ -13,7 +13,6 @@
 #include "base/containers/span.h"
 #include "base/functional/callback_forward.h"
 #include "base/gtest_prod_util.h"
-#include "base/memory/ref_counted.h"
 #include "base/win/object_watcher.h"
 #include "base/win/scoped_handle.h"
 
@@ -23,13 +22,13 @@ using Microsoft::WRL::ComPtr;
 
 // The CommandQueue is a wrapper of an ID3D12CommandQueue and contains a fence
 // which is signaled when the execution on GPU is completed.
-class CommandQueue : public base::win::ObjectWatcher::Delegate,
-                     public base::RefCounted<CommandQueue> {
+class CommandQueue : public base::win::ObjectWatcher::Delegate {
  public:
-  static scoped_refptr<CommandQueue> Create(ID3D12Device* d3d12_device);
+  static std::unique_ptr<CommandQueue> Create(ID3D12Device* d3d12_device);
 
   CommandQueue(const CommandQueue&) = delete;
   CommandQueue& operator=(const CommandQueue&) = delete;
+  ~CommandQueue() override;
 
   HRESULT ExecuteCommandList(ID3D12CommandList* command_list);
   HRESULT ExecuteCommandLists(base::span<ID3D12CommandList*> command_lists);
@@ -38,12 +37,9 @@ class CommandQueue : public base::win::ObjectWatcher::Delegate,
   // the fence is signaled with the last fence value. Calling it on the GPU main
   // thread may block the UI.
   HRESULT WaitSyncForTesting();
-
-  using OnWaitAyncCallback = base::OnceCallback<void(HRESULT hr)>;
   // It's an asynchronous method for DirectML graph implementation, which will
-  // not block the CPU. In case this method fails internally, the
-  // OnWaitAyncCallback accepts a HRESULT from it to handle.
-  void WaitAsync(OnWaitAyncCallback callback);
+  // not block the CPU.
+  HRESULT WaitAsync(base::OnceClosure callback);
 
   void ReferenceUntilCompleted(ComPtr<IUnknown> object);
   void ReleaseCompletedResources();
@@ -54,10 +50,8 @@ class CommandQueue : public base::win::ObjectWatcher::Delegate,
  private:
   FRIEND_TEST_ALL_PREFIXES(WebNNCommandQueueTest, ReferenceAndRelease);
 
-  friend class base::RefCounted<CommandQueue>;
   CommandQueue(ComPtr<ID3D12CommandQueue> command_queue,
                ComPtr<ID3D12Fence> fence);
-  ~CommandQueue() override;
 
   struct QueuedObject {
     QueuedObject() = delete;

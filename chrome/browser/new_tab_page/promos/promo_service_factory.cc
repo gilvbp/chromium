@@ -44,11 +44,10 @@ PromoServiceFactory::PromoServiceFactory()
 
 PromoServiceFactory::~PromoServiceFactory() = default;
 
-std::unique_ptr<KeyedService>
-PromoServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* PromoServiceFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   auto url_loader_factory = context->GetDefaultStoragePartition()
                                 ->GetURLLoaderFactoryForBrowserProcess();
-  return std::make_unique<PromoService>(url_loader_factory,
-                                        Profile::FromBrowserContext(context));
+  return new PromoService(url_loader_factory,
+                          Profile::FromBrowserContext(context));
 }

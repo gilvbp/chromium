@@ -82,7 +82,7 @@ class ErrorScreen : public BaseScreen,
   // Toggles the connection pending indicator.
   void ShowConnectingIndicator(bool show);
 
-  // Makes error persistent (e.g. non-closeable).
+  // Makes error persistent (e.g. non-closable).
   void SetIsPersistentError(bool is_persistent);
 
   // Register a callback to be invoked when the user indicates that an attempt
@@ -154,8 +154,6 @@ class ErrorScreen : public BaseScreen,
   // applicable.
   void StartGuestSessionAfterOwnershipCheck(
       DeviceSettingsService::OwnershipStatus ownership_status);
-
-  bool is_persistent_ = false;
 
   base::WeakPtr<ErrorScreenView> view_;
 

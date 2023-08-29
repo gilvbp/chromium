@@ -18,6 +18,10 @@
 #include "content/public/browser/browser_thread.h"
 #include "storage/browser/file_system/async_file_util.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace {
 
 int kReadDirectoryTimeLimitSeconds = 20;

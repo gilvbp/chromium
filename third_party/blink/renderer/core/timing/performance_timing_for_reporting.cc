@@ -32,47 +32,6 @@ static uint64_t ToIntegerMilliseconds(base::TimeDelta duration,
       duration, cross_origin_isolated_capability));
 }
 
-LargestContentfulPaintDetailsForReporting PerformanceTimingForReporting::
-    PopulateLargestContentfulPaintDetailsForReporting(
-        PaintTimingDetector::LargestContentfulPaintDetails timing) const {
-  // The largest_image_paint_time and the largest_text_paint_time are converted
-  // into seconds.
-  double largest_image_paint_time =
-      base::Milliseconds(
-          MonotonicTimeToIntegerMilliseconds(timing.largest_image_paint_time_))
-          .InSecondsF();
-
-  double largest_text_paint_time =
-      base::Milliseconds(
-          MonotonicTimeToIntegerMilliseconds(timing.largest_text_paint_time_))
-          .InSecondsF();
-
-  absl::optional<base::TimeDelta> largest_image_discovery_time =
-      MonotonicTimeToPseudoWallTime(timing.largest_image_discovery_time_);
-
-  absl::optional<base::TimeDelta> largest_image_load_start =
-      MonotonicTimeToPseudoWallTime(timing.largest_image_load_start_);
-
-  absl::optional<base::TimeDelta> largest_image_load_end =
-      MonotonicTimeToPseudoWallTime(timing.largest_image_load_end_);
-
-  return {largest_image_paint_time,
-          timing.largest_image_paint_size_,
-          largest_image_discovery_time,
-          largest_image_load_start,
-          largest_image_load_end,
-          timing.largest_contentful_paint_type_,
-
-          timing.largest_contentful_paint_image_bpp_,
-          largest_text_paint_time,
-          timing.largest_text_paint_size_,
-          timing.largest_contentful_paint_time_,
-
-          timing.largest_contentful_paint_image_request_priority_,
-          timing.is_loaded_from_memory_cache_,
-          timing.is_preloaded_with_early_hints_};
-}
-
 PerformanceTimingForReporting::PerformanceTimingForReporting(
     ExecutionContext* context)
     : ExecutionContextClient(context) {
@@ -216,20 +175,38 @@ PerformanceTimingForReporting::LargestContentfulPaintDetailsForMetrics() const {
   auto timing =
       paint_timing_detector->LargestContentfulPaintDetailsForMetrics();
 
-  return PopulateLargestContentfulPaintDetailsForReporting(timing);
-}
+  // The largest_image_paint_time and the largest_text_paint_time are converted
+  // into seconds.
+  double largest_image_paint_time =
+      base::Milliseconds(
+          MonotonicTimeToIntegerMilliseconds(timing.largest_image_paint_time_))
+          .InSecondsF();
 
-LargestContentfulPaintDetailsForReporting PerformanceTimingForReporting::
-    SoftNavigationLargestContentfulPaintDetailsForMetrics() const {
-  PaintTimingDetector* paint_timing_detector = GetPaintTimingDetector();
-  if (!paint_timing_detector) {
-    return {};
-  }
+  double largest_text_paint_time =
+      base::Milliseconds(
+          MonotonicTimeToIntegerMilliseconds(timing.largest_text_paint_time_))
+          .InSecondsF();
 
-  auto timing = paint_timing_detector
-                    ->SoftNavigationLargestContentfulPaintDetailsForMetrics();
+  absl::optional<base::TimeDelta> largest_image_load_start =
+      MonotonicTimeToPseudoWallTime(timing.largest_image_load_start_);
 
-  return PopulateLargestContentfulPaintDetailsForReporting(timing);
+  absl::optional<base::TimeDelta> largest_image_load_end =
+      MonotonicTimeToPseudoWallTime(timing.largest_image_load_end_);
+
+  return {largest_image_paint_time,
+          timing.largest_image_paint_size_,
+          largest_image_load_start,
+          largest_image_load_end,
+          timing.largest_contentful_paint_type_,
+
+          timing.largest_contentful_paint_image_bpp_,
+          largest_text_paint_time,
+          timing.largest_text_paint_size_,
+          timing.largest_contentful_paint_time_,
+
+          timing.largest_contentful_paint_image_request_priority_,
+          timing.is_loaded_from_memory_cache_,
+          timing.is_preloaded_with_early_hints_};
 }
 
 uint64_t PerformanceTimingForReporting::FirstEligibleToPaint() const {

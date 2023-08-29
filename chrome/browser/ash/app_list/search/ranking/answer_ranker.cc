@@ -177,11 +177,7 @@ void AnswerRanker::PromoteChosenAnswer() {
 
   chosen_answer_->SetDisplayType(DisplayType::kAnswerCard);
   chosen_answer_->SetMultilineTitle(true);
-  if (chosen_answer_->result_type() == ResultType::kSystemInfo) {
-    chosen_answer_->SetIconDimension(kSystemAnswerCardIconDimension);
-  } else {
-    chosen_answer_->SetIconDimension(kAnswerCardIconDimension);
-  }
+  chosen_answer_->SetIconDimension(kAnswerCardIconDimension);
 }
 
 }  // namespace app_list

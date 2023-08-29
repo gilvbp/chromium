@@ -6,10 +6,10 @@
 #define CHROMEOS_ASH_COMPONENTS_PHONEHUB_FAKE_CAMERA_ROLL_MANAGER_H_
 
 #include "chromeos/ash/components/phonehub/camera_roll_manager.h"
-
 #include "chromeos/ash/components/phonehub/proto/phonehub_api.pb.h"
 
-namespace ash::phonehub {
+namespace ash {
+namespace phonehub {
 
 class FakeCameraRollManager : public CameraRollManager {
  public:
@@ -43,6 +43,7 @@ class FakeCameraRollManager : public CameraRollManager {
       Observer::DownloadErrorType::kGenericError;
 };
 
-}  // namespace ash::phonehub
+}  // namespace phonehub
+}  // namespace ash
 
 #endif  // CHROMEOS_ASH_COMPONENTS_PHONEHUB_FAKE_CAMERA_ROLL_MANAGER_H_

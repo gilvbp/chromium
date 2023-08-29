@@ -10,11 +10,9 @@
 #include "components/viz/common/view_transition_element_resource_id.h"
 #include "third_party/blink/public/resources/grit/blink_resources.h"
 #include "third_party/blink/renderer/core/animation/element_animations.h"
-#include "third_party/blink/renderer/core/css/css_default_style_sheets.h"
 #include "third_party/blink/renderer/core/css/properties/computed_style_utils.h"
 #include "third_party/blink/renderer/core/css/style_change_reason.h"
 #include "third_party/blink/renderer/core/css/style_engine.h"
-#include "third_party/blink/renderer/core/css/style_sheet_contents.h"
 #include "third_party/blink/renderer/core/display_lock/display_lock_document_state.h"
 #include "third_party/blink/renderer/core/dom/node.h"
 #include "third_party/blink/renderer/core/dom/node_computed_style.h"
@@ -39,7 +37,7 @@
 #include "third_party/blink/renderer/core/view_transition/view_transition_supplement.h"
 #include "third_party/blink/renderer/core/view_transition/view_transition_utils.h"
 #include "third_party/blink/renderer/platform/data_resource_helper.h"
-#include "third_party/blink/renderer/platform/graphics/graphics_types.h"
+#include "third_party/blink/renderer/platform/geometry/layout_size.h"
 #include "third_party/blink/renderer/platform/graphics/paint/geometry_mapper.h"
 #include "third_party/blink/renderer/platform/widget/frame_widget.h"
 #include "third_party/blink/renderer/platform/wtf/text/string_builder.h"
@@ -50,6 +48,11 @@
 
 namespace blink {
 namespace {
+
+// The non-root elements start their index counting from this number. This is to
+// avoid unstable sorts when the index of a root element conflicts with a
+// non-root element.
+constexpr const int kElementIndexOffset = 1000;
 
 const char* kDuplicateTagBaseError =
     "Unexpected duplicate view-transition-name: ";
@@ -240,8 +243,6 @@ int ComputeMaxCaptureSize(absl::optional<int> max_texture_size,
 
 gfx::Transform ComputeViewportTransform(const LayoutObject& object) {
   DCHECK(object.HasLayer());
-  DCHECK(!object.IsLayoutView());
-
   auto& first_fragment = object.FirstFragment();
   DCHECK(ToRoundedPoint(first_fragment.PaintOffset()).IsOrigin())
       << first_fragment.PaintOffset();
@@ -262,11 +263,12 @@ gfx::Transform ComputeViewportTransform(const LayoutObject& object) {
 
 gfx::Transform ConvertFromTopLeftToCenter(
     const gfx::Transform& transform_from_top_left,
-    const PhysicalSize& box_size) {
+    const LayoutSize& box_size) {
   gfx::Transform transform_from_center;
-  transform_from_center.Translate(-box_size.width / 2, -box_size.height / 2);
+  transform_from_center.Translate(-box_size.Width() / 2,
+                                  -box_size.Height() / 2);
   transform_from_center.PreConcat(transform_from_top_left);
-  transform_from_center.Translate(box_size.width / 2, box_size.height / 2);
+  transform_from_center.Translate(box_size.Width() / 2, box_size.Height() / 2);
 
   return transform_from_center;
 }
@@ -313,21 +315,45 @@ class ViewTransitionStyleTracker::ImageWrapperPseudoElement
     if (!ViewTransitionPseudoElementBase::CanGeneratePseudoElement(pseudo_id)) {
       return false;
     }
-
-    // If we're being called with a name, we must have a tracking for this name.
-    auto it = style_tracker_->element_data_map_.find(view_transition_name());
-    CHECK(it != style_tracker_->element_data_map_.end());
-    const auto& element_data = it->value;
-
+    viz::ViewTransitionElementResourceId snapshot_id;
     if (pseudo_id == kPseudoIdViewTransitionOld) {
-      return element_data->old_snapshot_id.IsValid();
-    } else if (pseudo_id == kPseudoIdViewTransitionNew) {
-      return element_data->new_snapshot_id.IsValid();
+      if (style_tracker_->old_root_data_ &&
+          style_tracker_->old_root_data_->names.Contains(
+              view_transition_name())) {
+        snapshot_id = style_tracker_->old_root_data_->snapshot_id;
+        DCHECK(snapshot_id.IsValid());
+      } else if (auto it = style_tracker_->element_data_map_.find(
+                     view_transition_name());
+                 it != style_tracker_->element_data_map_.end()) {
+        snapshot_id = it->value->old_snapshot_id;
+      } else {
+        // If we're being called with a name that isn't an old_root name and
+        // it's not a transition element, it must mean we have it as a new root
+        // name.
+        DCHECK(style_tracker_->new_root_data_);
+        DCHECK(style_tracker_->new_root_data_->names.Contains(
+            view_transition_name()));
+      }
+    } else {
+      if (style_tracker_->new_root_data_ &&
+          style_tracker_->new_root_data_->names.Contains(
+              view_transition_name())) {
+        snapshot_id = style_tracker_->new_root_data_->snapshot_id;
+        DCHECK(snapshot_id.IsValid());
+      } else if (auto it = style_tracker_->element_data_map_.find(
+                     view_transition_name());
+                 it != style_tracker_->element_data_map_.end()) {
+        snapshot_id = it->value->new_snapshot_id;
+      } else {
+        // If we're being called with a name that isn't a new_root name and it's
+        // not a transition element, it must mean we have it as an old root
+        // name.
+        DCHECK(style_tracker_->old_root_data_);
+        DCHECK(style_tracker_->old_root_data_->names.Contains(
+            view_transition_name()));
+      }
     }
-
-    // Image wrapper pseudo-elements can only generate old/new image
-    // pseudo-elements.
-    return false;
+    return snapshot_id.IsValid();
   }
 };
 
@@ -351,12 +377,24 @@ ViewTransitionStyleTracker::ViewTransitionStyleTracker(
         AtomicString::FromUTF8(transition_state_element.tag_name.c_str());
     transition_names.push_back(name);
 
+    if (transition_state_element.is_root) {
+      DCHECK(!old_root_data_);
+
+      old_root_data_.emplace();
+      old_root_data_->snapshot_id = transition_state_element.snapshot_id;
+      old_root_data_->names.push_back(name);
+
+      // TODO(khushalsagar): We should keep track of the snapshot viewport rect
+      // size to handle changes in its bounds.
+      // https://crbug.com/1404957.
+      continue;
+    }
+
     DCHECK(!element_data_map_.Contains(name));
     auto* element_data = MakeGarbageCollected<ElementData>();
 
     element_data->container_properties.emplace_back(
-        PhysicalSize::FromSizeFFloor(
-            transition_state_element.border_box_size_in_css_space),
+        LayoutSize(transition_state_element.border_box_size_in_css_space),
         transition_state_element.viewport_matrix);
     element_data->old_snapshot_id = transition_state_element.snapshot_id;
 
@@ -369,24 +407,6 @@ ViewTransitionStyleTracker::ViewTransitionStyleTracker(
             transition_state_element.overflow_rect_in_layout_space);
     element_data->captured_rect_in_layout_space =
         transition_state_element.captured_rect_in_layout_space;
-
-    CHECK_LE(transition_state_element.container_writing_mode,
-             static_cast<std::underlying_type_t<WritingMode>>(
-                 WritingMode::kMaxWritingMode));
-    element_data->container_writing_mode = static_cast<WritingMode>(
-        transition_state_element.container_writing_mode);
-
-    CHECK_LE(transition_state_element.mix_blend_mode,
-             static_cast<std::underlying_type_t<BlendMode>>(
-                 BlendMode::kMaxBlendMode));
-    element_data->mix_blend_mode =
-        static_cast<BlendMode>(transition_state_element.mix_blend_mode);
-
-    CHECK_LE(transition_state_element.text_orientation,
-             static_cast<std::underlying_type_t<ETextOrientation>>(
-                 ETextOrientation::kMaxEnumValue));
-    element_data->text_orientation = static_cast<ETextOrientation>(
-        transition_state_element.text_orientation);
 
     element_data->CacheGeometryState();
 
@@ -447,36 +467,53 @@ bool ViewTransitionStyleTracker::MatchForOnlyChild(
     case kPseudoIdViewTransition:
       DCHECK(!view_transition_name);
       return false;
-
     case kPseudoIdViewTransitionGroup: {
       DCHECK(view_transition_name);
-      DCHECK(element_data_map_.Contains(view_transition_name));
-
-      return element_data_map_.size() == 1;
+      const bool has_root = old_root_data_ || new_root_data_;
+      if (has_root) {
+        return element_data_map_.empty();
+      } else {
+        DCHECK(!element_data_map_.empty());
+        return element_data_map_.size() == 1;
+      }
     }
-
     case kPseudoIdViewTransitionImagePair:
       DCHECK(view_transition_name);
       return true;
-
     case kPseudoIdViewTransitionOld: {
       DCHECK(view_transition_name);
+      if (new_root_data_ &&
+          new_root_data_->names.Contains(view_transition_name)) {
+        return false;
+      }
 
       auto it = element_data_map_.find(view_transition_name);
-      DCHECK(it != element_data_map_.end());
+      if (it == element_data_map_.end()) {
+        DCHECK(old_root_data_ &&
+               old_root_data_->names.Contains(view_transition_name));
+        return true;
+      }
+
       const auto& element_data = it->value;
       return !element_data->new_snapshot_id.IsValid();
     }
-
     case kPseudoIdViewTransitionNew: {
       DCHECK(view_transition_name);
+      if (old_root_data_ &&
+          old_root_data_->names.Contains(view_transition_name)) {
+        return false;
+      }
 
       auto it = element_data_map_.find(view_transition_name);
-      DCHECK(it != element_data_map_.end());
+      if (it == element_data_map_.end()) {
+        DCHECK(new_root_data_ &&
+               new_root_data_->names.Contains(view_transition_name));
+        return true;
+      }
+
       const auto& element_data = it->value;
       return !element_data->old_snapshot_id.IsValid();
     }
-
     default:
       NOTREACHED();
   }
@@ -530,7 +567,8 @@ void ViewTransitionStyleTracker::AddTransitionElementsFromCSSRecursive(
 
 bool ViewTransitionStyleTracker::FlattenAndVerifyElements(
     VectorOf<Element>& elements,
-    VectorOf<AtomicString>& transition_names) {
+    VectorOf<AtomicString>& transition_names,
+    absl::optional<RootData>& root_data) {
   // Fail if the document element does not exist, since that's the place where
   // we attach pseudo elements, and if it's not there, we can't do a transition.
   if (!document_->documentElement()) {
@@ -562,11 +600,19 @@ bool ViewTransitionStyleTracker::FlattenAndVerifyElements(
   for (auto& [element, names] : pending_transition_element_names_) {
     DCHECK(element->GetLayoutObject());
 
-    // TODO(khushalsagar): Simplify this, we don't support multiple
-    // view-transition-names per element.
+    const bool is_root = element->IsDocumentElement();
+    if (is_root && !root_data)
+      root_data.emplace();
+
     for (auto& name_pair : names) {
-      flat_list.push_back(MakeGarbageCollected<FlatData>(
-          element, name_pair.first, name_pair.second));
+      if (is_root) {
+        // The order of the root names doesn't matter, so we don't keep the
+        // ordering.
+        root_data->names.push_back(name_pair.first);
+      } else {
+        flat_list.push_back(MakeGarbageCollected<FlatData>(
+            element, name_pair.first, name_pair.second));
+      }
     }
   }
 
@@ -575,13 +621,18 @@ bool ViewTransitionStyleTracker::FlattenAndVerifyElements(
             [](const FlatData* a, const FlatData* b) {
               return a->ordering < b->ordering;
             });
+  DCHECK(!root_data || !root_data->names.empty());
+
+  auto have_root_name = [&root_data](const AtomicString& name) {
+    return root_data && root_data->names.Contains(name);
+  };
 
   // Verify it.
   for (auto& flat_data : flat_list) {
     auto& name = flat_data->name;
     auto& element = flat_data->element;
 
-    if (UNLIKELY(transition_names.Contains(name))) {
+    if (UNLIKELY(transition_names.Contains(name) || have_root_name(name))) {
       StringBuilder message;
       message.Append(kDuplicateTagBaseError);
       message.Append(name);
@@ -603,7 +654,8 @@ bool ViewTransitionStyleTracker::Capture() {
   // valid.
   VectorOf<AtomicString> transition_names;
   VectorOf<Element> elements;
-  bool success = FlattenAndVerifyElements(elements, transition_names);
+  bool success =
+      FlattenAndVerifyElements(elements, transition_names, old_root_data_);
   if (!success)
     return false;
 
@@ -612,12 +664,13 @@ bool ViewTransitionStyleTracker::Capture() {
   state_ = State::kCapturing;
   InvalidateHitTestingCache();
 
-  captured_name_count_ = transition_names.size();
+  captured_name_count_ = transition_names.size() + OldRootDataTagSize();
+
   element_data_map_.ReserveCapacityForSize(captured_name_count_);
   HeapHashMap<Member<Element>, viz::ViewTransitionElementResourceId>
       element_snapshot_ids;
-  int next_index = 0;
-  for (int i = 0; i < captured_name_count_; ++i) {
+  int next_index = kElementIndexOffset;
+  for (wtf_size_t i = 0; i < transition_names.size(); ++i) {
     const auto& name = transition_names[i];
     const auto& element = elements[i];
 
@@ -637,11 +690,15 @@ bool ViewTransitionStyleTracker::Capture() {
     element_data->element_index = next_index++;
     element_data->old_snapshot_id = snapshot_id;
     element_data_map_.insert(name, std::move(element_data));
-
-    if (element->IsDocumentElement()) {
-      is_root_transitioning_ = true;
-    }
   }
+
+  if (old_root_data_) {
+    old_root_data_->snapshot_id =
+        viz::ViewTransitionElementResourceId::Generate();
+    capture_resource_ids_.push_back(old_root_data_->snapshot_id);
+  }
+  for (const auto& root_name : AllRootTags())
+    transition_names.push_front(root_name);
 
 #if DCHECK_IS_ON()
   for (wtf_size_t i = 0; i < transition_names.size(); ++i) {
@@ -688,7 +745,6 @@ void ViewTransitionStyleTracker::CaptureResolved() {
     element_data->effect_node = nullptr;
   }
   root_effect_node_ = nullptr;
-  is_root_transitioning_ = false;
 }
 
 VectorOf<Element> ViewTransitionStyleTracker::GetTransitioningElements() const {
@@ -698,10 +754,8 @@ VectorOf<Element> ViewTransitionStyleTracker::GetTransitioningElements() const {
 
   VectorOf<Element> result;
   for (auto& entry : element_data_map_) {
-    if (entry.value->target_element &&
-        !entry.value->target_element->IsDocumentElement()) {
+    if (entry.value->target_element)
       result.push_back(entry.value->target_element);
-    }
   }
   return result;
 }
@@ -714,7 +768,8 @@ bool ViewTransitionStyleTracker::Start() {
   // valid.
   VectorOf<AtomicString> transition_names;
   VectorOf<Element> elements;
-  bool success = FlattenAndVerifyElements(elements, transition_names);
+  bool success =
+      FlattenAndVerifyElements(elements, transition_names, new_root_data_);
   if (!success)
     return false;
 
@@ -733,8 +788,8 @@ bool ViewTransitionStyleTracker::Start() {
   }
 
   // We would have an new element index for each of the element_data_map_
-  // entries.
-  int next_index = element_data_map_.size();
+  // entries, which in turn would start from kElementIndexOffset.
+  int next_index = element_data_map_.size() + kElementIndexOffset;
   for (wtf_size_t i = 0; i < elements.size(); ++i) {
     const auto& name = transition_names[i];
     const auto& element = elements[i];
@@ -746,7 +801,6 @@ bool ViewTransitionStyleTracker::Start() {
       data->element_index = next_index++;
       element_data_map_.insert(name, data);
     }
-
     // Reuse any previously generated snapshot_id for this element. If there was
     // none yet, then generate the resource id.
     auto& snapshot_id =
@@ -763,16 +817,43 @@ bool ViewTransitionStyleTracker::Start() {
     // Verify that the element_index assigned in Capture is less than next_index
     // here, just as a sanity check.
     DCHECK_LT(element_data->element_index, next_index);
+  }
 
-    if (element->IsDocumentElement()) {
-      is_root_transitioning_ = true;
+  // If the old and new root names have different size that means we likely have
+  // at least one new name.
+  found_new_names |= OldRootDataTagSize() != NewRootDataTagSize();
+  if (!found_new_names && new_root_data_) {
+    DCHECK(old_root_data_);
+    for (const auto& new_name : new_root_data_->names) {
+      // If the new root name is not also an old root name and it isn't a
+      // transition element name, then we have a new name.
+      if (!old_root_data_->names.Contains(new_name) &&
+          !element_data_map_.Contains(new_name)) {
+        found_new_names = true;
+        break;
+      }
     }
+  }
+
+  if (new_root_data_) {
+    new_root_data_->snapshot_id =
+        viz::ViewTransitionElementResourceId::Generate();
   }
 
   if (found_new_names) {
     VectorOf<std::pair<AtomicString, int>> new_name_pairs;
+    int next_name_index = 0;
+    HashSet<AtomicString> unique_names;
+    for (const auto& root_name : AllRootTags()) {
+      new_name_pairs.push_back(std::make_pair(root_name, ++next_name_index));
+      DCHECK(!unique_names.Contains(root_name));
+      unique_names.insert(root_name);
+    }
     for (auto& [name, data] : element_data_map_) {
-      new_name_pairs.push_back(std::make_pair(name, data->element_index));
+      if (!unique_names.Contains(name)) {
+        new_name_pairs.push_back(std::make_pair(name, data->element_index));
+        unique_names.insert(name);
+      }
     }
 
     std::sort(new_name_pairs.begin(), new_name_pairs.end(),
@@ -838,8 +919,9 @@ void ViewTransitionStyleTracker::EndTransition() {
   element_data_map_.clear();
   pending_transition_element_names_.clear();
   set_element_sequence_id_ = 0;
+  old_root_data_.reset();
+  new_root_data_.reset();
   document_->GetStyleEngine().SetViewTransitionNames({});
-  is_root_transitioning_ = false;
   if (auto* page = document_->GetPage())
     page->Animator().SetHasViewTransition(false);
 }
@@ -850,9 +932,15 @@ void ViewTransitionStyleTracker::UpdateElementIndicesAndSnapshotId(
     viz::ViewTransitionElementResourceId& resource_id) const {
   DCHECK(element);
 
+  // In cc, the index is matched against the elements based on the 0 based
+  // position in a vector, so the index here really does need to be a 0-n range.
+  // This means we need to subtract back the kElementIndexOffset for elements.
+  // However, at this point we know that a root is either transitioning or not,
+  // so we might need to reserve a single slot for the root.
+  int index_offset = -kElementIndexOffset + IsRootTransitioning();
   for (const auto& entry : element_data_map_) {
     if (entry.value->target_element == element) {
-      index.AddIndex(entry.value->element_index);
+      index.AddIndex(entry.value->element_index + index_offset);
       const auto& snapshot_id = HasLiveNewContent()
                                     ? entry.value->new_snapshot_id
                                     : entry.value->old_snapshot_id;
@@ -861,6 +949,24 @@ void ViewTransitionStyleTracker::UpdateElementIndicesAndSnapshotId(
         resource_id = snapshot_id;
     }
   }
+  DCHECK(resource_id.IsValid());
+}
+
+auto ViewTransitionStyleTracker::GetCurrentRootData() const
+    -> absl::optional<RootData> {
+  return HasLiveNewContent() ? new_root_data_ : old_root_data_;
+}
+
+void ViewTransitionStyleTracker::UpdateRootIndexAndSnapshotId(
+    ViewTransitionElementId& index,
+    viz::ViewTransitionElementResourceId& resource_id) const {
+  if (!IsRootTransitioning())
+    return;
+
+  index.AddIndex(0);
+  const auto& root_data = GetCurrentRootData();
+  DCHECK(root_data);
+  resource_id = root_data->snapshot_id;
   DCHECK(resource_id.IsValid());
 }
 
@@ -876,24 +982,30 @@ PseudoElement* ViewTransitionStyleTracker::CreatePseudoElement(
     case kPseudoIdViewTransitionGroup:
       return MakeGarbageCollected<ViewTransitionPseudoElementBase>(
           parent, pseudo_id, view_transition_name, this);
-
     case kPseudoIdViewTransitionImagePair:
       return MakeGarbageCollected<ImageWrapperPseudoElement>(
           parent, pseudo_id, view_transition_name, this);
-
     case kPseudoIdViewTransitionOld: {
-      DCHECK(view_transition_name);
-      const auto& element_data =
-          element_data_map_.find(view_transition_name)->value;
-
-      // If live data is tracking new elements then use the cached data for
-      // the pseudo element displaying snapshot of old element.
-      bool use_cached_data = HasLiveNewContent();
-      auto captured_rect = element_data->GetCapturedSubrect(use_cached_data);
-      auto border_box_rect =
-          element_data->GetBorderBoxRect(use_cached_data, device_pixel_ratio_);
-      auto snapshot_id = element_data->old_snapshot_id;
-
+      gfx::RectF captured_rect;
+      gfx::RectF border_box_rect;
+      viz::ViewTransitionElementResourceId snapshot_id;
+      if (old_root_data_ &&
+          old_root_data_->names.Contains(view_transition_name)) {
+        captured_rect = gfx::RectF(gfx::SizeF(GetSnapshotRootSize()));
+        border_box_rect = captured_rect;
+        snapshot_id = old_root_data_->snapshot_id;
+      } else {
+        DCHECK(view_transition_name);
+        const auto& element_data =
+            element_data_map_.find(view_transition_name)->value;
+        // If live data is tracking new elements then use the cached data for
+        // the pseudo element displaying snapshot of old element.
+        bool use_cached_data = HasLiveNewContent();
+        captured_rect = element_data->GetCapturedSubrect(use_cached_data);
+        border_box_rect = element_data->GetBorderBoxRect(use_cached_data,
+                                                         device_pixel_ratio_);
+        snapshot_id = element_data->old_snapshot_id;
+      }
       // Note that we say that this layer is not a live content
       // layer, even though it may currently be displaying live contents. The
       // reason is that we want to avoid updating this value later, which
@@ -909,24 +1021,31 @@ PseudoElement* ViewTransitionStyleTracker::CreatePseudoElement(
       pseudo_element->SetIntrinsicSize(captured_rect, border_box_rect);
       return pseudo_element;
     }
-
     case kPseudoIdViewTransitionNew: {
-      DCHECK(view_transition_name);
-      const auto& element_data =
-          element_data_map_.find(view_transition_name)->value;
-      bool use_cached_data = false;
-      auto captured_rect = element_data->GetCapturedSubrect(use_cached_data);
-      auto border_box_rect =
-          element_data->GetBorderBoxRect(use_cached_data, device_pixel_ratio_);
-      auto snapshot_id = element_data->new_snapshot_id;
-
+      gfx::RectF captured_rect;
+      gfx::RectF border_box_rect;
+      viz::ViewTransitionElementResourceId snapshot_id;
+      if (new_root_data_ &&
+          new_root_data_->names.Contains(view_transition_name)) {
+        captured_rect = gfx::RectF(gfx::SizeF(GetSnapshotRootSize()));
+        border_box_rect = captured_rect;
+        snapshot_id = new_root_data_->snapshot_id;
+      } else {
+        DCHECK(view_transition_name);
+        const auto& element_data =
+            element_data_map_.find(view_transition_name)->value;
+        bool use_cached_data = false;
+        captured_rect = element_data->GetCapturedSubrect(use_cached_data);
+        border_box_rect = element_data->GetBorderBoxRect(use_cached_data,
+                                                         device_pixel_ratio_);
+        snapshot_id = element_data->new_snapshot_id;
+      }
       auto* pseudo_element = MakeGarbageCollected<ViewTransitionContentElement>(
           parent, pseudo_id, view_transition_name, snapshot_id,
           /*is_live_content_element=*/true, this);
       pseudo_element->SetIntrinsicSize(captured_rect, border_box_rect);
       return pseudo_element;
     }
-
     default:
       NOTREACHED();
   }
@@ -947,6 +1066,10 @@ bool ViewTransitionStyleTracker::RunPostPrePaintSteps() {
     // documentElement->GetLayoutObject(), we should abort. Target elements are
     // only set on the current phase of the animation, so it means that the
     // documentElement's layout object disappeared in this phase.
+    if (new_root_data_) {
+      return false;
+    }
+
     for (auto& entry : element_data_map_) {
       auto& element_data = entry.value;
       if (element_data->target_element) {
@@ -968,6 +1091,13 @@ bool ViewTransitionStyleTracker::RunPostPrePaintSteps() {
     return false;
   }
 
+  // Check if the root element participates in a transition and has been
+  // fragmented.
+  if (new_root_data_ &&
+      document_->documentElement()->GetLayoutObject()->IsFragmented()) {
+    return false;
+  }
+
   const int max_capture_size = ComputeMaxCaptureSize(
       document_->GetPage()->GetChromeClient().GetMaxRenderBufferBounds(
           *document_->GetFrame()),
@@ -980,7 +1110,10 @@ bool ViewTransitionStyleTracker::RunPostPrePaintSteps() {
       continue;
 
     DCHECK(document_->documentElement());
+    DCHECK_NE(element_data->target_element, document_->documentElement());
     auto* layout_object = element_data->target_element->GetLayoutObject();
+    // TODO(khushalsagar): Verify that skipping a transition when things become
+    // display none is aligned with spec.
     if (!layout_object) {
       return false;
     }
@@ -990,37 +1123,92 @@ bool ViewTransitionStyleTracker::RunPostPrePaintSteps() {
       return false;
     }
 
-    ContainerProperties container_properties;
-    PhysicalRect visual_overflow_rect_in_layout_space;
-    WritingMode writing_mode;
-    BlendMode blend_mode;
-    ETextOrientation text_orientation;
-    absl::optional<gfx::RectF> captured_rect_in_layout_space;
+    // TODO(bokan): This doesn't account for the local offset of an inline
+    // element within its container. The object-view-box inset will ensure the
+    // snapshot is rendered in the correct place but the pseudo is positioned
+    // w.r.t. to the container. This can look awkward since the opposing
+    // snapshot may have a different object-view-box. Inline positioning and
+    // scaling more generally might use some improvements.
+    // https://crbug.com/1416951.
+    auto snapshot_matrix_in_layout_space =
+        ComputeViewportTransform(*layout_object);
 
-    if (element_data->target_element->IsDocumentElement()) {
-      auto layout_view_size = PhysicalSize(GetSnapshotRootSize());
-      auto layout_view_size_in_css_space = layout_view_size;
-      layout_view_size_in_css_space.Scale(1 / device_pixel_ratio_);
-      container_properties =
-          ContainerProperties(layout_view_size_in_css_space, gfx::Transform());
-      visual_overflow_rect_in_layout_space.size = layout_view_size;
-      writing_mode = layout_object->StyleRef().GetWritingMode();
-      blend_mode = layout_object->StyleRef().GetBlendMode();
-      text_orientation = layout_object->StyleRef().GetTextOrientation();
-    } else {
-      ComputeLiveElementGeometry(
-          max_capture_size, *layout_object, container_properties,
-          visual_overflow_rect_in_layout_space, writing_mode, blend_mode,
-          text_orientation, captured_rect_in_layout_space);
+    if (document_->GetLayoutView()
+            ->ShouldPlaceBlockDirectionScrollbarOnLogicalLeft()) {
+      // The SnapshotViewportRect offset below takes points from the fixed
+      // viewport into the snapshot viewport. However, the transform is
+      // currently into absolute coordinates; when the scrollbar appears on the
+      // left, the fixed viewport origin is actually at (15, 0) in absolute
+      // coordinates (assuming 15px scrollbars). Therefore we must first shift
+      // by the scrollbar width so we're in fixed viewport coordinates.
+      ScrollableArea& viewport = *document_->View()->LayoutViewport();
+      snapshot_matrix_in_layout_space.PostTranslate(
+          -viewport.VerticalScrollbarWidth(), 0);
     }
 
+    gfx::Vector2d snapshot_to_fixed_offset = -GetFixedToSnapshotRootOffset();
+    snapshot_matrix_in_layout_space.PostTranslate(snapshot_to_fixed_offset.x(),
+                                                  snapshot_to_fixed_offset.y());
+
+    auto snapshot_matrix_in_css_space = snapshot_matrix_in_layout_space;
+    snapshot_matrix_in_css_space.Zoom(1.0 / device_pixel_ratio_);
+
+    LayoutSize border_box_size_in_css_space;
+    if (layout_object->IsSVGChild() || IsA<LayoutBox>(layout_object)) {
+      // ResizeObserverEntry is created to reuse the logic for parsing object
+      // size for different types of LayoutObjects. However, this works only
+      // for SVGChild and LayoutBox.
+      auto* resize_observer_entry = MakeGarbageCollected<ResizeObserverEntry>(
+          element_data->target_element);
+      auto entry_size = resize_observer_entry->borderBoxSize()[0];
+      border_box_size_in_css_space =
+          layout_object->IsHorizontalWritingMode()
+              ? LayoutSize(LayoutUnit(entry_size->inlineSize()),
+                           LayoutUnit(entry_size->blockSize()))
+              : LayoutSize(LayoutUnit(entry_size->blockSize()),
+                           LayoutUnit(entry_size->inlineSize()));
+    } else if (auto* box_model =
+                   DynamicTo<LayoutBoxModelObject>(layout_object)) {
+      border_box_size_in_css_space =
+          LayoutSize(box_model->BorderBoundingBox().size());
+    }
+
+    // If the object's effective zoom differs from device_pixel_ratio, adjust
+    // the border box size by that difference to get the css space size.
+    if (float effective_zoom = layout_object->StyleRef().EffectiveZoom();
+        std::abs(effective_zoom - device_pixel_ratio_) >=
+        std::numeric_limits<float>::epsilon()) {
+      border_box_size_in_css_space.Scale(effective_zoom / device_pixel_ratio_);
+    }
+
+    snapshot_matrix_in_css_space = ConvertFromTopLeftToCenter(
+        snapshot_matrix_in_css_space, border_box_size_in_css_space);
+
+    PhysicalRect visual_overflow_rect_in_layout_space;
+    if (auto* box = DynamicTo<LayoutBoxModelObject>(layout_object)) {
+      visual_overflow_rect_in_layout_space =
+          RuntimeEnabledFeatures::
+                  ViewTransitionLayoutObjectVisualOverflowEnabled()
+              ? ComputeVisualOverflowRect(*box)
+              : ComputeVisualOverflowRectWithPaintLayers(*box);
+    }
+
+    // This is intentionally computed in layout space to include scaling from
+    // device scale factor. The element's texture will be in physical pixel
+    // bounds which includes this scale.
+    auto captured_rect_in_layout_space = ComputeCaptureRect(
+        max_capture_size, visual_overflow_rect_in_layout_space,
+        snapshot_matrix_in_layout_space, *snapshot_root_size_at_capture_);
+
+    WritingMode writing_mode = layout_object->StyleRef().GetWritingMode();
+
+    ContainerProperties container_properties(border_box_size_in_css_space,
+                                             snapshot_matrix_in_css_space);
     if (!element_data->container_properties.empty() &&
         element_data->container_properties.back() == container_properties &&
         visual_overflow_rect_in_layout_space ==
             element_data->visual_overflow_rect_in_layout_space &&
         writing_mode == element_data->container_writing_mode &&
-        blend_mode == element_data->mix_blend_mode &&
-        text_orientation == element_data->text_orientation &&
         captured_rect_in_layout_space ==
             element_data->captured_rect_in_layout_space) {
       continue;
@@ -1032,18 +1220,15 @@ bool ViewTransitionStyleTracker::RunPostPrePaintSteps() {
       element_data->container_properties.push_back(container_properties);
     } else if (element_data->container_properties.back() !=
                container_properties) {
-      if (state_ == State::kStarted) {
+      if (state_ == State::kStarted)
         element_data->container_properties.push_back(container_properties);
-      } else {
+      else
         element_data->container_properties.back() = container_properties;
-      }
     }
 
     element_data->visual_overflow_rect_in_layout_space =
         visual_overflow_rect_in_layout_space;
     element_data->container_writing_mode = writing_mode;
-    element_data->mix_blend_mode = blend_mode;
-    element_data->text_orientation = text_orientation;
     element_data->captured_rect_in_layout_space = captured_rect_in_layout_space;
 
     PseudoId live_content_element = HasLiveNewContent()
@@ -1065,9 +1250,8 @@ bool ViewTransitionStyleTracker::RunPostPrePaintSteps() {
 
     // Ensure that the cached state stays in sync with the current state while
     // we're capturing.
-    if (state_ == State::kCapturing) {
+    if (state_ == State::kCapturing)
       element_data->CacheGeometryState();
-    }
 
     needs_style_invalidation = true;
   }
@@ -1077,105 +1261,10 @@ bool ViewTransitionStyleTracker::RunPostPrePaintSteps() {
     snapshot_containing_block->UpdateSnapshotStyle(*this);
   }
 
-  if (needs_style_invalidation) {
+  if (needs_style_invalidation)
     InvalidateStyle();
-  }
 
   return true;
-}
-
-void ViewTransitionStyleTracker::ComputeLiveElementGeometry(
-    int max_capture_size,
-    LayoutObject& layout_object,
-    ContainerProperties& container_properties,
-    PhysicalRect& visual_overflow_rect_in_layout_space,
-    WritingMode& writing_mode,
-    BlendMode& blend_mode,
-    ETextOrientation& text_orientation,
-    absl::optional<gfx::RectF>& captured_rect_in_layout_space) const {
-  DCHECK(!layout_object.IsLayoutView());
-
-  // TODO(bokan): This doesn't account for the local offset of an inline
-  // element within its container. The object-view-box inset will ensure the
-  // snapshot is rendered in the correct place but the pseudo is positioned
-  // w.r.t. to the container. This can look awkward since the opposing
-  // snapshot may have a different object-view-box. Inline positioning and
-  // scaling more generally might use some improvements.
-  // https://crbug.com/1416951.
-  auto snapshot_matrix_in_layout_space =
-      ComputeViewportTransform(layout_object);
-
-  if (document_->GetLayoutView()
-          ->ShouldPlaceBlockDirectionScrollbarOnLogicalLeft()) {
-    // The SnapshotViewportRect offset below takes points from the fixed
-    // viewport into the snapshot viewport. However, the transform is
-    // currently into absolute coordinates; when the scrollbar appears on the
-    // left, the fixed viewport origin is actually at (15, 0) in absolute
-    // coordinates (assuming 15px scrollbars). Therefore we must first shift
-    // by the scrollbar width so we're in fixed viewport coordinates.
-    ScrollableArea& viewport = *document_->View()->LayoutViewport();
-    snapshot_matrix_in_layout_space.PostTranslate(
-        -viewport.VerticalScrollbarWidth(), 0);
-  }
-
-  gfx::Vector2d snapshot_to_fixed_offset = -GetFixedToSnapshotRootOffset();
-  snapshot_matrix_in_layout_space.PostTranslate(snapshot_to_fixed_offset.x(),
-                                                snapshot_to_fixed_offset.y());
-
-  auto snapshot_matrix_in_css_space = snapshot_matrix_in_layout_space;
-  snapshot_matrix_in_css_space.Zoom(1.0 / device_pixel_ratio_);
-
-  PhysicalSize border_box_size_in_css_space;
-  if (layout_object.IsSVGChild() || IsA<LayoutBox>(layout_object)) {
-    // ResizeObserverEntry is created to reuse the logic for parsing object
-    // size for different types of LayoutObjects. However, this works only
-    // for SVGChild and LayoutBox.
-    auto* resize_observer_entry = MakeGarbageCollected<ResizeObserverEntry>(
-        To<Element>(layout_object.GetNode()));
-    auto entry_size = resize_observer_entry->borderBoxSize()[0];
-    border_box_size_in_css_space =
-        layout_object.IsHorizontalWritingMode()
-            ? PhysicalSize(LayoutUnit(entry_size->inlineSize()),
-                           LayoutUnit(entry_size->blockSize()))
-            : PhysicalSize(LayoutUnit(entry_size->blockSize()),
-                           LayoutUnit(entry_size->inlineSize()));
-  } else if (auto* box_model = DynamicTo<LayoutBoxModelObject>(layout_object)) {
-    border_box_size_in_css_space =
-        PhysicalSize(box_model->BorderBoundingBox().size());
-  }
-
-  // If the object's effective zoom differs from device_pixel_ratio, adjust
-  // the border box size by that difference to get the css space size.
-  if (float effective_zoom = layout_object.StyleRef().EffectiveZoom();
-      std::abs(effective_zoom - device_pixel_ratio_) >=
-      std::numeric_limits<float>::epsilon()) {
-    border_box_size_in_css_space.Scale(effective_zoom / device_pixel_ratio_);
-  }
-
-  snapshot_matrix_in_css_space = ConvertFromTopLeftToCenter(
-      snapshot_matrix_in_css_space, border_box_size_in_css_space);
-
-  if (auto* box = DynamicTo<LayoutBoxModelObject>(layout_object)) {
-    visual_overflow_rect_in_layout_space =
-        RuntimeEnabledFeatures::
-                ViewTransitionLayoutObjectVisualOverflowEnabled()
-            ? ComputeVisualOverflowRect(*box)
-            : ComputeVisualOverflowRectWithPaintLayers(*box);
-  }
-
-  // This is intentionally computed in layout space to include scaling from
-  // device scale factor. The element's texture will be in physical pixel
-  // bounds which includes this scale.
-  captured_rect_in_layout_space = ComputeCaptureRect(
-      max_capture_size, visual_overflow_rect_in_layout_space,
-      snapshot_matrix_in_layout_space, *snapshot_root_size_at_capture_);
-
-  writing_mode = layout_object.StyleRef().GetWritingMode();
-  blend_mode = layout_object.StyleRef().GetBlendMode();
-  text_orientation = layout_object.StyleRef().GetTextOrientation();
-
-  container_properties = ContainerProperties(border_box_size_in_css_space,
-                                             snapshot_matrix_in_css_space);
 }
 
 bool ViewTransitionStyleTracker::HasActiveAnimations() const {
@@ -1245,6 +1334,7 @@ const EffectPaintPropertyNode* ViewTransitionStyleTracker::GetEffect(
     if (element_data->target_element != &element) {
       continue;
     }
+    DCHECK(element_data->effect_node);
     return element_data->effect_node.get();
   }
   NOTREACHED();
@@ -1253,6 +1343,7 @@ const EffectPaintPropertyNode* ViewTransitionStyleTracker::GetEffect(
 
 const EffectPaintPropertyNode* ViewTransitionStyleTracker::GetRootEffect()
     const {
+  DCHECK(root_effect_node_);
   return root_effect_node_.get();
 }
 
@@ -1305,10 +1396,6 @@ bool ViewTransitionStyleTracker::IsTransitionElement(
   if (state_ == State::kIdle || state_ == State::kCaptured)
     return false;
 
-  if (element.IsDocumentElement()) {
-    return is_root_transitioning_;
-  }
-
   for (auto& entry : element_data_map_) {
     if (entry.value->target_element == &element) {
       return true;
@@ -1327,12 +1414,23 @@ bool ViewTransitionStyleTracker::NeedsCaptureClipNode(
     if (entry.value->target_element != &node) {
       continue;
     }
-
-    DCHECK(!entry.value->captured_rect_in_layout_space.has_value() ||
-           !entry.value->target_element->IsDocumentElement())
-        << "The root element should never need a clip node";
     return entry.value->captured_rect_in_layout_space.has_value();
   }
+  return false;
+}
+
+bool ViewTransitionStyleTracker::IsRootTransitioning() const {
+  switch (state_) {
+    case State::kIdle:
+    case State::kCaptured:
+    case State::kFinished:
+      return false;
+    case State::kCapturing:
+      return !!old_root_data_;
+    case State::kStarted:
+      return !!new_root_data_;
+  }
+  NOTREACHED();
   return false;
 }
 
@@ -1468,23 +1566,34 @@ ViewTransitionState ViewTransitionStyleTracker::GetViewTransitionState() const {
     auto& element = transition_state.elements.emplace_back();
     // TODO(khushalsagar): What about non utf8 strings?
     element.tag_name = entry.key.Utf8();
-    element.border_box_size_in_css_space = gfx::SizeF(
-        element_data->container_properties[0].border_box_size_in_css_space);
+    element.border_box_size_in_css_space =
+        gfx::SizeF(element_data->container_properties[0]
+                       .border_box_size_in_css_space.Width(),
+                   element_data->container_properties[0]
+                       .border_box_size_in_css_space.Height());
     element.viewport_matrix =
         element_data->container_properties[0].snapshot_matrix;
     element.overflow_rect_in_layout_space =
         gfx::RectF(element_data->visual_overflow_rect_in_layout_space);
     element.snapshot_id = element_data->old_snapshot_id;
     element.paint_order = element_data->element_index;
+    element.is_root = false;
     element.captured_rect_in_layout_space =
         element_data->captured_rect_in_layout_space;
-    element.container_writing_mode =
-        static_cast<decltype(element.container_writing_mode)>(
-            element_data->container_writing_mode);
-    element.mix_blend_mode = static_cast<decltype(element.mix_blend_mode)>(
-        element_data->mix_blend_mode);
-    element.text_orientation = static_cast<decltype(element.text_orientation)>(
-        element_data->text_orientation);
+
+    // TODO(khushalsagar): Also writing mode.
+
+    DCHECK(!old_root_data_ || element.paint_order > 0);
+  }
+
+  if (old_root_data_) {
+    auto& element = transition_state.elements.emplace_back();
+    // TODO(khushalsagar): What about non utf8 strings?
+    element.tag_name = old_root_data_->names[0].Utf8();
+    element.border_box_size_in_css_space = gfx::SizeF(GetSnapshotRootSize());
+    element.snapshot_id = old_root_data_->snapshot_id;
+    element.paint_order = 0;
+    element.is_root = true;
   }
 
   // TODO(khushalsagar): Need to send offsets to retain positioning of
@@ -1494,7 +1603,8 @@ ViewTransitionState ViewTransitionStyleTracker::GetViewTransitionState() const {
 }
 
 void ViewTransitionStyleTracker::InvalidateStyle() {
-  ua_style_sheet_ = nullptr;
+  ua_style_sheet_.reset();
+  document_->GetStyleEngine().InvalidateUAViewTransitionStyle();
 
   if (auto* originating_element = document_->documentElement()) {
     originating_element->SetNeedsStyleRecalc(
@@ -1514,10 +1624,8 @@ void ViewTransitionStyleTracker::InvalidateStyle() {
     layout_view->SetNeedsPaintPropertyUpdate();
 
   for (auto& entry : element_data_map_) {
-    if (!entry.value->target_element ||
-        entry.value->target_element->IsDocumentElement()) {
+    if (!entry.value->target_element)
       continue;
-    }
 
     // We need to recalc style on each of the target elements, because we store
     // whether the element is a view transition participant on the computed
@@ -1547,7 +1655,20 @@ void ViewTransitionStyleTracker::InvalidateStyle() {
       .NotifyViewTransitionPseudoTreeChanged();
 }
 
-CSSStyleSheet& ViewTransitionStyleTracker::UAStyleSheet() {
+HashSet<AtomicString> ViewTransitionStyleTracker::AllRootTags() const {
+  HashSet<AtomicString> all_root_names;
+  if (old_root_data_) {
+    for (auto& name : old_root_data_->names)
+      all_root_names.insert(name);
+  }
+  if (new_root_data_) {
+    for (auto& name : new_root_data_->names)
+      all_root_names.insert(name);
+  }
+  return all_root_names;
+}
+
+const String& ViewTransitionStyleTracker::UAStyleSheet() {
   if (ua_style_sheet_)
     return *ua_style_sheet_;
 
@@ -1562,6 +1683,56 @@ CSSStyleSheet& ViewTransitionStyleTracker::UAStyleSheet() {
   if (add_animations)
     builder.AddUAStyle(AnimationUAStyles());
 
+  // SUBTLETY AHEAD!
+  // There are several situations to consider when creating the styles and
+  // animation styles below:
+  //
+  // 1. A name is both an old and new root. We will only visit the AllRootTags
+  // loop and correctly append styles (modulo TODO in that loop). Note that this
+  // name will not be in the `element_data_map_` (DCHECKed in that loop).
+  //
+  // 2. A name is an old root only (exit animation for root). The style is set
+  // up in the AllrootTags loop and fades out through AnimationUAStyles.
+  //
+  // 3. A name is an old root and a new transition element. The AllRootTags loop
+  // skips this name. The element map loop updates the container for the new
+  // transition element size and transform. The animation code of that loop adds
+  // an animation from old root size and identity matrix.
+  //
+  // 4. A name is a new root only (entry animation for root). Its only visited
+  // in AllRootTags and its a default fade-in.
+  //
+  // 5. A name is a new root and old transition element. We visit it in
+  // AllRootTags to set up the destination state. We skip setting its styles in
+  // the `element_data_map_` loop since latest value comes from AllRootTags. We
+  // do set the animation in that loop since we need the "from" state.
+  //
+  // 6. A name is a new and old transition element (or maybe exit/enter for
+  // transition element only -- no roots involved. Everything is done in the
+  // `element_data_map_` loop.
+
+  for (auto& root_name : AllRootTags()) {
+    // This is case 3 above.
+    bool name_is_old_root =
+        old_root_data_ && old_root_data_->names.Contains(root_name);
+    if (name_is_old_root && element_data_map_.Contains(root_name)) {
+      DCHECK(
+          element_data_map_.find(root_name)->value->new_snapshot_id.IsValid());
+      continue;
+    }
+
+    // TODO(vmpstr): For animations, we need to re-target the layout size if it
+    // changes, but right now we only use the latest layout view size.
+    // Note that we don't set the writing-mode since it would inherit from the
+    // :root anyway, so there is no reason to put it on the pseudo elements.
+    builder.AddContainerStyles(root_name, "right: 0; bottom: 0;");
+
+    bool name_is_new_root =
+        new_root_data_ && new_root_data_->names.Contains(root_name);
+    if (name_is_old_root && name_is_new_root)
+      builder.AddPlusLighter(root_name);
+  }
+
   for (auto& entry : element_data_map_) {
     const auto& view_transition_name = entry.key.GetString();
     auto& element_data = entry.value;
@@ -1573,33 +1744,50 @@ CSSStyleSheet& ViewTransitionStyleTracker::UAStyleSheet() {
     if (element_data->container_properties.empty())
       continue;
 
-    // This updates the styles on the pseudo-elements as described in
-    // https://drafts.csswg.org/css-view-transitions-1/#style-transition-pseudo-elements-algorithm.
-    builder.AddContainerStyles(
-        view_transition_name, element_data->container_properties.back(),
-        element_data->container_writing_mode, element_data->mix_blend_mode,
-        element_data->text_orientation);
+    const bool name_is_old_root =
+        old_root_data_ && old_root_data_->names.Contains(view_transition_name);
+    const bool name_is_new_root =
+        new_root_data_ && new_root_data_->names.Contains(view_transition_name);
+    // The name can't be both old and new root, since it shouldn't be in the
+    // `element_data_map_`. This is case 1 above.
+    DCHECK(!name_is_old_root || !name_is_new_root);
 
-    // This sets up the styles to animate the pseudo-elements as described in
-    // https://drafts.csswg.org/css-view-transitions-1/#setup-transition-pseudo-elements-algorithm.
+    // Skipping this if a name is a new root. This is case 5 above.
+    if (!name_is_new_root) {
+      // ::view-transition-group styles using computed properties for each
+      // element.
+      builder.AddContainerStyles(view_transition_name,
+                                 element_data->container_properties.back(),
+                                 element_data->container_writing_mode);
+    }
+
+    // TODO(khushalsagar) : We'll need to retarget the animation if the final
+    // value changes during the start phase.
     if (add_animations) {
-      CHECK(element_data->old_snapshot_id.IsValid() ||
-            element_data->new_snapshot_id.IsValid());
-
-      auto type = ViewTransitionStyleBuilder::AnimationType::kBoth;
-      if (!element_data->old_snapshot_id.IsValid()) {
-        type = ViewTransitionStyleBuilder::AnimationType::kNewOnly;
-      } else if (!element_data->new_snapshot_id.IsValid()) {
-        type = ViewTransitionStyleBuilder::AnimationType::kOldOnly;
+      // If the old snapshot is valid, then we add a transition if we have
+      // either the new snapshot (case 6 above) or the name is a new root (case
+      // 5 above).
+      //
+      // The else-if case is case 3 above: if we have the new snapshot and the
+      // name is an old root, in which case we also add an animation but sourced
+      // from the old root, rather than from the cached element data.
+      if (element_data->old_snapshot_id.IsValid() &&
+          (element_data->new_snapshot_id.IsValid() || name_is_new_root)) {
+        builder.AddAnimationAndBlending(
+            view_transition_name, element_data->cached_container_properties);
+      } else if (element_data->new_snapshot_id.IsValid() && name_is_old_root) {
+        auto layout_view_size = LayoutSize(GetSnapshotRootSize());
+        // Note that we want the size in css space, which means we need to undo
+        // the effective zoom.
+        layout_view_size.Scale(1 / device_pixel_ratio_);
+        builder.AddAnimationAndBlending(
+            view_transition_name,
+            ContainerProperties(layout_view_size, gfx::Transform()));
       }
-
-      builder.AddAnimations(type, view_transition_name,
-                            element_data->cached_container_properties);
     }
   }
 
-  ua_style_sheet_ = MakeGarbageCollected<CSSStyleSheet>(
-      CSSDefaultStyleSheets::ParseUASheet(builder.Build()));
+  ua_style_sheet_ = builder.Build();
   return *ua_style_sheet_;
 }
 
@@ -1611,7 +1799,6 @@ void ViewTransitionStyleTracker::Trace(Visitor* visitor) const {
   visitor->Trace(document_);
   visitor->Trace(element_data_map_);
   visitor->Trace(pending_transition_element_names_);
-  visitor->Trace(ua_style_sheet_);
 }
 
 void ViewTransitionStyleTracker::InvalidateHitTestingCache() {
@@ -1653,12 +1840,12 @@ gfx::RectF ViewTransitionStyleTracker::ElementData::GetBorderBoxRect(
   if (!use_cached_data && container_properties.size() == 0) {
     return gfx::RectF();
   }
-  PhysicalSize border_box_size_in_layout_space =
+  LayoutSize border_box_size_in_layout_space =
       use_cached_data
           ? cached_container_properties.border_box_size_in_css_space
           : container_properties.back().border_box_size_in_css_space;
   border_box_size_in_layout_space.Scale(device_scale_factor);
-  return gfx::RectF(gfx::SizeF(border_box_size_in_layout_space));
+  return gfx::RectF(LayoutRect(LayoutPoint(), border_box_size_in_layout_space));
 }
 
 void ViewTransitionStyleTracker::ElementData::CacheGeometryState() {
@@ -1678,9 +1865,7 @@ void ViewTransitionStyleTracker::ElementData::CacheGeometryState() {
 // boxes. However, it's unclear when the cache should be cleared.
 PhysicalRect ViewTransitionStyleTracker::ComputeVisualOverflowRect(
     LayoutBoxModelObject& box,
-    const LayoutBoxModelObject* ancestor) const {
-  DCHECK(!box.IsLayoutView());
-
+    LayoutBoxModelObject* ancestor) {
   if (ancestor) {
     if (auto* element = DynamicTo<Element>(box.GetNode());
         element && IsTransitionElement(*element)) {
@@ -1711,8 +1896,7 @@ PhysicalRect ViewTransitionStyleTracker::ComputeVisualOverflowRect(
   auto* paint_layer = box.Layer();
   if (!paint_layer || (!box.ChildPaintBlockedByDisplayLock() &&
                        !paint_layer->KnownToClipSubtreeToPaddingBox())) {
-    const LayoutBoxModelObject* ancestor_for_recursion =
-        ancestor ? ancestor : &box;
+    LayoutBoxModelObject* ancestor_for_recursion = ancestor ? ancestor : &box;
     for (auto* child = box.SlowFirstChild(); child;
          child = child->NextSibling()) {
       // Recurse for every child. Doing a paint walk here is insufficient
@@ -1783,8 +1967,8 @@ PhysicalRect ViewTransitionStyleTracker::ComputeVisualOverflowRect(
 
 PhysicalRect
 ViewTransitionStyleTracker::ComputeVisualOverflowRectWithPaintLayers(
-    const LayoutBoxModelObject& box,
-    const LayoutBoxModelObject* ancestor) const {
+    LayoutBoxModelObject& box,
+    LayoutBoxModelObject* ancestor) {
   if (ancestor) {
     if (auto* element = DynamicTo<Element>(box.GetNode());
         element && IsTransitionElement(*element)) {

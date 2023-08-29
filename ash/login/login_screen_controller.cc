@@ -93,10 +93,6 @@ bool LoginScreenController::IsAuthenticating() const {
   return authentication_stage_ != AuthenticationStage::kIdle;
 }
 
-bool LoginScreenController::IsAuthenticationCallbackExecuting() const {
-  return authentication_stage_ == AuthenticationStage::kUserCallback;
-}
-
 void LoginScreenController::AuthenticateUserWithPasswordOrPin(
     const AccountId& account_id,
     const std::string& password,
@@ -501,12 +497,7 @@ void LoginScreenController::OnSystemTrayBubbleShown() {
 }
 
 void LoginScreenController::OnLockScreenDestroyed() {
-  // TODO(b/280250064): Make sure allowing this condition won't break
-  // LoginScreenController logic.
-  if (authentication_stage_ != AuthenticationStage::kIdle) {
-    LOG(WARNING) << "Lock screen is destroyed while the authentication stage: "
-                 << authentication_stage_;
-  }
+  DCHECK_EQ(authentication_stage_, AuthenticationStage::kIdle);
 
   // Still handle it to avoid crashes during Login/Lock/Unlock flows.
   authentication_stage_ = AuthenticationStage::kIdle;
@@ -518,18 +509,6 @@ void LoginScreenController::NotifyLoginScreenShown() {
     return;
   }
   client_->OnLoginScreenShown();
-}
-
-std::ostream& operator<<(std::ostream& ostream,
-                         LoginScreenController::AuthenticationStage stage) {
-  switch (stage) {
-    case LoginScreenController::AuthenticationStage::kIdle:
-      return ostream << "kIdle";
-    case LoginScreenController::AuthenticationStage::kDoAuthenticate:
-      return ostream << "kDoAuthenticate";
-    case LoginScreenController::AuthenticationStage::kUserCallback:
-      return ostream << "kUserCallback";
-  }
 }
 
 }  // namespace ash

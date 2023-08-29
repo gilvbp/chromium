@@ -9,7 +9,7 @@
 
 namespace ui {
 
-enum KeyboardCode : unsigned char {
+enum KeyboardCode {
   VKEY_CANCEL = VK_CANCEL,
   VKEY_BACK = VK_BACK,
   VKEY_TAB = VK_TAB,

@@ -377,14 +377,11 @@ absl::optional<media::VideoPixelFormat> CopyToFormat(
     return frame.format();
   }
 
-  // Per-plane readback is not possible for multiplanar SI with external
-  // sampling. Similarly, for legacy shared image formats, readback is only
-  // possible when planes and textures are 1:1.
-  auto format_type = frame.shared_image_format_type();
-  if (format_type ==
-          media::SharedImageFormatType::kSharedImageFormatExternalSampler ||
-      (format_type == media::SharedImageFormatType::kLegacy &&
-       frame.NumTextures() != media::VideoFrame::NumPlanes(frame.format()))) {
+  // For legacy shared image formats, readback only works when planes and
+  // textures are 1:1.
+  if (frame.shared_image_format_type() ==
+          media::SharedImageFormatType::kLegacy &&
+      frame.NumTextures() != media::VideoFrame::NumPlanes(frame.format())) {
     return absl::nullopt;
   }
 
@@ -955,10 +952,10 @@ uint32_t VideoFrame::codedHeight() const {
   return local_frame->coded_size().height();
 }
 
-DOMRectReadOnly* VideoFrame::codedRect() {
+absl::optional<DOMRectReadOnly*> VideoFrame::codedRect() {
   auto local_frame = handle_->frame();
   if (!local_frame)
-    return nullptr;
+    return absl::nullopt;
 
   if (!coded_rect_) {
     coded_rect_ = MakeGarbageCollected<DOMRectReadOnly>(
@@ -968,10 +965,10 @@ DOMRectReadOnly* VideoFrame::codedRect() {
   return coded_rect_;
 }
 
-DOMRectReadOnly* VideoFrame::visibleRect() {
+absl::optional<DOMRectReadOnly*> VideoFrame::visibleRect() {
   auto local_frame = handle_->frame();
   if (!local_frame)
-    return nullptr;
+    return absl::nullopt;
 
   if (!visible_rect_) {
     visible_rect_ = MakeGarbageCollected<DOMRectReadOnly>(

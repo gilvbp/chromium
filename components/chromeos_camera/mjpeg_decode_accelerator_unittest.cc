@@ -364,10 +364,8 @@ MjpegDecodeAcceleratorTestEnvironment::CreateDmaBufVideoFrame(
     dmabuf_fds.push_back(std::move(plane.fd));
   }
   const absl::optional<media::VideoFrameLayout> layout =
-      media::VideoFrameLayout::CreateWithPlanes(
-          format, coded_size, std::move(planes),
-          media::VideoFrameLayout::kBufferAddressAlignment,
-          gmb_handle.native_pixmap_handle.modifier);
+      media::VideoFrameLayout::CreateWithPlanes(format, coded_size,
+                                                std::move(planes));
   if (!layout) {
     LOG(ERROR) << "Failed to create VideoFrameLayout";
     return nullptr;

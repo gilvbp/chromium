@@ -16,9 +16,6 @@ namespace ash {
 // Base class for GameDashboard related unittests, and contains common functions
 class GameDashboardTestBase : public AshTestBase {
  public:
-  // The bounds for the screen that will contain app windows.
-  static constexpr gfx::Rect kScreenBounds = gfx::Rect(10, 10, 1000, 750);
-
   GameDashboardTestBase();
   GameDashboardTestBase(const GameDashboardTestBase&) = delete;
   GameDashboardTestBase& operator=(const GameDashboardTestBase&) = delete;
@@ -26,8 +23,7 @@ class GameDashboardTestBase : public AshTestBase {
 
   // AshTestBase:
   void SetUp() override;
-
-  void AdvanceClock(base::TimeDelta delta);
+  void TearDown() override;
 
  protected:
   // Returns true if the `GameDashboardController` is observing the `window`.

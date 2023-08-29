@@ -17,7 +17,7 @@
 #include "base/values.h"
 #include "chrome/browser/ash/fusebox/fusebox.pb.h"
 #include "chrome/browser/ash/fusebox/fusebox_moniker.h"
-#include "chrome/browser/ash/system_web_apps/apps/files_internals_debug_json_provider.h"
+#include "chrome/browser/ash/fusebox/fusebox_staging.pb.h"
 #include "storage/browser/file_system/async_file_util.h"
 #include "storage/browser/file_system/file_system_context.h"
 #include "third_party/abseil-cpp/absl/types/variant.h"
@@ -28,7 +28,7 @@ namespace fusebox {
 
 class ReadWriter;
 
-class Server : public ash::FilesInternalsDebugJSONProvider {
+class Server {
  public:
   struct Delegate {
     // These methods cause D-Bus signals to be sent that a storage unit (as
@@ -48,7 +48,7 @@ class Server : public ash::FilesInternalsDebugJSONProvider {
   explicit Server(Delegate* delegate);
   Server(const Server&) = delete;
   Server& operator=(const Server&) = delete;
-  ~Server() override;
+  ~Server();
 
   // Manages monikers in the context of the Server's MonikerMap.
   fusebox::Moniker CreateMoniker(const storage::FileSystemURL& target,
@@ -90,10 +90,8 @@ class Server : public ash::FilesInternalsDebugJSONProvider {
     return server ? server->InverseResolveFSURL(fs_url) : base::FilePath();
   }
 
-  // ash::FilesInternalsDebugJSONProvider overrides.
-  void GetDebugJSONForKey(
-      std::string_view key,
-      base::OnceCallback<void(JSONKeyValuePair)> callback) override;
+  // Returns human-readable debugging information as a JSON value.
+  base::Value GetDebugJSON();
 
   // These methods map 1:1 to the D-Bus methods implemented by
   // fusebox_service_provider.cc.

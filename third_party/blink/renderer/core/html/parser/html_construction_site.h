@@ -96,7 +96,6 @@ class Document;
 class Element;
 class HTMLFormElement;
 class HTMLParserReentryPermit;
-class PartRoot;
 enum class DeclarativeShadowRootType;
 
 class HTMLConstructionSite final {
@@ -107,13 +106,13 @@ class HTMLConstructionSite final {
 
   HTMLConstructionSite(HTMLParserReentryPermit*,
                        Document&,
-                       ParserContentPolicy,
-                       DocumentFragment*,
-                       Element*);
+                       ParserContentPolicy);
   HTMLConstructionSite(const HTMLConstructionSite&) = delete;
   HTMLConstructionSite& operator=(const HTMLConstructionSite&) = delete;
   ~HTMLConstructionSite();
   void Trace(Visitor*) const;
+
+  void InitFragmentParsing(DocumentFragment*, Element* context_element);
 
   void Detach();
 
@@ -212,8 +211,6 @@ class HTMLConstructionSite final {
   ParserContentPolicy GetParserContentPolicy() {
     return parser_content_policy_;
   }
-
-  void FinishedTemplateElement(DocumentFragment* content_fragment);
 
   class RedirectToFosterParentGuard {
     STACK_ALLOCATED();
@@ -334,29 +331,6 @@ class HTMLConstructionSite final {
   };
 
   PendingText pending_text_;
-
-  class PendingDOMParts final : public GarbageCollected<PendingDOMParts> {
-   public:
-    explicit PendingDOMParts(ContainerNode* attachment_root);
-
-    void AddNodePart(Comment& node_part_comment, Vector<String> metadata);
-    void AddChildNodePartStart(Node& previous_sibling, Vector<String> metadata);
-    void AddChildNodePartEnd(Node& next_sibling);
-    void MaybeConstructNodePart(Node& last_node);
-    PartRoot* CurrentPartRoot() const;
-    void PushPartRoot(PartRoot* root);
-    PartRoot* PopPartRoot();
-
-    void Trace(Visitor*) const;
-
-   private:
-    Member<Comment> pending_node_part_comment_node_;
-    Vector<String> pending_node_part_metadata_;
-    HeapVector<Member<PartRoot>> part_root_stack_;
-  };
-
-  // Only non-nullptr if RuntimeEnabledFeatures::DOMPartsAPIEnabled().
-  Member<PendingDOMParts> pending_dom_parts_;
 
   const ParserContentPolicy parser_content_policy_;
   const bool is_scripting_content_allowed_;

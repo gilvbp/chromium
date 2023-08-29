@@ -5,8 +5,6 @@
 import {TestRunner} from 'test_runner';
 import {ApplicationTestRunner} from 'application_test_runner';
 
-import * as SDK from 'devtools/core/sdk/sdk.js';
-
 (async function() {
   TestRunner.addResult(`Verify that iframe's main resource is reported only once.\n`);
   await TestRunner.loadLegacyModule('console');
@@ -20,7 +18,7 @@ import * as SDK from 'devtools/core/sdk/sdk.js';
       })();
   `);
 
-  var resourceTreeModel = new SDK.ResourceTreeModel.ResourceTreeModel(TestRunner.mainTarget);
+  var resourceTreeModel = new SDK.ResourceTreeModel(TestRunner.mainTarget);
   var resources = [];
   resourceTreeModel.addEventListener(SDK.ResourceTreeModel.Events.ResourceAdded, event => resources.push(event.data));
   resourceTreeModel.addEventListener(SDK.ResourceTreeModel.Events.CachedResourcesLoaded, function() {

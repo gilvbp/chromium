@@ -9,6 +9,7 @@
 
 #include "api.h"
 #include "ipcz/ipcz.h"
+#include "ipcz/portal.h"
 #include "ipcz/router.h"
 #include "testing/gtest/include/gtest/gtest.h"
 #include "third_party/abseil-cpp/absl/synchronization/notification.h"
@@ -208,7 +209,7 @@ void TestBase::VerifyEndToEndLocal(IpczHandle a, IpczHandle b) {
 }
 
 void TestBase::WaitForDirectRemoteLink(IpczHandle portal) {
-  Router* const router = Router::FromHandle(portal);
+  const Ref<Router> router = Portal::FromHandle(portal)->router();
   while (!router->IsOnCentralRemoteLink()) {
     using namespace std::chrono_literals;
     std::this_thread::sleep_for(8ms);
@@ -223,8 +224,8 @@ void TestBase::WaitForDirectRemoteLink(IpczHandle portal) {
 }
 
 void TestBase::WaitForDirectLocalLink(IpczHandle a, IpczHandle b) {
-  Router* const router_a = Router::FromHandle(a);
-  Router* const router_b = Router::FromHandle(b);
+  const Ref<Router> router_a = Portal::FromHandle(a)->router();
+  const Ref<Router> router_b = Portal::FromHandle(b)->router();
   while (!router_a->HasLocalPeer(*router_b) &&
          !router_b->HasLocalPeer(*router_a)) {
     using namespace std::chrono_literals;

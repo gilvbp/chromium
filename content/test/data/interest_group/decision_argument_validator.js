@@ -226,8 +226,7 @@ function validateDirectFromSellerSignals(directFromSellerSignals) {
   }
   const auctionSignalsJSON =
       JSON.stringify(directFromSellerSignals.auctionSignals);
-  if (auctionSignalsJSON !== '{"json":"for","all":["parties"]}' &&
-      auctionSignalsJSON !== '{"all":["parties"],"json":"for"}') {
+  if (auctionSignalsJSON !== '{"json":"for","all":["parties"]}') {
     throw 'Wrong directFromSellerSignals.auctionSignals ' +
         auctionSignalsJSON;
   }

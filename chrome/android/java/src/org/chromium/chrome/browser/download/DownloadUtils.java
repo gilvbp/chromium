@@ -67,7 +67,6 @@ import org.chromium.components.offline_items_collection.OpenParams;
 import org.chromium.content_public.browser.BrowserStartupController;
 import org.chromium.content_public.browser.LoadUrlParams;
 import org.chromium.content_public.browser.WebContents;
-import org.chromium.ui.UiUtils;
 import org.chromium.ui.base.DeviceFormFactor;
 import org.chromium.ui.widget.Toast;
 import org.chromium.url.GURL;
@@ -235,7 +234,8 @@ public class DownloadUtils {
      */
     public static boolean shouldShowPaginationHeaders() {
         return ChromeAccessibilityUtil.get().isAccessibilityEnabled()
-                || UiUtils.isHardwareKeyboardAttached();
+                || ChromeAccessibilityUtil.isHardwareKeyboardAttached(
+                        ContextUtils.getApplicationContext().getResources().getConfiguration());
     }
 
     /**

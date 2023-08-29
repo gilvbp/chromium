@@ -42,12 +42,10 @@ ExclusiveAccessBubbleViews::ExclusiveAccessBubbleViews(
     ExclusiveAccessBubbleViewsContext* context,
     const GURL& url,
     ExclusiveAccessBubbleType bubble_type,
-    bool notify_download,
     ExclusiveAccessBubbleHideCallback bubble_first_hide_callback)
     : ExclusiveAccessBubble(context->GetExclusiveAccessManager(),
                             url,
-                            bubble_type,
-                            notify_download),
+                            bubble_type),
       bubble_view_context_(context),
       popup_(nullptr),
       bubble_first_hide_callback_(std::move(bubble_first_hide_callback)),
@@ -219,11 +217,10 @@ void ExclusiveAccessBubbleViews::UpdateBounds() {
 
 void ExclusiveAccessBubbleViews::UpdateViewContent(
     ExclusiveAccessBubbleType bubble_type) {
-  DCHECK(notify_download_ || EXCLUSIVE_ACCESS_BUBBLE_TYPE_NONE != bubble_type);
+  DCHECK_NE(EXCLUSIVE_ACCESS_BUBBLE_TYPE_NONE, bubble_type);
 
   std::u16string accelerator;
-  if ((notify_download_ && bubble_type == EXCLUSIVE_ACCESS_BUBBLE_TYPE_NONE) ||
-      exclusive_access_bubble::IsExclusiveAccessModeBrowserFullscreen(
+  if (exclusive_access_bubble::IsExclusiveAccessModeBrowserFullscreen(
           bubble_type)) {
     accelerator = browser_fullscreen_exit_accelerator_;
   } else {
@@ -238,7 +235,7 @@ void ExclusiveAccessBubbleViews::UpdateViewContent(
   view_->UpdateContent(GetInstructionText(accelerator));
 }
 
-bool ExclusiveAccessBubbleViews::IsVisible() const {
+bool ExclusiveAccessBubbleViews::IsVisible() {
 #if BUILDFLAG(IS_MAC)
   // Due to a quirk on the Mac, the popup will not be visible for a short period
   // of time after it is shown (it's asynchronous) so if we don't check the

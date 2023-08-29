@@ -173,6 +173,7 @@ public class ExploreSurfaceCoordinator {
         }
     }
 
+    @VisibleForTesting
     public FeedActionDelegate getFeedActionDelegateForTesting() {
         return mFeedSurfaceCoordinator.getActionDelegateForTesting(); // IN-TEST
     }

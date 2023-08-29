@@ -6,6 +6,7 @@
 
 #include "base/functional/bind.h"
 #include "base/location.h"
+#include "base/metrics/histogram_macros.h"
 #include "base/task/single_thread_task_runner.h"
 
 namespace content {
@@ -32,6 +33,7 @@ void StartupTaskRunner::StartRunningTasksAsync() {
   } else {
     base::OnceClosure next_task =
         base::BindOnce(&StartupTaskRunner::WrappedTask, base::Unretained(this));
+    last_wrapped_task_post_time_ = base::TimeTicks::Now();
     proxy_->PostNonNestableTask(FROM_HERE, std::move(next_task));
   }
 }
@@ -56,6 +58,10 @@ void StartupTaskRunner::WrappedTask() {
     return;
   }
 
+  // Log the time that this task spent queued.
+  UMA_HISTOGRAM_TIMES("Startup.StartupTaskRunner.AsyncTaskQueueTime",
+                      base::TimeTicks::Now() - last_wrapped_task_post_time_);
+
   int result = std::move(task_list_.front()).Run();
   task_list_.pop_front();
   if (result > 0) {
@@ -69,6 +75,7 @@ void StartupTaskRunner::WrappedTask() {
   } else {
     base::OnceClosure next_task =
         base::BindOnce(&StartupTaskRunner::WrappedTask, base::Unretained(this));
+    last_wrapped_task_post_time_ = base::TimeTicks::Now();
     proxy_->PostNonNestableTask(FROM_HERE, std::move(next_task));
   }
 }

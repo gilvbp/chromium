@@ -13,7 +13,6 @@
 #include "base/functional/callback.h"
 #include "base/memory/raw_ptr.h"
 #include "base/memory/ref_counted.h"
-#include "components/browsing_data/content/shared_worker_info.h"
 #include "third_party/blink/public/common/storage_key/storage_key.h"
 #include "url/gurl.h"
 #include "url/origin.h"
@@ -30,8 +29,23 @@ namespace browsing_data {
 class SharedWorkerHelper
     : public base::RefCountedThreadSafe<SharedWorkerHelper> {
  public:
-  using FetchCallback = base::OnceCallback<void(
-      const std::list<browsing_data::SharedWorkerInfo>&)>;
+  // Contains information about a Shared Worker.
+  struct SharedWorkerInfo {
+    SharedWorkerInfo(const GURL& worker,
+                     const std::string& name,
+                     const blink::StorageKey& storage_key);
+    SharedWorkerInfo(const SharedWorkerInfo& other);
+    ~SharedWorkerInfo();
+
+    bool operator<(const SharedWorkerInfo& other) const;
+
+    GURL worker;
+    std::string name;
+    blink::StorageKey storage_key;
+  };
+
+  using FetchCallback =
+      base::OnceCallback<void(const std::list<SharedWorkerInfo>&)>;
 
   explicit SharedWorkerHelper(content::StoragePartition* storage_partition);
 
@@ -84,7 +98,8 @@ class CannedSharedWorkerHelper : public SharedWorkerHelper {
   size_t GetSharedWorkerCount() const;
 
   // Returns the current list of Shared Workers.
-  const std::set<browsing_data::SharedWorkerInfo>& GetSharedWorkerInfo() const;
+  const std::set<CannedSharedWorkerHelper::SharedWorkerInfo>&
+  GetSharedWorkerInfo() const;
 
   // SharedWorkerHelper methods.
   void StartFetching(FetchCallback callback) override;
@@ -95,7 +110,7 @@ class CannedSharedWorkerHelper : public SharedWorkerHelper {
  private:
   ~CannedSharedWorkerHelper() override;
 
-  std::set<browsing_data::SharedWorkerInfo> pending_shared_worker_info_;
+  std::set<SharedWorkerInfo> pending_shared_worker_info_;
 };
 
 }  // namespace browsing_data

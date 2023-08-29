@@ -38,17 +38,15 @@ ArcApplicationNotifierController::GetNotifierList(Profile* profile) {
     return std::vector<ash::NotifierMetadata>();
 
   last_used_profile_ = profile;
-  auto* cache =
-      &apps::AppServiceProxyFactory::GetForProfile(profile)->AppRegistryCache();
-  if (!app_registry_cache_observer_.IsObservingSource(cache)) {
-    app_registry_cache_observer_.Reset();
-    app_registry_cache_observer_.Observe(cache);
-  }
+  apps::AppServiceProxy* service =
+      apps::AppServiceProxyFactory::GetForProfile(profile);
+  Observe(&(service->AppRegistryCache()));
 
   package_to_app_ids_.clear();
   std::vector<NotifierDataset> notifier_dataset;
 
-  cache->ForEachApp([&notifier_dataset](const apps::AppUpdate& update) {
+  service->AppRegistryCache().ForEachApp([&notifier_dataset](
+                                             const apps::AppUpdate& update) {
     if (update.AppType() != apps::AppType::kArc)
       return;
 
@@ -99,7 +97,8 @@ void ArcApplicationNotifierController::SetNotifierEnabled(
 
   last_used_profile_ = profile;
   auto permission = std::make_unique<apps::Permission>(
-      apps::PermissionType::kNotifications, enabled,
+      apps::PermissionType::kNotifications,
+      std::make_unique<apps::PermissionValue>(enabled),
       /*is_managed=*/false);
   apps::AppServiceProxy* service =
       apps::AppServiceProxyFactory::GetForProfile(profile);
@@ -167,7 +166,7 @@ void ArcApplicationNotifierController::OnAppUpdate(
 
 void ArcApplicationNotifierController::OnAppRegistryCacheWillBeDestroyed(
     apps::AppRegistryCache* cache) {
-  app_registry_cache_observer_.Reset();
+  Observe(nullptr);
 }
 
 }  // namespace arc

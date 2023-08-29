@@ -11,7 +11,6 @@
 #include "base/run_loop.h"
 #include "base/strings/stringprintf.h"
 #include "base/test/bind.h"
-#include "base/test/test_future.h"
 #include "base/values.h"
 #include "chrome/browser/extensions/extension_apitest.h"
 #include "components/onc/onc_constants.h"
@@ -54,8 +53,11 @@
 #endif  // BUILDFLAG(IS_CHROMEOS_ASH)
 
 #if BUILDFLAG(IS_CHROMEOS_LACROS)
+#include "chromeos/crosapi/mojom/test_controller.mojom-test-utils.h"
 #include "chromeos/crosapi/mojom/test_controller.mojom.h"
 #include "chromeos/lacros/lacros_service.h"
+
+using crosapi::mojom::ShillClientTestInterfaceAsyncWaiter;
 #endif
 
 // This tests the Chrome OS implementation of the networkingPrivate API
@@ -508,12 +510,11 @@ class NetworkingPrivateChromeOSApiTestLacros
       LOG(ERROR) << "Unsupported ash version.";
       return false;
     }
+    crosapi::mojom::TestControllerAsyncWaiter test_controller_waiter{
+        service->GetRemote<crosapi::mojom::TestController>().get()};
 
-    base::test::TestFuture<void> future;
-    service->GetRemote<crosapi::mojom::TestController>()
-        ->BindShillClientTestInterface(shill_test_.BindNewPipeAndPassReceiver(),
-                                       future.GetCallback());
-    EXPECT_TRUE(future.Wait());
+    test_controller_waiter.BindShillClientTestInterface(
+        shill_test_.BindNewPipeAndPassReceiver());
 
     ConfigFakeNetwork();
 
@@ -532,89 +533,74 @@ class NetworkingPrivateChromeOSApiTestLacros
       return "";
     }
 
-    base::test::TestFuture<const std::string&> future;
-    service->GetRemote<crosapi::mojom::TestController>()
-        ->GetSanitizedActiveUsername(future.GetCallback());
-    return future.Take();
+    crosapi::mojom::TestControllerAsyncWaiter test_controller_waiter{
+        service->GetRemote<crosapi::mojom::TestController>().get()};
+
+    std::string userhash;
+    test_controller_waiter.GetSanitizedActiveUsername(&userhash);
+    return userhash;
   }
 
   void AddDevice(const std::string& device_path,
                  const std::string& type,
                  const std::string& name) override {
-    base::test::TestFuture<void> future;
-    shill_test_->AddDevice(device_path, type, name, future.GetCallback());
-    ASSERT_TRUE(future.Wait());
+    ShillClientTestInterfaceAsyncWaiter(shill_test_.get())
+        .AddDevice(device_path, type, name);
   }
 
   void SetDeviceProperty(const std::string& device_path,
                          const std::string& name,
                          const base::Value& value) override {
-    base::test::TestFuture<void> future;
-    shill_test_->SetDeviceProperty(device_path, name, value.Clone(),
-                                   /*notify_changed=*/true,
-                                   future.GetCallback());
-    ASSERT_TRUE(future.Wait());
+    ShillClientTestInterfaceAsyncWaiter(shill_test_.get())
+        .SetDeviceProperty(device_path, name, value.Clone(),
+                           /*notify_changed=*/true);
   }
 
   void SetSimLocked(const std::string& device_path, bool enabled) override {
-    base::test::TestFuture<void> future;
-    shill_test_->SetSimLocked(device_path, enabled, future.GetCallback());
-    ASSERT_TRUE(future.Wait());
+    ShillClientTestInterfaceAsyncWaiter(shill_test_.get())
+        .SetSimLocked(device_path, enabled);
   }
 
   void ClearDevices() override {
-    base::test::TestFuture<void> future;
-    shill_test_->ClearDevices(future.GetCallback());
-    ASSERT_TRUE(future.Wait());
+    ShillClientTestInterfaceAsyncWaiter(shill_test_.get()).ClearDevices();
   }
 
   void AddService(const std::string& service_path,
                   const std::string& name,
                   const std::string& type,
                   const std::string& state) override {
-    base::test::TestFuture<void> future;
-    shill_test_->AddService(service_path, service_path + "_guid", name, type,
-                            state, true /* add_to_visible */,
-                            future.GetCallback());
-    ASSERT_TRUE(future.Wait());
+    ShillClientTestInterfaceAsyncWaiter(shill_test_.get())
+        .AddService(service_path, service_path + "_guid", name, type, state,
+                    true /* add_to_visible */);
   }
 
   void ClearServices() override {
-    base::test::TestFuture<void> future;
-    shill_test_->ClearServices(future.GetCallback());
-    ASSERT_TRUE(future.Wait());
+    ShillClientTestInterfaceAsyncWaiter(shill_test_.get()).ClearServices();
   }
 
   void SetServiceProperty(const std::string& service_path,
                           const std::string& property,
                           const base::Value& value) override {
-    base::test::TestFuture<void> future;
-    shill_test_->SetServiceProperty(service_path, property, value.Clone(),
-                                    future.GetCallback());
-    ASSERT_TRUE(future.Wait());
+    ShillClientTestInterfaceAsyncWaiter(shill_test_.get())
+        .SetServiceProperty(service_path, property, value.Clone());
   }
 
   void AddIPConfig(const std::string& ip_config_path,
                    base::Value::Dict properties) override {
-    base::test::TestFuture<void> future;
-    shill_test_->AddIPConfig(ip_config_path, base::Value(std::move(properties)),
-                             future.GetCallback());
-    ASSERT_TRUE(future.Wait());
+    ShillClientTestInterfaceAsyncWaiter(shill_test_.get())
+        .AddIPConfig(ip_config_path, base::Value(std::move(properties)));
   }
 
   void AddProfile(const std::string& profile_path,
                   const std::string& userhash) override {
-    base::test::TestFuture<void> future;
-    shill_test_->AddProfile(profile_path, userhash, future.GetCallback());
-    ASSERT_TRUE(future.Wait());
+    ShillClientTestInterfaceAsyncWaiter(shill_test_.get())
+        .AddProfile(profile_path, userhash);
   }
 
   void AddServiceToProfile(const std::string& profile_path,
                            const std::string& service_path) override {
-    base::test::TestFuture<void> future;
-    shill_test_->AddServiceToProfile(profile_path, service_path,
-                                     future.GetCallback());
-    ASSERT_TRUE(future.Wait());
+    ShillClientTestInterfaceAsyncWaiter(shill_test_.get())
+        .AddServiceToProfile(profile_path, service_path);
   }
 
   std::string GetSharedProfilePath() override {

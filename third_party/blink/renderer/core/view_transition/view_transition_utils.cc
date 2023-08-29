@@ -65,7 +65,7 @@ bool ViewTransitionUtils::IsViewTransitionParticipant(
   if (const Element* element = DynamicTo<Element>(object.GetNode())) {
     if (const ComputedStyle* style = element->GetComputedStyle()) {
       DCHECK_EQ(style->ElementIsViewTransitionParticipant(),
-                IsViewTransitionElementExcludingRootFromSupplement(*element))
+                IsViewTransitionParticipantFromSupplement(*element))
           << object.DebugName();
       return style->ElementIsViewTransitionParticipant();
     }
@@ -76,10 +76,10 @@ bool ViewTransitionUtils::IsViewTransitionParticipant(
 }
 
 // static
-bool ViewTransitionUtils::IsViewTransitionElementExcludingRootFromSupplement(
+bool ViewTransitionUtils::IsViewTransitionParticipantFromSupplement(
     const Element& element) {
   ViewTransition* transition = GetActiveTransition(element.GetDocument());
-  return transition && transition->IsTransitionElementExcludingRoot(element);
+  return transition && transition->IsRepresentedViaPseudoElements(element);
 }
 
 // static

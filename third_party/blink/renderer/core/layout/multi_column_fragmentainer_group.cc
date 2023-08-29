@@ -5,8 +5,6 @@
 #include "third_party/blink/renderer/core/layout/multi_column_fragmentainer_group.h"
 
 #include "third_party/blink/renderer/core/layout/fragmentation_context.h"
-#include "third_party/blink/renderer/core/layout/geometry/logical_rect.h"
-#include "third_party/blink/renderer/core/layout/geometry/writing_mode_converter.h"
 #include "third_party/blink/renderer/core/layout/layout_multi_column_set.h"
 
 namespace blink {
@@ -18,7 +16,7 @@ static const unsigned kColumnCountClampMax = 10000;
 // converted to and from floating point, to avoid loss of precision.
 // Note that tables have something similar, see
 // TableLayoutAlgorithm::kTableMaxWidth.
-static constexpr LayoutUnit kMulticolMaxClipPixels(1000000);
+static const int kMulticolMaxClipPixels = 1000000;
 
 MultiColumnFragmentainerGroup::MultiColumnFragmentainerGroup(
     const LayoutMultiColumnSet& column_set)
@@ -32,8 +30,11 @@ bool MultiColumnFragmentainerGroup::IsLastGroup() const {
   return &column_set_->LastFragmentainerGroup() == this;
 }
 
-LogicalOffset MultiColumnFragmentainerGroup::OffsetFromColumnSet() const {
-  return LogicalOffset(LayoutUnit(), LogicalTop());
+LayoutSize MultiColumnFragmentainerGroup::OffsetFromColumnSet() const {
+  LayoutSize offset(LayoutUnit(), LogicalTop());
+  if (!column_set_->FlowThread()->IsHorizontalWritingMode())
+    return offset.TransposedSize();
+  return offset;
 }
 
 LayoutUnit
@@ -73,7 +74,7 @@ void MultiColumnFragmentainerGroup::ResetColumnHeight() {
   logical_height_ = LayoutUnit();
 }
 
-PhysicalOffset MultiColumnFragmentainerGroup::FlowThreadTranslationAtOffset(
+LayoutSize MultiColumnFragmentainerGroup::FlowThreadTranslationAtOffset(
     LayoutUnit offset_in_flow_thread,
     LayoutBox::PageBoundaryRule rule,
     CoordinateSpaceConversion mode) const {
@@ -89,21 +90,21 @@ PhysicalOffset MultiColumnFragmentainerGroup::FlowThreadTranslationAtOffset(
           ? ActualColumnCount() - 1
           : ColumnIndexAtOffset(offset_in_flow_thread, rule);
 
-  PhysicalRect portion_rect(FlowThreadPortionRectAt(column_index));
-  portion_rect.offset += flow_thread->PhysicalLocation();
+  LayoutRect portion_rect(FlowThreadPortionRectAt(column_index));
+  flow_thread->DeprecatedFlipForWritingMode(portion_rect);
+  portion_rect.MoveBy(flow_thread->PhysicalLocation().ToLayoutPoint());
 
-  LogicalRect column_rect(ColumnRectAt(column_index));
-  column_rect.offset += OffsetFromColumnSet();
-  PhysicalRect physical_column_rect =
-      column_set_->CreateWritingModeConverter().ToPhysical(column_rect);
-  physical_column_rect.offset += column_set_->PhysicalLocation();
+  LayoutRect column_rect(ColumnRectAt(column_index));
+  column_rect.Move(OffsetFromColumnSet());
+  column_set_->DeprecatedFlipForWritingMode(column_rect);
+  column_rect.MoveBy(column_set_->PhysicalLocation().ToLayoutPoint());
 
-  PhysicalOffset translation_relative_to_flow_thread =
-      physical_column_rect.offset - portion_rect.offset;
+  LayoutSize translation_relative_to_flow_thread =
+      column_rect.Location() - portion_rect.Location();
   if (mode == CoordinateSpaceConversion::kContaining)
     return translation_relative_to_flow_thread;
 
-  PhysicalOffset enclosing_translation;
+  LayoutSize enclosing_translation;
   if (LayoutMultiColumnFlowThread* enclosing_flow_thread =
           flow_thread->EnclosingFlowThread()) {
     const MultiColumnFragmentainerGroup& first_row =
@@ -111,7 +112,7 @@ PhysicalOffset MultiColumnFragmentainerGroup::FlowThreadTranslationAtOffset(
     // Translation that would map points in the coordinate space of the
     // outermost flow thread to visual points in the first column in the first
     // fragmentainer group (row) in our multicol container.
-    PhysicalOffset enclosing_translation_origin =
+    LayoutSize enclosing_translation_origin =
         enclosing_flow_thread->FlowThreadTranslationAtOffset(
             first_row.BlockOffsetInEnclosingFragmentationContext(),
             LayoutBox::kAssociateWithLatterPage, mode);
@@ -145,42 +146,57 @@ LayoutUnit MultiColumnFragmentainerGroup::ColumnLogicalTopForOffset(
   return LogicalTopInFlowThreadAt(column_index);
 }
 
-LogicalOffset MultiColumnFragmentainerGroup::VisualPointToFlowThreadPoint(
-    const LogicalOffset& visual_point,
+LayoutPoint MultiColumnFragmentainerGroup::VisualPointToFlowThreadPoint(
+    const LayoutPoint& visual_point,
     SnapToColumnPolicy snap) const {
   unsigned column_index = ColumnIndexAtVisualPoint(visual_point);
-  LogicalRect column_rect = ColumnRectAt(column_index);
-  LogicalOffset local_point(visual_point);
-  local_point -= column_rect.offset;
+  LayoutRect column_rect = ColumnRectAt(column_index);
+  LayoutPoint local_point(visual_point);
+  local_point.MoveBy(-column_rect.Location());
+  if (!column_set_->IsHorizontalWritingMode()) {
+    if (snap == kSnapToColumn) {
+      LayoutUnit column_start = column_set_->StyleRef().IsLeftToRightDirection()
+                                    ? LayoutUnit()
+                                    : column_rect.Height();
+      if (local_point.X() < 0)
+        local_point = LayoutPoint(LayoutUnit(), column_start);
+      else if (local_point.X() > ColumnLogicalHeight())
+        local_point = LayoutPoint(ColumnLogicalHeight(), column_start);
+    }
+    return LayoutPoint(local_point.X() + LogicalTopInFlowThreadAt(column_index),
+                       local_point.Y());
+  }
   if (snap == kSnapToColumn) {
     LayoutUnit column_start = column_set_->StyleRef().IsLeftToRightDirection()
                                   ? LayoutUnit()
-                                  : column_rect.size.inline_size;
-    if (local_point.block_offset < 0) {
-      local_point = LogicalOffset(column_start, LayoutUnit());
-    } else if (local_point.block_offset > ColumnLogicalHeight()) {
-      local_point = LogicalOffset(column_start, ColumnLogicalHeight());
-    }
+                                  : column_rect.Width();
+    if (local_point.Y() < 0)
+      local_point = LayoutPoint(column_start, LayoutUnit());
+    else if (local_point.Y() > ColumnLogicalHeight())
+      local_point = LayoutPoint(column_start, ColumnLogicalHeight());
   }
-  return LogicalOffset(
-      local_point.inline_offset,
-      local_point.block_offset + LogicalTopInFlowThreadAt(column_index));
+  return LayoutPoint(local_point.X(),
+                     local_point.Y() + LogicalTopInFlowThreadAt(column_index));
 }
 
-PhysicalRect MultiColumnFragmentainerGroup::FragmentsBoundingBox(
-    const PhysicalRect& bounding_box_in_flow_thread) const {
+LayoutRect MultiColumnFragmentainerGroup::FragmentsBoundingBox(
+    const LayoutRect& bounding_box_in_flow_thread) const {
   // Find the start and end column intersected by the bounding box.
-  const LogicalRect logical_bounding_box =
-      column_set_->FlowThread()->CreateWritingModeConverter().ToLogical(
-          bounding_box_in_flow_thread);
+  LayoutRect flipped_bounding_box_in_flow_thread(bounding_box_in_flow_thread);
+  LayoutFlowThread* flow_thread = column_set_->FlowThread();
+  flow_thread->DeprecatedFlipForWritingMode(
+      flipped_bounding_box_in_flow_thread);
+  bool is_horizontal_writing_mode = column_set_->IsHorizontalWritingMode();
   LayoutUnit bounding_box_logical_top =
-      logical_bounding_box.offset.block_offset;
+      is_horizontal_writing_mode ? flipped_bounding_box_in_flow_thread.Y()
+                                 : flipped_bounding_box_in_flow_thread.X();
   LayoutUnit bounding_box_logical_bottom =
-      logical_bounding_box.BlockEndOffset();
+      is_horizontal_writing_mode ? flipped_bounding_box_in_flow_thread.MaxY()
+                                 : flipped_bounding_box_in_flow_thread.MaxX();
   if (bounding_box_logical_bottom <= LogicalTopInFlowThread() ||
       bounding_box_logical_top >= LogicalBottomInFlowThread()) {
     // The bounding box doesn't intersect this fragmentainer group.
-    return PhysicalRect();
+    return LayoutRect();
   }
   unsigned start_column;
   unsigned end_column;
@@ -188,28 +204,36 @@ PhysicalRect MultiColumnFragmentainerGroup::FragmentsBoundingBox(
                                           bounding_box_logical_bottom,
                                           start_column, end_column);
 
-  PhysicalRect start_column_rect(bounding_box_in_flow_thread);
-  start_column_rect.Intersect(FlowThreadPortionOverflowRectAt(start_column));
-  start_column_rect.offset += PhysicalOffset(
+  LayoutRect start_column_flow_thread_overflow_portion =
+      FlowThreadPortionOverflowRectAt(start_column);
+  flow_thread->DeprecatedFlipForWritingMode(
+      start_column_flow_thread_overflow_portion);
+  LayoutRect start_column_rect(bounding_box_in_flow_thread);
+  start_column_rect.Intersect(start_column_flow_thread_overflow_portion);
+  start_column_rect.Move(
       FlowThreadTranslationAtOffset(LogicalTopInFlowThreadAt(start_column),
                                     LayoutBox::kAssociateWithLatterPage,
                                     CoordinateSpaceConversion::kContaining));
   if (start_column == end_column)
     return start_column_rect;  // It all takes place in one column. We're done.
 
-  PhysicalRect end_column_rect(bounding_box_in_flow_thread);
-  end_column_rect.Intersect(FlowThreadPortionOverflowRectAt(end_column));
-  end_column_rect.offset += PhysicalOffset(FlowThreadTranslationAtOffset(
+  LayoutRect end_column_flow_thread_overflow_portion =
+      FlowThreadPortionOverflowRectAt(end_column);
+  flow_thread->DeprecatedFlipForWritingMode(
+      end_column_flow_thread_overflow_portion);
+  LayoutRect end_column_rect(bounding_box_in_flow_thread);
+  end_column_rect.Intersect(end_column_flow_thread_overflow_portion);
+  end_column_rect.Move(FlowThreadTranslationAtOffset(
       LogicalTopInFlowThreadAt(end_column), LayoutBox::kAssociateWithLatterPage,
       CoordinateSpaceConversion::kContaining));
   return UnionRect(start_column_rect, end_column_rect);
 }
 
-LogicalRect MultiColumnFragmentainerGroup::CalculateOverflow() const {
+LayoutRect MultiColumnFragmentainerGroup::CalculateOverflow() const {
   // Note that we just return the bounding rectangle of the column boxes here.
   // We currently don't examine overflow caused by the actual content that ends
   // up in each column.
-  LogicalRect overflow_rect;
+  LayoutRect overflow_rect;
   if (unsigned column_count = ActualColumnCount()) {
     overflow_rect = ColumnRectAt(0);
     if (column_count > 1)
@@ -247,7 +271,14 @@ void MultiColumnFragmentainerGroup::ExtendColumnBlockSizeFromNG(
   logical_height_ += block_size;
 }
 
-LogicalRect MultiColumnFragmentainerGroup::ColumnRectAt(
+LayoutUnit MultiColumnFragmentainerGroup::HeightAdjustedForRowOffset(
+    LayoutUnit height) const {
+  LayoutUnit adjusted_height =
+      height - LogicalTop() - column_set_->LogicalTopFromMulticolContentEdge();
+  return adjusted_height.ClampNegativeToZero();
+}
+
+LayoutRect MultiColumnFragmentainerGroup::ColumnRectAt(
     unsigned column_index) const {
   LayoutUnit column_logical_width = column_set_->PageLogicalWidth();
   LayoutUnit column_logical_height = LogicalHeightInFlowThreadAt(column_index);
@@ -263,25 +294,26 @@ LogicalRect MultiColumnFragmentainerGroup::ColumnRectAt(
                            column_index * (column_logical_width + column_gap);
   }
 
-  return LogicalRect(column_logical_left, column_logical_top,
-                     column_logical_width, column_logical_height);
+  LayoutRect column_rect(column_logical_left, column_logical_top,
+                         column_logical_width, column_logical_height);
+  if (!column_set_->IsHorizontalWritingMode())
+    return column_rect.TransposedRect();
+  return column_rect;
 }
 
-LogicalRect MultiColumnFragmentainerGroup::LogicalFlowThreadPortionRectAt(
+LayoutRect MultiColumnFragmentainerGroup::FlowThreadPortionRectAt(
     unsigned column_index) const {
   LayoutUnit logical_top = LogicalTopInFlowThreadAt(column_index);
   LayoutUnit portion_logical_height = LogicalHeightInFlowThreadAt(column_index);
-  return LogicalRect(LayoutUnit(), logical_top, column_set_->PageLogicalWidth(),
-                     portion_logical_height);
+  if (column_set_->IsHorizontalWritingMode()) {
+    return LayoutRect(LayoutUnit(), logical_top,
+                      column_set_->PageLogicalWidth(), portion_logical_height);
+  }
+  return LayoutRect(logical_top, LayoutUnit(), portion_logical_height,
+                    column_set_->PageLogicalWidth());
 }
 
-PhysicalRect MultiColumnFragmentainerGroup::FlowThreadPortionRectAt(
-    unsigned column_index) const {
-  return column_set_->FlowThread()->CreateWritingModeConverter().ToPhysical(
-      LogicalFlowThreadPortionRectAt(column_index));
-}
-
-PhysicalRect MultiColumnFragmentainerGroup::FlowThreadPortionOverflowRectAt(
+LayoutRect MultiColumnFragmentainerGroup::FlowThreadPortionOverflowRectAt(
     unsigned column_index) const {
   // This function determines the portion of the flow thread that paints for the
   // column.
@@ -296,7 +328,7 @@ PhysicalRect MultiColumnFragmentainerGroup::FlowThreadPortionOverflowRectAt(
   bool is_first_column_in_row = !column_index;
   bool is_last_column_in_row = column_index == ActualColumnCount() - 1;
 
-  LogicalRect portion_rect = LogicalFlowThreadPortionRectAt(column_index);
+  LayoutRect portion_rect = FlowThreadPortionRectAt(column_index);
   bool is_first_column_in_multicol_container =
       is_first_column_in_row &&
       this == &column_set_->FirstFragmentainerGroup() &&
@@ -309,17 +341,21 @@ PhysicalRect MultiColumnFragmentainerGroup::FlowThreadPortionOverflowRectAt(
   // multicol container, in which case it should allow overflow. It will also
   // be clipped in the middle of adjacent column gaps. Care is taken here to
   // avoid rounding errors.
-  LogicalRect overflow_rect(-kMulticolMaxClipPixels, -kMulticolMaxClipPixels,
-                            2 * kMulticolMaxClipPixels,
-                            2 * kMulticolMaxClipPixels);
-  if (!is_first_column_in_multicol_container) {
-    overflow_rect.ShiftBlockStartEdgeTo(portion_rect.offset.block_offset);
+  LayoutRect overflow_rect(
+      gfx::Rect(-kMulticolMaxClipPixels, -kMulticolMaxClipPixels,
+                2 * kMulticolMaxClipPixels, 2 * kMulticolMaxClipPixels));
+  if (column_set_->IsHorizontalWritingMode()) {
+    if (!is_first_column_in_multicol_container)
+      overflow_rect.ShiftYEdgeTo(portion_rect.Y());
+    if (!is_last_column_in_multicol_container)
+      overflow_rect.ShiftMaxYEdgeTo(portion_rect.MaxY());
+  } else {
+    if (!is_first_column_in_multicol_container)
+      overflow_rect.ShiftXEdgeTo(portion_rect.X());
+    if (!is_last_column_in_multicol_container)
+      overflow_rect.ShiftMaxXEdgeTo(portion_rect.MaxX());
   }
-  if (!is_last_column_in_multicol_container) {
-    overflow_rect.ShiftBlockEndEdgeTo(portion_rect.BlockEndOffset());
-  }
-  return column_set_->FlowThread()->CreateWritingModeConverter().ToPhysical(
-      overflow_rect);
+  return overflow_rect;
 }
 
 unsigned MultiColumnFragmentainerGroup::ColumnIndexAtOffset(
@@ -354,10 +390,11 @@ unsigned MultiColumnFragmentainerGroup::ConstrainedColumnIndexAtOffset(
 }
 
 unsigned MultiColumnFragmentainerGroup::ColumnIndexAtVisualPoint(
-    const LogicalOffset& visual_point) const {
+    const LayoutPoint& visual_point) const {
   LayoutUnit column_length = column_set_->PageLogicalWidth();
   LayoutUnit offset_in_column_progression_direction =
-      visual_point.inline_offset;
+      column_set_->IsHorizontalWritingMode() ? visual_point.X()
+                                             : visual_point.Y();
   if (!column_set_->StyleRef().IsLeftToRightDirection()) {
     offset_in_column_progression_direction =
         column_set_->LogicalWidth() - offset_in_column_progression_direction;
@@ -395,6 +432,31 @@ void MultiColumnFragmentainerGroup::ColumnIntervalForBlockRangeInFlowThread(
     last_column = ConstrainedColumnIndexAtOffset(
         logical_bottom_in_flow_thread, LayoutBox::kAssociateWithFormerPage);
   }
+}
+
+void MultiColumnFragmentainerGroup::ColumnIntervalForVisualRect(
+    const LayoutRect& rect,
+    unsigned& first_column,
+    unsigned& last_column) const {
+  bool is_column_ltr = column_set_->StyleRef().IsLeftToRightDirection();
+  if (column_set_->IsHorizontalWritingMode()) {
+    if (is_column_ltr) {
+      first_column = ColumnIndexAtVisualPoint(rect.MinXMinYCorner());
+      last_column = ColumnIndexAtVisualPoint(rect.MaxXMinYCorner());
+    } else {
+      first_column = ColumnIndexAtVisualPoint(rect.MaxXMinYCorner());
+      last_column = ColumnIndexAtVisualPoint(rect.MinXMinYCorner());
+    }
+  } else {
+    if (is_column_ltr) {
+      first_column = ColumnIndexAtVisualPoint(rect.MinXMinYCorner());
+      last_column = ColumnIndexAtVisualPoint(rect.MinXMaxYCorner());
+    } else {
+      first_column = ColumnIndexAtVisualPoint(rect.MinXMaxYCorner());
+      last_column = ColumnIndexAtVisualPoint(rect.MinXMinYCorner());
+    }
+  }
+  DCHECK_LE(first_column, last_column);
 }
 
 unsigned MultiColumnFragmentainerGroup::UnclampedActualColumnCount() const {

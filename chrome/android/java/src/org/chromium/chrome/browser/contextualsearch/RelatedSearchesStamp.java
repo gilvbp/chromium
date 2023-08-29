@@ -8,6 +8,7 @@ import android.net.Uri;
 import android.text.TextUtils;
 
 import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 
 import org.chromium.chrome.browser.flags.ChromeFeatureList;
 
@@ -209,12 +210,11 @@ class RelatedSearchesStamp {
     private String buildRelatedSearchesStamp(boolean isLanguageRestricted) {
         String experimentConfigStamp =
                 ContextualSearchFieldTrial.getRelatedSearchesExperimentConfigurationStamp();
-        String ret = experimentConfigStamp;
-        if (isLanguageRestricted) {
-            ret += RELATED_SEARCHES_LANGUAGE_RESTRICTION;
-        }
+        if (TextUtils.isEmpty(experimentConfigStamp)) experimentConfigStamp = NO_EXPERIMENT_STAMP;
+        StringBuilder stampBuilder = new StringBuilder().append(experimentConfigStamp);
+        if (isLanguageRestricted) stampBuilder.append(RELATED_SEARCHES_LANGUAGE_RESTRICTION);
 
-        return ret;
+        return stampBuilder.toString();
     }
 
     /**
@@ -238,6 +238,7 @@ class RelatedSearchesStamp {
         return allowedLanguages;
     }
 
+    @VisibleForTesting
     void disableDefaultAllowedLanguagesForTesting(boolean disableDefaultAllowedLanguages) {
         mDisableDefaultAllowedLanguagesForTesting = disableDefaultAllowedLanguages;
     }

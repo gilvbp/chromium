@@ -65,6 +65,10 @@ bool StubPasswordManagerDriver::CanShowAutofillUi() const {
   return true;
 }
 
+::ui::AXTreeID StubPasswordManagerDriver::GetAxTreeId() const {
+  return {};
+}
+
 int StubPasswordManagerDriver::GetFrameId() const {
   return GetId();
 }

@@ -130,36 +130,59 @@ suite('network-config', function() {
       });
     });
 
-    test('New networks are explicitly not hidden when logged in', async () => {
-      // Simulate the dialog being opened while a user is logged in.
-      networkConfig.isLoggedIn_ = true;
+    // Syntactic sugar for running test twice with different values for the
+    // enableHiddenNetworkMigration feature flag.
+    [true, false].forEach(isHiddenNetworkMigrationEnabled => {
+      test(
+          'New networks are explicitly not hidden when logged in', async () => {
+            loadTimeData.overrideValues({
+              'enableHiddenNetworkMigration': isHiddenNetworkMigrationEnabled,
+            });
 
-      await flushAsync();
+            // Simulate the dialog being opened while a user is logged in.
+            networkConfig.isLoggedIn_ = true;
 
-      networkConfig.save();
+            await flushAsync();
 
-      await flushAsync();
+            networkConfig.save();
 
-      const props = mojoApi_.getPropertiesToSetForTest();
-      assertEquals(props.typeConfig.wifi.hiddenSsid, HiddenSsidMode.kDisabled);
+            await flushAsync();
+
+            const props = mojoApi_.getPropertiesToSetForTest();
+            if (isHiddenNetworkMigrationEnabled) {
+              assertEquals(
+                  props.typeConfig.wifi.hiddenSsid, HiddenSsidMode.kDisabled);
+            } else {
+              assertEquals(
+                  props.typeConfig.wifi.hiddenSsid, HiddenSsidMode.kAutomatic);
+            }
+          });
     });
 
-    test(
-        'New networks are explicitly not hidden when not logged in',
-        async () => {
-          // Simulate the dialog being opened when the user is not logged in.
-          networkConfig.isLoggedIn_ = false;
+    // Syntactic sugar for running test twice with different values for the
+    // enableHiddenNetworkMigration feature flag.
+    [true, false].forEach(isHiddenNetworkMigrationEnabled => {
+      test(
+          'New networks are explicitly not hidden when not logged in',
+          async () => {
+            loadTimeData.overrideValues({
+              'enableHiddenNetworkMigration': isHiddenNetworkMigrationEnabled,
+            });
 
-          await flushAsync();
+            // Simulate the dialog being opened when the user is not logged in.
+            networkConfig.isLoggedIn_ = false;
 
-          networkConfig.save();
+            await flushAsync();
 
-          await flushAsync();
+            networkConfig.save();
 
-          assertEquals(
-              mojoApi_.getPropertiesToSetForTest().typeConfig.wifi.hiddenSsid,
-              HiddenSsidMode.kAutomatic);
-        });
+            await flushAsync();
+
+            assertEquals(
+                mojoApi_.getPropertiesToSetForTest().typeConfig.wifi.hiddenSsid,
+                HiddenSsidMode.kAutomatic);
+          });
+    });
   });
 
   suite('Existing WiFi Config', function() {
@@ -213,15 +236,23 @@ suite('network-config', function() {
       });
     });
 
-    test('Networks\' hidden SSID mode is not overwritten', async () => {
-      await flushAsync();
+    // Syntactic sugar for running test twice with different values for the
+    // enableHiddenNetworkMigration feature flag.
+    [true, false].forEach(isHiddenNetworkMigrationEnabled => {
+      test('Networks\' hidden SSID mode is not overwritten', async () => {
+        loadTimeData.overrideValues(
+            {'enableHiddenNetworkMigration': isHiddenNetworkMigrationEnabled});
 
-      networkConfig.save();
+        await flushAsync();
 
-      await flushAsync();
+        networkConfig.save();
 
-      const props = mojoApi_.getPropertiesToSetForTest();
-      assertEquals(props.typeConfig.wifi.hiddenSsid, HiddenSsidMode.kAutomatic);
+        await flushAsync();
+
+        const props = mojoApi_.getPropertiesToSetForTest();
+        assertEquals(
+            props.typeConfig.wifi.hiddenSsid, HiddenSsidMode.kAutomatic);
+      });
     });
   });
 
@@ -1254,7 +1285,7 @@ suite('network-config', function() {
     });
   });
 
-  suite('Non-VPN EAP', function() {
+  suite('Certificates', function() {
     setup(function() {
       mojoApi_.resetForTest();
     });
@@ -1312,18 +1343,6 @@ suite('network-config', function() {
       networkConfig.save();
       await flushAsync();
     }
-
-    test('WiFi EAP Default Outer', async function() {
-      setNetworkType(NetworkType.kWiFi, SecurityType.kWpaEap);
-      setAuthenticated();
-      initNetworkConfig();
-      networkConfig.shareNetwork_ = false;
-      await mojoApi_.whenCalled('getNetworkCertificates');
-      await flushAsync();
-      const outer = networkConfig.$$('#outer');
-      // 'PEAP' should be the default 'Outer' protocol.
-      assertEquals('PEAP', outer.value);
-    });
 
     test('WiFi EAP-TLS No Certs', function() {
       setNetworkType(NetworkType.kWiFi, SecurityType.kWpaEap);

@@ -36,8 +36,7 @@ class MockHashRealTimeService : public HashRealTimeService {
             /*get_network_context=*/base::NullCallback(),
             /*cache_manager=*/nullptr,
             /*ohttp_key_service=*/nullptr,
-            /*get_is_enhanced_protection_enabled=*/base::NullCallback(),
-            /*webui_delegate=*/nullptr) {}
+            /*get_is_enhanced_protection_enabled=*/base::NullCallback()) {}
   base::WeakPtr<MockHashRealTimeService> GetWeakPtr() {
     return weak_factory_.GetWeakPtr();
   }
@@ -92,12 +91,11 @@ class MockSafeBrowsingDatabaseManager : public TestSafeBrowsingDatabaseManager {
   // SafeBrowsingDatabaseManager implementation.
   // Checks the threat type of |gurl| previously set by |SetThreatTypeForUrl|.
   // It crashes if the threat type of |gurl| is not set in advance.
-  bool CheckBrowseUrl(
-      const GURL& gurl,
-      const safe_browsing::SBThreatTypeSet& threat_types,
-      Client* client,
-      MechanismExperimentHashDatabaseCache experiment_cache_selection,
-      CheckBrowseUrlType check_type) override {
+  bool CheckBrowseUrl(const GURL& gurl,
+                      const safe_browsing::SBThreatTypeSet& threat_types,
+                      Client* client,
+                      MechanismExperimentHashDatabaseCache
+                          experiment_cache_selection) override {
     std::string url = gurl.spec();
     DCHECK(base::Contains(urls_threat_type_, url));
     DCHECK(base::Contains(urls_delayed_callback_, url));
@@ -126,12 +124,7 @@ class MockSafeBrowsingDatabaseManager : public TestSafeBrowsingDatabaseManager {
 
   bool ChecksAreAlwaysAsync() const override { return false; }
 
-  ThreatSource GetBrowseUrlThreatSource(
-      CheckBrowseUrlType check_type) const override {
-    return ThreatSource::UNKNOWN;
-  }
-
-  ThreatSource GetNonBrowseUrlThreatSource() const override {
+  ThreatSource GetThreatSource() const override {
     return ThreatSource::UNKNOWN;
   }
 

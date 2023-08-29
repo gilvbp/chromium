@@ -25,6 +25,8 @@
 #include "chromeos/ash/components/drivefs/mojom/drivefs.mojom.h"
 #include "chromeos/ash/components/drivefs/sync_status_tracker.h"
 #include "chromeos/components/drivefs/mojom/drivefs_native_messaging.mojom.h"
+#include "components/drive/drive_notification_manager.h"
+#include "components/drive/drive_notification_observer.h"
 #include "mojo/public/cpp/bindings/callback_helpers.h"
 #include "mojo/public/cpp/platform/platform_channel_endpoint.h"
 #include "mojo/public/cpp/system/invitation.h"
@@ -51,7 +53,8 @@ DriveFsHost::Delegate::CreateMojoListener() {
 
 // A container of state tied to a particular mounting of DriveFS. None of this
 // should be shared between mounts.
-class DriveFsHost::MountState : public DriveFsSession {
+class DriveFsHost::MountState : public DriveFsSession,
+                                public drive::DriveNotificationObserver {
  public:
   explicit MountState(DriveFsHost* host)
       : DriveFsSession(host->timer_.get(),
@@ -89,6 +92,10 @@ class DriveFsHost::MountState : public DriveFsSession {
     DCHECK_CALLED_ON_VALID_SEQUENCE(host_->sequence_checker_);
     if (ash::features::IsInlineSyncStatusOldEventsEnabled()) {
       sync_throttle_timer_->Stop();
+    }
+    if (team_drives_fetched_) {
+      host_->delegate_->GetDriveNotificationManager().ClearTeamDriveIds();
+      host_->delegate_->GetDriveNotificationManager().RemoveObserver(this);
     }
     if (is_mounted()) {
       for (auto& observer : host_->observers_) {
@@ -289,10 +296,29 @@ class DriveFsHost::MountState : public DriveFsSession {
   }
 
   void OnTeamDrivesListReady(
-      const std::vector<std::string>& team_drive_ids) override {}
+      const std::vector<std::string>& team_drive_ids) override {
+    host_->delegate_->GetDriveNotificationManager().AddObserver(this);
+    host_->delegate_->GetDriveNotificationManager().UpdateTeamDriveIds(
+        std::set<std::string>(team_drive_ids.begin(), team_drive_ids.end()),
+        {});
+    team_drives_fetched_ = true;
+  }
 
   void OnTeamDriveChanged(const std::string& team_drive_id,
-                          CreateOrDelete change_type) override {}
+                          CreateOrDelete change_type) override {
+    if (!team_drives_fetched_) {
+      return;
+    }
+    std::set<std::string> additions;
+    std::set<std::string> removals;
+    if (change_type == mojom::DriveFsDelegate::CreateOrDelete::kCreated) {
+      additions.insert(team_drive_id);
+    } else {
+      removals.insert(team_drive_id);
+    }
+    host_->delegate_->GetDriveNotificationManager().UpdateTeamDriveIds(
+        additions, removals);
+  }
 
   void ConnectToExtension(
       mojom::ExtensionConnectionParamsPtr params,
@@ -341,6 +367,22 @@ class DriveFsHost::MountState : public DriveFsSession {
     host_->delegate_->PersistMachineRootID(std::move(id));
   }
 
+  // DriveNotificationObserver overrides:
+  void OnNotificationReceived(
+      const std::map<std::string, int64_t>& invalidations) override {
+    std::vector<mojom::FetchChangeLogOptionsPtr> options;
+    options.reserve(invalidations.size());
+    for (const auto& invalidation : invalidations) {
+      options.emplace_back(absl::in_place, invalidation.second,
+                           invalidation.first);
+    }
+    drivefs_interface()->FetchChangeLog(std::move(options));
+  }
+
+  void OnNotificationTimerFired() override {
+    drivefs_interface()->FetchAllChangeLogs();
+  }
+
   // Owns |this|.
   const raw_ptr<DriveFsHost, ExperimentalAsh> host_;
 
@@ -349,6 +391,7 @@ class DriveFsHost::MountState : public DriveFsSession {
   std::unique_ptr<SyncStatusTracker> sync_status_tracker_ = nullptr;
 
   bool token_fetch_attempted_ = false;
+  bool team_drives_fetched_ = false;
 
   // Used to dispatch individual sync status updates in a debounced manner, only
   // sending the sync states that have changed since the last dispatched event.

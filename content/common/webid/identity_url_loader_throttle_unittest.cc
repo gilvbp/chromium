@@ -70,16 +70,18 @@ TEST_P(IdentityUrlLoaderThrottleTestParameterized, Headers) {
   throttle->WillStartRequest(&request, &defer);
   EXPECT_FALSE(defer);
 
-  std::string header =
-      is_google_header
-          ? base::StringPrintf(
-                "Google-Accounts-Sign%s: email=\"foo@example.com\", "
-                "sessionindex=0, "
-                "obfuscatedid=123\n",
-                signin_status == IdpSigninStatus::kSignedIn ? "In" : "Out")
-          : base::StringPrintf(
-                "idp-signin-status: action=sign%s; type=idp; foo=bar",
-                signin_status == IdpSigninStatus::kSignedIn ? "in" : "out-all");
+  std::string header;
+  if (is_google_header) {
+    base::SStringPrintf(
+        &header,
+        "Google-Accounts-Sign%s: email=\"foo@example.com\", sessionindex=0, "
+        "obfuscatedid=123\n",
+        signin_status == IdpSigninStatus::kSignedIn ? "In" : "Out");
+  } else {
+    base::SStringPrintf(
+        &header, "idp-signin-status: action=sign%s",
+        signin_status == IdpSigninStatus::kSignedIn ? "in" : "out-all");
+  }
 
   network::mojom::URLResponseHead response_head;
   response_head.headers = net::HttpResponseHeaders::TryToCreate(
@@ -152,7 +154,7 @@ TEST_F(IdentityUrlLoaderThrottleTest, HeaderHasToken) {
       IdentityUrlLoaderThrottle::HeaderHasToken(*headers, "Signin", "val"));
 
   headers = net::HttpResponseHeaders::TryToCreate(
-      "HTTP/1.1 200 OK\nSignin:  val ; type=idp; foo=bar");
+      "HTTP/1.1 200 OK\nSignin:  val ; type=idp");
   EXPECT_TRUE(IdentityUrlLoaderThrottle::HeaderHasToken(*headers, "Signin",
                                                         "type=idp"));
 }

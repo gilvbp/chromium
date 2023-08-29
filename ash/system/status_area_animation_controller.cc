@@ -75,7 +75,6 @@ void StatusAreaAnimationController::PerformAnimation(bool visible) {
               if (!ptr || !ptr->notification_center_tray_) {
                 return;
               }
-              ptr->notification_center_tray_->OnAnimationAborted();
 
               // Don't enable notification center tray item animations if this
               // show animation was interrupted by a hide animation.
@@ -87,10 +86,9 @@ void StatusAreaAnimationController::PerformAnimation(bool visible) {
             weak_factory_.GetWeakPtr()))
         .OnEnded(base::BindOnce(
             [](base::WeakPtr<StatusAreaAnimationController> ptr) {
-              if (!ptr || !ptr->notification_center_tray_) {
+              if (!ptr) {
                 return;
               }
-              ptr->notification_center_tray_->OnAnimationEnded();
               ptr->EnableNotificationCenterTrayItemAnimations();
             },
             weak_factory_.GetWeakPtr()))
@@ -111,17 +109,9 @@ void StatusAreaAnimationController::PerformAnimation(bool visible) {
               ptr->is_hide_animation_scheduled_ = true;
             },
             weak_factory_.GetWeakPtr()))
-        .OnStarted(base::BindOnce(
-            [](base::WeakPtr<StatusAreaAnimationController> ptr) {
-              if (!ptr || !ptr->notification_center_tray_) {
-                return;
-              }
-              ptr->notification_center_tray_->OnHideAnimationStarted();
-            },
-            weak_factory_.GetWeakPtr()))
         .OnAborted(base::BindOnce(
             [](base::WeakPtr<StatusAreaAnimationController> ptr) {
-              if (!ptr || !ptr->notification_center_tray_) {
+              if (!ptr) {
                 return;
               }
               ptr->is_hide_animation_scheduled_ = false;
@@ -131,7 +121,7 @@ void StatusAreaAnimationController::PerformAnimation(bool visible) {
             weak_factory_.GetWeakPtr()))
         .OnEnded(base::BindOnce(
             [](base::WeakPtr<StatusAreaAnimationController> ptr) {
-              if (!ptr || !ptr->notification_center_tray_) {
+              if (!ptr) {
                 return;
               }
               ptr->is_hide_animation_scheduled_ = false;

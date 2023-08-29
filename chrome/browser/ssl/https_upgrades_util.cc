@@ -57,14 +57,9 @@ bool IsInterstitialEnabled(
   if (state.enabled_by_pref) {
     return true;
   }
-  if (base::FeatureList::IsEnabled(
-          features::kHttpsFirstModeV2ForEngagedSites) &&
-      state.enabled_by_engagement_heuristic) {
-    return true;
-  }
-  return base::FeatureList::IsEnabled(
-             features::kHttpsFirstModeV2ForTypicallySecureUsers) &&
-         state.enabled_by_typically_secure_browsing;
+  return state.enabled_by_engagement_heuristic &&
+         base::FeatureList::IsEnabled(
+             features::kHttpsFirstModeV2ForEngagedSites);
 }
 
 ScopedAllowHttpForHostnamesForTesting::ScopedAllowHttpForHostnamesForTesting(

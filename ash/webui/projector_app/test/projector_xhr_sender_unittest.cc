@@ -5,8 +5,6 @@
 #include "ash/webui/projector_app/projector_xhr_sender.h"
 
 #include "ash/constants/ash_features.h"
-#include "ash/webui/projector_app/public/mojom/projector_types.mojom-forward.h"
-#include "ash/webui/projector_app/public/mojom/projector_types.mojom-shared.h"
 #include "ash/webui/projector_app/test/mock_app_client.h"
 #include "base/functional/callback.h"
 #include "base/test/scoped_feature_list.h"
@@ -14,7 +12,6 @@
 #include "base/test/test_future.h"
 #include "base/time/time.h"
 #include "google_apis/google_api_keys.h"
-#include "net/base/net_errors.h"
 #include "net/base/url_util.h"
 #include "services/network/public/mojom/url_response_head.mojom.h"
 #include "testing/gtest/include/gtest/gtest.h"
@@ -36,7 +33,8 @@ GURL GetUrlWithApiKey(const GURL& url) {
 }
 
 using SendRequestFuture =
-    base::test::TestFuture<ash::projector::mojom::XhrResponsePtr>;
+    base::test::TestFuture<const std::string&,
+                           ash::projector::mojom::XhrResponseCode>;
 
 }  // namespace
 
@@ -68,20 +66,8 @@ class ProjectorXhrSenderTest : public testing::Test {
   void VerifySendRequestFuture(SendRequestFuture& future,
                                const std::string& response_body,
                                const projector::mojom::XhrResponseCode code) {
-    auto& response = std::move(future.Get<0>());
-    EXPECT_EQ(response_body, response->response);
-    EXPECT_EQ(code, response->response_code);
-  }
-
-  void VerifySendRequestFutureWithNetworkErrorCode(
-      SendRequestFuture& future,
-      const std::string& response_body,
-      const projector::mojom::XhrResponseCode code,
-      projector::mojom::JsNetErrorCode error_code) {
-    auto& response = std::move(future.Get<0>());
-    EXPECT_EQ(response_body, response->response);
-    EXPECT_EQ(code, response->response_code);
-    EXPECT_EQ(error_code, response->net_error_code);
+    EXPECT_EQ(response_body, future.Get<0>());
+    EXPECT_EQ(code, future.Get<1>());
   }
 
   ProjectorXhrSender* sender() { return sender_.get(); }
@@ -196,9 +182,8 @@ TEST_F(ProjectorXhrSenderTest, NetworkError) {
   mock_app_client().GrantOAuthTokenFor(
       kTestUserEmail,
       /* expiry_time = */ base::Time::Now() + kExpiryTimeFromNow);
-  VerifySendRequestFutureWithNetworkErrorCode(
-      future, "", projector::mojom::XhrResponseCode::kXhrFetchFailure,
-      projector::mojom::JsNetErrorCode::kHttpError);
+  VerifySendRequestFuture(future, "",
+                          projector::mojom::XhrResponseCode::kXhrFetchFailure);
 }
 
 TEST_F(ProjectorXhrSenderTest, TokenFetchFailure) {
@@ -254,6 +239,9 @@ TEST_F(ProjectorXhrSenderTest, UnsupportedUrl) {
 }
 
 TEST_F(ProjectorXhrSenderTest, SuccessWithPrimaryEmail) {
+  base::test::ScopedFeatureList feature_list;
+  feature_list.InitWithFeatureState(
+      features::kProjectorViewerUseSecondaryAccount, true /* use */);
   SendRequestFuture future;
 
   const std::string& test_response_body = "{}";
@@ -274,6 +262,9 @@ TEST_F(ProjectorXhrSenderTest, SuccessWithPrimaryEmail) {
 }
 
 TEST_F(ProjectorXhrSenderTest, InvalidAccountEmail) {
+  base::test::ScopedFeatureList feature_list;
+  feature_list.InitWithFeatureState(
+      features::kProjectorViewerUseSecondaryAccount, true /* use */);
   SendRequestFuture future;
 
   sender()->Send(
@@ -287,6 +278,9 @@ TEST_F(ProjectorXhrSenderTest, InvalidAccountEmail) {
 }
 
 TEST_F(ProjectorXhrSenderTest, SuccessWithSecondaryEmail) {
+  base::test::ScopedFeatureList feature_list;
+  feature_list.InitWithFeatureState(
+      features::kProjectorViewerUseSecondaryAccount, true /* use */);
   SendRequestFuture future;
 
   const std::string& test_response_body = "{}";

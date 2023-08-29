@@ -133,8 +133,7 @@ class InterfaceFactoryImpl final
   MojoCdmServiceContext cdm_service_context_;
 
 #if BUILDFLAG(ENABLE_MOJO_AUDIO_DECODER)
-  class AudioDecoderReceivers;
-  std::unique_ptr<AudioDecoderReceivers> audio_decoder_receivers_;
+  mojo::UniqueReceiverSet<mojom::AudioDecoder> audio_decoder_receivers_;
 #endif  // BUILDFLAG(ENABLE_MOJO_AUDIO_DECODER)
 
 #if BUILDFLAG(ENABLE_MOJO_VIDEO_DECODER)

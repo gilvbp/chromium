@@ -14,7 +14,6 @@
 #include "base/strings/utf_string_conversions.h"
 #include "base/values.h"
 #include "build/build_config.h"
-#include "chrome/browser/chrome_browser_main_extra_parts_nacl_deprecation.h"
 #include "chrome/browser/ui/browser.h"
 #include "chrome/browser/ui/tabs/tab_strip_model.h"
 #include "chrome/common/chrome_paths.h"
@@ -209,7 +208,6 @@ static void AddPnaclParm(const base::FilePath::StringType& url,
 }
 
 NaClBrowserTestBase::NaClBrowserTestBase() {
-  feature_list_.InitAndEnableFeature(kNaclAllow);
 }
 
 NaClBrowserTestBase::~NaClBrowserTestBase() {

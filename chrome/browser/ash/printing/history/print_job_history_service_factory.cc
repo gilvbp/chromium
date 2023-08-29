@@ -48,8 +48,7 @@ PrintJobHistoryServiceFactory::PrintJobHistoryServiceFactory()
 
 PrintJobHistoryServiceFactory::~PrintJobHistoryServiceFactory() = default;
 
-std::unique_ptr<KeyedService>
-PrintJobHistoryServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* PrintJobHistoryServiceFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   Profile* profile = Profile::FromBrowserContext(context);
   leveldb_proto::ProtoDatabaseProvider* database_provider =
@@ -62,8 +61,7 @@ PrintJobHistoryServiceFactory::BuildServiceInstanceForBrowserContext(
   PrintJobReportingService* print_job_reporting_service =
       PrintJobReportingServiceFactory::GetForBrowserContext(profile);
 
-  std::unique_ptr<PrintJobHistoryServiceImpl> history_service = 
-    std::make_unique<PrintJobHistoryServiceImpl>(
+  auto* history_service = new PrintJobHistoryServiceImpl(
       std::move(print_job_database), print_job_manager, profile->GetPrefs());
   // Service is null in tests.
   if (print_job_reporting_service) {

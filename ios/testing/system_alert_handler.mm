@@ -8,6 +8,10 @@
 
 #import "base/test/ios/wait_util.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 using base::test::ios::kWaitForUIElementTimeout;
 
 namespace {
@@ -60,7 +64,6 @@ NSDictionary<NSString*, NSArray<NSString*>*>* TextToButtonsOfKnownSystemAlerts(
           @[ @"OK", @"Allow" ],
       @"Unable to activate Touch ID on this iPhone." : @[ @"OK" ],
       @"Like to Access the Microphone" : @[ @"OK" ],
-      @"Edit Home Screen" : @[ @"Dismiss" ],
     };
   });
   return text_to_buttons;

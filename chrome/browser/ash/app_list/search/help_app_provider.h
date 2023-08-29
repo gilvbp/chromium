@@ -11,7 +11,6 @@
 #include "ash/webui/help_app_ui/search/search.mojom.h"
 #include "base/memory/raw_ptr.h"
 #include "base/memory/weak_ptr.h"
-#include "base/scoped_observation.h"
 #include "base/time/time.h"
 #include "chrome/browser/apps/app_service/app_service_proxy_forward.h"
 #include "chrome/browser/ash/app_list/search/chrome_search_result.h"
@@ -91,16 +90,13 @@ class HelpAppProvider : public SearchProvider,
   const raw_ptr<Profile, ExperimentalAsh> profile_;
 
   raw_ptr<ash::help_app::SearchHandler, ExperimentalAsh> search_handler_;
+  raw_ptr<apps::AppServiceProxy, ExperimentalAsh> app_service_proxy_;
   ui::ImageModel icon_;
 
   // Last search query. It is reset when the view is closed.
   std::u16string last_query_;
   mojo::Receiver<ash::help_app::mojom::SearchResultsObserver>
       search_results_observer_receiver_{this};
-
-  base::ScopedObservation<apps::AppRegistryCache,
-                          apps::AppRegistryCache::Observer>
-      app_registry_cache_observer_{this};
 
   base::WeakPtrFactory<HelpAppProvider> weak_factory_{this};
 };

@@ -3,19 +3,12 @@
 # found in the LICENSE file.
 
 
-import enum
 import logging
-from typing import Optional, Tuple
+import typing
 
 import gold_inexact_matching.base_parameter_optimizer as base_optimizer
 from gold_inexact_matching import common_typing as ct
 from gold_inexact_matching import parameter_set
-
-
-class _UnlockedParameter(enum.Enum):
-  MAX_DIFF = 1
-  DELTA_THRESHOLD = 2
-  EDGE_THRESHOLD = 3
 
 
 class BinarySearchParameterOptimizer(base_optimizer.BaseParameterOptimizer):
@@ -25,9 +18,12 @@ class BinarySearchParameterOptimizer(base_optimizer.BaseParameterOptimizer):
   the best Sobel edge threshold to use when not using any additional fuzzy
   diffing.
   """
+  UNLOCKED_PARAM_MAX_DIFF = 1
+  UNLOCKED_PARAM_DELTA_THRESHOLD = 2
+  UNLOCKED_PARAM_EDGE_THRESHOLD = 3
 
   def __init__(self, args: ct.ParsedCmdArgs, test_name: str):
-    self._unlocked_parameter: Optional[_UnlockedParameter] = None
+    self._unlocked_parameter = None
     super().__init__(args, test_name)
 
   def _VerifyArgs(self) -> None:
@@ -46,11 +42,11 @@ class BinarySearchParameterOptimizer(base_optimizer.BaseParameterOptimizer):
           'locked (min == max).')
 
     if not max_diff_locked:
-      self._unlocked_parameter = _UnlockedParameter.MAX_DIFF
+      self._unlocked_parameter = self.UNLOCKED_PARAM_MAX_DIFF
     elif not delta_threshold_locked:
-      self._unlocked_parameter = _UnlockedParameter.DELTA_THRESHOLD
+      self._unlocked_parameter = self.UNLOCKED_PARAM_DELTA_THRESHOLD
     else:
-      self._unlocked_parameter = _UnlockedParameter.EDGE_THRESHOLD
+      self._unlocked_parameter = self.UNLOCKED_PARAM_EDGE_THRESHOLD
 
   def _RunOptimizationImpl(self) -> None:
     known_good, known_bad = self._GetStartingValues()
@@ -66,7 +62,7 @@ class BinarySearchParameterOptimizer(base_optimizer.BaseParameterOptimizer):
         known_bad = midpoint
     print('Found optimal parameters: %s' % parameters)
 
-  def _GetStartingValues(self) -> Tuple[int, int]:
+  def _GetStartingValues(self) -> typing.Tuple[int, int]:
     """Gets the initial good/bad values for the binary search.
 
     Returns:
@@ -75,9 +71,9 @@ class BinarySearchParameterOptimizer(base_optimizer.BaseParameterOptimizer):
       to make the comparison fail, although it has not necessarily been tested
       yet.
     """
-    if self._unlocked_parameter == _UnlockedParameter.MAX_DIFF:
+    if self._unlocked_parameter == self.UNLOCKED_PARAM_MAX_DIFF:
       return self._args.max_max_diff, self._args.min_max_diff
-    if self._unlocked_parameter == _UnlockedParameter.DELTA_THRESHOLD:
+    if self._unlocked_parameter == self.UNLOCKED_PARAM_DELTA_THRESHOLD:
       return self._args.max_delta_threshold, self._args.min_delta_threshold
     return self._args.min_edge_threshold, self._args.max_edge_threshold
 
@@ -91,10 +87,10 @@ class BinarySearchParameterOptimizer(base_optimizer.BaseParameterOptimizer):
       A parameter_set.ParameterSet with the variable parameter set to |value|
       and the other parameters set to their fixed values.
     """
-    if self._unlocked_parameter == _UnlockedParameter.MAX_DIFF:
+    if self._unlocked_parameter == self.UNLOCKED_PARAM_MAX_DIFF:
       return parameter_set.ParameterSet(value, self._args.min_delta_threshold,
                                         self._args.min_edge_threshold)
-    if self._unlocked_parameter == _UnlockedParameter.DELTA_THRESHOLD:
+    if self._unlocked_parameter == self.UNLOCKED_PARAM_DELTA_THRESHOLD:
       return parameter_set.ParameterSet(self._args.min_max_diff, value,
                                         self._args.min_edge_threshold)
     return parameter_set.ParameterSet(self._args.min_max_diff,

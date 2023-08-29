@@ -286,9 +286,9 @@ const createAssistantZippy = (type, isMinor, isNativeIcons) => {
           id: 'success',
           trigger: (screen) => {
             screen.updateCountdownString(
-                'Your device will shut down in 60 seconds. Remove the USB' +
-                ' before turning your device back on. Then you can start' +
-                ' using ChromeOS Flex.');
+                'Your device will shut down in 60 seconds. Remove the USB \
+                 before turning your device back on. Then you can start using \
+                 ChromeOS Flex.');
             screen.showStep('success');
           },
         },
@@ -362,10 +362,6 @@ const createAssistantZippy = (type, isMinor, isNativeIcons) => {
       kind: ScreenKind.NORMAL,
     },
     {
-      id: 'consumer-update',
-      kind: ScreenKind.NORMAL,
-    },
-    {
       id: 'auto-enrollment-check',
       kind: ScreenKind.NORMAL,
     },
@@ -406,10 +402,6 @@ const createAssistantZippy = (type, isMinor, isNativeIcons) => {
       kind: ScreenKind.NORMAL,
     },
     {
-      id: 'add-child',
-      kind: ScreenKind.NORMAL,
-    },
-    {
       id: 'offline-ad-login',
       kind: ScreenKind.NORMAL,
       // Remove this step from preview here, because it can only occur during
@@ -446,17 +438,28 @@ const createAssistantZippy = (type, isMinor, isNativeIcons) => {
     {
       id: 'enterprise-enrollment',
       kind: ScreenKind.NORMAL,
-      handledSteps: 'error',
+      defaultState: 'step-signin',
+      handledSteps: 'error,ad-join',
       suffix: 'E',
-      data: {
-        gaiaPath: 'embedded/setup/v2/chromeos',
-        gaiaUrl: 'https://accounts.google.com/',
-      },
       states: [
         {
           id: 'error',
           trigger: (screen) => {
             screen.showError('Some error message', true);
+          },
+        },
+        {
+          id: 'ad-join-encrypted',
+          trigger: (screen) => {
+            screen.setAdJoinParams('machineName', 'userName', 0, true);
+            screen.showStep('ad-join');
+          },
+        },
+        {
+          id: 'ad-join',
+          trigger: (screen) => {
+            screen.setAdJoinParams('machineName', 'userName', 0, false);
+            screen.showStep('ad-join');
           },
         },
       ],
@@ -665,23 +668,10 @@ const createAssistantZippy = (type, isMinor, isNativeIcons) => {
     {
       id: 'gaia-signin',
       kind: ScreenKind.NORMAL,
-      handledSteps: 'online-gaia,allowlist-error',
+      handledSteps: 'allowlist-error',
       states: [
         {
-          id: 'online-gaia',
-          trigger: (screen) => {
-            screen.loadAuthExtension({
-              chromeType: 'chromedevice',
-              enterpriseManagedDevice: false,
-              forceReload: true,
-              gaiaPath: 'embedded/setup/v2/chromeos',
-              gaiaUrl: 'https://accounts.google.com/',
-              hl: loadTimeData.getString('app_locale'),
-            });
-          },
-        },
-        {
-          id: 'allowlist-error',
+          id: 'allowlist-customer',
           trigger: (screen) => {
             screen.showAllowlistCheckFailedError({
               enterpriseManaged: false,
@@ -857,10 +847,6 @@ const createAssistantZippy = (type, isMinor, isNativeIcons) => {
           },
         },
       ],
-    },
-    {
-      id: 'local-password-setup',
-      kind: ScreenKind.NORMAL,
     },
     {
       id: 'saml-confirm-password',
@@ -1372,10 +1358,6 @@ const createAssistantZippy = (type, isMinor, isNativeIcons) => {
       ],
     },
     {
-      id: 'password-selection',
-      kind: ScreenKind.NORMAL,
-    },
-    {
       id: 'arc-vm-data-migration',
       kind: ScreenKind.NORMAL,
     },
@@ -1748,8 +1730,7 @@ const createAssistantZippy = (type, isMinor, isNativeIcons) => {
     {
       id: 'quick-start',
       kind: ScreenKind.NORMAL,
-      handledSteps:
-          'verification,connecting_to_wifi,connected_to_wifi,gaia_credentials,fido_assertion_received',
+      handledSteps: 'verification,connecting_to_wifi,connected_to_wifi,gaia_credentials,fido_assertion_received',
       states: [
         {
           id: 'PinVerification',
@@ -1874,10 +1855,6 @@ const createAssistantZippy = (type, isMinor, isNativeIcons) => {
       this.knownScreens = undefined;
       /** Iterator for making a series of screenshots */
       this.commandIterator_ = undefined;
-    }
-
-    get currentScreenId() {
-      return this.currentScreenId_;
     }
 
     showDebugUI() {

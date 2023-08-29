@@ -5,7 +5,7 @@
 #ifndef THIRD_PARTY_BLINK_RENDERER_CORE_DOM_CHILD_NODE_PART_H_
 #define THIRD_PARTY_BLINK_RENDERER_CORE_DOM_CHILD_NODE_PART_H_
 
-#include "third_party/blink/renderer/bindings/core/v8/v8_part_init.h"
+#include "third_party/blink/renderer/bindings/core/v8/v8_node_part_init.h"
 #include "third_party/blink/renderer/bindings/core/v8/v8_union_node_string_trustedscript.h"
 #include "third_party/blink/renderer/core/core_export.h"
 #include "third_party/blink/renderer/core/dom/container_node.h"
@@ -22,59 +22,44 @@ namespace blink {
 // Implementation of the ChildNodePart class, which is part of the DOM Parts
 // API. A ChildNodePart stores a reference to a range of nodes within the
 // children of a single parent |Node| in the DOM tree.
-class CORE_EXPORT ChildNodePart : public Part, public PartRoot {
+class CORE_EXPORT ChildNodePart : public Part {
   DEFINE_WRAPPERTYPEINFO();
 
  public:
-  static ChildNodePart* Create(PartRootUnion* root_union,
+  static ChildNodePart* Create(PartRoot* root,
                                Node* previous_sibling,
                                Node* next_sibling,
-                               const PartInit* init,
+                               const NodePartInit* init,
                                ExceptionState& exception_state);
+  // TODO(crbug.com/1453291): Handle the init parameter.
   ChildNodePart(PartRoot& root,
                 Node& previous_sibling,
                 Node& next_sibling,
-                const PartInit* init)
-      : ChildNodePart(root,
-                      previous_sibling,
-                      next_sibling,
-                      init && init->hasMetadata() ? init->metadata()
-                                                  : Vector<String>()) {}
-  ChildNodePart(PartRoot& root,
-                Node& previous_sibling,
-                Node& next_sibling,
-                const Vector<String> metadata);
+                const NodePartInit* init)
+      : Part(root),
+        previous_sibling_(previous_sibling),
+        next_sibling_(next_sibling) {}
   ChildNodePart(const ChildNodePart&) = delete;
   ~ChildNodePart() override = default;
 
   void Trace(Visitor* visitor) const override;
-  bool IsValid() const override;
-  Node* NodeToSortBy() const override;
-  Part* ClonePart(NodeCloningData&) const override;
-  PartRoot* GetAsPartRoot() const override {
-    return const_cast<ChildNodePart*>(this);
-  }
-
-  Document& GetDocument() const override;
-  bool IsDocumentPartRoot() const override { return false; }
-  Node* FirstIncludedChildNode() const override { return previous_sibling_; }
-  Node* LastIncludedChildNode() const override { return next_sibling_; }
+  Node* RelevantNode() const override;
+  String ToString() const override;
+  bool SupportsContainedParts() const override { return true; }
 
   // ChildNodePart API
-  void disconnect() override;
-  PartRootUnion* clone(ExceptionState& exception_state);
-  ContainerNode* rootContainer() const override;
-  ContainerNode* parentNode() const { return previous_sibling_->parentNode(); }
   Node* previousSibling() const { return previous_sibling_; }
   Node* nextSibling() const { return next_sibling_; }
-  void setNextSibling(Node& next_sibling);
-  HeapVector<Member<Node>> children() const;
-  void replaceChildren(
-      const HeapVector<Member<V8UnionNodeOrStringOrTrustedScript>>& nodes,
-      ExceptionState& exception_state);
+  // TODO(crbug.com/1453291) Implement this method.
+  HeapVector<Member<Node>> children() const {
+    return HeapVector<Member<Node>>();
+  }
+  // TODO(crbug.com/1453291) Implement this method.
+  void replaceChildren(const HeapVector<Member<V8UnionNodeOrString>>& nodes) {}
 
  protected:
-  const PartRoot* GetParentPartRoot() const override { return root(); }
+  bool IsValid() override;
+  Document* GetDocument() const override;
 
  private:
   // Checks if this ChildNodePart is valid. This should only be called if the

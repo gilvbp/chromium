@@ -7,10 +7,11 @@ package org.chromium.chrome.browser.incognito;
 import android.annotation.SuppressLint;
 
 import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 
-import org.chromium.base.ResettersForTesting;
 import org.chromium.base.UnownedUserData;
 import org.chromium.base.UnownedUserDataKey;
+import org.chromium.build.annotations.CheckDiscard;
 import org.chromium.chrome.browser.dependency_injection.ActivityScope;
 import org.chromium.chrome.browser.profiles.OTRProfileID;
 import org.chromium.chrome.browser.profiles.Profile;
@@ -75,10 +76,11 @@ public class IncognitoCctProfileManager implements UnownedUserData {
         return KEY.retrieveDataFromHost(window.getUnownedUserDataHost());
     }
 
+    @CheckDiscard("Test-only setter.")
+    @VisibleForTesting
     public static void setIncognitoCctProfileManagerForTesting(
             IncognitoCctProfileManager incognitoCctProfileManager) {
         sIncognitoCctProfileManagerForTesting = incognitoCctProfileManager;
-        ResettersForTesting.register(() -> sIncognitoCctProfileManagerForTesting = null);
     }
 
     public Profile getProfile() {

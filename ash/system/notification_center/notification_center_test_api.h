@@ -52,24 +52,12 @@ class NotificationCenterTestApi {
       delete;
   ~NotificationCenterTestApi() = default;
 
-  // Toggles the `UnifiedMessageCenterBubble` or `NotificationCenterBubble`
-  // (depending on whether QsRevamp is disabled or enabled, respectively) by
-  // simulating a click on the `UnifiedSystemTray` or `NotificationCenterTray`
-  // on the primary display. Note: This API does not wait for any tray
-  // animations to finish before clicking on the tray - that responsibility is
-  // left to the caller (this becomes relevant, for instance, when the tray's
-  // hide animation is running, as events are disabled for the duration of that
-  // animation).
+  // Toggles the `NotificationCenterBubble` by simulating a click on the
+  // `NotificationCenterTray` on the primary display.
   void ToggleBubble();
 
-  // Toggles the `UnifiedMessageCenterBubble` or `NotificationCenterBubble`
-  // (depending on whether QsRevamp is disabled or enabled, respectively) by
-  // simulating a click on the `UnifiedSystemTray` or `NotificationCenterTray`
-  // on the specified display. Note: This API does not wait for any tray
-  // animations to finish before clicking on the tray - that responsibility is
-  // left to the caller (this becomes relevant, for instance, when the tray's
-  // hide animation is running, as events are disabled for the duration of that
-  // animation).
+  // Toggles the `NotificationCenterBubble` by simulating a click on the
+  // `NotificationCenterTray` on the specified display.
   void ToggleBubbleOnDisplay(int64_t dispay_id);
 
   // Adds a notification with custom parameters and returns the associated id.
@@ -256,7 +244,7 @@ class NotificationCenterTestApi {
       const message_center::RichNotificationData& optional_fields);
 
   int notification_id_ = 0;
-  const raw_ptr<NotificationCenterTray, DanglingUntriaged | ExperimentalAsh>
+  const raw_ptr<NotificationCenterTray, ExperimentalAsh>
       notification_center_tray_;
 
   const int64_t primary_display_id_;

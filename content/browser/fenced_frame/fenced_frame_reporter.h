@@ -36,21 +36,6 @@ class BrowserContext;
 class PrivateAggregationManager;
 class RenderFrameHostImpl;
 
-// An event to be sent to a preregistered url.
-// `type` is the key for the `ReportingUrlMap`, and `data` is sent with the
-// request as a POST.
-struct DestinationEnumEvent {
-  std::string type;
-  std::string data;
-};
-
-// An event to be sent to a custom url.
-// `url` is the custom destination url, and the request is sent as a GET.
-// Macros are substituted using the `ReportingMacros`.
-struct DestinationURLEvent {
-  GURL url;
-};
-
 // Class that receives report events from fenced frames, and uses a
 // per-destination-type maps of events to URLs to send reports. The maps may be
 // received after the report event calls, in which case the reports will be
@@ -59,8 +44,6 @@ class CONTENT_EXPORT FencedFrameReporter
     : public base::RefCounted<FencedFrameReporter> {
  public:
   using ReportingUrlMap = base::flat_map<std::string, GURL>;
-
-  using ReportingMacros = std::vector<std::pair<std::string, std::string>>;
 
   using PrivateAggregationRequests =
       std::vector<auction_worklet::mojom::PrivateAggregationRequestPtr>;
@@ -97,19 +80,13 @@ class CONTENT_EXPORT FencedFrameReporter
   //
   // `winner_origin` is the winning buyer's origin. Can be an opaque origin in
   // test iff the test does not have for event private aggregation requests.
-  //
-  // `allowed_reporting_origins` is the winning ad's allowedReportingOrigins. If
-  //  any macro report is attempted to an unlisted origin, all further reports
-  //  after it will be cancelled.
   static scoped_refptr<FencedFrameReporter> CreateForFledge(
       scoped_refptr<network::SharedURLLoaderFactory> url_loader_factory,
       BrowserContext* browser_context,
       bool direct_seller_is_seller,
       PrivateAggregationManager* private_aggregation_manager,
       const url::Origin& main_frame_origin,
-      const url::Origin& winner_origin,
-      const absl::optional<std::vector<url::Origin>>&
-          allowed_reporting_origins = absl::nullopt);
+      const url::Origin& winner_origin);
 
   // Don't use this constructor directly, but use factory methods instead.
   // See factory methods for details.
@@ -120,9 +97,7 @@ class CONTENT_EXPORT FencedFrameReporter
       BrowserContext* browser_context,
       PrivateAggregationManager* private_aggregation_manager = nullptr,
       const absl::optional<url::Origin>& main_frame_origin = absl::nullopt,
-      const absl::optional<url::Origin>& winner_origin = absl::nullopt,
-      const absl::optional<std::vector<url::Origin>>&
-          allowed_reporting_origins = absl::nullopt);
+      const absl::optional<url::Origin>& winner_origin = absl::nullopt);
 
   // Called when a mapping for reports of type `reporting_destination` is ready.
   // The reporter must currently be considering maps of type
@@ -145,11 +120,6 @@ class CONTENT_EXPORT FencedFrameReporter
   // destination, so it can discard reports for that destination, and provide
   // errors messages for subsequent SendReporter() using that destination.
   //
-  // `reporting_ad_macros` is absl::nullopt unless when `reporting_destination`
-  // is kBuyer. If it is learned that there are no ad macros for kBuyer, should
-  // be called with an empty ReportingMacros, so it can discard macro reports,
-  // and provide errors messages for subsequent SendReporter().
-  //
   // TODO(https://crbug.com/1409133): Consider investing in outputting error to
   // correct frame, if it still exists. `frame_tree_node_id` somewhat does this,
   // though it doesn't change across navigations, so could end up displaying an
@@ -157,29 +127,18 @@ class CONTENT_EXPORT FencedFrameReporter
   // options.
   void OnUrlMappingReady(
       blink::FencedFrame::ReportingDestination reporting_destination,
-      ReportingUrlMap reporting_url_map,
-      absl::optional<ReportingMacros> reporting_ad_macros = absl::nullopt);
+      ReportingUrlMap reporting_url_map);
 
-  // Sends a report for the specified event, using the ReportingUrlMap
-  // associated with `reporting_destination`. If the map for
+  // Uses `event_type`, `event_data` and the ReportingUrlMap associated with
+  // `reporting_destination` to send a report. If the map for
   // `reporting_destination` is pending, queues the report until the mapping
-  // information is received.
+  // information is received. If there's no matching information for
+  // `event_type`, does nothing.
   //
-  // The event is specified with `event_variant`, which is either:
-  // * a `DestinationEnumEvent`, which contains a `type` and `data`
-  //   * Sends a POST to the url specified by `type` in the ReportingUrlMap,
-  //     with `data` attached.
-  //   * If there's no matching `type`, no beacon is sent.
-  //   sent.
-  // * a `DestinationURLEvent`, which contains a `url`
-  //   * Sends a GET to `url`.
-  //   * Substitutes macros from the ReportingMacros.
-  //
-  // Returns false and populated `error_message` and `console_message_level` if
-  // no network request was attempted, unless the reporting URL map for
-  // `reporting_destination` is pending. In that case, errors are currently
-  // never reported, even if the reporting URL map results in no request being
-  // sent.
+  // Returns false and populated `error_message` if no network request was
+  // attempted, unless the reporting URL map for `reporting_destination` is
+  // pending. In that case, errors are currently never reported, even if the
+  // reporting URL map results in no request being sent.
   //
   // `initiator_frame_tree_node_id` is used for DevTools support only.
   //
@@ -190,14 +149,13 @@ class CONTENT_EXPORT FencedFrameReporter
   // In all other cases (including the fence.reportEvent() case), the navigation
   // id will be null.
   bool SendReport(
-      const absl::variant<DestinationEnumEvent, DestinationURLEvent>&
-          event_variant,
+      const std::string& event_type,
+      const std::string& event_data,
       blink::FencedFrame::ReportingDestination reporting_destination,
       RenderFrameHostImpl* request_initiator_frame,
       network::AttributionReportingRuntimeFeatures
           attribution_reporting_runtime_features,
       std::string& error_message,
-      blink::mojom::ConsoleMessageLevel& console_message_level,
       int initiator_frame_tree_node_id = RenderFrameHost::kNoFrameTreeNodeId,
       absl::optional<int64_t> navigation_id = absl::nullopt);
 
@@ -223,24 +181,16 @@ class CONTENT_EXPORT FencedFrameReporter
   // need to be sent after this is called.
   void SendPrivateAggregationRequestsForEvent(const std::string& pa_event_type);
 
-  // Returns a copy of the internal reporting metadata's `reporting_url_map`, so
-  // it can be validated in tests. Only includes ad beacon maps for which maps
-  // have been received - i.e., if wait for OnUrlMappingReady() to be invoked
-  // for a reporting destination, it is not included in the returned map.
+  // Returns a copy of the internal reporting metadata, so it can be validated
+  // in tests. Only includes maps for which maps have been received - i.e., if
+  // wait for OnUrlMappingReady() to be invoked for a reporting destination, it
+  // is not included in the returned map.
   base::flat_map<blink::FencedFrame::ReportingDestination, ReportingUrlMap>
   GetAdBeaconMapForTesting();
 
-  // Returns a copy of the internal reporting metadata's
-  // `reporting_ad_macros`, so it can be validated in tests. Only includes ad
-  // macros for which maps have been received - i.e., if wait for
-  // OnUrlMappingReady() to be invoked for a reporting destination, it is not
-  // included in the returned map.
-  base::flat_map<blink::FencedFrame::ReportingDestination, ReportingMacros>
-  GetAdMacrosForTesting();
-
   // Returns `received_pa_events_`, so that it can be validated in tests. Should
   // only be called from tests.
-  std::set<std::string> GetReceivedPaEventsForTesting() const;
+  std::set<std::string> GetReceivedPaEventsForTesting();
 
   // Returns a copy of `private_aggregation_event_map_`, so that it can be
   // validated in tests. Should only be called from tests.
@@ -260,7 +210,8 @@ class CONTENT_EXPORT FencedFrameReporter
 
   struct PendingEvent {
     PendingEvent(
-        const absl::variant<DestinationEnumEvent, DestinationURLEvent>& event,
+        const std::string& type,
+        const std::string& data,
         const url::Origin& request_initiator,
         absl::optional<AttributionReportingData> attribution_reporting_data,
         int initiator_frame_tree_node_id);
@@ -273,7 +224,8 @@ class CONTENT_EXPORT FencedFrameReporter
 
     ~PendingEvent();
 
-    absl::variant<DestinationEnumEvent, DestinationURLEvent> event;
+    std::string type;
+    std::string data;
     url::Origin request_initiator;
     // The data necessary for attribution reporting. Will be `absl::nullopt` if
     // attribution reporting is disallowed in the initiator frame.
@@ -295,11 +247,6 @@ class CONTENT_EXPORT FencedFrameReporter
     // `pending_events`, and only sent once this is populated.
     absl::optional<ReportingUrlMap> reporting_url_map;
 
-    // If null, the reporting ad macros has yet to be received, and any reports
-    // that are attempted to be sent to custom URLs will be added to
-    // `pending_events`, and only sent once this is populated.
-    absl::optional<ReportingMacros> reporting_ad_macros;
-
     // Pending report strings received while `reporting_url_map` was
     // absl::nullopt. Once the map is received, this is cleared, and reports are
     // sent.
@@ -311,15 +258,14 @@ class CONTENT_EXPORT FencedFrameReporter
   // Helper to send a report, used by both SendReport() and OnUrlMappingReady().
   bool SendReportInternal(
       const ReportingDestinationInfo& reporting_destination_info,
-      const absl::variant<DestinationEnumEvent, DestinationURLEvent>& event,
+      const std::string& event_type,
+      const std::string& event_data,
       blink::FencedFrame::ReportingDestination reporting_destination,
       const url::Origin& request_initiator,
       const absl::optional<AttributionReportingData>&
           attribution_reporting_data,
-      int initiator_frame_tree_node_id,
       std::string& error_message,
-      blink::mojom::ConsoleMessageLevel& console_message_level,
-      const std::string& devtools_request_id);
+      int initiator_frame_tree_node_id);
 
   // Helper to send private aggregation requests in
   // `private_aggregation_event_map_` with key `pa_event_type`.
@@ -372,17 +318,6 @@ class CONTENT_EXPORT FencedFrameReporter
 
   // The winning buyer's origin. Set to absl::nullopt for non-FLEDGE reporter.
   const absl::optional<url::Origin> winner_origin_;
-
-  // Origins allowed to receive macro expanded reports.
-  const absl::optional<std::vector<url::Origin>> allowed_reporting_origins_;
-
-  // Whether there has been an attempt to send a custom destination url with
-  // macro substitution report to a disallowed origin (according to
-  // `allowed_reporting_origins_`). Once this occurs, custom destination url
-  // reports will be disabled for the remainder of the FencedFrameReporter's
-  // lifetime. This prevents an interest group from encoding cross-site data
-  // about a user in binary with its choices of allowed/disallowed origins.
-  bool attempted_custom_url_report_to_disallowed_origin_ = false;
 
   // Private aggregation requests for non-reserved event types registered in
   // bidder worklets, keyed by event type.

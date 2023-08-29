@@ -7,24 +7,23 @@ import argparse
 import collections
 import contextlib
 import enum
-import functools
 import inspect
 import io
 import logging
-import multiprocessing
 import optparse
 import pathlib
-import re
 import textwrap
-import typing
 import urllib.parse
-from typing import Dict, Hashable, List, Optional, Set, Tuple, Type, Union
+from typing import Hashable, List, Optional, Set, Tuple, Type, Union
 
 from blinkpy.common import path_finder
 from blinkpy.common.host import Host
 from blinkpy.common.system.filesystem import FileSystem
 from blinkpy.tool.commands.command import Command
-from blinkpy.w3c import wpt_metadata
+from blinkpy.tool.commands.update_metadata import (
+    BUG_PATTERN,
+    TestConfigurations,
+)
 from blinkpy.w3c.common import is_basename_skipped
 from blinkpy.w3c.wpt_manifest import WPTManifest
 from blinkpy.web_tests.port.base import Port
@@ -280,16 +279,13 @@ class LintWPT(Command):
 
     def __init__(self,
                  tool: Host,
-                 configs: Optional[wpt_metadata.TestConfigurations] = None):
+                 configs: Optional[TestConfigurations] = None):
         super().__init__()
         self._tool = tool
         self._fs = self._tool.filesystem
         self._default_port = self._tool.port_factory.get()
-        self._default_port.set_option_default(
-            'test_types', typing.get_args(wpt_metadata.TestType))
         self._finder = path_finder.PathFinder(self._fs)
-        self._configs = configs or wpt_metadata.TestConfigurations.generate(
-            self._tool)
+        self._configs = configs or TestConfigurations.generate(self._tool)
 
     def parse_args(self, args: List[str]) -> Tuple[optparse.Values, List[str]]:
         # TODO(crbug.com/1431070): Migrate `blink_tool.py` to stdlib's
@@ -321,25 +317,16 @@ class LintWPT(Command):
         options.json = True
         wptlint.output_errors_json = (
             lambda _log, worker_errors: errors.extend(worker_errors))
-        # This is ugly, but it works around crbug.com/1470511 while still
-        # allowing for parallelism.
-        self._initialize_rule_registry()
-        wptlint.multiprocessing.Pool = functools.partial(
-            multiprocessing.Pool, initializer=self._initialize_rule_registry)
-        exit_code = wptlint.main(**vars(options))
-        self._log_errors(errors, options.repo_root)
-        return exit_code
-
-    def _initialize_rule_registry(self):
-        """Add custom rules to the linter rule registry. Must be idempotent."""
         # Replace `web-platform.test` regexp rule with a metadata-aware one.
         wptlint.regexps = [
             regexp for regexp in wptlint.regexps
             if not isinstance(regexp, rules.WebPlatformTestRegexp)
         ]
         wptlint.regexps.append(WebPlatformTestRegexp(self._fs))
-        if self.check_metadata not in wptlint.file_lints:
-            wptlint.file_lints.append(self.check_metadata)
+        wptlint.file_lints.append(self.check_metadata)
+        exit_code = wptlint.main(**vars(options))
+        self._log_errors(errors, options.repo_root)
+        return exit_code
 
     def _log_errors(self, errors: List[LintError], repo_root: str):
         if not errors:
@@ -440,9 +427,6 @@ class LintWPT(Command):
 
 
 class MetadataLinter(static.Compiler):
-    _disable_pattern = re.compile(
-        r'\s*lint-wpt:\s*disable\s*=\s*(?P<rules>[^;]*)')
-
     def __init__(
         self,
         path: str,
@@ -450,7 +434,7 @@ class MetadataLinter(static.Compiler):
         test_type: Optional[str],
         manifest: WPTManifest,
         metadata_root: str,
-        configs: wpt_metadata.TestConfigurations,
+        configs: TestConfigurations,
     ):
         super().__init__()
         self.path = path
@@ -460,9 +444,8 @@ class MetadataLinter(static.Compiler):
         # `context` contains information about the current section type,
         # heading, and key as it becomes available during the traversal. It's
         # also provided to the error message formatter.
-        self.context: Dict[str, str] = {}
-        self.disabled_rules: Set[str] = set()
-        self.errors: Set[LintError] = set()
+        self.context = {}
+        self.errors = set()
         # Check that all configurations have the same keys.
         assert len({frozenset(config.data) for config in configs}) == 1
 
@@ -511,27 +494,13 @@ class MetadataLinter(static.Compiler):
                         self._error(MetadataLongTimeout, test=test_id)
 
     def visit(self, node: wptnode.Node):
-        with self._disable_rules(node):
-            try:
-                return super().visit(node)
-            except AttributeError:
-                # When no handler is explicitly specified, default to traversing
-                # the node's children.
-                for child in node.children:
-                    self.visit(child)
-
-    @contextlib.contextmanager
-    def _disable_rules(self, node: wptnode.Node):
-        disabled_rules = set(self.disabled_rules)
         try:
-            for _, comment in node.comments:
-                disable_match = self._disable_pattern.match(comment)
-                if disable_match:
-                    rules = disable_match['rules'].split(',')
-                    self.disabled_rules.update(rule.strip() for rule in rules)
-            yield
-        finally:
-            self.disabled_rules = disabled_rules
+            return super().visit(node)
+        except AttributeError:
+            # When no handler is explicitly specified, default to traversing
+            # the node's children.
+            for child in node.children:
+                self.visit(child)
 
     def visit_DataNode(self, node: wptnode.DataNode):
         section_type = self.context.get('next_type')
@@ -550,9 +519,10 @@ class MetadataLinter(static.Compiler):
                     pathlib.Path(self.path).as_posix(), node.data)
                 if not self.manifest.is_test_url(test_id):
                     self._error(MetadataUnknownTest, test=test_id)
-                if wpt_metadata.can_have_subtests(self.test_type):
+                if self.test_type == 'testharness':
                     next_type = SectionType.SUBTEST
-            if heading and not node.children:
+            if not node.children:
+                assert heading
                 self._error(MetadataEmptySection)
             self._check_section_sorted(node)
             with self.using_context(next_type=next_type):
@@ -639,9 +609,10 @@ class MetadataLinter(static.Compiler):
     def _implicit_default_value(self, key: str) -> Hashable:
         """Return the value wptrunner infers when no conditions match."""
         if key == 'expected':
-            is_subtest = self.context['section_type'] is not SectionType.TEST
-            default_expected = wpt_metadata.default_expected_by_type()
-            return default_expected[self.test_type, is_subtest]
+            if (self.context['section_type'] is SectionType.TEST
+                    and self.test_type == 'testharness'):
+                return 'OK'
+            return 'PASS'
         elif key == 'disabled' or key == 'restart-after':
             return False
         # Add a sentinel object to simulate no explicit default. This unique
@@ -697,7 +668,7 @@ class MetadataLinter(static.Compiler):
                 fuzzy_prop({'fuzzy': node.data})
             except ValueError:
                 self._error(MetadataBadValue, value=node.data)
-        if key == 'bug' and not wpt_metadata.BUG_PATTERN.fullmatch(node.data):
+        if key == 'bug' and not BUG_PATTERN.fullmatch(node.data):
             self._error(MetadataBadValue, value=node.data)
         return node.data
 
@@ -712,11 +683,7 @@ class MetadataLinter(static.Compiler):
         section_type = context.get('section_type')
         if section_type:
             context['section_type'] = section_type.name.capitalize()
-        error = name, description, path, _ = rule.error(self.path, context)
-        if {'*', rule.name} & self.disabled_rules:
-            _log.debug('Skipping rule %s in %s: %s', name, path, description)
-        else:
-            self.errors.add(error)
+        self.errors.add(rule.error(self.path, context))
 
     def _check_section_sorted(self, node: wptnode.DataNode):
         sort_key = lambda child: (isinstance(child, wptnode.DataNode), child.
@@ -741,7 +708,7 @@ class MetadataLinter(static.Compiler):
         if section_type is SectionType.SUBTEST:
             return MetadataBadValue.subtest_statuses
         assert section_type is SectionType.TEST
-        if wpt_metadata.can_have_subtests(self.test_type):
+        if self.test_type == 'testharness':
             return MetadataBadValue.harness_statuses
         return MetadataBadValue.test_statuses
 
@@ -754,5 +721,4 @@ def _format_condition(condition: Condition) -> str:
 
 
 def _format_node(node: wptnode.Node) -> str:
-    node, _, _ = wptmanifest.serialize(node).splitlines()[0].partition('#')
-    return node.strip()
+    return wptmanifest.serialize(node).splitlines()[0].strip()

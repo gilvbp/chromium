@@ -61,11 +61,10 @@ HistoryUiFaviconRequestHandlerFactory::HistoryUiFaviconRequestHandlerFactory()
 HistoryUiFaviconRequestHandlerFactory::
     ~HistoryUiFaviconRequestHandlerFactory() = default;
 
-std::unique_ptr<KeyedService>
-HistoryUiFaviconRequestHandlerFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* HistoryUiFaviconRequestHandlerFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   Profile* profile = Profile::FromBrowserContext(context);
-  return std::make_unique<favicon::HistoryUiFaviconRequestHandlerImpl>(
+  return new favicon::HistoryUiFaviconRequestHandlerImpl(
       base::BindRepeating(&CanSendHistoryData,
                           SyncServiceFactory::GetForProfile(profile)),
       FaviconServiceFactory::GetForProfile(profile,

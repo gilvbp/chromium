@@ -116,13 +116,8 @@ void CloseMojomConnection(
 }  // namespace
 
 base::TimeDelta GetDeviceIdleTime() {
-  base::TimeTicks last_activity =
-      CHECK_DEREF(ui::UserActivityDetector::Get()).last_activity_time();
-  if (last_activity.is_null()) {
-    // No activity since booting.
-    return base::TimeDelta::Max();
-  }
-  return base::TimeTicks::Now() - last_activity;
+  return base::TimeTicks::Now() -
+         ui::UserActivityDetector::Get()->last_activity_time();
 }
 
 UserSessionType GetCurrentUserSessionType() {
@@ -140,7 +135,7 @@ UserSessionType GetCurrentUserSessionType() {
     }
   }
 
-  if (user_manager.IsLoggedInAsManagedGuestSession()) {
+  if (user_manager.IsLoggedInAsPublicAccount()) {
     return UserSessionType::MANAGED_GUEST_SESSION;
   }
 

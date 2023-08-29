@@ -55,8 +55,6 @@ public final class AccountCapabilitiesTest {
                 return capabilities.isOptedInToParentalSupervision();
             case AccountCapabilitiesConstants.CAN_TOGGLE_AUTO_UPDATES_NAME:
                 return capabilities.canToggleAutoUpdates();
-            case AccountCapabilitiesConstants.CAN_USE_CHROME_IP_PROTECTION_NAME:
-                return capabilities.canUseChromeIpProtection();
             case AccountCapabilitiesConstants.IS_ALLOWED_FOR_MACHINE_LEARNING_CAPABILITY_NAME:
                 return capabilities.isAllowedForMachineLearning();
             case AccountCapabilitiesConstants
@@ -106,9 +104,6 @@ public final class AccountCapabilitiesTest {
                 new ParameterSet()
                         .name("CanToggleAutoUpdates")
                         .value(AccountCapabilitiesConstants.CAN_TOGGLE_AUTO_UPDATES_NAME),
-                new ParameterSet()
-                        .name("CanUseChromeIpProtection")
-                        .value(AccountCapabilitiesConstants.CAN_USE_CHROME_IP_PROTECTION_NAME),
                 new ParameterSet()
                         .name("IsAllowedForMachineLearning")
                         .value(AccountCapabilitiesConstants

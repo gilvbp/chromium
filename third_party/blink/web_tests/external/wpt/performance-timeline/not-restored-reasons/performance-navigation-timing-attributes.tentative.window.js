@@ -43,7 +43,7 @@ promise_test(async t => {
       /*src=*/ null,
       /*id=*/ null,
       /*name=*/ null,
-      /*reasons=*/['websocket'],
+      /*reasons=*/['WebSocket'],
       /*children=*/[{
         'blocked': false,
         'url': null,

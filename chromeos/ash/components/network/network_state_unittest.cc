@@ -249,10 +249,9 @@ TEST_F(NetworkStateTest, VPNThirdPartyProvider) {
   EXPECT_TRUE(SetStringProperty(shill::kTypeProperty, shill::kTypeVPN));
   EXPECT_TRUE(SetStringProperty(shill::kNameProperty, "VPN"));
 
-  auto provider =
-      base::Value::Dict()
-          .Set(shill::kTypeProperty, shill::kProviderThirdPartyVpn)
-          .Set(shill::kHostProperty, "third-party-vpn-provider-extension-id");
+  base::Value::Dict provider;
+  provider.Set(shill::kTypeProperty, shill::kProviderThirdPartyVpn);
+  provider.Set(shill::kHostProperty, "third-party-vpn-provider-extension-id");
   EXPECT_TRUE(
       SetProperty(shill::kProviderProperty, base::Value(std::move(provider))));
   SignalInitialPropertiesReceived();
@@ -268,9 +267,9 @@ TEST_F(NetworkStateTest, VPNArcProvider) {
   EXPECT_TRUE(SetStringProperty(shill::kTypeProperty, shill::kTypeVPN));
   EXPECT_TRUE(SetStringProperty(shill::kNameProperty, "VPN"));
 
-  auto provider = base::Value::Dict()
-                      .Set(shill::kTypeProperty, shill::kProviderArcVpn)
-                      .Set(shill::kHostProperty, "package.name.foo");
+  base::Value::Dict provider;
+  provider.Set(shill::kTypeProperty, shill::kProviderArcVpn);
+  provider.Set(shill::kHostProperty, "package.name.foo");
   EXPECT_TRUE(
       SetProperty(shill::kProviderProperty, base::Value(std::move(provider))));
   SignalInitialPropertiesReceived();
@@ -413,11 +412,10 @@ TEST_F(NetworkStateTest, CelularPaymentPortalPost) {
   EXPECT_TRUE(SetStringProperty(shill::kActivationStateProperty,
                                 shill::kActivationStateActivated));
 
-  auto payment_portal =
-      base::Value::Dict()
-          .Set(shill::kPaymentPortalURL, "http://test-portal.com")
-          .Set(shill::kPaymentPortalMethod, "POST")
-          .Set(shill::kPaymentPortalPostData, "fake_data");
+  base::Value::Dict payment_portal;
+  payment_portal.Set(shill::kPaymentPortalURL, "http://test-portal.com");
+  payment_portal.Set(shill::kPaymentPortalMethod, "POST");
+  payment_portal.Set(shill::kPaymentPortalPostData, "fake_data");
 
   EXPECT_TRUE(SetProperty(shill::kPaymentPortalProperty,
                           base::Value(std::move(payment_portal))));
@@ -443,11 +441,10 @@ TEST_F(NetworkStateTest, CelularPaymentPortalGet) {
   EXPECT_TRUE(SetStringProperty(shill::kActivationStateProperty,
                                 shill::kActivationStateActivated));
 
-  auto payment_portal =
-      base::Value::Dict()
-          .Set(shill::kPaymentPortalURL, "http://test-portal.com")
-          .Set(shill::kPaymentPortalMethod, "GET")
-          .Set(shill::kPaymentPortalPostData, "ignored");
+  base::Value::Dict payment_portal;
+  payment_portal.Set(shill::kPaymentPortalURL, "http://test-portal.com");
+  payment_portal.Set(shill::kPaymentPortalMethod, "GET");
+  payment_portal.Set(shill::kPaymentPortalPostData, "ignored");
 
   EXPECT_TRUE(SetProperty(shill::kPaymentPortalProperty,
                           base::Value(std::move(payment_portal))));

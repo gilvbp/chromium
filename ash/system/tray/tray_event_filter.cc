@@ -169,7 +169,7 @@ void TrayEventFilter::ProcessPressedEvent(const ui::LocatedEvent& event) {
       // If the bubble is anchored to the shelf corner, the notification popup
       // will be shown on top of that bubble. In that case, we should not filter
       // out the events happening on the popup notification.
-      if (features::IsNotifierCollisionEnabled() &&
+      if (features::IsQsRevampEnabled() &&
           bubble->GetBubbleView()->IsAnchoredToShelfCorner() &&
           unified_system_tray->GetMessagePopupCollection()
               ->popup_collection_bounds()

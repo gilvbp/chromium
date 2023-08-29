@@ -40,14 +40,3 @@ source_set("unit_tests") {
     "//testing/gtest:gtest",
   ]
 }
-
-source_set("test_support") {
-  testonly = true
-
-  sources = [ "feature_refs.cc" ]
-
-  deps = [
-    "//ash/constants",
-    "//base/test:test_support",
-  ]
-}

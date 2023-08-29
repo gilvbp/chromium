@@ -68,6 +68,10 @@ static_library("safe_browsing") {
     "//services/preferences/public/cpp",
   ]
 
+  if (is_apple) {
+    configs += [ "//build/config/compiler:enable_arc" ]
+  }
+
   if (enable_extensions) {
     sources += [
       "settings_reset_prompt/default_settings_fetcher.cc",
@@ -222,8 +226,6 @@ static_library("safe_browsing") {
         "chrome_enterprise_url_lookup_service.h",
         "chrome_enterprise_url_lookup_service_factory.cc",
         "chrome_enterprise_url_lookup_service_factory.h",
-        "chrome_safe_browsing_hats_delegate.cc",
-        "chrome_safe_browsing_hats_delegate.h",
         "cloud_content_scanning/binary_fcm_service.cc",
         "cloud_content_scanning/binary_fcm_service.h",
         "cloud_content_scanning/binary_upload_service.cc",
@@ -306,10 +308,6 @@ static_library("safe_browsing") {
         "extension_telemetry/remote_host_contacted_signal.h",
         "extension_telemetry/remote_host_contacted_signal_processor.cc",
         "extension_telemetry/remote_host_contacted_signal_processor.h",
-        "extension_telemetry/tabs_api_signal.cc",
-        "extension_telemetry/tabs_api_signal.h",
-        "extension_telemetry/tabs_api_signal_processor.cc",
-        "extension_telemetry/tabs_api_signal_processor.h",
         "extension_telemetry/tabs_execute_script_signal.cc",
         "extension_telemetry/tabs_execute_script_signal.h",
         "extension_telemetry/tabs_execute_script_signal_processor.cc",

@@ -10,7 +10,6 @@
 
 #include "base/values.h"
 #include "components/sync/model/sync_change.h"
-#include "extensions/common/extension_id.h"
 #include "third_party/abseil-cpp/absl/types/optional.h"
 
 namespace syncer {
@@ -46,7 +45,7 @@ class SettingSyncData {
       const {
     return change_type_;
   }
-  const ExtensionId& extension_id() const { return extension_id_; }
+  const std::string& extension_id() const { return extension_id_; }
   const std::string& key() const { return key_; }
   // value() cannot be called if ExtractValue() has been called.
   const base::Value& value() const { return *value_; }
@@ -61,7 +60,7 @@ class SettingSyncData {
   void ExtractSyncData(const syncer::SyncData& sync_data);
 
   absl::optional<syncer::SyncChange::SyncChangeType> change_type_;
-  ExtensionId extension_id_;
+  std::string extension_id_;
   std::string key_;
   absl::optional<base::Value> value_;
 };

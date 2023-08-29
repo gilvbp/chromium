@@ -447,12 +447,7 @@ public class ContextualSearchPanel extends OverlayPanel implements ContextualSea
 
     @Override
     public float getBarHeight() {
-        // If the font is scaled, the preset bar height obtained from super.getBarHeight() may be
-        // smaller than the height required to display the bar's content. In such cases, it is
-        // necessary to select the larger value between the preset height and the actual content
-        // height.
-        return Math.max(super.getBarHeight(), getSearchBarControlMinHeightDps())
-                + getInBarRelatedSearchesAnimatedHeightDps();
+        return super.getBarHeight() + getInBarRelatedSearchesAnimatedHeightDps();
     }
 
     @Override
@@ -959,11 +954,6 @@ public class ContextualSearchPanel extends OverlayPanel implements ContextualSea
         return mSearchBarControl != null;
     }
 
-    /** Returns the search bar's minimum required height. */
-    private float getSearchBarControlMinHeightDps() {
-        return mSearchBarControl == null ? 0 : mSearchBarControl.getMinHeightDps();
-    }
-
     // ============================================================================================
     // Image Control
     // ============================================================================================
@@ -1199,6 +1189,7 @@ public class ContextualSearchPanel extends OverlayPanel implements ContextualSea
      * makes the panel notify its subcomponents that the transition has been completed.
      * @param panelState The "to" state that has just been completed by the test.
      */
+    @VisibleForTesting
     public void updatePanelToStateForTest(@PanelState int panelState) {
         // Use a switch to just support the implemented state(s) and fail if others are attempted.
         switch (panelState) {

@@ -23,6 +23,7 @@
 
 TestOmniboxClient::TestOmniboxClient()
     : session_id_(SessionID::FromSerializedValue(1)),
+      bookmark_model_(nullptr),
       autocomplete_classifier_(
           std::make_unique<AutocompleteController>(
               CreateAutocompleteProviderClient(),
@@ -61,6 +62,15 @@ bool TestOmniboxClient::IsPasteAndGoEnabled() const {
 
 SessionID TestOmniboxClient::GetSessionID() const {
   return session_id_;
+}
+
+void TestOmniboxClient::SetBookmarkModel(
+    bookmarks::BookmarkModel* bookmark_model) {
+  bookmark_model_ = bookmark_model;
+}
+
+bookmarks::BookmarkModel* TestOmniboxClient::GetBookmarkModel() {
+  return bookmark_model_;
 }
 
 AutocompleteControllerEmitter*

@@ -11,7 +11,6 @@
 #include "base/check_op.h"
 #include "base/dcheck_is_on.h"
 #include "base/memory/ptr_util.h"
-#include "cc/input/hit_test_opaqueness.h"
 #include "cc/input/layer_selection_bound.h"
 #include "cc/paint/element_id.h"
 #include "third_party/abseil-cpp/absl/types/optional.h"
@@ -96,6 +95,8 @@ class PLATFORM_EXPORT PaintController {
 
   // These methods are called during painting.
 
+  void RecordDebugInfo(const DisplayItemClient& client);
+
   // Provide a new set of paint chunk properties to apply to recorded display
   // items. If id is nullptr, the id of the first display item will be used as
   // the id of the paint chunk if needed.
@@ -110,6 +111,7 @@ class PLATFORM_EXPORT PaintController {
   void SetWillForceNewChunk(bool force) {
     paint_chunker_.SetWillForceNewChunk(force);
   }
+  bool WillForceNewChunk() const { return paint_chunker_.WillForceNewChunk(); }
   void SetCurrentEffectivelyInvisible(bool invisible) {
     paint_chunker_.SetCurrentEffectivelyInvisible(invisible);
   }
@@ -118,14 +120,10 @@ class PLATFORM_EXPORT PaintController {
   }
   void EnsureChunk();
 
-  bool CurrentChunkIsNonEmptyAndTransparentToHitTest() const {
-    return paint_chunker_.CurrentChunkIsNonEmptyAndTransparentToHitTest();
-  }
   void RecordHitTestData(const DisplayItemClient&,
                          const gfx::Rect&,
                          TouchAction,
-                         bool blocking_wheel,
-                         cc::HitTestOpaqueness);
+                         bool);
 
   void RecordRegionCaptureData(const DisplayItemClient& client,
                                const RegionCaptureCropId& crop_id,
@@ -315,8 +313,6 @@ class PLATFORM_EXPORT PaintController {
   // will cleanup data that will no longer be used for the next cycle, validate
   // clients, and prepare for the next cycle.
   void FinishCycle();
-
-  void RecordDebugInfo(const DisplayItemClient&);
 
   // True if all display items associated with the client are validly cached.
   // However, the current algorithm allows the following situations even if

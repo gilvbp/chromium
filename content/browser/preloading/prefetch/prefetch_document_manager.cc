@@ -249,10 +249,6 @@ void PrefetchDocumentManager::ProcessCandidates(
     PrefetchUrl(prefetch_url, prefetch_type, referrer, no_vary_search_expected,
                 world, devtools_observer);
   }
-
-  if (PrefetchService* prefetch_service = GetPrefetchService()) {
-    prefetch_service->OnCandidatesUpdated();
-  }
 }
 
 bool PrefetchDocumentManager::MaybePrefetch(
@@ -415,7 +411,7 @@ void PrefetchDocumentManager::OnPrefetchSuccessful(
   referring_page_metrics_.prefetch_successful_count++;
   if (prefetch->GetPrefetchType().GetEagerness() ==
       blink::mojom::SpeculationEagerness::kEager) {
-    completed_eager_prefetches_.push_back(prefetch->GetWeakPtr());
+    number_eager_prefetches_completed_++;
   } else {
     completed_non_eager_prefetches_.push_back(prefetch->GetWeakPtr());
   }
@@ -425,31 +421,21 @@ void PrefetchDocumentManager::EnableNoVarySearchSupport() {
   no_vary_search_support_enabled_ = true;
 }
 
-std::tuple<bool, base::WeakPtr<PrefetchContainer>>
-PrefetchDocumentManager::CanPrefetchNow(PrefetchContainer* prefetch) {
-  DCHECK(base::Contains(owned_prefetches_, prefetch->GetURL()));
-  RenderFrameHost* rfh = &render_frame_host();
-  // The document needs to be active, primary and in a visible WebContents for
-  // the prefetch to be eligible.
-  if (!rfh->IsActive() || !rfh->GetPage().IsPrimary() ||
-      WebContents::FromRenderFrameHost(rfh)->GetVisibility() !=
-          Visibility::VISIBLE) {
-    return std::make_tuple(false, nullptr);
-  }
-  if (!PrefetchNewLimitsEnabled()) {
-    return std::make_tuple(true, nullptr);
-  }
+bool PrefetchDocumentManager::CanPrefetchNow(PrefetchContainer* prefetch) {
   DCHECK(PrefetchNewLimitsEnabled());
   if (prefetch->GetPrefetchType().GetEagerness() ==
       blink::mojom::SpeculationEagerness::kEager) {
-    return std::make_tuple(
-        completed_eager_prefetches_.size() <
-            MaxNumberOfEagerPrefetchesPerPageForPrefetchNewLimits(),
-        nullptr);
+    // TODO(crbug.com/1445086): Implement eviction policies.
+    return number_eager_prefetches_completed_ <
+           MaxNumberOfEagerPrefetchesPerPageForPrefetchNewLimits();
   } else {
+    base::EraseIf(completed_non_eager_prefetches_,
+                  [&](const base::WeakPtr<PrefetchContainer>& prefetch) {
+                    return !prefetch;
+                  });
     if (completed_non_eager_prefetches_.size() <
         MaxNumberOfNonEagerPrefetchesPerPageForPrefetchNewLimits()) {
-      return std::make_tuple(true, nullptr);
+      return true;
     }
     // We are at capacity, and now need to evict the oldest non-eager prefetch
     // to make space for a new one.
@@ -459,7 +445,9 @@ PrefetchDocumentManager::CanPrefetchNow(PrefetchContainer* prefetch) {
     // TODO(crbug.com/1445086): We should also be checking if the prefetch is
     // currently being used to serve a navigation. In that scenario, evicting
     // doesn't make sense.
-    return std::make_tuple(true, oldest_prefetch);
+    EvictPrefetch(oldest_prefetch);
+    completed_non_eager_prefetches_.pop_front();
+    return true;
   }
 }
 
@@ -471,19 +459,6 @@ void PrefetchDocumentManager::SetPrefetchDestructionCallback(
 void PrefetchDocumentManager::PrefetchWillBeDestroyed(
     PrefetchContainer* prefetch) {
   prefetch_destruction_callback_.Run(prefetch->GetURL());
-  if (PrefetchNewLimitsEnabled()) {
-    std::vector<base::WeakPtr<PrefetchContainer>>& completed_prefetches =
-        prefetch->GetPrefetchType().GetEagerness() ==
-                blink::mojom::SpeculationEagerness::kEager
-            ? completed_eager_prefetches_
-            : completed_non_eager_prefetches_;
-    auto it = base::ranges::find(
-        completed_prefetches, prefetch->GetPrefetchContainerKey(),
-        [&](const auto& p) { return p->GetPrefetchContainerKey(); });
-    if (it != completed_prefetches.end()) {
-      completed_prefetches.erase(it);
-    }
-  }
 }
 
 void PrefetchDocumentManager::EvictPrefetch(

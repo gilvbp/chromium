@@ -7,7 +7,6 @@
 #include "base/files/file_path.h"
 #include "base/memory/raw_ptr.h"
 #include "base/path_service.h"
-#include "base/strings/string_util.h"
 #include "base/values.h"
 #include "content/public/test/browser_task_environment.h"
 #include "content/public/test/test_utils.h"
@@ -58,9 +57,8 @@ base::FilePath ToFirstLetterUppercasePath(const base::FilePath& path) {
   // Note: if there are no lowercase letters in |path|, this method returns
   // |path|.
   for (auto& c : path_copy) {
-    const auto upper_c = base::ToUpperASCII(c);
-    if (upper_c != c) {
-      c = upper_c;
+    if (std::islower(c)) {
+      c = base::ToUpperASCII(c);
       break;
     }
   }

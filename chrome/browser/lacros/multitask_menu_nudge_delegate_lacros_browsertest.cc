@@ -2,7 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "base/test/test_future.h"
 #include "chrome/browser/lacros/multitask_menu_nudge_delegate_lacros.h"
 
 #include "base/json/values_util.h"
@@ -19,47 +18,38 @@ IN_PROC_BROWSER_TEST_F(MultitaskMenuNudgeDelegateLacrosBrowserTest, Basics) {
   ASSERT_TRUE(lacros_service);
   ASSERT_TRUE(lacros_service->IsAvailable<crosapi::mojom::Prefs>());
 
-  auto& prefs =
-      chromeos::LacrosService::Get()->GetRemote<crosapi::mojom::Prefs>();
+  crosapi::mojom::PrefsAsyncWaiter async_waiter(
+      chromeos::LacrosService::Get()->GetRemote<crosapi::mojom::Prefs>().get());
 
-  base::test::TestFuture<absl::optional<base::Value>> int_value_future;
-  prefs->GetPref(
+  absl::optional<base::Value> int_value;
+  async_waiter.GetPref(
       crosapi::mojom::PrefPath::kMultitaskMenuNudgeClamshellShownCount,
-      int_value_future.GetCallback());
+      &int_value);
 
   // If the pref cannot be fetched, the ash version may be too old.
-  if (!int_value_future.Take().has_value()) {
+  if (!int_value.has_value()) {
     GTEST_SKIP() << "Skipping as the nudge prefs are not available in the "
                     "current version of Ash";
   }
 
-  base::test::TestFuture<void> set_future;
   base::Time expected_time = base::Time();
-
-  prefs->SetPref(
+  async_waiter.SetPref(
       crosapi::mojom::PrefPath::kMultitaskMenuNudgeClamshellShownCount,
-      base::Value(2), set_future.GetCallback());
-  EXPECT_TRUE(set_future.Wait());
-  set_future.Clear();
-
-  prefs->SetPref(
+      base::Value(2));
+  async_waiter.SetPref(
       crosapi::mojom::PrefPath::kMultitaskMenuNudgeClamshellLastShown,
-      base::TimeToValue(expected_time), set_future.GetCallback());
-  EXPECT_TRUE(set_future.Wait());
+      base::TimeToValue(expected_time));
 
-  base::test::TestFuture<absl::optional<base::Value>> time_value_future;
-  prefs->GetPref(
+  absl::optional<base::Value> time_value;
+  async_waiter.GetPref(
       crosapi::mojom::PrefPath::kMultitaskMenuNudgeClamshellShownCount,
-      int_value_future.GetCallback());
-  prefs->GetPref(
+      &int_value);
+  async_waiter.GetPref(
       crosapi::mojom::PrefPath::kMultitaskMenuNudgeClamshellLastShown,
-      time_value_future.GetCallback());
-
-  auto int_value = int_value_future.Take();
+      &time_value);
   ASSERT_TRUE(int_value.has_value());
   EXPECT_EQ(2, int_value.value());
 
-  auto time_value = time_value_future.Take();
   ASSERT_TRUE(time_value.has_value());
   EXPECT_EQ(expected_time, base::ValueToTime(*time_value).value());
 }

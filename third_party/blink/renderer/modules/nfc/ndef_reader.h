@@ -31,7 +31,7 @@ class NFCProxy;
 class ScopedAbortState;
 class ScriptPromiseResolver;
 
-class MODULES_EXPORT NDEFReader : public EventTarget,
+class MODULES_EXPORT NDEFReader : public EventTargetWithInlineData,
                                   public ActiveScriptWrappable<NDEFReader>,
                                   public ExecutionContextLifecycleObserver {
   DEFINE_WRAPPERTYPEINFO();

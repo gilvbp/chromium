@@ -133,11 +133,12 @@ namespace content {
 // This test is to verify that in-progress smooth scrolls stops when
 // interrupted by an instant scroll, another smooth scroll, a touch scroll, or
 // a mouse wheel scroll on an overflow:scroll element, main frame and subframe.
-class ScrollBehaviorBrowserTest : public ContentBrowserTest {
+class ScrollBehaviorBrowserTest : public ContentBrowserTest,
+                                  public testing::WithParamInterface<bool> {
  public:
   explicit ScrollBehaviorBrowserTest(
-      const absl::optional<bool> enable_percent_based_scrolling =
-          absl::nullopt) {
+      const absl::optional<bool> enable_percent_based_scrolling = absl::nullopt)
+      : disable_threaded_scrolling_(GetParam()) {
     if (enable_percent_based_scrolling.has_value() &&
         *enable_percent_based_scrolling) {
       scoped_feature_list.InitAndEnableFeature(
@@ -170,7 +171,9 @@ class ScrollBehaviorBrowserTest : public ContentBrowserTest {
  protected:
   void SetUpCommandLine(base::CommandLine* command_line) override {
     ContentBrowserTest::SetUpCommandLine(command_line);
-
+    if (disable_threaded_scrolling_) {
+      command_line->AppendSwitch(blink::switches::kDisableThreadedScrolling);
+    }
     // Set the scroll animation duration to 1 second (artificially slow) to make
     // it likely that the second scroll interrupts the first scroll's animation.
     //
@@ -285,34 +288,36 @@ class ScrollBehaviorBrowserTest : public ContentBrowserTest {
     }
   }
 
-  void ValueHoldsAt(const std::string& scroll_top_script,
-                    double scroll_top,
-                    double tolerance = 0) {
+  void ValueHoldsAt(const std::string& scroll_top_script, double scroll_top) {
     // This function checks that the scroll top value holds at the given value
     // for 10 frames.
     MainThreadFrameObserver frame_observer(GetWidgetHost());
     int frame_count = 10;
     while (frame_count > 0) {
-      // EXPECT_NEAR is equivalent to EXPECT_EQ if tolerance is zero.
-      EXPECT_NEAR(EvalJs(shell(), scroll_top_script).ExtractDouble(),
-                  scroll_top, tolerance);
+      ASSERT_EQ(EvalJs(shell(), scroll_top_script).ExtractDouble(), scroll_top);
       frame_observer.Wait();
       frame_count--;
     }
   }
 
-  double AssertScrollEndedAtPosition(const std::string& script,
-                                     double target_position,
-                                     double tolerance) {
+  double WaitForScrollToEnd(const std::string& script) {
     MainThreadFrameObserver frame_observer(GetWidgetHost());
-    double scroll_top = EvalJs(shell(), script).ExtractDouble();
-    while (std::abs(target_position - scroll_top) > tolerance) {
-      scroll_top = EvalJs(shell(), script).ExtractDouble();
+    int frame_count = 0;
+    double scroll_top = -1;
+    while (true) {
+      double new_scroll_top = EvalJs(shell(), script).ExtractDouble();
+      if (new_scroll_top == scroll_top) {
+        frame_count++;
+        // Return when the scroll top value holds steady for 10 frames.
+        if (frame_count == 10)
+          return scroll_top;
+      } else {
+        // Scroll top value changed; reset counter.
+        frame_count = 0;
+        scroll_top = new_scroll_top;
+      }
       frame_observer.Wait();
     }
-    // Assert that we have not scrolled past the target position.
-    ValueHoldsAt(script, target_position, 1);
-    return scroll_top;
   }
 
   void RunTestInstantScriptScrollAdjustsSmoothWheelScroll();
@@ -320,6 +325,7 @@ class ScrollBehaviorBrowserTest : public ContentBrowserTest {
 
   base::test::ScopedFeatureList scoped_feature_list;
   std::unique_ptr<base::RunLoop> run_loop_;
+  bool disable_threaded_scrolling_ = false;
 };
 
 class ScrollBehaviorBrowserTestWithPercentBasedScrolling
@@ -329,14 +335,21 @@ class ScrollBehaviorBrowserTestWithPercentBasedScrolling
       : ScrollBehaviorBrowserTest(absl::optional<bool>(true)) {}
 };
 
+INSTANTIATE_TEST_SUITE_P(All, ScrollBehaviorBrowserTest, ::testing::Bool());
+INSTANTIATE_TEST_SUITE_P(All,
+                         ScrollBehaviorBrowserTestWithPercentBasedScrolling,
+                         ::testing::Values(true));
+
 // This tests that a in-progress smooth scroll on an overflow:scroll element
 // stops when interrupted by an instant scroll.
-//
-// TODO(crbug.com/1133492): the last animation is committed after we set the
-// scrollTop even when we cancel the animation, so the final scrollTop value
-// is not 0, we need to fix it.
-IN_PROC_BROWSER_TEST_F(ScrollBehaviorBrowserTest,
-                       DISABLED_InstantScriptScrollAbortsSmoothScriptScroll) {
+IN_PROC_BROWSER_TEST_P(ScrollBehaviorBrowserTest,
+                       InstantScriptScrollAbortsSmoothScriptScroll) {
+  // TODO(crbug.com/1133492): the last animation is committed after we set the
+  // scrollTop even when we cancel the animation, so the final scrollTop value
+  // is not 0, we need to fix it.
+  if (!disable_threaded_scrolling_)
+    return;
+
   LoadURL(kOverflowScrollDataURL);
 
   EXPECT_TRUE(ExecJs(shell()->web_contents(),
@@ -355,20 +368,12 @@ IN_PROC_BROWSER_TEST_F(ScrollBehaviorBrowserTest,
   ValueHoldsAt(scroll_top_script, 0);
 }
 
-// Disabled for flakiness on Mac (crbug.com/1462985).
-#if BUILDFLAG(IS_MAC)
-#define MAYBE_InstantScriptScrollAdjustsSmoothWheelScroll \
-  DISABLED_InstantScriptScrollAdjustsSmoothWheelScroll
-#else
-#define MAYBE_InstantScriptScrollAdjustsSmoothWheelScroll \
-  InstantScriptScrollAdjustsSmoothWheelScroll
-#endif
-IN_PROC_BROWSER_TEST_F(ScrollBehaviorBrowserTestWithPercentBasedScrolling,
-                       MAYBE_InstantScriptScrollAdjustsSmoothWheelScroll) {
+IN_PROC_BROWSER_TEST_P(ScrollBehaviorBrowserTestWithPercentBasedScrolling,
+                       InstantScriptScrollAdjustsSmoothWheelScroll) {
   RunTestInstantScriptScrollAdjustsSmoothWheelScroll();
 }
 
-IN_PROC_BROWSER_TEST_F(ScrollBehaviorBrowserTest,
+IN_PROC_BROWSER_TEST_P(ScrollBehaviorBrowserTest,
                        InstantScriptScrollAdjustsSmoothWheelScroll) {
   RunTestInstantScriptScrollAdjustsSmoothWheelScroll();
 }
@@ -383,22 +388,15 @@ void ScrollBehaviorBrowserTest::
                  /* blocking */ false);
   WaitForScrollToStart("element.scrollTop");
   EXPECT_TRUE(ExecJs(shell()->web_contents(), "element.scrollBy(0, -5);"));
-  AssertScrollEndedAtPosition("element.scrollTop", 95, 1);
+  EXPECT_NEAR(WaitForScrollToEnd("element.scrollTop"), 95, 1);
 }
 
-#if BUILDFLAG(IS_MAC)
-#define MAYBE_SmoothWheelScrollCompletesWithScriptedMirror \
-  DISABLED_SmoothWheelScrollCompletesWithScriptedMirror
-#else
-#define MAYBE_SmoothWheelScrollCompletesWithScriptedMirror \
-  SmoothWheelScrollCompletesWithScriptedMirror
-#endif
-IN_PROC_BROWSER_TEST_F(ScrollBehaviorBrowserTestWithPercentBasedScrolling,
-                       MAYBE_SmoothWheelScrollCompletesWithScriptedMirror) {
+IN_PROC_BROWSER_TEST_P(ScrollBehaviorBrowserTestWithPercentBasedScrolling,
+                       SmoothWheelScrollCompletesWithScriptedMirror) {
   RunTestSmoothWheelScrollCompletesWithScriptedMirror();
 }
 
-IN_PROC_BROWSER_TEST_F(ScrollBehaviorBrowserTest,
+IN_PROC_BROWSER_TEST_P(ScrollBehaviorBrowserTest,
                        SmoothWheelScrollCompletesWithScriptedMirror) {
   RunTestSmoothWheelScrollCompletesWithScriptedMirror();
 }
@@ -412,13 +410,13 @@ void ScrollBehaviorBrowserTest::
   SimulateScroll(content::mojom::GestureSourceType::kMouseInput, 0, 200, "s1",
                  /* blocking */ false);
   WaitForScrollToStart("s1.scrollTop");
-  AssertScrollEndedAtPosition("s1.scrollTop", 200, 1);
-  AssertScrollEndedAtPosition("s2.scrollTop", 200, 1);
+  EXPECT_NEAR(WaitForScrollToEnd("s1.scrollTop"), 200, 1);
+  EXPECT_NEAR(WaitForScrollToEnd("s2.scrollTop"), 200, 1);
 }
 
 // This tests that a in-progress smooth scroll on an overflow:scroll element
 // stops when interrupted by another smooth scroll.
-IN_PROC_BROWSER_TEST_F(ScrollBehaviorBrowserTest,
+IN_PROC_BROWSER_TEST_P(ScrollBehaviorBrowserTest,
                        OneSmoothScriptScrollAbortsAnother_Element) {
   LoadURL(kOverflowScrollDataURL);
 
@@ -442,11 +440,15 @@ IN_PROC_BROWSER_TEST_F(ScrollBehaviorBrowserTest,
 
 // This tests that a in-progress smooth scroll on an overflow:scroll element
 // stops when interrupted by a touch scroll.
-//
-// TODO(crbug.com/1116647): compositing scroll should be able to cancel a
-// running programmatic scroll.
-IN_PROC_BROWSER_TEST_F(ScrollBehaviorBrowserTest,
+// Currently only pre-Scroll-Unification main-thread input-handling gets this
+// right (crbug.com/1116647#c5).
+IN_PROC_BROWSER_TEST_P(ScrollBehaviorBrowserTest,
                        DISABLED_TouchScrollAbortsSmoothScriptScroll) {
+  // TODO(crbug.com/1116647): compositing scroll should be able to cancel a
+  // running programmatic scroll.
+  if (!disable_threaded_scrolling_)
+    return;
+
   LoadURL(kOverflowScrollDataURL);
 
   EXPECT_TRUE(ExecJs(shell()->web_contents(),
@@ -470,11 +472,15 @@ IN_PROC_BROWSER_TEST_F(ScrollBehaviorBrowserTest,
 
 // This tests that a in-progress smooth scroll on an overflow:scroll element
 // stops when interrupted by a mouse wheel scroll.
-//
-// TODO(crbug.com/1116647): compositing scroll should be able to cancel a
-// running programmatic scroll.
-IN_PROC_BROWSER_TEST_F(ScrollBehaviorBrowserTest,
+// Flaky, mainly on Mac, but also on other slower builders/testers:
+// https://crbug.com/1175392
+IN_PROC_BROWSER_TEST_P(ScrollBehaviorBrowserTest,
                        DISABLED_WheelScrollAbortsSmoothScriptScroll) {
+  // TODO(crbug.com/1116647): compositing scroll should be able to cancel a
+  // running programmatic scroll.
+  if (!disable_threaded_scrolling_)
+    return;
+
   LoadURL(kOverflowScrollDataURL);
 
   EXPECT_TRUE(ExecJs(shell()->web_contents(),
@@ -506,7 +512,7 @@ IN_PROC_BROWSER_TEST_F(ScrollBehaviorBrowserTest,
 // This tests that a in-progress smooth scroll on the main frame stops when
 // interrupted by another smooth scroll.
 // Flaky on multiple platforms: crbug.com/1306980
-IN_PROC_BROWSER_TEST_F(ScrollBehaviorBrowserTest,
+IN_PROC_BROWSER_TEST_P(ScrollBehaviorBrowserTest,
                        DISABLED_OneSmoothScriptScrollAbortsAnother_Document) {
   LoadURL(kMainFrameScrollDataURL);
 
@@ -531,7 +537,7 @@ IN_PROC_BROWSER_TEST_F(ScrollBehaviorBrowserTest,
 // This tests that a in-progress smooth scroll on a subframe stops when
 // interrupted by another smooth scroll.
 // Flaky on multiple platforms: crbug.com/1306980
-IN_PROC_BROWSER_TEST_F(ScrollBehaviorBrowserTest,
+IN_PROC_BROWSER_TEST_P(ScrollBehaviorBrowserTest,
                        DISABLED_OneSmoothScriptScrollAbortsAnother_Subframe) {
   LoadURL(kSubframeScrollDataURL);
 

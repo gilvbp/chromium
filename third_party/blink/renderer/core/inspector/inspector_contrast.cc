@@ -150,13 +150,13 @@ void InspectorContrast::CollectNodesAndBuildRTreeIfNeeded() {
       WTF::BindRepeating(&NodeIsElementWithLayoutObject), &elements_);
   SortElementsByPaintOrder(elements_, document_);
   rtree_.Build(
-      elements_.size(),
-      [this](size_t index) {
+      elements_,
+      [](const HeapVector<Member<Node>>& items, size_t index) {
         return ToPixelSnappedRect(
-            GetNodeRect(elements_[static_cast<wtf_size_t>(index)]));
+            GetNodeRect(items[static_cast<wtf_size_t>(index)]));
       },
-      [this](size_t index) {
-        return elements_[static_cast<wtf_size_t>(index)];
+      [](const HeapVector<Member<Node>>& items, size_t index) {
+        return items[static_cast<wtf_size_t>(index)];
       });
 
   rtree_built_ = true;
@@ -288,16 +288,11 @@ Vector<Color> InspectorContrast::GetBackgroundColors(Element* element,
 }
 
 // Get the elements which overlap the given rectangle.
-HeapVector<Member<Node>> InspectorContrast::ElementsFromRect(
-    const PhysicalRect& rect,
-    Document& document) {
+std::vector<Node*> InspectorContrast::ElementsFromRect(const PhysicalRect& rect,
+                                                       Document& document) {
   CollectNodesAndBuildRTreeIfNeeded();
-  HeapVector<Member<Node>> overlapping_elements;
-  rtree_.Search(ToPixelSnappedRect(rect),
-                [&overlapping_elements](const Member<Node>& payload,
-                                        const gfx::Rect& rect) {
-                  overlapping_elements.push_back(payload);
-                });
+  std::vector<Node*> overlapping_elements;
+  rtree_.Search(ToPixelSnappedRect(rect), &overlapping_elements);
   return overlapping_elements;
 }
 
@@ -306,19 +301,16 @@ bool InspectorContrast::GetColorsFromRect(PhysicalRect rect,
                                           Element* top_element,
                                           Vector<Color>& colors,
                                           float* text_opacity) {
-  HeapVector<Member<Node>> elements_under_rect =
-      ElementsFromRect(rect, document);
+  std::vector<Node*> elements_under_rect = ElementsFromRect(rect, document);
 
   bool found_opaque_color = false;
   bool found_top_element = false;
 
   *text_opacity = 1.0f;
 
-  for (const Member<Node>& node : elements_under_rect) {
-    if (found_top_element) {
-      break;
-    }
-    const Element* element = To<Element>(node.Get());
+  for (auto e = elements_under_rect.begin();
+       !found_top_element && e != elements_under_rect.end(); ++e) {
+    const Element* element = To<Element>(*e);
     if (element == top_element)
       found_top_element = true;
 
@@ -375,7 +367,7 @@ bool InspectorContrast::GetColorsFromRect(PhysicalRect rect,
     AddColorsFromImageStyle(*style, *layout_object, colors, found_opaque_color,
                             found_non_transparent_color);
 
-    bool contains = found_top_element || GetNodeRect(node).Contains(rect);
+    bool contains = found_top_element || GetNodeRect(*e).Contains(rect);
     if (!contains && found_non_transparent_color) {
       // Only return colors if some opaque element covers up this one.
       colors.clear();

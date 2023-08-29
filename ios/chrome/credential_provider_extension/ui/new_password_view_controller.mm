@@ -4,7 +4,7 @@
 
 #import "ios/chrome/credential_provider_extension/ui/new_password_view_controller.h"
 
-#import "base/apple/foundation_util.h"
+#import "base/mac/foundation_util.h"
 #import "base/notreached.h"
 #import "base/strings/string_number_conversions.h"
 #import "base/strings/sys_string_conversions.h"
@@ -22,6 +22,10 @@
 #import "ios/chrome/credential_provider_extension/ui/password_note_cell.h"
 #import "ios/chrome/credential_provider_extension/ui/password_note_footer_view.h"
 #import "ios/chrome/credential_provider_extension/ui/ui_util.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace {
 
@@ -82,10 +86,6 @@ typedef NS_ENUM(NSInteger, SectionIdentifier) {
   _passwordCreationType = CPEPasswordCreated::kPasswordManuallyEntered;
   _accessoryView = [[FormInputAccessoryView alloc] init];
   [_accessoryView setUpWithLeadingView:nil navigationDelegate:self];
-  _usernameText = @"";
-  _passwordText = @"";
-  _noteText = @"";
-  _isNoteFooterShown = NO;
   return self;
 }
 
@@ -228,7 +228,7 @@ typedef NS_ENUM(NSInteger, SectionIdentifier) {
   if (section == SectionIdentifierNote &&
       [view isKindOfClass:[PasswordNoteFooterView class]]) {
     PasswordNoteFooterView* footer =
-        base::apple::ObjCCastStrict<PasswordNoteFooterView>(view);
+        base::mac::ObjCCastStrict<PasswordNoteFooterView>(view);
     footer.textLabel.text = [self noteFooterText];
 
     [tableView beginUpdates];
@@ -323,7 +323,7 @@ typedef NS_ENUM(NSInteger, SectionIdentifier) {
   UITableViewHeaderFooterView* footerView =
       [self.tableView footerViewForSection:SectionIdentifierNote];
   PasswordNoteFooterView* noteFooter =
-      base::apple::ObjCCastStrict<PasswordNoteFooterView>(footerView);
+      base::mac::ObjCCastStrict<PasswordNoteFooterView>(footerView);
   noteFooter.textLabel.text = [self noteFooterText];
 
   // Refresh the cell's height to make the note fully visible while typing or to

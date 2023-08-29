@@ -56,10 +56,9 @@ AdvancedProtectionStatusManagerFactory::AdvancedProtectionStatusManagerFactory()
 AdvancedProtectionStatusManagerFactory::
     ~AdvancedProtectionStatusManagerFactory() = default;
 
-std::unique_ptr<KeyedService>
-AdvancedProtectionStatusManagerFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* AdvancedProtectionStatusManagerFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
-  return BuildService(context);
+  return BuildService(context).release();
 }
 
 bool AdvancedProtectionStatusManagerFactory::

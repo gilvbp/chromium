@@ -38,12 +38,6 @@ DEFINE_UI_CLASS_PROPERTY_KEY(
 bool ShouldIgnoreWindowForCollision(
     const aura::Window* window,
     CollisionDetectionUtils::RelativePriority priority) {
-  if (!window->IsVisible() && !window->GetTargetBounds().IsEmpty()) {
-    return true;
-  }
-  if (window->is_destroying()) {
-    return true;
-  }
   if (window->GetProperty(kIgnoreForWindowCollisionDetection))
     return true;
 
@@ -188,7 +182,7 @@ std::vector<gfx::Rect> CollectCollisionRects(
 
   // Avoid clamshell-mode launcher bubble.
   auto* app_list_controller = Shell::Get()->app_list_controller();
-  if (app_list_controller && !Shell::Get()->IsInTabletMode() &&
+  if (!Shell::Get()->IsInTabletMode() &&
       app_list_controller->GetTargetVisibility(display.id())) {
     aura::Window* window = app_list_controller->GetWindow();
     if (window) {

@@ -126,8 +126,6 @@ struct COMPONENT_EXPORT(VULKAN) VulkanFunctionPointers {
       vkEnumerateDeviceLayerProperties;
   VulkanFunction<PFN_vkEnumeratePhysicalDevices> vkEnumeratePhysicalDevices;
   VulkanFunction<PFN_vkGetDeviceProcAddr> vkGetDeviceProcAddr;
-  VulkanFunction<PFN_vkGetPhysicalDeviceExternalSemaphoreProperties>
-      vkGetPhysicalDeviceExternalSemaphoreProperties;
   VulkanFunction<PFN_vkGetPhysicalDeviceFeatures2> vkGetPhysicalDeviceFeatures2;
   VulkanFunction<PFN_vkGetPhysicalDeviceFormatProperties>
       vkGetPhysicalDeviceFormatProperties;
@@ -398,14 +396,6 @@ vkEnumeratePhysicalDevices(VkInstance instance,
 ALWAYS_INLINE PFN_vkVoidFunction vkGetDeviceProcAddr(VkDevice device,
                                                      const char* pName) {
   return gpu::GetVulkanFunctionPointers()->vkGetDeviceProcAddr(device, pName);
-}
-ALWAYS_INLINE void vkGetPhysicalDeviceExternalSemaphoreProperties(
-    VkPhysicalDevice physicalDevice,
-    const VkPhysicalDeviceExternalSemaphoreInfo* pExternalSemaphoreInfo,
-    VkExternalSemaphoreProperties* pExternalSemaphoreProperties) {
-  return gpu::GetVulkanFunctionPointers()
-      ->vkGetPhysicalDeviceExternalSemaphoreProperties(
-          physicalDevice, pExternalSemaphoreInfo, pExternalSemaphoreProperties);
 }
 ALWAYS_INLINE void vkGetPhysicalDeviceFeatures2(
     VkPhysicalDevice physicalDevice,

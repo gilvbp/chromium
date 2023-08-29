@@ -33,15 +33,15 @@ static void TestBitmapGlyphsBlockListed(AtomicString windows_family_name,
 }
 
 TEST_F(BlockListBitmapGlyphsTest, Simsun) {
-  TestBitmapGlyphsBlockListed(AtomicString("Simsun"), false);
+  TestBitmapGlyphsBlockListed("Simsun", false);
 }
 
 TEST_F(BlockListBitmapGlyphsTest, Arial) {
-  TestBitmapGlyphsBlockListed(AtomicString("Arial"), false);
+  TestBitmapGlyphsBlockListed("Arial", false);
 }
 
 TEST_F(BlockListBitmapGlyphsTest, Calibri) {
-  TestBitmapGlyphsBlockListed(AtomicString("Calibri"), true);
+  TestBitmapGlyphsBlockListed("Calibri", true);
 }
 
 #endif

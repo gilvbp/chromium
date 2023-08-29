@@ -46,25 +46,25 @@ TEST_F(AccessibilityTest, IsARIAWidget) {
   SetBodyInnerHTML(test_content);
   Element* root(GetDocument().documentElement());
   EXPECT_FALSE(AXObjectCache::IsInsideFocusableElementOrARIAWidget(
-      *root->getElementById(AtomicString("plain"))));
+      *root->getElementById("plain")));
   EXPECT_TRUE(AXObjectCache::IsInsideFocusableElementOrARIAWidget(
-      *root->getElementById(AtomicString("button"))));
+      *root->getElementById("button")));
   EXPECT_TRUE(AXObjectCache::IsInsideFocusableElementOrARIAWidget(
-      *root->getElementById(AtomicString("button-parent"))));
+      *root->getElementById("button-parent")));
   EXPECT_TRUE(AXObjectCache::IsInsideFocusableElementOrARIAWidget(
-      *root->getElementById(AtomicString("button-caps"))));
+      *root->getElementById("button-caps")));
   EXPECT_TRUE(AXObjectCache::IsInsideFocusableElementOrARIAWidget(
-      *root->getElementById(AtomicString("button-second"))));
+      *root->getElementById("button-second")));
   EXPECT_FALSE(AXObjectCache::IsInsideFocusableElementOrARIAWidget(
-      *root->getElementById(AtomicString("aria-bogus"))));
+      *root->getElementById("aria-bogus")));
   EXPECT_TRUE(AXObjectCache::IsInsideFocusableElementOrARIAWidget(
-      *root->getElementById(AtomicString("aria-selected"))));
+      *root->getElementById("aria-selected")));
   EXPECT_TRUE(AXObjectCache::IsInsideFocusableElementOrARIAWidget(
-      *root->getElementById(AtomicString("haspopup"))));
+      *root->getElementById("haspopup")));
   EXPECT_TRUE(AXObjectCache::IsInsideFocusableElementOrARIAWidget(
-      *root->getElementById(AtomicString("focusable"))));
+      *root->getElementById("focusable")));
   EXPECT_TRUE(AXObjectCache::IsInsideFocusableElementOrARIAWidget(
-      *root->getElementById(AtomicString("focusable-parent"))));
+      *root->getElementById("focusable-parent")));
 }
 
 TEST_F(AccessibilityTest, RemoveReferencesToAXID) {
@@ -117,7 +117,7 @@ TEST_F(AccessibilityTest, PauseUpdatesAfterMaxNumberQueued) {
   ax_object_cache->AssociateAXID(ax_obj);
   for (unsigned i = 0; i < max_updates + 1; i++) {
     ax_object_cache->DeferTreeUpdate(
-        AXObjectCacheImpl::TreeUpdateReason::kChildrenChanged, ax_obj);
+        &AXObjectCacheImpl::ChildrenChangedWithCleanLayout, ax_obj);
   }
   ax_object_cache->ProcessCleanLayoutCallbacks(document);
 
@@ -221,16 +221,16 @@ TEST_F(AXViewTransitionTest, TransitionPseudoNotRelevant) {
       kPseudoIdViewTransition);
   ASSERT_TRUE(transition_pseudo);
   auto* container_pseudo = transition_pseudo->GetPseudoElement(
-      kPseudoIdViewTransitionGroup, AtomicString("shared"));
+      kPseudoIdViewTransitionGroup, "shared");
   ASSERT_TRUE(container_pseudo);
   auto* image_wrapper_pseudo = container_pseudo->GetPseudoElement(
-      kPseudoIdViewTransitionImagePair, AtomicString("shared"));
+      kPseudoIdViewTransitionImagePair, "shared");
   ASSERT_TRUE(image_wrapper_pseudo);
   auto* incoming_image_pseudo = image_wrapper_pseudo->GetPseudoElement(
-      kPseudoIdViewTransitionNew, AtomicString("shared"));
+      kPseudoIdViewTransitionNew, "shared");
   ASSERT_TRUE(incoming_image_pseudo);
   auto* outgoing_image_pseudo = image_wrapper_pseudo->GetPseudoElement(
-      kPseudoIdViewTransitionOld, AtomicString("shared"));
+      kPseudoIdViewTransitionOld, "shared");
   ASSERT_TRUE(outgoing_image_pseudo);
 
   ASSERT_TRUE(transition_pseudo->GetLayoutObject());

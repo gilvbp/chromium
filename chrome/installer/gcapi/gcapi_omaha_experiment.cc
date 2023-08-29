@@ -87,9 +87,11 @@ std::wstring GetGCAPIExperimentLabel(const wchar_t* brand_code,
 
   base::Time instance_time = base::Time::FromTimeT(instance_time_value);
 
-  return base::StringPrintf(L"%ls=%ls_%d|%ls", label.c_str(), brand_code,
-                            GetCurrentRlzWeek(instance_time),
-                            BuildExperimentDateString(instance_time).c_str());
+  std::wstring gcapi_experiment_label;
+  base::SStringPrintf(&gcapi_experiment_label, L"%ls=%ls_%d|%ls", label.c_str(),
+                      brand_code, GetCurrentRlzWeek(instance_time),
+                      BuildExperimentDateString(instance_time).c_str());
+  return gcapi_experiment_label;
 }
 
 }  // namespace gcapi_internals

@@ -33,18 +33,7 @@ namespace autofill {
 MigratableCreditCard::MigratableCreditCard(const CreditCard& credit_card)
     : credit_card_(credit_card) {}
 
-MigratableCreditCard::MigratableCreditCard(const MigratableCreditCard&) =
-    default;
-
-MigratableCreditCard::MigratableCreditCard(MigratableCreditCard&&) = default;
-
-MigratableCreditCard& MigratableCreditCard::operator=(
-    const MigratableCreditCard&) = default;
-
-MigratableCreditCard& MigratableCreditCard::operator=(MigratableCreditCard&&) =
-    default;
-
-MigratableCreditCard::~MigratableCreditCard() = default;
+MigratableCreditCard::~MigratableCreditCard() {}
 
 LocalCardMigrationManager::LocalCardMigrationManager(
     AutofillClient* client,
@@ -208,7 +197,7 @@ void LocalCardMigrationManager::OnUserDeletedLocalCardViaMigrationDialog(
 
 bool LocalCardMigrationManager::IsCreditCardMigrationEnabled() {
   return ::autofill::IsCreditCardMigrationEnabled(
-      personal_data_manager_, client_->GetSyncService(),
+      personal_data_manager_, client_->GetPrefs(), client_->GetSyncService(),
       /*is_test_mode=*/observer_for_testing_, client_->GetLogManager());
 }
 

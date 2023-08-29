@@ -37,7 +37,7 @@
 #endif
 
 #if BUILDFLAG(IS_APPLE)
-#include "base/apple/scoped_nsautorelease_pool.h"
+#include "base/mac/scoped_nsautorelease_pool.h"
 #endif
 
 namespace {
@@ -147,7 +147,7 @@ class NetWatcher :
 
 int main(int argc, char* argv[]) {
 #if BUILDFLAG(IS_APPLE)
-  base::apple::ScopedNSAutoreleasePool pool;
+  base::mac::ScopedNSAutoreleasePool pool;
 #endif
   base::AtExitManager exit_manager;
   base::CommandLine::Init(argc, argv);

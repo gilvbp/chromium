@@ -7,6 +7,10 @@
 #include "ui/accessibility/ax_enums.mojom.h"
 #include "ui/accessibility/ax_event_intent.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace ui {
 
 // static

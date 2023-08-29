@@ -12,7 +12,6 @@
 #include "third_party/blink/renderer/platform/wtf/hash_set.h"
 
 namespace blink {
-class AbortSignal;
 class DOMTaskSignal;
 class ExecutionContext;
 class ScriptState;
@@ -66,14 +65,8 @@ class PLATFORM_EXPORT TaskAttributionTracker {
   virtual std::unique_ptr<TaskScope> CreateTaskScope(
       ScriptState*,
       absl::optional<TaskAttributionId> parent_task_id,
-      TaskScopeType type) = 0;
-  // Create a new task scope with web scheduling context.
-  virtual std::unique_ptr<TaskScope> CreateTaskScope(
-      ScriptState*,
-      absl::optional<TaskAttributionId> parent_task_id,
       TaskScopeType type,
-      AbortSignal* abort_source,
-      DOMTaskSignal* priority_source) = 0;
+      DOMTaskSignal* signal = nullptr) = 0;
 
   // Get the ID of the currently running task.
   virtual absl::optional<TaskAttributionId> RunningTaskAttributionId(

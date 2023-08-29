@@ -39,12 +39,10 @@ RecoveryInstallGlobalErrorFactory::GetInstance() {
   return instance.get();
 }
 
-std::unique_ptr<KeyedService>
-RecoveryInstallGlobalErrorFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* RecoveryInstallGlobalErrorFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
 #if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC)
-  return std::make_unique<RecoveryInstallGlobalError>(
-      static_cast<Profile*>(context));
+  return new RecoveryInstallGlobalError(static_cast<Profile*>(context));
 #else
   return NULL;
 #endif

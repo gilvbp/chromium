@@ -428,7 +428,7 @@ void EncoderBase<Traits>::Trace(Visitor* visitor) const {
   visitor->Trace(output_callback_);
   visitor->Trace(error_callback_);
   visitor->Trace(requests_);
-  EventTarget::Trace(visitor);
+  EventTargetWithInlineData::Trace(visitor);
   ExecutionContextLifecycleObserver::Trace(visitor);
   ReclaimableCodec::Trace(visitor);
 }

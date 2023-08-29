@@ -4,10 +4,10 @@
 
 #import "ios/chrome/browser/ui/popup_menu/popup_menu_mediator.h"
 
-#import "base/apple/foundation_util.h"
 #import "base/check_op.h"
 #import "base/feature_list.h"
 #import "base/ios/ios_util.h"
+#import "base/mac/foundation_util.h"
 #import "base/metrics/histogram_functions.h"
 #import "base/metrics/histogram_macros.h"
 #import "base/metrics/user_metrics.h"
@@ -24,10 +24,9 @@
 #import "components/prefs/pref_change_registrar.h"
 #import "components/prefs/pref_service.h"
 #import "components/profile_metrics/browser_profile_type.h"
-#import "components/reading_list/core/reading_list_model.h"
 #import "components/translate/core/browser/translate_manager.h"
 #import "components/translate/core/browser/translate_prefs.h"
-#import "ios/chrome/browser/bookmarks/model/bookmark_model_bridge_observer.h"
+#import "ios/chrome/browser/bookmarks/bookmark_model_bridge_observer.h"
 #import "ios/chrome/browser/commerce/push_notification/push_notification_feature.h"
 #import "ios/chrome/browser/find_in_page/abstract_find_tab_helper.h"
 #import "ios/chrome/browser/follow/follow_browser_agent.h"
@@ -86,6 +85,10 @@
 #import "ios/web/public/web_state_observer_bridge.h"
 #import "ui/base/l10n/l10n_util.h"
 #import "ui/gfx/image/image.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 using base::RecordAction;
 using base::UserMetricsAction;
@@ -195,9 +198,6 @@ PopupMenuTextItem* CreateEnterpriseInfoItem(NSString* imageName,
 // YES if the current website has been followed.
 @property(nonatomic, assign) BOOL followed;
 
-// State of reading list model loading.
-@property(nonatomic, assign) BOOL readingListModelLoaded;
-
 #pragma mark*** Specific Items ***
 
 @property(nonatomic, strong) PopupMenuToolsItem* openNewIncognitoTabItem;
@@ -233,7 +233,6 @@ PopupMenuTextItem* CreateEnterpriseInfoItem(NSString* imageName,
     _isIncognito = isIncognito;
     _readingListMenuNotifier =
         [[ReadingListMenuNotifier alloc] initWithReadingList:readingListModel];
-    _readingListModelLoaded = readingListModel->loaded();
     _webStateObserver = std::make_unique<web::WebStateObserverBridge>(self);
     _webStateListObserver = std::make_unique<WebStateListObserverBridge>(self);
     _overlayPresenterObserver =
@@ -344,15 +343,15 @@ PopupMenuTextItem* CreateEnterpriseInfoItem(NSString* imageName,
   self.webState = nullptr;
 }
 
-#pragma mark - WebStateListObserving
+#pragma mark - WebStateListObserver
 
-- (void)didChangeWebStateList:(WebStateList*)webStateList
-                       change:(const WebStateListChange&)change
-                       status:(const WebStateListStatus&)status {
+- (void)webStateList:(WebStateList*)webStateList
+    didChangeActiveWebState:(web::WebState*)newWebState
+                oldWebState:(web::WebState*)oldWebState
+                    atIndex:(int)atIndex
+                     reason:(ActiveWebStateChangeReason)reason {
   DCHECK_EQ(_webStateList, webStateList);
-  if (status.active_web_state_change()) {
-    self.webState = status.new_active_web_state;
-  }
+  self.webState = newWebState;
 }
 
 #pragma mark - BookmarkModelBridgeObserver
@@ -1057,23 +1056,21 @@ PopupMenuTextItem* CreateEnterpriseInfoItem(NSString* imageName,
       @"popup_menu_bookmarks", kToolsMenuBookmarksId);
 
   // Reading List.
-  if (self.readingListModelLoaded) {
-    self.readingListItem = CreateTableViewItem(
-        IDS_IOS_TOOLS_MENU_READING_LIST, PopupMenuActionReadingList,
-        @"popup_menu_reading_list", kToolsMenuReadingListId);
-    NSInteger numberOfUnreadArticles =
-        [self.readingListMenuNotifier readingListUnreadCount];
-    self.readingListItem.badgeNumber = numberOfUnreadArticles;
-    if (numberOfUnreadArticles) {
-      self.readingListItem.additionalAccessibilityLabel =
-          AccessibilityLabelForReadingListCellWithCount(numberOfUnreadArticles);
-    }
-    if (self.engagementTracker &&
-        self.engagementTracker->ShouldTriggerHelpUI(
-            feature_engagement::kIPHBadgedReadingListFeature)) {
-      self.readingListItem.badgeText = l10n_util::GetNSStringWithFixup(
-          IDS_IOS_TOOLS_MENU_CELL_NEW_FEATURE_BADGE);
-    }
+  self.readingListItem = CreateTableViewItem(
+      IDS_IOS_TOOLS_MENU_READING_LIST, PopupMenuActionReadingList,
+      @"popup_menu_reading_list", kToolsMenuReadingListId);
+  NSInteger numberOfUnreadArticles =
+      [self.readingListMenuNotifier readingListUnreadCount];
+  self.readingListItem.badgeNumber = numberOfUnreadArticles;
+  if (numberOfUnreadArticles) {
+    self.readingListItem.additionalAccessibilityLabel =
+        AccessibilityLabelForReadingListCellWithCount(numberOfUnreadArticles);
+  }
+  if (self.engagementTracker &&
+      self.engagementTracker->ShouldTriggerHelpUI(
+          feature_engagement::kIPHBadgedReadingListFeature)) {
+    self.readingListItem.badgeText = l10n_util::GetNSStringWithFixup(
+        IDS_IOS_TOOLS_MENU_CELL_NEW_FEATURE_BADGE);
   }
 
   // Recent Tabs.
@@ -1098,18 +1095,14 @@ PopupMenuTextItem* CreateEnterpriseInfoItem(NSString* imageName,
       CreateTableViewItem(IDS_IOS_TOOLS_MENU_SETTINGS, PopupMenuActionSettings,
                           @"popup_menu_settings", kToolsMenuSettingsActionId);
 
-  NSMutableArray* items = [[NSMutableArray alloc] init];
-  [items addObject:bookmarks];
-  if (self.readingListItem) {
-    [items addObject:self.readingListItem];
+  if (self.isIncognito) {
+    return @[ bookmarks, self.readingListItem, downloadsFolder, settings ];
   }
-  if (!self.isIncognito) {
-    [items addObject:recentTabs];
-    [items addObject:history];
-  }
-  [items addObject:downloadsFolder];
-  [items addObject:settings];
-  return items;
+
+  return @[
+    bookmarks, self.readingListItem, recentTabs, history, downloadsFolder,
+    settings
+  ];
 }
 
 // Creates the section for enterprise info.

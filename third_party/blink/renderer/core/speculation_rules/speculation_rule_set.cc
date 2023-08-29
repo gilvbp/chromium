@@ -12,15 +12,10 @@
 #include "third_party/blink/renderer/core/dom/document.h"
 #include "third_party/blink/renderer/core/execution_context/execution_context.h"
 #include "third_party/blink/renderer/core/frame/web_feature.h"
-#include "third_party/blink/renderer/core/inspector/console_message.h"
 #include "third_party/blink/renderer/core/inspector/identifiers_factory.h"
-#include "third_party/blink/renderer/core/loader/resource/speculation_rules_resource.h"
-#include "third_party/blink/renderer/core/script/script_element_base.h"
 #include "third_party/blink/renderer/core/speculation_rules/document_rule_predicate.h"
 #include "third_party/blink/renderer/core/speculation_rules/speculation_rules_features.h"
-#include "third_party/blink/renderer/core/speculation_rules/speculation_rules_metrics.h"
 #include "third_party/blink/renderer/platform/bindings/exception_state.h"
-#include "third_party/blink/renderer/platform/heap/garbage_collected.h"
 #include "third_party/blink/renderer/platform/instrumentation/use_counter.h"
 #include "third_party/blink/renderer/platform/json/json_parser.h"
 #include "third_party/blink/renderer/platform/json/json_values.h"
@@ -33,62 +28,6 @@
 namespace blink {
 
 namespace {
-
-void AddConsoleMessageForSpeculationRuleSetValidation(
-    SpeculationRuleSet& speculation_rule_set,
-    Document& element_document,
-    ScriptElementBase* script_element,
-    SpeculationRulesResource* resource) {
-  // `script_element` and `resource` are mutually exclusive.
-  CHECK(script_element || resource);
-  CHECK(!script_element || !resource);
-
-  if (speculation_rule_set.HasError()) {
-    if (speculation_rule_set.ShouldReportUMAForError()) {
-      CountSpeculationRulesLoadOutcome(
-          script_element ? SpeculationRulesLoadOutcome::kParseErrorInline
-                         : SpeculationRulesLoadOutcome::kParseErrorFetched);
-    }
-    String error_message;
-    if (script_element) {
-      error_message = "While parsing speculation rules: " +
-                      speculation_rule_set.error_message();
-    } else {
-      error_message = "While parsing speculation rules fetched from \"" +
-                      resource->GetResourceRequest().Url().ElidedString() +
-                      "\": " + speculation_rule_set.error_message() + "\".";
-    }
-    auto* console_message = MakeGarbageCollected<ConsoleMessage>(
-        mojom::blink::ConsoleMessageSource::kOther,
-        mojom::blink::ConsoleMessageLevel::kWarning, error_message);
-    if (script_element) {
-      console_message->SetNodes(element_document.GetFrame(),
-                                {script_element->GetDOMNodeId()});
-    }
-    element_document.AddConsoleMessage(console_message);
-  }
-  if (speculation_rule_set.HasWarnings()) {
-    // Only add the first warning message to console.
-    String warning_message;
-    if (script_element) {
-      warning_message = "While parsing speculation rules: " +
-                        speculation_rule_set.warning_messages()[0];
-    } else {
-      warning_message = "While parsing speculation rules fetched from \"" +
-                        resource->GetResourceRequest().Url().ElidedString() +
-                        "\": " + speculation_rule_set.warning_messages()[0] +
-                        "\".";
-    }
-    auto* console_message = MakeGarbageCollected<ConsoleMessage>(
-        mojom::blink::ConsoleMessageSource::kOther,
-        mojom::blink::ConsoleMessageLevel::kWarning, warning_message);
-    if (script_element) {
-      console_message->SetNodes(element_document.GetFrame(),
-                                {script_element->GetDOMNodeId()});
-    }
-    element_document.AddConsoleMessage(console_message);
-  }
-}
 
 // https://html.spec.whatwg.org/C/#valid-browsing-context-name
 bool IsValidContextName(const String& name_or_keyword) {
@@ -129,8 +68,7 @@ void SetParseErrorMessage(String* out_error, String message) {
 SpeculationRule* ParseSpeculationRule(JSONObject* input,
                                       const KURL& base_url,
                                       ExecutionContext* context,
-                                      String* out_error,
-                                      Vector<String>& out_warnings) {
+                                      String* out_error) {
   // https://wicg.github.io/nav-speculation/speculation-rules.html#parse-a-speculation-rule
 
   // If input has any key other than "source", "urls", "where", "requires",
@@ -405,7 +343,9 @@ SpeculationRule* ParseSpeculationRule(JSONObject* input,
       CHECK_NE(parse_error, network::mojom::NoVarySearchParseError::kOk);
       if (parse_error !=
           network::mojom::NoVarySearchParseError::kDefaultValue) {
-        out_warnings.push_back(GetNoVarySearchHintConsoleMessage(parse_error));
+        SetParseErrorMessage(out_error,
+                             GetNoVarySearchHintConsoleMessage(parse_error));
+        return nullptr;
       }
     } else {
       UseCounter::Count(context, WebFeature::kSpeculationRulesNoVarySearchHint);
@@ -430,35 +370,23 @@ SpeculationRule* ParseSpeculationRule(JSONObject* input,
 
 // ---- SpeculationRuleSet::Source implementation ----
 
-SpeculationRuleSet::Source::Source(base::PassKey<SpeculationRuleSet::Source>,
-                                   const String& source_text,
-                                   Document* document,
-                                   absl::optional<DOMNodeId> node_id,
-                                   absl::optional<KURL> base_url,
-                                   absl::optional<uint64_t> request_id)
+SpeculationRuleSet::Source::Source(const String& source_text,
+                                   Document& document,
+                                   DOMNodeId node_id)
     : source_text_(source_text),
       document_(document),
       node_id_(node_id),
+      base_url_(absl::nullopt),
+      request_id_(absl::nullopt) {}
+
+SpeculationRuleSet::Source::Source(const String& source_text,
+                                   const KURL& base_url,
+                                   uint64_t request_id)
+    : source_text_(source_text),
+      document_(nullptr),
+      node_id_(absl::nullopt),
       base_url_(base_url),
       request_id_(request_id) {}
-
-SpeculationRuleSet::Source* SpeculationRuleSet::Source::FromInlineScript(
-    const String& source_text,
-    Document& document,
-    DOMNodeId node_id) {
-  return MakeGarbageCollected<Source>(base::PassKey<Source>(), source_text,
-                                      &document, node_id, absl::nullopt,
-                                      absl::nullopt);
-}
-
-SpeculationRuleSet::Source* SpeculationRuleSet::Source::FromRequest(
-    const String& source_text,
-    const KURL& base_url,
-    uint64_t request_id) {
-  return MakeGarbageCollected<Source>(base::PassKey<Source>(), source_text,
-                                      nullptr, absl::nullopt, base_url,
-                                      request_id);
-}
 
 const String& SpeculationRuleSet::Source::GetSourceText() const {
   return source_text_;
@@ -505,10 +433,6 @@ void SpeculationRuleSet::SetError(SpeculationRuleSetErrorType error_type,
 
   error_type_ = error_type;
   error_message_ = error_message;
-}
-
-void SpeculationRuleSet::SetWarnings(Vector<String> warning_messages) {
-  warning_messages_ = std::move(warning_messages);
 }
 
 // static
@@ -570,11 +494,10 @@ SpeculationRuleSet* SpeculationRuleSet::Parse(Source* source,
           //
           // TODO(https://crbug.com/1410709): Refactor
           // ParseSpeculationRule to return
-          // `std::tuple<SpeculationRule*, String, Vector<String>>`.
+          // `std::tuple<SpeculationRule*, String>`.
           String error_message;
-          Vector<String> warning_messages;
-          SpeculationRule* rule = ParseSpeculationRule(
-              input_rule, base_url, context, &error_message, warning_messages);
+          SpeculationRule* rule = ParseSpeculationRule(input_rule, base_url,
+                                                       context, &error_message);
 
           // If parse failed for a rule, then ignore it and continue.
           if (!rule) {
@@ -592,9 +515,6 @@ SpeculationRuleSet* SpeculationRuleSet::Parse(Source* source,
                                  String(key) + " rules.");
             continue;
           }
-
-          // Add the warnings and continue
-          result->SetWarnings(std::move(warning_messages));
 
           if (rule->predicate()) {
             result->has_document_rule_ = true;
@@ -626,10 +546,6 @@ SpeculationRuleSet* SpeculationRuleSet::Parse(Source* source,
 
 bool SpeculationRuleSet::HasError() const {
   return error_type_ != SpeculationRuleSetErrorType::kNoError;
-}
-
-bool SpeculationRuleSet::HasWarnings() const {
-  return !warning_messages_.empty();
 }
 
 bool SpeculationRuleSet::ShouldReportUMAForError() const {
@@ -665,19 +581,6 @@ void SpeculationRuleSet::Trace(Visitor* visitor) const {
   visitor->Trace(prerender_rules_);
   visitor->Trace(source_);
   visitor->Trace(selectors_);
-}
-
-void SpeculationRuleSet::AddConsoleMessageForValidation(
-    ScriptElementBase& script_element) {
-  AddConsoleMessageForSpeculationRuleSetValidation(
-      *this, script_element.GetDocument(), &script_element, nullptr);
-}
-
-void SpeculationRuleSet::AddConsoleMessageForValidation(
-    Document& document,
-    SpeculationRulesResource& resource) {
-  AddConsoleMessageForSpeculationRuleSetValidation(*this, document, nullptr,
-                                                   &resource);
 }
 
 }  // namespace blink

@@ -23,7 +23,7 @@ class ScriptPromise;
 class ScriptState;
 class ScreenOrientationController;
 
-class MODULES_EXPORT ScreenOrientation final : public EventTarget,
+class MODULES_EXPORT ScreenOrientation final : public EventTargetWithInlineData,
                                                public ExecutionContextClient {
   DEFINE_WRAPPERTYPEINFO();
 

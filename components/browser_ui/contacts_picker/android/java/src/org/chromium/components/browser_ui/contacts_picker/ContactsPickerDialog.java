@@ -4,6 +4,8 @@
 
 package org.chromium.components.browser_ui.contacts_picker;
 
+import androidx.annotation.VisibleForTesting;
+
 import org.chromium.components.browser_ui.widget.FullscreenAlertDialog;
 import org.chromium.content_public.browser.ContactsPickerListener;
 import org.chromium.ui.base.WindowAndroid;
@@ -52,6 +54,7 @@ public class ContactsPickerDialog
         cancel();
     }
 
+    @VisibleForTesting
     public PickerCategoryView getCategoryViewForTesting() {
         return mCategoryView;
     }

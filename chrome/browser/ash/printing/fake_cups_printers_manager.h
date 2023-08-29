@@ -31,10 +31,11 @@ class FakeCupsPrintersManager : public CupsPrintersManager {
   void AddObserver(Observer* observer) override {}
   void RemoveObserver(Observer* observer) override {}
 
+  void PrinterInstalled(const chromeos::Printer& printer,
+                        bool is_automatic) override;
   bool IsPrinterInstalled(const chromeos::Printer& printer) const override;
   void PrinterIsNotAutoconfigurable(const chromeos::Printer& printer) override;
   void SetUpPrinter(const chromeos::Printer& printer,
-                    bool is_automatic_installation,
                     PrinterSetupCallback callback) override;
   void UninstallPrinter(const std::string& printer_id) override;
   absl::optional<chromeos::Printer> GetPrinter(
@@ -53,14 +54,13 @@ class FakeCupsPrintersManager : public CupsPrintersManager {
   void AddPrinter(const chromeos::Printer& printer,
                   chromeos::PrinterClass printer_class);
   void SetPrinterStatus(const chromeos::CupsPrinterStatus& status);
-
-  void MarkInstalled(const std::string& printer_id);
+  // Returns true if the printer with given |printer_id| was set up or
+  // explicitly marked as configured before.
+  bool IsConfigured(const std::string& printer_id) const;
+  void MarkConfigured(const std::string& printer_id);
   void SetPrinterSetupResult(const std::string& printer_id,
                              PrinterSetupResult result);
   bool IsMarkedAsNotAutoconfigurable(const chromeos::Printer& printer);
-  void QueryPrinterForAutoConf(
-      const chromeos::Printer& printer,
-      base::OnceCallback<void(bool)> callback) override;
 
  private:
   // Map printer id to CupsPrinterStatus object.
@@ -68,6 +68,7 @@ class FakeCupsPrintersManager : public CupsPrintersManager {
   PrintersMap printers_;
   base::flat_set<std::string> installed_;
 
+  base::flat_set<std::string> configured_printers_;
   base::flat_set<std::string> printers_marked_as_not_autoconf_;
   base::flat_map<std::string, PrinterSetupResult> assigned_results_;
 };

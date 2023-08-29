@@ -19,9 +19,6 @@ namespace remoting {
 // UNEXPECTED_ERROR.
 protocol::FileTransferResult<absl::monostate> EnsureUserContext();
 
-// Makes `EnsureUserContext` always return success, for use during unittests.
-void DisableUserContextCheckForTesting();
-
 }  // namespace remoting
 
 #endif  // REMOTING_HOST_FILE_TRANSFER_ENSURE_USER_H_

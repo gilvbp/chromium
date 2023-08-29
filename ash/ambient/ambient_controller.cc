@@ -299,12 +299,11 @@ void AmbientController::OnAmbientUiVisibilityChanged(
       // Cancels the timer upon shown.
       inactivity_timer_.Stop();
 
-      if (IsChargerConnected()) {
+      if (ash::features::IsScreenSaverDurationEnabled()) {
+        StartTimerToReleaseWakeLock();
+      } else if (IsChargerConnected()) {
         // Requires wake lock to prevent display from sleeping.
         AcquireWakeLock();
-        if (ash::features::IsScreenSaverDurationEnabled()) {
-          StartTimerToReleaseWakeLock();
-        }
       }
       // Observes the |PowerStatus| on the battery charging status change for
       // the current ambient session.
@@ -326,6 +325,10 @@ void AmbientController::OnAmbientUiVisibilityChanged(
 
       // Should do nothing if the wake lock has already been released.
       ReleaseWakeLock();
+
+      if (ash::features::IsScreenSaverDurationEnabled()) {
+        screensaver_running_timer_.Stop();
+      }
 
       ClearPreTargetHandler();
 
@@ -361,7 +364,7 @@ void AmbientController::OnAutoShowTimeOut() {
   DCHECK(IsUiHidden(ambient_ui_model_.ui_visibility()));
 
   // Show ambient screen after time out.
-  SetUiVisibilityShouldShow();
+  SetUiVisibilityShown();
 }
 
 void AmbientController::OnLoginOrLockScreenCreated() {
@@ -548,7 +551,7 @@ void AmbientController::ScreenIdleStateChanged(
       return;
     }
 
-    SetUiVisibilityShouldShow();
+    SetUiVisibilityShown();
     return;
   }
 
@@ -658,7 +661,7 @@ void AmbientController::OnInteractionStateChanged(
   }
 }
 
-void AmbientController::SetUiVisibilityShouldShow() {
+void AmbientController::SetUiVisibilityShown() {
   DVLOG(1) << __func__;
 
   // TODO(meilinw): move the eligibility check to the idle entry point once
@@ -717,11 +720,6 @@ void AmbientController::SetUiVisibilityHidden() {
 
 void AmbientController::SetUiVisibilityClosed(bool immediately) {
   DVLOG(1) << __func__;
-  // Early return if the UI is already closed to make sure we do not change the
-  // cursor visibility when it is not required.
-  if (ambient_ui_model_.ui_visibility() == AmbientUiVisibility::kClosed) {
-    return;
-  }
 
   close_widgets_immediately_ = immediately;
   ambient_ui_model_.SetUiVisibility(AmbientUiVisibility::kClosed);
@@ -740,8 +738,7 @@ void AmbientController::SetScreenSaverDuration(int minutes) {
 }
 
 void AmbientController::StartTimerToReleaseWakeLock() {
-  DCHECK(ash::features::IsScreenSaverDurationEnabled());
-  DCHECK(!screensaver_running_timer_.IsRunning());
+  AcquireWakeLock();
 
   auto* pref_service = GetPrimaryUserPrefService();
   if (!pref_service) {
@@ -821,7 +818,6 @@ void AmbientController::ReleaseWakeLock() {
   VLOG(1) << "Released wake lock";
 
   delayed_lock_timer_.Stop();
-  screensaver_running_timer_.Stop();
 }
 
 void AmbientController::CloseAllWidgets(bool immediately) {

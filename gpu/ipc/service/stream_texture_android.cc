@@ -147,7 +147,12 @@ bool StreamTexture::IsUsingGpuMemory() const {
   return true;
 }
 
-void StreamTexture::UpdateAndBindTexImage() {}
+void StreamTexture::UpdateAndBindTexImage(GLuint service_id) {
+  // UpdateTexImage happens via OnFrameAvailable callback now. So we
+  // just need to ensure that image is bound to the correct texture id.
+  DCHECK_GT(service_id, static_cast<unsigned>(0));
+  texture_owner_->EnsureTexImageBound(service_id);
+}
 
 bool StreamTexture::HasTextureOwner() const {
   return !!texture_owner_;

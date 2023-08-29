@@ -9,16 +9,15 @@
 
 #include <Security/SecBase.h>
 
-#include "base/apple/scoped_cftyperef.h"
+#include "base/mac/scoped_cftyperef.h"
 #include "net/base/net_export.h"
 
 namespace net {
 
 class NET_EXPORT_PRIVATE ClientCertIdentityMac : public ClientCertIdentity {
  public:
-  ClientCertIdentityMac(
-      scoped_refptr<net::X509Certificate> cert,
-      base::apple::ScopedCFTypeRef<SecIdentityRef> sec_identity);
+  ClientCertIdentityMac(scoped_refptr<net::X509Certificate> cert,
+                        base::ScopedCFTypeRef<SecIdentityRef> sec_identity);
   ~ClientCertIdentityMac() override;
 
   SecIdentityRef sec_identity_ref() const { return identity_.get(); }
@@ -27,7 +26,7 @@ class NET_EXPORT_PRIVATE ClientCertIdentityMac : public ClientCertIdentity {
                              private_key_callback) override;
 
  private:
-  base::apple::ScopedCFTypeRef<SecIdentityRef> identity_;
+  base::ScopedCFTypeRef<SecIdentityRef> identity_;
 };
 
 }  // namespace net

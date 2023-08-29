@@ -627,8 +627,6 @@
 "fullscreen"
 "standalone"
 "minimal-ui"
-"borderless"
-"window-controls-overlay"
 "browser"
 "sticky"
 "coarse"

@@ -104,7 +104,7 @@ class TestStateStoreObserver : public StateStore::TestObserver {
   }
 
  private:
-  ExtensionId extension_id_;
+  std::string extension_id_;
   std::map<std::string, int> updated_values_;
 
   base::ScopedObservation<StateStore, StateStore::TestObserver>

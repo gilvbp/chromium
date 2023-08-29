@@ -293,8 +293,7 @@ void OutputPresenterGL::ScheduleOverlayPlane(
 
     if (acquire_fence && !acquire_fence->GetGpuFenceHandle().is_null()) {
       CHECK(access);
-      CHECK_EQ(gpu::GrContextType::kGL,
-               dependency_->GetSharedContextState()->gr_context_type());
+      CHECK_EQ(gpu::GrContextType::kGL, dependency_->gr_context_type());
       CHECK(features::IsDelegatedCompositingEnabled());
       CHECK(access->representation()->usage() &
             gpu::SHARED_IMAGE_USAGE_RASTER_DELEGATED_COMPOSITING);
@@ -314,7 +313,7 @@ void OutputPresenterGL::ScheduleOverlayPlane(
         std::move(overlay_image), std::move(acquire_fence),
         gfx::OverlayPlaneData(
             overlay_plane_candidate.plane_z_order,
-            overlay_plane_candidate.transform,
+            absl::get<gfx::OverlayTransform>(overlay_plane_candidate.transform),
             overlay_plane_candidate.display_rect,
             overlay_plane_candidate.uv_rect, !overlay_plane_candidate.is_opaque,
             ToEnclosingRect(overlay_plane_candidate.damage_rect),
@@ -340,10 +339,8 @@ void OutputPresenterGL::ScheduleOverlayPlane(
       overlay_plane_candidate.color.value_or(SkColors::kTransparent),
       overlay_plane_candidate.edge_aa_mask, overlay_plane_candidate.opacity,
       overlay_plane_candidate.nearest_neighbor_filter,
-      overlay_plane_candidate.hdr_metadata,
-      overlay_plane_candidate.protected_video_type,
-      overlay_plane_candidate.is_render_pass_draw_quad));
-
+      overlay_plane_candidate.hdr_mode, overlay_plane_candidate.hdr_metadata,
+      overlay_plane_candidate.protected_video_type));
 #endif
 }
 

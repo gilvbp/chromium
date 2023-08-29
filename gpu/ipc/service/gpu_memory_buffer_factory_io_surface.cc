@@ -11,6 +11,7 @@
 #include "gpu/ipc/common/gpu_client_ids.h"
 #include "ui/gfx/buffer_format_util.h"
 #include "ui/gfx/mac/io_surface.h"
+#include "ui/gl/buffer_format_utils.h"
 
 namespace gpu {
 
@@ -40,8 +41,8 @@ GpuMemoryBufferFactoryIOSurface::CreateGpuMemoryBuffer(
   DCHECK_EQ(framebuffer_size, size);
 
   bool should_clear = true;
-  base::apple::ScopedCFTypeRef<IOSurfaceRef> io_surface =
-      gfx::CreateIOSurface(size, format, should_clear);
+  base::ScopedCFTypeRef<IOSurfaceRef> io_surface(
+      gfx::CreateIOSurface(size, format, should_clear));
   if (!io_surface) {
     LOG(ERROR) << "Failed to allocate IOSurface.";
     return gfx::GpuMemoryBufferHandle();

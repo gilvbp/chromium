@@ -10,6 +10,10 @@
 #import "ios/chrome/browser/ui/fullscreen/fullscreen_model_observer.h"
 #import "ios/chrome/common/ui/util/ui_util.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace {
 // Object that increments `counter` by 1 for its lifetime.
 class ScopedIncrementer {
@@ -26,14 +30,6 @@ class ScopedIncrementer {
 
 FullscreenModel::FullscreenModel() = default;
 FullscreenModel::~FullscreenModel() = default;
-
-void FullscreenModel::AddObserver(FullscreenModelObserver* observer) {
-  observers_.AddObserver(observer);
-}
-
-void FullscreenModel::RemoveObserver(FullscreenModelObserver* observer) {
-  observers_.RemoveObserver(observer);
-}
 
 void FullscreenModel::IncrementDisabledCounter() {
   if (++disabled_counter_ == 1U) {
@@ -56,10 +52,6 @@ void FullscreenModel::DecrementDisabledCounter() {
       observer.FullscreenModelEnabledStateChanged(this);
     }
   }
-}
-
-void FullscreenModel::ForceEnterFullscreen() {
-  SetProgress(0.0);
 }
 
 void FullscreenModel::ResetForNavigation() {

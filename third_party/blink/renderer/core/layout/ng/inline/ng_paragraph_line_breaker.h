@@ -22,6 +22,12 @@ class CORE_EXPORT NGParagraphLineBreaker {
       const NGInlineNode& node,
       const NGConstraintSpace& space,
       const NGLineLayoutOpportunity& line_opportunity);
+
+ private:
+  static absl::optional<LayoutUnit> AttemptParagraphBalancingCore(
+      const NGInlineNode& node,
+      const NGConstraintSpace& space,
+      const NGLineLayoutOpportunity& line_opportunity);
 };
 
 }  // namespace blink

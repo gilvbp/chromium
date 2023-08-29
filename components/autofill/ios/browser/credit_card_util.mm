@@ -8,6 +8,10 @@
 #include "components/autofill/core/browser/autofill_type.h"
 #include "components/autofill/core/browser/data_model/credit_card.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace autofill {
 
 NSString* GetCreditCardName(const CreditCard& credit_card,
@@ -32,8 +36,7 @@ NSDateComponents* GetCreditCardExpirationDate(const CreditCard& credit_card) {
 }
 
 BOOL IsCreditCardLocal(const CreditCard& credit_card) {
-  return credit_card.record_type() ==
-         autofill::CreditCard::RecordType::kLocalCard;
+  return credit_card.record_type() == autofill::CreditCard::LOCAL_CARD;
 }
 
 }  // namespace autofill

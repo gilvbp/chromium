@@ -211,8 +211,7 @@ bool DMGAnalyzer::ResumeExtraction() {
         return !UpdateResultsForEntry(
             temp_file_.Duplicate(), GetRootPath().Append(path),
             /*file_length=*/0,
-            /*is_encrypted=*/false, /*is_directory=*/false,
-            /*contents_valid=*/true);
+            /*is_encrypted=*/false, /*is_directory=*/false);
       }
     }
   }

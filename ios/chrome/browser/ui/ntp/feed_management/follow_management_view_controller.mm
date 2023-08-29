@@ -4,7 +4,7 @@
 
 #import "ios/chrome/browser/ui/ntp/feed_management/follow_management_view_controller.h"
 
-#import "base/apple/foundation_util.h"
+#import "base/mac/foundation_util.h"
 #import "ios/chrome/browser/net/crurl.h"
 #import "ios/chrome/browser/shared/ui/table_view/table_view_favicon_data_source.h"
 #import "ios/chrome/browser/ui/follow/followed_web_channel.h"
@@ -20,6 +20,10 @@
 #import "ios/chrome/common/ui/favicon/favicon_view.h"
 #import "ios/chrome/grit/ios_strings.h"
 #import "ui/base/l10n/l10n_util_mac.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace {
 
@@ -72,9 +76,9 @@ typedef NS_ENUM(NSInteger, ItemType) {
       [self.tableViewModel itemAtIndexPath:indexPath];
 
   FollowedWebChannelItem* followedWebChannelItem =
-      base::apple::ObjCCastStrict<FollowedWebChannelItem>(tableViewItem);
+      base::mac::ObjCCastStrict<FollowedWebChannelItem>(tableViewItem);
   FollowedWebChannelCell* followedWebChannelCell =
-      base::apple::ObjCCastStrict<FollowedWebChannelCell>(cellToReturn);
+      base::mac::ObjCCastStrict<FollowedWebChannelCell>(cellToReturn);
 
   [self.faviconDataSource
       faviconForPageURL:followedWebChannelItem.URL
@@ -227,7 +231,7 @@ typedef NS_ENUM(NSInteger, ItemType) {
 
 - (void)visitSiteTapped {
   FollowedWebChannelItem* followedWebChannelItem =
-      base::apple::ObjCCastStrict<FollowedWebChannelItem>(
+      base::mac::ObjCCastStrict<FollowedWebChannelItem>(
           [self.tableViewModel itemAtIndexPath:self.indexPathOfSelectedRow]);
   const GURL& webPageURL =
       followedWebChannelItem.followedWebChannel.webPageURL.gurl;
@@ -248,13 +252,13 @@ typedef NS_ENUM(NSInteger, ItemType) {
 - (void)removeFollowedWebChannel:(FollowedWebChannel*)channel {
   for (UITableViewCell* cell in self.tableView.visibleCells) {
     FollowedWebChannelCell* followedWebChannelCell =
-        base::apple::ObjCCastStrict<FollowedWebChannelCell>(cell);
+        base::mac::ObjCCastStrict<FollowedWebChannelCell>(cell);
 
     if ([followedWebChannelCell.followedWebChannel isEqual:channel]) {
       NSIndexPath* indexPath = [self.tableView indexPathForCell:cell];
       [followedWebChannelCell stopAnimatingActivityIndicator];
       self.lastUnfollowedWebChannelItem =
-          base::apple::ObjCCastStrict<FollowedWebChannelItem>(
+          base::mac::ObjCCastStrict<FollowedWebChannelItem>(
               [self.tableViewModel itemAtIndexPath:indexPath]);
       self.indexPathOfLastUnfollowAttempt = indexPath;
       [self deleteItemAtIndex:indexPath];
@@ -338,7 +342,7 @@ typedef NS_ENUM(NSInteger, ItemType) {
   self.indexPathOfLastUnfollowAttempt = indexPath;
 
   FollowedWebChannelCell* followedWebChannelCell =
-      base::apple::ObjCCastStrict<FollowedWebChannelCell>(
+      base::mac::ObjCCastStrict<FollowedWebChannelCell>(
           [self.tableView cellForRowAtIndexPath:indexPath]);
   [followedWebChannelCell startAnimatingActivityIndicator];
   [self.followDelegate

@@ -93,17 +93,9 @@ class CORE_EXPORT StyleSheetContents final
   // if there are none.
   Document* AnyOwnerDocument() const;
 
-  // True if either:
-  //
-  // - The parent element of the stylesheet's owner node is equal
-  //   to `candidate`, or if no such element exists:
-  // - The stylesheet is adopted by a shadow root attached to
-  //   a host equal to `candidate`.
-  //
-  // Note that a single StyleSheetContents can have multiple CSSStyleSheets
-  // associated with it, and this function returns true if the
-  // requirements above are met for *any* CSSStyleSheet.
-  bool HasOwnerParentElementOrAdoptiveHost(Element* candidate) const;
+  // True if any the StyleSheetContents's owner nodes have a *parent* that is
+  // equal to `candidate`.
+  bool HasOwnerParentNode(Node* candidate) const;
 
   const WTF::TextEncoding& Charset() const {
     return parser_context_->Charset();
@@ -119,6 +111,8 @@ class CORE_EXPORT StyleSheetContents final
 
   void SetHasFontFaceRule() { has_font_face_rule_ = true; }
   bool HasFontFaceRule() const { return has_font_face_rule_; }
+  void FindFontFaceRules(
+      HeapVector<Member<const StyleRuleFontFace>>& font_face_rules);
 
   void SetHasViewportRule() { has_viewport_rule_ = true; }
   bool HasViewportRule() const { return has_viewport_rule_; }

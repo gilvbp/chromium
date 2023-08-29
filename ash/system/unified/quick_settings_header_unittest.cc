@@ -96,8 +96,7 @@ class QuickSettingsHeaderTest : public NoSessionAshTestBase {
   }
 
   base::test::ScopedFeatureList feature_list_;
-  raw_ptr<TestShellDelegate, DanglingUntriaged | ExperimentalAsh>
-      test_shell_delegate_ = nullptr;
+  raw_ptr<TestShellDelegate, ExperimentalAsh> test_shell_delegate_ = nullptr;
   scoped_refptr<UnifiedSystemTrayModel> model_;
   std::unique_ptr<UnifiedSystemTrayController> controller_;
   std::unique_ptr<views::Widget> widget_;
@@ -292,9 +291,6 @@ TEST_F(QuickSettingsHeaderTest, ChildVisible) {
   EXPECT_EQ(GetSupervisedButton()->GetTooltipText({}),
             u"Account managed by parent@test.com");
   EXPECT_TRUE(header_->GetVisible());
-
-  LeftClickOn(GetSupervisedButton());
-  EXPECT_EQ(GetSystemTrayClient()->show_account_settings_count(), 1);
 }
 
 }  // namespace ash

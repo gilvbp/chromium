@@ -14,16 +14,16 @@ let fakeContactManager = null;
 /** @type {!FakeNearbyShareSettings} */
 let fakeSettings = null;
 
-suiteSetup(() => {
+suiteSetup(function() {
   settingsPrefs = document.createElement('settings-prefs');
   return CrSettingsPrefs.initialized;
 });
 
-suite('MainPageTests', () => {
+suite('MainPageTests', function() {
   /** @type {?SettingsMainElement} */
   let settingsMain = null;
 
-  setup(() => {
+  setup(function() {
     fakeContactManager = new FakeContactManager();
     setContactManagerForTesting(fakeContactManager);
     fakeContactManager.setupContactRecords();
@@ -38,36 +38,40 @@ suite('MainPageTests', () => {
     settingsMain.toolbarSpinnerActive = false;
     settingsMain.pageAvailability = createPageAvailabilityForTesting();
     document.body.appendChild(settingsMain);
-    flush();
   });
 
-  teardown(() => {
+  teardown(function() {
     settingsMain.remove();
-    Router.getInstance().resetRouteForTesting();
   });
 
-  function isShowingManagedHeader() {
-    return settingsMain.showManagedHeader_();
+  function showManagedHeader() {
+    return settingsMain.showManagedHeader_(
+        settingsMain.inSearchMode_, settingsMain.showingSubpage_,
+        settingsMain.showPages_.about);
   }
 
-  test('managed header hides when showing subpage', () => {
-    assertTrue(isShowingManagedHeader());
+  test('managed header hides when showing subpage', function() {
+    flush();
+
+    assertTrue(showManagedHeader());
 
     const mainPageContainer =
         settingsMain.shadowRoot.querySelector('main-page-container');
 
-    const showingSubpageEvent =
-        new CustomEvent('showing-subpage', {bubbles: true, composed: true});
-    mainPageContainer.dispatchEvent(showingSubpageEvent);
+    const subpageExpandEvent =
+        new CustomEvent('subpage-expand', {'bubbles': true, composed: true});
+    mainPageContainer.dispatchEvent(subpageExpandEvent);
 
-    assertFalse(isShowingManagedHeader());
+    assertFalse(showManagedHeader());
   });
 
-  test('managed header hides when showing about page', () => {
-    assertTrue(isShowingManagedHeader());
+  test('managed header hides when showing about page', function() {
+    flush();
+
+    assertTrue(showManagedHeader());
     Router.getInstance().navigateTo(routes.ABOUT);
 
-    assertFalse(isShowingManagedHeader());
+    assertFalse(showManagedHeader());
   });
 
   /** @return {!HTMLElement} */
@@ -81,12 +85,57 @@ suite('MainPageTests', () => {
     return toggleContainer;
   }
 
-  test('Basic page has the default title', () => {
-    Router.getInstance().navigateTo(routes.BASIC);
-    assertEquals(document.title, loadTimeData.getString('settings'));
+  /**
+   * Asserts that the Advanced toggle container exists in the combined
+   * settings page and asserts whether it should be visible.
+   * @param {boolean} expectedVisible
+   */
+  function assertToggleContainerVisible(expectedVisible) {
+    const toggleContainer = getToggleContainer();
+    if (expectedVisible) {
+      assertNotEquals('none', toggleContainer.style.display);
+    } else {
+      assertEquals('none', toggleContainer.style.display);
+    }
+  }
+
+  /**
+   * Asserts the visibility of the basic and advanced pages.
+   * @param {string} Expected 'display' value for the basic page.
+   * @param {string} Expected 'display' value for the advanced page.
+   */
+  async function assertPageDisplay(expectedBasic, expectedAdvanced) {
+    flush();
+    const mainPageContainer =
+        settingsMain.shadowRoot.querySelector('main-page-container');
+    assertEquals(
+        expectedBasic,
+        getComputedStyle(
+            mainPageContainer.shadowRoot.querySelector('#basicPage'))
+            .display);
+
+    const advancedPage = await mainPageContainer.shadowRoot
+                             .querySelector('#advancedPageTemplate')
+                             .get();
+    assertEquals(expectedAdvanced, getComputedStyle(advancedPage).display);
+  }
+
+  test('navigating to a basic page does not collapse advanced', async () => {
+    Router.getInstance().navigateTo(routes.DATETIME);
+    flush();
+
+    assertToggleContainerVisible(true);
+
+    Router.getInstance().navigateTo(routes.DEVICE);
+    flush();
+
+    await assertPageDisplay('block', 'block');
   });
 
-  test('About page has a custom title', () => {
+  test('updates the title based on current route', function() {
+    Router.getInstance().navigateTo(routes.BASIC);
+    assertEquals(document.title, loadTimeData.getString('settings'));
+
     Router.getInstance().navigateTo(routes.ABOUT);
     assertEquals(
         document.title,

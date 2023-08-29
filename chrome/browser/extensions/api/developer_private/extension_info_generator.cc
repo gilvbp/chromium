@@ -17,7 +17,6 @@
 #include "base/strings/utf_string_conversions.h"
 #include "base/task/single_thread_task_runner.h"
 #include "chrome/browser/extensions/api/commands/command_service.h"
-#include "chrome/browser/extensions/api/developer_private/developer_private_api.h"
 #include "chrome/browser/extensions/api/developer_private/inspectable_views_finder.h"
 #include "chrome/browser/extensions/api/extension_action/extension_action_api.h"
 #include "chrome/browser/extensions/error_console/error_console.h"
@@ -32,6 +31,7 @@
 #include "chrome/common/pref_names.h"
 #include "chrome/grit/chromium_strings.h"
 #include "chrome/grit/generated_resources.h"
+#include "chrome/grit/google_chrome_strings.h"
 #include "components/supervised_user/core/common/pref_names.h"
 #include "content/public/browser/render_frame_host.h"
 #include "extensions/browser/blocklist_extension_prefs.h"
@@ -55,13 +55,11 @@
 #include "extensions/common/manifest_handlers/icons_handler.h"
 #include "extensions/common/manifest_handlers/offline_enabled_info.h"
 #include "extensions/common/manifest_handlers/options_page_info.h"
-#include "extensions/common/manifest_handlers/permissions_parser.h"
 #include "extensions/common/manifest_url_handlers.h"
 #include "extensions/common/permissions/permission_message_provider.h"
 #include "extensions/common/permissions/permission_message_util.h"
 #include "extensions/common/permissions/permissions_data.h"
 #include "extensions/grit/extensions_browser_resources.h"
-#include "extensions/strings/grit/extensions_strings.h"
 #include "third_party/skia/include/core/SkBitmap.h"
 #include "ui/base/l10n/l10n_util.h"
 #include "ui/base/resource/resource_bundle.h"
@@ -144,15 +142,15 @@ developer::RuntimeError ConstructRuntimeError(const RuntimeError& error) {
   developer::RuntimeError result;
   PopulateErrorBase(error, &result);
   switch (error.level()) {
-    case logging::LOGGING_VERBOSE:
-    case logging::LOGGING_INFO:
+    case logging::LOG_VERBOSE:
+    case logging::LOG_INFO:
       result.severity = developer::ERROR_LEVEL_LOG;
       break;
-    case logging::LOGGING_WARNING:
+    case logging::LOG_WARNING:
       result.severity = developer::ERROR_LEVEL_WARN;
       break;
-    case logging::LOGGING_FATAL:
-    case logging::LOGGING_ERROR:
+    case logging::LOG_FATAL:
+    case logging::LOG_ERROR:
       result.severity = developer::ERROR_LEVEL_ERROR;
       break;
     default:
@@ -313,19 +311,6 @@ developer::RuntimeHostPermissions CreateRuntimeHostPermissionsInfo(
   return runtime_host_permissions;
 }
 
-// Returns if the extension can access site data. This checks for host
-// permissions, activeTab and API permissions that will surface a warning for
-// all hosts access.
-bool CanAccessSiteData(PermissionsManager* permissions_manager,
-                       const Extension& extension) {
-  return permissions_manager->ExtensionRequestsHostPermissionsOrActiveTab(
-             extension) ||
-         PermissionsParser::GetRequiredPermissions(&extension)
-             .ShouldWarnAllHosts() ||
-         PermissionsParser::GetOptionalPermissions(&extension)
-             .ShouldWarnAllHosts();
-}
-
 // Populates the |permissions| data for the given |extension|.
 void AddPermissionsInfo(content::BrowserContext* browser_context,
                         const Extension& extension,
@@ -346,10 +331,6 @@ void AddPermissionsInfo(content::BrowserContext* browser_context,
 
   PermissionsManager* permissions_manager =
       PermissionsManager::Get(browser_context);
-
-  permissions->can_access_site_data =
-      CanAccessSiteData(permissions_manager, extension);
-
   bool enable_runtime_host_permissions =
       permissions_manager->CanAffectExtension(extension);
 
@@ -420,8 +401,6 @@ void ExtensionInfoGenerator::CreateExtensionInfo(
     state = developer::EXTENSION_STATE_DISABLED;
   else if ((ext = registry->terminated_extensions().GetByID(id)) != nullptr)
     state = developer::EXTENSION_STATE_TERMINATED;
-  else if ((ext = registry->blocklisted_extensions().GetByID(id)) != nullptr)
-    state = developer::EXTENSION_STATE_BLACKLISTED;
 
   if (ext && ui_util::ShouldDisplayInExtensionSettings(*ext))
     CreateExtensionInfoHelper(*ext, state);
@@ -560,8 +539,7 @@ void ExtensionInfoGenerator::CreateExtensionInfoHelper(
     absl::optional<CWSInfoService::CWSInfo> cws_info =
         cws_info_service_->GetCWSInfo(extension);
     if (cws_info.has_value()) {
-      info->safety_check_text =
-          CreateSafetyCheckDisplayString(*cws_info, state);
+      info->safety_check_text = CreateSafetyCheckDisplayString(*cws_info);
     }
   }
 
@@ -660,11 +638,6 @@ void ExtensionInfoGenerator::CreateExtensionInfoHelper(
   info->incognito_access.is_enabled = util::CanBeIncognitoEnabled(&extension);
   info->incognito_access.is_active =
       util::IsIncognitoEnabled(extension.id(), browser_context_);
-
-  // Safety check warning acknowledge status.
-  extension_prefs_->ReadPrefAsBoolean(
-      extension.id(), extensions::kPrefAcknowledgeSafetyCheckWarning,
-      &info->acknowledge_safety_check_warning);
 
   // Install warnings, but only if unpacked, the error console isn't enabled
   // (otherwise it shows these), and we're in developer mode (normal users don't
@@ -813,8 +786,8 @@ void ExtensionInfoGenerator::CreateExtensionInfoHelper(
 
 developer::SafetyCheckStrings
 ExtensionInfoGenerator::CreateSafetyCheckDisplayString(
-    const CWSInfoService::CWSInfo& cws_info,
-    developer::ExtensionState state) {
+    CWSInfoService::CWSInfo& cws_info) {
+  // TODO(crbug.com/1432194): Add panel_page_string logic.
   developer::SafetyCheckStrings display_strings;
   std::string detail_page_string;
   std::string panel_page_string;
@@ -823,16 +796,10 @@ ExtensionInfoGenerator::CreateSafetyCheckDisplayString(
       case CWSInfoService::CWSViolationType::kMalware:
         detail_page_string =
             l10n_util::GetStringUTF8(IDS_SAFETY_CHECK_EXTENSIONS_MALWARE);
-        panel_page_string = l10n_util::GetStringUTF8(IDS_EXTENSIONS_SC_MALWARE);
         break;
       case CWSInfoService::CWSViolationType::kPolicy:
         detail_page_string = l10n_util::GetStringUTF8(
             IDS_SAFETY_CHECK_EXTENSIONS_POLICY_VIOLATION);
-        panel_page_string = state == developer::EXTENSION_STATE_ENABLED
-                                ? l10n_util::GetStringUTF8(
-                                      IDS_EXTENSIONS_SC_POLICY_VIOLATION_ON)
-                                : l10n_util::GetStringUTF8(
-                                      IDS_EXTENSIONS_SC_POLICY_VIOLATION_OFF);
         break;
       case CWSInfoService::CWSViolationType::kNone:
       case CWSInfoService::CWSViolationType::kMinorPolicy:
@@ -840,10 +807,6 @@ ExtensionInfoGenerator::CreateSafetyCheckDisplayString(
         if (cws_info.unpublished_long_ago) {
           detail_page_string =
               l10n_util::GetStringUTF8(IDS_SAFETY_CHECK_EXTENSIONS_UNPUBLISHED);
-          panel_page_string =
-              state == developer::EXTENSION_STATE_ENABLED
-                  ? l10n_util::GetStringUTF8(IDS_EXTENSIONS_SC_UNPUBLISHED_ON)
-                  : l10n_util::GetStringUTF8(IDS_EXTENSIONS_SC_UNPUBLISHED_OFF);
         }
         break;
     }

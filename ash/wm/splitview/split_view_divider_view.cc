@@ -27,7 +27,10 @@
 #include "ui/chromeos/styles/cros_tokens_color_mappings.h"
 #include "ui/compositor/layer.h"
 #include "ui/compositor/scoped_layer_animation_settings.h"
+#include "ui/gfx/geometry/insets.h"
+#include "ui/gfx/geometry/outsets.h"
 #include "ui/gfx/geometry/rect.h"
+#include "ui/gfx/geometry/rounded_corners_f.h"
 #include "ui/gfx/geometry/size.h"
 #include "ui/views/background.h"
 #include "ui/views/highlight_border.h"
@@ -145,6 +148,14 @@ void SplitViewDividerView::Layout() {
         kebab_button_size.width(), kebab_button_size.height());
     kebab_button_->SetBoundsRect(kebab_button_bounds);
   }
+}
+
+void SplitViewDividerView::OnThemeChanged() {
+  views::View::OnThemeChanged();
+
+  background()->SetNativeControlColor(
+      AshColorProvider::Get()->GetBaseLayerColor(
+          AshColorProvider::BaseLayerType::kOpaque));
 }
 
 void SplitViewDividerView::OnMouseEntered(const ui::MouseEvent& event) {
@@ -277,7 +288,8 @@ void SplitViewDividerView::OnKebabButtonPressed() {
     snap_group_expanded_menu_widget_ = std::make_unique<views::Widget>();
     snap_group_expanded_menu_widget_->Init(CreateWidgetInitParams(
         split_view_controller_->root_window(), "SnapGroupExpandedMenuWidget"));
-    SnapGroupController* snap_group_controller = SnapGroupController::Get();
+    SnapGroupController* snap_group_controller =
+        Shell::Get()->snap_group_controller();
     SnapGroup* snap_group = snap_group_controller->GetSnapGroupForGivenWindow(
         split_view_controller_->primary_window());
     CHECK(snap_group);

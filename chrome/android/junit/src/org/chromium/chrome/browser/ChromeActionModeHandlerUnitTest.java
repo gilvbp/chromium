@@ -66,8 +66,7 @@ public class ChromeActionModeHandlerUnitTest {
     @Mock
     private ShareDelegate mShareDelegate;
 
-    private class TestChromeActionModeCallback
-            extends ChromeActionModeHandler.ChromeActionModeCallback {
+    private class TestChromeActionModeCallback extends ChromeActionModeHandler.ActionModeCallback {
         TestChromeActionModeCallback(Tab tab, ActionModeCallbackHelper helper) {
             super(tab, null, urlParams -> {}, () -> mShareDelegate);
         }

@@ -122,6 +122,7 @@ public class FeedSurfaceTracker implements SurfaceCoordinator.Observer {
         }
     }
 
+    @VisibleForTesting
     public void resetForTest() {
         mStartupCalled = false;
     }

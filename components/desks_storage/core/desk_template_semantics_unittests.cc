@@ -24,13 +24,14 @@ namespace {
 base::Value PerformPolicyRoundtrip(const base::Value& expected,
                                    DeskSyncBridge* bridge,
                                    apps::AppRegistryCache* cache) {
-  auto policy_dt = desk_template_conversion::ParseDeskTemplateFromBaseValue(
-      expected, ash::DeskTemplateSource::kPolicy);
+  std::unique_ptr<ash::DeskTemplate> policy_dt =
+      desk_template_conversion::ParseDeskTemplateFromBaseValue(
+          expected, ash::DeskTemplateSource::kPolicy);
 
-  EXPECT_TRUE(policy_dt.has_value());
+  EXPECT_TRUE(policy_dt != nullptr);
 
   sync_pb::WorkspaceDeskSpecifics proto_desk =
-      desk_template_conversion::ToSyncProto(policy_dt.value().get(), cache);
+      desk_template_conversion::ToSyncProto(policy_dt.get(), cache);
 
   // Convert back to original format.
   return desk_template_conversion::SerializeDeskTemplateAsBaseValue(

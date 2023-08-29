@@ -7,7 +7,7 @@
             "builder_id": {
               "bucket": "ci",
               "builder": "fuchsia-arm64-rel",
-              "project": "chromium"
+              "project": "chromium-m116"
             },
             "builder_spec": {
               "build_gs_bucket": "chromium-linux-archive",
@@ -38,20 +38,15 @@
         {
           "bucket": "ci",
           "builder": "fuchsia-arm64-rel",
-          "project": "chromium"
+          "project": "chromium-m116"
         }
       ]
     }
   },
-  "$build/flakiness": {
-    "check_for_flakiness": true,
-    "check_for_flakiness_with_resultdb": true
-  },
   "$build/reclient": {
     "instance": "rbe-chromium-untrusted",
-    "jobs": 500,
-    "metrics_project": "chromium-reclient-metrics",
-    "scandeps_server": true
+    "jobs": 300,
+    "metrics_project": "chromium-reclient-metrics"
   },
   "$recipe_engine/resultdb/test_presentation": {
     "column_keys": [],

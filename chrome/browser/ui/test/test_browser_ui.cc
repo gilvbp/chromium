@@ -70,7 +70,7 @@ class ScopedMouseDisabler {
   ~ScopedMouseDisabler() { cursor_client_->EnableMouseEvents(); }
 
  private:
-  raw_ptr<aura::client::CursorClient> cursor_client_;
+  base::raw_ptr<aura::client::CursorClient> cursor_client_;
 };
 #endif
 
@@ -132,7 +132,8 @@ ui::test::ActionResult TestBrowserUi::VerifyPixelUi(
   compositor->ScheduleFullRedraw();
   ui::DrawWaiterForTest::WaitForCompositingEnded(compositor);
 
-  views::ViewSkiaGoldPixelDiff pixel_diff(
+  views::ViewSkiaGoldPixelDiff pixel_diff;
+  pixel_diff.Init(
       // For the CR2023 screenshots add a "CR2023" prefix so that they are
       // compared exclusively with previous CR2023 screenshots. We would like
       // Skia Gold to catch regressions in both CR2023 and non-CR2023.

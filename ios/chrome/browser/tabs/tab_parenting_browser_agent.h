@@ -22,9 +22,9 @@ class TabParentingBrowserAgent
   void BrowserDestroyed(Browser* browser) override;
 
   // WebStateListObserver implementation.
-  void WebStateListDidChange(WebStateList* web_state_list,
-                             const WebStateListChange& change,
-                             const WebStateListStatus& status) override;
+  void WebStateListChanged(WebStateList* web_state_list,
+                           const WebStateListChange& change,
+                           const WebStateSelection& selection) override;
 
  private:
   friend class BrowserUserData<TabParentingBrowserAgent>;

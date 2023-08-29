@@ -13,6 +13,7 @@ source_set("ui") {
     ":crw_web_view_navigation_proxy",
     ":web_view_handler",
     "//base",
+    "//base/ios",
     "//build:branding_buildflags",
     "//ios/net",
     "//ios/third_party/webkit",
@@ -77,6 +78,8 @@ source_set("ui") {
     "crw_wk_ui_handler.mm",
     "crw_wk_ui_handler_delegate.h",
   ]
+
+  configs += [ "//build/config/compiler:enable_arc" ]
 }
 
 source_set("web_controller_header") {
@@ -91,6 +94,8 @@ source_set("web_controller_header") {
   ]
 
   public_deps = [ "//base" ]
+
+  configs += [ "//build/config/compiler:enable_arc" ]
 }
 
 source_set("web_view_handler") {
@@ -99,12 +104,15 @@ source_set("web_view_handler") {
     "crw_web_view_handler.mm",
     "crw_web_view_handler_delegate.h",
   ]
+  configs += [ "//build/config/compiler:enable_arc" ]
 }
 
 source_set("crw_web_view_navigation_proxy") {
   sources = [ "crw_web_view_navigation_proxy.h" ]
 
   deps = [ "//ios/third_party/webkit" ]
+
+  configs += [ "//build/config/compiler:enable_arc" ]
 }
 
 source_set("crw_context_menu_controller") {
@@ -130,11 +138,14 @@ source_set("crw_context_menu_controller") {
     "crw_html_element_fetch_request.h",
     "crw_html_element_fetch_request.mm",
   ]
+
+  configs += [ "//build/config/compiler:enable_arc" ]
 }
 
 source_set("wk_web_view_configuration_provider_header") {
   deps = [ "//base" ]
   sources = [ "wk_web_view_configuration_provider.h" ]
+  configs += [ "//build/config/compiler:enable_arc" ]
 }
 
 source_set("wk_web_view_configuration_provider") {
@@ -161,4 +172,6 @@ source_set("wk_web_view_configuration_provider") {
     "wk_web_view_configuration_provider.mm",
     "wk_web_view_configuration_provider_observer.h",
   ]
+
+  configs += [ "//build/config/compiler:enable_arc" ]
 }

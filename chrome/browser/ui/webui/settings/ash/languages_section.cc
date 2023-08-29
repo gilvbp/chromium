@@ -6,16 +6,15 @@
 
 #include "ash/constants/ash_features.h"
 #include "ash/constants/ash_pref_names.h"
-#include "ash/webui/settings/public/constants/routes.mojom-forward.h"
 #include "base/feature_list.h"
 #include "base/no_destructor.h"
 #include "base/strings/utf_string_conversions.h"
-#include "chrome/browser/ash/input_method/editor_mediator.h"
 #include "chrome/browser/ash/input_method/input_method_settings.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/ui/ash/keyboard/chrome_keyboard_controller_client.h"
-#include "chrome/browser/ui/webui/ash/settings/search/search_tag_registry.h"
 #include "chrome/browser/ui/webui/settings/ash/os_settings_features_util.h"
+#include "chrome/browser/ui/webui/settings/ash/search/search_tag_registry.h"
+#include "chrome/browser/ui/webui/settings/chromeos/constants/routes.mojom-forward.h"
 #include "chrome/browser/ui/webui/settings/languages_handler.h"
 #include "chrome/browser/ui/webui/webui_util.h"
 #include "chrome/common/url_constants.h"
@@ -166,12 +165,10 @@ void AddSmartInputsStrings(content::WebUIDataSource* html_source,
       {"smartInputsTitle", IDS_SETTINGS_SUGGESTIONS_TITLE},
       {"emojiSuggestionTitle", IDS_SETTINGS_SUGGESTIONS_EMOJI_SUGGESTION_TITLE},
       {"emojiSuggestionDescription",
-       IDS_SETTINGS_SUGGESTIONS_EMOJI_SUGGESTION_DESCRIPTION}};
+       IDS_SETTINGS_SUGGESTIONS_EMOJI_SUGGESTION_DESCRIPTION},
+  };
   html_source->AddLocalizedStrings(kLocalizedStrings);
 
-  html_source->AddBoolean(
-      "allowOrca", input_method::EditorMediator::HasInstance() &&
-                       input_method::EditorMediator::Get()->IsAllowedForUse());
   html_source->AddBoolean("allowEmojiSuggestion", is_emoji_suggestion_allowed);
 }
 
@@ -198,8 +195,6 @@ void AddInputMethodOptionsStrings(
        IDS_SETTINGS_INPUT_METHOD_OPTIONS_USER_DICTIONARIES},
       {"inputMethodOptionsPrivacySectionTitle",
        IDS_SETTINGS_INPUT_METHOD_OPTIONS_PRIVACY},
-      {"inputMethodOptionsVietnameseShorthandTypingTitle",
-       IDS_SETTINGS_INPUT_METHOD_HEADING_SHORTHAND_TYPING},
       {"inputMethodOptionsJapaneseAutomaticallySwitchToHalfwidth",
        IDS_SETTINGS_INPUT_METHOD_OPTIONS_JAPANESE_AUTOMATICALLY_SWITCH_TO_HALFWIDTH},
       {"inputMethodOptionsJapaneseShiftKeyModeStyle",
@@ -344,26 +339,6 @@ void AddInputMethodOptionsStrings(
        IDS_SETTINGS_INPUT_METHOD_OPTIONS_KEYBOARD_DVORAK},
       {"inputMethodOptionsColemakKeyboard",
        IDS_SETTINGS_INPUT_METHOD_OPTIONS_KEYBOARD_COLEMAK},
-      {"inputMethodOptionsVietnameseModernToneMarkPlacement",
-       IDS_SETTINGS_INPUT_METHOD_OPTIONS_VIETNAMESE_MODERN_TONE_MARK_PLACEMENT},
-      {"inputMethodOptionsVietnameseModernToneMarkPlacementDescription",
-       IDS_SETTINGS_INPUT_METHOD_OPTIONS_DESCRIPTION_VIETNAMESE_MODERN_TONE_MARK_PLACEMENT},
-      {"inputMethodOptionsVietnameseFlexibleTyping",
-       IDS_SETTINGS_INPUT_METHOD_OPTIONS_VIETNAMESE_FLEXIBLE_TYPING},
-      {"inputMethodOptionsVietnameseTelexFlexibleTypingDescription",
-       IDS_SETTINGS_INPUT_METHOD_OPTIONS_VIETNAMESE_TELEX_FLEXIBLE_TYPING_DESCRIPTION},
-      {"inputMethodOptionsVietnameseVniFlexibleTypingDescription",
-       IDS_SETTINGS_INPUT_METHOD_OPTIONS_VIETNAMESE_VNI_FLEXIBLE_TYPING_DESCRIPTION},
-      {"inputMethodOptionsVietnameseVniUoHookShortcut",
-       IDS_SETTINGS_INPUT_METHOD_OPTIONS_VIETNAMESE_VNI_UO_HOOK_SHORTCUT},
-      {"inputMethodOptionsVietnameseTelexUoHookShortcut",
-       IDS_SETTINGS_INPUT_METHOD_OPTIONS_VIETNAMESE_TELEX_UO_HOOK_SHORTCUT},
-      {"inputMethodOptionsVietnameseTelexWShortcut",
-       IDS_SETTINGS_INPUT_METHOD_OPTIONS_VIETNAMESE_TELEX_W_SHORTCUT},
-      {"inputMethodOptionsVietnameseShowUnderline",
-       IDS_SETTINGS_INPUT_METHOD_OPTIONS_VIETNAMESE_SHOW_UNDERLINE},
-      {"inputMethodOptionsVietnameseShowUnderlineDescription",
-       IDS_SETTINGS_INPUT_METHOD_OPTIONS_DESCRIPTION_VIETNAMESE_SHOW_UNDERLINE},
   };
   html_source->AddLocalizedStrings(kLocalizedStrings);
   html_source->AddBoolean("isPhysicalKeyboardAutocorrectAllowed",
@@ -382,9 +357,6 @@ void AddInputMethodOptionsStrings(
   html_source->AddBoolean(
       "autocorrectEnableByDefault",
       base::FeatureList::IsEnabled(features::kAutocorrectByDefault));
-  html_source->AddBoolean(
-      "allowFirstPartyVietnameseInput",
-      base::FeatureList::IsEnabled(features::kFirstPartyVietnameseInput));
 }
 
 void AddLanguagesPageStringsV2(content::WebUIDataSource* html_source) {
@@ -543,9 +515,8 @@ LanguagesSection::LanguagesSection(Profile* profile,
 
   if (IsEmojiSuggestionAllowed()) {
     updater.AddSearchTags(GetSmartInputsSearchConcepts());
-    if (IsEmojiSuggestionAllowed()) {
+    if (IsEmojiSuggestionAllowed())
       updater.AddSearchTags(GetEmojiSuggestionSearchConcepts());
-    }
   }
   updater.AddSearchTags(GetAutoCorrectionSearchConcepts());
 }
@@ -586,6 +557,7 @@ void LanguagesSection::AddLoadTimeData(content::WebUIDataSource* html_source) {
   AddLanguagesPageStringsV2(html_source);
   AddInputPageStringsV2(html_source);
 
+  html_source->AddBoolean("enableLanguageSettingsV2Update2", true);
   html_source->AddBoolean(
       "onDeviceGrammarCheckEnabled",
       base::FeatureList::IsEnabled(features::kOnDeviceGrammarCheck));
@@ -613,7 +585,7 @@ mojom::SearchResultIcon LanguagesSection::GetSectionIcon() const {
   return mojom::SearchResultIcon::kGlobe;
 }
 
-const char* LanguagesSection::GetSectionPath() const {
+std::string LanguagesSection::GetSectionPath() const {
   return mojom::kLanguagesAndInputSectionPath;
 }
 

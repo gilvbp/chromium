@@ -375,8 +375,7 @@ void SavedTabGroupModel::MoveTabInGroupTo(const base::Uuid& group_id,
   saved_tab_groups_[index.value()].MoveTabLocally(tab_id, new_index);
 
   for (auto& observer : observers_) {
-    // TODO(crbug/1459730): Consider further optimizations.
-    observer.SavedTabGroupTabsReorderedLocally(group_id);
+    observer.SavedTabGroupUpdatedLocally(group_id, copy_tab_id);
   }
 }
 
@@ -460,11 +459,10 @@ SavedTabGroupModel::LoadStoredEntries(
   // at the front of the vector. As such, we can run into the case where we
   // try to add a tab to a group that does not exist for us yet.
   for (sync_pb::SavedTabGroupSpecifics proto : entries) {
-    if (proto.has_group()) {
+    if (proto.has_group())
       Add(SavedTabGroup::FromSpecifics(proto));
-    } else {
+    else
       tabs.emplace_back(SavedTabGroupTab::FromSpecifics(proto));
-    }
   }
 
   UpdateGroupPositionsImpl();

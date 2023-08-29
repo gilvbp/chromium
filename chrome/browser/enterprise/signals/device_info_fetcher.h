@@ -59,10 +59,6 @@ class DeviceInfoFetcher {
 
   // Fetches the device information for the current platform.
   virtual DeviceInfo Fetch() = 0;
-
- protected:
-  // Implements a platform specific instance of DeviceInfoFetcher.
-  static std::unique_ptr<DeviceInfoFetcher> CreateInstanceInternal();
 };
 
 }  // namespace enterprise_signals

@@ -40,7 +40,7 @@ class DeviceInfoSyncClientImpl : public syncer::DeviceInfoSyncClient {
   absl::optional<syncer::ModelTypeSet> GetInterestedDataTypes() const override;
 
   // syncer::DeviceInfoSyncClient:
-  syncer::DeviceInfo::PhoneAsASecurityKeyInfo::StatusOrInfo
+  absl::optional<syncer::DeviceInfo::PhoneAsASecurityKeyInfo>
   GetPhoneAsASecurityKeyInfo() const override;
 
   // syncer::DeviceInfoSyncClient:

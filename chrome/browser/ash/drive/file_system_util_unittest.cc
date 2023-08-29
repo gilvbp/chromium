@@ -18,6 +18,9 @@ namespace {
 // environment since Profile objects must be touched from UI and hence has
 // CHECK/DCHECKs for it.
 class ProfileRelatedFileSystemUtilTest : public testing::Test {
+ protected:
+  ProfileRelatedFileSystemUtilTest() {}
+
  private:
   content::BrowserTaskEnvironment task_environment_;
 };

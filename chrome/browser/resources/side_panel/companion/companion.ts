@@ -176,6 +176,17 @@ function initialize() {
         }
       });
 
+  companionProxy.callbackRouter.onNavigationError.addListener(() => {
+    const networkErrorOverlay = document.getElementById('network-error-page');
+    const frame = document.body.querySelector('iframe');
+    assert(frame);
+    assert(networkErrorOverlay);
+
+    // Hide the frame and show the network error overlay.
+    networkErrorOverlay.style.display = 'block';
+    frame.style.display = 'none';
+  });
+
   // POST dataUris from the Visual Search classification results to the iframe
   companionProxy.callbackRouter.onDeviceVisualClassificationResult.addListener(
       (results: VisualSearchResult[]) => {
@@ -194,17 +205,6 @@ function initialize() {
           frame.contentWindow.postMessage(message, companionOrigin);
         }
       });
-
-  companionProxy.callbackRouter.onNavigationError.addListener(() => {
-    const networkErrorOverlay = document.getElementById('network-error-page');
-    const frame = document.body.querySelector('iframe');
-    assert(frame);
-    assert(networkErrorOverlay);
-
-    // Hide the frame and show the network error overlay.
-    networkErrorOverlay.style.display = 'block';
-    frame.style.display = 'none';
-  });
 
   companionProxy.callbackRouter.notifyLinkOpen.addListener(
       (openedUrl: Url, metadata: LinkOpenMetadata) => {
@@ -283,8 +283,6 @@ function onCompanionMessageEvent(event: MessageEvent) {
   } else if (methodType === MethodType.kCompanionLoadingState) {
     companionProxy.handler.onLoadingState(
         data[ParamType.COMPANION_LOADING_STATE]);
-  } else if (methodType === MethodType.kRefreshCompanionPage) {
-    companionProxy.handler.refreshCompanionPage();
   }
 }
 

@@ -232,6 +232,7 @@ public class PriceDropNotifier {
                 : SystemNotificationType.PRICE_DROP_ALERTS_USER_MANAGED;
     }
 
+    @VisibleForTesting
     void setPriceDropNotificationManagerForTesting(PriceDropNotificationManager manager) {
         mPriceDropNotificationManager = manager;
     }

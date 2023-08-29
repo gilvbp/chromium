@@ -4,7 +4,6 @@
 
 #import "ios/web/content/js_messaging/content_java_script_feature_manager.h"
 
-#import "base/containers/contains.h"
 #import "base/ios/ios_util.h"
 #import "base/strings/string_util.h"
 #import "base/strings/sys_string_conversions.h"
@@ -13,6 +12,10 @@
 #import "ios/web/public/js_messaging/java_script_feature.h"
 #import "ios/web/public/js_messaging/java_script_feature_util.h"
 #import "ios/web/public/js_messaging/script_message.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace web {
 
@@ -52,7 +55,7 @@ void ContentJavaScriptFeatureManager::InjectDocumentEndScripts(
 
 bool ContentJavaScriptFeatureManager::HasFeature(
     const JavaScriptFeature* feature) const {
-  return base::Contains(features_, feature);
+  return features_.find(feature) != features_.end();
 }
 
 void ContentJavaScriptFeatureManager::AddFeature(

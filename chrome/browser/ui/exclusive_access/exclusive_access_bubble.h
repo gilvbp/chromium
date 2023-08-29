@@ -32,8 +32,7 @@ class ExclusiveAccessBubble : public gfx::AnimationDelegate {
  public:
   ExclusiveAccessBubble(ExclusiveAccessManager* manager,
                         const GURL& url,
-                        ExclusiveAccessBubbleType bubble_type,
-                        bool notify_download);
+                        ExclusiveAccessBubbleType bubble_type);
 
   ExclusiveAccessBubble(const ExclusiveAccessBubble&) = delete;
   ExclusiveAccessBubble& operator=(const ExclusiveAccessBubble&) = delete;

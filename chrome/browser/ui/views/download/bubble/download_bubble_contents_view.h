@@ -8,7 +8,6 @@
 #include "base/memory/raw_ptr.h"
 #include "base/memory/weak_ptr.h"
 #include "chrome/browser/download/download_ui_model.h"
-#include "chrome/browser/ui/views/download/bubble/download_bubble_security_view.h"
 #include "ui/base/metadata/metadata_header_macros.h"
 #include "ui/views/view.h"
 
@@ -19,10 +18,6 @@ class DownloadBubbleRowView;
 class DownloadBubbleSecurityView;
 class DownloadBubbleUIController;
 
-namespace offline_items_collection {
-struct ContentId;
-}
-
 namespace views {
 class BubbleDialogDelegate;
 }  // namespace views
@@ -32,8 +27,7 @@ class BubbleDialogDelegate;
 // containing the download item rows), or the security page (which shows
 // warnings if applicable). Always opens up to the primary view by default,
 // before possibly being switched to the security view.
-class DownloadBubbleContentsView : public views::View,
-                                   public DownloadBubbleSecurityView::Delegate {
+class DownloadBubbleContentsView : public views::View {
  public:
   // Types of pages that this view can show.
   enum class Page {
@@ -61,46 +55,17 @@ class DownloadBubbleContentsView : public views::View,
 
   // Switches to the requested page by showing the page and hiding all other
   // pages.
-  void ShowPrimaryPage();
-  // Initializes security page for the download with the given id, and switches
-  // to it. `id` must refer to a valid download with a row in the primary view.
-  void ShowSecurityPage(const offline_items_collection::ContentId& id);
+  void ShowPage(Page page);
 
   // Which page is currently visible.
   Page VisiblePage() const;
 
-  // DownloadBubbleSecurityView::Delegate
-  bool ProcessSecuritySubpageButtonPressWithClose(
-      const offline_items_collection::ContentId& id,
-      DownloadCommands::Command command) override;
-  void AddSecuritySubpageWarningActionEvent(
-      const offline_items_collection::ContentId& id,
-      DownloadItemWarningData::WarningAction action) override;
-  void ProcessDeepScanPress(const ContentId& id,
-                            const std::string& password) override;
-  bool IsEncryptedArchive(const ContentId& id) override;
-  bool HasPreviousIncorrectPassword(const ContentId& id) override;
-
-  // Gets the row view at the given index.
-  DownloadBubbleRowView* GetPrimaryViewRowForTesting(size_t index);
-
-  DownloadBubbleSecurityView* security_view_for_testing() {
-    return security_view_;
-  }
+  // Forwards to `security_view_`. (Does not switch to the security view.)
+  void UpdateSecurityView(DownloadBubbleRowView* row);
 
  private:
   // Switches to the page that should currently be showing.
-  void SwitchToCurrentPage(
-      absl::optional<offline_items_collection::ContentId> id);
-
-  void InitializeSecurityView(const offline_items_collection::ContentId& id);
-
-  // Gets the model from the row view in the primary view for the download with
-  // given id. Returns nullptr if not found.
-  DownloadUIModel* GetDownloadModel(
-      const offline_items_collection::ContentId& id);
-
-  base::WeakPtr<DownloadBubbleUIController> bubble_controller_;
+  void SwitchToCurrentPage();
 
   // May be a DownloadBubblePartialView or a DownloadDialogView (main view).
   raw_ptr<DownloadBubblePrimaryView> primary_view_ = nullptr;

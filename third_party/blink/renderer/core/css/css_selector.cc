@@ -319,9 +319,6 @@ PseudoId CSSSelector::GetPseudoId(PseudoType type) {
     case kPseudoDecrement:
     case kPseudoDefault:
     case kPseudoDefined:
-    case kPseudoDetailsContent:
-    case kPseudoDetailsSummary:
-    case kPseudoDialogInTopLayer:
     case kPseudoDir:
     case kPseudoDisabled:
     case kPseudoDoubleButton:
@@ -402,8 +399,6 @@ PseudoId CSSSelector::GetPseudoId(PseudoType type) {
     case kPseudoTrue:
     case kPseudoUnknown:
     case kPseudoUnparsed:
-    case kPseudoUserInvalid:
-    case kPseudoUserValid:
     case kPseudoValid:
     case kPseudoVertical:
     case kPseudoVideoPersistent:
@@ -443,7 +438,6 @@ struct NameToPseudoStruct {
 const static NameToPseudoStruct kPseudoTypeWithoutArgumentsMap[] = {
     {"-internal-autofill-previewed", CSSSelector::kPseudoAutofillPreviewed},
     {"-internal-autofill-selected", CSSSelector::kPseudoAutofillSelected},
-    {"-internal-dialog-in-top-layer", CSSSelector::kPseudoDialogInTopLayer},
     {"-internal-has-datalist", CSSSelector::kPseudoHasDatalist},
     {"-internal-is-html", CSSSelector::kPseudoIsHtml},
     {"-internal-list-box", CSSSelector::kPseudoListBox},
@@ -489,8 +483,6 @@ const static NameToPseudoStruct kPseudoTypeWithoutArgumentsMap[] = {
     {"decrement", CSSSelector::kPseudoDecrement},
     {"default", CSSSelector::kPseudoDefault},
     {"defined", CSSSelector::kPseudoDefined},
-    {"details-content", CSSSelector::kPseudoDetailsContent},
-    {"details-summary", CSSSelector::kPseudoDetailsSummary},
     {"disabled", CSSSelector::kPseudoDisabled},
     {"double-button", CSSSelector::kPseudoDoubleButton},
     {"empty", CSSSelector::kPseudoEmpty},
@@ -546,8 +538,6 @@ const static NameToPseudoStruct kPseudoTypeWithoutArgumentsMap[] = {
     {"start", CSSSelector::kPseudoStart},
     {"target", CSSSelector::kPseudoTarget},
     {"target-text", CSSSelector::kPseudoTargetText},
-    {"user-invalid", CSSSelector::kPseudoUserInvalid},
-    {"user-valid", CSSSelector::kPseudoUserValid},
     {"valid", CSSSelector::kPseudoValid},
     {"vertical", CSSSelector::kPseudoVertical},
     {"view-transition", CSSSelector::kPseudoViewTransition},
@@ -640,6 +630,20 @@ CSSSelector::PseudoType CSSSelector::NameToPseudoType(
     return CSSSelector::kPseudoUnknown;
   }
 
+  // We enable parsing of the popover pseudo classes in the case that we *don't*
+  // have a document, since that mostly/always occurs when parsing UA
+  // stylesheets.
+  bool popover_attribute_enabled =
+      !document || RuntimeEnabledFeatures::HTMLPopoverAttributeEnabled(
+                       document->GetExecutionContext());
+  if (!popover_attribute_enabled &&
+      (match->type == CSSSelector::kPseudoOpen ||
+       match->type == CSSSelector::kPseudoClosed ||
+       match->type == CSSSelector::kPseudoPopoverOpen ||
+       match->type == CSSSelector::kPseudoPopoverInTopLayer)) {
+    return CSSSelector::kPseudoUnknown;
+  }
+
   if (match->type == CSSSelector::kPseudoHighlight &&
       !RuntimeEnabledFeatures::HighlightAPIEnabled()) {
     return CSSSelector::kPseudoUnknown;
@@ -656,21 +660,9 @@ CSSSelector::PseudoType CSSSelector::NameToPseudoType(
     return CSSSelector::kPseudoUnknown;
   }
 
-  if ((match->type == CSSSelector::kPseudoDetailsContent ||
-       match->type == CSSSelector::kPseudoDetailsSummary) &&
-      !RuntimeEnabledFeatures::DetailsStylingEnabled()) {
-    return CSSSelector::kPseudoUnknown;
-  }
-
   if (IsTransitionPseudoElement(
           GetPseudoId(static_cast<CSSSelector::PseudoType>(match->type))) &&
       !RuntimeEnabledFeatures::ViewTransitionEnabled()) {
-    return CSSSelector::kPseudoUnknown;
-  }
-
-  if ((match->type == CSSSelector::kPseudoUserInvalid ||
-       match->type == CSSSelector::kPseudoUserValid) &&
-      !RuntimeEnabledFeatures::UserValidUserInvalidEnabled()) {
     return CSSSelector::kPseudoUnknown;
   }
 
@@ -773,8 +765,6 @@ void CSSSelector::UpdatePseudoType(const AtomicString& value,
     case kPseudoViewTransitionImagePair:
     case kPseudoViewTransitionOld:
     case kPseudoViewTransitionNew:
-    case kPseudoDetailsContent:
-    case kPseudoDetailsSummary:
       if (match_ != kPseudoElement) {
         pseudo_type_ = kPseudoUnknown;
       }
@@ -811,7 +801,6 @@ void CSSSelector::UpdatePseudoType(const AtomicString& value,
     case kPseudoDecrement:
     case kPseudoDefault:
     case kPseudoDefined:
-    case kPseudoDialogInTopLayer:
     case kPseudoDir:
     case kPseudoDisabled:
     case kPseudoDoubleButton:
@@ -878,8 +867,6 @@ void CSSSelector::UpdatePseudoType(const AtomicString& value,
     case kPseudoTrue:
     case kPseudoUnknown:
     case kPseudoUnparsed:
-    case kPseudoUserInvalid:
-    case kPseudoUserValid:
     case kPseudoValid:
     case kPseudoVertical:
     case kPseudoVisited:
@@ -1414,13 +1401,11 @@ bool CSSSelector::IsTreeAbidingPseudoElement() const {
          (GetPseudoType() == kPseudoBefore || GetPseudoType() == kPseudoAfter ||
           GetPseudoType() == kPseudoMarker ||
           GetPseudoType() == kPseudoPlaceholder ||
-          GetPseudoType() == kPseudoFileSelectorButton ||
-          GetPseudoType() == kPseudoBackdrop);
+          GetPseudoType() == kPseudoFileSelectorButton);
 }
 
 bool CSSSelector::IsAllowedAfterPart() const {
-  if (Match() != CSSSelector::kPseudoElement &&
-      Match() != CSSSelector::kPseudoClass) {
+  if (Match() != CSSSelector::kPseudoElement) {
     return false;
   }
   // Everything that makes sense should work following ::part. This list
@@ -1428,9 +1413,6 @@ bool CSSSelector::IsAllowedAfterPart() const {
   switch (GetPseudoType()) {
     case kPseudoBefore:
     case kPseudoAfter:
-    case kPseudoAutofill:
-    case kPseudoAutofillPreviewed:
-    case kPseudoAutofillSelected:
     case kPseudoPlaceholder:
     case kPseudoFileSelectorButton:
     case kPseudoFirstLine:
@@ -1440,7 +1422,6 @@ bool CSSSelector::IsAllowedAfterPart() const {
     case kPseudoHighlight:
     case kPseudoSpellingError:
     case kPseudoGrammarError:
-    case kPseudoWebKitAutofill:
       return true;
     default:
       return false;

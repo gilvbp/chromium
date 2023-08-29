@@ -13,7 +13,6 @@
 #include "base/memory/raw_ptr.h"
 #include "base/memory/weak_ptr.h"
 #include "base/observer_list.h"
-#include "build/build_config.h"
 #include "components/autofill/core/browser/field_types.h"
 #include "components/payments/content/initialization_task.h"
 #include "components/payments/core/currency_formatter.h"
@@ -195,10 +194,8 @@ class PaymentRequestSpec : public PaymentOptionsProvider,
   // billing method, such as "https://play.google.com/billing".
   bool IsAppStoreBillingAlsoRequested() const;
 
-#if !BUILDFLAG(IS_ANDROID)
   // Returns true if the PaymentHandlerMinimalHeaderUX feature is enabled.
   bool IsPaymentHandlerMinimalHeaderUXEnabled() const;
-#endif
 
   base::WeakPtr<PaymentRequestSpec> AsWeakPtr();
 

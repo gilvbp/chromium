@@ -81,6 +81,7 @@ public class IphMessageService extends MessageService {
         mTracker.addOnInitializedCallback(mInitializedCallback);
     }
 
+    @VisibleForTesting
     protected Callback<Boolean> getInitializedCallbackForTesting() {
         return mInitializedCallback;
     }

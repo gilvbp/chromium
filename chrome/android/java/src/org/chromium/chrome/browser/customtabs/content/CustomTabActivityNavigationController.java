@@ -53,7 +53,6 @@ import org.chromium.url.Origin;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
-import java.util.function.Predicate;
 
 import javax.inject.Inject;
 
@@ -112,7 +111,9 @@ public class CustomTabActivityNavigationController
     private final Activity mActivity;
     private final DefaultBrowserProvider mDefaultBrowserProvider;
     private final ObservableSupplierImpl<Boolean> mBackPressStateSupplier =
-            new ObservableSupplierImpl<>(false);
+            new ObservableSupplierImpl<>() {
+                { set(false); }
+            };
 
     @Nullable
     private ToolbarManager mToolbarManager;
@@ -263,13 +264,11 @@ public class CustomTabActivityNavigationController
                 BackPressManager.record(BackPressHandler.Type.TAB_HISTORY);
                 return true;
             }
+        }
+        if (!BackPressManager.isEnabled()) {
             // If enabled, BackPressManager will record this internally. Otherwise, this should
             // be recorded manually.
             BackPressManager.record(BackPressHandler.Type.MINIMIZE_APP_AND_CLOSE_TAB);
-        } else if (BackPressManager.correctTabNavigationOnFallback()) {
-            if (mTabProvider.getTab().canGoBack()) {
-                return false;
-            }
         }
         if (mTabController.dispatchBeforeUnloadIfNeeded()) {
             MinimizeAppAndCloseTabBackPressHandler.record(MinimizeAppAndCloseTabType.CLOSE_TAB);
@@ -413,7 +412,7 @@ public class CustomTabActivityNavigationController
      * If no page in the navigation history meets the criterion, or there is no criterion, then
      * pressing close button will finish the Custom Tab activity.
      */
-    public void setLandingPageOnCloseCriterion(Predicate<String> criterion) {
+    public void setLandingPageOnCloseCriterion(CloseButtonNavigator.PageCriteria criterion) {
         mCloseButtonNavigator.setLandingPageCriteria(criterion);
     }
 

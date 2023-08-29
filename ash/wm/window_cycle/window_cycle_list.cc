@@ -6,6 +6,7 @@
 
 #include "ash/accessibility/accessibility_controller_impl.h"
 #include "ash/app_list/app_list_controller_impl.h"
+#include "ash/constants/ash_features.h"
 #include "ash/frame_throttler/frame_throttling_controller.h"
 #include "ash/public/cpp/shell_window_ids.h"
 #include "ash/public/cpp/window_properties.h"
@@ -14,22 +15,18 @@
 #include "ash/shell_delegate.h"
 #include "ash/system/tray/tray_background_view.h"
 #include "ash/wm/mru_window_tracker.h"
-#include "ash/wm/snap_group/snap_group.h"
-#include "ash/wm/snap_group/snap_group_controller.h"
 #include "ash/wm/tablet_mode/tablet_mode_controller.h"
-#include "ash/wm/window_cycle/window_cycle_view.h"
 #include "ash/wm/window_state.h"
 #include "ash/wm/window_util.h"
 #include "base/check.h"
 #include "base/location.h"
 #include "base/metrics/histogram_functions.h"
+#include "base/metrics/user_metrics.h"
 #include "base/ranges/algorithm.h"
 #include "ui/aura/scoped_window_targeter.h"
 #include "ui/aura/window.h"
 #include "ui/aura/window_targeter.h"
-#include "ui/compositor/layer.h"
 #include "ui/compositor/layer_type.h"
-#include "ui/compositor/presentation_time_recorder.h"
 #include "ui/display/display.h"
 #include "ui/events/event.h"
 #include "ui/views/widget/widget.h"
@@ -42,11 +39,6 @@ namespace {
 
 constexpr char kSameAppWindowCycleSkippedWindowsHistogramName[] =
     "Ash.WindowCycleController.SameApp.SkippedWindows";
-
-constexpr char kEnterWindowCyclePresentationHistogramName[] =
-    "Ash.WindowCycleController.Enter.PresentationTime";
-
-constexpr base::TimeDelta kEnterPresentationMaxLatency = base::Seconds(2);
 
 bool g_disable_initial_delay = false;
 
@@ -82,32 +74,6 @@ gfx::Point ConvertEventToScreen(const ui::LocatedEvent* event) {
   gfx::Point event_screen_point = event->root_location();
   wm::ConvertPointToScreen(event_root, &event_screen_point);
   return event_screen_point;
-}
-
-bool IsWindowInSnapGroup(aura::Window* window) {
-  SnapGroupController* snap_group_controller = SnapGroupController::Get();
-  return snap_group_controller &&
-         snap_group_controller->GetSnapGroupForGivenWindow(window);
-}
-
-// Returns true if the given `window` is in a snap group and we need to step
-// twice to get to the next window cycle item.
-bool ShouldDoubleCycleStep(aura::Window* window,
-                           WindowCyclingDirection direction) {
-  if (!IsWindowInSnapGroup(window)) {
-    return false;
-  }
-
-  SnapGroup* snap_group =
-      SnapGroupController::Get()->GetSnapGroupForGivenWindow(window);
-  switch (direction) {
-    case WindowCyclingDirection::kForward: {
-      return window == snap_group->window1();
-    }
-    case WindowCyclingDirection::kBackward: {
-      return window == snap_group->window2();
-    }
-  }
 }
 
 }  // namespace
@@ -197,8 +163,9 @@ void WindowCycleList::ReplaceWindows(const WindowList& windows) {
     cycle_view_->UpdateWindows(windows_);
 }
 
-void WindowCycleList::Step(WindowCyclingDirection direction,
-                           bool starting_alt_tab_or_switching_mode) {
+void WindowCycleList::Step(
+    WindowCycleController::WindowCyclingDirection direction,
+    bool starting_alt_tab_or_switching_mode) {
   if (windows_.empty())
     return;
 
@@ -212,31 +179,24 @@ void WindowCycleList::Step(WindowCyclingDirection direction,
       Scroll(GetIndexOfWindow(selected_window) - current_index_);
   }
 
-  int offset = direction == WindowCyclingDirection::kForward ? 1 : -1;
+  int offset =
+      direction == WindowCycleController::WindowCyclingDirection::kForward ? 1
+                                                                           : -1;
   // When the window highlight should be reset and the first window in the MRU
   // cycle list is not the latest active one before entering alt-tab, highlight
   // it instead of the second window. This occurs when the user is in overview
   // mode, all windows are minimized, or all windows are in other desks.
   //
-  // Note:
-  // 1. Simply checking the active status of the first window won't work
+  // Note: Simply checking the active status of the first window won't work
   // because when the ChromeVox is enabled, the widget is activatable, so the
-  // first window in MRU becomes inactive;
-  // 2. We want to exclude the case when `active_window_before_window_cycle_`
-  // is not the most recently used window but belongs to a most recent used snap
-  // group.
+  // first window in MRU becomes inactive.
   if (starting_alt_tab_or_switching_mode &&
-      direction == WindowCyclingDirection::kForward &&
-      (active_window_before_window_cycle_ != windows_[0] &&
-       !IsWindowInSnapGroup(active_window_before_window_cycle_))) {
+      direction == WindowCycleController::WindowCyclingDirection::kForward &&
+      active_window_before_window_cycle_ != windows_[0]) {
     offset = 0;
     current_index_ = 0;
   }
 
-  if (ShouldDoubleCycleStep(windows_[GetOffsettedWindowIndex(offset)],
-                            direction)) {
-    offset = offset * 2;
-  }
   SetFocusedWindow(windows_[GetOffsettedWindowIndex(offset)]);
   Scroll(offset);
 }
@@ -316,6 +276,7 @@ void WindowCycleList::OnWindowDestroying(aura::Window* window) {
   window->RemoveObserver(this);
 
   WindowList::iterator i = base::ranges::find(windows_, window);
+  // TODO(oshima): Change this back to DCHECK once crbug.com/483491 is fixed.
   CHECK(i != windows_.end());
   int removed_index = static_cast<int>(i - windows_.begin());
   windows_.erase(i);
@@ -371,16 +332,7 @@ void WindowCycleList::RemoveAllWindows() {
 void WindowCycleList::InitWindowCycleView() {
   if (cycle_view_)
     return;
-
-  TRACE_EVENT0("ui", "WindowCycleList::InitWindowCycleView");
-
   aura::Window* root_window = Shell::GetRootWindowForNewWindows();
-
-  auto presentation_time_recorder = CreatePresentationTimeHistogramRecorder(
-      root_window->layer()->GetCompositor(),
-      kEnterWindowCyclePresentationHistogramName, "",
-      kEnterPresentationMaxLatency);
-  presentation_time_recorder->RequestNext();
 
   // Close any tray bubbles that are opened before creating the cycle view.
   StatusAreaWidget* status_area_widget =
@@ -561,7 +513,8 @@ void WindowCycleList::MaybeReportNonSameAppSkippedWindows(
   int increment = 1;
 
   // If we're cycling backwards, start from the end and work backwards.
-  if (last_cycling_direction_ == WindowCyclingDirection::kBackward) {
+  if (last_cycling_direction_ ==
+      WindowCycleController::WindowCyclingDirection::kBackward) {
     start = original_windows.size() - 1;
     increment = -1;
   }

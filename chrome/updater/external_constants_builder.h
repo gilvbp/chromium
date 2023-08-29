@@ -10,7 +10,6 @@
 
 #include "base/files/file_path.h"
 #include "base/values.h"
-#include "third_party/abseil-cpp/absl/types/optional.h"
 
 namespace base {
 class TimeDelta;
@@ -73,10 +72,6 @@ class ExternalConstantsBuilder {
   ExternalConstantsBuilder& SetIdleCheckPeriod(
       const base::TimeDelta& idle_check_period);
   ExternalConstantsBuilder& ClearIdleCheckPeriod();
-
-  ExternalConstantsBuilder& SetMachineManaged(
-      const absl::optional<bool>& is_managed_device);
-  ExternalConstantsBuilder& ClearMachineManaged();
 
   // Write the external constants overrides file in the default location
   // with the values that have been previously set, replacing any file

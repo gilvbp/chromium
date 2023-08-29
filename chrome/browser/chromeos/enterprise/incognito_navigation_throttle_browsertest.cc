@@ -163,10 +163,9 @@ class IncognitoNavigationThrottleBrowserTest
   }
 
   scoped_refptr<const extensions::Extension> extension_;
-  raw_ptr<extensions::ExtensionRegistry, AcrossTasksDanglingUntriaged>
-      registry_;
+  raw_ptr<extensions::ExtensionRegistry, DanglingUntriaged> registry_;
   testing::NiceMock<policy::MockConfigurationPolicyProvider> policy_provider_;
-  raw_ptr<Browser, AcrossTasksDanglingUntriaged> incognito_browser_ = nullptr;
+  raw_ptr<Browser, DanglingUntriaged> incognito_browser_ = nullptr;
 };
 
 // Verify that when the `MandatoryExtensionsForIncognitoNavigation` policy is

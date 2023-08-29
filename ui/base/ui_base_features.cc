@@ -113,12 +113,6 @@ BASE_FEATURE(kAlwaysConfirmComposition,
              base::FEATURE_ENABLED_BY_DEFAULT);
 #endif  // BUILDFLAG(IS_CHROMEOS_ASH)
 
-#if BUILDFLAG(IS_CHROMEOS_LACROS) || BUILDFLAG(IS_LINUX)
-BASE_FEATURE(kRedundantImeCompositionClearing,
-             "RedundantImeCompositionClearing",
-             base::FEATURE_ENABLED_BY_DEFAULT);
-#endif  // BUILDFLAG(IS_CHROMEOS_LACROS) || BUILDFLAG(IS_LINUX)
-
 // Update of the virtual keyboard settings UI as described in
 // https://crbug.com/876901.
 BASE_FEATURE(kInputMethodSettingsUiUpdate,
@@ -299,12 +293,7 @@ bool IsDeprecateAltBasedSixPackEnabled() {
 // TODO(b/262297017): Clean up after touch text editing redesign ships.
 BASE_FEATURE(kTouchTextEditingRedesign,
              "TouchTextEditingRedesign",
-#if BUILDFLAG(IS_CHROMEOS)
-             base::FEATURE_ENABLED_BY_DEFAULT
-#else
-             base::FEATURE_DISABLED_BY_DEFAULT
-#endif
-);
+             base::FEATURE_DISABLED_BY_DEFAULT);
 
 bool IsTouchTextEditingRedesignEnabled() {
   return base::FeatureList::IsEnabled(kTouchTextEditingRedesign);
@@ -433,14 +422,7 @@ BASE_FEATURE(kEnableVariableRefreshRate,
              "EnableVariableRefreshRate",
              base::FEATURE_DISABLED_BY_DEFAULT);
 bool IsVariableRefreshRateEnabled() {
-  return base::FeatureList::IsEnabled(kEnableVariableRefreshRate) ||
-         base::FeatureList::IsEnabled(kEnableVariableRefreshRateAlwaysOn);
-}
-BASE_FEATURE(kEnableVariableRefreshRateAlwaysOn,
-             "EnableVariableRefreshRateAlwaysOn",
-             base::FEATURE_DISABLED_BY_DEFAULT);
-bool IsVariableRefreshRateAlwaysOn() {
-  return base::FeatureList::IsEnabled(kEnableVariableRefreshRateAlwaysOn);
+  return base::FeatureList::IsEnabled(kEnableVariableRefreshRate);
 }
 
 // Fixes b/267944900.
@@ -462,36 +444,12 @@ bool IsLacrosColorManagementEnabled() {
   return base::FeatureList::IsEnabled(kLacrosColorManagement);
 }
 
-BASE_FEATURE(kCustomizeChromeSidePanel,
-             "CustomizeChromeSidePanel",
-             base::FEATURE_ENABLED_BY_DEFAULT);
-
-BASE_FEATURE(kCustomizeChromeSidePanelNoChromeRefresh2023,
-             "CustomizeChromeSidePanelNoChromeRefresh2023",
-             base::FEATURE_DISABLED_BY_DEFAULT);
-
-bool CustomizeChromeSupportsChromeRefresh2023() {
-  return base::FeatureList::IsEnabled(kCustomizeChromeSidePanel) &&
-         !base::FeatureList::IsEnabled(
-             kCustomizeChromeSidePanelNoChromeRefresh2023);
-}
-
 BASE_FEATURE(kChromeRefresh2023,
              "ChromeRefresh2023",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
-BASE_FEATURE(kChromeRefreshSecondary2023,
-             "ChromeRefreshSecondary2023",
-             base::FEATURE_DISABLED_BY_DEFAULT);
-
 bool IsChromeRefresh2023() {
-  if (!CustomizeChromeSupportsChromeRefresh2023()) {
-    // Bail before checking any other feature flags so that associated studies
-    // don't get activated.
-    return false;
-  }
-  return base::FeatureList::IsEnabled(kChromeRefresh2023) ||
-         base::FeatureList::IsEnabled(kChromeRefreshSecondary2023);
+  return base::FeatureList::IsEnabled(kChromeRefresh2023);
 }
 
 BASE_FEATURE(kChromeWebuiRefresh2023,
@@ -499,14 +457,8 @@ BASE_FEATURE(kChromeWebuiRefresh2023,
              base::FEATURE_DISABLED_BY_DEFAULT);
 
 bool IsChromeWebuiRefresh2023() {
-  if (!CustomizeChromeSupportsChromeRefresh2023()) {
-    // Bail before checking any other feature flags so that associated studies
-    // don't get activated.
-    return false;
-  }
   return IsChromeRefresh2023() &&
-         (base::FeatureList::IsEnabled(kChromeWebuiRefresh2023) ||
-          base::FeatureList::IsEnabled(kChromeRefreshSecondary2023));
+         base::FeatureList::IsEnabled(kChromeWebuiRefresh2023);
 }
 
 constexpr base::FeatureParam<ChromeRefresh2023Level>::Option
@@ -519,27 +471,10 @@ const base::FeatureParam<ChromeRefresh2023Level> kChromeRefresh2023Level(
     ChromeRefresh2023Level::kLevel2,
     &kChromeRefresh2023LevelOption);
 
-ChromeRefresh2023Level GetChromeRefresh2023LevelUncached() {
-  if (!CustomizeChromeSupportsChromeRefresh2023()) {
-    // Bail before checking any other feature flags so that associated studies
-    // don't get activated.
-    return ChromeRefresh2023Level::kDisabled;
-  }
-  // For simplicity, the secondary field trial to enable chrome refresh will
-  // also enable the omnibox refresh.
-  if (base::FeatureList::IsEnabled(kChromeRefreshSecondary2023)) {
-    return ChromeRefresh2023Level::kLevel2;
-  }
-
-  return IsChromeRefresh2023() ? kChromeRefresh2023Level.Get()
-                               : ChromeRefresh2023Level::kDisabled;
-}
-
 ChromeRefresh2023Level GetChromeRefresh2023Level() {
-  // Cached due to frequent calls for performance optimization.
-  // Please update `GetChromeRefresh2023LevelUncached()` for any changes.
   static const ChromeRefresh2023Level level =
-      GetChromeRefresh2023LevelUncached();
+      IsChromeRefresh2023() ? kChromeRefresh2023Level.Get()
+                            : ChromeRefresh2023Level::kDisabled;
   return level;
 }
 

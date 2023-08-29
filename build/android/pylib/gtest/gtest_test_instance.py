@@ -4,7 +4,6 @@
 
 
 
-import html.parser
 import json
 import logging
 import os
@@ -13,6 +12,7 @@ import tempfile
 import threading
 import xml.etree.ElementTree
 
+import six
 from devil.android import apk_helper
 from pylib import constants
 from pylib.constants import host_paths
@@ -105,7 +105,7 @@ _RE_TEST_STATUS = re.compile(
 _RE_TEST_ERROR = re.compile(r'FAILURES!!! Tests run: \d+,'
                                     r' Failures: \d+, Errors: 1')
 _RE_TEST_CURRENTLY_RUNNING = re.compile(
-    r'\[.*ERROR:.*?\] Currently running: (.*)')
+    r'\[ERROR:.*?\] Currently running: (.*)')
 _RE_TEST_DCHECK_FATAL = re.compile(r'\[.*:FATAL:.*\] (.*)')
 _RE_DISABLED = re.compile(r'DISABLED_')
 _RE_FLAKY = re.compile(r'FLAKY_')
@@ -249,7 +249,7 @@ def ParseGTestXML(xml_content):
   if not xml_content:
     return results
 
-  html_parser = html.parser.HTMLParser()
+  html = six.moves.html_parser.HTMLParser()
 
   testsuites = xml.etree.ElementTree.fromstring(xml_content)
   for testsuite in testsuites:
@@ -260,7 +260,7 @@ def ParseGTestXML(xml_content):
       log = []
       for failure in testcase:
         result_type = base_test_result.ResultType.FAIL
-        log.append(html_parser.unescape(failure.attrib['message']))
+        log.append(html.unescape(failure.attrib['message']))
 
       results.append(base_test_result.BaseTestResult(
           '%s.%s' % (suite_name, TestNameWithoutDisabledPrefix(case_name)),
@@ -297,7 +297,7 @@ def ParseGTestJSON(json_content):
         result_type = base_test_result.ResultType.FAIL
       results.append(base_test_result.BaseTestResult(name, result_type))
     else:
-      openstack += [("%s.%s" % (name, k), v) for k, v in value.items()]
+      openstack += [("%s.%s" % (name, k), v) for k, v in six.iteritems(value)]
 
   return results
 

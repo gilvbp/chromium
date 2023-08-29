@@ -117,7 +117,6 @@ void MediaFoundationWidevineCdmComponentInstallerPolicy::ComponentReady(
 
   // Check whether hardware secure decryption CDM should be disabled.
   if (base::FeatureList::IsEnabled(media::kHardwareSecureDecryptionFallback) &&
-      !media::kHardwareSecureDecryptionFallbackPerSite.Get() &&
       MediaFoundationServiceMonitor::
           IsHardwareSecureDecryptionDisabledByPref()) {
     VLOG(1) << "Media Foundation Widevine CDM disabled due to previous errors";

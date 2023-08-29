@@ -39,10 +39,17 @@ BridgeConstants.Braille = {
   TARGET: 'Braille',
   Action: {
     BACK_TRANSLATE: 'backTranslate',
-    ENABLE_COMMAND_HANDLER: 'enableCommandHandler',
     PAN_LEFT: 'panLeft',
     PAN_RIGHT: 'panRight',
     WRITE: 'write',
+  },
+};
+
+/** @public {!BridgeEntry} */
+BridgeConstants.BrailleCommandHandler = {
+  TARGET: 'BrailleCommandHandler',
+  Action: {
+    SET_ENABLED: 'setEnabled',
   },
 };
 
@@ -115,7 +122,6 @@ BridgeConstants.LearnMode = {
     ON_BRAILLE_KEY_EVENT: 'onBrailleKeyEvent',
     ON_KEY_DOWN: 'onKeyDown',
     ON_KEY_UP: 'onKeyUp',
-    READY: 'ready',
   },
 };
 
@@ -145,7 +151,9 @@ BridgeConstants.PanelBackground = {
     CREATE_ALL_NODE_MENU_BACKGROUNDS: 'createAllNodeMenuBackgrounds',
     CREATE_NEW_I_SEARCH: 'createNewISearch',
     DESTROY_I_SEARCH: 'destroyISearch',
+    FOCUS_TAB: 'focusTab',
     GET_ACTIONS_FOR_CURRENT_NODE: 'getActionsForCurrentNode',
+    GET_TAB_MENU_DATA: 'getTabMenuData',
     INCREMENTAL_SEARCH: 'incrementalSearch',
     NODE_MENU_CALLBACK: 'nodeMenuCallback',
     ON_TUTORIAL_READY: 'onTutorialReady',

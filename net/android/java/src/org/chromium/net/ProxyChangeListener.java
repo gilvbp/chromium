@@ -22,7 +22,6 @@ import androidx.annotation.RequiresApi;
 
 import org.chromium.base.ContextUtils;
 import org.chromium.base.Log;
-import org.chromium.base.ResettersForTesting;
 import org.chromium.base.TraceEvent;
 import org.chromium.base.annotations.CalledByNative;
 import org.chromium.base.annotations.JNINamespace;
@@ -119,9 +118,7 @@ public class ProxyChangeListener {
     }
 
     public void setDelegateForTesting(Delegate delegate) {
-        var oldValue = mDelegate;
         mDelegate = delegate;
-        ResettersForTesting.register(() -> mDelegate = oldValue);
     }
 
     @CalledByNative

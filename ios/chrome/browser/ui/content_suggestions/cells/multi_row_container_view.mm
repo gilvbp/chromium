@@ -8,6 +8,10 @@
 #import "ios/chrome/common/ui/util/constraints_ui_util.h"
 #import "ios/chrome/common/ui/util/ui_util.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace {
 
 const CGFloat kSeparatorHeight = 0.5;
@@ -23,7 +27,7 @@ const CGFloat kSeparatorHeight = 0.5;
     rowsStackView.spacing = AlignValueToPixel(8.5);
     rowsStackView.axis = UILayoutConstraintAxisVertical;
     rowsStackView.translatesAutoresizingMaskIntoConstraints = NO;
-    rowsStackView.alignment = UIStackViewAlignmentFill;
+    rowsStackView.alignment = UIStackViewAlignmentLeading;
     [rowsStackView setContentHuggingPriority:UILayoutPriorityDefaultLow
                                      forAxis:UILayoutConstraintAxisVertical];
     // Ensures that rows have similar height.

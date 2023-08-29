@@ -96,14 +96,12 @@ KeyboardControllerImpl::~KeyboardControllerImpl() {
 }
 
 // static
-void KeyboardControllerImpl::RegisterProfilePrefs(PrefRegistrySimple* registry,
-                                                  std::string_view country) {
-  // Longpress diacritics pref is default on for NZ only, default off otherwise
+void KeyboardControllerImpl::RegisterProfilePrefs(
+    PrefRegistrySimple* registry) {
   registry->RegisterBooleanPref(
       ash::prefs::kLongPressDiacriticsEnabled,
-      country == "NZ" ||
-          base::FeatureList::IsEnabled(
-              ash::features::kDiacriticsOnPhysicalKeyboardLongpressDefaultOn),
+      base::FeatureList::IsEnabled(
+          ash::features::kDiacriticsOnPhysicalKeyboardLongpressDefaultOn),
       user_prefs::PrefRegistrySyncable::SYNCABLE_OS_PREF);
   registry->RegisterBooleanPref(
       ash::prefs::kXkbAutoRepeatEnabled, ash::kDefaultKeyAutoRepeatEnabled,

@@ -44,8 +44,6 @@ struct TrainingLabels {
   // Name and sample of the output metric to be collected as training data.
   absl::optional<std::pair<std::string, base::HistogramBase::Sample>>
       output_metric;
-
-  TrainingLabels(const TrainingLabels& other);
 };
 
 // The core class of segmentation platform that integrates all the required

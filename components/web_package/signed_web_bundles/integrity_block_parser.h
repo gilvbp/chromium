@@ -6,16 +6,16 @@
 #define COMPONENTS_WEB_PACKAGE_SIGNED_WEB_BUNDLES_INTEGRITY_BLOCK_PARSER_H_
 
 #include "components/web_package/web_bundle_parser.h"
-#include "third_party/abseil-cpp/absl/base/attributes.h"
 #include "third_party/abseil-cpp/absl/types/optional.h"
 
 namespace web_package {
 
-class IntegrityBlockParser : public WebBundleParser::WebBundleSectionParser {
+// A parser for a signed bundle's metadata. This class owns itself and will self
+// destruct after calling the ParseIntergrityBlockCallback.
+class IntegrityBlockParser : WebBundleParser::SharedBundleDataSource::Observer {
  public:
-  explicit IntegrityBlockParser(
-      mojo::Remote<mojom::BundleDataSource>& data_source
-          ABSL_ATTRIBUTE_LIFETIME_BOUND,
+  IntegrityBlockParser(
+      scoped_refptr<WebBundleParser::SharedBundleDataSource> data_source,
       WebBundleParser::ParseIntegrityBlockCallback callback);
 
   IntegrityBlockParser(const IntegrityBlockParser&) = delete;
@@ -23,9 +23,7 @@ class IntegrityBlockParser : public WebBundleParser::WebBundleSectionParser {
 
   ~IntegrityBlockParser() override;
 
-  void StartParsing(
-      WebBundleParser::WebBundleSectionParser::ParsingCompleteCallback callback)
-      override;
+  void Start();
 
   // CBOR of the bytes present at the start of the Signed Web Bundle, including
   // the magic string "🖋📦".
@@ -93,16 +91,18 @@ class IntegrityBlockParser : public WebBundleParser::WebBundleSectionParser {
       mojom::BundleIntegrityBlockSignatureStackEntryPtr signature_stack_entry,
       const absl::optional<std::vector<uint8_t>>& signature);
 
-  void RunSuccessCallback(const uint64_t offset_in_stream);
+  void RunSuccessCallbackAndDestroy(const uint64_t offset_in_stream);
 
-  void RunErrorCallback(const std::string& message,
-                        mojom::BundleParseErrorType error_type =
-                            mojom::BundleParseErrorType::kFormatError);
+  void RunErrorCallbackAndDestroy(
+      const std::string& message,
+      mojom::BundleParseErrorType error_type =
+          mojom::BundleParseErrorType::kFormatError);
 
-  const raw_ref<mojo::Remote<mojom::BundleDataSource>> data_source_;
-  WebBundleParser::ParseIntegrityBlockCallback result_callback_;
-  WebBundleParser::WebBundleSectionParser::ParsingCompleteCallback
-      complete_callback_;
+  // Implements SharedBundleDataSource::Observer.
+  void OnDisconnect() override;
+
+  scoped_refptr<WebBundleParser::SharedBundleDataSource> data_source_;
+  WebBundleParser::ParseIntegrityBlockCallback callback_;
 
   std::vector<mojom::BundleIntegrityBlockSignatureStackEntryPtr>
       signature_stack_;

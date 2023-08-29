@@ -19,7 +19,6 @@
 #include "build/build_config.h"
 #include "content/browser/xr/service/browser_xr_runtime_impl.h"
 #include "content/browser/xr/service/vr_service_impl.h"
-#include "content/browser/xr/webxr_internals/webxr_logger_manager.h"
 #include "content/common/content_export.h"
 #include "content/public/browser/gpu_data_manager_observer.h"
 #include "content/public/browser/xr_integration_client.h"
@@ -78,12 +77,6 @@ class CONTENT_EXPORT XRRuntimeManagerImpl
   // service is presenting, or if nobody is presenting.
   bool IsOtherClientPresenting(VRServiceImpl* service);
 
-  // Returns true if any runtime has an outstanding request for an immersive
-  // session. Returns false if there is no such pending request. Note that this
-  // also means that this will return false while there is an active immersive
-  // session.
-  bool HasPendingImmersiveRequest();
-
   void SupportsSession(
       device::mojom::XRSessionOptionsPtr options,
       device::mojom::VRService::SupportsSessionCallback callback);
@@ -97,8 +90,6 @@ class CONTENT_EXPORT XRRuntimeManagerImpl
   BrowserXRRuntimeImpl* GetRuntime(device::mojom::XRDeviceId id) override;
   void ForEachRuntime(
       base::RepeatingCallback<void(BrowserXRRuntime*)> fn) override;
-
-  content::WebXrLoggerManager& GetLoggerManager();
 
   // VRDeviceProviderClient implementation
   void AddRuntime(
@@ -152,7 +143,6 @@ class CONTENT_EXPORT XRRuntimeManagerImpl
   CHROME_LUID default_gpu_ = {0, 0};
 #endif
 
-  content::WebXrLoggerManager logger_manager_;
   std::set<VRServiceImpl*> services_;
 
   THREAD_CHECKER(thread_checker_);

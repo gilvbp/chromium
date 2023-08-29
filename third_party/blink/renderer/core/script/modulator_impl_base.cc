@@ -70,11 +70,10 @@ void ModulatorImplBase::FetchTree(
     network::mojom::RequestDestination destination,
     const ScriptFetchOptions& options,
     ModuleScriptCustomFetchType custom_fetch_type,
-    ModuleTreeClient* client,
-    String referrer) {
+    ModuleTreeClient* client) {
   tree_linker_registry_->Fetch(
       url, module_type, fetch_client_settings_object_fetcher, context_type,
-      destination, options, this, custom_fetch_type, client, referrer);
+      destination, options, this, custom_fetch_type, client);
 }
 
 void ModulatorImplBase::FetchDescendantsForInlineScript(

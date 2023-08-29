@@ -9,7 +9,6 @@
 #include "ash/webui/camera_app_ui/camera_app_helper_impl.h"
 #include "ash/webui/camera_app_ui/resources.h"
 #include "ash/webui/camera_app_ui/url_constants.h"
-#include "ash/webui/common/trusted_types_util.h"
 #include "ash/webui/grit/ash_camera_app_resources_map.h"
 #include "base/feature_list.h"
 #include "base/files/file_util.h"
@@ -19,7 +18,6 @@
 #include "base/task/thread_pool.h"
 #include "components/arc/intent_helper/arc_intent_helper_bridge.h"
 #include "components/content_settings/core/common/content_settings_types.h"
-#include "components/media_device_salt/media_device_salt_service.h"
 #include "content/public/browser/browser_context.h"
 #include "content/public/browser/browser_thread.h"
 #include "content/public/browser/devtools_agent_host.h"
@@ -33,7 +31,6 @@
 #include "mojo/public/cpp/bindings/pending_receiver.h"
 #include "services/network/public/mojom/content_security_policy.mojom.h"
 #include "services/video_capture/public/mojom/video_capture_service.mojom.h"
-#include "third_party/blink/public/common/storage_key/storage_key.h"
 #include "ui/aura/window.h"
 #include "ui/webui/color_change_listener/color_change_handler.h"
 #include "ui/webui/webui_allowlist.h"
@@ -84,7 +81,7 @@ void CreateAndAddCameraAppUIHTMLSource(content::BrowserContext* browser_context,
   content::WebUIDataSource* source = content::WebUIDataSource::CreateAndAdd(
       browser_context, kChromeUICameraAppHost);
 
-  ash::EnableTrustedTypesCSP(source);
+  source->DisableTrustedTypesCSP();
 
   // Add all settings resources.
   source->AddResourcePaths(
@@ -116,17 +113,14 @@ void CreateAndAddCameraAppUIHTMLSource(content::BrowserContext* browser_context,
   source->OverrideContentSecurityPolicy(
       network::mojom::CSPDirectiveName::ObjectSrc,
       std::string("object-src 'self';"));
-
-  // Makes camera app cross-origin-isolated to measure memory usage.
-  source->OverrideCrossOriginOpenerPolicy("same-origin");
-  source->OverrideCrossOriginEmbedderPolicy("require-corp");
 }
 
-void GotSalt(
+// Translates the renderer-side source ID to video device id.
+void TranslateVideoDeviceId(
+    const std::string& salt,
     const url::Origin& origin,
     const std::string& source_id,
-    base::OnceCallback<void(const absl::optional<std::string>&)> callback,
-    const std::string& salt) {
+    base::OnceCallback<void(const absl::optional<std::string>&)> callback) {
   auto callback_on_io_thread = base::BindOnce(
       [](const std::string& salt, const url::Origin& origin,
          const std::string& source_id,
@@ -140,25 +134,6 @@ void GotSalt(
       salt, std::move(origin), source_id, std::move(callback));
   content::GetIOThreadTaskRunner({})->PostTask(
       FROM_HERE, std::move(callback_on_io_thread));
-}
-
-// Translates the renderer-side source ID to video device id.
-void TranslateVideoDeviceId(
-    content::BrowserContext* browser_context,
-    media_device_salt::MediaDeviceSaltService* salt_service,
-    const url::Origin& origin,
-    const std::string& source_id,
-    base::OnceCallback<void(const absl::optional<std::string>&)> callback) {
-  if (salt_service) {
-    salt_service->GetSalt(
-        blink::StorageKey::CreateFirstParty(origin),
-        base::BindOnce(&GotSalt, origin, source_id, std::move(callback)));
-  } else {
-    // If the embedder does not provide a salt service, use the browser
-    // context's unique ID as salt.
-    GotSalt(origin, source_id, std::move(callback),
-            browser_context->UniqueId());
-  }
 }
 
 void HandleCameraResult(
@@ -182,10 +157,10 @@ void SendNewCaptureBroadcast(content::BrowserContext* context,
 }
 
 std::unique_ptr<media::CameraAppDeviceProviderImpl>
-CreateCameraAppDeviceProvider(
-    content::BrowserContext* browser_context,
-    media_device_salt::MediaDeviceSaltService* salt_service,
-    const url::Origin& security_origin) {
+CreateCameraAppDeviceProvider(const url::Origin& security_origin,
+                              content::BrowserContext* context) {
+  auto media_device_id_salt = context->GetMediaDeviceIDSalt();
+
   mojo::PendingRemote<cros::mojom::CameraAppDeviceBridge> device_bridge;
   auto device_bridge_receiver = device_bridge.InitWithNewPipeAndPassReceiver();
 
@@ -194,8 +169,8 @@ CreateCameraAppDeviceProvider(
       std::move(device_bridge_receiver));
 
   auto mapping_callback =
-      base::BindRepeating(&TranslateVideoDeviceId, browser_context,
-                          salt_service, std::move(security_origin));
+      base::BindRepeating(&TranslateVideoDeviceId, media_device_id_salt,
+                          std::move(security_origin));
 
   return std::make_unique<media::CameraAppDeviceProviderImpl>(
       std::move(device_bridge), std::move(mapping_callback));
@@ -289,11 +264,9 @@ CameraAppUI::~CameraAppUI() {
 
 void CameraAppUI::BindInterface(
     mojo::PendingReceiver<cros::mojom::CameraAppDeviceProvider> receiver) {
-  content::BrowserContext* browser_context =
-      web_ui()->GetWebContents()->GetBrowserContext();
   provider_ = CreateCameraAppDeviceProvider(
-      browser_context, delegate_->GetMediaDeviceSaltService(browser_context),
-      url::Origin::Create(GURL(kChromeUICameraAppURL)));
+      url::Origin::Create(GURL(kChromeUICameraAppURL)),
+      web_ui()->GetWebContents()->GetBrowserContext());
   provider_->Bind(std::move(receiver));
 }
 
@@ -309,7 +282,7 @@ void CameraAppUI::BindInterface(
     mojo::PendingReceiver<color_change_listener::mojom::PageHandler> receiver) {
   views::Widget* widget = views::Widget::GetWidgetForNativeWindow(window());
   // Camera app is always dark.
-  widget->SetColorModeOverride(ui::ColorProviderKey::ColorMode::kDark);
+  widget->SetColorModeOverride(ui::ColorProviderManager::ColorMode::kDark);
 
   color_provider_handler_ = std::make_unique<ui::ColorChangeHandler>(
       web_ui()->GetWebContents(), std::move(receiver));

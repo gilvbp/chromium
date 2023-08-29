@@ -48,7 +48,6 @@ class IsolatedWebAppInstallCommandHelper {
 
   IsolatedWebAppInstallCommandHelper(
       IsolatedWebAppUrlInfo url_info,
-      std::unique_ptr<WebAppDataRetriever> data_retriever,
       std::unique_ptr<IsolatedWebAppResponseReaderFactory>
           response_reader_factory);
   ~IsolatedWebAppInstallCommandHelper();
@@ -60,7 +59,7 @@ class IsolatedWebAppInstallCommandHelper {
 
   void CheckTrustAndSignatures(
       const IsolatedWebAppLocation& location,
-      Profile* profile,
+      const PrefService& prefs,
       base::OnceCallback<void(base::expected<void, std::string>)> callback);
 
   void CreateStoragePartitionIfNotPresent(Profile& profile);
@@ -101,6 +100,9 @@ class IsolatedWebAppInstallCommandHelper {
       base::OnceCallback<void(base::expected<WebAppInstallInfo, std::string>)>
           callback);
 
+  void SetDataRetrieverForTesting(
+      std::unique_ptr<WebAppDataRetriever> data_retriever);
+
  private:
   void CheckTrustAndSignaturesOfBundle(
       const base::FilePath& path,
@@ -132,8 +134,8 @@ class IsolatedWebAppInstallCommandHelper {
       std::map<GURL, int /*http_status_code*/> unused_icons_http_results);
 
   IsolatedWebAppUrlInfo url_info_;
-  std::unique_ptr<WebAppDataRetriever> data_retriever_;
   std::unique_ptr<IsolatedWebAppResponseReaderFactory> response_reader_factory_;
+  std::unique_ptr<WebAppDataRetriever> data_retriever_;
 
   base::WeakPtrFactory<IsolatedWebAppInstallCommandHelper> weak_factory_{this};
 };

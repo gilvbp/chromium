@@ -10,7 +10,8 @@
 #include <utility>
 
 #include "base/apple/owned_objc.h"
-#include "base/apple/scoped_cftyperef.h"
+#include "base/mac/scoped_cftyperef.h"
+#import "base/mac/scoped_nsobject.h"
 #include "testing/gtest/include/gtest/gtest.h"
 #import "ui/base/test/cocoa_helper.h"
 #import "ui/events/cocoa/cocoa_event_utils.h"
@@ -19,6 +20,10 @@
 #import "ui/events/test/cocoa_test_event_utils.h"
 #include "ui/events/types/event_type.h"
 #include "ui/gfx/geometry/point.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace ui {
 
@@ -57,7 +62,7 @@ class EventsMacTest : public CocoaTest {
     CGMouseButton other_button = kCGMouseButtonCenter;
     CGPoint screen_point = cocoa_test_event_utils::ScreenPointFromWindow(
         Flip(window_location).ToCGPoint(), test_window());
-    base::apple::ScopedCFTypeRef<CGEventRef> mouse(
+    base::ScopedCFTypeRef<CGEventRef> mouse(
         CGEventCreateMouseEvent(nullptr, type, screen_point, other_button));
     CGEventSetFlags(mouse, event_flags);
     return cocoa_test_event_utils::AttachWindowToCGEvent(mouse, test_window());
@@ -365,7 +370,7 @@ TEST_F(EventsMacTest, NativeTitlebarEventLocation) {
 TEST_F(EventsMacTest, NoWindowLocation) {
   const CGPoint location = CGPointMake(5, 10);
 
-  base::apple::ScopedCFTypeRef<CGEventRef> mouse(CGEventCreateMouseEvent(
+  base::ScopedCFTypeRef<CGEventRef> mouse(CGEventCreateMouseEvent(
       nullptr, kCGEventMouseMoved, location, kCGMouseButtonLeft));
 
   NSEvent* event = [NSEvent eventWithCGEvent:mouse];

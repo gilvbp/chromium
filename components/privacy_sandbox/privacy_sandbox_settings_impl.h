@@ -8,7 +8,6 @@
 #include "components/browsing_topics/common/common_types.h"
 #include "components/privacy_sandbox/privacy_sandbox_settings.h"
 
-#include "base/gtest_prod_util.h"
 #include "base/memory/raw_ptr.h"
 #include "base/observer_list.h"
 #include "base/time/time.h"
@@ -40,10 +39,8 @@ class PrivacySandboxSettingsImpl : public PrivacySandboxSettings {
 
   // PrivacySandboxSettings:
   bool IsTopicsAllowed() const override;
-  bool IsTopicsAllowedForContext(
-      const url::Origin& top_frame_origin,
-      const GURL& url,
-      content::RenderFrameHost* console_frame = nullptr) const override;
+  bool IsTopicsAllowedForContext(const url::Origin& top_frame_origin,
+                                 const GURL& url) const override;
   bool IsTopicAllowed(const CanonicalTopic& topic) override;
   void SetTopicAllowed(const CanonicalTopic& topic, bool allowed) override;
   void ClearTopicSettings(base::Time start_time, base::Time end_time) override;
@@ -51,30 +48,26 @@ class PrivacySandboxSettingsImpl : public PrivacySandboxSettings {
   bool IsAttributionReportingEverAllowed() const override;
   bool IsAttributionReportingAllowed(
       const url::Origin& top_frame_origin,
-      const url::Origin& reporting_origin,
-      content::RenderFrameHost* console_frame = nullptr) const override;
+      const url::Origin& reporting_origin) const override;
   bool MaySendAttributionReport(
       const url::Origin& source_origin,
       const url::Origin& destination_origin,
-      const url::Origin& reporting_origin,
-      content::RenderFrameHost* console_frame = nullptr) const override;
+      const url::Origin& reporting_origin) const override;
   void SetFledgeJoiningAllowed(const std::string& top_frame_etld_plus1,
                                bool allowed) override;
   void ClearFledgeJoiningAllowedSettings(base::Time start_time,
                                          base::Time end_time) override;
-  bool IsFledgeAllowed(
-      const url::Origin& top_frame_origin,
-      const url::Origin& auction_party,
-      content::InterestGroupApiOperation interest_group_api_operation,
-      content::RenderFrameHost* console_frame = nullptr) const override;
+  bool IsFledgeJoiningAllowed(
+      const url::Origin& top_frame_origin) const override;
+  bool IsFledgeAllowed(const url::Origin& top_frame_origin,
+                       const url::Origin& auction_party) const override;
   bool IsEventReportingDestinationAttested(
       const url::Origin& destination_origin,
       privacy_sandbox::PrivacySandboxAttestationsGatedAPI invoking_api)
       const override;
   bool IsSharedStorageAllowed(
       const url::Origin& top_frame_origin,
-      const url::Origin& accessing_origin,
-      content::RenderFrameHost* console_frame = nullptr) const override;
+      const url::Origin& accessing_origin) const override;
   bool IsSharedStorageSelectURLAllowed(
       const url::Origin& top_frame_origin,
       const url::Origin& accessing_origin) const override;
@@ -98,13 +91,6 @@ class PrivacySandboxSettingsImpl : public PrivacySandboxSettings {
   friend class PrivacySandboxSettingsTest;
   friend class PrivacySandboxAttestations;
   friend class PrivacySandboxAttestationsTestBase;
-  FRIEND_TEST_ALL_PREFIXES(
-      PrivacySandboxAttestationsBrowserTest,
-      CallComponentReadyWhenRegistrationFindsExistingComponent);
-  FRIEND_TEST_ALL_PREFIXES(PrivacySandboxSettingsTest, FledgeJoiningAllowed);
-  FRIEND_TEST_ALL_PREFIXES(PrivacySandboxSettingsTest, NonEtldPlusOneBlocked);
-  FRIEND_TEST_ALL_PREFIXES(PrivacySandboxSettingsTest,
-                           FledgeJoinSettingTimeRangeDeletion);
   // Called when the First-Party Sets enabled preference is changed.
   void OnFirstPartySetsEnabledPrefChanged();
 
@@ -129,19 +115,13 @@ class PrivacySandboxSettingsImpl : public PrivacySandboxSettings {
     kSiteDataAccessBlocked = 4,
     kMismatchedConsent = 5,
     kAttestationFailed = 6,
-    kAttestationsFileNotYetReady = 7,
-    kAttestationsDownloadedNotYetLoaded = 8,
-    kAttestationsFileCorrupt = 9,
-    kJoiningTopFrameBlocked = 10,
-    kMaxValue = kJoiningTopFrameBlocked,
+    kAttestationsNotLoaded = 7,
+    kMaxValue = kAttestationsNotLoaded,
   };
 
   static bool IsAllowed(Status status);
 
   static void JoinHistogram(const char* name, Status status);
-  static void JoinFledgeHistogram(
-      content::InterestGroupApiOperation interest_group_api_operation,
-      Status status);
 
   // Get the Topics that are disabled by Finch.
   const std::vector<browsing_topics::Topic>& GetFinchDisabledTopics();
@@ -177,15 +157,10 @@ class PrivacySandboxSettingsImpl : public PrivacySandboxSettings {
   Status GetM1FledgeAllowedStatus(const url::Origin& top_frame_origin,
                                   const url::Origin& accessing_origin) const;
 
-  // Internal helper for `IsFledgeAllowed`. Used only when
-  // `interest_group_api_operation` is `kJoin`.
-  bool IsFledgeJoiningAllowed(const url::Origin& top_frame_origin) const;
-
   base::ObserverList<Observer>::Unchecked observers_;
 
   std::unique_ptr<Delegate> delegate_;
-  raw_ptr<HostContentSettingsMap, AcrossTasksDanglingUntriaged>
-      host_content_settings_map_;
+  raw_ptr<HostContentSettingsMap, DanglingUntriaged> host_content_settings_map_;
   scoped_refptr<content_settings::CookieSettings> cookie_settings_;
   raw_ptr<PrefService, DanglingUntriaged> pref_service_;
   PrefChangeRegistrar pref_change_registrar_;

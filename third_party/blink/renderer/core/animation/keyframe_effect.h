@@ -120,8 +120,7 @@ class CORE_EXPORT KeyframeEffect final : public AnimationEffect {
                                   base::TimeDelta time_offset,
                                   double animation_playback_rate,
                                   CompositorAnimation* = nullptr,
-                                  bool is_monotonic_timeline = true,
-                                  bool is_boundary_aligned = false);
+                                  bool is_monotonic_timeline = true);
   bool HasActiveAnimationsOnCompositor() const;
   bool HasActiveAnimationsOnCompositor(const PropertyHandle&) const;
   bool CancelAnimationOnCompositor(CompositorAnimation*);

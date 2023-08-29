@@ -25,6 +25,10 @@
 #import "testing/gtest_mac.h"
 #import "testing/platform_test.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace {
 
 using password_manager::CredentialUIEntry;
@@ -94,6 +98,11 @@ scoped_refptr<RefcountedKeyedService> BuildPasswordStore(
 class PasswordDetailsMediatorTest : public PlatformTest {
  protected:
   PasswordDetailsMediatorTest() {
+    // kEnablePasswordsAccountStorage needs to be enabled to create an account
+    // password store that is not null.
+    feature_list.InitAndEnableFeature(
+        password_manager::features::kEnablePasswordsAccountStorage);
+
     TestChromeBrowserState::Builder builder;
     builder.AddTestingFactory(
         IOSChromePasswordStoreFactory::GetInstance(),

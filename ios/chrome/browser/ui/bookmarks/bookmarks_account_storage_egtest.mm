@@ -8,7 +8,6 @@
 #import "base/ios/ios_util.h"
 #import "components/bookmarks/common/bookmark_features.h"
 #import "components/signin/public/base/consent_level.h"
-#import "components/sync/base/features.h"
 #import "ios/chrome/browser/signin/fake_system_identity.h"
 #import "ios/chrome/browser/ui/authentication/signin/signin_constants.h"
 #import "ios/chrome/browser/ui/authentication/signin_earl_grey.h"
@@ -24,6 +23,10 @@
 #import "ios/chrome/test/earl_grey/web_http_server_chrome_test_case.h"
 #import "ios/testing/earl_grey/earl_grey_test.h"
 #import "net/test/embedded_test_server/embedded_test_server.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 using chrome_test_util::BookmarksHomeDoneButton;
 using chrome_test_util::BookmarksNavigationBarBackButton;
@@ -41,20 +44,20 @@ using chrome_test_util::SecondarySignInButton;
 
 - (AppLaunchConfiguration)appConfigurationForTestCase {
   AppLaunchConfiguration config;
-  config.features_enabled.push_back(syncer::kEnableBookmarksAccountStorage);
+  config.features_enabled.push_back(bookmarks::kEnableBookmarksAccountStorage);
   return config;
 }
 
 - (void)setUp {
   [super setUp];
-  [BookmarkEarlGrey waitForBookmarkModelsLoaded];
-  [BookmarkEarlGrey clearBookmarks];
+  [ChromeEarlGrey waitForBookmarksToFinishLoading];
+  [ChromeEarlGrey clearBookmarks];
 }
 
 // Tear down called once per test.
 - (void)tearDown {
   [super tearDown];
-  [BookmarkEarlGrey clearBookmarks];
+  [ChromeEarlGrey clearBookmarks];
   [BookmarkEarlGrey clearBookmarksPositionCache];
 }
 
@@ -71,7 +74,7 @@ using chrome_test_util::SecondarySignInButton;
   [ChromeEarlGrey loadURL:bookmarkURL];
   [[EarlGrey selectElementWithMatcher:OmniboxText(expectedURLContent)]
       assertWithMatcher:grey_notNil()];
-  [BookmarkEarlGrey waitForBookmarkModelsLoaded];
+  [BookmarkEarlGrey waitForBookmarkModelLoaded];
   [BookmarkEarlGreyUI bookmarkCurrentTabWithTitle:bookmarkTitle];
   // Sign-in+sync with identity.
   FakeSystemIdentity* fakeIdentity = [FakeSystemIdentity fakeIdentity1];

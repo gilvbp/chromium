@@ -78,7 +78,7 @@ class V4StoreTest : public PlatformTest {
 
   void UpdatedStoreReady(bool* called_back,
                          bool expect_store,
-                         V4StorePtr store) {
+                         std::unique_ptr<V4Store> store) {
     *called_back = true;
     if (expect_store) {
       ASSERT_TRUE(store);
@@ -103,7 +103,7 @@ class V4StoreTest : public PlatformTest {
   base::FilePath store_path_;
   scoped_refptr<base::TestSimpleTaskRunner> task_runner_;
   base::test::TaskEnvironment task_environment_;
-  V4StorePtr updated_store_{nullptr, V4StoreDeleter(nullptr)};
+  std::unique_ptr<V4Store> updated_store_;
 };
 
 TEST_F(V4StoreTest, TestReadFromEmptyFile) {

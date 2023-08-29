@@ -43,7 +43,6 @@
 #include "third_party/blink/renderer/core/html/html_frame_owner_element.h"
 #include "third_party/blink/renderer/core/html/html_view_source_document.h"
 #include "third_party/blink/renderer/core/html/image_document.h"
-#include "third_party/blink/renderer/core/html/json_document.h"
 #include "third_party/blink/renderer/core/html/media/html_media_element.h"
 #include "third_party/blink/renderer/core/html/media/media_document.h"
 #include "third_party/blink/renderer/core/html/plugin_document.h"
@@ -55,7 +54,6 @@
 #include "third_party/blink/renderer/platform/network/mime/content_type.h"
 #include "third_party/blink/renderer/platform/network/mime/mime_type_registry.h"
 #include "third_party/blink/renderer/platform/network/network_utils.h"
-#include "third_party/blink/renderer/platform/runtime_enabled_features.h"
 
 namespace blink {
 
@@ -321,13 +319,8 @@ Document* DocumentInit::CreateDocument() const {
       return MakeGarbageCollected<XMLDocument>(*this);
     case Type::kViewSource:
       return MakeGarbageCollected<HTMLViewSourceDocument>(*this);
-    case Type::kText: {
-      if (MIMETypeRegistry::IsJSONMimeType(mime_type_) &&
-          RuntimeEnabledFeatures::PrettyPrintJSONDocumentEnabled()) {
-        return MakeGarbageCollected<JSONDocument>(*this);
-      }
+    case Type::kText:
       return MakeGarbageCollected<TextDocument>(*this);
-    }
     case Type::kUnspecified:
       [[fallthrough]];
     default:

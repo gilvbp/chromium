@@ -7,8 +7,8 @@
 
 namespace content {
 struct ContextMenuParams;
-class BrowserContext;
 class RenderFrameHost;
+class WebContents;
 }
 
 namespace extensions {
@@ -32,7 +32,7 @@ class AppViewGuestDelegate {
 
   // Returns an AppDelegate to be used by the AppViewGuest.
   virtual AppDelegate* CreateAppDelegate(
-      content::BrowserContext* browser_context) = 0;
+      content::WebContents* web_contents) = 0;
 };
 
 }  // namespace extensions

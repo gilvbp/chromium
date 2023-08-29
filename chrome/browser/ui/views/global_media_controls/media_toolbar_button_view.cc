@@ -65,7 +65,7 @@ MediaToolbarButtonView::MediaToolbarButtonView(
   SetTooltipText(
       l10n_util::GetStringUTF16(IDS_GLOBAL_MEDIA_CONTROLS_ICON_TOOLTIP_TEXT));
   GetViewAccessibility().OverrideHasPopup(ax::mojom::HasPopup::kDialog);
-  SetProperty(views::kElementIdentifierKey, kToolbarMediaButtonElementId);
+  SetProperty(views::kElementIdentifierKey, kMediaButtonElementId);
 
   // We start hidden and only show once |controller_| tells us to.
   SetVisible(false);

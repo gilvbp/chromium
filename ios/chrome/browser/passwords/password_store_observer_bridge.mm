@@ -4,6 +4,10 @@
 
 #import "ios/chrome/browser/passwords/password_store_observer_bridge.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 PasswordStoreObserverBridge::PasswordStoreObserverBridge(
     id<PasswordStoreObserver> observer)
     : observer_(observer) {}

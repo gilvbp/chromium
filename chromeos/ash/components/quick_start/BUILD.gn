@@ -17,10 +17,6 @@ static_library("quick_start") {
     "quick_start_metrics.h",
     "quick_start_requests.cc",
     "quick_start_requests.h",
-    "quick_start_response_type.cc",
-    "quick_start_response_type.h",
-    "types.cc",
-    "types.h",
   ]
   deps = [
     "//base",
@@ -32,6 +28,7 @@ static_library("quick_start") {
 }
 
 source_set("test_support") {
+  testonly = true
   public_deps = [ ":quick_start" ]
   deps = [
     "//base",
@@ -41,6 +38,7 @@ source_set("test_support") {
     "//crypto",
     "//mojo/public/cpp/bindings:bindings",
     "//sandbox/policy",
+    "//testing/gtest",
     "//url",
   ]
   sources = [
@@ -56,7 +54,6 @@ source_set("unit_tests") {
     "logging_unittest.cc",
     "quick_start_message_unittest.cc",
     "quick_start_requests_unittest.cc",
-    "types_unittest.cc",
   ]
 
   deps = [

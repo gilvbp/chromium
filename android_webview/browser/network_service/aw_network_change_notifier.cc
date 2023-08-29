@@ -3,8 +3,6 @@
 // found in the LICENSE file.
 
 #include "android_webview/browser/network_service/aw_network_change_notifier.h"
-#include "android_webview/common/aw_features.h"
-#include "base/feature_list.h"
 
 namespace android_webview {
 
@@ -25,8 +23,7 @@ void AwNetworkChangeNotifier::GetCurrentMaxBandwidthAndConnectionType(
 }
 
 bool AwNetworkChangeNotifier::AreNetworkHandlesCurrentlySupported() const {
-  return base::FeatureList::IsEnabled(
-      features::kWebViewPropagateNetworkSignals);
+  return false;
 }
 
 void AwNetworkChangeNotifier::GetCurrentConnectedNetworks(
@@ -59,33 +56,13 @@ void AwNetworkChangeNotifier::OnMaxBandwidthChanged(
 }
 
 void AwNetworkChangeNotifier::OnNetworkConnected(
-    net::handles::NetworkHandle network) {
-  if (base::FeatureList::IsEnabled(features::kWebViewPropagateNetworkSignals)) {
-    NetworkChangeNotifier::NotifyObserversOfSpecificNetworkChange(
-        NetworkChangeType::kConnected, network);
-  }
-}
+    net::handles::NetworkHandle network) {}
 void AwNetworkChangeNotifier::OnNetworkSoonToDisconnect(
-    net::handles::NetworkHandle network) {
-  if (base::FeatureList::IsEnabled(features::kWebViewPropagateNetworkSignals)) {
-    NetworkChangeNotifier::NotifyObserversOfSpecificNetworkChange(
-        NetworkChangeType::kSoonToDisconnect, network);
-  }
-}
+    net::handles::NetworkHandle network) {}
 void AwNetworkChangeNotifier::OnNetworkDisconnected(
-    net::handles::NetworkHandle network) {
-  if (base::FeatureList::IsEnabled(features::kWebViewPropagateNetworkSignals)) {
-    NetworkChangeNotifier::NotifyObserversOfSpecificNetworkChange(
-        NetworkChangeType::kDisconnected, network);
-  }
-}
+    net::handles::NetworkHandle network) {}
 void AwNetworkChangeNotifier::OnNetworkMadeDefault(
-    net::handles::NetworkHandle network) {
-  if (base::FeatureList::IsEnabled(features::kWebViewPropagateNetworkSignals)) {
-    NetworkChangeNotifier::NotifyObserversOfSpecificNetworkChange(
-        NetworkChangeType::kMadeDefault, network);
-  }
-}
+    net::handles::NetworkHandle network) {}
 
 void AwNetworkChangeNotifier::OnDefaultNetworkActive() {}
 

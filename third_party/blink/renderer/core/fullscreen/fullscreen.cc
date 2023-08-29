@@ -206,10 +206,13 @@ void GoFullscreen(Element& element,
   }
 
   // If there are any open popovers, close them.
-  HTMLElement::HideAllPopoversUntil(
-      nullptr, document, HidePopoverFocusBehavior::kNone,
-      HidePopoverTransitionBehavior::kFireEventsAndWaitForTransitions,
-      HidePopoverIndependence::kHideUnrelated);
+  if (RuntimeEnabledFeatures::HTMLPopoverAttributeEnabled(
+          document.GetExecutionContext())) {
+    HTMLElement::HideAllPopoversUntil(
+        nullptr, document, HidePopoverFocusBehavior::kNone,
+        HidePopoverTransitionBehavior::kFireEventsAndWaitForTransitions,
+        HidePopoverIndependence::kHideUnrelated);
+  }
 
   // To fullscreen an |element| within a |document|, set the |element|'s
   // fullscreen flag and add it to |document|'s top layer.
@@ -418,6 +421,8 @@ const char* FullscreenElementNotReady(const Element& element,
 
   if (auto* html_element = DynamicTo<HTMLElement>(element);
       html_element &&
+      RuntimeEnabledFeatures::HTMLPopoverAttributeEnabled(
+          element.GetDocument().GetExecutionContext()) &&
       html_element->HasPopoverAttribute() && html_element->popoverOpen()) {
     return "The element is already open as a Popover, and therefore cannot be "
            "opened via the fullscreen API.";
@@ -1117,12 +1122,11 @@ void Fullscreen::ContinueExitFullscreen(Document* doc,
 }
 
 // https://fullscreen.spec.whatwg.org/#dom-document-fullscreenenabled
-bool Fullscreen::FullscreenEnabled(Document& document,
-                                   ReportOptions report_on_failure) {
+bool Fullscreen::FullscreenEnabled(Document& document) {
   // The fullscreenEnabled attribute's getter must return true if the context
   // object is allowed to use the feature indicated by attribute name
   // allowfullscreen and fullscreen is supported, and false otherwise.
-  return AllowedToUseFullscreen(document, report_on_failure) &&
+  return AllowedToUseFullscreen(document, ReportOptions::kDoNotReport) &&
          FullscreenIsSupported(document);
 }
 

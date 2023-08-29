@@ -1,4 +1,4 @@
 monorail {
-  component: "Blink>Storage>FileSystem"
+  component: "UI>Browser>Permissions>Prompts"
 }
 team_email: "storage-dev@chromium.org"

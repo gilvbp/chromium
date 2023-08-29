@@ -8,7 +8,6 @@
 
 #include "ash/constants/ash_features.h"
 #include "ash/public/cpp/holding_space/holding_space_controller.h"
-#include "ash/public/cpp/holding_space/holding_space_file.h"
 #include "ash/public/cpp/holding_space/holding_space_item.h"
 #include "ash/public/cpp/holding_space/holding_space_metrics.h"
 #include "ash/public/cpp/holding_space/holding_space_prefs.h"
@@ -146,10 +145,8 @@ void HoldingSpaceKeyedService::AddPinnedFiles(
       continue;
 
     items.push_back(HoldingSpaceItem::CreateFileBackedItem(
-        HoldingSpaceItem::Type::kPinnedFile,
-        HoldingSpaceFile(holding_space_util::ResolveFileSystemType(
-            profile_, file_system_url.ToGURL())),
-        file_system_url.path(), file_system_url.ToGURL(),
+        HoldingSpaceItem::Type::kPinnedFile, file_system_url.path(),
+        file_system_url.ToGURL(),
         base::BindOnce(&holding_space_util::ResolveImage, &thumbnail_loader_)));
 
     // When pinning an item which already exists in holding space, the pin
@@ -488,10 +485,7 @@ std::unique_ptr<HoldingSpaceItem> HoldingSpaceKeyedService::CreateItemOfType(
     return nullptr;
 
   return HoldingSpaceItem::CreateFileBackedItem(
-      type,
-      HoldingSpaceFile(
-          holding_space_util::ResolveFileSystemType(profile_, file_system_url)),
-      file_path, file_system_url, progress,
+      type, file_path, file_system_url, progress,
       base::BindOnce(
           &holding_space_util::ResolveImageWithPlaceholderImageSkiaResolver,
           &thumbnail_loader_, placeholder_image_skia_resolver));

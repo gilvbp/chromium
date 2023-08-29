@@ -24,7 +24,6 @@
 #include "components/bookmarks/test/bookmark_test_helpers.h"
 #include "components/commerce/core/commerce_feature_list.h"
 #include "components/commerce/core/mock_shopping_service.h"
-#include "components/keyed_service/content/browser_context_dependency_manager.h"
 #include "components/signin/public/identity_manager/identity_test_utils.h"
 #include "content/public/test/browser_test.h"
 #include "ui/views/bubble/bubble_dialog_delegate_view.h"
@@ -41,36 +40,23 @@ class BaseBookmarkBubbleViewBrowserTest : public DialogBrowserTest {
   ~BaseBookmarkBubbleViewBrowserTest() override = default;
 
   void SetUpOnMainThread() override {
-    EXPECT_TRUE(is_browser_context_services_created);
-    mock_shopping_service_ = static_cast<commerce::MockShoppingService*>(
-        commerce::ShoppingServiceFactory::GetForBrowserContext(
-            browser()->profile()));
-
     auto* helper = commerce::ShoppingListUiTabHelper::FromWebContents(
         browser()->tab_strip_model()->GetActiveWebContents());
 
+    // Clear the original shopping service before we replace it with the new one
+    // so we're not dealing with dangling pointers on destruction (of both the
+    // service itself and its observers).
+    helper->SetShoppingServiceForTesting(nullptr);
+
+    mock_shopping_service_ = static_cast<commerce::MockShoppingService*>(
+        commerce::ShoppingServiceFactory::GetInstance()
+            ->SetTestingFactoryAndUse(
+                browser()->profile(),
+                base::BindRepeating([](content::BrowserContext* context) {
+                  return commerce::MockShoppingService::Build();
+                })));
+
     helper->SetShoppingServiceForTesting(mock_shopping_service_);
-  }
-
-  void SetUpInProcessBrowserTestFixture() override {
-    create_services_subscription_ =
-        BrowserContextDependencyManager::GetInstance()
-            ->RegisterCreateServicesCallbackForTesting(
-                base::BindRepeating(&BaseBookmarkBubbleViewBrowserTest::
-                                        OnWillCreateBrowserContextServices,
-                                    weak_ptr_factory_.GetWeakPtr()));
-  }
-
-  void TearDownInProcessBrowserTestFixture() override {
-    is_browser_context_services_created = false;
-  }
-
-  void OnWillCreateBrowserContextServices(content::BrowserContext* context) {
-    is_browser_context_services_created = true;
-    commerce::ShoppingServiceFactory::GetInstance()->SetTestingFactory(
-        context, base::BindRepeating([](content::BrowserContext* context) {
-          return commerce::MockShoppingService::Build();
-        }));
   }
 
   // DialogBrowserTest:
@@ -123,17 +109,12 @@ class BaseBookmarkBubbleViewBrowserTest : public DialogBrowserTest {
  private:
   raw_ptr<commerce::MockShoppingService, DanglingUntriaged>
       mock_shopping_service_;
-  base::CallbackListSubscription create_services_subscription_;
-  bool is_browser_context_services_created{false};
-  base::WeakPtrFactory<BaseBookmarkBubbleViewBrowserTest> weak_ptr_factory_{
-      this};
 };
 
 class BookmarkBubbleViewBrowserTest : public BaseBookmarkBubbleViewBrowserTest {
  public:
   BookmarkBubbleViewBrowserTest() {
-    test_features_.InitWithFeatures(
-        {commerce::kShoppingList}, {features::kPowerBookmarksSidePanel});
+    test_features_.InitAndEnableFeature(commerce::kShoppingList);
   }
 
   BookmarkBubbleViewBrowserTest(const BookmarkBubbleViewBrowserTest&) = delete;
@@ -148,8 +129,7 @@ class PowerBookmarkBubbleViewBrowserTest
  public:
   PowerBookmarkBubbleViewBrowserTest() {
     test_features_.InitWithFeatures(
-        {commerce::kShoppingList, features::kPowerBookmarksSidePanel},
-        {commerce::kShoppingListTrackByDefault});
+        {commerce::kShoppingList, features::kPowerBookmarksSidePanel}, {});
   }
 
   PowerBookmarkBubbleViewBrowserTest(
@@ -173,16 +153,8 @@ IN_PROC_BROWSER_TEST_F(BookmarkBubbleViewBrowserTest,
   ShowAndVerifyUi();
 }
 
-// TODO(crbug.com/1473858): Flaky on Windows and Chrome OS.
-#if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_CHROMEOS)
-#define MAYBE_InvokeUi_bookmark_details_on_trackable_product \
-  DISABLED_InvokeUi_bookmark_details_on_trackable_product
-#else
-#define MAYBE_InvokeUi_bookmark_details_on_trackable_product \
-  InvokeUi_bookmark_details_on_trackable_product
-#endif
 IN_PROC_BROWSER_TEST_F(BookmarkBubbleViewBrowserTest,
-                       MAYBE_InvokeUi_bookmark_details_on_trackable_product) {
+                       InvokeUi_bookmark_details_on_trackable_product) {
   ShowAndVerifyUi();
 }
 

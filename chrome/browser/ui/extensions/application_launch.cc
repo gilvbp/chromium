@@ -7,7 +7,6 @@
 #include <memory>
 #include <string>
 #include <utility>
-#include <vector>
 
 #include "apps/launcher.h"
 #include "base/command_line.h"
@@ -60,6 +59,10 @@
 #include "ui/display/scoped_display_for_new_windows.h"
 #include "ui/gfx/geometry/rect.h"
 
+#if BUILDFLAG(IS_MAC)
+#include "chrome/browser/ui/browser_commands_mac.h"
+#endif
+
 using content::WebContents;
 using extensions::Extension;
 using extensions::ExtensionPrefs;
@@ -86,7 +89,7 @@ class EnableViaDialogFlow : public ExtensionEnableFlowDelegate {
   EnableViaDialogFlow(const EnableViaDialogFlow&) = delete;
   EnableViaDialogFlow& operator=(const EnableViaDialogFlow&) = delete;
 
-  ~EnableViaDialogFlow() override = default;
+  ~EnableViaDialogFlow() override {}
 
   void Run() {
     DCHECK(!service_->IsExtensionEnabled(extension_id_));
@@ -108,10 +111,10 @@ class EnableViaDialogFlow : public ExtensionEnableFlowDelegate {
 
   void ExtensionEnableFlowAborted(bool user_initiated) override { delete this; }
 
-  const raw_ptr<ExtensionService> service_;
-  const raw_ptr<ExtensionRegistry> registry_;
-  const raw_ptr<Profile> profile_;
-  extensions::ExtensionId extension_id_;
+  raw_ptr<ExtensionService> service_;
+  raw_ptr<ExtensionRegistry> registry_;
+  raw_ptr<Profile> profile_;
+  std::string extension_id_;
   base::OnceClosure callback_;
   std::unique_ptr<ExtensionEnableFlow> flow_;
 };
@@ -180,12 +183,10 @@ ui::WindowShowState DetermineWindowShowState(Profile* profile,
   // LAUNCH_TYPE_WINDOW launches in a default app window.
   extensions::LaunchType launch_type =
       extensions::GetLaunchType(ExtensionPrefs::Get(profile), extension);
-  if (launch_type == extensions::LAUNCH_TYPE_FULLSCREEN) {
+  if (launch_type == extensions::LAUNCH_TYPE_FULLSCREEN)
     return ui::SHOW_STATE_MAXIMIZED;
-  }
-  if (launch_type == extensions::LAUNCH_TYPE_WINDOW) {
+  else if (launch_type == extensions::LAUNCH_TYPE_WINDOW)
     return ui::SHOW_STATE_DEFAULT;
-  }
 #endif
 
   return ui::SHOW_STATE_DEFAULT;
@@ -403,29 +404,6 @@ WebContents* MaybeOpenApplicationForLaunchTypeMultipleClients(
   return web_contents;
 }
 
-// Launch type is defined in the manifest. It's `single-client` by default,
-// which makes all files available in the single tab. `multiple-client` opens a
-// new tab for each file.
-WebContents* CheckForMultiClientLaunchSupport(
-    const Extension* extension,
-    Profile* profile,
-    const extensions::WebFileHandlersInfo& handlers,
-    const apps::AppLaunchParams& params) {
-  // Find a matching manifest file handler action for the intent. If there's a
-  // match, return early with the last web_contents opened.
-  WebContents* web_contents = nullptr;
-  for (const auto& handler : handlers) {
-    web_contents = MaybeOpenApplicationForLaunchTypeMultipleClients(
-        handler, params, profile, *extension);
-    if (web_contents) {
-      return web_contents;
-    }
-  }
-
-  // Multi-client wasn't detected, so this is treated as single-client.
-  return nullptr;
-}
-
 WebContents* OpenEnabledApplication(Profile* profile,
                                     const apps::AppLaunchParams& params) {
   const Extension* extension = GetExtension(profile, params);
@@ -439,21 +417,24 @@ WebContents* OpenEnabledApplication(Profile* profile,
   }
 #endif
 
+  // Support for multiple-clients in Web File Handlers. Launch if this is a
+  // multi-client launch. Otherwise fallback to `OpenEnabledApplicationHelper`.
   if (extensions::WebFileHandlers::SupportsWebFileHandlers(
           extension->manifest_version())) {
-    // If the extension supports Web File Handlers, File Handlers are required.
     auto* handlers = extensions::WebFileHandlers::GetFileHandlers(*extension);
     if (!handlers) {
       return nullptr;
     }
 
-    // Support for multiple-clients in Web File Handlers. Launch if this is a
-    // multi-client launch. Otherwise fallthrough to
-    // `OpenEnabledApplicationHelper`.
-    WebContents* web_contents =
-        CheckForMultiClientLaunchSupport(extension, profile, *handlers, params);
-    if (web_contents) {
-      return web_contents;
+    // Find a matching manifest file handler action for the intent. If there's a
+    // match, return early with the last web_contents opened.
+    WebContents* web_contents = nullptr;
+    for (const auto& handler : *handlers) {
+      web_contents = MaybeOpenApplicationForLaunchTypeMultipleClients(
+          handler, params, profile, *extension);
+      if (web_contents) {
+        return web_contents;
+      }
     }
   }
 
@@ -568,12 +549,13 @@ void OpenApplicationWithReenablePrompt(Profile* profile,
   if (!service->IsExtensionEnabled(extension->id()) ||
       registry->GetExtensionById(extension->id(),
                                  ExtensionRegistry::TERMINATED)) {
-    // Self deleting.
-    auto* flow = new EnableViaDialogFlow(
-        service, registry, profile, extension->id(),
-        base::BindOnce(base::IgnoreResult(OpenEnabledApplication), profile,
-                       std::move(params)));
-    flow->Run();
+    // TODO(pkotwicz): Figure out which window should be used as the parent for
+    // the "enable application" dialog in Athena.
+    (new EnableViaDialogFlow(
+         service, registry, profile, extension->id(),
+         base::BindOnce(base::IgnoreResult(OpenEnabledApplication), profile,
+                        std::move(params))))
+        ->Run();
     return;
   }
 
@@ -587,7 +569,12 @@ WebContents* OpenAppShortcutWindow(Profile* profile, const GURL& url) {
       WindowOpenDisposition::NEW_WINDOW, apps::LaunchSource::kFromCommandLine);
   launch_params.override_url = url;
 
-  return OpenApplicationWindow(profile, launch_params, url);
+  WebContents* tab = OpenApplicationWindow(profile, launch_params, url);
+
+  if (!tab)
+    return nullptr;
+
+  return tab;
 }
 
 bool CanLaunchViaEvent(const extensions::Extension* extension) {
@@ -618,27 +605,23 @@ void LaunchAppWithCallback(
                           container);
 }
 
-#if BUILDFLAG(IS_CHROMEOS_LACROS)
 bool ShowBrowserForProfile(Profile* profile,
                            const apps::AppLaunchParams& params) {
   Browser* browser = chrome::FindTabbedBrowser(
-      profile, /*match_original_profiles=*/false, params.display_id);
+      profile, /*match_original_profiles*/ false, params.display_id);
   if (browser) {
     // For existing browser, ensure its window is shown and activated.
     browser->window()->Show();
     browser->window()->Activate();
-    return true;
-  }
-
-  // No browser for this profile, need to open a new one.
-  if (Browser::GetCreationStatusForProfile(profile) ==
-      Browser::CreationStatus::kOk) {
+  } else {
+    // No browser for this profile, need to open a new one.
+    if (Browser::GetCreationStatusForProfile(profile) !=
+        Browser::CreationStatus::kOk) {
+      return false;
+    }
     browser = Browser::Create(
         Browser::CreateParams(Browser::TYPE_NORMAL, profile, true));
     browser->window()->Show();
-    return true;
   }
-
-  return false;
+  return true;
 }
-#endif

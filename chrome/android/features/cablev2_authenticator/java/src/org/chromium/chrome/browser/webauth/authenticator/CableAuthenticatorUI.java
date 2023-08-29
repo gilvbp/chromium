@@ -7,7 +7,6 @@ package org.chromium.chrome.browser.webauth.authenticator;
 import android.Manifest.permission;
 import android.app.Activity;
 import android.app.KeyguardManager;
-import android.app.PendingIntent;
 import android.bluetooth.BluetoothAdapter;
 import android.content.Context;
 import android.content.Intent;
@@ -18,7 +17,6 @@ import android.hardware.usb.UsbManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.util.Pair;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -35,12 +33,10 @@ import androidx.vectordrawable.graphics.drawable.Animatable2Compat;
 import androidx.vectordrawable.graphics.drawable.AnimatedVectorDrawableCompat;
 
 import org.chromium.base.BuildInfo;
-import org.chromium.base.Callback;
 import org.chromium.base.Log;
 import org.chromium.base.ThreadUtils;
 import org.chromium.base.task.PostTask;
 import org.chromium.base.task.TaskTraits;
-import org.chromium.content_public.browser.WebAuthenticationDelegate;
 import org.chromium.device.DeviceFeatureList;
 import org.chromium.device.DeviceFeatureMap;
 import org.chromium.ui.permissions.ActivityAndroidPermissionDelegate;
@@ -52,17 +48,12 @@ import java.lang.ref.WeakReference;
 /**
  * A fragment that provides a UI for various caBLE v2 actions.
  */
-public class CableAuthenticatorUI
-        extends Fragment implements OnClickListener, WebAuthenticationDelegate.IntentSender {
+public class CableAuthenticatorUI extends Fragment implements OnClickListener {
     private static final String TAG = "CableAuthenticatorUI";
 
     // ENABLE_BLUETOOTH_REQUEST_CODE is a random int used to identify responses
     // to a request to enable Bluetooth. (Request codes can only be 16-bit.)
     private static final int ENABLE_BLUETOOTH_REQUEST_CODE = 64907;
-
-    // PLAY_SERVICES_REQUEST_CODE is a random int used to identify responses
-    // to a request to Play Services. (Request codes can only be 16-bit.)
-    private static final int PLAY_SERVICES_REQUEST_CODE = 13466;
 
     // BLE_SCREEN_DELAY_SECS is the number of seconds that the screen for BLE
     // enabling will show before the request to actually enable BLE (which
@@ -154,9 +145,6 @@ public class CableAuthenticatorUI
     // mActivityStarted is set to true by `onResume`. Some event transitions are suppressed until
     // this flag has been set.
     private boolean mActivityStarted;
-    // mFidoCallback holds the callback from `Fido2CredentialRequest` while a
-    // request to Play Services is outstanding.
-    private Callback<Pair<Integer, Intent>> mFidoCallback;
 
     // These are top-level views that can fill this activity.
     private View mErrorView;
@@ -675,34 +663,17 @@ public class CableAuthenticatorUI
             return;
         }
 
-        if (requestCode == PLAY_SERVICES_REQUEST_CODE) {
-            mFidoCallback.onResult(new Pair(resultCode, data));
-        } else if (requestCode == ENABLE_BLUETOOTH_REQUEST_CODE) {
-            if (resultCode != Activity.RESULT_OK) {
-                getActivity().finish();
-                return;
-            }
-            onEvent(Event.BLE_ENABLED);
-        } else {
+        if (requestCode != ENABLE_BLUETOOTH_REQUEST_CODE) {
             mAuthenticator.onActivityResult(requestCode, resultCode, data);
+            return;
         }
-    }
 
-    @Override
-    public boolean showIntent(PendingIntent intent, Callback<Pair<Integer, Intent>> callback) {
-        mFidoCallback = callback;
-        try {
-            startIntentSenderForResult(intent.getIntentSender(), PLAY_SERVICES_REQUEST_CODE,
-                    null, // fillInIntent,
-                    0, // flagsMask,
-                    0, // flagsValue,
-                    0, // extraFlags,
-                    Bundle.EMPTY);
-        } catch (android.content.IntentSender.SendIntentException e) {
-            Log.e(TAG, "SendIntentException", e);
-            return false;
+        if (resultCode != Activity.RESULT_OK) {
+            getActivity().finish();
+            return;
         }
-        return true;
+
+        onEvent(Event.BLE_ENABLED);
     }
 
     void onAuthenticatorConnected() {}

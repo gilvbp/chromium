@@ -43,7 +43,7 @@ namespace policies {
 class PageFreezingPolicy : public GraphObserver,
                            public GraphOwnedDefaultImpl,
                            public PageNode::ObserverDefaultImpl,
-                           public PageLiveStateObserverDefaultImpl {
+                           public PageLiveStateObserver {
  public:
   PageFreezingPolicy();
   PageFreezingPolicy(const PageFreezingPolicy&) = delete;
@@ -107,7 +107,7 @@ class PageFreezingPolicy : public GraphObserver,
                              PageNode::LoadingState previous_state) override;
   void OnPageLifecycleStateChanged(const PageNode* page_node) override;
 
-  // PageLiveStateObserverDefaultImpl:
+  // PageLiveStateObserver:
   void OnIsConnectedToUSBDeviceChanged(const PageNode* page_node) override;
   void OnIsConnectedToBluetoothDeviceChanged(
       const PageNode* page_node) override;
@@ -116,6 +116,12 @@ class PageFreezingPolicy : public GraphObserver,
   void OnIsBeingMirroredChanged(const PageNode* page_node) override;
   void OnIsCapturingWindowChanged(const PageNode* page_node) override;
   void OnIsCapturingDisplayChanged(const PageNode* page_node) override;
+  void OnIsAutoDiscardableChanged(const PageNode* page_node) override {}
+  void OnWasDiscardedChanged(const PageNode* page_node) override {}
+  void OnIsActiveTabChanged(const PageNode* page_node) override {}
+  void OnIsPinnedTabChanged(const PageNode* page_node) override {}
+  void OnContentSettingsChanged(const PageNode* page_node) override {}
+  void OnIsDevToolsOpenChanged(const PageNode* page_node) override {}
 
   // Helper function that either calls SubmitNegativeVote() or
   // InvalidateNegativeVote() when the value of a property changes.

@@ -8,7 +8,7 @@
 
 #import <memory>
 
-#import "base/apple/foundation_util.h"
+#import "base/mac/foundation_util.h"
 #import "base/metrics/histogram_macros.h"
 #import "base/strings/sys_string_conversions.h"
 #import "ios/chrome/browser/shared/coordinator/layout_guide/layout_guide_util.h"
@@ -23,6 +23,10 @@
 #import "ios/chrome/browser/ui/omnibox/omnibox_text_field_ios.h"
 #import "ios/chrome/browser/ui/toolbar/adaptive_toolbar_coordinator+subclassing.h"
 #import "ios/chrome/browser/ui/toolbar/primary_toolbar_view_controller.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 @interface PrimaryToolbarCoordinator ()
 
@@ -79,15 +83,40 @@
   return self.viewController;
 }
 
+- (id<ViewRevealingAnimatee>)animatee {
+  return self.viewController;
+}
+
 - (id<ToolbarAnimatee>)toolbarAnimatee {
   CHECK(self.viewController);
   return self.viewController;
+}
+
+- (void)setPanGestureHandler:
+    (ViewRevealingVerticalPanHandler*)panGestureHandler {
+  self.viewController.panGestureHandler = panGestureHandler;
+}
+
+- (void)showPrerenderingAnimation {
+  [self.viewController showPrerenderingAnimation];
 }
 
 #pragma mark - ToolbarCommands
 
 - (void)triggerToolbarSlideInAnimation {
   [self.viewController triggerToolbarSlideInAnimationFromBelow:NO];
+}
+
+#pragma mark - Protected override
+
+- (void)updateToolbarForSideSwipeSnapshot:(web::WebState*)webState {
+  [super updateToolbarForSideSwipeSnapshot:webState];
+  [self.delegate updateToolbarForSideSwipeSnapshot:webState];
+}
+
+- (void)resetToolbarAfterSideSwipeSnapshot {
+  [super resetToolbarAfterSideSwipeSnapshot];
+  [self.delegate resetToolbarAfterSideSwipeSnapshot];
 }
 
 @end

@@ -23,7 +23,8 @@
 
 class GURL;
 
-namespace device::cablev2 {
+namespace device {
+namespace cablev2 {
 
 namespace tunnelserver {
 
@@ -53,7 +54,7 @@ GURL GetConnectURL(KnownDomainID domain,
 // The |tunnel_server| is assumed to be a valid domain name and should have been
 // taken from a previous call to |DecodeDomain|.
 COMPONENT_EXPORT(DEVICE_FIDO)
-GURL GetContactURL(KnownDomainID tunnel_server,
+GURL GetContactURL(const std::string& tunnel_server,
                    base::span<const uint8_t> contact_id);
 
 }  // namespace tunnelserver
@@ -207,11 +208,6 @@ std::array<uint8_t, N> Derive(base::span<const uint8_t> secret,
 COMPONENT_EXPORT(DEVICE_FIDO)
 bssl::UniquePtr<EC_KEY> IdentityKey(base::span<const uint8_t, 32> root_secret);
 
-// IdentityKey returns a P-256 private key derived from |seed|.
-COMPONENT_EXPORT(DEVICE_FIDO)
-bssl::UniquePtr<EC_KEY> ECKeyFromSeed(
-    base::span<const uint8_t, kQRSeedSize> seed);
-
 // EncodePaddedCBORMap encodes the given map and pads it to
 // |kPostHandshakeMsgPaddingGranularity| bytes in such a way that
 // |DecodePaddedCBORMap| can decode it. The padding is done on the assumption
@@ -283,8 +279,8 @@ class COMPONENT_EXPORT(DEVICE_FIDO) HandshakeInitiator {
  public:
   HandshakeInitiator(
       // psk is derived from the connection nonce and either QR-code secrets
-      // pairing secrets. nullopt for enclave handshakes.
-      absl::optional<base::span<const uint8_t, 32>> psk,
+      // pairing secrets.
+      base::span<const uint8_t, 32> psk,
       // peer_identity, if not nullopt, specifies that this is a paired
       // handshake and then contains a P-256 public key for the peer. Otherwise
       // this is a QR handshake.
@@ -307,7 +303,7 @@ class COMPONENT_EXPORT(DEVICE_FIDO) HandshakeInitiator {
 
  private:
   Noise noise_;
-  absl::optional<std::array<uint8_t, 32>> psk_;
+  std::array<uint8_t, 32> psk_;
 
   absl::optional<std::array<uint8_t, kP256X962Length>> peer_identity_;
   bssl::UniquePtr<EC_KEY> local_identity_;
@@ -320,7 +316,7 @@ COMPONENT_EXPORT(DEVICE_FIDO)
 HandshakeResult RespondToHandshake(
     // psk is derived from the connection nonce and either QR-code secrets or
     // pairing secrets.
-    absl::optional<base::span<const uint8_t, 32>> psk,
+    base::span<const uint8_t, 32> psk,
     // identity, if not nullptr, specifies that this is a paired handshake and
     // contains the phone's private key.
     bssl::UniquePtr<EC_KEY> identity,
@@ -353,6 +349,7 @@ std::vector<uint8_t> CalculatePairingSignature(
     base::span<const uint8_t, std::tuple_size<HandshakeHash>::value>
         handshake_hash);
 
-}  // namespace device::cablev2
+}  // namespace cablev2
+}  // namespace device
 
 #endif  // DEVICE_FIDO_CABLE_V2_HANDSHAKE_H_

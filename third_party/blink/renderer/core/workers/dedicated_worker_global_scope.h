@@ -90,7 +90,7 @@ class CORE_EXPORT DedicatedWorkerGlobalScope final : public WorkerGlobalScope {
   bool IsDedicatedWorkerGlobalScope() const override { return true; }
 
   // Implements EventTarget
-  // (via WorkerOrWorkletGlobalScope -> EventTarget).
+  // (via WorkerOrWorkletGlobalScope -> EventTargetWithInlineData).
   const AtomicString& InterfaceName() const override;
 
   // RequestAnimationFrame

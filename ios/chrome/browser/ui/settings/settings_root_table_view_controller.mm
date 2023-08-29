@@ -4,7 +4,7 @@
 
 #import "ios/chrome/browser/ui/settings/settings_root_table_view_controller.h"
 
-#import "base/apple/foundation_util.h"
+#import "base/mac/foundation_util.h"
 #import "base/notreached.h"
 #import "ios/chrome/browser/net/crurl.h"
 #import "ios/chrome/browser/shared/public/commands/application_commands.h"
@@ -20,6 +20,10 @@
 #import "ios/chrome/grit/ios_strings.h"
 #import "ui/base/device_form_factor.h"
 #import "ui/base/l10n/l10n_util.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace {
 // Height of the space used by header/footer when none is set. Default is
@@ -187,14 +191,8 @@ const CGFloat kActivityIndicatorDimensionIPhone = 56;
   // can leave the new top view controller with a toolbar when it doesn't
   // require one. Disabling editing mode to avoid this. See crbug.com/1404111 as
   // an example.
-  if (parent == nullptr) {
-    if ([self respondsToSelector:@selector(settingsWillBeDismissed)]) {
-      [self performSelector:@selector(settingsWillBeDismissed)];
-    }
-
-    if (self.isEditing) {
-      [self setEditing:NO animated:NO];
-    }
+  if (parent == nullptr && self.isEditing) {
+    [self setEditing:NO animated:NO];
   }
 
   [self.navigationController setToolbarHidden:YES animated:YES];
@@ -267,7 +265,7 @@ const CGFloat kActivityIndicatorDimensionIPhone = 56;
     return nil;
   }
   SettingsNavigationController* navigationController =
-      base::apple::ObjCCast<SettingsNavigationController>(
+      base::mac::ObjCCast<SettingsNavigationController>(
           self.navigationController);
   UIBarButtonItem* doneButton = [navigationController doneButton];
   if (_shouldDisableDoneButtonOnEdit) {
@@ -407,13 +405,12 @@ const CGFloat kActivityIndicatorDimensionIPhone = 56;
   // Removes the veil that prevents user interaction.
   DCHECK(self.veil);
   [UIView animateWithDuration:0.3
-                   animations:^{
-                     [self.veil removeFromSuperview];
-                   }
-                   completion:nil];
-  // Need to remove `self.veil` to be able immediately, so
-  // `preventUserInteraction` can be called in less than 0.3s after.
-  self.veil = nil;
+      animations:^{
+        [self.veil removeFromSuperview];
+      }
+      completion:^(BOOL finished) {
+        self.veil = nil;
+      }];
 
   DCHECK(self.savedBarButtonItem);
   switch (self.savedBarButtonItemPosition) {

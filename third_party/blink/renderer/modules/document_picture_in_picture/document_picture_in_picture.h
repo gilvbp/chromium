@@ -21,7 +21,7 @@ class ScriptPromise;
 class ScriptState;
 
 class MODULES_EXPORT DocumentPictureInPicture
-    : public EventTarget,
+    : public EventTargetWithInlineData,
       public Supplement<LocalDOMWindow> {
   DEFINE_WRAPPERTYPEINFO();
 

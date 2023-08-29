@@ -74,7 +74,6 @@ class MODULES_EXPORT AXNodeObject : public AXObject {
   ax::mojom::blink::Role DetermineTableSectionRole() const;
   ax::mojom::blink::Role DetermineTableCellRole() const;
   ax::mojom::blink::Role DetermineTableRowRole() const;
-  bool IsDataTable() const override;
   ax::mojom::blink::Role DetermineAccessibilityRole() override;
   ax::mojom::blink::Role NativeRoleIgnoringAria() const override;
   void AlterSliderOrSpinButtonValue(bool increase);
@@ -269,16 +268,9 @@ class MODULES_EXPORT AXNodeObject : public AXObject {
   void HandleAriaExpandedChanged() override;
   void HandleActiveDescendantChanged() override;
 
-  // Gets a list of nodes that form an error message for this node, if it
-  // exists. Error messages from ARIA will always override native error
-  // messages.
-  AXObjectVector ErrorMessage() const override;
-  // Gets a list of nodes specified by `aria-errormessage` that form an error
-  // message for this node, if any exist.
-  AXObjectVector ErrorMessageFromAria() const override;
-  // Gets a list of nodes created from HTML validation that form an error
-  // message for this node, if any exist.
-  AXObjectVector ErrorMessageFromHTML() const override;
+  // The aria-errormessage object or native object from a validationMessage
+  // alert.
+  AXObject* ErrorMessage() const override;
 
   // Position in set and Size of set
   int PosInSet() const override;
@@ -342,7 +334,9 @@ class MODULES_EXPORT AXNodeObject : public AXObject {
   void AddNodeChildren();
   void AddPseudoElementChildrenFromLayoutTree();
   bool CanAddLayoutChild(LayoutObject& child);
-  void AddInlineTextBoxChildren();
+  // Add inline textbox children, if either force == true or
+  // AXObjectCache().InlineTextBoxAccessibilityEnabled().
+  void AddInlineTextBoxChildren(bool force = false);
   void AddImageMapChildren();
   void AddPopupChildren();
   bool HasValidHTMLTableStructureAndLayout() const;
@@ -359,10 +353,6 @@ class MODULES_EXPORT AXNodeObject : public AXObject {
 
   static bool IsNameFromLabelElement(HTMLElement* control);
   static bool IsRedundantLabel(HTMLLabelElement* label);
-
-#if BUILDFLAG(IS_ANDROID)
-  bool always_load_inline_text_boxes_ = false;
-#endif
 
   Member<Node> node_;
 };

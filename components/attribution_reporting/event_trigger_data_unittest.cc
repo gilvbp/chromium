@@ -6,7 +6,6 @@
 
 #include "base/functional/function_ref.h"
 #include "base/test/values_test_util.h"
-#include "base/time/time.h"
 #include "base/types/expected.h"
 #include "base/values.h"
 #include "components/attribution_reporting/filters.h"
@@ -92,10 +91,9 @@ TEST(EventTriggerDataTest, FromJSON) {
       },
       {
           "filters_valid",
-          R"json({"filters":{"a":["b"], "_lookback_window": 1}})json",
+          R"json({"filters":{"a":["b"]}})json",
           EventTriggerDataWith([](EventTriggerData& data) {
-            data.filters.positive = {*FilterConfig::Create(
-                {{"a", {"b"}}}, /*lookback_window=*/base::Seconds(1))};
+            data.filters.positive = FiltersDisjunction({{{"a", {"b"}}}});
           }),
       },
       {
@@ -105,10 +103,9 @@ TEST(EventTriggerDataTest, FromJSON) {
       },
       {
           "not_filters_valid",
-          R"json({"not_filters":{"a":["b"], "_lookback_window": 1}})json",
+          R"json({"not_filters":{"a":["b"]}})json",
           EventTriggerDataWith([](EventTriggerData& data) {
-            data.filters.negative = {*FilterConfig::Create(
-                {{{"a", {"b"}}}}, /*lookback_window=*/base::Seconds(1))};
+            data.filters.negative = FiltersDisjunction({{{"a", {"b"}}}});
           }),
       },
       {
@@ -142,15 +139,13 @@ TEST(EventTriggerDataTest, ToJson) {
               /*data=*/1,
               /*priority=*/-2,
               /*dedup_key=*/3,
-              FilterPair(
-                  /*positive=*/{*FilterConfig::Create(
-                      {{"a", {}}}, /*lookback_window=*/base::Seconds(2))},
-                  /*negative=*/{*FilterConfig::Create({{"b", {}}})})),
+              FilterPair(/*positive=*/{{{"a", {}}}},
+                         /*negative=*/{{{"b", {}}}})),
           R"json({
             "trigger_data": "1",
             "priority": "-2",
             "deduplication_key": "3",
-            "filters": [{"a": [], "_lookback_window": 2 }],
+            "filters": [{"a": []}],
             "not_filters": [{"b": []}]
           })json",
       },

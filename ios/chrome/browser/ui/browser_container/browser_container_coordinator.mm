@@ -37,6 +37,10 @@
 #import "ios/chrome/browser/ui/screen_time/screen_time_coordinator.h"
 #endif
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 @interface BrowserContainerCoordinator () <EditMenuAlertDelegate>
 // Whether the coordinator is started.
 @property(nonatomic, assign, getter=isStarted) BOOL started;
@@ -114,7 +118,8 @@
         self.partialTranslateMediator;
   }
 
-  if (IsSearchWithEnabled()) {
+  if (IsSearchWithEnabled() &&
+      base::FeatureList::IsEnabled(kIOSCustomBrowserEditMenu)) {
     TemplateURLService* templateURLService =
         ios::TemplateURLServiceFactory::GetForBrowserState(browserState);
     self.searchWithMediator =
@@ -128,6 +133,7 @@
     self.browserEditMenuHandler.searchWithDelegate = self.searchWithMediator;
   }
 
+  self.browserEditMenuHandler.rootView = self.viewController.view;
   [self.webContentAreaOverlayContainerCoordinator start];
   self.viewController.webContentsOverlayContainerViewController =
       self.webContentAreaOverlayContainerCoordinator.viewController;
@@ -147,7 +153,6 @@
 - (void)stop {
   if (!self.started)
     return;
-  [self dismissAlertCoordinator];
   self.started = NO;
   [self.webContentAreaOverlayContainerCoordinator stop];
   [self.screenTimeCoordinator stop];
@@ -171,13 +176,9 @@
                                                    browser:self.browser
                                                      title:title
                                                    message:message];
-  __weak BrowserContainerCoordinator* weakSelf = self;
   for (EditMenuAlertDelegateAction* action in actions) {
     [self.alertCoordinator addItemWithTitle:action.title
-                                     action:^{
-                                       action.action();
-                                       [weakSelf dismissAlertCoordinator];
-                                     }
+                                     action:action.action
                                       style:action.style
                                   preferred:action.preferred
                                     enabled:YES];
@@ -203,11 +204,6 @@
   self.screenTimeCoordinator = screenTimeCoordinator;
 
 #endif
-}
-
-- (void)dismissAlertCoordinator {
-  [self.alertCoordinator stop];
-  self.alertCoordinator = nil;
 }
 
 @end

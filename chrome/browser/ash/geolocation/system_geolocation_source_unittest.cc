@@ -11,8 +11,8 @@
 #include "ash/session/session_controller_impl.h"
 #include "ash/shell.h"
 #include "ash/test/ash_test_base.h"
+#include "base/test/repeating_test_future.h"
 #include "base/test/scoped_feature_list.h"
-#include "base/test/test_future.h"
 #include "chrome/browser/ash/geolocation/system_geolocation_source.h"
 #include "components/prefs/pref_service.h"
 
@@ -21,7 +21,9 @@ namespace ash {
 class SystemGeolocationSourceTests : public AshTestBase {
  protected:
   SystemGeolocationSourceTests()
-      : AshTestBase(base::test::TaskEnvironment::TimeSource::MOCK_TIME) {}
+      : AshTestBase(base::test::TaskEnvironment::TimeSource::MOCK_TIME) {
+    scoped_feature_list_.InitAndEnableFeature(ash::features::kCrosPrivacyHub);
+  }
 
   // AshTestBase:
   void SetUp() override { AshTestBase::SetUp(); }
@@ -35,12 +37,11 @@ class SystemGeolocationSourceTests : public AshTestBase {
 };
 
 TEST_F(SystemGeolocationSourceTests, PermissionUpdate) {
-  scoped_feature_list_.InitAndEnableFeature(ash::features::kCrosPrivacyHub);
-
   SystemGeolocationSource source;
-  base::test::TestFuture<device::LocationSystemPermissionStatus> status;
+  base::test::RepeatingTestFuture<device::LocationSystemPermissionStatus>
+      status;
 
-  source.RegisterPermissionUpdateCallback(status.GetRepeatingCallback());
+  source.RegisterPermissionUpdateCallback(status.GetCallback());
 
   // Initial value should be to allow.
   EXPECT_EQ(device::LocationSystemPermissionStatus::kAllowed, status.Take());
@@ -49,31 +50,8 @@ TEST_F(SystemGeolocationSourceTests, PermissionUpdate) {
   SetUserPref(false);
   EXPECT_EQ(device::LocationSystemPermissionStatus::kDenied, status.Take());
 
-  // Change user settings to allow and check that the callback is called.
-  SetUserPref(true);
-  EXPECT_EQ(device::LocationSystemPermissionStatus::kAllowed, status.Take());
-}
-
-TEST_F(SystemGeolocationSourceTests, DisabledInV0) {
-  // Disables the geolocation part of the PrivacyHub
-  scoped_feature_list_.InitWithFeatures({ash::features::kCrosPrivacyHubV0},
-                                        {ash::features::kCrosPrivacyHub});
-
-  SystemGeolocationSource source;
-  base::test::TestFuture<device::LocationSystemPermissionStatus> status;
-
-  source.RegisterPermissionUpdateCallback(status.GetRepeatingCallback());
-
-  // The value should always be kAllowed.
-  EXPECT_EQ(device::LocationSystemPermissionStatus::kAllowed, status.Take());
-
-  // Change user settings to deny and check that the sent value is still
-  // kAllowed.
-  SetUserPref(false);
-  EXPECT_EQ(device::LocationSystemPermissionStatus::kAllowed, status.Take());
-
-  // Change user settings to deny and check that the sent value is still
-  // kAllowed.
+  // Change user settings back to allowedy and check that the callback is
+  // called.
   SetUserPref(true);
   EXPECT_EQ(device::LocationSystemPermissionStatus::kAllowed, status.Take());
 }

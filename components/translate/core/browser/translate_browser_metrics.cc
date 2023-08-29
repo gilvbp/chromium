@@ -15,6 +15,7 @@ namespace {
 
 // Constant string values to indicate UMA names. All entries should have
 // a corresponding index in MetricsNameIndex and an entry in |kMetricsEntries|.
+const char kTranslateInitiationStatus[] = "Translate.InitiationStatus.v2";
 const char kTranslateLanguageDetectionContentLength[] =
     "Translate.LanguageDetection.ContentLength";
 const char kTranslateUnsupportedLanguageAtInitiation[] =
@@ -26,6 +27,11 @@ const char kTranslateMenuTranslationUnavailableReasons[] =
 }  // namespace
 
 namespace TranslateBrowserMetrics {
+
+void ReportInitiationStatus(InitiationStatusType type) {
+  UMA_HISTOGRAM_ENUMERATION(kTranslateInitiationStatus, type,
+                            INITIATION_STATUS_MAX);
+}
 
 void ReportMenuTranslationUnavailableReason(
     MenuTranslationUnavailableReason reason) {

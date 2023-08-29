@@ -12,7 +12,6 @@
 
 namespace gpu {
 struct ContextCreationAttribs;
-class GpuDriverBugWorkarounds;
 
 namespace gles2 {
 class ContextGroup;
@@ -39,8 +38,7 @@ ParseGpuPreferences(const base::CommandLine* command_line);
 // rasterization (if enabled) by checking the feature flags for Vulkan and/or
 // Graphite. If they are not enabled, default to GL.
 // If Graphite is enabled, the backend is Dawn by default or cn be specified
-// using the --skia-graphite-backend flag. On iOS, the backend is Metal by
-// default if skia_use_metal is set to true via gn args.
+// using the --skia-graphite-backend flag.
 GPU_GLES2_EXPORT GrContextType
 ParseGrContextType(const base::CommandLine* command_line);
 
@@ -55,8 +53,6 @@ ParseWebGPUAdapterName(const base::CommandLine* command_line);
 
 GPU_GLES2_EXPORT WebGPUPowerPreference
 ParseWebGPUPowerPreference(const base::CommandLine* command_line);
-
-bool MSAAIsSlow(const GpuDriverBugWorkarounds& workarounds);
 
 }  // namespace gles2
 }  // namespace gpu

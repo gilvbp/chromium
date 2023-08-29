@@ -48,11 +48,9 @@ void TextControlElementTest::SetUp() {
   document_->documentElement()->setInnerHTML(
       "<body><textarea id=textarea></textarea><input id=input /></body>");
   UpdateAllLifecyclePhases();
-  text_control_ =
-      ToTextControl(document_->getElementById(AtomicString("textarea")));
+  text_control_ = ToTextControl(document_->getElementById("textarea"));
   text_control_->Focus();
-  input_ =
-      To<HTMLInputElement>(document_->getElementById(AtomicString("input")));
+  input_ = To<HTMLInputElement>(document_->getElementById("input"));
 }
 
 TEST_F(TextControlElementTest, SetSelectionRange) {
@@ -91,8 +89,8 @@ TEST_F(TextControlElementTest, IndexForPosition) {
 }
 
 TEST_F(TextControlElementTest, ReadOnlyAttributeChangeEditability) {
-  Input().setAttribute(html_names::kStyleAttr, AtomicString("all:initial"));
-  Input().setAttribute(html_names::kReadonlyAttr, g_empty_atom);
+  Input().setAttribute(html_names::kStyleAttr, "all:initial");
+  Input().setAttribute(html_names::kReadonlyAttr, "");
   UpdateAllLifecyclePhases();
   EXPECT_EQ(EUserModify::kReadOnly,
             Input().InnerEditorElement()->GetComputedStyle()->UsedUserModify());
@@ -104,8 +102,8 @@ TEST_F(TextControlElementTest, ReadOnlyAttributeChangeEditability) {
 }
 
 TEST_F(TextControlElementTest, DisabledAttributeChangeEditability) {
-  Input().setAttribute(html_names::kStyleAttr, AtomicString("all:initial"));
-  Input().setAttribute(html_names::kDisabledAttr, g_empty_atom);
+  Input().setAttribute(html_names::kStyleAttr, "all:initial");
+  Input().setAttribute(html_names::kDisabledAttr, "");
   UpdateAllLifecyclePhases();
   EXPECT_EQ(EUserModify::kReadOnly,
             Input().InnerEditorElement()->GetComputedStyle()->UsedUserModify());

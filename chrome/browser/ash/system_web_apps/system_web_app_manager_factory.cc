@@ -48,14 +48,12 @@ SystemWebAppManagerFactory::SystemWebAppManagerFactory()
 
 SystemWebAppManagerFactory::~SystemWebAppManagerFactory() = default;
 
-std::unique_ptr<KeyedService>
-SystemWebAppManagerFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* SystemWebAppManagerFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   Profile* profile = Profile::FromBrowserContext(context);
   DCHECK(web_app::WebAppProviderFactory::IsServiceCreatedForProfile(profile));
 
-  std::unique_ptr<SystemWebAppManager> swa_manager =
-      std::make_unique<SystemWebAppManager>(profile);
+  SystemWebAppManager* swa_manager = new SystemWebAppManager(profile);
   swa_manager->ScheduleStart();
 
   return swa_manager;

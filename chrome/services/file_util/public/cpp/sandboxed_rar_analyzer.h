@@ -33,7 +33,6 @@ class SandboxedRarAnalyzer {
   // deleter.
   static std::unique_ptr<SandboxedRarAnalyzer, base::OnTaskRunnerDeleter>
   CreateAnalyzer(const base::FilePath& rar_file_path,
-                 const std::string& password,
                  ResultCallback callback,
                  mojo::PendingRemote<chrome::mojom::FileUtilService> service);
 
@@ -51,7 +50,6 @@ class SandboxedRarAnalyzer {
  private:
   SandboxedRarAnalyzer(
       const base::FilePath& rar_file_path,
-      const std::string& password,
       ResultCallback callback,
       mojo::PendingRemote<chrome::mojom::FileUtilService> service);
 
@@ -70,9 +68,6 @@ class SandboxedRarAnalyzer {
 
   // The file path of the file to analyze.
   const base::FilePath file_path_;
-
-  // The password to use for encrypted entries.
-  const std::string password_;
 
   // Callback invoked on the UI thread with the file analyze results.
   ResultCallback callback_;

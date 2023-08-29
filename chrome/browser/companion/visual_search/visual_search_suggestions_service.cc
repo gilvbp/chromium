@@ -80,26 +80,12 @@ VisualSearchSuggestionsService::~VisualSearchSuggestionsService() {
 }
 
 void VisualSearchSuggestionsService::Shutdown() {
-  UnloadModelFile();
-}
-
-void VisualSearchSuggestionsService::UnloadModelFile() {
   if (model_file_) {
     // If the model file is already loaded, it should be closed on a
     // background thread.
     background_task_runner_->PostTask(
         FROM_HERE, base::BindOnce(&CloseModelFile, std::move(*model_file_)));
-    model_file_ = absl::nullopt;
   }
-}
-
-void VisualSearchSuggestionsService::NotifyModelUpdatesAndClear() {
-  for (auto& callback : model_callbacks_) {
-    std::move(callback).Run(
-        model_file_ ? model_file_->Duplicate() : base::File(),
-        GetModelSpec(model_metadata_));
-  }
-  model_callbacks_.clear();
 }
 
 void VisualSearchSuggestionsService::OnModelFileLoaded(base::File model_file) {
@@ -107,27 +93,31 @@ void VisualSearchSuggestionsService::OnModelFileLoaded(base::File model_file) {
     return;
   }
 
-  UnloadModelFile();
+  if (model_file_) {
+    // If the model file is already loaded, it should be closed on a
+    // background thread.
+    background_task_runner_->PostTask(
+        FROM_HERE, base::BindOnce(&CloseModelFile, std::move(*model_file_)));
+  }
   model_file_ = std::move(model_file);
-  NotifyModelUpdatesAndClear();
+  for (auto& callback : model_callbacks_) {
+    std::move(callback).Run(model_file_->Duplicate(),
+                            GetModelSpec(model_metadata_));
+  }
+  model_callbacks_.clear();
 }
 
 void VisualSearchSuggestionsService::OnModelUpdated(
     optimization_guide::proto::OptimizationTarget optimization_target,
-    base::optional_ref<const optimization_guide::ModelInfo> model_info) {
+    const optimization_guide::ModelInfo& model_info) {
   if (optimization_target !=
       optimization_guide::proto::
           OPTIMIZATION_TARGET_VISUAL_SEARCH_CLASSIFICATION) {
     return;
   }
-  if (!model_info.has_value()) {
-    UnloadModelFile();
-    NotifyModelUpdatesAndClear();
-    return;
-  }
 
   const absl::optional<optimization_guide::proto::Any>& metadata =
-      model_info->GetModelMetadata();
+      model_info.GetModelMetadata();
 
   if (metadata.has_value()) {
     model_metadata_ = optimization_guide::ParsedAnyMetadata<
@@ -135,7 +125,7 @@ void VisualSearchSuggestionsService::OnModelUpdated(
   }
 
   background_task_runner_->PostTaskAndReplyWithResult(
-      FROM_HERE, base::BindOnce(&LoadModelFile, model_info->GetModelFilePath()),
+      FROM_HERE, base::BindOnce(&LoadModelFile, model_info.GetModelFilePath()),
       base::BindOnce(&VisualSearchSuggestionsService::OnModelFileLoaded,
                      weak_ptr_factory_.GetWeakPtr()));
 }

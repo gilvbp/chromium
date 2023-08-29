@@ -4,8 +4,12 @@
 
 #import "ios/chrome/browser/signin/fake_system_identity.h"
 
-#import "base/apple/foundation_util.h"
+#import "base/mac/foundation_util.h"
 #import "base/strings/sys_string_conversions.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace {
 NSString* const kCoderUserEmailKey = @"UserEmail";
@@ -126,7 +130,7 @@ NSString* const kCoderHashedGaiaIDKey = @"HashedGaiaID";
     return YES;
   }
 
-  FakeSystemIdentity* other = base::apple::ObjCCast<FakeSystemIdentity>(object);
+  FakeSystemIdentity* other = base::mac::ObjCCast<FakeSystemIdentity>(object);
   if (!other) {
     return NO;
   }

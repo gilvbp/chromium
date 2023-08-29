@@ -8,7 +8,6 @@
 #include "third_party/blink/renderer/core/css/css_length_resolver.h"
 #include "third_party/blink/renderer/core/css/css_value_pool.h"
 #include "third_party/blink/renderer/platform/runtime_enabled_features.h"
-#include "third_party/blink/renderer/platform/wtf/math_extras.h"
 #include "third_party/blink/renderer/platform/wtf/size_assertions.h"
 #include "third_party/blink/renderer/platform/wtf/text/string_builder.h"
 
@@ -127,11 +126,6 @@ double CSSNumericLiteralValue::ComputeLengthPx(
   return length_resolver.ZoomedComputedPixels(num_, GetType());
 }
 
-int CSSNumericLiteralValue::ComputeInteger() const {
-  DCHECK(IsNumber());
-  return ClampTo<int>(num_);
-}
-
 bool CSSNumericLiteralValue::AccumulateLengthArray(CSSLengthArray& length_array,
                                                    double multiplier) const {
   LengthUnitType length_type;
@@ -218,8 +212,6 @@ String CSSNumericLiteralValue::CustomCSSText() const {
     case UnitType::kRics:
     case UnitType::kChs:
     case UnitType::kIcs:
-    case UnitType::kCaps:
-    case UnitType::kRcaps:
     case UnitType::kLhs:
     case UnitType::kRlhs:
     case UnitType::kPixels:

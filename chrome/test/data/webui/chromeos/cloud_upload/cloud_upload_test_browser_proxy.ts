@@ -7,13 +7,13 @@ import {CloudUploadBrowserProxy} from 'chrome://cloud-upload/cloud_upload_browse
 import {TestMock} from 'chrome://webui-test/test_mock.js';
 
 export interface ProxyOptions {
-  fileNames: string[];
+  fileName?: string|null;
   officeWebAppInstalled: boolean;
   installOfficeWebAppResult: boolean;
   odfsMounted: boolean;
   dialogPage: DialogPage;
   localTasks?: DialogTask[]|null;
-  setOfficeAsDefaultHandler?: boolean|null;
+  firstTimeSetup?: boolean|null;
   alwaysMoveOfficeFilesToDrive?: boolean|null;
   alwaysMoveOfficeFilesToOneDrive?: boolean|null;
   officeMoveConfirmationShownForDrive?: boolean|null;
@@ -31,17 +31,20 @@ export class CloudUploadTestBrowserProxy implements CloudUploadBrowserProxy {
   constructor(options: ProxyOptions) {
     this.handler = TestMock.fromClass(PageHandlerRemote);
     const args: DialogArgs = {
-      fileNames: options.fileNames,
+      fileNames: [],
       dialogPage: options.dialogPage,
       localTasks: [],
-      setOfficeAsDefaultHandler: true,
+      firstTimeSetup: true,
       operationType: options.operationType,
     };
+    if (options.fileName != null) {
+      args.fileNames.push(options.fileName);
+    }
     if (options.localTasks != null) {
       args.localTasks = options.localTasks;
     }
-    if (options.setOfficeAsDefaultHandler != null) {
-      args.setOfficeAsDefaultHandler = options.setOfficeAsDefaultHandler;
+    if (options.firstTimeSetup != null) {
+      args.firstTimeSetup = options.firstTimeSetup;
     }
     this.handler.setResultFor('getDialogArgs', {args: args});
     this.handler.setResultFor(

@@ -5,11 +5,8 @@
 #include "components/signin/public/base/test_signin_client.h"
 
 #include <memory>
-#include <vector>
 
 #include "base/check.h"
-#include "base/functional/callback.h"
-#include "components/version_info/channel.h"
 #include "google_apis/gaia/gaia_auth_util.h"
 #include "services/network/public/cpp/shared_url_loader_factory.h"
 #include "services/network/test/test_cookie_manager.h"
@@ -20,42 +17,13 @@
 #include "third_party/abseil-cpp/absl/types/optional.h"
 #endif
 
-TestWaitForNetworkCallbackHelper::TestWaitForNetworkCallbackHelper() = default;
-TestWaitForNetworkCallbackHelper::~TestWaitForNetworkCallbackHelper() = default;
-
-void TestWaitForNetworkCallbackHelper::SetNetworkCallsDelayed(bool delayed) {
-  network_calls_delayed_ = delayed;
-
-  if (!network_calls_delayed_) {
-    std::vector<base::OnceClosure> callbacks;
-    delayed_network_calls_.swap(callbacks);
-    for (base::OnceClosure& callback : callbacks) {
-      std::move(callback).Run();
-    }
-  }
-}
-
-bool TestWaitForNetworkCallbackHelper::AreNetworkCallsDelayed() {
-  return network_calls_delayed_;
-}
-
-void TestWaitForNetworkCallbackHelper::DelayNetworkCall(
-    base::OnceClosure callback) {
-  if (AreNetworkCallsDelayed()) {
-    delayed_network_calls_.push_back(std::move(callback));
-  } else {
-    std::move(callback).Run();
-  }
-}
-
 TestSigninClient::TestSigninClient(
     PrefService* pref_service,
     network::TestURLLoaderFactory* test_url_loader_factory)
-    : test_wait_for_network_callback_helper_(
-          std::make_unique<TestWaitForNetworkCallbackHelper>()),
-      test_url_loader_factory_(test_url_loader_factory),
+    : test_url_loader_factory_(test_url_loader_factory),
       pref_service_(pref_service),
-      are_signin_cookies_allowed_(true) {}
+      are_signin_cookies_allowed_(true),
+      network_calls_delayed_(false) {}
 
 TestSigninClient::~TestSigninClient() {}
 
@@ -95,8 +63,14 @@ void TestSigninClient::OverrideTestUrlLoaderFactory(
   test_url_loader_factory_ = factory;
 }
 
-void TestSigninClient::SetNetworkCallsDelayed(bool delayed) {
-  test_wait_for_network_callback_helper_->SetNetworkCallsDelayed(delayed);
+void TestSigninClient::SetNetworkCallsDelayed(bool value) {
+  network_calls_delayed_ = value;
+
+  if (!network_calls_delayed_) {
+    for (base::OnceClosure& call : delayed_network_calls_)
+      std::move(call).Run();
+    delayed_network_calls_.clear();
+  }
 }
 
 bool TestSigninClient::AreSigninCookiesAllowed() {
@@ -114,11 +88,15 @@ void TestSigninClient::RemoveContentSettingsObserver(
     content_settings::Observer* observer) {}
 
 bool TestSigninClient::AreNetworkCallsDelayed() {
-  return test_wait_for_network_callback_helper_->AreNetworkCallsDelayed();
+  return network_calls_delayed_;
 }
 
 void TestSigninClient::DelayNetworkCall(base::OnceClosure callback) {
-  test_wait_for_network_callback_helper_->DelayNetworkCall(std::move(callback));
+  if (AreNetworkCallsDelayed()) {
+    delayed_network_calls_.push_back(std::move(callback));
+  } else {
+    std::move(callback).Run();
+  }
 }
 
 std::unique_ptr<GaiaAuthFetcher> TestSigninClient::CreateGaiaAuthFetcher(
@@ -126,10 +104,6 @@ std::unique_ptr<GaiaAuthFetcher> TestSigninClient::CreateGaiaAuthFetcher(
     gaia::GaiaSource source) {
   return std::make_unique<GaiaAuthFetcher>(consumer, source,
                                            GetURLLoaderFactory());
-}
-
-version_info::Channel TestSigninClient::GetClientChannel() {
-  return version_info::Channel::UNKNOWN;
 }
 
 #if BUILDFLAG(IS_CHROMEOS_LACROS)

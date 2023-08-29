@@ -251,9 +251,17 @@ class FetchDataLoaderForWasmStreaming final : public FetchDataLoader,
           return;
         }
         case BytesConsumer::Result::kError:
-          DCHECK_EQ(BytesConsumer::PublicState::kErrored,
-                    consumer_->GetPublicState());
-          AbortCompilation("Network error: " + consumer_->GetError().Message());
+          switch (consumer_->GetPublicState()) {
+            case BytesConsumer::PublicState::kClosed:
+              AbortCompilation("Download cancelled");
+              break;
+            case BytesConsumer::PublicState::kErrored:
+              AbortCompilation("Network error: " +
+                               consumer_->GetError().Message());
+              break;
+            default:
+              NOTREACHED();
+          }
           break;
       }
     }

@@ -20,7 +20,7 @@ class FfxEmulatorTest(unittest.TestCase):
             FfxEmulator(
                 argparse.Namespace(
                     **{
-                        'product': None,
+                        'product_bundle': None,
                         'enable_graphics': False,
                         'hardware_gpu': False,
                         'logs_dir': '.',
@@ -36,7 +36,7 @@ class FfxEmulatorTest(unittest.TestCase):
             FfxEmulator(
                 argparse.Namespace(
                     **{
-                        'product': None,
+                        'product_bundle': None,
                         'enable_graphics': False,
                         'hardware_gpu': False,
                         'logs_dir': '.',

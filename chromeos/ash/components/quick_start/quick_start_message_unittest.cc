@@ -11,10 +11,6 @@
 
 using QuickStartMessage = ash::quick_start::QuickStartMessage;
 
-using QuickStartMessagePtr = std::unique_ptr<QuickStartMessage>;
-
-using ReadResult = QuickStartMessage::ReadResult;
-
 class QuickStartMessageTest : public testing::Test {
  public:
   QuickStartMessageTest() = default;
@@ -38,12 +34,13 @@ TEST_F(QuickStartMessageTest, ReadMessageSucceedsForNonBase64Message) {
   ASSERT_TRUE(base::JSONWriter::Write(message, &json_message));
   std::vector<uint8_t> data(json_message.begin(), json_message.end());
 
-  ReadResult result = ash::quick_start::QuickStartMessage::ReadMessage(
-      data, ash::quick_start::QuickStartMessageType::kBootstrapConfigurations);
+  std::unique_ptr<QuickStartMessage> result =
+      ash::quick_start::QuickStartMessage::ReadMessage(
+          data,
+          ash::quick_start::QuickStartMessageType::kBootstrapConfigurations);
 
-  ASSERT_TRUE(result.has_value());
-  ASSERT_NE(result.value(), nullptr);
-  ASSERT_EQ(*result.value()->GetPayload()->FindString("key"), "value");
+  ASSERT_NE(result, nullptr);
+  ASSERT_EQ(*result->GetPayload()->FindString("key"), "value");
 }
 
 TEST_F(QuickStartMessageTest, ReadMessageFailsIfBase64WhenNotExpected) {
@@ -60,10 +57,12 @@ TEST_F(QuickStartMessageTest, ReadMessageFailsIfBase64WhenNotExpected) {
   ASSERT_TRUE(base::JSONWriter::Write(message, &json_message));
   std::vector<uint8_t> data(json_message.begin(), json_message.end());
 
-  ReadResult result = ash::quick_start::QuickStartMessage::ReadMessage(
-      data, ash::quick_start::QuickStartMessageType::kBootstrapConfigurations);
+  std::unique_ptr<QuickStartMessage> result =
+      ash::quick_start::QuickStartMessage::ReadMessage(
+          data,
+          ash::quick_start::QuickStartMessageType::kBootstrapConfigurations);
 
-  ASSERT_EQ(result.error(), QuickStartMessage::ReadError::INVALID_JSON);
+  ASSERT_EQ(result, nullptr);
 }
 
 TEST_F(QuickStartMessageTest, ReadMessageDecodesBase64Message) {
@@ -80,12 +79,12 @@ TEST_F(QuickStartMessageTest, ReadMessageDecodesBase64Message) {
   ASSERT_TRUE(base::JSONWriter::Write(message, &json_message));
   std::vector<uint8_t> data(json_message.begin(), json_message.end());
 
-  ReadResult result = ash::quick_start::QuickStartMessage::ReadMessage(
-      data, ash::quick_start::QuickStartMessageType::kQuickStartPayload);
+  std::unique_ptr<QuickStartMessage> result =
+      ash::quick_start::QuickStartMessage::ReadMessage(
+          data, ash::quick_start::QuickStartMessageType::kQuickStartPayload);
 
-  ASSERT_TRUE(result.has_value());
   ASSERT_NE(result, nullptr);
-  ASSERT_EQ(*result.value()->GetPayload()->FindString("key"), "value");
+  ASSERT_EQ(*result->GetPayload()->FindString("key"), "value");
 }
 
 TEST_F(QuickStartMessageTest,
@@ -101,11 +100,11 @@ TEST_F(QuickStartMessageTest,
   ASSERT_TRUE(base::JSONWriter::Write(message, &json_message));
   std::vector<uint8_t> data(json_message.begin(), json_message.end());
 
-  ReadResult result = ash::quick_start::QuickStartMessage::ReadMessage(
-      data, ash::quick_start::QuickStartMessageType::kQuickStartPayload);
+  std::unique_ptr<QuickStartMessage> result =
+      ash::quick_start::QuickStartMessage::ReadMessage(
+          data, ash::quick_start::QuickStartMessageType::kQuickStartPayload);
 
-  ASSERT_EQ(result.error(),
-            QuickStartMessage::ReadError::BASE64_DESERIALIZATION_FAILURE);
+  ASSERT_EQ(result, nullptr);
 }
 
 TEST_F(QuickStartMessageTest, ReadMessageFailsIfPayloadIsNotPresent) {
@@ -114,11 +113,11 @@ TEST_F(QuickStartMessageTest, ReadMessageFailsIfPayloadIsNotPresent) {
   ASSERT_TRUE(base::JSONWriter::Write(message, &json_message));
   std::vector<uint8_t> data(json_message.begin(), json_message.end());
 
-  ReadResult result = ash::quick_start::QuickStartMessage::ReadMessage(
-      data, ash::quick_start::QuickStartMessageType::kQuickStartPayload);
+  std::unique_ptr<QuickStartMessage> result =
+      ash::quick_start::QuickStartMessage::ReadMessage(
+          data, ash::quick_start::QuickStartMessageType::kQuickStartPayload);
 
-  ASSERT_EQ(result.error(),
-            QuickStartMessage::ReadError::MISSING_MESSAGE_PAYLOAD);
+  ASSERT_EQ(result, nullptr);
 }
 
 TEST_F(QuickStartMessageTest, EncodeThenDecodeResultsInSameValue) {
@@ -134,12 +133,11 @@ TEST_F(QuickStartMessageTest, EncodeThenDecodeResultsInSameValue) {
   std::vector<uint8_t> request_payload(json_serialized_payload.begin(),
                                        json_serialized_payload.end());
 
-  ReadResult decoded_message = QuickStartMessage::ReadMessage(
-      request_payload,
-      ash::quick_start::QuickStartMessageType::kQuickStartPayload);
+  std::unique_ptr<QuickStartMessage> decoded_message =
+      QuickStartMessage::ReadMessage(
+          request_payload,
+          ash::quick_start::QuickStartMessageType::kQuickStartPayload);
 
-  ASSERT_TRUE(decoded_message.has_value());
   ASSERT_NE(decoded_message, nullptr);
-  EXPECT_EQ(*(decoded_message.value()->GetPayload()->FindString("key")),
-            "value");
+  EXPECT_EQ(*(decoded_message->GetPayload()->FindString("key")), "value");
 }

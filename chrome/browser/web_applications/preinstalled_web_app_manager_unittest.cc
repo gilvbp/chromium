@@ -49,9 +49,7 @@
 #include "ash/constants/ash_features.h"
 #include "ash/constants/ash_switches.h"
 #include "chrome/browser/ash/login/users/fake_chrome_user_manager.h"
-#include "chromeos/ash/components/standalone_browser/feature_refs.h"
 #include "components/user_manager/scoped_user_manager.h"
-#include "components/user_manager/user_names.h"
 #endif
 
 #if BUILDFLAG(IS_CHROMEOS_LACROS)
@@ -80,11 +78,12 @@ constexpr char kAppChildUrl[] = "https://www.google.com/child";
 class PreinstalledWebAppManagerTest : public testing::Test {
  public:
   PreinstalledWebAppManagerTest() {
+    std::vector<base::test::FeatureRef> disabled_features;
 #if BUILDFLAG(IS_CHROMEOS_ASH)
-    // TODO(crbug.com/1462253): Also test with Lacros flags enabled.
-    scoped_feature_list_.InitWithFeatures(
-        {}, /*disabled_features=*/ash::standalone_browser::GetFeatureRefs());
+    disabled_features.push_back(features::kWebAppsCrosapi);
+    disabled_features.push_back(ash::features::kLacrosPrimary);
 #endif
+    scoped_feature_list_.InitWithFeatures({}, disabled_features);
   }
 
   PreinstalledWebAppManagerTest(const PreinstalledWebAppManagerTest&) = delete;
@@ -190,7 +189,7 @@ class PreinstalledWebAppManagerTest : public testing::Test {
     std::unique_ptr<TestingProfile> profile = CreateGuestProfile();
 #if BUILDFLAG(IS_CHROMEOS_ASH)
     user_manager()->AddGuestUser();
-    user_manager()->LoginUser(user_manager::GuestAccountId());
+    user_manager()->LoginUser(user_manager()->GetGuestAccountId());
 #endif
     return profile;
   }

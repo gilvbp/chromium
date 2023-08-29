@@ -60,7 +60,8 @@ static LinkHeader::LinkParameterName ParameterNameFromString(
   if (base::EqualsCaseInsensitiveASCII(name, kSignedExchangeVariantKeyHeader))
     return LinkHeader::kLinkParameterVariantKey;
 
-  if (base::EqualsCaseInsensitiveASCII(name, "blocking")) {
+  if (RuntimeEnabledFeatures::BlockingAttributeEnabled() &&
+      base::EqualsCaseInsensitiveASCII(name, "blocking")) {
     return LinkHeader::kLinkParameterBlocking;
   }
 

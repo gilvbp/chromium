@@ -51,31 +51,20 @@ static unsigned ComputeMatchedPropertiesHash(const MatchResult& result) {
   return hash;
 }
 
-CachedMatchedProperties::CachedMatchedProperties(
-    const ComputedStyle* style,
-    const ComputedStyle* parent_style,
-    const MatchedPropertiesVector& properties)
-    : computed_style(style), parent_computed_style(parent_style) {
-  matched_properties.ReserveInitialCapacity(properties.size());
-  matched_properties_types.ReserveInitialCapacity(properties.size());
+void CachedMatchedProperties::Set(
+    scoped_refptr<const ComputedStyle>&& style,
+    scoped_refptr<const ComputedStyle>&& parent_style,
+    const MatchedPropertiesVector& properties) {
   for (const auto& new_matched_properties : properties) {
     matched_properties.push_back(new_matched_properties.properties);
     matched_properties_types.push_back(new_matched_properties.types_);
   }
-}
 
-void CachedMatchedProperties::Set(const ComputedStyle* style,
-                                  const ComputedStyle* parent_style,
-                                  const MatchedPropertiesVector& properties) {
-  computed_style = style;
-  parent_computed_style = parent_style;
-
-  matched_properties.clear();
-  matched_properties_types.clear();
-  for (const auto& new_matched_properties : properties) {
-    matched_properties.push_back(new_matched_properties.properties);
-    matched_properties_types.push_back(new_matched_properties.types_);
-  }
+  // Note that we don't cache the original ComputedStyle instance. It may be
+  // further modified.  The ComputedStyle in the cache is really just a holder
+  // for the substructures and never used as-is.
+  this->computed_style = style;
+  this->parent_computed_style = parent_style;
 }
 
 void CachedMatchedProperties::Clear() {
@@ -93,7 +82,7 @@ bool CachedMatchedProperties::DependenciesEqual(
   if ((parent_computed_style->IsEnsuredInDisplayNone() ||
        computed_style->IsEnsuredOutsideFlatTree()) &&
       !state.ParentStyle()->IsEnsuredInDisplayNone() &&
-      !state.IsOutsideFlatTree()) {
+      !state.StyleBuilder().IsEnsuredOutsideFlatTree()) {
     // If we cached a ComputedStyle in a display:none subtree, or outside the
     // flat tree,  we would not have triggered fetches for external resources
     // and have StylePendingImages in the ComputedStyle. Instead of having to
@@ -137,12 +126,6 @@ const CachedMatchedProperties* MatchedPropertiesCache::Find(
     const Key& key,
     const StyleResolverState& style_resolver_state) {
   DCHECK(key.IsValid());
-
-  // Matches the corresponding test in IsStyleCacheable().
-  if (style_resolver_state.TextAutosizingMultiplier() != 1.0f) {
-    return nullptr;
-  }
-
   Cache::iterator it = cache_.find(key.hash_);
   if (it == cache_.end()) {
     return nullptr;
@@ -155,17 +138,7 @@ const CachedMatchedProperties* MatchedPropertiesCache::Find(
     return nullptr;
   }
   if (cache_item->computed_style->InsideLink() !=
-      style_resolver_state.InsideLink()) {
-    return nullptr;
-  }
-  if (IsAtShadowBoundary(&style_resolver_state.GetElement()) &&
-      cache_item->parent_computed_style->UserModify() !=
-          ComputedStyleInitialValues::InitialUserModify()) {
-    // An element at a shadow boundary will reset UserModify() back to its
-    // initial value for inheritance. If the cached item was computed for an
-    // element not at a shadow boundary, the cached computed style will not
-    // have that reset, and we cannot use it as a cache hit unless the parent
-    // UserModify() is the initial value.
+      style_resolver_state.StyleBuilder().InsideLink()) {
     return nullptr;
   }
   if (!cache_item->DependenciesEqual(style_resolver_state)) {
@@ -212,20 +185,23 @@ bool CachedMatchedProperties::operator!=(
   return !(*this == properties);
 }
 
-void MatchedPropertiesCache::Add(const Key& key,
-                                 const ComputedStyle* style,
-                                 const ComputedStyle* parent_style) {
+void MatchedPropertiesCache::Add(
+    const Key& key,
+    scoped_refptr<const ComputedStyle>&& style,
+    scoped_refptr<const ComputedStyle>&& parent_style) {
   DCHECK(key.IsValid());
 
   Member<CachedMatchedProperties>& cache_item =
       cache_.insert(key.hash_, nullptr).stored_value->value;
 
   if (!cache_item) {
-    cache_item = MakeGarbageCollected<CachedMatchedProperties>(
-        style, parent_style, key.result_.GetMatchedProperties());
+    cache_item = MakeGarbageCollected<CachedMatchedProperties>();
   } else {
-    cache_item->Set(style, parent_style, key.result_.GetMatchedProperties());
+    cache_item->Clear();
   }
+
+  cache_item->Set(std::move(style), std::move(parent_style),
+                  key.result_.GetMatchedProperties());
 }
 
 void MatchedPropertiesCache::Clear() {
@@ -336,18 +312,6 @@ void MatchedPropertiesCache::RemoveCachedMatchedPropertiesWithDeadEntries(
   // structure will not be rehashed here. The next insertion/deletion from
   // regular code will take care of shrinking accordingly.
   cache_.RemoveAll(to_remove);
-}
-
-std::ostream& operator<<(std::ostream& stream,
-                         MatchedPropertiesCache::Key& key) {
-  stream << "Key{";
-  for (const MatchedProperties& matched_properties :
-       key.result_.GetMatchedProperties()) {
-    stream << matched_properties.properties->AsText();
-    stream << ",";
-  }
-  stream << "}";
-  return stream;
 }
 
 }  // namespace blink

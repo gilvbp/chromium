@@ -39,7 +39,8 @@ class LogManager {
 
   virtual ~LogManager() = default;
 
-  // Returns whether logs recorded via `Log()` will be displayed.
+  // Returns true if logs recorded via LogTextMessage will be displayed, and
+  // false otherwise.
   virtual bool IsLoggingActive() const = 0;
 
   // This is the preferred way to submitting log entries.

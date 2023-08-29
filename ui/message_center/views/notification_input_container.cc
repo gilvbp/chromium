@@ -70,10 +70,8 @@ void NotificationInputContainer::Init() {
   SetSendButtonHighlightPath();
   button_->SetImageHorizontalAlignment(views::ImageButton::ALIGN_CENTER);
   button_->SetImageVerticalAlignment(views::ImageButton::ALIGN_MIDDLE);
-  button_->SetAccessibleName(
-      l10n_util::GetStringUTF16(GetDefaultAccessibleNameStringId()));
   button_->SetTooltipText(
-      l10n_util::GetStringUTF16(GetDefaultAccessibleNameStringId()));
+      l10n_util::GetStringUTF16(GetDefaultPlaceholderStringId()));
 
   OnAfterUserAction(textfield_);
   AddChildView(button_.get());
@@ -206,10 +204,6 @@ void NotificationInputContainer::SetSendButtonHighlightPath() {
 
 int NotificationInputContainer::GetDefaultPlaceholderStringId() const {
   return IDS_MESSAGE_CENTER_NOTIFICATION_INLINE_REPLY_PLACEHOLDER;
-}
-
-int NotificationInputContainer::GetDefaultAccessibleNameStringId() const {
-  return IDS_MESSAGE_CENTER_NOTIFICATION_INLINE_REPLY_ACCESSIBLE_NAME;
 }
 
 void NotificationInputContainer::StyleTextfield() {

@@ -192,10 +192,8 @@ void PrerenderPageLoadMetricsObserver::DidActivatePrerenderedPage(
         main_frame_resource_has_no_store_.value() ? 1 : 0);
   }
 
-  builder.SetWasPrerendered(true)
-      .SetTiming_NavigationToActivation(
-          navigation_to_activation.InMilliseconds())
-      .SetNavigation_PageTransition(navigation_handle->GetPageTransition());
+  builder.SetWasPrerendered(true).SetTiming_NavigationToActivation(
+      navigation_to_activation.InMilliseconds());
   builder.Record(ukm::UkmRecorder::Get());
 }
 

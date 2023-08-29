@@ -391,7 +391,7 @@ IN_PROC_BROWSER_TEST_F(ErrorConsoleBrowserTest,
                     script_url,  // The source should be the content script url.
                     false,       // Not from incognito.
                     "warned message",  // The error message is the log.
-                    logging::LOGGING_WARNING,
+                    logging::LOG_WARNING,
                     GetTestURL(),  // Content scripts run in the web page.
                     2u);
 
@@ -404,13 +404,12 @@ IN_PROC_BROWSER_TEST_F(ErrorConsoleBrowserTest,
   CheckStackFrame(stack_trace1[1], script_url, kAnonymousFunction, 14u, 1u);
 
   // The second error should be a runtime error.
-  CheckRuntimeError(
-      errors[1].get(), extension->id(), script_url,
-      false,  // not from incognito
-      "Uncaught TypeError: "
-      "Cannot set properties of undefined (setting 'foo')",
-      logging::LOGGING_ERROR,  // JS errors are always ERROR level.
-      GetTestURL(), 1u);
+  CheckRuntimeError(errors[1].get(), extension->id(), script_url,
+                    false,  // not from incognito
+                    "Uncaught TypeError: "
+                    "Cannot set properties of undefined (setting 'foo')",
+                    logging::LOG_ERROR,  // JS errors are always ERROR level.
+                    GetTestURL(), 1u);
 
   const StackTrace& stack_trace2 = GetStackTraceFromError(errors[1].get());
   CheckStackFrame(stack_trace2[0], script_url, kAnonymousFunction, 17u, 1u);
@@ -442,7 +441,7 @@ IN_PROC_BROWSER_TEST_F(ErrorConsoleBrowserTest, BrowserActionRuntimeError) {
 
   CheckRuntimeError(errors[1].get(), extension->id(), script_url,
                     false,  // not incognito
-                    message, logging::LOGGING_ERROR,
+                    message, logging::LOG_ERROR,
                     extension->GetResourceURL(kBackgroundPageName), 1u);
 
   const StackTrace& stack_trace = GetStackTraceFromError(errors[1].get());
@@ -474,7 +473,7 @@ IN_PROC_BROWSER_TEST_F(ErrorConsoleBrowserTest, BadAPIArgumentsRuntimeError) {
 
   CheckRuntimeError(errors[1].get(), extension->id(), source,
                     false,  // not incognito
-                    message, logging::LOGGING_ERROR,
+                    message, logging::LOG_ERROR,
                     extension->GetResourceURL(kBackgroundPageName), 1u);
 
   const StackTrace& stack_trace = GetStackTraceFromError(errors[1].get());
@@ -504,7 +503,7 @@ IN_PROC_BROWSER_TEST_F(ErrorConsoleBrowserTest, BadAPIPermissionsRuntimeError) {
                     false,  // not incognito
                     "Uncaught TypeError: Cannot read properties of undefined "
                     "(reading 'addUrl')",
-                    logging::LOGGING_ERROR,
+                    logging::LOG_ERROR,
                     extension->GetResourceURL(kBackgroundPageName), 1u);
 
   const StackTrace& stack_trace = GetStackTraceFromError(errors[1].get());
@@ -556,7 +555,7 @@ IN_PROC_BROWSER_TEST_F(ErrorConsoleBrowserTest, DISABLED_CatchesLastError) {
 
   CheckRuntimeError(errors[0].get(), extension->id(), source,
                     false,  // not incognito
-                    message, logging::LOGGING_ERROR,
+                    message, logging::LOG_ERROR,
                     extension->GetResourceURL(kBackgroundPageName), 1u);
 
   const StackTrace& stack_trace = GetStackTraceFromError(errors[0].get());

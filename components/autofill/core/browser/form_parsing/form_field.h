@@ -67,19 +67,6 @@ class FormField {
       FieldCandidatesMap& field_candidates,
       LogManager* log_manager = nullptr);
 
-  // Search for standalone CVC fields inside `fields`. Standalone CVC fields
-  // are CVC fields that should appear without any credit card field or email
-  // address in the same form. Each field has a derived unique name that is
-  // used as the key into `field_candidates`. Standalone CVC fields have unique
-  // prerequisites in that there shouldn't be other credit card or email fields
-  // in the form, which is why its parsing logic is extracted to its own method.
-  static void ParseStandaloneCVCFields(
-      const std::vector<std::unique_ptr<AutofillField>>& fields,
-      const LanguageCode& page_language,
-      PatternSource pattern_source,
-      FieldCandidatesMap& field_candidates,
-      LogManager* log_manager = nullptr);
-
 #if defined(UNIT_TEST)
   static bool MatchForTesting(const AutofillField* field,
                               base::StringPiece16 pattern,
@@ -114,7 +101,7 @@ class FormField {
   static constexpr float kBaseAddressParserScore = 1.1f;
   static constexpr float kBaseBirthdateParserScore = 1.05f;
   static constexpr float kBaseCreditCardParserScore = 1.0f;
-  static constexpr float kBaseIbanParserScore = 0.975f;
+  static constexpr float kBaseIBANParserScore = 0.975f;
   static constexpr float kBasePriceParserScore = 0.95f;
   static constexpr float kBaseNameParserScore = 0.9f;
   static constexpr float kBaseMerchantPromoCodeParserScore = 0.85f;

@@ -130,9 +130,8 @@ DEFINE_CERT_ERROR_ID(kSerialNumberNotValidInteger,
   // Note that it is OK to read from the unused bits, since BitString parsing
   // guarantees they are all zero.
   for (size_t i = 0; i < bits.bytes().Length(); ++i) {
-    if (bits.bytes()[i] != 0) {
+    if (bits.bytes().UnsafeData()[i] != 0)
       return false;
-    }
   }
   return true;
 }
@@ -263,9 +262,8 @@ bool VerifySerialNumber(const der::Input& value,
   //    gracefully handle such certificates.
   if (negative)
     errors->AddWarning(kSerialNumberIsNegative);
-  if (value.Length() == 1 && value[0] == 0) {
+  if (value.Length() == 1 && value.UnsafeData()[0] == 0)
     errors->AddWarning(kSerialNumberIsZero);
-  }
 
   // RFC 5280 section 4.1.2.2:
   //

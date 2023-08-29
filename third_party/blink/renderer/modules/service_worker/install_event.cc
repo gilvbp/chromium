@@ -29,6 +29,13 @@ void DidRegisterRouter(ScriptPromiseResolver* resolver) {
   resolver->Resolve();
 }
 
+ScriptPromise ParseErrorPromise(ScriptState* script_state) {
+  return ScriptPromise::Reject(
+      script_state, V8ThrowException::CreateTypeError(
+                        script_state->GetIsolate(),
+                        "Failed to parse a rule. Possibly syntax error."));
+}
+
 }  // namespace
 
 InstallEvent* InstallEvent::Create(const AtomicString& type,
@@ -62,8 +69,7 @@ InstallEvent::InstallEvent(const AtomicString& type,
 
 ScriptPromise InstallEvent::registerRouter(
     ScriptState* script_state,
-    const V8UnionRouterRuleOrRouterRuleSequence* v8_rules,
-    ExceptionState& exception_state) {
+    const V8UnionRouterRuleOrRouterRuleSequence* v8_rules) {
   ServiceWorkerGlobalScope* global_scope =
       To<ServiceWorkerGlobalScope>(ExecutionContext::From(script_state));
   if (!global_scope) {
@@ -82,21 +88,19 @@ ScriptPromise InstallEvent::registerRouter(
 
   blink::ServiceWorkerRouterRules rules;
   if (v8_rules->IsRouterRule()) {
-    auto r = ConvertV8RouterRuleToBlink(
-        v8_rules->GetAsRouterRule(), global_scope->BaseURL(), exception_state);
+    auto r = mojo::ConvertTo<absl::optional<blink::ServiceWorkerRouterRule>>(
+        v8_rules->GetAsRouterRule());
     if (!r) {
-      CHECK(exception_state.HadException());
-      return ScriptPromise::Reject(script_state, exception_state);
+      return ParseErrorPromise(script_state);
     }
     rules.rules.emplace_back(*r);
   } else {
     CHECK(v8_rules->IsRouterRuleSequence());
     for (const blink::RouterRule* rule : v8_rules->GetAsRouterRuleSequence()) {
-      auto r = ConvertV8RouterRuleToBlink(rule, global_scope->BaseURL(),
-                                          exception_state);
+      auto r =
+          mojo::ConvertTo<absl::optional<blink::ServiceWorkerRouterRule>>(rule);
       if (!r) {
-        CHECK(exception_state.HadException());
-        return ScriptPromise::Reject(script_state, exception_state);
+        return ParseErrorPromise(script_state);
       }
       rules.rules.emplace_back(*r);
     }

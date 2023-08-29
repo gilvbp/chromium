@@ -11,6 +11,10 @@
 #import "ios/web/public/ui/context_menu_params.h"
 #import "url/gurl.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace {
 
 // Enum for identifying how the menu title was constructed.

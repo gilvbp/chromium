@@ -24,11 +24,14 @@ class AppWake : public App {
 
   // Overrides for App.
   void FirstTaskRun() override;
+
+  scoped_refptr<UpdateServiceInternal> update_service_internal_;
 };
 
 void AppWake::FirstTaskRun() {
-  CreateUpdateServiceInternalProxy(updater_scope())
-      ->Run(base::BindOnce(&AppWake::Shutdown, this, kErrorOk));
+  update_service_internal_ = CreateUpdateServiceInternalProxy(updater_scope());
+  update_service_internal_->Run(
+      base::BindOnce(&AppWake::Shutdown, this, kErrorOk));
 }
 
 scoped_refptr<App> MakeAppWake() {

@@ -125,6 +125,6 @@ public class TabStripUtils {
      * @param tabStrip The tab strip to wait for.
      */
     public static void settleDownCompositor(final StripLayoutHelper tabStrip) {
-        CriteriaHelper.pollUiThread(() -> !tabStrip.isAnimatingForTesting());
+        CriteriaHelper.pollUiThread(() -> !tabStrip.isAnimating());
     }
 }

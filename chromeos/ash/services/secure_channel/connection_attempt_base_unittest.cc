@@ -77,7 +77,7 @@ class TestConnectionAttempt
   }
 
   raw_ptr<FakeConnectToDeviceOperation<BleInitiatorFailureType>,
-          DanglingUntriaged | ExperimentalAsh>
+          ExperimentalAsh>
       fake_operation_ = nullptr;
 };
 

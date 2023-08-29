@@ -60,10 +60,7 @@ JavascriptFrameworksUkmObserver::FlushMetricsOnAppEnterBackground(
 }
 
 void JavascriptFrameworksUkmObserver::RecordJavascriptFrameworkPageLoad() {
-  ukm::builders::JavascriptFrameworkPageLoad detect_framework_builder(
-      GetDelegate().GetPageUkmSourceId());
-
-  ukm::builders::ContentManagementSystemPageLoad detect_cms_builder(
+  ukm::builders::JavascriptFrameworkPageLoad detect_builder(
       GetDelegate().GetPageUkmSourceId());
 
   using blink::mojom::JavaScriptFramework;
@@ -72,46 +69,32 @@ void JavascriptFrameworksUkmObserver::RecordJavascriptFrameworkPageLoad() {
     return framework_detection_result_.detected_versions.contains(framework);
   };
 
-  detect_framework_builder
-      .SetAngularPageLoad(is_detected(JavaScriptFramework::kAngular))
+  detect_builder.SetAngularPageLoad(is_detected(JavaScriptFramework::kAngular))
+      .SetDrupalPageLoad(is_detected(JavaScriptFramework::kDrupal))
       .SetGatsbyPageLoad(is_detected(JavaScriptFramework::kGatsby))
+      .SetJoomlaPageLoad(is_detected(JavaScriptFramework::kJoomla))
       .SetNextJSPageLoad(is_detected(JavaScriptFramework::kNext))
       .SetNuxtJSPageLoad(is_detected(JavaScriptFramework::kNuxt))
       .SetPreactPageLoad(is_detected(JavaScriptFramework::kPreact))
       .SetReactPageLoad(is_detected(JavaScriptFramework::kReact))
       .SetSapperPageLoad(is_detected(JavaScriptFramework::kSapper))
-      .SetSveltePageLoad(is_detected(JavaScriptFramework::kSvelte))
-      .SetVuePageLoad(is_detected(JavaScriptFramework::kVue))
-      .SetVuePressPageLoad(is_detected(JavaScriptFramework::kVuePress));
-
-  detect_framework_builder.Record(ukm::UkmRecorder::Get());
-
-  detect_cms_builder
-      .SetDrupalPageLoad(is_detected(JavaScriptFramework::kDrupal))
-      .SetJoomlaPageLoad(is_detected(JavaScriptFramework::kJoomla))
       .SetShopifyPageLoad(is_detected(JavaScriptFramework::kShopify))
       .SetSquarespacePageLoad(is_detected(JavaScriptFramework::kSquarespace))
+      .SetSveltePageLoad(is_detected(JavaScriptFramework::kSvelte))
+      .SetVuePageLoad(is_detected(JavaScriptFramework::kVue))
+      .SetVuePressPageLoad(is_detected(JavaScriptFramework::kVuePress))
       .SetWixPageLoad(is_detected(JavaScriptFramework::kWix))
       .SetWordPressPageLoad(is_detected(JavaScriptFramework::kWordPress));
 
-  detect_cms_builder.Record(ukm::UkmRecorder::Get());
+  detect_builder.Record(ukm::UkmRecorder::Get());
 
-  ukm::builders::Blink_JavaScriptFramework_Versions versions_builder_jsf(
+  ukm::builders::Blink_JavaScriptFramework_Versions versions_builder(
       GetDelegate().GetPageUkmSourceId());
 
   typedef ukm::builders::Blink_JavaScriptFramework_Versions& (
-      ukm::builders::Blink_JavaScriptFramework_Versions::*
-          JavaScriptFrameworkValueSetter)(int64_t);
+      ukm::builders::Blink_JavaScriptFramework_Versions::*ValueSetter)(int64_t);
 
-  ukm::builders::Blink_ContentManagementSystem_Versions versions_builder_cms(
-      GetDelegate().GetPageUkmSourceId());
-
-  typedef ukm::builders::Blink_ContentManagementSystem_Versions& (
-      ukm::builders::Blink_ContentManagementSystem_Versions::*
-          ContentManagementSystemValueSetter)(int64_t);
-
-  auto detect_jsf_version = [&](JavaScriptFramework framework,
-                                JavaScriptFrameworkValueSetter setter) {
+  auto detect_version = [&](JavaScriptFramework framework, ValueSetter setter) {
     auto version =
         framework_detection_result_.detected_versions.find(framework);
     if (version == framework_detection_result_.detected_versions.end() ||
@@ -119,47 +102,29 @@ void JavascriptFrameworksUkmObserver::RecordJavascriptFrameworkPageLoad() {
       return false;
     }
 
-    (versions_builder_jsf.*setter)(version->second);
+    (versions_builder.*setter)(version->second);
     return true;
   };
 
-  auto detect_cms_version = [&](JavaScriptFramework framework,
-                                ContentManagementSystemValueSetter setter) {
-    auto version =
-        framework_detection_result_.detected_versions.find(framework);
-    if (version == framework_detection_result_.detected_versions.end() ||
-        version->second == blink::kNoFrameworkVersionDetected) {
-      return false;
-    }
-
-    (versions_builder_cms.*setter)(version->second);
-    return true;
-  };
-
-  if (detect_jsf_version(JavaScriptFramework::kAngular,
-                         &ukm::builders::Blink_JavaScriptFramework_Versions::
-                             SetAngularVersion) ||
-      detect_jsf_version(JavaScriptFramework::kNext,
-                         &ukm::builders::Blink_JavaScriptFramework_Versions::
-                             SetNextJSVersion) ||
-      detect_jsf_version(
+  if (detect_version(JavaScriptFramework::kAngular,
+                     &ukm::builders::Blink_JavaScriptFramework_Versions::
+                         SetAngularVersion) ||
+      detect_version(JavaScriptFramework::kDrupal,
+                     &ukm::builders::Blink_JavaScriptFramework_Versions::
+                         SetDrupalVersion) ||
+      detect_version(JavaScriptFramework::kNext,
+                     &ukm::builders::Blink_JavaScriptFramework_Versions::
+                         SetNextJSVersion) ||
+      detect_version(
           JavaScriptFramework::kNuxt,
           &ukm::builders::Blink_JavaScriptFramework_Versions::SetNuxtVersion) ||
-      detect_jsf_version(
+      detect_version(
           JavaScriptFramework::kVue,
-          &ukm::builders::Blink_JavaScriptFramework_Versions::SetVueVersion)) {
-    versions_builder_jsf.Record(ukm::UkmRecorder::Get());
-  }
-
-  if (detect_cms_version(
-          JavaScriptFramework::kDrupal,
-          &ukm::builders::Blink_ContentManagementSystem_Versions::
-              SetDrupalVersion) ||
-      detect_cms_version(
-          JavaScriptFramework::kWordPress,
-          &ukm::builders::Blink_ContentManagementSystem_Versions::
-              SetWordPressVersion)) {
-    versions_builder_cms.Record(ukm::UkmRecorder::Get());
+          &ukm::builders::Blink_JavaScriptFramework_Versions::SetVueVersion) ||
+      detect_version(JavaScriptFramework::kWordPress,
+                     &ukm::builders::Blink_JavaScriptFramework_Versions::
+                         SetWordPressVersion)) {
+    versions_builder.Record(ukm::UkmRecorder::Get());
   }
 }
 

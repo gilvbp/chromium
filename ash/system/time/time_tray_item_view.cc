@@ -47,10 +47,9 @@ void TimeTrayItemView::UpdateLabelOrImageViewColor(bool active) {
   }
   TrayItemView::UpdateLabelOrImageViewColor(active);
 
-  const auto color_id = active ? cros_tokens::kCrosSysSystemOnPrimaryContainer
-                               : cros_tokens::kCrosSysOnSurface;
-  time_view_->SetTextColorId(color_id);
-  time_view_->SetDateViewColorId(color_id);
+  time_view_->SetTextColorId(active
+                                 ? cros_tokens::kCrosSysSystemOnPrimaryContainer
+                                 : cros_tokens::kCrosSysOnSurface);
 }
 
 const char* TimeTrayItemView::GetClassName() const {

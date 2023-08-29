@@ -5,14 +5,15 @@
 import 'chrome://os-settings/lazy_load.js';
 
 import {SettingsKeyboardAndTextInputPageElement} from 'chrome://os-settings/lazy_load.js';
-import {CrLinkRowElement, CrSettingsPrefs, Router, routes, SettingsPrefsElement, SettingsToggleButtonElement} from 'chrome://os-settings/os_settings.js';
+import {CrSettingsPrefs, Router, routes, SettingsPrefsElement, SettingsToggleButtonElement} from 'chrome://os-settings/os_settings.js';
+import {CrLinkRowElement} from 'chrome://resources/cr_elements/cr_link_row/cr_link_row.js';
 import {assert} from 'chrome://resources/js/assert_ts.js';
 import {webUIListenerCallback} from 'chrome://resources/js/cr.js';
 import {loadTimeData} from 'chrome://resources/js/load_time_data.js';
 import {getDeepActiveElement} from 'chrome://resources/js/util_ts.js';
 import {flush} from 'chrome://resources/polymer/v3_0/polymer/polymer_bundled.min.js';
 import {assertEquals, assertFalse, assertNotEquals, assertTrue} from 'chrome://webui-test/chai_assert.js';
-import {waitAfterNextRender} from 'chrome://webui-test/polymer_test_util.js';
+import {waitAfterNextRender, waitBeforeNextRender} from 'chrome://webui-test/polymer_test_util.js';
 import {eventToPromise, isVisible} from 'chrome://webui-test/test_util.js';
 
 suite('<settings-keyboard-and-text-input-page>', () => {
@@ -229,7 +230,7 @@ suite('<settings-keyboard-and-text-input-page>', () => {
           const popStateEventPromise = eventToPromise('popstate', window);
           router.navigateToPreviousRoute();
           await popStateEventPromise;
-          await waitAfterNextRender(page);
+          await waitBeforeNextRender(page);
 
           assertEquals(
               routes.A11Y_KEYBOARD_AND_TEXT_INPUT, router.currentRoute);

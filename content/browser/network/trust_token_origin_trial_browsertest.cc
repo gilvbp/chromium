@@ -137,12 +137,10 @@ class TrustTokenOriginTrialBrowsertest
   TrustTokenOriginTrialBrowsertest() {
     auto& field_trial_param =
         network::features::kTrustTokenOperationsRequiringOriginTrial;
-    // kPrivateStateTokens ignores origin trial params
-    features_.InitWithFeaturesAndParameters(
-        {{network::features::kFledgePst,
-          {{field_trial_param.name,
-            field_trial_param.GetName(std::get<1>(GetParam()).trial_type)}}}},
-        {network::features::kPrivateStateTokens});
+    features_.InitAndEnableFeatureWithParameters(
+        network::features::kFledgePst,
+        {{field_trial_param.name,
+          field_trial_param.GetName(std::get<1>(GetParam()).trial_type)}});
   }
 
   // kPageWithOriginTrialToken is a landing page from which we execute Trust

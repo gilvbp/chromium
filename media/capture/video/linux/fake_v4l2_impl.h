@@ -18,12 +18,10 @@
 namespace media {
 
 struct FakeV4L2DeviceConfig {
-  explicit FakeV4L2DeviceConfig(const VideoCaptureDeviceDescriptor& descriptor,
-                                uint32_t fmt = V4L2_PIX_FMT_YUV420)
-      : descriptor(descriptor), v4l2_pixel_format(fmt) {}
+  FakeV4L2DeviceConfig(const VideoCaptureDeviceDescriptor& descriptor)
+      : descriptor(descriptor) {}
 
   const VideoCaptureDeviceDescriptor descriptor;
-  uint32_t v4l2_pixel_format;
 };
 
 // Implementation of V4L2CaptureDevice interface that allows configuring fake

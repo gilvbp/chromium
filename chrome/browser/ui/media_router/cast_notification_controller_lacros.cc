@@ -86,16 +86,13 @@ CastNotificationControllerLacros::CastNotificationControllerLacros(
       notification_service_(notification_service),
       media_router_(router) {}
 
-CastNotificationControllerLacros::~CastNotificationControllerLacros() {
-  StopObservingFreezeHost();
-}
+CastNotificationControllerLacros::~CastNotificationControllerLacros() = default;
 
 void CastNotificationControllerLacros::OnRoutesUpdated(
     const std::vector<MediaRoute>& routes) {
   freeze_button_index_.reset();
   stop_button_index_.reset();
   displayed_route_is_frozen_ = false;
-  StopObservingFreezeHost();
 
   auto route_it =
       std::find_if(routes.begin(), routes.end(),
@@ -110,21 +107,15 @@ void CastNotificationControllerLacros::OnRoutesUpdated(
   ShowNotification(*route_it);
 }
 
-void CastNotificationControllerLacros::OnFreezeInfoChanged() {
-  if (displayed_route_) {
-    ShowNotification(*displayed_route_);
-  }
-}
-
 void CastNotificationControllerLacros::ShowNotification(
     const MediaRoute& route) {
-  displayed_route_ = route;
+  displayed_route_id_ = route.media_route_id();
   notification_service_->Display(NotificationHandler::Type::TRANSIENT,
                                  CreateNotification(route), nullptr);
 }
 
 void CastNotificationControllerLacros::HideNotification() {
-  displayed_route_.reset();
+  displayed_route_id_ = "";
   notification_service_->Close(NotificationHandler::Type::TRANSIENT,
                                kNotificationId);
 }
@@ -133,18 +124,8 @@ message_center::Notification
 CastNotificationControllerLacros::CreateNotification(const MediaRoute& route) {
   MirroringMediaControllerHost* freeze_host =
       media_router_->GetMirroringMediaControllerHost(route.media_route_id());
-  if (freeze_host && freeze_host != freeze_host_) {
-    freeze_host->AddObserver(this);
-    freeze_host_ = freeze_host;
-  }
   message_center::RichNotificationData data;
   data.buttons = GetButtons(route, freeze_host);
-  data.pinned = true;
-  // `vector_small_image` is ignored by the crosapi so we must convert it to
-  // `small_image`. Also, kAppIconImageSize=16 is used in AshNotificationView,
-  // but 16 here somehow results in a blurry image.
-  data.small_image = gfx::Image(gfx::CreateVectorIcon(
-      gfx::IconDescription(vector_icons::kMediaRouterIdleIcon, 32)));
 
   return message_center::Notification{
       message_center::NotificationType::NOTIFICATION_TYPE_SIMPLE,
@@ -195,18 +176,12 @@ void CastNotificationControllerLacros::OnNotificationClicked(
 }
 
 void CastNotificationControllerLacros::StopCasting() {
-  if (displayed_route_) {
-    media_router_->TerminateRoute(displayed_route_->media_route_id());
-  }
+  media_router_->TerminateRoute(displayed_route_id_);
 }
 
 void CastNotificationControllerLacros::FreezeOrUnfreezeCastStream() {
-  if (!displayed_route_) {
-    return;
-  }
   MirroringMediaControllerHost* freeze_host =
-      media_router_->GetMirroringMediaControllerHost(
-          displayed_route_->media_route_id());
+      media_router_->GetMirroringMediaControllerHost(displayed_route_id_);
   if (!freeze_host) {
     return;
   }
@@ -214,20 +189,6 @@ void CastNotificationControllerLacros::FreezeOrUnfreezeCastStream() {
     freeze_host->Unfreeze();
   } else {
     freeze_host->Freeze();
-  }
-}
-
-void CastNotificationControllerLacros::StopObservingFreezeHost() {
-  if (!displayed_route_) {
-    return;
-  }
-  // We don't reuse `freeze_host_` here, in case it's been freed.
-  MirroringMediaControllerHost* freeze_host =
-      media_router_->GetMirroringMediaControllerHost(
-          displayed_route_->media_route_id());
-  if (freeze_host) {
-    freeze_host->RemoveObserver(this);
-    freeze_host_ = nullptr;
   }
 }
 

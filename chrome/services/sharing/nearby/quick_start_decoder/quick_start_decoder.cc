@@ -15,7 +15,6 @@
 #include "base/values.h"
 #include "chromeos/ash/components/quick_start/quick_start_message.h"
 #include "chromeos/ash/components/quick_start/quick_start_message_type.h"
-#include "chromeos/ash/components/quick_start/quick_start_metrics.h"
 #include "chromeos/ash/services/nearby/public/mojom/quick_start_decoder.mojom.h"
 #include "chromeos/ash/services/nearby/public/mojom/quick_start_decoder_types.mojom-forward.h"
 #include "chromeos/ash/services/nearby/public/mojom/quick_start_decoder_types.mojom-shared.h"
@@ -29,14 +28,16 @@ namespace ash::quick_start {
 namespace {
 
 using CBOR = cbor::Value;
+using GetAssertionStatus = mojom::GetAssertionResponse::GetAssertionStatus;
 
-constexpr int kExpectedResponseSize = 2;
 constexpr char kCredentialIdKey[] = "id";
 constexpr char kEntitiyIdMapKey[] = "id";
 constexpr char kDeviceDetailsKey[] = "deviceDetails";
 constexpr char kCryptauthDeviceIdKey[] = "cryptauthDeviceId";
 constexpr uint8_t kCtapDeviceResponseSuccess = 0x00;
 constexpr int kCborDecoderNoError = 0;
+constexpr int kCborDecoderUnknownError = 14;
+constexpr uint8_t kCtap2ErrInvalidCBOR = 0x12;
 constexpr char kFidoMessageKey[] = "fidoMessage";
 
 // Key in Wifi Information response containing information about the wifi
@@ -86,71 +87,10 @@ std::pair<int, absl::optional<cbor::Value>> CborDecodeGetAssertionResponse(
   }
   return std::make_pair(kCborDecoderNoError, std::move(cbor));
 }
-}  // namespace
 
-QuickStartDecoder::QuickStartDecoder(
-    mojo::PendingReceiver<mojom::QuickStartDecoder> receiver,
-    base::OnceClosure on_disconnect)
-    : receiver_(this, std::move(receiver)) {
-  receiver_.set_disconnect_handler(std::move(on_disconnect));
-}
-
-QuickStartDecoder::~QuickStartDecoder() = default;
-
-void QuickStartDecoder::DoDecodeGetAssertionResponse(
-    const absl::optional<std::vector<uint8_t>>& data,
-    DecodeGetAssertionResponseCallback callback) {
-  if (!data.has_value()) {
-    LOG(ERROR) << "No response bytes received.";
-    std::move(callback).Run(nullptr,
-                            mojom::QuickStartDecoderError::kEmptyMessage);
-    return;
-  }
-
-  absl::optional<std::vector<uint8_t>> parsed_response_bytes =
-      ExtractFidoDataFromJsonResponse(data.value());
-  if (!parsed_response_bytes.has_value()) {
-    LOG(ERROR) << "Failed to extract Fido data from JSON response.";
-    std::move(callback).Run(nullptr,
-                            mojom::QuickStartDecoderError::kUnableToReadAsJSON);
-    return;
-  }
-
-  std::vector<unsigned char>& response_bytes = parsed_response_bytes.value();
-  if (response_bytes.size() < kExpectedResponseSize) {
-    LOG(ERROR) << "GetAssertionResponse requires a status code byte and "
-                  "response bytes. Data in size: "
-               << response_bytes.size();
-    std::move(callback).Run(
-        nullptr, mojom::QuickStartDecoderError::kMessageDoesNotMatchSchema);
-    return;
-  }
-  uint8_t ctap_status = response_bytes[0];
-  base::span<const uint8_t> cbor_bytes(response_bytes);
-  cbor_bytes = cbor_bytes.subspan(1);
-  if (ctap_status != kCtapDeviceResponseSuccess) {
-    LOG(ERROR) << "Ctap Device Response Status Code is not Success(0x00). Got: "
-               << ctap_status;
-    std::move(callback).Run(
-        nullptr, mojom::QuickStartDecoderError::kMessageDoesNotMatchSchema);
-    return;
-  }
-  std::pair<int, absl::optional<cbor::Value>> decoded_values =
-      CborDecodeGetAssertionResponse(cbor_bytes);
-  if (decoded_values.first != kCborDecoderNoError) {
-    std::move(callback).Run(
-        nullptr, mojom::QuickStartDecoderError::kMessageDoesNotMatchSchema);
-    return;
-  }
-  if (!decoded_values.second || !decoded_values.second->is_map()) {
-    LOG(ERROR) << "The CBOR decoded response values needs to be a valid CBOR "
-                  "Value Map.";
-    std::move(callback).Run(
-        nullptr, mojom::QuickStartDecoderError::kMessageDoesNotMatchSchema);
-    return;
-  }
-
-  const cbor::Value::MapValue& response_map = decoded_values.second->GetMap();
+mojom::GetAssertionResponsePtr ParseGetAssertionResponse(
+    cbor::Value decoded_response) {
+  const cbor::Value::MapValue& response_map = decoded_response.GetMap();
   // According to FIDO CTAP2 GetAssertionResponse, credential is stored at CBOR
   // index 0x01.
   auto credential_value_it = response_map.find(CBOR(0x01));
@@ -165,13 +105,6 @@ void QuickStartDecoder::DoDecodeGetAssertionResponse(
     }
   }
 
-  if (credential_id.empty()) {
-    LOG(ERROR) << "credential_id is empty in FIDO Message";
-    std::move(callback).Run(
-        nullptr, mojom::QuickStartDecoderError::kMessageDoesNotMatchSchema);
-    return;
-  }
-
   // According to FIDO CTAP2 GetAssertionResponse, authData is stored at CBOR
   // index 0x02.
   auto auth_data_value_it = response_map.find(CBOR(0x02));
@@ -181,13 +114,6 @@ void QuickStartDecoder::DoDecodeGetAssertionResponse(
     auth_data = auth_data_value_it->second.GetBytestring();
   }
 
-  if (auth_data.empty()) {
-    LOG(ERROR) << "auth_data is empty in FIDO Message";
-    std::move(callback).Run(
-        nullptr, mojom::QuickStartDecoderError::kMessageDoesNotMatchSchema);
-    return;
-  }
-
   // According to FIDO CTAP2 GetAssertionResponse, signature is stored at CBOR
   // index 0x03.
   auto signature_value_it = response_map.find(CBOR(0x03));
@@ -195,13 +121,6 @@ void QuickStartDecoder::DoDecodeGetAssertionResponse(
   if (signature_value_it != response_map.end() &&
       signature_value_it->second.is_bytestring()) {
     signature = signature_value_it->second.GetBytestring();
-  }
-
-  if (signature.empty()) {
-    LOG(ERROR) << "signature is empty in FIDO Message";
-    std::move(callback).Run(
-        nullptr, mojom::QuickStartDecoderError::kMessageDoesNotMatchSchema);
-    return;
   }
 
   // According to FIDO CTAP2 GetAssertionResponse, user is stored at CBOR index
@@ -217,39 +136,88 @@ void QuickStartDecoder::DoDecodeGetAssertionResponse(
     }
   }
 
-  if (email.empty()) {
-    LOG(ERROR) << "email is empty in FIDO Message";
-    std::move(callback).Run(
-        nullptr, mojom::QuickStartDecoderError::kMessageDoesNotMatchSchema);
-    return;
+  return mojom::GetAssertionResponse::New(
+      /*status=*/GetAssertionStatus::kSuccess,
+      /*ctap_device_response_code=*/kCtapDeviceResponseSuccess,
+      /*cbor_decoder_error=*/kCborDecoderNoError, email, credential_id,
+      auth_data, signature);
+}
+
+mojom::GetAssertionResponsePtr BuildGetAssertionResponseError(
+    GetAssertionStatus status,
+    uint8_t ctap_device_response_code,
+    int cbor_decoder_error) {
+  return mojom::GetAssertionResponse::New(status, ctap_device_response_code,
+                                          cbor_decoder_error,
+                                          /*email=*/"", /*credential_id=*/"",
+                                          /*auth_data=*/std::vector<uint8_t>{},
+                                          /*signature=*/std::vector<uint8_t>{});
+}
+
+}  // namespace
+
+QuickStartDecoder::QuickStartDecoder(
+    mojo::PendingReceiver<mojom::QuickStartDecoder> receiver,
+    base::OnceClosure on_disconnect)
+    : receiver_(this, std::move(receiver)) {
+  receiver_.set_disconnect_handler(std::move(on_disconnect));
+}
+
+QuickStartDecoder::~QuickStartDecoder() = default;
+
+mojom::GetAssertionResponsePtr QuickStartDecoder::DoDecodeGetAssertionResponse(
+    const std::vector<uint8_t>& data) {
+  absl::optional<std::vector<uint8_t>> parsed_response_bytes =
+      ExtractFidoDataFromJsonResponse(data);
+  if (!parsed_response_bytes.has_value()) {
+    LOG(ERROR) << "Failed to extract Fido data from JSON response.";
+    return BuildGetAssertionResponseError(
+        GetAssertionStatus::kMessagePayloadParseError, kCtap2ErrInvalidCBOR,
+        kCborDecoderUnknownError);
   }
 
-  std::move(callback).Run(mojom::FidoAssertionResponse::New(
-                              email, credential_id, auth_data, signature),
-                          absl::nullopt);
+  std::vector<unsigned char>& response_bytes = parsed_response_bytes.value();
+  if (response_bytes.size() < 2) {
+    LOG(ERROR) << "GetAssertionResponse requires a status code byte and "
+                  "response bytes. Data in size: "
+               << response_bytes.size();
+    return BuildGetAssertionResponseError(
+        GetAssertionStatus::kCtapResponseError, kCtap2ErrInvalidCBOR,
+        kCborDecoderUnknownError);
+  }
+  uint8_t ctap_status = response_bytes[0];
+  base::span<const uint8_t> cbor_bytes(response_bytes);
+  cbor_bytes = cbor_bytes.subspan(1);
+  if (ctap_status != kCtapDeviceResponseSuccess) {
+    LOG(ERROR) << "Ctap Device Response Status Code is not Success(0x00). Got: "
+               << ctap_status;
+    return BuildGetAssertionResponseError(
+        GetAssertionStatus::kCtapResponseError, ctap_status,
+        kCborDecoderUnknownError);
+  }
+  std::pair<int, absl::optional<cbor::Value>> decoded_values =
+      CborDecodeGetAssertionResponse(cbor_bytes);
+  if (decoded_values.first != kCborDecoderNoError) {
+    return BuildGetAssertionResponseError(GetAssertionStatus::kCborDecoderError,
+                                          ctap_status, decoded_values.first);
+  }
+  if (!decoded_values.second || !decoded_values.second->is_map()) {
+    LOG(ERROR) << "The CBOR decoded response values needs to be a valid CBOR "
+                  "Value Map.";
+    return BuildGetAssertionResponseError(GetAssertionStatus::kUnknownError,
+                                          ctap_status, decoded_values.first);
+  }
+  return ParseGetAssertionResponse(std::move(decoded_values.second.value()));
 }
 
 void QuickStartDecoder::DoDecodeBootstrapConfigurations(
-    const absl::optional<std::vector<uint8_t>>& data,
+    const std::vector<uint8_t>& data,
     DecodeBootstrapConfigurationsCallback callback) {
-  if (!data.has_value()) {
-    LOG(ERROR) << "No response bytes received.";
-    std::move(callback).Run(nullptr,
-                            mojom::QuickStartDecoderError::kEmptyMessage);
-    return;
-  }
-
-  QuickStartMessage::ReadResult read_result = QuickStartMessage::ReadMessage(
-      data.value(), QuickStartMessageType::kBootstrapConfigurations);
-
-  if (!read_result.has_value()) {
-    LOG(ERROR) << "Bootstrap Configurations decoder failed";
-    std::move(callback).Run(
-        nullptr, mojom::QuickStartDecoderError::kMessageDoesNotMatchSchema);
-  }
+  std::unique_ptr<QuickStartMessage> message = QuickStartMessage::ReadMessage(
+      data, QuickStartMessageType::kBootstrapConfigurations);
 
   base::Value::Dict* device_details =
-      read_result.value()->GetPayload()->FindDict(kDeviceDetailsKey);
+      message->GetPayload()->FindDict(kDeviceDetailsKey);
   if (!device_details) {
     LOG(ERROR)
         << "DeviceDetails cannot be found within BootstrapConfigurations.";
@@ -273,30 +241,24 @@ void QuickStartDecoder::DoDecodeBootstrapConfigurations(
 }
 
 void QuickStartDecoder::DecodeBootstrapConfigurations(
-    const absl::optional<std::vector<uint8_t>>& data,
+    const std::vector<uint8_t>& data,
     DecodeBootstrapConfigurationsCallback callback) {
   DoDecodeBootstrapConfigurations(data, std::move(callback));
 }
 
 void QuickStartDecoder::DecodeWifiCredentialsResponse(
-    const absl::optional<std::vector<uint8_t>>& data,
+    const std::vector<uint8_t>& data,
     DecodeWifiCredentialsResponseCallback callback) {
   DoDecodeWifiCredentialsResponse(data, std::move(callback));
 }
 
 void QuickStartDecoder::DecodeUserVerificationRequested(
-    const absl::optional<std::vector<uint8_t>>& data,
+    const std::vector<uint8_t>& data,
     DecodeUserVerificationRequestedCallback callback) {
-  if (!data.has_value()) {
-    LOG(ERROR) << "No response bytes received.";
-    std::move(callback).Run(nullptr,
-                            mojom::QuickStartDecoderError::kEmptyMessage);
-    return;
-  }
-
-  QuickStartMessage::ReadResult read_result = QuickStartMessage::ReadMessage(
-      data.value(), QuickStartMessageType::kQuickStartPayload);
-  if (!read_result.has_value()) {
+  std::unique_ptr<ash::quick_start::QuickStartMessage> message =
+      QuickStartMessage::ReadMessage(data,
+                                     QuickStartMessageType::kQuickStartPayload);
+  if (!message) {
     LOG(ERROR)
         << "Failed to read UserVerificationRequested as QuickStartMessage";
     std::move(callback).Run(nullptr,
@@ -305,7 +267,7 @@ void QuickStartDecoder::DecodeUserVerificationRequested(
   }
 
   absl::optional<bool> is_awaiting_user_verification =
-      read_result.value()->GetPayload()->FindBool(kAwaitingUserVerificationKey);
+      message->GetPayload()->FindBool(kAwaitingUserVerificationKey);
   if (!is_awaiting_user_verification.has_value()) {
     LOG(ERROR) << "UserVerificationRequested message does not include "
                   "await_user_verification";
@@ -320,19 +282,13 @@ void QuickStartDecoder::DecodeUserVerificationRequested(
 }
 
 void QuickStartDecoder::DecodeUserVerificationResult(
-    const absl::optional<std::vector<uint8_t>>& data,
+    const std::vector<uint8_t>& data,
     DecodeUserVerificationResultCallback callback) {
-  if (!data.has_value()) {
-    LOG(ERROR) << "No response bytes received.";
-    std::move(callback).Run(nullptr,
-                            mojom::QuickStartDecoderError::kEmptyMessage);
-    return;
-  }
+  std::unique_ptr<ash::quick_start::QuickStartMessage> message =
+      QuickStartMessage::ReadMessage(data,
+                                     QuickStartMessageType::kQuickStartPayload);
 
-  QuickStartMessage::ReadResult read_result = QuickStartMessage::ReadMessage(
-      data.value(), QuickStartMessageType::kQuickStartPayload);
-
-  if (!read_result.has_value()) {
+  if (!message) {
     LOG(ERROR) << "Failed to read UserVerificationResult as QuickStartMessage";
     std::move(callback).Run(nullptr,
                             mojom::QuickStartDecoderError::kUnableToReadAsJSON);
@@ -340,7 +296,7 @@ void QuickStartDecoder::DecodeUserVerificationResult(
   }
 
   absl::optional<int> user_verification_result_code =
-      read_result.value()->GetPayload()->FindInt(kUserVerificationResultKey);
+      message->GetPayload()->FindInt(kUserVerificationResultKey);
 
   if (!user_verification_result_code.has_value()) {
     LOG(ERROR) << "User Verification Result was not include in verification "
@@ -362,7 +318,7 @@ void QuickStartDecoder::DecodeUserVerificationResult(
   }
 
   absl::optional<bool> is_first_user_verification =
-      read_result.value()->GetPayload()->FindBool(kIsFirstUserVerificationKey);
+      message->GetPayload()->FindBool(kIsFirstUserVerificationKey);
   if (!is_first_user_verification.has_value()) {
     LOG(ERROR) << "Message does not contain key is_first_user_verification";
     std::move(callback).Run(
@@ -377,37 +333,25 @@ void QuickStartDecoder::DecodeUserVerificationResult(
 }
 
 void QuickStartDecoder::DoDecodeWifiCredentialsResponse(
-    const absl::optional<std::vector<uint8_t>>& data,
+    const std::vector<uint8_t>& data,
     DecodeWifiCredentialsResponseCallback callback) {
-  if (!data.has_value()) {
-    LOG(ERROR) << "No response bytes received.";
-    std::move(callback).Run(nullptr,
-                            mojom::QuickStartDecoderError::kEmptyMessage);
-    return;
-  }
+  std::unique_ptr<ash::quick_start::QuickStartMessage> message =
+      QuickStartMessage::ReadMessage(data,
+                                     QuickStartMessageType::kQuickStartPayload);
 
-  QuickStartMessage::ReadResult read_result = QuickStartMessage::ReadMessage(
-      data.value(), QuickStartMessageType::kQuickStartPayload);
-
-  if (!read_result.has_value()) {
+  if (!message) {
     LOG(ERROR) << "Message cannot be parsed as a JSON Dictionary.";
     std::move(callback).Run(nullptr,
                             mojom::QuickStartDecoderError::kUnableToReadAsJSON);
-    quick_start_metrics::RecordWifiTransferResult(
-        /*succeeded=*/false, /*failure_reason=*/quick_start_metrics::
-            WifiTransferResultFailureReason::kUnableToReadAsJSON);
     return;
   }
 
   base::Value::Dict* wifi_network_information =
-      read_result.value()->GetPayload()->FindDict(kWifiNetworkInformationKey);
+      message->GetPayload()->FindDict(kWifiNetworkInformationKey);
   if (!wifi_network_information) {
     LOG(ERROR) << "Wifi Network information not present in payload";
     std::move(callback).Run(
         nullptr, mojom::QuickStartDecoderError::kMessageDoesNotMatchSchema);
-    quick_start_metrics::RecordWifiTransferResult(
-        /*succeeded=*/false, /*failure_reason=*/quick_start_metrics::
-            WifiTransferResultFailureReason::kWifiNetworkInformationNotFound);
     return;
   }
 
@@ -416,9 +360,6 @@ void QuickStartDecoder::DoDecodeWifiCredentialsResponse(
     LOG(ERROR) << "SSID cannot be found within WifiCredentialsResponse.";
     std::move(callback).Run(
         nullptr, mojom::QuickStartDecoderError::kMessageDoesNotMatchSchema);
-    quick_start_metrics::RecordWifiTransferResult(
-        /*succeeded=*/false, /*failure_reason=*/quick_start_metrics::
-            WifiTransferResultFailureReason::kSsidNotFound);
     return;
   }
 
@@ -426,9 +367,6 @@ void QuickStartDecoder::DoDecodeWifiCredentialsResponse(
     LOG(ERROR) << "SSID has a length of 0.";
     std::move(callback).Run(
         nullptr, mojom::QuickStartDecoderError::kMessageDoesNotMatchSchema);
-    quick_start_metrics::RecordWifiTransferResult(
-        /*succeeded=*/false, /*failure_reason=*/quick_start_metrics::
-            WifiTransferResultFailureReason::kEmptySsid);
     return;
   }
 
@@ -439,9 +377,6 @@ void QuickStartDecoder::DoDecodeWifiCredentialsResponse(
         << "Security Type cannot be found within WifiCredentialsResponse";
     std::move(callback).Run(
         nullptr, mojom::QuickStartDecoderError::kMessageDoesNotMatchSchema);
-    quick_start_metrics::RecordWifiTransferResult(
-        /*succeeded=*/false, /*failure_reason=*/quick_start_metrics::
-            WifiTransferResultFailureReason::kSecurityTypeNotFound);
     return;
   }
 
@@ -449,13 +384,12 @@ void QuickStartDecoder::DoDecodeWifiCredentialsResponse(
       WifiSecurityTypeFromString(*security_type_string);
 
   if (!maybe_security_type.has_value()) {
-    LOG(ERROR) << "Security type was not a valid value.";
-    std::move(callback).Run(
-        nullptr, mojom::QuickStartDecoderError::kMessageDoesNotMatchSchema);
-    quick_start_metrics::RecordWifiTransferResult(
-        /*succeeded=*/false, /*failure_reason=*/quick_start_metrics::
-            WifiTransferResultFailureReason::kInvalidSecurityType);
-    return;
+    {
+      LOG(ERROR) << "Security type was not a valid value.";
+      std::move(callback).Run(
+          nullptr, mojom::QuickStartDecoderError::kMessageDoesNotMatchSchema);
+      return;
+    }
   }
 
   mojom::WifiSecurityType security_type = maybe_security_type.value();
@@ -469,9 +403,6 @@ void QuickStartDecoder::DoDecodeWifiCredentialsResponse(
     LOG(ERROR) << "Password is found but network security type is open.";
     std::move(callback).Run(
         nullptr, mojom::QuickStartDecoderError::kMessageDoesNotMatchSchema);
-    quick_start_metrics::RecordWifiTransferResult(
-        /*succeeded=*/false, /*failure_reason=*/quick_start_metrics::
-            WifiTransferResultFailureReason::kPasswordFoundAndOpenNetwork);
     return;
   }
 
@@ -481,10 +412,6 @@ void QuickStartDecoder::DoDecodeWifiCredentialsResponse(
                << security_type;
     std::move(callback).Run(
         nullptr, mojom::QuickStartDecoderError::kMessageDoesNotMatchSchema);
-    quick_start_metrics::RecordWifiTransferResult(
-        /*succeeded=*/false, /*failure_reason=*/quick_start_metrics::
-            WifiTransferResultFailureReason::
-                kPasswordNotFoundAndNotOpenNetwork);
     return;
   }
 
@@ -499,9 +426,6 @@ void QuickStartDecoder::DoDecodeWifiCredentialsResponse(
         << "Wifi Hide Status cannot be found within WifiCredentialsResponse";
     std::move(callback).Run(
         nullptr, mojom::QuickStartDecoderError::kMessageDoesNotMatchSchema);
-    quick_start_metrics::RecordWifiTransferResult(
-        /*succeeded=*/false, /*failure_reason=*/quick_start_metrics::
-            WifiTransferResultFailureReason::kWifiHideStatusNotFound);
     return;
   }
 
@@ -512,25 +436,24 @@ void QuickStartDecoder::DoDecodeWifiCredentialsResponse(
 }
 
 void QuickStartDecoder::DecodeGetAssertionResponse(
-    const absl::optional<std::vector<uint8_t>>& data,
+    const std::vector<uint8_t>& data,
     DecodeGetAssertionResponseCallback callback) {
-  DoDecodeGetAssertionResponse(std::move(data), std::move(callback));
+  std::move(callback).Run(DoDecodeGetAssertionResponse(data));
 }
 
 absl::optional<std::vector<uint8_t>>
 QuickStartDecoder::ExtractFidoDataFromJsonResponse(
     const std::vector<uint8_t>& data) {
-  QuickStartMessage::ReadResult read_result =
+  std::unique_ptr<ash::quick_start::QuickStartMessage> parsed_message =
       ash::quick_start::QuickStartMessage::ReadMessage(
           data, QuickStartMessageType::kSecondDeviceAuthPayload);
 
-  if (!read_result.has_value()) {
+  if (!parsed_message) {
     LOG(ERROR) << "MessagePayload cannot be parsed as a JSON Dictionary.";
     return absl::nullopt;
   }
 
-  base::Value::Dict* second_device_auth_payload =
-      read_result.value()->GetPayload();
+  base::Value::Dict* second_device_auth_payload = parsed_message->GetPayload();
   if (!second_device_auth_payload) {
     LOG(ERROR) << "secondDeviceAuthPayload cannot be found within Message.";
     return absl::nullopt;
@@ -543,42 +466,28 @@ QuickStartDecoder::ExtractFidoDataFromJsonResponse(
     return absl::nullopt;
   }
 
-  std::string base64_decoded_fido_message;
-
-  if (!base::Base64Decode(*fido_message, &base64_decoded_fido_message,
-                          base::Base64DecodePolicy::kForgiving)) {
-    LOG(ERROR) << "Failed to decode fidoMessage as a Base64 String";
-    return absl::nullopt;
-  }
-
-  return std::vector<uint8_t>(base64_decoded_fido_message.begin(),
-                              base64_decoded_fido_message.end());
+  return base::Base64Decode(*fido_message);
 }
 
 void QuickStartDecoder::DecodeNotifySourceOfUpdateResponse(
-    const absl::optional<std::vector<uint8_t>>& data,
+    const std::vector<uint8_t>& data,
     DecodeNotifySourceOfUpdateResponseCallback callback) {
   std::move(callback).Run(DoDecodeNotifySourceOfUpdateResponse(data));
 }
 
 absl::optional<bool> QuickStartDecoder::DoDecodeNotifySourceOfUpdateResponse(
-    const absl::optional<std::vector<uint8_t>>& data) {
-  if (!data.has_value()) {
-    LOG(ERROR) << "No response bytes received.";
-    return absl::nullopt;
-  }
+    const std::vector<uint8_t>& data) {
+  std::unique_ptr<ash::quick_start::QuickStartMessage> message =
+      QuickStartMessage::ReadMessage(data,
+                                     QuickStartMessageType::kQuickStartPayload);
 
-  QuickStartMessage::ReadResult read_result = QuickStartMessage::ReadMessage(
-      data.value(), QuickStartMessageType::kQuickStartPayload);
-
-  if (!read_result.has_value()) {
+  if (!message) {
     LOG(ERROR) << "Notify Source of Update message cannot be parsed as a JSON "
                   "Dictionary.";
     return absl::nullopt;
   }
 
-  return read_result.value()->GetPayload()->FindBool(
-      kNotifySourceOfUpdateAckKey);
+  return message->GetPayload()->FindBool(kNotifySourceOfUpdateAckKey);
 }
 
 }  // namespace ash::quick_start

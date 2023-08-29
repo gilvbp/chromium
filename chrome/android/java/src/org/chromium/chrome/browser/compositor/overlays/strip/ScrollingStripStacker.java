@@ -22,6 +22,8 @@ public class ScrollingStripStacker extends StripStacker {
                 if (!tabCreating) tab.setWidth(cachedTabWidth);
             }
             tab.setDrawY(tab.getOffsetY());
+            tab.setVisiblePercentage(1.f);
+            tab.setContentOffsetX(0.f);
         }
     }
 

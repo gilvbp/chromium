@@ -10,6 +10,7 @@
 #include <string>
 #include <utility>
 
+#include "base/mac/scoped_nsobject.h"
 #include "content/browser/renderer_host/popup_menu_helper_ios.h"
 #include "content/browser/renderer_host/render_widget_host_view_ios.h"
 #include "content/browser/web_contents/web_contents_impl.h"
@@ -34,11 +35,11 @@ void WebContentsViewIOS::InstallCreateHookForTests(
   g_create_render_widget_host_view = create_render_widget_host_view;
 }
 
-// This class holds strongly so we don't leak that in the header of the
-// WebContentsViewIOS.
+// This class holds a scoped_nsobject so we don't leak that in the header
+// of the WebContentsViewIOS.
 class WebContentsUIViewHolder {
  public:
-  UIScrollView* __strong view_;
+  base::scoped_nsobject<UIScrollView> view_;
 };
 
 std::unique_ptr<WebContentsView> CreateWebContentsView(
@@ -56,7 +57,8 @@ WebContentsViewIOS::WebContentsViewIOS(
     std::unique_ptr<WebContentsViewDelegate> delegate)
     : web_contents_(web_contents), delegate_(std::move(delegate)) {
   ui_view_ = std::make_unique<WebContentsUIViewHolder>();
-  ui_view_->view_ = [[UIScrollView alloc] init];
+  ui_view_->view_ =
+      base::scoped_nsobject<UIScrollView>([[UIScrollView alloc] init]);
   [ui_view_->view_ setScrollEnabled:NO];
   [ui_view_->view_ setAutoresizingMask:UIViewAutoresizingFlexibleWidth |
                                        UIViewAutoresizingFlexibleHeight];
@@ -65,7 +67,7 @@ WebContentsViewIOS::WebContentsViewIOS(
 WebContentsViewIOS::~WebContentsViewIOS() {}
 
 gfx::NativeView WebContentsViewIOS::GetNativeView() const {
-  return gfx::NativeView(ui_view_->view_);
+  return gfx::NativeView(ui_view_->view_.get());
 }
 
 gfx::NativeView WebContentsViewIOS::GetContentNativeView() const {
@@ -224,9 +226,6 @@ void WebContentsViewIOS::RenderViewHostChanged(RenderViewHost* old_host,
     static_cast<RenderWidgetHostViewIOS*>(rwhv)->UpdateNativeViewTree(
         GetNativeView());
   }
-  web_contents_->UpdateBrowserControlsState(cc::BrowserControlsState::kBoth,
-                                            cc::BrowserControlsState::kHidden,
-                                            false);
 }
 
 void WebContentsViewIOS::SetOverscrollControllerEnabled(bool enabled) {}

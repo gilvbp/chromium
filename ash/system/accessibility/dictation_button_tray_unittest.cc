@@ -33,7 +33,6 @@
 #include "base/test/metrics/user_action_tester.h"
 #include "base/test/scoped_feature_list.h"
 #include "base/time/time.h"
-#include "chromeos/constants/chromeos_features.h"
 #include "components/soda/soda_installer.h"
 #include "components/soda/soda_installer_impl_chromeos.h"
 #include "ui/accessibility/accessibility_features.h"
@@ -196,12 +195,12 @@ TEST_F(DictationButtonTrayTest, ActiveStateOnlyDuringDictation) {
   EXPECT_TRUE(GetTray()->GetEnabled());
 
   Shell::Get()->accelerator_controller()->PerformActionIfEnabled(
-      AcceleratorAction::kEnableOrToggleDictation, {});
+      AcceleratorAction::kToggleDictation, {});
   EXPECT_TRUE(controller->dictation_active());
   EXPECT_TRUE(GetTray()->is_active());
 
   Shell::Get()->accelerator_controller()->PerformActionIfEnabled(
-      AcceleratorAction::kEnableOrToggleDictation, {});
+      AcceleratorAction::kToggleDictation, {});
   EXPECT_FALSE(controller->dictation_active());
   EXPECT_FALSE(GetTray()->is_active());
 }
@@ -212,28 +211,18 @@ TEST_F(DictationButtonTrayTest, ImageIcons) {
   TestAccessibilityControllerClient client;
   controller->dictation().SetEnabled(true);
 
-  const bool is_jelly_enabled = chromeos::features::IsJellyEnabled();
-  const auto* color_provider = GetTray()->GetColorProvider();
-  const auto off_icon_color = color_provider->GetColor(
-      is_jelly_enabled
-          ? static_cast<ui::ColorId>(cros_tokens::kCrosSysOnSurface)
-          : kColorAshIconColorPrimary);
-  const auto on_icon_color = color_provider->GetColor(
-      is_jelly_enabled ? static_cast<ui::ColorId>(
-                             cros_tokens::kCrosSysSystemOnPrimaryContainer)
-                       : kColorAshIconColorPrimary);
-
+  SkColor color =
+      GetTray()->GetColorProvider()->GetColor(kColorAshIconColorPrimary);
   gfx::ImageSkia off_icon =
-      gfx::CreateVectorIcon(kDictationOffNewuiIcon, off_icon_color);
-  gfx::ImageSkia on_icon =
-      gfx::CreateVectorIcon(kDictationOnNewuiIcon, on_icon_color);
+      gfx::CreateVectorIcon(kDictationOffNewuiIcon, color);
+  gfx::ImageSkia on_icon = gfx::CreateVectorIcon(kDictationOnNewuiIcon, color);
 
   views::ImageView* view = GetImageView(GetTray());
   EXPECT_TRUE(gfx::test::AreBitmapsEqual(*view->GetImage().bitmap(),
                                          *off_icon.bitmap()));
 
   Shell::Get()->accelerator_controller()->PerformActionIfEnabled(
-      AcceleratorAction::kEnableOrToggleDictation, {});
+      AcceleratorAction::kToggleDictation, {});
 
   EXPECT_TRUE(gfx::test::AreBitmapsEqual(*view->GetImage().bitmap(),
                                          *on_icon.bitmap()));
@@ -250,7 +239,7 @@ TEST_F(DictationButtonTrayTest, DisabledWhenNoInputFocused) {
 
   // Action doesn't work because disabled.
   Shell::Get()->accelerator_controller()->PerformActionIfEnabled(
-      AcceleratorAction::kEnableOrToggleDictation, {});
+      AcceleratorAction::kToggleDictation, {});
   EXPECT_FALSE(controller->dictation_active());
   EXPECT_FALSE(tray->GetEnabled());
 

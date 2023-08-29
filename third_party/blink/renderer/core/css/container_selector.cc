@@ -29,14 +29,8 @@ ContainerSelector::ContainerSelector(AtomicString name,
   if (feature_flags & MediaQueryExpNode::kFeatureStyle) {
     has_style_query_ = true;
   }
-  if (feature_flags & MediaQueryExpNode::kFeatureSticky) {
+  if (feature_flags & MediaQueryExpNode::kFeatureState) {
     has_sticky_query_ = true;
-  }
-  if (feature_flags & MediaQueryExpNode::kFeatureSnap) {
-    has_snap_query_ = true;
-  }
-  if (feature_flags & MediaQueryExpNode::kFeatureUnknown) {
-    has_unknown_feature_ = true;
   }
 }
 
@@ -63,9 +57,6 @@ unsigned ContainerSelector::Type(WritingMode writing_mode) const {
   }
   if (has_sticky_query_) {
     type |= kContainerTypeSticky;
-  }
-  if (has_snap_query_) {
-    type |= kContainerTypeSnap;
   }
   return type;
 }

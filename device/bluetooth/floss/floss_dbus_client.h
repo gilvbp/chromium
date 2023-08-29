@@ -25,7 +25,7 @@
 namespace floss {
 
 extern DEVICE_BLUETOOTH_EXPORT int kDBusTimeoutMs;
-extern DEVICE_BLUETOOTH_EXPORT int kAdapterEnabledTimeoutMs;
+extern DEVICE_BLUETOOTH_EXPORT int kAdapterPowerTimeoutMs;
 
 // TODO(b/189499077) - Expose via floss package
 extern DEVICE_BLUETOOTH_EXPORT const char kAdapterService[];
@@ -34,7 +34,6 @@ extern DEVICE_BLUETOOTH_EXPORT const char kManagerService[];
 extern DEVICE_BLUETOOTH_EXPORT const char kAdapterLoggingObjectFormat[];
 extern DEVICE_BLUETOOTH_EXPORT const char kAdapterObjectFormat[];
 extern DEVICE_BLUETOOTH_EXPORT const char kBatteryManagerObjectFormat[];
-extern DEVICE_BLUETOOTH_EXPORT const char kBluetoothTelephonyFormat[];
 extern DEVICE_BLUETOOTH_EXPORT const char kGattObjectFormat[];
 extern DEVICE_BLUETOOTH_EXPORT const char kManagerObject[];
 extern DEVICE_BLUETOOTH_EXPORT const char kMediaObjectFormat[];
@@ -43,7 +42,6 @@ extern DEVICE_BLUETOOTH_EXPORT const char kAdapterInterface[];
 extern DEVICE_BLUETOOTH_EXPORT const char kAdapterLoggingInterface[];
 extern DEVICE_BLUETOOTH_EXPORT const char kAdminInterface[];
 extern DEVICE_BLUETOOTH_EXPORT const char kBatteryManagerInterface[];
-extern DEVICE_BLUETOOTH_EXPORT const char kBluetoothTelephonyInterface[];
 extern DEVICE_BLUETOOTH_EXPORT const char kExperimentalInterface[];
 extern DEVICE_BLUETOOTH_EXPORT const char kGattInterface[];
 extern DEVICE_BLUETOOTH_EXPORT const char kManagerInterface[];
@@ -71,9 +69,7 @@ extern DEVICE_BLUETOOTH_EXPORT const char kGetBondState[];
 extern DEVICE_BLUETOOTH_EXPORT const char kConnectAllEnabledProfiles[];
 extern DEVICE_BLUETOOTH_EXPORT const char kDisconnectAllEnabledProfiles[];
 extern DEVICE_BLUETOOTH_EXPORT const char kRegisterCallback[];
-extern DEVICE_BLUETOOTH_EXPORT const char kUnregisterCallback[];
 extern DEVICE_BLUETOOTH_EXPORT const char kRegisterConnectionCallback[];
-extern DEVICE_BLUETOOTH_EXPORT const char kUnregisterConnectionCallback[];
 extern DEVICE_BLUETOOTH_EXPORT const char kRegisterScanner[];
 extern DEVICE_BLUETOOTH_EXPORT const char kUnregisterScanner[];
 extern DEVICE_BLUETOOTH_EXPORT const char kRegisterScannerCallback[];
@@ -136,7 +132,6 @@ extern DEVICE_BLUETOOTH_EXPORT const char kOnDefaultAdapterChanged[];
 
 namespace socket_manager {
 extern DEVICE_BLUETOOTH_EXPORT const char kRegisterCallback[];
-extern DEVICE_BLUETOOTH_EXPORT const char kUnregisterCallback[];
 extern DEVICE_BLUETOOTH_EXPORT const char kListenUsingInsecureL2capChannel[];
 extern DEVICE_BLUETOOTH_EXPORT const char kListenUsingInsecureL2capLeChannel[];
 extern DEVICE_BLUETOOTH_EXPORT const char
@@ -227,7 +222,6 @@ extern DEVICE_BLUETOOTH_EXPORT const char kOnServerSubrateChange[];
    //
 namespace advertiser {
 extern DEVICE_BLUETOOTH_EXPORT const char kRegisterCallback[];
-extern DEVICE_BLUETOOTH_EXPORT const char kUnregisterCallback[];
 extern DEVICE_BLUETOOTH_EXPORT const char kStartAdvertisingSet[];
 extern DEVICE_BLUETOOTH_EXPORT const char kStopAdvertisingSet[];
 extern DEVICE_BLUETOOTH_EXPORT const char kGetOwnAddress[];
@@ -256,15 +250,10 @@ extern DEVICE_BLUETOOTH_EXPORT const char kOnPeriodicAdvertisingEnabled[];
 namespace battery_manager {
 extern DEVICE_BLUETOOTH_EXPORT const char kCallbackInterface[];
 extern DEVICE_BLUETOOTH_EXPORT const char kRegisterBatteryCallback[];
-extern DEVICE_BLUETOOTH_EXPORT const char kUnregisterBatteryCallback[];
 extern DEVICE_BLUETOOTH_EXPORT const char kGetBatteryInformation[];
 
 extern DEVICE_BLUETOOTH_EXPORT const char kOnBatteryInfoUpdated[];
 }  // namespace battery_manager
-
-namespace bluetooth_telephony {
-extern DEVICE_BLUETOOTH_EXPORT const char kSetPhoneOpsEnabled[];
-}  // namespace bluetooth_telephony
 
 namespace experimental {
 extern DEVICE_BLUETOOTH_EXPORT const char kSetLLPrivacy[];
@@ -456,7 +445,6 @@ class DEVICE_BLUETOOTH_EXPORT FlossDBusClient {
     kJniEnvironmentError,
     kJniThreadAttachError,
     kWakelockError,
-    kTimeout,
   };
 
   enum class BluetoothTransport {
@@ -491,9 +479,6 @@ class DEVICE_BLUETOOTH_EXPORT FlossDBusClient {
 
   // Convert adapter number to battery_manager object path.
   static dbus::ObjectPath GenerateBatteryManagerPath(int adapter_index);
-
-  // Convert adapter number to bluetooth_telephony object path.
-  static dbus::ObjectPath GenerateBluetoothTelephonyPath(int adapter_index);
 
   // Convert adapter number to admin object path.
   static dbus::ObjectPath GenerateAdminPath(int adapter_index);
@@ -801,8 +786,8 @@ class DEVICE_BLUETOOTH_EXPORT FlossDBusClient {
     dbus::ObjectProxy* object_proxy =
         bus->GetObjectProxy(service_name, object_path);
     if (!object_proxy) {
-      VLOG(1) << "Object proxy does not exist when trying to call "
-              << method_name;
+      LOG(ERROR) << "Object proxy does not exist when trying to call "
+                 << method_name;
       std::move(callback).Run(base::unexpected(
           Error(std::string(kErrorDBus), "Invalid object proxy")));
       return;

@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "content/public/common/input/native_web_keyboard_event.h"
+#include "content/public/browser/native_web_keyboard_event.h"
 
 #include "base/android/jni_android.h"
 #include "content/browser/renderer_host/input/web_input_event_builders_android.h"
@@ -16,14 +16,12 @@ NativeWebKeyboardEvent::NativeWebKeyboardEvent(blink::WebInputEvent::Type type,
                                                base::TimeTicks timestamp)
     : WebKeyboardEvent(type, modifiers, timestamp),
       os_event(nullptr),
-      skip_if_unhandled(false) {}
+      skip_in_browser(false) {}
 
 NativeWebKeyboardEvent::NativeWebKeyboardEvent(
     const blink::WebKeyboardEvent& web_event,
     gfx::NativeView native_view)
-    : WebKeyboardEvent(web_event),
-      os_event(nullptr),
-      skip_if_unhandled(false) {}
+    : WebKeyboardEvent(web_event), os_event(nullptr), skip_in_browser(false) {}
 
 NativeWebKeyboardEvent::NativeWebKeyboardEvent(
     JNIEnv* env,
@@ -45,24 +43,23 @@ NativeWebKeyboardEvent::NativeWebKeyboardEvent(
                                                       unicode_character,
                                                       is_system_key)),
       os_event(nullptr),
-      skip_if_unhandled(false) {
-  if (!android_key_event.is_null()) {
+      skip_in_browser(false) {
+  if (!android_key_event.is_null())
     os_event.Reset(android_key_event);
-  }
 }
 
 NativeWebKeyboardEvent::NativeWebKeyboardEvent(
     const NativeWebKeyboardEvent& other)
     : WebKeyboardEvent(other),
       os_event(other.os_event),
-      skip_if_unhandled(other.skip_if_unhandled) {}
+      skip_in_browser(other.skip_in_browser) {}
 
 NativeWebKeyboardEvent& NativeWebKeyboardEvent::operator=(
     const NativeWebKeyboardEvent& other) {
   WebKeyboardEvent::operator=(other);
 
   os_event = other.os_event;
-  skip_if_unhandled = other.skip_if_unhandled;
+  skip_in_browser = other.skip_in_browser;
 
   return *this;
 }

@@ -12,7 +12,6 @@
 #include "components/password_manager/core/browser/password_store_sync.h"
 #include "components/sync/model/metadata_batch.h"
 #include "components/sync/model/model_type_sync_bridge.h"
-#include "components/sync/model/wipe_model_upon_sync_disabled_behavior.h"
 
 namespace syncer {
 class MetadataChangeList;
@@ -37,8 +36,6 @@ class PasswordSyncBridge : public syncer::ModelTypeSyncBridge {
   PasswordSyncBridge(
       std::unique_ptr<syncer::ModelTypeChangeProcessor> change_processor,
       PasswordStoreSync* password_store_sync,
-      syncer::WipeModelUponSyncDisabledBehavior
-          wipe_model_upon_sync_disabled_behavior,
       const base::RepeatingClosure& sync_enabled_or_disabled_cb);
 
   PasswordSyncBridge(const PasswordSyncBridge&) = delete;
@@ -96,10 +93,6 @@ class PasswordSyncBridge : public syncer::ModelTypeSyncBridge {
 
   // Password store responsible for persistence.
   const raw_ptr<PasswordStoreSync> password_store_sync_;
-
-  syncer::WipeModelUponSyncDisabledBehavior
-      wipe_model_upon_sync_disabled_behavior_ =
-          syncer::WipeModelUponSyncDisabledBehavior::kNever;
 
   base::RepeatingClosure sync_enabled_or_disabled_cb_;
 

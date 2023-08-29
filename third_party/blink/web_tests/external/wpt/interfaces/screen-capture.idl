@@ -13,7 +13,7 @@ enum CaptureStartFocusBehavior {
 };
 
 [Exposed=Window, SecureContext]
-interface CaptureController : EventTarget {
+interface CaptureController {
   constructor();
   undefined setFocusBehavior(CaptureStartFocusBehavior focusBehavior);
 };

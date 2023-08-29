@@ -98,7 +98,6 @@ TEST_F(InstallPlaceholderCommandTest, InstallPlaceholderWithOverrideIconUrl) {
       std::make_unique<testing::StrictMock<MockDataRetriever>>();
 
   bool skip_page_favicons = true;
-  bool fail_all_if_any_fail = false;
   SkBitmap bitmap;
   std::vector<gfx::Size> icon_sizes(1, gfx::Size(kIconSize, kIconSize));
   bitmap.allocN32Pixels(kIconSize, kIconSize);
@@ -106,11 +105,10 @@ TEST_F(InstallPlaceholderCommandTest, InstallPlaceholderWithOverrideIconUrl) {
   IconsMap icons = {{icon_url, {bitmap}}};
   DownloadedIconsHttpResults http_result = {
       {icon_url, net::HttpStatusCode::HTTP_OK}};
-  EXPECT_CALL(
-      *data_retriever,
-      GetIcons(testing::_, testing::ElementsAre(icon_url), skip_page_favicons,
-               fail_all_if_any_fail, base::test::IsNotNullCallback()))
-      .WillOnce(base::test::RunOnceCallback<4>(
+  EXPECT_CALL(*data_retriever,
+              GetIcons(testing::_, testing::ElementsAre(icon_url),
+                       skip_page_favicons, base::test::IsNotNullCallback()))
+      .WillOnce(base::test::RunOnceCallback<3>(
           IconsDownloadedResult::kCompleted, std::move(icons), http_result));
 
   auto command = std::make_unique<InstallPlaceholderCommand>(

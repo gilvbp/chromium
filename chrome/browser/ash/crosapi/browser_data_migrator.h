@@ -77,9 +77,11 @@ class BrowserDataMigrator {
 
   virtual ~BrowserDataMigrator() = default;
 
-  // Carries out the migration. It needs to be called on UI thread. |callback|
-  // will be called at the end of the migration procedure.
-  virtual void Migrate(MigrateCallback callback) = 0;
+  // Carries out the migration with the mode specified by `MigrationMode`. It
+  // needs to be called on UI thread. |callback| will be called on the end of
+  // the migration procedure.
+  virtual void Migrate(crosapi::browser_util::MigrationMode mode,
+                       MigrateCallback callback) = 0;
 
   // Cancels the migration. This should be called on UI thread.
   // If this is called during the migration, it is expected that |callback|
@@ -178,7 +180,8 @@ class BrowserDataMigratorImpl : public BrowserDataMigrator {
       base::OnceCallback<void(bool, const absl::optional<uint64_t>&)> callback);
 
   // `BrowserDataMigrator` methods.
-  void Migrate(MigrateCallback callback) override;
+  void Migrate(crosapi::browser_util::MigrationMode mode,
+               MigrateCallback callback) override;
   void Cancel() override;
 
   // Registers boolean pref `kCheckForMigrationOnRestart` with default as false.
@@ -203,8 +206,6 @@ class BrowserDataMigratorImpl : public BrowserDataMigrator {
                            MaybeRestartToMigrateWithMigrationStep);
   FRIEND_TEST_ALL_PREFIXES(BrowserDataMigratorRestartTest,
                            MaybeRestartToMigrateMoveAfterCopy);
-  FRIEND_TEST_ALL_PREFIXES(BrowserDataMigratorRestartTest,
-                           MaybeRestartToMigrateSecondaryUser);
 
   // The common implementation of `MaybeRestartToMigrate` and
   // `MaybeRestartToMigrateWithDiskCheck`.
@@ -247,7 +248,9 @@ class BrowserDataMigratorImpl : public BrowserDataMigrator {
       crosapi::browser_util::PolicyInitState policy_init_state);
 
   // Called on UI thread once migration is finished.
-  void MigrateInternalFinishedUIThread(MigrationResult result);
+  void MigrateInternalFinishedUIThread(
+      crosapi::browser_util::MigrationMode mode,
+      MigrationResult result);
 
   // Path to the original profile data directory, which is directly under the
   // user data directory.

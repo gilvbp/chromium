@@ -7,11 +7,10 @@
 #include "base/metrics/histogram_functions.h"
 #include "base/trace_event/trace_event.h"
 #include "third_party/blink/public/common/features.h"
-#include "third_party/blink/renderer/bindings/modules/v8/v8_canvas_font_stretch.h"
-#include "third_party/blink/renderer/bindings/modules/v8/v8_canvas_text_rendering.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_union_gpucanvascontext_imagebitmaprenderingcontext_offscreencanvasrenderingcontext2d_webgl2renderingcontext_webglrenderingcontext.h"
 #include "third_party/blink/renderer/core/css/offscreen_font_selector.h"
 #include "third_party/blink/renderer/core/css/parser/css_parser.h"
+#include "third_party/blink/renderer/core/css/properties/computed_style_utils.h"
 #include "third_party/blink/renderer/core/css/resolver/font_style_resolver.h"
 #include "third_party/blink/renderer/core/execution_context/execution_context.h"
 #include "third_party/blink/renderer/core/frame/local_dom_window.h"
@@ -166,6 +165,11 @@ bool OffscreenCanvasRenderingContext2D::OriginClean() const {
 
 void OffscreenCanvasRenderingContext2D::SetOriginTainted() {
   Host()->SetOriginTainted();
+}
+
+bool OffscreenCanvasRenderingContext2D::WouldTaintOrigin(
+    CanvasImageSource* source) {
+  return CanvasRenderingContext::WouldTaintOrigin(source);
 }
 
 int OffscreenCanvasRenderingContext2D::Width() const {
@@ -367,17 +371,48 @@ void OffscreenCanvasRenderingContext2D::WillOverwriteCanvas() {
   GetCanvasResourceProvider()->SkipQueuedDrawCommands();
 }
 
-bool OffscreenCanvasRenderingContext2D::ResolveFont(const String& new_font) {
+String OffscreenCanvasRenderingContext2D::font() const {
+  if (!GetState().HasRealizedFont())
+    return kDefaultFont;
+
+  StringBuilder serialized_font;
+  const FontDescription& font_description = GetState().GetFontDescription();
+
+  if (font_description.Style() == ItalicSlopeValue())
+    serialized_font.Append("italic ");
+  if (font_description.Weight() == BoldWeightValue())
+    serialized_font.Append("bold ");
+  if (font_description.VariantCaps() == FontDescription::kSmallCaps)
+    serialized_font.Append("small-caps ");
+
+  serialized_font.AppendNumber(font_description.ComputedPixelSize());
+  serialized_font.Append("px ");
+
+  serialized_font.Append(
+      ComputedStyleUtils::ValueForFontFamily(font_description.Family())
+          ->CssText());
+
+  return serialized_font.ToString();
+}
+
+void OffscreenCanvasRenderingContext2D::setFont(const String& new_font) {
+  if (GetState().HasRealizedFont() && new_font == GetState().UnparsedFont())
+    return;
+  if (UNLIKELY(identifiability_study_helper_.ShouldUpdateBuilder())) {
+    identifiability_study_helper_.UpdateBuilder(
+        CanvasOps::kSetFont, IdentifiabilityBenignStringToken(new_font));
+  }
+
   OffscreenFontCache& font_cache = GetOffscreenFontCache();
+
   FontDescription* cached_font = font_cache.GetFont(new_font);
   if (cached_font) {
     GetState().SetFont(*cached_font, Host()->GetFontSelector());
   } else {
     auto* style =
         CSSParser::ParseFont(new_font, Host()->GetTopExecutionContext());
-    if (!style) {
-      return false;
-    }
+    if (!style)
+      return;
 
     FontDescription desc =
         FontStyleResolver::ComputeFont(*style, Host()->GetFontSelector());
@@ -385,7 +420,7 @@ bool OffscreenCanvasRenderingContext2D::ResolveFont(const String& new_font) {
     font_cache.AddFont(new_font, desc);
     GetState().SetFont(desc, Host()->GetFontSelector());
   }
-  return true;
+  GetState().SetUnparsedFont(new_font);
 }
 
 static inline TextDirection ToTextDirection(
@@ -442,17 +477,24 @@ void OffscreenCanvasRenderingContext2D::setTextRendering(
   if (!GetState().HasRealizedFont())
     setFont(font());
 
-  absl::optional<blink::V8CanvasTextRendering> text_value =
-      V8CanvasTextRendering::Create(text_rendering_string);
+  TextRenderingMode text_rendering_mode;
+  String text_rendering = text_rendering_string.LowerASCII();
 
-  if (!text_value.has_value()) {
+  if (text_rendering == kAutoRendering)
+    text_rendering_mode = TextRenderingMode::kAutoTextRendering;
+  else if (text_rendering == kOptimizeSpeedRendering)
+    text_rendering_mode = TextRenderingMode::kOptimizeSpeed;
+  else if (text_rendering == kOptimizeLegibilityRendering)
+    text_rendering_mode = TextRenderingMode::kOptimizeLegibility;
+  else if (text_rendering == kGeometricPrecisionRendering)
+    text_rendering_mode = TextRenderingMode::kGeometricPrecision;
+  else
     return;
-  }
 
-  if (GetState().GetTextRendering() == text_value.value()) {
+  if (GetState().GetTextRendering() == text_rendering_mode)
     return;
-  }
-  GetState().SetTextRendering(text_value.value(), Host()->GetFontSelector());
+
+  GetState().SetTextRendering(text_rendering_mode, Host()->GetFontSelector());
 }
 
 void OffscreenCanvasRenderingContext2D::setDirection(
@@ -480,15 +522,15 @@ void OffscreenCanvasRenderingContext2D::setFontKerning(
   if (!GetState().HasRealizedFont())
     setFont(font());
   FontDescription::Kerning kerning;
-  if (font_kerning_string == kAutoKerningString) {
+  String font_kerning = font_kerning_string.LowerASCII();
+  if (font_kerning == kAutoKerningString)
     kerning = FontDescription::kAutoKerning;
-  } else if (font_kerning_string == kNoneKerningString) {
+  else if (font_kerning == kNoneKerningString)
     kerning = FontDescription::kNoneKerning;
-  } else if (font_kerning_string == kNormalKerningString) {
+  else if (font_kerning == kNormalKerningString)
     kerning = FontDescription::kNormalKerning;
-  } else {
+  else
     return;
-  }
 
   if (GetState().GetFontKerning() == kerning)
     return;
@@ -505,16 +547,33 @@ void OffscreenCanvasRenderingContext2D::setFontStretch(
   if (!GetState().HasRealizedFont())
     setFont(font());
 
-  absl::optional<blink::V8CanvasFontStretch> font_value =
-      V8CanvasFontStretch::Create(font_stretch);
+  String font_stretch_string = font_stretch.LowerASCII();
+  FontSelectionValue stretch_vale;
+  if (font_stretch_string == kUltraCondensedString)
+    stretch_vale = UltraCondensedWidthValue();
+  else if (font_stretch_string == kExtraCondensedString)
+    stretch_vale = ExtraCondensedWidthValue();
+  else if (font_stretch_string == kCondensedString)
+    stretch_vale = CondensedWidthValue();
+  else if (font_stretch_string == kSemiCondensedString)
+    stretch_vale = SemiCondensedWidthValue();
+  else if (font_stretch_string == kNormalStretchString)
+    stretch_vale = NormalWidthValue();
+  else if (font_stretch_string == kSemiExpandedString)
+    stretch_vale = SemiExpandedWidthValue();
+  else if (font_stretch_string == kExpandedString)
+    stretch_vale = ExpandedWidthValue();
+  else if (font_stretch_string == kExtraExpandedString)
+    stretch_vale = ExtraExpandedWidthValue();
+  else if (font_stretch_string == kUltraExpandedString)
+    stretch_vale = UltraExpandedWidthValue();
+  else
+    return;
 
-  if (!font_value.has_value()) {
+  if (GetState().GetFontStretch() == stretch_vale)
     return;
-  }
-  if (GetState().GetFontStretch() == font_value.value()) {
-    return;
-  }
-  GetState().SetFontStretch(font_value.value(), Host()->GetFontSelector());
+
+  GetState().SetFontStretch(stretch_vale, Host()->GetFontSelector());
 }
 
 void OffscreenCanvasRenderingContext2D::setFontVariantCaps(
@@ -526,23 +585,23 @@ void OffscreenCanvasRenderingContext2D::setFontVariantCaps(
   if (!GetState().HasRealizedFont())
     setFont(font());
   FontDescription::FontVariantCaps variant_caps;
-  if (font_variant_caps_string == kNormalVariantString) {
+  String variant_caps_lower = font_variant_caps_string.LowerASCII();
+  if (variant_caps_lower == kNormalVariantString)
     variant_caps = FontDescription::kCapsNormal;
-  } else if (font_variant_caps_string == kSmallCapsVariantString) {
+  else if (variant_caps_lower == kSmallCapsVariantString)
     variant_caps = FontDescription::kSmallCaps;
-  } else if (font_variant_caps_string == kAllSmallCapsVariantString) {
+  else if (variant_caps_lower == kAllSmallCapsVariantString)
     variant_caps = FontDescription::kAllSmallCaps;
-  } else if (font_variant_caps_string == kPetiteVariantString) {
+  else if (variant_caps_lower == kPetiteVariantString)
     variant_caps = FontDescription::kPetiteCaps;
-  } else if (font_variant_caps_string == kAllPetiteVariantString) {
+  else if (variant_caps_lower == kAllPetiteVariantString)
     variant_caps = FontDescription::kAllPetiteCaps;
-  } else if (font_variant_caps_string == kUnicaseVariantString) {
+  else if (variant_caps_lower == kUnicaseVariantString)
     variant_caps = FontDescription::kUnicase;
-  } else if (font_variant_caps_string == kTitlingCapsVariantString) {
+  else if (variant_caps_lower == kTitlingCapsVariantString)
     variant_caps = FontDescription::kTitlingCaps;
-  } else {
+  else
     return;
-  }
 
   if (GetState().GetFontVariantCaps() == variant_caps)
     return;

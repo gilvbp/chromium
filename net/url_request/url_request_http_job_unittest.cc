@@ -1799,7 +1799,29 @@ TEST_F(URLRequestHttpJobTest, GetFirstPartySetsCacheFilterMatchInfo) {
   ResetContentCount();
 }
 
-TEST_F(URLRequestHttpJobTest, SetPartitionedCookie) {
+class PartitionedCookiesURLRequestHttpJobTest
+    : public URLRequestHttpJobTest,
+      public testing::WithParamInterface<bool> {
+ protected:
+  // testing::Test
+  void SetUp() override {
+    if (PartitionedCookiesDisabled()) {
+      scoped_feature_list_.InitAndDisableFeature(features::kPartitionedCookies);
+    }
+    URLRequestHttpJobTest::SetUp();
+  }
+
+  bool PartitionedCookiesDisabled() { return GetParam(); }
+
+ private:
+  base::test::ScopedFeatureList scoped_feature_list_;
+};
+
+INSTANTIATE_TEST_SUITE_P(/* no label */,
+                         PartitionedCookiesURLRequestHttpJobTest,
+                         testing::Bool());
+
+TEST_P(PartitionedCookiesURLRequestHttpJobTest, SetPartitionedCookie) {
   EmbeddedTestServer https_test(EmbeddedTestServer::TYPE_HTTPS);
   https_test.AddDefaultHandlers(base::FilePath());
   ASSERT_TRUE(https_test.Start());
@@ -1852,7 +1874,11 @@ TEST_F(URLRequestHttpJobTest, SetPartitionedCookie) {
     req->set_isolation_info(kOtherTestIsolationInfo);
     req->Start();
     delegate.RunUntilComplete();
-    EXPECT_EQ("None", delegate.data_received());
+    if (PartitionedCookiesDisabled()) {
+      EXPECT_EQ("__Host-foo=bar", delegate.data_received());
+    } else {
+      EXPECT_EQ("None", delegate.data_received());
+    }
   }
 
   {  // Test request from same top-level eTLD+1 but different scheme. Note that
@@ -1870,11 +1896,15 @@ TEST_F(URLRequestHttpJobTest, SetPartitionedCookie) {
     req->set_isolation_info(kHttpTestIsolationInfo);
     req->Start();
     delegate.RunUntilComplete();
-    EXPECT_EQ("None", delegate.data_received());
+    if (PartitionedCookiesDisabled()) {
+      EXPECT_EQ("__Host-foo=bar", delegate.data_received());
+    } else {
+      EXPECT_EQ("None", delegate.data_received());
+    }
   }
 }
 
-TEST_F(URLRequestHttpJobTest, PartitionedCookiePrivacyMode) {
+TEST_P(PartitionedCookiesURLRequestHttpJobTest, PrivacyMode) {
   EmbeddedTestServer https_test(EmbeddedTestServer::TYPE_HTTPS);
   https_test.AddDefaultHandlers(base::FilePath());
   ASSERT_TRUE(https_test.Start());
@@ -1927,9 +1957,14 @@ TEST_F(URLRequestHttpJobTest, PartitionedCookiePrivacyMode) {
     req->set_isolation_info(kTestIsolationInfo);
     req->Start();
     delegate.RunUntilComplete();
-    EXPECT_EQ("__Host-partitioned=0", delegate.data_received());
+    EXPECT_EQ(PartitionedCookiesDisabled() ? "None" : "__Host-partitioned=0",
+              delegate.data_received());
     auto want_exclusion_reasons =
-        std::vector<CookieInclusionStatus::ExclusionReason>{};
+        PartitionedCookiesDisabled()
+            ? std::vector<CookieInclusionStatus::
+                              ExclusionReason>{CookieInclusionStatus::
+                                                   EXCLUDE_USER_PREFERENCES}
+            : std::vector<CookieInclusionStatus::ExclusionReason>{};
 
     EXPECT_THAT(
         req->maybe_sent_cookies(),

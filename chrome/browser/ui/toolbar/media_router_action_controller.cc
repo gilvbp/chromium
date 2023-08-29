@@ -167,6 +167,10 @@ MediaRouterActionController::MediaRouterActionController(
       prefs::kShowCastIconInToolbar,
       base::BindRepeating(&MediaRouterActionController::MaybeAddOrRemoveAction,
                           base::Unretained(this)));
+  if (!profile_->IsOffTheRecord()) {
+    media_router::MediaRouterMetrics::RecordIconStateAtInit(
+        MediaRouterActionController::GetAlwaysShowActionPref(profile_));
+  }
 }
 
 void MediaRouterActionController::MaybeAddOrRemoveAction() {

@@ -20,7 +20,6 @@ import android.graphics.RectF;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Handler;
-import android.text.InputType;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.SpannableStringBuilder;
@@ -48,8 +47,6 @@ import org.chromium.base.ApiCompatibilityUtils;
 import org.chromium.base.Callback;
 import org.chromium.base.ContextUtils;
 import org.chromium.chrome.browser.flags.ChromeFeatureList;
-import org.chromium.components.autofill.ServerFieldType;
-import org.chromium.components.autofill.payments.LegalMessageLine;
 import org.chromium.ui.text.NoUnderlineClickableSpan;
 import org.chromium.ui.text.SpanApplier;
 import org.chromium.url.GURL;
@@ -94,16 +91,11 @@ public class AutofillUiUtils {
         int NONE = 7;
     }
 
-    /**
-     * Different sizes in which we show the credit card art images. Update the {@code NUM_SIZES}
-     * entry when adding/removing entries.
-     */
     @IntDef({CardIconSize.SMALL, CardIconSize.LARGE})
     @Retention(RetentionPolicy.SOURCE)
     public @interface CardIconSize {
         int SMALL = 0;
         int LARGE = 1;
-        int NUM_SIZES = 2;
     }
 
     /**
@@ -695,28 +687,5 @@ public class AutofillUiUtils {
         TextView cardLabelView = parentView.findViewById(R.id.card_label);
         cardLabelView.setText(cardLabel);
         cardLabelView.setTextAppearance(cardLabelTextAppearance);
-    }
-
-    public static int getInputTypeForField(@ServerFieldType int type) {
-        switch (type) {
-            case ServerFieldType.NAME_FULL:
-                return InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_WORDS
-                        | InputType.TYPE_TEXT_VARIATION_PERSON_NAME;
-            case ServerFieldType.ADDRESS_HOME_SORTING_CODE:
-            case ServerFieldType.ADDRESS_HOME_ZIP:
-                return InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS
-                        | InputType.TYPE_TEXT_VARIATION_POSTAL_ADDRESS;
-            case ServerFieldType.PHONE_HOME_WHOLE_NUMBER:
-                // Show the keyboard with numbers and phone-related symbols.
-                return InputType.TYPE_CLASS_PHONE;
-            case ServerFieldType.ADDRESS_HOME_STREET_ADDRESS:
-                return InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_WORDS
-                        | InputType.TYPE_TEXT_FLAG_MULTI_LINE
-                        | InputType.TYPE_TEXT_VARIATION_POSTAL_ADDRESS;
-            case ServerFieldType.EMAIL_ADDRESS:
-                return InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS;
-            default:
-                return InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_WORDS;
-        }
     }
 }

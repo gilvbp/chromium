@@ -68,12 +68,10 @@ class PromoServiceTest : public testing::Test {
     return test_url_loader_factory_;
   }
 
- protected:
-  // Required to run tests from UI and threads.
-  content::BrowserTaskEnvironment task_environment_{
-      base::test::TaskEnvironment::ThreadPoolExecutionMode::QUEUED};
-
  private:
+  // Required to run tests from UI and threads.
+  content::BrowserTaskEnvironment task_environment_;
+
   data_decoder::test::InProcessDataDecoder in_process_data_decoder_;
 
   network::TestURLLoaderFactory test_url_loader_factory_;
@@ -91,7 +89,7 @@ TEST_F(PromoServiceTest, PromoDataNetworkError) {
   EXPECT_EQ(service()->promo_status(), PromoService::Status::NOT_UPDATED);
 
   service()->Refresh();
-  task_environment_.RunUntilIdle();
+  base::RunLoop().RunUntilIdle();
 
   EXPECT_EQ(service()->promo_data(), absl::nullopt);
   EXPECT_EQ(service()->promo_status(), PromoService::Status::TRANSIENT_ERROR);
@@ -105,7 +103,7 @@ TEST_F(PromoServiceTest, BadPromoResponse) {
   EXPECT_EQ(service()->promo_status(), PromoService::Status::NOT_UPDATED);
 
   service()->Refresh();
-  task_environment_.RunUntilIdle();
+  base::RunLoop().RunUntilIdle();
 
   EXPECT_EQ(service()->promo_data(), absl::nullopt);
   EXPECT_EQ(service()->promo_status(), PromoService::Status::FATAL_ERROR);
@@ -119,7 +117,7 @@ TEST_F(PromoServiceTest, PromoResponseMissingData) {
   EXPECT_EQ(service()->promo_status(), PromoService::Status::NOT_UPDATED);
 
   service()->Refresh();
-  task_environment_.RunUntilIdle();
+  base::RunLoop().RunUntilIdle();
 
   EXPECT_EQ(service()->promo_data(), PromoData());
   EXPECT_EQ(service()->promo_status(), PromoService::Status::OK_WITHOUT_PROMO);
@@ -136,7 +134,7 @@ TEST_F(PromoServiceTest, GoodPromoResponse) {
   EXPECT_EQ(service()->promo_status(), PromoService::Status::NOT_UPDATED);
 
   service()->Refresh();
-  task_environment_.RunUntilIdle();
+  base::RunLoop().RunUntilIdle();
 
   PromoData promo;
   promo.middle_slot_json = "{\"part\":[{\"text\":{\"text\":\"Foo\"}}]}";
@@ -161,7 +159,7 @@ TEST_F(PromoServiceTest, GoodPromoResponseCanDismiss) {
   EXPECT_EQ(service()->promo_status(), PromoService::Status::NOT_UPDATED);
 
   service()->Refresh();
-  task_environment_.RunUntilIdle();
+  base::RunLoop().RunUntilIdle();
 
   PromoData promo;
   promo.middle_slot_json = "{\"part\":[{\"text\":{\"text\":\"Foo\"}}]}";
@@ -186,7 +184,7 @@ TEST_F(PromoServiceTest, GoodPromoResponseNoIdField) {
   EXPECT_EQ(service()->promo_status(), PromoService::Status::NOT_UPDATED);
 
   service()->Refresh();
-  task_environment_.RunUntilIdle();
+  base::RunLoop().RunUntilIdle();
 
   PromoData promo;
   promo.middle_slot_json = "{\"part\":[{\"text\":{\"text\":\"Foo\"}}]}";
@@ -210,7 +208,7 @@ TEST_F(PromoServiceTest, GoodPromoResponseNoIdFieldNorLogUrl) {
   EXPECT_EQ(service()->promo_status(), PromoService::Status::NOT_UPDATED);
 
   service()->Refresh();
-  task_environment_.RunUntilIdle();
+  base::RunLoop().RunUntilIdle();
 
   PromoData promo;
   promo.middle_slot_json = "{\"part\":[{\"text\":{\"text\":\"Foo\"}}]}";
@@ -239,7 +237,7 @@ TEST_F(PromoServiceTest, GoodPromoWithBlockedID) {
   EXPECT_EQ(service()->promo_status(), PromoService::Status::NOT_UPDATED);
 
   service()->Refresh();
-  task_environment_.RunUntilIdle();
+  base::RunLoop().RunUntilIdle();
 
   EXPECT_EQ(service()->promo_data(), PromoData());
   EXPECT_EQ(service()->promo_status(), PromoService::Status::OK_BUT_BLOCKED);
@@ -259,7 +257,7 @@ TEST_F(PromoServiceTest, BlocklistPromo) {
   EXPECT_EQ(service()->promo_status(), PromoService::Status::NOT_UPDATED);
 
   service()->Refresh();
-  task_environment_.RunUntilIdle();
+  base::RunLoop().RunUntilIdle();
 
   PromoData promo;
   promo.middle_slot_json = "{\"part\":[{\"text\":{\"text\":\"Foo\"}}]}";
@@ -301,7 +299,7 @@ TEST_F(PromoServiceTest, BlocklistExpiration) {
   SetUpResponseWithData(service()->GetLoadURLForTesting(), response_string);
 
   service()->Refresh();
-  task_environment_.RunUntilIdle();
+  base::RunLoop().RunUntilIdle();
 
   // The year-old entry of {promo_id: "42", time: <1y ago>} should be gone.
   ASSERT_EQ(0u, prefs()->GetDict(prefs::kNtpPromoBlocklist).size());
@@ -336,7 +334,7 @@ TEST_F(PromoServiceTest, BlocklistWrongExpiryType) {
   SetUpResponseWithData(service()->GetLoadURLForTesting(), response_string);
 
   service()->Refresh();
-  task_environment_.RunUntilIdle();
+  base::RunLoop().RunUntilIdle();
 
   // All the invalid formats should've been removed from the pref.
   ASSERT_EQ(0u, prefs()->GetDict(prefs::kNtpPromoBlocklist).size());
@@ -356,7 +354,7 @@ TEST_F(PromoServiceTest, UndoBlocklistPromo) {
   EXPECT_EQ(service()->promo_status(), PromoService::Status::NOT_UPDATED);
 
   service()->Refresh();
-  task_environment_.RunUntilIdle();
+  base::RunLoop().RunUntilIdle();
 
   PromoData promo;
   promo.middle_slot_json = "{\"part\":[{\"text\":{\"text\":\"Foo\"}}]}";
@@ -383,7 +381,7 @@ TEST_F(PromoServiceTest, ReturnFakeData) {
       {{ntp_features::kNtpMiddleSlotPromoDismissalParam, "fake"}});
 
   service()->Refresh();
-  task_environment_.RunUntilIdle();
+  base::RunLoop().RunUntilIdle();
 
   EXPECT_EQ(0, test_url_loader_factory().NumPending());
   ASSERT_TRUE(service()->promo_data().has_value());

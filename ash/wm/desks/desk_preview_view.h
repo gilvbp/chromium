@@ -13,6 +13,7 @@
 #include "base/memory/raw_ptr.h"
 #include "ui/aura/window_occlusion_tracker.h"
 #include "ui/base/metadata/metadata_header_macros.h"
+#include "ui/compositor/layer.h"
 #include "ui/views/controls/button/button.h"
 
 namespace ui {
@@ -104,14 +105,6 @@ class ASH_EXPORT DeskPreviewView : public views::Button,
   // we can recreate the mirrored layer tree.
   void RecreateDeskContentsMirrorLayers();
 
-  // Performs close action for this preview. when `primary_action` is true, it's
-  // merge-desk action; otherwise it's close-all action.
-  void Close(bool primary_action);
-
-  // Performs swap action for this preview. When `right` is true, it swaps with
-  // its right preview; otherwise it swaps with its left preview.
-  void Swap(bool right);
-
   // views::View:
   void GetAccessibleNodeData(ui::AXNodeData* node_data) override;
   void Layout() override;
@@ -122,7 +115,6 @@ class ASH_EXPORT DeskPreviewView : public views::Button,
   void OnThemeChanged() override;
   void OnFocus() override;
   void OnBlur() override;
-  void AboutToRequestFocusFromTabTraversal(bool reverse) override;
 
   // OverviewHighlightableView:
   views::View* GetView() override;
@@ -137,8 +129,7 @@ class ASH_EXPORT DeskPreviewView : public views::Button,
  private:
   friend class DesksTestApi;
 
-  const raw_ptr<DeskMiniView, LeakedDanglingUntriaged | ExperimentalAsh>
-      mini_view_;
+  const raw_ptr<DeskMiniView, ExperimentalAsh> mini_view_;
 
   // A view that paints the wallpaper in the mini_view. It avoids the dimming
   // and blur overview mode adds to the original wallpaper. Owned by the views

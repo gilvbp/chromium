@@ -45,6 +45,7 @@ class SupervisedUserErrorPageController
   void GoBack();
   void RequestUrlAccessRemote();
   void RequestUrlAccessLocal();
+  void Feedback();
 
   void OnRequestUrlAccessRemote(bool success);
 

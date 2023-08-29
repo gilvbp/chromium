@@ -12,6 +12,7 @@
 #import "base/functional/callback_helpers.h"
 #import "base/strings/sys_string_conversions.h"
 #import "base/test/bind.h"
+#import "base/test/scoped_feature_list.h"
 #import "base/test/task_environment.h"
 #import "components/autofill/core/common/autofill_prefs.h"
 #import "components/image_fetcher/ios/ios_image_decoder_impl.h"
@@ -38,6 +39,10 @@
 #import "testing/platform_test.h"
 #import "third_party/ocmock/OCMock/OCMock.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace ios_web_view {
 namespace {
 
@@ -48,6 +53,9 @@ const char kTestEmail[] = "johndoe@chromium.org";
 class CWVSyncControllerTest : public PlatformTest {
  protected:
   CWVSyncControllerTest() {
+    scoped_feature_.InitAndEnableFeature(
+        password_manager::features::kEnablePasswordsAccountStorage);
+
     pref_service_.registry()->RegisterDictionaryPref(
         autofill::prefs::kAutofillSyncTransportOptIn);
 
@@ -56,6 +64,7 @@ class CWVSyncControllerTest : public PlatformTest {
         syncer::SyncService::TransportState::DISABLED);
   }
 
+  base::test::ScopedFeatureList scoped_feature_;
   base::test::TaskEnvironment task_environment_;
   signin::IdentityTestEnvironment identity_test_environment_;
   syncer::TestSyncService sync_service_;
@@ -87,7 +96,7 @@ TEST_F(CWVSyncControllerTest, StartSyncWithIdentity) {
 
   CoreAccountInfo primary_account_info =
       identity_test_environment_.identity_manager()->GetPrimaryAccountInfo(
-          signin::ConsentLevel::kSignin);
+          signin::ConsentLevel::kSync);
   EXPECT_EQ(primary_account_info, account_info);
 
   // Ensure opt-ins for transport only sync data is flipped to true.
@@ -103,7 +112,7 @@ TEST_F(CWVSyncControllerTest, StartSyncWithIdentity) {
 TEST_F(CWVSyncControllerTest, StopSyncAndClearIdentity) {
   CoreAccountInfo account_info =
       identity_test_environment_.MakePrimaryAccountAvailable(
-          kTestEmail, signin::ConsentLevel::kSignin);
+          kTestEmail, signin::ConsentLevel::kSync);
 
   CWVSyncController* sync_controller = [[CWVSyncController alloc]
       initWithSyncService:&sync_service_

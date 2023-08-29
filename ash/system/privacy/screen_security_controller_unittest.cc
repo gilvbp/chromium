@@ -62,9 +62,10 @@ class ScreenSecurityControllerTest : public AshTestBase,
 
   // AppAccessNotifierBaseTest:
   void SetUp() override {
-    scoped_feature_list_.InitWithFeatureStates(
-        {{features::kCameraEffectsSupportedByHardware, true},
-         {features::kPrivacyIndicators, IsPrivacyIndicatorsFeatureEnabled()}});
+    base::CommandLine::ForCurrentProcess()->AppendSwitch(
+        switches::kCameraEffectsSupportedByHardware);
+    scoped_feature_list_.InitWithFeatureState(
+        features::kPrivacyIndicators, IsPrivacyIndicatorsFeatureEnabled());
     AshTestBase::SetUp();
   }
 

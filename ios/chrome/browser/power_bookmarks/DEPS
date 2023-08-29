@@ -1,5 +1,4 @@
 include_rules = [
-  "+components/keyed_service",
-  "+components/power_bookmarks",
-  "+ios/chrome/browser/bookmarks/model",
+    "+components/keyed_service",
+    "+components/power_bookmarks",
 ]

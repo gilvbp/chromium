@@ -6,7 +6,6 @@ package org.chromium.android_webview;
 
 import android.content.Context;
 
-import org.chromium.android_webview.common.Lifetime;
 import org.chromium.base.annotations.CalledByNative;
 import org.chromium.base.annotations.JNINamespace;
 import org.chromium.base.annotations.NativeMethods;
@@ -15,7 +14,6 @@ import org.chromium.content_public.browser.WebContents;
 /**
  * The class to handle dark mode.
  */
-@Lifetime.WebView
 @JNINamespace("android_webview")
 public class AwDarkMode {
     private static Boolean sAppTargetsTForTesting;

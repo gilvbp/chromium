@@ -9,7 +9,6 @@
 #include <string>
 #include <utility>
 
-#include "base/check_is_test.h"
 #include "base/containers/contains.h"
 #include "base/functional/bind.h"
 #include "base/functional/callback.h"
@@ -193,13 +192,12 @@ RemoteCommandsService::RemoteCommandsService(
       store_(store),
       scope_(scope) {
   DCHECK(client_);
-  remote_commands_queue_observation.Observe(&queue_);
-  if (!factory_) {
-    CHECK_IS_TEST();
-  }
+  queue_.AddObserver(this);
 }
 
-RemoteCommandsService::~RemoteCommandsService() = default;
+RemoteCommandsService::~RemoteCommandsService() {
+  queue_.RemoveObserver(this);
+}
 
 bool RemoteCommandsService::FetchRemoteCommands() {
   if (!client_->is_registered()) {

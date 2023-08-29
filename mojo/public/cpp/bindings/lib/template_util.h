@@ -7,7 +7,8 @@
 
 #include <type_traits>
 
-namespace mojo::internal {
+namespace mojo {
+namespace internal {
 
 // A helper template to determine if given type is non-const move-only-type,
 // i.e. if a value of the given type should be passed via std::move() in a
@@ -29,6 +30,7 @@ struct AlwaysFalse {
   static const bool value = false;
 };
 
-}  // namespace mojo::internal
+}  // namespace internal
+}  // namespace mojo
 
 #endif  // MOJO_PUBLIC_CPP_BINDINGS_LIB_TEMPLATE_UTIL_H_

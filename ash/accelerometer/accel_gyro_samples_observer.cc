@@ -14,6 +14,7 @@ namespace ash {
 namespace {
 
 constexpr int kTimeoutToleranceInMilliseconds = 500;
+constexpr double kReadFrequencyInHz = 10.0;
 
 }  // namespace
 
@@ -22,12 +23,10 @@ AccelGryoSamplesObserver::AccelGryoSamplesObserver(
     mojo::Remote<chromeos::sensors::mojom::SensorDevice> sensor_device_remote,
     float scale,
     OnSampleUpdatedCallback on_sample_updated_callback,
-    chromeos::sensors::mojom::DeviceType device_type,
-    float frequency)
+    chromeos::sensors::mojom::DeviceType device_type)
     : iio_device_id_(iio_device_id),
       sensor_device_remote_(std::move(sensor_device_remote)),
       scale_(scale),
-      frequency_(frequency),
       device_type_(device_type),
       on_sample_updated_callback_(std::move(on_sample_updated_callback)) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
@@ -210,7 +209,7 @@ void AccelGryoSamplesObserver::UpdateSensorDeviceFrequency() {
     return;
 
   sensor_device_remote_->SetFrequency(
-      enabled_ ? frequency_ : 0.0,
+      enabled_ ? kReadFrequencyInHz : 0.0,
       base::BindOnce(&AccelGryoSamplesObserver::SetFrequencyCallback,
                      weak_factory_.GetWeakPtr(), enabled_));
 }

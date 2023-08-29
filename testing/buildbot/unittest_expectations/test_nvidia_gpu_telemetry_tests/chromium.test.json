@@ -24,10 +24,13 @@
         "name": "foo_tests",
         "should_retry_with_patch": false,
         "swarming": {
-          "dimensions": {
-            "gpu": "10de:1cb3-26.21.14.3102",
-            "os": "Linux"
-          },
+          "can_use_on_swarming_builders": true,
+          "dimension_sets": [
+            {
+              "gpu": "10de:1cb3-26.21.14.3102",
+              "os": "Linux"
+            }
+          ],
           "idempotent": false
         },
         "test_id_prefix": "ninja://chrome/test:telemetry_gpu_integration_test/"

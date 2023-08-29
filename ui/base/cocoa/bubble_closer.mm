@@ -10,6 +10,10 @@
 
 #include "base/memory/weak_ptr.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace ui {
 
 struct BubbleCloser::ObjCStorage {

@@ -17,6 +17,7 @@ import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
+import androidx.annotation.VisibleForTesting;
 import androidx.appcompat.widget.Toolbar.OnMenuItemClickListener;
 import androidx.core.view.ViewCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -181,9 +182,6 @@ public class SelectableListLayout<E> extends FrameLayout
                 setToolbarShadowVisibility();
             }
         });
-        mRecyclerView.addOnLayoutChangeListener(
-                (View v, int left, int top, int right, int bottom, int oldLeft, int oldTop,
-                        int oldRight, int oldBottom) -> { setToolbarShadowVisibility(); });
 
         mItemAnimator = mRecyclerView.getItemAnimator();
     }
@@ -240,7 +238,7 @@ public class SelectableListLayout<E> extends FrameLayout
     public TextView initializeEmptyView(int emptyStringResId) {
         setEmptyViewText(emptyStringResId);
 
-        // Empty listener to have the touch events dispatched to this view tree for navigation UI.
+        // Dummy listener to have the touch events dispatched to this view tree for navigation UI.
         mEmptyViewWrapper.setOnTouchListener((v, event) -> true);
 
         return mEmptyView;
@@ -425,6 +423,7 @@ public class SelectableListLayout<E> extends FrameLayout
         mToolbar.setSearchEnabled(mAdapter.getItemCount() != 0);
     }
 
+    @VisibleForTesting
     public View getToolbarShadowForTests() {
         return mToolbarShadow;
     }

@@ -14,13 +14,17 @@
 
 namespace content {
 
-// Returns the software or hardware secure CdmCapability supported in
-// MediaFoundationService for `key_system` by the CDM located in `cdm_path`.
-void GetMediaFoundationServiceCdmCapability(
+using CdmCapabilityCB =
+    base::OnceCallback<void(absl::optional<media::CdmCapability>)>;
+
+// Returns the hardware secure CdmCapability supported in MediaFoundationService
+// for `key_system` by the CDM located in `cdm_path`.
+// TODO(xhwang): Also support software secure CdmCapability supported in
+// MediaFoundationService.
+void GetMediaFoundationServiceHardwareSecureCdmCapability(
     const std::string& key_system,
     const base::FilePath& cdm_path,
-    bool is_hw_secure,
-    media::CdmCapabilityCB cdm_capability_cb);
+    CdmCapabilityCB cdm_capability_cb);
 
 }  // namespace content
 

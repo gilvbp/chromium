@@ -89,12 +89,7 @@ void {{sink_class}}::Trace(Visitor* visitor) const
 namespace probe {
 {% macro params_list(probe) -%}
 {%- for param in probe.params %}
-{%- if probe.is_scoped and param.is_reference %}
-std::reference_wrapper<std::remove_reference_t<{{param.type}}>>
-{%- else %}
-{{param.type}}
-{%- endif %}
- {{param.name}}
+{{param.type}} {{param.name}}
 {%- if not loop.last %}, {% endif -%}
 {%- endfor -%}
 {%- endmacro %}

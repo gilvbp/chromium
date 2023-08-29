@@ -887,7 +887,7 @@ TEST_F(AXRangeTest, GetTextWithContainersInsideListItems) {
                             .append(part4);
   EXPECT_EQ(text, forward_range.GetText(
                       AXTextConcatenationBehavior::kWithParagraphBreaks,
-                      AXEmbeddedObjectBehavior::kExposeCharacterForHypertext));
+                      AXEmbeddedObjectBehavior::kExposeCharacter));
 }
 
 TEST_F(AXRangeTest, GetTextWithWholeObjects) {
@@ -1160,22 +1160,19 @@ TEST_F(AXRangeTest, GetTextAddingNewlineBetweenParagraphs) {
                                          range_end->Clone());
     TestPositionRange backward_test_range(std::move(range_end),
                                           std::move(range_start));
-    std::vector<size_t> appended_newlines_indices;
+    size_t appended_newlines_count = 0;
     EXPECT_EQ(expected_text,
               forward_test_range.GetText(
                   AXTextConcatenationBehavior::kWithParagraphBreaks,
                   g_ax_embedded_object_behavior, -1, false,
-                  &appended_newlines_indices));
-    EXPECT_EQ(expected_appended_newlines_count,
-              appended_newlines_indices.size());
-    appended_newlines_indices.clear();
+                  &appended_newlines_count));
+    EXPECT_EQ(expected_appended_newlines_count, appended_newlines_count);
     EXPECT_EQ(expected_text,
               backward_test_range.GetText(
                   AXTextConcatenationBehavior::kWithParagraphBreaks,
                   g_ax_embedded_object_behavior, -1, false,
-                  &appended_newlines_indices));
-    EXPECT_EQ(expected_appended_newlines_count,
-              appended_newlines_indices.size());
+                  &appended_newlines_count));
+    EXPECT_EQ(expected_appended_newlines_count, appended_newlines_count);
   };
 
   std::u16string button_start_to_line1_end =

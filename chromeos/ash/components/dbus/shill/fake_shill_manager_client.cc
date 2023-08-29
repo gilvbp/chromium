@@ -1212,13 +1212,11 @@ void FakeShillManagerClient::CallNotifyObserversPropertyChanged(
 void FakeShillManagerClient::NotifyObserversPropertyChanged(
     const std::string& property) {
   VLOG(1) << "NotifyObserversPropertyChanged: " << property;
-  if (!stub_properties_.contains(property)) {
+  base::Value* value = stub_properties_.Find(property);
+  if (!value) {
     LOG(ERROR) << "Notify for unknown property: " << property;
     return;
   }
-  // Notify using a clone instead of a pointer to the property to avoid the
-  // situation where an observer invalidates our pointer when notified.
-  const base::Value value = stub_properties_.Find(property)->Clone();
   if (property == shill::kServiceCompleteListProperty) {
     base::Value services(GetEnabledServiceList());
     for (auto& observer : observer_list_) {
@@ -1226,9 +1224,8 @@ void FakeShillManagerClient::NotifyObserversPropertyChanged(
     }
     return;
   }
-  for (auto& observer : observer_list_) {
-    observer.OnPropertyChanged(property, value);
-  }
+  for (auto& observer : observer_list_)
+    observer.OnPropertyChanged(property, *value);
 }
 
 base::Value::List& FakeShillManagerClient::GetListProperty(

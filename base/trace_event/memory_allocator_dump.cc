@@ -64,6 +64,7 @@ void MemoryAllocatorDump::AddString(const char* name,
 }
 
 void MemoryAllocatorDump::AsValueInto(TracedValue* value) const {
+  std::string string_conversion_buffer;
   value->BeginDictionaryWithCopiedName(absolute_name_);
   value->SetString("guid", guid_.ToString());
   value->BeginDictionary("attrs");
@@ -72,9 +73,11 @@ void MemoryAllocatorDump::AsValueInto(TracedValue* value) const {
     value->BeginDictionaryWithCopiedName(entry.name);
     switch (entry.entry_type) {
       case Entry::kUint64:
+        SStringPrintf(&string_conversion_buffer, "%" PRIx64,
+                      entry.value_uint64);
         value->SetString("type", kTypeScalar);
         value->SetString("units", entry.units);
-        value->SetString("value", StringPrintf("%" PRIx64, entry.value_uint64));
+        value->SetString("value", string_conversion_buffer);
         break;
       case Entry::kString:
         value->SetString("type", kTypeString);

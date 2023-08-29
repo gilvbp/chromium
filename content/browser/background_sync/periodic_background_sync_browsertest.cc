@@ -10,7 +10,6 @@
 #include "content/public/common/content_features.h"
 #include "content/public/test/background_sync_test_util.h"
 #include "content/public/test/browser_test.h"
-#include "content/public/test/browser_test_utils.h"
 
 namespace {
 
@@ -22,39 +21,48 @@ namespace content {
 
 class PeriodicBackgroundSyncBrowserTest : public BackgroundSyncBaseBrowserTest {
  public:
-  PeriodicBackgroundSyncBrowserTest() = default;
+  PeriodicBackgroundSyncBrowserTest() {}
 
   PeriodicBackgroundSyncBrowserTest(const PeriodicBackgroundSyncBrowserTest&) =
       delete;
   PeriodicBackgroundSyncBrowserTest& operator=(
       const PeriodicBackgroundSyncBrowserTest&) = delete;
 
-  ~PeriodicBackgroundSyncBrowserTest() override = default;
+  ~PeriodicBackgroundSyncBrowserTest() override {}
 
-  void Register(const std::string& tag, int min_interval_ms);
-  void RegisterNoMinInterval(const std::string& tag);
-  void RegisterFromServiceWorker(const std::string& tag, int min_interval_ms);
-  EvalJsResult RegisterFromCrossOriginFrame(const std::string& frame_url);
-  void RegisterFromServiceWorkerNoMinInterval(const std::string& tag);
+  bool Register(const std::string& tag, int min_interval_ms);
+  bool RegisterFromIFrame(const std::string& tag, int min_interval_ms);
+  bool RegisterNoMinInterval(const std::string& tag);
+  bool RegisterFromServiceWorker(const std::string& tag, int min_interval_ms);
+  std::string RegisterFromCrossOriginFrame(const std::string& frame_url);
+  bool RegisterFromServiceWorkerNoMinInterval(const std::string& tag);
   bool HasTag(const std::string& tag);
   bool HasTagFromServiceWorker(const std::string& tag);
-  void Unregister(const std::string& tag);
-  void UnregisterFromServiceWorker(const std::string& tag);
+  bool Unregister(const std::string& tag);
+  bool UnregisterFromServiceWorker(const std::string& tag);
   int GetNumPeriodicSyncEvents();
 
  protected:
   base::SimpleTestClock clock_;
 };
 
-void PeriodicBackgroundSyncBrowserTest::Register(const std::string& tag,
+bool PeriodicBackgroundSyncBrowserTest::Register(const std::string& tag,
                                                  int min_interval_ms) {
-  ASSERT_EQ(BuildExpectedResult(tag, "registered"),
-            EvalJs(web_contents(),
-                   base::StringPrintf("%s('%s', %d);", "registerPeriodicSync",
-                                      tag.c_str(), min_interval_ms)));
+  std::string script_result = RunScript(base::StringPrintf(
+      "%s('%s', %d);", "registerPeriodicSync", tag.c_str(), min_interval_ms));
+  return script_result == BuildExpectedResult(tag, "registered");
 }
 
-EvalJsResult PeriodicBackgroundSyncBrowserTest::RegisterFromCrossOriginFrame(
+bool PeriodicBackgroundSyncBrowserTest::RegisterFromIFrame(
+    const std::string& tag,
+    int min_interval_ms) {
+  std::string script_result = RunScript(
+      base::StringPrintf("%s('%s', %d);", "registerPeriodicSyncFromIFrame",
+                         tag.c_str(), min_interval_ms));
+  return script_result == BuildExpectedResult(tag, "registered");
+}
+
+std::string PeriodicBackgroundSyncBrowserTest::RegisterFromCrossOriginFrame(
     const std::string& frame_url) {
   // Start a second https server to use as a second origin.
   net::EmbeddedTestServer alt_server(net::EmbeddedTestServer::TYPE_HTTPS);
@@ -62,165 +70,165 @@ EvalJsResult PeriodicBackgroundSyncBrowserTest::RegisterFromCrossOriginFrame(
   EXPECT_TRUE(alt_server.Start());
 
   GURL url = alt_server.GetURL(frame_url);
-  return EvalJs(web_contents(),
-                BuildScriptString("registerPeriodicSyncFromCrossOriginFrame",
-                                  url.spec()));
+  return RunScript(BuildScriptString("registerPeriodicSyncFromCrossOriginFrame",
+                                     url.spec()));
 }
 
-void PeriodicBackgroundSyncBrowserTest::RegisterNoMinInterval(
+bool PeriodicBackgroundSyncBrowserTest::RegisterNoMinInterval(
     const std::string& tag) {
-  ASSERT_EQ(BuildExpectedResult(tag, "registered"),
-            EvalJs(web_contents(),
-                   base::StringPrintf("%s('%s');", "registerPeriodicSync",
-                                      tag.c_str())));
+  std::string script_result = RunScript(
+      base::StringPrintf("%s('%s');", "registerPeriodicSync", tag.c_str()));
+  return script_result == BuildExpectedResult(tag, "registered");
 }
 
-void PeriodicBackgroundSyncBrowserTest::RegisterFromServiceWorker(
+bool PeriodicBackgroundSyncBrowserTest::RegisterFromServiceWorker(
     const std::string& tag,
     int min_interval_ms) {
-  ASSERT_EQ(BuildExpectedResult(tag, "register sent to SW"),
-            EvalJs(web_contents(),
-                   base::StringPrintf("%s('%s', %d);",
-                                      "registerPeriodicSyncFromServiceWorker",
-                                      tag.c_str(), min_interval_ms)));
+  std::string script_result = RunScript(base::StringPrintf(
+      "%s('%s', %d);", "registerPeriodicSyncFromServiceWorker", tag.c_str(),
+      min_interval_ms));
+  return script_result == BuildExpectedResult(tag, "register sent to SW");
 }
 
-void PeriodicBackgroundSyncBrowserTest::RegisterFromServiceWorkerNoMinInterval(
+bool PeriodicBackgroundSyncBrowserTest::RegisterFromServiceWorkerNoMinInterval(
     const std::string& tag) {
-  ASSERT_EQ(
-      BuildExpectedResult(tag, "register sent to SW"),
-      EvalJs(web_contents(),
-             BuildScriptString("registerPeriodicSyncFromServiceWorker", tag)));
+  std::string script_result = RunScript(
+      BuildScriptString("registerPeriodicSyncFromServiceWorker", tag));
+  return script_result == BuildExpectedResult(tag, "register sent to SW");
 }
 
 bool PeriodicBackgroundSyncBrowserTest::HasTag(const std::string& tag) {
-  return EvalJs(web_contents(), BuildScriptString("hasPeriodicSyncTag", tag)) ==
-         BuildExpectedResult(tag, "found");
+  std::string script_result =
+      RunScript(BuildScriptString("hasPeriodicSyncTag", tag));
+  return script_result == BuildExpectedResult(tag, "found");
 }
 
 bool PeriodicBackgroundSyncBrowserTest::HasTagFromServiceWorker(
     const std::string& tag) {
-  return EvalJs(web_contents(),
-                BuildScriptString("hasPeriodicSyncTagFromServiceWorker",
-                                  tag)) == "ok - hasTag sent to SW";
+  std::string script_result =
+      RunScript(BuildScriptString("hasPeriodicSyncTagFromServiceWorker", tag));
+  return (script_result == "ok - hasTag sent to SW");
 }
 
-void PeriodicBackgroundSyncBrowserTest::Unregister(const std::string& tag) {
-  ASSERT_EQ(BuildExpectedResult(tag, "unregistered"),
-            EvalJs(web_contents(), BuildScriptString("unregister", tag)));
+bool PeriodicBackgroundSyncBrowserTest::Unregister(const std::string& tag) {
+  std::string script_result = RunScript(BuildScriptString("unregister", tag));
+  return script_result == BuildExpectedResult(tag, "unregistered");
 }
 
-void PeriodicBackgroundSyncBrowserTest::UnregisterFromServiceWorker(
+bool PeriodicBackgroundSyncBrowserTest::UnregisterFromServiceWorker(
     const std::string& tag) {
-  ASSERT_EQ(BuildExpectedResult(tag, "unregister sent to SW"),
-            EvalJs(web_contents(),
-                   BuildScriptString("unregisterFromServiceWorker", tag)));
+  std::string script_result =
+      RunScript(BuildScriptString("unregisterFromServiceWorker", tag));
+  return script_result == BuildExpectedResult(tag, "unregister sent to SW");
 }
 
 int PeriodicBackgroundSyncBrowserTest::GetNumPeriodicSyncEvents() {
-  EXPECT_TRUE(ExecJs(web_contents(), "getNumPeriodicSyncEvents()"));
+  std::string script_result = RunScript("getNumPeriodicSyncEvents()");
   int num_periodic_sync_events = -1;
-  bool converted = base::StringToInt(PopConsoleString().ExtractString(),
-                                     &num_periodic_sync_events);
+  bool converted =
+      base::StringToInt(PopConsoleString(), &num_periodic_sync_events);
   DCHECK(converted);
   return num_periodic_sync_events;
 }
 
 IN_PROC_BROWSER_TEST_F(PeriodicBackgroundSyncBrowserTest,
                        RegisterFromControlledDocument) {
-  RegisterServiceWorker();
-  LoadTestPage(kDefaultTestURL);  // Control the page.
+  EXPECT_TRUE(RegisterServiceWorker());
+  EXPECT_TRUE(LoadTestPage(kDefaultTestURL));  // Control the page.
 
-  Register("foo", /* min_interval_ms= */ 1000);
-  Unregister("foo");
+  EXPECT_TRUE(Register("foo", /* min_interval_ms= */ 1000));
+  EXPECT_TRUE(Unregister("foo"));
 }
 
 IN_PROC_BROWSER_TEST_F(PeriodicBackgroundSyncBrowserTest,
                        RegisterNoMinInterval) {
-  RegisterServiceWorker();
+  EXPECT_TRUE(RegisterServiceWorker());
 
-  RegisterNoMinInterval("foo");
-  Unregister("foo");
+  EXPECT_TRUE(RegisterNoMinInterval("foo"));
+  EXPECT_TRUE(Unregister("foo"));
 }
 
 IN_PROC_BROWSER_TEST_F(PeriodicBackgroundSyncBrowserTest,
                        RegisterFromIFrameWithTopLevelFrameForOrigin) {
   GURL url = https_server()->GetURL(kEmptyURL);
+  std::string script_result = RunScript(
+      BuildScriptString("registerPeriodicSyncFromLocalFrame", url.spec()));
 
   // This succeeds because there's a top level frame for the origin.
-  EXPECT_EQ(EvalJs(web_contents(),
-                   BuildScriptString("registerPeriodicSyncFromLocalFrame",
-                                     url.spec())),
-            BuildExpectedResult("iframe", "registered periodicSync"));
+  EXPECT_EQ(BuildExpectedResult("iframe", "registered periodicSync"),
+            script_result);
 }
 
 IN_PROC_BROWSER_TEST_F(PeriodicBackgroundSyncBrowserTest,
                        RegisterFromIFrameWithoutTopLevelFrameForOrigin) {
+  std::string script_result =
+      RegisterFromCrossOriginFrame(kRegisterPeriodicSyncFromIFrameURL);
+
   // This fails because there's no top level frame open for the origin.
   EXPECT_EQ(BuildExpectedResult("frame", "failed to register periodicSync"),
-            RegisterFromCrossOriginFrame(kRegisterPeriodicSyncFromIFrameURL));
+            script_result);
 }
 
 // Verify that Register works in a service worker
 IN_PROC_BROWSER_TEST_F(PeriodicBackgroundSyncBrowserTest,
                        RegisterFromServiceWorker) {
-  RegisterServiceWorker();
-  LoadTestPage(kDefaultTestURL);
+  EXPECT_TRUE(RegisterServiceWorker());
+  EXPECT_TRUE(LoadTestPage(kDefaultTestURL));
 
-  RegisterFromServiceWorker("foo_sw", /* min_interval_ms= */ 10);
-  EXPECT_EQ("ok - foo_sw registered in SW", PopConsoleString());
-  Unregister("foo");
+  EXPECT_TRUE(RegisterFromServiceWorker("foo_sw", /* min_interval_ms= */ 10));
+  EXPECT_TRUE(PopConsole("ok - foo_sw registered in SW"));
+  EXPECT_TRUE(Unregister("foo"));
 }
 
 IN_PROC_BROWSER_TEST_F(PeriodicBackgroundSyncBrowserTest,
                        RegisterFromServiceWorkerNoMinInterval) {
-  RegisterServiceWorker();
-  LoadTestPage(kDefaultTestURL);
+  EXPECT_TRUE(RegisterServiceWorker());
+  EXPECT_TRUE(LoadTestPage(kDefaultTestURL));
 
-  RegisterFromServiceWorkerNoMinInterval("foo_sw");
-  EXPECT_EQ("ok - foo_sw registered in SW", PopConsoleString());
-  Unregister("foo");
+  EXPECT_TRUE(RegisterFromServiceWorkerNoMinInterval("foo_sw"));
+  EXPECT_TRUE(PopConsole("ok - foo_sw registered in SW"));
+  EXPECT_TRUE(Unregister("foo"));
 }
 
 IN_PROC_BROWSER_TEST_F(PeriodicBackgroundSyncBrowserTest, FindATag) {
-  RegisterServiceWorker();
-  LoadTestPage(kDefaultTestURL);  // Control the page.
+  EXPECT_TRUE(RegisterServiceWorker());
+  EXPECT_TRUE(LoadTestPage(kDefaultTestURL));  // Control the page.
 
-  Register("foo", /* min_interval_ms= */ 1000);
+  EXPECT_TRUE(Register("foo", /* min_interval_ms= */ 1000));
   EXPECT_TRUE(HasTag("foo"));
-  Unregister("foo");
+  EXPECT_TRUE(Unregister("foo"));
 }
 
 IN_PROC_BROWSER_TEST_F(PeriodicBackgroundSyncBrowserTest,
                        FindATagFromServiceWorker) {
-  RegisterServiceWorker();
-  LoadTestPage(kDefaultTestURL);  // Control the page.
+  EXPECT_TRUE(RegisterServiceWorker());
+  EXPECT_TRUE(LoadTestPage(kDefaultTestURL));  // Control the page.
 
-  Register("foo", /* min_interval_ms= */ 1000);
+  EXPECT_TRUE(Register("foo", /* min_interval_ms= */ 1000));
   EXPECT_TRUE(HasTagFromServiceWorker("foo"));
-  EXPECT_EQ("ok - foo found in SW", PopConsoleString());
+  EXPECT_TRUE(PopConsole("ok - foo found in SW"));
 }
 
 IN_PROC_BROWSER_TEST_F(PeriodicBackgroundSyncBrowserTest,
                        UnregisterFromServiceWorker) {
-  RegisterServiceWorker();
-  LoadTestPage(kDefaultTestURL);
+  EXPECT_TRUE(RegisterServiceWorker());
+  EXPECT_TRUE(LoadTestPage(kDefaultTestURL));
 
-  RegisterNoMinInterval("foo");
+  EXPECT_TRUE(RegisterNoMinInterval("foo"));
   EXPECT_TRUE(HasTag("foo"));
-  UnregisterFromServiceWorker("foo");
-  EXPECT_EQ("ok - foo unregistered in SW", PopConsoleString());
+  EXPECT_TRUE(UnregisterFromServiceWorker("foo"));
+  EXPECT_TRUE(PopConsole("ok - foo unregistered in SW"));
 }
 
 IN_PROC_BROWSER_TEST_F(PeriodicBackgroundSyncBrowserTest,
                        FirePeriodicSyncOnConnectivity) {
   SetTestClock(&clock_);
-  RegisterServiceWorker();
-  LoadTestPage(kDefaultTestURL);
+  EXPECT_TRUE(RegisterServiceWorker());
+  EXPECT_TRUE(LoadTestPage(kDefaultTestURL));
 
   // Prevent firing by going offline.
   background_sync_test_util::SetOnline(web_contents(), false);
-  Register("foo", /* min_interval_ms= */ 10);
+  EXPECT_TRUE(Register("foo", /* min_interval_ms= */ 10));
   EXPECT_TRUE(HasTag("foo"));
 
   int initial_periodic_sync_events = GetNumPeriodicSyncEvents();
@@ -232,7 +240,7 @@ IN_PROC_BROWSER_TEST_F(PeriodicBackgroundSyncBrowserTest,
 
   // Resume firing by going online.
   background_sync_test_util::SetOnline(web_contents(), true);
-  EXPECT_EQ("foo fired", PopConsoleString());
+  EXPECT_TRUE(PopConsole("foo fired"));
   EXPECT_EQ(GetNumPeriodicSyncEvents(), initial_periodic_sync_events + 1);
   EXPECT_TRUE(HasTag("foo"));
 }
@@ -240,59 +248,59 @@ IN_PROC_BROWSER_TEST_F(PeriodicBackgroundSyncBrowserTest,
 IN_PROC_BROWSER_TEST_F(PeriodicBackgroundSyncBrowserTest, MultipleEventsFired) {
   SetTestClock(&clock_);
 
-  RegisterServiceWorker();
-  LoadTestPage(kDefaultTestURL);
+  EXPECT_TRUE(RegisterServiceWorker());
+  EXPECT_TRUE(LoadTestPage(kDefaultTestURL));
 
-  Register("foo", /* min_interval_ms= */ 10);
+  EXPECT_TRUE(Register("foo", /* min_interval_ms= */ 10));
 
   clock_.Advance(kMinGapBetweenPeriodicSyncEvents);
-  EXPECT_EQ("foo fired", PopConsoleString());
+  EXPECT_TRUE(PopConsole("foo fired"));
   EXPECT_TRUE(HasTag("foo"));
 
   clock_.Advance(kMinGapBetweenPeriodicSyncEvents);
-  EXPECT_EQ("foo fired", PopConsoleString());
+  EXPECT_TRUE(PopConsole("foo fired"));
   EXPECT_TRUE(HasTag("foo"));
-  Unregister("foo");
+  EXPECT_TRUE(Unregister("foo"));
 }
 
 IN_PROC_BROWSER_TEST_F(PeriodicBackgroundSyncBrowserTest,
                        MultipleMinIntervalsAndTags) {
   SetTestClock(&clock_);
 
-  RegisterServiceWorker();
-  LoadTestPage(kDefaultTestURL);
+  EXPECT_TRUE(RegisterServiceWorker());
+  EXPECT_TRUE(LoadTestPage(kDefaultTestURL));
 
-  Register("foo", /* min_interval_ms= */ 10);
-  Register("foo", /* min_interval_ms= */ 200);
+  EXPECT_TRUE(Register("foo", /* min_interval_ms= */ 10));
+  EXPECT_TRUE(Register("foo", /* min_interval_ms= */ 200));
   EXPECT_TRUE(HasTag("foo"));
 
-  Register("bar", /* min_interval_ms= */ 50);
+  EXPECT_TRUE(Register("bar", /* min_interval_ms= */ 50));
   EXPECT_TRUE(HasTag("bar"));
 
   clock_.Advance(kMinGapBetweenPeriodicSyncEvents);
 
   // Ordering is important here.
-  EXPECT_EQ("bar fired", PopConsoleString());
-  EXPECT_EQ("foo fired", PopConsoleString());
+  EXPECT_TRUE(PopConsole("bar fired"));
+  EXPECT_TRUE(PopConsole("foo fired"));
 
-  Unregister("foo");
+  EXPECT_TRUE(Unregister("foo"));
   EXPECT_FALSE(HasTag("foo"));
   EXPECT_TRUE(HasTag("bar"));
 
   clock_.Advance(kMinGapBetweenPeriodicSyncEvents);
-  EXPECT_EQ("bar fired", PopConsoleString());
-  Unregister("bar");
+  EXPECT_TRUE(PopConsole("bar fired"));
+  EXPECT_TRUE(Unregister("bar"));
 }
 
 IN_PROC_BROWSER_TEST_F(PeriodicBackgroundSyncBrowserTest, WaitUntil) {
   SetTestClock(&clock_);
 
-  RegisterServiceWorker();
-  LoadTestPage(kDefaultTestURL);
+  EXPECT_TRUE(RegisterServiceWorker());
+  EXPECT_TRUE(LoadTestPage(kDefaultTestURL));
 
   background_sync_test_util::SetOnline(web_contents(), false);
 
-  Register("delay", /* min_interval_ms= */ 10);
+  EXPECT_TRUE(Register("delay", /* min_interval_ms= */ 10));
   ASSERT_TRUE(HasTag("delay"));
 
   clock_.Advance(kMinGapBetweenPeriodicSyncEvents);
@@ -302,12 +310,12 @@ IN_PROC_BROWSER_TEST_F(PeriodicBackgroundSyncBrowserTest, WaitUntil) {
   int num_periodicsync_events_fired = GetNumPeriodicSyncEvents();
 
   // Complete the task.
-  CompleteDelayedSyncEvent();
-  EXPECT_EQ("ok - delay completed", PopConsoleString());
+  EXPECT_TRUE(CompleteDelayedSyncEvent());
+  EXPECT_TRUE(PopConsole("ok - delay completed"));
   EXPECT_EQ(GetNumPeriodicSyncEvents(), num_periodicsync_events_fired + 1);
 
   EXPECT_TRUE(HasTag("delay"));
-  Unregister("delay");
+  EXPECT_TRUE(Unregister("delay"));
 }
 
 }  // namespace content

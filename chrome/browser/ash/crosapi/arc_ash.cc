@@ -82,17 +82,15 @@ ArcAsh::ArcAsh() = default;
 ArcAsh::~ArcAsh() = default;
 
 void ArcAsh::MaybeSetProfile(Profile* profile) {
-  CHECK(profile);
   if (profile_) {
-    VLOG(1) << "ArcAsh service is already initialized. Skip init.";
+    LOG(WARNING) << "profile_ is already initialized. Ignoring SetProfile.";
     return;
   }
 
   profile_ = profile;
   auto* bridge = arc::ArcIntentHelperBridge::GetForBrowserContext(profile_);
-  if (bridge) {
+  if (bridge)
     bridge->AddObserver(this);
-  }
 }
 
 void ArcAsh::BindReceiver(mojo::PendingReceiver<mojom::Arc> receiver) {

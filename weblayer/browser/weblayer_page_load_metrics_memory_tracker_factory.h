@@ -27,7 +27,7 @@ class WeblayerPageLoadMetricsMemoryTrackerFactory
   // BrowserContextKeyedServiceFactory:
   bool ServiceIsCreatedWithBrowserContext() const override;
 
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* context) const override;
 
   content::BrowserContext* GetBrowserContextToUse(

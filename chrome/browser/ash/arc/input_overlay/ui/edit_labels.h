@@ -17,7 +17,6 @@ namespace arc::input_overlay {
 class Action;
 class DisplayOverlayController;
 class EditLabel;
-class NameTag;
 
 // EditLabels wraps the input labels belonging to one action.
 class EditLabels : public views::View {
@@ -36,22 +35,17 @@ class EditLabels : public views::View {
   // -------------
   static std::unique_ptr<EditLabels> CreateEditLabels(
       DisplayOverlayController* controller,
-      Action* action,
-      NameTag* name_tag,
-      bool set_title);
+      Action* action);
 
-  EditLabels(DisplayOverlayController* controller,
-             Action* action,
-             NameTag* name_tag,
-             bool set_title);
+  EditLabels(DisplayOverlayController* controller, Action* action);
 
   EditLabels(const EditLabels&) = delete;
   EditLabels& operator=(const EditLabels&) = delete;
   ~EditLabels() override;
 
-  void OnActionInputBindingUpdated();
+  void OnActionUpdated();
 
-  void SetNameTagState(bool is_error, const std::u16string& error_tooltip);
+  std::u16string GetTextForNameTag();
 
  private:
   friend class EditLabelTest;
@@ -60,24 +54,10 @@ class EditLabels : public views::View {
   void InitForActionTapKeyboard();
   void InitForActionMoveKeyboard();
 
-  // Called when `labels_` is initiated or changes the content.
-  void UpdateNameTag();
-  // Called when the editing list is first loaded to assign name labels to
-  // name tags, if available.
-  void UpdateNameTagTitle();
-
   raw_ptr<DisplayOverlayController> controller_ = nullptr;
   raw_ptr<Action, DanglingUntriaged> action_ = nullptr;
-  // Displays the content in `labels_`.
-  raw_ptr<NameTag, DanglingUntriaged> name_tag_ = nullptr;
 
   std::vector<EditLabel*> labels_;
-
-  // It is true that at least one of `labels_` is unassigned.
-  bool missing_assign_ = false;
-
-  // Allows for title modification if true.
-  bool set_title_ = false;
 };
 }  // namespace arc::input_overlay
 

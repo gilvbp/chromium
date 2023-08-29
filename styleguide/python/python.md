@@ -46,7 +46,7 @@ It is also encouraged to follow advice from
 which is a superset of PEP-8.
 
 See also:
-* [ChromiumOS Python Style Guide](https://chromium.googlesource.com/chromiumos/docs/+/HEAD/styleguide/python.md)
+* [Chromium OS Python Style Guide](https://sites.google.com/a/chromium.org/dev/chromium-os/python-style-guidelines)
 * [Blink Python Style Guide](blink-python.md)
 
 [TOC]

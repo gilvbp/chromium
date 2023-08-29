@@ -69,12 +69,12 @@
 #include "media/capture/capture_switches.h"
 #endif
 
-#if BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_WIN)
+#if BUILDFLAG(IS_LINUX)
 #include "base/task/sequenced_task_runner.h"
 #include "components/viz/host/gpu_client.h"
 #include "media/capture/capture_switches.h"
 #include "services/video_capture/public/mojom/video_capture_service.mojom.h"
-#endif  // BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_WIN)
+#endif  // BUILDFLAG(IS_LINUX)
 
 namespace content {
 
@@ -129,7 +129,7 @@ UtilityProcessHost::UtilityProcessHost(std::unique_ptr<Client> client)
       started_(false),
       name_(u"utility process"),
       file_data_(std::make_unique<ChildProcessLauncherFileData>()),
-#if BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_WIN)
+#if BUILDFLAG(IS_LINUX)
       gpu_client_(nullptr, base::OnTaskRunnerDeleter(nullptr)),
 #endif
       client_(std::move(client)) {
@@ -311,6 +311,8 @@ bool UtilityProcessHost::StartProcess() {
       network::switches::kHostResolverRules,
       network::switches::kIgnoreCertificateErrorsSPKIList,
       network::switches::kIgnoreUrlFetcherCertRequests,
+      network::switches::kLogNetLog,
+      network::switches::kNetLogCaptureMode,
       network::switches::kTestThirdPartyCookiePhaseout,
       sandbox::policy::switches::kNoSandbox,
 #if BUILDFLAG(IS_LINUX) && !BUILDFLAG(IS_CHROMEOS)
@@ -351,7 +353,6 @@ bool UtilityProcessHost::StartProcess() {
       // These flags are used by the audio service:
       switches::kAudioBufferSize,
       switches::kAudioServiceQuitTimeoutMs,
-      switches::kDisableAudioInput,
       switches::kDisableAudioOutput,
       switches::kFailAudioStreamCreation,
       switches::kMuteAudio,
@@ -387,7 +388,8 @@ bool UtilityProcessHost::StartProcess() {
       switches::kHardwareVideoDecodeFrameRate,
 #endif
     };
-    cmd_line->CopySwitchesFrom(browser_command_line, kSwitchNames);
+    cmd_line->CopySwitchesFrom(browser_command_line, kSwitchNames,
+                               std::size(kSwitchNames));
 
     network_session_configurator::CopyNetworkSwitches(browser_command_line,
                                                       cmd_line.get());
@@ -430,12 +432,11 @@ bool UtilityProcessHost::StartProcess() {
 #endif  // BUILDFLAG(IS_LINUX)
 
 #if BUILDFLAG(IS_LINUX)
-    // Pass `kVideoCaptureUseGpuMemoryBuffer` flag to video capture service only
-    // when the video capture use GPU memory buffer enabled and NV12 GPU memory
-    // buffer supported.
     if (metrics_name_ == video_capture::mojom::VideoCaptureService::Name_) {
-      if (switches::IsVideoCaptureUseGpuMemoryBufferEnabled() &&
-          GpuDataManagerImpl::GetInstance()->IsGpuMemoryBufferNV12Supported()) {
+      if (!base::CommandLine::ForCurrentProcess()->HasSwitch(
+              switches::kDisableVideoCaptureUseGpuMemoryBuffer) &&
+          base::CommandLine::ForCurrentProcess()->HasSwitch(
+              switches::kVideoCaptureUseGpuMemoryBuffer)) {
         cmd_line->AppendSwitch(switches::kVideoCaptureUseGpuMemoryBuffer);
       }
     }

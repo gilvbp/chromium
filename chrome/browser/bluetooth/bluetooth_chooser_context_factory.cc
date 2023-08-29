@@ -43,10 +43,9 @@ BluetoothChooserContextFactory::BluetoothChooserContextFactory()
 
 BluetoothChooserContextFactory::~BluetoothChooserContextFactory() = default;
 
-std::unique_ptr<KeyedService>
-BluetoothChooserContextFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* BluetoothChooserContextFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
-  return std::make_unique<permissions::BluetoothChooserContext>(context);
+  return new permissions::BluetoothChooserContext(context);
 }
 
 void BluetoothChooserContextFactory::BrowserContextShutdown(

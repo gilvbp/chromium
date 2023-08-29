@@ -1,4 +1,4 @@
 This virtual suite runs tests with the MainThreadHighPriorityImageLoading
-feature disabled.
+feature enabled.
 
 Bug: crbug.com/1416030

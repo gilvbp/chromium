@@ -31,7 +31,7 @@ class InstallLimiterFactory : public ProfileKeyedServiceFactory {
   ~InstallLimiterFactory() override;
 
   // BrowserContextKeyedServiceFactory overrides:
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* profile) const override;
 };
 

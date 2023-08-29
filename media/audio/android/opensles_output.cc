@@ -49,11 +49,10 @@ OpenSLESOutputStream::OpenSLESOutputStream(AudioManagerAndroid* manager,
            << "stream_type=" << stream_type << ")";
 
   if (AudioManagerAndroid::SupportsPerformanceModeForOutput()) {
-    if (params.latency_tag() == AudioLatency::Type::kPlayback) {
+    if (params.latency_tag() == AudioLatency::LATENCY_PLAYBACK)
       performance_mode_ = SL_ANDROID_PERFORMANCE_POWER_SAVING;
-    } else if (params.latency_tag() == AudioLatency::Type::kRtc) {
+    else if (params.latency_tag() == AudioLatency::LATENCY_RTC)
       performance_mode_ = SL_ANDROID_PERFORMANCE_LATENCY_EFFECTS;
-    }
   }
 
   audio_bus_ = AudioBus::Create(params);

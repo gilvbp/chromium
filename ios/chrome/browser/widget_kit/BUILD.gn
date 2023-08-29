@@ -4,7 +4,6 @@
 
 import("//build/buildflag_header.gni")
 import("//build/config/ios/ios_sdk.gni")
-import("//build/config/ios/swift_source_set.gni")
 import("//ios/build/chrome_build.gni")
 
 buildflag_header("features") {
@@ -14,6 +13,7 @@ buildflag_header("features") {
 
 if (ios_enable_widget_kit_extension) {
   source_set("widget_kit") {
+    configs += [ "//build/config/compiler:enable_arc" ]
     sources = [
       "widget_metrics_util.h",
       "widget_metrics_util.mm",
@@ -26,7 +26,10 @@ if (ios_enable_widget_kit_extension) {
     frameworks = [ "Foundation.framework" ]
   }
 
-  swift_source_set("widget_kit_swift") {
+  source_set("widget_kit_swift") {
+    module_name = "widget_kit_swift"
+
+    configs += [ "//build/config/compiler:enable_arc" ]
     sources = [
       "user_defaults_widget_store.swift",
       "widget_metrics_logger.swift",
@@ -40,6 +43,7 @@ if (ios_enable_widget_kit_extension) {
   }
 
   source_set("unit_tests") {
+    configs += [ "//build/config/compiler:enable_arc" ]
     testonly = true
     sources = []
     deps = [

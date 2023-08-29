@@ -10,7 +10,6 @@
 #include <utility>
 
 #include "base/dcheck_is_on.h"
-#include "base/debug/crash_logging.h"
 #include "base/functional/bind.h"
 #include "base/logging.h"
 #include "base/memory/raw_ptr.h"
@@ -28,7 +27,6 @@
 #include "base/trace_event/trace_event.h"
 #include "components/keyed_service/content/browser_context_keyed_service_shutdown_notifier_factory.h"
 #include "components/keyed_service/core/keyed_service_shutdown_notifier.h"
-#include "content/public/browser/browser_context.h"
 #include "content/public/browser/render_frame_host.h"
 #include "content/public/browser/render_process_host.h"
 #include "content/public/browser/web_contents.h"
@@ -46,6 +44,7 @@
 #include "extensions/common/constants.h"
 #include "extensions/common/extension_api.h"
 #include "extensions/common/mojom/renderer.mojom.h"
+#include "ipc/ipc_message.h"
 #include "third_party/blink/public/mojom/devtools/inspector_issue.mojom.h"
 #include "third_party/blink/public/mojom/service_worker/service_worker_object.mojom-forward.h"
 
@@ -276,12 +275,6 @@ class BrowserContextShutdownNotifierFactory
   BrowserContextShutdownNotifierFactory()
       : BrowserContextKeyedServiceShutdownNotifierFactory("ExtensionFunction") {
   }
-
-  content::BrowserContext* GetBrowserContextToUse(
-      content::BrowserContext* context) const override {
-    return extensions::ExtensionsBrowserClient::Get()->GetContextOwnInstance(
-        context, /*force_guest_profile=*/true);
-  }
 };
 
 }  // namespace
@@ -318,6 +311,12 @@ class ExtensionFunction::RenderFrameHostTracker
     if (render_frame_host == function_->render_frame_host()) {
       function_->SetRenderFrameHost(nullptr);
     }
+  }
+
+  bool OnMessageReceived(const IPC::Message& message,
+                         content::RenderFrameHost* render_frame_host) override {
+    return render_frame_host == function_->render_frame_host() &&
+           function_->OnMessageReceived(message);
   }
 
   raw_ptr<ExtensionFunction> function_;  // Owns us.
@@ -360,12 +359,6 @@ void ExtensionFunction::ResponseAction::Execute() {
 }
 
 ExtensionFunction::~ExtensionFunction() {
-  // `name_` may not be set in unit tests.
-  std::string safe_name = name() ? name() : "<unknown>";
-  // Crash keys added for https://crbug.com/1435545.
-  SCOPED_CRASH_KEY_STRING256("extensions", "destructing_ext_func_name",
-                             safe_name);
-
   if (name()) {  // name_ may not be set in unit tests.
     ExtensionFunctionMemoryDumpProvider::GetInstance().RemoveFunctionName(
         name());
@@ -426,9 +419,11 @@ ExtensionFunction::~ExtensionFunction() {
 #endif  // DCHECK_IS_ON()
 }
 
-void ExtensionFunction::AddResponseTarget() {
+void ExtensionFunction::AddWorkerResponseTarget() {
+  DCHECK(is_from_service_worker());
+
   if (dispatcher()) {
-    dispatcher()->AddResponseTarget(this);
+    dispatcher()->AddWorkerResponseTarget(this);
   }
 }
 
@@ -535,6 +530,10 @@ bool ExtensionFunction::user_gesture() const {
   return user_gesture_ || UserGestureForTests::GetInstance()->HaveGesture();
 }
 
+bool ExtensionFunction::OnMessageReceived(const IPC::Message& message) {
+  return false;
+}
+
 void ExtensionFunction::SetBrowserContextForTesting(
     content::BrowserContext* context) {
   browser_context_for_testing_ = context;
@@ -602,9 +601,9 @@ bool ExtensionFunction::ShouldKeepWorkerAliveIndefinitely() {
   return false;
 }
 
-void ExtensionFunction::OnResponseAck() {
+void ExtensionFunction::OnServiceWorkerAck() {
   // Derived classes must override this if they require and implement an
-  // ACK from the renderer.
+  // ACK from the Service Worker.
   NOTREACHED();
 }
 

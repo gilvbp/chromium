@@ -122,8 +122,7 @@ bool ClipboardCommands::DispatchClipboardEvent(LocalFrame& frame,
       DataTransfer::kCopyAndPaste, policy,
       policy == DataTransferAccessPolicy::kWritable
           ? DataObject::Create()
-          : DataObject::CreateFromClipboard(target->GetExecutionContext(),
-                                            system_clipboard, paste_mode));
+          : DataObject::CreateFromClipboard(system_clipboard, paste_mode));
 
   Event* const evt = ClipboardEvent::Create(event_type, data_transfer);
   target->DispatchEvent(*evt);
@@ -456,19 +455,16 @@ void ClipboardCommands::Paste(LocalFrame& frame, EditorCommandSource source) {
                                    : PasteMode::kPlainTextOnly;
 
   if (source == EditorCommandSource::kMenuOrKeyBinding) {
-    Element* const target = FindEventTargetForClipboardEvent(frame, source);
-
     DataTransfer* data_transfer = DataTransfer::Create(
         DataTransfer::kCopyAndPaste, DataTransferAccessPolicy::kReadable,
-        DataObject::CreateFromClipboard(
-            target ? target->GetExecutionContext() : nullptr,
-            frame.GetSystemClipboard(), paste_mode));
+        DataObject::CreateFromClipboard(frame.GetSystemClipboard(),
+                                        paste_mode));
 
     if (DispatchBeforeInputDataTransfer(
-            target, InputEvent::InputType::kInsertFromPaste, data_transfer) !=
-        DispatchEventResult::kNotCanceled) {
+            FindEventTargetForClipboardEvent(frame, source),
+            InputEvent::InputType::kInsertFromPaste,
+            data_transfer) != DispatchEventResult::kNotCanceled)
       return;
-    }
     // 'beforeinput' event handler may destroy target frame.
     if (frame.GetDocument()->GetFrame() != frame)
       return;
@@ -701,18 +697,15 @@ bool ClipboardCommands::ExecutePasteAndMatchStyle(LocalFrame& frame,
     if (!frame.Selection().SelectionHasFocus())
       return false;
 
-    Element* const target = FindEventTargetForClipboardEvent(frame, source);
-
     DataTransfer* data_transfer = DataTransfer::Create(
         DataTransfer::kCopyAndPaste, DataTransferAccessPolicy::kReadable,
-        DataObject::CreateFromClipboard(
-            target ? target->GetExecutionContext() : nullptr,
-            frame.GetSystemClipboard(), PasteMode::kPlainTextOnly));
+        DataObject::CreateFromClipboard(frame.GetSystemClipboard(),
+                                        PasteMode::kPlainTextOnly));
     if (DispatchBeforeInputDataTransfer(
-            target, InputEvent::InputType::kInsertFromPaste, data_transfer) !=
-        DispatchEventResult::kNotCanceled) {
+            FindEventTargetForClipboardEvent(frame, source),
+            InputEvent::InputType::kInsertFromPaste,
+            data_transfer) != DispatchEventResult::kNotCanceled)
       return true;
-    }
     // 'beforeinput' event handler may destroy target frame.
     if (frame.GetDocument()->GetFrame() != frame)
       return true;

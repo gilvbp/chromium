@@ -12,6 +12,7 @@ import android.widget.FrameLayout;
 import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 
 import org.chromium.ui.widget.ButtonCompat;
 
@@ -113,6 +114,7 @@ public class MoreProgressButton extends FrameLayout implements View.OnClickListe
         mButton.setText(text);
     }
 
+    @VisibleForTesting
     public @State int getStateForTest() {
         return mState;
     }

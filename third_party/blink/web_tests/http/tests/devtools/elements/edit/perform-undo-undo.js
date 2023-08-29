@@ -5,8 +5,6 @@
 import {TestRunner} from 'test_runner';
 import {ElementsTestRunner} from 'elements_test_runner';
 
-import * as SDK from 'devtools/core/sdk/sdk.js';
-
 (async function() {
   TestRunner.addResult(`Tests that client can call undo multiple times with non-empty history.\n`);
   await TestRunner.loadLegacyModule('elements');
@@ -36,7 +34,7 @@ import * as SDK from 'devtools/core/sdk/sdk.js';
   }
 
   async function step3() {
-    await SDK.DOMModel.DOMModelUndoStack.instance().undo();
+    await SDK.domModelUndoStack.undo();
     TestRunner.addResult('===== Undo 1 =====');
     ElementsTestRunner.dumpElementsTree(containerNode);
 

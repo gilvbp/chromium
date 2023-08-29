@@ -486,12 +486,8 @@ bool FakeServer::ModifyEntitySpecifics(
     const std::string& id,
     const sync_pb::EntitySpecifics& updated_specifics) {
   OnWillCommit();
-
-  {
-    base::ScopedAllowBlockingForTesting allow_blocking;
-    if (!loopback_server_->ModifyEntitySpecifics(id, updated_specifics)) {
-      return false;
-    }
+  if (!loopback_server_->ModifyEntitySpecifics(id, updated_specifics)) {
+    return false;
   }
 
   // Notify observers so invalidations are mimic-ed.
@@ -507,12 +503,9 @@ bool FakeServer::ModifyBookmarkEntity(
     const std::string& parent_id,
     const sync_pb::EntitySpecifics& updated_specifics) {
   OnWillCommit();
-  {
-    base::ScopedAllowBlockingForTesting allow_blocking;
-    if (!loopback_server_->ModifyBookmarkEntity(id, parent_id,
-                                                updated_specifics)) {
-      return false;
-    }
+  if (!loopback_server_->ModifyBookmarkEntity(id, parent_id,
+                                              updated_specifics)) {
+    return false;
   }
 
   // Notify observers so invalidations are mimic-ed.

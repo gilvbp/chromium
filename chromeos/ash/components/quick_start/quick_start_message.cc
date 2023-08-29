@@ -8,7 +8,6 @@
 #include "base/json/json_reader.h"
 #include "base/json/json_writer.h"
 #include "base/logging.h"
-#include "base/types/expected.h"
 #include "chromeos/ash/components/quick_start/quick_start_message_type.h"
 #include "sandbox/policy/sandbox.h"
 
@@ -56,9 +55,9 @@ void QuickStartMessage::DisableSandboxCheckForTesting() {
 }
 
 // static
-base::expected<std::unique_ptr<QuickStartMessage>, QuickStartMessage::ReadError>
-QuickStartMessage::ReadMessage(std::vector<uint8_t> data,
-                               QuickStartMessageType message_type) {
+std::unique_ptr<QuickStartMessage> QuickStartMessage::ReadMessage(
+    std::vector<uint8_t> data,
+    QuickStartMessageType message_type) {
   /*
     Since this code could handle untrusted data, it is important this
     runs only from a strongly sandboxed process (i.e. not the browser process).
@@ -74,31 +73,25 @@ QuickStartMessage::ReadMessage(std::vector<uint8_t> data,
   absl::optional<base::Value> data_value = base::JSONReader::Read(str_data);
   if (!data_value.has_value()) {
     LOG(ERROR) << "Message is not JSON";
-    return base::unexpected(QuickStartMessage::ReadError::INVALID_JSON);
+    return nullptr;
   }
 
   if (!data_value->is_dict()) {
     LOG(ERROR) << "Message is not a JSON dictionary";
-    return base::unexpected(QuickStartMessage::ReadError::INVALID_JSON);
+    return nullptr;
   }
 
   std::string payload_key = GetStringKeyForQuickStartMessageType(message_type);
+  bool is_payload_base64_encoded = IsMessagePayloadBase64Encoded(message_type);
 
   base::Value::Dict& message = data_value.value().GetDict();
   base::Value::Dict* payload;
 
-  if (!message.contains(payload_key)) {
-    LOG(ERROR) << "Message does not contain requested payload: " << payload_key;
-    return base::unexpected(
-        QuickStartMessage::ReadError::MISSING_MESSAGE_PAYLOAD);
-  }
-
-  if (IsMessagePayloadBase64Encoded(message_type)) {
+  if (is_payload_base64_encoded) {
     std::string* base64_encoded_payload = message.FindString(payload_key);
     if (base64_encoded_payload == nullptr) {
-      LOG(ERROR) << "Message payload is not a string";
-      return base::unexpected(
-          QuickStartMessage::ReadError::BASE64_DESERIALIZATION_FAILURE);
+      LOG(ERROR) << "Message does not contain any payload";
+      return nullptr;
     }
 
     std::string json_payload;
@@ -107,35 +100,30 @@ QuickStartMessage::ReadMessage(std::vector<uint8_t> data,
                            base::Base64DecodePolicy::kForgiving);
     if (!base64_decoding_succeeded) {
       LOG(ERROR) << "Message does not contain a valid base64 encoded payload";
-      return base::unexpected(
-          QuickStartMessage::ReadError::BASE64_DESERIALIZATION_FAILURE);
+      return nullptr;
     }
 
     absl::optional<base::Value> json_reader_result =
         base::JSONReader::Read(json_payload);
     if (!json_reader_result.has_value()) {
       LOG(ERROR) << "Unable to decode base64 encoded payload into JSON";
-      return base::unexpected(
-          QuickStartMessage::ReadError::BASE64_DESERIALIZATION_FAILURE);
+      return nullptr;
     }
 
     payload = json_reader_result->GetIfDict();
 
     if (payload == nullptr) {
       LOG(ERROR) << "Payload is not a JSON dictionary";
-      return base::unexpected(
-          QuickStartMessage::ReadError::BASE64_DESERIALIZATION_FAILURE);
+      return nullptr;
     }
 
     return std::make_unique<QuickStartMessage>(message_type, payload->Clone());
-
   } else {
     payload = message.FindDict(payload_key);
     if (payload == nullptr) {
-      LOG(ERROR) << "Message payload is not a dictionary";
-      return base::unexpected(QuickStartMessage::ReadError::INVALID_JSON);
+      LOG(ERROR) << "Payload is not present in the message";
+      return nullptr;
     }
-
     return std::make_unique<QuickStartMessage>(message_type, payload->Clone());
   }
 }

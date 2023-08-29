@@ -144,8 +144,7 @@ class BatteryView : public views::View {
     if (stylus_battery_delegate_.ShouldShowBatteryStatus() != GetVisible())
       SetVisible(stylus_battery_delegate_.ShouldShowBatteryStatus());
 
-    icon_->SetImage(
-        stylus_battery_delegate_.GetBatteryImage(icon_->GetColorProvider()));
+    icon_->SetImage(stylus_battery_delegate_.GetBatteryImage());
     label_->SetVisible(stylus_battery_delegate_.IsBatteryLevelLow() &&
                        stylus_battery_delegate_.IsBatteryStatusEligible() &&
                        !stylus_battery_delegate_.IsBatteryStatusStale() &&
@@ -233,7 +232,7 @@ class TitleView : public views::View {
   // clicked.
   raw_ptr<views::View, ExperimentalAsh> settings_button_;
   raw_ptr<views::View, ExperimentalAsh> help_button_;
-  raw_ptr<PaletteTray, DanglingUntriaged | ExperimentalAsh> palette_tray_;
+  raw_ptr<PaletteTray, ExperimentalAsh> palette_tray_;
 };
 
 // Used as a Shell pre-target handler to notify PaletteTray of stylus events.
@@ -441,10 +440,12 @@ void PaletteTray::OnLockStateChanged(bool locked) {
 }
 
 void PaletteTray::OnShellInitialized() {
-  ProjectorControllerImpl* projector_controller =
-      Shell::Get()->projector_controller();
-  projector_session_observation_.Observe(
-      projector_controller->projector_session());
+  if (features::IsProjectorEnabled()) {
+    ProjectorControllerImpl* projector_controller =
+        Shell::Get()->projector_controller();
+    projector_session_observation_.Observe(
+        projector_controller->projector_session());
+  }
 }
 
 void PaletteTray::OnShellDestroying() {

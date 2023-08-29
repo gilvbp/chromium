@@ -20,7 +20,7 @@ class ScriptValue;
 class SecurityOrigin;
 class PostMessageOptions;
 
-class CORE_EXPORT PortalHost : public EventTarget,
+class CORE_EXPORT PortalHost : public EventTargetWithInlineData,
                                public Supplement<LocalDOMWindow> {
   DEFINE_WRAPPERTYPEINFO();
 

@@ -13,15 +13,14 @@
 #include "build/branding_buildflags.h"
 #include "build/chromeos_buildflags.h"
 #include "chrome/browser/ash/login/quick_unlock/quick_unlock_utils.h"
-#include "chrome/browser/ash/privacy_hub/privacy_hub_util.h"
 #include "chrome/browser/ash/profiles/profile_helper.h"
 #include "chrome/browser/browser_process.h"
 #include "chrome/browser/ui/ash/auth/legacy_fingerprint_engine.h"
-#include "chrome/browser/ui/webui/ash/settings/search/search_tag_registry.h"
 #include "chrome/browser/ui/webui/settings/ash/metrics_consent_handler.h"
 #include "chrome/browser/ui/webui/settings/ash/os_settings_features_util.h"
 #include "chrome/browser/ui/webui/settings/ash/peripheral_data_access_handler.h"
 #include "chrome/browser/ui/webui/settings/ash/privacy_hub_handler.h"
+#include "chrome/browser/ui/webui/settings/ash/search/search_tag_registry.h"
 #include "chrome/browser/ui/webui/settings/settings_secure_dns_handler.h"
 #include "chrome/browser/ui/webui/settings/shared_settings_localized_strings_provider.h"
 #include "chrome/browser/ui/webui/webui_util.h"
@@ -42,7 +41,6 @@ namespace mojom {
 using ::chromeos::settings::mojom::kFingerprintSubpagePathV2;
 using ::chromeos::settings::mojom::kManageOtherPeopleSubpagePathV2;
 using ::chromeos::settings::mojom::kPrivacyAndSecuritySectionPath;
-using ::chromeos::settings::mojom::kPrivacyHubMicrophoneSubpagePath;
 using ::chromeos::settings::mojom::kPrivacyHubSubpagePath;
 using ::chromeos::settings::mojom::kSecurityAndSignInSubpagePathV2;
 using ::chromeos::settings::mojom::kSmartPrivacySubpagePath;
@@ -135,13 +133,7 @@ const std::vector<SearchConcept>& GetPrivacySearchConcepts() {
             mojom::SearchResultIcon::kLock,
             mojom::SearchResultDefaultRank::kMedium,
             mojom::SearchResultType::kSubpage,
-            {.subpage = mojom::Subpage::kSecurityAndSignInV2}},
-           {IDS_OS_SETTINGS_TAG_LOCAL_DATA_RECOVERY,
-            mojom::kSecurityAndSignInSubpagePathV2,
-            mojom::SearchResultIcon::kLock,
-            mojom::SearchResultDefaultRank::kMedium,
-            mojom::SearchResultType::kSetting,
-            {.setting = mojom::Setting::kDataRecovery}}});
+            {.subpage = mojom::Subpage::kSecurityAndSignInV2}}});
     }
 
     return all_tags;
@@ -402,8 +394,6 @@ void PrivacySection::AddLoadTimeData(content::WebUIDataSource* html_source) {
       {"cameraToggleTitle", IDS_OS_SETTINGS_PRIVACY_HUB_CAMERA_TOGGLE_TITLE},
       {"cameraToggleSubtext",
        IDS_OS_SETTINGS_PRIVACY_HUB_CAMERA_TOGGLE_SUBTEXT},
-      {"cameraToggleFallbackSubtext",
-       IDS_OS_SETTINGS_PRIVACY_HUB_FALLBACK_CAMERA_TOGGLE_SUBTEXT},
       {"noCameraConnectedText",
        IDS_OS_SETTINGS_PRIVACY_HUB_NO_CAMERA_CONNECTED_TEXT},
       {"microphoneToggleTitle",
@@ -433,10 +423,7 @@ void PrivacySection::AddLoadTimeData(content::WebUIDataSource* html_source) {
   html_source->AddBoolean(
       "isPrivacyHubHatsEnabled",
       base::FeatureList::IsEnabled(
-          ::features::kHappinessTrackingPrivacyHubPostLaunch));
-  html_source->AddBoolean(
-      "showAppPermissionsInsidePrivacyHub",
-      ash::features::IsCrosPrivacyHubAppPermissionsEnabled());
+          ::features::kHappinessTrackingPrivacyHubBaseline));
   html_source->AddBoolean("showPrivacyHubPage",
                           ash::features::IsCrosPrivacyHubEnabled());
   html_source->AddBoolean("showPrivacyHubMVPPage",
@@ -501,7 +488,7 @@ mojom::SearchResultIcon PrivacySection::GetSectionIcon() const {
   return mojom::SearchResultIcon::kShield;
 }
 
-const char* PrivacySection::GetSectionPath() const {
+std::string PrivacySection::GetSectionPath() const {
   return mojom::kPrivacyAndSecuritySectionPath;
 }
 
@@ -538,7 +525,6 @@ void PrivacySection::RegisterHierarchy(HierarchyGenerator* generator) const {
       mojom::Setting::kChangeAuthPinV2,
       mojom::Setting::kPeripheralDataAccessProtection,
       mojom::Setting::kLockScreenNotification,
-      mojom::Setting::kDataRecovery,
   };
   RegisterNestedSettingBulk(mojom::Subpage::kSecurityAndSignInV2,
                             kSecurityAndSignInSettings, generator);
@@ -594,13 +580,6 @@ void PrivacySection::RegisterHierarchy(HierarchyGenerator* generator) const {
         mojom::Setting::kGeolocationOnOff,
         mojom::Setting::kSpeakOnMuteDetectionOnOff}},
       generator);
-
-  // Privacy hub microphone.
-  generator->RegisterTopLevelSubpage(
-      IDS_OS_SETTINGS_PRIVACY_HUB_MICROPHONE_TOGGLE_TITLE,
-      mojom::Subpage::kPrivacyHubMicrophone, mojom::SearchResultIcon::kShield,
-      mojom::SearchResultDefaultRank::kMedium,
-      mojom::kPrivacyHubMicrophoneSubpagePath);
 }
 
 bool PrivacySection::AreFingerprintSettingsAllowed() {

@@ -467,7 +467,7 @@ bool Layer::Contains(const Layer* other) const {
   return false;
 }
 
-void Layer::SetAnimator(scoped_refptr<LayerAnimator> animator) {
+void Layer::SetAnimator(LayerAnimator* animator) {
   Compositor* compositor = GetCompositor();
 
   if (animator_) {
@@ -477,7 +477,7 @@ void Layer::SetAnimator(scoped_refptr<LayerAnimator> animator) {
     animator_->SetDelegate(nullptr);
   }
 
-  animator_ = std::move(animator);
+  animator_ = animator;
 
   if (animator_) {
     animator_->SetDelegate(this);
@@ -1031,6 +1031,7 @@ void Layer::SetTransferableResource(const viz::TransferableResource& resource,
   if (!texture_layer_.get()) {
     scoped_refptr<cc::TextureLayer> new_layer =
         cc::TextureLayer::CreateForMailbox(this);
+    new_layer->SetFlipped(true);
     if (!SwitchToLayer(new_layer))
       return;
 
@@ -1638,12 +1639,8 @@ void Layer::SetRoundedCornersFromAnimation(
     PropertyChangeReason reason) {
   cc_layer_->SetRoundedCorner(rounded_corners);
 
-  for (const auto& mirror : mirrors_) {
-    Layer* mirror_dest = mirror->dest();
-    if (mirror_dest->sync_rounded_corners_with_source_) {
-      mirror_dest->SetRoundedCornersFromAnimation(rounded_corners, reason);
-    }
-  }
+  for (const auto& mirror : mirrors_)
+    mirror->dest()->SetRoundedCornersFromAnimation(rounded_corners, reason);
 }
 
 void Layer::SetGradientMaskFromAnimation(

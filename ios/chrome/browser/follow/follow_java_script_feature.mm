@@ -8,6 +8,10 @@
 #import "ios/web/public/web_state.h"
 #import "net/base/mac/url_conversions.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace {
 const char kRSSLinkScript[] = "rss_link";
 const char kGetRSSLinkFunction[] = "rssLink.getRSSLinks";

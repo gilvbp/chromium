@@ -5,8 +5,6 @@
 import {TestRunner} from 'test_runner';
 import {ElementsTestRunner} from 'elements_test_runner';
 
-import * as SDK from 'devtools/core/sdk/sdk.js';
-
 (async function() {
   TestRunner.addResult(`Test\n`);
   await TestRunner.loadLegacyModule('elements');
@@ -40,7 +38,7 @@ import * as SDK from 'devtools/core/sdk/sdk.js';
   TestRunner.overlayModel.setInspectMode(Protocol.Overlay.InspectMode.SearchForNode).then(inspectModeEnabled);
 
   function inspectModeEnabled() {
-    UI.context.addFlavorChangeListener(SDK.DOMModel.DOMNode, selectedNodeChanged);
+    UI.context.addFlavorChangeListener(SDK.DOMNode, selectedNodeChanged);
     TestRunner.evaluateInPage('clickPseudo()');
   }
 
@@ -50,7 +48,7 @@ import * as SDK from 'devtools/core/sdk/sdk.js';
       TestRunner.addResult('<no selected node>');
     else
       TestRunner.addResult('Selected node pseudo type: ' + selectedNode.pseudoType());
-    UI.context.removeFlavorChangeListener(SDK.DOMModel.DOMNode, selectedNodeChanged);
+    UI.context.removeFlavorChangeListener(SDK.DOMNode, selectedNodeChanged);
     TestRunner.completeTest();
   }
 })();

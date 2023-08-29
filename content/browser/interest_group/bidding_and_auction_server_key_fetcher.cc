@@ -148,14 +148,13 @@ void BiddingAndAuctionServerKeyFetcher::OnParsedKeys(
     if (!base::Base64Decode(*key_value, &key.key)) {
       continue;
     }
+    // TODO(behamilton): get the real ID number from the JSON once the server
+    // team provides us with the correct format.
     const std::string* id_value = key_dict->FindString("id");
-    unsigned int key_id;
-    if (!id_value || id_value->size() == 0 ||
-        !base::HexStringToUInt(id_value->substr(0, 2), &key_id) ||
-        key_id > 0xFF) {
+    if (!id_value || id_value->size() == 0) {
       continue;
     }
-    key.id = key_id;
+    key.id = id_value->at(id_value->size() - 1);
     keys_.push_back(std::move(key));
   }
 

@@ -59,6 +59,7 @@ export class FakeDevicePairingHandler {
     this.finishRequestConfirmPasskeyCallback_ = null;
   }
 
+  /** @override */
   pairDevice(deviceId, delegate) {
     this.pairDeviceCalledCount_++;
     this.devicePairingDelegate_ = delegate;
@@ -74,6 +75,7 @@ export class FakeDevicePairingHandler {
     return promise;
   }
 
+  /** @override */
   fetchDevice(deviceAddress) {
     if (this.waitForFetchDeviceCallback_) {
       this.waitForFetchDeviceCallback_();

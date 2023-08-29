@@ -80,12 +80,11 @@ AndroidSmsServiceFactory::AndroidSmsServiceFactory()
 
 AndroidSmsServiceFactory::~AndroidSmsServiceFactory() = default;
 
-std::unique_ptr<KeyedService>
-AndroidSmsServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* AndroidSmsServiceFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   Profile* profile = Profile::FromBrowserContext(context);
 
-  return std::make_unique<AndroidSmsService>(
+  return new AndroidSmsService(
       profile, HostContentSettingsMapFactory::GetForProfile(profile),
       multidevice_setup::MultiDeviceSetupClientFactory::GetForProfile(profile),
       web_app::WebAppProvider::GetDeprecated(profile),

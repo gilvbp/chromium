@@ -15,6 +15,10 @@
 #import "ui/base/l10n/l10n_util_mac.h"
 #import "ui/base/l10n/time_format.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 using password_manager::CredentialUIEntry;
 
 namespace {
@@ -41,6 +45,11 @@ bool IsCredentialUnmutedCompromised(const CredentialUIEntry& credential) {
 
 WarningType GetWarningOfHighestPriority(
     const std::vector<CredentialUIEntry>& insecure_credentials) {
+  // Using a set to make sure that the `has_reused_passwords` flag is only set
+  // to `true` if there is at least a reused group of two passwords.
+  // TODO(crbug.com/1434343): This is a temporary solution to filter out the
+  // reused password groups with only one remaining password.
+  std::unordered_set<std::u16string> reused_passwords_set;
   bool has_reused_passwords = false;
   bool has_weak_passwords = false;
   bool has_muted_warnings = false;
@@ -56,7 +65,12 @@ WarningType GetWarningOfHighestPriority(
     // warning. So, if the credential is reused, there is no need to verify if
     // it is also weak.
     if (credential.IsReused()) {
-      has_reused_passwords = true;
+      if (reused_passwords_set.find(credential.password) !=
+          reused_passwords_set.end()) {
+        has_reused_passwords = true;
+      } else {
+        reused_passwords_set.insert(credential.password);
+      }
     } else if (credential.IsWeak()) {
       has_weak_passwords = true;
     }
@@ -87,10 +101,18 @@ InsecurePasswordCounts CountInsecurePasswordsPerInsecureType(
       counts.compromised_count++;
     }
     if (credential.IsReused()) {
-      counts.reused_count++;
+      reused_passwords[credential.password]++;
     }
     if (credential.IsWeak()) {
       counts.weak_count++;
+    }
+  }
+
+  // TODO(crbug.com/1434343): This is a temporary solution to filter out the
+  // reused password groups with only one remaining password.
+  for (const auto& password : reused_passwords) {
+    if (password.second > 1) {
+      counts.reused_count += password.second;
     }
   }
 
@@ -167,11 +189,24 @@ std::vector<CredentialUIEntry> GetPasswordsForWarningType(
                             std::back_inserter(filtered_credentials),
                             std::mem_fn(&CredentialUIEntry::IsWeak));
       break;
-    case WarningType::kReusedPasswordsWarning:
-      base::ranges::copy_if(insecure_credentials,
-                            std::back_inserter(filtered_credentials),
-                            std::mem_fn(&CredentialUIEntry::IsReused));
+    case WarningType::kReusedPasswordsWarning: {
+      // TODO(crbug.com/1434343): This is a temporary solution to filter out the
+      // reused password groups with only one remaining password.
+      std::map<std::u16string, std::vector<CredentialUIEntry>> reused_passwords;
+      for (const auto& credential : insecure_credentials) {
+        if (credential.IsReused()) {
+          reused_passwords[credential.password].push_back(credential);
+        }
+      }
+      for (const auto& password : reused_passwords) {
+        if (password.second.size() > 1) {
+          filtered_credentials.insert(filtered_credentials.end(),
+                                      password.second.begin(),
+                                      password.second.end());
+        }
+      }
       break;
+    }
     case WarningType::kDismissedWarningsWarning:
       base::ranges::copy_if(insecure_credentials,
                             std::back_inserter(filtered_credentials),

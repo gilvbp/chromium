@@ -34,7 +34,7 @@ class SecurityEventRecorderFactory : public ProfileKeyedServiceFactory {
   ~SecurityEventRecorderFactory() override;
 
   // BrowserContextKeyedServiceFactory:
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* context) const override;
 };
 #endif  // CHROME_BROWSER_SECURITY_EVENTS_SECURITY_EVENT_RECORDER_FACTORY_H_

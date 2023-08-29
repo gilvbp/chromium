@@ -103,11 +103,13 @@ GLImageProcessorBackend::GLImageProcessorBackend(
     const PortConfig& input_config,
     const PortConfig& output_config,
     OutputMode output_mode,
+    VideoRotation relative_rotation,
     ErrorCB error_cb)
     : ImageProcessorBackend(
           input_config,
           output_config,
           output_mode,
+          relative_rotation,
           std::move(error_cb),
           // Note: we use a single thread task runner because the GL context is
           // thread local, so we need to make sure we run the
@@ -120,11 +122,17 @@ std::string GLImageProcessorBackend::type() const {
 }
 
 bool GLImageProcessorBackend::IsSupported(const PortConfig& input_config,
-                                          const PortConfig& output_config) {
+                                          const PortConfig& output_config,
+                                          VideoRotation relative_rotation) {
   if (input_config.fourcc.ToVideoPixelFormat() != PIXEL_FORMAT_NV12 ||
       output_config.fourcc.ToVideoPixelFormat() != PIXEL_FORMAT_NV12) {
     VLOGF(2)
         << "The GLImageProcessorBackend only supports MM21 to NV12 conversion.";
+    return false;
+  }
+
+  if (relative_rotation != VIDEO_ROTATION_0) {
+    VLOGF(2) << "The GLImageProcessorBackend does not support rotation.";
     return false;
   }
 
@@ -170,18 +178,19 @@ std::unique_ptr<ImageProcessorBackend> GLImageProcessorBackend::Create(
     const PortConfig& input_config,
     const PortConfig& output_config,
     OutputMode output_mode,
+    VideoRotation relative_rotation,
     ErrorCB error_cb) {
   DCHECK_EQ(output_mode, OutputMode::IMPORT);
 
-  if (!IsSupported(input_config, output_config)) {
+  if (!IsSupported(input_config, output_config, relative_rotation))
     return nullptr;
-  }
 
   auto image_processor =
       std::unique_ptr<GLImageProcessorBackend,
                       std::default_delete<ImageProcessorBackend>>(
           new GLImageProcessorBackend(input_config, output_config,
-                                      OutputMode::IMPORT, std::move(error_cb)));
+                                      OutputMode::IMPORT, relative_rotation,
+                                      std::move(error_cb)));
 
   // Initialize GLImageProcessorBackend on the |backend_task_runner_| so that
   // the GL context is bound to the right thread and all the shaders are

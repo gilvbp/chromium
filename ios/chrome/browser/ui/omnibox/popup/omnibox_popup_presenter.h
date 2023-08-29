@@ -7,9 +7,6 @@
 
 #import <UIKit/UIKit.h>
 
-#import "ios/chrome/browser/ui/toolbar/public/toolbar_omnibox_consumer.h"
-#import "ios/chrome/browser/ui/toolbar/public/toolbar_type.h"
-
 @protocol ContentProviding;
 @class LayoutGuideCenter;
 @class OmniboxPopupPresenter;
@@ -34,15 +31,14 @@
 /// The UI Refresh implementation of the popup presenter.
 /// TODO(crbug.com/936833): This class should be refactored to handle a nil
 /// delegate.
-@interface OmniboxPopupPresenter : NSObject <ToolbarOmniboxConsumer>
+@interface OmniboxPopupPresenter : NSObject
 
 /// Whether the popup is open
 @property(nonatomic, assign, getter=isOpen) BOOL open;
 
 /// Uses the popup's intrinsic content size to add or remove the popup view
-/// if necessary. The animation changes depending on:
-/// `isFocusingOmnibox`: Omnibox is being focused.
-- (void)updatePopupOnFocus:(BOOL)isFocusingOmnibox;
+/// if necessary.
+- (void)updatePopup;
 
 /// Only called when IsIpadPopoutOmniboxEnabled is true.
 /// Tells the presenter to update, following a trait collection change.

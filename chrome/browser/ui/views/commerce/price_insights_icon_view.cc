@@ -129,18 +129,14 @@ PriceInsightsIconView::GetPriceInsightsIconLabelType() {
     return PriceInsightsIconView::PriceInsightsIconLabelType::kNone;
   } else if (price_insights_info->price_bucket ==
              commerce::PriceBucket::kLowPrice) {
-    SetLabel(
-        l10n_util::GetStringUTF16(
-            IDS_SHOPPING_INSIGHTS_ICON_EXPANDED_TEXT_LOW_PRICE),
-        l10n_util::GetStringUTF16(IDS_SHOPPING_INSIGHTS_ICON_TOOLTIP_TEXT));
+    SetLabel(l10n_util::GetStringUTF16(
+        IDS_SHOPPING_INSIGHTS_ICON_EXPANDED_TEXT_LOW_PRICE));
     return PriceInsightsIconView::PriceInsightsIconLabelType::kPriceIsLow;
   } else if (price_insights_info->price_bucket ==
                  commerce::PriceBucket::kHighPrice &&
              commerce::kPriceInsightsChipLabelExpandOnHighPrice.Get()) {
-    SetLabel(
-        l10n_util::GetStringUTF16(
-            IDS_SHOPPING_INSIGHTS_ICON_EXPANDED_TEXT_HIGH_PRICE),
-        l10n_util::GetStringUTF16(IDS_SHOPPING_INSIGHTS_ICON_TOOLTIP_TEXT));
+    SetLabel(l10n_util::GetStringUTF16(
+        IDS_SHOPPING_INSIGHTS_ICON_EXPANDED_TEXT_HIGH_PRICE));
     return PriceInsightsIconView::PriceInsightsIconLabelType::kPriceIsHigh;
   } else {
     return PriceInsightsIconView::PriceInsightsIconLabelType::kNone;

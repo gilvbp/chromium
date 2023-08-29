@@ -114,26 +114,19 @@ class LayoutUnit {
   }
   constexpr explicit LayoutUnit(uint64_t value)
       : value_(base::saturated_cast<int>(value * kFixedPointDenominator)) {}
-  // The specified `value` is truncated to a multiple of 1/64 near 0, and
-  // is clamped by Min() and Max().
-  // A NaN `value` produces LayoutUnit(0).
+  // A |value| is clamped by Min() and Max().
+  // A NaN |value| produces LayoutUnit(0).
   constexpr explicit LayoutUnit(float value)
       : value_(base::saturated_cast<int>(value * kFixedPointDenominator)) {}
   constexpr explicit LayoutUnit(double value)
       : value_(base::saturated_cast<int>(value * kFixedPointDenominator)) {}
 
-  // The specified `value` is rounded up to a multiple of 1/64, and
-  // is clamped by Min() and Max().
-  // A NaN `value` produces LayoutUnit(0).
   static LayoutUnit FromFloatCeil(float value) {
     LayoutUnit v;
     v.value_ = base::saturated_cast<int>(ceilf(value * kFixedPointDenominator));
     return v;
   }
 
-  // The specified `value` is truncated to a multiple of 1/64, and is clamped
-  // by Min() and Max().
-  // A NaN `value` produces LayoutUnit(0).
   static LayoutUnit FromFloatFloor(float value) {
     LayoutUnit v;
     v.value_ =
@@ -141,9 +134,6 @@ class LayoutUnit {
     return v;
   }
 
-  // The specified `value` is rounded to a multiple of 1/64, and
-  // is clamped by Min() and Max().
-  // A NaN `value` produces LayoutUnit(0).
   static LayoutUnit FromFloatRound(float value) {
     LayoutUnit v;
     v.value_ =

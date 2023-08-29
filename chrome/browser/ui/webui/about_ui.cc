@@ -492,7 +492,7 @@ void AppendHeader(std::string* output, const std::string& unescaped_title) {
 // calling browser is Lacros.
 bool isLacrosPrimaryOrCurrentBrowser() {
 #if BUILDFLAG(IS_CHROMEOS_ASH)
-  return crosapi::browser_util::IsLacrosEnabled();
+  return crosapi::browser_util::IsLacrosPrimaryBrowser();
 #else
   return true;
 #endif
@@ -754,6 +754,17 @@ std::string AboutUIHTMLSource::GetMimeType(const GURL& url) {
   }
 
   return "text/html";
+}
+
+bool AboutUIHTMLSource::ShouldAddContentSecurityPolicy() {
+#if BUILDFLAG(IS_CHROMEOS_ASH)
+  if (source_name_ == chrome::kChromeUIOSCreditsHost ||
+      source_name_ == chrome::kChromeUICrostiniCreditsHost ||
+      source_name_ == chrome::kChromeUIBorealisCreditsHost) {
+    return false;
+  }
+#endif
+  return content::URLDataSource::ShouldAddContentSecurityPolicy();
 }
 
 std::string AboutUIHTMLSource::GetAccessControlAllowOriginForOrigin(

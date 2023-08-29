@@ -46,8 +46,7 @@ bool FakeSafeBrowsingDatabaseManager::CheckBrowseUrl(
     const GURL& url,
     const SBThreatTypeSet& threat_types,
     Client* client,
-    MechanismExperimentHashDatabaseCache experiment_cache_selection,
-    CheckBrowseUrlType check_type) {
+    MechanismExperimentHashDatabaseCache experiment_cache_selection) {
   const auto it = dangerous_urls_.find(url);
   if (it == dangerous_urls_.end())
     return true;
@@ -105,14 +104,8 @@ bool FakeSafeBrowsingDatabaseManager::CheckUrlForSubresourceFilter(
   return true;
 }
 
-safe_browsing::ThreatSource
-FakeSafeBrowsingDatabaseManager::GetBrowseUrlThreatSource(
-    CheckBrowseUrlType check_type) const {
-  return safe_browsing::ThreatSource::LOCAL_PVER4;
-}
-
-safe_browsing::ThreatSource
-FakeSafeBrowsingDatabaseManager::GetNonBrowseUrlThreatSource() const {
+safe_browsing::ThreatSource FakeSafeBrowsingDatabaseManager::GetThreatSource()
+    const {
   return safe_browsing::ThreatSource::LOCAL_PVER4;
 }
 

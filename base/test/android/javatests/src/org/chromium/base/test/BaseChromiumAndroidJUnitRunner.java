@@ -16,12 +16,10 @@ import android.content.pm.InstrumentationInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.os.Build;
-import android.os.Build.VERSION;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
-import android.system.Os;
 import android.text.TextUtils;
 
 import androidx.core.content.ContextCompat;
@@ -49,7 +47,6 @@ import org.chromium.base.multidex.ChromiumMultiDexInstaller;
 import org.chromium.base.test.util.CallbackHelper;
 import org.chromium.base.test.util.InMemorySharedPreferences;
 import org.chromium.base.test.util.InMemorySharedPreferencesContext;
-import org.chromium.base.test.util.MinAndroidSdkLevel;
 import org.chromium.base.test.util.ScalableTimeout;
 import org.chromium.build.BuildConfig;
 import org.chromium.build.annotations.MainDex;
@@ -84,8 +81,6 @@ public class BaseChromiumAndroidJUnitRunner extends AndroidJUnitRunner {
             "org.chromium.base.test.BaseChromiumAndroidJUnitRunner.TestListPackage";
     private static final String IS_UNIT_TEST_FLAG =
             "org.chromium.base.test.BaseChromiumAndroidJUnitRunner.IsUnitTest";
-    private static final String EXTRA_CLANG_COVERAGE_DEVICE_FILE =
-            "org.chromium.base.test.BaseChromiumAndroidJUnitRunner.ClangCoverageDeviceFile";
     /**
      * This flag is supported by AndroidJUnitRunner.
      *
@@ -211,7 +206,6 @@ public class BaseChromiumAndroidJUnitRunner extends AndroidJUnitRunner {
             // androidx.test.
             System.setProperty("org.mockito.android.target",
                     InstrumentationRegistry.getTargetContext().getCacheDir().getPath());
-            setClangCoverageEnvIfEnabled();
             super.onStart();
         }
     }
@@ -347,7 +341,6 @@ public class BaseChromiumAndroidJUnitRunner extends AndroidJUnitRunner {
         final List<String> mIncludedPrefixes = new ArrayList<String>();
         final List<DexFile> mDexFiles;
         boolean mHasClassList;
-        private ClassLoader mClassLoader = DexFileTestRequestBuilder.class.getClassLoader();
 
         DexFileTestRequestBuilder(Instrumentation instr, Bundle bundle, List<DexFile> dexFiles) {
             super(instr, bundle);
@@ -382,12 +375,6 @@ public class BaseChromiumAndroidJUnitRunner extends AndroidJUnitRunner {
         public TestRequestBuilder addTestMethod(String testClassName, String testMethodName) {
             mHasClassList = true;
             return super.addTestMethod(testClassName, testMethodName);
-        }
-
-        @Override
-        public TestRequestBuilder setClassLoader(ClassLoader loader) {
-            mClassLoader = loader;
-            return super.setClassLoader(loader);
         }
 
         @Override
@@ -434,7 +421,7 @@ public class BaseChromiumAndroidJUnitRunner extends AndroidJUnitRunner {
                         // android-kitkat-arm-rel from 41s -> 23s.
                         continue;
                     }
-                    if (!className.contains("$") && checkIfTest(className, mClassLoader)) {
+                    if (!className.contains("$") && checkIfTest(className)) {
                         addTestClass(className);
                     }
                 }
@@ -487,36 +474,31 @@ public class BaseChromiumAndroidJUnitRunner extends AndroidJUnitRunner {
         @Override
         public Class<?> loadClass(String name) throws ClassNotFoundException {
             try {
-                var ret = mDelegateLoader.loadClass(name);
-                // Prevent loading classes that should be skipped due to @MinAndroidSdkLevelon.
-                // Loading them can cause NoClassDefFoundError to be thrown by junit when listing
-                // methods (if methods contain types from higher sdk version).
-                // E.g.: https://chromium-review.googlesource.com/c/chromium/src/+/4738415/1
-                MinAndroidSdkLevel annotation = ret.getAnnotation(MinAndroidSdkLevel.class);
-                if (annotation != null && annotation.value() > VERSION.SDK_INT) {
-                    throw new ClassNotFoundException();
-                }
-                return ret;
+                return mDelegateLoader.loadClass(name);
             } catch (NoClassDefFoundError e) {
                 throw new ClassNotFoundException(name, e);
             }
         }
     }
 
-    private static boolean checkIfTest(String className, ClassLoader classLoader) {
-        Class<?> loadedClass = tryLoadClass(className, classLoader);
+    private static boolean checkIfTest(String className) {
+        Class<?> loadedClass = tryLoadClass(className);
         if (loadedClass != null && isTestClass(loadedClass)) {
             return true;
         }
         return false;
     }
 
-    private static Class<?> tryLoadClass(String className, ClassLoader classLoader) {
+    private static Class<?> tryLoadClass(String className) {
         try {
-            return Class.forName(className, false, classLoader);
-        } catch (NoClassDefFoundError | ClassNotFoundException e) {
-            return null;
+            return Class.forName(
+                    className, false, BaseChromiumAndroidJUnitRunner.class.getClassLoader());
+        } catch (NoClassDefFoundError e) {
+            // Do nothing.
+        } catch (ClassNotFoundException e) {
+            // Do nothing.
         }
+        return null;
     }
 
     // Copied from android.support.test.runner code.
@@ -596,7 +578,6 @@ public class BaseChromiumAndroidJUnitRunner extends AndroidJUnitRunner {
         }
 
         try {
-            writeClangCoverageProfileIfEnabled();
             getTargetContext().getSystemService(JobScheduler.class).cancelAll();
             checkOrDeleteOnDiskSharedPreferences(true);
             UmaRecorderHolder.resetForTesting();
@@ -736,6 +717,9 @@ public class BaseChromiumAndroidJUnitRunner extends AndroidJUnitRunner {
             if (file.getName().equals("lib")) {
                 continue;
             }
+            if (file.getName().equals("chromium_tests_root")) {
+                continue;
+            }
             if (file.getName().equals("incremental-install-files")) {
                 continue;
             }
@@ -763,37 +747,6 @@ public class BaseChromiumAndroidJUnitRunner extends AndroidJUnitRunner {
         }
     }
 
-    private static boolean isSharedPrefFileAllowed(File f) {
-        // Multidex support library prefs need to stay or else multidex extraction will occur
-        // needlessly.
-        if (f.getName().endsWith("multidex.version.xml")) {
-            return true;
-        }
-
-        // WebView prefs need to stay because webview tests have no (good) way of hooking
-        // SharedPreferences for instantiated WebViews.
-        String[] allowlist = new String[] {
-                "WebViewChromiumPrefs.xml",
-                "org.chromium.android_webview.devui.MainActivity.xml",
-                "AwComponentUpdateServicePreferences.xml",
-                "ComponentsProviderServicePreferences.xml",
-                "org.chromium.webengine.test.instrumentation_test_apk_preferences.xml",
-                "AwOriginVisitLoggerPrefs.xml",
-        };
-        for (String name : allowlist) {
-            // SharedPreferences may also access a ".bak" backup file from a previous run. See
-            // https://crbug.com/1462105#c4 and
-            // https://cs.android.com/android/platform/superproject/main/+/main:frameworks/base/core/java/android/app/SharedPreferencesImpl.java;l=213;drc=6f7c5e0914a18e6adafaa319e670363772e51691
-            // for details.
-            String backupName = name + ".bak";
-
-            if (f.getName().equals(name) || f.getName().equals(backupName)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     private void checkOrDeleteOnDiskSharedPreferences(boolean check) {
         File dataDir = ContextCompat.getDataDir(InstrumentationRegistry.getTargetContext());
         File prefsDir = new File(dataDir, "shared_prefs");
@@ -803,13 +756,22 @@ public class BaseChromiumAndroidJUnitRunner extends AndroidJUnitRunner {
         }
         ArrayList<File> badFiles = new ArrayList<>();
         for (File f : files) {
-            if (isSharedPrefFileAllowed(f)) {
-                continue;
-            }
-            if (check) {
-                badFiles.add(f);
-            } else {
-                f.delete();
+            // Multidex support library prefs need to stay or else multidex extraction will occur
+            // needlessly.
+            // WebView prefs need to stay because webview tests have no (good) way of hooking
+            // SharedPreferences for instantiated WebViews.
+            if (!f.getName().endsWith("multidex.version.xml")
+                    && !f.getName().equals("WebViewChromiumPrefs.xml")
+                    && !f.getName().equals("org.chromium.android_webview.devui.MainActivity.xml")
+                    && !f.getName().equals("AwComponentUpdateServicePreferences.xml")
+                    && !f.getName().equals("ComponentsProviderServicePreferences.xml")
+                    && !f.getName().equals("org.chromium.webengine.test."
+                            + "instrumentation_test_apk_preferences.xml")) {
+                if (check) {
+                    badFiles.add(f);
+                } else {
+                    f.delete();
+                }
             }
         }
         if (!badFiles.isEmpty()) {
@@ -832,31 +794,6 @@ public class BaseChromiumAndroidJUnitRunner extends AndroidJUnitRunner {
 
             errorMsg += "Files:\n * " + TextUtils.join("\n * ", badFiles);
             throw new AssertionError(errorMsg);
-        }
-    }
-
-    /**
-     * Configure the required environment variable if Clang coverage argument exists.
-     */
-    private void setClangCoverageEnvIfEnabled() {
-        String clangProfileFile =
-                InstrumentationRegistry.getArguments().getString(EXTRA_CLANG_COVERAGE_DEVICE_FILE);
-        if (clangProfileFile != null) {
-            try {
-                Os.setenv("LLVM_PROFILE_FILE", clangProfileFile, /*override*/ true);
-            } catch (Exception e) {
-                Log.w(TAG, "failed to set LLVM_PROFILE_FILE", e);
-            }
-        }
-    }
-
-    /**
-     * Invoke __llvm_profile_dump() to write raw clang coverage profile to device.
-     * Noop if the required build flag is not set.
-     */
-    private void writeClangCoverageProfileIfEnabled() {
-        if (BuildConfig.WRITE_CLANG_PROFILING_DATA && LibraryLoader.getInstance().isInitialized()) {
-            ClangProfiler.writeClangProfilingProfile();
         }
     }
 }

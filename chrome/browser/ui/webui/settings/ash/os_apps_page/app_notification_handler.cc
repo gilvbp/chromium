@@ -68,7 +68,7 @@ AppNotificationHandler::AppNotificationHandler(
   if (ash::MessageCenterAsh::Get()) {
     ash::MessageCenterAsh::Get()->AddObserver(this);
   }
-  app_registry_cache_observer_.Observe(&app_service_proxy_->AppRegistryCache());
+  Observe(&app_service_proxy_->AppRegistryCache());
 }
 
 AppNotificationHandler::~AppNotificationHandler() {
@@ -151,7 +151,7 @@ void AppNotificationHandler::NotifyAppChanged(
 
 void AppNotificationHandler::OnAppRegistryCacheWillBeDestroyed(
     apps::AppRegistryCache* cache) {
-  app_registry_cache_observer_.Reset();
+  Observe(nullptr);
 }
 
 }  // namespace ash::settings

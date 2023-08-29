@@ -156,7 +156,7 @@ void BroadcastChannel::ContextDestroyed() {
 
 void BroadcastChannel::Trace(Visitor* visitor) const {
   ExecutionContextLifecycleObserver::Trace(visitor);
-  EventTarget::Trace(visitor);
+  EventTargetWithInlineData::Trace(visitor);
   visitor->Trace(receiver_);
   visitor->Trace(remote_client_);
   visitor->Trace(associated_remote_);

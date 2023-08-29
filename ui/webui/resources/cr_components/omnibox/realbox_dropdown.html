@@ -5,14 +5,19 @@
 
   #content {
     background-color: var(--color-realbox-results-background);
-    border-radius: calc(0.5 * var(--cr-realbox-height));
+    border-radius: calc(0.25 * var(--cr-realbox-height));
     box-shadow: var(--cr-realbox-shadow);
     display: flex;
     gap: 16px;
     margin-bottom: 8px;
     overflow: hidden;
-    padding-bottom: 18px;
+    padding-bottom: 8px;
     padding-top: var(--cr-realbox-height);
+  }
+
+  :host([round-corners]) #content {
+    border-radius: calc(0.5 * var(--cr-realbox-height));
+    padding-bottom: 18px;
   }
 
   @media (forced-colors: active) {

@@ -4,9 +4,11 @@
 
 #import "ios/chrome/browser/ui/infobars/infobar_constants.h"
 
-const int kInfobarBackgroundColor = 0xfafafa;
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
-const CGFloat kInfobarTopPaddingBottomOmnibox = 4.0;
+const int kInfobarBackgroundColor = 0xfafafa;
 
 // a11y identifier so that automation can tap on either infobar button
 NSString* const kConfirmInfobarButton1AccessibilityIdentifier =

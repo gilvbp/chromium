@@ -15,7 +15,7 @@ NetworkListMobileHeaderView::NetworkListMobileHeaderView(
     NetworkListNetworkHeaderView::Delegate* delegate)
     : NetworkListNetworkHeaderView(delegate,
                                    IDS_ASH_STATUS_TRAY_NETWORK_MOBILE,
-                                   kUnifiedMenuSignalCellular0Icon) {}
+                                   kPhoneHubPhoneIcon) {}
 
 NetworkListMobileHeaderView::~NetworkListMobileHeaderView() = default;
 

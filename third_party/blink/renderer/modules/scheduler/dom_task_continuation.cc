@@ -17,12 +17,13 @@
 namespace blink {
 
 DOMTaskContinuation::DOMTaskContinuation(ScriptPromiseResolver* resolver,
-                                         AbortSignal* signal,
+                                         DOMTaskSignal* signal,
                                          DOMScheduler::DOMTaskQueue* task_queue)
     : resolver_(resolver), signal_(signal), task_queue_(task_queue) {
   CHECK(task_queue_);
+  CHECK(signal_);
 
-  if (signal_ && signal_->CanAbort()) {
+  if (signal_->CanAbort()) {
     CHECK(!signal_->aborted());
     abort_handle_ = signal_->AddAlgorithm(
         WTF::BindOnce(&DOMTaskContinuation::OnAbort, WrapWeakPersistent(this)));
@@ -44,14 +45,13 @@ void DOMTaskContinuation::Trace(Visitor* visitor) const {
 
 void DOMTaskContinuation::Invoke() {
   CHECK(resolver_);
-  if (ExecutionContext* context = resolver_->GetExecutionContext()) {
-    probe::AsyncTask async_task(context, &async_task_context_);
-    resolver_->Resolve();
+  ExecutionContext* context = resolver_->GetExecutionContext();
+  if (!context) {
+    return;
   }
-  if (abort_handle_) {
-    signal_->RemoveAlgorithm(abort_handle_);
-    abort_handle_ = nullptr;
-  }
+
+  probe::AsyncTask async_task(context, &async_task_context_);
+  resolver_->Resolve();
 }
 
 void DOMTaskContinuation::OnAbort() {
@@ -69,7 +69,6 @@ void DOMTaskContinuation::OnAbort() {
   // JS stack.
   ScriptState::Scope script_state_scope(resolver_script_state);
   // TODO(crbug.com/1293949): Add an error message.
-  CHECK(signal_);
   resolver_->Reject(
       ToV8Traits<IDLAny>::ToV8(resolver_script_state,
                                signal_->reason(resolver_script_state))

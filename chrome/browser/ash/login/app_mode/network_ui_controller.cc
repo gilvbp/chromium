@@ -4,10 +4,6 @@
 
 #include "chrome/browser/ash/login/app_mode/network_ui_controller.h"
 
-#include <memory>
-
-#include "base/auto_reset.h"
-#include "base/check_is_test.h"
 #include "base/functional/callback.h"
 #include "base/syslog_logging.h"
 #include "chrome/browser/ash/login/app_mode/kiosk_launch_controller.h"
@@ -15,7 +11,6 @@
 #include "chrome/browser/ash/policy/core/browser_policy_connector_ash.h"
 #include "chrome/browser/browser_process.h"
 #include "chrome/browser/browser_process_platform_part_ash.h"
-#include "chrome/browser/ui/webui/ash/login/network_state_informer.h"
 #include "chromeos/ash/components/settings/cros_settings_names.h"
 #include "components/user_manager/user_manager.h"
 #include "content/public/browser/network_service_instance.h"
@@ -27,7 +22,7 @@ namespace {
 constexpr base::TimeDelta kKioskNetworkWaitTime = base::Seconds(10);
 base::TimeDelta g_network_wait_time = kKioskNetworkWaitTime;
 
-absl::optional<bool> g_can_configure_network_for_testing;
+base::RepeatingCallback<bool()>* g_can_configure_network_callback = nullptr;
 
 bool IsDeviceEnterpriseManaged() {
   return g_browser_process->platform_part()
@@ -69,24 +64,13 @@ namespace ash {
 NetworkUiController::NetworkUiController(
     Observer& observer,
     LoginDisplayHost* host,
-    AppLaunchSplashScreenView& splash_screen,
-    std::unique_ptr<NetworkMonitor> network_monitor)
-    : observer_(observer),
-      host_(host),
-      splash_screen_view_(splash_screen),
-      network_monitor_(std::move(network_monitor)) {
-  if (!host_) {
-    CHECK_IS_TEST();
-  }
+    AppLaunchSplashScreenView* splash_screen)
+    : observer_(observer), host_(host), splash_screen_view_(splash_screen) {
   splash_screen_view_->SetDelegate(this);
 }
 
 NetworkUiController::~NetworkUiController() {
   splash_screen_view_->SetDelegate(nullptr);
-}
-
-void NetworkUiController::Start() {
-  network_observation_.Observe(network_monitor_.get());
 }
 
 void NetworkUiController::SetProfile(Profile* profile) {
@@ -117,18 +101,24 @@ void NetworkUiController::OnNetworkLostDuringInstallation() {
 }
 
 void NetworkUiController::InitializeNetwork() {
+  if (!splash_screen_view_) {
+    return;
+  }
+
   network_ui_state_ = NetworkUIState::kWaitingForNetwork;
 
   network_wait_timer_.Start(FROM_HERE, g_network_wait_time, this,
                             &NetworkUiController::OnNetworkWaitTimeout);
 
-  // Asking to initialize network means the app requires network. Remember that.
+  // When we are asked to initialize network, we should remember that this app
+  // requires network.
   network_required_ = true;
+  splash_screen_view_->SetNetworkRequired();
 
   splash_screen_view_->UpdateAppLaunchState(
       AppLaunchSplashScreenView::AppLaunchState::kPreparingNetwork);
 
-  if (IsNetworkReady()) {
+  if (splash_screen_view_->IsNetworkReady()) {
     OnNetworkOnline();
   }
 }
@@ -141,12 +131,10 @@ void NetworkUiController::OnConfigureNetwork() {
     return;
   }
 
-  if (CanConfigureNetworkForConsumerKiosk() && host_) {
+  if (CanConfigureNetworkForConsumerKiosk()) {
     host_->VerifyOwnerForKiosk(
         base::BindOnce(&NetworkUiController::ShowNetworkConfigureUI,
                        weak_ptr_factory_.GetWeakPtr()));
-  } else if (!host_) {
-    CHECK_IS_TEST();
   }
 }
 
@@ -156,21 +144,11 @@ void NetworkUiController::OnNetworkConfigFinished() {
   observer_->OnNetworkConfigureUiFinished();
 }
 
-void NetworkUiController::UpdateState(NetworkError::ErrorReason) {
-  OnNetworkStateChanged(IsNetworkReady());
-}
-
 void NetworkUiController::OnNetworkStateChanged(bool online) {
   if (online) {
     OnNetworkOnline();
   } else {
     OnNetworkOffline();
-  }
-
-  // If the network configure UI is currently showing, redraw it to reflect the
-  // changed network state.
-  if (network_ui_state_ == kShowing) {
-    ShowNetworkConfigureUI();
   }
 }
 
@@ -206,11 +184,15 @@ void NetworkUiController::CloseNetworkConfigureUI() {
 }
 
 bool NetworkUiController::IsNetworkReady() const {
-  return network_monitor_->GetState() == NetworkStateInformer::ONLINE;
+  return splash_screen_view_ && splash_screen_view_->IsNetworkReady();
 }
 
 void NetworkUiController::MaybeShowNetworkConfigureUI() {
   SYSLOG(INFO) << "Network configure UI was requested to be shown.";
+  if (!splash_screen_view_) {
+    return;
+  }
+
   if (!CanConfigureNetwork()) {
     splash_screen_view_->UpdateAppLaunchState(
         AppLaunchSplashScreenView::AppLaunchState::kNetworkWaitTimeout);
@@ -229,14 +211,7 @@ void NetworkUiController::ShowNetworkConfigureUI() {
   // configure UI.
   network_wait_timer_.Stop();
   network_ui_state_ = NetworkUIState::kShowing;
-  NetworkStateInformer::State state = network_monitor_->GetState();
-  // We should not block users when the network was not required by the
-  // controller.
-  if (!network_required_) {
-    state = NetworkStateInformer::ONLINE;
-  }
-  splash_screen_view_->ShowNetworkConfigureUI(
-      state, network_monitor_->GetNetworkName());
+  splash_screen_view_->ShowNetworkConfigureUI();
 
   observer_->OnNetworkConfigureUiShowing();
 }
@@ -253,8 +228,8 @@ void NetworkUiController::OnNetworkWaitTimeout() {
 }
 
 bool NetworkUiController::CanConfigureNetwork() {
-  if (g_can_configure_network_for_testing.has_value()) {
-    return g_can_configure_network_for_testing.value();
+  if (g_can_configure_network_callback) {
+    return g_can_configure_network_callback->Run();
   }
 
   if (IsDeviceEnterpriseManaged()) {
@@ -273,11 +248,9 @@ void NetworkUiController::MaybeShowNetworkConfigureUIForConsumerKiosk() {
 }
 
 // static
-std::unique_ptr<base::AutoReset<absl::optional<bool>>>
-NetworkUiController::SetCanConfigureNetworkForTesting(
-    bool can_configure_network) {
-  return std::make_unique<base::AutoReset<absl::optional<bool>>>(
-      &g_can_configure_network_for_testing, can_configure_network);
+void NetworkUiController::SetCanConfigureNetworkCallbackForTesting(
+    base::RepeatingCallback<bool()>* callback) {
+  g_can_configure_network_callback = callback;
 }
 
 }  // namespace ash

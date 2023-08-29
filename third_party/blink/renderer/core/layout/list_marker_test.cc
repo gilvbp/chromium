@@ -21,7 +21,7 @@ class ListMarkerTest : public RenderingTest {
   }
 
   LayoutObject* GetMarker(TreeScope& scope, const char* list_item_id) {
-    Element* list_item = scope.getElementById(AtomicString(list_item_id));
+    Element* list_item = scope.getElementById(list_item_id);
     return To<LayoutNGListItem>(list_item->GetLayoutObject())->Marker();
   }
 
@@ -41,8 +41,7 @@ class ListMarkerTest : public RenderingTest {
     declaration.Append("{");
     declaration.Append(descriptors);
     declaration.Append("}");
-    Element* sheet =
-        GetDocument().CreateElementForBinding(AtomicString("style"));
+    Element* sheet = GetDocument().CreateElementForBinding("style");
     sheet->setInnerHTML(declaration.ToString());
     GetDocument().body()->appendChild(sheet);
   }
@@ -89,7 +88,7 @@ TEST_F(ListMarkerTest, AddCounterStyle) {
   EXPECT_EQ("3. ", GetMarkerText("bar"));
 
   // Add @counter-style 'bar'. Should not affect 'decimal' and 'foo'.
-  AddCounterStyle(AtomicString("bar"), "system: fixed; symbols: A B C;");
+  AddCounterStyle("bar", "system: fixed; symbols: A B C;");
   GetDocument().UpdateStyleAndLayoutTree();
 
   EXPECT_FALSE(GetMarker("decimal")->NeedsLayout());
@@ -145,8 +144,7 @@ TEST_F(ListMarkerTest, OverridePredefinedCounterStyle) {
   EXPECT_EQ("II. ", GetMarkerText("upper-roman"));
 
   // Override 'upper-roman'. Should not affect 'decimal'.
-  AddCounterStyle(AtomicString("upper-roman"),
-                  "system: fixed; symbols: A B C;");
+  AddCounterStyle("upper-roman", "system: fixed; symbols: A B C;");
   GetDocument().UpdateStyleAndLayoutTree();
 
   EXPECT_FALSE(GetMarker("decimal")->NeedsLayout());
@@ -206,7 +204,7 @@ TEST_F(ListMarkerTest, OverrideSameScopeCounterStyle) {
   EXPECT_EQ("X. ", GetMarkerText("foo"));
 
   // Override 'foo'. Should not affect 'decimal'.
-  AddCounterStyle(AtomicString("foo"), "system: fixed; symbols: A B C;");
+  AddCounterStyle("foo", "system: fixed; symbols: A B C;");
   GetDocument().UpdateStyleAndLayoutTree();
 
   EXPECT_FALSE(GetMarker("decimal")->NeedsLayout());

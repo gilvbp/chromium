@@ -26,11 +26,6 @@
 #include "media/capture/video/blob_utils.h"
 #include "media/capture/video/linux/video_capture_device_linux.h"
 
-#if BUILDFLAG(IS_LINUX)
-#include "media/capture/capture_switches.h"
-#include "media/capture/video/linux/v4l2_capture_delegate_gpu_helper.h"
-#endif  // BUILDFLAG(IS_LINUX)
-
 using media::mojom::MeteringMode;
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 6, 0)
@@ -315,11 +310,7 @@ V4L2CaptureDelegate::V4L2CaptureDelegate(
       device_fd_(v4l2),
       is_capturing_(false),
       timeout_count_(0),
-      rotation_(rotation) {
-#if BUILDFLAG(IS_LINUX)
-  use_gpu_buffer_ = switches::IsVideoCaptureUseGpuMemoryBufferEnabled();
-#endif  // BUILDFLAG(IS_LINUX)
-}
+      rotation_(rotation) {}
 
 void V4L2CaptureDelegate::AllocateAndStart(
     int width,
@@ -442,13 +433,6 @@ void V4L2CaptureDelegate::AllocateAndStart(
     return;
 
   client_->OnStarted();
-
-#if BUILDFLAG(IS_LINUX)
-  if (use_gpu_buffer_) {
-    v4l2_gpu_helper_ = std::make_unique<V4L2CaptureDelegateGpuHelper>(
-        std::move(gmb_support_test_));
-  }
-#endif  // BUILDFLAG(IS_LINUX)
 
   // Post task to start fetching frames from v4l2.
   v4l2_task_runner_->PostTask(
@@ -784,11 +768,6 @@ void V4L2CaptureDelegate::SetRotation(int rotation) {
 
 base::WeakPtr<V4L2CaptureDelegate> V4L2CaptureDelegate::GetWeakPtr() {
   return weak_factory_.GetWeakPtr();
-}
-
-void V4L2CaptureDelegate::SetGPUEnvironmentForTesting(
-    std::unique_ptr<gpu::GpuMemoryBufferSupport> gmb_support) {
-  gmb_support_test_ = std::move(gmb_support);
 }
 
 V4L2CaptureDelegate::~V4L2CaptureDelegate() = default;
@@ -1147,18 +1126,10 @@ void V4L2CaptureDelegate::DoCapture() {
       // matrix = v4l2_format->fmt.pix.ycbcr_enc;
       // transfer = v4l2_format->fmt.pix.xfer_func;
       // See http://crbug.com/959919.
-#if BUILDFLAG(IS_LINUX)
-      if (use_gpu_buffer_) {
-        v4l2_gpu_helper_->OnIncomingCapturedData(
-            client_.get(), buffer_tracker->start(),
-            buffer_tracker->payload_size(), capture_format_, gfx::ColorSpace(),
-            rotation_, now, timestamp);
-      } else
-#endif  //  BUILDFLAG(IS_LINUX)
-        client_->OnIncomingCapturedData(
-            buffer_tracker->start(), buffer_tracker->payload_size(),
-            capture_format_, gfx::ColorSpace(), rotation_, false /* flip_y */,
-            now, timestamp);
+      client_->OnIncomingCapturedData(
+          buffer_tracker->start(), buffer_tracker->payload_size(),
+          capture_format_, gfx::ColorSpace(), rotation_, false /* flip_y */,
+          now, timestamp);
     }
 
     while (!take_photo_callbacks_.empty()) {

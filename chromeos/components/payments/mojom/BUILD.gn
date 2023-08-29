@@ -10,8 +10,5 @@ mojom("mojom") {
     "payment_app_types.mojom",
   ]
 
-  public_deps = [
-    "//components/payments/mojom",
-    "//mojo/public/mojom/base",
-  ]
+  public_deps = [ "//components/payments/mojom" ]
 }

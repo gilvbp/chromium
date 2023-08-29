@@ -10,7 +10,6 @@
 #include "base/memory/ptr_util.h"
 #include "base/time/time.h"
 #include "base/timer/mock_timer.h"
-#include "components/page_load_metrics/common/page_load_metrics.mojom-forward.h"
 #include "components/page_load_metrics/common/page_load_timing.h"
 #include "components/page_load_metrics/common/test/weak_mock_timer.h"
 #include "components/page_load_metrics/renderer/fake_page_timing_sender.h"
@@ -65,25 +64,6 @@ class TestMetricsRenderFrameObserver : public MetricsRenderFrameObserver,
                   PageTimingMetadataRecorder::MonotonicTiming());
   }
 
-  void ExpectSoftNavigationMetrics(
-      const mojom::SoftNavigationMetrics& soft_navigation_metrics) {
-    fake_soft_navigation_metrics_ = soft_navigation_metrics.Clone();
-    validator_.ExpectSoftNavigationMetrics(soft_navigation_metrics);
-  }
-
-  void ExpectSoftNavigationMetrics() {
-    validator_.ExpectSoftNavigationMetrics(
-        *fake_soft_navigation_metrics_->Clone());
-  }
-
-  void VerifyExpectedSoftNavigationMetrics() const {
-    validator_.VerifyExpectedSoftNavigationMetrics();
-  }
-
-  mojom::SoftNavigationMetricsPtr GetSoftNavigationMetrics() const override {
-    return fake_soft_navigation_metrics_->Clone();
-  }
-
   void VerifyExpectedTimings() const {
     EXPECT_EQ(nullptr, fake_timing_.get());
     validator_.VerifyExpectedTimings();
@@ -94,12 +74,6 @@ class TestMetricsRenderFrameObserver : public MetricsRenderFrameObserver,
  private:
   FakePageTimingSender::PageTimingValidator validator_;
   mutable mojom::PageLoadTimingPtr fake_timing_;
-  mojom::SoftNavigationMetricsPtr fake_soft_navigation_metrics_ =
-      mojom::SoftNavigationMetrics::New(
-          blink::kSoftNavigationCountDefaultValue,
-          base::Milliseconds(0),
-          base::EmptyString(),
-          mojom::LargestContentfulPaintTiming::New());
 };
 
 typedef testing::Test MetricsRenderFrameObserverTest;
@@ -119,8 +93,6 @@ TEST_F(MetricsRenderFrameObserverTest, SingleMetric) {
   page_load_metrics::InitPageLoadTimingForTest(&timing);
   timing.navigation_start = nav_start;
   observer.ExpectPageLoadTiming(timing);
-  observer.ExpectSoftNavigationMetrics();
-
   observer.DidStartNavigation(GURL(), absl::nullopt);
   observer.ReadyToCommitNavigation(nullptr);
   observer.DidCommitProvisionalLoad(ui::PAGE_TRANSITION_LINK);
@@ -128,7 +100,6 @@ TEST_F(MetricsRenderFrameObserverTest, SingleMetric) {
 
   timing.parse_timing->parse_start = base::Milliseconds(10);
   observer.ExpectPageLoadTiming(timing);
-  observer.ExpectSoftNavigationMetrics();
 
   observer.DidChangePerformanceTiming();
   observer.GetMockTimer()->Fire();
@@ -145,7 +116,6 @@ TEST_F(MetricsRenderFrameObserverTest,
   page_load_metrics::InitPageLoadTimingForTest(&timing);
   timing.navigation_start = nav_start;
   observer.ExpectPageLoadTiming(timing);
-  observer.ExpectSoftNavigationMetrics();
   observer.DidStartNavigation(GURL(), absl::nullopt);
   observer.ReadyToCommitNavigation(nullptr);
   observer.DidCommitProvisionalLoad(ui::PAGE_TRANSITION_LINK);
@@ -166,7 +136,6 @@ TEST_F(MetricsRenderFrameObserverTest, SingleCpuMetric) {
   page_load_metrics::InitPageLoadTimingForTest(&timing);
   timing.navigation_start = nav_start;
   observer.ExpectPageLoadTiming(timing);
-  observer.ExpectSoftNavigationMetrics();
   observer.DidStartNavigation(GURL(), absl::nullopt);
   observer.ReadyToCommitNavigation(nullptr);
   observer.DidCommitProvisionalLoad(ui::PAGE_TRANSITION_LINK);
@@ -187,14 +156,8 @@ TEST_F(MetricsRenderFrameObserverTest, MultipleMetrics) {
 
   mojom::PageLoadTiming timing;
   page_load_metrics::InitPageLoadTimingForTest(&timing);
-  mojom::SoftNavigationMetricsPtr soft_navigation_metrics =
-      mojom::SoftNavigationMetrics::New(
-          blink::kSoftNavigationCountDefaultValue, base::Milliseconds(0),
-          base::EmptyString(), mojom::LargestContentfulPaintTiming::New());
   timing.navigation_start = nav_start;
   observer.ExpectPageLoadTiming(timing);
-  observer.ExpectSoftNavigationMetrics(*soft_navigation_metrics);
-
   observer.DidStartNavigation(GURL(), absl::nullopt);
   observer.ReadyToCommitNavigation(nullptr);
   observer.DidCommitProvisionalLoad(ui::PAGE_TRANSITION_LINK);
@@ -202,7 +165,6 @@ TEST_F(MetricsRenderFrameObserverTest, MultipleMetrics) {
 
   timing.document_timing->dom_content_loaded_event_start = dom_event;
   observer.ExpectPageLoadTiming(timing);
-  observer.ExpectSoftNavigationMetrics(*soft_navigation_metrics);
 
   observer.DidChangePerformanceTiming();
   observer.GetMockTimer()->Fire();
@@ -214,17 +176,6 @@ TEST_F(MetricsRenderFrameObserverTest, MultipleMetrics) {
 
   timing.document_timing->load_event_start = load_event;
   observer.ExpectPageLoadTiming(timing);
-  // Expect a soft navigation metrics being sent because of soft navigation
-  // detection.
-  soft_navigation_metrics->count = 1;
-
-  soft_navigation_metrics->start_time =
-      base::TimeDelta() + base::Milliseconds(221.1);
-
-  soft_navigation_metrics->navigation_id =
-      "94befe01-5108-43f2-9ec9-936dd0f36e02";
-
-  observer.ExpectSoftNavigationMetrics(*soft_navigation_metrics);
 
   observer.DidChangePerformanceTiming();
   observer.GetMockTimer()->Fire();
@@ -232,7 +183,6 @@ TEST_F(MetricsRenderFrameObserverTest, MultipleMetrics) {
   // Verify and reset the observer's expectations before moving on to the next
   // part of the test.
   observer.VerifyExpectedTimings();
-  observer.VerifyExpectedSoftNavigationMetrics();
 
   // The PageLoadTiming above includes timing information for the first layout,
   // dom content, and load metrics. However, since we've already generated
@@ -240,31 +190,6 @@ TEST_F(MetricsRenderFrameObserverTest, MultipleMetrics) {
   // this invocation to generate any additional metrics.
   observer.SetFakePageLoadTiming(timing);
   observer.DidChangePerformanceTiming();
-  ASSERT_FALSE(observer.GetMockTimer()->IsRunning());
-
-  // Expect a non-empty soft navigation metric being sent because of largest
-  // contentful paint update.
-
-  // This page load timing is the same as the previous one, but as the soft
-  // navigation metric is being sent, this timing is also sent along with the
-  // soft navigation metric. Therefore we should expect 1 more page load
-  // timing.
-  observer.ExpectPageLoadTiming(timing);
-
-  soft_navigation_metrics->largest_contentful_paint =
-      mojom::LargestContentfulPaintTiming::New();
-
-  soft_navigation_metrics->largest_contentful_paint->largest_image_paint_size =
-      1;
-
-  observer.ExpectSoftNavigationMetrics(*soft_navigation_metrics);
-
-  observer.DidChangePerformanceTiming();
-
-  observer.GetMockTimer()->Fire();
-
-  observer.VerifyExpectedSoftNavigationMetrics();
-
   ASSERT_FALSE(observer.GetMockTimer()->IsRunning());
 }
 
@@ -279,7 +204,6 @@ TEST_F(MetricsRenderFrameObserverTest, MultipleNavigations) {
   page_load_metrics::InitPageLoadTimingForTest(&timing);
   timing.navigation_start = nav_start;
   observer.ExpectPageLoadTiming(timing);
-  observer.ExpectSoftNavigationMetrics();
   observer.DidStartNavigation(GURL(), absl::nullopt);
   observer.ReadyToCommitNavigation(nullptr);
   observer.DidCommitProvisionalLoad(ui::PAGE_TRANSITION_LINK);
@@ -288,7 +212,6 @@ TEST_F(MetricsRenderFrameObserverTest, MultipleNavigations) {
   timing.document_timing->dom_content_loaded_event_start = dom_event;
   timing.document_timing->load_event_start = load_event;
   observer.ExpectPageLoadTiming(timing);
-  observer.ExpectSoftNavigationMetrics();
   observer.DidChangePerformanceTiming();
   observer.GetMockTimer()->Fire();
 
@@ -307,7 +230,6 @@ TEST_F(MetricsRenderFrameObserverTest, MultipleNavigations) {
   observer.SetMockTimer(nullptr);
 
   observer.ExpectPageLoadTiming(timing_2);
-  observer.ExpectSoftNavigationMetrics();
   observer.DidStartNavigation(GURL(), absl::nullopt);
   observer.ReadyToCommitNavigation(nullptr);
   observer.DidCommitProvisionalLoad(ui::PAGE_TRANSITION_LINK);
@@ -316,7 +238,6 @@ TEST_F(MetricsRenderFrameObserverTest, MultipleNavigations) {
   timing_2.document_timing->dom_content_loaded_event_start = dom_event_2;
   timing_2.document_timing->load_event_start = load_event_2;
   observer.ExpectPageLoadTiming(timing_2);
-  observer.ExpectSoftNavigationMetrics();
 
   observer.DidChangePerformanceTiming();
   observer.GetMockTimer()->Fire();

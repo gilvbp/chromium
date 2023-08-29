@@ -43,8 +43,6 @@ class DialogExample::Delegate : public virtual DialogType {
                                    parent_->ok_button_label_->GetText());
     DialogDelegate::SetButtonLabel(ui::DIALOG_BUTTON_CANCEL,
                                    parent_->cancel_button_label_->GetText());
-    DialogDelegate::SetCloseCallback(base::BindRepeating(
-        &DialogExample::OnCloseCallback, base::Unretained(parent_)));
     WidgetDelegate::SetModalType(parent_->GetModalType());
   }
 
@@ -249,10 +247,6 @@ int DialogExample::GetDialogButtons() const {
   if (has_cancel_button_->GetChecked())
     buttons |= ui::DIALOG_BUTTON_CANCEL;
   return buttons;
-}
-
-void DialogExample::OnCloseCallback() {
-  AllowDialogClose(false);
 }
 
 bool DialogExample::AllowDialogClose(bool accept) {

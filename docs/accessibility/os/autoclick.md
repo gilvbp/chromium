@@ -49,7 +49,8 @@ ash/system/accessibility/autoclick*
 chrome/browser/resources/chromeos/accessibility/accessibility_common/
 
 In addition, there are settings for automatic clicks in
-chrome/browser/resources/ash/settings/os_a11y_page/cursor_and_touchpad_page.*
+chrome/browser/resources/settings/a11y_page/manage_a11y_subpage.*
+
 
 ### Tests
 

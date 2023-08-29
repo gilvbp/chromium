@@ -21,7 +21,6 @@ import androidx.test.filters.SmallTest;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -30,7 +29,6 @@ import org.robolectric.ParameterizedRobolectricTestRunner;
 import org.robolectric.annotation.Config;
 import org.robolectric.annotation.LooperMode;
 
-import org.chromium.base.test.BaseRobolectricTestRule;
 import org.chromium.base.test.util.Batch;
 import org.chromium.chrome.browser.layouts.LayoutManager;
 import org.chromium.chrome.browser.layouts.LayoutType;
@@ -55,9 +53,6 @@ import java.util.Collection;
 @LooperMode(LooperMode.Mode.PAUSED)
 @Batch(UNIT_TESTS)
 public class IncognitoReauthCoordinatorFactoryTest {
-    @Rule(order = -2)
-    public BaseRobolectricTestRule mBaseRule = new BaseRobolectricTestRule();
-
     @Mock
     private Context mContextMock;
     @Mock

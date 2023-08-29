@@ -7,7 +7,6 @@
 
 #include <map>
 #include <memory>
-#include <set>
 #include <string>
 #include <vector>
 
@@ -105,10 +104,8 @@ class ObjectPermissionContextBase : public KeyedService {
   virtual std::vector<std::unique_ptr<Object>> GetGrantedObjects(
       const url::Origin& origin);
 
-  // Returns a set of all origins that have granted permission(s).
-  // This method may be extended by a subclass to return origins with objects
-  // not stored in |host_content_settings_map_|.
-  virtual std::set<url::Origin> GetOriginsWithGrants();
+  // Returns the list of all origins that have granted permission(s).
+  virtual std::vector<url::Origin> GetOriginsWithGrants();
 
   // Returns the set of all objects that any origin has been granted permission
   // to access.
@@ -150,6 +147,13 @@ class ObjectPermissionContextBase : public KeyedService {
   // |host_content_settings_map_|.
   virtual void RevokeObjectPermission(const url::Origin& origin,
                                       const base::StringPiece key);
+
+  // Returns whether |origin| has granted objects.
+  //
+  // This method may be extended by a subclass to include permission to access
+  // objects returned by GetGrantedObjects but not stored in
+  // |host_content_settings_map_|.
+  virtual bool HasGrantedObjects(const url::Origin& origin);
 
   // Returns a string which is used to uniquely identify this object.
   virtual std::string GetKeyForObject(const base::Value::Dict& object) = 0;

@@ -22,6 +22,7 @@ import org.chromium.base.supplier.OneshotSupplierImpl;
 import org.chromium.base.supplier.Supplier;
 import org.chromium.chrome.browser.back_press.BackPressManager;
 import org.chromium.chrome.browser.browser_controls.BrowserStateBrowserControlsVisibilityDelegate;
+import org.chromium.chrome.browser.flags.ChromeFeatureList;
 import org.chromium.chrome.browser.lens.LensController;
 import org.chromium.chrome.browser.lifecycle.ActivityLifecycleDispatcher;
 import org.chromium.chrome.browser.lifecycle.NativeInitObserver;
@@ -37,8 +38,8 @@ import org.chromium.chrome.browser.omnibox.suggestions.AutocompleteControllerPro
 import org.chromium.chrome.browser.omnibox.suggestions.AutocompleteCoordinator;
 import org.chromium.chrome.browser.omnibox.suggestions.AutocompleteDelegate;
 import org.chromium.chrome.browser.omnibox.suggestions.OmniboxSuggestionsDropdownScrollListener;
+import org.chromium.chrome.browser.omnibox.suggestions.base.HistoryClustersProcessor.OpenHistoryClustersDelegate;
 import org.chromium.chrome.browser.omnibox.suggestions.basic.BasicSuggestionProcessor.BookmarkState;
-import org.chromium.chrome.browser.omnibox.suggestions.history_clusters.HistoryClustersProcessor.OpenHistoryClustersDelegate;
 import org.chromium.chrome.browser.omnibox.voice.VoiceRecognitionHandler;
 import org.chromium.chrome.browser.privacy.settings.PrivacyPreferencesManager;
 import org.chromium.chrome.browser.profiles.Profile;
@@ -46,7 +47,6 @@ import org.chromium.chrome.browser.search_engines.TemplateUrlServiceFactory;
 import org.chromium.chrome.browser.share.ShareDelegate;
 import org.chromium.chrome.browser.tab.Tab;
 import org.chromium.chrome.browser.tabmodel.IncognitoStateProvider;
-import org.chromium.chrome.browser.tabmodel.TabModelSelector;
 import org.chromium.chrome.browser.tabmodel.TabWindowManager;
 import org.chromium.components.browser_ui.styles.ChromeColors;
 import org.chromium.components.browser_ui.widget.gesture.BackPressHandler;
@@ -105,7 +105,6 @@ public class LocationBarCoordinator
     private final int mDropdownIncognitoBackgroundColor;
     private final int mSuggestionStandardBackgroundColor;
     private final int mSuggestionIncognitoBackgroundColor;
-    private boolean mShortCircuitUnfocusAnimation;
 
     /**
      * Creates {@link LocationBarCoordinator} and its subcoordinator: {@link
@@ -145,7 +144,6 @@ public class LocationBarCoordinator
      *         such as when called from a search activity.
      * @param reportExceptionCallback A {@link Callback} to report exceptions.
      * @param backPressManager The {@link BackPressManager} for intercepting back press.
-     * @param tabModelSelectorSupplier Supplier of the {@link TabModelSelector}.
      */
     public LocationBarCoordinator(View locationBarLayout, View autocompleteAnchorView,
             ObservableSupplier<Profile> profileObservableSupplier,
@@ -172,8 +170,7 @@ public class LocationBarCoordinator
             @Nullable BackPressManager backPressManager,
             @NonNull OmniboxSuggestionsDropdownScrollListener
                     omniboxSuggestionsDropdownScrollListener,
-            @Nullable OpenHistoryClustersDelegate openHistoryClustersDelegate,
-            @Nullable ObservableSupplier<TabModelSelector> tabModelSelectorSupplier) {
+            @Nullable OpenHistoryClustersDelegate openHistoryClustersDelegate) {
         mLocationBarLayout = (LocationBarLayout) locationBarLayout;
         mWindowDelegate = windowDelegate;
         mWindowAndroid = windowAndroid;
@@ -194,8 +191,7 @@ public class LocationBarCoordinator
                 overrideUrlLoadingDelegate, LocaleManager.getInstance(), templateUrlServiceSupplier,
                 backKeyBehavior, windowAndroid, isTabletWindow() && isTabletLayout(),
                 searchEngineLogoUtils, LensController.getInstance(), saveOfflineButtonState,
-                omniboxUma, isToolbarMicEnabledSupplier, mOmniboxDropdownEmbedderImpl,
-                tabModelSelectorSupplier);
+                omniboxUma, isToolbarMicEnabledSupplier, mOmniboxDropdownEmbedderImpl);
         if (backPressManager != null && BackPressManager.isEnabled()) {
             backPressManager.addHandler(mLocationBarMediator, BackPressHandler.Type.LOCATION_BAR);
         }
@@ -249,7 +245,10 @@ public class LocationBarCoordinator
 
         mDropdownStandardBackgroundColor = ChromeColors.getSurfaceColor(
                 context, R.dimen.omnibox_suggestion_dropdown_bg_elevation);
-        mDropdownIncognitoBackgroundColor = context.getColor(R.color.omnibox_dropdown_bg_incognito);
+        int incognitoBgColorRes = ChromeFeatureList.sBaselineGm3SurfaceColors.isEnabled()
+                ? R.color.default_bg_color_dark_elev_1_gm3_baseline
+                : R.color.omnibox_dropdown_bg_incognito;
+        mDropdownIncognitoBackgroundColor = context.getColor(incognitoBgColorRes);
         mSuggestionStandardBackgroundColor =
                 OmniboxResourceProvider.getStandardSuggestionBackgroundColor(context);
         mSuggestionIncognitoBackgroundColor =
@@ -365,11 +364,6 @@ public class LocationBarCoordinator
     }
 
     @Override
-    public void clearUrlBarCursorWithoutFocusAnimations() {
-        mLocationBarMediator.clearUrlBarCursorWithoutFocusAnimations();
-    }
-
-    @Override
     public void selectAll() {
         mUrlCoordinator.selectAll();
     }
@@ -432,17 +426,15 @@ public class LocationBarCoordinator
     }
 
     @Override
-    public void loadUrl(String url, int transition, long inputStart, boolean openInNewTab) {
-        mShortCircuitUnfocusAnimation =
-                isUrlBarFocused() && OmniboxFeatures.shouldShortCircuitUnfocusAnimation();
-        mLocationBarMediator.loadUrl(url, transition, inputStart, openInNewTab);
+    public void loadUrl(String url, int transition, long inputStart) {
+        mLocationBarMediator.loadUrl(url, transition, inputStart);
     }
 
     @Override
     public void loadUrlWithPostData(
             String url, int transition, long inputStart, String postDataType, byte[] postData) {
         mLocationBarMediator.loadUrlWithPostData(
-                url, transition, inputStart, postDataType, postData, /*openInNewTab=*/false);
+                url, transition, inputStart, postDataType, postData);
     }
 
     @Override
@@ -465,6 +457,11 @@ public class LocationBarCoordinator
         mUrlCoordinator.setUrlBarData(UrlBarData.forNonUrlText(text), UrlBar.ScrollType.NO_SCROLL,
                 UrlBarCoordinator.SelectionState.SELECT_END);
         updateButtonVisibility();
+    }
+
+    @Override
+    public boolean shouldClearOmniboxOnFocus() {
+        return mLocationBarMediator.shouldClearOmniboxOnFocus();
     }
 
     /** @see UrlBarCoordinator#getVisibleTextPrefixHint() */
@@ -609,12 +606,7 @@ public class LocationBarCoordinator
      */
     public ObjectAnimator createHideButtonAnimatorForTablet(View button) {
         assert isTabletWindow();
-
-        if (mLocationBarMediator != null) {
-            return mLocationBarMediator.createHideButtonAnimatorForTablet(button);
-        } else {
-            return null;
-        }
+        return mLocationBarMediator.createHideButtonAnimatorForTablet(button);
     }
 
     /**
@@ -664,19 +656,6 @@ public class LocationBarCoordinator
     public void setShouldShowButtonsWhenUnfocusedForTablet(boolean shouldShowButtons) {
         assert isTabletWindow();
         mLocationBarMediator.setShouldShowButtonsWhenUnfocusedForTablet(shouldShowButtons);
-    }
-
-    /**
-     * Whether the unfocus animation should be skipped to speed up navigation. If short circuiting
-     * occurs, the caller should immediately call {@link #onUnfocusAnimationShortCircuited()}.
-     */
-    public boolean shouldShortCircuitUnfocusAnimation() {
-        return mShortCircuitUnfocusAnimation;
-    }
-
-    /** Call to report that the focus animation was short circuited. */
-    public void onUnfocusAnimationShortCircuited() {
-        mShortCircuitUnfocusAnimation = false;
     }
 
     // End tablet-specific methods.
@@ -729,5 +708,19 @@ public class LocationBarCoordinator
     public int getSuggestionBackgroundColor(boolean isIncognito) {
         return isIncognito ? mSuggestionIncognitoBackgroundColor
                            : mSuggestionStandardBackgroundColor;
+    }
+
+    /**
+     * Function used to position the url bar inside the location bar during omnibox animation.
+     *
+     * @param urlExpansionPercent The current expansion percent, 1 is fully focused and 0 is
+     *                            completely unfocused.
+     * @param isOnNtp True if tab mode is the NTP.
+     * @return The X translation for the URL bar, used in the toolbar animation.
+     */
+    public float getUrlBarTranslationXForToolbarAnimation(
+            float urlExpansionPercent, boolean isOnNtp) {
+        return mLocationBarMediator.getUrlBarTranslationXForToolbarAnimation(
+                urlExpansionPercent, isOnNtp);
     }
 }

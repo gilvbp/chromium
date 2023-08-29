@@ -601,8 +601,7 @@ TEST_F(NotificationViewTest, AppIconWebAppNotification) {
 
   const GURL web_app_url(kWebAppUrl);
 
-  NotifierId notifier_id(web_app_url, /*title=*/u"web app title",
-                         /*web_app_id=*/absl::nullopt);
+  NotifierId notifier_id(web_app_url, /*title=*/u"web app title");
 
   SkBitmap small_bitmap = CreateSolidColorBitmap(16, 16, SK_ColorYELLOW);
   // Makes the center area transparent.

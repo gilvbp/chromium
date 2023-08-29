@@ -10,7 +10,6 @@
 #include "base/check_is_test.h"
 #include "base/command_line.h"
 #include "chrome/browser/profiles/profile.h"
-#include "chrome/browser/sync/sync_service_factory.h"
 #include "chrome/browser/sync_file_system/local/local_file_sync_service.h"
 #include "chrome/browser/sync_file_system/sync_file_system_service.h"
 #include "chrome/browser/sync_file_system/syncable_file_system_util.h"
@@ -57,7 +56,6 @@ SyncFileSystemServiceFactory::SyncFileSystemServiceFactory()
   typedef std::set<BrowserContextKeyedServiceFactory*> FactorySet;
   FactorySet factories;
   factories.insert(extensions::ExtensionRegistryFactory::GetInstance());
-  factories.insert(SyncServiceFactory::GetInstance());
   RemoteFileSyncService::AppendDependsOnFactories(&factories);
   for (auto iter = factories.begin(); iter != factories.end(); ++iter) {
     DependsOn(*iter);
@@ -66,13 +64,11 @@ SyncFileSystemServiceFactory::SyncFileSystemServiceFactory()
 
 SyncFileSystemServiceFactory::~SyncFileSystemServiceFactory() = default;
 
-std::unique_ptr<KeyedService>
-SyncFileSystemServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* SyncFileSystemServiceFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   Profile* profile = Profile::FromBrowserContext(context);
 
-  std::unique_ptr<SyncFileSystemService> service =
-      std::make_unique<SyncFileSystemService>(profile);
+  SyncFileSystemService* service = new SyncFileSystemService(profile);
   service->Initialize(LocalFileSyncService::Create(profile),
                       RemoteFileSyncService::CreateForBrowserContext(
                           context, service->task_logger()));

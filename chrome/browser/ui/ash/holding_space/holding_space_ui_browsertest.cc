@@ -2061,8 +2061,7 @@ class HoldingSpaceUiInProgressDownloadsBrowserTestBase
 
   const DownloadTypeToUse download_type_to_use_;
   base::test::ScopedFeatureList scoped_feature_list_;
-  raw_ptr<testing::NiceMock<content::MockDownloadManager>,
-          DanglingUntriaged | ExperimentalAsh>
+  raw_ptr<testing::NiceMock<content::MockDownloadManager>, ExperimentalAsh>
       download_manager_ = nullptr;
   raw_ptr<content::DownloadManagerDelegate, ExperimentalAsh>
       download_manager_delegate_ = nullptr;

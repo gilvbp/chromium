@@ -15,14 +15,12 @@ TEST(CanvasColorCacheTest, Histograms) {
   base::HistogramTester histogram_tester;
   CanvasColorCache cache(8);
   const Color red = Color(255, 0, 0);
-  AtomicString string_x("x");
-  AtomicString string_y("y");
-  cache.SetCachedColor(string_x, red, ColorParseResult::kColor);
+  cache.SetCachedColor("x", red, ColorParseResult::kColor);
   for (int i = 0; i < 500; ++i) {
-    cache.GetCachedColor(string_x);
+    cache.GetCachedColor("x");
   }
   for (int i = 0; i < 500; ++i) {
-    cache.GetCachedColor(string_y);
+    cache.GetCachedColor("y");
   }
   histogram_tester.ExpectTotalCount(
       "Blink.Canvas.CanvasColorCache.Effectiveness", 1);

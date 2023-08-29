@@ -8,6 +8,7 @@ import android.view.View;
 
 import androidx.test.filters.LargeTest;
 
+import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
@@ -86,8 +87,15 @@ public class SyncErrorCardPreferenceTest {
         // SyncService.
         mActivityTestRule.startMainActivityOnBlankPage();
 
-        mFakeSyncServiceImpl = new FakeSyncServiceImpl();
-        SyncServiceFactory.setInstanceForTesting(mFakeSyncServiceImpl);
+        TestThreadUtils.runOnUiThreadBlocking(() -> {
+            mFakeSyncServiceImpl = new FakeSyncServiceImpl();
+            SyncServiceFactory.overrideForTests(mFakeSyncServiceImpl);
+        });
+    }
+
+    @After
+    public void tearDown() {
+        TestThreadUtils.runOnUiThreadBlocking(() -> { SyncServiceFactory.resetForTests(); });
     }
 
     @AfterClass

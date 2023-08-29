@@ -53,13 +53,21 @@ can unit-test Incrementer. Specifically, we're trying to write this (silly) test
 // Test that Incrementer correctly handles when the IncrementerService fails to
 // increment the value.
 TEST(IncrementerTest, DetectsFailureToIncrement) {
-  Incrementer incrementer;
+  Incrementer incr;
   FakeIncrementerService service;
-  // ... somehow use `service` as a test fake for `incrementer` ...
+  incr.SetServiceForTest(service);
 
-  incrementer.Increment(0, ...);
+  // Incrementing is async, so we have to wait...
+  base::RunLoop loop;
+  int returned_value;
+  incr.Increment(0,
+    base::BindLambdaForTesting([&](int value) {
+      returned_value = value;
+      loop.Quit();
+    }));
+  loop.Run();
 
-  // ... Get the result and compare it with 0 ...
+  EXPECT_EQ(0, returned_value);
 }
 ```
 
@@ -82,20 +90,19 @@ class FakeIncrementerService : public mojom::IncrementerService {
 
 ## Async Services
 
-We can plug the FakeIncrementerService into our test using:
+If we plug the FakeIncrementerService in in our test:
 
 ```c++
   mojo::Receiver<IncrementerService> receiver{&fake_service};
-  incrementer->SetServiceForTesting(receiver.BindNewPipeAndPassRemote());
+  incrementer->SetServiceForTest(receiver);
 ```
 
 we can invoke it and wait for the response as we usually would:
 
 ```c++
-  base::test::TestFuture test_future;
-  incrementer->Increment(0, test_future.GetCallback());
-  int32_t result = test_future.Get();
-  EXPECT_EQ(0, result);
+  base::RunLoop loop;
+  incrementer->Increment(1, base::BindLambdaForTesting(...));
+  loop.Run();
 ```
 
 ... and all is well. However, we might reasonably want a more flexible
@@ -115,9 +122,8 @@ class FakeIncrementerService : public mojom::IncrementerService {
     CHECK(!HasPendingRequest());
     last_value_ = value;
     last_callback_ = std::move(callback);
-    if (!signal_.IsReady()) {
-      signal_->SetValue();
-    }
+    if (wait_loop_)
+      wait_loop_->Quit();
   }
 
   bool HasPendingRequest() const {
@@ -125,21 +131,16 @@ class FakeIncrementerService : public mojom::IncrementerService {
   }
 
   void WaitForRequest() {
-    if (HasPendingRequest()) {
+    if (HasPendingRequest())
       return;
-    }
-    signal_.Clear();
-    signal_.Wait();
+    wait_loop_ = std::make_unique<base::RunLoop>();
+    wait_loop_->Run();
   }
 
   void AnswerRequest(int32_t value) {
     CHECK(HasPendingRequest());
     std::move(last_callback_).Run(value);
   }
- private:
-  int32_t last_value_;
-  IncrementCallback last_callback_;
-  base::test::TestFuture signal_;
 };
 ```
 
@@ -152,7 +153,7 @@ so:
   mojo::Receiver<mojom::IncrementerService> receiver{&service};
 
   Incrementer incrementer;
-  incrementer->SetServiceForTesting(receiver.BindNewPipeAndPassRemote());
+  incrementer->SetServiceForTest(receiver);
   incrementer->Increment(1, base::BindLambdaForTesting(...));
 
   // This will do the right thing even if the Increment method later becomes
@@ -165,63 +166,39 @@ so:
   // since the response is also delivered asynchronously by mojo.
 ```
 
-## Intercepting Messages to Bound Receivers
+## Test Ergonomics
 
-In some cases, particularly in browser tests, we may want to take an existing,
-bound `mojo::Receiver` and intercept certain messages to it. This allows us to:
- - modify message parameters before the message is handled by the original
-   implementation,
- - modify returned values by intercepting callbacks,
- - introduce failures, or
- - completely re-implement the message handling logic
+The async-ness at both ends can create a good amount of boilerplate in test
+code, which is unpleasant. This section gives some techniques for reducing it.
 
-To accomplish this, Mojo autogenerates an InterceptorForTesting class for each
-interface that can be subclassed to perform the interception. Continuing with
-the example above, we can include `incrementer_service.mojom-test-utils.h` and
-then use the following to intercept and replace the number to be incremented:
+### Sync Wrappers
+
+One can use the [synchronous runloop] pattern to make the mojo calls appear to
+be synchronous *to the test bodies* while leaving them asynchronous in the
+production code. Mojo actually generates test helpers for this already! We can
+include `incrementer_service.mojom-test-utils.h` and then do:
 
 ```c++
-class IncrementerServiceInterceptor
-    : public mojom::IncrementerServiceInterceptorForTesting {
- public:
-  // We'll assume RealIncrementerService implements the Mojo interface, owns the
-  // the bound mojo::Receiver, and makes it available to use via a testing
-  // method we added named `receiver_for_testing()`.
-  IncrementerServiceInterceptor(RealIncrementerService* service,
-                                int32_t value_to_inject)
-      : service_(service),
-        value_to_inject_(value_to_inject),
-        swapped_impl_(service->receiver_for_testing(), this) {}
-
-  ~IncrementerServiceInterceptor() override = default;
-
-  mojom::IncrementerService* GetForwardingInterface()
-      override {
-    return service_;
-  }
-
-  void Increment(int32_t value,
-                 IncrementCallback callback) override {
-    GetForwardingInterface()->Increment(value_to_inject_, std::move(callback));
-  }
-
- private:
-  raw_ptr<RealIncrementerService> service_;
-  int32_t value_to_inject_;
-  mojo::test::ScopedSwapImplForTesting<
-      mojo::Receiver<mojom::IncrementerService>>
-      swapped_impl_;
-};
+int32_t Increment(Incrementer* incrementer, int32_t value) {
+  mojom::IncrementerAsyncWaiter sync_incrementer(incrementer);
+  return sync_incrementer.Increment(value);
+}
 ```
 
-## Ensuring Message Delivery
+Note that this only works if FakeIncrementerService does not need to be told
+when to send a response (via AnswerRequest or similar) - if it does, this
+pattern will deadlock!
 
-Both `mojo::Remote` and `mojo::Receiver` objects have a `FlushForTesting()`
-method that can be used to ensure that queued messages and replies have been
-sent to the other end of the message pipe, respectively. `mojo::Remote` objects
-also have an asynchronous version of this method call `FlushAsyncForTesting()`
-that accepts a `base::OnceCallback` that will be called upon completion. These
-methods can be particularly helpful in tests where the `mojo::Remote` and
-`mojo::Receiver` might be in separate processes.
+To avoid that, the cleanest approach is to have the FakeIncrementerService
+either contain a field with the next expected value, or a callback that produces
+expected values on demand, so that your test code reads like:
+
+```c++
+  service.SetNextValue(2);
+  EXPECT_EQ(Increment(incrementer, 1), 2);
+```
+
+or similar.
 
 [Mojo and Services]: mojo_and_services.md
+[synchronous runloop]: patterns/synchronous-runloop.md

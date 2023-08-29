@@ -157,6 +157,14 @@ bool IsURLAllowedForSupervisedUser(const GURL& url, Profile* profile) {
   return true;
 }
 
+bool ShouldShowLocalNewTab(Profile* profile) {
+#if !BUILDFLAG(IS_ANDROID)
+  return DefaultSearchProviderIsGoogle(profile);
+#else
+  return false;
+#endif
+}
+
 // Used to look up the URL to use for the New Tab page. Also tracks how we
 // arrived at that URL so it can be logged with UMA.
 struct NewTabURLDetails {
@@ -174,14 +182,13 @@ struct NewTabURLDetails {
 #if BUILDFLAG(IS_ANDROID)
     const GURL local_url;
 #else
-    const bool default_is_google = DefaultSearchProviderIsGoogle(profile);
-    const GURL local_url(default_is_google
+    const GURL local_url(DefaultSearchProviderIsGoogle(profile)
                              ? chrome::kChromeUINewTabPageURL
                              : chrome::kChromeUINewTabPageThirdPartyURL);
-    if (default_is_google) {
-      return NewTabURLDetails(local_url, NEW_TAB_URL_VALID);
-    }
 #endif
+
+    if (ShouldShowLocalNewTab(profile))
+      return NewTabURLDetails(local_url, NEW_TAB_URL_VALID);
 
     const TemplateURL* template_url =
         GetDefaultSearchProviderTemplateURL(profile);

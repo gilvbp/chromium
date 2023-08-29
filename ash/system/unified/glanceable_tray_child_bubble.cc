@@ -6,7 +6,6 @@
 
 #include <memory>
 
-#include "ash/constants/ash_features.h"
 #include "ash/public/cpp/style/color_provider.h"
 #include "ash/style/ash_color_id.h"
 #include "chromeos/constants/chromeos_features.h"
@@ -16,40 +15,37 @@
 #include "ui/views/background.h"
 #include "ui/views/controls/label.h"
 #include "ui/views/highlight_border.h"
-#include "ui/views/view_class_properties.h"
 
 namespace ash {
 
 namespace {
 constexpr int kBubbleCornerRadius = 24;
 
+constexpr int kInteriorGlanceableBubbleMargin = 16;
+
 }  // namespace
 
-GlanceableTrayChildBubble::GlanceableTrayChildBubble(
-    DetailedViewDelegate* delegate,
-    bool for_glanceables_container)
-    : TrayDetailedView(delegate) {
-  if (for_glanceables_container) {
-    SetAccessibleRole(ax::mojom::Role::kGroup);
+GlanceableTrayChildBubble::GlanceableTrayChildBubble() {
+  SetPaintToLayer();
+  layer()->SetFillsBoundsOpaquely(false);
+  layer()->SetIsFastRoundedCorner(true);
+  layer()->SetRoundedCornerRadius(
+      gfx::RoundedCornersF{static_cast<float>(kBubbleCornerRadius)});
+  // TODO(b:286941809): Setting blur here, can break the rounded corners
+  // applied to the parent scroll view.
+  layer()->SetBackgroundBlur(ColorProvider::kBackgroundBlurSigma);
 
-    SetPaintToLayer();
-    layer()->SetFillsBoundsOpaquely(false);
-    layer()->SetIsFastRoundedCorner(true);
-    layer()->SetRoundedCornerRadius(
-        gfx::RoundedCornersF{static_cast<float>(kBubbleCornerRadius)});
-    // TODO(b:286941809): Setting blur here, can break the rounded corners
-    // applied to the parent scroll view.
-    layer()->SetBackgroundBlur(ColorProvider::kBackgroundBlurSigma);
-    layer()->SetBackdropFilterQuality(ColorProvider::kBackgroundBlurQuality);
+  SetBackground(views::CreateThemedSolidBackground(
+      static_cast<ui::ColorId>(cros_tokens::kCrosSysSystemBaseElevated)));
+  SetBorder(std::make_unique<views::HighlightBorder>(
+      kBubbleCornerRadius,
+      chromeos::features::IsJellyrollEnabled()
+          ? views::HighlightBorder::Type::kHighlightBorderOnShadow
+          : views::HighlightBorder::Type::kHighlightBorder1));
 
-    SetBackground(views::CreateThemedSolidBackground(
-        static_cast<ui::ColorId>(cros_tokens::kCrosSysSystemBaseElevated)));
-    SetBorder(std::make_unique<views::HighlightBorder>(
-        kBubbleCornerRadius,
-        chromeos::features::IsJellyrollEnabled()
-            ? views::HighlightBorder::Type::kHighlightBorderOnShadow
-            : views::HighlightBorder::Type::kHighlightBorder1));
-  }
+  SetMainAxisAlignment(views::LayoutAlignment::kStart);
+  SetOrientation(views::LayoutOrientation::kVertical);
+  SetInteriorMargin(gfx::Insets(kInteriorGlanceableBubbleMargin));
 }
 
 BEGIN_METADATA(GlanceableTrayChildBubble, views::View)

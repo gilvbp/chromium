@@ -15,7 +15,6 @@
 #include "base/strings/string_piece.h"
 #include "base/test/values_test_util.h"
 #include "base/values.h"
-#include "components/headless/command_handler/headless_command_switches.h"
 #include "components/headless/test/pdf_utils.h"
 #include "content/public/test/browser_test.h"
 #include "headless/public/switches.h"
@@ -480,6 +479,8 @@ class HeadlessPDFDisableLazyLoading : public HeadlessPDFBrowserTestBase {
 
 HEADLESS_DEVTOOLED_TEST_F(HeadlessPDFDisableLazyLoading);
 
+#if BUILDFLAG(ENABLE_TAGGED_PDF)
+
 const char kExpectedStructTreeJSON[] = R"({
    "lang": "en",
    "type": "Document",
@@ -655,7 +656,7 @@ class HeadlessTaggedPDFBrowserTest
     EXPECT_THAT(num_pages, testing::Eq(1));
 
     absl::optional<bool> tagged = chrome_pdf::IsPDFDocTagged(pdf_span);
-    ASSERT_THAT(tagged, testing::Optional(true));
+    EXPECT_THAT(tagged, testing::Optional(true));
 
     constexpr int kFirstPage = 0;
     base::Value struct_tree =
@@ -700,33 +701,6 @@ HEADLESS_DEVTOOLED_TEST_P(HeadlessTaggedPDFDisabledBrowserTest);
 INSTANTIATE_TEST_SUITE_P(All,
                          HeadlessTaggedPDFDisabledBrowserTest,
                          ::testing::ValuesIn(kTaggedPDFTestData));
-
-class HeadlessGenerateTaggedPDFBrowserTest
-    : public HeadlessPDFBrowserTestBase,
-      public ::testing::WithParamInterface<bool> {
- public:
-  const char* GetUrl() override { return "/structured_doc.html"; }
-
-  base::Value::Dict GetPrintToPDFParams() override {
-    base::Value::Dict params;
-    params.Set("generateTaggedPDF", generate_tagged_pdf());
-    return params;
-  }
-
-  bool generate_tagged_pdf() { return GetParam(); }
-
-  void OnPDFReady(base::span<const uint8_t> pdf_span, int num_pages) override {
-    EXPECT_THAT(num_pages, testing::Eq(1));
-
-    absl::optional<bool> is_pdf_tagged = chrome_pdf::IsPDFDocTagged(pdf_span);
-    EXPECT_THAT(is_pdf_tagged, testing::Optional(generate_tagged_pdf()));
-  }
-};
-
-HEADLESS_DEVTOOLED_TEST_P(HeadlessGenerateTaggedPDFBrowserTest);
-
-INSTANTIATE_TEST_SUITE_P(All,
-                         HeadlessGenerateTaggedPDFBrowserTest,
-                         ::testing::Bool());
+#endif  // BUILDFLAG(ENABLE_TAGGED_PDF)
 
 }  // namespace headless

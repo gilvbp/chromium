@@ -27,7 +27,7 @@ class PaymentValidationErrors;
 class ScriptState;
 
 class MODULES_EXPORT PaymentResponse final
-    : public EventTarget,
+    : public EventTargetWithInlineData,
       public ExecutionContextClient,
       public ActiveScriptWrappable<PaymentResponse> {
   DEFINE_WRAPPERTYPEINFO();

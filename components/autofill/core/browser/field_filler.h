@@ -34,7 +34,7 @@ class FieldFiller {
           profile_or_credit_card,
       FormFieldData* field_data,
       const std::u16string& cvc,
-      mojom::AutofillActionPersistence action_persistence,
+      mojom::RendererFormDataAction action,
       std::string* failure_to_fill);
 
   // Set |field_data|'s value to the right value in |profile_or_credit_card|.
@@ -56,16 +56,17 @@ class FieldFiller {
       const std::map<FieldGlobalId, std::u16string>& forced_fill_values,
       FormFieldData* field_data,
       const std::u16string& cvc,
-      mojom::AutofillActionPersistence action_persistence,
+      mojom::RendererFormDataAction action,
       std::string* failure_to_fill = nullptr);
 
-  // Returns the phone number value for the given `field_data`. The returned
-  // value might be `number`, or `city_and_number`, or could possibly be a
-  // meaningful subset `number`, if that's appropriate for the field.
+  // Returns the phone number value for the given |field|. The returned value
+  // might be |number|, or |phone_home_city_and_number|, or could possibly be a
+  // meaningful subset |number|, if that's appropriate for the field.
   static std::u16string GetPhoneNumberValueForInput(
-      const FormFieldData& field_data,
+      const AutofillField& field,
       const std::u16string& number,
-      const std::u16string& city_and_number);
+      const std::u16string& phone_home_city_and_number,
+      const FormFieldData& field_data);
 
   // Returns the index of the shortest entry in the given select field of which
   // |value| is a substring. Returns -1 if no such entry exists.

@@ -464,25 +464,7 @@ suite(policy_tests.suiteName, function() {
     const tests = [
       {
         // No policies.
-        allowedMode: undefined,
-        defaultMode: undefined,
-        expectedChecked: false,
-        expectedOpened: false,
-        expectedDisabled: false,
-        expectedValue: DuplexMode.LONG_EDGE,
-      },
-      {
-        // No restriction, default set to SIMPLEX.
-        allowedMode: undefined,
-        defaultMode: DuplexModeRestriction.SIMPLEX,
-        expectedChecked: false,
-        expectedOpened: false,
-        expectedDisabled: false,
-        expectedValue: DuplexMode.LONG_EDGE,
-      },
-      {
-        // No restriction, default set to UNSET.
-        allowedMode: undefined,
+        allowedMode: DuplexModeRestriction.UNSET,
         defaultMode: DuplexModeRestriction.UNSET,
         expectedChecked: false,
         expectedOpened: false,
@@ -490,16 +472,16 @@ suite(policy_tests.suiteName, function() {
         expectedValue: DuplexMode.LONG_EDGE,
       },
       {
-        // Allowed mode set to UNSET.
+        // No restriction, default set to SIMPLEX.
         allowedMode: DuplexModeRestriction.UNSET,
-        defaultMode: undefined,
+        defaultMode: DuplexModeRestriction.SIMPLEX,
         expectedChecked: false,
         expectedOpened: false,
         expectedDisabled: false,
         expectedValue: DuplexMode.LONG_EDGE,
       },
       {
-        // Allowed mode set to UNSET, default set to LONG_EDGE.
+        // No restriction, default set to LONG_EDGE.
         allowedMode: DuplexModeRestriction.UNSET,
         defaultMode: DuplexModeRestriction.LONG_EDGE,
         expectedChecked: true,
@@ -508,7 +490,7 @@ suite(policy_tests.suiteName, function() {
         expectedValue: DuplexMode.LONG_EDGE,
       },
       {
-        // Allowed mode set to UNSET, default set to SHORT_EDGE.
+        // No restriction, default set to SHORT_EDGE.
         allowedMode: DuplexModeRestriction.UNSET,
         defaultMode: DuplexModeRestriction.SHORT_EDGE,
         expectedChecked: true,

@@ -11,6 +11,10 @@
 #import "ios/chrome/browser/ui/fullscreen/test/test_fullscreen_mediator.h"
 #import "testing/platform_test.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 // Test fixture for FullscreenMediator.
 class FullscreenMediatorTest : public PlatformTest {
  public:
@@ -21,7 +25,6 @@ class FullscreenMediatorTest : public PlatformTest {
   }
   ~FullscreenMediatorTest() override {
     mediator_.Disconnect();
-    mediator_.RemoveObserver(&observer_);
     EXPECT_TRUE(observer_.is_shut_down());
   }
 

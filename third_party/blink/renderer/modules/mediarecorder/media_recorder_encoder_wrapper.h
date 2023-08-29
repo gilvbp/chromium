@@ -72,7 +72,7 @@ class MODULES_EXPORT MediaRecorderEncoderWrapper final
                    bool request_keyframe) override;
   bool CanEncodeAlphaChannel() const override;
 
-  void EnterErrorState(const media::EncoderStatus& status);
+  void EnterErrorState();
   void ReconfigureForNewResolution(const gfx::Size& frame_size);
 
   // (Re)creates |encoder_| and initialize the encoder with |frame_size|.

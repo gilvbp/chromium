@@ -81,7 +81,7 @@ class WaylandGlobalEventWaiter : public WestonTestInputEmulate::Observer {
 
  private:
   void Initialize() {
-    CHECK_NE(event_type_, WaylandEventType::kUnknown);
+    DCHECK_NE(event_type_, WaylandEventType::kUnknown);
     emulate_->AddObserver(this);
   }
 

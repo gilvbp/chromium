@@ -4,9 +4,13 @@
 
 #import "ios/chrome/browser/ui/scanner/video_preview_view.h"
 
-#import "base/apple/foundation_util.h"
 #import "base/check.h"
+#import "base/mac/foundation_util.h"
 #import "ios/chrome/common/ui/util/ui_util.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 @interface VideoPreviewView () {
   // The current viewport size.
@@ -31,7 +35,7 @@
 }
 
 - (AVCaptureVideoPreviewLayer*)previewLayer {
-  return base::apple::ObjCCastStrict<AVCaptureVideoPreviewLayer>([self layer]);
+  return base::mac::ObjCCastStrict<AVCaptureVideoPreviewLayer>([self layer]);
 }
 
 - (CGRect)viewportRegionOfInterest {

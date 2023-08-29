@@ -21,7 +21,6 @@
 #include "chrome/updater/constants.h"
 #include "chrome/updater/ipc/ipc_names.h"
 #include "chrome/updater/ipc/update_service_dialer.h"
-#include "chrome/updater/ipc/update_service_internal_proxy.h"
 #include "chrome/updater/service_proxy_factory.h"
 #include "chrome/updater/update_service_internal.h"
 #include "chrome/updater/updater_scope.h"
@@ -91,37 +90,28 @@ void Connect(
 
 }  // namespace
 
-UpdateServiceInternalProxyImpl::UpdateServiceInternalProxyImpl(
-    UpdaterScope scope)
+UpdateServiceInternalProxy::UpdateServiceInternalProxy(UpdaterScope scope)
     : scope_(scope) {}
 
-void UpdateServiceInternalProxyImpl::Run(
-    base::OnceCallback<void(absl::optional<RpcError>)> callback) {
+void UpdateServiceInternalProxy::Run(base::OnceClosure callback) {
   VLOG(1) << __func__;
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   EnsureConnecting();
-  remote_->Run(base::BindOnce(
-      mojo::WrapCallbackWithDefaultInvokeIfNotRun(
-          base::BindPostTaskToCurrentDefault(std::move(callback)),
-          kErrorIpcDisconnect),
-      absl::nullopt));
+  remote_->Run(mojo::WrapCallbackWithDefaultInvokeIfNotRun(
+      base::BindPostTaskToCurrentDefault(std::move(callback))));
 }
 
-void UpdateServiceInternalProxyImpl::Hello(
-    base::OnceCallback<void(absl::optional<RpcError>)> callback) {
+void UpdateServiceInternalProxy::Hello(base::OnceClosure callback) {
   VLOG(1) << __func__;
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   EnsureConnecting();
-  remote_->Hello(base::BindOnce(
-      mojo::WrapCallbackWithDefaultInvokeIfNotRun(
-          base::BindPostTaskToCurrentDefault(std::move(callback)),
-          kErrorIpcDisconnect),
-      absl::nullopt));
+  remote_->Hello(mojo::WrapCallbackWithDefaultInvokeIfNotRun(
+      base::BindPostTaskToCurrentDefault(std::move(callback))));
 }
 
-UpdateServiceInternalProxyImpl::~UpdateServiceInternalProxyImpl() = default;
+UpdateServiceInternalProxy::~UpdateServiceInternalProxy() = default;
 
-void UpdateServiceInternalProxyImpl::EnsureConnecting() {
+void UpdateServiceInternalProxy::EnsureConnecting() {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   if (remote_) {
     return;
@@ -131,18 +121,18 @@ void UpdateServiceInternalProxyImpl::EnsureConnecting() {
       base::BindOnce(&Connect, scope_, 0,
                      base::Time::Now() + kConnectionTimeout,
                      base::BindPostTaskToCurrentDefault(base::BindOnce(
-                         &UpdateServiceInternalProxyImpl::OnConnected, this,
+                         &UpdateServiceInternalProxy::OnConnected, this,
                          remote_.BindNewPipeAndPassReceiver()))));
 }
 
-void UpdateServiceInternalProxyImpl::OnDisconnected() {
+void UpdateServiceInternalProxy::OnDisconnected() {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   VLOG(1) << __func__;
   connection_.reset();
   remote_.reset();
 }
 
-void UpdateServiceInternalProxyImpl::OnConnected(
+void UpdateServiceInternalProxy::OnConnected(
     mojo::PendingReceiver<mojom::UpdateServiceInternal> pending_receiver,
     absl::optional<mojo::PlatformChannelEndpoint> endpoint) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
@@ -168,15 +158,13 @@ void UpdateServiceInternalProxyImpl::OnConnected(
 
   // A weak pointer is used here to prevent remote_ from forming a reference
   // cycle with this object.
-  remote_.set_disconnect_handler(
-      base::BindOnce(&UpdateServiceInternalProxyImpl::OnDisconnected,
-                     weak_factory_.GetWeakPtr()));
+  remote_.set_disconnect_handler(base::BindOnce(
+      &UpdateServiceInternalProxy::OnDisconnected, weak_factory_.GetWeakPtr()));
 }
 
 scoped_refptr<UpdateServiceInternal> CreateUpdateServiceInternalProxy(
     UpdaterScope scope) {
-  return base::MakeRefCounted<UpdateServiceInternalProxy>(
-      base::MakeRefCounted<UpdateServiceInternalProxyImpl>(scope));
+  return base::MakeRefCounted<UpdateServiceInternalProxy>(scope);
 }
 
 }  // namespace updater

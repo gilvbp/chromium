@@ -8,8 +8,6 @@
 #include <set>
 #include <string>
 
-#include "base/memory/raw_ptr.h"
-
 class Profile;
 
 namespace ash {
@@ -43,7 +41,7 @@ class SwitchAccessTestUtils {
   void WaitForJS(const std::string& js_to_eval);
   void InjectFocusRingWatcher();
 
-  raw_ptr<Profile, DanglingUntriaged | ExperimentalAsh> profile_;
+  Profile* profile_;
   std::unique_ptr<ExtensionConsoleErrorObserver> console_observer_;
 };
 

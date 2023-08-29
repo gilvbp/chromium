@@ -48,12 +48,8 @@ void AppServicePromiseAppModelBuilder::OnPromiseAppUpdate(
       RemoveApp(update.PackageId().ToString(), false);
     }
   } else if (show) {
-    syncer::StringOrdinal position =
-        service() ? service()->GetSyncPositionForPromiseAppItem(
-                        update.PackageId().ToString())
-                  : syncer::StringOrdinal();
     auto promise_app_item = std::make_unique<AppServicePromiseAppItem>(
-        profile(), model_updater(), update, position);
+        profile(), model_updater(), update);
     InsertApp(std::move(promise_app_item));
   }
 }

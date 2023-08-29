@@ -4,6 +4,7 @@
 
 #include "chrome/browser/ui/webui/print_preview/print_preview_handler.h"
 
+#include <ctype.h>
 #include <stddef.h>
 
 #include <memory>
@@ -43,7 +44,6 @@
 #include "chrome/browser/ui/webui/print_preview/policy_settings.h"
 #include "chrome/browser/ui/webui/print_preview/print_preview_metrics.h"
 #include "chrome/browser/ui/webui/print_preview/print_preview_ui.h"
-#include "chrome/browser/ui/webui/print_preview/print_preview_utils.h"
 #include "chrome/browser/ui/webui/print_preview/printer_handler.h"
 #include "chrome/common/chrome_switches.h"
 #include "chrome/common/crash_keys.h"
@@ -72,10 +72,6 @@
 
 #if BUILDFLAG(ENABLE_PRINT_CONTENT_ANALYSIS)
 #include "chrome/browser/enterprise/connectors/analysis/print_content_analysis_utils.h"
-#if BUILDFLAG(IS_MAC)
-#include "chrome/grit/generated_resources.h"
-#include "ui/base/l10n/l10n_util.h"
-#endif  // BUILDFLAG(IS_MAC)
 #endif
 
 #if BUILDFLAG(IS_CHROMEOS)
@@ -438,8 +434,8 @@ void PrintPreviewHandler::RegisterMessages() {
       "getPreview", base::BindRepeating(&PrintPreviewHandler::HandleGetPreview,
                                         base::Unretained(this)));
   web_ui()->RegisterMessageCallback(
-      "doPrint", base::BindRepeating(&PrintPreviewHandler::HandleDoPrint,
-                                     base::Unretained(this)));
+      "print", base::BindRepeating(&PrintPreviewHandler::HandlePrint,
+                                   base::Unretained(this)));
   web_ui()->RegisterMessageCallback(
       "getPrinterCapabilities",
       base::BindRepeating(&PrintPreviewHandler::HandleGetPrinterCapabilities,
@@ -708,7 +704,7 @@ void PrintPreviewHandler::HandleGetPreview(const base::Value::List& args) {
   last_preview_settings_ = std::move(settings);
 }
 
-void PrintPreviewHandler::HandleDoPrint(const base::Value::List& args) {
+void PrintPreviewHandler::HandlePrint(const base::Value::List& args) {
   CHECK(args[0].is_string());
   const std::string& callback_id = args[0].GetString();
   CHECK(!callback_id.empty());
@@ -751,23 +747,6 @@ void PrintPreviewHandler::HandleDoPrint(const base::Value::List& args) {
 #if BUILDFLAG(ENABLE_PRINT_CONTENT_ANALYSIS)
   std::string device_name = *settings.FindString(kSettingDeviceName);
 
-  using enterprise_connectors::PrintScanningContext;
-  auto scan_context =
-      settings.FindBool(kSettingShowSystemDialog).value_or(false)
-          ? PrintScanningContext::kSystemPrintAfterPreview
-          : PrintScanningContext::kNormalPrintAfterPreview;
-
-#if BUILDFLAG(IS_MAC)
-  if (settings.FindBool(kSettingOpenPDFInPreview).value_or(false)) {
-    // This override only affects reporting of content analysis violations, and
-    // the rest of the printing stack is expected to use the same device name
-    // present in `settings` if content analysis allows printing.
-    device_name =
-        l10n_util::GetStringUTF8(IDS_PRINT_PREVIEW_OPEN_PDF_IN_PREVIEW_APP);
-    scan_context = PrintScanningContext::kOpenPdfInPreview;
-  }
-#endif  // BUILDFLAG(IS_MAC)
-
   auto on_verdict =
       base::BindOnce(&PrintPreviewHandler::OnVerdictByEnterprisePolicy,
                      weak_factory_.GetWeakPtr(), user_action,
@@ -777,11 +756,11 @@ void PrintPreviewHandler::HandleDoPrint(const base::Value::List& args) {
                                      weak_factory_.GetWeakPtr());
 
   enterprise_connectors::PrintIfAllowedByPolicy(
-      data, GetInitiator(), std::move(device_name), scan_context,
-      std::move(on_verdict), std::move(hide_preview));
+      data, GetInitiator(), std::move(device_name), std::move(on_verdict),
+      std::move(hide_preview));
 
 #else
-  FinishHandleDoPrint(user_action, std::move(settings), data, callback_id);
+  FinishHandlePrint(user_action, std::move(settings), data, callback_id);
 #endif  // BUILDFLAG(ENABLE_PRINT_CONTENT_ANALYSIS)
 }
 
@@ -793,7 +772,7 @@ void PrintPreviewHandler::OnVerdictByEnterprisePolicy(
     const std::string& callback_id,
     bool allowed) {
   if (allowed) {
-    FinishHandleDoPrint(user_action, std::move(settings), data, callback_id);
+    FinishHandlePrint(user_action, std::move(settings), data, callback_id);
   } else {
     OnPrintResult(callback_id, base::Value("NOT_ALLOWED"));
   }
@@ -804,7 +783,7 @@ void PrintPreviewHandler::OnHidePreviewDialog() {
 }
 #endif  // BUILDFLAG(ENABLE_PRINT_CONTENT_ANALYSIS)
 
-void PrintPreviewHandler::FinishHandleDoPrint(
+void PrintPreviewHandler::FinishHandlePrint(
     UserActionBuckets user_action,
     base::Value::Dict settings,
     scoped_refptr<base::RefCountedMemory> data,
@@ -1022,9 +1001,7 @@ void PrintPreviewHandler::SendPrinterCapabilities(
     const std::string& callback_id,
     base::Value::Dict settings_info) {
   // Check that |settings_info| is valid.
-  base::Value::Dict* settings = settings_info.FindDict(kSettingCapabilities);
-  if (settings) {
-    FilterContinuousFeedMediaSizes(*settings);
+  if (settings_info.FindDict(kSettingCapabilities)) {
     VLOG(1) << "Get printer capabilities finished";
     ResolveJavascriptCallback(base::Value(callback_id), settings_info);
     return;

@@ -94,16 +94,14 @@ void LayoutEmbeddedObject::PaintReplaced(
 void LayoutEmbeddedObject::UpdateLayout() {
   NOT_DESTROYED();
   DCHECK(NeedsLayout());
-  ClearLayoutOverflow();
-  ClearSelfNeedsLayoutOverflowRecalc();
-  ClearNeedsLayout();
-}
 
-void LayoutEmbeddedObject::UpdateAfterLayout() {
-  NOT_DESTROYED();
-  LayoutEmbeddedContent::UpdateAfterLayout();
+  ClearLayoutOverflow();
+
   if (!GetEmbeddedContentView() && GetFrameView())
     GetFrameView()->AddPartToUpdate(*this);
+
+  ClearSelfNeedsLayoutOverflowRecalc();
+  ClearNeedsLayout();
 }
 
 void LayoutEmbeddedObject::ComputeIntrinsicSizingInfo(
@@ -112,8 +110,23 @@ void LayoutEmbeddedObject::ComputeIntrinsicSizingInfo(
   DCHECK(!ShouldApplySizeContainment());
   FrameView* frame_view = ChildFrameView();
   if (frame_view && frame_view->GetIntrinsicSizingInfo(intrinsic_sizing_info)) {
-    // Scale based on our zoom as the embedded document doesn't have that info.
+    // Handle zoom & vertical writing modes here, as the embedded document
+    // doesn't know about them.
     intrinsic_sizing_info.size.Scale(StyleRef().EffectiveZoom());
+
+    // Handle an overridden aspect ratio
+    const StyleAspectRatio& aspect_ratio = StyleRef().AspectRatio();
+    if (aspect_ratio.GetType() == EAspectRatioType::kRatio ||
+        (aspect_ratio.GetType() == EAspectRatioType::kAutoAndRatio &&
+         intrinsic_sizing_info.aspect_ratio.IsEmpty())) {
+      intrinsic_sizing_info.aspect_ratio.set_width(
+          aspect_ratio.GetRatio().width());
+      intrinsic_sizing_info.aspect_ratio.set_height(
+          aspect_ratio.GetRatio().height());
+    }
+
+    if (!IsHorizontalWritingMode())
+      intrinsic_sizing_info.Transpose();
     return;
   }
 

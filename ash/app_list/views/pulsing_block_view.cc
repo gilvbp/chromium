@@ -45,8 +45,7 @@ void SchedulePulsingAnimation(ui::Layer* layer) {
 namespace ash {
 
 PulsingBlockView::PulsingBlockView(const gfx::Size& size,
-                                   base::TimeDelta animation_delay,
-                                   float corner_radius)
+                                   base::TimeDelta animation_delay)
     : block_size_(size) {
   views::BoxLayout* layout_manager =
       SetLayoutManager(std::make_unique<views::BoxLayout>(
@@ -81,8 +80,8 @@ PulsingBlockView::PulsingBlockView(const gfx::Size& size,
       ColorProvider::kBackgroundBlurSigma);
   stacked_views->layer()->SetBackdropFilterQuality(
       ColorProvider::kBackgroundBlurQuality);
-  stacked_views->layer()->SetRoundedCornerRadius(
-      {corner_radius, corner_radius, corner_radius, corner_radius});
+  const float radii = block_size_.height() / 2.0f;
+  stacked_views->layer()->SetRoundedCornerRadius({radii, radii, radii, radii});
 
   start_delay_timer_.Start(FROM_HERE, animation_delay, this,
                            &PulsingBlockView::OnStartDelayTimer);

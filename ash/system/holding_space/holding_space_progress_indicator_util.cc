@@ -12,7 +12,6 @@
 #include "ash/public/cpp/holding_space/holding_space_progress.h"
 #include "ash/system/holding_space/holding_space_animation_registry.h"
 #include "ash/system/progress_indicator/progress_indicator.h"
-#include "ash/system/progress_indicator/progress_indicator_animation_registry.h"
 #include "base/memory/raw_ptr.h"
 
 namespace ash {
@@ -32,8 +31,8 @@ class HoldingSpaceControllerProgressIndicator
   explicit HoldingSpaceControllerProgressIndicator(
       HoldingSpaceController* controller)
       : ProgressIndicator(
-            HoldingSpaceAnimationRegistry::GetInstance(),
-            ProgressIndicatorAnimationRegistry::AsAnimationKey(controller)),
+            /*animation_registry=*/HoldingSpaceAnimationRegistry::GetInstance(),
+            /*animation_key=*/controller),
         controller_(controller) {
     controller_observation_.Observe(controller_.get());
     if (controller_->model())
@@ -130,8 +129,8 @@ class HoldingSpaceItemProgressIndicator : public ProgressIndicator,
  public:
   explicit HoldingSpaceItemProgressIndicator(const HoldingSpaceItem* item)
       : ProgressIndicator(
-            HoldingSpaceAnimationRegistry::GetInstance(),
-            ProgressIndicatorAnimationRegistry::AsAnimationKey(item)),
+            /*animation_registry=*/HoldingSpaceAnimationRegistry::GetInstance(),
+            /*animation_key=*/item),
         item_(item) {
     model_observation_.Observe(HoldingSpaceController::Get()->model());
   }

@@ -44,7 +44,6 @@ namespace net {
 // of net/base here, because we have a net_base library. Forward declarations
 // are ok.
 class CookieOptions;
-class CookieInclusionStatus;
 class HttpRequestHeaders;
 class HttpResponseHeaders;
 class IPEndPoint;
@@ -87,8 +86,7 @@ class NET_EXPORT NetworkDelegate {
       CookieAccessResultList& excluded_cookies);
   bool CanSetCookie(const URLRequest& request,
                     const net::CanonicalCookie& cookie,
-                    CookieOptions* options,
-                    CookieInclusionStatus* inclusion_status);
+                    CookieOptions* options);
 
   // PrivacySetting is kStateDisallowed iff the given |url| has to be
   // requested over connection that is not tracked by the server.
@@ -267,16 +265,11 @@ class NET_EXPORT NetworkDelegate {
       net::CookieAccessResultList& excluded_cookies) = 0;
 
   // Called when a cookie is set to allow the network delegate to block access
-  // to the cookie. If the cookie is allowed, `inclusion_status` may be updated
-  // to include reason to warn about the given cookie according to the user
-  // cookie-blocking settings; Otherwise, `inclusion_status` may be updated with
-  // the proper exclusion reasons, if not then proper reasons need to be
-  // manually added in the caller. This method will never be invoked when
+  // to the cookie. This method will never be invoked when
   // LOAD_DO_NOT_SAVE_COOKIES is specified.
   virtual bool OnCanSetCookie(const URLRequest& request,
                               const CanonicalCookie& cookie,
-                              CookieOptions* options,
-                              CookieInclusionStatus* inclusion_status) = 0;
+                              CookieOptions* options) = 0;
 
   virtual PrivacySetting OnForcePrivacyMode(
       const URLRequest& request) const = 0;

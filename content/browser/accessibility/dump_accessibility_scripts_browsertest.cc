@@ -75,6 +75,12 @@ class DumpAccessibilityScriptTest : public DumpAccessibilityTestBase {
       delete;
 
  protected:
+  void SetUpCommandLine(base::CommandLine* command_line) override {
+    // Enable MathMLCore for some MathML tests.
+    base::CommandLine::ForCurrentProcess()->AppendSwitchASCII(
+        switches::kEnableBlinkFeatures, "MathMLCore");
+  }
+
   std::vector<ui::AXPropertyFilter> DefaultFilters() const override {
     return {};
   }
@@ -180,13 +186,11 @@ class DumpAccessibilityScriptTest : public DumpAccessibilityTestBase {
   }
 };
 
-typedef std::pair<ui::AXApiType::Type, bool> TestParamType;
-
 // Parameterize the tests so that each test-pass is run independently.
 struct TestPassToString {
   std::string operator()(
-      const ::testing::TestParamInfo<TestParamType>& i) const {
-    return std::string(i.param.first) + (i.param.second ? "1" : "0");
+      const ::testing::TestParamInfo<ui::AXApiType::Type>& i) const {
+    return std::string(i.param);
   }
 };
 
@@ -196,12 +200,10 @@ struct TestPassToString {
 
 #if BUILDFLAG(IS_MAC)
 
-INSTANTIATE_TEST_SUITE_P(
-    All,
-    DumpAccessibilityScriptTest,
-    ::testing::Values(TestParamType(ui::AXApiType::kMac, true),
-                      TestParamType(ui::AXApiType::kMac, false)),
-    TestPassToString());
+INSTANTIATE_TEST_SUITE_P(All,
+                         DumpAccessibilityScriptTest,
+                         ::testing::Values(ui::AXApiType::kMac),
+                         TestPassToString());
 
 IN_PROC_BROWSER_TEST_P(DumpAccessibilityScriptTest, AXAccessKey) {
   RunTypedTest<kMacAttributes>("ax-access-key.html");
@@ -479,11 +481,10 @@ IN_PROC_BROWSER_TEST_P(DumpAccessibilityScriptTest, ChromeAXNodeId) {
 // Before macOS 11 aria-description must be exposed in AXHelp, and since macOS
 // 11, it should only be exposed in AXCustomContent.
 IN_PROC_BROWSER_TEST_P(DumpAccessibilityScriptTest, AriaDescription) {
-  if (base::mac::MacOSMajorVersion() >= 11) {
+  if (base::mac::IsAtLeastOS11())
     RunTypedTest<kMacDescription>("aria-description-in-axcustomcontent.html");
-  } else {
+  else
     RunTypedTest<kMacDescription>("aria-description-in-axhelp.html");
-  }
 }
 
 IN_PROC_BROWSER_TEST_P(DumpAccessibilityScriptTest, SelectAllTextarea) {
@@ -608,12 +609,10 @@ IN_PROC_BROWSER_TEST_P(DumpAccessibilityScriptTest, AXStringForRange) {
 
 #if BUILDFLAG(IS_WIN)
 
-INSTANTIATE_TEST_SUITE_P(
-    All,
-    DumpAccessibilityScriptTest,
-    ::testing::Values(TestParamType(ui::AXApiType::kWinIA2, true),
-                      TestParamType(ui::AXApiType::kWinIA2, false)),
-    TestPassToString());
+INSTANTIATE_TEST_SUITE_P(All,
+                         DumpAccessibilityScriptTest,
+                         ::testing::Values(ui::AXApiType::kWinIA2),
+                         TestPassToString());
 
 // IAccessible
 

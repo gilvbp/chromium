@@ -31,7 +31,8 @@ bool AppUsageStatsAllowed(UpdaterScope scope, const std::wstring& app_id) {
   }
 
   if (base::win::RegKey(UpdaterScopeToHKeyRoot(scope),
-                        GetAppClientStateKey(app_id).c_str(), Wow6432(KEY_READ))
+                        base::StrCat({CLIENT_STATE_KEY, app_id}).c_str(),
+                        Wow6432(KEY_READ))
           .ReadValueDW(L"usagestats", &usagestats) == ERROR_SUCCESS) {
     return usagestats == 1;
   }

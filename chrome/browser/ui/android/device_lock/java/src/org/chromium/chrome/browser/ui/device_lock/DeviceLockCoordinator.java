@@ -9,8 +9,6 @@ import android.app.Activity;
 import android.view.LayoutInflater;
 import android.view.View;
 
-import androidx.annotation.Nullable;
-
 import org.chromium.chrome.browser.device_reauth.DeviceAuthRequester;
 import org.chromium.chrome.browser.device_reauth.ReauthenticatorBridge;
 import org.chromium.ui.base.WindowAndroid;
@@ -49,27 +47,27 @@ public class DeviceLockCoordinator {
     /**
      * Constructs a coordinator for the Device Lock page.
      *
+     * @param inSignInFlow Whether the existing flow is related to account sign-in.
      * @param delegate The delegate invoked to interact with classes outside the module.
      * @param windowAndroid Used to launch Intents with callbacks.
      * @param activity The activity hosting this page.
-     * @param account The account that will be used for the reauthentication challenge, or null
-     *                if reauthentication is not needed.
+     * @param account The account currently signed in or selected for sign-in.
      */
-    public DeviceLockCoordinator(Delegate delegate, WindowAndroid windowAndroid, Activity activity,
-            @Nullable Account account) {
-        this(delegate, windowAndroid,
+    public DeviceLockCoordinator(boolean inSignInFlow, Delegate delegate,
+            WindowAndroid windowAndroid, Activity activity, Account account) {
+        this(inSignInFlow, delegate, windowAndroid,
                 ReauthenticatorBridge.create(DeviceAuthRequester.DEVICE_LOCK_PAGE), activity,
                 account);
     }
 
-    protected DeviceLockCoordinator(Delegate delegate, WindowAndroid windowAndroid,
-            ReauthenticatorBridge deviceLockAuthenticatorBridge, Activity activity,
-            @Nullable Account account) {
+    protected DeviceLockCoordinator(boolean inSignInFlow, Delegate delegate,
+            WindowAndroid windowAndroid, ReauthenticatorBridge deviceLockAuthenticatorBridge,
+            Activity activity, Account account) {
         mView = DeviceLockView.create(LayoutInflater.from(activity));
         mWindowAndroid = windowAndroid;
         mDeviceLockAuthenticatorBridge = deviceLockAuthenticatorBridge;
-        mMediator = new DeviceLockMediator(
-                delegate, mWindowAndroid, mDeviceLockAuthenticatorBridge, activity, account);
+        mMediator = new DeviceLockMediator(inSignInFlow, delegate, mWindowAndroid,
+                mDeviceLockAuthenticatorBridge, activity, account);
         mPropertyModelChangeProcessor = PropertyModelChangeProcessor.create(
                 mMediator.getModel(), mView, DeviceLockViewBinder::bind);
         delegate.setView(mView);

@@ -23,19 +23,17 @@ import 'chrome://resources/polymer/v3_0/paper-tooltip/paper-tooltip.js';
 import {ChromeEvent} from '/tools/typescript/definitions/chrome_event.js';
 import {getToastManager} from 'chrome://resources/cr_elements/cr_toast/cr_toast_manager.js';
 import {CrToggleElement} from 'chrome://resources/cr_elements/cr_toggle/cr_toggle.js';
-import {I18nMixin} from 'chrome://resources/cr_elements/i18n_mixin.js';
 import {assert, assertNotReached} from 'chrome://resources/js/assert_ts.js';
+import {I18nMixin} from 'chrome://resources/cr_elements/i18n_mixin.js';
 import {flush, PolymerElement} from 'chrome://resources/polymer/v3_0/polymer/polymer_bundled.min.js';
 
 import {getTemplate} from './item.html.js';
 import {ItemMixin} from './item_mixin.js';
-import {computeInspectableViewLabel, EnableControl, getEnableControl, getEnableToggleAriaLabel, getEnableToggleTooltipText, getItemSource, getItemSourceString, isEnabled, sortViews, SourceType, userCanChangeEnablement} from './item_util.js';
+import {computeInspectableViewLabel, EnableControl, getEnableControl, getItemSource, getItemSourceString, isEnabled, sortViews, SourceType, userCanChangeEnablement} from './item_util.js';
 import {navigation, Page} from './navigation_helper.js';
 
 export interface ItemDelegate {
   deleteItem(id: string): void;
-  deleteItems(ids: string[]): Promise<void>;
-  uninstallItem(id: string): Promise<void>;
   setItemEnabled(id: string, isEnabled: boolean): void;
   setItemAllowedIncognito(id: string, isAllowedIncognito: boolean): void;
   setItemAllowedOnFileUrls(id: string, isAllowedOnFileUrls: boolean): void;
@@ -52,7 +50,6 @@ export interface ItemDelegate {
   getExtensionSize(id: string): Promise<string>;
   addRuntimeHostPermission(id: string, host: string): Promise<void>;
   removeRuntimeHostPermission(id: string, host: string): Promise<void>;
-  setItemSafetyCheckWarningAcknowledged(id: string): void;
   setShowAccessRequestsInToolbar(id: string, showRequests: boolean): void;
 
   // TODO(tjudkins): This function is not specific to items, so should be pulled
@@ -94,11 +91,6 @@ export class ExtensionsItemElement extends ExtensionsItemElementBase {
         value: false,
       },
 
-      safetyCheckShowing: {
-        type: Boolean,
-        value: false,
-      },
-
       // The underlying ExtensionInfo itself. Public for use in declarative
       // bindings.
       data: Object,
@@ -123,7 +115,6 @@ export class ExtensionsItemElement extends ExtensionsItemElementBase {
 
   delegate: ItemDelegate;
   inDevMode: boolean;
-  safetyCheckShowing: boolean;
   data: chrome.developerPrivate.ExtensionInfo;
   private showingDetails_: boolean;
   private firstInspectView_: chrome.developerPrivate.ExtensionView;
@@ -142,16 +133,6 @@ export class ExtensionsItemElement extends ExtensionsItemElementBase {
   /** @return The "Errors" button, if it exists. */
   getErrorsButton(): HTMLElement|null {
     return this.shadowRoot!.querySelector('#errors-button');
-  }
-
-  private getEnableToggleAriaLabel_(): string {
-    return getEnableToggleAriaLabel(
-        this.isEnabled_(), this.data.type, this.i18n('appEnabled'),
-        this.i18n('extensionEnabled'), this.i18n('itemOff'));
-  }
-
-  private getEnableToggleTooltipText_(): string {
-    return getEnableToggleTooltipText(this.data);
   }
 
   private observeIdVisibility_() {
@@ -178,12 +159,6 @@ export class ExtensionsItemElement extends ExtensionsItemElementBase {
   }
 
   private onRemoveClick_() {
-    if (this.safetyCheckShowing) {
-      const actionToRecord = this.data.safetyCheckText ?
-          'SafetyCheck.ReviewPanelRemoveClicked' :
-          'SafetyCheck.NonTriggeringExtensionRemoved';
-      chrome.metricsPrivate.recordUserAction(actionToRecord);
-    }
     this.delegate.deleteItem(this.data.id);
   }
 

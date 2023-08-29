@@ -2,7 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import {getTrustedHTML} from 'chrome://resources/js/static_types.js';
 import {assertArrayEquals, assertEquals, assertFalse, assertTrue} from 'chrome://webui-test/chromeos/chai_assert.js';
 
 import {MockVolumeManager} from '../../../background/js/mock_volume_manager.js';
@@ -53,15 +52,16 @@ export function setUp() {
  * @return {!HTMLElement}
  */
 function setupBody() {
-  document.body.innerHTML = getTrustedHTML`
-    <style>
-      list {
-        display: block;
-        height: 200px;
-        width: 800px;
-      }
-    </style>
-  `;
+  const style = `
+      <style>
+        list {
+          display: block;
+          height: 200px;
+          width: 800px;
+        }
+       </style>
+      `;
+  document.body.innerHTML = style;
 
   const element = document.createElement('div');
   document.body.appendChild(element);

@@ -23,7 +23,6 @@
 #include "base/functional/callback_helpers.h"
 #include "base/strings/stringprintf.h"
 #include "base/test/scoped_feature_list.h"
-#include "ui/compositor/layer.h"
 
 namespace ash {
 
@@ -103,7 +102,7 @@ class FloatingAccessibilityControllerTest : public AshTestBase {
 
   bool IsButtonVisible(FloatingAccessibilityView::ButtonId button_id) {
     views::View* button = GetMenuButton(button_id);
-    return button != nullptr && button->layer()->opacity() > 0;
+    return button != nullptr;
   }
 
   ImeMenuTray* GetImeTray() {
@@ -252,7 +251,7 @@ TEST_F(FloatingAccessibilityControllerTest, KioskImeTrayBottomButtons) {
   features_.InitAndEnableFeature(features::kKioskEnableImeButton);
 
   SetUpVisibleMenu();
-  EXPECT_FALSE(GetImeTray()->AnyBottomButtonShownForTest());
+  EXPECT_FALSE(GetImeTray()->ShouldShowBottomButtons());
 }
 
 TEST_F(FloatingAccessibilityControllerTest,
@@ -355,8 +354,8 @@ TEST_F(FloatingAccessibilityControllerTest, CanChangePosition) {
   // Loop through all positions twice.
   for (int i = 0; i < 2; i++) {
     for (const auto& test : kTestCases) {
-      SCOPED_TRACE(base::StringPrintf(
-          "Testing position #[%d]", static_cast<int>(test.expected_position)));
+      SCOPED_TRACE(
+          base::StringPrintf("Testing position #[%d]", test.expected_position));
       // Tap the position button.
       ui::GestureEvent event = CreateTapEvent();
       button->OnGestureEvent(&event);
@@ -521,8 +520,8 @@ TEST_F(FloatingAccessibilityControllerTest, CollisionWithAutoclicksMenu) {
   // Loop through all positions twice.
   for (int i = 0; i < 2; i++) {
     for (const auto& test : kTestCases) {
-      SCOPED_TRACE(base::StringPrintf(
-          "Testing position #[%d]", static_cast<int>(test.expected_position)));
+      SCOPED_TRACE(
+          base::StringPrintf("Testing position #[%d]", test.expected_position));
       // Tap the position button.
       {
         ui::GestureEvent event = CreateTapEvent();

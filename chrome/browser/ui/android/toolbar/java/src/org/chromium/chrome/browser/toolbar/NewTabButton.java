@@ -13,6 +13,7 @@ import androidx.annotation.StringRes;
 import androidx.appcompat.content.res.AppCompatResources;
 import androidx.core.widget.ImageViewCompat;
 
+import org.chromium.chrome.browser.device.DeviceClassManager;
 import org.chromium.chrome.browser.tabmodel.IncognitoStateProvider;
 import org.chromium.chrome.browser.tabmodel.IncognitoStateProvider.IncognitoStateObserver;
 import org.chromium.components.browser_ui.util.TraceEventVectorDrawableCompat;
@@ -30,6 +31,7 @@ public class NewTabButton
     private final boolean mIsTablet;
     private IncognitoStateProvider mIncognitoStateProvider;
     private boolean mIsIncognito;
+    private boolean mIsGridTabSwitcherEnabled;
     private boolean mIsStartSurfaceEnabled;
 
     /**
@@ -48,6 +50,18 @@ public class NewTabButton
         mIsTablet = DeviceFormFactor.isNonMultiDisplayContextOnTablet(context);
         updateDrawableTint();
         setOnLongClickListener(this);
+    }
+
+    /**
+     * Set grid-type tab switcher feature flag.
+     * @param isGridTabSwitcherEnabled Whether grid tab switcher is enabled.
+     */
+    public void setGridTabSwitcherEnabled(boolean isGridTabSwitcherEnabled) {
+        if (mIsGridTabSwitcherEnabled == isGridTabSwitcherEnabled) return;
+        mIsGridTabSwitcherEnabled = isGridTabSwitcherEnabled;
+
+        updateDrawableTint();
+        invalidate();
     }
 
     /**
@@ -95,7 +109,10 @@ public class NewTabButton
 
     /** Update the tint for the icon drawable for Chrome Modern. */
     private void updateDrawableTint() {
-        final boolean shouldUseLightMode = mIsTablet || mIsIncognito;
+        final boolean shouldUseLightMode = mIsTablet
+                || ((DeviceClassManager.enableAccessibilityLayout(getContext())
+                            || mIsGridTabSwitcherEnabled || mIsStartSurfaceEnabled)
+                        && mIsIncognito);
         ImageViewCompat.setImageTintList(this, shouldUseLightMode ? mLightModeTint : mDarkModeTint);
     }
 

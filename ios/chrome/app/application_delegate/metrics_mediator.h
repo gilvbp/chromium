@@ -48,7 +48,8 @@ void RecordWidgetUsage(base::span<const HistogramNameCountPair> histograms);
 - (void)updateMetricsStateBasedOnPrefsUserTriggered:(BOOL)isUserTriggered;
 // Logs the duration of the cold start startup. Does nothing if there isn't a
 // cold start.
-+ (void)logStartupDuration:(id<StartupInformation>)startupInformation;
++ (void)logStartupDuration:(id<StartupInformation>)startupInformation
+     connectionInformation:(id<ConnectionInformation>)connectionInformation;
 // Creates a MetricKit extended launch task to track startup duration. This must
 // be called before the first scene becomes active.
 + (void)createStartupTrackingTask;

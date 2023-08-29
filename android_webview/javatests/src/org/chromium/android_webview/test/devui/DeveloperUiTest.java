@@ -33,18 +33,17 @@ import android.app.Activity;
 import android.app.Instrumentation.ActivityResult;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.provider.Settings;
 import android.view.View;
 
-import androidx.test.core.app.ApplicationProvider;
+import androidx.test.InstrumentationRegistry;
 import androidx.test.espresso.DataInteraction;
 import androidx.test.espresso.intent.Intents;
 import androidx.test.espresso.intent.matcher.IntentMatchers;
-import androidx.test.espresso.matcher.ViewMatchers;
 import androidx.test.filters.MediumTest;
 
 import org.hamcrest.Matcher;
-import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -55,7 +54,6 @@ import org.chromium.android_webview.devui.MainActivity;
 import org.chromium.android_webview.devui.R;
 import org.chromium.android_webview.nonembedded_util.WebViewPackageHelper;
 import org.chromium.android_webview.test.AwJUnit4ClassRunner;
-import org.chromium.base.ContextUtils;
 import org.chromium.base.test.BaseActivityTestRule;
 import org.chromium.base.test.util.DoNotBatch;
 import org.chromium.base.test.util.Feature;
@@ -71,15 +69,7 @@ public class DeveloperUiTest {
     // The package name of the test shell. This is acting both as the client app and the WebView
     // provider.
     public static final String TEST_WEBVIEW_PACKAGE_NAME = "org.chromium.android_webview.shell";
-
-    // Matcher copied from
-    // https://github.com/android/android-test/blob/67a30ef587ced6c178eb20eebfc24c769c6daf7f/espresso/core/java/androidx/test/espresso/Espresso.java#L201
-    // This matcher is not expected to change, and is not expected to be made public by the
-    // Espresso library. It is intended to match the overflow menu button.
-    private static final Matcher<View> OVERFLOW_BUTTON_MATCHER = Matchers.anyOf(
-            allOf(isDisplayed(), ViewMatchers.withContentDescription("More options")),
-            allOf(isDisplayed(),
-                    ViewMatchers.withClassName(Matchers.endsWith("OverflowMenuButton"))));
+    public static final String TEST_WEBVIEW_APPLICATION_LABEL = "AwShellApplication";
 
     @Rule
     public BaseActivityTestRule<MainActivity> mRule =
@@ -87,7 +77,7 @@ public class DeveloperUiTest {
 
     private void launchHomeFragment() {
         mRule.launchActivity(null);
-        ViewUtils.waitForVisibleView(withId(R.id.fragment_home));
+        ViewUtils.waitForView(withId(R.id.fragment_home));
 
         // Only start recording intents after launching the MainActivity.
         Intents.init();
@@ -99,29 +89,25 @@ public class DeveloperUiTest {
     }
 
     private void openOptionsMenu() {
-        // Ensure the options menu is visible before proceeding.
-        onView(OVERFLOW_BUTTON_MATCHER).check(matches(isDisplayed()));
-        openActionBarOverflowOrOptionsMenu(ApplicationProvider.getApplicationContext());
-        // Wait for the first menu item to be visible.
-        // Using a text matcher since IDs are not available in the options_menu once rendered.
-        onData(anything())
-                .atPosition(0)
-                .check(ViewUtils.isEventuallyVisible(withText("Change WebView Provider")));
+        openActionBarOverflowOrOptionsMenu(
+                InstrumentationRegistry.getInstrumentation().getTargetContext());
+        ViewUtils.waitForView(withId(R.id.nav_menu_group));
     }
 
     @Before
     public void setUp() {
-        Context context = ContextUtils.getApplicationContext();
+        Context context = InstrumentationRegistry.getTargetContext();
         WebViewPackageHelper.setCurrentWebViewPackageForTesting(
                 WebViewPackageHelper.getContextPackageInfo(context));
-        // Ensure we start with empty preferences for testing
-        MainActivity.clearSharedPrefsForTesting();
     }
 
     @After
     public void tearDown() throws Exception {
         // Activity is launched, i.e the test is not skipped.
         if (mRule.getActivity() != null) {
+            // Clear the stored preferences
+            mRule.getActivity().getPreferences(Context.MODE_PRIVATE).edit().clear().apply();
+
             // Tests are responsible for verifying every Intent they trigger.
             assertNoUnverifiedIntents();
             Intents.release();
@@ -147,15 +133,13 @@ public class DeveloperUiTest {
     @MediumTest
     @Feature({"AndroidWebView"})
     public void testNavigateBetweenFragments() throws Throwable {
-        // Ensure the notification permission popup is not shown during the test.
-        MainActivity.markPopupPermissionRequestedInPrefsForTesting();
-
         launchHomeFragment();
 
         // HomeFragment -> CrashesListFragment
         onView(withId(R.id.navigation_crash_ui)).perform(click());
-        onView(withId(R.id.fragment_crashes_list)).check(matches(isDisplayed()));
+        ViewUtils.waitForView(withId(R.id.fragment_crashes_list));
         onView(withId(R.id.fragment_home)).check(doesNotExist());
+        onView(withId(R.id.fragment_crashes_list)).check(matches(isDisplayed()));
         onView(withId(R.id.navigation_home))
                 .check(matches(hasTextColor(R.color.navigation_unselected)));
         onView(withId(R.id.navigation_crash_ui))
@@ -165,8 +149,9 @@ public class DeveloperUiTest {
 
         // CrashesListFragment -> FlagsFragment
         onView(withId(R.id.navigation_flags_ui)).perform(click());
-        onView(withId(R.id.fragment_flags)).check(matches(isDisplayed()));
+        ViewUtils.waitForView(withId(R.id.fragment_flags));
         onView(withId(R.id.fragment_crashes_list)).check(doesNotExist());
+        onView(withId(R.id.fragment_flags)).check(matches(isDisplayed()));
         onView(withId(R.id.navigation_home))
                 .check(matches(hasTextColor(R.color.navigation_unselected)));
         onView(withId(R.id.navigation_crash_ui))
@@ -176,8 +161,9 @@ public class DeveloperUiTest {
 
         // FlagsFragment -> HomeFragment
         onView(withId(R.id.navigation_home)).perform(click());
-        onView(withId(R.id.fragment_home)).check(matches(isDisplayed()));
+        ViewUtils.waitForView(withId(R.id.fragment_home));
         onView(withId(R.id.fragment_flags)).check(doesNotExist());
+        onView(withId(R.id.fragment_home)).check(matches(isDisplayed()));
         onView(withId(R.id.navigation_home))
                 .check(matches(hasTextColor(R.color.navigation_selected)));
         onView(withId(R.id.navigation_crash_ui))
@@ -193,7 +179,8 @@ public class DeveloperUiTest {
         launchHomeFragment();
 
         openOptionsMenu();
-        onView(withText("Change WebView Provider")).check(matches(isDisplayed())).perform(click());
+        onView(withText("Change WebView Provider")).check(matches(isDisplayed()));
+        onView(withText("Change WebView Provider")).perform(click());
         intended(IntentMatchers.hasAction(Settings.ACTION_WEBVIEW_SETTINGS));
     }
 
@@ -205,7 +192,9 @@ public class DeveloperUiTest {
 
         openOptionsMenu();
 
-        onView(withText("Report WebView Bug")).check(matches(isDisplayed())).perform(click());
+        ViewUtils.waitForView(withText("Report WebView Bug"));
+        onView(withText("Report WebView Bug")).check(matches(isDisplayed()));
+        onView(withText("Report WebView Bug")).perform(click());
         intended(allOf(IntentMatchers.hasAction(Intent.ACTION_VIEW),
                 IntentMatchers.hasData(hasScheme("https")),
                 IntentMatchers.hasData(hasHost("bugs.chromium.org")),
@@ -233,9 +222,8 @@ public class DeveloperUiTest {
                 .respondWith(new ActivityResult(Activity.RESULT_OK, null));
 
         openOptionsMenu();
-        onView(withText("Check for WebView updates"))
-                .check(matches(isDisplayed()))
-                .perform(click());
+        onView(withText("Check for WebView updates")).check(matches(isDisplayed()));
+        onView(withText("Check for WebView updates")).perform(click());
 
         intended(allOf(IntentMatchers.hasAction(Intent.ACTION_VIEW),
                 IntentMatchers.hasData(hasScheme("market")),
@@ -251,7 +239,8 @@ public class DeveloperUiTest {
 
         openOptionsMenu();
 
-        onView(withText("About WebView DevTools")).check(matches(isDisplayed())).perform(click());
+        onView(withText("About WebView DevTools")).check(matches(isDisplayed()));
+        onView(withText("About WebView DevTools")).perform(click());
         intended(allOf(IntentMatchers.hasAction(Intent.ACTION_VIEW),
                 IntentMatchers.hasData(hasScheme("https")),
                 IntentMatchers.hasData(hasHost("chromium.googlesource.com")),
@@ -264,24 +253,13 @@ public class DeveloperUiTest {
     @Feature({"AndroidWebView"})
     public void testMenuOptions_components() throws Throwable {
         launchHomeFragment();
+
         openOptionsMenu();
 
-        onView(withText("Components")).check(matches(isDisplayed())).perform(click());
+        onView(withText("Components")).check(matches(isDisplayed()));
+        onView(withText("Components")).perform(click());
+
         onView(withId(R.id.fragment_components_list)).check(matches(isDisplayed()));
-    }
-
-    @Test
-    @MediumTest
-    @Feature({"AndroidWebView"})
-    public void testMenuOptions_safeMode() throws Throwable {
-        launchHomeFragment();
-
-        openOptionsMenu();
-
-        onView(withText("SafeMode status")).check(matches(isDisplayed()));
-        onView(withText("SafeMode status")).perform(click());
-
-        onView(withId(R.id.fragment_safe_mode)).check(matches(isDisplayed()));
     }
 
     private void switchToFlagsUi() {
@@ -336,11 +314,14 @@ public class DeveloperUiTest {
     @MediumTest
     @Feature({"AndroidWebView"})
     public void testPostNotificationPermissions_T_alreadyRequested() throws Throwable {
-        MainActivity.markPopupPermissionRequestedInPrefsForTesting();
         launchHomeFragment();
         MainActivity activity = mRule.getActivity();
 
         activity.setIsAtLeastTBuildForTesting(true);
+        SharedPreferences preferences = activity.getPreferences(Context.MODE_PRIVATE);
+        preferences.edit()
+                .putBoolean(MainActivity.POST_NOTIFICATIONS_PERMISSION_REQUESTED_KEY, true)
+                .apply();
 
         assertFalse(activity.needToRequestPostNotificationPermission());
 

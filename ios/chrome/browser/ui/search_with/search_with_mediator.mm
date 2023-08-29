@@ -4,8 +4,8 @@
 
 #import "ios/chrome/browser/ui/search_with/search_with_mediator.h"
 
-#import "base/apple/foundation_util.h"
 #import "base/ios/ios_util.h"
+#import "base/mac/foundation_util.h"
 #import "base/memory/raw_ptr.h"
 #import "base/memory/weak_ptr.h"
 #import "base/metrics/histogram_functions.h"
@@ -17,11 +17,14 @@
 #import "ios/chrome/browser/shared/public/commands/open_new_tab_command.h"
 #import "ios/chrome/browser/shared/public/features/features.h"
 #import "ios/chrome/browser/shared/ui/symbols/symbols.h"
-#import "ios/chrome/browser/ui/browser_container/browser_edit_menu_utils.h"
 #import "ios/chrome/browser/web_selection/web_selection_response.h"
 #import "ios/chrome/browser/web_selection/web_selection_tab_helper.h"
 #import "ios/chrome/grit/ios_strings.h"
 #import "ui/base/l10n/l10n_util_mac.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace {
 typedef void (^ProceduralBlockWithItemArray)(NSArray<UIMenuElement*>*);
@@ -210,12 +213,13 @@ void LogTrigger(bool incognito, bool search_engine_google) {
   [self.applicationCommandHandler openURLInNewTab:command];
 }
 
-#pragma mark - EditMenuProvider
+#pragma mark - SearchWithDelegate
 
 - (void)buildMenuWithBuilder:(id<UIMenuBuilder>)builder {
   if (![self canPerformSearch]) {
     return;
   }
+  NSString* searchWithMenuId = @"chromeMenu.searchWith";
 
   __weak __typeof(self) weakSelf = self;
   ProceduralBlockWithBlockWithItemArray provider =
@@ -224,7 +228,14 @@ void LogTrigger(bool incognito, bool search_engine_google) {
       };
   UIDeferredMenuElement* deferredMenuElement =
       [UIDeferredMenuElement elementWithProvider:provider];
-  edit_menu::AddElementToChromeMenu(builder, deferredMenuElement);
+
+  UIMenu* searchWithMenu = [UIMenu menuWithTitle:@""
+                                           image:nil
+                                      identifier:searchWithMenuId
+                                         options:UIMenuOptionsDisplayInline
+                                        children:@[ deferredMenuElement ]];
+  [builder insertSiblingMenu:searchWithMenu
+      afterMenuForIdentifier:UIMenuLookup];
 }
 
 @end

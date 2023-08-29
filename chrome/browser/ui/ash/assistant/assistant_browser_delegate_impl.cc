@@ -82,7 +82,7 @@ void AssistantBrowserDelegateImpl::MaybeInit(Profile* profile) {
 
   service_ = std::make_unique<ash::assistant::Service>(
       profile->GetURLLoaderFactory()->Clone(),
-      IdentityManagerFactory::GetForProfile(profile), profile->GetPrefs());
+      IdentityManagerFactory::GetForProfile(profile));
   service_->Init();
 
   assistant_setup_ = std::make_unique<AssistantSetup>();
@@ -157,7 +157,7 @@ void AssistantBrowserDelegateImpl::RequestNetworkConfig(
 }
 
 void AssistantBrowserDelegateImpl::OpenUrl(GURL url) {
-  if (crosapi::browser_util::IsLacrosEnabled() &&
+  if (crosapi::browser_util::IsLacrosPrimaryBrowser() &&
       ChromeWebUIControllerFactory::GetInstance()->CanHandleUrl(url)) {
     crosapi::UrlHandlerAsh().OpenUrl(url);
   } else {

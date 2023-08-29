@@ -8,7 +8,6 @@
 #include "base/files/file_path.h"
 #include "base/files/file_util.h"
 #include "base/values.h"
-#include "chrome/browser/extensions/crx_installer.h"
 #include "chrome/browser/extensions/extension_garbage_collector.h"
 #include "chrome/browser/extensions/extension_service.h"
 #include "chrome/browser/extensions/extension_service_test_base.h"
@@ -179,9 +178,7 @@ TEST_F(ExtensionGarbageCollectorUnitTest, NoCleanupDuringInstall) {
   service_->Init();
 
   // Simulate a CRX installation.
-  auto installer = CrxInstaller::CreateSilent(service_);
-  InstallTracker::Get(profile_.get())
-      ->OnBeginCrxInstall(*installer, kExtensionId);
+  InstallTracker::Get(profile_.get())->OnBeginCrxInstall(kExtensionId);
 
   GarbageCollectExtensions();
 
@@ -191,8 +188,7 @@ TEST_F(ExtensionGarbageCollectorUnitTest, NoCleanupDuringInstall) {
   ASSERT_TRUE(base::PathExists(extension_dir));
 
   // Finish CRX installation and re-run garbage collection.
-  InstallTracker::Get(profile_.get())
-      ->OnFinishCrxInstall(*installer, kExtensionId, false);
+  InstallTracker::Get(profile_.get())->OnFinishCrxInstall(kExtensionId, false);
   GarbageCollectExtensions();
 
   // extension1 dir should be gone

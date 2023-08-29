@@ -114,10 +114,10 @@ TEST_F(ScrollTimelineUtilTest, ConvertOrientationPhysicalCases) {
           GetDocument().GetStyleResolver().CreateComputedStyleBuilder();
       style_builder.SetWritingMode(writing_mode);
       style_builder.SetDirection(direction);
-      const ComputedStyle* style = style_builder.TakeStyle();
-      EXPECT_EQ(ConvertOrientation(ScrollTimeline::ScrollAxis::kY, style),
+      scoped_refptr<const ComputedStyle> style = style_builder.TakeStyle();
+      EXPECT_EQ(ConvertOrientation(ScrollTimeline::ScrollAxis::kY, style.get()),
                 CompositorScrollTimeline::ScrollDown);
-      EXPECT_EQ(ConvertOrientation(ScrollTimeline::ScrollAxis::kX, style),
+      EXPECT_EQ(ConvertOrientation(ScrollTimeline::ScrollAxis::kX, style.get()),
                 CompositorScrollTimeline::ScrollRight);
     }
   }
@@ -129,61 +129,67 @@ TEST_F(ScrollTimelineUtilTest, ConvertOrientationLogical) {
       GetDocument().GetStyleResolver().CreateComputedStyleBuilder();
   builder.SetWritingMode(WritingMode::kHorizontalTb);
   builder.SetDirection(TextDirection::kLtr);
-  const ComputedStyle* style = builder.TakeStyle();
-  EXPECT_EQ(ConvertOrientation(ScrollTimeline::ScrollAxis::kBlock, style),
+  scoped_refptr<const ComputedStyle> style = builder.TakeStyle();
+  EXPECT_EQ(ConvertOrientation(ScrollTimeline::ScrollAxis::kBlock, style.get()),
             CompositorScrollTimeline::ScrollDown);
-  EXPECT_EQ(ConvertOrientation(ScrollTimeline::ScrollAxis::kInline, style),
-            CompositorScrollTimeline::ScrollRight);
+  EXPECT_EQ(
+      ConvertOrientation(ScrollTimeline::ScrollAxis::kInline, style.get()),
+      CompositorScrollTimeline::ScrollRight);
 
   // vertical-lr, ltr
   builder = GetDocument().GetStyleResolver().CreateComputedStyleBuilder();
   builder.SetWritingMode(WritingMode::kVerticalLr);
   builder.SetDirection(TextDirection::kLtr);
   style = builder.TakeStyle();
-  EXPECT_EQ(ConvertOrientation(ScrollTimeline::ScrollAxis::kBlock, style),
+  EXPECT_EQ(ConvertOrientation(ScrollTimeline::ScrollAxis::kBlock, style.get()),
             CompositorScrollTimeline::ScrollRight);
-  EXPECT_EQ(ConvertOrientation(ScrollTimeline::ScrollAxis::kInline, style),
-            CompositorScrollTimeline::ScrollDown);
+  EXPECT_EQ(
+      ConvertOrientation(ScrollTimeline::ScrollAxis::kInline, style.get()),
+      CompositorScrollTimeline::ScrollDown);
 
   // vertical-rl, ltr
   builder = GetDocument().GetStyleResolver().CreateComputedStyleBuilder();
   builder.SetWritingMode(WritingMode::kVerticalRl);
   builder.SetDirection(TextDirection::kLtr);
   style = builder.TakeStyle();
-  EXPECT_EQ(ConvertOrientation(ScrollTimeline::ScrollAxis::kBlock, style),
+  EXPECT_EQ(ConvertOrientation(ScrollTimeline::ScrollAxis::kBlock, style.get()),
             CompositorScrollTimeline::ScrollLeft);
-  EXPECT_EQ(ConvertOrientation(ScrollTimeline::ScrollAxis::kInline, style),
-            CompositorScrollTimeline::ScrollDown);
+  EXPECT_EQ(
+      ConvertOrientation(ScrollTimeline::ScrollAxis::kInline, style.get()),
+      CompositorScrollTimeline::ScrollDown);
 
   // horizontal-tb, rtl
   builder = GetDocument().GetStyleResolver().CreateComputedStyleBuilder();
   builder.SetWritingMode(WritingMode::kHorizontalTb);
   builder.SetDirection(TextDirection::kRtl);
   style = builder.TakeStyle();
-  EXPECT_EQ(ConvertOrientation(ScrollTimeline::ScrollAxis::kBlock, style),
+  EXPECT_EQ(ConvertOrientation(ScrollTimeline::ScrollAxis::kBlock, style.get()),
             CompositorScrollTimeline::ScrollDown);
-  EXPECT_EQ(ConvertOrientation(ScrollTimeline::ScrollAxis::kInline, style),
-            CompositorScrollTimeline::ScrollLeft);
+  EXPECT_EQ(
+      ConvertOrientation(ScrollTimeline::ScrollAxis::kInline, style.get()),
+      CompositorScrollTimeline::ScrollLeft);
 
   // vertical-lr, rtl
   builder = GetDocument().GetStyleResolver().CreateComputedStyleBuilder();
   builder.SetWritingMode(WritingMode::kVerticalLr);
   builder.SetDirection(TextDirection::kRtl);
   style = builder.TakeStyle();
-  EXPECT_EQ(ConvertOrientation(ScrollTimeline::ScrollAxis::kBlock, style),
+  EXPECT_EQ(ConvertOrientation(ScrollTimeline::ScrollAxis::kBlock, style.get()),
             CompositorScrollTimeline::ScrollRight);
-  EXPECT_EQ(ConvertOrientation(ScrollTimeline::ScrollAxis::kInline, style),
-            CompositorScrollTimeline::ScrollUp);
+  EXPECT_EQ(
+      ConvertOrientation(ScrollTimeline::ScrollAxis::kInline, style.get()),
+      CompositorScrollTimeline::ScrollUp);
 
   // vertical-rl, rtl
   builder = GetDocument().GetStyleResolver().CreateComputedStyleBuilder();
   builder.SetWritingMode(WritingMode::kVerticalRl);
   builder.SetDirection(TextDirection::kRtl);
   style = builder.TakeStyle();
-  EXPECT_EQ(ConvertOrientation(ScrollTimeline::ScrollAxis::kBlock, style),
+  EXPECT_EQ(ConvertOrientation(ScrollTimeline::ScrollAxis::kBlock, style.get()),
             CompositorScrollTimeline::ScrollLeft);
-  EXPECT_EQ(ConvertOrientation(ScrollTimeline::ScrollAxis::kInline, style),
-            CompositorScrollTimeline::ScrollUp);
+  EXPECT_EQ(
+      ConvertOrientation(ScrollTimeline::ScrollAxis::kInline, style.get()),
+      CompositorScrollTimeline::ScrollUp);
 }
 
 TEST_F(ScrollTimelineUtilTest, ConvertOrientationNullStyle) {

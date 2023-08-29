@@ -113,6 +113,7 @@ public class ChromeActivityTestRule<T extends ChromeActivity> extends BaseActivi
                     base.evaluate();
                 } finally {
                     Thread.setDefaultUncaughtExceptionHandler(mDefaultUncaughtExceptionHandler);
+                    ObservableSupplierImpl.setIgnoreThreadChecksForTesting(false);
                 }
             }
         };

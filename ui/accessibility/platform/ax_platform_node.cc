@@ -67,8 +67,15 @@ void AXPlatformNode::Destroy() {
 
 int32_t AXPlatformNode::GetUniqueId() const {
   DCHECK(GetDelegate()) << "|GetUniqueId| must be called after |Init|.";
-  return GetDelegate() ? GetDelegate()->GetUniqueId().Get()
-                       : kInvalidAXUniqueId;
+  return GetDelegate() ? GetDelegate()->GetUniqueId().Get() : -1;
+}
+
+void AXPlatformNode::SetIsPrimaryWebContentsForWindow(bool is_primary) {
+  is_primary_web_contents_for_window_ = is_primary;
+}
+
+bool AXPlatformNode::IsPrimaryWebContentsForWindow() const {
+  return is_primary_web_contents_for_window_;
 }
 
 std::string AXPlatformNode::ToString() {

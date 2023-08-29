@@ -721,11 +721,6 @@ TEST(CSSPropertyParserTest, ImageSetCalcResolutionUnitX) {
                       "image-set(url(\"foo\") calc(1dppx))");
 }
 
-TEST(CSSPropertyParserTest, ImageSetCalcNegativerResolution) {
-  TestImageSetParsing("image-set(url(foo) calc(-1x))",
-                      "image-set(url(\"foo\") calc(-1dppx))");
-}
-
 TEST(CSSPropertyParserTest, ImageSetAddCalcResolutionUnitX) {
   TestImageSetParsing("image-set(url(foo) calc(2x + 3x))",
                       "image-set(url(\"foo\") calc(5dppx))");
@@ -739,16 +734,6 @@ TEST(CSSPropertyParserTest, ImageSetSubCalcResolutionUnitX) {
 TEST(CSSPropertyParserTest, ImageSetMultCalcResolutionUnitX) {
   TestImageSetParsing("image-set(url(foo) calc(2x * 3))",
                       "image-set(url(\"foo\") calc(6dppx))");
-}
-
-TEST(CSSPropertyParserTest, ImageSetMultCalcNegativeResolution) {
-  TestImageSetParsing("image-set(url(foo) calc(1 * -1x))",
-                      "image-set(url(\"foo\") calc(-1dppx))");
-}
-
-TEST(CSSPropertyParserTest, ImageSetMultCalcNegativeNumberResolution) {
-  TestImageSetParsing("image-set(url(foo) calc(-1 * 1x))",
-                      "image-set(url(\"foo\") calc(-1dppx))");
 }
 
 TEST(CSSPropertyParserTest, ImageSetDivCalcResolutionUnitX) {
@@ -1080,7 +1065,7 @@ TEST(CSSPropertyParserTest, ParseRevertLayer) {
 
 // anchor() and anchor-size() shouldn't parse when the feature is disabled.
 TEST(CSSPropertyParserTest, AnchorPositioningDisabled) {
-  ScopedHTMLSelectListElementForTest select_list_disabled(false);
+  ScopedHTMLSelectMenuElementForTest select_menu_disabled(false);
   ScopedCSSAnchorPositioningForTest anchor_positioning_disabled(false);
 
   auto* context = MakeGarbageCollected<CSSParserContext>(

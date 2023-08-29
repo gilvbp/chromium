@@ -139,10 +139,6 @@ void ApplyHostUreadahedGeneration(StartParams* params) {
   params->host_ureadahead_generation = IsHostUreadaheadGeneration();
 }
 
-void ApplyUseDevCaches(StartParams* params) {
-  params->use_dev_caches = IsArcUseDevCaches();
-}
-
 // Real Delegate implementation to connect Mojo.
 class ArcSessionDelegateImpl : public ArcSessionImpl::Delegate {
  public:
@@ -489,7 +485,6 @@ void ArcSessionImpl::DoStartMiniInstance(size_t num_cores_disabled) {
   ApplyDisableDownloadProvider(&params);
   ApplyDisableUreadahed(&params);
   ApplyHostUreadahedGeneration(&params);
-  ApplyUseDevCaches(&params);
 
   client_->StartMiniArc(std::move(params),
                         base::BindOnce(&ArcSessionImpl::OnMiniInstanceStarted,
@@ -670,6 +665,9 @@ void ArcSessionImpl::OnMojoConnected(
 
   VLOG(0) << "ARC ready.";
   state_ = State::RUNNING_FULL_INSTANCE;
+
+  // Some memory parameters may be changed when ARC is launched.
+  ash::UpdateMemoryParameters(arc::IsArcAvailable());
 }
 
 void ArcSessionImpl::Stop() {

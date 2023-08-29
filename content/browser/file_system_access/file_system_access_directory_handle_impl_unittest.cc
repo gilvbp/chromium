@@ -20,7 +20,7 @@
 #include "build/build_config.h"
 #include "components/services/storage/public/cpp/buckets/bucket_locator.h"
 #include "content/browser/file_system_access/features.h"
-#include "content/browser/file_system_access/file_system_access_lock_manager.h"
+#include "content/browser/file_system_access/file_system_access_write_lock_manager.h"
 #include "content/browser/file_system_access/fixed_file_system_access_permission_grant.h"
 #include "content/browser/file_system_access/mock_file_system_access_permission_context.h"
 #include "content/public/test/browser_task_environment.h"
@@ -42,7 +42,7 @@ using HandleType = FileSystemAccessPermissionContext::HandleType;
 using SensitiveEntryResult =
     FileSystemAccessPermissionContext::SensitiveEntryResult;
 using UserAction = FileSystemAccessPermissionContext::UserAction;
-using LockType = FileSystemAccessLockManager::LockType;
+using WriteLockType = FileSystemAccessWriteLockManager::WriteLockType;
 
 class FileSystemAccessDirectoryHandleImplTest : public testing::Test {
  public:
@@ -367,9 +367,6 @@ TEST_F(FileSystemAccessDirectoryHandleImplTest, RemoveEntry) {
 
   auto handle = GetHandleWithPermissions(dir, /*read=*/true, /*write=*/true);
 
-  LockType exclusive_lock_type = manager_->GetExclusiveLockType();
-  LockType shared_lock_type = manager_->CreateSharedLockType();
-
   // Calling removeEntry() on an unlocked file should succeed.
   {
     base::CreateTemporaryFileInDir(dir, &file);
@@ -382,20 +379,21 @@ TEST_F(FileSystemAccessDirectoryHandleImplTest, RemoveEntry) {
                         /*recurse=*/false, future.GetCallback());
     EXPECT_EQ(future.Get()->status, blink::mojom::FileSystemAccessStatus::kOk);
     EXPECT_FALSE(base::PathExists(file));
-    // The lock acquired during the operation should be released by the time the
-    // callback runs.
-    EXPECT_TRUE(manager_->TakeLock(file_url, exclusive_lock_type));
+    // The write lock acquired during the operation should be released by
+    // the time the callback runs.
+    EXPECT_TRUE(manager_->TakeWriteLock(file_url, WriteLockType::kExclusive));
   }
 
-  // Acquire an exclusive lock on a file before removing to simulate when the
+  // Acquire an exclusive lock on a file before removing to similate when the
   // file has an open access handle. This should fail.
   {
     base::CreateTemporaryFileInDir(dir, &file);
     auto base_name = storage::FilePathToString(file.BaseName());
     EXPECT_EQ(handle->GetChildURL(base_name, &file_url)->file_error,
               base::File::Error::FILE_OK);
-    auto lock = manager_->TakeLock(file_url, exclusive_lock_type);
-    EXPECT_TRUE(lock);
+    auto write_lock =
+        manager_->TakeWriteLock(file_url, WriteLockType::kExclusive);
+    EXPECT_TRUE(write_lock);
 
     base::test::TestFuture<blink::mojom::FileSystemAccessErrorPtr> future;
     handle->RemoveEntry(base_name,
@@ -413,9 +411,9 @@ TEST_F(FileSystemAccessDirectoryHandleImplTest, RemoveEntry) {
     auto base_name = storage::FilePathToString(file.BaseName());
     EXPECT_EQ(handle->GetChildURL(base_name, &file_url)->file_error,
               base::File::Error::FILE_OK);
-    auto lock = manager_->TakeLock(file_url, shared_lock_type);
-    ASSERT_TRUE(lock);
-    EXPECT_TRUE(lock->type() == shared_lock_type);
+    auto write_lock = manager_->TakeWriteLock(file_url, WriteLockType::kShared);
+    ASSERT_TRUE(write_lock);
+    EXPECT_TRUE(write_lock->type() == WriteLockType::kShared);
 
     base::test::TestFuture<blink::mojom::FileSystemAccessErrorPtr> future;
     handle->RemoveEntry(base_name,

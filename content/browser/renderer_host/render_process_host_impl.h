@@ -264,7 +264,7 @@ class CONTENT_EXPORT RenderProcessHostImpl
   void AddFilter(BrowserMessageFilter* filter) override;
   bool FastShutdownStarted() override;
   base::TimeDelta GetChildProcessIdleTime() override;
-  FilterURLResult FilterURL(bool empty_allowed, GURL* url) override;
+  void FilterURL(bool empty_allowed, GURL* url) override;
   void EnableAudioDebugRecordings(const base::FilePath& file) override;
   void DisableAudioDebugRecordings() override;
   WebRtcStopRtpDumpCallback StartRtpDump(
@@ -381,9 +381,7 @@ class CONTENT_EXPORT RenderProcessHostImpl
       RenderProcessHostCreationObserver* observer);
 
   // Implementation of FilterURL below that can be shared with the mock class.
-  static FilterURLResult FilterURL(RenderProcessHost* rph,
-                                   bool empty_allowed,
-                                   GURL* url);
+  static void FilterURL(RenderProcessHost* rph, bool empty_allowed, GURL* url);
 
   // Returns the current count of renderer processes. For the count used when
   // comparing against the process limit, see `GetProcessCountForLimit`.

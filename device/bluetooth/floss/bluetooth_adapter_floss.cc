@@ -17,7 +17,6 @@
 #include "components/device_event_log/device_event_log.h"
 #include "device/bluetooth/bluetooth_adapter.h"
 #include "device/bluetooth/bluetooth_socket_thread.h"
-#include "device/bluetooth/chromeos_platform_features.h"
 #include "device/bluetooth/floss/bluetooth_advertisement_floss.h"
 #include "device/bluetooth/floss/bluetooth_device_floss.h"
 #include "device/bluetooth/floss/bluetooth_local_gatt_service_floss.h"
@@ -281,7 +280,6 @@ void BluetoothAdapterFloss::Init() {
 
   VLOG(1) << "BluetoothAdapterFloss::Init completed. Calling init callback.";
   initialized_ = true;
-
   std::move(init_callback_).Run();
 }
 
@@ -723,11 +721,6 @@ void BluetoothAdapterFloss::OnAdapterClientsReady(bool enabled) {
     // No need to do this in Lacros because Ash would be around, and would have
     // done this already.
     SetStandardChromeOSAdapterName();
-    if (base::FeatureList::IsEnabled(
-            chromeos::bluetooth::features::kBluetoothFlossTelephony)) {
-      ConfigureBluetoothTelephony(true);
-    }
-
 #endif  // BUILDFLAG(IS_CHROMEOS_ASH)
   } else {
     ClearAllDevices();
@@ -859,7 +852,6 @@ void BluetoothAdapterFloss::AdapterDevicePropertyChanged(
 
   switch (prop_type) {
     case FlossAdapterClient::BtPropertyType::kBdName:
-    case FlossAdapterClient::BtPropertyType::kUuids:
       if (device.name.size() != 0) {
         device_ptr->SetName(device.name);
         device_ptr->InitializeDeviceProperties(
@@ -1477,11 +1469,6 @@ void BluetoothAdapterFloss::SetStandardChromeOSAdapterName() {
   std::string alias = ash::GetDeviceBluetoothName(GetAddress());
   FlossDBusManager::Get()->GetAdapterClient()->SetName(base::DoNothing(),
                                                        alias);
-}
-
-void BluetoothAdapterFloss::ConfigureBluetoothTelephony(bool enabled) {
-  FlossDBusManager::Get()->GetBluetoothTelephonyClient()->SetPhoneOpsEnabled(
-      base::DoNothing(), enabled);
 }
 #endif  // BUILDFLAG(IS_CHROMEOS_ASH)
 

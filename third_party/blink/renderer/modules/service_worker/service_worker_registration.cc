@@ -358,7 +358,7 @@ void ServiceWorkerRegistration::Trace(Visitor* visitor) const {
   visitor->Trace(navigation_preload_);
   visitor->Trace(host_);
   visitor->Trace(receiver_);
-  EventTarget::Trace(visitor);
+  EventTargetWithInlineData::Trace(visitor);
   ExecutionContextLifecycleObserver::Trace(visitor);
   Supplementable<ServiceWorkerRegistration>::Trace(visitor);
 }

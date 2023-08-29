@@ -97,9 +97,6 @@ void LiveCaptionController::RegisterProfilePrefs(
   registry->RegisterBooleanPref(
       prefs::kLiveCaptionEnabled, false,
       user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
-  registry->RegisterBooleanPref(
-      prefs::kLiveCaptionMaskOffensiveWords, false,
-      user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
 
   // Initially default the language to en-US.
   registry->RegisterStringPref(prefs::kLiveCaptionLanguageCode,

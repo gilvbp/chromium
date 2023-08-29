@@ -23,6 +23,7 @@ import static org.chromium.chrome.browser.tasks.tab_management.TabUiTestHelper.s
 
 import androidx.test.filters.MediumTest;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -39,7 +40,7 @@ import org.chromium.chrome.browser.incognito.reauth.IncognitoReauthManager;
 import org.chromium.chrome.test.ChromeJUnit4ClassRunner;
 import org.chromium.chrome.test.ChromeTabbedActivityTestRule;
 import org.chromium.chrome.test.R;
-import org.chromium.chrome.test.util.browser.Features.EnableFeatures;
+import org.chromium.chrome.test.util.browser.Features;
 import org.chromium.ui.test.util.UiRestriction;
 
 /**
@@ -52,7 +53,8 @@ import org.chromium.ui.test.util.UiRestriction;
 @RunWith(ChromeJUnit4ClassRunner.class)
 @CommandLineFlags.Add(ChromeSwitches.DISABLE_FIRST_RUN_EXPERIENCE)
 @Restriction({UiRestriction.RESTRICTION_TYPE_PHONE, RESTRICTION_TYPE_NON_LOW_END_DEVICE})
-@EnableFeatures({ChromeFeatureList.INCOGNITO_REAUTHENTICATION_FOR_ANDROID})
+@Features.EnableFeatures({ChromeFeatureList.INCOGNITO_REAUTHENTICATION_FOR_ANDROID,
+        ChromeFeatureList.TAB_GROUPS_CONTINUATION_ANDROID})
 @Batch(PER_CLASS)
 public class TabGridIncognitoReauthPromoTest {
     @Rule
@@ -63,12 +65,19 @@ public class TabGridIncognitoReauthPromoTest {
     public void setUp() {
         IncognitoReauthManager.setIsIncognitoReauthFeatureAvailableForTesting(true);
         IncognitoReauthPromoMessageService.setIsPromoEnabledForTesting(true);
-        IncognitoReauthPromoMessageService.setTriggerReviewActionWithoutReauthForTesting(true);
+        IncognitoReauthPromoMessageService.sTriggerReviewActionWithoutReauthForTesting = true;
         mActivityTestRule.startMainActivityOnBlankPage();
 
         TabUiTestHelper.verifyTabSwitcherLayoutType(mActivityTestRule.getActivity());
         CriteriaHelper.pollUiThread(
                 mActivityTestRule.getActivity().getTabModelSelector()::isTabStateInitialized);
+    }
+
+    @After
+    public void tearDown() {
+        IncognitoReauthManager.setIsIncognitoReauthFeatureAvailableForTesting(null);
+        IncognitoReauthPromoMessageService.setIsPromoEnabledForTesting(null);
+        IncognitoReauthPromoMessageService.sTriggerReviewActionWithoutReauthForTesting = null;
     }
 
     @Test

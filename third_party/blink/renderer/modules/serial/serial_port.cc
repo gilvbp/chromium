@@ -502,7 +502,7 @@ void SerialPort::Trace(Visitor* visitor) const {
   visitor->Trace(open_resolver_);
   visitor->Trace(signal_resolvers_);
   visitor->Trace(close_resolver_);
-  EventTarget::Trace(visitor);
+  EventTargetWithInlineData::Trace(visitor);
   ActiveScriptWrappable<SerialPort>::Trace(visitor);
 }
 

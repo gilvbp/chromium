@@ -9,6 +9,10 @@
 #import "ios/chrome/browser/ui/promos_manager/standard_promo_display_handler.h"
 #import "ios/public/provider/chrome/browser/signin/choice_api.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace ios {
 namespace provider {
 
@@ -18,15 +22,7 @@ ChromeCoordinator* CreateChoiceCoordinatorWithViewController(
   NOTREACHED_NORETURN();
 }
 
-ChromeCoordinator* CreateChoiceCoordinatorForFREWithNavigationController(
-    UINavigationController* navigation_controller,
-    Browser* browser,
-    id<FirstRunScreenDelegate> first_run_delegate) {
-  NOTREACHED_NORETURN();
-}
-
-id<StandardPromoDisplayHandler> CreateChoiceDisplayHandler(
-    ChromeBrowserState* browserState) {
+id<StandardPromoDisplayHandler> CreateChoiceDisplayHandler() {
   NOTREACHED_NORETURN();
 }
 

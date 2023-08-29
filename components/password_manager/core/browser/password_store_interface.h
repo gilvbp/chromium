@@ -23,6 +23,7 @@ namespace password_manager {
 
 struct PasswordForm;
 
+class FieldInfoStore;
 class PasswordStoreBackend;
 class PasswordStoreConsumer;
 class SmartBubbleStatsStore;
@@ -169,6 +170,9 @@ class PasswordStoreInterface : public RefcountedKeyedService {
 
   // Returns the store responsible for smart bubble behaviour websites stats.
   virtual SmartBubbleStatsStore* GetSmartBubbleStatsStore() = 0;
+
+  // Returns the store responsible for field info stats.
+  virtual FieldInfoStore* GetFieldInfoStore() = 0;
 
   // For sync codebase only: instantiates a proxy controller delegate to
   // interact with PasswordSyncBridge. Must be called from the UI thread.

@@ -17,10 +17,6 @@
       value: 'reduce',
     },
     {
-      name: 'prefers-reduced-transparency',
-      value: 'reduce',
-    },
-    {
       name: 'prefers-contrast',
       value: 'more',
     },

@@ -6,7 +6,10 @@
 
 #import "base/metrics/histogram_functions.h"
 #import "base/metrics/user_metrics.h"
+#import "components/feature_engagement/public/feature_constants.h"
+#import "components/feature_engagement/public/tracker.h"
 #import "ios/chrome/browser/default_browser/utils.h"
+#import "ios/chrome/browser/feature_engagement/tracker_factory.h"
 #import "ios/chrome/browser/shared/model/browser/browser.h"
 #import "ios/chrome/browser/shared/public/commands/command_dispatcher.h"
 #import "ios/chrome/browser/ui/default_promo/default_browser_promo_commands.h"
@@ -15,6 +18,10 @@
 #import "ios/chrome/browser/ui/default_promo/video_default_browser_promo_mediator.h"
 #import "ios/chrome/browser/ui/default_promo/video_default_browser_promo_view_controller.h"
 #import "ios/chrome/common/ui/confirmation_alert/confirmation_alert_action_handler.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 using base::RecordAction;
 using base::UserMetricsAction;
@@ -55,7 +62,7 @@ using base::UserMetricsAction;
                                         animated:YES
                                       completion:nil];
 
-  if (self.isHalfScreen) {
+  if (IsDefaultBrowserVideoPromoHalfscreenEnabled()) {
     self.halfScreenPromoCoordinator = [[HalfScreenPromoCoordinator alloc]
         initWithBaseNavigationController:self.navigationController
                                  browser:self.browser];
@@ -81,6 +88,14 @@ using base::UserMetricsAction;
   self.mediator = nil;
   self.navigationController = nil;
 
+  feature_engagement::Tracker* tracker =
+      feature_engagement::TrackerFactory::GetForBrowserState(
+          self.browser->GetBrowserState());
+  if (!ShouldForceDefaultPromoType() && tracker) {
+    tracker->Dismissed(
+        feature_engagement::kIPHiOSDefaultBrowserVideoPromoTriggerFeature);
+  }
+
   [super stop];
 }
 
@@ -93,7 +108,7 @@ using base::UserMetricsAction;
       IOSDefaultBrowserVideoPromoAction::kPrimaryActionTapped);
   RecordAction(UserMetricsAction(
       "IOS.DefaultBrowserVideoPromo.Fullscreen.OpenSettingsTapped"));
-  [self.handler hidePromo];
+  [self.defaultBrowserPromoHandler hidePromo];
 }
 
 - (void)confirmationAlertSecondaryAction {
@@ -102,7 +117,7 @@ using base::UserMetricsAction;
       IOSDefaultBrowserVideoPromoAction::kSecondaryActionTapped);
   RecordAction(
       UserMetricsAction("IOS.DefaultBrowserVideoPromo.Fullscreen.Dismiss"));
-  [self.handler hidePromo];
+  [self.defaultBrowserPromoHandler hidePromo];
 }
 
 #pragma mark - UIAdaptivePresentationControllerDelegate
@@ -113,7 +128,7 @@ using base::UserMetricsAction;
                                 IOSDefaultBrowserVideoPromoAction::kSwipeDown);
   RecordAction(
       UserMetricsAction("IOS.DefaultBrowserVideoPromo.Fullscreen.Dismiss"));
-  [self.handler hidePromo];
+  [self.defaultBrowserPromoHandler hidePromo];
 }
 
 #pragma mark - HalfScreenPromoCoordinatorDelegate
@@ -134,12 +149,12 @@ using base::UserMetricsAction;
 
 - (void)handleSecondaryActionForHalfScreenPromoCoordinator:
     (HalfScreenPromoCoordinator*)coordinator {
-  [self.handler hidePromo];
+  [self.defaultBrowserPromoHandler hidePromo];
 }
 
 - (void)handleDismissActionForHalfScreenPromoCoordinator:
     (HalfScreenPromoCoordinator*)coordinator {
-  [self.handler hidePromo];
+  [self.defaultBrowserPromoHandler hidePromo];
 }
 
 #pragma mark - private

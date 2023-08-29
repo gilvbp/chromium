@@ -6,10 +6,11 @@
 
 #import <UIKit/UIKit.h>
 
-#import "base/apple/foundation_util.h"
 #import "base/files/file_path.h"
 #import "base/files/file_util.h"
 #import "base/functional/bind.h"
+#import "base/strings/sys_string_conversions.h"
+#import "base/strings/utf_string_conversions.h"
 #import "base/task/thread_pool.h"
 #import "ios/chrome/browser/download/download_directory_util.h"
 #import "ios/chrome/browser/download/external_app_util.h"
@@ -17,6 +18,10 @@
 #import "ios/web/public/download/download_task.h"
 #import "net/base/net_errors.h"
 #import "ui/base/l10n/l10n_util.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 DownloadManagerMediator::DownloadManagerMediator() : weak_ptr_factory_(this) {}
 DownloadManagerMediator::~DownloadManagerMediator() {
@@ -71,32 +76,27 @@ void DownloadManagerMediator::UpdateConsumer() {
   DownloadManagerState state = GetDownloadManagerState();
 
   if (state == kDownloadManagerStateSucceeded) {
-    base::FilePath user_download_path;
-    GetDownloadsDirectory(&user_download_path);
-    download_path_ = user_download_path.Append(task_->GenerateFileName());
-
-    base::FilePath task_path = task_->GetResponsePath();
+    download_path_ = task_->GetResponsePath();
 
     base::ThreadPool::PostTaskAndReplyWithResult(
         FROM_HERE,
         {base::MayBlock(), base::TaskShutdownBehavior::SKIP_ON_SHUTDOWN},
-        base::BindOnce(base::PathExists, task_path),
+        base::BindOnce(base::PathExists, download_path_),
         base::BindOnce(
             &DownloadManagerMediator::MoveToUserDocumentsIfFileExists,
-            weak_ptr_factory_.GetWeakPtr(), task_path));
+            weak_ptr_factory_.GetWeakPtr(), download_path_));
   }
 
   if (state == kDownloadManagerStateSucceeded && !IsGoogleDriveAppInstalled()) {
     [consumer_ setInstallDriveButtonVisible:YES animated:YES];
   }
-
   [consumer_ setState:state];
   [consumer_ setCountOfBytesReceived:task_->GetReceivedBytes()];
   [consumer_ setCountOfBytesExpectedToReceive:task_->GetTotalBytes()];
   [consumer_ setProgress:GetDownloadManagerProgress()];
 
   base::FilePath filename = task_->GenerateFileName();
-  [consumer_ setFileName:base::apple::FilePathToNSString(filename)];
+  [consumer_ setFileName:base::SysUTF8ToNSString(filename.AsUTF8Unsafe())];
 
   int a11y_announcement = GetDownloadManagerA11yAnnouncement();
   if (a11y_announcement != -1) {
@@ -106,22 +106,28 @@ void DownloadManagerMediator::UpdateConsumer() {
 }
 
 void DownloadManagerMediator::MoveToUserDocumentsIfFileExists(
-    base::FilePath task_path,
+    base::FilePath download_path,
     bool file_exists) {
-  if (!file_exists || !task_) {
+  if (!file_exists || !task_)
     return;
-  }
+
+  base::FilePath user_download_path;
+  GetDownloadsDirectory(&user_download_path);
+  user_download_path = user_download_path.Append(task_->GenerateFileName());
 
   base::ThreadPool::PostTaskAndReplyWithResult(
       FROM_HERE,
       {base::MayBlock(), base::TaskShutdownBehavior::SKIP_ON_SHUTDOWN},
-      base::BindOnce(&base::Move, task_path, download_path_),
-      base::BindOnce(&DownloadManagerMediator::MoveComplete,
-                     weak_ptr_factory_.GetWeakPtr()));
+      base::BindOnce(&base::Move, download_path, user_download_path),
+      base::BindOnce(&DownloadManagerMediator::RestoreDownloadPath,
+                     weak_ptr_factory_.GetWeakPtr(), user_download_path));
 }
 
-void DownloadManagerMediator::MoveComplete(bool move_completed) {
-  DCHECK(move_completed);
+void DownloadManagerMediator::RestoreDownloadPath(
+    base::FilePath user_download_path,
+    bool moveCompleted) {
+  DCHECK(moveCompleted);
+  download_path_ = user_download_path;
 }
 
 DownloadManagerState DownloadManagerMediator::GetDownloadManagerState() const {

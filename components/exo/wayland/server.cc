@@ -67,6 +67,7 @@
 #include "components/exo/wayland/wayland_display_output.h"
 #include "components/exo/wayland/wayland_dmabuf_feedback_manager.h"
 #include "components/exo/wayland/wayland_watcher.h"
+#include "components/exo/wayland/weston_test.h"
 #include "components/exo/wayland/wl_compositor.h"
 #include "components/exo/wayland/wl_data_device_manager.h"
 #include "components/exo/wayland/wl_output.h"
@@ -164,13 +165,6 @@ int GetTextInputExtensionV1Version() {
     // We cannot enable confirm-composition only, because it will be hitting
     // the same issue at version 10. Thus, we'll set version 12 (including
     // all fixes + confirm-composition), or 9 (before everything).
-
-    // If GIF support is also enabled, we need version 13.
-    if (base::FeatureList::IsEnabled(
-            ash::features::kImeSystemEmojiPickerGIFSupport)) {
-      return 13;
-    }
-
     return 12;
   }
 
@@ -387,6 +381,7 @@ void Server::Initialize() {
   wl_global_create(wl_display_.get(), &zwp_idle_inhibit_manager_v1_interface, 1,
                    display_, bind_zwp_idle_inhibit_manager);
 
+  weston_test_holder_ = std::make_unique<WestonTest>(this);
   ui_controls_holder_ = std::make_unique<UiControls>(this);
 
   zcr_keyboard_extension_data_ =

@@ -70,7 +70,7 @@ IdleDetector* IdleDetector::Create(ScriptState* script_state) {
 
 IdleDetector::IdleDetector(ExecutionContext* context)
     : ActiveScriptWrappable<IdleDetector>({}),
-      ExecutionContextLifecycleObserver(context),
+      ExecutionContextClient(context),
       task_runner_(context->GetTaskRunner(TaskType::kMiscPlatformAPI)),
       timer_(task_runner_, this, &IdleDetector::DispatchUserIdleEvent),
       receiver_(this, context) {}
@@ -82,7 +82,7 @@ const AtomicString& IdleDetector::InterfaceName() const {
 }
 
 ExecutionContext* IdleDetector::GetExecutionContext() const {
-  return ExecutionContextLifecycleObserver::GetExecutionContext();
+  return ExecutionContextClient::GetExecutionContext();
 }
 
 bool IdleDetector::HasPendingActivity() const {
@@ -119,12 +119,6 @@ ScriptPromise IdleDetector::requestPermission(ScriptState* script_state,
 ScriptPromise IdleDetector::start(ScriptState* script_state,
                                   const IdleOptions* options,
                                   ExceptionState& exception_state) {
-  if (!GetExecutionContext() || GetExecutionContext()->IsContextDestroyed()) {
-    exception_state.ThrowDOMException(DOMExceptionCode::kInvalidStateError,
-                                      "Execution context is detached.");
-    return ScriptPromise();
-  }
-
   ExecutionContext* context = ExecutionContext::From(script_state);
   DCHECK(context->IsContextThread());
 
@@ -193,7 +187,11 @@ void IdleDetector::Abort() {
       resolver_->Reject(signal_->reason(script_state));
     }
   }
-  Clear();
+
+  resolver_ = nullptr;
+  abort_handle_ = nullptr;
+  has_state_ = false;
+  receiver_.reset();
 }
 
 void IdleDetector::OnMonitorDisconnected() {
@@ -207,7 +205,16 @@ void IdleDetector::OnMonitorDisconnected() {
         resolver_->GetScriptState()->GetIsolate(),
         DOMExceptionCode::kNotSupportedError, "Idle detection not available."));
   }
-  Clear();
+
+  if (abort_handle_) {
+    DCHECK(signal_);
+    signal_->RemoveAlgorithm(abort_handle_);
+  }
+
+  resolver_ = nullptr;
+  abort_handle_ = nullptr;
+  has_state_ = false;
+  receiver_.reset();
 }
 
 void IdleDetector::OnAddMonitor(ScriptPromiseResolver* resolver,
@@ -309,24 +316,9 @@ void IdleDetector::Trace(Visitor* visitor) const {
   visitor->Trace(abort_handle_);
   visitor->Trace(resolver_);
   visitor->Trace(receiver_);
-  EventTarget::Trace(visitor);
-  ExecutionContextLifecycleObserver::Trace(visitor);
+  EventTargetWithInlineData::Trace(visitor);
+  ExecutionContextClient::Trace(visitor);
   ActiveScriptWrappable::Trace(visitor);
-}
-
-void IdleDetector::ContextDestroyed() {
-  Clear();
-}
-
-void IdleDetector::Clear() {
-  if (abort_handle_) {
-    CHECK(signal_);
-    signal_->RemoveAlgorithm(abort_handle_);
-  }
-  resolver_ = nullptr;
-  abort_handle_ = nullptr;
-  has_state_ = false;
-  receiver_.reset();
 }
 
 }  // namespace blink

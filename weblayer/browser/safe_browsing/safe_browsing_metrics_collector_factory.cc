@@ -33,11 +33,10 @@ SafeBrowsingMetricsCollectorFactory::SafeBrowsingMetricsCollectorFactory()
           "SafeBrowsingMetricsCollector",
           BrowserContextDependencyManager::GetInstance()) {}
 
-std::unique_ptr<KeyedService>
-SafeBrowsingMetricsCollectorFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* SafeBrowsingMetricsCollectorFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   BrowserContextImpl* context_impl = static_cast<BrowserContextImpl*>(context);
-  return std::make_unique<safe_browsing::SafeBrowsingMetricsCollector>(
+  return new safe_browsing::SafeBrowsingMetricsCollector(
       context_impl->pref_service());
 }
 

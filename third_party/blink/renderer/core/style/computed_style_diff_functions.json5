@@ -76,7 +76,7 @@
         name: "DiffNeedsFullLayoutAndPaintInvalidation",
         fields_to_diff: ["padding-top", "padding-left", "padding-right",
                 "padding-bottom", "appearance", "-webkit-line-clamp",
-                "text-overflow", "shape-margin", "order",
+                "text-overflow", "shape-margin", "order", "-webkit-highlight",
                 "text-indent", "text-align-last", "EffectiveZoom",
                 "word-break", "overflow-wrap", "-webkit-line-break",
                 "-webkit-text-security",
@@ -107,7 +107,7 @@
                 "CssDominantBaseline", "text-anchor",
                 "stroke-width", "stroke-miterlimit", "stroke-linecap", "stroke-linejoin",
                 "marker-end", "marker-mid", "marker-start", "scrollbar-width", "object-view-box",
-                "position-fallback", "position-fallback-bounds"],
+                "position-fallback"],
         methods_to_diff: [
           {
             method: "BorderLeftWidth()",
@@ -258,14 +258,6 @@
             method: "SkipsContents()",
             field_dependencies: ["content-visibility"]
           },
-          {
-            method: "ScrollStartTargetX()",
-            field_dependencies: ["scroll-start-target-x"]
-          },
-          {
-            method: "ScrollStartTargetY()",
-            field_dependencies: ["scroll-start-target-y"]
-          }
         ],
 	predicates_to_test: [
 	  {
@@ -349,6 +341,10 @@
             predicate: "a.StrokeDashArrayDataEquivalent(b)",
             field_dependencies: ["stroke-dasharray"]
           },
+	  {
+	    predicate: "a.AnchorScrollDataEquivalent(b)",
+	    field_dependencies: ["anchor-scroll"],
+	  },
         ]
     },
     {
@@ -402,11 +398,14 @@
     },
     {
         name: "UpdatePropertySpecificDifferencesFilter",
-        fields_to_diff: ["filter"],
         predicates_to_test: [
           {
             predicate: "a.ReflectionDataEquivalent(b)",
             field_dependencies: ["-webkit-box-reflect"]
+          },
+          {
+            predicate: "a.FilterDataEquivalent(b)",
+            field_dependencies: ["filter"]
           },
         ]
     },

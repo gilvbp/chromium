@@ -286,6 +286,14 @@ HRESULT NetworkFetcher::SendRequest(const std::string& data) {
 
 void NetworkFetcher::SendRequestComplete() {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+
+  std::wstring all;
+  QueryHeadersString(
+      request_handle_.get(),
+      WINHTTP_QUERY_RAW_HEADERS_CRLF | WINHTTP_QUERY_FLAG_REQUEST_HEADERS,
+      WINHTTP_HEADER_NAME_BY_INDEX, &all);
+  VLOG(3) << "request headers: " << all;
+
   net_error_ = ReceiveResponse();
   if (FAILED(net_error_))
     CompleteFetch();
@@ -301,16 +309,10 @@ HRESULT NetworkFetcher::ReceiveResponse() {
 void NetworkFetcher::HeadersAvailable() {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
 
-  std::wstring request_headers;
-  QueryHeadersString(
-      request_handle_.get(),
-      WINHTTP_QUERY_RAW_HEADERS_CRLF | WINHTTP_QUERY_FLAG_REQUEST_HEADERS,
-      WINHTTP_HEADER_NAME_BY_INDEX, &request_headers);
-  VLOG(3) << "request headers:" << std::endl << request_headers;
-  std::wstring response_headers;
+  std::wstring all;
   QueryHeadersString(request_handle_.get(), WINHTTP_QUERY_RAW_HEADERS_CRLF,
-                     WINHTTP_HEADER_NAME_BY_INDEX, &response_headers);
-  VLOG(3) << "response headers:" << std::endl << response_headers;
+                     WINHTTP_HEADER_NAME_BY_INDEX, &all);
+  VLOG(3) << "response headers: " << all;
 
   net_error_ = QueryHeadersInt(request_handle_.get(), WINHTTP_QUERY_STATUS_CODE,
                                WINHTTP_HEADER_NAME_BY_INDEX, &response_code_);

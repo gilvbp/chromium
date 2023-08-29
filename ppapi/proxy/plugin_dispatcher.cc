@@ -9,6 +9,7 @@
 
 #include "base/check.h"
 #include "base/compiler_specific.h"
+#include "base/metrics/histogram_macros.h"
 #include "base/notreached.h"
 #include "base/task/single_thread_task_runner.h"
 #include "base/trace_event/trace_event.h"
@@ -111,6 +112,7 @@ bool PluginDispatcher::Sender::Send(IPC::Message* msg) {
   if (msg->is_sync()) {
     // Synchronous messages might be re-entrant, so we need to drop the lock.
     ProxyAutoUnlock unlock;
+    SCOPED_UMA_HISTOGRAM_TIMER("Plugin.PpapiSyncIPCTime");
     return SendMessage(msg);
   }
   return SendMessage(msg);

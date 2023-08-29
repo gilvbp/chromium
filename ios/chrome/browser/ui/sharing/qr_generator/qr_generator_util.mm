@@ -6,6 +6,10 @@
 
 #import <CoreImage/CoreImage.h>
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 UIImage* GenerateQRCode(NSData* data, CGFloat imageLength) {
   // Generate the QR Code with the given data.
   CIFilter* qrFilter = [CIFilter filterWithName:@"CIQRCodeGenerator"];

@@ -18,6 +18,7 @@ import org.chromium.base.CallbackController;
 import org.chromium.base.MathUtils;
 import org.chromium.base.supplier.ObservableSupplier;
 import org.chromium.chrome.R;
+import org.chromium.chrome.browser.device.DeviceClassManager;
 import org.chromium.chrome.browser.fullscreen.FullscreenManager;
 import org.chromium.chrome.browser.fullscreen.FullscreenOptions;
 import org.chromium.chrome.browser.layouts.FilterLayoutStateObserver;
@@ -29,6 +30,7 @@ import org.chromium.chrome.browser.tab.Tab;
 import org.chromium.chrome.browser.tabmodel.TabModel;
 import org.chromium.chrome.browser.tabmodel.TabModelSelector;
 import org.chromium.chrome.browser.tabmodel.TabModelSelectorObserver;
+import org.chromium.chrome.browser.tasks.tab_management.TabUiFeatureUtilities;
 import org.chromium.components.browser_ui.styles.SemanticColorUtils;
 import org.chromium.ui.UiUtils;
 import org.chromium.ui.util.ColorUtils;
@@ -162,7 +164,16 @@ class TabbedNavigationBarColorController {
 
     @SuppressLint("NewApi")
     private void updateNavigationBarColor() {
-        boolean forceDarkNavigation = mTabModelSelector.isIncognitoSelected();
+        boolean forceDarkNavigation;
+        if (DeviceClassManager.enableAccessibilityLayout(mRootView.getContext())
+                || TabUiFeatureUtilities.isGridTabSwitcherEnabled(mRootView.getContext())) {
+            forceDarkNavigation = mTabModelSelector.isIncognitoSelected();
+        } else {
+            boolean overviewVisible = mLayoutManager != null
+                    && mLayoutManager.isLayoutVisible(LayoutType.TAB_SWITCHER)
+                    && !mOverviewModeHiding;
+            forceDarkNavigation = mTabModelSelector.isIncognitoSelected() && !overviewVisible;
+        }
 
         forceDarkNavigation &= !UiUtils.isSystemUiThemingDisabled();
         forceDarkNavigation |= mIsInFullscreen;

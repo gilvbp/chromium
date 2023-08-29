@@ -93,8 +93,7 @@ class VIEWS_EXPORT ViewsAXTreeManager : public ui::AXTreeManager,
   void OnWidgetDestroyed(Widget* widget) override;
 
  private:
-  using ViewsAXTreeSerializer =
-      ui::AXTreeSerializer<AXAuraObjWrapper*, std::vector<AXAuraObjWrapper*>>;
+  using ViewsAXTreeSerializer = ui::AXTreeSerializer<AXAuraObjWrapper*>;
 
   void SerializeTreeUpdates();
   void UnserializeTreeUpdates(const std::vector<ui::AXTreeUpdate>& updates);

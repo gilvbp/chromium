@@ -4,8 +4,6 @@
 
 // clang-format off
 import {decorate} from '../../../common/js/ui.js';
-
-import {getTrustedHTML} from 'chrome://resources/js/static_types.js';
 import {getRequiredElement} from 'chrome://resources/ash/common/util.js';
 import {assertEquals, assertFalse, assertTrue} from 'chrome://webui-test/chromeos/chai_assert.js';
 
@@ -14,11 +12,12 @@ import {Splitter} from './splitter.js';
 // clang-format on
 
 export function setUp() {
-  document.body.innerHTML = getTrustedHTML`
+  const html = `
     <div id="previous"></div>
     <div id="splitter"></div>
     <div id="next"></div>
   `;
+  document.body.innerHTML = html;
 }
 
 export function testSplitterIgnoresRightMouse() {

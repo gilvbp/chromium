@@ -467,6 +467,7 @@ suite('GooglePhotosPhotosTest', function() {
     // Complete the pending selection.
     personalizationStore.data.wallpaper.pendingSelected = null;
     personalizationStore.data.wallpaper.currentSelected = {
+      attribution: [],
       descriptionContent: '',
       descriptionTitle: '',
       key: photo.id,
@@ -493,6 +494,7 @@ suite('GooglePhotosPhotosTest', function() {
     // Complete the pending selection.
     personalizationStore.data.wallpaper.pendingSelected = null;
     personalizationStore.data.wallpaper.currentSelected = {
+      attribution: [],
       descriptionContent: '',
       descriptionTitle: '',
       key: anotherPhoto.dedupKey!,
@@ -520,6 +522,7 @@ suite('GooglePhotosPhotosTest', function() {
     // Complete the pending selection.
     personalizationStore.data.wallpaper.pendingSelected = null;
     personalizationStore.data.wallpaper.currentSelected = {
+      attribution: [],
       descriptionContent: '',
       descriptionTitle: '',
       key: '//foo',
@@ -801,8 +804,7 @@ suite('GooglePhotosPhotosTest', function() {
     // Select |photo| and verify selection started.
     photoEls[0]!.click();
     assertEquals(personalizationStore.data.wallpaper.loading.setImage, 1);
-    assertEquals(
-        personalizationStore.data.wallpaper.loading.selected.image, true);
+    assertEquals(personalizationStore.data.wallpaper.loading.selected, true);
     assertDeepEquals(
         personalizationStore.data.wallpaper.pendingSelected,
         {...photo, index: 0});
@@ -813,8 +815,7 @@ suite('GooglePhotosPhotosTest', function() {
     assertEquals(await wallpaperProvider.whenCalled(methodName), photo.id);
     await waitAfterNextRender(googlePhotosPhotosElement);
     assertEquals(personalizationStore.data.wallpaper.loading.setImage, 0);
-    assertEquals(
-        personalizationStore.data.wallpaper.loading.selected.image, false);
+    assertEquals(personalizationStore.data.wallpaper.loading.selected, false);
     assertEquals(personalizationStore.data.wallpaper.pendingSelected, null);
   });
 });

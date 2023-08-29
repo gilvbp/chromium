@@ -16,7 +16,7 @@ namespace extensions {
 class ChromeGuestViewManagerDelegate
     : public ExtensionsGuestViewManagerDelegate {
  public:
-  ChromeGuestViewManagerDelegate();
+  explicit ChromeGuestViewManagerDelegate(content::BrowserContext* context);
 
   ChromeGuestViewManagerDelegate(const ChromeGuestViewManagerDelegate&) =
       delete;

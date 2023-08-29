@@ -11,7 +11,6 @@
 #include "base/values.h"
 #include "components/media_router/browser/media_router_debugger.h"
 #include "components/media_router/common/mojom/debugger.mojom.h"
-#include "content/public/browser/browser_context.h"
 #include "mojo/public/cpp/bindings/pending_receiver.h"
 #include "mojo/public/cpp/bindings/receiver_set.h"
 
@@ -26,7 +25,7 @@ class MediaRouterDebuggerImpl : public MediaRouterDebugger,
   // nullptr.
   static MediaRouterDebugger* GetForFrameTreeNode(int frame_tree_node_id);
 
-  explicit MediaRouterDebuggerImpl(content::BrowserContext* context);
+  MediaRouterDebuggerImpl();
 
   MediaRouterDebuggerImpl(const MediaRouterDebuggerImpl&) = delete;
   MediaRouterDebuggerImpl& operator=(const MediaRouterDebuggerImpl&) = delete;
@@ -34,7 +33,6 @@ class MediaRouterDebuggerImpl : public MediaRouterDebugger,
   ~MediaRouterDebuggerImpl() override;
 
   // MediaRouterDebugger implementation:
-  base::Value::Dict GetMirroringStats() final;
   void AddObserver(MirroringStatsObserver& obs) final;
   void RemoveObserver(MirroringStatsObserver& obs) final;
   void EnableRtcpReports() final;

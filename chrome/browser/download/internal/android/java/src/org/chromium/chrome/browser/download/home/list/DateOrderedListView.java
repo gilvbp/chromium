@@ -48,12 +48,10 @@ class DateOrderedListView {
     private final RecyclerView mView;
     private final GridLayoutManager mGridLayoutManager;
     private final UiConfig mUiConfig;
-    private Runnable mOnConfigurationChangedCallback;
 
     /** Creates an instance of a {@link DateOrderedListView} representing {@code model}. */
     public DateOrderedListView(Context context, DownloadManagerUiConfig config,
-            DecoratedListItemModel model, DateOrderedListObserver dateOrderedListObserver,
-            Runnable onConfigurationChangedCallback) {
+            DecoratedListItemModel model, DateOrderedListObserver dateOrderedListObserver) {
         mConfig = config;
         mModel = model;
 
@@ -81,7 +79,6 @@ class DateOrderedListView {
 
                 mScreenOrientation = newConfig.orientation;
                 mView.invalidateItemDecorations();
-                mOnConfigurationChangedCallback.run();
             }
         };
         mView.setId(R.id.download_home_recycler_view);
@@ -115,7 +112,6 @@ class DateOrderedListView {
             ViewCompat.setPaddingRelative(
                     mView, padding, mView.getPaddingTop(), padding, mView.getPaddingBottom());
         });
-        mOnConfigurationChangedCallback = onConfigurationChangedCallback;
     }
 
     /** @return The Android {@link View} representing this widget. */

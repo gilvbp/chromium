@@ -9,7 +9,6 @@ import static org.chromium.chrome.browser.night_mode.ChromeNightModeTestUtils.te
 import static org.chromium.content_public.browser.test.util.TestThreadUtils.runOnUiThreadBlocking;
 import static org.chromium.ui.base.LocalizationUtils.setRtlForTesting;
 
-import android.view.LayoutInflater;
 import android.view.View;
 
 import androidx.test.filters.MediumTest;
@@ -93,12 +92,8 @@ public class TouchToFillPasswordGenerationRenderTest {
                                          .getRootUiCoordinatorForTesting()
                                          .getBottomSheetController();
         runOnUiThreadBlocking(() -> {
-            View content = LayoutInflater.from(mActivityTestRule.getActivity())
-                                   .inflate(R.layout.touch_to_fill_password_generation, null);
-            TouchToFillPasswordGenerationView view =
-                    new TouchToFillPasswordGenerationView(mActivityTestRule.getActivity(), content);
             mCoordinator = new TouchToFillPasswordGenerationCoordinator(
-                    mBottomSheetController, view, mDelegateMock);
+                    mActivityTestRule.getActivity(), mBottomSheetController, mDelegateMock);
         });
     }
 

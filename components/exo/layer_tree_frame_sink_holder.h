@@ -23,8 +23,8 @@ namespace viz {
 struct FrameTimingDetails;
 }
 
-namespace cc::mojo_embedder {
-class AsyncLayerTreeFrameSink;
+namespace cc {
+class LayerTreeFrameSink;
 }
 
 namespace exo {
@@ -45,9 +45,8 @@ class LayerTreeFrameSinkHolder : public cc::LayerTreeFrameSinkClient,
                                  public WMHelper::LifetimeManager::Observer,
                                  public viz::BeginFrameObserverBase {
  public:
-  LayerTreeFrameSinkHolder(
-      SurfaceTreeHost* surface_tree_host,
-      std::unique_ptr<cc::mojo_embedder::AsyncLayerTreeFrameSink> frame_sink);
+  LayerTreeFrameSinkHolder(SurfaceTreeHost* surface_tree_host,
+                           std::unique_ptr<cc::LayerTreeFrameSink> frame_sink);
 
   LayerTreeFrameSinkHolder(const LayerTreeFrameSinkHolder&) = delete;
   LayerTreeFrameSinkHolder& operator=(const LayerTreeFrameSinkHolder&) = delete;
@@ -64,14 +63,7 @@ class LayerTreeFrameSinkHolder : public cc::LayerTreeFrameSinkClient,
   // If a frame is submitted "now" (meaning before returning to event loop)
   // via SubmitCompositorFrame(), whether it needs full damage.
   bool NeedsFullDamageForNextFrame() const { return cached_frame_.has_value(); }
-  void SubmitCompositorFrame(viz::CompositorFrame frame,
-                             bool submit_now = false);
-  void SetLocalSurfaceId(const viz::LocalSurfaceId& local_surface_id);
-
-  // Properties of the `frame` from the last `SubmitCompositorFrame()` call,
-  // either from `cached_frame_`, or `frame_sink_`.
-  float LastDeviceScaleFactor() const;
-  const gfx::Size& LastSizeInPixels() const;
+  void SubmitCompositorFrame(viz::CompositorFrame frame);
 
   // Returns true if owned LayerTreeFrameSink has been lost.
   bool is_lost() const { return is_lost_; }
@@ -134,10 +126,12 @@ class LayerTreeFrameSinkHolder : public cc::LayerTreeFrameSinkClient,
   bool ShouldSubmitFrameNow() const;
 
   raw_ptr<SurfaceTreeHost, ExperimentalAsh> surface_tree_host_;
-  std::unique_ptr<cc::mojo_embedder::AsyncLayerTreeFrameSink> frame_sink_;
+  std::unique_ptr<cc::LayerTreeFrameSink> frame_sink_;
 
   FrameSinkResourceManager resource_manager_;
 
+  gfx::Size last_frame_size_in_pixels_;
+  float last_frame_device_scale_factor_ = 1.0f;
   std::vector<viz::ResourceId> last_frame_resources_;
 
   absl::optional<viz::CompositorFrame> cached_frame_;

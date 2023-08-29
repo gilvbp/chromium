@@ -3,14 +3,9 @@
 // generate, but are not CSS properties.
 
   parameters: {
-    // If true, this field will be reset whenever we create a new ComputedStyle;
-    // it will not be (automatically) kept from any previous styles, but will be
-    // set to the initial value.
-    //
-    // NOTE: If such a field is in a subgroup (e.g. due to being rare),
-    // we will be doing more memory allocation (due to copy-on-write) than expected,
-    // so use this with care.
-    reset_on_new_style: {
+    // If true, we do not include this field in ComputedStyleBase::InheritFrom
+    // and ComputedStyleBase::CopyNonInheritedFromCached.
+    custom_copy: {
       default: false,
     },
 
@@ -36,7 +31,7 @@
       name: "IsLink",
       field_template: "monotonic_flag",
       default_value: "false",
-      reset_on_new_style: true,
+      custom_copy: true,
       custom_compare: true,
     },
     {
@@ -107,7 +102,7 @@
       name: "HasAttrContent",
       field_template: "monotonic_flag",
       default_value: "false",
-      reset_on_new_style: true,
+      custom_copy: true,
       custom_compare: true,
     },
     // Whether this style is affected by these pseudo-classes.
@@ -115,28 +110,28 @@
       name: "AffectedByFocusWithin",
       field_template: "monotonic_flag",
       default_value: "false",
-      reset_on_new_style: true,
+      custom_copy: true,
       custom_compare: true,
     },
     {
       name: "AffectedByHover",
       field_template: "monotonic_flag",
       default_value: "false",
-      reset_on_new_style: true,
+      custom_copy: true,
       custom_compare: true,
     },
     {
       name: "AffectedByActive",
       field_template: "monotonic_flag",
       default_value: "false",
-      reset_on_new_style: true,
+      custom_copy: true,
       custom_compare: true,
     },
     {
       name: "AffectedByDrag",
       field_template: "monotonic_flag",
       default_value: "false",
-      reset_on_new_style: true,
+      custom_copy: true,
       custom_compare: true,
     },
     // A non-inherited property references a variable or @apply is used
@@ -144,7 +139,7 @@
       name: "HasVariableReferenceFromNonInheritedProperty",
       field_template: "monotonic_flag",
       default_value: "false",
-      reset_on_new_style: true,
+      custom_copy: true,
       custom_compare: true,
     },
     // A property references a variable that needs to be resolved
@@ -167,7 +162,7 @@
       name: "ChildHasExplicitInheritance",
       field_template: "monotonic_flag",
       default_value: "false",
-      reset_on_new_style: true,
+      custom_copy: true,
       custom_compare: true,
       mutable: true,
     },
@@ -233,7 +228,7 @@
       field_size: 6,
       default_value: "PseudoId::kPseudoIdNone",
       type_name: "PseudoId",
-      reset_on_new_style: true,
+      custom_copy: true,
       custom_compare: true,
     },
     {
@@ -242,7 +237,7 @@
       field_size: 12,
       default_value: "kPseudoIdNone",
       type_name: "unsigned",
-      reset_on_new_style: true,
+      custom_copy: true,
       custom_compare: true,
       computed_style_custom_functions: ["getter"],
     },
@@ -255,7 +250,7 @@
       field_group: "*",
       default_value: "false",
       type_name: "bool",
-      reset_on_new_style: true,
+      custom_copy: true,
       custom_compare: true,
     },
     // Whether any highlight pseudo selectors were found when collecting non-UA
@@ -267,7 +262,7 @@
       field_group: "*",
       default_value: "false",
       type_name: "bool",
-      reset_on_new_style: true,
+      custom_copy: true,
       custom_compare: true,
     },
     // Used by ::highlight
@@ -289,7 +284,7 @@
       wrapper_pointer_name: "std::unique_ptr",
       default_value: "nullptr",
       computed_style_custom_functions: ["setter", "getter"],
-      reset_on_new_style: true,
+      custom_copy: true,
     },
     // FIXME: vertical align is actually a CSS property, but since we don't support union fields
     // which can be either a keyword or Length, this is specified in this file for now. Remove this
@@ -327,7 +322,7 @@
       type_name: "FillLayer",
       default_value: "FillLayer(EFillLayerType::kBackground, true)",
       field_group: "background",
-      computed_style_custom_functions: ["initial", "getter", "setter"],
+      computed_style_custom_functions: ["getter", "setter"],
     },
     {
       name: "HasClipPath",
@@ -377,7 +372,7 @@
       type_name: "CursorList",
       include_paths: ["third_party/blink/renderer/core/style/cursor_list.h"],
       default_value: "nullptr",
-      wrapper_pointer_name: "Member",
+      wrapper_pointer_name: "Persistent",
       field_group: "*",
       computed_style_custom_functions: ["getter", "setter"],
     },
@@ -409,8 +404,11 @@
       field_group: "*",
       computed_style_custom_functions: ["getter"],
     },
+    // Though will-change is not itself an inherited property, the intent
+    // expressed by 'will-change: contents' includes descendants.
     {
       name: "SubtreeWillChangeContents",
+      inherited: true,
       field_template: "primitive",
       type_name: "bool",
       default_value: "false",
@@ -481,8 +479,9 @@
       field_template: "external",
       type_name: "StyleHighlightData",
       include_paths: ["third_party/blink/renderer/core/style/style_highlight_data.h"],
-      default_value: "StyleHighlightData()",
-      field_group: "*->highlight-data",
+      default_value: "nullptr",
+      wrapper_pointer_name: "scoped_refptr",
+      field_group: "*",
       computed_style_custom_functions: [],
     },
     {
@@ -502,7 +501,7 @@
       type_name: "FillLayer",
       field_group: "*",
       default_value: "FillLayer(EFillLayerType::kMask, true)",
-      computed_style_custom_functions: ["initial", "getter", "setter"],
+      computed_style_custom_functions: ["getter", "setter"],
     },
     {
       name: "CounterDirectives",
@@ -572,7 +571,7 @@
       name: "DocumentRulesSelectors",
       field_template: "external",
       type_name: "HeapHashSet<WeakMember<StyleRule>>",
-      wrapper_pointer_name: "Member",
+      wrapper_pointer_name: "Persistent",
       field_group: "*",
       default_value: "nullptr",
       include_paths: ["third_party/blink/renderer/platform/heap/collection_support/heap_hash_set.h",
@@ -762,7 +761,7 @@
       field_template: "derived_flag",
       derived_from: "CalculateIsStackingContextWithoutContainment",
       mutable: true,
-      reset_on_new_style: true,
+      custom_copy: true,
     },
     // A stacking context is forced a few situations, e.g.:
     //
@@ -1106,7 +1105,7 @@
       default_value: "false",
     },
     {
-      name: "DependsOnStateContainerQueries",
+      name: "DependsOnStickyContainerQueries",
       field_template: "primitive",
       type_name: "bool",
       field_group: "*",
@@ -1128,9 +1127,9 @@
       type_name: "StyleBaseData",
       include_paths: ["third_party/blink/renderer/core/style/style_base_data.h"],
       default_value: "nullptr",
-      wrapper_pointer_name: "Member",
+      wrapper_pointer_name: "scoped_refptr",
       custom_compare: true,
-      reset_on_new_style: true,
+      custom_copy: true,
     },
     {
       // https://drafts.csswg.org/css-contain-2/#skips-its-contents

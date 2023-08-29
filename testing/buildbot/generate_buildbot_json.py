@@ -21,6 +21,7 @@ import string
 import sys
 
 import buildbot_json_magic_substitutions as magic_substitutions
+import util
 
 # pylint: disable=super-with-arguments,useless-super-delegation
 
@@ -29,6 +30,7 @@ THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 BROWSER_CONFIG_TO_TARGET_SUFFIX_MAP = {
     'android-chromium': '_android_chrome',
     'android-chromium-monochrome': '_android_monochrome',
+    'android-weblayer': '_android_weblayer',
     'android-webview': '_android_webview',
 }
 
@@ -36,6 +38,14 @@ BROWSER_CONFIG_TO_TARGET_SUFFIX_MAP = {
 class BBGenErr(Exception):
   def __init__(self, message):
     super(BBGenErr, self).__init__(message)
+
+
+# This class is only present to accommodate certain machines on
+# chromium.android.fyi which run certain tests as instrumentation
+# tests, but not as gtests. If this discrepancy were fixed then the
+# notion could be removed.
+class TestSuiteTypes(object):  # pylint: disable=useless-object-inheritance
+  GTEST = 'gtest'
 
 
 class BaseGenerator(object):  # pylint: disable=useless-object-inheritance
@@ -281,11 +291,12 @@ def check_matrix_identifier(sub_suite=None,
   """Ensure 'idenfitier' is defined for each variant"""
   del kwargs
   sub_suite_config = suite_def[sub_suite]
-  for variant_name in sub_suite_config.get('variants', []):
-    if variant_name not in all_variants:
-      raise BBGenErr('Missing variant definition for %s in variants.pyl' %
-                     variant_name)
-    variant = all_variants[variant_name]
+  for variant in sub_suite_config.get('variants', []):
+    if isinstance(variant, str):
+      if variant not in all_variants:
+        raise BBGenErr('Missing variant definition for %s in variants.pyl'
+                       % variant)
+      variant = all_variants[variant]
 
     if not 'identifier' in variant:
       raise BBGenErr('Missing required identifier field in matrix '
@@ -301,6 +312,7 @@ def check_matrix_identifier(sub_suite=None,
 
 class BBJSONGenerator(object):  # pylint: disable=useless-object-inheritance
   def __init__(self, args):
+    self.this_dir = THIS_DIR
     self.args = args
     self.waterfalls = None
     self.test_suites = None
@@ -363,11 +375,18 @@ class BBJSONGenerator(object):  # pylint: disable=useless-object-inheritance
         help=
         'Write output files as .new.json. Useful during development so old and '
         'new files can be looked at side-by-side.')
-    parser.add_argument('--dimension-sets-handling',
-                        choices=['disable'],
-                        default='disable',
-                        help=('This flag no longer has any effect:'
-                              ' dimension_sets fields are not allowed'))
+    parser.add_argument(
+        '--dimension-sets-handling',
+        choices=['restrict', 'convert', 'disable'],
+        default='restrict',
+        help=(
+            'Control the handling of dimension_sets fields. Must be one of:\n'
+            '* restrict (default) - Allow dimension_sets fields, and generate'
+            ' dimension_sets fields, but fail if any dimension_sets field or a'
+            ' generated test has multiple dimension sets\n'
+            '* convert - Convert any dimension_sets fields to dimensions'
+            ' fields\n'
+            '* disable - Fail if any dimension_sets fields are set\n'))
     parser.add_argument('-v',
                         '--verbose',
                         action='store_true',
@@ -433,7 +452,7 @@ class BBJSONGenerator(object):  # pylint: disable=useless-object-inheritance
       return fp.read()
 
   def write_file(self, file_path, contents):
-    with open(file_path, 'w', newline='') as fp:
+    with open(file_path, 'w') as fp:
       fp.write(contents)
 
   # pylint: disable=inconsistent-return-statements
@@ -617,9 +636,27 @@ class BBJSONGenerator(object):  # pylint: disable=useless-object-inheritance
       elif a[key] == b[key]:
         pass  # same leaf value
       elif isinstance(a[key], list) and isinstance(b[key], list):
-        a[key] = a[key] + b[key]
-        if key.endswith('args'):
-          a[key] = self.maybe_fixup_args_array(a[key])
+        # Args arrays are lists of strings. Just concatenate them,
+        # and don't sort them, in order to keep some needed
+        # arguments adjacent (like --timeout-ms [arg], etc.)
+        if all(isinstance(x, str) for x in itertools.chain(a[key], b[key])):
+          a[key] = self.maybe_fixup_args_array(a[key] + b[key])
+        else:
+          # TODO(kbr): this only works properly if the two arrays are
+          # the same length, which is currently always the case in the
+          # swarming dimension_sets that we have to merge. It will fail
+          # to merge / override 'args' arrays which are different
+          # length.
+          for idx in range(len(b[key])):
+            try:
+              a[key][idx] = self.dictionary_merge(a[key][idx], b[key][idx],
+                                                  path +
+                                                  [str(key), str(idx)])
+            except (IndexError, TypeError) as e:  # pragma: no cover
+              raise BBGenErr('Error merging lists by key "%s" from source %s '
+                             'into target %s at index %s. Verify target list '
+                             'length is equal or greater than source' %
+                             (str(key), str(b), str(a), str(idx))) from e
       elif b[key] is None:
         del a[key]
       else:
@@ -664,6 +701,10 @@ class BBJSONGenerator(object):  # pylint: disable=useless-object-inheritance
                                                           True)
       })
     if 'swarming' in tester_config:
+      if ('dimension_sets' not in generated_test['swarming'] and
+          'dimension_sets' in tester_config['swarming']):
+        generated_test['swarming']['dimension_sets'] = copy.deepcopy(
+          tester_config['swarming']['dimension_sets'])
       self.dictionary_merge(generated_test['swarming'],
                             tester_config['swarming'])
     # Apply any platform-specific Swarming dimensions after the generic ones.
@@ -691,7 +732,6 @@ class BBJSONGenerator(object):  # pylint: disable=useless-object-inheritance
     if 'hard_timeout' in swarming_dict:
       if swarming_dict['hard_timeout'] == 0: # pragma: no cover
         del swarming_dict['hard_timeout'] # pragma: no cover
-    del swarming_dict['can_use_on_swarming_builders']
 
   def update_and_cleanup_test(self, test, test_name, tester_name, tester_config,
                               waterfall):
@@ -704,20 +744,17 @@ class BBJSONGenerator(object):  # pylint: disable=useless-object-inheritance
     if modifications:
       test = self.dictionary_merge(test, modifications)
     if (swarming_dict := test.get('swarming')) is not None:
-      if swarming_dict.get('can_use_on_swarming_builders'):
+      if swarming_dict.get('can_use_on_swarming_builders', False):
         self.clean_swarming_dictionary(swarming_dict)
       else:
         del test['swarming']
     # Ensure all Android Swarming tests run only on userdebug builds if another
     # build type was not specified.
     if 'swarming' in test and self.is_android(tester_config):
-      dimensions = test.get('swarming', {}).get('dimensions', {})
-      if (dimensions.get('os') == 'Android'
-          and not dimensions.get('device_os_type')):
-        dimensions['device_os_type'] = 'userdebug'
+      for d in util.get_dimension_sets(test):
+        if d.get('os') == 'Android' and not d.get('device_os_type'):
+          d['device_os_type'] = 'userdebug'
     self.replace_test_args(test, test_name, tester_name)
-    if 'args' in test and not test['args']:
-      test.pop('args')
 
     return test
 
@@ -760,7 +797,8 @@ class BBJSONGenerator(object):  # pylint: disable=useless-object-inheritance
                                                                True):
       # The presence of the "device_type" dimension indicates that the tests
       # are targeting CrOS hardware and so need the special trigger script.
-      if 'device_type' in test.get('swarming', {}).get('dimensions', {}):
+      dimension_sets = util.get_dimension_sets(test)
+      if all('device_type' in ds for ds in dimension_sets):
         test['trigger_script'] = {
           'script': '//testing/trigger_scripts/chromeos_device_trigger.py',
         }
@@ -823,7 +861,8 @@ class BBJSONGenerator(object):  # pylint: disable=useless-object-inheritance
     self.add_common_test_properties(result, tester_config)
     self.substitute_magic_args(result, tester_name, tester_config)
 
-    if 'swarming' in result and not result.get('merge'):
+    if (result.get('swarming', {}).get('can_use_on_swarming_builders')
+        and not result.get('merge')):
       if test_config.get('use_isolated_scripts_api', False):
         merge_script = 'standard_isolated_script_merge'
       else:
@@ -855,7 +894,8 @@ class BBJSONGenerator(object):  # pylint: disable=useless-object-inheritance
     self.add_common_test_properties(result, tester_config)
     self.substitute_magic_args(result, tester_name, tester_config)
 
-    if 'swarming' in result and not result.get('merge'):
+    if (result.get('swarming', {}).get('can_use_on_swarming_builders')
+        and not result.get('merge')):
       # TODO(https://crbug.com/958376): Consider adding the ability to not have
       # this default.
       result['merge'] = {
@@ -922,14 +962,15 @@ class BBJSONGenerator(object):  # pylint: disable=useless-object-inheritance
       'gpu_vendor_id': '0',
       'gpu_device_id': '0',
     }
-    dimensions = test.get('swarming', {}).get('dimensions', {})
-    if 'gpu' in dimensions:
-      # First remove the driver version, then split into vendor and device.
-      gpu = dimensions['gpu']
-      if gpu != 'none':
-        gpu = gpu.split('-')[0].split(':')
-        substitutions['gpu_vendor_id'] = gpu[0]
-        substitutions['gpu_device_id'] = gpu[1]
+    if dimension_sets := util.get_dimension_sets(test):
+      dimensions = dimension_sets[0]
+      if 'gpu' in dimensions:
+        # First remove the driver version, then split into vendor and device.
+        gpu = dimensions['gpu']
+        if gpu != 'none':
+          gpu = gpu.split('-')[0].split(':')
+          substitutions['gpu_vendor_id'] = gpu[0]
+          substitutions['gpu_device_id'] = gpu[1]
     return [string.Template(arg).safe_substitute(substitutions) for arg in args]
 
   def generate_gpu_telemetry_test(self, waterfall, tester_name, tester_config,
@@ -1287,7 +1328,27 @@ class BBJSONGenerator(object):  # pylint: disable=useless-object-inheritance
     self.flatten_test_suites()
     self.link_waterfalls_to_test_suites()
 
+  def forbid_multiple_element_dimension_sets(self, swarming, location):
+    dimension_sets = swarming['dimension_sets']
+    if len(dimension_sets) > 1:
+      raise BBGenErr(f'dimension_sets in {location} has multiple elements')
+
+  def convert_dimension_sets(self, swarming, location):
+    self.forbid_multiple_element_dimension_sets(swarming, location)
+    dimension_sets = swarming.pop('dimension_sets')
+    swarming.setdefault('dimensions', {}).update(dimension_sets[0])
+
+  def forbid_dimension_sets(self, swarming, location):
+    del swarming
+    raise BBGenErr('dimension_sets setting is disable,'
+                   f' but dimension_sets is set in {location}')
+
   def resolve_dimension_sets(self):
+    dimension_sets_handler = {
+        'restrict': self.forbid_multiple_element_dimension_sets,
+        'convert': self.convert_dimension_sets,
+        'disable': self.forbid_dimension_sets,
+    }[self.args.dimension_sets_handling]
 
     def definitions():
       for suite_name, suite in self.test_suites.get('basic_suites', {}).items():
@@ -1320,9 +1381,8 @@ class BBJSONGenerator(object):  # pylint: disable=useless-object-inheritance
       ):
         if (swarming :=
             definition.get(swarming_attr)) and 'dimension_sets' in swarming:
-          raise BBGenErr(
-              f'dimension_sets is no longer supported (set in {location}),'
-              ' instead, use set dimensions to a single dict')
+          dimension_sets_handler(definition[swarming_attr],
+                                 f'{swarming_attr} in {location}')
 
   def unknown_bot(self, bot_name, waterfall_name):
     return BBGenErr(
@@ -1410,11 +1470,14 @@ class BBJSONGenerator(object):  # pylint: disable=useless-object-inheritance
       list if not present) will be extended with the mixin's value.
     * The sub-keys of the swarming value will be copied to the test's
       swarming value with the following exceptions:
-      * For the named_caches sub-keys, the test's existing value (an
-        empty list if not present) will be extended with the mixin's
-        value.
-      * For the dimensions sub-key, the tests's existing value (an empty
-        dict if not present) will be updated with the mixin's value.
+      * For the dimension_sets and named_caches sub-keys, the test's
+        existing value (an empty list if not present) will be extended
+        with the mixin's value.
+      * For the dimensions sub-key, after extending the test's
+        dimension_sets as specified above, each dimension set will be
+        updated with the value of the dimensions sub-key. If there are
+        no dimension sets, then one will be added that contains the
+        specified dimensions.
     """
 
     new_test = copy.deepcopy(test)
@@ -1430,9 +1493,28 @@ class BBJSONGenerator(object):  # pylint: disable=useless-object-inheritance
     if 'swarming' in mixin:
       swarming_mixin = mixin['swarming']
       new_test.setdefault('swarming', {})
+      # Copy over any explicit dimension sets first so that they will be updated
+      # by any subsequent 'dimensions' entries.
+      if 'dimension_sets' in swarming_mixin:
+        existing_dimension_sets = new_test['swarming'].setdefault(
+            'dimension_sets', [])
+        # Appending to the existing list could potentially result in different
+        # behavior depending on the order the mixins were applied, but that's
+        # already the case for other parts of mixins, so trust that the user
+        # will verify that the generated output is correct before submitting.
+        for dimension_set in swarming_mixin['dimension_sets']:
+          if dimension_set not in existing_dimension_sets:
+            existing_dimension_sets.append(dimension_set)
+        del swarming_mixin['dimension_sets']
       if 'dimensions' in swarming_mixin:
-        new_test['swarming'].setdefault('dimensions', {}).update(
-            swarming_mixin.pop('dimensions'))
+        if self.args.dimension_sets_handling == 'restrict':
+          new_test['swarming'].setdefault('dimension_sets', [{}])
+          for dimension_set in new_test['swarming']['dimension_sets']:
+            dimension_set.update(swarming_mixin['dimensions'])
+          del swarming_mixin['dimensions']
+        else:
+          new_test['swarming'].setdefault('dimensions', {}).update(
+              swarming_mixin.pop('dimensions'))
       if 'named_caches' in swarming_mixin:
         new_test['swarming'].setdefault('named_caches', []).extend(
             swarming_mixin['named_caches'])
@@ -1464,6 +1546,37 @@ class BBJSONGenerator(object):  # pylint: disable=useless-object-inheritance
       if not isinstance(value, list):
         raise BBGenErr(f'"{a}" must be a list')
       new_test.setdefault(a, []).extend(value)
+
+    # TODO(gbeaty) Remove this once all mixins have removed '$mixin_append'
+    if '$mixin_append' in mixin:
+      # Values specified under $mixin_append should be appended to existing
+      # lists, rather than replacing them.
+      mixin_append = mixin['$mixin_append']
+      del mixin['$mixin_append']
+
+      # Append swarming named cache and delete swarming key, since it's under
+      # another layer of dict.
+      if 'named_caches' in mixin_append.get('swarming', {}):
+        new_test['swarming'].setdefault('named_caches', [])
+        new_test['swarming']['named_caches'].extend(
+            mixin_append['swarming']['named_caches'])
+        if len(mixin_append['swarming']) > 1:
+          raise BBGenErr('Only named_caches is supported under swarming key in '
+                         '$mixin_append, but there are: %s' %
+                         sorted(mixin_append['swarming'].keys()))
+        del mixin_append['swarming']
+      for key in mixin_append:
+        new_test.setdefault(key, [])
+        if not isinstance(mixin_append[key], list):
+          raise BBGenErr(
+              'Key "' + key + '" in $mixin_append must be a list.')
+        if not isinstance(new_test[key], list):
+          raise BBGenErr(
+              'Cannot apply $mixin_append to non-list "' + key + '".')
+        new_test[key].extend(mixin_append[key])
+
+      if 'args' in mixin_append:
+        args_need_fixup[0] = True
 
     args = new_test.get('args', [])
 
@@ -1523,6 +1636,11 @@ class BBJSONGenerator(object):  # pylint: disable=useless-object-inheritance
       # specialization of isolated_scripts.
       new_tests = test_generator.generate(
         waterfall, name, config, input_tests)
+      for t in new_tests:
+        if len(util.get_dimension_sets(t)) > 1:
+          raise BBGenErr(
+              f'{t.get("name") or t["test"]} for builder {name}'
+              f' on waterfall {waterfall["name"]} has multiple dimension sets')
       remapped_test_type = test_type_remapper.get(test_type, test_type)
       tests[remapped_test_type] = test_generator.sort(
         tests.get(remapped_test_type, []) + new_tests)
@@ -1731,12 +1849,6 @@ class BBJSONGenerator(object):  # pylint: disable=useless-object-inheritance
     if missing_bots:
       raise BBGenErr('The following nonexistent machines were referenced in '
                      'the test suite exceptions: ' + str(missing_bots))
-
-    for name, mixin in self.mixins.items():
-      if '$mixin_append' in mixin:
-        raise BBGenErr(
-            f'$mixin_append is no longer supported (set in mixin "{name}"),'
-            ' args and named caches specified as normal will be appended')
 
     # All mixins must be referenced
     seen_mixins = set()
@@ -2071,17 +2183,18 @@ class BBJSONGenerator(object):  # pylint: disable=useless-object-inheritance
   def _check_swarming_config(self, filename, builder, step_name, step_data):
     # TODO(crbug.com/1203436): Ensure all swarming tests specify cpu, not
     # just mac tests.
-    if 'swarming' in step_data:
-      dimensions = step_data['swarming'].get('dimensions')
-      if not dimensions:
+    if step_data.get('swarming', {}).get('can_use_on_swarming_builders'):
+      dimension_sets = util.get_dimension_sets(step_data)
+      if not dimension_sets:
         raise BBGenErr('%s: %s / %s : os must be specified for all '
                        'swarmed tests' % (filename, builder, step_name))
-      if not dimensions.get('os'):
-        raise BBGenErr('%s: %s / %s : os must be specified for all '
-                       'swarmed tests' % (filename, builder, step_name))
-      if 'Mac' in dimensions.get('os') and not dimensions.get('cpu'):
-        raise BBGenErr('%s: %s / %s : cpu must be specified for mac '
-                       'swarmed tests' % (filename, builder, step_name))
+      for s in dimension_sets:
+        if not s.get('os'):
+          raise BBGenErr('%s: %s / %s : os must be specified for all '
+                         'swarmed tests' % (filename, builder, step_name))
+        if 'Mac' in s.get('os') and not s.get('cpu'):
+          raise BBGenErr('%s: %s / %s : cpu must be specified for mac '
+                         'swarmed tests' % (filename, builder, step_name))
 
   def check_consistency(self, verbose=False):
     self.check_input_file_consistency(verbose) # pragma: no cover
@@ -2123,13 +2236,13 @@ class BBJSONGenerator(object):  # pylint: disable=useless-object-inheritance
           if not str(swarming[param]) == params_dict[param]:
             return False
         else:
-          if not 'dimensions' in swarming:
+          if not 'dimension_sets' in swarming:
             return False
-          dimensions = swarming['dimensions']
+          d_set = swarming['dimension_sets']
           # only looking at the first dimension set
-          if not param in dimensions:
+          if not param in d_set[0]:
             return False
-          if not dimensions[param] == params_dict[param]:
+          if not d_set[0][param] == params_dict[param]:
             return False
 
       # if flag

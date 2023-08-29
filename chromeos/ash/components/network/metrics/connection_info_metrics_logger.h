@@ -78,8 +78,7 @@ class COMPONENT_EXPORT(CHROMEOS_NETWORK) ConnectionInfoMetricsLogger
       kDisconnecting = 3,
     };
 
-    explicit ConnectionInfo(const NetworkState* network,
-                            bool is_user_initiated);
+    explicit ConnectionInfo(const NetworkState* network);
     ~ConnectionInfo();
 
     bool operator==(const ConnectionInfo& other) const;
@@ -87,11 +86,9 @@ class COMPONENT_EXPORT(CHROMEOS_NETWORK) ConnectionInfoMetricsLogger
     Status status;
     std::string guid;
     std::string shill_error;
-    bool is_user_initiated;
   };
 
   // NetworkStateHandlerObserver::
-  void ConnectToNetworkRequested(const std::string& service_path) override;
   void NetworkListChanged() override;
   void NetworkConnectionStateChanged(const NetworkState* network) override;
   void OnShuttingDown() override;

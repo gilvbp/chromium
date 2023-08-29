@@ -15,6 +15,10 @@
 #import "ios/web/public/js_messaging/web_frame.h"
 #import "ios/web/public/js_messaging/web_frames_manager.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace {
 const char kScriptName[] = "annotations";
 const char kScriptHandlerName[] = "annotations";
@@ -78,22 +82,6 @@ void AnnotationsJavaScriptFeature::RemoveDecorations(WebState* web_state) {
   CallJavaScriptFunction(frame, "annotations.removeDecorations", {});
 }
 
-void AnnotationsJavaScriptFeature::RemoveDecorationsWithType(
-    WebState* web_state,
-    const std::string& type) {
-  DCHECK(web_state);
-  WebFrame* frame = GetWebFramesManager(web_state)->GetMainWebFrame();
-  if (!frame) {
-    return;
-  }
-
-  base::Value::List parameters;
-  parameters.Append(std::move(type));
-
-  CallJavaScriptFunction(frame, "annotations.removeDecorationsWithType",
-                         parameters);
-}
-
 void AnnotationsJavaScriptFeature::RemoveHighlight(WebState* web_state) {
   DCHECK(web_state);
   WebFrame* frame = GetWebFramesManager(web_state)->GetMainWebFrame();
@@ -140,12 +128,11 @@ void AnnotationsJavaScriptFeature::ScriptMessageReceived(
   if (*command == "annotations.extractedText") {
     const std::string* text = dict.FindString("text");
     absl::optional<double> seq_id = dict.FindDouble("seqId");
-    const base::Value::Dict* metadata = dict.FindDict("metadata");
-    if (!text || !seq_id || !metadata) {
+    if (!text || !seq_id) {
       return;
     }
-    manager->OnTextExtracted(web_state, *text, static_cast<int>(seq_id.value()),
-                             *metadata);
+    manager->OnTextExtracted(web_state, *text,
+                             static_cast<int>(seq_id.value()));
   } else if (*command == "annotations.decoratingComplete") {
     absl::optional<double> optional_annotations =
         dict.FindDouble("annotations");

@@ -4,11 +4,15 @@
 
 #import "ios/chrome/browser/shared/ui/table_view/cells/table_view_text_header_footer_item.h"
 
-#import "base/apple/foundation_util.h"
+#import "base/mac/foundation_util.h"
 #import "ios/chrome/browser/shared/ui/table_view/chrome_table_view_styler.h"
 #import "testing/gtest/include/gtest/gtest.h"
 #import "testing/gtest_mac.h"
 #import "testing/platform_test.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace {
 using TableViewTextHeaderFooterItemTest = PlatformTest;
@@ -28,7 +32,7 @@ TEST_F(TableViewTextHeaderFooterItemTest, HeaderFooterTextLabels) {
       [headerFooter isMemberOfClass:[TableViewTextHeaderFooterView class]]);
 
   TableViewTextHeaderFooterView* textHeaderFooter =
-      base::apple::ObjCCastStrict<TableViewTextHeaderFooterView>(headerFooter);
+      base::mac::ObjCCastStrict<TableViewTextHeaderFooterView>(headerFooter);
   EXPECT_FALSE(textHeaderFooter.textLabel.text);
 
   ChromeTableViewStyler* styler = [[ChromeTableViewStyler alloc] init];

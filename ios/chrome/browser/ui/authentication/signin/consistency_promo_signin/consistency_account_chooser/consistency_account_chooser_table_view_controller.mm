@@ -4,8 +4,8 @@
 
 #import "ios/chrome/browser/ui/authentication/signin/consistency_promo_signin/consistency_account_chooser/consistency_account_chooser_table_view_controller.h"
 
-#import "base/apple/foundation_util.h"
 #import "base/check.h"
+#import "base/mac/foundation_util.h"
 #import "base/notreached.h"
 #import "ios/chrome/browser/net/crurl.h"
 #import "ios/chrome/browser/shared/model/url/chrome_url_constants.h"
@@ -19,6 +19,10 @@
 #import "ios/chrome/common/ui/colors/semantic_color_names.h"
 #import "ios/chrome/grit/ios_strings.h"
 #import "ui/base/l10n/l10n_util.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace {
 
@@ -41,7 +45,7 @@ typedef NS_ENUM(NSInteger, ItemType) {
 CGFloat kSectionHeaderHeight = 8.;
 CGFloat kSectionFooterHeight = 8.;
 
-}  // namespace
+}  // naemspace
 
 @interface ConsistencyAccountChooserTableViewController () <
     TableViewLinkHeaderFooterItemDelegate>
@@ -74,7 +78,7 @@ CGFloat kSectionFooterHeight = 8.;
   switch ((ItemType)item.type) {
     case IdentityItemType: {
       TableViewIdentityItem* identityItem =
-          base::apple::ObjCCastStrict<TableViewIdentityItem>(item);
+          base::mac::ObjCCastStrict<TableViewIdentityItem>(item);
       DCHECK(identityItem);
       [self.actionDelegate
           consistencyAccountChooserTableViewController:self
@@ -162,7 +166,7 @@ CGFloat kSectionFooterHeight = 8.;
   switch (sectionIdentifier) {
     case IdentitySectionIdentifier: {
       TableViewLinkHeaderFooterView* linkView =
-          base::apple::ObjCCast<TableViewLinkHeaderFooterView>(view);
+          base::mac::ObjCCast<TableViewLinkHeaderFooterView>(view);
       linkView.delegate = self;
     } break;
     case AddAccountSectionIdentifier:
@@ -203,7 +207,7 @@ CGFloat kSectionFooterHeight = 8.;
     NSIndexPath* path = [NSIndexPath indexPathForItem:itemIndex
                                             inSection:section];
     TableViewIdentityItem* item =
-        base::apple::ObjCCastStrict<TableViewIdentityItem>(
+        base::mac::ObjCCastStrict<TableViewIdentityItem>(
             [model itemAtIndexPath:path]);
     if ([item.gaiaID isEqualToString:configurator.gaiaID]) {
       [configurator configureIdentityChooser:item];

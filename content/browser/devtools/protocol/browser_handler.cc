@@ -287,7 +287,7 @@ Response BrowserHandler::FindBrowserContext(
   if (!delegate)
     return Response::ServerError(
         "Browser context management is not supported.");
-  if (!browser_context_id.has_value()) {
+  if (!browser_context_id.isJust()) {
     *browser_context = delegate->GetDefaultBrowserContext();
     if (*browser_context == nullptr)
       return Response::ServerError(
@@ -295,7 +295,7 @@ Response BrowserHandler::FindBrowserContext(
     return Response::Success();
   }
 
-  std::string context_id = browser_context_id.value();
+  std::string context_id = browser_context_id.fromJust();
   for (auto* context : delegate->GetBrowserContexts()) {
     if (context->UniqueId() == context_id) {
       *browser_context = context;
@@ -338,8 +338,8 @@ Response BrowserHandler::SetPermission(
       PermissionControllerImpl::FromBrowserContext(browser_context);
 
   absl::optional<url::Origin> overridden_origin;
-  if (origin.has_value()) {
-    overridden_origin = url::Origin::Create(GURL(origin.value()));
+  if (origin.isJust()) {
+    overridden_origin = url::Origin::Create(GURL(origin.fromJust()));
     if (overridden_origin->opaque())
       return Response::InvalidParams(
           "Permission can't be granted to opaque origins.");
@@ -352,7 +352,7 @@ Response BrowserHandler::SetPermission(
         "Permission can't be granted in current context.");
   }
   contexts_with_overridden_permissions_.insert(
-      browser_context_id.value_or(std::string()));
+      browser_context_id.fromMaybe(std::string()));
   return Response::Success();
 }
 
@@ -379,8 +379,8 @@ Response BrowserHandler::GrantPermissions(
   PermissionControllerImpl* permission_controller =
       PermissionControllerImpl::FromBrowserContext(browser_context);
   absl::optional<url::Origin> overridden_origin;
-  if (origin.has_value()) {
-    overridden_origin = url::Origin::Create(GURL(origin.value()));
+  if (origin.isJust()) {
+    overridden_origin = url::Origin::Create(GURL(origin.fromJust()));
     if (overridden_origin->opaque())
       return Response::InvalidParams(
           "Permission can't be granted to opaque origins.");
@@ -393,7 +393,8 @@ Response BrowserHandler::GrantPermissions(
     return Response::InvalidParams(
         "Permissions can't be granted in current context.");
   }
-  contexts_with_overridden_permissions_.insert(browser_context_id.value_or(""));
+  contexts_with_overridden_permissions_.insert(
+      browser_context_id.fromMaybe(""));
   return Response::Success();
 }
 
@@ -406,7 +407,7 @@ Response BrowserHandler::ResetPermissions(
   PermissionControllerImpl* permission_controller =
       PermissionControllerImpl::FromBrowserContext(browser_context);
   permission_controller->ResetOverridesForDevTools();
-  contexts_with_overridden_permissions_.erase(browser_context_id.value_or(""));
+  contexts_with_overridden_permissions_.erase(browser_context_id.fromMaybe(""));
   return Response::Success();
 }
 
@@ -423,7 +424,7 @@ Response BrowserHandler::SetDownloadBehavior(
                                    std::move(download_path));
   if (!response.IsSuccess())
     return response;
-  SetDownloadEventsEnabled(events_enabled.value_or(false));
+  SetDownloadEventsEnabled(events_enabled.fromMaybe(false));
   return response;
 }
 
@@ -434,7 +435,7 @@ Response BrowserHandler::DoSetDownloadBehavior(
   if (!allow_set_download_behavior_)
     return Response::ServerError("Not allowed");
   if (behavior == Browser::SetDownloadBehavior::BehaviorEnum::Allow &&
-      !download_path.has_value()) {
+      !download_path.isJust()) {
     return Response::InvalidParams("downloadPath not provided");
   }
   DevToolsManagerDelegate* manager_delegate =
@@ -449,12 +450,12 @@ Response BrowserHandler::DoSetDownloadBehavior(
   if (behavior == Browser::SetDownloadBehavior::BehaviorEnum::Allow) {
     delegate->set_download_behavior(
         DevToolsDownloadManagerDelegate::DownloadBehavior::ALLOW);
-    delegate->set_download_path(download_path.value());
+    delegate->set_download_path(download_path.fromJust());
   } else if (behavior ==
              Browser::SetDownloadBehavior::BehaviorEnum::AllowAndName) {
     delegate->set_download_behavior(
         DevToolsDownloadManagerDelegate::DownloadBehavior::ALLOW_AND_NAME);
-    delegate->set_download_path(download_path.value());
+    delegate->set_download_path(download_path.fromJust());
   } else if (behavior == Browser::SetDownloadBehavior::BehaviorEnum::Deny) {
     delegate->set_download_behavior(
         DevToolsDownloadManagerDelegate::DownloadBehavior::DENY);
@@ -493,11 +494,12 @@ Response BrowserHandler::GetHistograms(
     const Maybe<bool> in_delta,
     std::unique_ptr<Array<Browser::Histogram>>* const out_histograms) {
   DCHECK(out_histograms);
-  bool get_deltas = in_delta.value_or(false);
+  bool get_deltas = in_delta.fromMaybe(false);
   *out_histograms = std::make_unique<Array<Browser::Histogram>>();
   for (base::HistogramBase* const h :
        base::StatisticsRecorder::Sort(base::StatisticsRecorder::WithName(
-           base::StatisticsRecorder::GetHistograms(), in_query.value_or("")))) {
+           base::StatisticsRecorder::GetHistograms(),
+           in_query.fromMaybe("")))) {
     DCHECK(h);
     (*out_histograms)->emplace_back(GetHistogramData(*h, get_deltas));
   }
@@ -516,7 +518,7 @@ Response BrowserHandler::GetHistogram(
     return Response::InvalidParams("Cannot find histogram: " + in_name);
 
   DCHECK(out_histogram);
-  *out_histogram = GetHistogramData(*in_histogram, in_delta.value_or(false));
+  *out_histogram = GetHistogramData(*in_histogram, in_delta.fromMaybe(false));
 
   return Response::Success();
 }

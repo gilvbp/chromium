@@ -238,8 +238,7 @@ class TestGpuService : public mojom::GpuService {
       WriteClangProfilingProfileCallback callback) override {}
 #endif
 
-  void GetDawnInfo(bool collect_metrics,
-                   GetDawnInfoCallback callback) override {}
+  void GetDawnInfo(GetDawnInfoCallback callback) override {}
 
   void Crash() override {}
 

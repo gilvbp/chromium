@@ -16,17 +16,12 @@ class PrefRegistrySyncable;
 }
 
 namespace variations {
-// Per-profile preference for the sync data containing the list of dogfood group
-// gaia IDs for a given syncing user.
-// The variables below are the pref name, and the key for the gaia ID within
-// the dictionary value.
 #if BUILDFLAG(IS_CHROMEOS_ASH)
-inline constexpr char kOsDogfoodGroupsSyncPrefName[] = "sync.os_dogfood_groups";
+extern const char kOsDogfoodGroupsSyncPrefName[];
 #else
-inline constexpr char kDogfoodGroupsSyncPrefName[] = "sync.dogfood_groups";
+extern const char kDogfoodGroupsSyncPrefName[];
 #endif
-
-inline constexpr char kDogfoodGroupsSyncPrefGaiaIdKey[] = "gaia_id";
+extern const char kDogfoodGroupsSyncPrefGaiaIdKey[];
 }  // namespace variations
 
 BASE_DECLARE_FEATURE(kVariationsGoogleGroupFiltering);
@@ -48,8 +43,9 @@ class GoogleGroupsUpdaterService : public KeyedService {
   static void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry);
 
   // Clears state that should only exist for a signed in syncing user.
-  // This should be called when the user signs out or disables sync, as the
-  // server is the source-of-truth for this state, not the client.
+  // This should be called when the user signs out or disables sync, as this
+  // state is server-mastered state that is a property of the account rather
+  // than local state that is a property of the client.
   void ClearSigninScopedState();
 
  private:

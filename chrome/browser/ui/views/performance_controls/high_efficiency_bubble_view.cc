@@ -19,6 +19,7 @@
 #include "chrome/browser/ui/views/performance_controls/high_efficiency_resource_view.h"
 #include "chrome/grit/chromium_strings.h"
 #include "chrome/grit/generated_resources.h"
+#include "chrome/grit/google_chrome_strings.h"
 #include "components/performance_manager/public/features.h"
 #include "components/policy/core/common/policy_pref_names.h"
 #include "components/signin/public/base/signin_buildflags.h"
@@ -114,8 +115,9 @@ views::BubbleDialogModelHost* HighEfficiencyBubbleView::ShowBubble(
 
   content::WebContents* web_contents =
       browser->tab_strip_model()->GetActiveWebContents();
-  const uint64_t memory_savings =
-      high_efficiency::GetDiscardedMemorySavingsInBytes(web_contents);
+  HighEfficiencyChipTabHelper* const tab_helper =
+      HighEfficiencyChipTabHelper::FromWebContents(web_contents);
+  const uint64_t memory_savings = tab_helper->GetMemorySavingsInBytes();
 
   ui::DialogModelLabel::TextReplacement memory_savings_text =
       ui::DialogModelLabel::CreatePlainText(ui::FormatBytes(memory_savings));

@@ -75,8 +75,7 @@ class ASH_PUBLIC_EXPORT TestSavedDeskDelegate : public SavedDeskDelegate {
 
  private:
   raw_ptr<desks_storage::DeskModel, ExperimentalAsh> desk_model_ = nullptr;
-  raw_ptr<desks_storage::AdminTemplateService,
-          DanglingUntriaged | ExperimentalAsh>
+  raw_ptr<desks_storage::AdminTemplateService, ExperimentalAsh>
       admin_template_service_ = nullptr;
   std::vector<std::string> unavailable_app_ids_;
 };

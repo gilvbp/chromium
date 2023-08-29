@@ -48,13 +48,9 @@
 #include "third_party/abseil-cpp/absl/types/optional.h"
 #include "url/origin.h"
 
-#if BUILDFLAG(IS_IOS)
-#import <Security/Security.h>
-#endif  // BUILDFLAG(IS_IOS)
-
+using autofill::GaiaIdHash;
 using base::ASCIIToUTF16;
 using base::UTF16ToASCII;
-using signin::GaiaIdHash;
 using ::testing::_;
 using ::testing::ElementsAre;
 using ::testing::Eq;
@@ -116,10 +112,7 @@ PasswordForm GenerateExamplePasswordForm() {
   form.in_store = PasswordForm::Store::kProfileStore;
   form.moving_blocked_for_list.push_back(GaiaIdHash::FromGaiaId("user1"));
   form.moving_blocked_for_list.push_back(GaiaIdHash::FromGaiaId("user2"));
-  form.sender_email = u"sender@gmail.com";
-  form.sender_name = u"Cool Sender";
-  form.date_received = base::Time::Now() - base::Hours(1);
-  form.sharing_notification_displayed = true;
+
   return form;
 }
 
@@ -440,6 +433,7 @@ TEST_F(LoginDatabaseTest, TestPublicSuffixDomainMatching) {
                              /*should_PSL_matching_apply=*/true, &result));
   ASSERT_EQ(1U, result.size());
   EXPECT_EQ("https://foo.com/", result[0]->signon_realm);
+  EXPECT_TRUE(result[0]->is_public_suffix_match);
 
   // Do an exact match by excluding psl matches.
   result.clear();
@@ -485,6 +479,9 @@ TEST_F(LoginDatabaseTest, TestFederatedMatching) {
                                      GURL("https://foo.com/")};
   EXPECT_TRUE(db().GetLogins(form_request, /*should_PSL_matching_apply=*/true,
                              &result));
+  // Both forms are matched, only form2 is a PSL match.
+  form.is_public_suffix_match = false;
+  form2.is_public_suffix_match = true;
   EXPECT_THAT(result,
               UnorderedElementsAre(Pointee(HasPrimaryKeyAndEquals(form)),
                                    Pointee(HasPrimaryKeyAndEquals(form2))));
@@ -494,6 +491,9 @@ TEST_F(LoginDatabaseTest, TestFederatedMatching) {
   form_request.signon_realm = "https://mobile.foo.com/";
   EXPECT_TRUE(db().GetLogins(form_request, /*should_PSL_matching_apply=*/true,
                              &result));
+  // Both forms are matched, only form is a PSL match.
+  form.is_public_suffix_match = true;
+  form2.is_public_suffix_match = false;
   EXPECT_THAT(result,
               UnorderedElementsAre(Pointee(HasPrimaryKeyAndEquals(form)),
                                    Pointee(HasPrimaryKeyAndEquals(form2))));
@@ -632,6 +632,7 @@ TEST_F(LoginDatabaseTest, TestPublicSuffixDomainGoogle) {
       db().GetLogins(form2, /*should_PSL_matching_apply=*/true, &result));
   ASSERT_EQ(1U, result.size());
   EXPECT_EQ(form.signon_realm, result[0]->signon_realm);
+  EXPECT_TRUE(result[0]->is_public_suffix_match);
 
   // There should be no PSL match on other subdomains.
   PasswordFormDigest form3 = {PasswordForm::Scheme::kHtml,
@@ -684,6 +685,7 @@ TEST_F(LoginDatabaseTest, TestFederatedMatchingWithoutPSLMatching) {
   form_request.signon_realm = form2.signon_realm;
   EXPECT_TRUE(db().GetLogins(form_request, /*should_PSL_matching_apply=*/false,
                              &result));
+  form.is_public_suffix_match = true;
   EXPECT_THAT(result, ElementsAre(Pointee(HasPrimaryKeyAndEquals(form2))));
 }
 
@@ -710,6 +712,7 @@ TEST_F(LoginDatabaseTest, TestFederatedPSLMatching) {
   std::vector<std::unique_ptr<PasswordForm>> result;
   EXPECT_TRUE(db().GetLogins(form_request, /*should_PSL_matching_apply=*/true,
                              &result));
+  form.is_public_suffix_match = true;
   EXPECT_THAT(result, ElementsAre(Pointee(HasPrimaryKeyAndEquals(form))));
 }
 
@@ -743,6 +746,7 @@ TEST_F(LoginDatabaseTest, TestPublicSuffixDomainMatchingDifferentSites) {
       db().GetLogins(form2, /*should_PSL_matching_apply=*/true, &result));
   EXPECT_EQ(1U, result.size());
   EXPECT_EQ("https://foo.com/", result[0]->signon_realm);
+  EXPECT_TRUE(result[0]->is_public_suffix_match);
   result.clear();
 
   // Add baz.com desktop site.
@@ -768,6 +772,7 @@ TEST_F(LoginDatabaseTest, TestPublicSuffixDomainMatchingDifferentSites) {
       db().GetLogins(form3, /*should_PSL_matching_apply=*/true, &result));
   EXPECT_EQ(1U, result.size());
   EXPECT_EQ("https://baz.com/", result[0]->signon_realm);
+  EXPECT_TRUE(result[0]->is_public_suffix_match);
 }
 
 PasswordForm GetFormWithNewSignonRealm(PasswordForm form,
@@ -1303,19 +1308,18 @@ TEST_F(LoginDatabaseTest, AddWrongForm) {
   EXPECT_EQ(PasswordStoreChangeList(), db().AddLogin(form));
 }
 
-#if BUILDFLAG(IS_IOS)
 // Test that when adding a login with no password_value but with
-// keychain_identifier, the keychain_identifier is kept and the password_value
+// encrypted_password, the encrypted_password is kept and the password_value
 // is filled in with the decrypted password.
 TEST_F(LoginDatabaseTest, AddLoginWithEncryptedPassword) {
   PasswordForm form;
   form.url = GURL("http://accounts.google.com/LoginAuth");
   form.signon_realm = "http://accounts.google.com/";
   form.username_value = u"my_username";
-  std::string keychain_identifier;
-  EXPECT_TRUE(
-      CreateKeychainIdentifier(u"my_encrypted_password", &keychain_identifier));
-  form.keychain_identifier = keychain_identifier;
+  std::string encrypted;
+  EXPECT_EQ(LoginDatabase::ENCRYPTION_RESULT_SUCCESS,
+            db().EncryptedString(u"my_encrypted_password", &encrypted));
+  form.encrypted_password = encrypted;
   form.blocked_by_user = false;
   form.scheme = PasswordForm::Scheme::kHtml;
 
@@ -1328,28 +1332,28 @@ TEST_F(LoginDatabaseTest, AddLoginWithEncryptedPassword) {
   ASSERT_TRUE(db().GetLogins(PasswordFormDigest(form),
                              /*should_PSL_matching_apply=*/true, &result));
   ASSERT_EQ(1U, result.size());
-  EXPECT_EQ(form.keychain_identifier, result[0].get()->keychain_identifier);
+  EXPECT_EQ(form.encrypted_password, result[0].get()->encrypted_password);
   EXPECT_EQ(u"my_encrypted_password", result[0].get()->password_value);
 
   std::u16string decrypted;
-  EXPECT_EQ(errSecSuccess,
-            GetTextFromKeychainIdentifier(result[0].get()->keychain_identifier,
-                                          &decrypted));
+  EXPECT_EQ(
+      LoginDatabase::ENCRYPTION_RESULT_SUCCESS,
+      db().DecryptedString(result[0].get()->encrypted_password, &decrypted));
   EXPECT_EQ(u"my_encrypted_password", decrypted);
 }
 
 // Test that when adding a login with password_value but with
-// keychain_identifier, the keychain_identifier is discarded.
+// encrypted_password, the encrypted_password is discarded.
 TEST_F(LoginDatabaseTest, AddLoginWithEncryptedPasswordAndValue) {
   PasswordForm form;
   form.url = GURL("http://accounts.google.com/LoginAuth");
   form.signon_realm = "http://accounts.google.com/";
   form.username_value = u"my_username";
   form.password_value = u"my_password_value";
-  std::string keychain_identifier;
-  EXPECT_TRUE(
-      CreateKeychainIdentifier(u"my_encrypted_password", &keychain_identifier));
-  form.keychain_identifier = keychain_identifier;
+  std::string encrypted;
+  EXPECT_EQ(LoginDatabase::ENCRYPTION_RESULT_SUCCESS,
+            db().EncryptedString(u"my_encrypted_password", &encrypted));
+  form.encrypted_password = encrypted;
   form.blocked_by_user = false;
   form.scheme = PasswordForm::Scheme::kHtml;
   EXPECT_EQ(AddChangeForForm(form), db().AddLogin(form));
@@ -1358,15 +1362,14 @@ TEST_F(LoginDatabaseTest, AddLoginWithEncryptedPasswordAndValue) {
   ASSERT_TRUE(db().GetLogins(PasswordFormDigest(form),
                              /*should_PSL_matching_apply=*/true, &result));
   ASSERT_EQ(1U, result.size());
-  EXPECT_NE(form.keychain_identifier, result[0].get()->keychain_identifier);
+  EXPECT_NE(form.encrypted_password, result[0].get()->encrypted_password);
 
   std::u16string decrypted;
-  EXPECT_EQ(errSecSuccess,
-            GetTextFromKeychainIdentifier(result[0].get()->keychain_identifier,
-                                          &decrypted));
+  EXPECT_EQ(
+      LoginDatabase::ENCRYPTION_RESULT_SUCCESS,
+      db().DecryptedString(result[0].get()->encrypted_password, &decrypted));
   EXPECT_EQ(u"my_password_value", decrypted);
 }
-#endif
 
 TEST_F(LoginDatabaseTest, UpdateLogin) {
   PasswordForm form;
@@ -1622,12 +1625,14 @@ TEST_F(LoginDatabaseTest, ReportAccountStoreMetricsTest) {
       "PasswordManager.AccountStore.InaccessiblePasswords3", 0, 1);
 }
 
-class LoginDatabaseSyncMetadataTest : public LoginDatabaseTest {
+class LoginDatabaseSyncMetadataTest
+    : public LoginDatabaseTest,
+      public testing::WithParamInterface<syncer::ModelType> {
  public:
-  syncer::ModelType SyncModelType() { return syncer::PASSWORDS; }
+  syncer::ModelType SyncModelType() { return GetParam(); }
 };
 
-TEST_F(LoginDatabaseSyncMetadataTest, NoMetadata) {
+TEST_P(LoginDatabaseSyncMetadataTest, NoMetadata) {
   std::unique_ptr<syncer::MetadataBatch> metadata_batch =
       db().password_sync_metadata_store().GetAllSyncMetadata(SyncModelType());
   ASSERT_THAT(metadata_batch, testing::NotNull());
@@ -1636,7 +1641,7 @@ TEST_F(LoginDatabaseSyncMetadataTest, NoMetadata) {
             metadata_batch->GetModelTypeState().SerializeAsString());
 }
 
-TEST_F(LoginDatabaseSyncMetadataTest, GetAllSyncMetadata) {
+TEST_P(LoginDatabaseSyncMetadataTest, GetAllSyncMetadata) {
   sync_pb::EntityMetadata metadata;
   PasswordStoreSync::MetadataStore& password_sync_metadata_store =
       db().password_sync_metadata_store();
@@ -1687,7 +1692,7 @@ TEST_F(LoginDatabaseSyncMetadataTest, GetAllSyncMetadata) {
       sync_pb::ModelTypeState_InitialSyncState_INITIAL_SYNC_STATE_UNSPECIFIED);
 }
 
-TEST_F(LoginDatabaseSyncMetadataTest, DeleteAllSyncMetadata) {
+TEST_P(LoginDatabaseSyncMetadataTest, DeleteAllSyncMetadata) {
   sync_pb::EntityMetadata metadata;
   PasswordStoreSync::MetadataStore& password_sync_metadata_store =
       db().password_sync_metadata_store();
@@ -1723,7 +1728,7 @@ TEST_F(LoginDatabaseSyncMetadataTest, DeleteAllSyncMetadata) {
   EXPECT_EQ(empty_metadata_batch->TakeAllMetadata().size(), 0u);
 }
 
-TEST_F(LoginDatabaseSyncMetadataTest, WriteThenDeleteSyncMetadata) {
+TEST_P(LoginDatabaseSyncMetadataTest, WriteThenDeleteSyncMetadata) {
   sync_pb::EntityMetadata metadata;
   PasswordStoreSync::MetadataStore& password_sync_metadata_store =
       db().password_sync_metadata_store();
@@ -1763,6 +1768,12 @@ TEST_F(LoginDatabaseSyncMetadataTest, WriteThenDeleteSyncMetadata) {
   EXPECT_EQ(sync_pb::ModelTypeState().SerializeAsString(),
             metadata_batch->GetModelTypeState().SerializeAsString());
 }
+
+INSTANTIATE_TEST_SUITE_P(
+    SyncModelTypes,
+    LoginDatabaseSyncMetadataTest,
+    testing::Values(syncer::PASSWORDS,
+                    syncer::INCOMING_PASSWORD_SHARING_INVITATION));
 
 #if BUILDFLAG(IS_POSIX)
 // Only the current user has permission to read the database.
@@ -2320,11 +2331,7 @@ TEST_F(LoginDatabaseTest, EncryptedPasswordAdd) {
   form.password_value = u"example";
   password_manager::PasswordStoreChangeList changes = db().AddLogin(form);
   ASSERT_EQ(1u, changes.size());
-#if BUILDFLAG(IS_IOS)
-  ASSERT_FALSE(changes[0].form().keychain_identifier.empty());
-#else
-  ASSERT_TRUE(changes[0].form().keychain_identifier.empty());
-#endif
+  ASSERT_FALSE(changes[0].form().encrypted_password.empty());
 }
 
 // Test encrypted passwords are present in add change lists, when the password
@@ -2345,11 +2352,7 @@ TEST_F(LoginDatabaseTest, EncryptedPasswordAddWithReplaceSemantics) {
   ASSERT_EQ(2u, changes.size());
   ASSERT_EQ(password_manager::PasswordStoreChange::Type::ADD,
             changes[1].type());
-#if BUILDFLAG(IS_IOS)
-  ASSERT_FALSE(changes[1].form().keychain_identifier.empty());
-#else
-  ASSERT_TRUE(changes[1].form().keychain_identifier.empty());
-#endif
+  ASSERT_FALSE(changes[1].form().encrypted_password.empty());
 }
 
 // Test encrypted passwords are present in update change lists.
@@ -2367,11 +2370,7 @@ TEST_F(LoginDatabaseTest, EncryptedPasswordUpdate) {
 
   password_manager::PasswordStoreChangeList changes = db().UpdateLogin(form);
   ASSERT_EQ(1u, changes.size());
-#if BUILDFLAG(IS_IOS)
-  ASSERT_FALSE(changes[0].form().keychain_identifier.empty());
-#else
-  ASSERT_TRUE(changes[0].form().keychain_identifier.empty());
-#endif
+  ASSERT_FALSE(changes[0].form().encrypted_password.empty());
 }
 
 // Test encrypted passwords are present when retrieving from DB.
@@ -2384,22 +2383,14 @@ TEST_F(LoginDatabaseTest, GetLoginsEncryptedPassword) {
   form.password_value = u"example";
   password_manager::PasswordStoreChangeList changes = db().AddLogin(form);
   ASSERT_EQ(1u, changes.size());
-#if BUILDFLAG(IS_IOS)
-  ASSERT_FALSE(changes[0].form().keychain_identifier.empty());
-#else
-  ASSERT_TRUE(changes[0].form().keychain_identifier.empty());
-#endif
+  ASSERT_FALSE(changes[0].form().encrypted_password.empty());
 
   std::vector<std::unique_ptr<PasswordForm>> forms;
   EXPECT_TRUE(db().GetLogins(PasswordFormDigest(form),
                              /*should_PSL_matching_apply=*/false, &forms));
 
   ASSERT_EQ(1U, forms.size());
-#if BUILDFLAG(IS_IOS)
-  ASSERT_FALSE(forms[0]->keychain_identifier.empty());
-#else
-  ASSERT_TRUE(forms[0]->keychain_identifier.empty());
-#endif
+  ASSERT_FALSE(forms[0]->encrypted_password.empty());
 }
 
 TEST_F(LoginDatabaseTest, RetrievesInsecureDataWithLogins) {
@@ -2711,17 +2702,6 @@ TEST_F(LoginDatabaseTest, RemoveLoginRemovesInsecureCredentials) {
   EXPECT_TRUE(db().RemoveLogin(form, &list));
   EXPECT_THAT(db().insecure_credentials_table().GetRows(FormPrimaryKey(1)),
               IsEmpty());
-}
-
-TEST_F(LoginDatabaseTest, AddLoginWithNonEmptyInvalidURL) {
-  PasswordForm form;
-  form.signon_realm = "invalid";
-  form.url = GURL(form.signon_realm);
-  form.username_value = u"username";
-  form.password_value = u"password";
-  auto error = AddCredentialError::kNone;
-  EXPECT_THAT(db().AddLogin(form, &error), IsEmpty());
-  EXPECT_EQ(error, AddCredentialError::kConstraintViolation);
 }
 
 class LoginDatabaseForAccountStoreTest : public testing::Test {

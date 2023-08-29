@@ -77,6 +77,15 @@ class RegularUser : public User {
   bool is_child_;
 };
 
+class ActiveDirectoryUser : public RegularUser {
+ public:
+  explicit ActiveDirectoryUser(const AccountId& account_id);
+  ~ActiveDirectoryUser() override;
+  // Overridden from User:
+  UserType GetType() const override;
+  bool CanSyncImage() const override;
+};
+
 class GuestUser : public User {
  public:
   explicit GuestUser(const AccountId& guest_account_id);
@@ -197,7 +206,7 @@ bool User::HasGaiaAccount() const {
 }
 
 bool User::IsActiveDirectoryUser() const {
-  return false;
+  return GetType() == user_manager::USER_TYPE_ACTIVE_DIRECTORY;
 }
 
 bool User::IsChild() const {
@@ -250,6 +259,7 @@ bool User::has_gaia_account() const {
     case user_manager::USER_TYPE_PUBLIC_ACCOUNT:
     case user_manager::USER_TYPE_KIOSK_APP:
     case user_manager::USER_TYPE_ARC_KIOSK_APP:
+    case user_manager::USER_TYPE_ACTIVE_DIRECTORY:
     case user_manager::USER_TYPE_WEB_KIOSK_APP:
       return false;
     default:
@@ -301,6 +311,8 @@ bool User::IsKioskType() const {
 
 User* User::CreateRegularUser(const AccountId& account_id,
                               const UserType user_type) {
+  if (account_id.GetAccountType() == AccountType::ACTIVE_DIRECTORY)
+    return new ActiveDirectoryUser(account_id);
   return new RegularUser(account_id, user_type);
 }
 
@@ -352,9 +364,18 @@ void User::SetStubImage(std::unique_ptr<UserImage> stub_user_image,
   image_is_loading_ = is_loading;
 }
 
+UserType ActiveDirectoryUser::GetType() const {
+  return user_manager::USER_TYPE_ACTIVE_DIRECTORY;
+}
+
+bool ActiveDirectoryUser::CanSyncImage() const {
+  return false;
+}
+
 RegularUser::RegularUser(const AccountId& account_id, const UserType user_type)
     : User(account_id), is_child_(user_type == USER_TYPE_CHILD) {
-  if (user_type != USER_TYPE_CHILD && user_type != USER_TYPE_REGULAR) {
+  if (user_type != USER_TYPE_CHILD && user_type != USER_TYPE_REGULAR &&
+      user_type != USER_TYPE_ACTIVE_DIRECTORY) {
     LOG(FATAL) << "Invalid user type " << user_type;
   }
 
@@ -362,8 +383,13 @@ RegularUser::RegularUser(const AccountId& account_id, const UserType user_type)
   set_display_email(account_id.GetUserEmail());
 }
 
+ActiveDirectoryUser::ActiveDirectoryUser(const AccountId& account_id)
+    : RegularUser(account_id, user_manager::USER_TYPE_ACTIVE_DIRECTORY) {}
+
 RegularUser::~RegularUser() {
 }
+
+ActiveDirectoryUser::~ActiveDirectoryUser() {}
 
 UserType RegularUser::GetType() const {
   return is_child_ ? user_manager::USER_TYPE_CHILD :

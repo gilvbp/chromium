@@ -14,6 +14,10 @@
 #import "ios/chrome/browser/shared/public/features/system_flags.h"
 #import "third_party/abseil-cpp/absl/types/optional.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 @implementation PromosManagerMediator
 
 - (instancetype)initWithPromosManager:(PromosManager*)promosManager
@@ -35,27 +39,19 @@
   _promosManager->RecordImpression(promo);
 }
 
-- (absl::optional<PromoDisplayData>)nextPromoForDisplay:
+- (absl::optional<promos_manager::Promo>)nextPromoForDisplay:
     (BOOL)isFirstShownPromo {
   DCHECK_NE(_promosManager, nullptr);
   // Only check for a forced promo the first time around, to prevent infinite
   // forced promos.
-  // TODO(crbug.com/1457208): Once promo reentrance is supported, remove this
-  // and always show the forced promo.
   if (isFirstShownPromo) {
     absl::optional<promos_manager::Promo> forcedPromo =
         [self forcedPromoToDisplay];
     if (forcedPromo) {
-      return PromoDisplayData{.promo = forcedPromo.value(), .was_forced = true};
+      return forcedPromo;
     }
   }
-
-  absl::optional<promos_manager::Promo> promo =
-      self.promosManager->NextPromoForDisplay();
-  if (promo) {
-    return PromoDisplayData{.promo = promo.value(), .was_forced = false};
-  }
-  return absl::nullopt;
+  return self.promosManager->NextPromoForDisplay();
 }
 
 // Returns the promo selected in the Force Promo experimental setting.

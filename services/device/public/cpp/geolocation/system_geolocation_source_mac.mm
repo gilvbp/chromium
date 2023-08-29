@@ -12,6 +12,10 @@
 #include "base/sequence_checker.h"
 #include "build/build_config.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 @interface GeolocationManagerDelegate : NSObject <CLLocationManagerDelegate> {
   BOOL _permissionInitialized;
   BOOL _hasPermission;
@@ -37,9 +41,9 @@ SystemGeolocationSourceMac::SystemGeolocationSourceMac()
     : location_manager_([[CLLocationManager alloc] init]),
       permission_update_callback_(base::DoNothing()),
       position_update_callback_(base::DoNothing()) {
-  delegate_ = [[GeolocationManagerDelegate alloc]
-      initWithManager:weak_ptr_factory_.GetWeakPtr()];
-  location_manager_.delegate = delegate_;
+  delegate_.reset([[GeolocationManagerDelegate alloc]
+      initWithManager:weak_ptr_factory_.GetWeakPtr()]);
+  location_manager_.get().delegate = delegate_;
 }
 
 SystemGeolocationSourceMac::~SystemGeolocationSourceMac() = default;
@@ -80,10 +84,10 @@ void SystemGeolocationSourceMac::PositionError(
 
 void SystemGeolocationSourceMac::StartWatchingPosition(bool high_accuracy) {
   if (high_accuracy) {
-    location_manager_.desiredAccuracy = kCLLocationAccuracyBest;
+    location_manager_.get().desiredAccuracy = kCLLocationAccuracyBest;
   } else {
     // Using kCLLocationAccuracyHundredMeters for consistency with Android.
-    location_manager_.desiredAccuracy = kCLLocationAccuracyHundredMeters;
+    location_manager_.get().desiredAccuracy = kCLLocationAccuracyHundredMeters;
   }
   [location_manager_ startUpdatingLocation];
 }
@@ -106,14 +110,13 @@ LocationSystemPermissionStatus SystemGeolocationSourceMac::GetSystemPermission()
   return LocationSystemPermissionStatus::kDenied;
 }
 
-void SystemGeolocationSourceMac::TrackGeolocationAttempted() {
+void SystemGeolocationSourceMac::TrackGeolocationAttempted(
+    const std::string& app_name) {
 #if BUILDFLAG(IS_IOS)
-  RequestPermission();
+  if (@available(ios 8.0, macOS 10.15, *)) {
+    [location_manager_ requestWhenInUseAuthorization];
+  }
 #endif
-}
-
-void SystemGeolocationSourceMac::RequestPermission() {
-  [location_manager_ requestWhenInUseAuthorization];
 }
 
 }  // namespace device
@@ -144,8 +147,10 @@ void SystemGeolocationSourceMac::RequestPermission() {
   }
 
 #if BUILDFLAG(IS_IOS)
-  if (status == kCLAuthorizationStatusAuthorizedWhenInUse) {
-    _hasPermission = YES;
+  if (@available(iOS 8.0, *)) {
+    if (status == kCLAuthorizationStatusAuthorizedWhenInUse) {
+      _hasPermission = YES;
+    }
   }
 #endif
 

@@ -81,15 +81,18 @@ void AggregatableReportSender::SendReport(const GURL& url,
   resource_request->trusted_params->isolation_info =
       net::IsolationInfo::CreateTransient();
 
+  // TODO(crbug.com/1238343): Update the "policy" field in the traffic
+  // annotation when a setting to disable the API is properly
+  // surfaced/implemented.
   net::NetworkTrafficAnnotationTag traffic_annotation =
       net::DefineNetworkTrafficAnnotation("aggregation_service_report", R"(
         semantics {
           sender: "Aggregation Service"
           description:
             "Sends the aggregatable report to reporting endpoint requested by "
-            "the Private Aggregation API, see "
-            "https://github.com/patcg-individual-drafts/private-aggregation-api"
-            "."
+            "APIs that rely on private, secure aggregation (e.g. Attribution "
+            "Reporting API, see "
+            "https://github.com/WICG/attribution-reporting-api)."
           trigger:
             "When an aggregatable report has become eligible for reporting."
           data:
@@ -99,13 +102,10 @@ void AggregatableReportSender::SendReport(const GURL& url,
         policy {
           cookies_allowed: NO
           setting:
-            "This feature can be controlled via the 'Ad measurement' setting "
-            "in the 'Ad privacy' section of 'Privacy and Security'."
-          chrome_policy {
-            PrivacySandboxAdMeasurementEnabled {
-              PrivacySandboxAdMeasurementEnabled: false
-            }
-          }
+            "This feature cannot be disabled by settings."
+          policy_exception_justification:
+            "Not implemented yet. The feature is used by a command line tool, "
+            "but not yet integrated with the browser."
         })");
 
   auto simple_url_loader = network::SimpleURLLoader::Create(

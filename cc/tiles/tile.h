@@ -139,10 +139,6 @@ class CC_EXPORT Tile {
   const PictureLayerTiling* tiling() const { return tiling_; }
   void set_tiling(const PictureLayerTiling* tiling) { tiling_ = tiling; }
 
-  void mark_used() { used_ = true; }
-  void clear_used() { used_ = false; }
-  bool used() const { return used_; }
-
  private:
   friend class TileManager;
   friend class FakeTileManager;
@@ -201,8 +197,6 @@ class CC_EXPORT Tile {
   gfx::Rect invalidated_content_rect_;
 
   scoped_refptr<TileTask> raster_task_;
-
-  bool used_ = false;
 };
 
 }  // namespace cc

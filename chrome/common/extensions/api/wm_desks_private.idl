@@ -21,9 +21,6 @@ namespace wmDesksPrivate {
     // Define whether close all windows on the desk and combine them to the
     // active desk to the left.
     boolean combineDesks;
-
-    // Define whether removed desk is retrievable.
-    boolean? allowUndo;
   };
 
   dictionary Desk {
@@ -86,9 +83,8 @@ namespace wmDesksPrivate {
 
     // Removes a desk as specified in `deskId`. If `combineDesks` of
     // `RemoveDeskOptions` is present or set to true, remove the desk and
-    // combine windows to the active desk to the left. If `allowUndo` is
-    // present or set to true, prompt the user with a notification allowing for
-    // the desk to be retrieved. Otherwise close all windows on the desk.
+    // combine windows to the active desk to the left. Otherwise close all
+    // windows on the desk.
     [supportsPromises] static void removeDesk(
         DOMString deskId,
         optional RemoveDeskOptions removeDeskOptions,
@@ -131,7 +127,7 @@ namespace wmDesksPrivate {
 
   interface Events {
     // Fires when new desks is added.
-    static void OnDeskAdded(DOMString deskId, boolean fromUndo);
+    static void OnDeskAdded(DOMString deskId);
 
     // Fires when desk removal is finalized.
     static void OnDeskRemoved(DOMString deskId);

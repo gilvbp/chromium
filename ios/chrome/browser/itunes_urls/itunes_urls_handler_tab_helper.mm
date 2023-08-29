@@ -24,6 +24,10 @@
 #import "net/base/url_util.h"
 #import "url/gurl.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace {
 
 // The hosts for iTunes appstore URLs (Legacy itunes link maker links).

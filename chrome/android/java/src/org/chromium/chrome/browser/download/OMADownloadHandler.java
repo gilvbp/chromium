@@ -294,6 +294,7 @@ public class OMADownloadHandler extends BroadcastReceiver {
         task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
     }
 
+    @VisibleForTesting
     void addObserverForTest(TestObserver testObserver) {
         mObservers.addObserver(testObserver);
     }

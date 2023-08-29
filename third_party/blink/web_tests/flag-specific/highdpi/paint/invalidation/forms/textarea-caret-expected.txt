@@ -47,6 +47,9 @@
       "position": [722, 4],
       "bounds": [2, 22],
       "contentsOpaque": true,
+      "invalidations": [
+        [0, 0, 2, 22]
+      ],
       "transform": 2
     },
     {

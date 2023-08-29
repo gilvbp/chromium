@@ -4,12 +4,15 @@
 
 #import "ios/chrome/browser/shared/model/prefs/pref_names.h"
 #import "ios/chrome/browser/tabs/inactive_tabs/features.h"
-#import "ios/chrome/browser/tabs/tab_pickup/features.h"
 #import "ios/chrome/test/earl_grey/chrome_earl_grey.h"
 #import "ios/chrome/test/earl_grey/chrome_earl_grey_ui.h"
 #import "ios/chrome/test/earl_grey/chrome_matchers.h"
 #import "ios/chrome/test/earl_grey/chrome_test_case.h"
 #import "ios/testing/earl_grey/earl_grey_test.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 // Test tabs settings which handle all tabs settings.
 @interface TabsSettingsTestCase : ChromeTestCase
@@ -21,8 +24,7 @@
   AppLaunchConfiguration config;
   config.additional_args.push_back(
       "--enable-features=" + std::string(kTabInactivityThreshold.name) + "<" +
-      std::string(kTabInactivityThreshold.name) + "," +
-      std::string(kTabPickupThreshold.name));
+      std::string(kTabInactivityThreshold.name));
   config.additional_args.push_back(
       "--force-fieldtrials=" + std::string(kTabInactivityThreshold.name) +
       "/Test");
@@ -49,23 +51,20 @@
 
 // Ensures that the tabs settings open.
 - (void)testOpenTabsSettings {
+  // This test is not relevant on iPads because there is no inactive tabs in
+  // iPad.
+  if ([ChromeEarlGrey isIPadIdiom]) {
+    EARL_GREY_TEST_SKIPPED(@"Skipped for iPad.");
+  }
   [self openTabsSettings];
 
-  if (![ChromeEarlGrey isIPadIdiom]) {
-    // There is no inactive tabs on iPad.
-    [[EarlGrey
-        selectElementWithMatcher:chrome_test_util::SettingsTabsTableView()]
-        assertWithMatcher:grey_sufficientlyVisible()];
-  }
-
-  [[EarlGrey
-      selectElementWithMatcher:chrome_test_util::TabPickupSettingsButton()]
+  [[EarlGrey selectElementWithMatcher:chrome_test_util::SettingsTabsTableView()]
       assertWithMatcher:grey_sufficientlyVisible()];
 }
 
-// Ensures that the user still have access to tabs settings even if the inactive
-// tabs feature has been manually disabled.
-- (void)testOpenTabsSettingsWhenInactiveTabsDisabledByUser {
+// Ensures that the user still have access to tabs settings even if the feature
+// been manually disabled.
+- (void)testOpenTabsSettingsWhenDisabledByUser {
   // This test is not relevant on iPads because there is no inactive tabs in
   // iPad.
   if ([ChromeEarlGrey isIPadIdiom]) {

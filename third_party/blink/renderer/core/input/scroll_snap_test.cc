@@ -89,10 +89,18 @@ void ScrollSnapTest::GestureScroll(double x,
   ScrollEnd(x + delta_x, y + delta_y);
 
   // Wait for animation to finish.
-  // Pass raster = true to reach LayerTreeHostImpl::UpdateAnimationState,
-  // which will set start time and transition to KeyframeModel::RUNNING.
-  Compositor().BeginFrame(0.016, true);
-  Compositor().BeginFrame(0.3);
+  if (base::FeatureList::IsEnabled(::features::kScrollUnification) ||
+      composited) {
+    // Pass raster = true to reach LayerTreeHostImpl::UpdateAnimationState,
+    // which will set start time and transition to KeyframeModel::RUNNING.
+    Compositor().BeginFrame(0.016, true);
+    Compositor().BeginFrame(0.3);
+  } else {
+    // ScrollAnimatorCompositorCoordinator drives the snap animation.
+    Compositor().BeginFrame();  // update run_state_.
+    Compositor().BeginFrame();  // Set start_time = now.
+    Compositor().BeginFrame(0.3);
+  }
 }
 
 void ScrollSnapTest::ScrollBegin(double x,
@@ -145,7 +153,7 @@ void ScrollSnapTest::ScrollEnd(double x, double y, bool is_in_inertial_phase) {
 }
 
 void ScrollSnapTest::SetInitialScrollOffset(double x, double y) {
-  Element* scroller = GetDocument().getElementById(AtomicString("scroller"));
+  Element* scroller = GetDocument().getElementById("scroller");
   scroller->GetLayoutBoxForScrolling()
       ->GetScrollableArea()
       ->ScrollToAbsolutePosition(gfx::PointF(x, y),
@@ -161,7 +169,7 @@ TEST_F(ScrollSnapTest, ScrollSnapOnX) {
 
   GestureScroll(100, 100, -50, 0);
 
-  Element* scroller = GetDocument().getElementById(AtomicString("scroller"));
+  Element* scroller = GetDocument().getElementById("scroller");
   // Snaps to align the area at start.
   ASSERT_EQ(scroller->scrollLeft(), 200);
   // An x-locked scroll ignores snap points on y.
@@ -175,7 +183,7 @@ TEST_F(ScrollSnapTest, ScrollSnapOnY) {
 
   GestureScroll(100, 100, 0, -50);
 
-  Element* scroller = GetDocument().getElementById(AtomicString("scroller"));
+  Element* scroller = GetDocument().getElementById("scroller");
   // A y-locked scroll ignores snap points on x.
   ASSERT_EQ(scroller->scrollLeft(), 150);
   // Snaps to align the area at start.
@@ -189,7 +197,7 @@ TEST_F(ScrollSnapTest, ScrollSnapOnBoth) {
 
   GestureScroll(100, 100, -50, -50);
 
-  Element* scroller = GetDocument().getElementById(AtomicString("scroller"));
+  Element* scroller = GetDocument().getElementById("scroller");
   // A scroll gesture that has move in both x and y would snap on both axes.
   ASSERT_EQ(scroller->scrollLeft(), 200);
   ASSERT_EQ(scroller->scrollTop(), 200);
@@ -201,7 +209,7 @@ TEST_F(ScrollSnapTest, AnimateFlingToArriveAtSnapPoint) {
   SetInitialScrollOffset(0, 200);
   Compositor().BeginFrame();
 
-  Element* scroller = GetDocument().getElementById(AtomicString("scroller"));
+  Element* scroller = GetDocument().getElementById("scroller");
   ASSERT_EQ(scroller->scrollLeft(), 0);
   ASSERT_EQ(scroller->scrollTop(), 200);
 

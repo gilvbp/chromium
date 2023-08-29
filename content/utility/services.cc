@@ -21,6 +21,7 @@
 #include "content/services/auction_worklet/auction_worklet_service_impl.h"
 #include "content/services/auction_worklet/public/mojom/auction_worklet_service.mojom.h"
 #include "device/vr/buildflags/buildflags.h"
+#include "media/base/media_switches.h"
 #include "media/gpu/buildflags.h"
 #include "media/media_buildflags.h"
 #include "mojo/public/cpp/bindings/self_owned_receiver.h"
@@ -35,7 +36,7 @@
 #include "services/video_capture/video_capture_service_impl.h"
 
 #if BUILDFLAG(IS_MAC)
-#include "base/apple/mach_logging.h"
+#include "base/mac/mach_logging.h"
 #include "sandbox/mac/system_services.h"
 #include "sandbox/policy/sandbox.h"
 #endif
@@ -109,10 +110,10 @@ extern sandbox::TargetServices* g_utility_target_services;
 #include "ui/accessibility/accessibility_features.h"
 #endif  // BUILDFLAG(ENABLE_ACCESSIBILITY_SERVICE)
 
-#if BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_WIN)
+#if BUILDFLAG(IS_LINUX)
 #include "media/capture/capture_switches.h"
 #include "services/viz/public/cpp/gpu/gpu.h"
-#endif  // BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_WIN)
+#endif  // BUILDFLAG(IS_LINUX)
 
 namespace content {
 base::LazyInstance<NetworkBinderCreationCallback>::Leaky
@@ -245,7 +246,9 @@ auto RunAudio(mojo::PendingReceiver<audio::mojom::AudioService> receiver) {
   }
 #endif  // BUILDFLAG(IS_WIN)
 
-  return audio::CreateStandaloneService(std::move(receiver));
+  return audio::CreateStandaloneService(
+      std::move(receiver),
+      /*run_audio_processing=*/media::IsChromeWideEchoCancellationEnabled());
 }
 
 #if BUILDFLAG(GOOGLE_CHROME_BRANDING) && BUILDFLAG(IS_CHROMEOS)
@@ -308,7 +311,7 @@ auto RunVideoCapture(
     mojo::PendingReceiver<video_capture::mojom::VideoCaptureService> receiver) {
   auto service = std::make_unique<UtilityThreadVideoCaptureServiceImpl>(
       std::move(receiver), base::SingleThreadTaskRunner::GetCurrentDefault());
-#if BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_WIN)
+#if BUILDFLAG(IS_LINUX)
   if (switches::IsVideoCaptureUseGpuMemoryBufferEnabled()) {
     mojo::PendingRemote<viz::mojom::Gpu> remote_gpu;
     content::UtilityThread::Get()->BindHostReceiver(
@@ -318,7 +321,7 @@ auto RunVideoCapture(
                          content::UtilityThread::Get()->GetIOTaskRunner());
     service->SetVizGpu(std::move(viz_gpu));
   }
-#endif  // BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_WIN)
+#endif  // BUILDFLAG(IS_LINUX)
   return service;
 }
 

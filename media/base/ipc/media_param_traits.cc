@@ -40,7 +40,7 @@ bool ParamTraits<AudioParameters>::Read(const base::Pickle* m,
   ChannelLayout channel_layout;
   int sample_rate, frames_per_buffer, channels, effects;
   std::vector<media::Point> mic_positions;
-  AudioLatency::Type latency_tag;
+  AudioLatency::LatencyType latency_tag;
   absl::optional<media::AudioParameters::HardwareCapabilities>
       hardware_capabilities;
 

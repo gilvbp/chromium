@@ -18,9 +18,7 @@
 #include "base/strings/utf_string_conversions.h"
 #include "base/test/bind.h"
 #include "base/test/scoped_run_loop_timeout.h"
-#include "base/test/test_future.h"
 #include "base/test/test_timeouts.h"
-#include "chrome/browser/apps/app_service/app_registry_cache_waiter.h"
 #include "chrome/browser/apps/app_service/app_service_proxy.h"
 #include "chrome/browser/apps/app_service/app_service_proxy_factory.h"
 #include "chrome/browser/apps/app_service/browser_app_instance.h"
@@ -29,15 +27,15 @@
 #include "chrome/browser/ash/crosapi/ash_requires_lacros_browsertestbase.h"
 #include "chrome/browser/ash/crosapi/browser_manager.h"
 #include "chrome/browser/profiles/profile.h"
-#include "chrome/browser/profiles/profile_manager.h"
 #include "chrome/browser/ui/ash/shelf/chrome_shelf_controller.h"
 #include "chrome/browser/ui/ash/shelf/chrome_shelf_controller_test_util.h"
 #include "chrome/browser/ui/browser.h"
+#include "chrome/browser/web_applications/test/app_registry_cache_waiter.h"
 #include "chrome/browser/web_applications/test/web_app_install_test_utils.h"
 #include "chrome/browser/web_applications/web_app_helpers.h"
 #include "chrome/browser/web_applications/web_app_id.h"
 #include "chrome/browser/web_applications/web_app_install_info.h"
-#include "chromeos/crosapi/mojom/test_controller.mojom.h"
+#include "chromeos/crosapi/mojom/test_controller.mojom-test-utils.h"
 #include "components/app_constants/constants.h"
 #include "components/services/app_service/public/cpp/app_registry_cache.h"
 #include "components/services/app_service/public/cpp/app_types.h"
@@ -192,12 +190,13 @@ class BrowserAppShelfControllerBrowserTest
 
   void SetUpOnMainThread() override {
     crosapi::AshRequiresLacrosBrowserTestBase::SetUpOnMainThread();
-    profile_ = ProfileManager::GetActiveUserProfile();
+    profile_ = browser()->profile();
     if (!HasLacrosArgument()) {
       return;
     }
 
-    apps::AppTypeInitializationWaiter(profile(), apps::AppType::kWeb).Await();
+    web_app::AppTypeInitializationWaiter(profile(), apps::AppType::kWeb)
+        .Await();
 
     auto* registry = AppServiceProxy()->BrowserAppInstanceRegistry();
     ASSERT_NE(registry, nullptr);
@@ -221,8 +220,8 @@ class BrowserAppShelfControllerBrowserTest
     for (const std::string& app_id : app_ids) {
       AppServiceProxy()->UninstallSilently(app_id,
                                            apps::UninstallSource::kShelf);
-      apps::AppReadinessWaiter(profile(), app_id,
-                               apps::Readiness::kUninstalledByUser)
+      web_app::AppReadinessWaiter(profile(), app_id,
+                                  apps::Readiness::kUninstalledByUser)
           .Await();
     }
   }
@@ -244,15 +243,15 @@ class BrowserAppShelfControllerBrowserTest
 
   std::string InstallWebApp(const std::string& start_url,
                             apps::WindowMode mode) {
-    base::test::TestFuture<const std::string&> app_id_future;
-    GetStandaloneBrowserTestController()->InstallWebApp(
-        start_url, mode, app_id_future.GetCallback());
-    std::string app_id = app_id_future.Take();
+    crosapi::mojom::StandaloneBrowserTestControllerAsyncWaiter waiter(
+        GetStandaloneBrowserTestController());
+    std::string app_id;
+    waiter.InstallWebApp(start_url, mode, &app_id);
 
     // Wait until the app is installed: app service publisher updates may arrive
     // out of order with the web app installation reply, so we wait until the
     // state of the app service is consistent.
-    apps::AppReadinessWaiter(profile(), app_id).Await();
+    web_app::AppReadinessWaiter(profile(), app_id).Await();
     AppServiceProxy()->AppRegistryCache().ForOneApp(
         app_id, [mode](const apps::AppUpdate& update) {
           EXPECT_EQ(update.AppType(), apps::AppType::kWeb);
@@ -338,9 +337,8 @@ class BrowserAppShelfControllerBrowserTest
     return SelectResult{action_taken, std::move(app_menu_items)};
   }
 
-  raw_ptr<Profile, DanglingUntriaged | ExperimentalAsh> profile_ = nullptr;
-  raw_ptr<apps::BrowserAppInstanceRegistry, DanglingUntriaged | ExperimentalAsh>
-      registry_{nullptr};
+  raw_ptr<Profile, ExperimentalAsh> profile_ = nullptr;
+  raw_ptr<apps::BrowserAppInstanceRegistry, ExperimentalAsh> registry_{nullptr};
 };
 
 IN_PROC_BROWSER_TEST_F(BrowserAppShelfControllerBrowserTest, TabbedApps) {

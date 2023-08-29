@@ -44,7 +44,7 @@ import java.util.List;
  */
 @RunWith(ChromeJUnit4ClassRunner.class)
 @CommandLineFlags.Add({ChromeSwitches.DISABLE_FIRST_RUN_EXPERIENCE})
-@DisableFeatures(ChromeFeatureList.MESSAGES_FOR_ANDROID_INFRASTRUCTURE)
+@DisableFeatures({ChromeFeatureList.MESSAGES_FOR_ANDROID_INFRASTRUCTURE})
 public class PopupTest {
     @Rule
     public ChromeTabbedActivityTestRule mActivityTestRule = new ChromeTabbedActivityTestRule();
@@ -76,6 +76,7 @@ public class PopupTest {
 
     @After
     public void tearDown() {
+        mTestServer.stopAndDestroyServer();
         MockSafetyNetApiHandler.clearMockResponses();
     }
 

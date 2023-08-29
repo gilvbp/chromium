@@ -52,9 +52,6 @@ class ProfileManagementFlowController {
 
     // Renders the beginning of the First Run Experience.
     kIntro,
-
-    // Renders a default browser promo.
-    kDefaultBrowser,
   };
 
   // Creates a flow controller that will start showing UI when `Init()`-ed.

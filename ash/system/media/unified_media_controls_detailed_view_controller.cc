@@ -24,11 +24,9 @@ bool UnifiedMediaControlsDetailedViewController::detailed_view_has_shown_ =
 
 UnifiedMediaControlsDetailedViewController::
     UnifiedMediaControlsDetailedViewController(
-        UnifiedSystemTrayController* tray_controller,
-        const std::string& show_devices_for_item_id)
+        UnifiedSystemTrayController* tray_controller)
     : detailed_view_delegate_(
-          std::make_unique<DetailedViewDelegate>(tray_controller)),
-      show_devices_for_item_id_(show_devices_for_item_id) {}
+          std::make_unique<DetailedViewDelegate>(tray_controller)) {}
 
 UnifiedMediaControlsDetailedViewController::
     ~UnifiedMediaControlsDetailedViewController() {
@@ -65,8 +63,7 @@ UnifiedMediaControlsDetailedViewController::CreateView() {
   return std::make_unique<UnifiedMediaControlsDetailedView>(
       detailed_view_delegate_.get(),
       MediaNotificationProvider::Get()->GetMediaNotificationListView(
-          kMenuSeparatorWidth, /*should_clip_height=*/false, /*item_id=*/"",
-          show_devices_for_item_id_));
+          kMenuSeparatorWidth, /*should_clip_height=*/false));
 }
 
 std::u16string UnifiedMediaControlsDetailedViewController::GetAccessibleName()

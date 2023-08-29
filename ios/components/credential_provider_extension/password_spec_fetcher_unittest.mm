@@ -7,11 +7,14 @@
 #import "base/base64.h"
 #import "base/strings/sys_string_conversions.h"
 #import "base/test/ios/wait_util.h"
-#import "base/test/test_timeouts.h"
 #import "components/autofill/core/browser/proto/password_requirements.pb.h"
 #import "testing/gtest/include/gtest/gtest.h"
 #import "testing/gtest_mac.h"
 #import "testing/platform_test.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 using autofill::PasswordRequirementsSpec_CharacterClass;
 using autofill::PasswordRequirementsSpec;
@@ -62,8 +65,7 @@ TEST_F(PasswordSpecFetcherTest, DefaultSpecInvalidFetch) {
     block_ran = true;
   }];
 
-  EXPECT_TRUE(base::test::ios::WaitUntilConditionOrTimeout(
-      TestTimeouts::action_timeout(), ^{
-        return block_ran;
-      }));
+  base::test::ios::WaitUntilCondition(^{
+    return block_ran;
+  });
 }

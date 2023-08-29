@@ -17,8 +17,6 @@ import org.chromium.base.test.BaseRobolectricTestRunner;
 import org.chromium.chrome.browser.flags.ChromeFeatureList;
 import org.chromium.chrome.browser.privacy.settings.PrivacyPreferencesManager;
 import org.chromium.chrome.test.util.browser.Features;
-import org.chromium.chrome.test.util.browser.Features.DisableFeatures;
-import org.chromium.chrome.test.util.browser.Features.EnableFeatures;
 
 /**
  * Tests for FeedProcessScopeDependencyProvider.
@@ -82,7 +80,7 @@ public final class FeedProcessScopeDependencyProviderTest {
     }
 
     @Test
-    @DisableFeatures({ChromeFeatureList.XSURFACE_METRICS_REPORTING})
+    @Features.DisableFeatures({ChromeFeatureList.XSURFACE_METRICS_REPORTING})
     public void usageAndCrashReporting_featureDisabled() {
         mMetricsReportingEnabled = false;
         assertFalse(mProvider.isXsurfaceUsageAndCrashReportingEnabled());
@@ -92,7 +90,7 @@ public final class FeedProcessScopeDependencyProviderTest {
     }
 
     @Test
-    @EnableFeatures({ChromeFeatureList.XSURFACE_METRICS_REPORTING})
+    @Features.EnableFeatures({ChromeFeatureList.XSURFACE_METRICS_REPORTING})
     public void usageAndCrashReporting_featureEnabled() {
         mMetricsReportingEnabled = false;
         assertFalse(mProvider.isXsurfaceUsageAndCrashReportingEnabled());

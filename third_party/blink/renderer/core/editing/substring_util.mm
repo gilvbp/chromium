@@ -34,7 +34,7 @@
 #import <Cocoa/Cocoa.h>
 
 #include "base/apple/bridging.h"
-#include "base/apple/scoped_cftyperef.h"
+#include "base/mac/scoped_cftyperef.h"
 #include "third_party/blink/renderer/core/css/properties/longhands.h"
 #include "third_party/blink/renderer/core/dom/document.h"
 #include "third_party/blink/renderer/core/dom/element.h"
@@ -58,6 +58,10 @@
 #include "third_party/blink/renderer/core/style/computed_style.h"
 #include "third_party/blink/renderer/platform/fonts/font.h"
 #include "third_party/blink/renderer/platform/mac/color_mac.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace blink {
 
@@ -119,7 +123,12 @@ NSAttributedString* AttributedSubstringFromRange(LocalFrame* frame,
 
     NSFont* font = nil;
     if (original_font) {
-      font = [original_font fontWithSize:desired_size];
+      if (@available(macos 10.15, *)) {
+        font = [original_font fontWithSize:desired_size];
+      } else {
+        font = [NSFontManager.sharedFontManager convertFont:original_font
+                                                     toSize:desired_size];
+      }
     }
 
     // If the platform font can't be loaded, or the size is incorrect comparing
@@ -181,20 +190,20 @@ gfx::Point GetBaselinePoint(LocalFrameView* frame_view,
 
 }  // namespace
 
-base::apple::ScopedCFTypeRef<CFAttributedStringRef>
+base::ScopedCFTypeRef<CFAttributedStringRef>
 SubstringUtil::AttributedWordAtPoint(WebFrameWidgetImpl* frame_widget,
                                      gfx::Point point,
                                      gfx::Point& baseline_point) {
   HitTestResult result = frame_widget->CoreHitTestResultAt(gfx::PointF(point));
 
   if (!result.InnerNode()) {
-    return base::apple::ScopedCFTypeRef<CFAttributedStringRef>();
+    return base::ScopedCFTypeRef<CFAttributedStringRef>();
   }
   LocalFrame* frame = result.InnerNode()->GetDocument().GetFrame();
   EphemeralRange range =
       frame->GetEditor().RangeForPoint(result.RoundedPointInInnerNodeFrame());
   if (range.IsNull()) {
-    return base::apple::ScopedCFTypeRef<CFAttributedStringRef>();
+    return base::ScopedCFTypeRef<CFAttributedStringRef>();
   }
 
   // Expand to word under point.
@@ -206,11 +215,11 @@ SubstringUtil::AttributedWordAtPoint(WebFrameWidgetImpl* frame_widget,
   // Convert to CFAttributedStringRef.
   NSAttributedString* string = AttributedSubstringFromRange(frame, word_range);
   baseline_point = GetBaselinePoint(frame->View(), word_range, string);
-  return base::apple::ScopedCFTypeRef<CFAttributedStringRef>(
+  return base::ScopedCFTypeRef<CFAttributedStringRef>(
       base::apple::NSToCFOwnershipCast(string));
 }
 
-base::apple::ScopedCFTypeRef<CFAttributedStringRef>
+base::ScopedCFTypeRef<CFAttributedStringRef>
 SubstringUtil::AttributedSubstringInRange(LocalFrame* frame,
                                           wtf_size_t location,
                                           wtf_size_t length,
@@ -219,18 +228,18 @@ SubstringUtil::AttributedSubstringInRange(LocalFrame* frame,
 
   Element* editable = frame->Selection().RootEditableElementOrDocumentElement();
   if (!editable) {
-    return base::apple::ScopedCFTypeRef<CFAttributedStringRef>();
+    return base::ScopedCFTypeRef<CFAttributedStringRef>();
   }
   const EphemeralRange ephemeral_range(
       PlainTextRange(location, location + length).CreateRange(*editable));
   if (ephemeral_range.IsNull()) {
-    return base::apple::ScopedCFTypeRef<CFAttributedStringRef>();
+    return base::ScopedCFTypeRef<CFAttributedStringRef>();
   }
 
   NSAttributedString* string =
       AttributedSubstringFromRange(frame, ephemeral_range);
   baseline_point = GetBaselinePoint(frame->View(), ephemeral_range, string);
-  return base::apple::ScopedCFTypeRef<CFAttributedStringRef>(
+  return base::ScopedCFTypeRef<CFAttributedStringRef>(
       base::apple::NSToCFOwnershipCast(string));
 }
 

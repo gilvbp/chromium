@@ -148,7 +148,7 @@ void SetShape(wl_client* client,
 }
 
 void SetTopInset(wl_client* client, wl_resource* resource, int32_t height) {
-  GetUserDataAs<TestZAuraToplevel>(resource)->set_top_inset(height);
+  NOTIMPLEMENTED_LOG_ONCE();
 }
 
 void AckRotateFocus(wl_client* client,

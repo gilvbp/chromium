@@ -16,9 +16,7 @@ namespace {
 CaptureModeSession* GetCaptureModeSession() {
   auto* controller = CaptureModeController::Get();
   DCHECK(controller->IsActive());
-  CaptureModeSession* session =
-      static_cast<CaptureModeSession*>(controller->capture_mode_session());
-  CHECK_EQ(session->session_type(), SessionType::kReal);
+  CaptureModeSession* session = controller->capture_mode_session();
   DCHECK(session->capture_mode_settings_widget());
   return session;
 }

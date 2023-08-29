@@ -100,10 +100,12 @@ InputMethodContextImplGtk::InputMethodContextImplGtk(
 
 InputMethodContextImplGtk::~InputMethodContextImplGtk() {
   if (gtk_context_) {
-    g_object_unref(gtk_context_.ExtractAsDangling());
+    g_object_unref(gtk_context_);
+    gtk_context_ = nullptr;
   }
   if (gtk_simple_context_) {
-    g_object_unref(gtk_simple_context_.ExtractAsDangling());
+    g_object_unref(gtk_simple_context_);
+    gtk_simple_context_ = nullptr;
   }
 }
 

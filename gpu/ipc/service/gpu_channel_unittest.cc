@@ -22,15 +22,15 @@ class GpuChannelTest : public GpuChannelTestCommon {
   ~GpuChannelTest() override = default;
 };
 
-#if BUILDFLAG(IS_WIN)
+#if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_IOS)
 const SurfaceHandle kFakeSurfaceHandle = reinterpret_cast<SurfaceHandle>(1);
 #else
 const SurfaceHandle kFakeSurfaceHandle = 1;
 #endif
 
 TEST_F(GpuChannelTest, CreateViewCommandBufferAllowed) {
-  // TODO(https://crbug.com/1406585): Currently it's not possible to create
-  // onscreen GLSurface with Null binding with angle.
+  // TODO(crbug/1406585): Currently it's not possible to create onscreen
+  // GLSurface with Null binding with angle.
   if (channel_manager()->use_passthrough_cmd_decoder()) {
     GTEST_SKIP();
   }

@@ -8,8 +8,7 @@
 #include <vector>
 
 #include "base/apple/bridging.h"
-#include "base/apple/scoped_cftyperef.h"
-#include "base/enterprise_util.h"
+#include "base/mac/scoped_cftyperef.h"
 #include "base/memory/ref_counted.h"
 #include "base/memory/scoped_refptr.h"
 #include "base/strings/sys_string_conversions.h"
@@ -19,6 +18,10 @@
 #include "chrome/updater/policy/manager.h"
 #include "third_party/abseil-cpp/absl/types/optional.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace updater {
 
 static NSString* const kManagedPreferencesUpdatePolicies = @"updatePolicies";
@@ -26,9 +29,7 @@ static NSString* const kKeystoneSharedPreferenceSuite = @"com.google.Keystone";
 
 class ManagedPreferencePolicyManager : public PolicyManagerInterface {
  public:
-  ManagedPreferencePolicyManager(
-      CRUUpdatePolicyDictionary* policy,
-      const absl::optional<bool>& override_is_managed_device);
+  explicit ManagedPreferencePolicyManager(CRUUpdatePolicyDictionary* policy);
   ManagedPreferencePolicyManager(const ManagedPreferencePolicyManager&) =
       delete;
   ManagedPreferencePolicyManager& operator=(
@@ -63,23 +64,18 @@ class ManagedPreferencePolicyManager : public PolicyManagerInterface {
 
  private:
   ~ManagedPreferencePolicyManager() override;
-
   CRUManagedPreferencePolicyManager* __strong impl_;
-  const bool is_managed_device_;
 };
 
 ManagedPreferencePolicyManager::ManagedPreferencePolicyManager(
-    CRUUpdatePolicyDictionary* policyDict,
-    const absl::optional<bool>& override_is_managed_device)
+    CRUUpdatePolicyDictionary* policyDict)
     : impl_([[CRUManagedPreferencePolicyManager alloc]
-          initWithDictionary:policyDict]),
-      is_managed_device_(override_is_managed_device.value_or(
-          base::IsManagedOrEnterpriseDevice())) {}
+          initWithDictionary:policyDict]) {}
 
 ManagedPreferencePolicyManager::~ManagedPreferencePolicyManager() = default;
 
 bool ManagedPreferencePolicyManager::HasActiveDevicePolicies() const {
-  return is_managed_device_ && impl_.hasActivePolicy;
+  return impl_.managed;
 }
 
 std::string ManagedPreferencePolicyManager::source() const {
@@ -206,10 +202,9 @@ ManagedPreferencePolicyManager::GetAppsWithPolicy() const {
 }
 
 NSDictionary* ReadManagedPreferencePolicyDictionary() {
-  base::apple::ScopedCFTypeRef<CFPropertyListRef> policies(
-      CFPreferencesCopyAppValue(
-          base::apple::NSToCFPtrCast(kManagedPreferencesUpdatePolicies),
-          base::apple::NSToCFPtrCast(kKeystoneSharedPreferenceSuite)));
+  base::ScopedCFTypeRef<CFPropertyListRef> policies(CFPreferencesCopyAppValue(
+      base::apple::NSToCFPtrCast(kManagedPreferencesUpdatePolicies),
+      base::apple::NSToCFPtrCast(kKeystoneSharedPreferenceSuite)));
   if (!policies)
     return nil;
 
@@ -225,11 +220,9 @@ NSDictionary* ReadManagedPreferencePolicyDictionary() {
   return base::apple::CFToNSOwnershipCast((CFDictionaryRef)policies.release());
 }
 
-scoped_refptr<PolicyManagerInterface> CreateManagedPreferencePolicyManager(
-    const absl::optional<bool>& override_is_managed_device) {
+scoped_refptr<PolicyManagerInterface> CreateManagedPreferencePolicyManager() {
   NSDictionary* policyDict = ReadManagedPreferencePolicyDictionary();
-  return base::MakeRefCounted<ManagedPreferencePolicyManager>(
-      policyDict, override_is_managed_device);
+  return base::MakeRefCounted<ManagedPreferencePolicyManager>(policyDict);
 }
 
 }  // namespace updater

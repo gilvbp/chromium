@@ -7,7 +7,7 @@
             "builder_id": {
               "bucket": "ci",
               "builder": "Win Builder (dbg)",
-              "project": "chromium"
+              "project": "chromium-m116"
             },
             "builder_spec": {
               "build_gs_bucket": "chromium-win-archive",
@@ -32,7 +32,7 @@
         {
           "bucket": "ci",
           "builder": "Win Builder (dbg)",
-          "project": "chromium"
+          "project": "chromium-m116"
         }
       ],
       "mirroring_builder_group_and_names": [
@@ -44,13 +44,9 @@
     }
   },
   "$build/reclient": {
-    "bootstrap_env": {
-      "RBE_v": "3"
-    },
     "instance": "rbe-chromium-trusted",
     "jobs": 250,
-    "metrics_project": "chromium-reclient-metrics",
-    "scandeps_server": true
+    "metrics_project": "chromium-reclient-metrics"
   },
   "$recipe_engine/resultdb/test_presentation": {
     "column_keys": [],
@@ -62,6 +58,6 @@
   "builder_group": "chromium.win",
   "recipe": "chromium",
   "sheriff_rotations": [
-    "chromium"
+    "chrome_browser_release"
   ]
 }

@@ -457,9 +457,6 @@ void PictureLayerImpl::AppendQuads(viz::CompositorRenderPass* render_pass,
     bool has_draw_quad = false;
     if (*iter && iter->draw_info().IsReadyToDraw()) {
       const TileDrawInfo& draw_info = iter->draw_info();
-      // Mark the tile used for raster. This is used to reclaim old prepaint
-      // tiles in TileManager.
-      iter->mark_used();
 
       switch (draw_info.mode()) {
         case TileDrawInfo::RESOURCE_MODE: {
@@ -1057,7 +1054,7 @@ bool PictureLayerImpl::ShouldAnimate(PaintImage::Id paint_image_id) const {
   const auto& rects = raster_source_->GetDisplayItemList()
                           ->discardable_image_map()
                           .GetRectsForImage(paint_image_id);
-  for (const auto& r : rects) {
+  for (const auto& r : rects.container()) {
     if (r.Intersects(visible_layer_rect()))
       return true;
   }
@@ -2044,9 +2041,8 @@ PictureLayerImpl::InvalidateRegionForImages(
     const auto& rects = raster_source_->GetDisplayItemList()
                             ->discardable_image_map()
                             .GetRectsForImage(image_id);
-    for (const auto& r : rects) {
+    for (const auto& r : rects.container())
       image_invalidation.Union(r);
-    }
   }
   Region invalidation;
   image_invalidation.Swap(&invalidation);
@@ -2068,7 +2064,7 @@ PictureLayerImpl::InvalidateRegionForImages(
 void PictureLayerImpl::SetPaintWorkletRecord(
     scoped_refptr<const PaintWorkletInput> input,
     PaintRecord record) {
-  DCHECK(base::Contains(paint_worklet_records_, input));
+  DCHECK(paint_worklet_records_.find(input) != paint_worklet_records_.end());
   paint_worklet_records_[input].second = std::move(record);
 }
 

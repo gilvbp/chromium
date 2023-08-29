@@ -176,8 +176,7 @@ void WebPluginContainerImpl::Paint(GraphicsContext& context,
 
   if (WantsWheelEvents()) {
     context.GetPaintController().RecordHitTestData(
-        *GetLayoutEmbeddedContent(), visual_rect, TouchAction::kAuto,
-        /*blocking_wheel=*/true, cc::HitTestOpaqueness::kMixed);
+        *GetLayoutEmbeddedContent(), visual_rect, TouchAction::kAuto, true);
   }
 
   if (element_->GetRegionCaptureCropId()) {

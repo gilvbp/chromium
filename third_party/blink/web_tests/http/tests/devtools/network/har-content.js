@@ -5,8 +5,6 @@
 import {TestRunner} from 'test_runner';
 import {NetworkTestRunner} from 'network_test_runner';
 
-import * as Common from 'devtools/core/common/common.js';
-
 (async function() {
   TestRunner.addResult(`Tests conversion of Inspector's resource representation into HAR format.\n`);
   await TestRunner.showPanel('network');
@@ -21,7 +19,7 @@ import * as Common from 'devtools/core/common/common.js';
 
   async function makeHAR() {
     var stream = new TestRunner.StringOutputStream(onSaved);
-    var progress = new Common.Progress.Progress();
+    var progress = new Common.Progress();
     await NetworkTestRunner.writeHARLog(
         stream, NetworkTestRunner.networkRequests(), progress);
     progress.done();

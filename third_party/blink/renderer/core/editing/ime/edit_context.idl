@@ -22,9 +22,12 @@
     [RaisesException] void updateText(unsigned long start, unsigned long end, DOMString newText);
     sequence<Element> attachedElements();
 
-    readonly attribute DOMString text;
-    readonly attribute unsigned long selectionStart;
-    readonly attribute unsigned long selectionEnd;
+    attribute DOMString text;
+    [RaisesException=Setter] attribute unsigned long selectionStart;
+    [RaisesException=Setter] attribute unsigned long selectionEnd;
+    attribute EditContextInputMode inputMode;
+    attribute EditContextInputPanelPolicy inputPanelPolicy;
+    attribute EditContextEnterKeyHint enterKeyHint;
     readonly attribute unsigned long characterBoundsRangeStart;
     sequence<DOMRect> characterBounds();
 

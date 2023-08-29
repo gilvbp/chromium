@@ -71,7 +71,7 @@
 #endif
 
 #if BUILDFLAG(IS_MAC)
-#include "base/message_loop/message_pump_apple.h"
+#include "base/message_loop/message_pump_mac.h"
 #endif
 
 #if BUILDFLAG(IS_WIN)
@@ -374,7 +374,8 @@ int UtilityMain(MainFunctionParams parameters) {
 
   if (!sandbox::policy::IsUnsandboxedSandboxType(sandbox_type) &&
       sandbox_type != sandbox::mojom::Sandbox::kCdm &&
-      sandbox_type != sandbox::mojom::Sandbox::kMediaFoundationCdm) {
+      sandbox_type != sandbox::mojom::Sandbox::kMediaFoundationCdm &&
+      sandbox_type != sandbox::mojom::Sandbox::kWindowsSystemProxyResolver) {
     if (!g_utility_target_services)
       return false;
 

@@ -406,10 +406,6 @@ TEST_P(ContentCaptureReceiverTest, MAYBE_ChildFrameCaptureContentFirst) {
                     &removed_child_session);
   ContentCaptureSession removed_main_session = expected;
   // When main frame navigates to same url, the parent session will not change.
-  bool rfh_should_change =
-      web_contents()
-          ->GetPrimaryMainFrame()
-          ->ShouldChangeRenderFrameHostOnSameSiteNavigation();
   NavigateMainFrame(GURL(kMainFrameUrl));
   SetupChildFrame();
   child_frame_sender()->DidCaptureContent(helper()->test_data2(),
@@ -420,7 +416,7 @@ TEST_P(ContentCaptureReceiverTest, MAYBE_ChildFrameCaptureContentFirst) {
   // VerifySession(), otherwise, we can't test the code to handle the navigation
   // in ContentCaptureReceiver - except when RenderDocument is enabled, where we
   // will get new RenderFrameHosts after the navigation to |kMainFrameUrl|.
-  if (rfh_should_change) {
+  if (content::WillSameSiteNavigationsChangeRenderFrameHosts()) {
     data = GetExpectedTestData(helper()->test_data(),
                                GetFrameId(true /* main_frame */));
   }
@@ -527,15 +523,14 @@ TEST_P(ContentCaptureReceiverTest, ConvertFaviconURLToJSON) {
   EXPECT_TRUE(ContentCaptureReceiver::ToJSON(favicon_urls).empty());
   favicon_urls.push_back(blink::mojom::FaviconURL::New(
       GURL{"https://a.com"}, blink::mojom::FaviconIconType::kFavicon,
-      std::vector<gfx::Size>{gfx::Size(10, 10)}, /*is_default_icon=*/false));
+      std::vector<gfx::Size>{gfx::Size(10, 10)}));
   favicon_urls.push_back(blink::mojom::FaviconURL::New(
       GURL{"https://b.com"}, blink::mojom::FaviconIconType::kTouchIcon,
-      std::vector<gfx::Size>{gfx::Size(100, 100), gfx::Size(20, 20)},
-      /*is_default_icon=*/false));
+      std::vector<gfx::Size>{gfx::Size(100, 100), gfx::Size(20, 20)}));
   favicon_urls.push_back(blink::mojom::FaviconURL::New(
       GURL{"https://c.com"},
       blink::mojom::FaviconIconType::kTouchPrecomposedIcon,
-      std::vector<gfx::Size>{}, /*is_default_icon=*/false));
+      std::vector<gfx::Size>{}));
   std::string actual_json = ContentCaptureReceiver::ToJSON(favicon_urls);
   absl::optional<base::Value> actual = base::JSONReader::Read(actual_json);
   std::string expected_json =

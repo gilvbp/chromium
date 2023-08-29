@@ -62,8 +62,6 @@ std::string ToString(PasswordForm::Type type) {
       return "Manually Added";
     case PasswordForm::Type::kImported:
       return "Imported";
-    case PasswordForm::Type::kReceivedViaSharing:
-      return "ReceivedViaSharing";
   }
 
   // In old clients type might contain non-enum values and their mapping is
@@ -124,10 +122,9 @@ void PasswordFormToJSON(const PasswordForm& form, base::Value::Dict& target) {
                  : "PRIMARY KEY IS MISSING");
   target.Set("scheme", ToString(form.scheme));
   target.Set("signon_realm", form.signon_realm);
-  target.Set("match_type", form.match_type.has_value()
-                               ? base::NumberToString(
-                                     static_cast<int>(form.match_type.value()))
-                               : "MATCH TYPE IS MISSING");
+  target.Set("is_public_suffix_match", form.is_public_suffix_match);
+  target.Set("is_affiliation_based_match", form.is_affiliation_based_match);
+  target.Set("is_grouped_match", form.is_grouped_match);
   target.Set("url", form.url.possibly_invalid_spec());
   target.Set("action", form.action.possibly_invalid_spec());
   target.Set("submit_element", form.submit_element);
@@ -212,12 +209,6 @@ void PasswordFormToJSON(const PasswordForm& form, base::Value::Dict& target) {
 
   target.Set("previously_associated_sync_account_email",
              form.previously_associated_sync_account_email);
-
-  target.Set("sender_email", form.sender_email);
-  target.Set("sender_name", form.sender_name);
-  target.Set("date_received", base::TimeToValue(form.date_received));
-  target.Set("sharing_notification_displayed",
-             form.sharing_notification_displayed);
 }
 
 }  // namespace
@@ -226,9 +217,6 @@ AlternativeElement::AlternativeElement(const AlternativeElement::Value& value,
                            autofill::FieldRendererId field_renderer_id,
                            const AlternativeElement::Name& name)
     : value(value), field_renderer_id(field_renderer_id), name(name) {}
-
-AlternativeElement::AlternativeElement(const AlternativeElement::Value& value)
-    : value(value) {}
 
 AlternativeElement::AlternativeElement(const AlternativeElement& rhs) = default;
 
@@ -338,12 +326,8 @@ bool PasswordForm::IsLikelySignupForm() const {
 }
 
 bool PasswordForm::IsLikelyChangePasswordForm() const {
-  return HasNewPasswordElement() && HasPasswordElement();
-}
-
-bool PasswordForm::IsLikelyResetPasswordForm() const {
-  return HasNewPasswordElement() && !HasPasswordElement() &&
-         !HasUsernameElement();
+  return HasNewPasswordElement() &&
+         (!HasUsernameElement() || HasPasswordElement());
 }
 
 bool PasswordForm::HasUsernameElement() const {
@@ -445,7 +429,9 @@ bool operator==(const PasswordForm& lhs, const PasswordForm& rhs) {
          lhs.skip_zero_click == rhs.skip_zero_click &&
          lhs.was_parsed_using_autofill_predictions ==
              rhs.was_parsed_using_autofill_predictions &&
-         lhs.match_type == rhs.match_type &&
+         lhs.is_public_suffix_match == rhs.is_public_suffix_match &&
+         lhs.is_affiliation_based_match == rhs.is_affiliation_based_match &&
+         lhs.is_grouped_match == rhs.is_grouped_match &&
          lhs.affiliated_web_realm == rhs.affiliated_web_realm &&
          lhs.app_display_name == rhs.app_display_name &&
          lhs.app_icon_url == rhs.app_icon_url &&
@@ -456,12 +442,7 @@ bool operator==(const PasswordForm& lhs, const PasswordForm& rhs) {
          lhs.moving_blocked_for_list == rhs.moving_blocked_for_list &&
          lhs.password_issues == rhs.password_issues && lhs.notes == rhs.notes &&
          lhs.previously_associated_sync_account_email ==
-             rhs.previously_associated_sync_account_email &&
-         lhs.sender_email == rhs.sender_email &&
-         lhs.sender_name == rhs.sender_name &&
-         lhs.date_received == rhs.date_received &&
-         lhs.sharing_notification_displayed ==
-             rhs.sharing_notification_displayed;
+             rhs.previously_associated_sync_account_email;
 }
 
 bool operator!=(const PasswordForm& lhs, const PasswordForm& rhs) {

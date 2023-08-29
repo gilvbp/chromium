@@ -472,12 +472,14 @@ void Window::SetBounds(const gfx::Rect& new_bounds) {
 
 void Window::SetBoundsInScreen(const gfx::Rect& new_bounds_in_screen,
                                const display::Display& dst_display) {
-  if (auto* screen_position_client =
-          aura::client::GetScreenPositionClient(GetRootWindow())) {
+  aura::client::ScreenPositionClient* screen_position_client = nullptr;
+  Window* root = GetRootWindow();
+  if (root)
+    screen_position_client = aura::client::GetScreenPositionClient(root);
+  if (screen_position_client)
     screen_position_client->SetBounds(this, new_bounds_in_screen, dst_display);
-  } else {
+  else
     SetBounds(new_bounds_in_screen);
-  }
 }
 
 gfx::Rect Window::GetTargetBounds() const {
@@ -1336,11 +1338,10 @@ const viz::LocalSurfaceId& Window::GetLocalSurfaceId() {
   return GetCurrentLocalSurfaceId();
 }
 
-void Window::InvalidateLocalSurfaceId(bool also_invalidate_allocation_group) {
+void Window::InvalidateLocalSurfaceId() {
   if (!parent_local_surface_id_allocator_)
     return;
-  parent_local_surface_id_allocator_->Invalidate(
-      also_invalidate_allocation_group);
+  parent_local_surface_id_allocator_->Invalidate();
 }
 
 void Window::UpdateLocalSurfaceIdFromEmbeddedClient(

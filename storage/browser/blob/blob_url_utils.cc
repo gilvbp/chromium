@@ -4,12 +4,12 @@
 
 #include "storage/browser/blob/blob_url_utils.h"
 
-#include "base/containers/contains.h"
+namespace storage {
 
-namespace storage::BlobUrlUtils {
+namespace BlobUrlUtils {
 
 bool UrlHasFragment(const GURL& url) {
-  return base::Contains(url.spec(), '#');
+  return url.spec().find('#') != std::string::npos;
 }
 
 GURL ClearUrlFragment(const GURL& url) {
@@ -19,4 +19,5 @@ GURL ClearUrlFragment(const GURL& url) {
   return GURL(url.spec().substr(0, hash_pos));
 }
 
-}  // namespace storage::BlobUrlUtils
+}  // namespace BlobUrlUtils
+}  // namespace storage

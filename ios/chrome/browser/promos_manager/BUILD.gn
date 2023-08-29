@@ -10,6 +10,7 @@ source_set("promos_manager") {
     "promos_manager_event_exporter.mm",
   ]
   frameworks = [ "Foundation.framework" ]
+  configs += [ "//build/config/compiler:enable_arc" ]
   public_deps = [
     "//base",
     "//third_party/abseil-cpp:absl",
@@ -31,6 +32,7 @@ source_set("factory") {
     "promos_manager_factory.mm",
   ]
   frameworks = [ "Foundation.framework" ]
+  configs += [ "//build/config/compiler:enable_arc" ]
   deps = [
     ":event_exporter_factory",
     ":features",
@@ -50,6 +52,7 @@ source_set("event_exporter_factory") {
     "promos_manager_event_exporter_factory.mm",
   ]
   frameworks = [ "Foundation.framework" ]
+  configs += [ "//build/config/compiler:enable_arc" ]
   deps = [
     ":features",
     ":promos_manager",
@@ -66,6 +69,7 @@ source_set("internal") {
     "promos_manager_impl.mm",
   ]
   frameworks = [ "Foundation.framework" ]
+  configs += [ "//build/config/compiler:enable_arc" ]
   public_deps = [
     ":constants",
     ":promos_manager",
@@ -91,6 +95,7 @@ source_set("types") {
     "promo_config.mm",
   ]
   frameworks = [ "Foundation.framework" ]
+  configs += [ "//build/config/compiler:enable_arc" ]
   deps = [
     ":constants",
     "//base",
@@ -102,6 +107,7 @@ source_set("constants") {
     "constants.cc",
     "constants.h",
   ]
+  configs += [ "//build/config/compiler:enable_arc" ]
   public_deps = [ "//third_party/abseil-cpp:absl" ]
   deps = [ "//base" ]
 }
@@ -111,6 +117,7 @@ source_set("features") {
     "features.h",
     "features.mm",
   ]
+  configs += [ "//build/config/compiler:enable_arc" ]
   deps = [ "//base" ]
 }
 
@@ -121,6 +128,7 @@ source_set("test_support") {
     "mock_promos_manager.mm",
   ]
   frameworks = [ "Foundation.framework" ]
+  configs += [ "//build/config/compiler:enable_arc" ]
   public_deps = [
     ":constants",
     ":promos_manager",
@@ -137,6 +145,7 @@ source_set("unit_tests") {
   testonly = true
   sources = [ "promos_manager_impl_unittest.mm" ]
   frameworks = [ "Foundation.framework" ]
+  configs += [ "//build/config/compiler:enable_arc" ]
   deps = [
     ":constants",
     ":features",

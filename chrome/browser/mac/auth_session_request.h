@@ -17,6 +17,10 @@
 
 #if defined(__OBJC__)
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 @class ASWebAuthenticationSessionRequest;
 
 class Browser;
@@ -24,7 +28,7 @@ class Profile;
 
 // A class to manage the WebContents running an
 // ASWebAuthenticationSessionRequest.
-class AuthSessionRequest
+class API_AVAILABLE(macos(10.15)) AuthSessionRequest
     : public content::WebContentsObserver,
       public content::WebContentsUserData<AuthSessionRequest> {
  public:
@@ -98,6 +102,6 @@ class AuthSessionRequest
 // If there is an authentication session in progress for the given navigation
 // handle, install a throttle.
 std::unique_ptr<content::NavigationThrottle> MaybeCreateAuthSessionThrottleFor(
-    content::NavigationHandle* handle);
+    content::NavigationHandle* handle) API_AVAILABLE(macos(10.15));
 
 #endif  // CHROME_BROWSER_MAC_AUTH_SESSION_REQUEST_H_

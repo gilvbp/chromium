@@ -4,27 +4,25 @@
 
 #import "ios/chrome/browser/ui/content_suggestions/set_up_list/set_up_list_item_icon.h"
 
-#import "base/feature_list.h"
 #import "base/task/sequenced_task_runner.h"
 #import "base/time/time.h"
-#import "components/sync/base/features.h"
 #import "ios/chrome/browser/ntp/set_up_list_item_type.h"
 #import "ios/chrome/browser/shared/ui/symbols/symbols.h"
-#import "ios/chrome/browser/ui/content_suggestions/content_suggestions_feature.h"
 #import "ios/chrome/common/ui/colors/semantic_color_names.h"
 #import "ios/chrome/common/ui/util/constraints_ui_util.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace {
 
 // Constants related to icon sizing.
 constexpr CGFloat kIconSize = 36;
-constexpr CGFloat kMagicStackIconSize = 30;
 constexpr CGFloat kCompactIconSize = 26;
 constexpr CGFloat kSymbolPointSize = 18;
 constexpr CGFloat kSparkleSize = 72;
 constexpr CGFloat kSparkleOffset = (kSparkleSize - kIconSize) / 2;
-constexpr CGFloat kMagicStackSparkleOffset =
-    (kSparkleSize - kMagicStackIconSize) / 2;
 constexpr CGFloat kIconSquareContainerRadius = 7.0f;
 
 // The amount of rotation for the icons, during the animation.
@@ -49,11 +47,9 @@ UIImageView* IconForSymbol(NSString* symbol,
   UIImage* image = DefaultSymbolWithConfiguration(symbol, config);
   UIImageView* icon = [[UIImageView alloc] initWithImage:image];
   icon.translatesAutoresizingMaskIntoConstraints = NO;
-  CGFloat nonCompactIconWidth =
-      IsMagicStackEnabled() ? kMagicStackIconSize : kIconSize;
-  CGFloat iconWidth = compact_layout ? kCompactIconSize : nonCompactIconWidth;
+  CGFloat icon_width = compact_layout ? kCompactIconSize : kIconSize;
   [NSLayoutConstraint activateConstraints:@[
-    [icon.widthAnchor constraintEqualToConstant:iconWidth],
+    [icon.widthAnchor constraintEqualToConstant:icon_width],
     [icon.heightAnchor constraintEqualToAnchor:icon.widthAnchor],
   ]];
   return icon;
@@ -67,9 +63,8 @@ UIView* IconInSquareContainer(UIImageView* icon, NSString* color) {
 
   [square_view addSubview:icon];
   AddSameCenterConstraints(icon, square_view);
-  CGFloat iconWidth = IsMagicStackEnabled() ? kMagicStackIconSize : kIconSize;
   [NSLayoutConstraint activateConstraints:@[
-    [square_view.widthAnchor constraintEqualToConstant:iconWidth],
+    [square_view.widthAnchor constraintEqualToConstant:kIconSize],
     [square_view.heightAnchor constraintEqualToAnchor:square_view.widthAnchor],
   ]];
   return square_view;
@@ -97,9 +92,7 @@ UIImageView* DefaultBrowserIcon(BOOL compact_layout) {
   [container addSubview:icon];
   AddSameConstraints(icon, container);
   // Set the widths.
-  CGFloat nonCompactIconWidth =
-      IsMagicStackEnabled() ? kMagicStackIconSize : kIconSize;
-  CGFloat icon_width = compact_layout ? kCompactIconSize : nonCompactIconWidth;
+  CGFloat icon_width = compact_layout ? kCompactIconSize : kIconSize;
   // The white background circle must be smaller so that the edges don't show.
   CGFloat white_background_width = icon_width - 2;
   [NSLayoutConstraint activateConstraints:@[
@@ -163,9 +156,8 @@ UIView* IconInSquare(NSString* symbol,
   symbol_view.translatesAutoresizingMaskIntoConstraints = NO;
   [square_view addSubview:symbol_view];
   AddSameCenterConstraints(symbol_view, square_view);
-  CGFloat iconWidth = IsMagicStackEnabled() ? kMagicStackIconSize : kIconSize;
   [NSLayoutConstraint activateConstraints:@[
-    [square_view.widthAnchor constraintEqualToConstant:iconWidth],
+    [square_view.widthAnchor constraintEqualToConstant:kIconSize],
     [square_view.heightAnchor constraintEqualToAnchor:square_view.widthAnchor],
   ]];
   return square_view;
@@ -274,26 +266,20 @@ UIView* IconInSquare(NSString* symbol,
 - (UIView*)createTypeIcon {
   switch (_type) {
     case SetUpListItemType::kSignInSync: {
-      if (base::FeatureList::IsEnabled(
-              syncer::kReplaceSyncPromosWithSignInPromos)) {
-        return _inSquare ? IconInSquare(kPersonCropCircleSymbol, _compactLayout,
-                                        kGreen500Color)
-                         : IconInCircle(kPersonCropCircleSymbol, _compactLayout,
-                                        kGreen500Color);
-      }
-
-      UIImageView* iconImage = IconForSymbol(
-          kSyncCircleSymbol, _compactLayout,
+      UIImageView* icon_image = IconForSymbol(
+          kSyncCircleSymbol, _compactLayout || _inSquare,
           @[ [UIColor whiteColor], [UIColor colorNamed:kGreen500Color] ]);
-      return _inSquare ? IconInSquareContainer(iconImage, kGreen500Color)
-                       : iconImage;
+      if (_inSquare) {
+        return IconInSquareContainer(icon_image, kGreen500Color);
+      }
+      return icon_image;
     }
     case SetUpListItemType::kDefaultBrowser: {
-      UIImageView* iconImage = DefaultBrowserIcon(_compactLayout || _inSquare);
+      UIImageView* icon_image = DefaultBrowserIcon(_compactLayout || _inSquare);
       if (_inSquare) {
-        return IconInSquareContainer(iconImage, kBackgroundColor);
+        return IconInSquareContainer(icon_image, kBackgroundColor);
       }
-      return iconImage;
+      return icon_image;
     }
     case SetUpListItemType::kAutofill: {
       return _inSquare
@@ -318,10 +304,8 @@ UIView* IconInSquare(NSString* symbol,
   // This image view does not initially have an image. The animation frames
   // are loaded on demand.
   UIImageView* imageView = [[UIImageView alloc] initWithImage:nil];
-  CGFloat sparkleOffset =
-      IsMagicStackEnabled() ? kMagicStackSparkleOffset : kSparkleOffset;
   imageView.frame =
-      CGRectMake(-sparkleOffset, -sparkleOffset, kSparkleSize, kSparkleSize);
+      CGRectMake(-kSparkleOffset, -kSparkleOffset, kSparkleSize, kSparkleSize);
   return imageView;
 }
 

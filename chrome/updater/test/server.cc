@@ -5,6 +5,7 @@
 #include "chrome/updater/test/server.h"
 
 #include <algorithm>
+#include <cctype>
 #include <iterator>
 #include <list>
 #include <memory>
@@ -102,9 +103,6 @@ std::unique_ptr<net::test_server::HttpResponse> ScopedServer::HandleRequest(
     return response;
   }
   response->set_code(net::HTTP_OK);
-  if (base::StartsWith(request.relative_url, device_management_path())) {
-    response->set_content_type("application/x-protobuf");
-  }
   response->set_content(response_bodies_.front());
   request_matcher_groups_.pop_front();
   response_bodies_.pop_front();

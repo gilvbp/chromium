@@ -63,15 +63,14 @@ OfflinePageAutoFetcherServiceFactory::OfflinePageAutoFetcherServiceFactory()
 OfflinePageAutoFetcherServiceFactory::~OfflinePageAutoFetcherServiceFactory() =
     default;
 
-std::unique_ptr<KeyedService>
-OfflinePageAutoFetcherServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* OfflinePageAutoFetcherServiceFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   RequestCoordinator* coordinator =
       RequestCoordinatorFactory::GetForBrowserContext(context);
   OfflinePageModel* model =
       OfflinePageModelFactory::GetForBrowserContext(context);
-  return std::make_unique<OfflinePageAutoFetcherService>(
-      coordinator, model, service_delegate_.get());
+  return new OfflinePageAutoFetcherService(coordinator, model,
+                                           service_delegate_.get());
 }
 
 }  // namespace offline_pages

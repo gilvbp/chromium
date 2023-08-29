@@ -14,7 +14,7 @@ import os
 import shutil
 import subprocess
 import tempfile
-from typing import Dict, List, Optional, Set, Tuple
+import typing
 
 from PIL import Image  # pylint: disable=import-error
 
@@ -31,18 +31,6 @@ GOLDCTL_PATHS = [
     os.path.join(CHROMIUM_SRC_DIR, 'tools', 'skia_goldctl', 'win',
                  'goldctl.exe'),
 ]
-
-# The downloaded expectations are in the following format:
-# {
-#   branch (str): {
-#     test_name (str): {
-#       digest1 (str): status (str),
-#       digest2 (str): status (str),
-#       ...
-#     }
-#   }
-# }
-ExpectationJson = Dict[str, Dict[str, Dict[str, str]]]
 
 
 class BaseParameterOptimizer():
@@ -62,16 +50,17 @@ class BaseParameterOptimizer():
     """
     self._args = args
     self._test_name = test_name
-    self._goldctl_binary: Optional[str] = None
-    self._working_dir: Optional[str] = None
-    self._expectations: Optional[ExpectationJson] = None
+    self._goldctl_binary = None
+    self._working_dir = None
+    self._expectations = None
     # TODO(skbug.com/10610): Switch away from the public instance once
     # authentication is fixed for the non-public instance.
     self._gold_url = 'https://%s-public-gold.skia.org' % args.gold_instance
     self._pool = multiprocessing.Pool()
-    # A map of strings, denoting a resolution or trace, to a set of strings,
-    # denoting images that are that dimension or belong to that trace.
-    self._images: Dict[str, Set[str]] = collections.defaultdict(set)
+    # A map of strings, denoting a resolution or trace, to an iterable of
+    # strings, denoting images that are that dimension or belong to that
+    # trace.
+    self._images = collections.defaultdict(set)
     self._VerifyArgs()
     parameter_set.ParameterSet.ignored_border_thickness = \
         self._args.ignored_border_thickness
@@ -286,6 +275,16 @@ class BaseParameterOptimizer():
     Images are grouped by resolution.
     """
     assert self._expectations
+    # The downloaded expectations are in the following format:
+    # {
+    #   branch (str): {
+    #     test_name (str): {
+    #       digest1 (str): status (str),
+    #       digest2 (str): status (str),
+    #       ...
+    #     }
+    #   }
+    # }
     test_expectations = self._expectations.get('primary',
                                                {}).get(self._test_name, {})
     positive_digests = [
@@ -365,8 +364,8 @@ class BaseParameterOptimizer():
             'Could not find goldctl binary. Checked %s' % GOLDCTL_PATHS)
     return self._goldctl_binary
 
-  def _RunComparisonForParameters(
-      self, parameters: parameter_set.ParameterSet) -> Tuple[bool, int, int]:
+  def _RunComparisonForParameters(self, parameters: parameter_set.ParameterSet
+                                  ) -> typing.Tuple[bool, int, int]:
     """Runs a comparison for all image combinations using some parameters.
 
     Args:
@@ -416,9 +415,9 @@ class BaseParameterOptimizer():
         '%d', successful, max_num_pixels, max_max_delta)
     return successful, max_num_pixels, max_max_delta
 
-  def _GenerateComparisonCmd(
-      self, left_digest: str, right_digest: str,
-      parameters: parameter_set.ParameterSet) -> List[str]:
+  def _GenerateComparisonCmd(self, left_digest: str, right_digest: str,
+                             parameters: parameter_set.ParameterSet
+                             ) -> typing.List[str]:
     """Generates a comparison command for the given arguments.
 
     The returned command can be passed directly to a subprocess call.
@@ -444,7 +443,8 @@ class BaseParameterOptimizer():
     return cmd
 
 
-def RunCommandAndExtractData(cmd: List[str]) -> Tuple[bool, int, int]:
+def RunCommandAndExtractData(cmd: typing.List[str]
+                             ) -> typing.Tuple[bool, int, int]:
   """Runs a comparison command and extracts data from it.
 
   This is outside of the parameter optimizers because it is meant to be run via

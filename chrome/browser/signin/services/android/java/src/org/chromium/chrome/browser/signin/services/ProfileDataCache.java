@@ -260,6 +260,7 @@ public class ProfileDataCache implements AccountInfoService.Observer {
     /**
      * @return Whether the cache contains non-default profile data for the given account.
      */
+    @VisibleForTesting
     public boolean hasProfileDataForTesting(String accountEmail) {
         return mCachedProfileData.containsKey(accountEmail);
     }

@@ -27,7 +27,7 @@ if (isOobeSimon) {
 // Right now we have only one priority screen and it is WelcomeScreen, that
 // means that there is no effect from async loading of screens on the login
 // page.
-if (lazyLoadingEnabled) {
+if (lazyLoadingEnabled && isOobeFlow) {
   addScreensAsync();
 } else {
   addScreensSynchronously();
@@ -47,27 +47,19 @@ function addScreensSynchronously() {
 /**
  * Add screens to the document asynchronously. Follows the same sequence logical
  * sequence as its synchronous counterpart. However, instead of blocking the
- * main thread, the actual adding of the screens are done via scheduling tasks
- * using the Prioritized Task Scheduling API.
- *
- * Note that  even though using 'setTimeout(..., 0)' provides a similar outcome,
- * 'scheduler.postTask' is more appropriate for this use case since it is not
- * impacted by Tab Throttling like 'setTimeout' is.
+ * main thread, the actual adding of the screens are done via scheduling tasks.
  */
 function addScreensAsync() {
-  // Optimization to make the shrink animation smooth by delaying the next
-  // screen to be added by 'animationTransitionTime' milliseconds, leaving the
-  // renderer solely with the task of animating.
+  // Optimization to make the shrink animation smooth.
   if (aboutToShrink) {
     aboutToShrink = false;
-    scheduler.postTask(addScreensAsync, { delay: animationTransitionTime });
+    setTimeout(addScreensAsync, animationTransitionTime);
     return;
   }
-
   if (commonScreensList.length > 0) {
     const nextScreens = commonScreensList.pop();
     addScreensToMainContainer([nextScreens]);
-    scheduler.postTask(addScreensAsync);
+    setTimeout(addScreensAsync, 0);
 
     if (commonScreensList.length == 0) {
       traceExecution(TraceEvent.COMMON_SCREENS_ADDED);
@@ -77,7 +69,7 @@ function addScreensAsync() {
     addScreensToMainContainer([nextScreens]);
 
     if (flowSpecificScreensList.length > 0) {
-      scheduler.postTask(addScreensAsync);
+      setTimeout(addScreensAsync, 0);
     } else {
       traceExecution(TraceEvent.REMAINING_SCREENS_ADDED);
       document.dispatchEvent(new CustomEvent('oobe-screens-loaded'));

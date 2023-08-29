@@ -6,7 +6,6 @@
 
 #include <utility>
 
-#include "base/trace_event/trace_event.h"
 #include "components/sync/model/metadata_batch.h"
 #include "components/sync/protocol/entity_data.h"
 

@@ -18,7 +18,6 @@ import java.lang.annotation.RetentionPolicy;
         FeatureConstants.ADAPTIVE_BUTTON_IN_TOP_TOOLBAR_CUSTOMIZATION_VOICE_SEARCH_FEATURE,
         FeatureConstants.ADAPTIVE_BUTTON_IN_TOP_TOOLBAR_CUSTOMIZATION_TRANSLATE_FEATURE,
         FeatureConstants.ADAPTIVE_BUTTON_IN_TOP_TOOLBAR_CUSTOMIZATION_ADD_TO_BOOKMARKS_FEATURE,
-        FeatureConstants.ADAPTIVE_BUTTON_IN_TOP_TOOLBAR_CUSTOMIZATION_READ_ALOUD_FEATURE,
         FeatureConstants.ADD_TO_HOMESCREEN_MESSAGE_FEATURE,
         FeatureConstants.AUTO_DARK_OPT_OUT_FEATURE,
         FeatureConstants.AUTO_DARK_USER_EDUCATION_MESSAGE_FEATURE,
@@ -29,8 +28,7 @@ import java.lang.annotation.RetentionPolicy;
         FeatureConstants.CHROME_HOME_PULL_TO_REFRESH_FEATURE,
         FeatureConstants.CONTEXTUAL_PAGE_ACTIONS_QUIET_VARIANT,
         FeatureConstants.CONTEXTUAL_PAGE_ACTIONS_ACTION_CHIP,
-        FeatureConstants.COOKIE_CONTROLS_FEATURE, FeatureConstants.DATA_SAVER_PREVIEW_FEATURE,
-        FeatureConstants.DATA_SAVER_DETAIL_FEATURE,
+        FeatureConstants.DATA_SAVER_PREVIEW_FEATURE, FeatureConstants.DATA_SAVER_DETAIL_FEATURE,
         FeatureConstants.DATA_SAVER_MILESTONE_PROMO_FEATURE, FeatureConstants.EPHEMERAL_TAB_FEATURE,
         FeatureConstants.PREVIEWS_OMNIBOX_UI_FEATURE,
         FeatureConstants.TRANSLATE_MENU_BUTTON_FEATURE, FeatureConstants.INSTANCE_SWITCHER,
@@ -41,7 +39,6 @@ import java.lang.annotation.RetentionPolicy;
         FeatureConstants.KEYBOARD_ACCESSORY_PAYMENT_OFFER_FEATURE,
         FeatureConstants.KEYBOARD_ACCESSORY_PAYMENT_VIRTUAL_CARD_FEATURE,
         FeatureConstants.KEYBOARD_ACCESSORY_EXTERNAL_ACCOUNT_PROFILE_FEATURE,
-        FeatureConstants.KEYBOARD_ACCESSORY_VIRTUAL_CARD_CVC_FILL_FEATURE,
         FeatureConstants.DOWNLOAD_SETTINGS_FEATURE,
         FeatureConstants.DOWNLOAD_INFOBAR_DOWNLOAD_CONTINUING_FEATURE,
         FeatureConstants.DOWNLOAD_INFOBAR_DOWNLOADS_ARE_FASTER_FEATURE,
@@ -74,6 +71,7 @@ import java.lang.annotation.RetentionPolicy;
         FeatureConstants.REQUEST_DESKTOP_SITE_DEFAULT_ON_FEATURE,
         FeatureConstants.REQUEST_DESKTOP_SITE_OPT_IN_FEATURE,
         FeatureConstants.REQUEST_DESKTOP_SITE_EXCEPTIONS_GENERIC_FEATURE,
+        FeatureConstants.REQUEST_DESKTOP_SITE_EXCEPTIONS_SPECIFIC_FEATURE,
         FeatureConstants.IPH_MIC_TOOLBAR_FEATURE, FeatureConstants.IPH_SHARE_SCREENSHOT_FEATURE,
         FeatureConstants.IPH_SHARING_HUB_LINK_TOGGLE_FEATURE,
         FeatureConstants.IPH_WEB_FEED_FOLLOW_FEATURE,
@@ -100,8 +98,6 @@ public @interface FeatureConstants {
             "IPH_AdaptiveButtonInTopToolbarCustomization_Translate";
     String ADAPTIVE_BUTTON_IN_TOP_TOOLBAR_CUSTOMIZATION_ADD_TO_BOOKMARKS_FEATURE =
             "IPH_AdaptiveButtonInTopToolbarCustomization_AddToBookmarks";
-    String ADAPTIVE_BUTTON_IN_TOP_TOOLBAR_CUSTOMIZATION_READ_ALOUD_FEATURE =
-            "IPH_AdaptiveButtonInTopToolbarCustomization_ReadAloud";
     String ADD_TO_HOMESCREEN_MESSAGE_FEATURE = "IPH_AddToHomescreenMessage";
     String AUTO_DARK_OPT_OUT_FEATURE = "IPH_AutoDarkOptOut";
     String AUTO_DARK_USER_EDUCATION_MESSAGE_FEATURE = "IPH_AutoDarkUserEducationMessage";
@@ -109,8 +105,6 @@ public @interface FeatureConstants {
             "IPH_AutoDarkUserEducationMessageOptIn";
     String CONTEXTUAL_PAGE_ACTIONS_QUIET_VARIANT = "IPH_ContextualPageActions_QuietVariant";
     String CONTEXTUAL_PAGE_ACTIONS_ACTION_CHIP = "IPH_ContextualPageActions_ActionChip";
-
-    String COOKIE_CONTROLS_FEATURE = "IPH_CookieControls";
     String DOWNLOAD_PAGE_FEATURE = "IPH_DownloadPage";
     String DOWNLOAD_PAGE_SCREENSHOT_FEATURE = "IPH_DownloadPageScreenshot";
     String DOWNLOAD_HOME_FEATURE = "IPH_DownloadHome";
@@ -129,8 +123,6 @@ public @interface FeatureConstants {
     String KEYBOARD_ACCESSORY_EXTERNAL_ACCOUNT_PROFILE_FEATURE =
             "IPH_AutofillExternalAccountProfileSuggestion";
     String KEYBOARD_ACCESSORY_BAR_SWIPING_FEATURE = "IPH_KeyboardAccessoryBarSwiping";
-    String KEYBOARD_ACCESSORY_VIRTUAL_CARD_CVC_FILL_FEATURE =
-            "IPH_AutofillVirtualCardCVCSuggestion";
     String INSTANCE_SWITCHER = "IPH_InstanceSwitcher";
     String PAGE_ZOOM_FEATURE = "IPH_PageZoom";
     String PREVIEWS_OMNIBOX_UI_FEATURE = "IPH_PreviewsOmniboxUI";
@@ -144,6 +136,8 @@ public @interface FeatureConstants {
     String REQUEST_DESKTOP_SITE_OPT_IN_FEATURE = "IPH_RequestDesktopSiteOptIn";
     String REQUEST_DESKTOP_SITE_EXCEPTIONS_GENERIC_FEATURE =
             "IPH_RequestDesktopSiteExceptionsGeneric";
+    String REQUEST_DESKTOP_SITE_EXCEPTIONS_SPECIFIC_FEATURE =
+            "IPH_RequestDesktopSiteExceptionsSpecific";
 
     /**
      * An IPH feature indicating to users that there are settings for downloads and they are

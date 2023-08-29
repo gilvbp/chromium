@@ -20,7 +20,7 @@
 #include "chrome/browser/signin/identity_manager_factory.h"
 #include "chrome/browser/signin/signin_features.h"
 #include "chrome/browser/ui/managed_ui.h"
-#include "chrome/browser/ui/profiles/profile_colors_util.h"
+#include "chrome/browser/ui/signin/profile_colors_util.h"
 #include "chrome/common/url_constants.h"
 #include "chrome/grit/chromium_strings.h"
 #include "chrome/grit/generated_resources.h"
@@ -248,10 +248,21 @@ bool DiceWebSigninInterceptHandler::ShouldShowManagedDeviceVersion() {
 }
 
 std::string DiceWebSigninInterceptHandler::GetHeaderText() {
-  return (bubble_parameters_.interception_type ==
-          WebSigninInterceptor::SigninInterceptionType::kProfileSwitch)
-             ? intercepted_account().given_name
-             : std::string();
+  if (bubble_parameters_.interception_type ==
+      WebSigninInterceptor::SigninInterceptionType::kProfileSwitch) {
+    return intercepted_account().given_name;
+  }
+
+  if (base::FeatureList::IsEnabled(kSigninInterceptBubbleV2))
+    return std::string();
+
+  if (bubble_parameters_.interception_type ==
+          WebSigninInterceptor::SigninInterceptionType::kEnterprise &&
+      IsManaged(intercepted_account())) {
+    return intercepted_account().hosted_domain;
+  }
+
+  return intercepted_account().given_name;
 }
 
 std::string DiceWebSigninInterceptHandler::GetBodyTitle() {
@@ -356,6 +367,10 @@ std::string DiceWebSigninInterceptHandler::GetManagedDisclaimerText() {
 }
 
 bool DiceWebSigninInterceptHandler::GetShouldUseV2Design() {
-  return bubble_parameters_.interception_type !=
-         WebSigninInterceptor::SigninInterceptionType::kProfileSwitch;
+  if (bubble_parameters_.interception_type ==
+      WebSigninInterceptor::SigninInterceptionType::kProfileSwitch) {
+    return false;
+  }
+
+  return base::FeatureList::IsEnabled(kSigninInterceptBubbleV2);
 }

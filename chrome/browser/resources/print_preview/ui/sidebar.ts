@@ -15,7 +15,6 @@ import './duplex_settings.js';
 import './header.js';
 import './layout_settings.js';
 import './media_size_settings.js';
-import './media_type_settings.js';
 import './margins_settings.js';
 import './more_settings.js';
 import './other_options_settings.js';
@@ -175,14 +174,11 @@ export class PrintPreviewSidebarElement extends PrintPreviewSidebarElementBase {
       pdfPrinterDisabled: boolean, isDriveMounted: boolean) {
     this.isInAppKioskMode_ = appKioskMode;
     pdfPrinterDisabled = this.isInAppKioskMode_ || pdfPrinterDisabled;
-
-    // 'Save to Google Drive' is almost the same as PDF printing. The only
-    // difference is the default location shown in the file picker when user
-    // clicks 'Save'. Therefore, we should disable the 'Save to Google Drive'
-    // destination if the user should be blocked from using PDF printing.
-    const saveToDriveDisabled = pdfPrinterDisabled || !isDriveMounted;
+    // If PDF printing is disabled, then Save to Drive also needs to be disabled
+    // on Chrome OS.
+    isDriveMounted = !pdfPrinterDisabled && isDriveMounted;
     this.$.destinationSettings.init(
-        defaultPrinter, pdfPrinterDisabled, saveToDriveDisabled,
+        defaultPrinter, pdfPrinterDisabled, isDriveMounted,
         serializedDestinationSelectionRulesStr);
   }
 

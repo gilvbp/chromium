@@ -10,7 +10,6 @@
 #include "base/functional/bind.h"
 #include "base/logging.h"
 #include "base/metrics/histogram_functions.h"
-#include "chrome/browser/ash/crosapi/browser_util.h"
 #include "components/account_manager_core/account.h"
 #include "components/account_manager_core/account_manager_facade.h"
 #include "components/account_manager_core/pref_names.h"
@@ -50,10 +49,20 @@ bool IsPrimaryGaiaAccount(const std::string& gaia_id) {
          user->GetAccountId().GetGaiaId() == gaia_id;
 }
 
+bool IsActiveDirectoryUser() {
+  const user_manager::User* user =
+      user_manager::UserManager::Get()->GetPrimaryUser();
+  // GetPrimaryUser may return nullptr in tests.
+  if (!user)
+    return false;
+
+  return user->GetType() == user_manager::USER_TYPE_ACTIVE_DIRECTORY;
+}
+
 bool IsPrefInitialized(PrefService* prefs) {
   const base::Value::Dict& accounts =
       prefs->GetDict(account_manager::prefs::kAccountAppsAvailability);
-  return accounts.size() > 0;
+  return accounts.size() > 0 || IsActiveDirectoryUser();
 }
 
 void CompleteFindAccountByGaiaId(
@@ -213,7 +222,7 @@ AccountAppsAvailability::~AccountAppsAvailability() = default;
 
 // static
 bool AccountAppsAvailability::IsArcAccountRestrictionsEnabled() {
-  return crosapi::browser_util::IsLacrosEnabled();
+  return base::FeatureList::IsEnabled(features::kLacrosSupport);
 }
 
 // static
@@ -398,9 +407,11 @@ void AccountAppsAvailability::InitAccountsAvailableInArcPref(
     update->Set(account.key.id(), std::move(account_entry));
   }
 
-  // User type cannot be active directory, so we expect to have at least
-  // primary account in the list.
-  DCHECK(!update->empty());
+  if (!IsActiveDirectoryUser()) {
+    // If user type is not active directory, we expect to have at least primary
+    // account in the list.
+    DCHECK(!update->empty());
+  }
 
   is_initialized_ = true;
 

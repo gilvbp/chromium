@@ -100,10 +100,9 @@ void DCOMPTextureWrapperTest::CreateDXBackedVideoFrameTestTask(
 
   dcomp_texture_wrapper->CreateVideoFrame(
       frame_size, std::move(dx_handle),
-      base::BindOnce(
+      base::BindRepeating(
           [](gfx::Size orig_frame_size, base::WaitableEvent* wait_event,
-             scoped_refptr<media::VideoFrame> frame,
-             const gpu::Mailbox& mailbox) {
+             scoped_refptr<media::VideoFrame> frame) {
             EXPECT_EQ(frame->coded_size().width(), orig_frame_size.width());
             EXPECT_EQ(frame->coded_size().height(), orig_frame_size.height());
             wait_event->Signal();

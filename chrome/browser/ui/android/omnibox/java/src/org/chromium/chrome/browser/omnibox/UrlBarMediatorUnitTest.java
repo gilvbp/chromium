@@ -263,13 +263,16 @@ public class UrlBarMediatorUnitTest {
 
         String text = "foo";
         String textWithAutocomplete = "foo.bar";
-        mMediator.onTextChanged(text);
-        Mockito.verify(mMockUrlTextListener, Mockito.times(1)).onTextChanged(text);
+        mMediator.onTextChanged(text, textWithAutocomplete);
+        Mockito.verify(mMockUrlTextListener, Mockito.times(1))
+                .onTextChanged(text, textWithAutocomplete);
 
         mMediator.addUrlTextChangeListener(mAnotherUrlTextMockListener);
-        mMediator.onTextChanged(text);
-        Mockito.verify(mMockUrlTextListener, Mockito.times(2)).onTextChanged(text);
-        Mockito.verify(mAnotherUrlTextMockListener, Mockito.times(1)).onTextChanged(text);
+        mMediator.onTextChanged(text, textWithAutocomplete);
+        Mockito.verify(mMockUrlTextListener, Mockito.times(2))
+                .onTextChanged(text, textWithAutocomplete);
+        Mockito.verify(mAnotherUrlTextMockListener, Mockito.times(1))
+                .onTextChanged(text, textWithAutocomplete);
     }
 
     private static SpannableStringBuilder spannable(String text) {

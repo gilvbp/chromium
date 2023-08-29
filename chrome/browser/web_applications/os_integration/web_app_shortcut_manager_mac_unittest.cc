@@ -4,8 +4,8 @@
 
 #include "chrome/browser/web_applications/os_integration/web_app_shortcut_manager.h"
 
-#include "base/apple/foundation_util.h"
 #include "base/files/file_util.h"
+#include "base/mac/foundation_util.h"
 #include "base/test/bind.h"
 #include "chrome/browser/web_applications/os_integration/os_integration_manager.h"
 #include "chrome/browser/web_applications/test/fake_os_integration_manager.h"
@@ -33,7 +33,7 @@ class WebAppShortcutManagerMacTest : public WebAppTest {
   void SetUp() override {
     WebAppTest::SetUp();
 
-    base::apple::SetBaseBundleID(kFakeChromeBundleId);
+    base::mac::SetBaseBundleID(kFakeChromeBundleId);
     // Put shortcuts somewhere under the home dir, as otherwise LaunchServices
     // won't be able to find them.
     override_registration_ =
@@ -48,7 +48,8 @@ class WebAppShortcutManagerMacTest : public WebAppTest {
     auto protocol_handler_manager =
         std::make_unique<WebAppProtocolHandlerManager>(profile());
     auto shortcut_manager = std::make_unique<WebAppShortcutManager>(
-        profile(), file_handler_manager.get(), protocol_handler_manager.get());
+        profile(), /*icon_manager=*/nullptr, file_handler_manager.get(),
+        protocol_handler_manager.get());
     provider_->SetOsIntegrationManager(std::make_unique<OsIntegrationManager>(
         profile(), std::move(shortcut_manager), std::move(file_handler_manager),
         std::move(protocol_handler_manager),

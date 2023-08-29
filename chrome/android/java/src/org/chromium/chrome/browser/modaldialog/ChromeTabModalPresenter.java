@@ -11,6 +11,8 @@ import android.view.ViewGroup;
 import android.view.ViewGroup.MarginLayoutParams;
 import android.view.ViewStub;
 
+import androidx.annotation.VisibleForTesting;
+
 import org.chromium.base.supplier.Supplier;
 import org.chromium.cc.input.BrowserControlsState;
 import org.chromium.chrome.R;
@@ -330,6 +332,7 @@ public class ChromeTabModalPresenter
         return mActiveTab.getWebContents().getMainFrame().areInputEventsIgnored();
     }
 
+    @VisibleForTesting
     ViewGroup getContainerParentForTest() {
         return mContainerParent;
     }

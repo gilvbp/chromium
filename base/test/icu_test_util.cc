@@ -4,6 +4,8 @@
 
 #include "base/test/icu_test_util.h"
 
+#include "base/base_switches.h"
+#include "base/command_line.h"
 #include "base/i18n/icu_util.h"
 #include "base/i18n/rtl.h"
 #include "third_party/icu/source/common/unicode/uloc.h"
@@ -36,8 +38,11 @@ ScopedRestoreDefaultTimezone::~ScopedRestoreDefaultTimezone() {
 }
 
 void InitializeICUForTesting() {
-  i18n::AllowMultipleInitializeCallsForTesting();
-  i18n::InitializeICU();
+  if (!CommandLine::ForCurrentProcess()->HasSwitch(
+          switches::kTestDoNotInitializeIcu)) {
+    i18n::AllowMultipleInitializeCallsForTesting();
+    i18n::InitializeICU();
+  }
 }
 
 }  // namespace test

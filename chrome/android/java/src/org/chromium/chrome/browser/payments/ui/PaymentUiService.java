@@ -10,12 +10,14 @@ import android.os.Handler;
 import android.text.TextUtils;
 
 import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 
 import org.chromium.base.Callback;
 import org.chromium.chrome.R;
-import org.chromium.chrome.browser.autofill.AddressNormalizerFactory;
 import org.chromium.chrome.browser.autofill.AutofillAddress;
 import org.chromium.chrome.browser.autofill.PersonalDataManager;
+import org.chromium.chrome.browser.autofill.PersonalDataManager.AutofillProfile;
+import org.chromium.chrome.browser.autofill.PersonalDataManager.NormalizedAddressRequestDelegate;
 import org.chromium.chrome.browser.layouts.LayoutManagerProvider;
 import org.chromium.chrome.browser.layouts.LayoutStateProvider;
 import org.chromium.chrome.browser.layouts.LayoutStateProvider.LayoutStateObserver;
@@ -40,8 +42,6 @@ import org.chromium.chrome.browser.tabmodel.TabModelObserver;
 import org.chromium.chrome.browser.tabmodel.TabModelSelector;
 import org.chromium.chrome.browser.tabmodel.TabModelSelectorObserver;
 import org.chromium.chrome.browser.ui.favicon.FaviconHelper;
-import org.chromium.components.autofill.AddressNormalizer.NormalizedAddressRequestDelegate;
-import org.chromium.components.autofill.AutofillProfile;
 import org.chromium.components.autofill.Completable;
 import org.chromium.components.autofill.EditableOption;
 import org.chromium.components.browser_ui.settings.SettingsLauncher;
@@ -847,6 +847,7 @@ public class PaymentUiService
 
     // Implements PaymentUiServiceTestInterface:
     @Override
+    @VisibleForTesting(otherwise = VisibleForTesting.NONE)
     public WebContents getPaymentHandlerWebContentsForTest() {
         if (mPaymentHandlerUi == null) return null;
         return mPaymentHandlerUi.getWebContentsForTest();
@@ -854,6 +855,7 @@ public class PaymentUiService
 
     // Implements PaymentUiServiceTestInterface:
     @Override
+    @VisibleForTesting(otherwise = VisibleForTesting.NONE)
     public boolean clickPaymentHandlerSecurityIconForTest() {
         if (mPaymentHandlerUi == null) return false;
         mPaymentHandlerUi.clickSecurityIconForTest();
@@ -862,6 +864,7 @@ public class PaymentUiService
 
     // Implements PaymentUiServiceTestInterface:
     @Override
+    @VisibleForTesting(otherwise = VisibleForTesting.NONE)
     public boolean clickPaymentHandlerCloseButtonForTest() {
         if (mPaymentHandlerUi == null) return false;
         mPaymentHandlerUi.clickCloseButtonForTest();
@@ -870,6 +873,7 @@ public class PaymentUiService
 
     // Implements PaymentUiServiceTestInterface:
     @Override
+    @VisibleForTesting(otherwise = VisibleForTesting.NONE)
     public boolean closeDialogForTest() {
         if (!mHasClosed) close();
         return true;
@@ -1137,8 +1141,7 @@ public class PaymentUiService
             String countryCode = AutofillAddress.getCountryCode(addresses.get(i).getProfile());
             if (!uniqueCountryCodes.contains(countryCode)) {
                 uniqueCountryCodes.add(countryCode);
-                AddressNormalizerFactory.getInstance().loadRulesForAddressNormalization(
-                        countryCode);
+                PersonalDataManager.getInstance().loadRulesForAddressNormalization(countryCode);
             }
         }
 
@@ -1433,8 +1436,7 @@ public class PaymentUiService
     private void startShippingAddressChangeNormalization(AutofillAddress address) {
         // Will call back into either onAddressNormalized or onCouldNotNormalize which will send the
         // result to the merchant.
-        AddressNormalizerFactory.getInstance().normalizeAddress(
-                address.getProfile(), /*delegate=*/this);
+        PersonalDataManager.getInstance().normalizeAddress(address.getProfile(), /*delegate=*/this);
     }
 
     /** @return Whether at least one payment app is available. */

@@ -20,9 +20,7 @@
 
 namespace autofill {
 
-class AutofillProgressDialogViewsBrowserTest
-    : public DialogBrowserTest,
-      public testing::WithParamInterface<std::string> {
+class AutofillProgressDialogViewsBrowserTest : public DialogBrowserTest {
  public:
   AutofillProgressDialogViewsBrowserTest() = default;
   ~AutofillProgressDialogViewsBrowserTest() override = default;
@@ -31,22 +29,12 @@ class AutofillProgressDialogViewsBrowserTest
   AutofillProgressDialogViewsBrowserTest& operator=(
       const AutofillProgressDialogViewsBrowserTest&) = delete;
 
-  AutofillProgressDialogType GetDialogType() const {
-    if (GetParam() == "VirtualCardUnmask") {
-      return AutofillProgressDialogType::kVirtualCardUnmaskProgressDialog;
-    } else if (GetParam() == "ServerCardUnmask") {
-      return AutofillProgressDialogType::kServerCardUnmaskProgressDialog;
-    }
-    NOTREACHED_NORETURN();
-  }
-
-  std::string GetDialogTypeStringForLogging() const {
-    return std::string(
-        AutofillMetrics::GetDialogTypeStringForLogging(GetDialogType()));
-  }
-
   void ShowUi(const std::string& name) override {
-    controller()->ShowDialog(GetDialogType(), base::DoNothing());
+    AutofillProgressDialogType autofill_progress_dialog_type_;
+    CHECK_EQ(name, "VirtualCardUnmask");
+    autofill_progress_dialog_type_ =
+        AutofillProgressDialogType::kVirtualCardUnmaskProgressDialog;
+    controller()->ShowDialog(autofill_progress_dialog_type_, base::DoNothing());
   }
 
   AutofillProgressDialogViews* GetDialogViews() {
@@ -67,59 +55,49 @@ class AutofillProgressDialogViewsBrowserTest
   }
 };
 
-IN_PROC_BROWSER_TEST_P(AutofillProgressDialogViewsBrowserTest,
+IN_PROC_BROWSER_TEST_F(AutofillProgressDialogViewsBrowserTest,
                        InvokeUi_VirtualCardUnmask) {
   base::HistogramTester histogram_tester;
   ShowAndVerifyUi();
   histogram_tester.ExpectUniqueSample(
-      base::StrCat({"Autofill.ProgressDialog.", GetDialogTypeStringForLogging(),
-                    ".Shown"}),
-      true, 1);
+      "Autofill.ProgressDialog.CardUnmask.Shown", true, 1);
 }
 
 // Ensures closing current tab while dialog being visible is correctly handle
 // and the browser won't crash.
-IN_PROC_BROWSER_TEST_P(AutofillProgressDialogViewsBrowserTest,
+IN_PROC_BROWSER_TEST_F(AutofillProgressDialogViewsBrowserTest,
                        CloseTabWhileDialogShowing) {
   base::HistogramTester histogram_tester;
-  ShowUi(GetDialogTypeStringForLogging());
+  ShowUi("VirtualCardUnmask");
   VerifyUi();
   browser()->tab_strip_model()->GetActiveWebContents()->Close();
   base::RunLoop().RunUntilIdle();
   histogram_tester.ExpectUniqueSample(
-      base::StrCat({"Autofill.ProgressDialog.", GetDialogTypeStringForLogging(),
-                    ".Shown"}),
-      true, 1);
+      "Autofill.ProgressDialog.CardUnmask.Shown", true, 1);
   histogram_tester.ExpectUniqueSample(
-      base::StrCat({"Autofill.ProgressDialog.", GetDialogTypeStringForLogging(),
-                    ".Result"}),
-      true, 1);
+      "Autofill.ProgressDialog.CardUnmask.Result", true, 1);
 }
 
 // Ensures closing browser while dialog being visible is correctly handled and
 // the browser won't crash.
-IN_PROC_BROWSER_TEST_P(AutofillProgressDialogViewsBrowserTest,
+IN_PROC_BROWSER_TEST_F(AutofillProgressDialogViewsBrowserTest,
                        CloseBrowserWhileDialogShowing) {
   base::HistogramTester histogram_tester;
-  ShowUi(GetDialogTypeStringForLogging());
+  ShowUi("VirtualCardUnmask");
   VerifyUi();
   browser()->window()->Close();
   base::RunLoop().RunUntilIdle();
   histogram_tester.ExpectUniqueSample(
-      base::StrCat({"Autofill.ProgressDialog.", GetDialogTypeStringForLogging(),
-                    ".Shown"}),
-      true, 1);
+      "Autofill.ProgressDialog.CardUnmask.Shown", true, 1);
   histogram_tester.ExpectUniqueSample(
-      base::StrCat({"Autofill.ProgressDialog.", GetDialogTypeStringForLogging(),
-                    ".Result"}),
-      true, 1);
+      "Autofill.ProgressDialog.CardUnmask.Result", true, 1);
 }
 
 // Ensures clicking on the cancel button is correctly handled.
-IN_PROC_BROWSER_TEST_P(AutofillProgressDialogViewsBrowserTest,
+IN_PROC_BROWSER_TEST_F(AutofillProgressDialogViewsBrowserTest,
                        ClickCancelButton) {
   base::HistogramTester histogram_tester;
-  ShowUi(GetDialogTypeStringForLogging());
+  ShowUi("VirtualCardUnmask");
   VerifyUi();
   auto* dialog_views = GetDialogViews();
   ASSERT_TRUE(dialog_views);
@@ -129,20 +107,16 @@ IN_PROC_BROWSER_TEST_P(AutofillProgressDialogViewsBrowserTest,
   destroyed_waiter.Wait();
   EXPECT_FALSE(GetDialogViews());
   histogram_tester.ExpectUniqueSample(
-      base::StrCat({"Autofill.ProgressDialog.", GetDialogTypeStringForLogging(),
-                    ".Shown"}),
-      true, 1);
+      "Autofill.ProgressDialog.CardUnmask.Shown", true, 1);
   histogram_tester.ExpectUniqueSample(
-      base::StrCat({"Autofill.ProgressDialog.", GetDialogTypeStringForLogging(),
-                    ".Result"}),
-      true, 1);
+      "Autofill.ProgressDialog.CardUnmask.Result", true, 1);
 }
 
 // Ensures the dialog closing with confirmation works properly.
-IN_PROC_BROWSER_TEST_P(AutofillProgressDialogViewsBrowserTest,
+IN_PROC_BROWSER_TEST_F(AutofillProgressDialogViewsBrowserTest,
                        CloseDialogWithConfirmation) {
   base::HistogramTester histogram_tester;
-  ShowUi(GetDialogTypeStringForLogging());
+  ShowUi("VirtualCardUnmask");
   VerifyUi();
   auto* dialog_views = GetDialogViews();
   ASSERT_TRUE(dialog_views);
@@ -159,18 +133,9 @@ IN_PROC_BROWSER_TEST_P(AutofillProgressDialogViewsBrowserTest,
   testing::Mock::VerifyAndClearExpectations(
       &no_interactive_authentication_callback);
   histogram_tester.ExpectUniqueSample(
-      base::StrCat({"Autofill.ProgressDialog.", GetDialogTypeStringForLogging(),
-                    ".Shown"}),
-      true, 1);
+      "Autofill.ProgressDialog.CardUnmask.Shown", true, 1);
   histogram_tester.ExpectUniqueSample(
-      base::StrCat({"Autofill.ProgressDialog.", GetDialogTypeStringForLogging(),
-                    ".Result"}),
-      false, 1);
+      "Autofill.ProgressDialog.CardUnmask.Result", false, 1);
 }
-
-INSTANTIATE_TEST_SUITE_P(,
-                         AutofillProgressDialogViewsBrowserTest,
-                         testing::Values("VirtualCardUnmask",
-                                         "ServerCardUnmask"));
 
 }  // namespace autofill

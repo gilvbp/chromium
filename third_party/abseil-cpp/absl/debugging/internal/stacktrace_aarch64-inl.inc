@@ -13,7 +13,6 @@
 #include <cassert>
 #include <cstdint>
 #include <iostream>
-#include <limits>
 
 #include "absl/base/attributes.h"
 #include "absl/debugging/internal/address_is_readable.h"

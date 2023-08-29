@@ -25,18 +25,11 @@ DevicePostureProviderImpl::DevicePostureProviderImpl(
 DevicePostureProviderImpl::~DevicePostureProviderImpl() = default;
 
 void DevicePostureProviderImpl::AddListenerAndGetCurrentPosture(
-    mojo::PendingRemote<mojom::DevicePostureClient> client,
+    mojo::PendingRemote<mojom::DevicePostureProviderClient> client,
     AddListenerAndGetCurrentPostureCallback callback) {
-  posture_clients_.Add(std::move(client));
+  clients_.Add(std::move(client));
   mojom::DevicePostureType posture = platform_provider_->GetDevicePosture();
   std::move(callback).Run(posture);
-}
-
-void DevicePostureProviderImpl::AddListenerAndGetCurrentViewportSegments(
-    mojo::PendingRemote<mojom::DeviceViewportSegmentsClient> client,
-    AddListenerAndGetCurrentViewportSegmentsCallback callback) {
-  viewport_segments_clients_.Add(std::move(client));
-  std::move(callback).Run(platform_provider_->GetViewportSegments());
 }
 
 void DevicePostureProviderImpl::Bind(
@@ -48,16 +41,8 @@ void DevicePostureProviderImpl::Bind(
 
 void DevicePostureProviderImpl::OnDevicePostureChanged(
     const mojom::DevicePostureType& posture) {
-  for (auto& client : posture_clients_) {
+  for (auto& client : clients_)
     client->OnPostureChanged(posture);
-  }
-}
-
-void DevicePostureProviderImpl::OnViewportSegmentsChanged(
-    const std::vector<gfx::Rect>& segments) {
-  for (auto& client : viewport_segments_clients_) {
-    client->OnViewportSegmentsChanged(segments);
-  }
 }
 
 void DevicePostureProviderImpl::OnReceiverConnectionError() {

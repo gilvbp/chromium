@@ -51,7 +51,10 @@ void KeystonePromotionInfoBarDelegate::Create(
 
 KeystonePromotionInfoBarDelegate::KeystonePromotionInfoBarDelegate(
     PrefService* prefs)
-    : prefs_(prefs), can_expire_(false), weak_ptr_factory_(this) {
+    : ConfirmInfoBarDelegate(),
+      prefs_(prefs),
+      can_expire_(false),
+      weak_ptr_factory_(this) {
   const base::TimeDelta kCanExpireOnNavigationAfterDelay = base::Seconds(8);
   base::SingleThreadTaskRunner::GetCurrentDefault()->PostDelayedTask(
       FROM_HERE,
@@ -60,7 +63,8 @@ KeystonePromotionInfoBarDelegate::KeystonePromotionInfoBarDelegate(
       kCanExpireOnNavigationAfterDelay);
 }
 
-KeystonePromotionInfoBarDelegate::~KeystonePromotionInfoBarDelegate() = default;
+KeystonePromotionInfoBarDelegate::~KeystonePromotionInfoBarDelegate() {
+}
 
 infobars::InfoBarDelegate::InfoBarIdentifier
 KeystonePromotionInfoBarDelegate::GetIdentifier() const {
@@ -109,12 +113,11 @@ bool KeystonePromotionInfoBarDelegate::Cancel() {
 - (void)removeObserver;
 @end  // @interface KeystonePromotionInfoBar
 
-KeystonePromotionInfoBar* g_currentPromotionInfoBar;
-
 @implementation KeystonePromotionInfoBar
 
 - (void)dealloc {
   [self removeObserver];
+  [super dealloc];
 }
 
 - (void)checkAndShowInfoBarForProfile:(Profile*)profile {
@@ -152,17 +155,18 @@ KeystonePromotionInfoBar* g_currentPromotionInfoBar;
                   }),
                   base::DoNothing());
   } else {
-    // Stay alive as long as needed.  This is balanced in -updateStatus:.
-    g_currentPromotionInfoBar = self;
+    // Stay alive as long as needed.  This is balanced by a release in
+    // -updateStatus:.
+    [self retain];
 
     AutoupdateStatus recentStatus = [keystoneGlue recentStatus];
     if (recentStatus == kAutoupdateNone ||
         recentStatus == kAutoupdateRegistering) {
-      [NSNotificationCenter.defaultCenter
-          addObserver:self
-             selector:@selector(updateStatus:)
-                 name:kAutoupdateStatusNotification
-               object:nil];
+      NSNotificationCenter* center = [NSNotificationCenter defaultCenter];
+      [center addObserver:self
+                 selector:@selector(updateStatus:)
+                     name:kAutoupdateStatusNotification
+                   object:nil];
     } else {
       [self updateStatus:[keystoneGlue recentNotification]];
     }
@@ -191,11 +195,11 @@ KeystonePromotionInfoBar* g_currentPromotionInfoBar;
     }
   }
 
-  g_currentPromotionInfoBar = nil;
+  [self release];
 }
 
 - (void)removeObserver {
-  [NSNotificationCenter.defaultCenter removeObserver:self];
+  [[NSNotificationCenter defaultCenter] removeObserver:self];
 }
 
 @end  // @implementation KeystonePromotionInfoBar
@@ -203,7 +207,7 @@ KeystonePromotionInfoBar* g_currentPromotionInfoBar;
 // static
 void KeystoneInfoBar::PromotionInfoBar(Profile* profile) {
   KeystonePromotionInfoBar* promotionInfoBar =
-      [[KeystonePromotionInfoBar alloc] init];
+      [[[KeystonePromotionInfoBar alloc] init] autorelease];
 
   [promotionInfoBar checkAndShowInfoBarForProfile:profile];
 }

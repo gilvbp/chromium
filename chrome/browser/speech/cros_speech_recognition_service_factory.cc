@@ -44,10 +44,9 @@ CrosSpeechRecognitionServiceFactory::CrosSpeechRecognitionServiceFactory()
 CrosSpeechRecognitionServiceFactory::~CrosSpeechRecognitionServiceFactory() =
     default;
 
-std::unique_ptr<KeyedService>
-CrosSpeechRecognitionServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* CrosSpeechRecognitionServiceFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
-  return std::make_unique<speech::CrosSpeechRecognitionService>(context);
+  return new speech::CrosSpeechRecognitionService(context);
 }
 
 // static

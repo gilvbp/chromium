@@ -6,14 +6,14 @@
 
 #include <Security/Security.h>
 
-#include "base/apple/foundation_util.h"
-#include "base/apple/osstatus_logging.h"
 #include "base/atomicops.h"
 #include "base/callback_list.h"
 #include "base/containers/contains.h"
 #include "base/containers/flat_map.h"
 #include "base/functional/bind.h"
 #include "base/logging.h"
+#include "base/mac/foundation_util.h"
+#include "base/mac/mac_logging.h"
 #include "base/metrics/histogram_functions.h"
 #include "base/no_destructor.h"
 #include "base/numerics/safe_conversions.h"
@@ -126,17 +126,17 @@ TrustStatus IsTrustDictionaryTrustedForPolicy(
   // |target_policy_oid|. If there is no kSecTrustSettingsPolicy key, it's
   // considered a match for all policies.
   if (CFDictionaryContainsKey(trust_dict, kSecTrustSettingsPolicy)) {
-    SecPolicyRef policy_ref = base::apple::GetValueFromDictionary<SecPolicyRef>(
+    SecPolicyRef policy_ref = base::mac::GetValueFromDictionary<SecPolicyRef>(
         trust_dict, kSecTrustSettingsPolicy);
     if (!policy_ref) {
       *debug_info |= TrustStoreMac::TRUST_SETTINGS_DICT_INVALID_POLICY_TYPE;
       return TrustStatus::UNSPECIFIED;
     }
-    base::apple::ScopedCFTypeRef<CFDictionaryRef> policy_dict(
+    base::ScopedCFTypeRef<CFDictionaryRef> policy_dict(
         SecPolicyCopyProperties(policy_ref));
 
     // kSecPolicyOid is guaranteed to be present in the policy dictionary.
-    CFStringRef policy_oid = base::apple::GetValueFromDictionary<CFStringRef>(
+    CFStringRef policy_oid = base::mac::GetValueFromDictionary<CFStringRef>(
         policy_dict, kSecPolicyOid);
 
     if (!CFEqual(policy_oid, target_policy_oid))
@@ -148,8 +148,8 @@ TrustStatus IsTrustDictionaryTrustedForPolicy(
   int trust_settings_result = kSecTrustSettingsResultTrustRoot;
   if (CFDictionaryContainsKey(trust_dict, kSecTrustSettingsResult)) {
     CFNumberRef trust_settings_result_ref =
-        base::apple::GetValueFromDictionary<CFNumberRef>(
-            trust_dict, kSecTrustSettingsResult);
+        base::mac::GetValueFromDictionary<CFNumberRef>(trust_dict,
+                                                       kSecTrustSettingsResult);
     if (!trust_settings_result_ref ||
         !CFNumberGetValue(trust_settings_result_ref, kCFNumberIntType,
                           &trust_settings_result)) {
@@ -221,7 +221,7 @@ TrustStatus IsSecCertificateTrustedForPolicyInDomain(
     int* debug_info) {
   crypto::GetMacSecurityServicesLock().AssertAcquired();
 
-  base::apple::ScopedCFTypeRef<CFArrayRef> trust_settings;
+  base::ScopedCFTypeRef<CFArrayRef> trust_settings;
   OSStatus err = SecTrustSettingsCopyTrustSettings(
       cert_handle, trust_domain, trust_settings.InitializeInto());
 
@@ -254,7 +254,7 @@ TrustStatus IsCertificateTrustedForPolicyInDomain(
   // a cert will have trust settings in only zero or one domains, and when in
   // more than one domain it would generally be because one domain is
   // overriding the setting in the next, so it would only get done once anyway.
-  base::apple::ScopedCFTypeRef<SecCertificateRef> cert_handle =
+  base::ScopedCFTypeRef<SecCertificateRef> cert_handle =
       x509_util::CreateSecCertificateFromBytes(cert->der_cert().UnsafeData(),
                                                cert->der_cert().Length());
   if (!cert_handle)
@@ -280,7 +280,7 @@ TrustStatus IsCertificateTrustedForPolicy(const ParsedCertificate* cert,
   // admin (and both override the system domain, but we don't check that).
   for (const auto& trust_domain :
        {kSecTrustSettingsDomainUser, kSecTrustSettingsDomainAdmin}) {
-    base::apple::ScopedCFTypeRef<CFArrayRef> trust_settings;
+    base::ScopedCFTypeRef<CFArrayRef> trust_settings;
     OSStatus err;
     err = SecTrustSettingsCopyTrustSettings(cert_handle, trust_domain,
                                             trust_settings.InitializeInto());
@@ -307,7 +307,7 @@ TrustStatus IsCertificateTrustedForPolicy(const ParsedCertificate* cert,
 TrustStatus IsCertificateTrustedForPolicy(const ParsedCertificate* cert,
                                           const CFStringRef policy_oid,
                                           int* debug_info) {
-  base::apple::ScopedCFTypeRef<SecCertificateRef> cert_handle =
+  base::ScopedCFTypeRef<SecCertificateRef> cert_handle =
       x509_util::CreateSecCertificateFromBytes(cert->der_cert().UnsafeData(),
                                                cert->der_cert().Length());
 
@@ -378,7 +378,7 @@ class TrustDomainCacheFullCerts {
     trust_status_cache_.clear();
     cert_issuer_source_.Clear();
 
-    base::apple::ScopedCFTypeRef<CFArrayRef> cert_array;
+    base::ScopedCFTypeRef<CFArrayRef> cert_array;
     OSStatus rv;
     {
       base::AutoLock lock(crypto::GetMacSecurityServicesLock());
@@ -396,8 +396,7 @@ class TrustDomainCacheFullCerts {
     for (CFIndex i = 0, size = CFArrayGetCount(cert_array); i < size; ++i) {
       SecCertificateRef cert = reinterpret_cast<SecCertificateRef>(
           const_cast<void*>(CFArrayGetValueAtIndex(cert_array, i)));
-      base::apple::ScopedCFTypeRef<CFDataRef> der_data(
-          SecCertificateCopyData(cert));
+      base::ScopedCFTypeRef<CFDataRef> der_data(SecCertificateCopyData(cert));
       if (!der_data) {
         LOG(ERROR) << "SecCertificateCopyData error";
         continue;
@@ -775,7 +774,7 @@ class TrustStoreMac::TrustImplDomainCacheFullCerts
 
     intermediates_cert_issuer_source_.Clear();
 
-    base::apple::ScopedCFTypeRef<CFMutableDictionaryRef> query(
+    base::ScopedCFTypeRef<CFMutableDictionaryRef> query(
         CFDictionaryCreateMutable(nullptr, 0, &kCFTypeDictionaryKeyCallBacks,
                                   &kCFTypeDictionaryValueCallBacks));
 
@@ -785,8 +784,7 @@ class TrustStoreMac::TrustImplDomainCacheFullCerts
 
     base::AutoLock lock(crypto::GetMacSecurityServicesLock());
 
-    base::apple::ScopedCFTypeRef<CFArrayRef>
-        scoped_alternate_keychain_search_list;
+    base::ScopedCFTypeRef<CFArrayRef> scoped_alternate_keychain_search_list;
     if (TestKeychainSearchList::HasInstance()) {
       OSStatus status = TestKeychainSearchList::GetInstance()->CopySearchList(
           scoped_alternate_keychain_search_list.InitializeInto());
@@ -799,7 +797,7 @@ class TrustStoreMac::TrustImplDomainCacheFullCerts
                            scoped_alternate_keychain_search_list.get());
     }
 
-    base::apple::ScopedCFTypeRef<CFTypeRef> matching_items;
+    base::ScopedCFTypeRef<CFTypeRef> matching_items;
     OSStatus err = SecItemCopyMatching(query, matching_items.InitializeInto());
     if (err == errSecItemNotFound) {
       RecordCachedIntermediatesHistograms(0, timer.Elapsed());
@@ -812,11 +810,11 @@ class TrustStoreMac::TrustImplDomainCacheFullCerts
       return;
     }
     CFArrayRef matching_items_array =
-        base::apple::CFCastStrict<CFArrayRef>(matching_items);
+        base::mac::CFCastStrict<CFArrayRef>(matching_items);
     for (CFIndex i = 0, item_count = CFArrayGetCount(matching_items_array);
          i < item_count; ++i) {
       SecCertificateRef match_cert_handle =
-          base::apple::CFCastStrict<SecCertificateRef>(
+          base::mac::CFCastStrict<SecCertificateRef>(
               CFArrayGetValueAtIndex(matching_items_array, i));
 
       // If cert is already in the trust domain certs cache, don't bother
@@ -828,7 +826,7 @@ class TrustStoreMac::TrustImplDomainCacheFullCerts
         continue;
       }
 
-      base::apple::ScopedCFTypeRef<CFDataRef> der_data(
+      base::ScopedCFTypeRef<CFDataRef> der_data(
           SecCertificateCopyData(match_cert_handle));
       if (!der_data) {
         LOG(ERROR) << "SecCertificateCopyData error";
@@ -873,7 +871,7 @@ class TrustStoreMac::TrustImplDomainCacheFullCerts
       keychain_trust_observer_;
   const std::unique_ptr<KeychainCertsObserver, base::OnTaskRunnerDeleter>
       keychain_certs_observer_;
-  const base::apple::ScopedCFTypeRef<CFStringRef> policy_oid_;
+  const base::ScopedCFTypeRef<CFStringRef> policy_oid_;
 
   base::Lock cache_lock_;
   // |cache_lock_| must be held while accessing any following members.
@@ -958,7 +956,7 @@ class TrustStoreMac::TrustImplKeychainCacheFullCerts
     trust_status_cache_.clear();
     cert_issuer_source_.Clear();
 
-    base::apple::ScopedCFTypeRef<CFMutableDictionaryRef> query(
+    base::ScopedCFTypeRef<CFMutableDictionaryRef> query(
         CFDictionaryCreateMutable(nullptr, 0, &kCFTypeDictionaryKeyCallBacks,
                                   &kCFTypeDictionaryValueCallBacks));
 
@@ -968,8 +966,7 @@ class TrustStoreMac::TrustImplKeychainCacheFullCerts
 
     base::AutoLock lock(crypto::GetMacSecurityServicesLock());
 
-    base::apple::ScopedCFTypeRef<CFArrayRef>
-        scoped_alternate_keychain_search_list;
+    base::ScopedCFTypeRef<CFArrayRef> scoped_alternate_keychain_search_list;
     if (TestKeychainSearchList::HasInstance()) {
       OSStatus status = TestKeychainSearchList::GetInstance()->CopySearchList(
           scoped_alternate_keychain_search_list.InitializeInto());
@@ -982,7 +979,7 @@ class TrustStoreMac::TrustImplKeychainCacheFullCerts
                            scoped_alternate_keychain_search_list.get());
     }
 
-    base::apple::ScopedCFTypeRef<CFTypeRef> matching_items;
+    base::ScopedCFTypeRef<CFTypeRef> matching_items;
     OSStatus err = SecItemCopyMatching(query, matching_items.InitializeInto());
     if (err == errSecItemNotFound) {
       RecordHistograms(0, timer.Elapsed());
@@ -995,14 +992,14 @@ class TrustStoreMac::TrustImplKeychainCacheFullCerts
       return;
     }
     CFArrayRef matching_items_array =
-        base::apple::CFCastStrict<CFArrayRef>(matching_items);
+        base::mac::CFCastStrict<CFArrayRef>(matching_items);
     std::vector<std::pair<SHA256HashValue, TrustStatus>> trust_status_vector;
     for (CFIndex i = 0, item_count = CFArrayGetCount(matching_items_array);
          i < item_count; ++i) {
-      SecCertificateRef sec_cert = base::apple::CFCastStrict<SecCertificateRef>(
+      SecCertificateRef sec_cert = base::mac::CFCastStrict<SecCertificateRef>(
           CFArrayGetValueAtIndex(matching_items_array, i));
 
-      base::apple::ScopedCFTypeRef<CFDataRef> der_data(
+      base::ScopedCFTypeRef<CFDataRef> der_data(
           SecCertificateCopyData(sec_cert));
       if (!der_data) {
         LOG(ERROR) << "SecCertificateCopyData error";
@@ -1062,7 +1059,7 @@ class TrustStoreMac::TrustImplKeychainCacheFullCerts
 
   const std::unique_ptr<KeychainTrustOrCertsObserver, base::OnTaskRunnerDeleter>
       keychain_observer_;
-  const base::apple::ScopedCFTypeRef<CFStringRef> policy_oid_;
+  const base::ScopedCFTypeRef<CFStringRef> policy_oid_;
 
   base::Lock cache_lock_;
   // |cache_lock_| must be held while accessing any following members.
@@ -1135,8 +1132,7 @@ void TrustStoreMac::SyncGetIssuersOf(const ParsedCertificate* cert,
     return;
   }
 
-  base::apple::ScopedCFTypeRef<CFDataRef> name_data =
-      GetMacNormalizedIssuer(cert);
+  base::ScopedCFTypeRef<CFDataRef> name_data = GetMacNormalizedIssuer(cert);
   if (!name_data)
     return;
 
@@ -1202,7 +1198,7 @@ std::vector<bssl::UniquePtr<CRYPTO_BUFFER>>
 TrustStoreMac::FindMatchingCertificatesForMacNormalizedSubject(
     CFDataRef name_data) {
   std::vector<bssl::UniquePtr<CRYPTO_BUFFER>> matching_cert_buffers;
-  base::apple::ScopedCFTypeRef<CFMutableDictionaryRef> query(
+  base::ScopedCFTypeRef<CFMutableDictionaryRef> query(
       CFDictionaryCreateMutable(nullptr, 0, &kCFTypeDictionaryKeyCallBacks,
                                 &kCFTypeDictionaryValueCallBacks));
 
@@ -1213,8 +1209,7 @@ TrustStoreMac::FindMatchingCertificatesForMacNormalizedSubject(
 
   base::AutoLock lock(crypto::GetMacSecurityServicesLock());
 
-  base::apple::ScopedCFTypeRef<CFArrayRef>
-      scoped_alternate_keychain_search_list;
+  base::ScopedCFTypeRef<CFArrayRef> scoped_alternate_keychain_search_list;
   if (TestKeychainSearchList::HasInstance()) {
     OSStatus status = TestKeychainSearchList::GetInstance()->CopySearchList(
         scoped_alternate_keychain_search_list.InitializeInto());
@@ -1230,7 +1225,7 @@ TrustStoreMac::FindMatchingCertificatesForMacNormalizedSubject(
                          scoped_alternate_keychain_search_list.get());
   }
 
-  base::apple::ScopedCFTypeRef<CFArrayRef> matching_items;
+  base::ScopedCFTypeRef<CFArrayRef> matching_items;
   OSStatus err = SecItemCopyMatching(
       query, reinterpret_cast<CFTypeRef*>(matching_items.InitializeInto()));
   if (err == errSecItemNotFound) {
@@ -1247,7 +1242,7 @@ TrustStoreMac::FindMatchingCertificatesForMacNormalizedSubject(
     SecCertificateRef match_cert_handle = reinterpret_cast<SecCertificateRef>(
         const_cast<void*>(CFArrayGetValueAtIndex(matching_items, i)));
 
-    base::apple::ScopedCFTypeRef<CFDataRef> der_data(
+    base::ScopedCFTypeRef<CFDataRef> der_data(
         SecCertificateCopyData(match_cert_handle));
     if (!der_data) {
       LOG(ERROR) << "SecCertificateCopyData error";
@@ -1262,13 +1257,13 @@ TrustStoreMac::FindMatchingCertificatesForMacNormalizedSubject(
 }
 
 // static
-base::apple::ScopedCFTypeRef<CFDataRef> TrustStoreMac::GetMacNormalizedIssuer(
+base::ScopedCFTypeRef<CFDataRef> TrustStoreMac::GetMacNormalizedIssuer(
     const ParsedCertificate* cert) {
-  base::apple::ScopedCFTypeRef<CFDataRef> name_data;
+  base::ScopedCFTypeRef<CFDataRef> name_data;
   base::AutoLock lock(crypto::GetMacSecurityServicesLock());
   // There does not appear to be any public API to get the normalized version
   // of a Name without creating a SecCertificate.
-  base::apple::ScopedCFTypeRef<SecCertificateRef> cert_handle(
+  base::ScopedCFTypeRef<SecCertificateRef> cert_handle(
       x509_util::CreateSecCertificateFromBytes(cert->der_cert().UnsafeData(),
                                                cert->der_cert().Length()));
   if (!cert_handle) {

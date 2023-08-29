@@ -64,15 +64,6 @@ class MEDIA_GPU_EXPORT MailboxVideoFrameConverter {
                       GrSurfaceOrigin surface_origin,
                       SkAlphaType alpha_type,
                       uint32_t usage) = 0;
-    virtual gpu::SharedImageStub::SharedImageDestructionCallback
-    CreateSharedImage(const gpu::Mailbox& mailbox,
-                      gfx::GpuMemoryBufferHandle handle,
-                      viz::SharedImageFormat format,
-                      const gfx::Size& size,
-                      const gfx::ColorSpace& color_space,
-                      GrSurfaceOrigin surface_origin,
-                      SkAlphaType alpha_type,
-                      uint32_t usage) = 0;
     virtual bool UpdateSharedImage(const gpu::Mailbox& mailbox,
                                    gfx::GpuFenceHandle in_fence_handle) = 0;
     virtual bool WaitOnSyncTokenAndReleaseFrame(
@@ -81,11 +72,13 @@ class MEDIA_GPU_EXPORT MailboxVideoFrameConverter {
   };
 
   // Creates a MailboxVideoFrameConverter instance. |gpu_task_runner| is the
-  // task runner of the GPU main thread. Returns nullptr if the
-  // MailboxVideoFrameConverter can't be created.
+  // task runner of the GPU main thread. |enable_unsafe_webgpu| hints whether to
+  // request the creation of SharedImages with SHARED_IMAGE_USAGE_WEBGPU.
+  // Returns nullptr if the MailboxVideoFrameConverter can't be created.
   static std::unique_ptr<MailboxVideoFrameConverter> Create(
       scoped_refptr<base::SingleThreadTaskRunner> gpu_task_runner,
-      GetCommandBufferStubCB get_stub_cb);
+      GetCommandBufferStubCB get_stub_cb,
+      bool enable_unsafe_webgpu);
 
   MailboxVideoFrameConverter(const MailboxVideoFrameConverter&) = delete;
   MailboxVideoFrameConverter& operator=(const MailboxVideoFrameConverter&) =
@@ -131,7 +124,8 @@ class MEDIA_GPU_EXPORT MailboxVideoFrameConverter {
 
   MailboxVideoFrameConverter(
       scoped_refptr<base::SingleThreadTaskRunner> gpu_task_runner,
-      std::unique_ptr<GpuDelegate> gpu_delegate);
+      std::unique_ptr<GpuDelegate> gpu_delegate,
+      bool enable_unsafe_webgpu);
   // Destructor runs on the GPU main thread.
   ~MailboxVideoFrameConverter();
 
@@ -233,6 +227,8 @@ class MEDIA_GPU_EXPORT MailboxVideoFrameConverter {
   // TODO(crbug.com/998279): remove this member entirely.
   base::queue<std::pair<scoped_refptr<VideoFrame>, UniqueID>>
       input_frame_queue_;
+
+  const bool enable_unsafe_webgpu_;
 
   // The working task runner.
   scoped_refptr<base::SequencedTaskRunner> parent_task_runner_;

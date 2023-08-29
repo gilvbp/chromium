@@ -167,8 +167,7 @@ void VideoDetector::OnFrameSinkIdInvalidated(const FrameSinkId& frame_sink_id) {
 }
 
 bool VideoDetector::OnSurfaceDamaged(const SurfaceId& surface_id,
-                                     const BeginFrameAck& ack,
-                                     HandleInteraction handle_interaction) {
+                                     const BeginFrameAck& ack) {
   return false;
 }
 

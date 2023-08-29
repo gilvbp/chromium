@@ -56,7 +56,6 @@ class ASH_EXPORT LoginMetricsRecorder {
     kEnterpriseEnrollmentButton,
     kSignIn,
     kOsInstallButton,
-    kSchoolEnrollmentButton,
     kTargetCount,
   };
 
@@ -85,7 +84,6 @@ class ASH_EXPORT LoginMetricsRecorder {
     kEnterpriseEnrollmentButton,
     kOsInstallButton,
     kSignIn,
-    kSchoolEnrollmentButton,
     kTargetCount,
   };
 

@@ -29,7 +29,7 @@ class HealthModuleDelegateImpl : public HealthModuleDelegate {
   explicit HealthModuleDelegateImpl(
       const base::FilePath& directory,
       size_t max_history_storage = kNaxHistoryStorage,
-      std::string_view file_base_name = kHistoryFileBasename);
+      base::StringPiece file_base_name = kHistoryFileBasename);
   HealthModuleDelegateImpl(const HealthModuleDelegateImpl& other) = delete;
   HealthModuleDelegateImpl& operator=(const HealthModuleDelegateImpl& other) =
       delete;

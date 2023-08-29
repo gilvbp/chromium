@@ -24,11 +24,9 @@
 #include "sql/database.h"
 #include "sql/error_delegate_util.h"
 #include "sql/meta_table.h"
-#include "sql/recovery.h"
 #include "sql/statement.h"
 #include "sql/transaction.h"
 #include "storage/browser/quota/quota_database_migrations.h"
-#include "storage/browser/quota/quota_features.h"
 #include "storage/browser/quota/quota_internals.mojom.h"
 #include "storage/browser/quota/special_storage_policy.h"
 #include "url/gurl.h"
@@ -817,16 +815,37 @@ QuotaError QuotaDatabase::SetIsBootstrapped(bool bootstrap_flag) {
              : QuotaError::kDatabaseError;
 }
 
-bool QuotaDatabase::RecoverOrRaze(int error_code) {
+QuotaError QuotaDatabase::RazeAndReopen() {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
 
-  std::ignore = sql::BuiltInRecovery::RecoverIfPossible(
-      db_.get(), error_code,
-      sql::BuiltInRecovery::Strategy::kRecoverWithMetaVersionOrRaze, nullptr);
+  // Opening failed, don't bother to try again. If the error occurred while
+  // opening the db, it won't be open and trying to raze it will result in a
+  // MISUSE error.
+  if (db_ && !db_->is_open()) {
+    return QuotaError::kDatabaseError;
+  }
 
+  // Try creating a database one last time if there isn't one.
+  if (!db_) {
+    if (!db_file_path_.empty()) {
+      DCHECK(!legacy_db_file_path_.empty());
+      sql::Database::Delete(db_file_path_);
+      sql::Database::Delete(legacy_db_file_path_);
+    }
+    return EnsureOpened();
+  }
+
+  // Abort the long-running transaction.
+  db_->RollbackTransaction();
+
+  // Raze and close the database.
+  if (!db_->Raze()) {
+    return QuotaError::kDatabaseError;
+  }
+
+  // Reset `db_` to nullptr so EnsureOpened will recreate the database.
   db_.reset();
-  EnsureOpened();
-  return db_->is_open();
+  return EnsureOpened();
 }
 
 QuotaError QuotaDatabase::CorruptForTesting(
@@ -913,7 +932,7 @@ QuotaError QuotaDatabase::EnsureOpened() {
     return QuotaError::kDatabaseError;
   }
 
-  sql::DatabaseOptions options{
+  db_ = std::make_unique<sql::Database>(sql::DatabaseOptions{
       .exclusive_locking = true,
       // The quota database is a critical storage component. If it's corrupted,
       // all client-side storage APIs fail, because they don't know where their
@@ -921,12 +940,7 @@ QuotaError QuotaDatabase::EnsureOpened() {
       .flush_to_media = true,
       .page_size = 4096,
       .cache_size = 500,
-  };
-  if (base::FeatureList::IsEnabled(features::kDisableQuotaDbFullFSync)) {
-    options.flush_to_media = false;
-  }
-
-  db_ = std::make_unique<sql::Database>(std::move(options));
+  });
   meta_table_ = std::make_unique<sql::MetaTable>();
 
   db_->set_histogram_tag("Quota");
@@ -936,31 +950,28 @@ QuotaError QuotaDatabase::EnsureOpened() {
 
   // Migrate an existing database from the old path.
   if (!db_file_path_.empty() && !MoveLegacyDatabase()) {
-    if (ResetStorage()) {
-      // ResetStorage() has succeeded and database is already open.
-      return QuotaError::kNone;
+    if (!ResetStorage()) {
+      is_disabled_ = true;
+      db_.reset();
+      meta_table_.reset();
+      return QuotaError::kDatabaseError;
     }
-    is_disabled_ = true;
-    db_.reset();
-    meta_table_.reset();
-    return QuotaError::kDatabaseError;
+    // ResetStorage() has succeeded and database is already open.
+    return QuotaError::kNone;
   }
 
   if (!OpenDatabase() || !EnsureDatabaseVersion()) {
     LOG(ERROR) << "Could not open the quota database, resetting.";
-    if (!db_file_path_.empty() && ResetStorage()) {
-      // ResetStorage() has succeeded and database is already open.
-      return QuotaError::kNone;
+    if (db_file_path_.empty() || !ResetStorage()) {
+      LOG(ERROR) << "Failed to reset the quota database.";
+      is_disabled_ = true;
+      db_.reset();
+      meta_table_.reset();
+      return QuotaError::kDatabaseError;
     }
-    LOG(ERROR) << "Failed to reset the quota database.";
-    is_disabled_ = true;
-    db_.reset();
-    meta_table_.reset();
-    return QuotaError::kDatabaseError;
   }
 
   // Start a long-running transaction.
-  DCHECK_EQ(0, db_->transaction_nesting());
   db_->BeginTransaction();
 
   return QuotaError::kNone;

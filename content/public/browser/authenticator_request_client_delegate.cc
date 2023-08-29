@@ -139,11 +139,6 @@ bool AuthenticatorRequestClientDelegate::DoesBlockRequestOnFailure(
   return false;
 }
 
-void AuthenticatorRequestClientDelegate::OnTransactionSuccessful(
-    RequestSource request_source,
-    device::FidoRequestType request_type,
-    device::AuthenticatorType authenticator_type) {}
-
 void AuthenticatorRequestClientDelegate::RegisterActionCallbacks(
     base::OnceClosure cancel_callback,
     base::RepeatingClosure start_over_callback,
@@ -159,10 +154,8 @@ void AuthenticatorRequestClientDelegate::ShouldReturnAttestation(
   std::move(callback).Run(!is_enterprise_attestation);
 }
 
-void AuthenticatorRequestClientDelegate::ConfigureDiscoveries(
+void AuthenticatorRequestClientDelegate::ConfigureCable(
     const url::Origin& origin,
-    const std::string& rp_id,
-    RequestSource request_source,
     device::FidoRequestType request_type,
     absl::optional<device::ResidentKeyRequirement> resident_key_requirement,
     base::span<const device::CableDiscoveryData> pairings_from_extension,

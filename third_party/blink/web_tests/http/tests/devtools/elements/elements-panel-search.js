@@ -4,8 +4,6 @@
 
 import {TestRunner} from 'test_runner';
 
-import * as SDK from 'devtools/core/sdk/sdk.js';
-
 (async function() {
   TestRunner.addResult(`Tests that elements panel search is returning proper results.\n`);
   await TestRunner.showPanel('elements');
@@ -58,7 +56,7 @@ import * as SDK from 'devtools/core/sdk/sdk.js';
   async function searchCallback(next, resultCount) {
     if (resultCount == 0) {
       TestRunner.addResult('Nothing found');
-      SDK.DOMModel.DOMModel.cancelSearch();
+      SDK.DOMModel.cancelSearch();
       next();
       return;
     }
@@ -71,7 +69,7 @@ import * as SDK from 'devtools/core/sdk/sdk.js';
       TestRunner.addResult(markupVa_lue.split('').join(' '));
     }
 
-    SDK.DOMModel.DOMModel.cancelSearch();
+    SDK.DOMModel.cancelSearch();
     next();
   }
 

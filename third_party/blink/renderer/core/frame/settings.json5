@@ -241,6 +241,15 @@
       initial: true,
     },
 
+    // Used to disable threaded, compositor scrolling for testing purposes.
+    // crbug.com/410974 tracks removal once alternative solutions for selective
+    // main thread scrolling are supported.
+    {
+      name: "threadedScrollingEnabled",
+      initial: true,
+      invalidate: ["Style", "ViewportPaintProperties"],
+    },
+
     // Used in web tests for gesture tap highlights. Makes the highlights square
     // (rather than rounded) to make it possible to reftest the results.
     {
@@ -556,7 +565,6 @@
     {
       name: "scriptEnabled",
       initial: false,
-      invalidate: ["MediaQuery"],
     },
 
     {
@@ -1011,22 +1019,6 @@
       initial: false,
       invalidate: ["MediaQuery"],
     },
-
-    // Preferred transparency-reduction setting from the OS/application passed to the
-    // renderer for evaluating the prefers-reduced-transparency media query.
-    {
-      name: "prefersReducedTransparency",
-      initial: false,
-      invalidate: ["MediaQuery"],
-    },
-
-    // inverted-colors setting from the OS/application passed to the
-    // renderer for evaluating the inverted-colors media query.
-    {
-      name: "invertedColors",
-      initial: false,
-      invalidate: ["MediaQuery"],
-    },
     {
       name: "DontSendKeyEventsToJavascript",
       initial: false,
@@ -1100,7 +1092,7 @@
       // page would have to be reduced smaller to make the widest line fit, we
       // just clip instead.
       name: "printingMaximumShrinkFactor",
-      initial: 1.5,
+      initial: 2,
       type: "float",
     },
   ],

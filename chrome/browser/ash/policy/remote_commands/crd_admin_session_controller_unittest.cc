@@ -5,34 +5,33 @@
 #include "chrome/browser/ash/policy/remote_commands/crd_admin_session_controller.h"
 
 #include "base/functional/bind.h"
+#include "base/functional/callback_forward.h"
 #include "base/memory/raw_ref.h"
-#include "base/test/scoped_feature_list.h"
+#include "base/strings/stringprintf.h"
+#include "base/test/metrics/histogram_tester.h"
 #include "base/test/task_environment.h"
 #include "base/test/test_future.h"
+#include "base/test/test_timeouts.h"
 #include "base/time/time.h"
 #include "chrome/browser/ash/policy/remote_commands/crd_remote_command_utils.h"
 #include "chromeos/crosapi/mojom/remoting.mojom.h"
-#include "mojo/public/cpp/bindings/pending_receiver.h"
+#include "mojo/public/cpp/bindings/receiver.h"
 #include "mojo/public/cpp/bindings/remote.h"
-#include "remoting/host/chromeos/features.h"
 #include "remoting/host/mojom/remote_support.mojom.h"
 #include "remoting/protocol/errors.h"
 #include "testing/gmock/include/gmock/gmock.h"
 #include "testing/gtest/include/gtest/gtest.h"
 #include "third_party/abseil-cpp/absl/types/optional.h"
 
-#define EXPECT_NO_CALLS(args...) EXPECT_CALL(args).Times(0);
-
 namespace policy {
 
 namespace {
 
-using SessionParameters = StartCrdSessionJobDelegate::SessionParameters;
+using SessionParameters =
+    DeviceCommandStartCrdSessionJob::Delegate::SessionParameters;
 using StartSupportSessionCallback =
     crosapi::mojom::Remoting::StartSupportSessionCallback;
 
-using base::test::TestFuture;
-using remoting::features::kEnableCrdAdminRemoteAccessV2;
 using remoting::mojom::StartSupportSessionResponse;
 using remoting::mojom::StartSupportSessionResponsePtr;
 using remoting::mojom::SupportHostObserver;
@@ -97,10 +96,6 @@ class RemotingServiceMock
               (SupportSessionParamsPtr params,
                const remoting::ChromeOsEnterpriseParams& enterprise_params,
                StartSessionCallback callback));
-  MOCK_METHOD(void, GetReconnectableSessionId, (SessionIdCallback));
-  MOCK_METHOD(void,
-              ReconnectToSession,
-              (remoting::SessionId, StartSessionCallback));
 };
 
 // Wrapper around the `RemotingServiceMock`, solving the lifetime issue
@@ -120,15 +115,6 @@ class RemotingServiceWrapper
                     StartSessionCallback callback) override {
     implementation_->StartSession(std::move(params), enterprise_params,
                                   std::move(callback));
-  }
-
-  void GetReconnectableSessionId(SessionIdCallback callback) override {
-    implementation_->GetReconnectableSessionId(std::move(callback));
-  }
-
-  void ReconnectToSession(remoting::SessionId session_id,
-                          StartSessionCallback callback) override {
-    implementation_->ReconnectToSession(session_id, std::move(callback));
   }
 
  private:
@@ -196,9 +182,6 @@ class CrdAdminSessionControllerTest : public testing::TestWithParam<bool> {
   CrdAdminSessionController& session_controller() {
     return session_controller_;
   }
-  StartCrdSessionJobDelegate& delegate() {
-    return session_controller_.GetDelegate();
-  }
 
   auto success_callback() {
     return base::BindOnce(
@@ -235,7 +218,7 @@ class CrdAdminSessionControllerTest : public testing::TestWithParam<bool> {
     return session_finish_result_.Take();
   }
 
-  // Calls StartCrdHostAndGetCode() and waits until the
+  // Calls session_controller().StartCrdHostAndGetCode() and waits until the
   // `SupportHostObserver` is bound.
   // This observer is used by the CRD host code to inform our delegate of status
   // updates, and is returned by this method so we can spoof these status
@@ -246,13 +229,14 @@ class CrdAdminSessionControllerTest : public testing::TestWithParam<bool> {
             [&](SupportSessionParamsPtr params,
                 const remoting::ChromeOsEnterpriseParams& enterprise_params,
                 StartSupportSessionCallback callback) {
-              std::move(callback).Run(
-                  StartSupportSessionResponse::NewObserver(BindObserver()));
+              auto response = StartSupportSessionResponse::NewObserver(
+                  observer_.BindNewPipeAndPassReceiver());
+              std::move(callback).Run(std::move(response));
             });
 
-    delegate().StartCrdHostAndGetCode(SessionParameters{}, success_callback(),
-                                      error_callback(),
-                                      session_finished_callback());
+    session_controller().StartCrdHostAndGetCode(
+        SessionParameters{}, success_callback(), error_callback(),
+        session_finished_callback());
 
     EXPECT_TRUE(observer_.is_bound()) << "StartSession() was not called";
     return *observer_;
@@ -264,30 +248,15 @@ class CrdAdminSessionControllerTest : public testing::TestWithParam<bool> {
     return environment_;
   }
 
-  mojo::PendingReceiver<SupportHostObserver> BindObserver() {
-    return observer_.BindNewPipeAndPassReceiver();
-  }
-
-  void DisableFeature(const base::Feature& feature) {
-    feature_.Reset();
-    feature_.InitAndDisableFeature(feature);
-  }
-
-  void EnableFeature(const base::Feature& feature) {
-    feature_.Reset();
-    feature_.InitAndEnableFeature(feature);
-  }
-
  private:
   base::test::SingleThreadTaskEnvironment environment_{
       base::test::TaskEnvironment::TimeSource::MOCK_TIME};
-  TestFuture<Response> result_;
-  TestFuture<base::TimeDelta> session_finish_result_;
+  base::test::TestFuture<Response> result_;
+  base::test::TestFuture<base::TimeDelta> session_finish_result_;
   mojo::Remote<SupportHostObserver> observer_;
-  testing::StrictMock<RemotingServiceMock> remoting_service_;
+  RemotingServiceMock remoting_service_;
   CrdAdminSessionController session_controller_{
       std::make_unique<RemotingServiceWrapper>(&remoting_service_)};
-  base::test::ScopedFeatureList feature_;
 };
 
 TEST_F(CrdAdminSessionControllerTest, ShouldPassOAuthTokenToRemotingService) {
@@ -298,9 +267,9 @@ TEST_F(CrdAdminSessionControllerTest, ShouldPassOAuthTokenToRemotingService) {
   EXPECT_CALL(remoting_service(), StartSession)
       .WillOnce(SaveParamAndInvokeCallback(&actual_parameters));
 
-  delegate().StartCrdHostAndGetCode(parameters, success_callback(),
-                                    error_callback(),
-                                    session_finished_callback());
+  session_controller().StartCrdHostAndGetCode(parameters, success_callback(),
+                                              error_callback(),
+                                              session_finished_callback());
 
   ASSERT_FALSE(actual_parameters.is_null());
   EXPECT_EQ(actual_parameters->oauth_access_token, "oauth2:<the-oauth-token>");
@@ -314,9 +283,9 @@ TEST_F(CrdAdminSessionControllerTest, ShouldPassUserNameToRemotingService) {
   EXPECT_CALL(remoting_service(), StartSession)
       .WillOnce(SaveParamAndInvokeCallback(&actual_parameters));
 
-  delegate().StartCrdHostAndGetCode(parameters, success_callback(),
-                                    error_callback(),
-                                    session_finished_callback());
+  session_controller().StartCrdHostAndGetCode(parameters, success_callback(),
+                                              error_callback(),
+                                              session_finished_callback());
 
   ASSERT_FALSE(actual_parameters.is_null());
   EXPECT_EQ(actual_parameters->user_name, "<the-user-name>");
@@ -331,9 +300,9 @@ TEST_P(CrdAdminSessionControllerTest,
   EXPECT_CALL(remoting_service(), StartSession)
       .WillOnce(SaveParamAndInvokeCallback(&actual_parameters));
 
-  delegate().StartCrdHostAndGetCode(parameters, success_callback(),
-                                    error_callback(),
-                                    session_finished_callback());
+  session_controller().StartCrdHostAndGetCode(parameters, success_callback(),
+                                              error_callback(),
+                                              session_finished_callback());
 
   EXPECT_NE(actual_parameters.suppress_notifications, GetParam());
   EXPECT_NE(actual_parameters.suppress_user_dialogs, GetParam());
@@ -348,9 +317,9 @@ TEST_P(CrdAdminSessionControllerTest,
   EXPECT_CALL(remoting_service(), StartSession)
       .WillOnce(SaveParamAndInvokeCallback(&actual_parameters));
 
-  delegate().StartCrdHostAndGetCode(parameters, success_callback(),
-                                    error_callback(),
-                                    session_finished_callback());
+  session_controller().StartCrdHostAndGetCode(parameters, success_callback(),
+                                              error_callback(),
+                                              session_finished_callback());
 
   EXPECT_EQ(actual_parameters.terminate_upon_input, GetParam());
 }
@@ -364,9 +333,9 @@ TEST_P(CrdAdminSessionControllerTest,
   EXPECT_CALL(remoting_service(), StartSession)
       .WillOnce(SaveParamAndInvokeCallback(&actual_parameters));
 
-  delegate().StartCrdHostAndGetCode(parameters, success_callback(),
-                                    error_callback(),
-                                    session_finished_callback());
+  session_controller().StartCrdHostAndGetCode(parameters, success_callback(),
+                                              error_callback(),
+                                              session_finished_callback());
 
   EXPECT_EQ(actual_parameters.allow_reconnections, GetParam());
 }
@@ -379,9 +348,9 @@ TEST_F(CrdAdminSessionControllerTest, ShouldPassAdminEmailToRemotingService) {
   EXPECT_CALL(remoting_service(), StartSession)
       .WillOnce(SaveParamAndInvokeCallback(&actual_parameters));
 
-  delegate().StartCrdHostAndGetCode(parameters, success_callback(),
-                                    error_callback(),
-                                    session_finished_callback());
+  session_controller().StartCrdHostAndGetCode(parameters, success_callback(),
+                                              error_callback(),
+                                              session_finished_callback());
 
   EXPECT_EQ(actual_parameters->authorized_helper, "the.admin@email.com");
 }
@@ -395,9 +364,9 @@ TEST_P(CrdAdminSessionControllerTest,
   EXPECT_CALL(remoting_service(), StartSession)
       .WillOnce(SaveParamAndInvokeCallback(&actual_parameters));
 
-  delegate().StartCrdHostAndGetCode(parameters, success_callback(),
-                                    error_callback(),
-                                    session_finished_callback());
+  session_controller().StartCrdHostAndGetCode(parameters, success_callback(),
+                                              error_callback(),
+                                              session_finished_callback());
 
   EXPECT_EQ(actual_parameters.curtain_local_user_session, GetParam());
 }
@@ -411,9 +380,9 @@ TEST_P(CrdAdminSessionControllerTest,
   EXPECT_CALL(remoting_service(), StartSession)
       .WillOnce(SaveParamAndInvokeCallback(&actual_parameters));
 
-  delegate().StartCrdHostAndGetCode(parameters, success_callback(),
-                                    error_callback(),
-                                    session_finished_callback());
+  session_controller().StartCrdHostAndGetCode(parameters, success_callback(),
+                                              error_callback(),
+                                              session_finished_callback());
 
   EXPECT_EQ(actual_parameters.allow_troubleshooting_tools, GetParam());
 }
@@ -427,9 +396,9 @@ TEST_P(CrdAdminSessionControllerTest,
   EXPECT_CALL(remoting_service(), StartSession)
       .WillOnce(SaveParamAndInvokeCallback(&actual_parameters));
 
-  delegate().StartCrdHostAndGetCode(parameters, success_callback(),
-                                    error_callback(),
-                                    session_finished_callback());
+  session_controller().StartCrdHostAndGetCode(parameters, success_callback(),
+                                              error_callback(),
+                                              session_finished_callback());
 
   EXPECT_EQ(actual_parameters.show_troubleshooting_tools, GetParam());
 }
@@ -443,9 +412,9 @@ TEST_P(CrdAdminSessionControllerTest,
   EXPECT_CALL(remoting_service(), StartSession)
       .WillOnce(SaveParamAndInvokeCallback(&actual_parameters));
 
-  delegate().StartCrdHostAndGetCode(parameters, success_callback(),
-                                    error_callback(),
-                                    session_finished_callback());
+  session_controller().StartCrdHostAndGetCode(parameters, success_callback(),
+                                              error_callback(),
+                                              session_finished_callback());
 
   EXPECT_EQ(actual_parameters.allow_file_transfer, GetParam());
 }
@@ -461,9 +430,9 @@ TEST_F(CrdAdminSessionControllerTest,
         std::move(callback).Run(std::move(response));
       });
 
-  delegate().StartCrdHostAndGetCode(SessionParameters{}, success_callback(),
-                                    error_callback(),
-                                    session_finished_callback());
+  session_controller().StartCrdHostAndGetCode(
+      SessionParameters{}, success_callback(), error_callback(),
+      session_finished_callback());
 
   Response response = WaitForResponse();
   ASSERT_TRUE(response.HasError());
@@ -530,24 +499,28 @@ TEST_F(CrdAdminSessionControllerTest,
 
 TEST_F(CrdAdminSessionControllerTest,
        HasActiveSessionShouldBeTrueWhenASessionIsStarted) {
-  EXPECT_FALSE(delegate().HasActiveSession());
+  EXPECT_FALSE(session_controller().HasActiveSession());
 
-  StartCrdHostAndBindObserver();
+  session_controller().StartCrdHostAndGetCode(
+      SessionParameters{}, success_callback(), error_callback(),
+      session_finished_callback());
 
-  EXPECT_TRUE(delegate().HasActiveSession());
+  EXPECT_TRUE(session_controller().HasActiveSession());
 }
 
 TEST_F(CrdAdminSessionControllerTest,
        TerminateSessionShouldTerminateTheActiveSession) {
-  StartCrdHostAndBindObserver();
-  EXPECT_TRUE(delegate().HasActiveSession());
+  session_controller().StartCrdHostAndGetCode(
+      SessionParameters{}, success_callback(), error_callback(),
+      session_finished_callback());
+  EXPECT_TRUE(session_controller().HasActiveSession());
 
-  TestFuture<void> terminate_session_future;
-  delegate().TerminateSession(terminate_session_future.GetCallback());
+  base::test::TestFuture<void> terminate_session_future;
+  session_controller().TerminateSession(terminate_session_future.GetCallback());
 
   ASSERT_TRUE(terminate_session_future.Wait())
       << "TerminateSession did not invoke the callback.";
-  EXPECT_FALSE(delegate().HasActiveSession());
+  EXPECT_FALSE(session_controller().HasActiveSession());
 }
 
 TEST_F(CrdAdminSessionControllerTest,
@@ -576,60 +549,6 @@ TEST_F(CrdAdminSessionControllerTest,
 
   base::TimeDelta session_duration = WaitForSessionFinishResult();
   EXPECT_EQ(duration, session_duration);
-}
-
-TEST_F(CrdAdminSessionControllerTest,
-       ShouldResumeReconnectableSessionDuringInitIfAvailable) {
-  EnableFeature(kEnableCrdAdminRemoteAccessV2);
-
-  const remoting::SessionId kSessionId{123};
-
-  // First we should query for the reconnectable session id.
-  EXPECT_CALL(remoting_service(), GetReconnectableSessionId)
-      .WillOnce([&](auto callback) { std::move(callback).Run(kSessionId); });
-
-  // And next we should use this session id to reconnect.
-  EXPECT_CALL(remoting_service(), ReconnectToSession(kSessionId, testing::_))
-      .WillOnce([&](remoting::SessionId, StartSupportSessionCallback callback) {
-        std::move(callback).Run(
-            StartSupportSessionResponse::NewObserver(BindObserver()));
-      });
-
-  TestFuture<void> done_signal;
-  session_controller().Init(done_signal.GetCallback());
-  ASSERT_TRUE(done_signal.Wait());
-
-  EXPECT_TRUE(delegate().HasActiveSession());
-}
-
-TEST_F(CrdAdminSessionControllerTest,
-       ShouldNotResumeReconnectableSessionIfUnavailable) {
-  EnableFeature(kEnableCrdAdminRemoteAccessV2);
-
-  // First we return nullopt when we query for the reconnectable session id.
-  EXPECT_CALL(remoting_service(), GetReconnectableSessionId)
-      .WillOnce([&](auto callback) { std::move(callback).Run(absl::nullopt); });
-
-  // Which means we should not attempt to reconnect.
-  EXPECT_NO_CALLS(remoting_service(), ReconnectToSession);
-
-  TestFuture<void> done_signal;
-  session_controller().Init(done_signal.GetCallback());
-
-  // The `done_signal` should still be invoked.
-  ASSERT_TRUE(done_signal.Wait());
-}
-
-TEST_F(CrdAdminSessionControllerTest,
-       ShouldNotTryToResumeReconnectableSessionIfFeatureIsDisabled) {
-  DisableFeature(kEnableCrdAdminRemoteAccessV2);
-
-  EXPECT_NO_CALLS(remoting_service(), GetReconnectableSessionId);
-  EXPECT_NO_CALLS(remoting_service(), ReconnectToSession);
-
-  TestFuture<void> done_signal;
-  session_controller().Init(done_signal.GetCallback());
-  ASSERT_TRUE(done_signal.Wait());
 }
 
 TEST_F(

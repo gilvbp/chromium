@@ -13,6 +13,10 @@
 #include "base/strings/strcat.h"
 #include "chrome/services/mac_notifications/public/cpp/mac_notification_metrics.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace mac_notifications {
 
 namespace {
@@ -35,6 +39,7 @@ enum class UNNotificationPermissionStatus {
   kMaxValue = kPermissionGranted,
 };
 
+API_AVAILABLE(macosx(10.14))
 UNNotificationStyle ConvertNotificationStyle(UNAlertStyle alert_style) {
   switch (alert_style) {
     case UNAlertStyleBanner:
@@ -46,6 +51,7 @@ UNNotificationStyle ConvertNotificationStyle(UNAlertStyle alert_style) {
   }
 }
 
+API_AVAILABLE(macosx(10.14))
 UNNotificationPermissionStatus ConvertAuthorizationStatus(
     UNAuthorizationStatus authorization_status) {
   switch (authorization_status) {
@@ -63,19 +69,18 @@ UNNotificationPermissionStatus ConvertAuthorizationStatus(
 void LogUNNotificationRequestPermissionResult(
     UNNotificationRequestPermissionResult result) {
   base::UmaHistogramEnumeration(
-      base::StrCat(
-          {"Notifications.Permissions.UNNotification.",
-           MacNotificationStyleSuffix(NotificationStyleFromAppBundle()),
-           ".PermissionRequest"}),
+      base::StrCat({"Notifications.Permissions.UNNotification.",
+                    MacNotificationStyleSuffix(IsAppBundleAlertStyle()),
+                    ".PermissionRequest"}),
       result);
 }
 
 void LogUNNotificationSettings(UNUserNotificationCenter* center) {
   [center getNotificationSettingsWithCompletionHandler:^(
               UNNotificationSettings* _Nonnull settings) {
-    std::string prefix = base::StrCat(
-        {"Notifications.Permissions.UNNotification.",
-         MacNotificationStyleSuffix(NotificationStyleFromAppBundle())});
+    std::string prefix =
+        base::StrCat({"Notifications.Permissions.UNNotification.",
+                      MacNotificationStyleSuffix(IsAppBundleAlertStyle())});
 
     base::UmaHistogramEnumeration(
         base::StrCat({prefix, ".Style"}),

@@ -11,6 +11,7 @@ import android.content.Context;
 import android.os.Build;
 
 import androidx.annotation.RequiresApi;
+import androidx.annotation.VisibleForTesting;
 
 import org.chromium.base.ContextUtils;
 import org.chromium.chrome.R;
@@ -58,6 +59,7 @@ public class TracingNotificationManager {
      *
      * @param notificationManager the manager to use instead.
      */
+    @VisibleForTesting
     public static void overrideNotificationManagerForTesting(
             NotificationManagerProxy notificationManager) {
         sNotificationManagerOverride = notificationManager;

@@ -112,24 +112,21 @@ class PrintContextTest : public PaintTestConfigurations, public RenderingTest {
   void SetUp() override {
     RenderingTest::SetUp();
     print_context_ =
-        MakeGarbageCollected<PrintContext>(GetDocument().GetFrame());
-    base::FieldTrialParams auto_flush_params;
-    auto_flush_params["max_pinned_image_kb"] = "1";
-    print_feature_list_.InitAndEnableFeatureWithParameters(
-        kCanvas2DAutoFlushParams, auto_flush_params);
+        MakeGarbageCollected<PrintContext>(GetDocument().GetFrame(),
+                                           /*use_printing_layout=*/true);
+    CanvasResourceProvider::SetMaxPinnedImageBytesForTesting(100);
   }
 
   void TearDown() override {
     RenderingTest::TearDown();
     CanvasRenderingContext::GetCanvasPerformanceMonitor().ResetForTesting();
-    print_feature_list_.Reset();
+    CanvasResourceProvider::ResetMaxPinnedImageBytesForTesting();
   }
 
   PrintContext& GetPrintContext() { return *print_context_.Get(); }
 
   void SetBodyInnerHTML(String body_content) {
-    GetDocument().body()->setAttribute(html_names::kStyleAttr,
-                                       AtomicString("margin: 0"));
+    GetDocument().body()->setAttribute(html_names::kStyleAttr, "margin: 0");
     GetDocument().body()->setInnerHTML(body_content);
   }
 
@@ -137,8 +134,7 @@ class PrintContextTest : public PaintTestConfigurations, public RenderingTest {
     GetDocument().SetPrinting(Document::kBeforePrinting);
     Event* event = MakeGarbageCollected<BeforePrintEvent>();
     GetPrintContext().GetFrame()->DomWindow()->DispatchEvent(*event);
-    GetPrintContext().BeginPrintMode(
-        WebPrintParams(gfx::SizeF(kPageWidth, kPageHeight)));
+    GetPrintContext().BeginPrintMode(kPageWidth, kPageHeight);
     GetDocument().View()->UpdateAllLifecyclePhasesExceptPaint(
         DocumentUpdateReason::kTest);
 
@@ -190,7 +186,6 @@ class PrintContextTest : public PaintTestConfigurations, public RenderingTest {
  private:
   std::unique_ptr<DummyPageHolder> page_holder_;
   Persistent<PrintContext> print_context_;
-  base::test::ScopedFeatureList print_feature_list_;
 };
 
 class PrintContextFrameTest : public PrintContextTest {
@@ -257,19 +252,11 @@ TEST_P(PrintContextTest, LinkTargetUnderAnonymousBlockBeforeBlock) {
   PrintSinglePage(canvas);
   const Vector<MockPageContextCanvas::Operation>& operations =
       canvas.RecordedOperations();
-  ASSERT_EQ(4u, operations.size());
-  // First 'A' element:
+  ASSERT_EQ(2u, operations.size());
   EXPECT_EQ(MockPageContextCanvas::kDrawRect, operations[0].type);
-  EXPECT_SKRECT_EQ(0, 59, 111, 1, operations[0].rect);
-  // First image:
+  EXPECT_SKRECT_EQ(0, 50, 111, 10, operations[0].rect);
   EXPECT_EQ(MockPageContextCanvas::kDrawRect, operations[1].type);
-  EXPECT_SKRECT_EQ(0, 50, 111, 10, operations[1].rect);
-  // Second 'A' element:
-  EXPECT_EQ(MockPageContextCanvas::kDrawRect, operations[2].type);
-  EXPECT_SKRECT_EQ(0, 79, 122, 1, operations[2].rect);
-  // Second image:
-  EXPECT_EQ(MockPageContextCanvas::kDrawRect, operations[3].type);
-  EXPECT_SKRECT_EQ(0, 60, 122, 20, operations[3].rect);
+  EXPECT_SKRECT_EQ(0, 60, 122, 20, operations[1].rect);
 }
 
 TEST_P(PrintContextTest, LinkTargetContainingABlock) {
@@ -282,22 +269,9 @@ TEST_P(PrintContextTest, LinkTargetContainingABlock) {
   PrintSinglePage(canvas);
   const Vector<MockPageContextCanvas::Operation>& operations =
       canvas.RecordedOperations();
-  ASSERT_EQ(5u, operations.size());
-  // Empty line before the line with the block inside:
-  EXPECT_EQ(MockPageContextCanvas::kDrawPoint, operations[0].type);
-  EXPECT_SKRECT_EQ(0, 50, 0, 0, operations[0].rect);
-  // The line with the block inside:
-  EXPECT_EQ(MockPageContextCanvas::kDrawRect, operations[1].type);
-  EXPECT_SKRECT_EQ(0, 50, 555, 30, operations[1].rect);
-  // Empty line after the line with the block inside:
-  EXPECT_EQ(MockPageContextCanvas::kDrawPoint, operations[2].type);
-  EXPECT_SKRECT_EQ(0, 80, 0, 0, operations[2].rect);
-  // The block:
-  EXPECT_EQ(MockPageContextCanvas::kDrawRect, operations[3].type);
-  EXPECT_SKRECT_EQ(0, 50, 133, 30, operations[3].rect);
-  // The line inside the block (with the text "BLOCK") (we cannot reliably test
-  // the size of this rectangle, as it varies across platforms):
-  EXPECT_EQ(MockPageContextCanvas::kDrawRect, operations[4].type);
+  ASSERT_EQ(1u, operations.size());
+  EXPECT_EQ(MockPageContextCanvas::kDrawRect, operations[0].type);
+  EXPECT_SKRECT_EQ(0, 50, 555, 30, operations[0].rect);
 }
 
 TEST_P(PrintContextTest, LinkTargetUnderInInlines) {
@@ -310,13 +284,9 @@ TEST_P(PrintContextTest, LinkTargetUnderInInlines) {
   PrintSinglePage(canvas);
   const Vector<MockPageContextCanvas::Operation>& operations =
       canvas.RecordedOperations();
-  ASSERT_EQ(2u, operations.size());
-  // The 'A' element:
+  ASSERT_EQ(1u, operations.size());
   EXPECT_EQ(MockPageContextCanvas::kDrawRect, operations[0].type);
-  EXPECT_SKRECT_EQ(0, 79, 144, 1, operations[0].rect);
-  // The image:
-  EXPECT_EQ(MockPageContextCanvas::kDrawRect, operations[1].type);
-  EXPECT_SKRECT_EQ(0, 40, 144, 40, operations[1].rect);
+  EXPECT_SKRECT_EQ(0, 40, 144, 40, operations[0].rect);
 }
 
 TEST_P(PrintContextTest, LinkTargetUnderInInlinesMultipleLines) {
@@ -330,19 +300,9 @@ TEST_P(PrintContextTest, LinkTargetUnderInInlinesMultipleLines) {
   PrintSinglePage(canvas);
   const Vector<MockPageContextCanvas::Operation>& operations =
       canvas.RecordedOperations();
-  ASSERT_EQ(4u, operations.size());
-  // The 'A' element on the second line:
+  ASSERT_EQ(1u, operations.size());
   EXPECT_EQ(MockPageContextCanvas::kDrawRect, operations[0].type);
-  EXPECT_SKRECT_EQ(0, 79, 144, 1, operations[0].rect);
-  // The 'A' element on the third line:
-  EXPECT_EQ(MockPageContextCanvas::kDrawRect, operations[1].type);
-  EXPECT_SKRECT_EQ(0, 119, 14, 1, operations[1].rect);
-  // The second image:
-  EXPECT_EQ(MockPageContextCanvas::kDrawRect, operations[2].type);
-  EXPECT_SKRECT_EQ(0, 40, 144, 40, operations[2].rect);
-  // The third image:
-  EXPECT_EQ(MockPageContextCanvas::kDrawRect, operations[3].type);
-  EXPECT_SKRECT_EQ(0, 80, 14, 40, operations[3].rect);
+  EXPECT_SKRECT_EQ(0, 40, 144, 80, operations[0].rect);
 }
 
 TEST_P(PrintContextTest, LinkTargetUnderInInlinesMultipleLinesCulledInline) {
@@ -353,16 +313,7 @@ TEST_P(PrintContextTest, LinkTargetUnderInInlinesMultipleLinesCulledInline) {
   PrintSinglePage(canvas);
   const Vector<MockPageContextCanvas::Operation>& operations =
       canvas.RecordedOperations();
-  ASSERT_EQ(3u, operations.size());
-  // In this test, only check that we have rectangles. We cannot reliably test
-  // their size, since it varies across platforms.
-  //
-  // Second line:
-  EXPECT_EQ(MockPageContextCanvas::kDrawRect, operations[0].type);
-  // Newline at the end of the second line:
-  EXPECT_EQ(MockPageContextCanvas::kDrawRect, operations[1].type);
-  // Third line:
-  EXPECT_EQ(MockPageContextCanvas::kDrawRect, operations[2].type);
+  ASSERT_EQ(1u, operations.size());
 }
 
 TEST_P(PrintContextTest, LinkTargetRelativelyPositionedInline) {
@@ -375,13 +326,9 @@ TEST_P(PrintContextTest, LinkTargetRelativelyPositionedInline) {
   PrintSinglePage(canvas);
   const Vector<MockPageContextCanvas::Operation>& operations =
       canvas.RecordedOperations();
-  ASSERT_EQ(2u, operations.size());
-  // The 'A' element:
+  ASSERT_EQ(1u, operations.size());
   EXPECT_EQ(MockPageContextCanvas::kDrawRect, operations[0].type);
-  EXPECT_SKRECT_EQ(50, 89, 1, 1, operations[0].rect);
-  // The image:
-  EXPECT_EQ(MockPageContextCanvas::kDrawRect, operations[1].type);
-  EXPECT_SKRECT_EQ(50, 50, 1, 40, operations[1].rect);
+  EXPECT_SKRECT_EQ(50, 50, 1, 40, operations[0].rect);
 }
 
 TEST_P(PrintContextTest, LinkTargetUnderRelativelyPositionedInline) {
@@ -393,13 +340,9 @@ TEST_P(PrintContextTest, LinkTargetUnderRelativelyPositionedInline) {
   PrintSinglePage(canvas);
   const Vector<MockPageContextCanvas::Operation>& operations =
       canvas.RecordedOperations();
-  ASSERT_EQ(2u, operations.size());
-  // The 'A' element:
+  ASSERT_EQ(1u, operations.size());
   EXPECT_EQ(MockPageContextCanvas::kDrawRect, operations[0].type);
-  EXPECT_SKRECT_EQ(50, 139, 155, 1, operations[0].rect);
-  // The image:
-  EXPECT_EQ(MockPageContextCanvas::kDrawRect, operations[1].type);
-  EXPECT_SKRECT_EQ(50, 90, 155, 50, operations[1].rect);
+  EXPECT_SKRECT_EQ(50, 90, 155, 50, operations[0].rect);
 }
 
 TEST_P(PrintContextTest,
@@ -414,19 +357,9 @@ TEST_P(PrintContextTest,
   PrintSinglePage(canvas);
   const Vector<MockPageContextCanvas::Operation>& operations =
       canvas.RecordedOperations();
-  ASSERT_EQ(4u, operations.size());
-  // The 'A' element on the second line:
+  ASSERT_EQ(1u, operations.size());
   EXPECT_EQ(MockPageContextCanvas::kDrawRect, operations[0].type);
-  EXPECT_SKRECT_EQ(50, 139, 10, 1, operations[0].rect);
-  // The 'A' element on the third line:
-  EXPECT_EQ(MockPageContextCanvas::kDrawRect, operations[1].type);
-  EXPECT_SKRECT_EQ(50, 189, 155, 1, operations[1].rect);
-  // The image on the second line:
-  EXPECT_EQ(MockPageContextCanvas::kDrawRect, operations[2].type);
-  EXPECT_SKRECT_EQ(50, 90, 10, 50, operations[2].rect);
-  // The image on the third line:
-  EXPECT_EQ(MockPageContextCanvas::kDrawRect, operations[3].type);
-  EXPECT_SKRECT_EQ(50, 140, 155, 50, operations[3].rect);
+  EXPECT_SKRECT_EQ(50, 90, 155, 100, operations[0].rect);
 }
 
 TEST_P(PrintContextTest,
@@ -439,53 +372,7 @@ TEST_P(PrintContextTest,
   PrintSinglePage(canvas);
   const Vector<MockPageContextCanvas::Operation>& operations =
       canvas.RecordedOperations();
-  ASSERT_EQ(3u, operations.size());
-  // In this test, only check that we have rectangles. We cannot reliably test
-  // their size, since it varies across platforms.
-  //
-  // Second line:
-  EXPECT_EQ(MockPageContextCanvas::kDrawRect, operations[0].type);
-  // Newline at end of second line.
-  EXPECT_EQ(MockPageContextCanvas::kDrawRect, operations[1].type);
-  // Third line:
-  EXPECT_EQ(MockPageContextCanvas::kDrawRect, operations[2].type);
-}
-
-TEST_P(PrintContextTest, SingleLineLinkNextToWrappedLink) {
-  testing::NiceMock<MockPageContextCanvas> canvas;
-  SetBodyInnerHTML(R"HTML(
-    <div style="width:120px;">
-      <a href="http://www.google.com/">
-        <img style="width:50px; height:20px;">
-      </a>
-      <a href="http://www.google.com/maps/">
-        <img style="width:50px; height:20px;">
-        <img style="width:60px; height:20px;">
-      </a>
-    </div>
-  )HTML");
-  PrintSinglePage(canvas);
-  const Vector<MockPageContextCanvas::Operation>& operations =
-      canvas.RecordedOperations();
-  ASSERT_EQ(6u, operations.size());
-  // First 'A' element:
-  EXPECT_EQ(MockPageContextCanvas::kDrawRect, operations[0].type);
-  EXPECT_SKRECT_EQ(0, 19, 50, 1, operations[0].rect);
-  // Image inside first 'A' element:
-  EXPECT_EQ(MockPageContextCanvas::kDrawRect, operations[1].type);
-  EXPECT_SKRECT_EQ(0, 0, 50, 20, operations[1].rect);
-  // Second 'A' element on the first line:
-  EXPECT_EQ(MockPageContextCanvas::kDrawRect, operations[2].type);
-  EXPECT_SKRECT_EQ(50, 19, 50, 1, operations[2].rect);
-  // Second 'A' element on the second line:
-  EXPECT_EQ(MockPageContextCanvas::kDrawRect, operations[3].type);
-  EXPECT_SKRECT_EQ(0, 39, 60, 1, operations[3].rect);
-  // First image in the second 'A' element:
-  EXPECT_EQ(MockPageContextCanvas::kDrawRect, operations[4].type);
-  EXPECT_SKRECT_EQ(50, 0, 50, 20, operations[4].rect);
-  // Second image in the second 'A' element:
-  EXPECT_EQ(MockPageContextCanvas::kDrawRect, operations[5].type);
-  EXPECT_SKRECT_EQ(0, 20, 60, 20, operations[5].rect);
+  ASSERT_EQ(1u, operations.size());
 }
 
 TEST_P(PrintContextTest, LinkTargetSvg) {
@@ -791,7 +678,7 @@ TEST_P(PrintContextTest, SvgMarkersOnMultiplePages) {
   PrintSinglePage(first_page_canvas, 0);
 
   MockCanvas second_page_canvas;
-  EXPECT_CALL(second_page_canvas, didTranslate(0, kPageHeight)).Times(1);
+  EXPECT_CALL(second_page_canvas, didTranslate(0, 799)).Times(1);
   EXPECT_CALL(second_page_canvas, didTranslate(2, 0)).Times(1);
   EXPECT_CALL(second_page_canvas, onDrawRect(SkRect::MakeWH(50, 25), _))
       .Times(1);
@@ -866,7 +753,8 @@ TEST_P(PrintContextFrameTest, BasicPrintPageLayout) {
   float maximum_shrink_ratio = 1.1;
   auto* node = GetDocument().documentElement();
 
-  GetDocument().GetFrame()->StartPrinting(page_size, maximum_shrink_ratio);
+  GetDocument().GetFrame()->StartPrinting(page_size, page_size,
+                                          maximum_shrink_ratio);
   EXPECT_EQ(node->OffsetWidth(), 400);
   GetDocument().GetFrame()->EndPrinting();
   EXPECT_EQ(node->OffsetWidth(), 800);
@@ -874,7 +762,8 @@ TEST_P(PrintContextFrameTest, BasicPrintPageLayout) {
   SetBodyInnerHTML(R"HTML(
       <div style='border: 0px; margin: 0px; background-color: #0000FF;
       width:800px; height:400px'></div>)HTML");
-  GetDocument().GetFrame()->StartPrinting(page_size, maximum_shrink_ratio);
+  GetDocument().GetFrame()->StartPrinting(page_size, page_size,
+                                          maximum_shrink_ratio);
   EXPECT_EQ(node->OffsetWidth(), 440);
   GetDocument().GetFrame()->EndPrinting();
   EXPECT_EQ(node->OffsetWidth(), 800);
@@ -1170,12 +1059,12 @@ TEST_P(PrintContextTest, Canvas2DAutoFlushBeforePrinting) {
   GetDocument().GetSettings()->SetScriptEnabled(true);
   Element* const script_element =
       GetDocument().CreateRawElement(html_names::kScriptTag);
-  // Note: source_canvas is 20x20, which consumes 1600 bytes for pixel data,
-  // which is larger than the 1KB limit set in PrintContextTest::SetUp().
+  // Note: source_canvas is 10x10, which consumes 400 bytes for pixel data,
+  // which is larger than the 100 limit set in PrintContextTest::SetUp().
   script_element->setTextContent(
       "source_canvas = document.createElement('canvas');"
-      "source_canvas.width = 20;"
-      "source_canvas.height = 20;"
+      "source_canvas.width = 10;"
+      "source_canvas.height = 10;"
       "source_ctx = source_canvas.getContext('2d');"
       "source_ctx.fillRect(0, 0, 1, 1);"
       "ctx = document.getElementById('c').getContext('2d');"
@@ -1219,9 +1108,10 @@ TEST_P(PrintContextFrameTest, DISABLED_SubframePrintPageLayout) {
   // The child document element inside iframe.
   auto* child = ChildDocument().documentElement();
   // The iframe element in the document.
-  auto* target = GetDocument().getElementById(AtomicString("target"));
+  auto* target = GetDocument().getElementById("target");
 
-  GetDocument().GetFrame()->StartPrinting(page_size, maximum_shrink_ratio);
+  GetDocument().GetFrame()->StartPrinting(page_size, page_size,
+                                          maximum_shrink_ratio);
   EXPECT_EQ(parent->OffsetWidth(), 440);
   EXPECT_EQ(child->OffsetWidth(), 800);
   EXPECT_EQ(target->OffsetWidth(), 440);
@@ -1240,7 +1130,8 @@ TEST_P(PrintContextFrameTest, DISABLED_SubframePrintPageLayout) {
   EXPECT_EQ(target->OffsetWidth(), 800);
 
   ASSERT_TRUE(ChildDocument() != GetDocument());
-  ChildDocument().GetFrame()->StartPrinting(page_size, maximum_shrink_ratio);
+  ChildDocument().GetFrame()->StartPrinting(page_size, page_size,
+                                            maximum_shrink_ratio);
   EXPECT_EQ(parent->OffsetWidth(), 800);
   EXPECT_EQ(child->OffsetWidth(), 400);
   EXPECT_EQ(target->OffsetWidth(), 800);

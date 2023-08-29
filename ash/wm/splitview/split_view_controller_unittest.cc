@@ -33,8 +33,7 @@
 #include "ash/system/status_area_widget_test_helper.h"
 #include "ash/test/ash_test_base.h"
 #include "ash/test/test_window_builder.h"
-#include "ash/wallpaper/views/wallpaper_widget_controller.h"
-#include "ash/wallpaper/wallpaper_constants.h"
+#include "ash/wallpaper/wallpaper_widget_controller.h"
 #include "ash/wm/desks/desks_util.h"
 #include "ash/wm/drag_window_resizer.h"
 #include "ash/wm/float/float_controller.h"
@@ -50,7 +49,6 @@
 #include "ash/wm/splitview/split_view_metrics_controller.h"
 #include "ash/wm/splitview/split_view_utils.h"
 #include "ash/wm/tablet_mode/tablet_mode_controller.h"
-#include "ash/wm/test/fake_window_state.h"
 #include "ash/wm/window_properties.h"
 #include "ash/wm/window_resizer.h"
 #include "ash/wm/window_state.h"
@@ -63,7 +61,6 @@
 #include "base/ranges/algorithm.h"
 #include "base/test/metrics/histogram_tester.h"
 #include "base/test/scoped_feature_list.h"
-#include "chromeos/constants/chromeos_features.h"
 #include "chromeos/ui/base/window_properties.h"
 #include "chromeos/ui/frame/caption_buttons/snap_controller.h"
 #include "chromeos/ui/wm/features.h"
@@ -234,8 +231,7 @@ class SplitViewControllerTest : public AshTestBase {
     // Create non maximizable window so that it's centered when created,
     // then allow maximize/fullscreen state.
     window->SetProperty(aura::client::kResizeBehaviorKey,
-                        aura::client::kResizeBehaviorCanFullscreen |
-                            aura::client::kResizeBehaviorCanMaximize |
+                        aura::client::kResizeBehaviorCanMaximize |
                             aura::client::kResizeBehaviorCanMinimize |
                             aura::client::kResizeBehaviorCanResize);
     return window;
@@ -352,6 +348,31 @@ class SplitViewControllerTest : public AshTestBase {
   }
   std::vector<std::string> trace_names_;
   base::HistogramTester histograms_;
+};
+
+class TestWindowStateDelegate : public WindowStateDelegate {
+ public:
+  TestWindowStateDelegate() = default;
+
+  TestWindowStateDelegate(const TestWindowStateDelegate&) = delete;
+  TestWindowStateDelegate& operator=(const TestWindowStateDelegate&) = delete;
+
+  ~TestWindowStateDelegate() override = default;
+
+  // WindowStateDelegate:
+  std::unique_ptr<PresentationTimeRecorder> OnDragStarted(
+      int component) override {
+    drag_in_progress_ = true;
+    return nullptr;
+  }
+  void OnDragFinished(bool cancel, const gfx::PointF& location) override {
+    drag_in_progress_ = false;
+  }
+
+  bool drag_in_progress() { return drag_in_progress_; }
+
+ private:
+  bool drag_in_progress_ = false;
 };
 
 // Tests the basic functionalities.
@@ -685,22 +706,13 @@ TEST_F(SplitViewControllerTest,
 
   WallpaperWidgetController* wallpaper_widget_controller =
       Shell::GetPrimaryRootWindowController()->wallpaper_widget_controller();
-
-  const bool is_jellyroll_enabled = chromeos::features::IsJellyrollEnabled();
-  // When Jellyroll is enabled, the wallpaper blur is removed in overview mode.
-  EXPECT_EQ(wallpaper_widget_controller->GetWallpaperBlur(),
-            chromeos::features::IsJellyrollEnabled()
-                ? wallpaper_constants::kClear
-                : wallpaper_constants::kOverviewBlur);
+  EXPECT_GT(wallpaper_widget_controller->GetWallpaperBlur(), 0);
   EXPECT_FALSE(wallpaper_widget_controller->IsAnimating());
 
   ui::ScopedAnimationDurationScaleMode animation_scale(
       ui::ScopedAnimationDurationScaleMode::NON_ZERO_DURATION);
   ToggleOverview();
-
-  EXPECT_EQ(wallpaper_widget_controller->GetWallpaperBlur(),
-            is_jellyroll_enabled ? wallpaper_constants::kClear
-                                 : wallpaper_constants::kOverviewBlur);
+  EXPECT_GT(wallpaper_widget_controller->GetWallpaperBlur(), 0);
   EXPECT_FALSE(wallpaper_widget_controller->IsAnimating());
 
   WaitForOverviewExitAnimation();
@@ -843,7 +855,7 @@ TEST_F(SplitViewControllerTest, DividerStateWhenDraggedOverviewItemDestroyed) {
 
   OverviewSession* overview_session =
       Shell::Get()->overview_controller()->overview_session();
-  auto* overview_item =
+  OverviewItem* overview_item =
       overview_session->GetOverviewItemForWindow(window2.get());
   gfx::PointF drag_point = overview_item->target_bounds().CenterPoint();
   overview_session->InitiateDrag(overview_item, drag_point,
@@ -882,7 +894,7 @@ TEST_F(SplitViewControllerTest, DividerStateWhenOverviewItemDragCancelled) {
 
   OverviewSession* overview_session =
       Shell::Get()->overview_controller()->overview_session();
-  auto* overview_item =
+  OverviewItem* overview_item =
       overview_session->GetOverviewItemForWindow(window2.get());
   gfx::PointF drag_point = overview_item->target_bounds().CenterPoint();
   overview_session->InitiateDrag(overview_item, drag_point,
@@ -2330,8 +2342,8 @@ TEST_F(SplitViewControllerTest, ExitTabletModeDuringResizeCompletesDrags) {
   auto* w2_state = WindowState::Get(window2.get());
 
   // Setup delegates
-  auto* window_state_delegate1 = new FakeWindowStateDelegate();
-  auto* window_state_delegate2 = new FakeWindowStateDelegate();
+  auto* window_state_delegate1 = new TestWindowStateDelegate();
+  auto* window_state_delegate2 = new TestWindowStateDelegate();
   w1_state->SetDelegate(base::WrapUnique(window_state_delegate1));
   w2_state->SetDelegate(base::WrapUnique(window_state_delegate2));
 
@@ -2376,7 +2388,7 @@ TEST_F(SplitViewControllerTest,
   auto* w1_state = WindowState::Get(window1.get());
 
   // Setup delegate
-  auto* window_state_delegate1 = new FakeWindowStateDelegate();
+  auto* window_state_delegate1 = new TestWindowStateDelegate();
   w1_state->SetDelegate(base::WrapUnique(window_state_delegate1));
 
   // Set up window.
@@ -2420,8 +2432,8 @@ TEST_F(SplitViewControllerTest,
   auto* w2_state = WindowState::Get(window2.get());
 
   // Setup delegates
-  auto* window_state_delegate1 = new FakeWindowStateDelegate();
-  auto* window_state_delegate2 = new FakeWindowStateDelegate();
+  auto* window_state_delegate1 = new TestWindowStateDelegate();
+  auto* window_state_delegate2 = new TestWindowStateDelegate();
   w1_state->SetDelegate(base::WrapUnique(window_state_delegate1));
   w2_state->SetDelegate(base::WrapUnique(window_state_delegate2));
 

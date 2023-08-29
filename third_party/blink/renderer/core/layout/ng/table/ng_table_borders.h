@@ -59,13 +59,11 @@ struct NGBoxStrut;
 //   |   |   |    |
 //   |9  |11 |13  |15
 
-class NGTableBorders : public GarbageCollected<NGTableBorders> {
+class NGTableBorders : public RefCounted<NGTableBorders> {
  public:
-  static const NGTableBorders* ComputeTableBorders(const NGBlockNode&);
+  static scoped_refptr<NGTableBorders> ComputeTableBorders(const NGBlockNode&);
 
   NGTableBorders(const NGBoxStrut& table_border, const bool is_collapsed);
-
-  void Trace(Visitor* visitor) const { visitor->Trace(edges_); }
 
 #if DCHECK_IS_ON()
   String DumpEdges();
@@ -83,15 +81,13 @@ class NGTableBorders : public GarbageCollected<NGTableBorders> {
   // style border defines the edge.
   struct Edge {
     DISALLOW_NEW();
-    Member<const ComputedStyle> style;
+    scoped_refptr<const ComputedStyle> style;
     EdgeSide edge_side;
     // Box order is used to compute edge painting precedence.
     // Lower box order has precedence.
-    // The order value is defined as "box visited index" while computing
-    // collapsed edges.
+    // The order value is defined as "box visited index" while
+    // computing collapsed edges.
     wtf_size_t box_order;
-
-    void Trace(Visitor* visitor) const { visitor->Trace(style); }
   };
 
   static LayoutUnit BorderWidth(const ComputedStyle* style,
@@ -156,17 +152,17 @@ class NGTableBorders : public GarbageCollected<NGTableBorders> {
   }
 
   LayoutUnit BorderWidth(wtf_size_t edge_index) const {
-    return BorderWidth(edges_[edge_index].style.Get(),
+    return BorderWidth(edges_[edge_index].style.get(),
                        edges_[edge_index].edge_side);
   }
 
   EBorderStyle BorderStyle(wtf_size_t edge_index) const {
-    return BorderStyle(edges_[edge_index].style.Get(),
+    return BorderStyle(edges_[edge_index].style.get(),
                        edges_[edge_index].edge_side);
   }
 
   Color BorderColor(wtf_size_t edge_index) const {
-    return BorderColor(edges_[edge_index].style.Get(),
+    return BorderColor(edges_[edge_index].style.get(),
                        edges_[edge_index].edge_side);
   }
 
@@ -174,7 +170,7 @@ class NGTableBorders : public GarbageCollected<NGTableBorders> {
     return edges_[edge_index].box_order;
   }
 
-  using Edges = HeapVector<Edge>;
+  using Edges = Vector<Edge>;
 
   struct Section {
     wtf_size_t start_row;

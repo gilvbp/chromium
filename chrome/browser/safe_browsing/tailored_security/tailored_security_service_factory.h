@@ -31,7 +31,7 @@ class TailoredSecurityServiceFactory : public ProfileKeyedServiceFactory {
 
  protected:
   // Overridden from BrowserContextKeyedServiceFactory.
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* context) const override;
 
  private:
@@ -39,7 +39,6 @@ class TailoredSecurityServiceFactory : public ProfileKeyedServiceFactory {
 
   // BrowserContextKeyedServiceFactory:
   bool ServiceIsCreatedWithBrowserContext() const override;
-  bool ServiceIsNULLWhileTesting() const override;
 
   TailoredSecurityServiceFactory();
   ~TailoredSecurityServiceFactory() override = default;

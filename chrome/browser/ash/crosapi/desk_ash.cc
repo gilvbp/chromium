@@ -12,7 +12,6 @@
 #include "ash/public/cpp/desk_template.h"
 #include "ash/shell.h"
 #include "ash/wm/desks/desk.h"
-#include "ash/wm/desks/desks_controller.h"
 #include "base/strings/utf_string_conversions.h"
 #include "base/uuid.h"
 #include "base/value_iterators.h"
@@ -105,15 +104,9 @@ void DeskAsh::LaunchEmptyDesk(const std::string& desk_name,
 }
 
 void DeskAsh::RemoveDesk(const base::Uuid& desk_uuid,
-                         bool combine_desk,
-                         absl::optional<bool> allow_undo,
+                         bool close_all,
                          RemoveDeskCallback callback) {
-  bool undo_value = allow_undo.value_or(false);
-  ash::DeskCloseType close_type =
-      combine_desk ? ash::DeskCloseType::kCombineDesks
-                   : (undo_value ? ash::DeskCloseType::kCloseAllWindowsAndWait
-                                 : ash::DeskCloseType::kCloseAllWindows);
-  auto error = DesksClient::Get()->RemoveDesk(desk_uuid, close_type);
+  auto error = DesksClient::Get()->RemoveDesk(desk_uuid, close_all);
   if (error) {
     std::move(callback).Run(crosapi::mojom::RemoveDeskResult::NewError(
         ToCrosApiError(error.value())));
@@ -308,10 +301,10 @@ void DeskAsh::AddDeskEventObserver(
   remote_desk_event_observers_.Add(std::move(remote));
 }
 
-void DeskAsh::NotifyDeskAdded(const base::Uuid& uuid, bool from_undo) {
+void DeskAsh::NotifyDeskAdded(const base::Uuid& uuid) {
   // If there is listener in lacros-chrome, dispatch events.
   for (auto& client : remote_desk_event_observers_) {
-    client->OnDeskAdded(uuid, from_undo);
+    client->OnDeskAdded(uuid);
   }
 }
 

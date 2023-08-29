@@ -8,6 +8,7 @@
 #include <memory>
 
 #include "base/memory/raw_ptr.h"
+#include "base/uuid.h"
 #include "base/values.h"
 #include "chrome/browser/ash/bruschetta/bruschetta_download.h"
 #include "chrome/browser/ash/bruschetta/bruschetta_installer.h"
@@ -37,6 +38,14 @@ class BruschettaInstallerImpl : public BruschettaInstaller {
   void Cancel() override;
   void Install(std::string vm_name, std::string config_id) override;
 
+  const base::Uuid& GetDownloadGuid() const override;
+
+  void DownloadStarted(const std::string& guid,
+                       download::DownloadParams::StartResult result) override;
+  void DownloadFailed() override;
+  void DownloadSucceeded(
+      const download::CompletionInfo& completion_info) override;
+
   void AddObserver(Observer* observer) override;
   void RemoveObserver(Observer* observer) override;
 
@@ -60,10 +69,18 @@ class BruschettaInstallerImpl : public BruschettaInstaller {
   void InstallFirmwareDlc();
   void OnFirmwareDlcInstalled(
       guest_os::GuestOsDlcInstallation::Result install_result);
-  void DownloadBootDisk();
-  void OnBootDiskDownloaded(base::FilePath path, std::string hash);
-  void DownloadPflash();
-  void OnPflashDownloaded(base::FilePath path, std::string hash);
+  // TODO(b/270656010): Pick the winner between the two strategies. Loser gets
+  // deleted, winner gets renamed back to "DownloadBootDisk" and etc.
+  void DownloadBootDiskDownloadService();
+  void OnBootDiskDownloadedDownloadService(
+      const download::CompletionInfo& completion_info);
+  void DownloadPflashDownloadService();
+  void OnPflashDownloadedDownloadService(
+      const download::CompletionInfo& completion_info);
+  void DownloadBootDiskURLLoader();
+  void OnBootDiskDownloadedURLLoader(base::FilePath path, std::string hash);
+  void DownloadPflashURLLoader();
+  void OnPflashDownloadedURLLoader(base::FilePath path, std::string hash);
   void OpenFds();
   void OnOpenFds(std::unique_ptr<Fds> fds);
   void CreateVmDisk();
@@ -85,6 +102,9 @@ class BruschettaInstallerImpl : public BruschettaInstaller {
   std::string vm_name_;
   std::string config_id_;
   base::Value::Dict config_;
+
+  base::Uuid download_guid_;
+  DownloadCallback download_callback_;
 
   base::FilePath boot_disk_path_;
   base::FilePath pflash_path_;

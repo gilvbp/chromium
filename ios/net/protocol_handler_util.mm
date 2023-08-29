@@ -24,6 +24,10 @@
 #if !BUILDFLAG(USE_PLATFORM_ICU_ALTERNATIVES)
 #include "base/i18n/encoding_detection.h"  // nogncheck
 #include "base/i18n/icu_string_conversions.h"  // nogncheck
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 #endif  // !BUILDFLAG(USE_PLATFORM_ICU_ALTERNATIVES)
 
 namespace {
@@ -49,7 +53,8 @@ NSError* GetIOSError(NSInteger ns_error_code,
   // The nested error has domain:kNSErrorDomain, code:|original_error_code|,
   // and userInfo:nil; this NSError is keyed in the dictionary with
   // NSUnderlyingErrorKey.
-  NSDate* creation_date = creation_time.ToNSDate();
+  NSDate* creation_date = [NSDate
+      dateWithTimeIntervalSinceReferenceDate:creation_time.ToCFAbsoluteTime()];
   DCHECK(creation_date);
   NSError* underlying_error =
       [NSError errorWithDomain:kNSErrorDomain code:net_error_code userInfo:nil];

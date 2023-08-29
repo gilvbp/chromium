@@ -4,13 +4,15 @@
 
 #include "media/gpu/v4l2/test/h264_decoder.h"
 
-#include <linux/v4l2-controls.h>
-#include <linux/videodev2.h>
+#if BUILDFLAG(IS_CHROMEOS)
+#include <linux/media/h264-ctrls-upstream.h>
+#endif
 
 #include "base/logging.h"
 #include "base/memory/ptr_util.h"
 #include "base/notreached.h"
 #include "media/gpu/macros.h"
+#include "media/gpu/v4l2/test/upstream_pix_fmt.h"
 
 namespace media {
 
@@ -435,7 +437,7 @@ void H264Decoder::FlushDPB() {
 
 void H264Decoder::InitializeDecoderLogic() {
   parser_ = std::make_unique<H264Parser>();
-  parser_->SetStream(data_stream_->data(), data_stream_->length());
+  parser_->SetStream(data_stream_.data(), data_stream_.length());
 
   // Advance through NALUs until the first SPS.  The start of the decodable
   // data in an h.264 bistreams starts with an SPS.
@@ -643,7 +645,8 @@ VideoDecoder::Result H264Decoder::StartNewFrame(
   struct v4l2_ext_controls ext_ctrls = {
       .count = (sizeof(ctrls) / sizeof(ctrls[0])), .controls = ctrls};
 
-  v4l2_ioctl_->SetExtCtrls(OUTPUT_queue_, &ext_ctrls, is_OUTPUT_queue_new);
+  v4l2_ioctl_->SetExtCtrls(OUTPUT_queue_, &ext_ctrls,
+                           is_OUTPUT_queue_new && cur_val_is_supported_);
 
   return VideoDecoder::kOk;
 }

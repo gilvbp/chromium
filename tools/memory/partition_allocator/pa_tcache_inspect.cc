@@ -49,6 +49,7 @@ using ::base::PlatformThreadId;
 using partition_alloc::internal::BucketIndexLookup;
 using partition_alloc::internal::PartitionBucket;
 using partition_alloc::internal::SlotSpanMetadata;
+using partition_alloc::internal::ThreadSafe;
 
 namespace {
 

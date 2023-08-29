@@ -17,7 +17,6 @@ class AwPermissionManager;
 
 // The AwPermissionRequestDelegate implementation for media access permission
 // request.
-// Lifetime: Temporary
 class MediaAccessPermissionRequest : public AwPermissionRequestDelegate {
  public:
   MediaAccessPermissionRequest(const content::MediaStreamRequest& request,

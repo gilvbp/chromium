@@ -4,7 +4,6 @@
 
 package org.chromium.components.page_info;
 
-import android.app.Activity;
 import android.graphics.drawable.Drawable;
 import android.view.ViewGroup;
 
@@ -145,12 +144,6 @@ public abstract class PageInfoControllerDelegate {
      * Show cookie settings.
      */
     public abstract void showCookieSettings();
-
-    /**
-     * Shows cookie feedback UI.
-     * @param activity The Activity where the feedback is shown.
-     */
-    public abstract void showCookieFeedback(Activity activity);
 
     /**
      * Show ad personalization settings.

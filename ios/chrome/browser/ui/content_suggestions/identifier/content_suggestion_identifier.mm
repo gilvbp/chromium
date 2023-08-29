@@ -4,7 +4,11 @@
 
 #import "ios/chrome/browser/ui/content_suggestions/identifier/content_suggestion_identifier.h"
 
-#import "base/apple/foundation_util.h"
+#import "base/mac/foundation_util.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 @implementation ContentSuggestionIdentifier
 
@@ -23,7 +27,7 @@
   }
 
   ContentSuggestionIdentifier* other =
-      base::apple::ObjCCastStrict<ContentSuggestionIdentifier>(object);
+      base::mac::ObjCCastStrict<ContentSuggestionIdentifier>(object);
 
   return self.sectionInfo == other.sectionInfo &&
          self.IDInSection == other.IDInSection;

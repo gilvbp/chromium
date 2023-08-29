@@ -35,7 +35,7 @@ suite('routineSectionTestSuite', function() {
   const originalTime = performance.now;
 
   setup(function() {
-    document.body.innerHTML = window.trustedTypes.emptyHTML;
+    document.body.innerHTML = '';
 
     // Setup a fake routine controller so that nothing resolves unless
     // done explicitly.

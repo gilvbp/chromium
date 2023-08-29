@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+#include <d3d11.h>
 #include <wrl.h>
 
 #include "base/run_loop.h"
@@ -11,6 +12,7 @@
 #include "services/webnn/dml/command_queue.h"
 #include "services/webnn/dml/test_base.h"
 #include "testing/gtest/include/gtest/gtest.h"
+#include "ui/gl/gl_angle_util_win.h"
 
 namespace webnn::dml {
 
@@ -27,8 +29,14 @@ class WebNNCommandQueueTest : public TestBase {
 void WebNNCommandQueueTest::SetUp() {
   SKIP_TEST_IF(!UseGPUInTests());
   ASSERT_TRUE(InitializeGLDisplay());
-  Adapter::EnableDebugLayerForTesting();
-  scoped_refptr<Adapter> adapter = Adapter::GetInstanceForTesting();
+  ComPtr<ID3D11Device> d3d11_device = gl::QueryD3D11DeviceObjectFromANGLE();
+  ASSERT_NE(d3d11_device.Get(), nullptr);
+  ComPtr<IDXGIDevice> dxgi_device;
+  d3d11_device.As(&dxgi_device);
+  ComPtr<IDXGIAdapter> dxgi_adapter;
+  dxgi_device->GetAdapter(&dxgi_adapter);
+  ASSERT_NE(dxgi_adapter.Get(), nullptr);
+  scoped_refptr<Adapter> adapter = Adapter::Create(dxgi_adapter);
   ASSERT_NE(adapter.get(), nullptr);
   d3d12_device_ = adapter->d3d12_device();
 }
@@ -49,7 +57,7 @@ TEST_F(WebNNCommandQueueTest, WaitSyncForGpuWorkCompleted) {
                                              command_allocator.Get(), nullptr,
                                              IID_PPV_ARGS(&command_list)),
             S_OK);
-  scoped_refptr<CommandQueue> command_queue =
+  std::unique_ptr<CommandQueue> command_queue =
       CommandQueue::Create(d3d12_device_.Get());
   ASSERT_NE(command_queue.get(), nullptr);
   ASSERT_EQ(command_list->Close(), S_OK);
@@ -73,7 +81,7 @@ TEST_F(WebNNCommandQueueTest, WaitAsyncOnce) {
                                              command_allocator.Get(), nullptr,
                                              IID_PPV_ARGS(&command_list)),
             S_OK);
-  scoped_refptr<CommandQueue> command_queue =
+  std::unique_ptr<CommandQueue> command_queue =
       CommandQueue::Create(d3d12_device_.Get());
   ASSERT_NE(command_queue.get(), nullptr);
   ASSERT_EQ(command_list->Close(), S_OK);
@@ -81,11 +89,11 @@ TEST_F(WebNNCommandQueueTest, WaitAsyncOnce) {
 
   bool is_signaled = false;
   base::RunLoop run_loop;
-  command_queue->WaitAsync(base::BindLambdaForTesting([&](HRESULT hr) {
-    EXPECT_EQ(hr, S_OK);
+  EXPECT_EQ(command_queue->WaitAsync(base::BindLambdaForTesting([&]() {
     is_signaled = true;
     run_loop.Quit();
-  }));
+  })),
+            S_OK);
   run_loop.Run();
   EXPECT_TRUE(is_signaled);
 
@@ -107,7 +115,7 @@ TEST_F(WebNNCommandQueueTest, WaitAsyncMultipleTimesOnIncreasingFenceValue) {
                                              command_allocator.Get(), nullptr,
                                              IID_PPV_ARGS(&command_list)),
             S_OK);
-  scoped_refptr<CommandQueue> command_queue =
+  std::unique_ptr<CommandQueue> command_queue =
       CommandQueue::Create(d3d12_device_.Get());
   ASSERT_NE(command_queue.get(), nullptr);
   ASSERT_EQ(command_list->Close(), S_OK);
@@ -117,14 +125,14 @@ TEST_F(WebNNCommandQueueTest, WaitAsyncMultipleTimesOnIncreasingFenceValue) {
   base::RunLoop run_loop;
 
   // Call WaitAsync for the first time with fence value 1.
-  command_queue->WaitAsync(base::BindLambdaForTesting([&](HRESULT hr) {
-    EXPECT_EQ(hr, S_OK);
+  EXPECT_EQ(command_queue->WaitAsync(base::BindLambdaForTesting([&]() {
     if (--count) {
       return;
     } else {
       run_loop.Quit();
     }
-  }));
+  })),
+            S_OK);
 
   EXPECT_EQ(command_allocator->Reset(), S_OK);
   EXPECT_EQ(command_list->Reset(command_allocator.Get(), nullptr), S_OK);
@@ -132,14 +140,14 @@ TEST_F(WebNNCommandQueueTest, WaitAsyncMultipleTimesOnIncreasingFenceValue) {
   // Call WaitAsync for the second time with fence value 2.
   ASSERT_EQ(command_list->Close(), S_OK);
   EXPECT_EQ(command_queue->ExecuteCommandList(command_list.Get()), S_OK);
-  command_queue->WaitAsync(base::BindLambdaForTesting([&](HRESULT hr) {
-    EXPECT_EQ(hr, S_OK);
+  EXPECT_EQ(command_queue->WaitAsync(base::BindLambdaForTesting([&]() {
     if (--count) {
       return;
     } else {
       run_loop.Quit();
     }
-  }));
+  })),
+            S_OK);
 
   run_loop.Run();
   EXPECT_EQ(count, 0);
@@ -161,7 +169,7 @@ TEST_F(WebNNCommandQueueTest, WaitAsyncMultipleTimesOnSameFenceValue) {
                                              command_allocator.Get(), nullptr,
                                              IID_PPV_ARGS(&command_list)),
             S_OK);
-  scoped_refptr<CommandQueue> command_queue =
+  std::unique_ptr<CommandQueue> command_queue =
       CommandQueue::Create(d3d12_device_.Get());
   ASSERT_NE(command_queue.get(), nullptr);
   ASSERT_EQ(command_list->Close(), S_OK);
@@ -171,24 +179,24 @@ TEST_F(WebNNCommandQueueTest, WaitAsyncMultipleTimesOnSameFenceValue) {
   base::RunLoop run_loop;
 
   // Call WaitAsync for the first time with fence value 1.
-  command_queue->WaitAsync(base::BindLambdaForTesting([&](HRESULT hr) {
-    EXPECT_EQ(hr, S_OK);
+  EXPECT_EQ(command_queue->WaitAsync(base::BindLambdaForTesting([&]() {
     if (--count) {
       return;
     } else {
       run_loop.Quit();
     }
-  }));
+  })),
+            S_OK);
 
   // Call WaitAsync for the second time on the same fence value 1.
-  command_queue->WaitAsync(base::BindLambdaForTesting([&](HRESULT hr) {
-    EXPECT_EQ(hr, S_OK);
+  EXPECT_EQ(command_queue->WaitAsync(base::BindLambdaForTesting([&]() {
     if (--count) {
       return;
     } else {
       run_loop.Quit();
     }
-  }));
+  })),
+            S_OK);
 
   run_loop.Run();
   EXPECT_EQ(count, 0);
@@ -197,7 +205,7 @@ TEST_F(WebNNCommandQueueTest, WaitAsyncMultipleTimesOnSameFenceValue) {
 }
 
 TEST_F(WebNNCommandQueueTest, ReferenceAndRelease) {
-  scoped_refptr<CommandQueue> command_queue =
+  std::unique_ptr<CommandQueue> command_queue =
       CommandQueue::Create(d3d12_device_.Get());
   ASSERT_NE(command_queue.get(), nullptr);
 

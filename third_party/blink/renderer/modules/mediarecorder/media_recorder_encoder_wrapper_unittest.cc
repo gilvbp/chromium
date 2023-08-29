@@ -56,9 +56,6 @@ MATCHER_P2(MatchVideoParams,
   return arg.visible_rect_size == visible_rect_size && arg.codec == video_codec;
 }
 
-MATCHER_P(MatchErrorCode, code, "error code matcher") {
-  return arg.code() == code;
-}
 }  // namespace
 // Wraps MockVideoEncoder to not delete the pointer of MockVideoEncoder by
 // the std::unique_ptr.
@@ -120,11 +117,6 @@ class MediaRecorderEncoderWrapperTest : public ::testing::Test {
                                base::Unretained(this)),
             WTF::BindRepeating(&MediaRecorderEncoderWrapperTest::OnError,
                                base::Unretained(this))) {
-    auto metrics_provider =
-        std::make_unique<media::MockVideoEncoderMetricsProvider>();
-    mock_metrics_provider_ = metrics_provider.get();
-    encoder_wrapper_.metrics_provider_ = std::move(metrics_provider);
-
     SetupSuccessful720pEncoderInitialization();
   }
 
@@ -152,16 +144,14 @@ class MediaRecorderEncoderWrapperTest : public ::testing::Test {
     encoder_wrapper_.EncodeFrame(std::move(frame), capture_timestamp, false);
   }
 
-  MOCK_METHOD(
-      void,
-      OnEncodedVideo,
-      (const media::Muxer::VideoParameters& params,
-       std::string encoded_data,
-       std::string encoded_alpha,
-       absl::optional<media::VideoEncoder::CodecDescription> codec_description,
-       base::TimeTicks capture_timestamp,
-       bool is_key_frame),
-      ());
+  MOCK_METHOD(void,
+              OnEncodedVideo,
+              (const media::Muxer::VideoParameters& params,
+               std::string encoded_data,
+               std::string encoded_alpha,
+               base::TimeTicks capture_timestamp,
+               bool is_key_frame),
+              ());
 
   void SetupSuccessful720pEncoderInitialization() {
     ON_CALL(mock_encoder_,
@@ -181,30 +171,23 @@ class MediaRecorderEncoderWrapperTest : public ::testing::Test {
               media::VideoEncoderOutput output = DefaultEncoderOutput();
               this->output_cb.Run(std::move(output), absl::nullopt);
             }));
-    ON_CALL(*mock_metrics_provider_,
-            MockInitialize(kCodecProfile, k720p, false,
-                           media::SVCScalabilityMode::kL1T1))
-        .WillByDefault(Return());
   }
 
   media::VideoEncoder::OutputCB output_cb;
 
   media::MockVideoEncoder mock_encoder_;
-  media::MockVideoEncoderMetricsProvider* mock_metrics_provider_;
   MediaRecorderEncoderWrapper encoder_wrapper_;
 };
 
 TEST_F(MediaRecorderEncoderWrapperTest, InitializesAndEncodesOneFrame) {
   InSequence s;
   EXPECT_CALL(*this, CreateEncoder);
-  EXPECT_CALL(*mock_metrics_provider_, MockInitialize);
   EXPECT_CALL(mock_encoder_, Initialize);
   EXPECT_CALL(mock_encoder_, Encode);
-  EXPECT_CALL(*mock_metrics_provider_, MockIncrementEncodedFrameCount);
-  EXPECT_CALL(*this, OnEncodedVideo(MatchVideoParams(k720p, kCodec),
-                                    MatchStringSize(kChunkSize),
-                                    MatchStringSize(0), _, _,
-                                    /*key_frame=*/true));
+  EXPECT_CALL(*this,
+              OnEncodedVideo(MatchVideoParams(k720p, kCodec),
+                             MatchStringSize(kChunkSize), MatchStringSize(0), _,
+                             /*key_frame=*/true));
   EncodeFrame(media::VideoFrame::CreateBlackFrame(k720p),
               base::TimeTicks::Now());
   EXPECT_CALL(*this, MockVideoEncoderWrapperDtor);
@@ -214,11 +197,10 @@ TEST_F(MediaRecorderEncoderWrapperTest,
        EncodesTwoFramesWithoutRecreatingEncoder) {
   InSequence s;
   const auto capture_timestamp1 = base::TimeTicks::Now();
-  EXPECT_CALL(*mock_metrics_provider_, MockIncrementEncodedFrameCount);
   // OnEncodedVideo to check capture_timestamp1.
   EXPECT_CALL(*this,
               OnEncodedVideo(MatchVideoParams(k720p, kCodec),
-                             MatchStringSize(kChunkSize), MatchStringSize(0), _,
+                             MatchStringSize(kChunkSize), MatchStringSize(0),
                              capture_timestamp1, /*key_frame=*/true));
   EncodeFrame(media::VideoFrame::CreateBlackFrame(k720p), capture_timestamp1);
 
@@ -234,10 +216,9 @@ TEST_F(MediaRecorderEncoderWrapperTest,
             output.key_frame = false;
             this->output_cb.Run(std::move(output), absl::nullopt);
           }));
-  EXPECT_CALL(*mock_metrics_provider_, MockIncrementEncodedFrameCount);
   EXPECT_CALL(*this,
               OnEncodedVideo(MatchVideoParams(k720p, kCodec),
-                             MatchStringSize(kChunkSize), MatchStringSize(0), _,
+                             MatchStringSize(kChunkSize), MatchStringSize(0),
                              capture_timestamp2, /*key_frame=*/false));
 
   EncodeFrame(media::VideoFrame::CreateBlackFrame(k720p), capture_timestamp2);
@@ -270,15 +251,13 @@ TEST_F(MediaRecorderEncoderWrapperTest,
             this->output_cb.Run(std::move(output1), absl::nullopt);
             this->output_cb.Run(std::move(output2), absl::nullopt);
           }));
-  EXPECT_CALL(*mock_metrics_provider_, MockIncrementEncodedFrameCount);
   EXPECT_CALL(*this,
               OnEncodedVideo(MatchVideoParams(k720p, kCodec),
-                             MatchStringSize(kChunkSize), MatchStringSize(0), _,
+                             MatchStringSize(kChunkSize), MatchStringSize(0),
                              capture_timestamp1, /*key_frame=*/true));
-  EXPECT_CALL(*mock_metrics_provider_, MockIncrementEncodedFrameCount);
   EXPECT_CALL(*this,
               OnEncodedVideo(MatchVideoParams(k720p, kCodec),
-                             MatchStringSize(kChunkSize), MatchStringSize(0), _,
+                             MatchStringSize(kChunkSize), MatchStringSize(0),
                              capture_timestamp2, /*key_frame=*/false));
   EncodeFrame(media::VideoFrame::CreateBlackFrame(k720p), capture_timestamp1);
   EncodeFrame(media::VideoFrame::CreateBlackFrame(k720p), capture_timestamp2);
@@ -287,7 +266,6 @@ TEST_F(MediaRecorderEncoderWrapperTest,
 
 TEST_F(MediaRecorderEncoderWrapperTest, RecreatesEncoderOnNewResolution) {
   InSequence s;
-  EXPECT_CALL(*mock_metrics_provider_, MockIncrementEncodedFrameCount);
   EncodeFrame(media::VideoFrame::CreateBlackFrame(k720p),
               base::TimeTicks::Now());
 
@@ -298,9 +276,6 @@ TEST_F(MediaRecorderEncoderWrapperTest, RecreatesEncoderOnNewResolution) {
           }));
   EXPECT_CALL(*this, CreateEncoder);
   EXPECT_CALL(*this, MockVideoEncoderWrapperDtor);
-  EXPECT_CALL(*mock_metrics_provider_,
-              MockInitialize(kCodecProfile, k360p, false,
-                             media::SVCScalabilityMode::kL1T1));
   EXPECT_CALL(mock_encoder_,
               Initialize(kCodecProfile,
                          MatchEncoderOptions(kDefaultBitrate, k360p), _, _, _))
@@ -317,11 +292,10 @@ TEST_F(MediaRecorderEncoderWrapperTest, RecreatesEncoderOnNewResolution) {
             media::VideoEncoderOutput output = DefaultEncoderOutput();
             this->output_cb.Run(std::move(output), absl::nullopt);
           }));
-  EXPECT_CALL(*mock_metrics_provider_, MockIncrementEncodedFrameCount);
-  EXPECT_CALL(*this, OnEncodedVideo(MatchVideoParams(k360p, kCodec),
-                                    MatchStringSize(kChunkSize),
-                                    MatchStringSize(0), _, _,
-                                    /*key_frame=*/true));
+  EXPECT_CALL(*this,
+              OnEncodedVideo(MatchVideoParams(k360p, kCodec),
+                             MatchStringSize(kChunkSize), MatchStringSize(0), _,
+                             /*key_frame=*/true));
   EncodeFrame(media::VideoFrame::CreateBlackFrame(k360p),
               base::TimeTicks::Now());
   EXPECT_CALL(*this, MockVideoEncoderWrapperDtor);
@@ -337,9 +311,6 @@ TEST_F(MediaRecorderEncoderWrapperTest, HandlesInitializeFailure) {
             std::move(initialize_done_cb)
                 .Run(media::EncoderStatus::Codes::kEncoderInitializationError);
           }));
-  EXPECT_CALL(*mock_metrics_provider_,
-              MockSetError(MatchErrorCode(
-                  media::EncoderStatus::Codes::kEncoderInitializationError)));
   EXPECT_CALL(*this, OnError);
   EncodeFrame(media::VideoFrame::CreateBlackFrame(k720p),
               base::TimeTicks::Now());
@@ -354,9 +325,6 @@ TEST_F(MediaRecorderEncoderWrapperTest, HandlesEncodeFailure) {
             std::move(encode_done_cb)
                 .Run(media::EncoderStatus::Codes::kEncoderFailedEncode);
           }));
-  EXPECT_CALL(*mock_metrics_provider_,
-              MockSetError(MatchErrorCode(
-                  media::EncoderStatus::Codes::kEncoderFailedEncode)));
   EXPECT_CALL(*this, OnError);
   EncodeFrame(media::VideoFrame::CreateBlackFrame(k720p),
               base::TimeTicks::Now());
@@ -365,16 +333,12 @@ TEST_F(MediaRecorderEncoderWrapperTest, HandlesEncodeFailure) {
 
 TEST_F(MediaRecorderEncoderWrapperTest, HandlesFlushFailure) {
   InSequence s;
-  EXPECT_CALL(*mock_metrics_provider_, MockIncrementEncodedFrameCount);
   EXPECT_CALL(mock_encoder_, Flush)
       .WillOnce(
           WithArgs<0>([](media::VideoEncoder::EncoderStatusCB flush_done_cb) {
             std::move(flush_done_cb)
                 .Run(media::EncoderStatus::Codes::kEncoderFailedFlush);
           }));
-  EXPECT_CALL(*mock_metrics_provider_,
-              MockSetError(MatchErrorCode(
-                  media::EncoderStatus::Codes::kEncoderFailedFlush)));
   EXPECT_CALL(*this, OnError);
   EncodeFrame(media::VideoFrame::CreateBlackFrame(k720p),
               base::TimeTicks::Now());
@@ -393,9 +357,6 @@ TEST_F(MediaRecorderEncoderWrapperTest, NotCallOnEncodedVideoCBIfEncodeFail) {
             media::VideoEncoderOutput output = DefaultEncoderOutput();
             this->output_cb.Run(std::move(output), absl::nullopt);
           }));
-  EXPECT_CALL(*mock_metrics_provider_,
-              MockSetError(MatchErrorCode(
-                  media::EncoderStatus::Codes::kEncoderFailedEncode)));
   EXPECT_CALL(*this, OnError);
   EXPECT_CALL(*this, OnEncodedVideo).Times(0);
   EncodeFrame(media::VideoFrame::CreateBlackFrame(k720p),
@@ -422,9 +383,6 @@ TEST_F(MediaRecorderEncoderWrapperTest,
             std::move(encode_done_cb2)
                 .Run(media::EncoderStatus::Codes::kEncoderFailedEncode);
           }));
-  EXPECT_CALL(*mock_metrics_provider_,
-              MockSetError(MatchErrorCode(
-                  media::EncoderStatus::Codes::kEncoderFailedEncode)));
   EXPECT_CALL(*this, OnError);
   EncodeFrame(media::VideoFrame::CreateBlackFrame(k720p),
               base::TimeTicks::Now());
@@ -443,9 +401,6 @@ TEST_F(MediaRecorderEncoderWrapperTest, IgnoresEncodeAfterFailure) {
             std::move(initialize_done_cb)
                 .Run(media::EncoderStatus::Codes::kEncoderInitializationError);
           }));
-  EXPECT_CALL(*mock_metrics_provider_,
-              MockSetError(MatchErrorCode(
-                  media::EncoderStatus::Codes::kEncoderInitializationError)));
   EXPECT_CALL(*this, OnError);
   EncodeFrame(media::VideoFrame::CreateBlackFrame(k720p),
               base::TimeTicks::Now());

@@ -236,14 +236,15 @@ std::unique_ptr<views::View> SaveCardOfferBubbleViews::CreateMainContentView() {
     // active. Otherwise, this tooltip's info will appear in CreateExtraView()'s
     // tooltip.
     if (!prefilled_name.empty() &&
-        !controller()->IsPaymentsSyncTransportEnabledWithoutSyncFeature()) {
+        controller()->GetSyncState() !=
+            AutofillSyncSigninState::kSignedInAndWalletSyncTransportEnabled) {
       constexpr int kTooltipIconSize = 12;
       std::unique_ptr<views::TooltipIcon> cardholder_name_tooltip =
           std::make_unique<views::TooltipIcon>(
               l10n_util::GetStringUTF16(
                   IDS_AUTOFILL_SAVE_CARD_PROMPT_CARDHOLDER_NAME_TOOLTIP),
               kTooltipIconSize);
-      cardholder_name_tooltip->SetAnchorPointArrow(
+      cardholder_name_tooltip->set_anchor_point_arrow(
           views::BubbleBorder::Arrow::TOP_LEFT);
       cardholder_name_tooltip->SetID(DialogViewId::CARDHOLDER_NAME_TOOLTIP);
       cardholder_name_label_row->AddChildView(
@@ -380,7 +381,8 @@ SaveCardOfferBubbleViews::CreateUploadExplanationView() {
   // Only show the (i) info icon for upload saves using implicit sync.
   // GetLegalMessageLines() being empty denotes a local save.
   if (controller()->GetLegalMessageLines().empty() ||
-      !controller()->IsPaymentsSyncTransportEnabledWithoutSyncFeature()) {
+      controller()->GetSyncState() !=
+          AutofillSyncSigninState::kSignedInAndWalletSyncTransportEnabled) {
     return nullptr;
   }
 
@@ -392,10 +394,10 @@ SaveCardOfferBubbleViews::CreateUploadExplanationView() {
        !cardholder_name_textfield_->GetText().empty())
           ? IDS_AUTOFILL_SAVE_CARD_PROMPT_UPLOAD_EXPLANATION_AND_CARDHOLDER_NAME_TOOLTIP
           : IDS_AUTOFILL_SAVE_CARD_PROMPT_UPLOAD_EXPLANATION_TOOLTIP));
-  upload_explanation_tooltip->SetBubbleWidth(
+  upload_explanation_tooltip->set_bubble_width(
       ChromeLayoutProvider::Get()->GetDistanceMetric(
           views::DISTANCE_BUBBLE_PREFERRED_WIDTH));
-  upload_explanation_tooltip->SetAnchorPointArrow(
+  upload_explanation_tooltip->set_anchor_point_arrow(
       views::BubbleBorder::Arrow::TOP_RIGHT);
   upload_explanation_tooltip->SetID(DialogViewId::UPLOAD_EXPLANATION_TOOLTIP);
   return upload_explanation_tooltip;

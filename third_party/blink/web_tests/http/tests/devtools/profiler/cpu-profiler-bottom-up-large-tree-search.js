@@ -5,8 +5,6 @@
 import {TestRunner} from 'test_runner';
 import {CPUProfilerTestRunner} from 'cpu_profiler_test_runner';
 
-import * as SDK from 'devtools/core/sdk/sdk.js';
-
 (async function() {
   TestRunner.addResult(`Tests that search works for large bottom-up view of CPU profile.\n`);
   await TestRunner.loadLegacyModule('profiler');
@@ -29,9 +27,9 @@ import * as SDK from 'devtools/core/sdk/sdk.js';
   var profileAndExpectations = {
     'title': 'profile1',
     'target': function() {
-      return SDK.TargetManager.TargetManager.instance().targets()[0];
+      return SDK.targetManager.targets()[0];
     },
-    'profileModel': () => new SDK.CPUProfileDataModel.CPUProfileDataModel({
+    'profileModel': () => new SDK.CPUProfileDataModel({
       'nodes': [
         {
           'id': 0,

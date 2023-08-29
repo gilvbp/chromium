@@ -6,11 +6,15 @@
 
 #import <AppKit/AppKit.h>
 
-#include "base/apple/foundation_util.h"
+#include "base/mac/foundation_util.h"
 #include "base/mac/mac_util.h"
 #include "testing/gtest/include/gtest/gtest.h"
 #include "third_party/skia/include/core/SkColorSpace.h"
 #include "ui/gfx/scoped_ns_graphics_context_save_gstate_mac.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace {
 
@@ -163,7 +167,7 @@ void SkiaUtilsMacTest::ShapeHelper(int width,
   EXPECT_TRUE(image.representations.count == 1);
   EXPECT_TRUE([image.representations.lastObject
       isKindOfClass:[NSBitmapImageRep class]]);
-  TestImageRep(base::apple::ObjCCastStrict<NSBitmapImageRep>(
+  TestImageRep(base::mac::ObjCCastStrict<NSBitmapImageRep>(
                    image.representations.lastObject),
                test_color);
 }
@@ -200,7 +204,7 @@ TEST_F(SkiaUtilsMacTest, NSImageRepToSkBitmap) {
 
   NSImage* image = CreateNSImage(width, height);
   EXPECT_EQ(1u, image.representations.count);
-  NSBitmapImageRep* imageRep = base::apple::ObjCCastStrict<NSBitmapImageRep>(
+  NSBitmapImageRep* imageRep = base::mac::ObjCCastStrict<NSBitmapImageRep>(
       image.representations.lastObject);
   SkBitmap bitmap(skia::NSImageRepToSkBitmapWithColorSpace(
       imageRep, image.size, false, base::mac::GetSRGBColorSpace()));

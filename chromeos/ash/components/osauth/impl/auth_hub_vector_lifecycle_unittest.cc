@@ -158,14 +158,14 @@ class AuthHubVectorLifecycleTest : public ::testing::Test {
       engines_;
   base::flat_map<
       AshAuthFactor,
-      raw_ptr<AuthFactorEngine::FactorEngineObserver, DanglingUntriaged>>
+      base::raw_ptr<AuthFactorEngine::FactorEngineObserver, DanglingUntriaged>>
       engine_obvservers_;
   AuthFactorsSet usable_factors_;
   AuthFactorsSet failed_factors_;
 
   std::unique_ptr<AuthHubVectorLifecycle> lifecycle_;
 
-  raw_ptr<AuthHubConnector> connector_;
+  base::raw_ptr<AuthHubConnector> connector_;
 };
 
 // Standard init/shutdown flow.

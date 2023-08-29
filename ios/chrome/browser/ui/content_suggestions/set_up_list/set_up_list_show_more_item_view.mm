@@ -4,9 +4,7 @@
 
 #import "ios/chrome/browser/ui/content_suggestions/set_up_list/set_up_list_show_more_item_view.h"
 
-#import "base/feature_list.h"
 #import "base/notreached.h"
-#import "components/sync/base/features.h"
 #import "ios/chrome/browser/ntp/set_up_list_item_type.h"
 #import "ios/chrome/browser/shared/ui/elements/crossfade_label.h"
 #import "ios/chrome/browser/shared/ui/util/uikit_ui_util.h"
@@ -16,9 +14,12 @@
 #import "ios/chrome/browser/ui/content_suggestions/set_up_list/set_up_list_view.h"
 #import "ios/chrome/common/ui/colors/semantic_color_names.h"
 #import "ios/chrome/common/ui/util/constraints_ui_util.h"
-#import "ios/chrome/grit/ios_chromium_strings.h"
 #import "ios/chrome/grit/ios_strings.h"
 #import "ui/base/l10n/l10n_util.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace {
 
@@ -159,12 +160,7 @@ NSAttributedString* Strikethrough(NSString* text) {
 - (NSString*)titleText {
   switch (_data.type) {
     case SetUpListItemType::kSignInSync:
-      return base::FeatureList::IsEnabled(
-                 syncer::kReplaceSyncPromosWithSignInPromos)
-                 ? l10n_util::GetNSString(
-                       IDS_IOS_CONSISTENCY_PROMO_DEFAULT_ACCOUNT_TITLE)
-                 : l10n_util::GetNSString(
-                       IDS_IOS_SET_UP_LIST_SIGN_IN_SYNC_TITLE);
+      return l10n_util::GetNSString(IDS_IOS_SET_UP_LIST_SIGN_IN_SYNC_TITLE);
     case SetUpListItemType::kDefaultBrowser:
       return l10n_util::GetNSString(IDS_IOS_SET_UP_LIST_DEFAULT_BROWSER_TITLE);
     case SetUpListItemType::kAutofill:
@@ -199,7 +195,8 @@ NSAttributedString* Strikethrough(NSString* text) {
 - (NSString*)descriptionText {
   switch (_data.type) {
     case SetUpListItemType::kSignInSync:
-      return l10n_util::GetNSString(IDS_IOS_IDENTITY_DISC_SIGN_IN_PROMO_LABEL);
+      return l10n_util::GetNSString(
+          IDS_IOS_SET_UP_LIST_SIGN_IN_SYNC_SEE_MORE_DESCRIPTION);
     case SetUpListItemType::kDefaultBrowser:
       return l10n_util::GetNSString(
           IDS_IOS_SET_UP_LIST_DEFAULT_BROWSER_SEE_MORE_DESCRIPTION);

@@ -14,7 +14,6 @@
 #include "base/synchronization/condition_variable.h"
 #include "base/synchronization/lock.h"
 #include "base/time/time.h"
-#include "media/base/mock_filters.h"
 #include "media/cast/cast_config.h"
 #include "media/cast/common/sender_encoded_frame.h"
 #include "media/cast/encoding/vpx_encoder.h"
@@ -46,9 +45,7 @@ class VideoDecoderTest : public ::testing::TestWithParam<Codec> {
  public:
   VideoDecoderTest()
       : cast_environment_(new StandaloneCastEnvironment()),
-        vp8_encoder_(
-            GetVideoSenderConfigForTest(),
-            std::make_unique<media::MockVideoEncoderMetricsProvider>()),
+        vp8_encoder_(GetVideoSenderConfigForTest()),
         cond_(&lock_) {
     vp8_encoder_.Initialize();
   }

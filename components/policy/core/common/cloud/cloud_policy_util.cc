@@ -67,7 +67,7 @@
 #endif
 
 #if BUILDFLAG(IS_APPLE)
-#include "base/apple/scoped_cftyperef.h"
+#include "base/mac/scoped_cftyperef.h"
 #include "base/strings/string_util.h"
 #include "base/strings/sys_string_conversions.h"
 #endif
@@ -93,15 +93,15 @@ std::string GetMachineName() {
 #elif BUILDFLAG(IS_MAC)
   // Do not use NSHost currentHost, as it's very slow. http://crbug.com/138570
   SCDynamicStoreContext context = {0, NULL, NULL, NULL};
-  base::apple::ScopedCFTypeRef<SCDynamicStoreRef> store(SCDynamicStoreCreate(
+  base::ScopedCFTypeRef<SCDynamicStoreRef> store(SCDynamicStoreCreate(
       kCFAllocatorDefault, CFSTR("chrome_sync"), NULL, &context));
-  base::apple::ScopedCFTypeRef<CFStringRef> machine_name(
+  base::ScopedCFTypeRef<CFStringRef> machine_name(
       SCDynamicStoreCopyLocalHostName(store.get()));
   if (machine_name.get())
     return base::SysCFStringRefToUTF8(machine_name.get());
 
   // Fall back to get computer name.
-  base::apple::ScopedCFTypeRef<CFStringRef> computer_name(
+  base::ScopedCFTypeRef<CFStringRef> computer_name(
       SCDynamicStoreCopyComputerName(store.get(), NULL));
   if (computer_name.get())
     return base::SysCFStringRefToUTF8(computer_name.get());

@@ -38,8 +38,7 @@ GetPrintPagesParams(const GURL& page_url,
                     absl::optional<double> margin_right,
                     absl::optional<std::string> header_template,
                     absl::optional<std::string> footer_template,
-                    absl::optional<bool> prefer_css_page_size,
-                    absl::optional<bool> generate_tagged_pdf);
+                    absl::optional<bool> prefer_css_page_size);
 
 }  // namespace print_to_pdf
 

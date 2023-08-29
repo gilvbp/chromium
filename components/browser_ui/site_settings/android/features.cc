@@ -12,5 +12,8 @@ namespace browser_ui {
 BASE_FEATURE(kSiteDataImprovements,
              "SiteDataImprovements",
              base::FEATURE_DISABLED_BY_DEFAULT);
+BASE_FEATURE(kRequestDesktopSiteExceptionsDowngrade,
+             "RequestDesktopSiteExceptionsDowngrade",
+             base::FEATURE_DISABLED_BY_DEFAULT);
 
 }  // namespace browser_ui

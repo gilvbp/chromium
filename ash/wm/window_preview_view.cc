@@ -10,7 +10,6 @@
 #include "ash/wm/window_util.h"
 #include "ui/aura/client/aura_constants.h"
 #include "ui/aura/client/transient_window_client.h"
-#include "ui/base/metadata/metadata_impl_macros.h"
 #include "ui/gfx/geometry/point.h"
 #include "ui/gfx/geometry/rect.h"
 #include "ui/gfx/geometry/rect_f.h"
@@ -189,8 +188,5 @@ gfx::RectF WindowPreviewView::GetUnionRect() const {
     bounds.Union(GetClientAreaBoundsInScreen(entry.first));
   return gfx::RectF(bounds);
 }
-
-BEGIN_METADATA(WindowPreviewView, views::View)
-END_METADATA
 
 }  // namespace ash

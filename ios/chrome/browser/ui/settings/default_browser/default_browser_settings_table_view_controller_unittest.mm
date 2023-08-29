@@ -4,11 +4,15 @@
 
 #import "ios/chrome/browser/ui/settings/default_browser/default_browser_settings_table_view_controller.h"
 
-#import "base/apple/foundation_util.h"
+#import "base/mac/foundation_util.h"
 #import "ios/chrome/browser/shared/ui/table_view/chrome_table_view_controller_test.h"
 #import "ios/chrome/browser/ui/settings/settings_table_view_controller.h"
 #import "ios/chrome/grit/ios_strings.h"
 #import "testing/platform_test.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace {
 
@@ -21,7 +25,7 @@ class DefaultBrowserSettingsTableViewControllerTest
   void SetUp() override { ChromeTableViewControllerTest::SetUp(); }
 
   void TearDown() override {
-    [base::apple::ObjCCastStrict<DefaultBrowserSettingsTableViewController>(
+    [base::mac::ObjCCastStrict<DefaultBrowserSettingsTableViewController>(
         controller()) settingsWillBeDismissed];
     ChromeTableViewControllerTest::TearDown();
   }

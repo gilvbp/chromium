@@ -191,7 +191,9 @@ void ErrorScreen::ShowConnectingIndicator(bool show) {
 }
 
 void ErrorScreen::SetIsPersistentError(bool is_persistent) {
-  is_persistent_ = is_persistent;
+  if (view_) {
+    view_->SetIsPersistentError(is_persistent);
+  }
 }
 
 base::CallbackListSubscription ErrorScreen::RegisterConnectRequestCallback(
@@ -215,7 +217,7 @@ void ErrorScreen::ShowNetworkErrorMessage(NetworkStateInformer::State state,
       NetworkStateInformer::GetNetworkName(network_path);
 
   const bool is_behind_captive_portal =
-      state == NetworkStateInformer::CAPTIVE_PORTAL;
+      NetworkStateInformer::IsBehindCaptivePortal(state, reason);
   const bool is_proxy_error = NetworkStateInformer::IsProxyError(state, reason);
   const bool is_loading_timeout =
       (reason == NetworkError::ERROR_REASON_LOADING_TIMEOUT);
@@ -260,9 +262,7 @@ void ErrorScreen::ShowImpl() {
     return;
   }
 
-  const bool is_closeable =
-      LoginDisplayHost::default_host()->HasUserPods() && !is_persistent_;
-  view_->ShowScreenWithParam(is_closeable);
+  view_->Show();
   LOG(WARNING) << "Network error screen message is shown";
   NetworkHandler::Get()->network_state_handler()->RequestPortalDetection();
 }

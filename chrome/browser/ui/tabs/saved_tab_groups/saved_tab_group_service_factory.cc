@@ -34,10 +34,9 @@ SavedTabGroupServiceFactory::SavedTabGroupServiceFactory()
 
 SavedTabGroupServiceFactory::~SavedTabGroupServiceFactory() = default;
 
-std::unique_ptr<KeyedService>
-SavedTabGroupServiceFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* SavedTabGroupServiceFactory::BuildServiceInstanceFor(
     content::BrowserContext* context) const {
   DCHECK(context);
   Profile* profile = Profile::FromBrowserContext(context);
-  return std::make_unique<SavedTabGroupKeyedService>(profile);
+  return new SavedTabGroupKeyedService(profile);
 }

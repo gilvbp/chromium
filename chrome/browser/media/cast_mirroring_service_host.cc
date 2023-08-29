@@ -20,12 +20,10 @@
 #include "chrome/browser/browser_process.h"
 #include "chrome/browser/media/cast_remoting_connector.h"
 #include "chrome/browser/media/router/discovery/access_code/access_code_cast_feature.h"
-#include "chrome/browser/media/router/media_router_feature.h"
 #include "chrome/browser/media/webrtc/media_capture_devices_dispatcher.h"
 #include "chrome/browser/media/webrtc/media_stream_capture_indicator.h"
 #include "chrome/browser/net/system_network_context_manager.h"
 #include "chrome/browser/profiles/profile.h"
-#include "chrome/browser/profiles/profile_manager.h"
 #include "chrome/browser/ui/tab_sharing/tab_sharing_ui.h"
 #include "components/access_code_cast/common/access_code_cast_metrics.h"
 #include "components/mirroring/browser/single_client_video_capture_host.h"
@@ -51,9 +49,7 @@
 #include "media/mojo/mojom/audio_data_pipe.mojom.h"
 #include "media/mojo/mojom/audio_input_stream.mojom.h"
 #include "media/mojo/mojom/audio_processing.mojom.h"
-#include "media/mojo/services/mojo_video_encoder_metrics_provider_service.h"
 #include "mojo/public/cpp/bindings/self_owned_receiver.h"
-#include "services/metrics/public/cpp/ukm_source_id.h"
 #include "services/network/public/mojom/network_context.mojom.h"
 #include "services/network/public/mojom/network_service.mojom.h"
 #include "services/viz/public/mojom/gpu.mojom.h"
@@ -149,21 +145,14 @@ content::WebContents* GetContents(
                                        id.main_render_frame_id));
 }
 
-// Gets the profile associated with `web_contents`, if it exists. Else, gets the
-// last used profile if it is loaded.
-Profile* GetProfileOrLastUsedProfile(content::WebContents* web_contents) {
-  if (web_contents) {
-    return Profile::FromBrowserContext(web_contents->GetBrowserContext());
-  }
-  return ProfileManager::GetLastUsedProfileIfLoaded();
-}
-
 // Returns true if this user is allowed to use Access Codes & QR codes to
 // discover cast devices, and AccessCodeCastTabSwitchingUI flag is enabled.
 bool IsAccessCodeCastTabSwitchingUIEnabled(
     const content::WebContentsMediaCaptureId& id) {
-  Profile* profile = GetProfileOrLastUsedProfile(GetContents(id));
-  return media_router::IsAccessCodeCastTabSwitchingUiEnabled(profile);
+  auto* web_contents = GetContents(id);
+  return web_contents &&
+         media_router::IsAccessCodeCastTabSwitchingUiEnabled(
+             Profile::FromBrowserContext(web_contents->GetBrowserContext()));
 }
 
 // Returns the size of the primary display in pixels, or absl::nullopt if it
@@ -207,13 +196,6 @@ void CastMirroringServiceHost::Start(
     LOG(WARNING) << "Unexpected Start() call during an active"
                  << "mirroring session";
     return;
-  }
-
-  // If the target playout delay has not yet been set (from site-initiated
-  // mirroring request) then try to set it from a feature or commandline.
-  if (!session_params->target_playout_delay) {
-    session_params->target_playout_delay =
-        media_router::GetCastMirroringPlayoutDelay();
   }
 
   // Although the base::Features get propagated to the mirroring service, the
@@ -326,12 +308,6 @@ void CastMirroringServiceHost::GetVideoCaptureHost(
       // CastMirroringServiceHost class is handled by the browser thread.
       base::BindOnce(&CastMirroringServiceHost::SetVideoCaptureHost,
                      weak_factory_for_ui_.GetWeakPtr()));
-}
-
-void CastMirroringServiceHost::GetVideoEncoderMetricsProvider(
-    mojo::PendingReceiver<media::mojom::VideoEncoderMetricsProvider> receiver) {
-  media::MojoVideoEncoderMetricsProviderService::Create(ukm::NoURLSourceId(),
-                                                        std::move(receiver));
 }
 
 void CastMirroringServiceHost::SetVideoCaptureHost(

@@ -280,14 +280,15 @@ TEST_F(NavigatorTest, RendererAbortedAboutBlankNavigation) {
   contents()->NavigateAndCommit(kUrl0);
   EXPECT_TRUE(main_test_rfh()->IsRenderFrameLive());
 
-  // The test expects cross-site navigations to change RenderFrameHosts, but not
-  // same-site navigations. Return if that can't be satisfied.
+  // The test expects cross-site navigations to change SiteInstances, but not
+  // same-site navigations. Return if SiteInstance change is not possible, and
+  // disable same-site back/forward cache to ensure SiteInstance won't change
+  // for same-site navigations.
   DisableBackForwardCacheForTesting(
       contents(), BackForwardCache::TEST_ASSUMES_NO_RENDER_FRAME_CHANGE);
   if (!ExpectSiteInstanceChangeWithoutBackForwardCache(
-          main_test_rfh()->GetSiteInstance()) ||
-      ShouldCreateNewHostForAllFrames()) {
-    GTEST_SKIP();
+          main_test_rfh()->GetSiteInstance())) {
+    return;
   }
 
   // Start a renderer-initiated navigation to about:blank.
@@ -339,14 +340,15 @@ TEST_F(NavigatorTest,
   contents()->NavigateAndCommit(kUrl0);
   EXPECT_TRUE(main_test_rfh()->IsRenderFrameLive());
 
-  // The test expects cross-site navigations to change RenderFrameHosts, but not
-  // same-site navigations. Return if that can't be satisfied.
+  // The test expects cross-site navigations to change SiteInstances, but not
+  // same-site navigations. Return if SiteInstance change is not possible, and
+  // disable same-site back/forward cache to ensure SiteInstance won't change
+  // for same-site navigations.
   DisableBackForwardCacheForTesting(
       contents(), BackForwardCache::TEST_ASSUMES_NO_RENDER_FRAME_CHANGE);
   if (!ExpectSiteInstanceChangeWithoutBackForwardCache(
-          main_test_rfh()->GetSiteInstance()) ||
-      ShouldCreateNewHostForAllFrames()) {
-    GTEST_SKIP();
+          main_test_rfh()->GetSiteInstance())) {
+    return;
   }
 
   // Start a renderer-initiated navigation to about:blank.
@@ -658,22 +660,14 @@ TEST_F(NavigatorTest, RedirectCrossSite) {
   navigation->Start();
   NavigationRequest* main_request = node->navigation_request();
   ASSERT_TRUE(main_request);
-  if (ShouldCreateNewHostForAllFrames()) {
-    EXPECT_TRUE(GetSpeculativeRenderFrameHost(node));
-  } else {
-    EXPECT_FALSE(GetSpeculativeRenderFrameHost(node));
-  }
+  EXPECT_FALSE(GetSpeculativeRenderFrameHost(node));
 
   // It then redirects to another site.
   navigation->Redirect(kUrl2);
 
   // The redirect should have been followed.
   EXPECT_EQ(1, GetLoaderForNavigationRequest(main_request)->redirect_count());
-  if (ShouldCreateNewHostForAllFrames()) {
-    EXPECT_TRUE(GetSpeculativeRenderFrameHost(node));
-  } else {
-    EXPECT_FALSE(GetSpeculativeRenderFrameHost(node));
-  }
+  EXPECT_FALSE(GetSpeculativeRenderFrameHost(node));
 
   navigation->ReadyToCommit();
   TestRenderFrameHost* final_speculative_rfh =
@@ -1006,7 +1000,7 @@ TEST_F(NavigatorTest,
 
 // PlzNavigate: Test that a reload navigation is properly signaled to the
 // RenderFrame when the navigation can commit. A speculative RenderFrameHost
-// should not be created at any step, unless RenderDocument is enabled.
+// should not be created at any step.
 TEST_F(NavigatorTest, Reload) {
   const GURL kUrl("http://www.google.com/");
   contents()->NavigateAndCommit(kUrl);
@@ -1021,11 +1015,7 @@ TEST_F(NavigatorTest, Reload) {
   EXPECT_EQ(blink::mojom::NavigationType::RELOAD,
             main_request->common_params().navigation_type);
   reload1->ReadyToCommit();
-  if (ShouldCreateNewHostForAllFrames()) {
-    EXPECT_TRUE(GetSpeculativeRenderFrameHost(node));
-  } else {
-    EXPECT_FALSE(GetSpeculativeRenderFrameHost(node));
-  }
+  EXPECT_FALSE(GetSpeculativeRenderFrameHost(node));
 
   reload1->Commit();
   EXPECT_FALSE(GetSpeculativeRenderFrameHost(node));
@@ -1040,11 +1030,7 @@ TEST_F(NavigatorTest, Reload) {
   EXPECT_EQ(blink::mojom::NavigationType::RELOAD_BYPASSING_CACHE,
             main_request->common_params().navigation_type);
   reload2->ReadyToCommit();
-  if (ShouldCreateNewHostForAllFrames()) {
-    EXPECT_TRUE(GetSpeculativeRenderFrameHost(node));
-  } else {
-    EXPECT_FALSE(GetSpeculativeRenderFrameHost(node));
-  }
+  EXPECT_FALSE(GetSpeculativeRenderFrameHost(node));
 }
 
 // PlzNavigate: Confirm that a speculative RenderFrameHost is used when
@@ -1464,15 +1450,15 @@ TEST_F(NavigatorTest, TwoNavigationsRacingCommit) {
   first_navigation->ReadyToCommit();
   EXPECT_EQ(1u, contents()->GetPrimaryMainFrame()->navigation_requests_.size());
 
-  // A second navigation starts.
+  // A second navigation starts and reaches ReadyToCommit.
   auto second_navigation =
       NavigationSimulator::CreateBrowserInitiated(kUrl1, contents());
-  second_navigation->Start();
-  EXPECT_EQ(1u, contents()->GetPrimaryMainFrame()->navigation_requests_.size());
+  second_navigation->ReadyToCommit();
+  EXPECT_EQ(2u, contents()->GetPrimaryMainFrame()->navigation_requests_.size());
 
   // The first navigation commits.
   first_navigation->Commit();
-  EXPECT_EQ(0u, contents()->GetPrimaryMainFrame()->navigation_requests_.size());
+  EXPECT_EQ(1u, contents()->GetPrimaryMainFrame()->navigation_requests_.size());
 
   // The second navigation commits.
   second_navigation->Commit();

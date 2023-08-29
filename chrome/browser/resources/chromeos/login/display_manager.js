@@ -120,6 +120,10 @@ export function invokePolymerMethod(element, name, ...args) {
       this.demoModeStartListener_ = null;
     }
 
+    get virtualKeyboardShown() {
+      return this.virtualKeyboardShown_;
+    }
+
     set virtualKeyboardShown(shown) {
       this.virtualKeyboardShown_ = shown;
       document.documentElement.setAttribute('virtual-keyboard', shown);
@@ -399,10 +403,9 @@ export function invokePolymerMethod(element, name, ...args) {
 
     /**
      * Updates "device in tablet mode" state when tablet mode is changed.
-     * @param {boolean} isInTabletMode True when in tablet mode.
+     * @param {Boolean} isInTabletMode True when in tablet mode.
      */
     setTabletModeState_(isInTabletMode) {
-      document.documentElement.setAttribute('tablet', isInTabletMode);
       for (let i = 0; i < this.screens_.length; ++i) {
         const screenId = this.screens_[i];
         const screen = $(screenId);
@@ -422,7 +425,8 @@ export function invokePolymerMethod(element, name, ...args) {
       }
 
       innerContainer.classList.remove('down');
-      innerContainer.addEventListener('transitionend', () => {
+      innerContainer.addEventListener('transitionend', function f(e) {
+        innerContainer.removeEventListener('transitionend', f);
         // Refresh defaultControl. It could have changed.
         const stepId = this.screens_[this.currentStep_];
         const step = $(stepId);
@@ -431,7 +435,7 @@ export function invokePolymerMethod(element, name, ...args) {
         if (defaultControl) {
           defaultControl.focus();
         }
-      }, /*AddEventListenerOptions=*/ {once: true});
+      }.bind(this));
       ensureTransitionEndEvent(innerContainer, MAX_SCREEN_TRANSITION_DURATION);
     }
 

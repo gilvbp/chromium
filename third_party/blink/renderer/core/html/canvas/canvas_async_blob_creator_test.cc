@@ -54,8 +54,7 @@ class MockCanvasAsyncBlobCreator : public CanvasAsyncBlobCreator {
   MOCK_METHOD0(SignalTaskSwitchInCompleteTimeoutEventForTesting, void());
 
  protected:
-  void CreateBlobAndReturnResult(Vector<unsigned char> encoded_image) override {
-  }
+  void CreateBlobAndReturnResult() override {}
   void CreateNullAndReturnResult() override {}
   void SignalAlternativeCodePathFinishedForTesting() override;
   void PostDelayedTaskToCurrentThread(const base::Location&,

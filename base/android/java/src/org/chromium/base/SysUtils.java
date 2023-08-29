@@ -13,6 +13,8 @@ import android.os.StatFs;
 import android.os.StrictMode;
 import android.util.Log;
 
+import androidx.annotation.VisibleForTesting;
+
 import org.chromium.base.annotations.CalledByNative;
 import org.chromium.base.annotations.JNINamespace;
 import org.chromium.base.annotations.NativeMethods;
@@ -145,6 +147,7 @@ public class SysUtils {
     /**
      * Resets the cached value, if any.
      */
+    @VisibleForTesting
     public static void resetForTesting() {
         sLowEndDevice = null;
         sAmountOfPhysicalMemoryKB = null;
@@ -208,12 +211,9 @@ public class SysUtils {
         return false;
     }
 
+    @VisibleForTesting
     public static void setAmountOfPhysicalMemoryKBForTesting(int physicalMemoryKB) {
         sAmountOfPhysicalMemoryKB = physicalMemoryKB;
-        ResettersForTesting.register(() -> {
-            sLowEndDevice = null;
-            sAmountOfPhysicalMemoryKB = null;
-        });
     }
 
     /**

@@ -71,6 +71,7 @@ class MockBrowserViewLayoutDelegate : public BrowserViewLayoutDelegate {
       const gfx::Rect& available_space,
       views::Label& window_title_label) const override {}
   int GetTopInsetInBrowserView() const override { return 0; }
+  int GetThemeBackgroundXInset() const override { return 0; }
   bool IsToolbarVisible() const override { return toolbar_visible_; }
   bool IsBookmarkBarVisible() const override { return bookmark_bar_visible_; }
   bool IsContentsSeparatorEnabled() const override {
@@ -97,9 +98,6 @@ class MockBrowserViewLayoutDelegate : public BrowserViewLayoutDelegate {
     return base::Contains(*supported_features, feature);
   }
   gfx::NativeView GetHostView() const override { return gfx::NativeView(); }
-  gfx::NativeView GetHostViewForAnchoring() const override {
-    return gfx::NativeView();
-  }
   bool BrowserIsSystemWebApp() const override { return false; }
   bool BrowserIsWebApp() const override { return false; }
   bool BrowserIsTypeApp() const override { return false; }
@@ -150,7 +148,6 @@ class MockImmersiveModeController : public ImmersiveModeController {
       const gfx::Rect& new_visible_bounds) override {}
   bool ShouldStayImmersiveAfterExitingFullscreen() override { return true; }
   void OnWidgetActivationChanged(views::Widget* widget, bool active) override {}
-  int GetMinimumContentOffset() const override { return 0; }
 };
 
 }  // anonymous namespace
@@ -233,8 +230,7 @@ class BrowserViewLayoutTest : public ChromeViewsTestBase {
         /*left_aligned_side_panel_separator=*/nullptr,
         /*unified_side_panel=*/nullptr,
         /*right_aligned_side_panel_separator=*/nullptr,
-        /*side_panel_rounded_corner=*/nullptr, immersive_mode_controller_.get(),
-        separator_);
+        immersive_mode_controller_.get(), separator_);
     layout->set_webui_tab_strip(webui_tab_strip());
     layout_ = layout.get();
     browser_view_->SetLayoutManager(std::move(layout));

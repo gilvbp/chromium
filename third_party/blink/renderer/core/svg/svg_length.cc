@@ -28,7 +28,6 @@
 #include "third_party/blink/renderer/core/css/parser/css_parser.h"
 #include "third_party/blink/renderer/core/execution_context/security_context.h"
 #include "third_party/blink/renderer/core/svg/animation/smil_animation_effect_parameters.h"
-#include "third_party/blink/renderer/core/svg/svg_length_context.h"
 #include "third_party/blink/renderer/core/svg_names.h"
 #include "third_party/blink/renderer/platform/heap/garbage_collected.h"
 #include "third_party/blink/renderer/platform/wtf/math_extras.h"
@@ -118,9 +117,9 @@ float SVGLength::Value(const SVGLengthConversionData& conversion_data,
 }
 
 float SVGLength::Value(const SVGLengthContext& context) const {
-  if (const auto* math_function = DynamicTo<CSSMathFunctionValue>(*value_)) {
-    return context.ResolveValue(*math_function, UnitMode());
-  }
+  if (IsCalculated() || HasContainerRelativeUnits())
+    return context.ResolveValue(AsCSSPrimitiveValue(), UnitMode());
+
   return context.ConvertValueToUserUnits(value_->GetFloatValue(), UnitMode(),
                                          NumericLiteralType());
 }
@@ -132,7 +131,7 @@ void SVGLength::SetValueAsNumber(float value) {
 
 void SVGLength::SetValue(float value, const SVGLengthContext& context) {
   // |value| is in user units.
-  if (IsCalculated()) {
+  if (IsCalculated() || HasContainerRelativeUnits()) {
     value_ = CSSNumericLiteralValue::Create(
         value, CSSPrimitiveValue::UnitType::kUserUnits);
     return;
@@ -321,7 +320,8 @@ void SVGLength::CalculateAnimatedValue(
   const SVGLength* unit_determining_length =
       (percentage < 0.5) ? from_length : to_length;
   CSSPrimitiveValue::UnitType result_unit =
-      !unit_determining_length->IsCalculated()
+      (!unit_determining_length->IsCalculated() &&
+       !unit_determining_length->HasContainerRelativeUnits())
           ? unit_determining_length->NumericLiteralType()
           : CSSPrimitiveValue::UnitType::kUserUnits;
 

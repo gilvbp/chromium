@@ -150,7 +150,6 @@ ConvertIconProtoDataToShortcutsMenuIcon(
 }
 
 gfx::ImageFamily PackageIconsIntoImageFamily(
-    bool allow_empty,
     std::map<SquareSizePx, SkBitmap> icon_bitmaps) {
   gfx::ImageFamily image_family;
   for (auto& size_and_bitmap : icon_bitmaps) {
@@ -159,7 +158,7 @@ gfx::ImageFamily PackageIconsIntoImageFamily(
   }
 
   // If the image failed to load, use the standard application icon.
-  if (!allow_empty && image_family.empty()) {
+  if (image_family.empty()) {
     SquareSizePx icon_size_in_px = GetDesiredIconSizesForShortcut().back();
     gfx::ImageSkia image_skia = CreateDefaultApplicationIcon(icon_size_in_px);
     image_family.Add(gfx::Image(image_skia));
@@ -170,13 +169,8 @@ gfx::ImageFamily PackageIconsIntoImageFamily(
 
 std::unique_ptr<ShortcutInfo> SetFavicon(
     std::unique_ptr<ShortcutInfo> shortcut_info,
-    IconPurpose purpose,
     gfx::ImageFamily image_family) {
-  if (purpose == IconPurpose::ANY) {
-    shortcut_info->favicon = std::move(image_family);
-  } else if (purpose == IconPurpose::MASKABLE) {
-    shortcut_info->favicon_maskable = std::move(image_family);
-  }
+  shortcut_info->favicon = std::move(image_family);
   return shortcut_info;
 }
 
@@ -253,27 +247,26 @@ std::unique_ptr<ShortcutInfo> BuildShortcutInfoWithoutFavicon(
   return shortcut_info;
 }
 
-void PopulateFaviconPurposeForShortcutInfo(
+void PopulateFaviconForShortcutInfo(
     const WebApp* app,
     WebAppIconManager& icon_manager,
-    IconPurpose purpose,
-    base::OnceCallback<void(std::unique_ptr<ShortcutInfo>)> callback,
-    std::unique_ptr<ShortcutInfo> shortcut_info_to_populate) {
+    std::unique_ptr<ShortcutInfo> shortcut_info_to_populate,
+    base::OnceCallback<void(std::unique_ptr<ShortcutInfo>)> callback) {
   DCHECK(app);
 
   // Build a common intersection between desired and downloaded icons.
   auto icon_sizes_in_px = base::STLSetIntersection<std::vector<SquareSizePx>>(
-      app->downloaded_icon_sizes(purpose), GetDesiredIconSizesForShortcut());
+      app->downloaded_icon_sizes(IconPurpose::ANY),
+      GetDesiredIconSizesForShortcut());
 
   auto populate_and_return_shortcut_info =
-      base::BindOnce(&SetFavicon, std::move(shortcut_info_to_populate), purpose)
+      base::BindOnce(&SetFavicon, std::move(shortcut_info_to_populate))
           .Then(std::move(callback));
 
   if (!icon_sizes_in_px.empty()) {
     icon_manager.ReadIcons(
-        app->app_id(), purpose, icon_sizes_in_px,
-        base::BindOnce(&PackageIconsIntoImageFamily,
-                       /*allow_empty=*/purpose != IconPurpose::ANY)
+        app->app_id(), IconPurpose::ANY, icon_sizes_in_px,
+        base::BindOnce(&PackageIconsIntoImageFamily)
             .Then(std::move(populate_and_return_shortcut_info)));
     return;
   }
@@ -282,26 +275,9 @@ void PopulateFaviconPurposeForShortcutInfo(
   // get.
   SquareSizePx desired_icon_size = GetDesiredIconSizesForShortcut().back();
   icon_manager.ReadIconAndResize(
-      app->app_id(), purpose, desired_icon_size,
-      base::BindOnce(&PackageIconsIntoImageFamily,
-                     /*allow_empty=*/purpose != IconPurpose::ANY)
+      app->app_id(), IconPurpose::ANY, desired_icon_size,
+      base::BindOnce(&PackageIconsIntoImageFamily)
           .Then(std::move(populate_and_return_shortcut_info)));
-}
-
-void PopulateFaviconForShortcutInfo(
-    const WebApp* app,
-    WebAppIconManager& icon_manager,
-    std::unique_ptr<ShortcutInfo> shortcut_info_to_populate,
-    base::OnceCallback<void(std::unique_ptr<ShortcutInfo>)> callback) {
-  DCHECK(app);
-
-  auto populate_favicon_maskable = base::BindOnce(
-      &PopulateFaviconPurposeForShortcutInfo, app, std::ref(icon_manager),
-      IconPurpose::MASKABLE, std::move(callback));
-
-  PopulateFaviconPurposeForShortcutInfo(app, icon_manager, IconPurpose::ANY,
-                                        std::move(populate_favicon_maskable),
-                                        std::move(shortcut_info_to_populate));
 }
 
 std::vector<WebAppShortcutsMenuItemInfo> CreateShortcutsMenuItemInfos(

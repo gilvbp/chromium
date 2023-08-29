@@ -78,11 +78,10 @@ protocol::Response PageAgentViews::disable() {
 }
 
 protocol::Response PageAgentViews::reload(protocol::Maybe<bool> bypass_cache) {
-  if (!bypass_cache.has_value()) {
+  if (!bypass_cache.isJust())
     return protocol::Response::Success();
-  }
 
-  bool shift_pressed = bypass_cache.value_or(false);
+  bool shift_pressed = bypass_cache.fromMaybe(false);
 
   // Ctrl+Shift+R called to toggle widget lock.
   if (shift_pressed) {

@@ -38,7 +38,7 @@ class MediaHistoryKeyedServiceFactory : public ProfileKeyedServiceFactory {
   MediaHistoryKeyedServiceFactory();
   ~MediaHistoryKeyedServiceFactory() override;
 
-  std::unique_ptr<KeyedService> BuildServiceInstanceForBrowserContext(
+  KeyedService* BuildServiceInstanceFor(
       content::BrowserContext* context) const override;
 };
 

@@ -14,15 +14,13 @@ class BrowserContext;
 
 class BrowserAccessibilityStateImplAndroid
     : public BrowserAccessibilityStateImpl,
-      public ui::AccessibilityState::AccessibilityStateDelegate {
+      public ui::AccessibilityState::Delegate {
  public:
   BrowserAccessibilityStateImplAndroid();
   ~BrowserAccessibilityStateImplAndroid() override;
 
-  // ui::AccessibilityState::AccessibilityStateDelegate overrides
+  // ui::AccessibilityState::Delegate overrides
   void OnAnimatorDurationScaleChanged() override;
-  void OnDisplayInversionEnabledChanged(bool enabled) override;
-  void OnContrastLevelChanged(bool highContrastEnabled) override;
   void RecordAccessibilityServiceInfoHistograms() override;
 
  protected:

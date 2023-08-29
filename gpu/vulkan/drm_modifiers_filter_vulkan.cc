@@ -5,7 +5,6 @@
 #include "gpu/vulkan/drm_modifiers_filter_vulkan.h"
 
 #include "base/check.h"
-#include "base/containers/contains.h"
 #include "base/containers/flat_set.h"
 #include "gpu/vulkan/vulkan_function_pointers.h"
 #include "gpu/vulkan/vulkan_instance.h"
@@ -53,7 +52,7 @@ std::vector<uint64_t> DrmModifiersFilterVulkan::Filter(
   }
   std::vector<uint64_t> intersection;
   for (const auto& modifier : modifiers) {
-    if (base::Contains(vulkan_modifiers, modifier)) {
+    if (vulkan_modifiers.find(modifier) != vulkan_modifiers.end()) {
       intersection.push_back(modifier);
     }
   }

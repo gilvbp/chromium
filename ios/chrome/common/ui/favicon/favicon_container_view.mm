@@ -8,6 +8,10 @@
 #import "ios/chrome/common/ui/favicon/favicon_view.h"
 #import "ios/chrome/common/ui/util/constraints_ui_util.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 namespace {
 // The width and height of the favicon ImageView.
 const CGFloat kFaviconWidth = 16;

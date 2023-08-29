@@ -4,7 +4,9 @@
 
 #import "ios/web/public/test/fakes/fake_web_state_delegate.h"
 
-#import "base/containers/contains.h"
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace web {
 
@@ -45,7 +47,8 @@ WebState* FakeWebStateDelegate::CreateNewWebState(WebState* source,
   last_create_new_web_state_request_->opener_url = opener_url;
   last_create_new_web_state_request_->initiated_by_user = initiated_by_user;
 
-  if (!initiated_by_user && !base::Contains(allowed_popups_, opener_url)) {
+  if (!initiated_by_user &&
+      allowed_popups_.find(opener_url) == allowed_popups_.end()) {
     popups_.push_back(FakePopup(url, opener_url));
     return nullptr;
   }

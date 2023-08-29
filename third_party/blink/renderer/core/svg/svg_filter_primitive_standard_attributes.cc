@@ -22,7 +22,6 @@
 #include "third_party/blink/renderer/core/svg/svg_filter_primitive_standard_attributes.h"
 
 #include "third_party/blink/renderer/core/layout/svg/layout_svg_filter_primitive.h"
-#include "third_party/blink/renderer/core/layout/svg/layout_svg_resource_container.h"
 #include "third_party/blink/renderer/core/svg/graphics/filters/svg_filter_builder.h"
 #include "third_party/blink/renderer/core/svg/svg_animated_length.h"
 #include "third_party/blink/renderer/core/svg/svg_animated_string.h"
@@ -149,8 +148,7 @@ void SVGFilterPrimitiveStandardAttributes::SetStandardAttributes(
 
   gfx::RectF subregion = DefaultFilterPrimitiveSubregion(filter_effect);
   gfx::RectF primitive_boundaries =
-      LayoutSVGResourceContainer::ResolveRectangle(*this, primitive_units,
-                                                   reference_box);
+      SVGLengthContext::ResolveRectangle(this, primitive_units, reference_box);
 
   if (x()->IsSpecified())
     subregion.set_x(primitive_boundaries.x());

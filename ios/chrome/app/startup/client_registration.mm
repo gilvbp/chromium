@@ -9,6 +9,10 @@
 #import "ios/net/cookies/cookie_store_ios_client.h"
 #import "ios/web/public/web_client.h"
 
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
+
 @implementation ClientRegistration
 
 + (void)registerClients {

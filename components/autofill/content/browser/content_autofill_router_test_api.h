@@ -5,7 +5,7 @@
 #ifndef COMPONENTS_AUTOFILL_CONTENT_BROWSER_CONTENT_AUTOFILL_ROUTER_TEST_API_H_
 #define COMPONENTS_AUTOFILL_CONTENT_BROWSER_CONTENT_AUTOFILL_ROUTER_TEST_API_H_
 
-#include "base/memory/raw_ref.h"
+#include "base/memory/raw_ptr.h"
 #include "components/autofill/content/browser/content_autofill_router.h"
 
 namespace autofill {
@@ -14,7 +14,9 @@ namespace autofill {
 class ContentAutofillRouterTestApi {
  public:
   explicit ContentAutofillRouterTestApi(ContentAutofillRouter* router)
-      : router_(*router) {}
+      : router_(router) {
+    DCHECK(router_);
+  }
 
   void set_last_queried_source(ContentAutofillDriver* driver) {
     router_->last_queried_source_ = driver;
@@ -25,12 +27,9 @@ class ContentAutofillRouterTestApi {
   }
 
  private:
-  const raw_ref<ContentAutofillRouter> router_;
+  // Non-null pointer to wrapped ContentAutofillRouter.
+  raw_ptr<ContentAutofillRouter> router_;
 };
-
-inline ContentAutofillRouterTestApi test_api(ContentAutofillRouter& router) {
-  return ContentAutofillRouterTestApi(&router);
-}
 
 }  // namespace autofill
 

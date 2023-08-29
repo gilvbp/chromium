@@ -1640,9 +1640,21 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
   // Clear any currently configured certificates.
   SSL_certs_clear(ssl_.get());
 
-#if !BUILDFLAG(ENABLE_CLIENT_CERTIFICATES)
+#if BUILDFLAG(IS_IOS)
+  // TODO(droger): Support client auth on iOS. See http://crbug.com/145954).
+  //
+  // Historically this was disabled because client auth required
+  // platform-specific code deep in //net. Nowadays, this is abstracted away and
+  // we could enable the interfaces on iOS for platform-independence. However,
+  // merely enabling them changes our behavior from automatically proceeding
+  // with no client certificate to raising
+  // `URLRequest::Delegate::OnCertificateRequested`. Callers would need to be
+  // updated to apply that behavior manually.
+  //
+  // If fixing this, re-enable the tests in ssl_client_socket_unittest.cc and
+  // ssl_server_socket_unittest.cc which are disabled on iOS.
   LOG(WARNING) << "Client auth is not supported";
-#else   // BUILDFLAG(ENABLE_CLIENT_CERTIFICATES)
+#else   // !BUILDFLAG(IS_IOS)
   if (!send_client_cert_) {
     // First pass: we know that a client certificate is needed, but we do not
     // have one at hand. Suspend the handshake. SSL_get_error will return
@@ -1677,7 +1689,7 @@ int SSLClientSocketImpl::ClientCertRequestCallback(SSL* ssl) {
                                 client_cert_->intermediate_buffers().size()));
     return 1;
   }
-#endif  // !BUILDFLAG(ENABLE_CLIENT_CERTIFICATES)
+#endif  // BUILDFLAG(IS_IOS)
 
   // Send no client certificate.
   net_log_.AddEventWithIntParams(NetLogEventType::SSL_CLIENT_CERT_PROVIDED,

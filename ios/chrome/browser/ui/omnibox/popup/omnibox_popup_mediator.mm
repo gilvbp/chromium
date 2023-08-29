@@ -28,12 +28,9 @@
 #import "ios/chrome/browser/favicon/favicon_loader.h"
 #import "ios/chrome/browser/net/crurl.h"
 #import "ios/chrome/browser/ntp/new_tab_page_util.h"
-#import "ios/chrome/browser/shared/coordinator/default_browser_promo/default_browser_promo_scene_agent_utils.h"
-#import "ios/chrome/browser/shared/coordinator/scene/scene_state_browser_agent.h"
-#import "ios/chrome/browser/shared/model/prefs/pref_names.h"
+#import "ios/chrome/browser/shared/coordinator/default_browser_promo/non_modal_default_browser_promo_scheduler_scene_agent.h"
 #import "ios/chrome/browser/shared/public/commands/application_commands.h"
 #import "ios/chrome/browser/shared/public/commands/open_new_tab_command.h"
-#import "ios/chrome/browser/shared/public/features/features.h"
 #import "ios/chrome/browser/shared/public/features/system_flags.h"
 #import "ios/chrome/browser/shared/ui/util/pasteboard_util.h"
 #import "ios/chrome/browser/ui/menu/browser_action_factory.h"
@@ -50,10 +47,12 @@
 #import "ios/chrome/browser/ui/omnibox/popup/popup_debug_info_consumer.h"
 #import "ios/chrome/browser/ui/omnibox/popup/popup_swift.h"
 #import "ios/chrome/browser/ui/omnibox/popup/remote_suggestions_service_observer_bridge.h"
-#import "ios/chrome/browser/ui/settings/utils/pref_backed_boolean.h"
-#import "ios/chrome/browser/ui/toolbar/public/toolbar_omnibox_consumer.h"
 #import "ios/chrome/common/ui/favicon/favicon_attributes.h"
 #import "ui/base/l10n/l10n_util.h"
+
+#if !defined(__has_feature) || !__has_feature(objc_arc)
+#error "This file requires ARC support."
+#endif
 
 namespace {
 const CGFloat kOmniboxIconSize = 16;
@@ -62,8 +61,7 @@ const CGFloat kOmniboxIconSize = 16;
 const NSUInteger kMaxSuggestTileTypePosition = 15;
 }  // namespace
 
-@interface OmniboxPopupMediator () <BooleanObserver,
-                                    PedalSectionExtractorDelegate>
+@interface OmniboxPopupMediator () <PedalSectionExtractorDelegate>
 
 // FET reference.
 @property(nonatomic, assign) feature_engagement::Tracker* tracker;
@@ -98,11 +96,6 @@ const NSUInteger kMaxSuggestTileTypePosition = 15;
       _remoteSuggestionsServiceObserverBridge;
 
   OmniboxPopupMediatorDelegate* _delegate;  // weak
-
-  /// Preferred omnibox position, logged in omnibox logs.
-  metrics::OmniboxEventProto::OmniboxPosition _preferredOmniboxPosition;
-  /// Pref tracking if bottom omnibox is enabled.
-  PrefBackedBoolean* _bottomOmniboxEnabled;
 }
 @synthesize consumer = _consumer;
 @synthesize hasResults = _hasResults;
@@ -132,8 +125,6 @@ const NSUInteger kMaxSuggestTileTypePosition = 15;
     _autocompleteController = autocompleteController;
     _remoteSuggestionsService = remoteSuggestionsService;
     _tracker = tracker;
-    // This is logged only when `IsBottomOmniboxSteadyStateEnabled` is enabled.
-    _preferredOmniboxPosition = metrics::OmniboxEventProto::UNKNOWN_POSITION;
   }
   return self;
 }
@@ -159,11 +150,7 @@ const NSUInteger kMaxSuggestTileTypePosition = 15;
 - (void)updateWithResults:(const AutocompleteResult&)result {
   [self updateMatches:result];
   self.open = !result.empty();
-  metrics::OmniboxFocusType inputFocusType =
-      self.autocompleteController->input().focus_type();
-  BOOL isFocusing =
-      inputFocusType == metrics::OmniboxFocusType::INTERACTION_FOCUS;
-  [self.presenter updatePopupOnFocus:isFocusing];
+  [self.presenter updatePopup];
 }
 
 - (void)setTextAlignment:(NSTextAlignment)alignment {
@@ -196,18 +183,6 @@ const NSUInteger kMaxSuggestTileTypePosition = 15;
   }
 
   _debugInfoConsumer = debugInfoConsumer;
-}
-
-- (void)setPrefService:(PrefService*)prefService {
-  _prefService = prefService;
-  if (IsBottomOmniboxSteadyStateEnabled() && _prefService) {
-    _bottomOmniboxEnabled =
-        [[PrefBackedBoolean alloc] initWithPrefService:_prefService
-                                              prefName:prefs::kBottomOmnibox];
-    [_bottomOmniboxEnabled setObserver:self];
-    // Initialize to the correct value.
-    [self booleanDidChange:_bottomOmniboxEnabled];
-  }
 }
 
 #pragma mark - AutocompleteResultDataSource
@@ -265,7 +240,7 @@ const NSUInteger kMaxSuggestTileTypePosition = 15;
 
     // Don't log pastes in incognito.
     if (!self.incognito && match.type == AutocompleteMatchType::CLIPBOARD_URL) {
-      NotifyDefaultBrowserPromoUserPastedInOmnibox(self.sceneState);
+      [self.promoScheduler logUserPastedInOmnibox];
       LogToFETUserPastedURLIntoOmnibox(self.tracker);
     }
     if (!self.incognito &&
@@ -346,21 +321,6 @@ const NSUInteger kMaxSuggestTileTypePosition = 15;
       base::UmaHistogramExactLinear("Omnibox.SuggestTiles.SelectedTileType",
                                     tileType, SuggestTileType::kCount);
       return;
-    }
-  }
-}
-
-#pragma mark - Boolean Observer
-
-- (void)booleanDidChange:(id<ObservableBoolean>)observableBoolean {
-  if (observableBoolean == _bottomOmniboxEnabled) {
-    _preferredOmniboxPosition =
-        _bottomOmniboxEnabled.value
-            ? metrics::OmniboxEventProto::BOTTOM_POSITION
-            : metrics::OmniboxEventProto::TOP_POSITION;
-    if (self.autocompleteController) {
-      self.autocompleteController->SetSteadyStateOmniboxPosition(
-          _preferredOmniboxPosition);
     }
   }
 }

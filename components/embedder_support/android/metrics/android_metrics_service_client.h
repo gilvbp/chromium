@@ -145,7 +145,6 @@ class AndroidMetricsServiceClient : public MetricsServiceClient,
   SystemProfileProto::Channel GetChannel() override;
   bool IsExtendedStableChannel() override;
   std::string GetVersionString() override;
-  void MergeSubprocessHistograms() override;
   void CollectFinalMetricsForLog(
       const base::OnceClosure done_callback) override;
   std::unique_ptr<MetricsLogUploader> CreateUploader(

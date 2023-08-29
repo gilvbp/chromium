@@ -25,7 +25,7 @@ def CheckEnsureSpecifier(input_api, output_api):
             builders = input_api.json.load(f)
             for key, value in builders.items():
                 tag = value["specifiers"][0]
-                if tag == "Android":
+                if tag == "Android" or tag == "Trusty":
                     continue
                 if tag not in tags:
                     error_message = (

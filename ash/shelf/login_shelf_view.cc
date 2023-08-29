@@ -85,7 +85,6 @@ constexpr LoginShelfView::ButtonId kButtonIds[] = {
     LoginShelfView::kEnterpriseEnrollment,
     LoginShelfView::kSignIn,
     LoginShelfView::kOsInstall,
-    LoginShelfView::kSchoolEnrollment,
 };
 
 LoginMetricsRecorder::ShelfButtonClickTarget GetUserClickTarget(int button_id) {
@@ -113,9 +112,6 @@ LoginMetricsRecorder::ShelfButtonClickTarget GetUserClickTarget(int button_id) {
       return LoginMetricsRecorder::ShelfButtonClickTarget::kSignIn;
     case LoginShelfView::kOsInstall:
       return LoginMetricsRecorder::ShelfButtonClickTarget::kOsInstallButton;
-    case LoginShelfView::kSchoolEnrollment:
-      return LoginMetricsRecorder::ShelfButtonClickTarget::
-          kSchoolEnrollmentButton;
   }
   return LoginMetricsRecorder::ShelfButtonClickTarget::kTargetCount;
 }
@@ -301,27 +297,12 @@ LoginShelfView::LoginShelfView(
                    }));
              }),
              IDS_ASH_PARENT_ACCESS_BUTTON, kPinRequestLockIcon);
-  if (features::IsOobeSoftwareUpdateEnabled()) {
-    add_button(kEnterpriseEnrollment,
-               base::BindRepeating(
-                   &LoginScreenController::HandleAccelerator,
-                   base::Unretained(Shell::Get()->login_screen_controller()),
-                   ash::LoginAcceleratorAction::kStartEnrollment),
-               IDS_ASH_DEVICE_ENROLLMENT_BUTTON, kShelfEnterpriseIcon);
-  } else {
-    add_button(kEnterpriseEnrollment,
-               base::BindRepeating(
-                   &LoginScreenController::HandleAccelerator,
-                   base::Unretained(Shell::Get()->login_screen_controller()),
-                   ash::LoginAcceleratorAction::kStartEnrollment),
-               IDS_ASH_ENTERPRISE_ENROLLMENT_BUTTON, kShelfEnterpriseIcon);
-  }
-  add_button(kSchoolEnrollment,
+  add_button(kEnterpriseEnrollment,
              base::BindRepeating(
                  &LoginScreenController::HandleAccelerator,
                  base::Unretained(Shell::Get()->login_screen_controller()),
                  ash::LoginAcceleratorAction::kStartEnrollment),
-             IDS_ASH_SCHOOL_ENROLLMENT_BUTTON, kShelfEnterpriseIcon);
+             IDS_ASH_ENTERPRISE_ENROLLMENT_BUTTON, kShelfEnterpriseIcon);
   add_button(kSignIn,
              base::BindRepeating(
                  &LoginScreenController::HandleAccelerator,
@@ -650,10 +631,6 @@ void LoginShelfView::UpdateUi() {
   GetViewByID(kBrowseAsGuest)->SetVisible(ShouldShowGuestButton());
   GetViewByID(kEnterpriseEnrollment)
       ->SetVisible(ShouldShowEnterpriseEnrollmentButton());
-
-  GetViewByID(kSchoolEnrollment)
-      ->SetVisible(ShouldShowSchoolEnrollmentButton());
-
   GetViewByID(kSignIn)->SetVisible(ShouldShowSignInButton());
 
   GetViewByID(kAddUser)->SetVisible(ShouldShowAddUserButton());
@@ -717,8 +694,6 @@ bool LoginShelfView::ShouldShowGuestAndAppsButtons() const {
   bool dialog_state_allowed = false;
   if (dialog_state_ == OobeDialogState::USER_CREATION ||
       dialog_state_ == OobeDialogState::GAIA_SIGNIN ||
-      dialog_state_ == OobeDialogState::SETUP_CHILD ||
-      dialog_state_ == OobeDialogState::ENROLL_TRIAGE ||
       dialog_state_ == OobeDialogState::GAIA_INFO) {
     dialog_state_allowed = !login_screen_has_users_ && is_first_signin_step_;
   } else if (dialog_state_ == OobeDialogState::ERROR ||
@@ -788,15 +763,6 @@ bool LoginShelfView::ShouldShowEnterpriseEnrollmentButton() const {
       Shell::Get()->session_controller()->GetSessionState();
   return session_state == SessionState::OOBE &&
          dialog_state_ == OobeDialogState::USER_CREATION;
-}
-
-bool LoginShelfView::ShouldShowSchoolEnrollmentButton() const {
-  const SessionState session_state =
-      Shell::Get()->session_controller()->GetSessionState();
-
-  return features::IsOobeSoftwareUpdateEnabled() &&
-         session_state == SessionState::OOBE &&
-         dialog_state_ == OobeDialogState::SETUP_CHILD;
 }
 
 bool LoginShelfView::ShouldShowSignInButton() const {

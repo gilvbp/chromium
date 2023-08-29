@@ -11,7 +11,7 @@ namespace content {
 // the expected pixel results on retina capable displays.
 void EnsureCorrectResolutionSettings();
 
-// Sets up base::apple::BaseBundleID.
+// Sets up base::mac::BaseBundleID.
 void OverrideBundleID();
 
 // Initializes NSApplication.

@@ -37,17 +37,15 @@ LazyBackgroundTaskQueueFactory::LazyBackgroundTaskQueueFactory()
 LazyBackgroundTaskQueueFactory::~LazyBackgroundTaskQueueFactory() {
 }
 
-std::unique_ptr<KeyedService>
-LazyBackgroundTaskQueueFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* LazyBackgroundTaskQueueFactory::BuildServiceInstanceFor(
     BrowserContext* context) const {
-  return std::make_unique<LazyBackgroundTaskQueue>(context);
+  return new LazyBackgroundTaskQueue(context);
 }
 
 BrowserContext* LazyBackgroundTaskQueueFactory::GetBrowserContextToUse(
     BrowserContext* context) const {
   // Redirected in incognito.
-  return ExtensionsBrowserClient::Get()->GetContextRedirectedToOriginal(
-      context, /*force_guest_profile=*/true);
+  return ExtensionsBrowserClient::Get()->GetOriginalContext(context);
 }
 
 }  // namespace extensions

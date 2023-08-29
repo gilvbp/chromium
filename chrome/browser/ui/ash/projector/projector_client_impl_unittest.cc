@@ -213,8 +213,7 @@ class ProjectorClientImplUnitTest
   base::HistogramTester histogram_tester_;
 
   content::BrowserTaskEnvironment task_environment_;
-  raw_ptr<Profile, DanglingUntriaged | ExperimentalAsh> testing_profile_ =
-      nullptr;
+  raw_ptr<Profile, ExperimentalAsh> testing_profile_ = nullptr;
 
   TestingProfileManager testing_profile_manager_{
       TestingBrowserProcess::GetGlobal()};
@@ -402,13 +401,16 @@ INSTANTIATE_TEST_SUITE_P(
     ProjectorClientTestScenarios,
     ProjectorClientImplUnitTest,
     ::testing::Values(
-        ProjectorClientTestScenario({features::kOnDeviceSpeechRecognition}, {}),
+        ProjectorClientTestScenario({features::kProjector,
+                                     features::kOnDeviceSpeechRecognition},
+                                    {}),
         ProjectorClientTestScenario(
-            {features::kOnDeviceSpeechRecognition,
+            {features::kProjector, features::kOnDeviceSpeechRecognition,
              features::kForceEnableServerSideSpeechRecognitionForDev},
             {}),
         ProjectorClientTestScenario(
-            {features::kInternalServerSideSpeechRecognition,
+            {features::kProjector,
+             features::kInternalServerSideSpeechRecognition,
              features::kOnDeviceSpeechRecognition},
             {features::kForceEnableServerSideSpeechRecognitionForDev})));
 

@@ -11,7 +11,6 @@
 #include "third_party/blink/renderer/platform/bindings/script_wrappable.h"
 
 namespace blink {
-class AbortSignal;
 class DOMTaskSignal;
 
 // The scheduler uses `ScriptWrappableTaskState` objects to store continuation
@@ -30,22 +29,19 @@ class MODULES_EXPORT ScriptWrappableTaskState final : public ScriptWrappable {
   static void SetCurrent(ScriptState*, ScriptWrappableTaskState*);
 
   ScriptWrappableTaskState(scheduler::TaskAttributionId id,
-                           AbortSignal* abort_source,
-                           DOMTaskSignal* priority_source);
+                           DOMTaskSignal* signal);
 
   scheduler::TaskAttributionId GetTaskAttributionId() const {
     return task_attribution_id_;
   }
 
-  AbortSignal* GetAbortSource() { return abort_source_; }
-  DOMTaskSignal* GetPrioritySource() { return priority_source_; }
+  DOMTaskSignal* GetSignal() { return signal_; }
 
   void Trace(Visitor*) const override;
 
  private:
   const scheduler::TaskAttributionId task_attribution_id_;
-  const Member<AbortSignal> abort_source_;
-  const Member<DOMTaskSignal> priority_source_;
+  const Member<DOMTaskSignal> signal_;
 };
 
 }  // namespace blink

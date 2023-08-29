@@ -73,16 +73,12 @@ class CORE_EXPORT SVGElement : public Element {
   }
   static bool IsAnimatableCSSProperty(const QualifiedName&);
 
-  bool HasMotionTransform() const { return HasSVGRareData(); }
-  // Apply any "motion transform" contribution (if existing.)
-  void ApplyMotionTransform(AffineTransform&) const;
-
-  enum ApplyMotionTransformTag {
+  enum ApplyMotionTransform {
     kExcludeMotionTransform,
     kIncludeMotionTransform
   };
-  bool HasTransform(ApplyMotionTransformTag) const;
-  AffineTransform CalculateTransform(ApplyMotionTransformTag) const;
+  bool HasTransform(ApplyMotionTransform) const;
+  AffineTransform CalculateTransform(ApplyMotionTransform) const;
 
   enum CTMScope {
     kNearestViewportScope,  // Used by SVGGraphicsElement::getCTM()
@@ -170,7 +166,7 @@ class CORE_EXPORT SVGElement : public Element {
   void CollectExtraStyleForPresentationAttribute(
       MutableCSSPropertyValueSet*) override;
 
-  const ComputedStyle* CustomStyleForLayoutObject(
+  scoped_refptr<const ComputedStyle> CustomStyleForLayoutObject(
       const StyleRecalcContext&) final;
   bool LayoutObjectIsNeeded(const DisplayStyle&) const override;
 
@@ -242,8 +238,6 @@ class CORE_EXPORT SVGElement : public Element {
   static void SynchronizeListOfSVGAttributes(
       const base::span<SVGAnimatedPropertyBase*> attributes);
 
-  bool HasFocusEventListeners() const;
-
  protected:
   SVGElement(const QualifiedName&,
              Document&,
@@ -286,6 +280,8 @@ class CORE_EXPORT SVGElement : public Element {
   void ReportAttributeParsingError(SVGParsingError,
                                    const QualifiedName&,
                                    const AtomicString&);
+  bool HasFocusEventListeners() const;
+
   void AddedEventListener(const AtomicString& event_type,
                           RegisteredEventListener&) override;
   void RemovedEventListener(const AtomicString& event_type,

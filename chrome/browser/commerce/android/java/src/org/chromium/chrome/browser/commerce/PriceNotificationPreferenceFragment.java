@@ -169,6 +169,7 @@ public class PriceNotificationPreferenceFragment
         }
     }
 
+    @VisibleForTesting
     void setPrefServiceForTesting(PrefService prefs) {
         mPrefService = prefs;
     }

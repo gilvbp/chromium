@@ -37,10 +37,9 @@ InstallLimiterFactory::InstallLimiterFactory()
 
 InstallLimiterFactory::~InstallLimiterFactory() = default;
 
-std::unique_ptr<KeyedService>
-InstallLimiterFactory::BuildServiceInstanceForBrowserContext(
+KeyedService* InstallLimiterFactory::BuildServiceInstanceFor(
     content::BrowserContext* profile) const {
-  return std::make_unique<InstallLimiter>();
+  return new InstallLimiter();
 }
 
 }  // namespace extensions

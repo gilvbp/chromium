@@ -91,6 +91,8 @@ public class WebContentsDarkModeControllerUnitTest {
 
     @After
     public void tearDown() {
+        GlobalNightModeStateProviderHolder.setInstanceForTesting(null);
+        Profile.setLastUsedProfileForTesting(null);
         ShadowColorUtils.sInNightMode = false;
 
         UmaRecorderHolder.resetForTesting();
